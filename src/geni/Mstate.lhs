@@ -659,9 +659,12 @@ generateStep' = do
   -- (monadic state) and which should go in the result (res')
   res' <- classifyNew res
   -- put the given into the chart untouched 
+  st <- get
+  let isNotOrdered = (not.orderedadj.genconfig) st
+      isNullAdj    = (null.adjnodes)
   if (curStep == Initial) 
      then addToGenRep   given
-     else addToTrashRep given
+     else when ((isNullAdj given) || isNotOrdered) $ addToTrashRep given
   return res'
 \end{code}
 
@@ -701,12 +704,12 @@ classifyNew l = do
   let isResult x = (ttype x /= Auxiliar) && (null $ substnodes x) 
                    && (inputSem == treeSem) 
                    where treeSem = (sortSem $ tsemantics x)
-      tbunify x ls = case (tbUnifyTree x) of
+      tbUnify x ls = case (tbUnifyTree x) of
                        Nothing -> do addToTrashRep x      
                                      return ls
                        Just x2 -> return (x2:ls)
       classify ls x = 
-        case () of _ | isResult  x -> tbunify x ls
+        case () of _ | isResult  x -> tbUnify x ls
                      | isPureAux x -> do addToAuxRep x
                                          return ls
                      | otherwise   -> do addToInitRep x
@@ -787,14 +790,12 @@ semfilter inputsem aux initial =
 of each node on each tree. If succesful we return the tree, otherwise we
 return Nothing.  This is is the final step in generation of a result.
 
-We actually do unification twice: the first time is to check if
+We do unification in twe steps: the first time is to check if
 unification is possible and to determine/apply variable substitutions
 throughout the entire tree.  The first time we do unification, we
 discard the results.  The second time we do unification is to get the
 result and only that; we do not do any more success checks or
-substitutions.  Why this crazy two pass approach?  Either simplicity or
-stupidity.  I could not figure out how to do it in one go without making
-a huge mess of the code or lots of traversals through the tree.
+substitutions.  
 
 \begin{code}
 type TbMaybe = Maybe (Subst, Tree GNode)
@@ -838,7 +839,7 @@ There are three things going on in here:
       succeeds
 \item keep track of the substitutions that need to be performed -
       any new substitutions that result from unification are 
-      appendend to the pending list
+      added to the pending list
 \item propagate new substitutions throughout the tree - this is
       why we keep a copy of the tree; note that we \emph{have}
       to keep the entire tree around because variable substitutions
@@ -852,10 +853,12 @@ we keep a list of pending substitutions instead of simply returning
 the corrected tree.  
 
 Note that we wrap the second argument in a Maybe; this is used to
-prevent the function from doing any work if a unification failure had
-already occured. Getting this right was a big pain in the butt, so don't
-go trying to simplify this over-complicated code unless you know what
-you're doing.
+indicate that if unification suceeds or fails.  We also use it to
+prevent the function from doing any work if a unification failure
+from a previous call has already occured. 
+
+Getting this right was a big pain in the butt, so don't go trying to
+simplify this over-complicated code unless you know what you're doing.
 
 \begin{code}
 tbUnifyNode :: GNode -> TbMaybe -> TbMaybe 
