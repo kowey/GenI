@@ -1,0 +1,4 @@
+Macros  = kowey.macros.xml
+Lexicon = lexiquemini.tagml
+SemLexicon = stupid.semlex
+GrammarType = TAGML

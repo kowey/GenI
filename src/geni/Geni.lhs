@@ -555,7 +555,7 @@ loadLexicon pst config = do
        putStr ((show $ length $ keysFM semlex) ++ " entries\n")
 
        putStr $ "Loading Lexicon " 
-              ++ (if isTAGML then "(XML) " else "")
+              ++ (if isTAGML then "XML " else "")
               ++ lfilename ++ "..."
        hFlush stdout
        lf <- readFile lfilename 
@@ -598,7 +598,7 @@ loadMacros pst config =
          isTAGML  = (grammarType config == TAGML)
      --
      putStr $ "Loading Macros " 
-              ++ (if isTAGML then "(XML) " else "") 
+              ++ (if isTAGML then "XML " else "") 
               ++ filename ++ "..."
      hFlush stdout
      gf <- readFile filename

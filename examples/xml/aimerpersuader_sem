@@ -1,8 +1,0 @@
-semantics : [ aimer(e1 a e2)
-	      nom(a jean)
-	      persuader(e2 b c)
-	      nom(b marie)
-	      nom(c claire)
-	     ]
-
-

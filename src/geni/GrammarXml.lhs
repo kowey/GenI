@@ -81,7 +81,7 @@ parseLex l =
             else (snd.head) famFeats
       -- getting the lemma 
       lemmaF = attributed "name" (keep /> tag "anchor" /> tag "lemmaref")
-      lemma  = concatMap fst (lemmaF l) -- should only be one element 
+      lemma  = toLowerHead $ concatMap fst (lemmaF l) -- should only be one element 
       -- creating a lexical entry: note that we leave the
       -- semantics empty; this will have to be read from 
       -- another file
