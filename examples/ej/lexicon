@@ -24,43 +24,42 @@
 %% Nouns
 %% common nouns
 
-hat    Cn
-man    Cn
-rabbit Cn
-woman  Cn
+hat    n Cn
+man    n Cn
+rabbit n Cn
+woman  n Cn
 
 %% proper names
 
-mia     Pn
-vincent Pn
+mia     n Pn
+vincent n Pn
 
 %% Verbs
 %% intransitive verbs
 
-runs   vArity1
-sleeps vArity1 
+runs   v vArity1
+sleeps v vArity1 
 
 %% transitive verbs
 
-loves   vArity2 
-removes vArity3 
+loves   v vArity2 
+removes v vArity3 
 
 %% Modifiers
 %% adjectives
 
-big  Adj
-tall Adj
+big  adj Adj
+tall adj Adj
 
-%bigtall Adj(Entity)
-%semantics:[big(_ Entity) tall(_ Entity)]
+%bigtall adj Adj
 
-white Adj
+white adj Adj
 
 %% adverbs
 
-fast Adv
+fast adv Adv
 
 %% Determiners
 
 %a Dp
-the Dp
+the det Dp

@@ -1,4 +1,4 @@
-% GeNI surface realiser
+% GenI surface realiser
 % Copyright (C) 2005 Carlos Areces and Eric Kow
 %
 % This program is free software; you can redistribute it and/or
@@ -135,7 +135,7 @@ emptyParams = Prms {
 
 defaultParams :: Params
 defaultParams = emptyParams {
-   grammarFile    = "examples/ej/grammar",
+   grammarFile    = "examples/ej/index",
    tsFile         = "examples/ej/ej1",
    isTestSuite    = False,
    isGraphical    = True
