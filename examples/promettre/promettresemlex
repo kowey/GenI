@@ -3,52 +3,96 @@
 %% X promet Y a Z
 %% Canonique, interrogatives, relatives
 
+le cl (I)
+semantics:[]
 
 %% Determinants
 
-un (I)
+un det (I) 
 semantics:[indef(I)]
 
-le (I)
+le det (I) 
 semantics:[def(I)]
 
-quel (I)
+quel qu (I)
 semantics:[qu(I)]
 
 %% Noms communs
 
-livre (I)
-semantics:[I:book(I)]
+livre n (I)
+semantics:[book(I)]
 
-cadeau (I) 
-semantics:[I:present(I)]
+cadeau n (I) 
+semantics:[present(I)]
 
 %% Noms Propres
 
-marie (I) 
-semantics:[I:marie(I)]
+claire n (I)
+semantics:[claire(I)]
 
-jean (I) 
-semantics:[I:jean(I)]
+marie n (I) 
+semantics:[mary(I)]
 
-peter (I) 
-semantics:[I:peter(I)]
+jean n (I) 
+semantics:[john(I)]
 
-paul (I)
-semantics:[I:paul(I)]
+paul n (I) 
+semantics:[paul(I)]
 
-olivier(I)
-semantics:[I:olivier(I)]
 
 %% --------------------------------------------------------------------- 
 %% Verbs
 %% --------------------------------------------------------------------- 
-promettre (E X Y Z) 
+promettre v (E X Y Z) 
 semantics:[E:promise(X Y Z)]
 
-persuader (E X Y Z) 
+persuader v (E X Y Z) 
 semantics:[E:convince(X Y Z)]
 
-donner (E X Y Z) 
+donner v (E X Y Z)
 semantics:[E:give(X Y Z)]
+
+aimer v (E X Y)
+semantics:[E:love(X Y)]
+
+%% --------------------------------------------------------------------- 
+%% Semantic weights for polarity automata
+%% 
+%% Note that these are for semantic predicates and not for lexical
+%% entries.
+%% --------------------------------------------------------------------- 
+
+!
+
+-1:(0) [      
+  def 
+  indef 
+  qu 
+]
+
+-1:(-1) [ 
+  book 
+  present
+  john
+  mary
+  claire
+  paul
+] 
+
+-1:(1 1 0) [ 
+  convince 
+]
+
+-1:(0 1 1) [ 
+  promise 
+]
+
+-1:(1 1 1) [ 
+  give 
+]
+
+-1:(1 1) [
+  love
+  hope 
+]
 

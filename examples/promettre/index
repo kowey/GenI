@@ -1,4 +1,3 @@
-%Macros  = promettredonnermac 
-Macros  = dumbmac 
+Macros  = promettremac
 Lexicon = promettrelex
 SemLexicon = promettresemlex 

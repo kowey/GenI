@@ -3,19 +3,19 @@
 % persuader Olivier de donner
 % un livre a Claire" 
 
-semantics : [ e1:promise(a b e2)
-	      a:jean(a)
-	      b:marie(b)
-	      e2:convince(a d e3)
-	      d:paul(d)
-	      e3:convince(d e e4)
-	      e:pierre(e)
-	      e4:convince(e o e5)
-	      o:olivier(o)
+semantics : [ e1:promise(a e2 b)
+	      jean(a)
+	      marie(b)
+	      e2:convince(a e3 d)
+	      paul(d)
+	      e3:convince(d e4 e)
+	      pierre(e)
+	      e4:convince(e e5 o)
+	      olivier(o)
 	      e5:give(o l f)
-	      indef(l)
-	      l:book(l)
-	      f:claire(f)
+	      h1:indef(l)
+	      h1:book(l)
+	      claire(f)
 	     ]
 
 

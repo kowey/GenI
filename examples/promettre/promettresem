@@ -1,7 +1,7 @@
-semantics : [ def(b)
-	      b:present(b)
+semantics : [ h1:def(b)
+	      h1:present(b)
 	      e:promise(a b c)
-	      a:marie(a)
-	      c:jean(c)
+	      marie(a)
+	      jean(c)
 	     ]
 

@@ -3,36 +3,40 @@
 %% X promet Y a Z
 %% Canonique, interrogatives, relatives
 
+le cl clitic 
+
 %% --------------------------------------------------------------------- 
 %% Determinants
 %% --------------------------------------------------------------------- 
 
-un Det
-le Det
-quel DetQ
+un det Det
+le det Det
+quel qu DetQ
 
 %% --------------------------------------------------------------------- 
 %% Noms communs
 %% --------------------------------------------------------------------- 
 
-cadeau nC
-livre  nC
+cadeau n nC
+livre  n nC
 
 %% --------------------------------------------------------------------- 
 %% Noms Propres
 %% --------------------------------------------------------------------- 
 
-marie   nP
-jean    nP
-peter   nP
-paul    nP
-olivier nP
+marie   n nP
+jean    n nP
+claire  n nP
+paul    n nP
 
 %% --------------------------------------------------------------------- 
 %% Verbs
 %% --------------------------------------------------------------------- 
 
-promettre vArity3
-donner    vArity3
-persuader vArity3
+promettre v vArity3
+promettre v vArity3control
+donner    v vArity3
+persuader v vArity3
+persuader v vArity3controlObj
+aimer     v vArity2
 
