@@ -567,7 +567,7 @@ can lookup.  \texttt{fn} extracts the property from the item.
 \begin{code}
 groupByFM :: (Ord b) => (a -> b) -> [a] -> (FiniteMap b [a])
 groupByFM fn list = 
-  let helper x acc = case (lookupFM acc key)) of
+  let helper x acc = case (lookupFM acc key) of
                          Just y  -> addToFM acc key (x:y)
                          Nothing -> addToFM acc key [x]
                      where key = fn x 

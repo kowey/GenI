@@ -31,10 +31,9 @@ module Tags(
 \begin{code}
 import Data.List (intersperse)
 import Data.Tree
-import FiniteMap (FiniteMap, emptyFM, filterFM,         
-                  addToFM_C, lookupFM, plusFM_C)
+import FiniteMap (FiniteMap, emptyFM, addToFM_C, lookupFM)
 
-import Btypes (Ptype(Initial, Auxiliar), AvPair,
+import Btypes (Ptype(Initial, Auxiliar), 
                Subst, GNode(gup, gdown), Flist, 
                Sem, Pred, emptyPred, BitVector,
                emptyGNode,

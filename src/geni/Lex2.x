@@ -67,7 +67,7 @@ tokens :-
   \]                         { tok CB }
  
   [$digit]+                           { \p s -> tok' (Num $ read s) p  } 
-  [$alpha \_][$alpha $digit \_ \/ ]*   { \p s -> tok' (ID s) p  } 
+  [$alpha \_][$alpha $digit \_ \/ \. ]*   { \p s -> tok' (ID s) p  } 
    
 
 {

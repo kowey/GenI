@@ -233,7 +233,7 @@ gramsemBrowser pst guiParts = do
   fselBtS <- button f [ text := "Browse"
                       , on command := newFileSel f entryS ]
   -- Grammar type selection
-  let rlabels = ["mac/lex", "mg xml"]
+  let rlabels = ["handwritten", "TAGMLish"]
   rBox <- radioBox f Horizontal rlabels [ text := "Grammar type"
                                         , selection := if (gtype == MgXml) then 1 else 0
                                         ]
