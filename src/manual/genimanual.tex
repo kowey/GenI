@@ -1,19 +1,23 @@
-\documentclass[11pt]{article}
+\documentclass[11pt]{report}
 %\documentclass{foils}
 
 \usepackage{koweydoc}
 \usepackage{graphicx}
+\usepackage{qtree}
+
 %\usepackage{koweyslide}
 \newcommand{\commandline}{\texttt}
 \newcommand{\commandgui}{\textit}
+\newcommand{\jargon}{\textbf}
 
 \begin{document}
 \title{Geni Manual}
 \author{Eric Kow\\LORIA}
 
 \maketitle
+\tableofcontents
 
-\section{Introduction}
+\chapter{Overview}
 
 GenI is a surface realiser for natural language using 
 
@@ -26,13 +30,27 @@ GenI is a surface realiser for natural language using
 It runs on Linux and Mac OS X.  It might also run on Windows 
 with a little work, but we have not tried.  
 
-This document is in two major parts.  In section \ref{sec:walkthrough},
-we give you a walkthrough of the basic functionality so you get an idea
-of what the surface realiser does.  Sections \ref{sec:foo} to
-\ref{sec:bar} provide much less handholding, but more detailed
-information about using and configuration the realiser.  
+In this chapter, we give you a small overview of the generator and an
+introductory walkthrough, so that you can get an idea of what the
+surface realiser does.  The rest of the manual provides much less
+handholding, but more detailed information about using and configuring
+the realiser.  
+
+\section{Features}
+
+GenI features 
+
+\begin{enumerate}
+\item an optional graphical user interface 
+\item a debugger (graphical only)
+\item a batch-processing and test suite system
+\item a converter from (a variant of) the TAGML format
+\end{enumerate}
+
+FIXME: section numbers
 
 \section{Walkthrough}
+\label{sec:walkthrough}
 
 \subsection{Getting started}
 
@@ -45,7 +63,7 @@ a non-interactive text version of the interface, see section
 % this is how you would include an image in your document
 \begin{figure}[h]
 \begin{center}
-\includegraphics[scale=0.75]{images/geni_gui.pdf}
+%\includegraphics[scale=0.75]{images/geni_gui.pdf}
 \label{fig:geni_screenshot}
 \end{center}
 \end{figure}
@@ -61,7 +79,7 @@ To the see the output, click on the \commandgui{Realisations} tab:
 % this is how you would include an image in your document
 \begin{figure}[h]
 \begin{center}
-\includegraphics[scale=0.75]{images/geni_polaut.pdf}
+%\includegraphics[scale=0.75]{images/geni_polaut.pdf}
 \label{fig:geni_results}
 \caption{Results: Realisations tab}
 \end{center}
@@ -83,48 +101,37 @@ Voila! This shows you roughly the kind of things GenI is capable of
 doing.  Now in the rest of the walkthrough, we'll see how the realiser
 responds to a different input semantics and grammar.
 
-\subsection{Input semantics}
+\subsection{Playing with input semantics}
 
-You write the input semantics without any commas:
-\begin{verbatim}
-\end{verbatim}
+FIXME: to be completed
 
-You can also specify handles in the semantics:
-\begin{verbatim}
-\end{verbatim}
-
-Or write recursively embedded semantics:
-\begin{verbatim}
-\end{verbatim}
-
-But if you add handles, please be sure to add them to every literal,
-or GenI could behave unpredicatably.
-
-\subsection{Grammar}
-
-Grammars consist of the following:
-
-\begin{enumerate}
-\item index file - which tells where the other files
-      in the grammar are (relative to the grammar)
-\item semantic lexicon file - semantics $\rightarrow$ lemma
-\item lexicon file - lemma $\rightarrow$ families
-\item macros file  - unlexicalised trees
-\end{enumerate}
-
-%:
+%\subsection{Input semantics}
 %
-%% this is how you would include an image in your document
-%\begin{figure}[h]
-%\begin{center}
-%\includegraphics[scale=0.75]{images/geni_polaut.pdf}
-%\label{fig:geni_results}
-%\caption{Results: Lexical selection}
-%\end{center}
-%\end{figure}
+%You write the input semantics without any commas:
+%\begin{verbatim}
+%\end{verbatim}
 %
-%What you see here is the lexical selection tab.  It shows you the subset
-%of the grammar that GenI used for realisation of the input semantics.
+%You can also specify handles in the semantics:
+%\begin{verbatim}
+%\end{verbatim}
+%
+%Or write recursively embedded semantics:
+%\begin{verbatim}
+%\end{verbatim}
+%
+%But if you add handles, please be sure to add them to every literal,
+%or GenI could behave unpredicatably.
+
+% ====================================================================
+\chapter{Using GenI}
+% ====================================================================
+
+FIXME: config file all in one place, but still can tell user bits and
+pieces, like set Foo=Bar in .genirc
+
+% ====================================================================
+\chapter{Input files}
+% ====================================================================
 
 \section{Configuration files}
 \label{sec:configuration_files}
@@ -161,6 +168,10 @@ of trees are given to the generator.
 
 \begin{description}
 \item[Polarised] construct polarity automata at all
+\item[AutoPol]   automatically detects polarities from node categories.
+                 Warning! You have to use ExtraPolarities for this to
+                 work since all trees have a (+) polarity on their 
+                 root category.
 \item[PolSig]    group trees into polarity signatures, i.e. by their
                  semantics and polarities
 \item[PolSort]   when constructing the automaton, first sort the
@@ -189,7 +200,7 @@ generator.
 \end{description}
 
 \subsection{Batch processing}
-There are two types of batch processing:
+There are three types of batch processing:
 \begin{enumerate}
 \item Multi-input:
       You can write multiple configurations in .genirc if you separate
@@ -204,49 +215,325 @@ There are two types of batch processing:
       of the GenI optimisations
       N.B. you can use Optimisations=Batch together with multi-input
       if you want.
+\item TestSuite - runs the generator over a set of input semantics
+      specified in a test suite file; and compares the realisations
+      with those expected by the test suite
 \end{enumerate}
+
+\subsection{Extra polarties}
+
+The ExtraPolarities argument sets some base polarities when constructing
+polarity automata.  If for example, you want the surface realiser to
+only produce results with a polarity of +s, you should set
+\verb$ExtraPolarties=-s$.
+
+\section{Input semantics}
+
+The input semantics can either be specified in a target semantics file
+or as part of a test suite.  
+
+\subsection{Target semantics}
+
+We use a flat representation for the input semantics (although not
+neccesarily MRS (FIXME: cite copestake)).  This consists of a set of
+literals, where each literal is an (optional) handle, a predicate and
+some arguments.  
+
+All of this is written in a block \verb$semantics:[]$,
+with spaces as delimiters, not commas.  For example, the following
+input semantics file could be realised as ``John promises Paul to give
+Mary a book''.
+
+\begin{verbatim}
+semantics:[h1:john(j) 
+           h2:mary(m) 
+           h3:paul(p)
+           h3:book(b) h3:indef(b)
+           e1:give(j b m) 
+           e2:promise(j p e1) 
+           ]
+\end{verbatim}
+
+\subsection{Test suite}
+
+A test suite can contain more than one input semantics.  Each input
+semantics can also be associated with a set of expected realisations:
+
+\begin{verbatim}
+semantics:[h1:john(j) h2:mary(m) e1:love(j m) e2:claim(j m e1)]
+[ john claims to love mary ]
+[ john claims that he loves mary ]
+
+semantics:[h1:john(j) h2:mary(m) 
+           h3:book(b) h3:indef(b)
+           e1:give(j m b)]
+[ john gives a book to mary ]
+\end{verbatim}
+
+\subsubsection{Running a test suite}
+
+If you run the generator on a test suite, it will output a summary:
+FIXME
 
 \section{Grammar files}
 
-\subsection{Hand-written grammars}
+Grammars consist of the following:
 
-\subsubsection{Polarities}
+\begin{enumerate}
+\item index file - which tells where the other files
+      in the grammar are (relative to the grammar)
+\item semantic lexicon file - semantics $\rightarrow$ lemma
+\item syntactic lexicon file - lemma $\rightarrow$ families
+\item macros file  - unlexicalised trees
+\end{enumerate}
 
-Polarities mainly go in the macros file.  They appear in the optional
-second parenthesis like so:
+\subsubsection{How GenI uses the grammar}
+
+The surface realiser combines the semantic and syntactic lexicons using
+lemma and category as the link between the two.  In other words; an item
+in semantic lexicon and one in the syntactic lexicon are considered as
+referring to the same lexical entry (\jargon{lexentry}) iff they have
+the same lemma and category.  
+
+The lexicon is then used with macros for lexical selection.  The input
+to the lexical selection process is a semantics, and the output is a set
+of lexicalised tree.  The surface realiser chooses the lexentries whose
+semantics subsume the input semantics.  For each lexentry, it performs
+unification between the input semantics and the lexentry semantics; then
+between the lexentry semantics and its parameters.  The surface realiser
+then selects the tree families associated with the lexentry, and
+lexicalises all of the trees within by replacing the anchor node with
+the lemma and performing unification between the lexentry parameters,
+the tree parameters and tree feature structures.  In short, the
+propogation of semantic indices is from input semantics $\rightarrow$
+lexentry semantics $\rightarrow$ lexentry parameters $\rightarrow$ tree
+parameters $\rightarrow$ tree feature structures.  
+
+\subsection{Index file}
+
+The index file tells the generator where to find all the other parts of
+the grammar.  Relative pathnames are based on the index file.  If you do
+not specify any path information, the generator will look in the same
+directory as the index file.
+
+\paragraph{Example}
 
 \begin{verbatim}
-  IntrV(Event Agent ! agr:A) (+np +np)
+Macros          = macros 
+Lexicon         = synlex 
+SemanticLexicon = semlex
 \end{verbatim}
 
-Examples of polarities: +foo, -foo, +3foo, or -3foo
+\subsection{Semantic lexicon}
 
-\subsubsection{TAGML from MGC}
+The semantic lexicon associates semantic entries with lemmas.  Each
+entry consists of (1) a lemma and category, (2) a list of parameters
+and (3) a semantics
 
-There seems to be no convention for indicating how inflected 
-forms are placed in TAGML tree.  Until somebody tells me 
-otherwise, I am going with the following
+\paragraph{Example}
+\begin{verbatim}
+le cl (I)
+semantics:[]
+
+le det (I) 
+semantics:[def(I)]
+
+livre n (I)
+semantics:[book(I)]
+
+persuader v (E X Y Z) 
+semantics:[E:convince(X Y Z)]
+\end{verbatim}
+
+\paragraph{Notes}
+
+\begin{enumerate}
+\item a semantics may have more than one predicate
+\begin{verbatim}
+cher adj (E X Y) 
+semantics:[E:cost(X Y) E:high(Y)]
+\end{verbatim}
+\item a lemma may have more than one distinct semantics
 
 \begin{verbatim}
-<node type="none">
-  <fs>
-    <f name="phon">foo</f>
-  </fs>
-</node>
+FIXME: insert example here
 \end{verbatim}
 
-I refuse to change this until you show me something vaguely
-official-looking.
+\item a semantics may be realised by more than one lexical entry (e.g.
+      synonynms)
+
+\begin{verbatim}
+livre n (I)
+semantics:[book(I)]
+
+bouquin n (I)
+semantics:[book(I)]
+\end{verbatim}
+
+\end{enumerate}
+
+\subsection{Syntactic Lexicon}
+
+The syntactic lexicon associates each lemma with one or more tree
+families.  Each entry consists of (1) a lemma and category (2)
+a tree family name.
+
+\paragraph{Example}
+\begin{verbatim}
+le cl clitic 
+le det Det
+livre n nC
+persuader v vArity3
+persuader v vArity3controlObj
+\end{verbatim}
+
+\subsection{Macros}
+
+The macros file contains a set of unlexicalised trees organised into
+families.  More precisely, the basic components of the file are
+families, macros, trees and nodes.  Families contain one or more macros.
+Each macro describes a tree, and each tree is composed of nodes.
+
+\paragraph{Families} are written
+
+\begin{verbatim}
+begin family name-of-family
+% macros
+end family
+\end{verbatim}
+
+\paragraph{Macros} consist of (1) a name (2) a list of parameters (3) ``initial''
+or ``auxiliary'' (4) a tree.  
+
+\paragraph{Trees} are recursively defined structure of form
+\verb$node{tree*}$.  For example, the structure 
+\verb$n1 { n2 n3 { n4 n5 } n6 }$ should produce the following tree:
+\Tree [ .n1 n2 [.n3 n4 n5 ] n6 ]
+
+\paragraph{Nodes} consist of (1) a name (2) a type (optional); and (3)
+either a lexeme, or top and bottom feature structures. Here are examples
+of the five possible kinds of nodes:
+
+\begin{verbatim}
+n1 [cat:n idx:I]![cat:n idx:I]            % basic
+n3 type:subst [cat:n idx:Y]![cat:n idx:Y] % subst
+n4 type:foot  [cat:n idx:Y]![cat:n idx:Y] % foot
+n5 type:lex   "de"                        % coanchor 
+n2 anchor                                 % anchor
+\end{verbatim}
+
+\subsubsection{Example}
+
+\begin{verbatim}
+begin family adj
+adj_post(I)  auxiliary
+n0[cat:n idx:I det:_]![cat:n idx:I det:minus ]
+{ 
+  n1 type:foot [cat:n idx:I det:minus]![cat:n idx:I det:minus]
+  n2[cat:a]![]
+  { 
+    n3 anchor 
+  }
+}
+
+adj_pre(I)  auxiliary
+n0[cat:n idx:I det:_ qu:_]![cat:n idx:I det:minus ]
+{ 
+  n1[cat:a]![]
+  { 
+    n2 anchor 
+  }
+  n3 type:foot [cat:n idx:I det:minus]![cat:n idx:I det:minus]
+}
+end family
+
+begin family vArity2
+n0vn1(E X Y) initial
+n1[cat:p]![]
+{
+  n2 type:subst [cat:n idx:X det:plus]![cat:n idx:X]
+  n3[cat:v idx:E]![]
+  {
+    n4 anchor
+  }
+  n5 type:subst [cat:n idx:Y det:plus]![cat:n idx:Y]
+} 
+end family
+\end{verbatim}
+
+\subsubsection{Format}
+
+A more formal specification of the macros file format is as follows 
+(whitespace assumed between items) :
+
+\begin{verbatim}
+<mfile>   := <family>*
+<family>  := "begin family" <name> <macro>* "end family"
+
+<macro>   := <name> "(" <param>* ")" <initaux> <tree> 
+<initaux> := "initial" | "auxiliary"
+<tree>    := <node>
+           | <node> "{" <tree>* "}" 
+
+<node>    := <name> "anchor" 
+           | <name> <typelex> <id>
+           | <name> <type> <topfs> "!" <topfs> 
+<type>    := "" | "type:subst" | "type:foot"
+<typelex> := "type:lex"
+
+<topfs>   := <fs>
+<botfs>   := <fs>
+<fs>      := "[" <avpair*> "]"
+<avpair>  := <id> ":" <id>
+
+<id>      := ([a-z]|[A-Z]|_)*
+<name>    := [a-z] <id>
+<param>   := (_|[A-Z]) <id>
+\end{verbatim}
 
 
-\section{Conclusion}
-
-% this is how you would include an image in your document
-%\begin{figure}
+%:
+%
+%% this is how you would include an image in your document
+%\begin{figure}[h]
 %\begin{center}
-%\includegraphics{images/foo.pdf}
+%\includegraphics[scale=0.75]{images/geni_polaut.pdf}
+%\label{fig:geni_results}
+%\caption{Results: Lexical selection}
 %\end{center}
 %\end{figure}
+%
+%What you see here is the lexical selection tab.  It shows you the subset
+%of the grammar that GenI used for realisation of the input semantics.
+
+%\subsubsection{Polarities}
+%
+%Polarities mainly go in the macros file.  They appear in the optional
+%second parenthesis like so:
+%
+%\begin{verbatim}
+%  IntrV(Event Agent ! agr:A) (+np +np)
+%\end{verbatim}
+%
+%Examples of polarities: +foo, -foo, +3foo, or -3foo
+
+%\subsubsection{TAGML from MGC}
+%
+%There seems to be no convention for indicating how inflected 
+%forms are placed in TAGML tree.  Until somebody tells me 
+%otherwise, I am going with the following
+%
+%\begin{verbatim}
+%<node type="none">
+%  <fs>
+%    <f name="phon">foo</f>
+%  </fs>
+%</node>
+%\end{verbatim}
+%
+%I refuse to change this until you show me something vaguely
+%official-looking.
+
 
 
 
