@@ -1,0 +1,59 @@
+semantics:[h1:john(j) 
+           h2:mary(m)
+           e1:love(j m)]
+[ jean aimer marie ]
+
+semantics:[h1:john(j) 
+           h2:book(l) h2:def(l)
+           e1:love(j l)]
+[ jean aimer le livre ]
+
+semantics:[h1:john(j) 
+           e1:love(j j)]
+[ jean se aimer ]
+
+semantics:[h1:john(j) 
+           h2:mary(m) 
+           e1:love(j m) 
+           e2:promise(j m e1)]
+[ jean promettre a marie de le aimer ]
+[ jean promettre marie de le aimer ]
+
+semantics:[h1:john(j) 
+           h2:mary(m) 
+           h3:book(b) h3:indef(b)
+           e1:give(j m b)]
+[ jean donner un livre a marie ]
+
+semantics:[h1:john(j) 
+           h2:mary(m) 
+           h3:book(b) h3:indef(b)
+           h4:claire(c)
+           e1:give(j b c) 
+           e2:promise(j m e1) ]
+[ jean promettre a marie de donner un livre a claire ]
+
+semantics:[h1:john(j) 
+           h2:mary(m) 
+           h3:book(b) h3:indef(b)
+           e1:give(j b m) 
+           e2:promise(j m e1) ]
+[ jean promettre a marie de le donner un livre ]
+
+semantics:[h1:john(j) 
+           h2:mary(m) 
+           h3:book(b) h3:indef(b)
+           h4:paul(p)
+           e1:give(j b p) 
+           e2:promise(j e1 m) 
+           e3:convince(p e2 j) ]
+[ paul persuader jean de promettre a marie de le donner un livre ]
+
+semantics:[h1:john(j) 
+           h2:mary(m) 
+           h3:book(b) h3:indef(b)
+           h4:paul(p)
+           e1:give(j b m) 
+           e2:promise(j e1 m) 
+           e3:convince(p e2 j) ]
+[ paul persuader jean de promettre a marie de le donner un livre ]
