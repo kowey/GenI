@@ -1,9 +1,12 @@
-court v (E X) 
-semantics:[run(E) agent(E J)]
+regarde v  [evt = E, arg1 = X, arg2 = Y]
+semantics:[lookAt(E) agent(E X) patient(E Y)]
 
-jean n (X)
+%%%
+jean n (X) [idx = X]
 semantics:[john(X)]
 
+marie n (X) [idx = X]
+semantics:[mary(X)]
 
 
 
