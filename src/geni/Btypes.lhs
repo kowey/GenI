@@ -86,7 +86,8 @@ data ILexEntry = ILE{iword :: String,
                      iparams :: [String],
                      ipfeat :: Flist,
                      iptype :: Ptype,
-                     isemantics :: Sem }
+                     isemantics :: Sem,
+                     iprecedence :: Int}
                deriving (Show, Eq)
 \end{code}
 

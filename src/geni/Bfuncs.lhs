@@ -28,6 +28,7 @@ module Bfuncs(
 
    -- Projectors from ILexEntry (re-exported)
    iword, icategory, ifamname, iparams, ipfeat, iptype, isemantics, 
+   iprecedence,
  
    -- Functions from Tree GNode
    repSubst, repAdj, constrainAdj, 

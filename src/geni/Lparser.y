@@ -23,10 +23,11 @@ emptyLE = ILE { iword = "",
                 iparams = [],
                 ipfeat  = [],
                 iptype = Unspecified,
-                isemantics = [] }
+                isemantics = [],
+                iprecedence = 0 }
 }
 
-%name lexParser    LInput
+%name lexParser    Lexicon 
 %name semlexParser SLexicon
 %tokentype { PosToken }
 
@@ -44,6 +45,11 @@ emptyLE = ILE { iword = "",
  
 %%
 
+Lexicon : LInput
+     { ([],[],$1) }
+ | PredDirectives '!' PredDirectives LInput
+     { ($1,$3,$4) }
+
 LInput : 
      {[]}
  | LexEntry LInput
@@ -53,6 +59,27 @@ LexEntry: id id id
    { emptyLE { iword = $1, 
                icategory = $2,
                ifamname = $3 } }
+
+PredDirectives:
+        { [] }
+  | '[' PredItems ']' PredDirectives
+        { $2 : $4 }
+
+PredItems:
+        { [] }
+  | PredItem PredItems
+        { $1 ++ $2 }
+
+
+PredItem: '(' id ':' IDList ')'
+        { map (\a -> (a,$2)) $4 }
+
+
+
+
+
+
+
 
 SLexicon : SInput 
      {($1, [])}
@@ -101,16 +128,12 @@ IDFeat :
  | IDList '!' FeatList 
      { ($1,$3) }
 
-IDList :
-   id
-     {[$1]} 
- | id IDList
-     {$1:$2} 
-
 FeatList : 
      {[]} 
  | id ':' id FeatList
      {($1,$3):$4}
+
+
 
 SemFamList:
           { [] }
@@ -129,6 +152,16 @@ Num: num
     { $1 }
    | '-' num
     { (-$2) }
+
+
+
+
+
+IDList :
+     {[]} 
+ | id IDList
+     {$1:$2} 
+
 
 {
 happyError = simpleParserError

@@ -11,7 +11,7 @@ module GrammarXml where
 \begin{code}
 import Data.Char
 import Data.FiniteMap (FiniteMap,emptyFM,addToFM_C)
-import Data.List (partition,sort)
+import Data.List (partition,sort,sortBy)
 import Data.Tree
 import MonadState (State, 
                    runState,
@@ -95,6 +95,7 @@ parseLex l =
         , ipfeat = []
         , iptype = Unspecified
         , isemantics = []
+        , iprecedence = 0
   }
 \end{code}
 
@@ -351,11 +352,22 @@ parseInterface int =
       feats    = map parseFeature (iFeatsF int)
       --
       (args,noargs) = partition fn feats 
-                      where fn (a,_) = take 3 a == "arg" 
-      --
-      params   = (snd.unzip) args
+      fn (a,_) = t3 == "arg" || t3 == "evt"
+                 where t3 = take 3 a
+      -- evt first, then args sorted by numerical order
+      ordfn :: AvPair -> AvPair -> Ordering
+      ordfn (a1,_) (a2,_) = case (a1, a2) of 
+        ("evt","evt") -> EQ
+        ("evt",_)     -> LT
+        (_,"evt")     -> GT
+        _ -> compare (da a1) (da a2)
+        where da :: String -> Int
+              da = read . (drop 3)  
+      -- 
+      params   = (snd.unzip.(sortBy ordfn)) args
   in (params, noargs)
 \end{code}
+
 
 
 % ----------------------------------------------------------------------

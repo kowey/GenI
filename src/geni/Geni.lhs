@@ -34,6 +34,7 @@ import CPUTime (getCPUTime)
 import Bfuncs (Macros, MTtree, ILexEntry, Lexicon, Sem, Flist, 
                GNode, GType(Subs), 
                isemantics, ifamname, icategory, iword, iparams, ipfeat,
+               iprecedence,
                gnname, gtype, gaconstr, gup, gdown, toKeys,
                sortSem, subsumeSem, params, 
                substSem, substFlist', substFlist,
@@ -561,23 +562,57 @@ loadLexicon pst config = do
        putStr $ "Loading Semantic Lexicon " ++ sfilename ++ "..."
        hFlush stdout
        sf <- readFile sfilename
-       let semmapper  = mapBySemKeys isemantics
-           semparsed  = (semlexParser . lexer) sf
-           semlex     = semmapper  $ fst semparsed
-           semweights = buildSemWeights $ snd semparsed
+       let sortlexsem l = l { isemantics = sortSem $ isemantics l }
+           semmapper    = mapBySemKeys isemantics
+           semparsed    = (semlexParser . lexer) sf
+           semlex       = (semmapper . (map sortlexsem) . fst) semparsed
+           semweights   = buildSemWeights $ snd semparsed
        putStr ((show $ length $ keysFM semlex) ++ " entries\n")
 
        putStr $ "Loading Lexicon " ++ lfilename ++ "..."
        hFlush stdout
        lf <- readFile lfilename 
-       let wordcatfn l  = (iword l, icategory l)
-           sortlexsem l = l { isemantics = sortSem $ isemantics l }
-           lex' = ( (map sortlexsem) . lexParser . lexer) lf
-           lex  = groupByFM wordcatfn lex'
-       putStr ((show $ length lex') ++ " entries\n")
-       modifyIORef pst (\x -> x{le = combineLexicon lex semlex,
+       let (ptight, ploose, rawlex) = (lexParser . lexer) lf
+           lemlex = groupByFM fn rawlex
+                    where fn l = (iword l, icategory l)
+       putStr ((show $ length rawlex) ++ " entries\n")
+
+       -- combine the two lexicons
+       modifyIORef pst (\x -> x{le = combineLexicon lemlex semlex,
                                 sweights = semweights })
        return ()
+\end{code}
+
+\paragraph{setPrecedence} takes two lists of precedence directives
+(FIXME: explained where?) and a lemma lexicon.  It returns the lemma
+lexicon modified so that each item is assigned a precedence according to
+its membership in the list of precedence directives.  The first list of
+directives are items with tight precedence; the second list are those
+with loose precedence.  In both lists, items closest to the front have
+tightest precedence.  Items which are not in either the tight or loose
+precedence list have default precedence.
+
+\begin{code}
+type WordCat = (String,String)
+type LemmaLexicon = FiniteMap WordCat [ILexEntry] 
+setPrecedence :: [[WordCat]] -> [[WordCat]] 
+                 -> LemmaLexicon -> LemmaLexicon
+setPrecedence tight loose lemlex =
+  let start  = 0 - (length tight)
+      tightp = zip [start..(-1)] tight
+      loosep = zip [0..] loose
+      --
+      tightlex = foldr setPrecedence' lemlex   tightp
+  in foldr setPrecedence' tightlex loosep
+
+setPrecedence' :: (Int,[WordCat]) -> LemmaLexicon -> LemmaLexicon
+setPrecedence' (pr,items) lemlex =
+  let setpr li     = li {iprecedence = pr}
+      --
+      helper :: WordCat -> LemmaLexicon -> LemmaLexicon
+      helper wc ll = addToFM ll wc (map setpr lems)
+                     where lems = lookupWithDefaultFM ll [] wc 
+  in foldr helper lemlex items
 \end{code}
 
 \paragraph{combineLexicon} merges the lemma lexicon and the semantic
@@ -590,7 +625,6 @@ up in the (surprise!) lemma lexicon, and copy the semantic information
 into each instance.
 
 \begin{code}
-type LemmaLexicon = FiniteMap (String,String) [ILexEntry] 
 combineLexicon :: LemmaLexicon -> Lexicon -> Lexicon
 combineLexicon ll sl = 
   let merge si li = li { isemantics = (isemantics si)

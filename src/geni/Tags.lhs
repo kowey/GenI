@@ -76,18 +76,19 @@ combining macros with lexicon (see section \ref{sec:combine_macros}).
 -- type TPredictors = FiniteMap AvPair Int 
 type TagSite = (String, Flist, Flist)
 data TagElem = TE {
-                   idname :: String,
-                   tidnum :: Integer,
-                   derivation :: TagDerivation,
-                   ttype :: Ptype,
-                   ttree :: Tree GNode,
-                   substnodes :: [TagSite],
-                   adjnodes :: [TagSite],
-                   tsemantics :: Sem,
+                   idname       :: String,
+                   tidnum       :: Integer,
+                   derivation   :: TagDerivation,
+                   ttype        :: Ptype,
+                   ttree        :: Tree GNode,
+                   substnodes   :: [TagSite],
+                   adjnodes     :: [TagSite],
+                   tsemantics   :: Sem,
                    -- optimisation stuff
                    tpolarities  :: FiniteMap String Int,
                    -- tpredictors  :: TPredictors,
                    tpolpaths    :: BitVector,
+                   tprecedence  :: Int,
                    -- display stuff
                    showfeats    :: Bool
                 }
@@ -127,6 +128,7 @@ emptyTE = TE { idname = "",
                substnodes = [], adjnodes   = [],
                tsemantics = [], 
                tpolarities = emptyFM,
+               tprecedence = 0, -- FIXME: you sure?
                -- tpredictors = emptyFM,
                tpolpaths   = 0, 
                showfeats   = False

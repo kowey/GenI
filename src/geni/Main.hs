@@ -5,9 +5,6 @@
 
 {- TODO Prepare a report from the slides of the talk -}
 
-{- TODO Parser of Lexicon gives error when the input has empty parameters.  This
-        should probably be permited. Similar for Grammar-}
-
 {- TODO Define what is and what is not exported from the modules.  In particular
         in BTypes take care to export the inspection function but not the types.  
         Re-write functions in Main as needed.-}

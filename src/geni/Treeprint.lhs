@@ -125,7 +125,9 @@ toGeniHand tr =
                                    (_,"3") -> (a, "third")
                                    (_,"2") -> (a, "second")
                                    (_,"1") -> (a, "first")
-                                   _       -> (a,v)
+                                   _       -> (map d2u a, map d2u v)
+      d2u '-' = '_'
+      d2u x = x
       showflist = showPairs . (map substf)
       --
   in ((map dashtobar).pidname) tr 
