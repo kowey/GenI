@@ -64,7 +64,8 @@ module Polarity(PolAut,makePolAut,
                 declareRestrictors, detectRestrictors,
                 defaultPolPaths,
                 showLite, showLitePm, showPolPaths, showPolPaths',
-                toGvPolAut, calculateTreeCombos 
+                toGvPolAut, calculateTreeCombos,
+                NFA(states),
                 )
 where
 \end{code}
@@ -1409,8 +1410,15 @@ gvShowTrans aut stmap idFrom st =
                                  --showSem (PolSt (_,pred,_) _ _) = pred 
       drawTrans' idTo x = " " ++ idFrom ++ " -> " ++ idTo ++ 
                           " [ label=\"" ++ drawLabel x ++ "\"];\n"
-      drawLabel labels = concat $ intersperse "\\n" $ map fn labels
-                         where fn x = if (x == emptyTL) then "EMPTY" else tlIdname x
+      drawLabel labels = concat $ intersperse "\\n" $ labs 
+                         where lablen = length labels
+                               max    = 6 
+                               excess = "...and " ++ (show $ lablen - max) ++ " more"
+                               labstrs = map fn labels
+                               labs = if (lablen > max) 
+                                      then (take max labstrs) ++ [ excess ]
+                                      else labstrs 
+                               fn x = if (x == emptyTL) then "EMPTY" else tlIdname x
   in concatMap drawTrans $ fmToList invFM
 \end{code}
 

@@ -391,10 +391,12 @@ step.
 \begin{code}
 polarityGui :: (Window a) -> [(String,PolAut,PolAut)] -> PolAut -> IO Layout
 polarityGui   f xs final = do
-  let aut2  (_ , a1, a2) = [ a1, a2 ]
-      autLabel (fv,_,_) = [ fv, (fv ++ " pruned") ]
+  let numsts a = " : " ++ (show n) ++ " states" 
+                 where n = foldr (+) 0 $ map length $ states a 
+      aut2  (_ , a1, a2) = [ a1, a2 ]
+      autLabel (fv,a1,_) = [ fv ++ numsts a1, fv ++ " pruned" ]
       autlist = map toGvPolAut $ (concatMap aut2 xs) ++ [ final ] 
-      labels  = (concatMap autLabel xs) ++ [ "final" ]
+      labels  = (concatMap autLabel xs) ++ [ "final" ++ numsts final ]
       --
       tip      = "automata"
   gvRef   <- newGvRef False labels
