@@ -1,18 +1,18 @@
 \chapter{Geni}
 
-Geni is the interface between everything and everything else. The GUI
-and the console interface both talk to this module, and in turn, this
-module talks to the input file parsers and the surface realisation
-engine.  This module also does lexical selection and anchoring because
-these processes might involve some messy IO performance tricks.
+Geni is the interface between the front and backends of the generator. The GUI
+and the console interface both talk to this module, and in turn, this module
+talks to the input file parsers and the surface realisation engine.  This
+module also does lexical selection and anchoring because these processes might
+involve some messy IO performance tricks.
 
 \begin{code}
 module Geni (State(..), PState, GeniResults(..), 
              showRealisations, showOptResults,
              verboseGeni, customGeni,
              initGeni, runGeni, 
-             loadMacros, loadLexicon, loadTargetSem,
-             loadTargetSemStr,
+             loadGrammar, 
+             loadTargetSem, loadTargetSemStr,
              -- for debugging only
              combine, chooseCand)
 where
@@ -50,8 +50,10 @@ import Tags (Tags, TagElem, emptyTE, TagSite,
              appendToVars, substTagElem)
 
 import Configuration(Params, defaultParams, getConf, treatArgs,
-                     macrosFile, lexiconFile, tsFile, grammarType,
-                     GrammarType(..),
+                     grammarFile, tsFile, 
+                     GramParams, parseGramIndex,
+                     macrosFile, lexiconFile, grammarType,
+                     GrammarType(TAGML), 
                      polarised, polsig, chartsharing, 
                      semfiltered, orderedadj, extrapol)
 
@@ -519,29 +521,55 @@ mapBySemKeys semfn xs =
 
 \subsection{Grammars}
 
-There are two types of GenI grammars.  
+Grammars consist of the following:
+\begin{enumerate}
+\item index file - which tells where the other files
+      in the grammar are (relative to the grammar)
+\item semantic lexicon file - semantics \$rightarrow$ lemma
+\item lexicon file - lemma $\rightarrow$ families
+\item macros file  - unlexicalised trees
+\end{enumerate}
 
-Hand-written grammars have a simple human-friendly format.  They consist
-of a macros file and lexicon file.  The generator reads these into
-memory and combines them into a grammar (page \pageref{sec:combine_macros}).
+The generator reads these into memory and combines them into a grammar
+(page \pageref{sec:combine_macros}).
 
-Automatically generated grammars are built from a meta-grammar compiler.
-For now, we only have a syntax for the macros file; the lexicon file 
-will continue to use the old GeniHand syntax.
+There are two types of GenI grammars.  Hand-written grammars have a
+simple human-friendly format.  Automatically generated grammars are
+built from a meta-grammar compiler and have an XML syntax.  The grammar
+index file will indicate what kind of grammar we have.
 
-\subsubsection{Hand-written grammars}
-
-\paragraph{loadMacros} Given the pointer to the monadic state pst it
-reads and parses the macros from the macro file indicated in the monad.
-The Macros are storded as a hashing function in the monad.
+\paragraph{loadGrammar} Given the pointer to the monadic state pst it
+reads and parses the grammar file index; and from this information,
+it reads the rest of the grammar (macros, lexicon, etc).  The Macros
+and the Lexicon 
 
 \begin{code}
-loadMacros :: PState -> IO ()
-loadMacros pst = 
+loadGrammar :: PState -> IO() 
+loadGrammar pst =
   do st <- readIORef pst
+     --
      let config   = pa st
-         filename = macrosFile config 
+         filename = grammarFile config
+     -- 
+     putStr $ "Loading index file " ++ filename ++ "..."
+     gf <- readFile filename
+     putStrLn $ "done"
+     --
+     let gparams = parseGramIndex filename gf
+     loadMacros  pst gparams
+     loadLexicon pst gparams
+\end{code}
+
+\paragraph{loadMacros} Given the pointer to the monadic state pst and
+the parameters from a grammar index file parameters; it reads and parses
+macros file.  The macros are storded as a hashing function in the monad.
+
+\begin{code}
+loadMacros :: PState -> GramParams -> IO ()
+loadMacros pst config = 
+  do let filename = macrosFile config
          isTAGML  = (grammarType config == TAGML)
+     --
      putStr $ if isTAGML 
               then "Loading XML Macros " ++ filename ++ "... "
               else "Loading Macros " ++ filename ++ "... "
@@ -557,16 +585,14 @@ loadMacros pst =
         else error (errmsg ++ (show u))
 \end{code}
 
-\paragraph{loadLexicon} Given the pointer to the monadic state pst, it
-reads and parses the lexicon from the lexicon file indicated in the
-monad.  The lexicon is stored as a list in the monad.
+\paragraph{loadMacros} Given the pointer to the monadic state pst and
+the parameters from a grammar index file parameters; it reads and parses
+the lexicon file. The lexicon is stored as a list in the monad.
 
 \begin{code}
-loadLexicon :: PState -> IO ()
-loadLexicon pst = do 
-       st <- readIORef pst
-       let config = pa st
-           filename = lexiconFile config
+loadLexicon :: PState -> GramParams -> IO ()
+loadLexicon pst config = do 
+       let filename = lexiconFile config
        putStr $ "Loading Lexicon " ++ filename ++ "..."
        lf <- readFile filename 
        let l = lParser (lexer lf)

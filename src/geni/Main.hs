@@ -6,10 +6,6 @@
 
 {- TODO Prepare a report from the slides of the talk -}
 
-{- TODO To eliminate redundant generations enforce that substitution
-        tree should have an empty list of substitution nodes when applying 
-        Substitution -}
-
 {- TODO Parser of Lexicon gives error when the input has empty parameters.  This
         should probably be permited. Similar for Grammar-}
 
@@ -32,7 +28,7 @@ import Gui(guiGenerate)
 import Geni
 import Mstate(avgGstats)
 import Configuration(Params, graphical, 
-                     macrosFile, lexiconFile, tsFile, 
+                     grammarFile, tsFile, 
                      emptyParams, optimisations, isBatch, batchRepeat,
                      optBatch, Token(..))
 
@@ -68,11 +64,9 @@ consoleGenerate' pst lastPa newPa = do
   modifyIORef pst (\x -> x{pa = newPa})
   putStrLn "======================================================"
   -- only load files if neccesary
-  let lastMacros     = macrosFile lastPa
-      lastLexicon    = lexiconFile lastPa
+  let lastGrammar    = grammarFile lastPa
       lastTargetSem  = tsFile lastPa
-  when (lastMacros /= macrosFile newPa)  $ loadMacros pst
-  when (lastLexicon /= lexiconFile newPa)  $ loadLexicon pst
+  when (lastGrammar /= grammarFile newPa)  $ loadGrammar pst
   when (lastTargetSem /= tsFile newPa) $ loadTargetSem pst
   -- determine if we have to run a batch of optimisations 
   let batch = map (\o -> newPa { optimisations = o }) optBatch  

@@ -13,11 +13,7 @@ untok (a,_,_) = a
 %tokentype { PosToken }
 
 %token 
-    macros      {(Macros,      _, _)} 
-    lexicon     {(Lexicon,     _, _)}  
-    gramtype    {(GrammarType,     _, _)}  
-    TAGML       {(TAGMLTok, _, _)}
-    GeniHand    {(GeniHandTok, _, _)}
+    grammar     {(GrammarTok,      _, _)} 
     tsem        {(TSemantics,  _, _)}
     graphical   {(Graphical,   _, _)}
     optimisations {(Optimisations, _,_)}
@@ -53,8 +49,6 @@ InputList :
      {(Repeat,show $3):$4}
  | idkey '=' id InputList
      {(untok $1,$3):$4}
- | gramtype '=' GramTypes InputList
-     {(untok $1, $3):$4}
  | boolkey '=' true InputList
      {($1,"True"):$4}
  | boolkey '=' false InputList
@@ -64,8 +58,7 @@ InputList :
  | extrapol '=' PolList InputList
      {(untok $1, $3):$4}
  
-idkey:   lexicon  {$1}  
-       | macros   {$1}  
+idkey:   grammar  {$1}  
        | tsem     {$1}  
 
 boolkey: graphical  {Graphical}
@@ -77,9 +70,6 @@ optkey: polarised    {Polarised}
       | chartsharing {ChartSharing}
       | orderedadj   {OrderedAdj}
       | footconstr   {FootConstraint}
-
-GramTypes : TAGML    { (show.untok) $1 } 
-          | GeniHand { (show.untok) $1 } 
 
 OptList : 
     batch  

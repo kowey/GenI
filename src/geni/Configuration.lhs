@@ -1,7 +1,8 @@
 \chapter{Configuration}
 
 This module handles configuration parameters such as the input files and
-the optimisations that Geni should handle.
+the optimisations that Geni should handle.  The input to this module
+comes from Cparser.y
 
 \textbf{TODO}:
 \begin{enumerate}
@@ -10,15 +11,18 @@ the optimisations that Geni should handle.
 
 \begin{code}
 module Configuration(
-   Params, GrammarType(..),
+   Params, 
    treatArgs, 
-   macrosFile, lexiconFile, grammarType,
-   tsFile, graphical, 
+   grammarFile, tsFile, graphical, 
    optimisations,
    polarised, polsig, chartsharing, extrapol,
    predicting, semfiltered, orderedadj, footconstr,
    isBatch, batchRepeat, 
    defaultParams, emptyParams, getConf, optBatch,
+
+   GramParams(..),
+   GrammarType(..),
+   parseGramIndex,
 
    -- re-export
    Token(Batch)
@@ -40,6 +44,7 @@ We also import some stuff from the rest of the generator.
 \begin{code}
 import Lex2 (lexer)
 import Cparser (cParser)
+import GIparser (giParser)
 import PolParser (polParser)
 import ParserLib(Token(..))
 \end{code}
@@ -58,26 +63,19 @@ import ParserLib(Token(..))
 \section{Configuration}
 % --------------------------------------------------------------------  
 
-\begin{code}
-data GrammarType = GeniHand | TAGML 
-     deriving (Show, Eq)
-\end{code}
-
-The Params data structure holds the specification for how Geni should be
+The Params data type holds the specification for how Geni should be
 run, its input files, etc.  This is the stuff that would normally be
 found in the configuration file.
 
 \begin{code}
 data Params = Prms{
-           macrosFile     :: String,
-           lexiconFile    :: String,
-           grammarType    :: GrammarType,
-           tsFile         :: String,
-           graphical      :: Bool,
-           optimisations  :: [Token],
-           extrapol       :: FiniteMap String Int,
-           batchRepeat    :: Integer
-         } deriving (Show)
+  grammarFile    :: String,
+  tsFile         :: String,
+  graphical      :: Bool,
+  optimisations  :: [Token],
+  extrapol       :: FiniteMap String Int,
+  batchRepeat    :: Integer
+} deriving (Show)
 
 polarised    :: Params -> Bool
 polsig       :: Params -> Bool
@@ -103,10 +101,8 @@ isBatch      p = Batch        `elem` (optimisations p)
 \begin{code}
 emptyParams :: Params
 emptyParams = Prms {
-  macrosFile     = "",
-  lexiconFile    = "",
+  grammarFile    = "",
   tsFile         = "",
-  grammarType    = GeniHand,
   graphical      = False,
   optimisations  = [],
   extrapol       = emptyFM,
@@ -115,11 +111,9 @@ emptyParams = Prms {
 
 defaultParams :: Params
 defaultParams = emptyParams {
-   macrosFile     = "examples/ej/mac",
-   lexiconFile    = "examples/ej/lex",
+   grammarFile    = "examples/ej/grammar",
    tsFile         = "examples/ej/ej1",
-   graphical      = True,
-   grammarType    = GeniHand
+   graphical      = True
 }
 \end{code}
 
@@ -163,14 +157,10 @@ configuration file
 \begin{code}
 defaultParamsStr :: Params -> String
 defaultParamsStr p = 
-  let g  = macrosFile p
-      l  = lexiconFile p
-      ts = tsFile p
+  let g  = grammarFile p
       op = optimisations p
       gr = if (graphical p)  then "True" else "False"
-  in "\nMacros   = " ++ g  ++ 
-     "\nLexicon  = " ++ l  ++ 
-     "\nTSemantics = " ++ ts ++ 
+  in "\nGrammar  = " ++ g  ++ 
      "\n" ++
      "\n% True or False" ++
      "\nGraphical  = " ++ gr ++ 
@@ -187,10 +177,10 @@ defaultParamsStr p =
 \end{code}
 
 % --------------------------------------------------------------------  
-\section{Intepreting commands}
+\subsection{Intepreting commands}
 % --------------------------------------------------------------------  
 
-The configuration file is intpreted as a list of lists of tokens.  We
+The configuration file is intepreted as a list of lists of tokens.  We
 use a list of lists for purposes of batch processing.  Each list of
 tokens is a session.  Each session inherits the properties of the
 previous sesssion, except for the optimisations  
@@ -213,21 +203,14 @@ defineParams p (fv:next) = nextP : (defineParams nextP next)
 defineParams' :: Params -> [(Token,String)] -> Params
 defineParams' p [] = p
 defineParams' p ((f,v):s) =
-  case f of Macros  ->  defineParams' p{macrosFile     = v} s
-            Lexicon ->  defineParams' p{lexiconFile    = v} s
-            GrammarType -> defineParams' p{grammarType = t} s
-                           where t = case (read v) of 
-                                       GeniHandTok -> GeniHand 
-                                       TAGMLTok    -> TAGML 
-                                       _           -> error (show v ++ e) 
-                                 e = " is not a grammar type"
+  case f of GrammarTok -> defineParams' p{grammarFile = v} s
             TSemantics -> defineParams' p{tsFile  = v} s
             Graphical  -> defineParams' p{graphical  = (v == "True")} s
             Optimisations   -> defineParams' p{optimisations = readOpt } s
                                where readOpt = map read $ words v
             ExtraPolarities -> defineParams' p{extrapol = (polParser . lexer) v} s
             Repeat -> defineParams' p{batchRepeat = read v} s 
-            p -> error ("Unknown configuration parameter" ++ show p)
+            p -> error ("Unknown configuration parameter: " ++ show p)
 \end{code}
 
 \paragraph{optBatch} represents all the possible combinations of
@@ -242,3 +225,79 @@ optBatch =
   in map (FootConstraint:) adjBatch
 \end{code}
 
+% --------------------------------------------------------------------  
+\section{Reading Grammar Params}
+% --------------------------------------------------------------------  
+ 
+All grammars have an index file which contains information about the
+grammar type and refers to the other files in the grammar.  The functions
+in this section interpret the contents of the grammar index file.
+
+\begin{code}
+data GrammarType = GeniHand | TAGML 
+     deriving (Show, Eq)
+\end{code}
+
+The GramParams data type holds the information about a single
+GenI grammar
+
+\begin{code}
+data GramParams = GrmPrms {
+  macrosFile     :: String,
+  lexiconFile    :: String,
+  grammarType    :: GrammarType
+}
+\end{code}
+
+\paragraph{parseGramIndex} Parses the contents of a grammar index
+file.  All relative filenames in the index are prepended with the
+parent directory of \texttt{filename} 
+(i.e. if i pass in \texttt{examples/foo/index} as filename, then 
+ a filename like \texttt{lexicon} will be converted to
+ \texttt{examples/foo/lexicon}).
+
+\begin{code}
+parseGramIndex :: FilePath -> String -> GramParams
+parseGramIndex filename contents =
+  let slash = '/'
+      -- parse the index file 
+      args = (giParser . lexer) contents 
+      gp   = defineGramParams args
+      -- get the parent directory of filename 
+      getParent = reverse . dropWhile (/= slash) . reverse
+      dirname   = getParent filename
+      -- expand the relative paths 
+      toAbs path = if isAbs path        
+                   then path
+                   else dirname ++ (slash : path)
+      --
+      isAbs []    = False
+      isAbs (a:_) = (a == slash)
+      --
+  in gp {
+       macrosFile  = toAbs (macrosFile gp),
+       lexiconFile = toAbs (lexiconFile gp)
+     }
+\end{code}
+
+\begin{code}
+defineGramParams :: [(Token,String)] -> GramParams
+
+defineGramParams [] = GrmPrms {
+  macrosFile  = "",
+  lexiconFile = "",
+  grammarType = GeniHand
+}
+
+defineGramParams ((f,v):s) =
+  case f of Macros  ->  next {macrosFile     = v}
+            Lexicon ->  next {lexiconFile    = v} 
+            GrammarType -> next {grammarType = t} 
+                           where t = case (read v) of 
+                                       GeniHandTok -> GeniHand 
+                                       TAGMLTok    -> TAGML 
+                                       _           -> error (show v ++ e) 
+                                 e = " is not a grammar type"
+            p -> error ("Unknown index file parameter: " ++ show p)
+  where next = defineGramParams s
+\end{code}

@@ -31,9 +31,7 @@ module Tags(
 \begin{code}
 import Data.List (intersperse)
 import Data.Tree
-import FiniteMap (FiniteMap, emptyFM, addToFM_C, lookupFM,
-                  lookupWithDefaultFM
-                  )
+import FiniteMap (FiniteMap, emptyFM, addToFM_C, lookupWithDefaultFM)
 
 import Btypes (Ptype(Initial, Auxiliar), 
                Subst, GNode(gup, gdown), Flist, 
@@ -143,7 +141,9 @@ emptyTE = TE { idname = "",
 % ----------------------------------------------------------------------
 
 \paragraph{substTag} given a TagElem and a substitution, applies the
-substitution through all the TagElem
+substitution through all the TagElem. Note that this \emph{is not} the
+TAG substitution operation, but a helper function for variable
+unification, with an unfortunately coincidental name.
 
 \begin{code}
 substTagElem :: TagElem -> Subst -> TagElem
@@ -264,5 +264,3 @@ showTagSites :: [TagSite] -> String
 showTagSites sites = concat $ intersperse "\n  " $ map fn sites
   where fn (n,t,b) = n ++ "/" ++ showPairs t ++ "/" ++ showPairs b
 \end{code}
-
-

@@ -25,13 +25,12 @@ import Graphviz
 import Treeprint
 import Geni (State(..), GeniResults(..), PState,
              runGeni, customGeni, combine,
-             loadMacros, loadLexicon, loadTargetSemStr)
+             loadGrammar, loadTargetSemStr)
 import Btypes (showSem, showPred, Sem)
 import Tags (idname,mapBySem,emptyTE,tsemantics,tpolarities,
              showfeats,TagElem)
 
-import Configuration(Params, GrammarType(..), 
-                     macrosFile, lexiconFile, grammarType,
+import Configuration(Params, grammarFile, 
                      tsFile, optimisations, 
                      polarised, polsig, chartsharing, 
                      semfiltered, orderedadj, extrapol, footconstr)
@@ -50,8 +49,7 @@ import Polarity
 \begin{code}
 guiGenerate :: PState -> IO() 
 guiGenerate pst = do
-  loadMacros pst
-  loadLexicon pst
+  loadGrammar pst
   start (mainGui pst)
 \end{code}
 
@@ -99,14 +97,10 @@ We add some buttons for loading files and running the generator.
        tsText <- readFile (tsFile $ pa mst)
        tsTextBox <- textCtrl f WrapWord [ text := tsText, clientSize := sz 300 80 ]
        -- Box and Frame for files loaded 
-       let gFilename = macrosFile  config 
-           lFilename = lexiconFile config
-
+       let gFilename = grammarFile config 
        grammarFileLabel <- staticText f [ text := gFilename ]
-       lexiconFileLabel <- staticText f [ text := lFilename ]
        tsFileLabel      <- staticText f [ text := (trim.tsFile) config ]
-       let guiParts = (grammarFileLabel, lexiconFileLabel, tsFileLabel, 
-                       tsTextBox)
+       let guiParts = (grammarFileLabel, tsFileLabel, tsTextBox)
        loadfileBt <- button f [ text := "Load files"
                               , on command := gramsemBrowser pst guiParts ] 
        --reloadSemBt <- button f [ text := "Reload semantics"
@@ -153,8 +147,7 @@ Pack it all together.
        togglePolStuff
        --
        let gramsemBox = boxed "Files last loaded" $
-                   row 5 [ column 5 [ row 5 [ label "macros: ", widget grammarFileLabel ]
-                                    , row 5 [ label "lexicon: ", widget lexiconFileLabel ]
+                   row 5 [ column 5 [ row 5 [ label "grammar: ", widget grammarFileLabel ]
                                     , row 5 [ label "input sem: ", widget tsFileLabel ] ] 
                          , floatBottomRight $ column 5 [ hfloatRight $ widget loadfileBt ] 
                          ] 
@@ -204,61 +197,39 @@ the Load files button.  Allows for changing grammar and semantics files.
 TODO: respond to the Enter key select the text?
 
 \begin{code}
-gramsemBrowser :: (Textual a, Visible a, Textual b) => PState -> (a,a,a,b) -> IO ()
+gramsemBrowser :: (Textual a, Visible a, Textual b) => PState -> (a,a,b) -> IO ()
 gramsemBrowser pst guiParts = do
   mst <- readIORef pst
   let config = pa mst
       tfile = tsFile config 
-      gtype = grammarType config
-      gfile = macrosFile config
-      lfile = lexiconFile config
+      gfile = grammarFile config
   f <- frame [text := "Grammar and semantics", clientSize := sz 400 150]
   -- Grammar files selection
   entryG  <- textEntry f AlignLeft [ text := trim gfile ]
   fselBtG <- button f [ text := "Browse"
                       , on command := newFileSel f entryG  ]
-  entryL  <- textEntry f AlignLeft [ text := trim lfile ]
-  fselBtL <- button f [ text := "Browse" 
-                      , on command := newFileSel f entryL ]
   -- Target semantics file selection
   entryS   <- textEntry f AlignLeft [ text := trim tfile ]
   fselBtS <- button f [ text := "Browse"
                       , on command := newFileSel f entryS ]
-  -- Grammar type selection
-  let rlabels = ["handwritten", "TAGMLish"]
-  rBox <- radioBox f Horizontal rlabels [ text := "Grammar type"
-                                        , selection := if (gtype == TAGML) then 1 else 0
-                                        ]
   -- Cancel button
   cancelBt <- button f [ text := "Cancel" , on command := close f ]
   -- Load button
-  let (gl,ll,tl,tsBox) = guiParts
+  let (gl,tl,tsBox) = guiParts
   let loadCmd reload = do -- get new values
                          teG' <- get entryG text
-                         teL' <- get entryL text
                          teS' <- get entryS text
                          let teG = trim teG'
-                             teL = trim teL'
                              teS = trim teS'
-                         -- what kind of grammar does the user want?
-                         gramSel <- get rBox selection
-                         let newGtype = if (gramSel == 0) 
-                                        then GeniHand 
-                                        else TAGML
                          -- write the new values
-                         let newPa p = p { macrosFile  = teG 
-                                         , lexiconFile = teL 
-                                         , grammarType = newGtype 
+                         let newPa p = p { grammarFile = teG 
                                          , tsFile = teS }
                          modifyIORef pst (\x -> let pa' = pa x in x{pa = newPa pa'})
                          -- load in any new files
                          Monad.when (reload || teG /= gfile ) $ 
-                           do loadMacros pst  
+                           do loadGrammar pst  
                               modifyIORef pst (\x -> x { tags = emptyFM }) 
                               set gl [ text := teG ]
-                         Monad.when (reload || teL /= lfile ) $ 
-                           do loadLexicon pst
-                              set ll [ text := teL ]
                          Monad.when (reload || teS /= tfile ) $ 
                            do readTargetSem pst tsBox
                               set tl [ text := teS ]
@@ -271,16 +242,12 @@ gramsemBrowser pst guiParts = do
                        , on command := loadCmd True ]
   -- Pack it all together.
   set f [layout := column 5 
-              -- Grammar type
-              [ hfill $ widget rBox
-              -- Grammar/macros selection 
-              , hfill $ row 5 [ label "trees  ", hfill $ widget entryG, widget fselBtG ]
-              -- Lexicon selection 
-              , hfill $ row 5 [ label "lexicon", hfill $ widget entryL, widget fselBtL ]
-              -- Semantics
-              , hfill $ row 5 [ label "input sem", hfill $ widget entryS, widget fselBtS ]
-              -- Load button 
-              , hfloatRight $ row 5 [ widget cancelBt, widget loadBt, widget reloadBt ]
+              [ -- Grammar selection 
+                hfill $ row 5 [ label "grammar", hfill $ widget entryG, widget fselBtG ]
+              , -- Semantics
+                hfill $ row 5 [ label "input sem", hfill $ widget entryS, widget fselBtS ]
+              , -- Load button 
+                hfloatRight $ row 5 [ widget cancelBt, widget loadBt, widget reloadBt ]
               ] ]
 \end{code}
 

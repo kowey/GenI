@@ -4,9 +4,39 @@ We introduce a notion of polarities as a means of pre-detecting
 incompatibilities between candidate trees for different propositions.
 This optimisation is inserted between candidate selection 
 (section \ref{sec:candidate_selection})
-and chart generation and requires a minor modification to the generation
-process.  The input to this optimisation is the \jargon{target
-  semantics} and the corresponding \jargon{candidate trees}.
+and chart generation.  The input to this optimisation is the
+\jargon{target semantics} and the corresponding \jargon{candidate
+  trees}.
+
+This whole optimisation is based on adding polarities to the grammar.
+We have a set of strings which we call \jargon{polarity keys}, and some
+positive or negative integers which we call \jargon{charges}.  Each tree
+in the grammar may assign a charge to some number of polarity keys.  For
+example, here is a simple grammar that uses the polarity keys n and v.
+
+\begin{tabular}{|l|l|}
+\hline
+tree & polarity effects \\
+\hline
+s(n$\downarrow$, v$\downarrow$, n$\downarrow$) & -2n -v\\
+v(hates) & +v\\
+n(mary) & +n\\
+n(john) & +n\\
+\hline
+\end{tabular}
+
+For now, these annotations are done by hand, and are based on syntactic
+criteria (substitution and root node categories) but one could envisage
+alternate criteria or an eventual means of automating the process.  
+
+~\\
+The basic idea is to use the polarity keys to determine which subsets of
+candidate trees are incompatible with each other and rule them out.  We
+construct a finite state automaton which uses polarity keys to
+pre-calculate the compatibility of sets of trees.  At the end of the
+optimisation, we are left with an automaton, each path of which is a
+potentially compatible set of trees.  We then preform surface
+realisation seperately, treating each path as a set of candidate trees.
 
 \begin{code}
 module Polarity(PolAut,makePolAut,
@@ -60,27 +90,24 @@ detail the individual steps in the following sections.  The basic
 architecture is as follows:
 
 \begin{enumerate}
-\item Do some preprocessing and construct a list of polarity
-      automata.
-\item Minimise each of the automata (this serves mainly to
-      optimise the next step).  See section \ref{sec:automata_pruning}).
-\item Take the intersection of all the automata.
+\item Build a seed automaton (section \ref{sec:seed_automaton}).
+\item For each polarity key, elaborate the 
+      automaton with the polarity information for that key
+      (section \ref{sec:automaton_construction}) and minimise
+      the automaton (section \ref{sec:automaton_pruning}).
 \end{enumerate}
 
-We return everything a tuple of which the first item is a list of 
-automota for debugging, and second item is the final automaton.  Only
-the second item is important.  The first is only neccesary for 
-debugging.
-
-Each candidate is pre-annotated (in the grammar) with a list of polarity 
-keys.  We pack the candidates into a map so that they can be looked up
-according to what parts of the target semantics they subsume.  Finally, for
-each distinct $k$ in this list, we construct a polarity automaton.  
+The above process can be thought of as a more efficient way of
+constructing an automaton for each polarity key, minimising said
+automaton, and then taking their intersection.  In any case, 
+we return everything a tuple with (1) a list of the automota that
+were created and (2) the final automaton.  The first item is only
+neccesary for debugging; only the second is important.  
 
 Note: the extraPol argument is a finite map containing any initial
 values for polarity keys.  This is useful to impose external filters
 like ``I only want sentences'' or ``I only want expressions where 
-the object is topicalised''
+the object is topicalised''.
 
 \begin{code}
 makePolAut :: [TagLite] -> Sem -> PolMap 
@@ -110,197 +137,42 @@ makePolAutHelper cands tsem extraPol =
   in (ks, seed)
 \end{code}
 
-% ----------------------------------------------------------------------
-\section{Types}
-% ----------------------------------------------------------------------
-
-\begin{code}
-type SemMap = FiniteMap Pred [TagLite]
-type PolMap = FiniteMap String Int
-\end{code}
-
-\subsection{TagLite}
-
-To avoid passing around entire TagElems during the construction
-of polarity automata, we reduce the candidates to the lighter-
-weight TagLite structure that contains just the information needed
-to build automata.
-
-\begin{code}
-data TagLite = TELite {
-                   tlIdname      :: String,
-                   tlIdnum       :: Integer,
-                   tlSemantics   :: Sem,
-                   tlPolarities  :: FiniteMap String Int
-                }
-        deriving (Show, Eq)
-
-instance Ord TagLite where
-  compare t1 t2 = 
-    compare (tlIdname t1,tlIdnum t1) (tlIdname t2,tlIdnum t2)
-
-emptyTL :: TagLite
-emptyTL = TELite { tlIdname = "",
-                   tlIdnum  = -1,
-                   tlSemantics = [],
-                   tlPolarities = emptyFM }
-
-toTagLite :: TagElem -> TagLite
-toTagLite te = TELite { tlIdname     = idname te,
-                        tlIdnum      = tidnum te,   
-                        tlSemantics  = tsemantics te,
-                        tlPolarities = tpolarities te
-                      }
-\end{code}
-
-We provide two ways to do the TagLite reduction: If \texttt{polsig} is False,
-we just perform a direct one-on-one mapping.  If it is True, we use the
-polarity signatures optimisation in section \ref{sec:polarity_signatures}.  In
-both cases, we return a conversion function that maps the returned TagLites to
-their original TagElems.
-
-\begin{code}
-reduceTags :: Bool -> [TagElem] -> ([TagLite], TagLite -> [TagElem])
-reduceTags polsig tes =
-  let tls          = map toTagLite tes 
-      fromTagLite  = listArray (1,length tes) tes 
-      lookupfn t   = [ fromTagLite ! (fromInteger $ tlIdnum t) ]
-  in if polsig then mapByPolsig tes else (tls, lookupfn)
-\end{code}
-
-
-
-\subsection{NFA}
-Having not found a suitable automaton library for Haskell, we define our
-own version of NFA using FiniteMap for the transition function.  Leon P.
-Smith's Automata library requires us to know before-hand the size of our
-alphabet, which is highly unacceptable for this task.  
-
-Note: these are NFAs without the empty-transition.
-
-\begin{code}
-data NFA st ab = NFA { startSt :: st,
-                       finalSt :: [st],
-                       transitions :: FiniteMap st (FiniteMap ab [st]),
-                       -- set of states 
-                       -- note: we use a list of list to group the states,
-                       -- for the polarity automaton we group them by literal
-                       states    :: [[st]]
-                     }
-\end{code}
-
-\paragraph{lookupTrans} takes an automaton, a state $st1$ and an element
-$ab$ of the alphabet; and returns the state that $st1$ transitions to
-via $a$, if possible. 
-
-\begin{code}
-lookupTrans :: (Ord ab, Ord st) => NFA st ab -> st -> ab -> [st]
-lookupTrans aut st ab = lookupWithDefaultFM subT [] ab
-  where subT = lookupWithDefaultFM (transitions aut) emptyFM st
-\end{code}
-
-\begin{code}
-addTrans :: (Ord ab, Ord st) => NFA st ab -> st -> ab -> st -> NFA st ab 
-addTrans aut st1 ab st2 = 
-  aut { transitions = addToFM oldT st1 newSubT }
-  where oldSt2   = lookupWithDefaultFM oldSubT [] ab  
-        oldT     = transitions aut
-        oldSubT  = lookupWithDefaultFM oldT emptyFM st1
-        newSubT  = addToFM oldSubT ab (st2:oldSt2)
-\end{code}
-
-\paragraph{nubAut} ensures that all states and transitions in the polarity automaton 
-are unique.  This is a slight optimisation so that we don't have to repeatedly check
-the automaton for state uniqueness during its construction, but it is essential that
-this check be done after construction
-
-\begin{code}
-nubAut :: (Ord ab, Ord st) => NFA st ab -> NFA st ab 
-nubAut aut = 
-  let subnub _ e = nub e
-  in aut {
-      transitions = mapFM (\_ e -> mapFM subnub e) (transitions aut)
-     }
-\end{code}
-
-\subsection{Polarity NFA}
-
-We can define the polarity automaton as a NFA, or a five-tuple 
-$(Q, \Sigma, \delta, q_0, q_n)$ such that 
-
-\begin{enumerate}
-\item $Q$ is a set of states, each state being a tuple $(i,e,p)$ where $i$
-is a single literal in the target semantics, $e$ is a list of extra literals
-which are known by the state, and $p$ is a polarity.
-\item $\Sigma$ is the union of the sets of candidate trees for all
-propositions
-\item $q_0$ is the start state $(0,0)$ which does not correspond to any
-propositions and is used strictly as a starting point.
-\item $q_n$ is the final state $(n,0)$ which corresponds to the last
-proposition, with polarity $0$.
-\item $\delta$ is the transition function between states, which we
-define below.
-\end{enumerate}
-
-Note: for convenience during automaton intersection, we actually define the
-states as being $(i, [p])$ where $[p]$ is a list of states.  
-
-\begin{code}
-data PolState = PolSt Pred [Pred] [Int] deriving (Eq)
-type PolTrans = TagLite
-type PolAut   = NFA PolState PolTrans
-type PolTransFn = FiniteMap PolState (FiniteMap PolTrans [PolState])
-\end{code}
-
-\begin{code}
-instance Show PolState
-  where show (PolSt pr ex po) = showPred pr ++ " " ++ showSem ex ++ show po
-\end{code}
-
-\begin{code}
-instance Ord PolState where
-  compare (PolSt pr1 ex1 po1) (PolSt pr2 ex2 po2) = 
-    let prC   = compare pr1 pr2
-        expoC = compare (ex1,po1) (ex2,po2)
-    in if (prC == EQ) then expoC else prC
-\end{code}
-
-We include also some fake states which are useful for general
-housekeeping during the main algortihms.
-
-\begin{code}
-fakestate :: String -> [Int] -> PolState
-fakestate s pol = PolSt ("h0", s, [""]) [] pol
--- an initial state for polarity automata
-polstart :: [Int] -> PolState
-polstart pol = fakestate "START" pol
--- a fake state is the final state of an empty automaton 
-polfake :: PolState
-polfake = fakestate "FAKE-FINAL" []
-\end{code}
-
 % ====================================================================
 \section{Polarity automaton}
-\label{sec:automaton_construction}
+\label{sec:polarity_automaton}
 % ====================================================================
 
-We now a have a set of trees such that each tree is associated with a
-list of feature-value polarity sums.  The next step is to use the
-polarities to rule out definitely unusable combinations of candidates,
-those whose combination results in non-zero polarities.
+We construct a finite state automaton for each polarity key that is in
+the set of trees. It helps to imagine a table where each column
+corresponds to a single proposition.  
 
-We construct a finite state automaton for each distinct feature-value
-pair that in the set of trees.  It helps to imagine a table where each
-column corresponds to a single proposition.  Each column (proposition)
-has a different number of cells which corresponds to the lexical
-ambiguity for that proposition, more concretely, the number of
-candidate trees for that proposition.  The \jargon{polarity automaton}
-describes the different ways we can traverse the table from column to
-column, choosing a cell to pass through at each step and accumulating
-polarity along the way.  Each state represents the polarity at a column
-and each transition represents the tree we chose to get there.  All
-transitions from one columns $i$ to the next $i+1$ that lead to the same
-accumulated polarity lead to the same state.  
+\begin{center}
+\begin{tabular}{|c|c|c|}
+\hline
+\semexpr{gift(g)} & \semexpr{cost(g,x)}    & \semexpr{high(x)} \\
+\hline
+\natlang{the gift} \color{blue}{+1np} & 
+\natlang{the cost of}  & 
+\natlang{is high} \color{red}{-1np} \\
+%
+\natlang{the present}    \color{blue}{+1np} & 
+\natlang{costs} \color{red}{-1np}    & 
+\natlang{a lot}    \\
+%
+&& \natlang{much} \\
+\hline
+\end{tabular}
+\end{center}
+
+Each column (proposition) has a different number of cells which
+corresponds to the lexical ambiguity for that proposition, more
+concretely, the number of candidate trees for that proposition.  The
+\jargon{polarity automaton} describes the different ways we can traverse
+the table from column to column, choosing a cell to pass through at each
+step and accumulating polarity along the way.  Each state represents the
+polarity at a column and each transition represents the tree we chose to
+get there.  All transitions from one columns $i$ to the next $i+1$ that
+lead to the same accumulated polarity lead to the same state.  
 
 % ----------------------------------------------------------------------
 \subsection{Initial Automaton}
@@ -359,11 +231,12 @@ buildSeedAutHelper cs l st (aut,prev) =
 
 % ----------------------------------------------------------------------
 \subsection{Construction}
+\label{sec:automaton_construction}
 \label{sec:automaton_intersection}
 % ----------------------------------------------------------------------
 
 The goal is to construct a polarity automaton which accounts for a
-given \jargon{polarity key} $k$.  The basic idea is that given 
+given polarity key $k$.  The basic idea is that given 
 literals $p_1..p_n$ in the target semantics, we create a start state,
 calculate the states/transitions to $p_1$ and succesively calculate
 the states/transitions from proposition $p_x$ to $p_{x+1}$ for all
@@ -555,13 +428,23 @@ walkAutomaton' transFm st =
   in concatMap next cands 
 \end{code}
 
-% ----------------------------------------------------------------------
-\subsection{Detecting automaton paths}
-% ----------------------------------------------------------------------
+% ====================================================================
+\section{Further optimisations}
+% ====================================================================
 
-This is for the chart-sharing optimisation.  Given a list of paths 
-(i.e. a list of list of trees), we return a list of trees such that
-each tree is annotated with the paths it belongs to.
+\subsection{Chart sharing}
+
+Chart sharing is based on the idea that instead of performing a 
+seperate generation task for each automaton path, we should do
+single generation task, but annotate each tree with set of the
+automata paths it appears on.  We then allow trees on the
+same paths to be compared only if they are on the same path.
+Note: chart sharing involves some mucking around with the generation
+engine (see page \pageref{fn:lookupGenRep})
+
+\paragraph{detectPolPaths} Given a list of paths 
+(i.e. a list of list of trees), we return a list of trees such that each
+tree is annotated with the paths it belongs to.
 
 \begin{code}
 detectPolPaths :: [[TagElem]] -> [TagElem] 
@@ -609,10 +492,6 @@ showPolPaths' bv counter =
   where b = testBit bv 0
         next = showPolPaths' (shiftR bv 1) (counter + 1)
 \end{code}
-
-% ====================================================================
-\section{Further optimisations}
-% ====================================================================
 
 \subsection{Polarity signatures}
 \label{sec:polarity_signatures}
@@ -698,6 +577,176 @@ sortSemByFreq tsem smap =
       sorted = sortBy sortfn $ zip tsem lengths 
   in (fst.unzip) sorted 
 \end{code}
+
+% ----------------------------------------------------------------------
+\section{Types}
+% ----------------------------------------------------------------------
+
+\begin{code}
+type SemMap = FiniteMap Pred [TagLite]
+type PolMap = FiniteMap String Int
+\end{code}
+
+\subsection{TagLite}
+
+To avoid passing around entire TagElems during the construction
+of polarity automata, we reduce the candidates to the lighter-
+weight TagLite structure that contains just the information needed
+to build automata.
+
+\begin{code}
+data TagLite = TELite {
+                   tlIdname      :: String,
+                   tlIdnum       :: Integer,
+                   tlSemantics   :: Sem,
+                   tlPolarities  :: FiniteMap String Int
+                }
+        deriving (Show, Eq)
+
+instance Ord TagLite where
+  compare t1 t2 = 
+    compare (tlIdname t1,tlIdnum t1) (tlIdname t2,tlIdnum t2)
+
+emptyTL :: TagLite
+emptyTL = TELite { tlIdname = "",
+                   tlIdnum  = -1,
+                   tlSemantics = [],
+                   tlPolarities = emptyFM }
+
+toTagLite :: TagElem -> TagLite
+toTagLite te = TELite { tlIdname     = idname te,
+                        tlIdnum      = tidnum te,   
+                        tlSemantics  = tsemantics te,
+                        tlPolarities = tpolarities te
+                      }
+\end{code}
+
+We provide two ways to do the TagLite reduction: If \texttt{polsig} is False,
+we just perform a direct one-on-one mapping.  If it is True, we use the
+polarity signatures optimisation in section \ref{sec:polarity_signatures}.  In
+both cases, we return a conversion function that maps the returned TagLites to
+their original TagElems.
+
+\begin{code}
+reduceTags :: Bool -> [TagElem] -> ([TagLite], TagLite -> [TagElem])
+reduceTags polsig tes =
+  let tls          = map toTagLite tes 
+      fromTagLite  = listArray (1,length tes) tes 
+      lookupfn t   = [ fromTagLite ! (fromInteger $ tlIdnum t) ]
+  in if polsig then mapByPolsig tes else (tls, lookupfn)
+\end{code}
+
+
+
+\subsection{NFA}
+Having not found a suitable automaton library for Haskell, we define our
+own version of NFA using FiniteMap for the transition function.  Leon P.
+Smith's Automata library requires us to know before-hand the size of our
+alphabet, which is highly unacceptable for this task.  
+
+Note: these are NFAs without the empty-transition.
+
+\begin{code}
+data NFA st ab = NFA { startSt :: st,
+                       finalSt :: [st],
+                       transitions :: FiniteMap st (FiniteMap ab [st]),
+                       -- set of states 
+                       -- note: we use a list of list to group the states,
+                       -- for the polarity automaton we group them by literal
+                       states    :: [[st]]
+                     }
+\end{code}
+
+\paragraph{lookupTrans} takes an automaton, a state $st1$ and an element
+$ab$ of the alphabet; and returns the state that $st1$ transitions to
+via $a$, if possible. 
+
+\begin{code}
+lookupTrans :: (Ord ab, Ord st) => NFA st ab -> st -> ab -> [st]
+lookupTrans aut st ab = lookupWithDefaultFM subT [] ab
+  where subT = lookupWithDefaultFM (transitions aut) emptyFM st
+\end{code}
+
+\begin{code}
+addTrans :: (Ord ab, Ord st) => NFA st ab -> st -> ab -> st -> NFA st ab 
+addTrans aut st1 ab st2 = 
+  aut { transitions = addToFM oldT st1 newSubT }
+  where oldSt2   = lookupWithDefaultFM oldSubT [] ab  
+        oldT     = transitions aut
+        oldSubT  = lookupWithDefaultFM oldT emptyFM st1
+        newSubT  = addToFM oldSubT ab (st2:oldSt2)
+\end{code}
+
+\paragraph{nubAut} ensures that all states and transitions in the polarity automaton 
+are unique.  This is a slight optimisation so that we don't have to repeatedly check
+the automaton for state uniqueness during its construction, but it is essential that
+this check be done after construction
+
+\begin{code}
+nubAut :: (Ord ab, Ord st) => NFA st ab -> NFA st ab 
+nubAut aut = 
+  let subnub _ e = nub e
+  in aut {
+      transitions = mapFM (\_ e -> mapFM subnub e) (transitions aut)
+     }
+\end{code}
+
+\subsection{Polarity NFA}
+
+We can define the polarity automaton as a NFA, or a five-tuple 
+$(Q, \Sigma, \delta, q_0, q_n)$ such that 
+
+\begin{enumerate}
+\item $Q$ is a set of states, each state being a tuple $(i,e,p)$ where $i$
+is a single literal in the target semantics, $e$ is a list of extra literals
+which are known by the state, and $p$ is a polarity.
+\item $\Sigma$ is the union of the sets of candidate trees for all
+propositions
+\item $q_0$ is the start state $(0,0)$ which does not correspond to any
+propositions and is used strictly as a starting point.
+\item $q_n$ is the final state $(n,0)$ which corresponds to the last
+proposition, with polarity $0$.
+\item $\delta$ is the transition function between states, which we
+define below.
+\end{enumerate}
+
+Note: for convenience during automaton intersection, we actually define the
+states as being $(i, [p])$ where $[p]$ is a list of states.  
+
+\begin{code}
+data PolState = PolSt Pred [Pred] [Int] deriving (Eq)
+type PolTrans = TagLite
+type PolAut   = NFA PolState PolTrans
+type PolTransFn = FiniteMap PolState (FiniteMap PolTrans [PolState])
+\end{code}
+
+\begin{code}
+instance Show PolState
+  where show (PolSt pr ex po) = showPred pr ++ " " ++ showSem ex ++ show po
+\end{code}
+
+\begin{code}
+instance Ord PolState where
+  compare (PolSt pr1 ex1 po1) (PolSt pr2 ex2 po2) = 
+    let prC   = compare pr1 pr2
+        expoC = compare (ex1,po1) (ex2,po2)
+    in if (prC == EQ) then expoC else prC
+\end{code}
+
+We include also some fake states which are useful for general
+housekeeping during the main algortihms.
+
+\begin{code}
+fakestate :: String -> [Int] -> PolState
+fakestate s pol = PolSt ("h0", s, [""]) [] pol
+-- an initial state for polarity automata
+polstart :: [Int] -> PolState
+polstart pol = fakestate "START" pol
+-- a fake state is the final state of an empty automaton 
+polfake :: PolState
+polfake = fakestate "FAKE-FINAL" []
+\end{code}
+
 
 % ----------------------------------------------------------------------
 \section{Display code}

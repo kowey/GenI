@@ -14,7 +14,7 @@ module Btypes(
    Ttree(TT), MTtree,
    Ptype(Initial,Auxiliar,Unspecified), 
    Pred, Flist, AvPair, 
-   ILexEntry(ILE), Macros, Sem, Subst,
+   Lexicon, ILexEntry(ILE), Macros, Sem, Subst,
    BitVector,
 
    -- Functions from Tree GNode
@@ -110,9 +110,11 @@ emptyMacro = TT { params  = [],
                   ptpolarities = emptyFM }
 \end{code}
 
-Auxiliar types used during the parsing of the Lexicon 
+Auxiliary types used during the parsing of the Lexicon.  
+A lexicon maps lemmas to lexical entries.
 
 \begin{code}
+type Lexicon   = FiniteMap String [ILexEntry]
 data ILexEntry = ILE{iword :: String,
                      itreename :: String,
                      iparams :: [String],

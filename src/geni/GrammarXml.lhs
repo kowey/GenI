@@ -21,7 +21,7 @@ import Text.XML.HaXml.Types
 import Text.XML.HaXml.Combinators
 import Text.XML.HaXml.Parse
 
-import Btypes(AvPair, Flist, 
+import Btypes(AvPair, Flist, Lexicon, ILexEntry(..), 
               GType(Subs,Foot,Lex,Other),
               GNode(..), Macros, Ttree(..),
               emptyGNode, emptyMacro,
@@ -31,6 +31,75 @@ import Lex2(lexer)
 -- import Tags(emptyTE,TagElem(..),Tags,TagSite,addToTags)
 \end{code}
 }
+
+% ======================================================================
+\section{Lexicon}
+% ======================================================================
+
+A lexicon associates some lemma with a tree family.
+FIXME: For the moment, we do not handle coanchors!  We actually
+drop a good deal of the information that is the lexicon.
+
+\begin{code}
+parseXmlLexicon :: String -> Lexicon 
+parseXmlLexicon g = 
+  -- extract a CElem out of the String
+  let (Document _ _ ele) = xmlParse "" g 
+      c = CElem ele
+      -- processing phase
+      lexF = tag "tagml" /> tag "lexicalization"
+      lex  = lexF c
+      --
+      -- res = foldr parseLexEntry emptyFM lex 
+  in emptyFM 
+\end{code}
+
+Lexical entries can be really fancy.  Each lexical entry looks 
+a little like this:
+
+\begin{verbatim}
+<lexicalization>
+      <tree>
+        <fs>
+          <f name="family">
+            <sym value="commonnoun"/></f></fs></tree>
+      <anchor noderef="anchor">
+        <lemmaref name="agneau" cat="n"/></anchor></lexicalization>
+\end{verbatim}
+
+From the above piece of XML, we would extract the following
+information: family = commonnoun, anchor = agneau
+
+\begin{code}
+parseLex :: Content -> ILexEntry
+parseLex l = 
+  let -- getting the family name 
+      lFeatsF = keep /> tag "tree" /> featStructF /> featF
+      feats   = map parseFeature (lFeatsF l)
+      famFeats = filter (\ (a,_) -> a == "family") feats
+      fam = if null famFeats 
+            then "UNKWNOWN" 
+            else (snd.head) famFeats
+      -- getting the lemma 
+      lemmaF = attributed "name" (keep /> tag "anchor")
+      lemma  = concatMap fst (lemmaF l) -- should only be one element 
+      -- creating a lexical entry: note that we leave the
+      -- semantics empty; this will have to be read from 
+      -- another file
+  in ILE{ iword = lemma
+        , itreename = fam
+        , iparams = []
+        , ipfeat = []
+        , iptype = Unspecified
+        , isemantics = []
+        , ipredictors = []
+  }
+\end{code}
+
+
+% ======================================================================
+\section{Macros}
+% ======================================================================
 
 \begin{code}
 type MTree = Ttree GNode
@@ -81,20 +150,10 @@ parseEntry e mac =
   in addToFM_C (++) mac famName [t]
 \end{code}
 
-% ----------------------------------------------------------------------
-\section{Format}
-% ----------------------------------------------------------------------
 
-We collect bits and pieces of the XML format as global functions for
-use throughout the code.
-
-\begin{code}
-featStructF = tag "fs"
-featF       = tag "f"
-\end{code}
 
 % ----------------------------------------------------------------------
-\section{Syntax}
+\subsection{Syntax}
 % ----------------------------------------------------------------------
 
 Below, we're going need to use a state monad to keep track of some stuff like
@@ -229,49 +288,8 @@ parseNode n = do
   return (Node gn kids)
 \end{code}
 
-\paragraph{parseFeature} Extracts a an attribute-value pair (att,value) out of
-the XML.
-
-\begin{verbatim}
-<f name="att">
-  <sym varname="value"/>
-</f>
-\end{verbatim}
-
-Note: GenI does \emph{not} handle atomic disjunctions, so we simply
-treat them as variable values by ignoring the sym tags and extracting
-the variable name from the coref 
-(Yannick Parmetier says that atomic disjunctions always have one).
-Disjunctions look like this in the XML:
-
-\begin{verbatim}
-<vAlt coref="@X">
- <sym value="foo"/>
- <sym value="bar"/>
-</vAlt>
-\end{verbatim}
-\begin{code}
-parseFeature :: Content -> AvPair
-parseFeature f =
-  let -- parsing the attribute
-      -- the TAG fs attribute is expressed as the value of XML attribute "name"
-      subfeatF = attributed "name" keep
-      feat     = concatMap fst (subfeatF f) -- should only be one element 
-      -- parsing the value
-      symF  = keep /> tag "sym"
-      disjF = attributed "coref" (keep /> tag "vAlt")
-      -- converting the value to GenI format
-      readAttr fn = concatMap fst (fn f)
-      disjStr     = (toUpperHead . drop 1 . readAttr) disjF
-      -- deciding what type of feature we have
-      val      = if null disjStr 
-                 then concatMap parseSym (symF f) -- singleton list 
-                 else disjStr
-  in (feat, val)
-\end{code}
-
 % ----------------------------------------------------------------------
-\section{Semantics}
+\subsection{Semantics}
 % ----------------------------------------------------------------------
 
 We parse each literal in the tree semantics separately.  Note the
@@ -295,7 +313,7 @@ parseLiteral lit =
 \end{code}
 
 % ----------------------------------------------------------------------
-\section{Interface}
+\subsection{Interface}
 % ----------------------------------------------------------------------
 
 The interface is the mechanism which allows us to perform lexicalisaiton
@@ -339,7 +357,7 @@ parseInterface int =
 
 
 % ----------------------------------------------------------------------
-\section{Trace}
+\subsection{Trace}
 % ----------------------------------------------------------------------
 
 Normally the trace is meant to keep a record of the classes that are 
@@ -383,6 +401,57 @@ unwrap _ = ""
 \section{Miscellaneous}
 % ----------------------------------------------------------------------
 
+\paragraph{XML snippets}
+
+We collect bits and pieces of the XML format as global functions for
+use throughout the code.
+
+\begin{code}
+featStructF = tag "fs"
+featF       = tag "f"
+\end{code}
+
+\paragraph{parseFeature} Extracts a an attribute-value pair (att,value) out of
+the XML.
+
+\begin{verbatim}
+<f name="att">
+  <sym varname="value"/>
+</f>
+\end{verbatim}
+
+Note: GenI does \emph{not} handle atomic disjunctions, so we simply
+treat them as variable values by ignoring the sym tags and extracting
+the variable name from the coref 
+(Yannick Parmetier says that atomic disjunctions always have one).
+Disjunctions look like this in the XML:
+
+\begin{verbatim}
+<vAlt coref="@X">
+ <sym value="foo"/>
+ <sym value="bar"/>
+</vAlt>
+\end{verbatim}
+\begin{code}
+parseFeature :: Content -> AvPair
+parseFeature f =
+  let -- parsing the attribute
+      -- the TAG fs attribute is expressed as the value of XML attribute "name"
+      subfeatF = attributed "name" keep
+      feat     = concatMap fst (subfeatF f) -- should only be one element 
+      -- parsing the value
+      symF  = keep /> tag "sym"
+      disjF = attributed "coref" (keep /> tag "vAlt")
+      -- converting the value to GenI format
+      readAttr fn = concatMap fst (fn f)
+      disjStr     = (toUpperHead . drop 1 . readAttr) disjF
+      -- deciding what type of feature we have
+      val      = if null disjStr 
+                 then concatMap parseSym (symF f) -- singleton list 
+                 else disjStr
+  in (feat, val)
+\end{code}
+
 \paragraph{parseSym} converts sym tags into GenI constants or variables.
 GenI currently relies on a convention where upper-case is for variables
 and lower for constants\footnote{naturally we assume the metagrammar
@@ -421,3 +490,7 @@ toUpperHead (h:t) = (toUpper h):t
 toLowerHead []    = []
 toLowerHead(h:t)  = (toLower h):t
 \end{code}
+
+%\paragraph{ditchAccents} is a stupid hack to strip off the accents
+%of a string because WxWidgets (or something else) chokes whilst
+%trying to display them in Linux.

@@ -76,6 +76,7 @@ LEXERS		= $(SRC_GENI)/Lex2.hs
 PARSERS		= \
  $(SRC_GENI)/Mparser.hs \
  $(SRC_GENI)/Cparser.hs \
+ $(SRC_GENI)/GIparser.hs \
  $(SRC_GENI)/Lparser.hs \
  $(SRC_GENI)/Tsparser.hs \
  $(SRC_GENI)/PolParser.hs 

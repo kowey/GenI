@@ -20,10 +20,13 @@ tokens :-
 
   TSemantics                 { tok TSemantics }
   Graphical                  { tok Graphical  }
-  
+ 
+  Grammar                    { tok GrammarTok }
+
   Macros                     { tok Macros     }
   Lexicon                    { tok Lexicon    }
-  
+  SemLexicon                 { tok SemLexicon }
+
   GrammarType                { tok GrammarType }
   GeniHand                   { tok GeniHandTok }
   TAGML                      { tok TAGMLTok }
