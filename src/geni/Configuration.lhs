@@ -13,7 +13,7 @@ comes from Cparser.y
 module Configuration(
    Params, 
    treatArgs, 
-   grammarFile, tsFile, graphical, 
+   grammarFile, tsFile, isGraphical, isTestSuite,
    optimisations,
    polarised, polsig, chartsharing, extrapol,
    predicting, semfiltered, orderedadj, footconstr,
@@ -43,8 +43,7 @@ We also import some stuff from the rest of the generator.
 
 \begin{code}
 import Lex2 (lexer)
-import Cparser (cParser)
-import GIparser (giParser)
+import Cparser (cParser, giParser)
 import PolParser (polParser)
 import ParserLib(Token(..))
 \end{code}
@@ -71,7 +70,8 @@ found in the configuration file.
 data Params = Prms{
   grammarFile    :: String,
   tsFile         :: String,
-  graphical      :: Bool,
+  isGraphical    :: Bool,
+  isTestsuite    :: Bool,
   optimisations  :: [Token],
   extrapol       :: FiniteMap String Int,
   batchRepeat    :: Integer
@@ -103,7 +103,8 @@ emptyParams :: Params
 emptyParams = Prms {
   grammarFile    = "",
   tsFile         = "",
-  graphical      = False,
+  isGraphical    = False,
+  isTestsuite    = False,
   optimisations  = [],
   extrapol       = emptyFM,
   batchRepeat    = 1
@@ -113,7 +114,8 @@ defaultParams :: Params
 defaultParams = emptyParams {
    grammarFile    = "examples/ej/grammar",
    tsFile         = "examples/ej/ej1",
-   graphical      = True
+   isTestSuite    = False,
+   isGraphical    = True
 }
 \end{code}
 
@@ -158,9 +160,11 @@ configuration file
 defaultParamsStr :: Params -> String
 defaultParamsStr p = 
   let g  = grammarFile p
+      ts = tsFile p
       op = optimisations p
-      gr = if (graphical p)  then "True" else "False"
+      gr = if (isGraphical p)  then "True" else "False"
   in "\nGrammar  = " ++ g  ++ 
+     "\nTSemantics = " ++ ts ++
      "\n" ++
      "\n% True or False" ++
      "\nGraphical  = " ++ gr ++ 
@@ -204,8 +208,11 @@ defineParams' :: Params -> [(Token,String)] -> Params
 defineParams' p [] = p
 defineParams' p ((f,v):s) =
   case f of GrammarTok -> defineParams' p{grammarFile = v} s
-            TSemantics -> defineParams' p{tsFile  = v} s
-            Graphical  -> defineParams' p{graphical  = (v == "True")} s
+            TSemantics -> defineParams' p{ tsFile  = v
+                                         , isTestsuite = False } s
+            TestSuiteTok -> defineParams' p{ tsFile = v
+                                           , isTestsuite = True } s
+            Graphical  -> defineParams' p{isGraphical  = (v == "True")} s
             Optimisations   -> defineParams' p{optimisations = readOpt } s
                                where readOpt = map read $ words v
             ExtraPolarities -> defineParams' p{extrapol = (polParser . lexer) v} s

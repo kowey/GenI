@@ -6,7 +6,7 @@ type PosToken = (Token, Int, Int)
 data Token = 
     TTT | FFF |
     -- 
-    GrammarTok | TSemantics |
+    GrammarTok | TSemantics | TestSuiteTok | 
     Graphical |
     -- grammar file
     GrammarType | GeniHandTok | TAGMLTok |

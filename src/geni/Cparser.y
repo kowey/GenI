@@ -9,12 +9,21 @@ import Data.List (intersperse)
 
 untok (a,_,_) = a
 }
-%name cParser
+
+%name cParser Input
+%name giParser GramInput
 %tokentype { PosToken }
 
 %token 
+    macros      {(Macros,      _, _)} 
+    lexicon     {(Lexicon,     _, _)}  
+    semlex      {(SemLexicon,  _, _)}
+    gramtype    {(GrammarType,     _, _)}  
+    TAGML       {(TAGMLTok, _, _)}
+    GeniHand    {(GeniHandTok, _, _)}
     grammar     {(GrammarTok,      _, _)} 
     tsem        {(TSemantics,  _, _)}
+    tsuite      {(TestSuiteTok,  _, _)}
     graphical   {(Graphical,   _, _)}
     optimisations {(Optimisations, _,_)}
     polarised    {(Polarised,   _, _)}
@@ -60,6 +69,8 @@ InputList :
  
 idkey:   grammar  {$1}  
        | tsem     {$1}  
+       | tsuite   {$1}
+
 
 boolkey: graphical  {Graphical}
 
@@ -94,6 +105,24 @@ Charge: PolVal {$1}
 
 PolVal: '+' {"+"}
       | '-' {"-"}
+
+
+GramInput : GramInputList
+     {$1}
+
+GramInputList :
+     {[]}
+ | gramIdkey '=' id GramInputList
+     {(untok $1,$3):$4}
+ | gramtype '=' GramTypes GramInputList
+     {(untok $1, $3):$4}
+ 
+gramIdkey:   lexicon  {$1}  
+       | macros   {$1}  
+       | semlex   {$1}
+
+GramTypes : TAGML    { (show.untok) $1 } 
+          | GeniHand { (show.untok) $1 } 
 
 
 {

@@ -69,7 +69,7 @@ import Treeprint (showLeaves)
 import Lex2 (lexer)
 import Mparser (mParser)
 import Lparser (lParser)
-import Tsparser (tsParser, E(..))
+import Tsparser (targetSemParser, E(..))
 import GrammarXml (parseXmlGrammar, parseXmlLexicon)
 \end{code}
 }
@@ -642,7 +642,7 @@ of st
 loadTargetSemStr :: PState -> String -> IO ()
 loadTargetSemStr pst str = 
     do putStr "Parsing Target Semantics..."
-       let sem = (tsParser (lexer str))
+       let sem = (targetSemParser . lexer) str
        case sem of 
          Ok s       -> modifyIORef pst (\x -> x{ts = flattenTargetSem s})
          Failed s   -> fail s

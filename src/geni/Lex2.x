@@ -19,6 +19,7 @@ tokens :-
   False                       { tok FFF }
 
   TSemantics                 { tok TSemantics }
+  TestSuite                  { tok TestSuiteTok }
   Graphical                  { tok Graphical  }
  
   Grammar                    { tok GrammarTok }

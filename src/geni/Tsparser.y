@@ -31,7 +31,9 @@ catchE m k =
       Failed e -> k e
 }
 
-%name tsParser
+%name targetSemParser Sem
+%name testSuiteParser TestSuite
+
 %tokentype { PosToken }
 %monad { E } { thenE } { returnE }
 
@@ -45,13 +47,27 @@ catchE m k =
     '['   {(OB,           _, _)}
 %%
 
+TestSuite: TestCase 
+           { [$1] } 
+          | TestCase TestSuite
+           { $1 : $2 } 
+        
+TestCase: Sem Sentences
+        { ($1,$2) }
 
-Sem :
-    '[' ListPred ']' 
-     { $2 }
-  | sem ':' '[' ListPred ']' 
+Sentences: Sentence 
+         { [$1] }
+         | Sentence Sentences
+         { $1 : $2 }
+
+Sentence: '[' String ']'
+      { $2 }
+
+String: id { $1 }
+      | id String { $1 ++ " " ++ $2 }
+
+Sem : sem ':' '[' ListPred ']' 
      { $4 }
-
 
 ListPred :
      {[]}

@@ -102,6 +102,16 @@ or GenI could behave unpredicatably.
 
 \subsection{Grammar}
 
+Grammars consist of the following:
+
+\begin{enumerate}
+\item index file - which tells where the other files
+      in the grammar are (relative to the grammar)
+\item semantic lexicon file - semantics $\rightarrow$ lemma
+\item lexicon file - lemma $\rightarrow$ families
+\item macros file  - unlexicalised trees
+\end{enumerate}
+
 %:
 %
 %% this is how you would include an image in your document
@@ -123,18 +133,16 @@ GenI configuration consists of a list of
 attributes and values of the form Attribute = Value.  For example: 
 
 \begin{verbatim}
-Macros   = chatnoirmac
-Lexicon  = chatnoirlex
-TSemantics = chatnoirsem
+Grammars   = foo/index 
+TSemantics = foo/chatnoirsem
 \end{verbatim}
 
 The basic configuration attributes are
 
 \begin{description}
-\item[Macros, Lexicon] files for the Geni grammar
-\item[GrammarXml]      files for the Geni grammar as XML (note: if this
-                       is set, Macros/Lexicon will be ignored)
-\item[TSemantics]      file containing an input semantics
+\item[Grammar]         index files of the Geni grammar
+\item[TSemantics, TestSuite] file containing an input semantics or a
+                             test suite (mutually exclusive)
 \item[Optimisations]   a comma delimited list of optimisations (see
                        section \ref{sec:optimisations}).
 \item[ExtraPolarities] a list of default polarities for paraphrase selection   
