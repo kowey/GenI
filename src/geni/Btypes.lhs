@@ -32,7 +32,7 @@ module Btypes(
    showPairs, showAv,
 
    -- Other functions
-   isVar, isAnon, emptyGNode, testBtypes, appendToVars
+   isVar, isAnon, emptyGNode, testBtypes 
 ) where
 \end{code}
 
@@ -113,22 +113,6 @@ renameTree c (Node a l) =
     Node a{gnname = c:(gnname a)} (map (renameTree c) l)
 \end{code}
 
-\paragraph{appendToVars}
-Appends a string to all the variables in the tree.  This can be used to
-assure that every tree in the grammar has a unique set of variable names.
-See section \ref{sec:fs_unification}.
-
-\begin{code}
-appendToVars :: String -> Tree GNode -> Tree GNode
-appendToVars suf (Node a l) =
-    Node a{ gup   = map appFn (gup a),
-            gdown = map appFn (gdown a) }
-          (map (appendToVars suf) l)
-    where appFn (f,v) = (f, if (isVar v && (not.isAnon) v)
-                            then v ++ suf 
-                            else v)
-\end{code}
-
 \subsection{Substitution}
 
 \paragraph{repSubst} 
@@ -152,24 +136,22 @@ repSubst n t1 t2 =
 \paragraph{repAdj} 
 Given two trees t1 t2 (where t1 is an auxiliar tree), and
 the name n of a node in t2, replaces t1 in t2 at the node named n by an
-adjunction move.  
+adjunction move (using newFoot to replace the foot node in t1).  
 \begin{code}
 
-repAdj :: Bool -> String -> Tree GNode -> Tree GNode -> Tree GNode
-repAdj fconstr n t1 t2 =
+repAdj :: GNode -> String -> Tree GNode -> Tree GNode -> Tree GNode
+repAdj newFoot n t1 t2 =
   let filt (Node a _) = (gnname a == n)
-      fn (Node _ l)   = repFoot fconstr t1 l
+      fn (Node _ l)   = repFoot newFoot t1 l
       (lt,flag) = listRepNode fn filt [t2] 
   in if flag 
      then head lt 
      else error ("adjunction unexpectedly failed on node " ++ n)
 
-repFoot :: Bool -> Tree GNode -> [Tree GNode] -> Tree GNode
-repFoot fconstr t l =
+repFoot :: GNode -> Tree GNode -> [Tree GNode] -> Tree GNode
+repFoot newFoot t l =
   let filt (Node a _) = (gtype a == Foot)
-      -- TODO More things might have to be changed here
-      fn (Node a _) = Node a2 l
-                      where a2 = a { gtype = Other, gaconstr = fconstr } 
+      fn (Node a _) = Node newFoot l
   in (head.fst) $ listRepNode fn filt [t]  
 \end{code}
 
@@ -299,8 +281,14 @@ showGNodeAll gn =
             sgdown = if (null $ gdown gn)
                      then ""
                      else "Bot: [" ++ showPairs (gdown gn) ++ "]\n"
-            label  = if (null $ glexeme gn) then "" else (glexeme gn) ++ "\n"
-        in label ++ sgup ++ sgdown -- (show gn ++ "\n" ++)
+            extra = case (gtype gn) of         
+                        Subs -> " (s)"
+                        Foot -> " *"
+                        otherwise -> if (gaconstr gn)  then " (na)"   else ""
+            label  = if (null $ glexeme gn) 
+                     then (if null extra then "" else "Etc: " ++ extra ++ "\n")
+                     else (glexeme gn) ++ extra ++ "\n"
+        in sgup ++ sgdown ++ label -- (show gn ++ "\n" ++)
 \end{code}
 
 
@@ -415,21 +403,6 @@ toKeys :: Sem -> [String]
 toKeys l = map (\(h,prop,par) -> prop++(show (length par))) l
 \end{code}
 
-\paragraph{isVar} 
-Returns true if the string starts with a capital or is an anonymous variable.  
-
-\begin{code}
-isVar :: String -> Bool
-isVar s  = (isUpper . head) s || (isAnon s)
-\end{code}
-
-\paragraph{isAnon}
-Returns true if the string is an underscore 
-\begin{code}
-isAnon :: String -> Bool
-isAnon = (==) "_" 
-\end{code}
-
 \paragraph{repXbyY} 
 Given two values s1 and s2 and a list, it replace the 
 first by the second in the list
@@ -538,6 +511,23 @@ sortSem s = sortBy (\(h1, p1, par1) -> \(h2, p2, par2) -> compare p1 p2) s
 
 \begin{code}
 testBtypes = testSubstFlist
+\end{code}
+
+\subsection{Variables}
+
+\paragraph{isVar} 
+Returns true if the string starts with a capital or is an anonymous variable.  
+
+\begin{code}
+isVar :: String -> Bool
+isVar s  = (isUpper . head) s || (isAnon s)
+\end{code}
+
+\paragraph{isAnon}
+Returns true if the string is an underscore 
+\begin{code}
+isAnon :: String -> Bool
+isAnon = (==) "_" 
 \end{code}
 
 

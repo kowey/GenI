@@ -29,7 +29,7 @@ import Btypes (Grammar, ILexEntry, Sem, Flist,
                GNode, GType(Subs), 
                isemantics, itreename, iword, iparams, ipfeat,
                gnname, gtype, gaconstr, gup, gdown, toKeys,
-               sortSem, subsumeSem, params, appendToVars,
+               sortSem, subsumeSem, params, 
                substFlist',
                pfeat, ptype, 
                ptpolarities, 
@@ -39,7 +39,8 @@ import Tags (Tags, TagElem, emptyTE, TagSite,
              idname, tidnum,
              derivation, ttype, tsemantics, ttree, 
              tpolarities, 
-             substnodes, adjnodes, addToTags, findInTags, substTagElem)
+             substnodes, adjnodes, addToTags, findInTags, 
+             appendToVars, substTagElem)
 
 import Configuration(Params, defaultParams, getConf, treatArgs,
                      macrosFile, lexiconFile, grammarXmlFile, tsFile, 
@@ -245,8 +246,7 @@ runLexSelection pst = do
                    else preCombined
         cand = chooseCand combined tsem 
         --
-        setnum c i = c { tidnum = i,
-                         ttree  = appendToVars (mksuf i) (ttree c) }
+        setnum c i = appendToVars (mksuf i) (c { tidnum = i })
         mksuf i = "-" ++ (show i)
     return $ zipWith setnum cand [1..]
 \end{code}

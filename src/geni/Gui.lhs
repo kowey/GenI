@@ -47,9 +47,10 @@ import Polarity
 guiGenerate :: PState -> IO() 
 guiGenerate pst = do
   mst <- readIORef pst
-  loadMacros pst
-  loadLexicon pst
-  Monad.when ((not.null.grammarXmlFile.pa) mst) $ loadGrammarXml pst
+  if ((null.grammarXmlFile.pa) mst)
+     then do loadMacros pst
+             loadLexicon pst
+     else loadGrammarXml pst
   start (mainGui pst)
 \end{code}
 
@@ -70,15 +71,23 @@ We set up the menu and the status bars.
        fileMen   <- menuPane [text := "&File"]
        quitMenIt <- menuQuit fileMen [text := "Quit"]
        set quitMenIt [on command := close f]
+       -- create the tools menu
+       toolsMen      <- menuPane [text := "&Tools"]
+       gbrowserMenIt <- menuItem toolsMen [ text := "&Inspect grammar" 
+                                          , help := "Displays the trees in the grammar" 
+                                          ]
+
        -- create the help menu
        helpMen   <- menuPane [text := "&Help"]
        aboutMeIt <- menuAbout helpMen [help := "About"]
-
        -- Tie the menu to this window
        set f [ statusBar := [status] 
-             , menuBar := [fileMen, helpMen]
+             , menuBar := [fileMen, toolsMen, helpMen]
              -- put the menu event handler for an about box on the frame.
-             , on (menu aboutMeIt) := infoDialog f "About GenI" "The GenI generator" ]
+             , on (menu aboutMeIt) := infoDialog f "About GenI" "The GenI generator" 
+             -- event handler for the tree browser
+             , on (menu gbrowserMenIt) := treeBrowserGui pst  
+             ]
 \end{code}
 
 We add some buttons for loading files and running the generator.
@@ -100,9 +109,7 @@ We add some buttons for loading files and running the generator.
        tsFileLabel      <- staticText f [ text := (trim.tsFile) config ]
        let guiParts = (grammarFileLabel, lexiconFileLabel, tsFileLabel, 
                        tsTextBox)
-       browserBt  <- button f [ text := "Inspect grammar"
-                              , on command := treeBrowserGui pst ]
-       loadfileBt <- button f [ text := "Load other files"
+       loadfileBt <- button f [ text := "Load files"
                               , on command := gramsemBrowser pst guiParts ] 
        --reloadSemBt <- button f [ text := "Reload semantics"
        --                        , on command := readTargetSem pst tsTextBox ] 
@@ -140,8 +147,7 @@ Pack it all together.
                    row 5 [ column 5 [ row 5 [ label "trees: ", widget grammarFileLabel ]
                                     , row 5 [ label "lexicon: ", widget lexiconFileLabel ]
                                     , row 5 [ label "input sem: ", widget tsFileLabel ] ] 
-                         , floatBottomRight $ column 5 [ hfloatRight $ widget browserBt, 
-                                                         hfloatRight $ widget loadfileBt ] 
+                         , floatBottomRight $ column 5 [ hfloatRight $ widget loadfileBt ] 
                          ] 
            optimBox =  boxed "Optimisations " $
                     column 5 [ dynamic $ widget polChk 
@@ -231,7 +237,7 @@ gramsemBrowser pst guiParts = do
   let loadMac teG = do loadMacros pst  
                        modifyIORef pst (\x -> x { tags = emptyFM }) 
                        set gl [ text := teG ]
-  let loadCmd force = do -- get new values
+  let loadCmd reload = do -- get new values
                          teG' <- get entryG text
                          teL' <- get entryL text
                          teS' <- get entryS text
@@ -253,14 +259,16 @@ gramsemBrowser pst guiParts = do
                          modifyIORef pst (\x -> let pa' = pa x in x{pa = newPa pa'})
                          -- load in any new files
                          set ll [ visible := enableLex ]
-                         Monad.when (force || teG /= gfile ) $ 
+                         Monad.when (reload || teG /= gfile ) $ 
                            if (newGtype == MgXml) 
                               then loadGrammarXml pst
                               else loadMac teG
-                         Monad.when (force || (enableLex && teL /= lfile) ) $ 
-                           do loadLexicon pst
-                              set ll [ text := teL ]
-                         Monad.when (force || (teS /= tfile )) $ 
+                         Monad.when (reload || (enableLex && teL /= lfile) ) $ 
+                           if (newGtype == MgXml)
+                              then return ()
+                              else do loadLexicon pst
+                                      set ll [ text := teL ]
+                         Monad.when (reload || (teS /= tfile )) $ 
                            do readTargetSem pst tsBox
                               set tl [ text := teS ]
                          close f 
@@ -597,7 +605,7 @@ debuggerTab f config tsem cachedir cands = do
   restartBt   <- button p [text := "Start over"]
   nextBt   <- button p [text := "Leap by..."]
   leapVal  <- textEntry p AlignLeft [ text := "1", clientSize := sz 30 25 ]
-  finishBt <- button p [text := "Finish"]
+  finishBt <- button p [text := "Continue"]
   statsTxt <- staticText p []
   -- commands
   let updateStatsTxt gs = set statsTxt [ text :~ (\_ -> txtStats gs) ]

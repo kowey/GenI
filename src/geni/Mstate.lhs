@@ -6,8 +6,6 @@ TODO:
   empty list of substitution nodes are generated
 \item in the list of adjnodes, some pairs feature:Var where Var is not instantiates
   are generated
-\item Bad FS variable name assumption.  Consider implementing something
-      to append tree names and ids to variable names. 
 \end{enumerate}
 
 \begin{code}
@@ -105,7 +103,6 @@ import Configuration (Params, semfiltered, orderedadj, footconstr)
 %import Data.Tree 
 %import Polarity 
 %import Tags
-%import Treeprint 
 %import Btypes
 %\end{code}
 
@@ -600,57 +597,94 @@ iapplyAdj fconstr te1 te2 (an:l) =
        Just res -> res:next
 \end{code}
 
-Below is a helper function for iapplyAdj which focuses on a single
-adjunction node.  
+The main work for adjunction is done in the helper function below
+(see also figure \ref{fig:adjunction}).
+Auxiliary tree \texttt{te1} has a root node \texttt{r} and a foot
+node \texttt{f}. Main tree \texttt{te2} has an adjunction site \texttt{an}.  
+The resulting tree \texttt{res} is a result of splicing \texttt{te1} into
+\texttt{te2}.  We replace \texttt{s} with the nodes \texttt{anr} and 
+\texttt{anf} (which are the results of unifying \texttt{an} with \texttt{r}
+             and \texttt{f} respectively).
+
+\begin{figure}
+\begin{center}
+\includegraphics[scale=0.5]{images/adjunction.pdf}
+\label{fig:adjunction}
+\caption{iapplyAdjNode}
+\end{center}
+\end{figure}
+
+In addition to the trees proper, we have to consider that each tree has
+a list with a copy of its adjunction sites.  The adjunction list of the
+result (\texttt{adjnodes res}) should then contain \texttt{adjnodes te1}
+and \texttt{adjnodes te2}, but replacing \texttt{r} and \texttt{an}
+with \texttt{anr} and \texttt{anf}\footnote{\texttt{anf} is only added
+if the foot node constraint is disabled}.
 
 \begin{code}
 iapplyAdjNode :: Bool -> TagElem -> TagElem -> (String, Flist, Flist) -> Maybe TagElem
-iapplyAdjNode fconstr te1 te2 an@(n, fu, fd) =
+iapplyAdjNode fconstr te1 te2 an@(n, an_up, an_down) =
   let t1 = ttree te1
       t2 = ttree te2
       r = root t1
       f = foot t1
-      tfup   = gup r    -- top features of the root of the auxiliar tree
-      tfdown = gdown f  -- bottom features of the foot of the auxiliar tree
-      (succ1, unified1, subst1) = unifyFeat tfup fu
-      (succ2, unified2, subst2) = unifyFeat (substFlist tfdown subst1) (substFlist fd subst1)
+      r_up   = gup r    -- top features of the root of the auxiliar tree
+      f_down = gdown f  -- bottom features of the foot of the auxiliar tree
+      (succ1, anr_up',  subst1)  = unifyFeat r_up an_up 
+      (succ2, anf_down, subst2)  = unifyFeat (substFlist f_down subst1) (substFlist an_down subst1)
+      -- don't forget to propagate the substitution set from the down stuff
+      anr_up = substFlist anr_up' subst2
+      -- combined substitution list and success condition
       subst   = subst1++subst2
       success = succ1 && succ2
-      -- IMPORTANT: the root of nt1 should be updated and ready for replacement 
-      -- when passed to repAdj, the foot of nt1 is treated in repAdj WORK HERE
+   
+      -- the adjoined tree
+      -- ----------------- 
+      -- the result of unifying the t1 root and the t2 an 
+      anr = r { gup = anr_up,
+                gtype = Other }
+      -- the result of unifying the t1 foot and the t2 an
+      anf = f { gdown = anf_down,
+                gtype = Other,
+                gaconstr = fconstr }
+      -- calculation of the adjoined tree
+      nt1 = rootUpd t1 anr
+      ntree = repAdj anf n nt1 t2
+      
+      -- the new adjunction nodes
+      -- ------------------------
+      ncopy x = (gnname x, gup x, gdown x)
+      -- 1) delete the adjunction site and the aux root node 
+      auxlite = delete (ncopy r) $ adjnodes te1
+      telite  = delete an $ adjnodes te2
+      -- 2) union the remaining adjunction nodes 
+      newadjnodes' = auxlite ++ telite 
+      -- 3) apply the substitutions 
+      nte2 = te2 { derivation = addToDerivation 'a' te1 te2,
+                   ttree = ntree,
+                   adjnodes = newadjnodes', 
+                   tsemantics = sort ((tsemantics te1) ++ (tsemantics te2)),
+                   tpolpaths = intersectPolPaths te1 te2
+                 }
+      res' = substTagElem nte2 subst 
+      -- 4) add the new adjunction nodes 
+      --    this has to come after 3 so that we don't repeat the subst
+      addextra a = if fconstr then a2 else (ncopy anf) : a2
+                   where a2 = (ncopy anr) : a
 
-      -- FIXME: i'm not sure i trust this behaviour for newgup!
-      newgup = substFlist unified1 subst2
-      nt1 = rootUpd t1 r{gup = newgup,
-                         gdown = unified2,
-                         gtype = Other}
-      ntree = repAdj fconstr n nt1 t2
-      --
-      -- calculation of the new adjunction nodes
-      -- 1) union the adjnunction nodes
-      -- 2) delete the adjunction site 
-      newadjnodes' = delete an $ adjnodes te1 ++ adjnodes te2
-      -- 3) add the foot node (if applicable)
-      newadjnodes  = if fconstr 
-                     then newadjnodes' 
-                     else (gnname f, gup f, gdown f) : newadjnodes' 
+      -- the final result  
+      -- ----------------
+      res  = res' { adjnodes = (addextra.adjnodes) res' }
 
-      res = substTagElem te2{derivation = addToDerivation 'a' te1 te2, 
-                             ttree = ntree,
-                             adjnodes = newadjnodes,
-                             tsemantics = sort ((tsemantics te1) ++ (tsemantics te2)),
-                             tpolpaths = intersectPolPaths te1 te2
-      }
-               subst
       {- debugstr = ("============================================\n" 
                   ++ "adjoin " ++ showLite te1 ++ " to node " ++ n
-                  ++ "\nfs aux : " ++ showPairs tfup 
-                  ++ "\nfs main: " ++ showPairs fu  
+                  ++ "\nfs aux : " ++ showPairs r_up ++ " and " ++ showPairs f_down
+                  ++ "\nfs main: " ++ showPairs an_up ++ " and " ++ showPairs an_down 
                   ++ "\nsucc: " ++ show succ1 ++ " and " ++ show succ2
                   ++ "\n------" 
-                  ++ "\nmain adjnodes: " ++ showTagSites (an:l)
+                  ++ "\nmain adjnodes: " ++ showTagSites [an]
                   ++ "\naux adjnodes: " ++ showTagSites (adjnodes te1)
-                  ++ "\nnew adjnodes: " ++ (if success then showTagSites newadjnodes else "n/a")
+                  ++ "\nnew adjnodes: " ++ (if success then showTagSites (adjnodes res) else "n/a")
                   ++ "\n------" 
                   ++ "\nauxtree:\n" ++ (drawTree $ ttree te1) 
                   ++ "\n ~~~~~~~~"
@@ -658,7 +692,8 @@ iapplyAdjNode fconstr te1 te2 an@(n, fu, fd) =
                   ++ "\n ~~~~~~~~"
                   ++ "\nafter:\n"  ++ (if success then (drawTree ntree) else "n/a")
                   ++ "\n ~~~~~~~~"
-                 ) -}
+                 ) 
+        -}
   in if success then Just res else Nothing 
 \end{code}
 

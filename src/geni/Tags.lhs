@@ -16,10 +16,10 @@ module Tags(
    addToTags, findInTags, 
 
    -- Functions from TagElem
-   substTagElem,
+   substTagElem, appendToVars,
 
    -- General functions
-   mapBySem, sumPredictors, drawTagTrees, subsumedBy, showTagSites
+   mapBySem, sumPredictors, drawTagTrees, subsumedBy, showTagSites,
 ) where
 \end{code}
 
@@ -30,9 +30,10 @@ import FiniteMap (FiniteMap, emptyFM, filterFM,
                   addToFM_C, lookupFM, plusFM_C)
 
 import Btypes (Ptype(Initial, Auxiliar), AvPair,
-               Subst, GNode, Flist, Sem, Pred, BitVector,
+               Subst, GNode(gup, gdown), Flist, Sem, Pred, BitVector,
                emptyGNode,
-               substFlist, substTree, substSem, showPairs)
+               substFlist, substTree, substSem, showPairs,
+               isAnon, isVar)
 \end{code}
 
 % ----------------------------------------------------------------------
@@ -108,11 +109,11 @@ emptyTE = TE { idname = "",
 \end{code}
 
 % ----------------------------------------------------------------------
-\section{Tag operations}
+\section{TAG operations}
 % ----------------------------------------------------------------------
 
-\paragraph{substTag} given a TagElem and a substitution, applies the substitution
-  through all the TagElem
+\paragraph{substTag} given a TagElem and a substitution, applies the
+substitution through all the TagElem
 
 \begin{code}
 substTagElem :: TagElem -> Subst -> TagElem
@@ -122,6 +123,28 @@ substTagElem te l =
               adjnodes   = substNodes (adjnodes te),
               ttree      = substTree (ttree te) l,
               tsemantics = substSem (tsemantics te) l}
+\end{code}
+
+\paragraph{appendToVars} given a TagElem and a suffix, appends the
+suffix to all the variables that occur in it. See section
+\ref{sec:fs_unification} to understand why this is neccesary.
+
+\begin{code}
+appendToVars :: String -> TagElem -> TagElem
+appendToVars suf te = 
+  let appfn (f,v) = (f, if (isVar v && (not.isAnon) v) 
+                        then v ++ suf 
+                        else v)
+      --
+      nodefn a = a { gup = map appfn (gup a),
+                     gdown = map appfn (gdown a) }
+      treefn (Node a l) = Node (nodefn a) (map treefn l)
+      --
+      sitefn (n, fu, fd) = (n, map appfn fu, map appfn fd)
+      --
+  in te { ttree = treefn (ttree te),
+          substnodes = map sitefn (substnodes te),
+          adjnodes   = map sitefn (adjnodes te)}
 \end{code}
 
 \paragraph{addToTags} Given a Tags (a FM), a key (a String) and a TagElem 
