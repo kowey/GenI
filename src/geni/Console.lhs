@@ -117,7 +117,8 @@ runBatch :: PState -> IO ()
 runBatch pst = 
   do mst <- readIORef pst 
      let curPa = pa mst
-         batch = map (\o -> curPa { optimisations = o }) optBatch  
+         batch = map withopt $ optBatch (optimisations curPa)
+                 where withopt o = curPa { optimisations = o } 
      resSet <- mapM (runBatchSample pst) batch
      putStrLn ""
      putStrLn $ showOptResults resSet

@@ -12,7 +12,7 @@ data Token =
     GrammarType | GeniHandTok | TAGMLTok |
     MacrosTok | LexiconTok | SemLexiconTok | MorphInfoTok |
     -- optimisations
-    Optimisations | 
+    Optimisations | PolOptsTok | AdjOptsTok |
     Polarised | AutoPol | PolSig | Predicting | ChartSharing | ExtraPolarities |
     FootConstraint | SemFiltered | OrderedAdj |  
     Batch | Repeat |  

@@ -238,27 +238,42 @@ defineParams' p ((f,v):s) =
                                            , isTestSuite = True } s
             GraphicalTok  -> defineParams' p{isGraphical  = (v == "True")} s
             Optimisations   -> defineParams' p{optimisations = readOpt } s
-                               where readOpt = map read $ words v
             ExtraPolarities -> defineParams' p{extrapol = (polParser . lexer) v} s
             Repeat -> defineParams' p{batchRepeat = read v} s 
             p -> error ("Unknown configuration parameter: " ++ show p)
+  where -- when PolOpts and AdjOpts are in the list of optimisations
+        -- then include all polarity-related optimisations and 
+        -- all adjunction-related optimisations respectively
+        readOpt = (addif PolOptsTok polOpts) 
+                  $ (addif AdjOptsTok adjOpts) $ (map read $ words v)
+        addif t x o = if (t `elem` o) then x ++ o else o
+        polOpts     = [Polarised, AutoPol, ChartSharing] 
+        adjOpts     = [SemFiltered, FootConstraint, OrderedAdj]
 \end{code}
 
-\paragraph{optBatch} represents all the possible combinations of
-optimisations.
+
+\paragraph{optBatch} represents all meaningful combinations of optimisations
+which include \fnparam{enabledRaw}.  By meaningful combination, for example, we
+not have a combination that has polarity signatures, but not polarities.
 
 \begin{code}
-optBatch :: [[Token]] 
-optBatch = 
-  let polarised  = [ [Polarised] ]
-      chartBatch = -- map (ChartSharing:) polarised 
-                   polarised  ++ map (ChartSharing:) polarised
-      sigBatch   = chartBatch -- chartBatch ++ map (PolSig:) chartBatch 
-      polBatch   = sigBatch -- [] : sigBatch 
-      --
-      -- filBatch = polBatch ++ map (SemFiltered:) polBatch
-      -- adjBatch = filBatch ++ map (OrderedAdj:) filBatch
-  in map ([AutoPol,FootConstraint,OrderedAdj,SemFiltered] ++) polBatch 
+optBatch :: [Token] -> [[Token]] 
+optBatch enabledRaw = 
+  let enabled = if (ChartSharing `elem` enabledRaw || PolSig `elem` enabledRaw) 
+                then Polarised:enabledRaw
+                else enabledRaw
+      use opt prev = if (opt `elem` enabled) 
+                     then withopt 
+                     else withopt ++ prev
+                     where withopt = map (opt:) prev
+      -- 
+      polBatch' = foldr use [[Polarised]] [PolSig,AutoPol,ChartSharing]
+      polBatch  = if Polarised `elem` enabled
+                 then polBatch' 
+                 else [] : polBatch'
+      adjBatch  = foldr use polBatch [SemFiltered,OrderedAdj,FootConstraint]
+      -- 
+  in adjBatch
 \end{code}
 
 % --------------------------------------------------------------------  

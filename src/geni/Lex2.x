@@ -36,6 +36,8 @@ tokens :-
 
 
   Optimisations              { tok Optimisations }
+  PolOpts                    { tok PolOptsTok }
+  AdjOpts                    { tok AdjOptsTok }
   Polarised                  { tok Polarised  }
   AutoPol                    { tok AutoPol }
   PolSig                     { tok PolSig } 

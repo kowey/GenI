@@ -167,6 +167,7 @@ so that only (potentially) syntactically compatible combinations
 of trees are given to the generator.  
 
 \begin{description}
+\item[PolOpts]   equivalent to Polarised, AutoPol, ChartSharing
 \item[Polarised] construct polarity automata at all
 \item[AutoPol]   automatically detects polarities from node categories.
                  Warning! You have to use ExtraPolarities for this to
@@ -189,6 +190,7 @@ The other optimisations deal with the adjunction phase of the
 generator.
 
 \begin{description}
+\item[PolOpts]     equivalent to SemFiletered, OrderedAdj, FootConstraint
 \item[SemFiltered] before passing to the adjunction phase,
                    first filter out the trees which we know
                    will be semantically incomplete.
@@ -211,8 +213,13 @@ There are three types of batch processing:
       to be inherited!
 \item Optimisations = Batch 
       Will run geni through all the possible combinations of
-      optimisations.  This is useful for performance testing
-      of the GenI optimisations
+      optimisations.  Note that if you specify other optimisations
+      in addition to Batch, it will restrict itself to the 
+      combinations that include the other optimisations.  For
+      example, \texttt{Optimisations = Batch, Polarised} will try
+      all combinations of optimisations where Polarities enabled.
+      This is useful for performance testing
+      of the GenI optimisations.
       N.B. you can use Optimisations=Batch together with multi-input
       if you want.
 \item TestSuite - runs the generator over a set of input semantics

@@ -25,6 +25,8 @@ import Data.List (intersperse)
     graphical   {(GraphicalTok,   _, _)}
     optimisations {(Optimisations, _,_)}
     polarised    {(Polarised,   _, _)}
+    polopts      {(PolOptsTok,  _, _)}
+    adjopts      {(AdjOptsTok,  _, _)}
     autopol      {(AutoPol,     _,_)}
     polsig       {(PolSig,      _,_)}
     predicting   {(Predicting,  _, _)}
@@ -84,8 +86,7 @@ boolkey: graphical  {GraphicalTok}
 {- optimisations -}
 
 OptList :: { String }
-OptList : batch    { show Batch }
-        | OptListI { concat (intersperse " " $1) }
+OptList : OptListI { concat (intersperse " " $1) }
 
 OptListI :: { [String] }
 OptListI :                     { [] }
@@ -93,7 +94,9 @@ OptListI :                     { [] }
          | optkey ',' OptListI {  (show $1) : $3 }
 
 optkey :: { Token }
-optkey: polarised    {Polarised}
+optkey: polopts      {PolOptsTok}
+      | adjopts      {AdjOptsTok}
+      | polarised    {Polarised}
       | autopol      {AutoPol}
       | polsig       {PolSig}
       | predicting   {Predicting}
@@ -101,6 +104,7 @@ optkey: polarised    {Polarised}
       | chartsharing {ChartSharing}
       | orderedadj   {OrderedAdj}
       | footconstr   {FootConstraint}
+      | batch        {Batch}
 
 {- extra polarities -} 
 
