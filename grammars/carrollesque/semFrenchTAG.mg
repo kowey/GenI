@@ -1439,9 +1439,9 @@ declare
 	?I ?xR ?xHead ?xFoot ?fT ?fU ?fW ?fX ?fY ?fZ
 {
 	<syn>{
-		node xR(color=red)[cat=n, idx=?I, bot=[det = ?fX, def = ?fT, num = ?fY,gen = ?fZ,pers = ?fU, wh = ?fW]]{
+		node xR(color=red)[cat=n, idx=?I, top=[det = -],bot=[det = ?fX, def = ?fT, num = ?fY,gen = ?fZ,pers = ?fU, wh = ?fW]]{
 			node xHead(color=red,mark=anchor)[cat = adj, top=[num = ?fY,gen = ?fZ]]
-			node xFoot(color=red,mark=foot)[cat = n, idx=?I, top=[det = ?fX, def = ?fT, num = ?fY,gen = ?fZ,pers = ?fU, wh = ?fW]]
+			node xFoot(color=red,mark=foot)[cat = n, idx=?I, top=[det = ?fX, def = ?fT, num = ?fY,gen = ?fZ,pers = ?fU, wh = ?fW],bot=[det = -]]
 		}
 	}*=[idx=I]
 }
@@ -1450,8 +1450,8 @@ declare
 	?I ?xR ?xHead ?xFoot ?fT ?fU ?fW ?fX ?fY ?fZ
 {
 	<syn>{
-		node xR(color=black)[cat=n, idx=?I, bot=[det = ?fX, def = ?fT, num = ?fY,gen = ?fZ,pers = ?fU, wh = ?fW]]{
-			node xFoot(color=red,mark=foot)[cat = n, idx=?I, top=[det = ?fX, def = ?fT, num = ?fY,gen = ?fZ,pers = ?fU, wh = ?fW]]
+		node xR(color=black)[cat=n, idx=?I, top=[det = -],bot=[det = ?fX, def = ?fT, num = ?fY,gen = ?fZ,pers = ?fU, wh = ?fW]]{
+			node xFoot(color=red,mark=foot)[cat = n, idx=?I, top=[det = ?fX, def = ?fT, num =?fY,gen = ?fZ,pers = ?fU, wh = ?fW], bot=[det = -]]
 			node xHead(color=black,mark=anchor)[cat = adj,top=[num = ?fY,gen = ?fZ]]
 		}
 	}*=[idx=I]
@@ -1968,9 +1968,9 @@ declare
 	?xR ?xFoot ?xAnc ?fX ?fY ?fZ ?fT ?fU ?fW
 {
 	<syn>{
-		node xR(color=red)[cat = n, bot = [det = +, def = ?fT, num = ?fY,gen = ?fZ,pers = ?fU]]{
+		node xR(color=red)[cat = n, bot = [def = ?fT, num = ?fY,gen = ?fZ,pers = ?fU], top = [det = +]]{
 			node xAnc(color=red,mark=anchor)[cat = d,bot=[num = ?fY,gen = ?fZ]]
-			node xFoot(color=red,mark=foot)[cat = n,top=[det = -, def = ?fT, num = ?fY,gen = ?fZ,pers = ?fU]]
+			node xFoot(color=red,mark=foot)[cat = n,bot=[det = -], [top=[def = ?fT, num = ?fY,gen = ?fZ,pers = ?fU]]
 		}
 	}
 }	

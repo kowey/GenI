@@ -30,4 +30,8 @@ semantics: [ directeur(m) poss(m us)
 #  conference ]
 [ notre directeur organiser un nouveau seminaire de equipe 
   hebdomadaire special ]
-  
+
+
+# Chart sharing example  
+semantics: [ 
+             ennuie(int m c) ]
