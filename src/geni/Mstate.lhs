@@ -729,9 +729,9 @@ classifyNew l = do
                    && (inputSem == treeSem) 
                    where treeSem = (sortSem $ tsemantics x)
       tbUnify x ls = case (tbUnifyTree x) of
-                       Nothing -> do addToTrashRep x      
+                       Left n  -> do addToTrashRep (x {thighlight = [n]})     
                                      return ls
-                       Just x2 -> return (x2:ls)
+                       Right x2 -> return (x2:ls)
       classify ls x 
         | isResult  x = tbUnify x ls
         | isPureAux x = do addToAuxRep x
@@ -812,7 +812,8 @@ semfilter inputsem aux initial =
 
 \paragraph{tbUnifyTree} unifies the top and bottom feature structures
 of each node on each tree. If succesful we return the tree, otherwise we
-return Nothing.  This is is the final step in generation of a result.
+return a string indicating the name of the offending node.  This is is the
+final step in generation of a result.
 
 We do unification in twe steps: the first time is to check if
 unification is possible and to determine/apply variable substitutions
@@ -821,13 +822,16 @@ discard the results.  The second time we do unification is to get the
 result and only that; we do not do any more success checks or
 substitutions.  
 
+Note: this does not detect if there are multiple nodes which cause top and
+bottom unification to fail.
+
 \begin{code}
-type TbMaybe = Maybe (Subst, Tree GNode)
-tbUnifyTree :: TagElem -> Maybe TagElem
+type TbEither = Either String (Subst, Tree GNode)
+tbUnifyTree :: TagElem -> Either String TagElem
 tbUnifyTree te =
-  let tryUnification :: Tree GNode -> TbMaybe 
+  let tryUnification :: Tree GNode -> TbEither 
       tryUnification t = foldr tbUnifyNode start flat 
-        where start = Just ([], t)
+        where start = Right ([], t)
               flat  = flatten t
       --
       fixNode :: GNode -> GNode
@@ -845,8 +849,8 @@ tbUnifyTree te =
                         , adjnodes   = map (fixSite sb) (adjnodes te)
                         , substnodes = map (fixSite sb) (substnodes te)}
   in case (tryUnification $ ttree te) of 
-       Nothing       -> Nothing
-       Just (sb,tt2) -> Just (fixTe sb tt2)
+       Left  n        -> Left  n  
+       Right (sb,tt2) -> Right (fixTe sb tt2)
 \end{code}
 
 Our helper function corresponds to the first unification step.  It is
@@ -885,10 +889,10 @@ Getting this right was a big pain in the butt, so don't go trying to
 simplify this over-complicated code unless you know what you're doing.
 
 \begin{code}
-tbUnifyNode :: GNode -> TbMaybe -> TbMaybe 
+tbUnifyNode :: GNode -> TbEither -> TbEither 
 tbUnifyNode gnRaw st = 
   case st of 
-    Just (pending, whole) ->
+    Right (pending, whole) ->
       let -- apply pending substitutions
           gn = substGNode gnRaw pending
           -- check top/bottom unification on this node
@@ -897,11 +901,11 @@ tbUnifyNode gnRaw st =
           whole2   = substTree whole sb
       in if succ 
          then -- apply any new substutions to the whole tree
-              Just (pending2, whole2)
+              Right (pending2, whole2)
          else -- stop all future iterations
-              Nothing 
+              Left (gnname gn)
     -- don't bother   
-    Nothing -> Nothing
+    Left n -> Left n  
 \end{code}
 
 % --------------------------------------------------------------------  
