@@ -238,7 +238,7 @@ declare
    ?xS ?xVN ?xV ?fU ?fV ?fW ?fX ?I
 {
         <syn>{
-                node xS(color=black)[cat = s,bot=[mode=?fX,top=[idx=I]]]{
+                node xS(color=black)[cat = s,bot=[mode=?fX],top=[idx=I]]{
                         node xVN(color=black)[cat = vn,top=[mode=?fX]]{
                                 node xV(mark=anchor,color=black)[cat = v,top=[idx=I]]
                         }
@@ -523,7 +523,7 @@ declare
 		node xS{
 			node xTop(color=red)[cat=s]{
 				node xComp(color=red)[cat=c]{
-					node xQue(color=red,mark=flex)[cat=que]
+					node xQue(color=red,mark=flex)[cat=que,phon=que]
 				}
 				node xSubj(color=red,mark=subst)[cat=s,top=[idx=I]]
 			}
@@ -1439,10 +1439,12 @@ declare
 	?I ?xR ?xHead ?xFoot ?fT ?fU ?fW ?fX ?fY ?fZ
 {
 	<syn>{
-		node xR(color=red)[cat=n, idx=?I, top=[det = -],bot=[det = ?fX, def = ?fT, num = ?fY,gen = ?fZ,pers = ?fU, wh = ?fW]]{
+		node xR(color=red)[cat=n, idx=?I, 
+                                   bot=[det = ?fX, def = ?fT, num = ?fY,gen = ?fZ,pers = ?fU, wh = ?fW]]
+                {
 			node xHead(color=red,mark=anchor)[cat = adj, top=[num = ?fY,gen = ?fZ]]
-			node xFoot(color=red,mark=foot)[cat = n, idx=?I, top=[det = ?fX, def = ?fT, num = ?fY,gen = ?fZ,pers = ?fU, wh = ?fW],bot=[det = -]]
-		}
+			node xFoot(color=red,mark=foot)[cat = n, idx=?I, top=[det = ?fX, def = ?fT, num = ?fY,gen = ?fZ,pers = ?fU, wh = ?fW]]
+		}; fX= -
 	}*=[idx=I]
 }
 class EpithPost
@@ -1450,12 +1452,16 @@ declare
 	?I ?xR ?xHead ?xFoot ?fT ?fU ?fW ?fX ?fY ?fZ
 {
 	<syn>{
-		node xR(color=black)[cat=n, idx=?I, top=[det = -],bot=[det = ?fX, def = ?fT, num = ?fY,gen = ?fZ,pers = ?fU, wh = ?fW]]{
-			node xFoot(color=red,mark=foot)[cat = n, idx=?I, top=[det = ?fX, def = ?fT, num =?fY,gen = ?fZ,pers = ?fU, wh = ?fW], bot=[det = -]]
+		node xR(color=black)[cat=n, idx=?I, 
+                                     bot=[det = ?fX, def = ?fT, num = ?fY,gen = ?fZ,pers = ?fU, wh = ?fW]]
+                {
+			node xFoot(color=red,mark=foot)[cat = n, idx=?I, top=[det = ?fX, def = ?fT, num =?fY,gen = ?fZ,pers = ?fU, wh = ?fW]]
 			node xHead(color=black,mark=anchor)[cat = adj,top=[num = ?fY,gen = ?fZ]]
 		}
+                ; fX= -
 	}*=[idx=I]
 }
+
 
 %%%%%%%%%%%%%%%%%%%
 % LEXICAL CLASSES %
@@ -1477,11 +1483,7 @@ class Subject
  	|InvertedNominalSubject[]
 }
 
-class SententialSubject{
-	CanonicalSententialSubjectFinite[]
-	|CanonicalSententialSubjectInFinitive[]
-	|Subject[] %always true ? it seems...
-}
+
 class Object
 {
 	CanonicalObject[]
@@ -1682,10 +1684,10 @@ class n0Vn1des2_1[E,X,Y,Z]{
 	Object[]*=[objectI=Y];activeVerbMorphology[]*=[vbI=E] 
 }
 
-class s0Van1[E,X,Y]{
+class s0Vn1[E,X,Y]{
 	binaryRel[]*=[evt=E,arg1=X,arg2=Y] ;
 	SententialSubject[]*=[subjectI=X]; 
-	Iobject[]*=[iobjectI=XY; 
+	Object[]*=[objectI=Y]; 
 	activeVerbMorphology[]*=[vbI=E] 
 }
 
@@ -1696,9 +1698,6 @@ class s0Van1[E,X,Y]{
 
 % FIXME: ask Claire how to deal with this
 % We only want the EpithAnte and EpithPost classes
-% GenI has this restriction that tree features must be a 
-% superset of the lexical item features, but stuff like
-% adjectiveForm has subjectO but not idx
 class n0vApre {
   {Subject[]; adjectiveForm[]}
   |EpithAnte[]
@@ -1968,9 +1967,12 @@ declare
 	?xR ?xFoot ?xAnc ?fX ?fY ?fZ ?fT ?fU ?fW
 {
 	<syn>{
-		node xR(color=red)[cat = n, bot = [def = ?fT, num = ?fY,gen = ?fZ,pers = ?fU], top = [det = +]]{
+		node xR(color=red)[cat = n, bot = [def = ?fT, num = ?fY,gen = ?fZ,pers = ?fU], top = [det = +] ] 
+                {
 			node xAnc(color=red,mark=anchor)[cat = d,bot=[num = ?fY,gen = ?fZ]]
-			node xFoot(color=red,mark=foot)[cat = n,bot=[det = -], [top=[def = ?fT, num = ?fY,gen = ?fZ,pers = ?fU]]
+			node xFoot(color=red,mark=foot)[cat = n, 
+                                                        top=[def = ?fT, num = ?fY,gen = ?fZ,pers = ?fU],
+                                                        bot=[det = -]] 
 		}
 	}
 }	

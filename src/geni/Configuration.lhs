@@ -233,13 +233,15 @@ optimisations.
 \begin{code}
 optBatch :: [[Token]] 
 optBatch = 
-  let polarised  = [ [Polarised, PolSig] ]
-      chartBatch = polarised  ++ map (ChartSharing:) polarised
-      polBatch   = [] : chartBatch
+  let polarised  = [ [Polarised] ]
+      chartBatch = -- map (ChartSharing:) polarised 
+                   polarised  ++ map (ChartSharing:) polarised
+      sigBatch   = chartBatch -- chartBatch ++ map (PolSig:) chartBatch 
+      polBatch   = [] : sigBatch 
       --
-      filBatch = polBatch ++ map (SemFiltered:) polBatch
-      adjBatch = filBatch ++ map (OrderedAdj:) filBatch
-  in map ([AutoPol,FootConstraint] ++) adjBatch
+      -- filBatch = polBatch ++ map (SemFiltered:) polBatch
+      -- adjBatch = filBatch ++ map (OrderedAdj:) filBatch
+  in map ([AutoPol,FootConstraint,OrderedAdj,SemFiltered] ++) polBatch 
 \end{code}
 
 % --------------------------------------------------------------------  

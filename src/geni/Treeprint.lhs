@@ -162,9 +162,9 @@ toGeniHand tr =
       -- helpers to account for shortcomings in genihand lexer 
       dashtobar :: Char -> Char
       dashtobar c = if ('-' == c) then '_' else c 
-      substf (a,v) = case (a,v) of _       -> (map d2u a, map d2u v)
-      d2u '-' = '_'
-      d2u x = x
+      substf (a,v) = case (a,v) of _       -> (map dashtobar a, v)
+      --d2u '-' = '_'
+      --d2u x = x
       --
       showflist  = showPairs . (map substf)
       showparams = concat $ intersperse " " (params tr)

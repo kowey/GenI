@@ -143,12 +143,12 @@ result of a different optimisation on the same grammar/semantics
 \begin{code}
 showOptResults :: [GeniResults] -> String
 showOptResults grs = 
-  let headOpt = "         optimisations"
+  let headOpt = "      optimisations"
       headNumRes = "rslts"
       headAgenda = "agnd sz"
       headChart  = "chrt sz"
       headComparisons = "compared"
-      headTime = "time ms"
+      headTime = "time ms  "
       header   = [ headOpt, headNumRes, headAgenda, headChart, headComparisons, headTime ] 
       showIt l = concat $ intersperse " | " $ l
       showLine = concat $ intersperse "-+-" $ map linestr header

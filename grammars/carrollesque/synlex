@@ -18,12 +18,11 @@ ce    det stddeterminer
 
 directeur  n   commonNoun
 bureau     n   commonNoun
-livre     n   commonNoun
+equipe     n   commonNoun
 consultant n   commonNoun
 seminaire  n   commonNoun
-equipe     n   commonNoun 
-allemagne  pn  propername 
 
+allemagne  pn  propername 
 
 % ----------------------------------------------------------------------
 % adjectives 
@@ -45,6 +44,5 @@ de   prep PrepositionN
 % ----------------------------------------------------------------------
 
 auditionne v  n0Vn1 
-lise	   v  n0Vn1 
 organise   v  n0Vn1 
 ennuie	   v  s0Vn1

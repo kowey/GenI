@@ -100,7 +100,7 @@ html: $(MAKE_HTML)
 tarball:
 	rm -f $(MYDIR)*.tar.gz;\
 	cd .. ;\
-	tar -czvf $(MYDIR)_$(DATE).tar.gz $(MYDIR);\
+	tar -czvf --exclude=_darcs $(MYDIR)_$(DATE).tar.gz $(MYDIR);\
 	mv $(MYDIR)_$(DATE).tar.gz $(MYDIR)
 
 clean: tidy

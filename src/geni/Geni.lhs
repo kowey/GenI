@@ -29,6 +29,7 @@ import Data.Tree
 import System (ExitCode(ExitSuccess), 
                exitWith, getArgs)
 import System.IO(hFlush, stdout)
+import System.Mem
 
 import Control.Monad (when)
 import CPUTime (getCPUTime)
@@ -160,9 +161,12 @@ customGeni pst runFn = do
       tsLex2     = (filter nonmorphfn (fst tsLex), snd tsLex)
   modifyIORef pst (\x -> x{ts = tsLex2})
   mst      <- readIORef pst
-  -- force lexical selection (and hence grammar reading)
-  -- to be evaluated before the clock 
-  when (length (show purecand) == -1) $ exitWith ExitSuccess
+  -- force the grammar to be read before the clock
+  when (-1 == (length.show.le) mst) $ exitWith ExitSuccess
+  when (-1 == (length.show.gr) mst) $ exitWith ExitSuccess
+  performGC
+  -- force lexical selection to be run before clock
+  -- when (-1 == (length.show) purecand) $ exitWith ExitSuccess
   clockBefore <- getCPUTime 
   -- do any optimisations
   let config   = pa mst
@@ -385,6 +389,10 @@ combineOne lexitem e =
        result 
          -- if the parameters are of different length
          | (length p) /= (length tp) = wterror "Wrong number of parameters."
+{-
+  This check prevents us from using large families of trees with
+  very different interfaces
+
          -- if the lex item features are not a subset of the tree features
          | intersect fpf ftpf /= fpf = error $
              "Lex entry " ++ iword lexitem 
@@ -392,6 +400,7 @@ combineOne lexitem e =
              ++ " tree's features: "  
              ++ "\nlex:  " ++ show fpf  
              ++ "\ntree: " ++ show ftpf
+-}
          -- if fs unification fails for any reason (probably a bug)
          | not fsucc = wterror "Feature unification failed."
          -- success! 

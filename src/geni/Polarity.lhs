@@ -67,7 +67,7 @@ import Bfuncs(Pred, Sem, Flist, AvPair, showAv,
               root, gup, 
               BitVector, toKeys,
               unifyFeat, rootUpd,
-              groupByFM, isEmptyIntersect, fst3, thd3)
+              groupByFM, isEmptyIntersect, fst3, snd3, thd3)
 \end{code}
 
 %\begin{code}
@@ -885,15 +885,22 @@ detectPols = map detectPols'
 
 detectPols' :: TagElem -> TagElem
 detectPols' te =
-  let rcat  = (getcat.gup.root.ttree) te
-      scats = map (getcat.upfn) (substnodes te)
-              where upfn (_,u,_) = u
-      getcat fl = if null f then "" else (snd.head) f
-                  where f = filter (\ (a,_) -> "cat" == a) fl 
+  let rootup   = (gup.root.ttree) te
+      subup    = map snd3 (substnodes te)
+      rstuff   = fnotnull $ [getcat rootup]--,getidx rootup]
+      substuff = fnotnull $ (map getcat subup) -- ++ (map getidx subup)
+      fnotnull = filter (not.null)
       --
-      apols = (zip scats negone)
-               where negone = repeat (-1)
-      ipols = (rcat, 1) : apols
+      getcat = getval "cat"
+      -- getidx = getval "idx"
+      getval att fl = if null f then "" else attstr
+                      where f = filter (\ (a,_) -> att == a) fl 
+                            attstr = att ++ ('_' : ((snd.head) f))
+      --
+      apols = zip substuff negone
+              where negone = repeat (-1)
+      ipols = zip rstuff one ++ apols
+              where one = repeat 1
       pols  = if ttype te == Initial then ipols else apols
       --
       oldfm = tpolarities te

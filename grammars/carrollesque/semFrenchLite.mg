@@ -7,6 +7,7 @@ value PrepositionN
 
 %Nominal
 value n0Vn1		%Jean regarde Marie
+value s0Vn1
 
 % PREDICATIVE ADJECTIVES
 value n0vApre  % un heureux événement

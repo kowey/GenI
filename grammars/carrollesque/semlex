@@ -17,10 +17,6 @@ semantics:[indef(X)]
 ce det [idx:X]
 semantics:[dem(X)]
 
-%ce cl [idx:X]
-%semantics:[]
-
-
 % ----------------------------------------------------------------------
 % nouns
 % ----------------------------------------------------------------------
@@ -28,11 +24,11 @@ semantics:[dem(X)]
 directeur n [idx:X]
 semantics:[directeur(X)]
 
-livre n [idx:X]
-semantics:[livre(X)]
-
 bureau n  [idx:X]
 semantics:[bureau(X)]
+
+equipe n [idx:X]
+semantics:[equipe(X)]
 
 consultant n [idx:X]
 semantics:[consultant(X)]
@@ -42,9 +38,6 @@ semantics:[allemagne(X)]
 
 seminaire n [idx:X]
 semantics:[seminaire(X)]
-
-equipe n [idx:X]
-semantics:[equipe(X)]
 
 % ----------------------------------------------------------------------
 % adjectives 
@@ -64,7 +57,7 @@ semantics:[dequipe(X)]
 
 
 % ----------------------------------------------------------------------
-% prepositions 
+% possessive thingy 
 % ----------------------------------------------------------------------
 
 % FIXME: what should be set to X ?
@@ -76,14 +69,14 @@ semantics:[de(X Y)]
 % verbs 
 % ----------------------------------------------------------------------
 
-auditionne v [evt:X arg1:X arg2:Y] 
+auditionne v [evt:I arg1:X arg2:Y] 
 semantics:[auditioner(I X Y)]
 
-organise v [evt:X arg1:X arg2:Y] 
+organise v [evt:I arg1:X arg2:Y] 
 semantics:[organiser(I X Y)]
 
-ennuie v [evt:X arg1:X arg2:Y] 
-semantics:[ennuie(I X Y)]
+ennuie v [evt:I arg1:X arg2:Y]
+semantics:[ennuier(I X Y)]
 
 %% ----------------------------------------------------------------------
 %% semantic weights 
