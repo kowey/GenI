@@ -134,9 +134,13 @@ makePolAutHelper cands tsemRaw extraPol swmap =
       -- accounting for multi-use items
       (tsem, smap) = addExtraIndices swmap (tsemRaw,smapRaw)
       -- sorted semantics (for more efficient construction)
-      sortedsem = sortSemByFreq tsem smap
-      -- the seed automaton
-      seed   = buildSeedAut smap sortedsem
+      sortedsem = sortSemByFreq tsem cands 
+      -- empty semantic items (pronouns) added to all columns
+      emptysem  = lookupWithDefaultFM smap [] emptyPred
+      smap2     = mapFM (\_ e -> e ++ emptysem) s
+                  where s = delFromFM smap emptyPred
+       -- the seed automaton
+      seed   = buildSeedAut smap2 sortedsem
   in (ks, seed)
 \end{code}
 
@@ -609,34 +613,34 @@ buildSemWeights wps =
 \end{code}
 
 \paragraph{addExtraIndices} modifies an input semantics and a semantic
-map so that 1) extra indices (extra columns) are added to the input
-semantics to account for repeated mentions to an index 2) null semantic
-items (stuff to fill the extra columns) are added to the semantic map.  
+map so that extra indices (extra columns) are added to the input
+semantics to account for repeated mentions to an index.  These extra
+columns start out with a single transition (the empty transition). 
 
-Note that in addition to the null semantic items, we also add the
-possibility for an empty transition. Why?  Because the case for control
-verbs might be more complicated than we mentioned above.  For example, 
-the input semantics \semexpr{h1:hope(j h3) h2:john(j) h3:like(j j)}
-could be realised not only as \natlang{John hopes to like himself} but
-also as \natlang{John hopes that he likes himself}; note how one uses
-more pronouns than the other.  To account for this, we actually give
-control verbs the same semantic weight as regular verbs, 0:(1 1) in the
-case of hope, but make use of empty transitions to allow for a
-realisation with one pronoun less.
+After calling this function, you must make a second pass on the semantic
+map, adding the null semantic items to every column.  Doing so will
+allow the generator to produce pronouns in general 
+(\natlang{He likes the book}); specifically including the extra columns
+(\natlang{He likes himself}).
+
+Note that we add an empty transition because the case for control verbs
+might be more complicated than we mentioned above.  For example, the
+input semantics \semexpr{h1:hope(j h3) h2:john(j) h3:like(j j)} could be
+realised not only as \natlang{John hopes to like himself} but also as
+\natlang{John hopes that he likes himself}; note how one uses more
+pronouns than the other.  To account for this, we actually give control
+verbs the same semantic weight as regular verbs, 0:(1 1) in the case of
+hope, but make use of empty transitions to allow for a realisation with
+one pronoun less.
 
 \begin{code}
 addExtraIndices :: SemWeightMap -> (Sem, SemMap) -> (Sem, SemMap)
 addExtraIndices swmap (tsem,smap) = 
-  let emptysem' = lookupWithDefaultFM smap [] emptyPred
-      emptysem  = emptyTL : emptysem'
-      --
-      smapDel  = delFromFM smap emptyPred
-      extra  = map (\x -> (x,"",[])) i
+  let extra  = map (\x -> (x,"",[])) i
                where i = countExtraIndices swmap tsem
-      --
       tsem2  = tsem ++ extra
-      smap2  = foldr addfn smapDel extra
-               where addfn x f = addToFM f x emptysem 
+      smap2  = foldr addfn smap extra
+               where addfn x f = addToFM f x [emptyTL] 
       --
   in (tsem2, smap2)
 \end{code}
@@ -891,18 +895,18 @@ The hope is that this would make the polarity automata a bit
 faster to build, especially considering that we are working over
 multiple polarity keys.  
 
-Note: this implementation assumes you have already done some work
-grouping the trees by their semantics.  We reuse that work in the
-form of a SemMap.
+Note: we have to take care to count each literal for each lexical
+entry's semantics or else the multi-literal semantic code will choke.
 
 \begin{code}
-sortSemByFreq :: Sem -> SemMap -> Sem
-sortSemByFreq tsem smap = 
-  let lengths = map lenfn tsem 
-      lenfn l = length $ lookupWithDefaultFM smap [] l 
+sortSemByFreq :: Sem -> [TagLite] -> Sem
+sortSemByFreq tsem cands = 
+  let counts = map lenfn tsem 
+      lenfn l = length $ filter fn cands 
+                where fn x = l `elem` (tlSemantics x)
       --
       sortfn a b = compare (snd a) (snd b) 
-      sorted = sortBy sortfn $ zip tsem lengths 
+      sorted = sortBy sortfn $ zip tsem counts 
   in (fst.unzip) sorted 
 \end{code}
 
