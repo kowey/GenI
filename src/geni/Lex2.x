@@ -27,6 +27,7 @@ tokens :-
 
   Optimisations              { tok Optimisations }
   Polarised                  { tok Polarised  }
+  PolSig                     { tok PolSig } 
   Predicting                 { tok Predicting }
   SemFiltered                { tok SemFiltered } 
   ChartSharing               { tok ChartSharing } 

@@ -190,14 +190,14 @@ timidSubstitution te1 te2 =
 Rejecting ambiguous substitutions is crucial to the idea that
 secondary trees may only be used once.
 
-Consider the trees for \textit{the ???, enemy of ???, friend}.
+Consider the trees for \textit{the N, enemy of N, friend}.
 The idea is that we eventually want to generate \textit {the enemy of the
 friend}, so the result of optimisePredictors should ideally be something like:
-\textit{the friend, the enemy of ???}.
+\textit{the friend, the enemy of N} 
 
 But this isn't so easy to achieve.  In fact, if we tried to achieve
 the above result, we would instead get a highly undesirable result 
-like this \textit{the friend, the enemy of the ???}
+like this \textit{the friend, the enemy of the N} 
 
 Do you see why the above result is bad?  It is because now there is
 no way to substitute friend into that noun-substitution node.  To

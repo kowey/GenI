@@ -1,16 +1,16 @@
 \chapter{Polarity Optimisation}
 
-We introduce a notion of feature structure polarities as a means of
-pre-detecting incompatibilities between candidate trees for different
-propositions.  This optimisation is inserted between candidate selection
-(section \ref{sec:candidate_selection} and chart generation and requires
-a minor modification to the generation process.  The input to this
-optimisation is the \jargon{target semantics} and the corresponding
-\jargon{candidate trees}.
+We introduce a notion of polarities as a means of pre-detecting
+incompatibilities between candidate trees for different propositions.
+This optimisation is inserted between candidate selection 
+(section \ref{sec:candidate_selection})
+and chart generation and requires a minor modification to the generation
+process.  The input to this optimisation is the \jargon{target
+  semantics} and the corresponding \jargon{candidate trees}.
 
 \begin{code}
-module Polarity(PolAut,makePolAut,debugMakePolAut,
-                TagLite,toTagLite,tlIdnum,
+module Polarity(PolAut,makePolAut,
+                TagLite, reduceTags,
                 walkAutomaton, detectPolPaths, defaultPolPaths,
                 showLite, showLitePm, showPolPaths, showPolPaths',
                 toGvPolAut, calculateTreeCombos 
@@ -20,15 +20,17 @@ where
 
 \begin{code}
 import FiniteMap
+import Data.Array (listArray, (!)) 
 import Data.Bits
 import Data.List
 --import Data.Set
 
 import Graphviz(GraphvizShow(..))
-import Tags(TagElem(..), subsumedBy)
-import Btypes(Pred, Sem, showPred, showSem,
-              BitVector
-              )
+import Tags(TagElem(..), mapBySem)
+import Btypes(Pred, Sem, emptyPred,
+              showPred, showSem,
+              BitVector, 
+              groupByFM, isEmptyIntersect, third)
 \end{code}
 
 %\begin{code}
@@ -65,9 +67,10 @@ architecture is as follows:
 \item Take the intersection of all the automata.
 \end{enumerate}
 
-We return everything: the initial automata, the pruned automata and the
-final intersected automaton.  Only the final one is important; the other
-results are useful for debugging later on.
+We return everything a tuple of which the first item is a list of 
+automota for debugging, and second item is the final automaton.  Only
+the second item is important.  The first is only neccesary for 
+debugging.
 
 Each candidate is pre-annotated (in the grammar) with a list of polarity 
 keys.  We pack the candidates into a map so that they can be looked up
@@ -80,13 +83,16 @@ like ``I only want sentences'' or ``I only want expressions where
 the object is topicalised''
 
 \begin{code}
-makePolAut :: [TagLite] -> Sem -> PolMap -> PolAut
+makePolAut :: [TagLite] -> Sem -> PolMap 
+           -> ([(String, PolAut, PolAut)], PolAut)
 makePolAut cands tsem extraPol = let
     (ks,seed) = makePolAutHelper cands tsem extraPol
-    -- building the automata 
-    build k oldAut = prune $ buildPolAut k initK oldAut
-                     where initK = lookupWithDefaultFM extraPol 0 k
-    in foldr build (prune seed) ks
+    -- building and remembering the automata 
+    build k xs = (k,aut,prune aut):xs
+                 where aut   = buildPolAut k initK (third $ head xs)
+                       initK = lookupWithDefaultFM extraPol 0 k
+    res = foldr build [("(seed)",seed,prune seed)] ks
+    in (reverse res, third $ head res)
 
 makePolAutHelper :: [TagLite] -> Sem -> PolMap -> ([String],PolAut)
 makePolAutHelper cands tsem extraPol =
@@ -95,37 +101,30 @@ makePolAutHelper cands tsem extraPol =
       ksExtra = keysFM extraPol
       ks      = nub $ ksCands ++ ksExtra
       -- candidates by predicate
-      smap   = mapBySem cands 
+      smap   = delFromFM fm emptyPred
+               where fm = mapBySem tlSemantics cands 
+      -- sorted semantics (if enabled)
+      sortedsem = sortSemByFreq tsem smap
       -- the seed automaton
-      seed   = buildSeedAut smap tsem
+      seed   = buildSeedAut smap sortedsem
   in (ks, seed)
-\end{code}
-
-
-\paragraph{debugMakePolAut} does the same thing as makePolAut but it returns
-all the intermediary results, which is useful for the GUI.
-
-\begin{code}
-debugMakePolAut :: [TagLite] -> Sem -> PolMap 
-           -> ([(String, PolAut, PolAut)], PolAut)
-debugMakePolAut cands tsem extraPol = let
-    (ks,seed) = makePolAutHelper cands tsem extraPol
-    -- building and remembering the automata 
-    build k xs = (k,aut,prune aut):xs
-                 where aut   = buildPolAut k initK (third $ head xs)
-                       initK = lookupWithDefaultFM extraPol 0 k
-    res = foldr build [("(seed)",seed,prune seed)] ks
-    in (reverse res, third $ head res)
 \end{code}
 
 % ----------------------------------------------------------------------
 \section{Types}
-\label{}
 % ----------------------------------------------------------------------
 
-A reduced version of TagElem for constructing the polarity automaton
-without passing massive chunks of tree around.  Note: we assume that
-a distinct tlIdnum is sufficient to tell two trees apart.
+\begin{code}
+type SemMap = FiniteMap Pred [TagLite]
+type PolMap = FiniteMap String Int
+\end{code}
+
+\subsection{TagLite}
+
+To avoid passing around entire TagElems during the construction
+of polarity automata, we reduce the candidates to the lighter-
+weight TagLite structure that contains just the information needed
+to build automata.
 
 \begin{code}
 data TagLite = TELite {
@@ -145,11 +144,7 @@ emptyTL = TELite { tlIdname = "",
                    tlIdnum  = -1,
                    tlSemantics = [],
                    tlPolarities = emptyFM }
-\end{code}
 
-\paragraph{toTagLite} converts a TagElem to a TagLite
-
-\begin{code}
 toTagLite :: TagElem -> TagLite
 toTagLite te = TELite { tlIdname     = idname te,
                         tlIdnum      = tidnum te,   
@@ -158,10 +153,22 @@ toTagLite te = TELite { tlIdname     = idname te,
                       }
 \end{code}
 
+We provide two ways to do the TagLite reduction: If \texttt{polsig} is False,
+we just perform a direct one-on-one mapping.  If it is True, we use the
+polarity signatures optimisation in section \ref{sec:polarity_signatures}.  In
+both cases, we return a conversion function that maps the returned TagLites to
+their original TagElems.
+
 \begin{code}
-type SemMap = FiniteMap Pred [TagLite]
-type PolMap = FiniteMap String Int
+reduceTags :: Bool -> [TagElem] -> ([TagLite], TagLite -> [TagElem])
+reduceTags polsig tes =
+  let tls          = map toTagLite tes 
+      fromTagLite  = listArray (1,length tes) tes 
+      lookupfn t   = [ fromTagLite ! (fromInteger $ tlIdnum t) ]
+  in if polsig then mapByPolsig tes else (tls, lookupfn)
 \end{code}
+
+
 
 \subsection{NFA}
 Having not found a suitable automaton library for Haskell, we define our
@@ -270,46 +277,6 @@ polstart pol = fakestate "START" pol
 -- a fake state is the final state of an empty automaton 
 polfake :: PolState
 polfake = fakestate "FAKE-FINAL" []
-\end{code}
-
-% ----------------------------------------------------------------------
-\section{Map by sem}
-% ----------------------------------------------------------------------
-
-FIXME: figure out how to refactor this and Tag.mapBySem. Seems like
-the problem is that this operates on TagLite and Tag operates on Tag
-
-The mapBySem function organises trees such that each literal of the target
-semantics is associated with a list of trees whose semantics are
-subsumed by that literal.  This is useful in at least three places: the
-polarity optimisation, the gui display code, and code for measuring 
-the efficiency of Geni.
-
-Notes: \begin{itemize}
-\item A tree will only appear for the first literal that subsumes its
-semantics.  During the construction process, we will have a mechanism for
-dealing with these trees
-\end{itemize}
-
-\begin{code}
-mapBySem :: [TagLite] -> SemMap 
-mapBySem ts = 
-  foldr (mapBySem' lits) emptyFM nonNullT 
-  where lits = nub $ concatMap tlSemantics ts 
-        nonNullT = filter (not.null.tlSemantics) ts 
-\end{code}
-
-Our helper function focuses on a single tree.  It checks the literals one by
-one.  The first literal that subsumes the trees' semantics is the one that 
-the tree is mapped to.
-
-\begin{code}
-mapBySem' :: Sem -> TagLite -> SemMap -> SemMap
-mapBySem' [] _ fm = fm
-mapBySem' (lit:lits) tr fm = 
-   if subsumedBy (tlSemantics tr) lit 
-   then addToFM_C (++) fm lit [tr]
-   else mapBySem' lits tr fm 
 \end{code}
 
 % ====================================================================
@@ -643,6 +610,95 @@ showPolPaths' bv counter =
         next = showPolPaths' (shiftR bv 1) (counter + 1)
 \end{code}
 
+% ====================================================================
+\section{Further optimisations}
+% ====================================================================
+
+\subsection{Polarity signatures}
+\label{sec:polarity_signatures}
+ 
+Polarity signatures is an optimisation of the automaton construction.  We
+pre-process the lexically selected trees, and group together trees with
+identical semantics and polarity keys.  The groups are labeled with a tuple of
+$\tuple{S,K}$ where $S$ is the tree semantics and $K$ is the set of polarity
+keys that the tree holds.  These tuples, which we call \jargon{polarity
+signatures}, could then be used instead of trees as the labels of the
+polarity automaton, the reasoning being that though there maybe hundreds of
+trees for a given lexical item, the number of distinct polarity signatures is
+likely to be smaller. 
+
+The following function takes a list of trees, and returns a tuple with a list
+of signatures, and a function to map these back to trees.
+
+\begin{code}
+mapByPolsig :: [TagElem] -> ([TagLite], TagLite -> [TagElem])
+mapByPolsig tes = 
+  let sigmap   = groupByFM gfn tes
+      gfn t    = (showLitePm $ tpolarities t)
+                 ++ " " ++ (showSem $ tsemantics t) 
+      -- creating a representative "tree" for each polarity signature
+      createTl key id = TELite { tlIdname    = key, 
+                                 tlIdnum     = id,
+                                 tlSemantics = tsemantics rep,
+                                 tlPolarities = tpolarities rep}
+                        where rep = head $ lookupWithDefaultFM sigmap [] key 
+      taglites = zipWith createTl (keysFM sigmap) [0..]
+      -- creating a lookup function
+      lookupfn t = lookupWithDefaultFM sigmap [] (tlIdname t)
+  in (taglites, lookupfn)
+\end{code}
+
+\subsection{Semantic sorting}
+
+To minimise the number of states in the polarity automaton, we could
+also sort the literals in the target semantics by the number of
+corresponding lexically selected items.  The idea is to delay branching
+as much as possible so as to mimimise the number of states in the
+automaton.
+
+Let's take a hypothetical example with two semantic literals:
+bar (having two trees with polarties 0 and +1).
+foo (having one tree with polarity -1) and
+If we arbitrarily explored bar before foo (no semantic sorting), the
+resulting automaton could look like this:
+
+\begin{verbatim}
+     bar     foo
+(0)------(0)------(-1)
+   |               
+   +-----(1)------(0)
+\end{verbatim}
+
+With semantic sorting, we would explore foo before bar because foo has
+fewer items and is less likely to branch.  The resulting automaton
+would have fewer states.
+
+\begin{verbatim}
+     foo      bar
+(0)-----(-1)--+---(-1)
+              |        
+              +---(0)
+\end{verbatim}
+
+The hope is that this would make the polarity automata a bit
+faster to build, especially considering that we are working over
+multiple polarity keys.  
+
+Note: this implementation assumes you have already done some work
+grouping the trees by their semantics.  We reuse that work in the
+form of a SemMap.
+
+\begin{code}
+sortSemByFreq :: Sem -> SemMap -> Sem
+sortSemByFreq tsem smap = 
+  let lengths = map lenfn tsem 
+      lenfn l = length $ lookupWithDefaultFM smap [] l 
+      --
+      sortfn a b = compare (snd a) (snd b) 
+      sorted = sortBy sortfn $ zip tsem lengths 
+  in (fst.unzip) sorted 
+\end{code}
+
 % ----------------------------------------------------------------------
 \section{Display code}
 \label{sec:display_pol}
@@ -814,18 +870,6 @@ gvShowTrans aut stmap idFrom st =
 \section{Miscellaneous}
 % ----------------------------------------------------------------------
 
-\begin{code}
-third :: (a,b,c) -> c
-third (_,_,x) = x
-\end{code}
-
-\paragraph{hasNoIntersect} is true if the intersection of two lists is empty.
-
-\begin{code}
-isEmptyIntersect :: (Eq a) => [a] -> [a] -> Bool
-isEmptyIntersect a b = null $ intersect a b
-\end{code}
-
 \paragraph{calculateTreeCombos} is a naive method for calculating the
 combinatorics of the generation problem.  Lexical ambiguity causes the
 generator to consider an exponential number of tree combinations.  If each
@@ -838,7 +882,8 @@ product of these ambiguities: $\prod_{1 \leq i \leq n} a_i$.
 \begin{code}
 calculateTreeCombos :: [TagLite] -> Int
 calculateTreeCombos cands = 
-  let semmap    = mapBySem cands
+  let semmap    = delFromFM fm emptyPred
+                  where fm = mapBySem tlSemantics cands
       ambiguity = map length $ eltsFM semmap
   in foldr (*) 1 ambiguity     
 \end{code}

@@ -1,4 +1,4 @@
-\chapter{Geni.lhs}
+\chapter{Geni}
 
 \begin{code}
 module Geni (State(..), PState, GeniResults(..), 
@@ -10,8 +10,10 @@ module Geni (State(..), PState, GeniResults(..),
              -- for debugging only
              combine, chooseCand)
 where
+\end{code}
 
-import Data.Array (listArray, (!)) 
+\ignore{
+\begin{code}
 import Data.List (intersect, intersperse, sort, nub, group)
 import Data.Tree
 import IOExts(IORef, readIORef, newIORef, modifyIORef)
@@ -22,9 +24,7 @@ import System (ExitCode(ExitSuccess),
 import FiniteMap
 import Monad (when)
 import CPUTime (getCPUTime)
-\end{code}
 
-\begin{code}
 import Btypes (Grammar, ILexEntry, Sem, Flist, 
                GNode, GType(Subs), 
                isemantics, itreename, iword, iparams, ipfeat,
@@ -44,8 +44,8 @@ import Tags (Tags, TagElem, emptyTE, TagSite,
 
 import Configuration(Params, defaultParams, getConf, treatArgs,
                      macrosFile, lexiconFile, grammarXmlFile, tsFile, 
-                     polarised, chartsharing, semfiltered, 
-                     orderedadj, extrapol)
+                     polarised, polsig, chartsharing, 
+                     semfiltered, orderedadj, extrapol)
 
 import Mstate (Gstats, numcompar, szchart, geniter, initGstats,
                addGstats, initMState, runState, genstats,
@@ -55,15 +55,14 @@ import Polarity
 import Treeprint (showLeaves)
 --import Predictors (PredictorMap, mapByPredictors, 
 --                   fillPredictors, optimisePredictors)
-\end{code}
 
-\begin{code}
 import Lex2 (lexer)
 import Mparser (mParser)
 import Lparser (lParser)
 import Tsparser (tsParser, E(..))
 import GrammarXml (parseXmlGrammar)
 \end{code}
+}
 
 % --------------------------------------------------------------------
 \section{State}
@@ -135,17 +134,13 @@ customGeni pst runFn = do
   let config = pa mst
       tsem  = ts mst
       extraPol = extrapol config 
-  let -- map between TagLite and TagElem (for polarity optimisation)
-      candLite     = map toTagLite cand
-      fromTagLite  = listArray (1,length cand) cand
-      lookupCand t = fromTagLite ! (fromInteger $ tlIdnum t)
   let -- polarity optimisation (if enabled)
-      isPol = polarised config 
-      -- (auts, finalaut) = debugMakePolAut candLite tsem extraPol
-      finalaut         = makePolAut candLite tsem extraPol
-      pathsLite        = walkAutomaton finalaut 
-      paths            = map (map lookupCand) pathsLite 
-      combosPol        = if isPol then paths else [cand]
+      isPol        = polarised config 
+      (candLite, lookupCand) = reduceTags (polsig config) cand
+      (_,finalaut) = makePolAut candLite tsem extraPol
+      pathsLite    = walkAutomaton finalaut 
+      paths        = map (concatMap lookupCand) pathsLite 
+      combosPol    = if isPol then paths else [cand]
       -- chart sharing optimisation (if enabled)
       isChartSharing = chartsharing config
       combosChart = if isChartSharing 
@@ -418,6 +413,7 @@ updateNode1 ((x,y):l) a =
 
 % --------------------------------------------------------------------
 \section{Candidate selection}
+\label{sec:candidate_selection}
 % --------------------------------------------------------------------
 
 chooseCand: It access the Grammar for the candidate tags and loads
@@ -515,10 +511,11 @@ loadGrammarXml pst = do
   st <- readIORef pst
   let config   = pa st
       filename = grammarXmlFile config 
-  putStr $ "Loading XML Grammar " ++ filename ++ "...\n"
+  putStr $ "Loading XML Grammar " ++ filename ++ "..."
   gf <- readFile filename
   let g = parseXmlGrammar gf 
   modifyIORef pst (\x -> x{tags = g})
+  putStr "done\n"
   return ()
 \end{code}
 
@@ -535,9 +532,10 @@ loadTargetSem :: PState -> IO ()
 loadTargetSem pst = do
        st <- readIORef pst
        let filename = tsFile (pa st)
-       putStr $ "Loading Target Semantics " ++ filename ++ "...\n"
+       putStr $ "Loading Target Semantics " ++ filename ++ "..."
        tstr <- readFile filename
        loadTargetSemStr pst tstr
+       putStr "done\n"
 \end{code}
 
 loadTargetSemStr: Given a string with some semantics, it parses
@@ -547,11 +545,12 @@ of st
 \begin{code}
 loadTargetSemStr :: PState -> String -> IO ()
 loadTargetSemStr pst str = 
-    do putStr "Parsing Target Semantics...\n"
+    do putStr "Parsing Target Semantics..."
        let sem = (tsParser (lexer str))
        case sem of 
          Ok s       -> modifyIORef pst (\x -> x{ts = flattenTargetSem s})
          Failed s   -> fail s
+       putStr "done\n"
 \end{code}
 
 \paragraph{flattenTargetSem} takes a recursively embedded target
@@ -630,7 +629,7 @@ instance Show GeniResults where
        ++ "\nTotal agenda size: " ++ (show $ geniter gstats) 
        ++ "\nTotal chart size:  " ++ (show $ szchart gstats) 
        ++ "\nComparisons made:  " ++ (show $ numcompar gstats)
-       ++ "\nGeneration time:  " ++ (grTimeStr gres)
+       ++ "\nGeneration time:  " ++ (grTimeStr gres) ++ " ms"
        ++ "\n\nRealisations:\n" ++ (showRealisations $ grDerived gres)
 \end{code}
 

@@ -13,7 +13,10 @@ You can download this (open source) tool at
 \begin{code}
 module Graphviz
 where
+\end{code}
 
+\ignore{
+\begin{code}
 import IO(Handle, BufferMode(..), hSetBuffering, hPutStrLn, hClose)
 import Posix(forkProcess,executeFile, getProcessStatus, sleep,
              createPipe, dupTo, fdClose, 
@@ -21,6 +24,7 @@ import Posix(forkProcess,executeFile, getProcessStatus, sleep,
 import Directory(setCurrentDirectory)
 import Monad(when)
 \end{code}
+}
 
 \section{Interface}
 

@@ -15,8 +15,8 @@ module Configuration(
    macrosFile, lexiconFile, grammarXmlFile, grammarType,
    tsFile, graphical, 
    optimisations,
-   polarised, predicting, semfiltered, orderedadj, footconstr,
-   chartsharing, extrapol,
+   polarised, polsig, chartsharing, extrapol,
+   predicting, semfiltered, orderedadj, footconstr,
    isBatch, batchRepeat, 
    defaultParams, emptyParams, getConf, optBatch,
 
@@ -27,10 +27,7 @@ module Configuration(
 where
 \end{code}
 
-% --------------------------------------------------------------------  
-\section{Imports}
-% --------------------------------------------------------------------  
-
+\ignore{
 Some basic haskell library stuff to import:
 
 \begin{code}
@@ -46,6 +43,7 @@ import Cparser (cParser)
 import PolParser (polParser)
 import ParserLib(Token(..))
 \end{code}
+}
 
 % --------------------------------------------------------------------  
 % Code for debugging. (should be latex-commented
@@ -83,6 +81,7 @@ data Params = Prms{
          } deriving (Show)
 
 polarised    :: Params -> Bool
+polsig       :: Params -> Bool
 predicting   :: Params -> Bool
 semfiltered  :: Params -> Bool
 chartsharing :: Params -> Bool
@@ -91,6 +90,7 @@ footconstr   :: Params -> Bool
 isBatch      :: Params -> Bool
 
 polarised    p = Polarised    `elem` (optimisations p)
+polsig       p = PolSig       `elem` (optimisations p)
 predicting   p = Predicting   `elem` (optimisations p)  
 semfiltered  p = SemFiltered  `elem` (optimisations p)
 chartsharing p = ChartSharing `elem` (optimisations p)
@@ -180,7 +180,8 @@ defaultParamsStr p =
      "\n" ++
      "\n% Optimisations should be a comma delimited list containing any " ++
      "\n% number of the following items:" ++
-     "\n%  Polarised, SemFiltered, ChartSharing" ++
+     "\n%  Polarised, PolSig, ChartSharing," ++
+     "\n%  SemFiltered, OrderedAdj, FootConstraint" ++
      "\nOptimisations = " ++ 
      "\n" ++ (concat $ intersperse "," $ map show op) ++ 
      "\n% ExtraPolarities should be a list of polarities as in the macro " ++

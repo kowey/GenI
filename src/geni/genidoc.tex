@@ -58,6 +58,9 @@
 \newcommand{\jargon}{\textbf}
 \newcommand{\natlang}{\textit}
 \newcommand{\semexpr}{\texttt}
+\long\def\ignore#1{}
+
+\newcommand{\tuple}[1]{\langle #1 \rangle}
 
 \begin{document}
 \title{Literate Geni}
@@ -72,7 +75,8 @@
 
 \chapter{Overview}
 
-In this chapter, we provide a basic overview of the Geni source code
+In this chapter, we provide a basic overview of the Geni source code.
+Note: module imports are typically not shown in the code.
 
 \section{Core files}
 
@@ -146,10 +150,10 @@ Also of interest are XML grammar files (processed with the HaXml toolkit
 
 \part{Core files}
 
-\input{Geni.lhs}       
-\input{Mstate.lhs}       
 \input{Btypes.lhs}       
 \input{Tags.lhs}       
+\input{Mstate.lhs}       
+\input{Geni.lhs}       
 
 \part{Optimisation}
 
@@ -158,9 +162,20 @@ Also of interest are XML grammar files (processed with the HaXml toolkit
 
 \chapter{Other optimisations}
 
+Some of the optimisations related to adjunction are integrated into
+to the generator.
+
 \section{Semantic filtering}
 
 See section \ref{sec:semfilter}
+
+\section{Ordered adjunction}
+
+See section \ref{sec:ordered_adjunction}
+
+\section{Foot constraint}
+
+See section \ref{sec:foot_constraint}
 
 \part{User interface}
 

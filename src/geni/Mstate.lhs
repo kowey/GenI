@@ -42,13 +42,7 @@ module Mstate (
 where
 \end{code}
 
-
-% --------------------------------------------------------------------  
-\section{Imports}
-% --------------------------------------------------------------------  
-
-Some basic haskell library stuff to import:
-
+\ignore{
 \begin{code}
 import Monad (ap, 
               when, 
@@ -63,11 +57,7 @@ import MonadState (State,
 import Data.List (intersect, partition, delete, sort, nub, (\\))
 import Data.Bits
 import FiniteMap 
-\end{code}
 
-We also import some stuff from the rest of the generator.
-
-\begin{code}
 import Btypes (Ptype(Initial,Auxiliar),
                Flist, 
                Sem, sortSem,
@@ -92,6 +82,7 @@ import Tags (TagElem, TagDerivation,
              substnodes)
 import Configuration (Params, semfiltered, orderedadj, footconstr)
 \end{code}
+}
 
 % --------------------------------------------------------------------  
 % Code for debugging. (should be latex-commented
@@ -533,6 +524,8 @@ iapplySubstNode te1 te2 sn@(n, fu, _) =
 
 % --------------------------------------------------------------------  
 \section{Adjunction}
+\label{sec:ordered_adjunction}
+\label{sec:foot_constraint}
 % ---------------------------------------------------------------  
 
 \paragraph{applyAdjunction} Given a TagElem, it returns the list of all 
@@ -801,7 +794,8 @@ classifyNew [] =
   return []
 classifyNew l = do 
   inputSem <- getSem
-  let isResult x = (inputSem == treeSem) && (null $ substnodes x) 
+  let isResult x = (ttype x /= Auxiliar) && (null $ substnodes x) 
+                   && (inputSem == treeSem) 
                    where treeSem = (sortSem $ tsemantics x)
       classify ls x = 
         case () of _ | isResult  x -> return (x:ls)

@@ -9,7 +9,7 @@ data Token =
     Graphical |
     -- optimisations
     Optimisations | 
-    Polarised | Predicting | ChartSharing | ExtraPolarities |
+    Polarised | PolSig | Predicting | ChartSharing | ExtraPolarities |
     FootConstraint | SemFiltered | OrderedAdj |  
     Batch | Repeat |  
     --

@@ -5,7 +5,10 @@ This produces a set of trees hashed according to their predicate and arity.
 
 \begin{code}
 module GrammarXml where
+\end{code}
 
+\ignore{
+\begin{code}
 import Data.Char
 import Data.FiniteMap (FiniteMap,emptyFM)
 import Data.List (partition,sort)
@@ -24,6 +27,7 @@ import PolParser(polParser)
 import Lex2(lexer)
 import Tags(emptyTE,TagElem(..),Tags,TagSite,addToTags)
 \end{code}
+}
 
 \begin{code}
 parseXmlGrammar :: String -> Tags

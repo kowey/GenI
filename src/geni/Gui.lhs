@@ -5,9 +5,11 @@
 \end{enumerate}
 
 \begin{code}
-module Gui(guiGenerate)
-where
+module Gui(guiGenerate) where
+\end{code}
 
+\ignore{
+\begin{code}
 import Graphics.UI.WXCore 
 import Graphics.UI.WX
 
@@ -30,8 +32,9 @@ import Tags (idname,mapBySem,emptyTE,tsemantics,tpolarities,
 
 import Configuration(Params, GrammarType(..), 
                      macrosFile, lexiconFile, grammarXmlFile, grammarType,
-                     tsFile, optimisations, polarised, semfiltered,
-                     chartsharing, orderedadj, extrapol, footconstr)
+                     tsFile, optimisations, 
+                     polarised, polsig, chartsharing, 
+                     semfiltered, orderedadj, extrapol, footconstr)
 import ParserLib 
 
 import Mstate (Gstats, Mstate, initGstats, initMState, runState, 
@@ -40,6 +43,7 @@ import Mstate (Gstats, Mstate, initGstats, initMState, runState,
                genstats, szchart, numcompar, geniter)
 import Polarity
 \end{code}
+}
 
 \section{Main Gui}
 
@@ -118,6 +122,8 @@ We add some buttons for loading files and running the generator.
                             , checked := polarised config ]
 --       predictingChk <- checkBox f [ text := "Predictors"
 --                                   , checked := predicting config ]
+       polsigChk <- checkBox f [ text := "Pol signatures"
+                               , checked := polsig config ]
        chartsharingChk <- checkBox f [ text := "Chart sharing"
                                      , checked := chartsharing config ]
        semfilterChk <- checkBox f [ text := "Semantic filters"
@@ -126,11 +132,18 @@ We add some buttons for loading files and running the generator.
                                   , checked := orderedadj config ]
        footconstrChk <- checkBox f [ text := "Foot constraint"
                                    , checked := footconstr config ]
-       -- extrapolText <- textEntry f AlignLeft [ text := showLitePm $ extrapol opts]
-       set polChk          [on command := toggleChk pst polChk Polarised] 
+       extrapolText <- staticText f [ text := showLitePm $ extrapol config ]
+       -- commands for the checkboxes
+       let togglePolStuff = do c <- get polChk checked
+                               set polsigChk       [ enabled := c ]
+                               set chartsharingChk [ enabled := c ]
+                               set extrapolText    [ enabled := c ] 
+       set polChk          [on command := do togglePolStuff
+                                             toggleChk pst polChk Polarised ] 
+       set polsigChk       [on command := toggleChk pst polsigChk PolSig] 
        -- set predictingChk   [on command := toggleChk pst predictingChk Predicting] 
-       set semfilterChk    [on command := toggleChk pst semfilterChk SemFiltered] 
        set chartsharingChk [on command := toggleChk pst chartsharingChk ChartSharing]
+       set semfilterChk    [on command := toggleChk pst semfilterChk SemFiltered] 
        set orderedadjChk   [on command := toggleChk pst orderedadjChk OrderedAdj]
        set footconstrChk   [on command := toggleChk pst footconstrChk FootConstraint] 
        -- Generate and Debug 
@@ -143,6 +156,8 @@ We add some buttons for loading files and running the generator.
 Pack it all together.
 
 \begin{code}
+       togglePolStuff
+       --
        let gramsemBox = boxed "Files last loaded" $
                    row 5 [ column 5 [ row 5 [ label "trees: ", widget grammarFileLabel ]
                                     , row 5 [ label "lexicon: ", widget lexiconFileLabel ]
@@ -151,9 +166,10 @@ Pack it all together.
                          ] 
            optimBox =  boxed "Optimisations " $
                     column 5 [ dynamic $ widget polChk 
-                             , dynamic $ label ("(Extra: " ++ (showLitePm $ extrapol config) ++ ")")
-                             -- , dynamic $ widget extrapolText
-                             , dynamic $ widget chartsharingChk 
+                             , row 5 [ label "  ", column 5 
+                                     [ dynamic $ row 5 [ label "Extra: ", widget extrapolText ]
+                                     , dynamic $ widget polsigChk
+                                     , dynamic $ widget chartsharingChk ] ]
                              , dynamic $ widget semfilterChk 
                              , dynamic $ widget orderedadjChk 
                              , dynamic $ widget footconstrChk 
@@ -373,9 +389,9 @@ resultsGui res mst = do
   let cand = grCand res
   canTab <- candidateGui nb cand 
   -- automata tab
-  let candLite = map toTagLite cand
+  let (candLite, _) = reduceTags (polsig config) cand
       extraPol = extrapol config 
-      (auts, finalaut) = debugMakePolAut candLite tsem extraPol
+      (auts, finalaut) = makePolAut candLite tsem extraPol
   autTab <- if (polarised config) 
             then polarityGui nb auts finalaut
             else messageGui  nb "Polarities disabled"
@@ -450,11 +466,7 @@ their semantics.
 \begin{code}
 tagBrowserGui :: (Window a) -> [TagElem] -> String -> String -> IO Layout
 tagBrowserGui f xs tip cachedir = do 
-  let nullsemTrees = filter (null.tsemantics) xs
-      semmap'  = mapBySem xs
-      semmap   = if (null nullsemTrees) 
-                 then semmap'   
-                 else  addToFM semmap' ("","",[]) nullsemTrees 
+  let semmap   = mapBySem tsemantics xs
       sem      = keysFM semmap
       --
       lookupTr   = lookupWithDefaultFM semmap []

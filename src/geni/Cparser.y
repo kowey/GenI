@@ -18,6 +18,7 @@ import Data.List (intersperse)
     graphical  {(Graphical,   _, _)}
     optimisations {(Optimisations, _,_)}
     polarised    {(Polarised,   _, _)}
+    polsig       {(PolSig,      _,_)}
     predicting   {(Predicting,  _, _)}
     semfiltered  {(SemFiltered,  _, _)}
     chartsharing {(ChartSharing,  _, _)}
@@ -65,6 +66,7 @@ filekey: lexicon    {Lexicon}
 boolkey: graphical  {Graphical}
 
 optkey: polarised    {Polarised}
+      | polsig       {PolSig}
       | predicting   {Predicting}
       | semfiltered  {SemFiltered}
       | chartsharing {ChartSharing}

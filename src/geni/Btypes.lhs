@@ -1,4 +1,4 @@
-\chapter{Btypes.lhs}
+\chapter{Btypes}
 
 \begin{code}
 module Btypes(
@@ -16,6 +16,7 @@ module Btypes(
 
    -- Functions from Sem
    toKeys, subsumeSem, sortSem, substSem, showSem, showPred,
+   emptyPred,
 
    -- Projectors from GNode
    gnname, gup, gdown, ganchor, glexeme, gtype, gaconstr,
@@ -32,21 +33,104 @@ module Btypes(
    showPairs, showAv,
 
    -- Other functions
-   isVar, isAnon, emptyGNode, testBtypes 
+   isVar, isAnon, emptyGNode, testBtypes, 
+   groupByFM, isEmptyIntersect, third
 ) where
 \end{code}
 
+\ignore{
 \begin{code}
-import Debug.Trace
+import Debug.Trace -- for test stuff
 import Data.Bits
 import Data.Char (isUpper)
+import Data.FiniteMap (FiniteMap, fmToList, 
+                       emptyFM, isEmptyFM, lookupFM, addToFM)
+import Data.List (intersect, intersperse, sortBy, nub)
 import Data.Tree
-import FiniteMap (FiniteMap, fmToList)
-import List (intersperse, sortBy, nub)
 \end{code}
+}
+
+
+% ----------------------------------------------------------------------
+\section{GNode}
+% ----------------------------------------------------------------------
 
 \begin{code}
-type BitVector = Integer
+data GNode = GN{gnname :: String,
+                gup :: Flist,
+                gdown :: Flist,
+                ganchor :: Bool,
+                glexeme :: String,
+                gtype :: GType,
+                gaconstr :: Bool}
+           deriving Eq
+
+-- Node type used during parsing of the grammar 
+data GType = Subs | Foot | Lex | Other
+           deriving (Show, Eq)
+\end{code}
+
+\paragraph{emptyGNode} provides a null gnode which you can use
+for various debugging or display purposes.
+
+\begin{code}
+emptyGNode = GN { gnname = "",
+                  gup = [], gdown = [],
+                  ganchor = False,
+                  glexeme = "",
+                  gtype = Other,
+                  gaconstr = False }
+\end{code}
+
+\paragraph{show (GNode)} the default show for GNode tries to
+be very compact; it only shows the value for cat attribute 
+and any flags which are marked on that node.
+
+\begin{code}
+instance Show GNode where
+  show gn = 
+    let cat' = filter (\ (f,_) -> f == "cat") $ gup gn
+        cat  = if (null cat') then "" else snd $ head cat'
+        lex  = if (null $ glexeme gn) then "" else glexeme gn
+        -- 
+        extra = case (gtype gn) of         
+                   Subs -> " (s)"
+                   Foot -> " *"
+                   otherwise -> if (gaconstr gn)  then " (na)"   else ""
+    in if (not (null cat || null lex))
+       then cat ++ ":" ++ lex ++ extra
+       else cat ++ lex ++ extra
+\end{code}
+
+\paragraph{showGNodeAll} shows everything you would want to know about a
+gnode, probably more than you want to know
+
+\begin{code}
+showGNodeAll gn = 
+        let sgup = if (null $ gup gn) 
+                   then "" 
+                   else "Top: [" ++ showPairs (gup gn) ++ "]\n"
+            sgdown = if (null $ gdown gn)
+                     then ""
+                     else "Bot: [" ++ showPairs (gdown gn) ++ "]\n"
+            extra = case (gtype gn) of         
+                        Subs -> " (s)"
+                        Foot -> " *"
+                        otherwise -> if (gaconstr gn)  then " (na)"   else ""
+            label  = if (null $ glexeme gn) 
+                     then (if null extra then "" else "Etc: " ++ extra ++ "\n")
+                     else (glexeme gn) ++ extra ++ "\n"
+        in sgup ++ sgdown ++ label -- (show gn ++ "\n" ++)
+\end{code}
+
+\paragraph{substGNode} 
+Given a GNode and a substitution, it applies the
+ substitution to GNode
+\begin{code}
+substGNode :: GNode -> Subst -> GNode
+substGNode gn l =
+    gn{gup = substFlist (gup gn) l,
+       gdown = substFlist (gdown gn) l}
 \end{code}
 
 \subsection{Tree and GNode}
@@ -66,9 +150,7 @@ rootUpd (Node a l) b = (Node b l)
 \begin{code}
 foot :: Tree GNode -> GNode
 foot t = let (ln, flag) = listFoot [t] in (head ln)
-\end{code}
 
-\begin{code}
 listFoot :: [Tree GNode] -> ([GNode], Bool)
 listFoot [] = ([], False)
 listFoot ((Node a l1):l2) =
@@ -189,20 +271,6 @@ listRepNode fn filt ((n@(Node a l1)):l2) =
 \end{code}
 
 % ----------------------------------------------------------------------
-\section{Other types}
-% ----------------------------------------------------------------------
-
-\begin{code}
-data Ptype = Initial | Auxiliar | Unspecified   
-             deriving (Show, Eq)
-\end{code}
-
-\begin{code}
-type Flist   = [AvPair]
-type AvPair  = (String,String)
-\end{code}
-
-% ----------------------------------------------------------------------
 \section{Macros}
 % ----------------------------------------------------------------------
 
@@ -220,92 +288,39 @@ data Ttree a = TT{params :: [String],
                   ptpolarities  :: FiniteMap String Int,
                   ptpredictors  :: [(AvPair,Int)]}
            deriving Show
-\end{code}
 
-% ----------------------------------------------------------------------
-\section{GNode}
-% ----------------------------------------------------------------------
+data Ptype = Initial | Auxiliar | Unspecified   
+             deriving (Show, Eq)
 
-Node type used during parsing of the grammar 
-
-\begin{code}
-data GType = Subs | Foot | Lex | Other
-           deriving (Show, Eq)
-\end{code}
-
-\begin{code}
-data GNode = GN{gnname :: String,
-                gup :: Flist,
-                gdown :: Flist,
-                ganchor :: Bool,
-                glexeme :: String,
-                gtype :: GType,
-                gaconstr :: Bool}
-           deriving Eq
-
-instance Show GNode where
-  show gn = 
-    let cat' = filter (\ (f,_) -> f == "cat") $ gup gn
-        cat  = if (null cat') then "" else snd $ head cat'
-        lex  = if (null $ glexeme gn) then "" else glexeme gn
-        -- 
-        extra = case (gtype gn) of         
-                   Subs -> " (s)"
-                   Foot -> " *"
-                   otherwise -> if (gaconstr gn)  then " (na)"   else ""
-    in if (not (null cat || null lex))
-       then cat ++ ":" ++ lex ++ extra
-       else cat ++ lex ++ extra
-\end{code}
-
-\paragraph{emptyGNode} provides a null gnode which you can use
-for various debugging or display purposes.
-
-\begin{code}
-emptyGNode = GN { gnname = "",
-                  gup = [], gdown = [],
-                  ganchor = False,
-                  glexeme = "",
-                  gtype = Other,
-                  gaconstr = False }
-\end{code}
-
-\paragraph{showGNodeAll} shows everything you would want to know about a
-gnode, probably more than you want to know
-
-\begin{code}
-showGNodeAll gn = 
-        let sgup = if (null $ gup gn) 
-                   then "" 
-                   else "Top: [" ++ showPairs (gup gn) ++ "]\n"
-            sgdown = if (null $ gdown gn)
-                     then ""
-                     else "Bot: [" ++ showPairs (gdown gn) ++ "]\n"
-            extra = case (gtype gn) of         
-                        Subs -> " (s)"
-                        Foot -> " *"
-                        otherwise -> if (gaconstr gn)  then " (na)"   else ""
-            label  = if (null $ glexeme gn) 
-                     then (if null extra then "" else "Etc: " ++ extra ++ "\n")
-                     else (glexeme gn) ++ extra ++ "\n"
-        in sgup ++ sgdown ++ label -- (show gn ++ "\n" ++)
-\end{code}
-
-
-\begin{code}
 type GTtree = Ttree GNode
 
 type Grammar = FiniteMap String GTtree
 \end{code}
 
-\paragraph{substGNode} 
-Given a GNode and a substitution, it applies the
- substitution to GNode
+% ----------------------------------------------------------------------
+\section{Lexicon}
+% ----------------------------------------------------------------------
+
+Auxiliar types used during the parsing of the Lexicon 
+
 \begin{code}
-substGNode :: GNode -> Subst -> GNode
-substGNode gn l =
-    gn{gup = substFlist (gup gn) l,
-       gdown = substFlist (gdown gn) l}
+data ILexEntry = ILE{iword :: String,
+                     itreename :: String,
+                     iparams :: [String],
+                     ipfeat :: Flist,
+                     iptype :: Ptype,
+                     isemantics :: Sem,
+                     ipredictors :: [(AvPair,Int)]}
+               deriving Show
+\end{code}
+
+% ----------------------------------------------------------------------
+\section{Feature structures}
+% ----------------------------------------------------------------------
+
+\begin{code}
+type Flist   = [AvPair]
+type AvPair  = (String,String)
 \end{code}
 
 \paragraph{substFlist} 
@@ -326,42 +341,25 @@ testSubstFlist =
   in trace debugstr (output == expected) 
 \end{code}
 
-substFlist': Given an Flist and a single substition, 
-applies that substitution to the Flist... 
+\paragraph{substFlist'} Given an Flist and a single substition, applies
+that substitution to the Flist... 
 
 \begin{code}
 substFlist' :: Flist -> (String,String) -> Flist 
 substFlist' fl (s1, s2) = map (\ (f, v) -> (f, if (v ==s1) then s2 else v)) fl
 \end{code}
 
-\paragraph{sortFlist} 
-Sorts Flists according with it's feature
+\paragraph{sortFlist} sorts Flists according with its feature
+
 \begin{code}
 sortFlist :: Flist -> Flist
 sortFlist fl = sortBy (\(f1,v1) (f2, v2) -> compare f1 f2) fl
 \end{code}
 
-% ----------------------------------------------------------------------
-\section{Lexicon}
-% ----------------------------------------------------------------------
-
 \begin{code}
 showPairs :: Flist -> String
 showPairs l = concat $ intersperse " " $ map showAv l
 showAv (y,z) = y ++ ":" ++ z 
-\end{code}
-
-Auxiliar types used during the parsing of the Lexicon 
-
-\begin{code}
-data ILexEntry = ILE{iword :: String,
-                     itreename :: String,
-                     iparams :: [String],
-                     ipfeat :: Flist,
-                     iptype :: Ptype,
-                     isemantics :: Sem,
-                     ipredictors :: [(AvPair,Int)]}
-               deriving Show
 \end{code}
 
 % ----------------------------------------------------------------------
@@ -373,6 +371,7 @@ data ILexEntry = ILE{iword :: String,
 type Pred = (String, String, [String])
 type Sem = [Pred]
 type Subst = [(String, String)]
+emptyPred = ("","",[])
 \end{code}
 
 \begin{code}
@@ -509,9 +508,6 @@ sortSem :: Sem -> Sem
 sortSem s = sortBy (\(h1, p1, par1) -> \(h2, p2, par2) -> compare p1 p2) s
 \end{code}
 
-\begin{code}
-testBtypes = testSubstFlist
-\end{code}
 
 \subsection{Variables}
 
@@ -530,4 +526,46 @@ isAnon :: String -> Bool
 isAnon = (==) "_" 
 \end{code}
 
+% ----------------------------------------------------------------------
+\section{General}
+% ----------------------------------------------------------------------
+
+This section contains miscellaneous bits of generic code.
+
+\begin{code}
+third :: (a,b,c) -> c
+third (_,_,x) = x
+\end{code}
+
+\begin{code}
+type BitVector = Integer
+\end{code}
+
+\paragraph{isEmptyIntersect} is true if the intersection of two lists is
+empty.
+
+\begin{code}
+isEmptyIntersect :: (Eq a) => [a] -> [a] -> Bool
+isEmptyIntersect a b = null $ intersect a b
+\end{code}
+
+\paragraph{groupByFM} serves the same function as Data.List.groupBy.  It
+groups together items by some property they have in common. The
+difference is that the property is used as a key to a FiniteMap that you
+can lookup.  \texttt{fn} extracts the property from the item.
+
+\begin{code}
+groupByFM :: (Ord b) => (a -> b) -> [a] -> (FiniteMap b [a])
+groupByFM fn list = 
+  let helper acc [] = acc
+      helper acc (x:xs) = helper (addIt acc x) xs
+      addIt acc x = case (lookupFM acc (fn x)) of
+                         Just y  -> addToFM acc (fn x) (x:y)
+                         Nothing -> addToFM acc (fn x) [x]
+  in helper emptyFM list 
+\end{code}
+
+\begin{code}
+testBtypes = testSubstFlist
+\end{code}
 

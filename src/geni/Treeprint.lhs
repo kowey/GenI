@@ -7,6 +7,7 @@ module Treeprint
 where
 \end{code}
 
+\ignore{
 \begin{code}
 import Data.Char(toUpper)
 import Data.Tree
@@ -17,6 +18,7 @@ import Btypes (showSem, showGNodeAll, GNode, glexeme, gnname, gup)
 import Graphviz (GraphvizShow(..))
 -- import Debug.Trace 
 \end{code}
+}
 
 % ----------------------------------------------------------------------
 \section{For GraphViz}

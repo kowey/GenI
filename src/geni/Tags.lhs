@@ -23,18 +23,21 @@ module Tags(
 ) where
 \end{code}
 
+\ignore{
 \begin{code}
-import Data.List (nub, intersperse)
+import Data.List (intersperse)
 import Data.Tree
 import FiniteMap (FiniteMap, emptyFM, filterFM,         
                   addToFM_C, lookupFM, plusFM_C)
 
 import Btypes (Ptype(Initial, Auxiliar), AvPair,
-               Subst, GNode(gup, gdown), Flist, Sem, Pred, BitVector,
+               Subst, GNode(gup, gdown), Flist, 
+               Sem, Pred, emptyPred, BitVector,
                emptyGNode,
                substFlist, substTree, substSem, showPairs,
-               isAnon, isVar)
+               isAnon, isVar, groupByFM)
 \end{code}
+}
 
 % ----------------------------------------------------------------------
 \section{TagElem}
@@ -152,9 +155,7 @@ it adds the elem to the list of elements associated to the key.
 
 \begin{code}
 addToTags :: Tags -> String -> TagElem -> Tags
-addToTags t k e =
-    let f = \x -> \y -> x ++ y
-    in addToFM_C f t k [e]
+addToTags t k e = addToFM_C (++) t k [e]
 \end{code}
 
 \begin{code}
@@ -173,37 +174,22 @@ findInTags t k =
 type SemMap = FiniteMap Pred [TagElem]
 \end{code}
 
-The mapBySem function organises trees such that each literal of the target
-semantics is associated with a list of trees whose semantics are
-subsumed by that literal.  This is useful in at least three places: the
-polarity optimisation, the gui display code, and code for measuring 
-the efficiency of Geni.
+The mapBySem function sorts trees into a FiniteMap organised by the
+first literal of their semantics.  This is useful in at least three
+places: the polarity optimisation, the gui display code, and code for
+measuring the efficiency of Geni.  Note: trees with a null semantics
+are filed under an empty predicate, if any.
 
-Notes: \begin{itemize}
-\item A tree will only appear for the first literal that subsumes its
-semantics.  During the construction process, we will have a mechanism for
-dealing with these trees
-\end{itemize}
+This function is generalised for use with data types than TagElem,
+so you'll have to pass the semantics function to the semfn argument
+(tsemantics in the case of TagElem).
 
 \begin{code}
-mapBySem :: [TagElem] -> SemMap
-mapBySem ts = 
-  foldr (mapBySem' lits) emptyFM nonNullT 
-  where lits = nub $ concatMap tsemantics ts 
-        nonNullT = filter (not.null.tsemantics) ts 
-\end{code}
-
-Our helper function focuses on a single tree.  It checks the literals one by
-one.  The first literal that subsumes the trees' semantics is the one that 
-the tree is mapped to.
-
-\begin{code}
-mapBySem' :: Sem -> TagElem -> SemMap -> SemMap
-mapBySem' [] _ fm = fm
-mapBySem' (lit:lits) tree fm = 
-   if subsumedBy (tsemantics tree) lit 
-   then addToFM_C (++) fm lit [tree]
-   else mapBySem' lits tree fm 
+mapBySem :: (a -> Sem) -> [a] -> FiniteMap Pred [a]
+mapBySem semfn ts = 
+  let gfn t = if (null s) then emptyPred else head s 
+              where s = semfn t 
+  in groupByFM gfn ts
 \end{code}
 
 \texttt{subsumedBy} \texttt{cs} \texttt{ts} determines if the 
