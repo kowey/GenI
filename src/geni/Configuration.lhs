@@ -267,7 +267,7 @@ optBatch enabledRaw =
                      else withopt ++ prev
                      where withopt = map (opt:) prev
       -- 
-      polBatch' = foldr use [[Polarised]] [PolSig,AutoPol,ChartSharing]
+      polBatch' = foldr use [[Polarised]] [AutoPol,ChartSharing]
       polBatch  = if Polarised `elem` enabled
                  then polBatch' 
                  else [] : polBatch'
@@ -297,7 +297,8 @@ data GramParams = GrmPrms {
   macrosFile     :: String,
   semlexFile     :: String,
   lexiconFile    :: String,
-  morphFile  :: String,
+  morphFile      :: String,
+  rootCatsParam  :: [String],
   grammarType    :: GrammarType
 }
 \end{code}
@@ -344,7 +345,8 @@ defineGramParams [] = GrmPrms {
   semlexFile  = "",
   lexiconFile = "",
   morphFile   = "",
-  grammarType = GeniHand
+  rootCatsParam = [],
+  grammarType   = GeniHand
 }
 
 defineGramParams ((f,v):s) =
@@ -352,6 +354,7 @@ defineGramParams ((f,v):s) =
             LexiconTok    -> next {lexiconFile = v} 
             SemLexiconTok -> next {semlexFile  = v}
             MorphInfoTok  -> next {morphFile   = v}
+            RootCategoriesTok -> next {rootCatsParam = words v}
             GrammarType -> next {grammarType = t} 
                            where t = case (read v) of 
                                        GeniHandTok -> GeniHand 

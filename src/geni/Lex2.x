@@ -49,6 +49,7 @@ tokens :-
   Batch                      { tok Batch }
   Repeat                     { tok Repeat }
   ExtraPolarities            { tok ExtraPolarities }
+  RootCategories             { tok RootCategoriesTok }
 
   restrictors                { tok RestrictorsTok }
   semantics                  { tok Semantics  }

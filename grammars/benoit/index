@@ -2,3 +2,4 @@ Macros  = kowey.macros.geni
 %Macros  = koweylite.xml
 Lexicon = lexiquemini.geni
 SemLexicon = stupid.semlex
+RootCategories = s

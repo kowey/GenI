@@ -18,6 +18,7 @@ import Data.List (intersperse)
     lexicon     {(LexiconTok,     _, _)}  
     semlex      {(SemLexiconTok,  _, _)}
     morphinfo   {(MorphInfoTok,   _, _)}
+    rootcats    {(RootCategoriesTok, _,_)}
     grammar     {(GrammarTok,      _, _)} 
     morphcmd    {(MorphCmdTok,     _, _)}
     tsem        {(TSemanticsTok,  _, _)}
@@ -86,7 +87,7 @@ boolkey: graphical  {GraphicalTok}
 {- optimisations -}
 
 OptList :: { String }
-OptList : OptListI { concat (intersperse " " $1) }
+OptList : OptListI { unwords $1 }
 
 OptListI :: { [String] }
 OptListI :                     { [] }
@@ -132,14 +133,18 @@ GramInputList :
      {[]}
  | gramIdkey '=' id GramInputList
      {(untok $1,$3):$4}
+ | rootcats  '=' idlist GramInputList
+     {(untok $1,unwords $3):$4}
+
+idlist :: { [String] }
+idlist : id            { [$1]  }
+       | id ',' idlist { $1:$3 }
 
 gramIdkey :: { PosToken }
 gramIdkey: lexicon   {$1}  
          | macros    {$1}  
          | semlex    {$1}
          | morphinfo {$1}
-
-
 
 {
 

@@ -59,7 +59,8 @@ realisation seperately, treating each path as a set of candidate trees.
 module Polarity(PolAut,makePolAut,
                 TagLite, reduceTags, lookupAndTweak,
                 buildSemWeights,
-                walkAutomaton, detectPols, detectPolPaths, 
+                walkAutomaton, 
+                detectPols, detectPolPaths, prefixRootCat,
                 declareRestrictors, detectRestrictors,
                 defaultPolPaths,
                 showLite, showLitePm, showPolPaths, showPolPaths',
@@ -923,6 +924,15 @@ detectPols' te =
       oldfm = tpolarities te
       addpol (p,c) fm = addToFM_C (+) fm p c 
   in te { tpolarities = foldr addpol oldfm pols }
+\end{code}
+
+\paragraph{prefixRootCat} converts a category like ``s'' into an negative
+polarity like ``cat_s''.  This is to offset the extra polarity that comes from
+automatically assigning a + polarity to every root node category.
+
+\begin{code}
+prefixRootCat :: String -> String
+prefixRootCat cat = "cat_" ++ cat
 \end{code}
 
 \subsection{Chart sharing}

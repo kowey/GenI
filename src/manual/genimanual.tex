@@ -230,9 +230,7 @@ There are three types of batch processing:
 \subsection{Extra polarties}
 
 The ExtraPolarities argument sets some base polarities when constructing
-polarity automata.  If for example, you want the surface realiser to
-only produce results with a polarity of +s, you should set
-\verb$ExtraPolarties=-s$.
+polarity automata.  
 
 \section{Input semantics}
 
@@ -330,7 +328,15 @@ directory as the index file.
 Macros          = macros 
 Lexicon         = synlex 
 SemanticLexicon = semlex
+RootCategories  = s
 \end{verbatim}
+
+RootCategories allows you to compensate for automatic polarity
+detection.  Since every tree is assigned a $+$ polarity for the category
+of its root node, there will be an excess $+r$ charge where r is the
+root node for sentences.  If you set \texttt{RootCategories = r}, then
+the surface realiser cancels this out by assuming a $-r$ polarity to
+begin with.
 
 \subsection{Semantic lexicon}
 

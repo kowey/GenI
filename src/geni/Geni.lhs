@@ -73,7 +73,7 @@ import Tags (Tags, TagElem, emptyTE, TagSite,
 import Configuration(Params, defaultParams, getConf, treatArgs,
                      grammarFile, tsFile, isTestSuite, morphCmd,
                      GramParams, parseGramIndex,
-                     macrosFile, lexiconFile, semlexFile, morphFile,
+                     macrosFile, lexiconFile, semlexFile, morphFile, rootCatsParam,
                      autopol, polarised, polsig, chartsharing, 
                      semfiltered, orderedadj, extrapol, footconstr)
 
@@ -116,6 +116,7 @@ data State = ST{pa       :: Params,
                 gr       :: Macros,
                 le       :: Lexicon,
                 morphinf :: MorphFn,
+                rootCats :: [String],
                 ts       :: SemInput,
                 sweights :: FiniteMap String [Int],
                 tsuite   :: [(SemInput,[String])]
@@ -150,6 +151,7 @@ initGeni = do
                        morphinf = const Nothing,
                        ts = ([],[]),
                        sweights = emptyFM,
+                       rootCats = [],
                        tsuite = [] }
     return pst 
 \end{code}
@@ -188,7 +190,7 @@ customGeni pst runFn = do
   -- do any optimisations
   let config   = pa mst
       (tsem,_) = ts mst
-      extraPol    = extrapol  config
+      extraPol    = extrapol config  
       isPol       = polarised config
   let -- polarity optimisation (if enabled)
       autstuff   = buildAutomaton purecand mst
@@ -297,8 +299,12 @@ buildAutomaton candRaw mst =
       swmap    = sweights mst
       -- restrictors and extra polarities
       mergePol = plusFM_C (+)
-      extraPol = mergePol (extrapol config) r
-                 where r = declareRestrictors tres
+      rootCatPref = prefixRootCat $ head $ rootCats mst
+      rcatPol = if (null $ rootCats mst)
+                then emptyFM
+                else addToFM emptyFM rootCatPref (-1)
+      extraPol = mergePol (extrapol config) $ mergePol rest rcatPol
+                 where rest = declareRestrictors tres
       detect   = detectRestrictors tres
       restrict t = t { tpolarities = mergePol p r
                      } --, tinterface  = [] }
@@ -540,6 +546,7 @@ loadGrammar pst =
      loadMacros    pst gparams
      loadLexicon   pst gparams
      loadMorphInfo pst gparams
+     modifyIORef pst (\x -> x{rootCats = rootCatsParam gparams})
 \end{code}
 
 \paragraph{loadLexicon} Given the pointer to the monadic state pst and
