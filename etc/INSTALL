@@ -1,0 +1,20 @@
+first make sure you have these things installed
+ - ghc 6.2   (Glasgow Haskell Compiler)
+ - WxWidgets 2.4.2 (for WxHaskell)
+
+there's also a few other things to install, but rather than fetching 
+them yourself, just use curl!
+
+  cp /whatever/Geni/etc/geni.curl /tmp
+  cd /tmp
+  curl -K geni.curl
+
+then install all of the packages that get downloaded:
+the downloaded packages should include:
+ - Happy     1.13 (yacc for haskell)
+ - Alex      (lex for haskell)
+ - WxHaskell 0.6 (graphics)
+ - HaXML     1.12 (for XML processing)
+ - graphviz  (for visualisation)
+
+

@@ -8,13 +8,7 @@ installing GenI
 ---------------
 (tested on Linux and MacOs X)
 
-you'll need
- - ghc 6.2   (Glasgow Haskell Compiler)
- - Happy     1.13 (yacc for haskell)
- - Alex      (lex for haskell)
- - WxHaskell (graphics)
- - WxWidgets (for WxHaskell)
- - HaXML     (for XML processing)
+see etc/INSTALL for details
 
 assuming everything above is installed correctly,
 it should possible to just make

@@ -1,0 +1,26 @@
+# things that GenI needs 
+# things you need to download manually
+# - wxWidgets
+# - ghc 6.2
+
+# happy
+-O 
+url=http://www.haskell.org/happy/dist/1.14/happy-1.14-src.tar.gz
+
+# alex
+-O 
+url=http://www.haskell.org/alex/dist/alex-2.0-src.tar.gz
+
+# HaXML
+-O 
+url=http://www.haskell.org/HaXml/HaXml-1.12.tar.gz
+
+# wxhaskell
+-O
+url=http://belnet.sourceforge.net/wxhaskell/wxhaskell-src-0.6.zip
+
+# graphviz
+-O
+url=http://www.graphviz.org/pub/graphviz/ARCHIVE/graphviz-1.12.tar.gz
+
+
