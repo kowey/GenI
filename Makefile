@@ -77,8 +77,7 @@ PARSERS		= \
  $(SRC_GENI)/Mparser.hs \
  $(SRC_GENI)/Cparser.hs \
  $(SRC_GENI)/Lparser.hs \
- $(SRC_GENI)/Tsparser.hs \
- $(SRC_GENI)/PolParser.hs 
+ $(SRC_GENI)/Tsparser.hs 
 
 # Phony targets do not keep track of file modification times
 .PHONY: all clean docs html parsers release optimize

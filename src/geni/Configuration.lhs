@@ -44,7 +44,7 @@ We also import some stuff from the rest of the generator.
 \begin{code}
 import Lex2 (lexer)
 import Cparser (cParser, giParser)
-import PolParser (polParser)
+import Mparser (polParser)
 import ParserLib(Token(..))
 \end{code}
 }

@@ -2,10 +2,8 @@
 Lex2.hs
 Cparser.hs
 Lparser.hs
-GIparser.hs
 Mparser.hs
 Tsparser.hs
-PolParser.hs
 *.pdf
 *.aux
 *.log

@@ -130,7 +130,7 @@ makePolAutHelper cands tsem extraPol =
       -- candidates by predicate
       smap   = delFromFM fm emptyPred
                where fm = mapBySem tlSemantics cands 
-      -- sorted semantics (if enabled)
+      -- sorted semantics (hard coded to be enabled)
       sortedsem = sortSemByFreq tsem smap
       -- the seed automaton
       seed   = buildSeedAut smap sortedsem
@@ -429,6 +429,147 @@ walkAutomaton' transFm st =
 \end{code}
 
 % ====================================================================
+\section{Multi-use items}
+\label{sec:multiuse}
+% ====================================================================
+
+There is a complication when generating items that refer to the same
+entity more than once. Say for instance we have the input
+\semexpr{e1:love(j,j), j:name(John)}.  To simplify matters, we will
+ignore pronouns and clitics, and also forget that the generator actually
+prevents items with overlapping semantics to combine.  If we take the
+assumptions above, the generator would be capcable of producing the
+realisation \natlang{John loves John} 
+(what we really want is \natlang{John loves himself}, but one thing at a
+ time, we'll get there).  
+However, once we introduce polarity filtering, it and many other valid
+results get ruled out.  Why? Because polarity counting assumes that all
+items are used exactly once. 
+
+\begin{center}
+\begin{tabular}{|c|c|}
+\hline
+\semexpr{j:name(John)}  & \semexpr{e1:love(j,j)} \\
+\hline
+\tautree{John} \color{blue}{+1np} & 
+\tautree{loves} \color{red}{-1np}\\
+\hline
+\end{tabular}\\
+\end{center}
+
+If you look at the table above, you can see that what needs to happen is
+that we count the {\color{blue}{+1np}} for \tautree{John} twice.  One
+possible solution is to repeat the literal as many times as we need it.
+For example, in the the table below, \tautree{John} gets counted twice
+as is the expected/desired behaviour:
+
+\begin{center}
+\begin{tabular}{|c|c|c|}
+\hline
+\semexpr{j:name(John)}  &\semexpr{j:name(John)}  & \semexpr{e1:love(j,j)} \\
+\hline
+\tautree{John} \color{blue}{+1np} & 
+\tautree{John} \color{blue}{+1np} & 
+\tautree{loves} \color{red}{-1np}\\
+\hline
+\end{tabular}\\
+\end{center}
+
+\subsection{Multi-counting}
+
+FIXME: this does not work
+
+The next problem is to know which literals need to be repeated and how
+many times. I propose the following model: a literal is repeated once
+for every time its handle appears in the 2nd or higherth argument of 
+any literal.  Below we present some examples of repeated literals:
+
+\begin{center}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{sentence} & \textbf{semantics} & \textbf{repeated} \\  
+\hline
+\natlang{John loves John} &
+\semexpr{j:name(John), e1:love(j,j)} &
+\semexpr{j:name(John) 1} \\
+
+\natlang{John gives John to John} &
+\semexpr{j:name(John), e1:give(j,j,j)} &
+\semexpr{j:name(John) 2} \\
+
+\natlang{the man loves the man} &
+\semexpr{m:man(m), d:def(m), e1:love(m,m)} &
+\semexpr{m:man(m) 1} \\
+\hline
+\end{tabular}\\
+\end{center}
+
+This model is implemented in the functions below
+
+\paragraph{handlesInArgPos} returns all the handles which in argument
+position of a semantics.  Handles will appear for as many times as
+they appear in argument position.  For example, given the nonsense
+semantics \semexpr{j:name(John), e1:give(j,j,j), e2:love(m,m)}, this
+function should return [j,j,m], the two js being for \semexpr{give} and
+m for \semexpr{love}.
+
+\begin{code}
+-- handlesInArgPos :: Sem -> [String]
+\end{code}
+
+\subsection{Null semantic items}
+
+Now let's say that we are no longer satisfied with \natlang{John loves
+John} and that we want to generate \natlang{John loves himself}.  This
+part is simple; now that we have a mechanism for tracking the number of
+times an item is used, all we have to do is to add null semantic items
+like pronouns and clitics to every column of the table:
+
+\begin{center}
+\begin{tabular}{|c|c|c|}
+\hline
+\semexpr{j:name(John)}  &\semexpr{j:name(John)}  & \semexpr{e1:love(j,j)} \\
+\hline
+\tautree{John} \color{blue}{+1np} & 
+\tautree{John} \color{blue}{+1np} & 
+\tautree{loves} \color{red}{-1np}\\
+
+\tautree{himself} \color{blue}{+1np} & 
+\tautree{himself} \color{blue}{+1np} & 
+\tautree{himself} \color{blue}{+1np} \\ 
+\hline
+\end{tabular}\\
+\end{center}
+
+That's it! We just construct the polarity automaton as before.  The
+resulting automaton allows us to construct \natlang{John loves John},
+\natlang{John loves himself}, \natlang{himself loves John} and
+\natlang{himself loves himself}.  And once we pass these to the 
+generator, the incorrect results among these are easily avoided by
+the generator proper.  Here is why:
+
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+\textbf{bad result} & \textbf{ruled out by...} \\  
+\hline
+\natlang{John loves John} &
+repeated use of \semexpr{j:name(John)} \\ 
+\natlang{himself loves John} &
+\natlang{himself} in subj position (fs conflict)\\
+\natlang{himself loves himself} &
+\semexpr{j:name(John)} is not covered \\
+\hline
+\end{tabular}\\
+\end{center}
+
+\subsection{Pitfalls}
+
+I do not know what the behaviour of this code would be if there are
+items that are multi-use and which have multi-literal semantics! For
+now, we assume that this never happens.
+
+% ====================================================================
 \section{Further optimisations}
 % ====================================================================
 
@@ -605,7 +746,8 @@ data TagLite = TELite {
 
 instance Ord TagLite where
   compare t1 t2 = 
-    compare (tlIdname t1,tlIdnum t1) (tlIdname t2,tlIdnum t2)
+    compare (fn t1) (fn t2)
+    where fn t = (tlIdname t, tlIdnum t)
 
 emptyTL :: TagLite
 emptyTL = TELite { tlIdname = "",

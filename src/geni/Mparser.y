@@ -31,8 +31,9 @@ buildTree ttype id (params,feats) (pol,pred) t =
           ptpredictors = pred}) 
 
 }
-  
-%name mParser
+ 
+%name mParser Input
+%name polParser PolList
 %tokentype { PosToken }
 
 %token 
@@ -68,11 +69,11 @@ Input :
  | DefI Input
      {let {(c,u) = $2 ;
            (k,e) = $1}
-      in (addToFM c k [e], u)}
+      in (addToFM_C (++) c k [e], u)}
  | DefA Input
      {let {(c,u) = $2 ;
            (k,e) = $1 }
-      in (addToFM c k [e], u)}
+      in (addToFM_C (++) c k [e], u)}
  | Def Input
      {let (c,u) = $2 in (c, $1:u)}
  | begin initial Input end initial Input
@@ -80,13 +81,13 @@ Input :
            (c',u') = $3; 
            cc' = plusFM c c'} 
       in (foldr (\(k,e) -> 
-                 \fm -> (addToFM fm k [e{ptype = Initial}])) cc' u', u)}
+                 \fm -> (addToFM_C (++) fm k [e{ptype = Initial}])) cc' u', u)}
  | begin auxiliar Input end auxiliar Input 
      {let {(c, u ) = $6;
            (c',u') = $3;
            cc' = plusFM c c' }
       in (foldr (\(k,e) ->
-                 \fm -> (addToFM fm k [e{ptype = Auxiliar}])) cc' u',u)}
+                 \fm -> (addToFM_C (++) fm k [e{ptype = Auxiliar}])) cc' u',u)}
 
 Def :
    id '(' IDFeat ')' TopTree

@@ -26,7 +26,7 @@ import Btypes(AvPair, Flist, ILexEntry(..),
               GNode(..), Macros, Ttree(..),
               emptyGNode, emptyMacro,
               Ptype(..), Pred)
-import PolParser(polParser)
+import Mparser(polParser)
 import Lex2(lexer)
 -- import Tags(emptyTE,TagElem(..),Tags,TagSite,addToTags)
 \end{code}
