@@ -48,7 +48,6 @@ main = do
      then guiGenerate pst
      else consoleGenerate pst
 
--- FIXME: consoleGenerate completely ignores the GrammarType
 consoleGenerate :: PState -> IO()
 consoleGenerate pst = do 
   let nogui =  "Graphical interface not available for "
@@ -75,7 +74,7 @@ consoleGenerate' pst lastPa newPa = do
              putStrLn ""
              putStrLn $ showOptResults resSet
              return ()
-     else do res <- verboseGeni pst 
+     else do res <- customGeni pst runGeni
              putStrLn $ show res
   return newPa
 
@@ -84,7 +83,7 @@ consoleGenerate'' :: PState -> Params -> IO GeniResults
 consoleGenerate'' pst newPa = do 
   modifyIORef pst (\x -> x{pa = newPa})
   let numIter = batchRepeat newPa
-  resSet <- mapM (\_ -> verboseGeni pst) [1..numIter]
+  resSet <- mapM (\_ -> customGeni pst runGeni) [1..numIter]
   --
   let avgStats = avgGstats $ map grStats resSet
       res      = (head resSet) { grStats = avgStats } 

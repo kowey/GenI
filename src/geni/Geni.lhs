@@ -9,8 +9,7 @@ involve some messy IO performance tricks.
 \begin{code}
 module Geni (State(..), PState, GeniResults(..), 
              showRealisations, showOptResults,
-             verboseGeni, customGeni,
-             initGeni, runGeni, 
+             initGeni, customGeni, runGeni, 
              loadGrammar, 
              loadTargetSem, loadTargetSemStr,
              -- for debugging only
@@ -105,28 +104,39 @@ type PState = IORef State
 \section{Entry point}
 % --------------------------------------------------------------------
 
-Geni uses three distinct steps
+This module mainly exports two monadic functions: an initialisation step
+and a generation step.
 
-\begin{enumerate}
-\item initialisation    - reads input grammar files and target semantics
-\item lexical selection - chooses the trees which will be used for 
-                          generation
-\item generation        - performs the actual generation
-\end{enumerate}
+\subsection{Initialisation step}
 
-The first step can be found in the user interface code.  The
-second and third step are bundled into a function that returns not
-only the generated trees, but some intermediary steps and useful
-statistics.
+initGeni should be called when Geni is started.  This is typically
+called from the user interface code.
 
 \begin{code}
-verboseGeni :: PState -> IO GeniResults
-verboseGeni pst = customGeni pst runGeni 
+initGeni :: IO PState 
+initGeni = do
+    confGenirc <- getConf defaultParams
+    args       <- getArgs
+    let confArgs = treatArgs confGenirc args
+    -- Initialize the general state.  
+    pst <- newIORef ST{pa = head confArgs,
+                       batchPa = confArgs, 
+                       tags = emptyFM,
+                       gr   = emptyFM,
+                       le = [],
+                       ts = []}
+    return pst 
 \end{code}
+
+\subsection{Generation step}
+
+In the generation step, we first perform lexical selection, set up any
+optimisations on the lexical choices, and then perform generation.
 
 \paragraph{customGeni} lets you specify what function you want to use for
 generation: this is useful because it lets you pass in a debugger
-instead of the vanilla generator
+instead of the vanilla generator.  To run the vanilla generator, 
+call this function with runGeni as the runFn argument.
 
 \begin{code}
 type GeniFn = Params -> Sem -> [[TagElem]] -> IO ([TagElem], Gstats)
@@ -209,36 +219,20 @@ customGeni pst runFn = do
   return (results { grTimeStr  = statsTime })
 \end{code}
 
-\subsection{Individual steps}
-
-initGeni should be called when Geni is started.  This is typically
-called from the user interface code.
-
-\begin{code}
-initGeni :: IO PState 
-initGeni = do
-    confGenirc <- getConf defaultParams
-    args       <- getArgs
-    let confArgs = treatArgs confGenirc args
-    -- Initialize the general state.  
-    pst <- newIORef ST{pa = head confArgs,
-                       batchPa = confArgs, 
-                       tags = emptyFM,
-                       gr   = emptyFM,
-                       le = [],
-                       ts = []}
-    return pst 
-\end{code}
-
-\paragraph{runLexSelection} determines which candidates trees which will
-be used to generate the current target semantics.  
-
-Notes: if there is an XML grammar, we ignore the macros and lexicon.
-Also, we also assign a tree id to each selected tree, and we append 
-some unique suffix (coincidentally the tree id) to each variable in
-each selected tree. This is to avoid nasty collisions during 
-unification as mentioned in section \ref{sec:fs_unification}).
+% --------------------------------------------------------------------
+\section{Lexical selection}
+\label{sec:candidate_selection}
+\label{sec:lexical_selecetion}
 \label{par:lexSelection}.
+% --------------------------------------------------------------------
+
+\paragraph{runLexSelection} determines which candidates trees which
+will be used to generate the current target semantics.  
+
+Note: we assign a tree id to each selected tree, and we append some
+unique suffix (coincidentally the tree id) to each variable in each
+selected tree. This is to avoid nasty collisions during unification as
+mentioned in section \ref{sec:fs_unification}).
 
 \begin{code}
 runLexSelection :: IORef State -> IO [TagElem] 
@@ -262,28 +256,9 @@ runLexSelection pst = do
     return $ zipWith setnum cand [1..]
 \end{code}
 
-\paragraph{runGeni} Actually running the generator...  Note: the only
-reason this is monadic is to be compatible with the debugger GUI.  There
-could be some code simplifications in order.
-
-\begin{code}
-runGeni :: GeniFn 
-runGeni config tsem combos = do
-  return (runGeni' config tsem combos) 
-
-runGeni' :: Params -> Sem -> [[TagElem]] -> ([TagElem], Gstats)
-runGeni' config tsem combos = 
-  -- do the generation
-  let genfn c = (res, genstats st) 
-                where ist = initMState c [] tsem config
-                      (res,st) = runState generate ist
-      res' = map genfn combos
-      addres (r,s) (r2,s2) = (r ++ r2, addGstats s s2)
-  in foldr addres ([],initGstats) res'
-\end{code}
 
 % --------------------------------------------------------------------
-\section{Combine}
+\subsection{Combine}
 \label{sec:combine_macros}
 % --------------------------------------------------------------------
 
@@ -362,7 +337,7 @@ combineOne lexitem e =
 \end{code}
 
 % --------------------------------------------------------------------
-\subsection{Replace feat}
+\subsubsection{Replace feat}
 % --------------------------------------------------------------------
 
 \paragraph{replaceFeat}: Given 
@@ -401,7 +376,7 @@ updateNode2 ((at,v):l) a =
 \end{code}
 
 % --------------------------------------------------------------------
-\subsection{Instatiation of arguments}
+\subsubsection{Instatiation of arguments}
 % --------------------------------------------------------------------
 
 \paragraph{replacePar}: Given 
@@ -434,12 +409,11 @@ updateNode1 ((x,y):l) a =
 \end{code}
 
 % --------------------------------------------------------------------
-\section{Candidate selection}
-\label{sec:candidate_selection}
+\subsection{The selection process}
 % --------------------------------------------------------------------
 
-chooseCand: It access the Grammar for the candidate tags and loads
-them in the Agenda.  It checks for semantics which adds more than
+\paragraph{chooseCand} It access the Grammar for the candidate tags and
+loads them in the Agenda.  It checks for semantics which adds more than
 the required input, discarding those tags.  It also instantiates the
 semantics of candidates to match the target semantics. 
 
@@ -472,7 +446,7 @@ chooseCandI semfn substfn tsem cand =
 \end{code}
 
 % --------------------------------------------------------------------
-\subsection{Lexicon-only selection}
+\subsubsection{Lexicon-only selection}
 % --------------------------------------------------------------------
 
 An alternative to candidate selection (of trees) is to do lexical
@@ -525,7 +499,7 @@ Grammars consist of the following:
 \begin{enumerate}
 \item index file - which tells where the other files
       in the grammar are (relative to the grammar)
-\item semantic lexicon file - semantics \$rightarrow$ lemma
+\item semantic lexicon file - semantics $\rightarrow$ lemma
 \item lexicon file - lemma $\rightarrow$ families
 \item macros file  - unlexicalised trees
 \end{enumerate}
@@ -674,8 +648,30 @@ flattenTargetSem' gorn (Node (hand,pred) kids) =
 \end{code}
 
 % --------------------------------------------------------------------
-\section{Returning results}
+\section{Generation step} 
 % --------------------------------------------------------------------
+
+Actually running the generator...  Note: the only reason this is monadic
+is to be compatible with the debugger GUI.  There could be some code
+simplifications in order.
+
+\begin{code}
+runGeni :: GeniFn 
+runGeni config tsem combos = do
+  return (runGeni' config tsem combos) 
+
+runGeni' :: Params -> Sem -> [[TagElem]] -> ([TagElem], Gstats)
+runGeni' config tsem combos = 
+  -- do the generation
+  let genfn c = (res, genstats st) 
+                where ist = initMState c [] tsem config
+                      (res,st) = runState generate ist
+      res' = map genfn combos
+      addres (r,s) (r2,s2) = (r ++ r2, addGstats s s2)
+  in foldr addres ([],initGstats) res'
+\end{code}
+
+\subsection{Returning results}
 
 We provide a data structure to be used by verboseGeni for returning the results
 (grDerived) along with the intermediary steps and some useful statistics.  
