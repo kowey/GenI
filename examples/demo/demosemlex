@@ -6,43 +6,43 @@
 
 %% Determinants
 
-un (I)
+un det  (I)
 semantics:[indef(I)]
 
 %% Noms communs
 
-livre (I) 
+livre nc (I) 
 semantics:[book(I)]
 
 %% Noms Propres
 
-marie (I) 
+marie np (I) 
 semantics:[marie(I)]
 
-claire (I) 
+claire np (I) 
 semantics:[claire(I)]
 
-olivier (I) 
+olivier np (I) 
 semantics:[olivier(I)]
 
-pierre (I) 
+pierre np (I) 
 semantics:[pierre(I)]
 
-jean (I) 
+jean np (I) 
 semantics:[jean(I)]
 
-paul (I) 
+paul np (I) 
 semantics:[paul(I)]
 
 %% --------------------------------------------------------------------- 
 %% Verbs 
 %% --------------------------------------------------------------------- 
 
-donner (E X Y Z) 
+donner v (E X Y Z) 
 semantics:[give(E X Y Z)]
 
-promettre (E X Y Z) 
+promettre v (E X Y Z) 
 semantics:[promise(E X Y Z)]
 
-persuade (E X Y Z) 
+persuade v (E X Y Z) 
 semantics:[convince(E X Y Z)]

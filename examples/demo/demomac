@@ -11,519 +11,544 @@
 %% 10. promettant un cadeau a Marie
 %% 11. donner un livre a marie
 
+begin family Det
+Det(I) auxiliary
+n1[cat:n idx:I det:_ qu:minus]![cat:n idx:I det:_ qu:minus]
+{
+  n2[cat:det]![]
+  {
+    n3 anchor
+  }
+  n4 type:foot [cat:n idx:I det:_ qu:_ ]![cat:n idx:I det:minus qu:_ ]
+}
+end family 
 
-Det(I) (+det ) auxiliary
-	n1[cat:n aaa1:I idx:I det:_ qu:minus]![cat:n idx:I det:minus qu:minus]
-	{
-	  n2[cat:det]![]
-	  {
-	    n3 anchor
-	  }
-	  n4 type:foot [cat:n idx:I det:_ qu:_ ]![cat:n idx:I det:minus qu:_ ]
-	}
-
-begin initial
-% Common Nouns: voyage
-nC(I) (+n -det)
-	n1[cat:n aaa2:_ aaa3:blah idx:I det:_ qu:W ]![cat:n idx:I det:minus qu:minus ]
-	{
-	 n2 anchor
-	}
+begin family nC
+  % Common Nouns: voyage
+nC(I) initial
+  n1[cat:n idx:I det:_ qu:W ]![cat:n idx:I det:minus qu:minus ]
+{
+  n2 anchor
+}
 % Proper Nouns: Jean
+end family 
 
-nP(I) (+n)
-	n1[cat:n idx:I det:plus qu:minus]![cat:n idx:I det:plus qu:minus ]
-	{
-	 n2 anchor
-	}
+begin family nP
+nP(I) initial
+  n1[cat:n idx:I det:plus qu:minus]![cat:n idx:I det:plus qu:minus ]
+{
+  n2 anchor
+}
+end family
 
+begin family n0vn1sp2 
+  %1 declarative	gn promet gn sp_a
+n0vn1sp2(E X Y Z) initial
+  n1[cat:p]![]
+{
+  n2 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:_ ]
+    n3[cat:v idx:E]![]
+    {
+      n4 anchor
+    }
+  n5 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y det:_ qu:_ ]
+    n6[cat:sp idx:Z det:plus]![det:_ ]
+    { n8[cat:prep]![]
+      {
+        n9 type:lex "a"
+      }
+      n10 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z
+        det:_ qu:_] 
+    }
+}
+end family
 
-%1 declarative	gn promet gn sp_a
-n0vn1sp2(E X Y Z)  (-3n)
-	n1[cat:p]![]
-	{
-	 n2 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:_ ]
-	 n3[cat:v idx:E]![]
-	   {
-	    n4 anchor
-	   }
-         n5 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y det:_ qu:_ ]
-         n6[cat:sp idx:Z det:plus]![det:_ ]
-	  { n8[cat:prep]![]
-	      {
-	        n9 type:lex "a"
-	      }
-	   n10 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z
-	det:_ qu:_] 
-	   }
-	 }
+begin family vinfn1sp2
+  %2 infinitive	V GN SP_a
+vinfn1sp2(E X Y Z)  initial
+  n1[cat:p idx:E mode:inf sujidx:X]![cat:p idx:Y mode:_ sujidx:_]
+{
+  n2[cat:v idx:E]![]
+  {
+    n3 anchor
+  }
+  n4 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y det:_ qu:_ ]
+    n5[cat:sp idx:Z det:plus]![det:_ ]
+    { n6[cat:prep]![]
+      {
+        n7 type:lex "a"
+      }
+      n8 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z
+        det:_ qu:_] 
+    }
+}
+end family
 
+begin family qu0vn1sp2
+  %3 question sujet	qui V GN GP_a ?
+qu0vn1sp2(E X Y Z) initial
+  n1[cat:p]![]
+{
+  n2 type:subst [cat:c idx:X det:plus qu:minus]![idx:X det:_ qu:_ ]
+    n3[cat:v idx:E]![]
+    {
+      n4 anchor
+    }
+  n5 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y det:_ qu:_ ]
+    n6[cat:sp idx:Z det:plus]![det:_ ]
+    { n8[cat:prep]![]
+      {
+        n9 type:lex "a"
+      }
+      n10 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z det:_ qu:_ ] 
+    }
+}
+end family
 
-%2 infinitive	V GN SP_a
-vinfn1sp2(E X Y Z) (-2n) 
-	n1[cat:p idx:E mode:inf sujidx:X]![cat:n idx:Y mode:_ sujidx:_]
-	{
-	 n2[cat:v idx:E]![]
-	   {
-	    n3 anchor
-	   }
-         n4 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y det:_ qu:_ ]
-         n5[cat:sp idx:Z det:plus]![det:_ ]
-	  { n6[cat:prep]![]
-	      {
-	        n7 type:lex "a"
-	      }
-	   n8 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z
-	det:_ qu:_] 
-	   }
-	 }
-
-
-%3 question sujet	qui V GN GP_a ?
-qu0vn1sp2(E X Y Z)  (-2n -c +q) 
-	n1[cat:p]![]
-	{
-	 n2 type:subst [cat:c idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:_ ]
-	 n3[cat:v idx:E]![]
-	   {
-	    n4 anchor
-	   }
-         n5 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y det:_ qu:_ ]
-         n6[cat:sp idx:Z det:plus]![det:_ ]
-	  { n8[cat:prep]![]
-	      {
-	        n9 type:lex "a"
-	      }
-	   n10 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z det:_ qu:_ ] 
-	   }
-	 }
-
-
-%4 question objet
-qu1vn0sp2(E X Y Z)  (-2n -nq +q) 
-	n1[cat:p]![]
-	{
-	 n2 type:subst [cat:n idx:Y det:plus qu:plus]![cat:n idx:Y det:_ qu:plus ]
-	 n3[cat:p idx:E]![]
-	   {
-            n4[cat:v idx:E]![cat:p idx:E]
-	     {
-	      n5 anchor
-	     }
-            n6 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X
-	    det:_ qu:_ ]
-	    n7[cat:sp idx:Z det:plus]![det:_ ]
-	      { n8[cat:prep]![]
-	       {
-	        n9 type:lex "a"
-	       }
-	        n10 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z	det:_ qu:_] 
- 	      }
-            }
+begin family qu1vn0sp2 
+  %4 question objet
+qu1vn0sp2(E X Y Z) initial
+  n1[cat:p]![]
+{
+  n2 type:subst [cat:n idx:Y det:plus qu:plus]![cat:n idx:Y det:_ qu:plus ]
+    n3[cat:p idx:E]![]
+    {
+      n4[cat:v idx:E]![idx:E]
+      {
+        n5 anchor
+      }
+      n6 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X
+        det:_ qu:_ ]
+        n7[cat:sp idx:Z det:plus]![det:_ ]
+        { n8[cat:prep]![]
+          {
+            n9 type:lex "a"
           }
+          n10 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z	det:_ qu:_] 
+        }
+    }
+}
+end family
 
+begin family qu2n0vn1 
+  %5 question objet indirect
+qu2n0vn1(E X Y Z) initial
+  n1[cat:p]![]
+{
+  n2[cat:sp idx:Z det:plus]![det:_ ]
+  { n3[cat:prep]![]
+    {
+      n4 type:lex "a"
+    }
+    n5 type:subst [cat:n idx:Z det:plus qu:plus]![cat:n idx:Z det:_ qu:plus] 
+  }
+  n6[cat:p idx:E]![]
+  {
+    n7 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:minus ]
+      n8[cat:v idx:E]![idx:E]
+      {
+        n9 anchor
+      }
+    n10 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y det:_ qu:_ ]
+  }
+}
+end family
 
-	 
-%5 question objet indirect
-qu2n0vn1(E X Y Z) (-2n -nq +q) 
-	n1[cat:p]![]
-	{
-	 n2[cat:sp idx:Z det:plus]![det:_ ]
-	  { n3[cat:prep]![]
-	    {
-	      n4 type:lex "a"
-	    }
-           n5 type:subst [cat:n idx:Z det:plus qu:plus]![cat:n idx:Z det:_ qu:plus] 
-	   }
-	 n6[cat:p idx:E]![]
-	   {
-            n7 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:minus ]
-            n8[cat:v idx:E]![cat:p idx:E]
-	     {
-	      n9 anchor
-	     }
-            n10 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y det:_ qu:_ ]
-	   }
-	 }
-
-end initial 
-
+begin family rel0vn1sp2
 %6 relative sujet	qui V gn sp_a 
-rel0vn1sp2(E X Y Z) (-2n -c) auxiliary
-	n0[cat:n idx:X det:plus qu:_]![cat:n idx:X det:_ qu:_ ]
-	{
-	n1 type:foot [cat:n idx:X det:_ qu:_]![cat:n idx:X det:_ qu:_ ]
-	n2[cat:p]![]
-	{
-	 n3 type:subst [cat:c idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:_ ]
-	 n4[cat:v idx:E]![]
-	   {
-	    n5 anchor
-	   }
-         n6 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y det:_ qu:_ ]
-         n7[cat:sp idx:Z ]![]
-	  { n8[cat:prep]![]
-	      {
-	        n9 type:lex "a"
-	      }
-	   n10 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:_
-	det:_ qu:_] 
-	   }
-	  n9[cat:p]![]
-	 {n10[cat:prep]![]
-	      {
-	        n11 type:lex "de"
-	      } 
-	  n12 type:subst [cat:p idx:Z mode:inf sujidx:X]![cat:p idx:Z 
-	  mode:_ sujidx:_]
-	  }}}
-	 
+rel0vn1sp2(E X Y Z) auxiliary
+n0[cat:n idx:X det:plus qu:_]![cat:n idx:X det:_ qu:_ ]
+{
+  n1 type:foot [cat:n idx:X det:_ qu:_]![cat:n idx:X det:_ qu:_ ]
+    n2[cat:p]![]
+    {
+      n3 type:subst [cat:c idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:_ ]
+        n4[cat:v idx:E]![]
+        {
+          n5 anchor
+        }
+      n6 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y det:_ qu:_ ]
+        n7[cat:sp idx:Z ]![]
+        { n8[cat:prep]![]
+          {
+            n9 type:lex "a"
+          }
+          n10 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:_
+            det:_ qu:_] 
+        }
+      n9[cat:p]![]
+      {n10[cat:prep]![]
+        {
+          n11 type:lex "de"
+        } 
+        n12 type:subst [cat:p idx:Z mode:inf sujidx:X]![cat:p idx:Z 
+          mode:_ sujidx:_]
+      }}}
+end family
 
+begin family rel1vn0sp2
 %7 relative objet
-rel1vn0sp2(E X Y Z) (-2n -c) auxiliary
-	n0[cat:n idx:Y det:plus qu:_]![cat:n idx:Y det:_ qu:_ ]
-	{
-	n1 type:foot [cat:n idx:Y det:_ qu:_]![cat:n idx:Y det:_ qu:_ ]
-	n2[cat:p]![]
-	{
-	 n3 type:subst [cat:c idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:_ ]
-	 n4[cat:v idx:E]![]
-	   {
-	    n5 anchor
-	   }
-         n6 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:_ ]
-         n7[cat:sp idx:Z ]![]
-	  { n8[cat:prep]![]
-	      {
-	        n9 type:lex "a"
-	      }
-	   n10 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:_
-	det:_ qu:_] 
-	   }
-	 }
-	 }
+rel1vn0sp2(E X Y Z) auxiliary
+n0[cat:n idx:Y det:plus qu:_]![cat:n idx:Y det:_ qu:_ ]
+{
+  n1 type:foot [cat:n idx:Y det:_ qu:_]![cat:n idx:Y det:_ qu:_ ]
+    n2[cat:p]![]
+    {
+      n3 type:subst [cat:c idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:_ ]
+        n4[cat:v idx:E]![]
+        {
+          n5 anchor
+        }
+      n6 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:_ ]
+        n7[cat:sp idx:Z ]![]
+        { n8[cat:prep]![]
+          {
+            n9 type:lex "a"
+          }
+          n10 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:_
+            det:_ qu:_] 
+        }
+    }
+}
+end family
 
+begin family rel2n0vn1
 %8 relative objet indirect
-rel2n0vn1(E X Y Z) (-2n -nq) auxiliary
-	n0[cat:n idx:Z det:plus qu:_]![cat:n idx:Z det:_ qu:_ ]
-	{
-	n1 type:foot [cat:n idx:Z det:_ qu:_]![cat:n idx:Z det:_ qu:_]
-	n2[cat:p]![]
-	{
-	 n3[cat:sp idx:Z det:plus]![det:_ ]
-	  { n4[cat:prep]![]
-	    {
-	      n5 type:lex "a"
-	    }
-           n6 type:subst [cat:n idx:Z det:plus qu:plus]![cat:n idx:Z det:_ qu:plus] 
-	   }
-	 n7[cat:p idx:E]![]
-	   {
-            n8 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:minus ]
-            n9[cat:v idx:E]![cat:p idx:E]
-	     {
-	      n10 anchor
-	     }
-            n11 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y det:_ qu:_ ]
-	   }
-	 }
-	 }
+rel2n0vn1(E X Y Z) auxiliary
+n0[cat:n idx:Z det:plus qu:_]![cat:n idx:Z det:_ qu:_ ]
+{
+  n1 type:foot [cat:n idx:Z det:_ qu:_]![cat:n idx:Z det:_ qu:_]
+    n2[cat:p]![]
+    {
+      n3[cat:sp idx:Z det:plus]![det:_ ]
+      { n4[cat:prep]![]
+        {
+          n5 type:lex "a"
+        }
+        n6 type:subst [cat:n idx:Z det:plus qu:plus]![cat:n idx:Z det:_ qu:plus] 
+      }
+      n7[cat:p idx:E]![]
+      {
+        n8 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:minus ]
+          n9[cat:v idx:E]![cat:p idx:E]
+          {
+            n10 anchor
+          }
+        n11 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y det:_ qu:_ ]
+      }
+    }
+}
+end family
 
-begin initial
+begin family n0vsp2pinf1 
+  %9 declarative	GN V GN_a Pinf_de
+n0vsp2pinf1(E X Y Z) initial
+  n1[cat:p]![]
+{
+  n2 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:_ ]
+    n3[cat:v idx:E]![]
+    {
+      n4 anchor
+    }
+  n5[cat:sp idx:Y det:plus]![det:_ ]
+  { n6[cat:prep]![]
+    {
+      n7 type:lex "a"
+    }
+    n8 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y det:_ qu:_] 
+  }
+  n9[cat:p]![]
+  {n10[cat:prep]![]
+    {
+      n11 type:lex "de"
+    } 
+    n12 type:subst [cat:p idx:Z mode:inf sujidx:X]![idx:Z mode:_ sujidx:_]
+  }
+}
+end family
 
-%9 declarative	GN V GN_a Pinf_de
-n0vsp2pinf1(E X Y Z) (-2n)
-	n1[cat:p]![]
-	{
-	 n2 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:_ ]
-	 n3[cat:v idx:E]![]
-	   {
-	    n4 anchor
-	   }
-         n5[cat:sp idx:Y det:plus]![det:_ ]
-	  { n6[cat:prep]![]
-	      {
-	        n7 type:lex "a"
-	      }
-	   n8 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y det:_ qu:_] 
-	   }
-         n9[cat:p]![]
-	 {n10[cat:prep]![]
-	      {
-	        n11 type:lex "de"
-	      } 
-	  n12 type:subst [cat:p idx:Z mode:inf sujidx:X]![cat:n idx:Z mode:_ sujidx:_]
-	  }
-	 }
+begin family vinfsp2pinf1 
+  %10 infinitive	V SP_a Inf_de
+vinfsp2pinf1(E X Y Z) initial
+  n1[cat:p idx:E mode:inf sujidx:X]![idx:Y mode:_ sujidx:_]
+{
+  n2[cat:v idx:E]![]
+  {
+    n3 anchor
+  }
+  n4[cat:sp idx:Z det:plus]![det:_ ]
+  { n5[cat:prep]![]
+    {
+      n6 type:lex "a"
+    }
+    n7 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z
+      det:_ qu:_] 
+  }
+  n8[cat:p]![]
+  {n9[cat:prep]![]
+    {
+      n10 type:lex "de"
+    } 
+    n11 type:subst [cat:p idx:Z mode:inf sujidx:X]![cat:p idx:Z 
+      mode:_ sujidx:_]
+  }
+}
+end family
 
-%10 infinitive	V SP_a Inf_de
-vinfsp2pinf1(E X Y Z) (-n) 
-	n1[cat:p idx:E mode:inf sujidx:X]![cat:n idx:Y mode:_ sujidx:_]
-	{
-	 n2[cat:v idx:E]![]
-	   {
-	    n3 anchor
-	   }
-         n4[cat:sp idx:Z det:plus]![det:_ ]
-	  { n5[cat:prep]![]
-	      {
-	        n6 type:lex "a"
-	      }
-	   n7 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z
-	det:_ qu:_] 
-	   }
-	 n8[cat:p]![]
-	 {n9[cat:prep]![]
-	      {
-	        n10 type:lex "de"
-	      } 
-	  n11 type:subst [cat:p idx:Z mode:inf sujidx:X]![cat:p idx:Z 
-	  mode:_ sujidx:_]
-	  }
-	 }
+begin family qu0vsp2pinf1 
+  %11 question sujet	qui V GP_a Pinf_de ?
+qu0vsp2pinf1(E X Y Z) initial 
+  n1[cat:p]![]
+{
+  n2 type:subst [cat:c idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:_ ]
+    n3[cat:v idx:E]![]
+    {
+      n4 anchor
+    }
+  n5[cat:sp idx:Z det:plus]![det:_ ]
+  { n6[cat:prep]![]
+    {
+      n7 type:lex "a"
+    }
+    n8 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z det:_ qu:_ ] 
+  }
+  n9[cat:p]![]
+  {n10[cat:prep]![]
+    {
+      n11 type:lex "de"
+    } 
+    n12 type:subst [cat:p idx:Z mode:inf sujidx:X]![cat:p idx:Z 
+      mode:_ sujidx:_]
+  }}
+end family
 
-%11 question sujet	qui V GP_a Pinf_de ?
-qu0vsp2pinf1(E X Y Z)  (-n -c +q) 
-	n1[cat:p]![]
-	{
-	 n2 type:subst [cat:c idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:_ ]
-	 n3[cat:v idx:E]![]
-	   {
-	    n4 anchor
-	   }
-         n5[cat:sp idx:Z det:plus]![det:_ ]
-	  { n6[cat:prep]![]
-	      {
-	        n7 type:lex "a"
-	      }
-	   n8 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z det:_ qu:_ ] 
-	   }
-	  n9[cat:p]![]
-	 {n10[cat:prep]![]
-	      {
-	        n11 type:lex "de"
-	      } 
-	  n12 type:subst [cat:p idx:Z mode:inf sujidx:X]![cat:p idx:Z 
-	  mode:_ sujidx:_]
-	  }}
+begin family qu2n0vpinf1 
+  %12 question objet indirect
+qu2n0vpinf1(E X Y Z) initial
+  n1[cat:p]![]
+{
+  n2[cat:sp idx:Z det:plus]![det:_ ]
+  { n3[cat:prep]![]
+    {
+      n4 type:lex "a"
+    }
+    n5 type:subst [cat:n idx:Z det:plus qu:plus]![cat:n idx:Z det:_ qu:plus] 
+  }
+  n6[cat:p idx:E]![]
+  {
+    n7 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:minus ]
+      n8[cat:v idx:E]![cat:p idx:E]
+      {
+        n9 anchor
+      }
+  }
+  n10[cat:prep]![]
+  {
+    n11 type:lex "de"
+  } 
+  n12 type:subst [cat:p idx:Z mode:inf sujidx:X]![cat:p idx:Z 
+    mode:_ sujidx:_]
+}
+end family
 
-%12 question objet indirect
-qu2n0vpinf1(E X Y Z) (-n -nq +q) 
-	n1[cat:p]![]
-	{
-	 n2[cat:sp idx:Z det:plus]![det:_ ]
-	  { n3[cat:prep]![]
-	    {
-	      n4 type:lex "a"
-	    }
-           n5 type:subst [cat:n idx:Z det:plus qu:plus]![cat:n idx:Z det:_ qu:plus] 
-	   }
-	 n6[cat:p idx:E]![]
-	   {
-            n7 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:minus ]
-            n8[cat:v idx:E]![cat:p idx:E]
-	     {
-	      n9 anchor
-	     }
-	   }
-	   n10[cat:prep]![]
-	      {
-	        n11 type:lex "de"
-	      } 
-	  n12 type:subst [cat:p idx:Z mode:inf sujidx:X]![cat:p idx:Z 
-	  mode:_ sujidx:_]
-	  }
-
-end initial
-
+begin family rel0vsp2pinf1 
 %13 relative sujet	qui V sp_a pinf_de
-rel0vsp2pinf1(E X Y Z) (-2n -c) auxiliary
-	n0[cat:n idx:X det:plus qu:_]![cat:n idx:X det:_ qu:_ ]
-	{
-	n1 type:foot [cat:n idx:X det:_ qu:_]![cat:n idx:X det:_ qu:_ ]
-	n2[cat:p]![]
-	{
-	 n3 type:subst [cat:c idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:_ ]
-	 n4[cat:v idx:E]![]
-	   {
-	    n5 anchor
-	   }
-         n6[cat:sp idx:Z ]![]
-	  { n7[cat:prep]![]
-	      {
-	        n8 type:lex "a"
-	      }
-	   n9 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:_
-	det:_ qu:_] 
-	   }
-	  n10[cat:p]![]
-	 {n11[cat:prep]![]
-	      {
-	        n12 type:lex "de"
-	      } 
-	  n13 type:subst [cat:p idx:Z mode:inf sujidx:X]![cat:p idx:Z 
-	  mode:_ sujidx:_]
-	  }}}
+rel0vsp2pinf1(E X Y Z) auxiliary
+n0[cat:n idx:X det:plus qu:_]![cat:n idx:X det:_ qu:_ ]
+{
+  n1 type:foot [cat:n idx:X det:_ qu:_]![cat:n idx:X det:_ qu:_ ]
+    n2[cat:p]![]
+    {
+      n3 type:subst [cat:c idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:_ ]
+        n4[cat:v idx:E]![]
+        {
+          n5 anchor
+        }
+      n6[cat:sp idx:Z ]![]
+      { n7[cat:prep]![]
+        {
+          n8 type:lex "a"
+        }
+        n9 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:_
+          det:_ qu:_] 
+      }
+      n10[cat:p]![]
+      {n11[cat:prep]![]
+        {
+          n12 type:lex "de"
+        } 
+        n13 type:subst [cat:p idx:Z mode:inf sujidx:X]![cat:p idx:Z 
+          mode:_ sujidx:_]
+      }}}
+end family
 
+begin family rel2n0vpinf1
 %14 relative objet indirect	a qui GN v Pinf_de
-rel2n0vpinf1(E X Y Z) (-2n -nq) auxiliary
-	n0[cat:n idx:Z det:plus qu:_]![cat:n idx:Z det:_ qu:_ ]
-	{
-	n1 type:foot [cat:n idx:Z det:_ qu:_]![cat:n idx:Z det:_ qu:_]
-	n2[cat:p]![]
-	{
-	 n3[cat:sp idx:Z det:plus]![det:_ ]
-	  { n4[cat:prep]![]
-	    {
-	      n5 type:lex "a"
-	    }
-           n6 type:subst [cat:n idx:Z det:plus qu:plus]![cat:n idx:Z det:_ qu:plus] 
-	   }
-	 n7[cat:p idx:E]![]
-	   {
-            n8 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:minus ]
-            n9[cat:v idx:E]![cat:p idx:E]
-	     {
-	      n10 anchor
-	     }
-	   }
-	 n9[cat:p]![]
-	 {n10[cat:prep]![]
-	      {
-	        n11 type:lex "de"
-	      } 
-	  n12 type:subst [cat:p idx:Y mode:inf sujidx:X]![cat:p idx:Y
-	  mode:_ sujidx:_]
-	  }
-	 }}
+rel2n0vpinf1(E X Y Z) auxiliary
+n0[cat:n idx:Z det:plus qu:_]![cat:n idx:Z det:_ qu:_ ]
+{
+  n1 type:foot [cat:n idx:Z det:_ qu:_]![cat:n idx:Z det:_ qu:_]
+    n2[cat:p]![]
+    {
+      n3[cat:sp idx:Z det:plus]![det:_ ]
+      { n4[cat:prep]![]
+        {
+          n5 type:lex "a"
+        }
+        n6 type:subst [cat:n idx:Z det:plus qu:plus]![cat:n idx:Z det:_ qu:plus] 
+      }
+      n7[cat:p idx:E]![]
+      {
+        n8 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:minus ]
+          n9[cat:v idx:E]![cat:p idx:E]
+          {
+            n10 anchor
+          }
+      }
+      n9[cat:p]![]
+      {n10[cat:prep]![]
+        {
+          n11 type:lex "de"
+        } 
+        n12 type:subst [cat:p idx:Y mode:inf sujidx:X]![cat:p idx:Y
+          mode:_ sujidx:_]
+      }
+    }}
+end family
 
 
-begin initial
+begin family n0vn2pinf1 
+  %15 declarative gn0 persuade gn2 pinf_de1	n0vn2pinf1 
+n0vn2pinf1(E X Y Z) initial
+  n1[cat:p]![]
+{
+  n2 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:_ ]
+    n3[cat:v idx:E]![]
+    {
+      n4 anchor
+    }
+  n5 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y det:_ qu:_]
+    n6[cat:p]![]
+    {n7[cat:prep]![]
+      {
+        n8 type:lex "de"
+      } 
+      n9 type:subst [cat:p idx:Z mode:inf sujidx:X]![idx:Z mode:_ sujidx:_]
+    }
+}
+end family
 
-%15 declarative gn0 persuade gn2 pinf_de1	n0vn2pinf1 
-n0vn2pinf1(E X Y Z) (-2n)
-	n1[cat:p]![]
-	{
-	 n2 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:_ ]
-	 n3[cat:v idx:E]![]
-	   {
-	    n4 anchor
-	   }
-         n5 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y det:_ qu:_]
-         n6[cat:p]![]
-	 {n7[cat:prep]![]
-	      {
-	        n8 type:lex "de"
-	      } 
-	  n9 type:subst [cat:p idx:Z mode:inf sujidx:X]![cat:n idx:Z mode:_ sujidx:_]
-	  }
-	 }
+begin family vinfn2pinf1 
+  %15 infinitive persuader gn  pinf_de	vinfn2pinf1
+vinfn2pinf1(E X Y Z) initial
+  n1[cat:p idx:E mode:inf sujidx:X]![cat:p idx:Y mode:_ sujidx:_]
+{
+  n2[cat:v idx:E]![]
+  {
+    n3 anchor
+  }
+  n4 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y
+    det:_ qu:_] 
+    n5[cat:p]![]
+    {n6[cat:prep]![]
+      {
+        n7 type:lex "de"
+      } 
+      n8 type:subst [cat:p idx:Z mode:inf sujidx:Y]![cat:p idx:Z 
+        mode:_ sujidx:_]
+    }
+}
+end family
 
-%15 infinitive persuader gn  pinf_de	vinfn2pinf1
-vinfn2pinf1(E X Y Z) (-n) 
-	n1[cat:p idx:E mode:inf sujidx:X]![cat:n idx:Y mode:_ sujidx:_]
-	{
-	 n2[cat:v idx:E]![]
-	   {
-	    n3 anchor
-	   }
-         n4 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y
-	det:_ qu:_] 
-	 n5[cat:p]![]
-	 {n6[cat:prep]![]
-	      {
-	        n7 type:lex "de"
-	      } 
-	  n8 type:subst [cat:p idx:Z mode:inf sujidx:Y]![cat:p idx:Z 
-	  mode:_ sujidx:_]
-	  }
-	 }
+begin family qu0vn2pinf1
+  %16 qu-sujet qui persuade gn  pinf_de ?	qu0vn2pinf1
+qu0vn2pinf1(E X Y Z) initial
+  n1[cat:p]![]
+{
+  n2 type:subst [cat:c idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:_ ]
+    n3[cat:v idx:E]![]
+    {
+      n4 anchor
+    }
+  n5 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z det:_ qu:_ ] 
+    n6[cat:p]![]
+    {n7[cat:prep]![]
+      {
+        n8 type:lex "de"
+      } 
+      n9 type:subst [cat:p idx:Z mode:inf sujidx:X]![cat:p idx:Z 
+        mode:_ sujidx:_]
+    }}
+end family
 
-%16 qu-sujet qui persuade gn  pinf_de ?	qu0vn2pinf1
-qu0vn2pinf1(E X Y Z)  (-n -c +q) 
-	n1[cat:p]![]
-	{
-	 n2 type:subst [cat:c idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:_ ]
-	 n3[cat:v idx:E]![]
-	   {
-	    n4 anchor
-	   }
-	 n5 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z det:_ qu:_ ] 
-	  n6[cat:p]![]
-	 {n7[cat:prep]![]
-	      {
-	        n8 type:lex "de"
-	      } 
-	  n9 type:subst [cat:p idx:Z mode:inf sujidx:X]![cat:p idx:Z 
-	  mode:_ sujidx:_]
-	  }}
+begin family qu2n0vpinf1 
+  %17 qu-obj	 qui gn persuade-il pinf_de ?	qu2n0vpinf1
+qu2n0vpinf1(E X Y Z) initial
+  n1[cat:p]![]
+{
+  n2 type:subst [cat:n idx:Z det:plus qu:plus]![cat:n idx:Z det:_ qu:plus] 
+    n3[cat:p idx:E]![]
+    {
+      n4 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:minus ]
+        n5[cat:v idx:E]![cat:p idx:E]
+        {
+          n6 anchor
+        }
+    }
+  n7[cat:prep]![]
+  {
+    n8 type:lex "de"
+  } 
+  n9 type:subst [cat:p idx:Y mode:inf sujidx:X]![cat:p idx:Y 
+    mode:_ sujidx:_]
+}
+end family
 
-%17 qu-obj	 qui gn persuade-il pinf_de ?	qu2n0vpinf1
-qu2n0vpinf1(E X Y Z) (-n -nq +q) 
-	n1[cat:p]![]
-	{
-           n2 type:subst [cat:n idx:Z det:plus qu:plus]![cat:n idx:Z det:_ qu:plus] 
-	 n3[cat:p idx:E]![]
-	   {
-            n4 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:minus ]
-            n5[cat:v idx:E]![cat:p idx:E]
-	     {
-	      n6 anchor
-	     }
-	   }
-	   n7[cat:prep]![]
-	      {
-	        n8 type:lex "de"
-	      } 
-	  n9 type:subst [cat:p idx:Y mode:inf sujidx:X]![cat:p idx:Y 
-	  mode:_ sujidx:_]
-	  }
-
-end initial
-
+begin family rel0vn2pinf1
 %18 rel-sjt	 n qui persuade gn  pinf_de	rel0vn2pinf1
-rel0vn2pinf1(E X Y Z) (-2n -c) auxiliary
-	n0[cat:n idx:X det:plus qu:_]![cat:n idx:X det:_ qu:_ ]
-	{
-	n1 type:foot [cat:n idx:X det:_ qu:_]![cat:n idx:X det:_ qu:_ ]
-	n2[cat:p]![]
-	{
-	 n3 type:subst [cat:c idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:_ ]
-	 n4[cat:v idx:E]![]
-	   {
-	    n5 anchor
-	   }
-         n6 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:_
-	det:_ qu:_] 
-	  n7[cat:p]![]
-	 {n8[cat:prep]![]
-	      {
-	        n9 type:lex "de"
-	      } 
-	  n10 type:subst [cat:p idx:Y mode:inf sujidx:X]![cat:p idx:Y 
-	  mode:_ sujidx:_]
-	  }}}
+rel0vn2pinf1(E X Y Z) auxiliary
+n0[cat:n idx:X det:plus qu:_]![cat:n idx:X det:_ qu:_ ]
+{
+  n1 type:foot [cat:n idx:X det:_ qu:_]![cat:n idx:X det:_ qu:_ ]
+    n2[cat:p]![]
+    {
+      n3 type:subst [cat:c idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:_ ]
+        n4[cat:v idx:E]![]
+        {
+          n5 anchor
+        }
+      n6 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:_
+        det:_ qu:_] 
+        n7[cat:p]![]
+        {n8[cat:prep]![]
+          {
+            n9 type:lex "de"
+          } 
+          n10 type:subst [cat:p idx:Y mode:inf sujidx:X]![cat:p idx:Y 
+            mode:_ sujidx:_]
+        }}}
+end family
 
+begin family rel1n0vn2
 %19 rel-obj	  n dont gn persuade gn		rel1n0vn2
-rel1n0vn2(E X Y Z) (-2n -nq) auxiliary
-	n0[cat:n idx:Y det:plus qu:_]![cat:n idx:Y det:_ qu:_ ]
-	{
-	n1 type:foot [cat:n idx:Y det:_ qu:_]![cat:n idx:Y det:_ qu:_]
-	n2[cat:p]![]
-	{
-         n3 type:subst [cat:c idx:Y det:plus qu:_]![cat:c idx:Y det:_ qu:_] 
-	 n4[cat:p idx:E]![]
-	   {
-            n5 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:minus ]
+rel1n0vn2(E X Y Z) auxiliary
+n0[cat:n idx:Y det:plus qu:_]![cat:n idx:Y det:_ qu:_ ]
+{
+  n1 type:foot [cat:n idx:Y det:_ qu:_]![cat:n idx:Y det:_ qu:_]
+    n2[cat:p]![]
+    {
+      n3 type:subst [cat:c idx:Y det:plus qu:_]![cat:c idx:Y det:_ qu:_] 
+        n4[cat:p idx:E]![]
+        {
+          n5 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:minus ]
             n6[cat:v idx:E]![cat:p idx:E]
-	     {
-	      n7 anchor
-	     }
-	   }
-	  n8 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y 
-	  det:_ qu:minus ]
-	  }
-	 }
-
-
+            {
+              n7 anchor
+            }
+        }
+      n8 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y 
+        det:_ qu:minus ]
+    }
+}
+end family
 

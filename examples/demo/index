@@ -1,3 +1,4 @@
 Macros  = demomac 
 Lexicon = demolex
 SemLexicon = demosemlex 
+RootCategories = p
