@@ -53,11 +53,4 @@ semantics:[h1:john(j)
            e3:convince(p e2 j) ]
 [ paul persuader jean de promettre a marie de le donner un livre ]
 
-semantics:[h1:john(j) 
-           h2:mary(m) 
-           h3:book(b) h3:indef(b)
-           h4:paul(p)
-           e1:give(j b m) 
-           e2:promise(j e1 m) 
-           e3:convince(p e2 j) ]
-[ paul persuader jean de promettre a marie de le donner un livre ]
+

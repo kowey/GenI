@@ -16,8 +16,8 @@ url=http://www.haskell.org/alex/dist/alex-2.0-src.tar.gz
 url=http://www.haskell.org/HaXml/HaXml-1.12.tar.gz
 
 # wxhaskell
--O
-url=http://belnet.sourceforge.net/wxhaskell/wxhaskell-src-0.6.zip
+-O -owxhaskell-src-0.7.zip
+url=http://belnet.sourceforge.net/wxhaskell/wxhaskell-src-0.7.zip?download
 
 # graphviz
 -O

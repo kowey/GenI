@@ -15,9 +15,10 @@ import Btypes(AvPair, emptyLE, ILexEntry(..), Ptype(..), Sem)
 %tokentype { PosToken }
 
 %token 
-    ':'   {(Colon,        _, _)} 
-    id    {(ID $$,        _, _)}  
-    num   {(Num $$,       _, _)} 
+    ':'   {(Colon,         _, _)} 
+    id    {(ID $$,         _, _)}  
+    num   {(Num $$,        _, _)}
+    con   {(ControlledTok, _, _)} 
     sem   {(Semantics,    _, _)}
     '('   {(OP,           _, _)} 
     ')'   {(CP,           _, _)} 
@@ -77,9 +78,12 @@ SLexicon : SInput                {($1, [])}
 SInput :: { [ILexEntry] }
 SInput : {-empty-}        {[]}
        | SLexEntry SInput {$1:$2}
- 
+
 SLexEntry :: { ILexEntry }
-SLexEntry: id id '(' IDFeat ')' Sem
+SLexEntry : SLexEntryI Control { $1 { icontrol = $2 } }
+        
+SLexEntryI :: { ILexEntry }
+SLexEntryI: id id '(' IDFeat ')' Sem
          {emptyLE { iword   = $1,
                     icategory = $2,
                     iparams = fst $4,
@@ -134,6 +138,12 @@ NumList: {-empty-}   {[]}
 Num :: { Int }
 Num: num     { $1 }
    | '-' num { (-$2) }
+
+{- controlled items -}
+
+Control :: { String }
+Control :             {""}
+        | con ':'  id { $3 }
 
 {- -----------------------------------------------------------------
    generic stuff 

@@ -69,6 +69,7 @@ found in the configuration file.
 \begin{code}
 data Params = Prms{
   grammarFile    :: String,
+  morphCmd       :: String,
   tsFile         :: String,
   isGraphical    :: Bool,
   isTestSuite    :: Bool,
@@ -106,6 +107,7 @@ emptyParams :: Params
 emptyParams = Prms {
   grammarFile    = "",
   tsFile         = "",
+  morphCmd       = "",
   isGraphical    = False,
   isTestSuite    = False,
   optimisations  = [],
@@ -211,12 +213,13 @@ defineParams p (fv:next) = nextP : (defineParams nextP next)
 defineParams' :: Params -> [(Token,String)] -> Params
 defineParams' p [] = p
 defineParams' p ((f,v):s) =
-  case f of GrammarTok -> defineParams' p{grammarFile = v} s
-            TSemantics -> defineParams' p{ tsFile  = v
+  case f of GrammarTok  -> defineParams' p {grammarFile = v} s
+            MorphCmdTok -> defineParams' p {morphCmd = v} s
+            TSemanticsTok -> defineParams' p{ tsFile  = v
                                          , isTestSuite = False } s
             TestSuiteTok -> defineParams' p{ tsFile = v
                                            , isTestSuite = True } s
-            Graphical  -> defineParams' p{isGraphical  = (v == "True")} s
+            GraphicalTok  -> defineParams' p{isGraphical  = (v == "True")} s
             Optimisations   -> defineParams' p{optimisations = readOpt } s
                                where readOpt = map read $ words v
             ExtraPolarities -> defineParams' p{extrapol = (polParser . lexer) v} s
@@ -257,6 +260,7 @@ data GramParams = GrmPrms {
   macrosFile     :: String,
   semlexFile     :: String,
   lexiconFile    :: String,
+  morphFile  :: String,
   grammarType    :: GrammarType
 }
 \end{code}
@@ -289,7 +293,8 @@ parseGramIndex filename contents =
   in gp {
        macrosFile  = toAbs (macrosFile gp),
        lexiconFile = toAbs (lexiconFile gp),
-       semlexFile  = toAbs (semlexFile gp)
+       semlexFile  = toAbs (semlexFile gp),
+       morphFile   = toAbs (morphFile gp)
      }
 \end{code}
 
@@ -300,13 +305,15 @@ defineGramParams [] = GrmPrms {
   macrosFile  = "",
   semlexFile  = "",
   lexiconFile = "",
+  morphFile   = "",
   grammarType = GeniHand
 }
 
 defineGramParams ((f,v):s) =
-  case f of Macros     -> next {macrosFile     = v}
-            Lexicon    -> next {lexiconFile    = v} 
-            SemLexicon -> next {semlexFile   = v}
+  case f of MacrosTok     -> next {macrosFile  = v}
+            LexiconTok    -> next {lexiconFile = v} 
+            SemLexiconTok -> next {semlexFile  = v}
+            MorphInfoTok  -> next {morphFile   = v}
             GrammarType -> next {grammarType = t} 
                            where t = case (read v) of 
                                        GeniHandTok -> GeniHand 

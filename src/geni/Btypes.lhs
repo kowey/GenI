@@ -11,7 +11,7 @@ module Btypes(
    Pred, Flist, AvPair, 
    Lexicon, ILexEntry(..), Macros, Sem, SemInput,
    Subst,
-   emptyMacro, emptyGNode, emptyPred)
+   emptyMacro, emptyLE, emptyGNode, emptyPred)
 where
 \end{code}
 
@@ -88,8 +88,20 @@ data ILexEntry = ILE{iword :: String,
                      ipfeat :: Flist,
                      iptype :: Ptype,
                      isemantics :: Sem,
+                     icontrol   :: String,
                      iprecedence :: Int}
                deriving (Show, Eq)
+
+emptyLE :: ILexEntry  
+emptyLE = ILE { iword = "",
+                icategory = "",
+                ifamname = "", 
+                iparams = [],
+                ipfeat  = [],
+                iptype = Unspecified,
+                isemantics = [],
+                icontrol   = "",
+                iprecedence = 0 }
 \end{code}
 
 % ----------------------------------------------------------------------

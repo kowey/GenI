@@ -1,3 +1,4 @@
 Macros  = promettremac
 Lexicon = promettrelex
 SemLexicon = promettresemlex 
+MorphInfo = morphinfo

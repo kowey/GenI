@@ -6,11 +6,11 @@ type PosToken = (Token, Int, Int)
 data Token = 
     TTT | FFF |
     -- 
-    GrammarTok | TSemantics | TestSuiteTok | 
-    Graphical |
+    GrammarTok   | TSemanticsTok | TestSuiteTok | 
+    GraphicalTok | MorphCmdTok | 
     -- grammar file
     GrammarType | GeniHandTok | TAGMLTok |
-    Macros | Lexicon | SemLexicon | 
+    MacrosTok | LexiconTok | SemLexiconTok | MorphInfoTok |
     -- optimisations
     Optimisations | 
     Polarised | AutoPol | PolSig | Predicting | ChartSharing | ExtraPolarities |
@@ -26,7 +26,8 @@ data Token =
     Anchor | Lexeme | Type | LSubst | LFoot | Aconstr | Noadj |
     Comma | Colon | Bang | Str String |
     OC | CC | OP | CP | OB | CB | ID String | Num Int |
-    Semantics | RestrictorsTok | Polarities | Predictors |
+    Semantics | RestrictorsTok | ControlledTok |
+    Polarities | Predictors |
     Begin | End |
     PlusTok | MinusTok 
   deriving (Eq, Show, Read)

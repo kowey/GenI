@@ -6,6 +6,9 @@
 il pn (H X)
 semantics:[]
 
+se cl (H X)
+semantics:[]
+
 le cl (H X)
 semantics:[]
 
@@ -49,8 +52,16 @@ semantics:[paul(I)]
 promettre v (E X Y Z) 
 semantics:[E:promise(X Y Z)]
 
+promettre vc (E X Y Z) 
+semantics:[E:promise(X Y Z)]
+controlled:X
+
 persuader v (E X Y Z) 
 semantics:[E:convince(X Y Z)]
+
+persuader vc (E X Y Z) 
+semantics:[E:convince(X Y Z)]
+controlled:Z
 
 donner v (E X Y Z)
 semantics:[E:give(X Y Z)]
@@ -67,13 +78,13 @@ semantics:[E:love(X Y)]
 
 !
 
--1:(0) [      
+1:(0) [      
   def 
   indef 
   qu 
 ]
 
--1:(-1) [ 
+1:(1) [ 
   book 
   present
   john
@@ -82,19 +93,13 @@ semantics:[E:love(X Y)]
   paul
 ] 
 
--1:(1 1 0) [ 
+1:(-1 -1 -1) [ 
   convince 
-]
-
--1:(0 1 1) [ 
   promise 
-]
-
--1:(1 1 1) [ 
   give 
 ]
 
--1:(1 1) [
+1:(-1 -1) [
   love
   hope 
 ]

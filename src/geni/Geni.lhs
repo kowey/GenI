@@ -34,7 +34,7 @@ import CPUTime (getCPUTime)
 import Bfuncs (Macros, MTtree, ILexEntry, Lexicon, Sem, SemInput,
                GNode, GType(Subs), 
                isemantics, ifamname, icategory, iword, iparams, ipfeat,
-               iprecedence,
+               iprecedence, icontrol,
                gnname, gtype, gaconstr, gup, gdown, toKeys,
                sortSem, subsumeSem, params, 
                substSem, substFlist', substFlist, substTree, showPairs,
@@ -46,7 +46,7 @@ import Bfuncs (Macros, MTtree, ILexEntry, Lexicon, Sem, SemInput,
 import Tags (Tags, TagElem, emptyTE, TagSite, 
              idname, tidnum,
              derivation, ttype, tsemantics, ttree,
-             tinterface, tpolarities, 
+             tinterface, tpolarities, tcontrol, 
              substnodes, adjnodes, 
              appendToVars)
 
@@ -162,7 +162,7 @@ customGeni pst runFn = do
   let -- polarity optimisation (if enabled)
       autstuff   = buildAutomaton purecand mst
       finalaut   = (snd.fst) autstuff
-      lookupCand = snd autstuff
+      lookupCand = lookupAndTweak (snd autstuff)
       pathsLite  = walkAutomaton finalaut 
       paths      = map (concatMap lookupCand) pathsLite 
       combosPol  = if isPol then paths else [purecand]
@@ -342,7 +342,8 @@ combineOne lexitem e =
        (snodes,anodes) = detectSites unified 
        -- the final result
        sol = emptyTE {
-                idname = (iword lexitem) ++ "-" ++ (pidname e),
+                idname = iword lexitem ++ "-" ++ icategory lexitem 
+                         ++ "_" ++ pidname e,
                 derivation = (0,[]),
                 ttype = ptype e,
                 ttree = setLexeme (iword lexitem) unified,
@@ -350,7 +351,8 @@ combineOne lexitem e =
                 adjnodes   = anodes,
                 tsemantics = sem,
                 tpolarities = ptpolarities e,
-                tinterface  = funif
+                tinterface  = funif,
+                tcontrol    = icontrol lexitem
                 -- tpredictors = combinePredictors e lexitem
                }        
        -- well... with error checking
@@ -416,9 +418,11 @@ chooseCandI tsem cand =
   let substLex i sub = i { isemantics = substSem (isemantics i) sub
                          , ipfeat     = substFlist (ipfeat i)   sub  
                          , iparams    = substPar  (iparams i)   sub
+                         , icontrol   = substOne (icontrol i)  sub
                          }
-      substPar par sub = map (\p -> foldl sfn p sub) par
-                         where sfn z (x,y) = if (z == x) then y else z
+      substPar par sub = map (\p -> substOne p sub) par
+      substOne p sub = foldl sfn p sub
+                       where sfn z (x,y) = if (z == x) then y else z
       --
       helper :: ILexEntry -> [ILexEntry]
       helper le = if (null sem) then [le] else map (substLex le) psubst 
@@ -564,9 +568,11 @@ into each instance.
 \begin{code}
 combineLexicon :: LemmaLexicon -> Lexicon -> Lexicon
 combineLexicon ll sl = 
-  let merge si li = li { isemantics = (isemantics si)
-                       , iparams   = (iparams si) 
-                       , ipfeat    = sort (ipfeat li ++ ipfeat si) }
+  let merge si li = li { isemantics = isemantics si
+                       , iparams    = iparams si
+                       , ipfeat     = sort (ipfeat li ++ ipfeat si) 
+                       , icontrol   = icontrol si 
+                       }
       helper si = map (merge si) lemmas
                   where wordcat = (iword si, icategory si)
                         lemmas  = lookupWithDefaultFM ll [] wordcat 

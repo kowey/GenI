@@ -40,7 +40,7 @@ realisation seperately, treating each path as a set of candidate trees.
 
 \begin{code}
 module Polarity(PolAut,makePolAut,
-                TagLite, reduceTags, 
+                TagLite, reduceTags, lookupAndTweak,
                 buildSemWeights,
                 walkAutomaton, detectPols, detectPolPaths, 
                 declareRestrictors, detectRestrictors,
@@ -59,13 +59,15 @@ import Data.List
 --import Data.Set
 
 import Graphviz(GraphvizShow(..))
-import Tags(TagElem(..), mapBySem, substnodes)
-import Bfuncs(Pred, Sem, Flist, showAv,
+import Tags(TagElem(..), TagItem(..), mapBySem, substnodes,
+            substTagElem)
+import Bfuncs(Pred, Sem, Flist, AvPair, showAv,
               emptyPred, Ptype(Initial),
-              showPred, showSem, 
+              showSem, 
               root, gup, 
               BitVector, toKeys,
-              groupByFM, isEmptyIntersect, thd3)
+              unifyFeat, rootUpd,
+              groupByFM, isEmptyIntersect, fst3, thd3)
 \end{code}
 
 %\begin{code}
@@ -116,10 +118,13 @@ like ``I only want sentences'' or ``I only want expressions where
 the object is topicalised''.
 
 \begin{code}
+type AutDebug = (String, PolAut, PolAut)
+
 makePolAut :: [TagLite] -> Sem -> PolMap -> SemWeightMap 
-              -> ([(String, PolAut, PolAut)], PolAut)
+              -> ([AutDebug], PolAut)
 makePolAut cands tsem extraPol swmap = let
-    (ks,seed) = makePolAutHelper cands tsem extraPol swmap
+    (ks',seed) = makePolAutHelper cands tsem extraPol swmap
+    ks = sortBy (flip compare) ks'
     -- building and remembering the automata 
     build k xs = (k,aut,prune aut):xs
                  where aut   = buildPolAut k initK (thd3 $ head xs)
@@ -129,19 +134,18 @@ makePolAut cands tsem extraPol swmap = let
 
 makePolAutHelper :: [TagLite] -> Sem -> PolMap -> SemWeightMap ->
                     ([String],PolAut)
-makePolAutHelper cands tsemRaw extraPol swmap =
+makePolAutHelper candsRaw tsemRaw extraPol swmap =
   let -- polarity items 
-      ksCands = concatMap (keysFM.tlPolarities) cands 
+      ksCands = concatMap (keysFM.tlPolarities) candsRaw 
       ksExtra = keysFM extraPol
       ks      = nub $ ksCands ++ ksExtra
-      -- candidates by predicate
-      smapRaw  = mapBySem tlSemantics cands 
       -- perform index counting
-      (tsem, smap) = addExtraIndices swmap (tsemRaw,smapRaw)
+      (tsem, cands) = addExtraIndices swmap (tsemRaw,candsRaw)
       -- sorted semantics (for more efficient construction)
       sortedsem = sortSemByFreq tsem cands 
       -- the seed automaton
-      seed   = buildSeedAut smap sortedsem
+      smap = buildColumns cands sortedsem 
+      seed = buildSeedAut smap  sortedsem
   in (ks, seed)
 \end{code}
 
@@ -160,6 +164,31 @@ reduceTags polsig tes =
       lookupfn t   = [ fromTagLite ! (fromInteger $ tlIdnum t) ]
   in if polsig then mapByPolsig tes else (tls, lookupfn)
 \end{code}
+
+\paragraph{lookupAndTweak} is the flipside to reduceTags.  You don't
+want to directly call the conversion function returned by reduceTags,
+because the some cases, the polarity code might be able to usefully
+modify your lexical selection.  This function will call the 
+conversion function for you and then perform any neccesary
+modifications.
+
+WARNING to coders! If you modify the TagElem, you should also take care
+to modify its name in some distinct manner so that the generator knows
+you changed it.  (The TagElem comparison function only looks at the tree
+name and id).
+
+\begin{code}
+lookupAndTweak :: (TagLite -> [TagElem]) -> TagLite -> [TagElem]
+lookupAndTweak lookupfn tl = 
+  let cands  = lookupfn tl
+      --
+      getIndex [x] = if isExtraCol x then Just (fst3 x) else Nothing
+      getIndex _   = Nothing 
+  in case (getIndex $ tlSemantics tl) of
+       Nothing -> cands
+       Just i  -> map (assignIndex i) cands
+\end{code}
+
 
 % ====================================================================
 \section{Polarity automaton}
@@ -199,6 +228,32 @@ get there.  All transitions from one columns $i$ to the next $i+1$ that
 lead to the same accumulated polarity lead to the same state.  
 
 % ----------------------------------------------------------------------
+\subsection{Columns}
+% ----------------------------------------------------------------------
+
+We build the columns for the polarity automaton as follows.  Given a
+input semantics \texttt{sem} and a list of trees \texttt{cands}, we
+group the trees by the first literal of sem that is part of their tree
+semantics.  
+
+Note: this is not the same function as Tags.mapBySem! The fact that we
+preserve the order of the input semantics is important for our handling
+of multi-literal semantics and for semantic frequency sorting.
+
+\begin{code}
+buildColumns :: (TagItem t) => [t] -> Sem -> FiniteMap Pred [t] 
+buildColumns cands [] = 
+  addToFM emptyFM emptyPred e 
+  where e = filter (null.tgSemantics) cands
+
+buildColumns cands (l:ls) = 
+  let matchfn t = l `elem` tgSemantics t
+      (match, cands2) = partition matchfn cands
+      next = buildColumns cands2 ls
+  in addToFM next l match
+\end{code}
+
+% ----------------------------------------------------------------------
 \subsection{Initial Automaton}
 \label{sec:seed_automaton}
 % ----------------------------------------------------------------------
@@ -212,32 +267,32 @@ consist of the trees whose semantics is subsumed by that literal.
 buildSeedAut :: SemMap -> Sem -> PolAut
 buildSeedAut cands tsem = 
   let start = polstart []
-      endst = PolSt (last tsem) [] []
+      endst = PolSt (length tsem) [] []
       end   = if (null tsem) then [polfake] else [endst]
       initAut = NFA { startSt = start,
                       finalSt = end,
                       states  = [[start]],
                       transitions = emptyFM }
-  in nubAut $ buildSeedAut' cands tsem initAut
+  in nubAut $ buildSeedAut' cands tsem 1 initAut
 
 -- for each literal...
-buildSeedAut' :: SemMap -> Sem -> PolAut -> PolAut 
-buildSeedAut' _ [] aut = aut 
-buildSeedAut' cands (l:ls) aut = 
+buildSeedAut' :: SemMap -> Sem -> Int -> PolAut -> PolAut 
+buildSeedAut' _ [] _ aut = aut 
+buildSeedAut' cands (l:ls) i aut = 
   let -- previously created candidates 
       prev   = head $ states aut
       -- candidates that match the target semantics
       tcands = lookupWithDefaultFM cands [] l 
       -- create the next batch of states
-      fn st ap             = buildSeedAutHelper tcands l st ap
+      fn st ap             = buildSeedAutHelper tcands l i st ap
       (newAut,newStates)   = foldr fn (aut,[]) prev
       next                 = (nub newStates):(states aut)
       -- recursive step to the next literal
-  in buildSeedAut' cands ls (newAut { states = next })
+  in buildSeedAut' cands ls (i+1) (newAut { states = next })
 
 -- for each candidate corresponding to literal l...
-buildSeedAutHelper :: [TagLite] -> Pred -> PolState -> (PolAut,[PolState]) -> (PolAut,[PolState]) 
-buildSeedAutHelper cs l st (aut,prev) =
+buildSeedAutHelper :: [TagLite] -> Pred -> Int -> PolState -> (PolAut,[PolState]) -> (PolAut,[PolState]) 
+buildSeedAutHelper cs l i st (aut,prev) =
   let -- get the extra semantics from the last state
       (PolSt _ ex1 _) = st
       -- candidates that match the target semantics and which
@@ -247,7 +302,7 @@ buildSeedAutHelper cs l st (aut,prev) =
       -- add the transitions out of the current state 
       addT tr (a,n) = (addTrans a st tr st2, st2:n)
                       where ex2  = delete l (ex1 ++ tlSemantics tr)
-                            st2  = PolSt l ex2 []
+                            st2  = PolSt i ex2 []
   in if (l `elem` ex1) 
      then addT emptyTL (aut,prev)
      else foldr addT   (aut,prev) tcand 
@@ -507,9 +562,10 @@ counted once.
 
 We propose a solution based on counting the indices in our target
 semantics. We augment the semantic lexicon with a map of
-\jargon{semantic weights}.  Semantic weights are positive or negative
-integers attached to the parameters of each semantic predicate, for
-example:
+\jargon{semantic weights}.  Semantic weights function a bit like
+polarities; they are positive or negative integers attached to the
+parameters of each semantic predicate.    Here are some
+example weights:
 
 \begin{center}
 \begin{tabular}{|c|c|c|c|}
@@ -517,27 +573,30 @@ example:
 \textbf{semantics} & \textbf{params} & \textbf{weights}
 \\
 \hline
-\semexpr{H:john(X)}      & H X    &  -1 -1  \\
+\semexpr{H:john(X)}      & H X    &  1 1  \\
 \hline
-\semexpr{H:mary(X)}      & H X    &  -1 -1  \\
+\semexpr{H:mary(X)}      & H X    &  1 1  \\
 \hline
-\semexpr{H:dog(X)}       & H X    &  -1 -1  \\
+\semexpr{H:dog(X)}       & H X    &  1 1  \\
 \hline
-\semexpr{H:black(X)}     & H X    &  -1 0  \\
+\semexpr{H:black(X)}     & H X    &  1 0  \\
 \hline
-\semexpr{H:def(X)}       & H X    &  -1 0  \\
+\semexpr{H:def(X)}       & H X    &  1 0  \\
 \hline
-\semexpr{E:like(X Y)}    & E X Y  &  -1 1 1 \\
+\semexpr{E:like(X Y)}    & E X Y  &  1 -1 -1 \\
 \hline
-\semexpr{E:hope(X Y)}    & E X Y  &  -1 0 1 \\
+\semexpr{E:hope(X Y)}    & E X Y  &  1 0 -1 \\
 \hline
-\semexpr{E:say(X Y)}     & E X Y  &  -1 1 1 \\
+\semexpr{E:say(X Y)}     & E X Y  &  1 -1 -1 \\
 \hline
 \end{tabular}\\
 \end{center}
 
-The idea is that the number of (extra) times that each index must be
-accounted for is equal to its total weight in the target semantics:
+A positive weight indicates that the predicate produces that index,
+whereas a negative weight indicates that the predicate consumes the
+index.  The idea is that we need to specially account for indices
+which are consumed more times than they are produced.  The number of
+times we need to account for them is equal to their overconsumption.
 
 \begin{center}
 \begin{tabular}{|c|c|}
@@ -545,44 +604,42 @@ accounted for is equal to its total weight in the target semantics:
 \textbf{sentence} & \textbf{semantics and weights} \\
 \hline
 \multirow{3}*{\natlang{John likes Mary}} 
-  & \verb$h1:like(j m) h2:john( j) h3:mary( m)$ \\
-  & \verb$-1:like(1 1) -1:john(-1) -1:mary(-1)$ \\
+  & \verb$h1:like( j  m) h2:john(j) h3:mary(m)$ \\
+  & \verb$ 1:like(-1 -1)  1:john(1)  1:mary(1)$ \\
   & j:0, m:0\\
 \hline
 \multirow{3}*{\natlang{John likes himself}}
-  & \verb$h1:like(j j) h2:john(j)$ \\
-  & \verb$-1:like(1 1) -1:john(-1)$ \\
+  & \verb$h1:like( j  j) h2:john(j)$ \\
+  & \verb$ 1:like(-1 -1)  1:john(1)$ \\
   & j:1 \\
 \hline
 \multirow{3}*{\natlang{John says he likes himself}}
-  & \verb$h1:say(j h3) h2:john( j) h3:like(j j)$ \\
-  & \verb$-1:say(1 0 ) -1:john(-1) -1:like(1 1)$ \\
+  & \verb$h1:say( j h3) h2:john(j) h3:like( j  j)$ \\
+  & \verb$ 1:say(-1 0 )  1:john(1)  1:like(-1 -1)$ \\
   & j:2 \\
 \hline
 \multirow{3}*{\natlang{John hopes to like himself}}
-  & \verb$h1:hope(j h3) h2:john( j) h3:like(j j)$ \\
-  & \verb$-1:hope(0 0 ) -1:john(-1) -1:like(1 1)$ \\
+  & \verb$h1:hope(j h3) h2:john(j) h3:like( j  j)$ \\
+  & \verb$ 1:hope(0 0 )  1:john(1)  1:like(-1 -1)$ \\
   & j:1 \\
 \hline
 \multirow{3}*{\natlang{John hopes to like Mary}}
-  & \verb$h1:hope(j h3) h2:john( j) h3:like(j m) h4:mary( m)$ \\
-  & \verb$-1:hope(0 0 ) -1:john(-1) -1:like(1 1) -1:mary(-1)$ \\
+  & \verb$h1:hope(j h3) h2:john(j) h3:like( j  m) h4:mary(m)$ \\
+  & \verb$ 1:hope(0  0)  1:john(1)  1:like(-1 -1)  1:mary(1)$ \\
   & j:0, m:0 \\
 \hline
 \multirow{3}*{\natlang{The black dog likes itself}}
-  & \verb$h1:like(d d) h2:dog( d) h3:def(d) h4:black(d)$\\
-  & \verb$-1:like(1 1) -1:dog(-1) -1:def(0) -1:black(0)$ \\
+  & \verb$h1:like( d  d) h2:dog(d) h3:def(d) h4:black(d)$\\
+  & \verb$ 1:like(-1 -1)  1:dog(1)  1:def(0)  1:black(0)$ \\
   & d:1 \\
 \hline
 \end{tabular}\\
 \end{center}
 
 So what do we do with this information?  We add extra columns for the
-indices: the number of columns that we add is equal to the weight of
-each index.  As for the contents of these columns, we'll just dump in 
-null semantic items like pronouns 
-(assuming of course that pronouns, clitics, and so forth are treated
- as null semantic items):
+overconsumed indices and dump in the null semantic items.  (assuming of
+course that pronouns, clitics, and so forth are treated as null semantic
+items):
 
 \begin{center}
 \natlang{John says he likes himself}
@@ -637,35 +694,25 @@ Doing so will allow the generator to produce pronouns in general
 (\natlang{He likes the book}); specifically including the extra columns
 (\natlang{He likes himself}).
 
-Note that we add an empty transition because the case for control verbs
-might be more complicated than we mentioned above.  For example, the
-input semantics \semexpr{h1:hope(j h3) h2:john(j) h3:like(j j)} could be
-realised not only as \natlang{John hopes to like himself} but also as
-\natlang{John hopes that he likes himself}; note how one uses more
-pronouns than the other.  To account for this, we actually give control
-verbs the same semantic weight as regular verbs, 0:(1 1) in the case of
-hope, but make use of empty transitions to allow for a realisation with
-one pronoun less.
+Note the nuance on page \pageref{fn:consem} (function consem) for
+handling control verbs!
 
 FIXME: we need to figure out how to instantiate the semantics of these
 empty items.
 
 \begin{code}
-addExtraIndices :: SemWeightMap -> (Sem, SemMap) -> (Sem, SemMap)
-addExtraIndices swmap (tsem,smap) = 
-  let emptysem = lookupWithDefaultFM smap [] emptyPred
-      cleanSmap = delFromFM smap emptyPred
+addExtraIndices :: SemWeightMap -> (Sem, [TagLite]) -> (Sem, [TagLite])
+addExtraIndices swmap (tsem,cands) = 
+  let emptysem  = filter (null.tlSemantics) cands 
       --
-      extra  = map (\x -> (x,"",[])) i
+      extra  = map indexPred i
                where i = countExtraIndices swmap tsem
       tsem2  = tsem ++ extra
       --
-      addfn x f = addToFM f x (emptyTL:empty2)
-                  where empty2 = map modsem emptysem
-                        modsem t = t { tlSemantics = [x] }
-      smap2  = foldr addfn cleanSmap extra
+      cands2 = cands ++ concatMap extraC extra 
+      extraC x = map (\t -> t { tlSemantics = [x] }) emptysem
       --
-  in (tsem2, smap2)
+  in (tsem2, cands2)
 \end{code}
 
 \paragraph{countExtraIndices} is a helper function to addExtraIndices.
@@ -683,7 +730,7 @@ countExtraIndices swmap sem =
       extra :: (Pred, String) -> [(String,Int)]
       extra (s,k) = zip is ws
         where is = idxfn s 
-              ws = lookupWithDefaultFM swmap [] k     
+              ws = map (0-) $ lookupWithDefaultFM swmap [] k     
       idxfn :: Pred -> [String]
       idxfn (h,_,i) = h:i
       -- the total number of times each index is used
@@ -697,11 +744,84 @@ countExtraIndices swmap sem =
   in concatMap indices (fmToList counts)
 \end{code}
 
-\subsection{Pitfalls}
+\label{fn:consem}
+\paragraph{consem} is a helper function for combining the semantics and
+the control index of a tree.  It is used because control verbs have an
+interesting behaviour wrt to index counting.  With the same semantics,
+it is possible to produce both the realisations \natlang{John hopes that
+he wins} and \natlang{John hopes to win}, that is, one which requires an
+extra pronoun, and one that does not.  We account for this by using the
+extra baggage mechanism for multiple literal semantics.  A verb in the
+lexicon can be marked as controlling a particular index.  When building
+the seed automaton we consider that index as part of the verb's extra
+semantics.  When we get to the extra columns, the baggage mechanism will
+control verbs to take an empty transition instead of a pronoun.  (This
+function takes TagElem is because it is run from the TagLite converter)
 
-I do not know what the behaviour of this code would be if there are
-items that are multi-use and which have multi-literal semantics! For
-now, we assume that this never happens.
+\begin{code}
+consem :: TagElem -> Sem
+consem t = 
+  tsemantics t ++ con
+  where c   = tcontrol t
+        con = if null c then [] else [indexPred c]
+\end{code}
+
+\paragraph{indexPred} builds a fake semantic predicate that the index
+counting mechanism uses to represent extra columns.
+
+\begin{code}
+indexPred :: String -> Pred
+indexPred x = (x, "", [])
+\end{code}
+
+\paragraph{isExtraCol} returns True if the given literal was introduced
+by the index counting mechanism
+
+\begin{code}
+isExtraCol (_,"",[]) = True
+isExtraCol _         = False
+\end{code}
+
+\paragraph{assignIndex} is a useful way to restrict the behaviour of
+null semantic items like pronouns using the information generated by
+the index counting mechanism.  The problem with null semantic items 
+is that their indices are not set, which means that they could
+potentially combine with any other tree.  To make things more 
+efficient, we can set the index of these items and thus reduce the
+number of spurious combinations.  
+
+Notes
+\begin{itemize}
+%\item These combinations could produce false results if the
+%input has to use multiple pronouns.  For example, if you wanted to say
+%something like \natlang{John promises Mary to convince Paul to give her
+%  his book}, these combinations could instead produce \natlang{give him
+%    \textbf{her} book}.
+\item This function works by FS unification on the root node of the
+  tree with the \fs{\it idx:i\\}.  If unification is not possible, 
+  we simply return the tree as is.
+\item This function renames the tree by appending the index to its name
+\end{itemize}
+
+\begin{code}
+assignIndex :: String -> TagElem -> TagElem
+assignIndex i te =  
+  let idxfs = [ ("idx", i) ]
+      --
+      oldt  = ttree te
+      oldr  = root oldt
+      tfup  = gup oldr
+      --
+      (success, newgup, subst) = unifyFeat tfup idxfs 
+      newr = oldr { gup = newgup }
+      newt = rootUpd oldt newr
+      --
+      newname = idname te ++ "-" ++ i 
+      --
+      newTe = substTagElem (te { idname = newname, ttree = newt }) subst
+  in if success then newTe else te
+\end{code}
+
 
 % ====================================================================
 \section{Further optimisations}
@@ -727,33 +847,37 @@ conjuction with the ExtraPolarities mechanism.  What we do is
 \item Add all the restrictions as negative extra polarities (-cleft:j)
 \end{enumerate}
 
-Note: we assume the restrictors and interface are sorted
+Note: we assume the restrictors and interface are sorted; also, we prefix
+the restrictor polarities with a ``.'' because they are likely to be very
+powerful filters and we would like them to be used first
 
 \begin{code}
 detectRestrictors :: Flist -> Flist -> PolMap 
 detectRestrictors restrict interface =
   let matches  = intersect restrict interface
-      matchStr = map showAv matches
+      matchStr = map showRestrictor matches
   in listToFM $ zip matchStr (repeat 1)
 
 declareRestrictors :: Flist -> PolMap
 declareRestrictors restrict =
-  let restrictStr = map showAv restrict
+  let restrictStr = map showRestrictor restrict
       minusone    = repeat (-1)
   in listToFM $ zip restrictStr minusone
+
+showRestrictor :: AvPair -> String
+showRestrictor = ('.' :) . showAv
 \end{code}
 
 \subsection{Automatic detection}
 
 Automatic detection is not an optimisation in itself, but a means to
 make grammar development with polarities more convenient.  We assign
-every initial tree with a +1 charge for the category of its root node
-and a -1 charge for every category for every substitution node it has.
-So for example, the tree 
-s(n$\downarrow$, cl$\downarrow$, v(aime), n$\downarrow$) should have
-the following polarities: s +1, cl -1, n -2 
-These charges are added to any that previously been defined in the
-grammar.
+every tree with a -1 charge for every category for every substitution
+node it has.  Additionally, we assign every initial tree with a +1
+charge for the category of its root node.  So for example, the tree
+s(n$\downarrow$, cl$\downarrow$, v(aime), n$\downarrow$) should have the
+following polarities: s +1, cl -1, n -2 These charges are added to any
+that previously been defined in the grammar.
 
 \begin{code}
 detectPols :: [TagElem] -> [TagElem]
@@ -767,14 +891,14 @@ detectPols' te =
       getcat fl = if null f then "" else (snd.head) f
                   where f = filter (\ (a,_) -> "cat" == a) fl 
       --
-      pols  = (rcat, 1) : (zip scats negone)
-              where negone = repeat (-1)
+      apols = (zip scats negone)
+               where negone = repeat (-1)
+      ipols = (rcat, 1) : apols
+      pols  = if ttype te == Initial then ipols else apols
       --
       oldfm = tpolarities te
       addpol (p,c) fm = addToFM_C (+) fm p c 
-  in if (ttype te == Initial) 
-     then te { tpolarities = foldr addpol oldfm pols }
-     else te
+  in te { tpolarities = foldr addpol oldfm pols }
 \end{code}
 
 \subsection{Chart sharing}
@@ -858,12 +982,12 @@ of signatures, and a function to map these back to trees.
 mapByPolsig :: [TagElem] -> ([TagLite], TagLite -> [TagElem])
 mapByPolsig tes = 
   let sigmap   = groupByFM gfn tes
-      gfn t    = (showLitePm $ tpolarities t)
-                 ++ " " ++ (showSem $ tsemantics t) 
+      gfn t    = (showSem $ consem t) ++ " " ++
+                 (showLitePm $ tpolarities t)
       -- creating a representative "tree" for each polarity signature
       createTl key id = TELite { tlIdname    = key, 
                                  tlIdnum     = id,
-                                 tlSemantics = tsemantics rep,
+                                 tlSemantics = consem rep,
                                  tlPolarities = tpolarities rep}
                         where rep = head $ lookupWithDefaultFM sigmap [] key 
       taglites = zipWith createTl (keysFM sigmap) [0..]
@@ -950,6 +1074,11 @@ data TagLite = TELite {
                 }
         deriving (Show, Eq)
 
+instance TagItem TagLite where
+  tgIdName    = tlIdname
+  tgIdNum     = tlIdnum
+  tgSemantics = tlSemantics
+
 instance Ord TagLite where
   compare t1 t2 = 
     compare (fn t1) (fn t2)
@@ -964,12 +1093,10 @@ emptyTL = TELite { tlIdname = "",
 toTagLite :: TagElem -> TagLite
 toTagLite te = TELite { tlIdname     = idname te,
                         tlIdnum      = tidnum te,   
-                        tlSemantics  = tsemantics te,
+                        tlSemantics  = consem te,
                         tlPolarities = tpolarities te
                       }
 \end{code}
-
-
 
 \subsection{NFA}
 Having not found a suitable automaton library for Haskell, we define our
@@ -1031,7 +1158,8 @@ $(Q, \Sigma, \delta, q_0, q_n)$ such that
 
 \begin{enumerate}
 \item $Q$ is a set of states, each state being a tuple $(i,e,p)$ where $i$
-is a single literal in the target semantics, $e$ is a list of extra literals
+is an integer (representing a single literal in the target semantics), 
+$e$ is a list of extra literals
 which are known by the state, and $p$ is a polarity.
 \item $\Sigma$ is the union of the sets of candidate trees for all
 propositions
@@ -1043,11 +1171,18 @@ proposition, with polarity $0$.
 define below.
 \end{enumerate}
 
-Note: for convenience during automaton intersection, we actually define the
-states as being $(i, [p])$ where $[p]$ is a list of states.  
+Note: 
+\begin{itemize}
+\item For convenience during automaton intersection, we actually define
+      the states as being $(i, [p])$ where $[p]$ is a list of states.  
+\item We use integer $i$ for each state instead of literals directly,
+      because it is possible for the target semantics to contain the 
+      same literal twice (at least, with the index counting mechanism
+      in place)
+\end{itemize}
 
 \begin{code}
-data PolState = PolSt Pred [Pred] [Int] deriving (Eq)
+data PolState = PolSt Int [Pred] [Int] deriving (Eq)
 type PolTrans = TagLite
 type PolAut   = NFA PolState PolTrans
 type PolTransFn = FiniteMap PolState (FiniteMap PolTrans [PolState])
@@ -1055,7 +1190,8 @@ type PolTransFn = FiniteMap PolState (FiniteMap PolTrans [PolState])
 
 \begin{code}
 instance Show PolState
-  where show (PolSt pr ex po) = showPred pr ++ " " ++ showSem ex ++ show po
+  where show (PolSt pr ex po) = show pr ++ " " ++ showSem ex ++ show po
+-- showPred pr ++ " " ++ showSem ex ++ show po
 \end{code}
 
 \begin{code}
@@ -1070,14 +1206,14 @@ We include also some fake states which are useful for general
 housekeeping during the main algortihms.
 
 \begin{code}
-fakestate :: String -> [Int] -> PolState
-fakestate s pol = PolSt ("h0", s, [""]) [] pol
+fakestate :: Int -> [Int] -> PolState
+fakestate s pol = PolSt s [] pol --PolSt (0, s, [""]) [] pol
 -- an initial state for polarity automata
 polstart :: [Int] -> PolState
-polstart pol = fakestate "START" pol
+polstart pol = fakestate 0 pol -- fakestate "START" pol
 -- a fake state is the final state of an empty automaton 
 polfake :: PolState
-polfake = fakestate "FAKE-FINAL" []
+polfake = fakestate 1 [] -- "FAKE-FINAL" []
 \end{code}
 
 
@@ -1229,7 +1365,8 @@ gvShowTrans aut stmap idFrom st =
       drawTrans (stTo,x) = case lookupFM stmap stTo of
                              Nothing   -> drawTrans' ("id_error_" ++ (showSem stTo)) x 
                              Just idTo -> drawTrans' idTo x
-                           where showSem (PolSt (_,pred,_) _ _) = pred 
+                           where showSem (PolSt i _ _) = show i 
+                                 --showSem (PolSt (_,pred,_) _ _) = pred 
       drawTrans' idTo x = " " ++ idFrom ++ " -> " ++ idTo ++ 
                           " [ label=\"" ++ drawLabel x ++ "\"];\n"
       drawLabel labels = concat $ intersperse "\\n" $ map fn labels
@@ -1262,9 +1399,9 @@ product of these ambiguities: $\prod_{1 \leq i \leq n} a_i$.
  number of tree combinations is $a^n$).  
 
 \begin{code}
-calculateTreeCombos :: [TagElem] -> Int
+calculateTreeCombos :: (TagItem t) => [t] -> Int
 calculateTreeCombos cands = 
-  let smapRaw   = mapBySem tsemantics cands
+  let smapRaw   = mapBySem cands
       ambiguity = map length $ eltsFM smapRaw 
   in foldr (*) 1 ambiguity     
 \end{code}

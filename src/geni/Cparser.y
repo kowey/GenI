@@ -7,7 +7,6 @@ import Btypes (ILexEntry)
 import ParserLib(Token(..),PosToken,simpleParserError)
 import Data.List (intersperse)
 
-untok (a,_,_) = a
 }
 
 %name cParser Input
@@ -15,13 +14,15 @@ untok (a,_,_) = a
 %tokentype { PosToken }
 
 %token 
-    macros      {(Macros,      _, _)} 
-    lexicon     {(Lexicon,     _, _)}  
-    semlex      {(SemLexicon,  _, _)}
+    macros      {(MacrosTok,      _, _)} 
+    lexicon     {(LexiconTok,     _, _)}  
+    semlex      {(SemLexiconTok,  _, _)}
+    morphinfo   {(MorphInfoTok,   _, _)}
     grammar     {(GrammarTok,      _, _)} 
-    tsem        {(TSemantics,  _, _)}
+    morphcmd    {(MorphCmdTok,     _, _)}
+    tsem        {(TSemanticsTok,  _, _)}
     tsuite      {(TestSuiteTok,  _, _)}
-    graphical   {(Graphical,   _, _)}
+    graphical   {(GraphicalTok,   _, _)}
     optimisations {(Optimisations, _,_)}
     polarised    {(Polarised,   _, _)}
     autopol      {(AutoPol,     _,_)}
@@ -45,11 +46,17 @@ untok (a,_,_) = a
     ','        {(Comma, _, _)}
  %%
 
+{- -----------------------------------------------------------------
+   configuration file 
+   ----------------------------------------------------------------- -}
+
+Input :: { [[CpPair]] }
 Input : InputList
      {if (null $1) then [] else [$1]}
  | InputList '!' Input
      {($1:$3)}
 
+InputList :: { [CpPair] }
 InputList :
      {[]}
  | repeat '=' num InputList
@@ -64,14 +71,28 @@ InputList :
      {(untok $1, $3):$4}
  | extrapol '=' PolList InputList
      {(untok $1, $3):$4}
- 
+
+idkey :: { PosToken }
 idkey:   grammar  {$1}  
        | tsem     {$1}  
        | tsuite   {$1}
+       | morphcmd {$1}
 
+boolkey :: { Token }
+boolkey: graphical  {GraphicalTok}
 
-boolkey: graphical  {Graphical}
+{- optimisations -}
 
+OptList :: { String }
+OptList : batch    { show Batch }
+        | OptListI { concat (intersperse " " $1) }
+
+OptListI :: { [String] }
+OptListI :                     { [] }
+         | optkey              { [(show $1)] }
+         | optkey ',' OptListI {  (show $1) : $3 }
+
+optkey :: { Token }
 optkey: polarised    {Polarised}
       | autopol      {AutoPol}
       | polsig       {PolSig}
@@ -81,46 +102,47 @@ optkey: polarised    {Polarised}
       | orderedadj   {OrderedAdj}
       | footconstr   {FootConstraint}
 
-OptList : 
-    batch  
-      { show Batch }
-  | OptListI
-      { concat (intersperse " " $1) }
+{- extra polarities -} 
 
-OptListI : 
-      { [] }
- | optkey 
-      { [(show $1)] }
- | optkey ',' OptListI
-      { (show $1) : $3 }
-  
-PolList :
-      {""}
- | Charge id PolList
-      {$1 ++ $2 ++ $3}
+PolList :: { String } 
+PolList :                   {""}
+        | Charge id PolList {$1 ++ $2 ++ $3}
 
+Charge :: { String }
 Charge: PolVal {$1}
       | PolVal num {$1 ++ (show $2)}
 
+PolVal :: { String }
 PolVal: '+' {"+"}
       | '-' {"-"}
 
+{- -----------------------------------------------------------------
+   grammar index file 
+   ----------------------------------------------------------------- -}
 
-GramInput : GramInputList
-     {$1}
+GramInput :: { [CpPair] }
+GramInput : GramInputList {$1}
 
-GramInputList :
+GramInputList :: { [CpPair] }
+GramInputList : 
      {[]}
  | gramIdkey '=' id GramInputList
      {(untok $1,$3):$4}
- 
-gramIdkey:   lexicon  {$1}  
-       | macros   {$1}  
-       | semlex   {$1}
+
+gramIdkey :: { PosToken }
+gramIdkey: lexicon   {$1}  
+         | macros    {$1}  
+         | semlex    {$1}
+         | morphinfo {$1}
 
 
 
 {
+
+type CpPair = (Token,String)
+
+untok (a,_,_) = a
+
 happyError = simpleParserError
 }
 

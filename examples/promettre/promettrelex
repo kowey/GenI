@@ -5,6 +5,7 @@
 
 il pn pronoun 
 le cl clitic 
+se cl clitic
 
 %% --------------------------------------------------------------------- 
 %% Determinants
@@ -34,10 +35,10 @@ paul    n nP
 %% Verbs
 %% --------------------------------------------------------------------- 
 
-promettre v vArity3
-promettre v vArity3control
-donner    v vArity3
-persuader v vArity3
-persuader v vArity3controlObj
-aimer     v vArity2
+promettre v  vArity3
+promettre vc vArity3control
+donner    v  vArity3
+persuader v  vArity3
+persuader vc vArity3controlObj
+aimer     v  vArity2
 

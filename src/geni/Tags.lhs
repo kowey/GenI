@@ -8,14 +8,16 @@ and \ref{sec:adjunction} instead.
 \begin{code}
 module Tags(
    -- Main Datatypes
-   Tags, TagElem(TE), TagSite, TagDerivation, 
-   SemMap, emptyTE,
+   Tags, TagElem(TE), TagItem(..), TagSite, TagDerivation, 
+   emptyTE,
 
    -- Projection Functions
    idname, tidnum, derivation, ttype, ttree, 
    substnodes, adjnodes, 
    tsemantics, 
-   tinterface, tpolarities, tpolpaths, thighlight,
+   tinterface, tpolarities, 
+   tcontrol, tpolpaths, 
+   thighlight,
 
    -- Functions from Tags
    addToTags, 
@@ -86,7 +88,8 @@ data TagElem = TE {
                    tsemantics   :: Sem,
                    -- optimisation stuff
                    tpolarities  :: FiniteMap String Int,
-                   tinterface   :: Flist, -- for restrictors 
+                   tcontrol     :: String, -- controlled index if applcbl 
+                   tinterface   :: Flist,  -- for restrictors 
                    -- tpredictors  :: TPredictors,
                    tpolpaths    :: BitVector,
                    tprecedence  :: Int,
@@ -111,12 +114,13 @@ type TagDerivation = (Int, [ (Char, String, String) ])
 instance Ord TagElem where
   compare t1 t2 = 
     case (ttype t1, ttype t2) of
-         (Initial, Initial)   -> compare' 
+         (Initial, Initial)   -> compareId 
          (Initial, Auxiliar)  -> LT
          (Auxiliar, Initial)  -> GT
-         (Auxiliar, Auxiliar) -> compare' 
+         (Auxiliar, Auxiliar) -> compareId 
          _                    -> error "TagElem compare not exhaustively defined"
-    where compare' = compare (tidnum t1) (tidnum t2)
+    where id t = (show $ tidnum t) ++ (idname t)
+          compareId  = compare (id t1) (id t2)
 \end{code}
 
 \begin{code}
@@ -129,12 +133,33 @@ emptyTE = TE { idname = "",
                substnodes = [], adjnodes   = [],
                tsemantics = [], 
                tpolarities = emptyFM,
+               tcontrol    = "", 
                tprecedence = 0, -- FIXME: you sure?
                -- tpredictors = emptyFM,
                tpolpaths   = 0,
                tinterface  = [],
                thighlight  = [] 
              }
+\end{code}
+
+% ----------------------------------------------------------------------
+\section{TAG Item}
+% ----------------------------------------------------------------------
+
+TagItem is a generalisation of TagElem.  
+
+\begin{code}
+class TagItem t where 
+  tgIdName    :: t -> String
+  tgIdNum     :: t -> Integer
+  tgSemantics :: t -> Sem
+\end{code}
+
+\begin{code}
+instance TagItem TagElem where
+  tgIdName = idname
+  tgIdNum  = tidnum
+  tgSemantics = tsemantics
 \end{code}
 
 % ----------------------------------------------------------------------
@@ -183,25 +208,17 @@ appendToVars suf te =
 \section{Map by sem}
 % ----------------------------------------------------------------------
 
-\begin{code}
-type SemMap = FiniteMap Pred [TagElem]
-\end{code}
-
 The mapBySem function sorts trees into a FiniteMap organised by the
 first literal of their semantics.  This is useful in at least three
 places: the polarity optimisation, the gui display code, and code for
 measuring the efficiency of Geni.  Note: trees with a null semantics
 are filed under an empty predicate, if any.
 
-This function is generalised for use with data types than TagElem,
-so you'll have to pass the semantics function to the semfn argument
-(tsemantics in the case of TagElem).
-
 \begin{code}
-mapBySem :: (a -> Sem) -> [a] -> FiniteMap Pred [a]
-mapBySem semfn ts = 
+mapBySem :: (TagItem t) => [t] -> FiniteMap Pred [t]
+mapBySem ts = 
   let gfn t = if (null s) then emptyPred else head s 
-              where s = semfn t 
+              where s = tgSemantics t 
   in groupByFM gfn ts
 \end{code}
 

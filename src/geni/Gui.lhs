@@ -28,7 +28,7 @@ import Geni (State(..), GeniResults(..), PState,
              runLexSelection, buildAutomaton, 
              combine, loadGrammar, loadTargetSemStr)
 import Bfuncs (showPred, Sem)
-import Tags (idname,mapBySem,emptyTE,tsemantics,tpolarities,thighlight, 
+import Tags (idname,mapBySem,emptyTE,tpolarities,thighlight, 
              TagElem)
 
 import Configuration(Params, grammarFile, 
@@ -402,7 +402,7 @@ their semantics.
 \begin{code}
 tagBrowserGui :: (Window a) -> [TagElem] -> String -> String -> IO Layout
 tagBrowserGui f xs tip cachedir = do 
-  let semmap   = mapBySem tsemantics xs
+  let semmap   = mapBySem xs
       sem      = keysFM semmap
       --
       lookupTr   = lookupWithDefaultFM semmap []

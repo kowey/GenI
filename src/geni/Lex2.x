@@ -18,19 +18,22 @@ tokens :-
   True                        { tok TTT }
   False                       { tok FFF }
 
-  TSemantics                 { tok TSemantics }
+  TSemantics                 { tok TSemanticsTok }
   TestSuite                  { tok TestSuiteTok }
-  Graphical                  { tok Graphical  }
+  Graphical                  { tok GraphicalTok  }
  
-  Grammar                    { tok GrammarTok }
+  Grammar                    { tok GrammarTok  }
+  MorphCmd                   { tok MorphCmdTok }
 
-  Macros                     { tok Macros     }
-  Lexicon                    { tok Lexicon    }
-  SemLexicon                 { tok SemLexicon }
+  Macros                     { tok MacrosTok  }
+  Lexicon                    { tok LexiconTok }
+  SemLexicon                 { tok SemLexiconTok }
+  MorphInfo                  { tok MorphInfoTok  }
 
   GrammarType                { tok GrammarType }
   GeniHand                   { tok GeniHandTok }
   TAGML                      { tok TAGMLTok }
+
 
   Optimisations              { tok Optimisations }
   Polarised                  { tok Polarised  }
@@ -47,6 +50,7 @@ tokens :-
 
   restrictors                { tok RestrictorsTok }
   semantics                  { tok Semantics  }
+  controlled                 { tok ControlledTok }
   polarities                 { tok Polarities }
   predictors                 { tok Predictors }
   

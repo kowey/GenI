@@ -16,7 +16,7 @@ module Bfuncs(
    Ttree(TT), MTtree,
    Ptype(Initial,Auxiliar,Unspecified), 
    Pred, Flist, AvPair, 
-   Lexicon, ILexEntry(ILE), Macros, Sem, SemInput, Subst,
+   Lexicon, ILexEntry(..), Macros, Sem, SemInput, Subst,
    emptyGNode, emptyMacro, 
 
    -- Projectors from GNode (re-exported)
@@ -26,10 +26,6 @@ module Bfuncs(
    params, pidname, pfeat, ptype, tree, 
    ptpolarities, ptpredictors,
 
-   -- Projectors from ILexEntry (re-exported)
-   iword, icategory, ifamname, iparams, ipfeat, iptype, isemantics, 
-   iprecedence,
- 
    -- Functions from Tree GNode
    repSubst, repAdj, constrainAdj, 
    renameTree, substTree, substGNode,
@@ -39,7 +35,7 @@ module Bfuncs(
    toKeys, subsumeSem, sortSem, substSem, showSem, showPred,
    emptyPred,
 
-  -- Functions from Flist
+   -- Functions from Flist
    substFlist, substFlist', sortFlist, unifyFeat,
    showPairs, showAv,
 

@@ -12,7 +12,7 @@
 # --------------------------------------------------------------------
 
 SRC_GENI 	= ./src/geni
-GHCFLAGS        = 
+GHCFLAGS        = -fglasgow-exts 
 #-O
 GHCINCLUDE      = -i$(SRC_GENI)
 #:$(HXMLDIR)/hparser:$(HXMLDIR)/hdom
@@ -124,7 +124,7 @@ $(LEXERS): %.hs: %.x
 	alex -g $< 
 
 $(PARSERS): %.hs: %.y
-	happy -m `basename $@ .hs` $< 
+	happy -a -g -c -m `basename $@ .hs` $< 
 
 optimize: $(LEXERS) $(PARSERS)
 	$(GHC) -O2 --make $(GHCPACKAGES) $(LEXERS) $(PARSERS) 
