@@ -106,7 +106,7 @@ data TreeInfo = TI {
   -- tiAdjnodes :: [TagSite],
   -- tiSubstnodes :: [TagSite],
   tiNum     :: Int,
-  tiLex     :: String,
+  -- tiLex     :: String,
   tiHasFoot :: Bool
 } 
 \end{code}
@@ -120,7 +120,7 @@ parseTree :: Content -> MTree
 parseTree t = 
   let nodeF  = keep /> tag "node"
       node   = nodeF t
-      initTi = TI { tiNum = 0, tiLex = "", tiHasFoot = False }
+      initTi = TI { tiNum = 0, tiHasFoot = False }
                     -- tiAdjnodes = [], tiSubstnodes = [] }
       (parsedTr,finalTi)  = runState (parseNode $ head node) initTi
       (tr,info) = if null node  
@@ -177,22 +177,22 @@ parseNode n = do
       -- saving the feature lists 
       topFl  = map parseFeature (topF n)
       botFl  = map parseFeature (botF n)
-      gloFl' = map parseFeature (gloF n)
+      gloFl  = map parseFeature (gloF n)
       -- reading the node type
       ntypeF    = attributed "type" keep
       ntypeStr  = concatMap fst (ntypeF n) -- should only be one element 
-      ntype'    = case ntypeStr of 
-                    "subst" -> Subs
-                    "foot"  -> Foot
-                    _       -> Other
-      -- if the node has a lexeme, this fact will be marked in the
-      -- type attribute of node; the lexeme will be the value of 
+      ntype     = case ntypeStr of 
+                    "subst"  -> Subs
+                    "foot"   -> Foot
+                    "anchor" -> Lex
+                    _        -> Other
+      {- 
       -- the cat feature
       isLexeme (a,_) = a == "phon"
       (lexL, gloFl)  = partition isLexeme gloFl'
       (ntype, lex)   = if null lexL 
                        then (ntype', "") 
-                       else (Lex   , snd $ head lexL)
+                       else (Lex   , snd $ head lexL) -}
       -- FIXME: explicit constraints need to be accounted for
       aconstr  = (ntype == Subs || ntype == Foot)
       -- the node name is just the counter
@@ -201,8 +201,8 @@ parseNode n = do
       gn = GN { gnname  = name,
                 gup     = sort $ topFl ++ gloFl,
                 gdown   = sort $ botFl ++ gloFl,
-                ganchor = False, -- already anchored, who cares?
-                glexeme = lex,
+                ganchor = (ntype == Lex),
+                glexeme = "",
                 gtype   = ntype,
                 gaconstr = aconstr }
       {-
@@ -215,7 +215,7 @@ parseNode n = do
       -}
   -- update the monadic state
   let st2 = st { tiNum = (tiNum st) + 1,
-                 tiLex = if ntype == Lex then lex else (tiLex st),
+                 -- tiLex = if ntype == Lex then lex else (tiLex st),
                  tiHasFoot = (tiHasFoot st) || (ntype == Foot) }
                  {- ,
                  tiAdjnodes = anodes,

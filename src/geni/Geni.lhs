@@ -36,7 +36,7 @@ import Btypes (Macros, MTtree, ILexEntry, Sem, Flist, Subst,
                isemantics, itreename, iword, iparams, ipfeat,
                gnname, gtype, gaconstr, gup, gdown, toKeys,
                sortSem, subsumeSem, params, 
-               substSem, substFlist',
+               substSem, substFlist', substFlist,
                pidname, pfeat, ptype, 
                ptpolarities, 
                setLexeme, tree,
@@ -481,8 +481,12 @@ selected items with the grammar.
 type SortedLex = FiniteMap String [ILexEntry] 
 chooseLexCand :: SortedLex -> Sem -> [ILexEntry]
 chooseLexCand slex tsem = 
-  let substLex i sub = i { isemantics = substSem sem sub }
-                       where sem = isemantics i
+  let substLex i sub = i { isemantics = substSem (isemantics i) sub
+                         , ipfeat     = substFlist (ipfeat i)   sub  
+                         , iparams    = substPar  (iparams i)   sub
+                         }
+      substPar par sub = map (\p -> foldl sfn p sub) par
+                         where sfn z (x,y) = if (z == x) then y else z
       -- the initial "MYEMPTY" takes care of items with empty semantics
       keys = "MYEMPTY":(toKeys tsem)   
       -- we choose candidates that match keys
@@ -547,7 +551,7 @@ loadMacros pst =
                   else mParser (lexer gf)
          errmsg  = "Some trees in grammar declared neither initial nor auxiliar.\n  Aborting.\n"
      if null u -- if no errors
-        then do putStr ((show $ sizeFM g) ++ " trees\n")
+        then do putStr ((show $ sizeFM g) ++ " families\n")
                 modifyIORef pst (\x -> x{gr = g})
                 return ()
         else error (errmsg ++ (show u))

@@ -296,12 +296,17 @@ repSubst n t1 t2 =
 Given two trees t1 t2 (where t1 is an auxiliar tree), and
 the name n of a node in t2, replaces t1 in t2 at the node named n by an
 adjunction move (using newFoot to replace the foot node in t1).  
+
+Minor ugliness: we copy any lexical information from the t2 node
+to the new foot node.
 \begin{code}
 
 repAdj :: GNode -> String -> Tree GNode -> Tree GNode -> Tree GNode
 repAdj newFoot n t1 t2 =
   let filt (Node a _) = (gnname a == n)
-      fn (Node _ l)   = repFoot newFoot t1 l
+      fn (Node a l)   = repFoot nf t1 l
+                        where nf = newFoot { ganchor = ganchor a
+                                           , glexeme = glexeme a }
       (lt,flag) = listRepNode fn filt [t2] 
   in if flag 
      then head lt 

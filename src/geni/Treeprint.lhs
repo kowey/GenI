@@ -149,7 +149,7 @@ showLeaves' (Node node []) =
       cat  = if (null cat') 
              then gnname node     
              else snd $ head cat'
-      name   = "[" ++ map toUpper cat ++ "]"
+      name   = map toUpper cat 
       output = if (null lexeme) then name else lexeme
   in [ output ]            
 \end{code}

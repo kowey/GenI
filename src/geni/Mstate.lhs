@@ -506,11 +506,16 @@ iapplySubstNode te1 te2 sn@(n, fu, _) =
       -- IMPORTANT: nt1 should be ready for replacement 
       -- (e.g, top features unified, type changed to Other) 
       -- when passed to repSubst
-      nt1 = rootUpd t1 r{gup = newgup,
-                         gtype = Other}
+      nr  = r { gup = newgup,
+                gtype = Other }
+      nt1 = rootUpd t1 nr 
       ntree = repSubst n nt1 t2 
+      
       --
-      newadjnodes   = sort $ nub $ (adjnodes te2) ++ (adjnodes te1)
+      ncopy x = (gnname x, gup x, gdown x)
+      adj1  = (ncopy nr) : (delete (ncopy r) $ adjnodes te1) 
+      adj2  = adjnodes te2
+      newadjnodes   = sort $ nub $ adj1 ++ adj2
       newTe = te2{derivation = addToDerivation 's' te1 te2,
                   ttree = ntree,
                   substnodes = (delete sn (substnodes te2))++ (substnodes te1),
@@ -680,7 +685,6 @@ iapplyAdjNode fconstr te1 te2 an@(n, an_up, an_down) =
       -- the final result  
       -- ----------------
       res  = res' { adjnodes = (addextra.adjnodes) res' }
-
       {- debugstr = ("============================================\n" 
                   ++ "adjoin " ++ showLite te1 ++ " to node " ++ n
                   ++ "\nfs aux : " ++ showPairs r_up ++ " and " ++ showPairs f_down
@@ -697,8 +701,7 @@ iapplyAdjNode fconstr te1 te2 an@(n, an_up, an_down) =
                   ++ "\n ~~~~~~~~"
                   ++ "\nafter:\n"  ++ (if success then (drawTree ntree) else "n/a")
                   ++ "\n ~~~~~~~~"
-                 ) 
-        -}
+                 )  -}
   in if success then Just res else Nothing 
 \end{code}
 
