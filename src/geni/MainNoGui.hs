@@ -6,9 +6,6 @@ where
 
 import IOExts(readIORef, modifyIORef)
 import Geni
-import Configuration(graphical, grammar, lexicon, tsFile, 
-                     emptyParams, optimisations, isBatch,
-                     optBatch, Token(..))
 import Console(consoleGenerate)
 import Mstate (generate)
 import Polarity

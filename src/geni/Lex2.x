@@ -34,6 +34,7 @@ tokens :-
 
   Optimisations              { tok Optimisations }
   Polarised                  { tok Polarised  }
+  AutoPol                    { tok AutoPol }
   PolSig                     { tok PolSig } 
   Predicting                 { tok Predicting }
   SemFiltered                { tok SemFiltered } 
@@ -55,6 +56,7 @@ tokens :-
   initial                    { tok Init }
   auxiliary                  { tok Aux }
   anchor                     { tok Anchor }
+  family                     { tok FamilyTok }
   lex                        { tok Lexeme }
   type                       { tok Type }
   subst                      { tok LSubst }

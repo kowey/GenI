@@ -14,7 +14,9 @@ import Data.Tree
 import Data.List(intersperse,nub)
 
 import Tags (TagElem, idname, tsemantics, ttree, derivation, showfeats)
-import Btypes (showSem, showGNodeAll, GNode, glexeme, gnname, gup)
+import Btypes (MTtree, Ttree(..), Ptype(..), 
+               GNode(..), GType(..),
+               showSem, showGNodeAll, showPairs)
 import Graphviz (GraphvizShow(..))
 -- import Debug.Trace 
 \end{code}
@@ -71,6 +73,65 @@ graphvizShow' sf (Node node l) label =
                              " " ++ label ++ " -> " ++ (kidname index) ++ ";\n"
        -- now let's run this thing!
        in shownode ++ (concat (map showkid pairs))
+\end{code}
+
+% ----------------------------------------------------------------------
+\section{GeniHand}
+% ----------------------------------------------------------------------
+
+To make large grammars faster to load, we include a mechanism for
+writing a TagElem to the GeniHand format.  The idea is to take a massive
+XML grammar, parse it to a set of TagElems and then write these back in
+the lighter syntax.  It's not that XML is inherently less efficient to
+parse than the handwritten syntax, just that writing an efficient parser
+for XML based format is more annoying, so I stuck with HaXml to make my
+life easy.  It would be useful eventually to see if I could just use
+some kind of SAX based method.
+
+\begin{code}
+toGeniHand :: MTtree -> String
+toGeniHand tr = 
+  let ptypestr t = case t of 
+                     Initial  -> "initial" 
+                     Auxiliar -> "auxiliary" 
+                     _        -> ""
+      --
+      gtypestr n = case (gtype n) of 
+                     Subs -> "type:subst"
+                     Foot -> "type:foot"
+                     Lex  -> if (ganchor n) then "anchor" else "type:lex" 
+                     _    -> ""
+      --
+      nodestr :: GNode -> String
+      nodestr n = "n" ++ gnname n 
+                  ++ " " ++ gtypestr n ++ " "
+                  ++ "[" ++ showflist (gup n) ++ "]!"
+                  ++ "[" ++ showflist (gdown n) ++ "]"
+      --
+      treestr :: Int -> Tree GNode -> String
+      treestr i (Node a []) = spaces i ++ nodestr a ++  
+                              (if (i == 0) then "{}" else "") ++ "\n"
+      treestr i (Node a l)  = spaces i ++ nodestr a ++ "{\n"
+                              ++ concatMap nextfn l ++ spaces i ++ "}\n"
+                              where nextfn = treestr (i+1)
+      -- misc helpers
+      spaces :: Int -> String 
+      spaces i = take i $ repeat ' '
+      -- helpers to account for shortcomings in genihand parser 
+      dashtobar :: Char -> Char
+      dashtobar c = if ('-' == c) then '_' else c 
+      substf (a,v) = case (a,v) of (_,"+") -> (a, "minus")
+                                   (_,"-") -> (a, "minus")
+                                   (_,"3") -> (a, "third")
+                                   (_,"2") -> (a, "second")
+                                   (_,"1") -> (a, "first")
+                                   _       -> (a,v)
+      showflist = showPairs . (map substf)
+      --
+  in ((map dashtobar).pidname) tr 
+     ++ " (" ++ (concat $ intersperse " " (params tr)) ++ ")"
+     ++ " " ++ (ptypestr.ptype) tr 
+     ++ "\n" ++ ((treestr 0).tree) tr ++ "\n"
 \end{code}
 
 % ----------------------------------------------------------------------

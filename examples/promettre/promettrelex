@@ -32,27 +32,7 @@ olivier nP
 %% Verbs
 %% --------------------------------------------------------------------- 
 
-promettre n0vn1sp2
-promettre n0vn1inf2
-promettre qu0vn1sp2
-promettre qu1vn0sp2
-promettre qu2vn0n1
-promettre rel0vn1sp2
-promettre rel1vn0sp2
-promettre rel2vn0n1
-
-donner vinfn1sp2
-donner n0vn1sp2
-donner qu1vn0sp2
-donner qu2n0vn1
-donner rel0vn1sp2
-donner rel1vn0sp2
-donner rel2n0vn1
-
-persuader n0vn2pinf1
-persuader vinfn2pinf1
-persuader qu0vn2pinf1
-persuader qu2n0vpinf1
-persuader rel0vn2pinf1
-persuader rel1n0vn2
+promettre vArity3
+donner    vArity3
+persuader vArity3
 

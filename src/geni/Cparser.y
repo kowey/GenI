@@ -4,7 +4,7 @@ module Cparser
 where 
 
 import Btypes (ILexEntry)
-import ParserLib(Token(..),PosToken,parserError)
+import ParserLib(Token(..),PosToken,simpleParserError)
 import Data.List (intersperse)
 
 untok (a,_,_) = a
@@ -18,15 +18,13 @@ untok (a,_,_) = a
     macros      {(Macros,      _, _)} 
     lexicon     {(Lexicon,     _, _)}  
     semlex      {(SemLexicon,  _, _)}
-    gramtype    {(GrammarType,     _, _)}  
-    TAGML       {(TAGMLTok, _, _)}
-    GeniHand    {(GeniHandTok, _, _)}
     grammar     {(GrammarTok,      _, _)} 
     tsem        {(TSemantics,  _, _)}
     tsuite      {(TestSuiteTok,  _, _)}
     graphical   {(Graphical,   _, _)}
     optimisations {(Optimisations, _,_)}
     polarised    {(Polarised,   _, _)}
+    autopol      {(AutoPol,     _,_)}
     polsig       {(PolSig,      _,_)}
     predicting   {(Predicting,  _, _)}
     semfiltered  {(SemFiltered,  _, _)}
@@ -75,6 +73,7 @@ idkey:   grammar  {$1}
 boolkey: graphical  {Graphical}
 
 optkey: polarised    {Polarised}
+      | autopol      {AutoPol}
       | polsig       {PolSig}
       | predicting   {Predicting}
       | semfiltered  {SemFiltered}
@@ -114,18 +113,14 @@ GramInputList :
      {[]}
  | gramIdkey '=' id GramInputList
      {(untok $1,$3):$4}
- | gramtype '=' GramTypes GramInputList
-     {(untok $1, $3):$4}
  
 gramIdkey:   lexicon  {$1}  
        | macros   {$1}  
        | semlex   {$1}
 
-GramTypes : TAGML    { (show.untok) $1 } 
-          | GeniHand { (show.untok) $1 } 
 
 
 {
-happyError = parserError
+happyError = simpleParserError
 }
 

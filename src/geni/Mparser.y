@@ -3,7 +3,8 @@ module Mparser
  
 where 
 
-import ParserLib(Token(..),PosToken,parserError)
+import ParserLib(Token(..),PosToken,parserError,
+                 E(..), thenE, returnE, failE)
 
 import Btypes (Ptype(Initial,Auxiliar,Unspecified),
                Ttree(..),
@@ -19,22 +20,28 @@ import FiniteMap (FiniteMap,
 import List (sort)
 import qualified Data.Tree 
 
+polParser x = case polParserE x of 
+                Ok p -> p
+                Failed e -> error e
+
 emptyPolPred = (emptyFM, [])
 
 buildTree ttype id (params,feats) (pol,pred) t = 
-  (id, TT{params = params, 
+       TT{params = params, 
           pidname = id,
           pfeat = feats, 
           ptype = ttype, 
           tree = t, 
           ptpolarities = pol,
-          ptpredictors = pred}) 
+          ptpredictors = pred} 
 
 }
- 
-%name mParser Input
-%name polParser PolList
+
+%name mParser Fam
+%name polParserE PolList
+
 %tokentype { PosToken }
+%monad { E } { thenE } { returnE }
 
 %token 
     ':'      {(Colon,    _, _)} 
@@ -48,6 +55,7 @@ buildTree ttype id (params,feats) (pol,pred) t =
     str      {(Str $$,   _, _)} 
     initial  {(Init,     _, _)} 
     auxiliar {(Aux,      _, _)} 
+    family   {(FamilyTok,_, _)}
     begin    {(Begin,    _, _)}
     end      {(End,      _, _)}
     id       {(ID $$,    _, _)} 
@@ -64,32 +72,53 @@ buildTree ttype id (params,feats) (pol,pred) t =
  
 %%
 
-Input : 
-     {(emptyFM, [])}
- | DefI Input
-     {let {(c,u) = $2 ;
-           (k,e) = $1}
-      in (addToFM_C (++) c k [e], u)}
- | DefA Input
-     {let {(c,u) = $2 ;
-           (k,e) = $1 }
-      in (addToFM_C (++) c k [e], u)}
- | Def Input
-     {let (c,u) = $2 in (c, $1:u)}
- | begin initial Input end initial Input
-     {let {(c ,u ) = $6;
-           (c',u') = $3; 
-           cc' = plusFM c c'} 
-      in (foldr (\(k,e) -> 
-                 \fm -> (addToFM_C (++) fm k [e{ptype = Initial}])) cc' u', u)}
- | begin auxiliar Input end auxiliar Input 
-     {let {(c, u ) = $6;
-           (c',u') = $3;
-           cc' = plusFM c c' }
-      in (foldr (\(k,e) ->
-                 \fm -> (addToFM_C (++) fm k [e{ptype = Auxiliar}])) cc' u',u)}
+Fam: 
+       {emptyFM}
+   | begin family id Input end family Fam
+       {addToFM_C (++) $7 $3 $4}
 
-Def :
+Input : 
+      { [] }
+ | DefU Input
+     {%
+       let tn = pidname $1 
+       in failE ("tree " ++ tn ++ " is of unspecified type") }
+ | DefI Input
+     { $1 : $2 }
+ | DefA Input
+     { $1 : $2 }
+ | begin initial DefIUs end initial Input
+     { (map (\e -> e {ptype = Initial}) $3) ++ $6 }
+ | begin auxiliar DefAUs end auxiliar Input 
+     { (map (\e -> e {ptype = Auxiliar}) $3) ++ $6 }
+
+DefAUs : 
+      { [] }
+ | DefI DefAUs
+      {% 
+        let tn = pidname $1
+        in failE ("tree " ++ tn ++ " is marked initial " 
+                  ++ "within a block of auxiliary trees")
+      }
+ | DefA DefAUs 
+      { $1 : $2 } 
+ | DefU DefAUs 
+      { $1 : $2 } 
+ 
+DefIUs : 
+      { [] }
+ | DefA DefIUs
+      {% 
+        let tn = pidname $1
+        in failE ("tree " ++ tn ++ " is marked auxiliary " 
+                  ++ "within a block of initial trees")
+      }
+ | DefI DefIUs 
+      { $1 : $2 } 
+ | DefU DefIUs 
+      { $1 : $2 } 
+ 
+DefU :
    id '(' IDFeat ')' TopTree
      { buildTree Unspecified $1 $3 emptyPolPred $5 }  
  | id '(' IDFeat ')' '(' PolPred ')' TopTree
@@ -203,8 +232,8 @@ ListTree :
 
 
 Descrip :
-   anchor 
-     {("anchor","",[],[])} 
+   anchor '[' FeatList ']' '!' '[' FeatList ']' 
+     {("anchor","",$3,$7)} 
  | type ':' lexeme str 
      {("lexeme",$4,[],[])}
  | type ':' subst '[' FeatList ']' '!' '[' FeatList ']' 
@@ -223,5 +252,6 @@ FeatList :
 
 
 {
+happyError :: [PosToken] -> E a
 happyError = parserError
 }

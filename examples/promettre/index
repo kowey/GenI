@@ -1,4 +1,4 @@
-Macros  = promettredonnermac 
+%Macros  = promettredonnermac 
+Macros  = dumbmac 
 Lexicon = promettrelex
 SemLexicon = promettresemlex 
-GrammarType = GeniHand

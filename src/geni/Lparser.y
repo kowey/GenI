@@ -6,7 +6,7 @@ where
 -- import Data.FiniteMap
 
 import ParserLib(Token(..), 
-                 PosToken, parserError)
+                 PosToken, simpleParserError)
 import Btypes
 
 createHandleVars predargs = 
@@ -125,6 +125,6 @@ PolVal: '+' {(1)}
       | '-' {(-1)}
 
 {
-happyError = parserError
+happyError = simpleParserError
 }
      

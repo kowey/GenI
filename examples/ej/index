@@ -1,4 +1,3 @@
 Macros  = mac 
 Lexicon = lexicon
 SemLexicon = semlex 
-GrammarType = GeniHand

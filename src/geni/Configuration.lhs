@@ -15,7 +15,7 @@ module Configuration(
    treatArgs, 
    grammarFile, tsFile, isGraphical, isTestSuite,
    optimisations,
-   polarised, polsig, chartsharing, extrapol,
+   autopol, polarised, polsig, chartsharing, extrapol,
    predicting, semfiltered, orderedadj, footconstr,
    isBatch, batchRepeat, 
    defaultParams, emptyParams, getConf, optBatch,
@@ -77,6 +77,7 @@ data Params = Prms{
   batchRepeat    :: Integer
 } deriving (Show)
 
+autopol      :: Params -> Bool
 polarised    :: Params -> Bool
 polsig       :: Params -> Bool
 predicting   :: Params -> Bool
@@ -86,6 +87,7 @@ orderedadj   :: Params -> Bool
 footconstr   :: Params -> Bool
 isBatch      :: Params -> Bool
 
+autopol      p = AutoPol      `elem` (optimisations p)
 polarised    p = Polarised    `elem` (optimisations p)
 polsig       p = PolSig       `elem` (optimisations p)
 predicting   p = Predicting   `elem` (optimisations p)  

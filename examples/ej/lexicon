@@ -37,13 +37,13 @@ vincent Pn
 %% Verbs
 %% intransitive verbs
 
-runs   IntrV
-sleeps IntrV
+runs   vArity1
+sleeps vArity1 
 
 %% transitive verbs
 
-loves   TrV
-removes TrVPP
+loves   vArity2 
+removes vArity3 
 
 %% Modifiers
 %% adjectives

@@ -35,19 +35,6 @@ mechant adj_pre
 %% --------------------------------------------------------------------- 
 
 % chasser une souris vinfn1
-chasser vinfn1
-
 % le chat chasse la souris
-chasser n0vn1
-
 % qui chasse une souris ?
-chasser qu0vn1
-
-% que chasse le chat ?
-chasser qu1vn0
-
-% le chat qui chasse la souris
-chasser rel0vn1
-
-% la souris que chasse le chat
-chasser rel1vn0
+chasser vArity2 

@@ -11,7 +11,7 @@
 %% 10. promettant un cadeau a Marie
 %% 11. donner un livre a marie
 
-
+begin family Det 
 Det(I) (+det ) auxiliary
 	n1[cat:n idx:I det:Z1D qu:minus]![cat:n idx:I det:minus qu:minus]
 	{
@@ -21,23 +21,29 @@ Det(I) (+det ) auxiliary
 	  }
 	  n4 type:foot [cat:n idx:I det:Z4D qu:Z4Q]![cat:n idx:I det:minus qu:Z4BQ ]
 	}
+end family
 
-begin initial
+begin family nC
 % Common Nouns: voyage
-nC(I) (+n -det)
+nC(I) (+n -det) initial
 	n1[cat:n idx:I det:Z1D qu:Z1Q]![cat:n idx:I det:minus qu:minus ]
 	{
 	 n2 anchor
 	}
 % Proper Nouns: Jean
+end family
 
-nP(I) (+n)
+begin family nP
+nP(I) (+n) initial
 	n1[cat:n idx:I det:plus qu:minus]![cat:n idx:I det:plus qu:minus ]
 	{
 	 n2 anchor
 	}
 
+end family
 
+begin family vArity3
+begin initial 
 %1 declarative	gn promet gn sp_a
 n0vn1sp2(E X Y Z)  (-3n +p)
 	n1[cat:p]![]
@@ -697,3 +703,4 @@ rel2vn0n1(E X Y Z) (-2n -nq) auxiliary
 	   }
 	 }
 	 }
+end family vArity3 

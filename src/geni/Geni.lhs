@@ -52,9 +52,8 @@ import Tags (Tags, TagElem, emptyTE, TagSite,
 import Configuration(Params, defaultParams, getConf, treatArgs,
                      grammarFile, tsFile, isTestSuite,
                      GramParams, parseGramIndex,
-                     macrosFile, lexiconFile, semlexFile, grammarType,
-                     GrammarType(TAGML), 
-                     polarised, polsig, chartsharing, 
+                     macrosFile, lexiconFile, semlexFile, 
+                     autopol, polarised, polsig, chartsharing, 
                      semfiltered, orderedadj, extrapol)
 
 import Mstate (Gstats, numcompar, szchart, geniter, initGstats,
@@ -69,8 +68,8 @@ import Treeprint (showLeaves)
 import Lex2 (lexer)
 import Mparser (mParser)
 import Lparser (lexParser, semlexParser)
-import Tsparser (targetSemParser, testSuiteParser, E(..))
-import GrammarXml (parseXmlGrammar, parseXmlLexicon)
+import Tsparser (targetSemParser, testSuiteParser)
+import ParserLib (E(..))
 \end{code}
 }
 
@@ -147,10 +146,10 @@ customGeni :: PState -> GeniFn -> IO GeniResults
 customGeni pst runFn = do 
   mst         <- readIORef pst
   -- lexical selection
-  cand <- runLexSelection pst
+  purecand <- runLexSelection pst
   -- force lexical selection (and hence grammar reading)
   -- to be evaluated before the clock 
-  when (length (show cand) == -1) $ exitWith ExitSuccess
+  when (length (show purecand) == -1) $ exitWith ExitSuccess
   clockBefore <- getCPUTime 
   -- do any optimisations
   let config = pa mst
@@ -158,6 +157,10 @@ customGeni pst runFn = do
       extraPol = extrapol config 
   let -- polarity optimisation (if enabled)
       isPol        = polarised config 
+      isAutoPol    = autopol   config
+      cand         = if (isPol && isAutoPol) 
+                     then detectPols purecand
+                     else purecand
       (candLite, lookupCand) = reduceTags (polsig config) cand
       (_,finalaut) = makePolAut candLite tsem extraPol
       pathsLite    = walkAutomaton finalaut 
@@ -506,13 +509,6 @@ Grammars consist of the following:
 The generator reads these into memory and combines them into a grammar
 (page \pageref{sec:combine_macros}).
 
-There are two types of GenI grammars.  Hand-written grammars have a
-simple human-friendly format.  Automatically generated grammars are
-built from a meta-grammar compiler and have an XML syntax.  The grammar
-index file will indicate what kind of grammar we have.
-
-Note: the semantic lexicon still uses the GeniHand format
-
 \paragraph{loadGrammar} Given the pointer to the monadic state pst it
 reads and parses the grammar file index; and from this information,
 it reads the rest of the grammar (macros, lexicon, etc).  The Macros
@@ -546,7 +542,6 @@ loadLexicon :: PState -> GramParams -> IO ()
 loadLexicon pst config = do 
        let lfilename = lexiconFile config
            sfilename = semlexFile config
-           isTAGML   = (grammarType config == TAGML)
  
        putStr $ "Loading Semantic Lexicon " ++ sfilename ++ "..."
        hFlush stdout
@@ -555,16 +550,12 @@ loadLexicon pst config = do
            semlex    = (semmapper . semlexParser . lexer) sf
        putStr ((show $ length $ keysFM semlex) ++ " entries\n")
 
-       putStr $ "Loading Lexicon " 
-              ++ (if isTAGML then "XML " else "")
-              ++ lfilename ++ "..."
+       putStr $ "Loading Lexicon " ++ lfilename ++ "..."
        hFlush stdout
        lf <- readFile lfilename 
-       let lex' = if isTAGML
-                  then parseXmlLexicon lf
-                  else (lexParser . lexer) lf
+       let lex' = (lexParser . lexer) lf
            lex  = groupByFM iword lex'
-       putStr ((show $ length $ keysFM lex) ++ " entries\n")
+       putStr ((show $ length lex') ++ " entries\n")
        modifyIORef pst (\x -> x{le = combineLexicon semlex lex})
        return ()
 \end{code}
@@ -596,24 +587,17 @@ macros file.  The macros are storded as a hashing function in the monad.
 loadMacros :: PState -> GramParams -> IO ()
 loadMacros pst config = 
   do let filename = macrosFile config
-         isTAGML  = (grammarType config == TAGML)
      --
-     putStr $ "Loading Macros " 
-              ++ (if isTAGML then "XML " else "") 
-              ++ filename ++ "..."
+     putStr $ "Loading Macros " ++ filename ++ "..."
      hFlush stdout
      gf <- readFile filename
-     let (g, u) = if isTAGML  
-                  then (parseXmlGrammar gf, [])
-                  else mParser (lexer gf)
+     let g = case ((mParser.lexer) gf) of 
+                   Ok g     -> g
+                   Failed g -> error g
          sizeg  = sum (map length $ eltsFM g)
-         errmsg  = "Some trees in grammar declared neither initial nor auxiliar.\n  Aborting.\n"
-     if null u -- if no errors
-        then do putStr $ show sizeg ++ " trees in " 
-                putStr $ (show $ sizeFM g) ++ " families\n"
-                modifyIORef pst (\x -> x{gr = g})
-                return ()
-        else error (errmsg ++ (show u))
+     putStr $ show sizeg ++ " trees in " 
+     putStr $ (show $ sizeFM g) ++ " families\n"
+     modifyIORef pst (\x -> x{gr = g})
 \end{code}
 
 \subsection{Target semantics}

@@ -32,7 +32,7 @@ import Tags (idname,mapBySem,emptyTE,tsemantics,tpolarities,
 
 import Configuration(Params, grammarFile, 
                      tsFile, optimisations, 
-                     polarised, polsig, chartsharing, 
+                     autopol, polarised, polsig, chartsharing, 
                      semfiltered, orderedadj, extrapol, footconstr)
 import ParserLib 
 
@@ -110,6 +110,8 @@ We add some buttons for loading files and running the generator.
                             , checked := polarised config ]
 --       predictingChk <- checkBox f [ text := "Predictors"
 --                                   , checked := predicting config ]
+       autopolChk <- checkBox f [ text := "Pol detection"
+                                , checked := autopol config ]
        polsigChk <- checkBox f [ text := "Pol signatures"
                                , checked := polsig config ]
        chartsharingChk <- checkBox f [ text := "Chart sharing"
@@ -123,11 +125,13 @@ We add some buttons for loading files and running the generator.
        extrapolText <- staticText f [ text := showLitePm $ extrapol config ]
        -- commands for the checkboxes
        let togglePolStuff = do c <- get polChk checked
+                               set autopolChk      [ enabled := c ]
                                set polsigChk       [ enabled := c ]
                                set chartsharingChk [ enabled := c ]
                                set extrapolText    [ enabled := c ] 
        set polChk          [on command := do togglePolStuff
                                              toggleChk pst polChk Polarised ] 
+       set autopolChk      [on command := toggleChk pst autopolChk AutoPol ] 
        set polsigChk       [on command := toggleChk pst polsigChk PolSig] 
        -- set predictingChk   [on command := toggleChk pst predictingChk Predicting] 
        set chartsharingChk [on command := toggleChk pst chartsharingChk ChartSharing]
@@ -155,6 +159,7 @@ Pack it all together.
                     column 5 [ dynamic $ widget polChk 
                              , row 5 [ label "  ", column 5 
                                      [ dynamic $ row 5 [ label "Extra: ", widget extrapolText ]
+                                     , dynamic $ widget autopolChk 
                                      , dynamic $ widget polsigChk
                                      , dynamic $ widget chartsharingChk ] ]
                              , dynamic $ widget semfilterChk 

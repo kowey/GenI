@@ -1,4 +1,3 @@
 Macros  = demomac 
 Lexicon = demolex
 SemLexicon = demosemlex 
-GrammarType = GeniHand

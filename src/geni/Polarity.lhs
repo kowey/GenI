@@ -41,7 +41,8 @@ realisation seperately, treating each path as a set of candidate trees.
 \begin{code}
 module Polarity(PolAut,makePolAut,
                 TagLite, reduceTags,
-                walkAutomaton, detectPolPaths, defaultPolPaths,
+                walkAutomaton, detectPols, detectPolPaths, 
+                defaultPolPaths,
                 showLite, showLitePm, showPolPaths, showPolPaths',
                 toGvPolAut, calculateTreeCombos 
                 )
@@ -56,9 +57,9 @@ import Data.List
 --import Data.Set
 
 import Graphviz(GraphvizShow(..))
-import Tags(TagElem(..), mapBySem)
-import Btypes(Pred, Sem, emptyPred,
-              showPred, showSem,
+import Tags(TagElem(..), mapBySem, substnodes)
+import Btypes(Pred, Sem, emptyPred, Ptype(Initial),
+              showPred, showSem, root, gup,
               BitVector, 
               groupByFM, isEmptyIntersect, third)
 \end{code}
@@ -572,6 +573,40 @@ now, we assume that this never happens.
 % ====================================================================
 \section{Further optimisations}
 % ====================================================================
+
+\subsection{Automatic detection}
+
+Automatic detection is not an optimisation in itself, but a means to
+make grammar development with polarities more convenient.  We assign
+every initial tree with a +1 charge for the category of its root node
+and a -1 charge for every category for every substitution node it has.
+So for example, the tree 
+s(n$\downarrow$, cl$\downarrow$, v(aime), n$\downarrow$) should have
+the following polarities: s +1, cl -1, n -2 
+These charges are added to any that previously been defined in the
+grammar.
+
+\begin{code}
+detectPols :: [TagElem] -> [TagElem]
+detectPols = map detectPols'
+
+detectPols' :: TagElem -> TagElem
+detectPols' te =
+  let rcat  = (getcat.gup.root.ttree) te
+      scats = map (getcat.upfn) (substnodes te)
+              where upfn (_,u,_) = u
+      getcat fl = if null f then "" else (snd.head) f
+                  where f = filter (\ (a,_) -> "cat" == a) fl 
+      --
+      pols  = (rcat, 1) : (zip scats negone)
+              where negone = repeat (-1)
+      --
+      oldfm = tpolarities te
+      addpol (p,c) fm = addToFM_C (+) fm p c 
+  in if (ttype te == Initial) 
+     then te { tpolarities = foldr addpol oldfm pols }
+     else te
+\end{code}
 
 \subsection{Chart sharing}
 
