@@ -17,3 +17,5 @@ value propername	%Marie
 value commonNoun        %chat
 value stddeterminer	%*Le* lutin
 
+value CliticT		%Tree for any clitic : Jean *le* donne
+

@@ -21,23 +21,26 @@ semantics:[dem(X)]
 % nouns
 % ----------------------------------------------------------------------
 
+il cl [idx:X]
+semantics:[]
+
 directeur n [idx:X]
-semantics:[directeur(X)]
+semantics:[directeur(+X)]
 
 bureau n  [idx:X]
-semantics:[bureau(X)]
+semantics:[bureau(+X)]
 
 equipe n [idx:X]
-semantics:[equipe(X)]
+semantics:[equipe(+X)]
 
 consultant n [idx:X]
-semantics:[consultant(X)]
+semantics:[consultant(+X)]
 
 allemagne pn [idx:X] % co-anchors would be useful for this word
-semantics:[allemagne(X)]
+semantics:[allemagne(+X)]
 
 seminaire n [idx:X]
-semantics:[seminaire(X)]
+semantics:[seminaire(+X)]
 
 % ----------------------------------------------------------------------
 % adjectives 
@@ -70,12 +73,12 @@ semantics:[de(X Y)]
 % ----------------------------------------------------------------------
 
 auditionne v [evt:I arg1:X arg2:Y] 
-semantics:[auditioner(I X Y)]
+semantics:[auditioner(+I -X -Y)]
 
 organise v [evt:I arg1:X arg2:Y] 
-semantics:[organiser(I X Y)]
+semantics:[organiser(+I -X -Y)]
 
 ennuie v [evt:I arg1:X arg2:Y]
-semantics:[ennuier(I X Y)]
+semantics:[ennuier(+I -X -Y)]
 
 

@@ -255,7 +255,7 @@ declare
 	<syn>{
 		node xR(color=black)[cat = s,bot=[mode = ?fX]]{
 			node xVN(color=black)[cat = vn,top=[mode = ?fX],bot=[mode = ?fY,gen = ?fU,num = ?fZ,pers=?fW]]{
-				node xCop(color=black,mark=subst)[cat = v,top=[cop = +, mode= ?fY,pers=?fW,num=?fZ]]
+				node xCop(color=black,mark=flex)[cat = v, phon=etre, top=[cop = +, mode= ?fY,pers=?fW,num=?fZ]]
 				node xHead(color=black,mark=anchor)[cat = adj,top=[gen=?fU,num=?fZ]]
 			}
 		}
@@ -301,7 +301,7 @@ declare
 {
         <syn>{
 		     node xVN[bot=[num = ?fX, gen = ?fY, pers = ?fZ, mode = ?fW,inv = ?f0]]{
-                     	node xInfl(color=black,mark=subst)[cat = v,top=[num = ?fX, gen = ?fY, pers = ?fZ, mode = ?fW,cop = +,inv = ?f0],bot=[inv = -, num = ?fT,gen = ?fU, pers = ?fV, mode = ?fS]]
+                     	node xInfl(color=black,mark=flex)[cat = v,phon=etre,top=[num = ?fX, gen = ?fY, pers = ?fZ, mode = ?fW,cop = +,inv = ?f0],bot=[inv = -, num = ?fT,gen = ?fU, pers = ?fV, mode = ?fS]]
                      	node xV(color=black)[cat = v,top=[mode = ppart,pp-gen=?fY,pp-num=?fX,aux-pass= -]]
 		     }		              
         }
