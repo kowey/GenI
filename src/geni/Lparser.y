@@ -9,11 +9,25 @@ import ParserLib(Token(..),
                  PosToken, parserError)
 import Btypes
 
-createHandleVars predargs = map fn zpa
-  where fn (h,(p,a)) = ("H" ++ show h,p,a)
-        zpa = zip [1..] predargs
+createHandleVars predargs = 
+  let handle newh oldh = if null oldh 
+                         then "H" ++ show newh 
+                         else oldh
+      fn (nh,((oh,p),a)) = (handle nh oh,p,a)
+      zpa = zip [1..] predargs
+   in map fn zpa
+
+emptyLE = ILE { iword = "",
+                itreename = "", 
+                iparams = [],
+                ipfeat  = [],
+                iptype = Unspecified,
+                isemantics = [],
+                ipredictors = []}
 }
-%name lParser
+
+%name lexParser    LInput
+%name semlexParser SInput
 %tokentype { PosToken }
 
 %token 
@@ -31,27 +45,32 @@ createHandleVars predargs = map fn zpa
  
 %%
 
-Input : 
+LInput : 
      {[]}
- | Def Input
+ | LexEntry LInput
+     {$1:$2}
+        
+LexEntry: id id 
+   { emptyLE { iword = $1, itreename = $2 } }
+
+SInput :
+     {[]}
+ | SDef SInput
      {$1:$2}
 
-LexEntry: id id '(' IDFeat ')' 
-   {ILE{ iword = $1,
-         itreename = $2, 
-         iparams = fst $4,
-         ipfeat = snd $4,
-         iptype = Unspecified,
-         isemantics = [],
-         ipredictors = []}}
-
-Def :
-    LexEntry Sem 
+SDef :
+    SLexEntry Sem 
      {$1{ isemantics = $2 }}
- |  LexEntry '(' '!' PredictorList ')' Sem 
+ |  SLexEntry '(' '!' PredictorList ')' Sem 
      {$1{ isemantics = $6,
           ipredictors = $4}}
-  
+ 
+SLexEntry: id '(' IDFeat ')'
+         {emptyLE { iword   = $1,
+                    iparams = fst $3,
+                    ipfeat  = snd $3 }
+         }
+ 
 Sem: 
      {[]}
  | sem ':' '[' ListPred ']' 
@@ -63,8 +82,10 @@ ListPred :
      {$1:$2}
 
 Pred :
-   id '(' Params ')'  
-     {($1, $3)}
+    id ':' id '(' Params ')'  
+     {(($1,$3),  $5)}
+ |  id '(' Params ')'  
+     {(("", $1), $3)}
 
 Params :
      {[]}

@@ -68,7 +68,7 @@ import Treeprint (showLeaves)
 
 import Lex2 (lexer)
 import Mparser (mParser)
-import Lparser (lParser)
+import Lparser (lexParser, semlexParser)
 import Tsparser (targetSemParser, testSuiteParser, E(..))
 import GrammarXml (parseXmlGrammar, parseXmlLexicon)
 \end{code}
@@ -223,9 +223,7 @@ customGeni pst runFn = do
 
 % --------------------------------------------------------------------
 \section{Lexical selection}
-\label{sec:candidate_selection}
-\label{sec:lexical_selecetion}
-\label{par:lexSelection}.
+\label{sec:candidate_selection} \label{sec:lexical_selecetion} \label{par:lexSelection}
 % --------------------------------------------------------------------
 
 \paragraph{runLexSelection} determines which candidates trees which
@@ -554,7 +552,7 @@ loadLexicon pst config = do
        hFlush stdout
        sf <- readFile sfilename
        let semmapper = mapBySemKeys isemantics
-           semlex    = (semmapper . lParser . lexer) sf
+           semlex    = (semmapper . semlexParser . lexer) sf
        putStr ((show $ length $ keysFM semlex) ++ " entries\n")
 
        putStr $ "Loading Lexicon " 
@@ -564,7 +562,7 @@ loadLexicon pst config = do
        lf <- readFile lfilename 
        let lex' = if isTAGML
                   then parseXmlLexicon lf
-                  else (lParser . lexer) lf
+                  else (lexParser . lexer) lf
            lex  = groupByFM iword lex'
        putStr ((show $ length $ keysFM lex) ++ " entries\n")
        modifyIORef pst (\x -> x{le = combineLexicon semlex lex})
@@ -673,6 +671,8 @@ loadTargetSemStr pst str =
 semantics like \verb$love(me wear(you sw))$ \verb$sweater(sw)$
 and converts it into a flat semantics with handles like
 \verb$love(h1 me h1.3)$ \verb$wear(h1.3 you)$ $sweater(h2 sw)$
+
+FIXME: we do not know how to handle literals with no arguments!
 
 \begin{code}
 flattenTargetSem :: [Tree (String, String)] -> Sem
