@@ -1,4 +1,4 @@
-\documentclass[11pt]{report}
+\documentclass[a4paper,11pt]{report}
 %\documentclass{foils}
 
 \usepackage{geometry,graphicx}
@@ -13,7 +13,7 @@
 
 \usepackage{covington}  % included with GenI
 
-\geometry{verbose,a4paper,tmargin=40mm,bmargin=40mm,lmargin=25mm,rmargin=25mm}
+\geometry{verbose,tmargin=40mm,bmargin=40mm,lmargin=25mm,rmargin=25mm}
 %\input{lambdaTeX}
 
 \pagestyle{fancyplain} 
@@ -83,6 +83,31 @@
 
 This is the source code to the GenI generator being adapted to a
 literate programming style.  
+
+\section{License}
+
+GenI surface realiser\\
+Copyright \copyright 2005 Carlos Areces and Eric Kow
+
+\bigskip
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+\bigskip
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+\bigskip
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 \section{Core files}
 
@@ -157,6 +182,7 @@ Also of interest are XML grammar files (processed with the HaXml toolkit
  \item[GrammarXml.lhs] parser for grammar (in adhoc XML format)
  \item[Configuration.lhs] inteprets result of Cparser.y
 \end{description}
+
 
 % -------------------------------------------------------------------------
 % future literate notes
