@@ -1,0 +1,126 @@
+%% 
+%% Tree Templates
+%%
+%%
+%% INITIAL TREES
+%%   s trees
+%%     (IntrV, TrV, TrVPP)
+%%   np trees
+%%     (Dp, Pn)
+%%   n trees
+%%     (Cn)
+%%
+%% AUXILIARY TREES
+%%   n trees
+%%     (Adj)
+%%   vp trees
+%%     (Adv)
+
+
+%% INITIAL TREES
+
+begin initial
+
+IntrV(Event Agent ! agr:A) 
+	n1[cat:s idx:Event]![]
+	{	
+	 n2 type:subst [cat:np agr:A idx:Agent]![]
+	 n3[cat:vp idx:Event]![]
+	  {
+	   n4 aconstr:noadj [cat:v idx:Event]![]
+	   {
+	    n5 anchor
+	   }
+	  }
+	}
+
+TrV(Event Agent Experiencer ! agr:A) 
+	n1[cat:s idx:Event]![]
+	{
+	 n2 type:subst [cat:np idx:Agent ]![]
+	 n3[cat:vp idx:Event]![]
+	  {
+	   n4[cat:v idx:Event]![]
+	   {
+	    n5 anchor
+	   }
+	   n6 type:subst [cat:np idx:Experiencer ]![]
+	  }
+	}
+
+end initial
+
+TrVPP(Event Agent Theme Loc ! agr:A) initial
+	n1[cat:s idx:Event]![]
+	{
+	  n2 type:subst [cat:np idx:Agent ]![]
+	  n3[cat:vp idx:Event]![]
+	  {
+	    n4[cat:v idx:Event]![]
+	    {
+	      n5 anchor
+	    }
+	    n6 type:subst [cat:np idx:Theme ]![]
+	    n7 aconstr:noadj [cat:pp]![]
+            {
+	      n8[cat:p]![]
+	      {
+	        n9 type:lex "from"
+	      }
+	      n10 type:subst [cat:np idx:Loc ]![]
+	    }
+	  }
+	}
+
+
+Dp(Entity ! agr:A) initial
+	n1[cat:np idx:Entity]![]
+	{
+	  n2[cat:det]![]
+	  {
+	    n3 anchor
+	  }
+	  n4 type:subst [cat:n idx:Entity ]![]
+	}
+
+
+Pn(Entity ! agr:A) initial
+	n1[cat:np idx:Entity]![]
+	{
+	 n2[cat:pn idx:Entity]![]
+	 {
+	  n3 anchor
+	 }
+	}
+
+Cn(Entity ! agr:A) initial
+	n1[cat:n idx:Entity]![]
+	{
+	 n2 anchor
+	}
+
+
+
+%% AUXILIARY TREES
+
+
+Adj(Entity) auxiliary
+	n1[cat:n idx:Entity]![]
+	{
+	  n2[cat:adj]![]
+	  {
+	    n3 anchor
+	  }
+	  n4 type:foot [cat:n idx:Entity ]![]
+	}
+
+
+Adv(Event) auxiliary
+	n1[cat:vp idx:Event]![]
+	{
+	  n2 type:foot [cat:vp idx:Event]![]
+	  n3[cat:adv]![]
+	  {
+	    n4 anchor
+	  }
+	}	

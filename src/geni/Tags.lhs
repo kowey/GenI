@@ -1,0 +1,249 @@
+\chapter{Tags.lhs}
+
+\begin{code}
+module Tags(
+   -- Main Datatypes
+   Tags, TagElem(TE), TagSite, TagDerivation, 
+   SemMap, emptyTE,
+
+   -- Projection Functions
+   idname, tidnum, derivation, ttype, ttree, 
+   substnodes, adjnodes, 
+   tsemantics, tpolarities, tpolpaths,
+   showfeats,
+
+   -- Functions from Tags
+   addToTags, findInTags, 
+
+   -- Functions from TagElem
+   substTagElem,
+
+   -- General functions
+   mapBySem, sumPredictors, drawTagTrees, subsumedBy, showTagSites
+) where
+\end{code}
+
+\begin{code}
+import Data.List (nub, intersperse)
+import Data.Tree
+import FiniteMap (FiniteMap, emptyFM, filterFM,         
+                  addToFM_C, lookupFM, plusFM_C)
+
+import Btypes (Ptype(Initial, Auxiliar), AvPair,
+               Subst, GNode, Flist, Sem, Pred, BitVector,
+               emptyGNode,
+               substFlist, substTree, substSem, showPairs)
+\end{code}
+
+% ----------------------------------------------------------------------
+\section{TagElem}
+% ----------------------------------------------------------------------
+
+Final types used for the combined grammar + lexicon.  Note: we assume that
+a two trees are the same if and only if they have the same tidnum.
+
+\begin{code}
+type TPredictors = FiniteMap AvPair Int 
+type TagSite = (String, Flist, Flist)
+data TagElem = TE {
+                   idname :: String,
+                   tidnum :: Integer,
+                   derivation :: TagDerivation,
+                   ttype :: Ptype,
+                   ttree :: Tree GNode,
+                   substnodes :: [TagSite],
+                   adjnodes :: [TagSite],
+                   tsemantics :: Sem,
+                   -- optimisation stuff
+                   tpolarities  :: FiniteMap String Int,
+                   -- tpredictors  :: TPredictors,
+                   tpolpaths    :: BitVector,
+                   -- display stuff
+                   showfeats    :: Bool
+                }
+             deriving (Show, Eq)
+\end{code}
+
+A tag derivation history consists of a counter representing the number of 
+substitution or adjunctions which have been done to the tree 
+(this is neccesary for distinguishing between derivation nodes later on)
+and a list of 3-tuples representing the operation (s for substitution, a
+for adjunction), the name of the child tree, and the name of the parent 
+tree.
+
+\begin{code}
+type TagDerivation = (Int, [ (Char, String, String) ])
+\end{code}
+
+\begin{code}
+instance Ord TagElem where
+  compare t1 t2 = 
+    case (ttype t1, ttype t2) of
+         (Initial, Initial)   -> compare' 
+         (Initial, Auxiliar)  -> LT
+         (Auxiliar, Initial)  -> GT
+         (Auxiliar, Auxiliar) -> compare' 
+         _                    -> error "TagElem compare not exhaustively defined"
+    where compare' = compare (tidnum t1) (tidnum t2)
+\end{code}
+
+\begin{code}
+type Tags = FiniteMap String [TagElem]                            
+\end{code}
+
+\begin{code}
+emptyTE :: TagElem
+emptyTE = TE { idname = "",
+               tidnum = -1,
+               ttype  = Initial,
+               ttree  = Node emptyGNode [],
+               derivation = (0,[]),
+               substnodes = [], adjnodes   = [],
+               tsemantics = [], 
+               tpolarities = emptyFM,
+               -- tpredictors = emptyFM,
+               tpolpaths   = 0, 
+               showfeats   = False
+             }
+\end{code}
+
+% ----------------------------------------------------------------------
+\section{Tag operations}
+% ----------------------------------------------------------------------
+
+\paragraph{substTag} given a TagElem and a substitution, applies the substitution
+  through all the TagElem
+
+\begin{code}
+substTagElem :: TagElem -> Subst -> TagElem
+substTagElem te l =
+    let substNodes sn = map (\ (n, fu, fd) -> (n, substFlist fu l, substFlist fd l)) sn
+        in te{substnodes = substNodes (substnodes te),
+              adjnodes   = substNodes (adjnodes te),
+              ttree      = substTree (ttree te) l,
+              tsemantics = substSem (tsemantics te) l}
+\end{code}
+
+\paragraph{addToTags} Given a Tags (a FM), a key (a String) and a TagElem 
+it adds the elem to the list of elements associated to the key.
+
+\begin{code}
+addToTags :: Tags -> String -> TagElem -> Tags
+addToTags t k e =
+    let f = \x -> \y -> x ++ y
+    in addToFM_C f t k [e]
+\end{code}
+
+\begin{code}
+findInTags :: Tags -> String -> [TagElem]
+findInTags t k = 
+    case (lookupFM t k) of 
+       Just l -> l
+       Nothing -> []
+\end{code}
+
+% ----------------------------------------------------------------------
+\section{Map by sem}
+% ----------------------------------------------------------------------
+
+\begin{code}
+type SemMap = FiniteMap Pred [TagElem]
+\end{code}
+
+The mapBySem function organises trees such that each literal of the target
+semantics is associated with a list of trees whose semantics are
+subsumed by that literal.  This is useful in at least three places: the
+polarity optimisation, the gui display code, and code for measuring 
+the efficiency of Geni.
+
+Notes: \begin{itemize}
+\item A tree will only appear for the first literal that subsumes its
+semantics.  During the construction process, we will have a mechanism for
+dealing with these trees
+\end{itemize}
+
+\begin{code}
+mapBySem :: [TagElem] -> SemMap
+mapBySem ts = 
+  foldr (mapBySem' lits) emptyFM nonNullT 
+  where lits = nub $ concatMap tsemantics ts 
+        nonNullT = filter (not.null.tsemantics) ts 
+\end{code}
+
+Our helper function focuses on a single tree.  It checks the literals one by
+one.  The first literal that subsumes the trees' semantics is the one that 
+the tree is mapped to.
+
+\begin{code}
+mapBySem' :: Sem -> TagElem -> SemMap -> SemMap
+mapBySem' [] _ fm = fm
+mapBySem' (lit:lits) tree fm = 
+   if subsumedBy (tsemantics tree) lit 
+   then addToFM_C (++) fm lit [tree]
+   else mapBySem' lits tree fm 
+\end{code}
+
+\texttt{subsumedBy} \texttt{cs} \texttt{ts} determines if the 
+candidate semantics \texttt{cs} is subsumed by the proposition
+semantics \texttt{ts}.  Notice how the proposition semantics
+is only a single item where as the candidate semantics is a 
+list.
+
+We assume that 
+\begin{itemize}
+\item most importantly that cs has already its semantics
+      instatiated (all variables assigned)
+\item cs and ts are sorted 
+\item the list in each element of cs and ts is itself sorted 
+\end{itemize}
+
+\begin{code}
+subsumedBy :: Sem -> Pred -> Bool 
+subsumedBy [] _ = False 
+subsumedBy ((ch, cp, cla):cl) (th, tp,tla)
+    | (ch == th) && (cp == tp) && (cla == tla) = True 
+    -- if we haven't yet overshot, try for the next one
+    | cp  < tp                   = subsumedBy cl (th, tp, tla)
+    | otherwise                  = False
+\end{code}
+
+% ----------------------------------------------------------------------
+\section{Predictors}
+% ----------------------------------------------------------------------
+
+\paragraph{sumPredictors} merges two tree predictors together.
+The idea is that if one tree has $-2np$ and the other $+np$, then
+this will merge to $-np$.  
+
+\begin{code}
+sumPredictors :: TPredictors -> TPredictors -> TPredictors
+sumPredictors tp1 tp2 = 
+  filterFM (\_ e -> e /= 0) $ plusFM_C (+) tp1 tp2
+\end{code}
+
+
+% ----------------------------------------------------------------------
+\section{Drawings TAG Tree}
+% ----------------------------------------------------------------------
+
+This provides a convenient wrapper for drawing a TAG tree or list of
+trees in String form.  
+
+\begin{code}
+drawTagTrees :: [TagElem] -> String
+drawTagTrees tes = concat $ intersperse "\n" $ map drawTagTree tes  
+
+drawTagTree :: TagElem -> String 
+drawTagTree te = idname te ++ ":\n" ++ (drawTree $ ttree te)
+\end{code}
+
+\paragraph{showTagSites} is useful for debugging adjunction and
+substitution nodes
+
+\begin{code}
+showTagSites :: [TagSite] -> String
+showTagSites sites = concat $ intersperse "\n  " $ map fn sites
+  where fn (n,t,b) = n ++ "/" ++ showPairs t ++ "/" ++ showPairs b
+\end{code}
+
+

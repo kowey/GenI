@@ -1,0 +1,182 @@
+%% 05 march 2004
+%% La croisiere coute cher
+%% Le cout de la croisiere est eleve
+%% La croisiere a un cout eleve
+
+begin initial
+
+Dp(I) (! +dp) 
+	n1[cat:np idx:I]![]
+	{
+	  n2[cat:det]![]
+	  {
+	    n3 anchor
+	  }
+	  n4 type:subst [cat:n idx:I]![]
+	}
+
+Det(I) (! +det)
+	  n2[cat:det]![]
+	  {
+	    n3 anchor
+	  }
+
+Cn(I) (+np ! -dp) 
+	n1[cat:n idx:I]![]
+	{
+	 n2 anchor
+	}
+
+%% --------------------------------------------------------------------- 
+%% la croisiere coute cher 
+%% --------------------------------------------------------------------- 
+
+Np_V_AdvP(E X Y) (-np -adv)
+	n1[cat:s]![]
+	{
+	 n2 type:subst [cat:np idx:X]![]
+	 n3[cat:v idx:E]![]
+	   {
+	    n4 anchor
+	   }
+	 n5 type:subst [cat:advp idx:Y]![]
+	 }
+
+Np_Vpart_AdvP(E X Y) (-adv) auxiliary
+	n1[cat:n]![]
+	{
+	 n2 type:foot [cat:np idx:X]![]
+	 n3[cat:v idx:E]![vmode:part]
+	   {
+	    n4 anchor
+	   }
+	 n5 type:subst [cat:advp idx:Y]![]
+	 }
+
+
+N_CObj_V_N0(E X Y) (-np ! -qrel:obj) auxiliary
+	n1[cat:n]![]
+	{
+	 n2 type:foot [cat:n idx:Y]![]
+	 n3[cat:p idx:E]![]
+	   {
+	    n4 type:subst [cat:c]![]
+	    n5 [cat:p]![]
+	       {
+		n6 [cat:v]![]
+		{
+		 n7 anchor
+		}
+		}
+	    n8 type:subst [cat:np]![idx:X]
+	   }
+          }
+
+N_CSubj_V_Adv(E X Y) (-adv ! -qrel:subj) auxiliary
+	n1[cat:n]![]
+	{
+	 n2 type:foot [cat:n idx:X]![]
+	 n3[cat:p idx:E]![]
+	   {
+	    n4 type:subst [cat:c]![]
+	    n5 [cat:p]![]
+	       {
+		n6 [cat:v]![]
+		{
+		 n7 anchor
+		}
+		}
+	    n8 type:subst [cat:adv]![idx:Y]
+	   }
+          }
+
+
+AdvP(I) (+adv)
+	n1[cat:advp idx:I ]![]
+	{
+	 n2 anchor
+	}
+
+%% --------------------------------------------------------------------- 
+%% la cout de la croisiere est eleve 
+%% --------------------------------------------------------------------- 
+
+Np_Cop_AdjP(E Y)  (-np ! -cop:_)
+	n1[cat:s]![]
+	{
+	 n2 type:subst [cat:np idx:E]![]
+	 n3 type:subst [cat:cop]![]
+	 n5 [cat:adjp idx:Y]![]
+	   {
+             n4 anchor
+           }
+	 }
+
+NomRel(E X) (! -dp -pp) 
+	n1[cat:n idx:E]![idx:E]
+	{
+	 n2 anchor
+	 n3 [cat:np]![]
+         {
+          n4 type:subst [cat:prep phon:de]![]
+          n5 type:subst [cat:np idx:X]![]
+	  }
+	}
+
+Cop(X) (! +cop:_)
+         n3[cat:cop]![]
+           {
+             n4 anchor
+           }
+
+
+Prep(X ! phon:P) (!+pp)
+	n1[cat:prep phon:de]![]
+	{
+	  n2 anchor
+	}
+
+
+%% --------------------------------------------------------------------- 
+%% la croisiere a un cout eleve 
+%% --------------------------------------------------------------------- 
+
+
+Np_a_Np(I1 I2) (-np ! -det -vsup:_)
+        n1[cat:s]![]
+        {
+         n2 type:subst [cat:np idx:J1]![]
+	 n3 type:subst [cat:vsup]![]
+         n5 [cat:np idx:I1]![]
+           {
+	     n6 type:subst [cat:det]![] 
+             n7 [cat:n idx:I1]![idx:I2]
+	     {
+	       n8 anchor
+             }
+           }
+        }
+
+VAux(X) (! +vsup:_)
+	 n3[cat:vsup]![]
+	   {
+            n4 anchor
+           }
+
+
+end initial
+
+%% --------------------------------------------------------------------- 
+%% la croisiere a un cout eleve (aux)
+%% --------------------------------------------------------------------- 
+
+Adj(I) auxiliary
+        n1[cat:n idx:_]![]
+        {
+          n2 type:foot [cat:n]![idx:I]
+          n3[cat:adj]![]
+          {
+            n4 anchor
+          }
+        }
+

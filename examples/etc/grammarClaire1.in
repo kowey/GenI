@@ -1,0 +1,111 @@
+%% 30 june 2003
+%% Tree economy through Top and Bottom features
+%% 
+%% Tree Templates
+%%
+%%
+%% INITIAL TREES
+%%   s trees
+%%     (TrV)
+%%   np trees
+%%     (Pn)
+%%   aux trees
+%%     (Aux)
+%%   comp trees
+%%     (Comp)
+%%
+%% AUXILIARY TREES
+%%   s trees
+%%     (TrSentInv,TrSent)
+
+
+%% INITIAL TREES
+
+begin initial
+
+TrV(Event Agent Experiencer ! agr:A) 
+	n1[cat:s idx:Event]![]
+	{
+	 n2 type:subst [cat:np idx:Agent ]![]
+	 n3[cat:vp idx:Event]![]
+	  {
+	   n4[cat:v idx:Event]![]
+	   {
+	    n5 anchor
+	   }
+	   n6 type:subst [cat:np idx:Experiencer ]![]
+	  }
+	}
+
+TrExtrObj(Event Agent Experiencer ! agr:A) 
+	n1[cat:s idx:Event]![]
+	{
+	 n2 [type:subst [cat:wh,idx:Experiencer]![]
+	 n3[cat:s idx:Event inv:plus]![inv:minus]
+	  {
+	   n4 type:subst [cat:np idx:Agent ]![]
+	   n5 [cat:vp idx:Event]![]
+	   {
+	    n6 [cat:v idx:Event]![]
+	     {n7 anchor }
+	    n8 [cat:np idx:Experiencer ]![]
+	     {n9 [cat:trace ]![]}
+	   }
+	  }
+	}
+
+end initial
+
+Pn(Entity ! agr:A) initial
+	n1[cat:np idx:Entity]![]
+	{
+	 n2[cat:pn idx:Entity]![]
+	 {
+	  n3 anchor
+	 }
+	}
+
+Aux(Event) initial
+	n1[cat:aux idx:Event]![]
+	{
+	 n2 anchor
+	}
+
+Wh(Entity) initial
+	n1[cat:wh]![]
+	{
+	 n2 anchor
+	}
+
+%% AUXILIARY TREES
+
+TrSentInv(Event Agent Experiencer ! agr:A) 
+	n1[cat:s idx:Event]![inv:plus]
+	{
+	 n2 [cat:aux]![]
+	 n3 [cat:s idx:Event]![]
+	  {
+	   n4 type:subst [cat:np idx:Agent ]![]
+	   n5 [cat:vp idx:Event]![]
+	   {
+	    n6 [cat:v idx:Event]![]
+	     {n7 anchor }
+	    n8 type:foot [cat:s idx:Experiencer inv:minus ]![]
+	   }
+	  }
+	}
+
+
+TrSent(Event Agent Experiencer ! agr:A) 
+	n1[cat:s idx:Event]![]
+	{
+	 n2 type:subst [cat:np idx:Agent ]![]
+	 n3[cat:vp idx:Event]![]
+	  {
+	   n4[cat:v idx:Event]![]
+	   {
+	    n5 anchor
+	   }
+	   n6 type:foot [cat:s idx:Experiencer ]![]
+	  }
+	}

@@ -1,0 +1,176 @@
+\documentclass[11pt]{report}
+%\documentclass{foils}
+
+\usepackage{geometry,graphicx}
+\usepackage{verbatim}
+\usepackage{url}
+\usepackage{html}
+\usepackage{fancybox}
+\usepackage{fancyhdr}
+\usepackage{framed}
+
+\usepackage{covington}  % included with GenI
+
+\geometry{verbose,a4paper,tmargin=40mm,bmargin=40mm,lmargin=25mm,rmargin=25mm}
+%\input{lambdaTeX}
+
+\pagestyle{fancyplain} 
+\lfoot{Geni source code}
+\cfoot{\thepage}
+\rfoot{}
+
+\setlength\parindent{0pt}
+\setlength{\fboxsep}{0.1pt}
+
+\renewcommand\FrameHeightAdjust{1pt}
+
+
+\newenvironment{framedcode}% using default \FrameCommand
+  {\MakeFramed {\advance\hsize-\width \FrameRestore}}%
+  {\endMakeFramed}
+
+\newenvironment{code}% using default \FrameCommand
+  {\VerbatimEnvironment
+   \footnotesize
+   %\begin{framedcode}
+   \begin{Verbatim}
+  }%
+  {\end{Verbatim} 
+   %\end{framedcode}
+   \normalsize }
+
+%\lstloadlanguages{Haskell} 
+%\lstnewenvironment{code} 
+%    {\lstset{}% 
+%      \csname lst@SetFirstLabel\endcsname} 
+%    {\csname lst@SaveFirstLabel\endcsname} 
+%    \lstset{ 
+%      basicstyle=\small\ttfamily, 
+%      flexiblecolumns=false, 
+%      basewidth={0.5em,0.45em}, 
+%      literate={-}{{$-$}}1 {+}{{$+$}}1 {/}{{$/$}}1 {*}{{$*$}}1 {=}{{$=$}}1 
+%               {>}{{$>$}}1 {<}{{$<$}}1 {\\}{{$\lambda$}}1 
+%               {->}{{$\rightarrow$}}2 {>=}{{$\geq$}}2 {<-}{{$\leftarrow$}}2 
+%               {<=}{{$\leq$}}2 {=>}{{$\Rightarrow$}}2 {\ .}{{$\circ$}}2 
+%               {>>}{{>>}}2 {>>=}{{>>=}}2 
+%    } 
+
+\newcommand{\jargon}{\textbf}
+\newcommand{\natlang}{\textit}
+\newcommand{\semexpr}{\texttt}
+
+\begin{document}
+\title{Literate Geni}
+\author{Langue et Dialogue\\LORIA}
+
+\maketitle
+\tableofcontents
+
+% -------------------------------------------------------------------------
+% Overview 
+% -------------------------------------------------------------------------
+
+\chapter{Overview}
+
+In this chapter, we provide a basic overview of the Geni source code
+
+\section{Core files}
+
+The two core files are Geni.lhs and Mstate.lhs; they are the ones that
+perform the candidate selection and generation.  Geni.lhs also controls
+the input file parsers.
+
+\begin{description}
+ \item[Geni.lhs] - parses and formats data for the generator 
+ \item[Mstate.lhs] - the chart generator itself (note: substitution,
+ adjunction, FS unification are done here, not in Tags.hs)
+\end{description}
+
+\section{Data types}
+
+We try to encapsulate some basic or generic operations into these two
+data type files.  A lot of the functions in the core files will make
+heavy use of the following two files.
+
+\begin{description}
+ \item[Btypes.hs] - basic data types 
+ \item[Tags.hs] - TAG specific data types
+\end{description}
+
+\section{User Interface}
+
+We use the WxHaskell toolkit for the Geni user interface.  Geni
+can also be used without the GUI if you edit the .genirc file.
+We currently visualise our results with Graphviz, a third party graph
+visualisation tool.
+
+\begin{description}
+ \item[Main.hs] - provides console and batch processing 
+ \item[Gui.lhs] - main GUI code 
+ \item[Graphviz.lhs] - interacts with the graphviz drawing tool
+\end{description}
+
+\section{Input files}
+
+We use the package \textit{Happy} to create parsers for our various
+input files.  Happy is essentially Yacc for Haskell.
+
+\begin{description}
+ \item[Cparser.y] parser for command line arguments
+ \item[Mparser.y] parser for macro files 
+ \item[Lparser.y] parser for lexicon files 
+ \item[Tparser.y] parser for target semantics files 
+\end{description}
+
+We use the package \textit{Alex} to generate a lexer that is common to
+all parsers.
+
+\begin{description}
+ \item[Lex2.x] code for the common lexer
+ \item[ParserLib.hs] data types shared by the lexer and the parsers 
+\end{description}
+
+Also of interest are XML grammar files (processed with the HaXml toolkit
+) and the Configuration file (.genirc)
+
+\begin{description}
+ \item[GrammarXml.lhs] parser for grammar (in adhoc XML format)
+ \item[Configuration.lhs] inteprets result of Cparser.y
+\end{description}
+
+% -------------------------------------------------------------------------
+% future literate notes
+% -------------------------------------------------------------------------
+
+% talk about the fact that we use FiniteMap
+
+\part{Core files}
+
+\input{Geni.lhs}       
+\input{Mstate.lhs}       
+\input{Btypes.lhs}       
+\input{Tags.lhs}       
+
+\part{Optimisation}
+
+\input{Polarity.lhs}       
+\input{Predictors.lhs}
+
+\chapter{Other optimisations}
+
+\section{Semantic filtering}
+
+See section \ref{sec:semfilter}
+
+\part{User interface}
+
+\input{Gui.lhs}
+\input{Graphviz.lhs}
+\input{Treeprint.lhs}
+
+\part{Input files}
+
+\input{Configuration.lhs}
+\input{GrammarXml.lhs}
+
+\end{document}

@@ -1,0 +1,10 @@
+semantics : [ chase(e1 a b)
+	      cat(a)
+	      black(a)
+	      fierce(a)
+	      def(a)
+	      def(b)
+	      mouse(b)
+	     ]
+
+

@@ -1,0 +1,12 @@
+*.hi
+Lex2.hs
+Cparser.hs
+Lparser.hs
+Mparser.hs
+Tsparser.hs
+PolParser.hs
+*.pdf
+*.aux
+*.log
+*.out
+*.toc

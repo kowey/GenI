@@ -1,0 +1,169 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%	DETERMINERS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Det(I) (+det ) auxiliary
+	n1[cat:n idx:I det:plus qu:minus]![cat:n idx:I det:plus qu:minus]
+	{
+	  n2[cat:det]![]
+	  {
+	    n3 anchor
+	  }
+	  n4 type:foot [cat:n idx:I det:Z4D qu:Z4Q]![cat:n idx:I det:minus qu:Z4BQ ]
+	}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%	NOUNS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+begin initial
+% Common Nouns: voyage
+nC(I) (+n -det)
+	n1[cat:n idx:I det:Z1D qu:Z1Q]![cat:n idx:I det:minus qu:minus ]
+	{
+	 n2 anchor
+	}
+
+% Proper Nouns: Jean
+
+nP(I) (+n)
+	n1[cat:n idx:I det:plus qu:minus]![cat:n idx:I det:plus qu:minus ]
+	{
+	 n2 anchor
+	}
+
+end initial
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%	ADJECTIVES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+adj_post(I)  auxiliary
+	n0[cat:n idx:I det:D1 qu:Q1]![cat:n idx:I det:minus qu:minus ]
+	{
+	n1 type:foot [cat:n idx:I det:minus qu:minus]!
+	   [cat:n idx:I det:minus qu:Q2 ]
+	n2[cat:a]![]
+	{
+	 n3 anchor
+	}
+	}
+
+adj_pre(I)  auxiliary
+	n0[cat:n idx:I det:D1 qu:Q1]![cat:n idx:I det:minus qu:minus ]
+	{
+	n1[cat:a]![]
+	{
+	 n2 anchor
+	}
+	n3 type:foot [cat:n idx:I det:minus qu:minus]!
+	   [cat:n idx:I det:minus qu:Q2 ]
+	}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%	TRANSITIVE VERBS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+begin initial
+
+% infinitive
+% chasser une souris vinfn1
+vinfn1(E X Y) (-n +pinf) 
+	n1[cat:p idx:E mode:inf sujidx:X]![cat:n idx:Y mode:_ sujidx:_]
+	{
+	 n2[cat:v idx:E]![]
+	   {
+	    n3 anchor
+	   }
+         n4 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y det:Z5D qu:Z5Q ]
+	 }
+
+% declarative
+% le chat chasse la souris
+n0vn1(E X Y) (-2n +p)
+	n1[cat:p]![]
+	{
+	 n2 type:subst [cat:n idx:X det:plus qu:minus]!
+	 [cat:n idx:X det:_ qu:_ ]
+	 n3[cat:v idx:E]![]
+	   {
+	    n4 anchor
+	   }
+         n5 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y
+	 det:Z5D qu:Z5Q ]
+	 }
+
+% question sujet	
+% qui chasse une souris ?
+qu0vn1(E X Y) (-n -c +q) 
+	n1[cat:p]![]
+	{
+	 n2 type:subst [cat:c idx:X det:plus qu:minus]!
+	 [cat:n idx:X det:Z2bDet qu:Z2bQu ]
+	 n3[cat:v idx:E]![]
+	   {
+	    n4 anchor
+	   }
+         n5 type:subst [cat:n idx:Y det:plus qu:minus]!
+	 [cat:n idx:Y det:Z5D qu:Z5Q ]
+ 	 }
+
+% question objet
+% que chasse le chat ?
+qu1vn0(E X Y) (-n -nq +q)
+	n1[cat:p]![]
+	{
+	 n2 type:subst [cat:n idx:Y det:plus qu:plus]!
+	 [cat:n idx:Y det:_ qu:plus ]
+	 n3[cat:p idx:E]![]
+	   {
+            n4[cat:v idx:E]![cat:p idx:E]
+	     {
+	      n5 anchor
+	     }
+            n6 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X
+	    det:_ qu:_ ]
+          }
+	  }
+
+end initial
+
+% relative sujet
+% le chat qui chasse la souris
+
+rel0vn1(E X Y) (-n -c) auxiliary
+	n0[cat:n idx:X det:plus qu:_]![cat:n idx:X det:_ qu:_ ]
+	{
+	n1 type:foot [cat:n idx:X det:_ qu:_]![cat:n idx:X det:_ qu:_ ]
+	n2[cat:p]![]
+	{
+	 n3 type:subst [cat:c idx:X det:plus qu:minus]!
+	 [cat:n idx:X det:_ qu:_ ]
+	 n4[cat:v idx:E]![]
+	   {
+	    n5 anchor
+	   }
+         n6 type:subst [cat:n idx:Y det:plus qu:minus]!
+	 [cat:n idx:Y det:Z5D qu:Z5Q ]
+        }}
+
+% relative objet
+% la souris que chasse le chat
+
+rel1vn0(E X Y)  (-n -c) auxiliary
+	n0[cat:n idx:Y det:plus qu:_]![cat:n idx:Y det:_ qu:_ ]
+	{
+	n1 type:foot [cat:n idx:Y det:_ qu:_]!
+	[cat:n idx:Y det:_ qu:_ ]
+	n2[cat:p]![]
+	{
+	 n3 type:subst [cat:c idx:X det:plus qu:minus]!
+	 [cat:n idx:X det:_ qu:_ ]
+	 n4[cat:v idx:E]![]
+	   {
+	    n5 anchor
+	   }
+         n6 type:subst [cat:n idx:X det:plus qu:minus]!
+	 [cat:n idx:X det:Z5D qu:Z5Q ]         
+	 }
+	 }

@@ -1,0 +1,21 @@
+%
+% "Jean promet a Marie de persuader Paul de persuader Pierre de
+% persuader Olivier de donner
+% un livre a Claire" 
+
+semantics : [ promise(e1 a b e2)
+	      jean(a)
+	      marie(b)
+	      convince(e2 a d e3)
+	      paul(d)
+	      convince(e3 d e e4)
+	      pierre(e)
+	      convince(e4 e o e5)
+	      olivier(o)
+	      give(e5 o l f)
+	      indef(l)
+	      book(l)
+	      claire(f)
+	     ]
+
+

@@ -1,0 +1,12 @@
+semantics : [ promise(e1 a b e2)
+	      jean(a)
+	      marie(b)
+	      convince(e2 a d e3)
+	      give(e3 d c e)
+	      indef(c)
+	      book(c)
+	      paul(d)
+	      claire(e)
+	     ]
+
+

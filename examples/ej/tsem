@@ -1,0 +1,7 @@
+semantics : [man(s1 a) 
+             remove(e a ex h)
+	     rabbit(s2 ex)
+	     white(s6 ex)
+	     fast (s5 e)
+	     hat(s3 h)]
+

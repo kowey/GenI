@@ -1,0 +1,49 @@
+%% 05 march 2004
+%% La croisiere coute cher
+%% Le cout de la croisiere est eleve
+%% La croisiere a un cout eleve
+
+la Dp(X)
+la Det(X)
+un Det(X)
+
+
+croisiere Cn(I) 
+semantics:[croisiere(I)]
+
+%% --------------------------------------------------------------------- 
+%% la croisiere coute cher 
+%% --------------------------------------------------------------------- 
+
+coute Np_V_AdvP(E X Y) 
+semantics:[cost(E X Y)]
+
+cher AdvP(I)
+semantics:[high(I)]
+
+
+%% --------------------------------------------------------------------- 
+%% la cout de la croisier est eleve 
+%% --------------------------------------------------------------------- 
+
+de Prep(X ! phon:de)
+
+cout NomRel(E X) 
+semantics:[cost(E X Y)]
+
+eleve Np_Cop_AdjP(E Y) (! -cop:est)
+semantics:[high(Y)]
+
+est Cop(I) (! +cop:est)
+
+%% --------------------------------------------------------------------- 
+%% la croisiere a un cout eleve 
+%% --------------------------------------------------------------------- 
+
+cout Np_a_Np(E Y) (! -vsup:avoir)
+semantics:[cost(E X Y)]
+
+a VAux(_) (! +vsup:avoir)
+
+eleve Adj(I)
+semantics:[high(I)]

@@ -1,0 +1,1576 @@
+<grammar>
+ <entry>
+   <syntax>
+     <node mark="none">
+       <features>
+         <avm>
+           <feature name="bot">
+             <avm>
+               <feature name="mode">
+                 <var>A</var>
+               </feature>
+               <feature name="wh">
+                 <id>minus</id>
+               </feature>
+             </avm>
+           </feature>
+           <feature name="cat">
+             <id>s</id>
+           </feature>
+         </avm>
+         <node mark="subst">
+           <features>
+             <avm>
+               <feature name="cat">
+                 <id>n</id>
+               </feature>
+               <feature name="top">
+                 <avm>
+                   <feature name="idx">
+                     <var>B</var>
+                   </feature>
+                   <feature name="num">
+                     <var>C</var>
+                   </feature>
+                   <feature name="pers">
+                     <var>D</var>
+                   </feature>
+                 </avm>
+               </feature>
+             </avm>
+           </features>
+         </node>
+         <node mark="none">
+           <features>
+             <avm>
+               <feature name="bot">
+                 <avm>
+                   <feature name="bar">
+                     <id>ii</id>
+                   </feature>
+                   <feature name="mode">
+                     <var>E</var>
+                   </feature>
+                 </avm>
+               </feature>
+               <feature name="cat">
+                 <id>v</id>
+               </feature>
+               <feature name="top">
+                 <avm>
+                   <feature name="bar">
+                     <id>ii</id>
+                   </feature>
+                   <feature name="mode">
+                     <var>A</var>
+                   </feature>
+                   <feature name="num">
+                     <var>C</var>
+                   </feature>
+                   <feature name="pers">
+                     <var>D</var>
+                   </feature>
+                 </avm>
+               </feature>
+             </avm>
+             <node mark="none">
+               <features>
+                 <avm>
+                   <feature name="bot">
+                     <avm>
+                       <feature name="bar">
+                         <id>i</id>
+                       </feature>
+                       <feature name="mode">
+                         <id>ind</id>
+                       </feature>
+                     </avm>
+                   </feature>
+                   <feature name="cat">
+                     <id>v</id>
+                   </feature>
+                   <feature name="top">
+                     <avm>
+                       <feature name="bar">
+                         <id>i</id>
+                       </feature>
+                       <feature name="mode">
+                         <var>E</var>
+                       </feature>
+                     </avm>
+                   </feature>
+                 </avm>
+                 <node mark="none">
+                   <features>
+                     <avm>
+                       <feature name="cat">
+                         <id>aime</id>
+                       </feature>
+                     </avm>
+                   </features>
+                 </node>
+               </features>
+             </node>
+           </features>
+         </node>
+         <node mark="subst">
+           <features>
+             <avm>
+               <feature name="cat">
+                 <id>n</id>
+               </feature>
+               <feature name="top">
+                 <avm>
+                   <feature name="idx">
+                     <var>F</var>
+                   </feature>
+                 </avm>
+               </feature>
+             </avm>
+           </features>
+         </node>
+       </features>
+     </node>
+   </syntax>
+   <semantics>
+     <literal negated="no">
+       <label>
+         <const>J</const>
+       </label>
+       <predicate>
+         <id>aimer</id>
+       </predicate>
+       <argument>
+         <const>G</const>
+       </argument>
+       <argument>
+         <var>H</var>
+       </argument>
+       <argument>
+         <var>I</var>
+       </argument>
+     </literal>
+   </semantics>
+ </entry>
+ <entry>
+   <syntax>
+     <node mark="none">
+       <features>
+         <avm>
+           <feature name="bot">
+             <avm>
+               <feature name="mode">
+                 <var>A</var>
+               </feature>
+               <feature name="wh">
+                 <id>minus</id>
+               </feature>
+             </avm>
+           </feature>
+           <feature name="cat">
+             <id>s</id>
+           </feature>
+         </avm>
+         <node mark="subst">
+           <features>
+             <avm>
+               <feature name="cat">
+                 <id>n</id>
+               </feature>
+               <feature name="top">
+                 <avm>
+                   <feature name="idx">
+                     <var>B</var>
+                   </feature>
+                   <feature name="num">
+                     <var>C</var>
+                   </feature>
+                   <feature name="pers">
+                     <var>D</var>
+                   </feature>
+                 </avm>
+               </feature>
+             </avm>
+           </features>
+         </node>
+         <node mark="none">
+           <features>
+             <avm>
+               <feature name="bot">
+                 <avm>
+                   <feature name="bar">
+                     <id>ii</id>
+                   </feature>
+                   <feature name="mode">
+                     <var>E</var>
+                   </feature>
+                 </avm>
+               </feature>
+               <feature name="cat">
+                 <id>v</id>
+               </feature>
+               <feature name="top">
+                 <avm>
+                   <feature name="bar">
+                     <id>ii</id>
+                   </feature>
+                   <feature name="mode">
+                     <var>A</var>
+                   </feature>
+                   <feature name="num">
+                     <var>C</var>
+                   </feature>
+                   <feature name="pers">
+                     <var>D</var>
+                   </feature>
+                 </avm>
+               </feature>
+             </avm>
+             <node mark="none">
+               <features>
+                 <avm>
+                   <feature name="bot">
+                     <avm>
+                       <feature name="bar">
+                         <id>i</id>
+                       </feature>
+                       <feature name="mode">
+                         <id>ind</id>
+                       </feature>
+                     </avm>
+                   </feature>
+                   <feature name="cat">
+                     <id>v</id>
+                   </feature>
+                   <feature name="top">
+                     <avm>
+                       <feature name="bar">
+                         <id>i</id>
+                       </feature>
+                       <feature name="mode">
+                         <var>E</var>
+                       </feature>
+                     </avm>
+                   </feature>
+                 </avm>
+                 <node mark="none">
+                   <features>
+                     <avm>
+                       <feature name="cat">
+                         <id>aiment</id>
+                       </feature>
+                     </avm>
+                   </features>
+                 </node>
+               </features>
+             </node>
+           </features>
+         </node>
+         <node mark="subst">
+           <features>
+             <avm>
+               <feature name="cat">
+                 <id>n</id>
+               </feature>
+               <feature name="top">
+                 <avm>
+                   <feature name="idx">
+                     <var>F</var>
+                   </feature>
+                 </avm>
+               </feature>
+             </avm>
+           </features>
+         </node>
+       </features>
+     </node>
+   </syntax>
+   <semantics>
+     <literal negated="no">
+       <label>
+         <const>J</const>
+       </label>
+       <predicate>
+         <id>aimer</id>
+       </predicate>
+       <argument>
+         <const>G</const>
+       </argument>
+       <argument>
+         <var>H</var>
+       </argument>
+       <argument>
+         <var>I</var>
+       </argument>
+     </literal>
+   </semantics>
+ </entry>
+ <entry>
+   <syntax>
+     <node mark="none">
+       <features>
+         <avm>
+           <feature name="cat">
+             <id>s</id>
+           </feature>
+         </avm>
+         <node mark="subst">
+           <features>
+             <avm>
+               <feature name="cat">
+                 <id>n</id>
+               </feature>
+               <feature name="top">
+                 <avm>
+                   <feature name="idx">
+                     <var>A</var>
+                   </feature>
+                   <feature name="num">
+                     <var>B</var>
+                   </feature>
+                   <feature name="pers">
+                     <var>C</var>
+                   </feature>
+                 </avm>
+               </feature>
+             </avm>
+           </features>
+         </node>
+         <node mark="none">
+           <features>
+             <avm>
+               <feature name="cat">
+                 <id>v</id>
+               </feature>
+               <feature name="top">
+                 <avm>
+                   <feature name="bar">
+                     <id>ii</id>
+                   </feature>
+                   <feature name="num">
+                     <var>B</var>
+                   </feature>
+                   <feature name="pers">
+                     <var>C</var>
+                   </feature>
+                 </avm>
+               </feature>
+             </avm>
+             <node mark="none">
+               <features>
+                 <avm>
+                   <feature name="cat">
+                     <id>v</id>
+                   </feature>
+                   <feature name="top">
+                     <avm>
+                       <feature name="bar">
+                         <id>i</id>
+                       </feature>
+                     </avm>
+                   </feature>
+                 </avm>
+                 <node mark="none">
+                   <features>
+                     <avm>
+                       <feature name="cat">
+                         <id>etre</id>
+                       </feature>
+                     </avm>
+                   </features>
+                 </node>
+               </features>
+             </node>
+             <node mark="none">
+               <features>
+                 <avm>
+                   <feature name="bot">
+                     <avm>
+                       <feature name="mode">
+                         <id>ind</id>
+                       </feature>
+                     </avm>
+                   </feature>
+                   <feature name="cat">
+                     <id>v</id>
+                   </feature>
+                   <feature name="top">
+                     <avm>
+                       <feature name="bar">
+                         <id>i</id>
+                       </feature>
+                     </avm>
+                   </feature>
+                 </avm>
+                 <node mark="none">
+                   <features>
+                     <avm>
+                       <feature name="cat">
+                         <id>aime</id>
+                       </feature>
+                     </avm>
+                   </features>
+                 </node>
+               </features>
+             </node>
+           </features>
+         </node>
+         <node mark="none">
+           <features>
+             <avm>
+               <feature name="cat">
+                 <id>pp</id>
+               </feature>
+             </avm>
+             <node mark="none">
+               <features>
+                 <avm>
+                   <feature name="cat">
+                     <id>p</id>
+                   </feature>
+                 </avm>
+                 <node mark="none">
+                   <features>
+                     <avm>
+                       <feature name="cat">
+                         <id>par</id>
+                       </feature>
+                     </avm>
+                   </features>
+                 </node>
+               </features>
+             </node>
+             <node mark="subst">
+               <features>
+                 <avm>
+                   <feature name="cat">
+                     <id>n</id>
+                   </feature>
+                   <feature name="top">
+                     <avm>
+                       <feature name="idx">
+                         <var>D</var>
+                       </feature>
+                     </avm>
+                   </feature>
+                 </avm>
+               </features>
+             </node>
+           </features>
+         </node>
+       </features>
+     </node>
+   </syntax>
+   <semantics>
+     <literal negated="no">
+       <label>
+         <const>H</const>
+       </label>
+       <predicate>
+         <id>aimer</id>
+       </predicate>
+       <argument>
+         <const>E</const>
+       </argument>
+       <argument>
+         <var>F</var>
+       </argument>
+       <argument>
+         <var>G</var>
+       </argument>
+     </literal>
+   </semantics>
+ </entry>
+ <entry>
+   <syntax>
+     <node mark="none">
+       <features>
+         <avm>
+           <feature name="cat">
+             <id>s</id>
+           </feature>
+         </avm>
+         <node mark="subst">
+           <features>
+             <avm>
+               <feature name="cat">
+                 <id>n</id>
+               </feature>
+               <feature name="top">
+                 <avm>
+                   <feature name="idx">
+                     <var>A</var>
+                   </feature>
+                   <feature name="num">
+                     <var>B</var>
+                   </feature>
+                   <feature name="pers">
+                     <var>C</var>
+                   </feature>
+                 </avm>
+               </feature>
+             </avm>
+           </features>
+         </node>
+         <node mark="none">
+           <features>
+             <avm>
+               <feature name="cat">
+                 <id>v</id>
+               </feature>
+               <feature name="top">
+                 <avm>
+                   <feature name="bar">
+                     <id>ii</id>
+                   </feature>
+                   <feature name="num">
+                     <var>B</var>
+                   </feature>
+                   <feature name="pers">
+                     <var>C</var>
+                   </feature>
+                 </avm>
+               </feature>
+             </avm>
+             <node mark="none">
+               <features>
+                 <avm>
+                   <feature name="cat">
+                     <id>v</id>
+                   </feature>
+                   <feature name="top">
+                     <avm>
+                       <feature name="bar">
+                         <id>i</id>
+                       </feature>
+                     </avm>
+                   </feature>
+                 </avm>
+                 <node mark="none">
+                   <features>
+                     <avm>
+                       <feature name="cat">
+                         <id>etre</id>
+                       </feature>
+                     </avm>
+                   </features>
+                 </node>
+               </features>
+             </node>
+             <node mark="none">
+               <features>
+                 <avm>
+                   <feature name="bot">
+                     <avm>
+                       <feature name="mode">
+                         <id>ind</id>
+                       </feature>
+                     </avm>
+                   </feature>
+                   <feature name="cat">
+                     <id>v</id>
+                   </feature>
+                   <feature name="top">
+                     <avm>
+                       <feature name="bar">
+                         <id>i</id>
+                       </feature>
+                     </avm>
+                   </feature>
+                 </avm>
+                 <node mark="none">
+                   <features>
+                     <avm>
+                       <feature name="cat">
+                         <id>aiment</id>
+                       </feature>
+                     </avm>
+                   </features>
+                 </node>
+               </features>
+             </node>
+           </features>
+         </node>
+         <node mark="none">
+           <features>
+             <avm>
+               <feature name="cat">
+                 <id>pp</id>
+               </feature>
+             </avm>
+             <node mark="none">
+               <features>
+                 <avm>
+                   <feature name="cat">
+                     <id>p</id>
+                   </feature>
+                 </avm>
+                 <node mark="none">
+                   <features>
+                     <avm>
+                       <feature name="cat">
+                         <id>par</id>
+                       </feature>
+                     </avm>
+                   </features>
+                 </node>
+               </features>
+             </node>
+             <node mark="subst">
+               <features>
+                 <avm>
+                   <feature name="cat">
+                     <id>n</id>
+                   </feature>
+                   <feature name="top">
+                     <avm>
+                       <feature name="idx">
+                         <var>D</var>
+                       </feature>
+                     </avm>
+                   </feature>
+                 </avm>
+               </features>
+             </node>
+           </features>
+         </node>
+       </features>
+     </node>
+   </syntax>
+   <semantics>
+     <literal negated="no">
+       <label>
+         <const>H</const>
+       </label>
+       <predicate>
+         <id>aimer</id>
+       </predicate>
+       <argument>
+         <const>E</const>
+       </argument>
+       <argument>
+         <var>F</var>
+       </argument>
+       <argument>
+         <var>G</var>
+       </argument>
+     </literal>
+   </semantics>
+ </entry>
+ <entry>
+   <syntax>
+     <node mark="none">
+       <features>
+         <avm>
+           <feature name="bot">
+             <avm>
+               <feature name="mode">
+                 <var>A</var>
+               </feature>
+               <feature name="wh">
+                 <id>minus</id>
+               </feature>
+             </avm>
+           </feature>
+           <feature name="cat">
+             <id>s</id>
+           </feature>
+         </avm>
+         <node mark="subst">
+           <features>
+             <avm>
+               <feature name="cat">
+                 <id>n</id>
+               </feature>
+               <feature name="top">
+                 <avm>
+                   <feature name="idx">
+                     <var>B</var>
+                   </feature>
+                   <feature name="num">
+                     <var>C</var>
+                   </feature>
+                   <feature name="pers">
+                     <var>D</var>
+                   </feature>
+                 </avm>
+               </feature>
+             </avm>
+           </features>
+         </node>
+         <node mark="none">
+           <features>
+             <avm>
+               <feature name="bot">
+                 <avm>
+                   <feature name="bar">
+                     <id>ii</id>
+                   </feature>
+                   <feature name="mode">
+                     <var>E</var>
+                   </feature>
+                 </avm>
+               </feature>
+               <feature name="cat">
+                 <id>v</id>
+               </feature>
+               <feature name="top">
+                 <avm>
+                   <feature name="bar">
+                     <id>ii</id>
+                   </feature>
+                   <feature name="mode">
+                     <var>A</var>
+                   </feature>
+                   <feature name="num">
+                     <var>C</var>
+                   </feature>
+                   <feature name="pers">
+                     <var>D</var>
+                   </feature>
+                 </avm>
+               </feature>
+             </avm>
+             <node mark="none">
+               <features>
+                 <avm>
+                   <feature name="bot">
+                     <avm>
+                       <feature name="bar">
+                         <id>i</id>
+                       </feature>
+                       <feature name="mode">
+                         <id>ind</id>
+                       </feature>
+                     </avm>
+                   </feature>
+                   <feature name="cat">
+                     <id>v</id>
+                   </feature>
+                   <feature name="top">
+                     <avm>
+                       <feature name="bar">
+                         <id>i</id>
+                       </feature>
+                       <feature name="mode">
+                         <var>E</var>
+                       </feature>
+                     </avm>
+                   </feature>
+                 </avm>
+                 <node mark="none">
+                   <features>
+                     <avm>
+                       <feature name="cat">
+                         <id>aime</id>
+                       </feature>
+                     </avm>
+                   </features>
+                 </node>
+               </features>
+             </node>
+           </features>
+         </node>
+         <node mark="subst">
+           <features>
+             <avm>
+               <feature name="cat">
+                 <id>n</id>
+               </feature>
+               <feature name="top">
+                 <avm>
+                   <feature name="idx">
+                     <var>F</var>
+                   </feature>
+                 </avm>
+               </feature>
+             </avm>
+           </features>
+         </node>
+         <node mark="none">
+           <features>
+             <avm>
+               <feature name="cat">
+                 <id>pp</id>
+               </feature>
+             </avm>
+             <node mark="none">
+               <features>
+                 <avm>
+                   <feature name="cat">
+                     <id>p</id>
+                   </feature>
+                 </avm>
+                 <node mark="none">
+                   <features>
+                     <avm>
+                       <feature name="cat">
+                         <id>à</id>
+                       </feature>
+                     </avm>
+                   </features>
+                 </node>
+               </features>
+             </node>
+             <node mark="subst">
+               <features>
+                 <avm>
+                   <feature name="cat">
+                     <id>n</id>
+                   </feature>
+                   <feature name="top">
+                     <avm>
+                       <feature name="idx">
+                         <var>G</var>
+                       </feature>
+                     </avm>
+                   </feature>
+                 </avm>
+               </features>
+             </node>
+           </features>
+         </node>
+       </features>
+     </node>
+   </syntax>
+   <semantics>
+     <literal negated="no">
+       <label>
+         <const>K</const>
+       </label>
+       <predicate>
+         <id>aimer</id>
+       </predicate>
+       <argument>
+         <const>H</const>
+       </argument>
+       <argument>
+         <var>I</var>
+       </argument>
+       <argument>
+         <var>J</var>
+       </argument>
+     </literal>
+   </semantics>
+ </entry>
+ <entry>
+   <syntax>
+     <node mark="none">
+       <features>
+         <avm>
+           <feature name="bot">
+             <avm>
+               <feature name="mode">
+                 <var>A</var>
+               </feature>
+               <feature name="wh">
+                 <id>minus</id>
+               </feature>
+             </avm>
+           </feature>
+           <feature name="cat">
+             <id>s</id>
+           </feature>
+         </avm>
+         <node mark="subst">
+           <features>
+             <avm>
+               <feature name="cat">
+                 <id>n</id>
+               </feature>
+               <feature name="top">
+                 <avm>
+                   <feature name="idx">
+                     <var>B</var>
+                   </feature>
+                   <feature name="num">
+                     <var>C</var>
+                   </feature>
+                   <feature name="pers">
+                     <var>D</var>
+                   </feature>
+                 </avm>
+               </feature>
+             </avm>
+           </features>
+         </node>
+         <node mark="none">
+           <features>
+             <avm>
+               <feature name="bot">
+                 <avm>
+                   <feature name="bar">
+                     <id>ii</id>
+                   </feature>
+                   <feature name="mode">
+                     <var>E</var>
+                   </feature>
+                 </avm>
+               </feature>
+               <feature name="cat">
+                 <id>v</id>
+               </feature>
+               <feature name="top">
+                 <avm>
+                   <feature name="bar">
+                     <id>ii</id>
+                   </feature>
+                   <feature name="mode">
+                     <var>A</var>
+                   </feature>
+                   <feature name="num">
+                     <var>C</var>
+                   </feature>
+                   <feature name="pers">
+                     <var>D</var>
+                   </feature>
+                 </avm>
+               </feature>
+             </avm>
+             <node mark="none">
+               <features>
+                 <avm>
+                   <feature name="bot">
+                     <avm>
+                       <feature name="bar">
+                         <id>i</id>
+                       </feature>
+                       <feature name="mode">
+                         <id>ind</id>
+                       </feature>
+                     </avm>
+                   </feature>
+                   <feature name="cat">
+                     <id>v</id>
+                   </feature>
+                   <feature name="top">
+                     <avm>
+                       <feature name="bar">
+                         <id>i</id>
+                       </feature>
+                       <feature name="mode">
+                         <var>E</var>
+                       </feature>
+                     </avm>
+                   </feature>
+                 </avm>
+                 <node mark="none">
+                   <features>
+                     <avm>
+                       <feature name="cat">
+                         <id>aime</id>
+                       </feature>
+                     </avm>
+                   </features>
+                 </node>
+               </features>
+             </node>
+           </features>
+         </node>
+         <node mark="none">
+           <features>
+             <avm>
+               <feature name="cat">
+                 <id>pp</id>
+               </feature>
+             </avm>
+             <node mark="none">
+               <features>
+                 <avm>
+                   <feature name="cat">
+                     <id>p</id>
+                   </feature>
+                 </avm>
+                 <node mark="none">
+                   <features>
+                     <avm>
+                       <feature name="cat">
+                         <id>à</id>
+                       </feature>
+                     </avm>
+                   </features>
+                 </node>
+               </features>
+             </node>
+             <node mark="subst">
+               <features>
+                 <avm>
+                   <feature name="cat">
+                     <id>n</id>
+                   </feature>
+                   <feature name="top">
+                     <avm>
+                       <feature name="idx">
+                         <var>F</var>
+                       </feature>
+                     </avm>
+                   </feature>
+                 </avm>
+               </features>
+             </node>
+           </features>
+         </node>
+         <node mark="subst">
+           <features>
+             <avm>
+               <feature name="cat">
+                 <id>n</id>
+               </feature>
+               <feature name="top">
+                 <avm>
+                   <feature name="idx">
+                     <var>G</var>
+                   </feature>
+                 </avm>
+               </feature>
+             </avm>
+           </features>
+         </node>
+       </features>
+     </node>
+   </syntax>
+   <semantics>
+     <literal negated="no">
+       <label>
+         <const>K</const>
+       </label>
+       <predicate>
+         <id>aimer</id>
+       </predicate>
+       <argument>
+         <const>H</const>
+       </argument>
+       <argument>
+         <var>I</var>
+       </argument>
+       <argument>
+         <var>J</var>
+       </argument>
+     </literal>
+   </semantics>
+ </entry>
+ <entry>
+   <syntax>
+     <node mark="none">
+       <features>
+         <avm>
+           <feature name="bot">
+             <avm>
+               <feature name="mode">
+                 <var>A</var>
+               </feature>
+               <feature name="wh">
+                 <id>minus</id>
+               </feature>
+             </avm>
+           </feature>
+           <feature name="cat">
+             <id>s</id>
+           </feature>
+         </avm>
+         <node mark="subst">
+           <features>
+             <avm>
+               <feature name="cat">
+                 <id>n</id>
+               </feature>
+               <feature name="top">
+                 <avm>
+                   <feature name="idx">
+                     <var>B</var>
+                   </feature>
+                   <feature name="num">
+                     <var>C</var>
+                   </feature>
+                   <feature name="pers">
+                     <var>D</var>
+                   </feature>
+                 </avm>
+               </feature>
+             </avm>
+           </features>
+         </node>
+         <node mark="none">
+           <features>
+             <avm>
+               <feature name="bot">
+                 <avm>
+                   <feature name="bar">
+                     <id>ii</id>
+                   </feature>
+                   <feature name="mode">
+                     <var>E</var>
+                   </feature>
+                 </avm>
+               </feature>
+               <feature name="cat">
+                 <id>v</id>
+               </feature>
+               <feature name="top">
+                 <avm>
+                   <feature name="bar">
+                     <id>ii</id>
+                   </feature>
+                   <feature name="mode">
+                     <var>A</var>
+                   </feature>
+                   <feature name="num">
+                     <var>C</var>
+                   </feature>
+                   <feature name="pers">
+                     <var>D</var>
+                   </feature>
+                 </avm>
+               </feature>
+             </avm>
+             <node mark="none">
+               <features>
+                 <avm>
+                   <feature name="bot">
+                     <avm>
+                       <feature name="bar">
+                         <id>i</id>
+                       </feature>
+                       <feature name="mode">
+                         <id>ind</id>
+                       </feature>
+                     </avm>
+                   </feature>
+                   <feature name="cat">
+                     <id>v</id>
+                   </feature>
+                   <feature name="top">
+                     <avm>
+                       <feature name="bar">
+                         <id>i</id>
+                       </feature>
+                       <feature name="mode">
+                         <var>E</var>
+                       </feature>
+                     </avm>
+                   </feature>
+                 </avm>
+                 <node mark="none">
+                   <features>
+                     <avm>
+                       <feature name="cat">
+                         <id>aiment</id>
+                       </feature>
+                     </avm>
+                   </features>
+                 </node>
+               </features>
+             </node>
+           </features>
+         </node>
+         <node mark="subst">
+           <features>
+             <avm>
+               <feature name="cat">
+                 <id>n</id>
+               </feature>
+               <feature name="top">
+                 <avm>
+                   <feature name="idx">
+                     <var>F</var>
+                   </feature>
+                 </avm>
+               </feature>
+             </avm>
+           </features>
+         </node>
+         <node mark="none">
+           <features>
+             <avm>
+               <feature name="cat">
+                 <id>pp</id>
+               </feature>
+             </avm>
+             <node mark="none">
+               <features>
+                 <avm>
+                   <feature name="cat">
+                     <id>p</id>
+                   </feature>
+                 </avm>
+                 <node mark="none">
+                   <features>
+                     <avm>
+                       <feature name="cat">
+                         <id>à</id>
+                       </feature>
+                     </avm>
+                   </features>
+                 </node>
+               </features>
+             </node>
+             <node mark="subst">
+               <features>
+                 <avm>
+                   <feature name="cat">
+                     <id>n</id>
+                   </feature>
+                   <feature name="top">
+                     <avm>
+                       <feature name="idx">
+                         <var>G</var>
+                       </feature>
+                     </avm>
+                   </feature>
+                 </avm>
+               </features>
+             </node>
+           </features>
+         </node>
+       </features>
+     </node>
+   </syntax>
+   <semantics>
+     <literal negated="no">
+       <label>
+         <const>K</const>
+       </label>
+       <predicate>
+         <id>aimer</id>
+       </predicate>
+       <argument>
+         <const>H</const>
+       </argument>
+       <argument>
+         <var>I</var>
+       </argument>
+       <argument>
+         <var>J</var>
+       </argument>
+     </literal>
+   </semantics>
+ </entry>
+ <entry>
+   <syntax>
+     <node mark="none">
+       <features>
+         <avm>
+           <feature name="bot">
+             <avm>
+               <feature name="mode">
+                 <var>A</var>
+               </feature>
+               <feature name="wh">
+                 <id>minus</id>
+               </feature>
+             </avm>
+           </feature>
+           <feature name="cat">
+             <id>s</id>
+           </feature>
+         </avm>
+         <node mark="subst">
+           <features>
+             <avm>
+               <feature name="cat">
+                 <id>n</id>
+               </feature>
+               <feature name="top">
+                 <avm>
+                   <feature name="idx">
+                     <var>B</var>
+                   </feature>
+                   <feature name="num">
+                     <var>C</var>
+                   </feature>
+                   <feature name="pers">
+                     <var>D</var>
+                   </feature>
+                 </avm>
+               </feature>
+             </avm>
+           </features>
+         </node>
+         <node mark="none">
+           <features>
+             <avm>
+               <feature name="bot">
+                 <avm>
+                   <feature name="bar">
+                     <id>ii</id>
+                   </feature>
+                   <feature name="mode">
+                     <var>E</var>
+                   </feature>
+                 </avm>
+               </feature>
+               <feature name="cat">
+                 <id>v</id>
+               </feature>
+               <feature name="top">
+                 <avm>
+                   <feature name="bar">
+                     <id>ii</id>
+                   </feature>
+                   <feature name="mode">
+                     <var>A</var>
+                   </feature>
+                   <feature name="num">
+                     <var>C</var>
+                   </feature>
+                   <feature name="pers">
+                     <var>D</var>
+                   </feature>
+                 </avm>
+               </feature>
+             </avm>
+             <node mark="none">
+               <features>
+                 <avm>
+                   <feature name="bot">
+                     <avm>
+                       <feature name="bar">
+                         <id>i</id>
+                       </feature>
+                       <feature name="mode">
+                         <id>ind</id>
+                       </feature>
+                     </avm>
+                   </feature>
+                   <feature name="cat">
+                     <id>v</id>
+                   </feature>
+                   <feature name="top">
+                     <avm>
+                       <feature name="bar">
+                         <id>i</id>
+                       </feature>
+                       <feature name="mode">
+                         <var>E</var>
+                       </feature>
+                     </avm>
+                   </feature>
+                 </avm>
+                 <node mark="none">
+                   <features>
+                     <avm>
+                       <feature name="cat">
+                         <id>aiment</id>
+                       </feature>
+                     </avm>
+                   </features>
+                 </node>
+               </features>
+             </node>
+           </features>
+         </node>
+         <node mark="none">
+           <features>
+             <avm>
+               <feature name="cat">
+                 <id>pp</id>
+               </feature>
+             </avm>
+             <node mark="none">
+               <features>
+                 <avm>
+                   <feature name="cat">
+                     <id>p</id>
+                   </feature>
+                 </avm>
+                 <node mark="none">
+                   <features>
+                     <avm>
+                       <feature name="cat">
+                         <id>à</id>
+                       </feature>
+                     </avm>
+                   </features>
+                 </node>
+               </features>
+             </node>
+             <node mark="subst">
+               <features>
+                 <avm>
+                   <feature name="cat">
+                     <id>n</id>
+                   </feature>
+                   <feature name="top">
+                     <avm>
+                       <feature name="idx">
+                         <var>F</var>
+                       </feature>
+                     </avm>
+                   </feature>
+                 </avm>
+               </features>
+             </node>
+           </features>
+         </node>
+         <node mark="subst">
+           <features>
+             <avm>
+               <feature name="cat">
+                 <id>n</id>
+               </feature>
+               <feature name="top">
+                 <avm>
+                   <feature name="idx">
+                     <var>G</var>
+                   </feature>
+                 </avm>
+               </feature>
+             </avm>
+           </features>
+         </node>
+       </features>
+     </node>
+   </syntax>
+   <semantics>
+     <literal negated="no">
+       <label>
+         <const>K</const>
+       </label>
+       <predicate>
+         <id>aimer</id>
+       </predicate>
+       <argument>
+         <const>H</const>
+       </argument>
+       <argument>
+         <var>I</var>
+       </argument>
+       <argument>
+         <var>J</var>
+       </argument>
+     </literal>
+   </semantics>
+ </entry>
+ <entry>
+   <syntax>
+     <node mark="none">
+       <features>
+         <avm>
+           <feature name="cat">
+             <id>s</id>
+           </feature>
+         </avm>
+         <node mark="subst">
+           <features>
+             <avm>
+               <feature name="cat">
+                 <id>n</id>
+               </feature>
+               <feature name="top">
+                 <avm>
+                   <feature name="idx">
+                     <var>A</var>
+                   </feature>
+                   <feature name="num">
+                     <var>B</var>
+                   </feature>
+                   <feature name="pers">
+                     <var>C</var>
+                   </feature>
+                 </avm>
+               </feature>
+             </avm>
+           </features>
+         </node>
+         <node mark="none">
+           <features>
+             <avm>
+               <feature name="cat">
+                 <id>v</id>
+               </feature>
+               <feature name="top">
+                 <avm>
+                   <feature name="bar">
+                     <id>ii</id>
+                   </feature>
+                   <feature name="num">
+                     <var>B</var>
+                   </feature>
+                   <feature name="pers">
+                     <var>C</var>
+                   </feature>
+                 </avm>
+               </feature>
+             </avm>
+             <node mark="none">
+               <features>
+                 <avm>
+                   <feature name="cat">
+                     <id>v</id>
+                   </feature>
+                   <feature name="top">
+                     <avm>
+                       <feature name="bar">
+                         <id>i</id>
+                       </feature>
+                     </avm>
+                   </feature>
+                 </avm>
+                 <node mark="none">
+                   <features>
+                     <avm>
+                       <feature name="cat">
+                         <id>etre</id>
+                       </feature>
+                     </avm>
+                   </features>
+                 </node>
+               </features>
+             </node>
+             <node mark="none">
+               <features>
+                 <avm>
+                   <feature name="bot">
+                     <avm>
+                       <feature name="mode">
+                         <id>ind</id>
+                       </feature>
+                     </avm>
+                   </feature>
+                   <feature name="cat">
+                     <id>v</id>
+                   </feature>
+                   <feature name="top">
+                     <avm>
+                       <feature name="bar">
+                         <id>i</id>
+                       </feature>
+                     </avm>
+                   </feature>
+                 </avm>
+                 <node mark="none">
+                   <features>
+                     <avm>
+                       <feature name="cat">
+                         <id>aime</id>
+                       </feature>
+                     </avm>
+                   </features>
+                 </node>
+               </features>
+             </node>
+           </features>
+         </node>
+         <node mark="none">
+           <features>
+             <avm>
+               <feature name="cat">
+                 <id>pp</id>
+               </feature>
+             </avm>
+             <node mark="none">
+               <features>
+                 <avm>
+                   <feature name="cat">
+                     <id>p</id>
+                   </feature>
+                 </avm>
+                 <node mark="none">
+                   <features>
+                     <avm>
+                       <feature name="cat">
+                         <id>par</id>
+                       </feature>
+                     </avm>
+                   </features>
+

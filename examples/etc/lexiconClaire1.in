@@ -1,0 +1,73 @@
+%%
+%% The LEXICON
+%%
+%% 
+%%   proper names
+%%     (mary, john, peter)
+%%   transitive verbs
+%%     (loves)
+%%   transitive verbs with extracted object
+%%     (loves)
+%%   transitive verbs with inverted subject and sentential complement
+%%     (think)
+%%   transitive verbs with sentential complement
+%%     (thought)
+%%   auxiliary
+%%   (does)
+%%   complementiser
+%%   (who)
+
+%%
+%% Test Sentences
+%%
+%% Who does John think Mary loves
+%% Who does John think Peter thought Mary loves
+%% ** Who Peter thought Mary loves
+%% Peter thought Mary loves John
+
+
+%% proper names
+
+john Pn(Entity ! agr:sg3)
+semantics:[name(_ Entity john)]
+goal:[_(Entity)]
+
+peter Pn(Entity ! agr:sg3)
+semantics:[name(_ Entity peter)]
+goal:[_(Entity)]
+
+mary Pn(Entity ! agr:sg3)
+semantics:[name(_ Entity mary)]
+goal:[_(Entity)]
+
+%% transitive verbs
+
+loves TrV(Event Agent Experiencer ! agr:sg3)
+semantics:[love(Event Agent Experiencer)]
+goal:[_(Event)]
+
+%%   transitive verbs with extracted object
+%%     (loves)
+
+loves  TrExtrObj(Event Agent Experiencer ! agr:sg3) 
+semantics:[love(Event Agent Experiencer)]
+
+%%   transitive verbs with inverted subject and sentential complement
+%%     (think)
+
+think TrSentInv(Event Agent Experiencer ! agr:sg3) 
+semantics:[think(Event Agent Experiencer)]
+
+%%   transitive verbs with sentential complement
+%%     (thought)
+
+thought TrSent(Event Agent Experiencer ! agr:sg3) 
+semantics:[thought(Event Agent Experiencer)]
+
+%% Complementisers
+
+who Aux(Entity)
+
+%% Auxiliaries
+
+does Aux(Event)

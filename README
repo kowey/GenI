@@ -1,0 +1,85 @@
+This is an informal user's manual for GenI.
+
+XML input file
+--------------
+There seems to be no convention for indicating how inflected 
+forms are placed in TAGML tree.  Until somebody tells me 
+otherwise, I am going with the following
+
+<node type="none">
+  <fs>
+    <f name="phon">foo</f>
+  </fs>
+</node>
+
+I refuse to change this until you show me something vaguely
+official-looking.
+
+Configuration file
+------------------
+This is the format for the .genirc configuration file and/or the geni
+command line arguments.  GenI configuration consists of a list of
+attributes and values of the form Attribute = Value.  For example: 
+
+Macros   = chatnoirmac
+Lexicon  = chatnoirlex
+TSemantics = chatnoirsem
+
+The basic configuration attributes are
+ Macros, Lexicon - files for the Geni grammar
+ GrammarXml      - files for the Geni grammar as XML
+                   (note: if this is set, Macros/Lexicon will be ignored)
+ TSemantics      - file containing an input semantics
+ Optimisations   - a comma delimited list of optimisations (choose as
+                   many or as few of Polarised, SemFiltered, OrderedAdj,
+                   FootConstraint, ChartSharing)
+ ExtraPolarities - a list of default polarities for paraphrase selection   
+
+Batch processing
+----------------
+There are two types of batch processing:
+
+  1) Multi-input 
+      You can write multiple configurations in .genirc if you separate
+      them by a bang (!).  This will run geni in multiple sessions.
+      Each session inherits the configuration of the previous session,
+      except for the attributes that you overwrite.  Don't forget to
+      unset your ExtraPolarities or Optimisations unless you want them
+      to be inherited!
+  2) Optimisations = Batch 
+      Will run geni through all the possible combinations of
+      optimisations.  This is useful for performance testing
+      of the GenI optimisations
+      N.B. you can use Optimisations=Batch together with multi-input
+      if you want.
+
+Grammar file
+------------
+Polarities and predictors mainly go in the macros file.  They appear
+in the optional second parenthesis like so:
+
+  IntrV(Event Agent ! agr:A) (+np +np ! +det:X)
+
+Polarities - 
+  examples: +foo, -foo, +3foo, or -3foo
+  where 3 is any integer and foo is a string
+
+Predictors - (after the '!'; '!' optional if you have none)
+
+  Similar to polarities, except we also allow predictors in
+  attribute-value form (+foo:bar)
+
+  *** IMPORTANT *** 
+
+  1) predictor variables have different scope than argument
+     variables
+  2) if you have predictor variables, they must be 
+     instantiated in the lexicon, but only the variable
+     predictors must be instantiated.
+
+     So if you have a tree like this
+        Np_a_Np(I1 I2) (-np ! -det -vsup:_)
+     You should have a lexical entry like this:
+        cout Np_a_Np(E Y) (! -vsup:avoir)
+
+     Notice how only the vsup is instantiated

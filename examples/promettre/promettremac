@@ -1,0 +1,227 @@
+%% 02 april 2004
+%% 1. Jean promet un cadeau a Marie
+%% 2. Jean promet a Marie de partir
+%% 3. Qui promet un cadeau a Marie?
+%% 4. Que promet Jean a Marie?
+%% 5. A qui Jean promet-il un cadeau?
+%% 6. la personne qui promet un cadeau a Marie
+%% 7. le cadeau que Jean promet a Marie
+%% 8. la personne a qui Jean promet un cadeau
+%% 9. promettre un cadeau a Marie
+%% 10. promettant un cadeau a Marie
+
+DetQ(I) auxiliary
+	n1[cat:n idx:I det:_ qu:_]![cat:n idx:I det:plus qu:plus]
+	{
+	  n2[cat:det]![]
+	  {
+	    n3 anchor
+	  }
+	  n4 type:foot [cat:n idx:I det:_ qu:_]![cat:n idx:I det:minus qu:_ ]
+	}
+Det(I) (+det) auxiliary
+	n1[cat:n idx:I det:Z1D qu:minus]![cat:n idx:I det:minus qu:minus]
+	{
+	  n2[cat:det]![]
+	  {
+	    n3 anchor
+	  }
+	  n4 type:foot [cat:n idx:I det:Z4D qu:Z4Q]![cat:n idx:I det:minus qu:Z4BQ ]
+	}
+begin initial
+% Common Nouns: voyage
+nC(I) (+n -det)
+	n1[cat:n idx:I det:Z1D qu:Z1Q]![cat:n idx:I det:minus qu:minus ]
+	{
+	 n2 anchor
+	}
+% Proper Nouns: Jean
+
+nP(I) (+n)
+	n1[cat:n idx:I det:plus qu:minus]![cat:n idx:I det:plus qu:minus ]
+	{
+	 n2 anchor
+	}
+
+n0Vn1sp2(E X Y Z) (+sentence)
+	n1[cat:p]![]
+	{
+	 n2 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:_ ]
+	 n3[cat:v idx:E]![]
+	   {
+	    n4 anchor
+	   }
+         n5 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y det:Z5D qu:Z5Q ]
+         n6[cat:sp idx:Z det:plus]![det:_ ]
+	  { n8[cat:p]![]
+	      {
+	        n9 type:lex "a"
+	      }
+	   n10 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z
+	det:_ qu:_] 
+	   }
+	 }
+
+% question sujet
+qu0Vn1sp2(E X Y Z) (+sentence)
+
+	n1[cat:p]![]
+	{
+	 n2 type:subst [cat:c idx:X det:plus qu:minus]![cat:n idx:X det:Z2bDet qu:Z2bQu ]
+	 n3[cat:v idx:E]![]
+	   {
+	    n4 anchor
+	   }
+         n5 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y det:Z5D qu:Z5Q ]
+         n6[cat:sp idx:Z det:plus]![det:Z6bDet ]
+	  { n8[cat:p]![]
+	      {
+	        n9 type:lex "a"
+	      }
+	   n10 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z det:Z10bDet qu:Z10bQu] 
+	   }
+	 }
+
+% question objet
+qu1Vn0sp2(E X Y Z) (+sentence)
+
+	n1[cat:p]![]
+	{
+	 n2 type:subst [cat:n idx:Y det:plus qu:plus]![cat:n idx:Y det:_ qu:plus ]
+	 n3[cat:p idx:E]![]
+	   {
+            n4[cat:v idx:E]![cat:p idx:E]
+	     {
+	      n5 anchor
+	     }
+            n6 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X
+	    det:_ qu:_ ]
+	    n7[cat:sp idx:Z det:plus]![det:_ ]
+	      { n8[cat:p]![]
+	       {
+	        n9 type:lex "a"
+	       }
+	        n10 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z	det:_ qu:_] 
+ 	      }
+            }
+          }
+
+% question objet indirect
+qu2Vn0n1(E X Y Z) (-2n -nq)
+	n1[cat:p]![]
+	{
+	 n2[cat:sp idx:Z det:plus]![det:_ ]
+	  { n3[cat:p]![]
+	    {
+	      n4 type:lex "a"
+	    }
+           n5 type:subst [cat:n idx:Z det:plus qu:plus]![cat:n idx:Z det:_ qu:plus] 
+	   }
+	 n6[cat:p idx:E]![]
+	   {
+            n7 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:minus ]
+            n8[cat:v idx:E]![cat:p idx:E]
+	     {
+	      n9 anchor
+	     }
+            n10 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y det:_ qu:_ ]
+	   }
+	 }
+
+
+n0Vn1inf2(E X Y Z) (+sentence)
+
+	n1[cat:p]![]
+	{
+	 n2 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:_ ]
+	 n3[cat:v idx:E]![]
+	   {
+	    n4 anchor
+	   }
+         n5[cat:sp idx:Z det:plus]![det:_ ]
+	  { n6[cat:p]![]
+	      {
+	        n7 type:lex "a"
+	      }
+	   n8 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z
+	det:_ qu:_] 
+	   }
+         n9 type:subst [cat:p idx:Y mode:inf]![cat:n idx:Y mode:_ ]
+	 }
+
+end initial
+
+% relative sujet
+rel0Vn1sp2(E X Y Z) (-2n -c) auxiliary
+	n0[cat:n idx:X det:plus qu:_]![cat:n idx:X det:_ qu:_ ]
+	{
+	n1 type:foot [cat:n idx:X det:_ qu:_]![cat:n idx:X det:_ qu:_ ]
+	n2[cat:p]![]
+	{
+	 n3 type:subst [cat:c idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:_ ]
+	 n4[cat:v idx:E]![]
+	   {
+	    n5 anchor
+	   }
+         n6 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y det:Z5D qu:Z5Q ]
+         n7[cat:sp idx:Z ]![]
+	  { n8[cat:p]![]
+	      {
+	        n9 type:lex "a"
+	      }
+	   n10 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:_
+	det:_ qu:_] 
+	   }
+	 }
+	 }
+
+% relative objet
+rel1Vn0sp2(E X Y Z) (-2n -c) auxiliary
+	n0[cat:n idx:X det:plus qu:_]![cat:n idx:X det:_ qu:_ ]
+	{
+	n1 type:foot [cat:n idx:X det:_ qu:_]![cat:n idx:X det:_ qu:_ ]
+	n2[cat:p]![]
+	{
+	 n3 type:subst [cat:c idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:_ ]
+	 n4[cat:v idx:E]![]
+	   {
+	    n5 anchor
+	   }
+         n6 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y det:Z5D qu:Z5Q ]
+         n7[cat:sp idx:Z ]![]
+	  { n8[cat:p]![]
+	      {
+	        n9 type:lex "a"
+	      }
+	   n10 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:_
+	det:_ qu:_] 
+	   }
+	 }
+	 }
+
+
+% relative objet indirect
+rel2Vn0n1(E X Y Z) (-2n -nq) auxiliary
+	n0[cat:n idx:Z det:plus qu:_]![cat:n idx:Z det:_ qu:_ ]
+	{
+	n1 type:foot [cat:n idx:Z det:_ qu:_]![cat:n idx:Z det:_ qu:_]
+	n2[cat:p]![]
+	{
+	 n3[cat:sp idx:Z det:plus]![det:_ ]
+	  { n4[cat:p]![]
+	    {
+	      n5 type:lex "a"
+	    }
+           n6 type:subst [cat:n idx:Z det:plus qu:plus]![cat:n idx:Z det:_ qu:plus] 
+	   }
+	 n7[cat:p idx:E]![]
+	   {
+            n8 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X det:_ qu:minus ]
+            n9[cat:v idx:E]![cat:p idx:E]
+	     {
+	      n10 anchor
+	     }
+            n11 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y det:_ qu:_ ]
+	   }
+	 }
+	 }

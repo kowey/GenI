@@ -1,0 +1,48 @@
+---------------------------------------------
+How to do a live demo of GenI with polarities
+---------------------------------------------
+
+(this is a simplified version of the promettre grammar)
+
+1) first donnersem; launch the debugger
+
+     0 - lexical selection - note multiple trees for donner
+         now we are in the substitution loop
+         note trees moving from agenda to chart (leap 1 x 3)
+     3 - substitution with livre and donner (leap 1 x 2)
+     5 - and again with livre - with this newly created tree (leap 1 x 3)
+     8 - note the result where all substitutions are done (leap 1)
+     9 - now that substitution is finished, we switch to the adjunction 
+         phase (leap 1 x 3)
+
+     12 - now we try to insert the tree "un" into the trees of the
+          agenda (leap 1)
+     13 - un livre (leap 1 x 3) 
+     16 - jean donner livre a paul (leap 1)
+     17 - and now this is semantically complete so we output the
+          realisation "Jean donne livre à Paul"
+
+     KEEP THIS DEBUGGER OPEN!
+
+2) enable the polarity optimisation; 
+   hit generate; 
+   show automaton tab (tiny automota);
+   launch the debugger
+      
+      0 - notice fewer trees (compare with other debugger; close old debugger)
+          (leap 2 x 13)
+          
+3) load promettredonnersem; 
+   hit generate
+   show automaton tab (big automata q vs q pruned)
+   launch debugger (keep it open) - show few trees
+   disable optimisation 
+   launch debugger - show many trees
+
+
+
+
+   
+
+
+

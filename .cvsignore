@@ -1,0 +1,8 @@
+geni
+geni.app
+debugger
+debugger.app
+gvcache*
+*.ps
+images
+.genirc
