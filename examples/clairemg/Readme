@@ -1,0 +1,18 @@
+%% 05/11/04
+
+The grammar n0Vn1semt.mg associates 45 trees with the class
+n0Vn1nonpassivable
+
+The testuite n0Vn1sem.ts lists an example sentence for each of these
+45 trees
+
+semlex and synlex specify the lexicon for the words entering in the
+n0Vn1sem.ts sentences
+
+looksem specifies the input which should generate all 45
+configurations -- it also specifies a feature cleft(j) on which the
+ability of GenI to select a certain paraphrase can be tested. When
+using it the only output (on all 4 inputs given in looksem) should be:
+
+      C'est Jean qui regarde Marie
+
