@@ -7,9 +7,9 @@ import ParserLib(Token(..),PosToken,parserError,
                  E(..), thenE, returnE, failE)
 
 import Btypes (Ptype(Initial,Auxiliar,Unspecified),
-               Ttree(..),
+               Ttree(..), Flist, AvPair,
                GType(Foot, Lex, Subs, Other),
-               GNode(..))
+               GNode(..), MTtree)
 
 import Data.FiniteMap (FiniteMap, 
                        addToFM,
@@ -19,23 +19,6 @@ import Data.FiniteMap (FiniteMap,
 
 import Data.List (sort)
 import qualified Data.Tree 
-
-polParser x = case polParserE x of 
-                Ok p -> p
-                Failed e -> error e
-
-emptyPolPred = (emptyFM, [])
-
-nullpair = ([],[])
-
-buildTree ttype id (params,feats) (pol,pred) t = 
-       TT{params = params, 
-          pidname = id,
-          pfeat = feats, 
-          ptype = ttype, 
-          tree = t, 
-          ptpolarities = pol,
-          ptpredictors = pred} 
 
 }
 
@@ -74,11 +57,19 @@ buildTree ttype id (params,feats) (pol,pred) t =
  
 %%
 
-Fam: 
+{- -----------------------------------------------------------------
+   families 
+   ----------------------------------------------------------------- -}
+
+Fam :: { FiniteMap String [MTtree] }
+Fam:  
        {emptyFM}
    | begin family id Input end family Fam
        {addToFM_C (++) $7 $3 $4}
 
+{- lists of trees -}
+
+Input :: { [MTtree] }
 Input : 
       { [] }
  | DefU Input
@@ -94,6 +85,7 @@ Input :
  | begin auxiliar DefAUs end auxiliar Input 
      { (map (\e -> e {ptype = Auxiliar}) $3) ++ $6 }
 
+DefAUs :: { [MTtree] }
 DefAUs : 
       { [] }
  | DefI DefAUs
@@ -107,6 +99,7 @@ DefAUs :
  | DefU DefAUs 
       { $1 : $2 } 
  
+DefIUs :: { [MTtree] }
 DefIUs : 
       { [] }
  | DefA DefIUs
@@ -119,42 +112,52 @@ DefIUs :
       { $1 : $2 } 
  | DefU DefIUs 
       { $1 : $2 } 
+
+{- -----------------------------------------------------------------
+   trees 
+   ----------------------------------------------------------------- -}
+
+
+{- definitions -}
  
+DefU :: { MTtree }
 DefU :
    id '(' IDFeat ')' TopTree
      { buildTree Unspecified $1 $3 emptyPolPred $5 }  
  | id '(' IDFeat ')' '(' PolPred ')' TopTree
      { buildTree Unspecified $1 $3 $6           $8 }
 
+DefI :: { MTtree }
 DefI :
    id '(' IDFeat ')' initial TopTree
      { buildTree Initial $1 $3 emptyPolPred $6 }
  | id '(' IDFeat ')' '(' PolPred ')' initial TopTree
      { buildTree Initial $1 $3 $6           $9 }
 
+DefA :: { MTtree }
 DefA :
    id '(' IDFeat ')' auxiliar TopTree
      { buildTree Auxiliar $1 $3 emptyPolPred $6 }
  | id '(' IDFeat ')' '(' PolPred ')' auxiliar TopTree
      { buildTree Auxiliar $1 $3 $6           $9 }
 
-IDFeat : 
-   IDList 
-     { ($1,[]) }
- | IDList '!' FeatList 
-     { ($1,$3) }
+{- parameters, features -}
 
-PolPred : 
-   PolList 
-      { ($1,[]) }
- | PolList '!' PredictorList 
-      { ($1,$3) }
+IDFeat :: { ([String],[AvPair])}
+IDFeat : IDList               { ($1,[]) }
+       | IDList '!' FeatList  { ($1,$3) }
 
-PolList :
-      {emptyFM}
- | Charge id PolList
-      {addToFM_C (+) $3 $2 $1}
+{- polarities and predictors -}
 
+PolPred :: { (MpPolarities, MpPredictors) }
+PolPred : PolList                   { ($1,[]) }
+        | PolList '!' PredictorList { ($1,$3) }
+
+PolList :: { MpPolarities }
+PolList :                    {emptyFM}
+        | Charge id PolList {addToFM_C (+) $3 $2 $1}
+
+PredictorList :: { MpPredictors }
 PredictorList : 
       {[]}
   | PolVal Predictor PredictorList 
@@ -162,76 +165,30 @@ PredictorList :
   | PolVal num Predictor PredictorList 
       {(map (const ($3,$1)) [1..$2]) ++ $4}
 
-Predictor: id 
-    { ($1,"") }
-  | id ':' id
-    { ($1,$3) }
- 
+Predictor :: { AvPair }
+Predictor: id        { ($1,"") }
+         | id ':' id { ($1,$3) }
+
+Charge :: { Int }
 Charge: PolVal {($1)}
       | PolVal num {($1 * $2)}
 
+PolVal :: { Int }
 PolVal: '+' {(1)}
       | '-' {(-1)}
 
-IDList :
-     {[]} 
- | id IDList
-     {$1:$2} 
+{- the trees themselves -}
 
-TopTree : 
-   id Descrip '{' ListTree '}'
-     {let {
-           lt = $4;
-           (x1,x2,(x3,x4)) = $2;
-           sortedx3 = sort x3;
-           sortedx4 = sort x4;
-           (a,l,t,ac) = 
-               case x1 of {
-                   "anchor" ->  (True,  "", Lex,   True);
-                   "lexeme" ->  (False, x2, Lex,   True);
-                   "subst"  ->  (False, "", Subs,  True);
-                   "foot"   ->  (False, "", Foot,  True);
-                   "aconstr" -> (False, "", Other, True);
-                   "" ->        (False, "", Other, False) };
-           tr = Data.Tree.Node GN{gnname=$1, 
-                     gup=sortedx3, 
-                     gdown=sortedx4, 
-                     ganchor=a,
-                     glexeme=l,
-                     gtype=t,
-                     gaconstr=ac
-                    } lt;
-          } in tr}
+TopTree :: { TrTree GNode }
+TopTree : id Descrip '{' ListTree '}'
+     { buildTreeNode $1 $2 $4 } 
 
-ListTree :
-     {[]}
- | id Descrip ListTree
-     {let {
-           lt = $3;
-           (x1,x2,(x3,x4)) = $2;
-           sortedx3 = sort x3;
-           sortedx4 = sort x4;
-           (a,l,t,ac) =     -- Anchor, Lexeme, Type, AdjConstr
-               case x1 of {
-                   "anchor" ->  (True,  "", Lex,   True);
-                   "lexeme" ->  (False, x2, Lex,   True);
-                   "subst"  ->  (False, "", Subs,  True);
-                   "foot"   ->  (False, "", Foot,  True);
-                   "aconstr" -> (False, "", Other, True);
-                   "" ->        (False, "", Other, False) };
-           ltr = (Data.Tree.Node GN{gnname=$1, 
-                      gup=sortedx3, 
-                      gdown=sortedx4, 
-                      ganchor=a,
-                      glexeme=l,
-                      gtype=t,
-                      gaconstr=ac
-                 } []):lt;
-          } in ltr}
- | TopTree ListTree
-     {($1:$2)}
+ListTree :: { [TrTree GNode] }
+ListTree :                     {[]}
+         | id Descrip ListTree {(buildTreeNode $1 $2 []) : $3 }
+         | TopTree ListTree    {($1:$2)}
 
-
+Descrip :: { MpStuff }
 Descrip :
    anchor
      {("anchor","",nullpair)}
@@ -250,22 +207,74 @@ Descrip :
  | TopBotF 
      {("","",$1)} 
 
+TopBotF :: { (Flist,Flist) }
 TopBotF : '[' FeatList ']' '!' '[' FeatList ']'
     {($2,$6)}
  
-FeatList : 
-     {[]} 
- | id ':' FeatVal FeatList
-     {($1,$3):$4}
+{- -----------------------------------------------------------------
+   generic stuff 
+   ----------------------------------------------------------------- -}
 
+IDList :: { [String] }
+IDList : {-empty-}  {[]} 
+       | id IDList  {$1:$2} 
+
+{- feature structures -}
+
+FeatList :: { {-FeatList-} [AvPair] }
+FeatList : {-empty-}               {[]} 
+         | id ':' FeatVal FeatList {($1,$3):$4}
+
+FeatVal :: { String }
 FeatVal: id  {$1}
        | num {show $1}
        | '+' {"+"}
        | '-' {"-"}
 
 
-
 {
+
+type TrTree   = Data.Tree.Tree
+type MpStuff = (String,String,(Flist,Flist)) 
+type MpPredictors = [(AvPair,Int)]
+type MpPolarities = FiniteMap String Int
+
+emptyPolPred = (emptyFM, [])
+
+nullpair :: ([a],[a])
+nullpair = ([],[])
+
+buildTreeNode :: String -> MpStuff -> [TrTree GNode] -> TrTree GNode
+buildTreeNode name (ntype, lex, (rtop,rbot)) kids =
+  let top = sort rtop 
+      bot = sort rbot 
+      (a,l,t,ac) = case ntype of 
+         "anchor" ->  (True,  "" , Lex,   True)
+         "lexeme" ->  (False, lex, Lex,   True)
+         "subst"  ->  (False, "" , Subs,  True)
+         "foot"   ->  (False, "" , Foot,  True)
+         "aconstr" -> (False, "" , Other, True)
+         "" ->        (False, "" , Other, False) 
+      node = GN{gnname=name, gtype=t,
+                gup=top,   gdown=bot,
+                ganchor=a, glexeme=l,
+                gaconstr=ac}
+  in Data.Tree.Node node kids
+
+buildTree :: Ptype -> String -> ([String],Flist) -> (MpPolarities, MpPredictors) -> TrTree GNode -> MTtree
+buildTree ttype id (params,feats) (pol,pred) t = 
+       TT{params = params, 
+          pidname = id,
+          pfeat = feats, 
+          ptype = ttype, 
+          tree = t, 
+          ptpolarities = pol,
+          ptpredictors = pred} 
+
+polParser x = case polParserE x of 
+                Ok p     -> p
+                Failed e -> error e
+
 happyError :: [PosToken] -> E a
 happyError = parserError
 }

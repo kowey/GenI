@@ -27,49 +27,70 @@ import ParserLib hiding (Node)
     num   {(Num $$,       _, _)}
 %%
 
-TestSuite: TestCase { [$1] } 
+TestSuite :: { [TpCase] }
+TestSuite: TestCase           { [$1] } 
          | TestCase TestSuite { $1 : $2 } 
-        
+
+TestCase :: { TpCase }
 TestCase: SemR Sentences { ($1,$2) }
 
-Sentences: Sentence           { [$1] }
-         | Sentence Sentences { $1 : $2 }
-
-Sentence: '[' String ']' { $2 }
-
-String: id { $1 }
-      | id String { $1 ++ " " ++ $2 }
-
+SemR :: { (TpSem, [AvPair]) }
 SemR: Sem     { ($1,[]) }
     | Sem Res { ($1,$2) }
 
-Sem : sem ':' '[' ListPred ']' { $4 }
-Res : res ':' '[' FeatList ']' { $4 }
+{- sentences -}
 
-ListPred : {[]}
+Sentences :: { [String] }
+Sentences: Sentence           { [$1] }
+         | Sentence Sentences { $1 : $2 }
+
+Sentence :: { String }
+Sentence: '[' String ']' { $2 }
+
+String :: { String }
+String: id { $1 }
+      | id String { $1 ++ " " ++ $2 }
+
+{- semantics -}
+
+Sem :: { TpSem }
+Sem : sem ':' '[' ListPred ']' { $4 }
+
+ListPred :: { TpSem } 
+ListPred :               {[]}
          | Pred ListPred {$1:$2}
 
+Pred :: { Tree TpPred }
 Pred : id ':' id '(' Params ')'  {(Node ($1,$3) $5)}
      | id '(' Params ')'         {(Node ("",$1) $3)}
 
+Params :: { TpSem } 
 Params :             {[]}
        | id Params   {(Node ("",$1) []):$2}
        | Pred Params {$1:$2}
 
-FeatList : {[]} 
+{- restrictors -}
+
+Res :: { [AvPair] }
+Res : res ':' '[' FeatList ']' { $4 }
+
+FeatList :: { {-FeatList-} [AvPair] }
+FeatList : {-empty-}               {[]} 
          | id ':' FeatVal FeatList {($1,$3):$4}
 
+FeatVal :: { String }
 FeatVal: id  {$1}
        | num {show $1}
        | '+' {"+"}
        | '-' {"-"}
 
-
-
-
-
-
 {
+type AvPair = (String,String)
+
+type TpCase = ( (TpSem, [AvPair]), [String] )
+type TpSem  = [Tree (String,String)]
+type TpPred = (String,String)
+
 happyError :: [PosToken] -> E a
 happyError = parserError
 }
