@@ -132,6 +132,7 @@ compile: $(LEXERS) $(PARSERS)
 	if [ `uname` = Darwin ]; then macosx-app $(OFILE); fi
 
 debugger: $(LEXERS) $(PARSERS)
+	$(GHC) -prof --make $(GHCPACKAGES) $(LEXERS) $(PARSERS) 
 	$(GHC) -prof -auto-all --make $(GHCPACKAGES) $(DIFILE).hs -o $(DOFILE)
 	if [ `uname` = Darwin ]; then macosx-app $(DOFILE); fi
 

@@ -50,18 +50,65 @@ import Data.Tree
 \end{code}
 }
 
+% ----------------------------------------------------------------------
+\section{Grammar}
+% ----------------------------------------------------------------------
+
+A grammar is composed of some unanchored trees and individual lexical
+entries. See section \ref{sec:combine_macros} for the process that
+combines these into a set of anchored trees.
+
+\begin{code}
+type GTtree  = Ttree GNode
+type Grammar = FiniteMap String GTtree
+\end{code}
+
+\begin{code}
+data Ttree a = TT{params :: [String],
+                  pfeat :: Flist,
+                  ptype :: Ptype,
+                  tree :: Tree a,
+                  -- optimisation stuff
+                  ptpolarities  :: FiniteMap String Int,
+                  ptpredictors  :: [(AvPair,Int)]}
+           deriving Show
+
+data Ptype = Initial | Auxiliar | Unspecified   
+             deriving (Show, Eq)
+
+instance (Show k, Show e) => Show (FiniteMap k e) where 
+  show fm = show $ fmToList fm
+\end{code}
+
+Auxiliar types used during the parsing of the Lexicon 
+
+\begin{code}
+data ILexEntry = ILE{iword :: String,
+                     itreename :: String,
+                     iparams :: [String],
+                     ipfeat :: Flist,
+                     iptype :: Ptype,
+                     isemantics :: Sem,
+                     ipredictors :: [(AvPair,Int)]}
+               deriving Show
+\end{code}
 
 % ----------------------------------------------------------------------
 \section{GNode}
 % ----------------------------------------------------------------------
 
+A GNode is a single node of a syntactic tree. It has a name (gnname),
+top and bottom feature structures (gup, gdown), a lexeme 
+(ganchor, glexeme: False and empty string if n/a),  and some flags 
+information (gtype, gaconstr).
+
 \begin{code}
 data GNode = GN{gnname :: String,
-                gup :: Flist,
-                gdown :: Flist,
-                ganchor :: Bool,
-                glexeme :: String,
-                gtype :: GType,
+                gup    :: Flist,
+                gdown  :: Flist,
+                ganchor  :: Bool,
+                glexeme  :: String,
+                gtype    :: GType,
                 gaconstr :: Bool}
            deriving Eq
 
@@ -257,8 +304,8 @@ tree, except that the first node for which the filtering function
 returns True is transformed with the replacement function.
 
 \begin{code}
-listRepNode :: (Tree GNode -> Tree GNode) -> (Tree GNode -> Bool) 
-              -> [Tree GNode] -> ([Tree GNode], Bool)
+listRepNode :: (Tree a -> Tree a) -> (Tree a -> Bool) 
+              -> [Tree a] -> ([Tree a], Bool)
 listRepNode _ _ [] = ([], False)
 listRepNode fn filt ((n@(Node a l1)):l2) = 
   if filt n
@@ -271,51 +318,7 @@ listRepNode fn filt ((n@(Node a l1)):l2) =
 \end{code}
 
 % ----------------------------------------------------------------------
-\section{Macros}
-% ----------------------------------------------------------------------
-
-\begin{code}
-instance (Show k, Show e) => Show (FiniteMap k e) where 
-  show fm = show $ fmToList fm
-\end{code}
-
-\begin{code}
-data Ttree a = TT{params :: [String],
-                  pfeat :: Flist,
-                  ptype :: Ptype,
-                  tree :: Tree a,
-                  -- optimisation stuff
-                  ptpolarities  :: FiniteMap String Int,
-                  ptpredictors  :: [(AvPair,Int)]}
-           deriving Show
-
-data Ptype = Initial | Auxiliar | Unspecified   
-             deriving (Show, Eq)
-
-type GTtree = Ttree GNode
-
-type Grammar = FiniteMap String GTtree
-\end{code}
-
-% ----------------------------------------------------------------------
-\section{Lexicon}
-% ----------------------------------------------------------------------
-
-Auxiliar types used during the parsing of the Lexicon 
-
-\begin{code}
-data ILexEntry = ILE{iword :: String,
-                     itreename :: String,
-                     iparams :: [String],
-                     ipfeat :: Flist,
-                     iptype :: Ptype,
-                     isemantics :: Sem,
-                     ipredictors :: [(AvPair,Int)]}
-               deriving Show
-\end{code}
-
-% ----------------------------------------------------------------------
-\section{Feature structures}
+\section{Features and variables}
 % ----------------------------------------------------------------------
 
 \begin{code}
@@ -360,6 +363,23 @@ sortFlist fl = sortBy (\(f1,v1) (f2, v2) -> compare f1 f2) fl
 showPairs :: Flist -> String
 showPairs l = concat $ intersperse " " $ map showAv l
 showAv (y,z) = y ++ ":" ++ z 
+\end{code}
+
+\subsection{Variables}
+
+\paragraph{isVar} 
+Returns true if the string starts with a capital or is an anonymous variable.  
+
+\begin{code}
+isVar :: String -> Bool
+isVar s  = (isUpper . head) s || (isAnon s)
+\end{code}
+
+\paragraph{isAnon}
+Returns true if the string is an underscore 
+\begin{code}
+isAnon :: String -> Bool
+isAnon = (==) "_" 
 \end{code}
 
 % ----------------------------------------------------------------------
@@ -506,24 +526,6 @@ Sorts semantics according with it's predicate
 \begin{code}
 sortSem :: Sem -> Sem
 sortSem s = sortBy (\(h1, p1, par1) -> \(h2, p2, par2) -> compare p1 p2) s
-\end{code}
-
-
-\subsection{Variables}
-
-\paragraph{isVar} 
-Returns true if the string starts with a capital or is an anonymous variable.  
-
-\begin{code}
-isVar :: String -> Bool
-isVar s  = (isUpper . head) s || (isAnon s)
-\end{code}
-
-\paragraph{isAnon}
-Returns true if the string is an underscore 
-\begin{code}
-isAnon :: String -> Bool
-isAnon = (==) "_" 
 \end{code}
 
 % ----------------------------------------------------------------------
