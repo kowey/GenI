@@ -409,7 +409,8 @@ showSem l =
 
 \begin{code}
 showPred (h, p, l) = showh ++ p ++ "(" ++ (showAtr l)++ ")"
-                     where showh = if (null h) then "" else h ++ ":"
+                     where hideh = null h || (take 2 h == "gh")
+                           showh = if hideh then "" else h ++ ":"
 showAtr l = concat $ intersperse "," l
 \end{code}
 

@@ -19,6 +19,7 @@ where
 
 \ignore{
 \begin{code}
+import Data.Char (toLower)
 import Data.FiniteMap
 import Data.IORef (IORef, readIORef, newIORef, modifyIORef)
 import Data.List (intersect, intersperse, sort, nub, group)
@@ -219,7 +220,7 @@ customGeni pst runFn = do
   let uninflected = map tagLeaves res
   sentences <- runMorph pst uninflected
   -- final rensults 
-  return (results { grSentences = sentences,
+  return (results { grSentences = map (map toLower) sentences,
                     grTimeStr  = statsTime })
 \end{code}
 
@@ -627,14 +628,14 @@ as a lookup function in the monad.
 loadMorphInfo :: PState -> GramParams -> IO ()
 loadMorphInfo pst config = 
   do let filename = morphFile config
-     --
-     putStr $ "Loading Morphological Info " ++ filename ++ "..."
-     hFlush stdout
-     gf <- readFile filename
-     let g = (morphParser.lexer) gf
-         sizeg  = length g
-     putStr $ show sizeg ++ " entries\n" 
-     modifyIORef pst (\x -> x{morphinf = readMorph g})
+     when (not $ null filename ) $ do --
+        putStr $ "Loading Morphological Info " ++ filename ++ "..."
+        hFlush stdout
+        gf <- readFile filename
+        let g = (morphParser.lexer) gf
+            sizeg  = length g
+        putStr $ show sizeg ++ " entries\n" 
+        modifyIORef pst (\x -> x{morphinf = readMorph g})
 \end{code}
 
 \subsection{Target semantics}

@@ -17,7 +17,6 @@ import IOExts(readIORef, modifyIORef)
 import Bfuncs(SemInput,showSem)
 import Geni
 import Mstate(avgGstats, numcompar, szchart, geniter)
-import Tags(tagLeaves) 
 import Configuration(Params, isGraphical, isTestSuite,
                      isBatch,
                      grammarFile, tsFile, 
@@ -218,17 +217,23 @@ showTestCase (sem,_) expected results =
      ++ "\n" ++ showSem sem 
      ++ "\n================================================================="
      ++ "\n" 
-     ++ "\nfail"
-     ++ "\n----"
-     ++ "\n" ++ showRealisations fail
-     ++ "\n"
-     ++ "\npass"
-     ++ "\n----"
-     ++ "\n" ++ showRealisations pass 
-     ++ "\n"
-     ++ "\novergeneration"
-     ++ "\n--------------"
-     ++ "\n" ++ showRealisations overgen 
+     ++ (if null fail 
+        then "" 
+        else "\nfail" 
+             ++ "\n----"
+             ++ "\n" ++ showRealisations fail
+             ++ "\n")
+     ++ (if null pass 
+        then ""
+        else "\npass"
+             ++ "\n----"
+             ++ "\n" ++ showRealisations pass 
+             ++ "\n")
+     ++ (if null overgen
+        then ""
+        else "\novergeneration"
+             ++ "\n--------------"
+             ++ "\n" ++ showRealisations overgen)
 \end{code}
 
 
