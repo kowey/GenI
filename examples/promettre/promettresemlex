@@ -3,10 +3,10 @@
 %% X promet Y a Z
 %% Canonique, interrogatives, relatives
 
-il pn ()
+il pn (H X)
 semantics:[]
 
-le cl ()
+le cl (H X)
 semantics:[]
 
 %% Determinants

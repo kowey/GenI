@@ -192,7 +192,7 @@ customGeni pst runFn = do
 
       statsAut = if isPol 
                  then    (show $ length combosPol) ++ "/"
-                      ++ (show $ calculateTreeCombos candLite) 
+                      ++ (show $ calculateTreeCombos candLite tsem swmap) 
                  else ""
   -- pack up the results
   let results = GR { grCand = cand,
@@ -455,10 +455,10 @@ chooseCandI tsem cand =
       substPar par sub = map (\p -> foldl sfn p sub) par
                          where sfn z (x,y) = if (z == x) then y else z
       --
-      psubst te = if (null sem) then [[]] else subsumeSem tsem sem
-                  where sem = isemantics te
-      --
-      helper te = map (substLex te) (psubst te)
+      helper :: ILexEntry -> [ILexEntry]
+      helper le = if (null sem) then [le] else map (substLex le) psubst 
+                  where psubst = subsumeSem tsem sem
+                        sem = isemantics le
   in nub $ concatMap helper cand
 \end{code}
 

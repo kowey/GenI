@@ -135,12 +135,8 @@ makePolAutHelper cands tsemRaw extraPol swmap =
       (tsem, smap) = addExtraIndices swmap (tsemRaw,smapRaw)
       -- sorted semantics (for more efficient construction)
       sortedsem = sortSemByFreq tsem cands 
-      -- empty semantic items (pronouns) added to all columns
-      emptysem  = lookupWithDefaultFM smap [] emptyPred
-      smap2     = mapFM (\_ e -> e ++ emptysem) s
-                  where s = delFromFM smap emptyPred
-       -- the seed automaton
-      seed   = buildSeedAut smap2 sortedsem
+      -- the seed automaton
+      seed   = buildSeedAut smap sortedsem
   in (ks, seed)
 \end{code}
 
@@ -615,11 +611,8 @@ buildSemWeights wps =
 \paragraph{addExtraIndices} modifies an input semantics and a semantic
 map so that extra indices (extra columns) are added to the input
 semantics to account for repeated mentions to an index.  These extra
-columns start out with a single transition (the empty transition). 
-
-After calling this function, you must make a second pass on the semantic
-map, adding the null semantic items to every column.  Doing so will
-allow the generator to produce pronouns in general 
+columns start out with the empty transition and the null semantic items.
+Doing so will allow the generator to produce pronouns in general
 (\natlang{He likes the book}); specifically including the extra columns
 (\natlang{He likes himself}).
 
@@ -633,14 +626,20 @@ verbs the same semantic weight as regular verbs, 0:(1 1) in the case of
 hope, but make use of empty transitions to allow for a realisation with
 one pronoun less.
 
+FIXME: we need to figure out how to instantiate the semantics of these
+empty items.
+
 \begin{code}
 addExtraIndices :: SemWeightMap -> (Sem, SemMap) -> (Sem, SemMap)
 addExtraIndices swmap (tsem,smap) = 
-  let extra  = map (\x -> (x,"",[])) i
+  let emptysem = lookupWithDefaultFM smap [] emptyPred
+      cleanSmap = delFromFM smap emptyPred
+      --
+      extra  = map (\x -> (x,"",[])) i
                where i = countExtraIndices swmap tsem
       tsem2  = tsem ++ extra
-      smap2  = foldr addfn smap extra
-               where addfn x f = addToFM f x [emptyTL] 
+      smap2  = foldr addfn cleanSmap extra
+               where addfn x f = addToFM f x (emptyTL:emptysem)
       --
   in (tsem2, smap2)
 \end{code}
@@ -1263,10 +1262,10 @@ product of these ambiguities: $\prod_{1 \leq i \leq n} a_i$.
  number of tree combinations is $a^n$).  
 
 \begin{code}
-calculateTreeCombos :: [TagLite] -> Int
-calculateTreeCombos cands = 
-  let semmap    = delFromFM fm emptyPred
-                  where fm = mapBySem tlSemantics cands
-      ambiguity = map length $ eltsFM semmap
+calculateTreeCombos :: [TagLite] -> Sem -> SemWeightMap -> Int
+calculateTreeCombos cands tsemRaw swmap = 
+  let smapRaw   = mapBySem tlSemantics cands
+      (_, smap) = addExtraIndices swmap (tsemRaw, smapRaw)
+      ambiguity = map length $ eltsFM smap 
   in foldr (*) 1 ambiguity     
 \end{code}

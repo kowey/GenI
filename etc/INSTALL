@@ -5,8 +5,9 @@ first make sure you have these things installed
 there's also a few other things to install, but rather than fetching 
 them yourself, just use curl!
 
-  cp /whatever/Geni/etc/geni.curl /tmp
-  cd /tmp
+  mkdir /tmp/genidl
+  cd /tmp/genidl
+  cp /WHATEVER/Geni/etc/geni.curl .
   curl -K geni.curl
 
 then install all of the packages that get downloaded:

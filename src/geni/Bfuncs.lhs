@@ -501,36 +501,33 @@ repXbyY :: (Eq a) => a -> a -> [a] -> [a]
 repXbyY s1 s2 l = map (\x->if (x == s1) then s2 else x) l
 \end{code}
 
-\paragraph{instantiate} 
-Given a predicate (name, listParams) p and the
-semantics s of a candidate, it instantiates s in terms of p.  
-I.e variables in s are instantiated according to p, but notice
-that variables in s are left as is and no error is reported.  
-Candidates should be checked for subsumeSem afterwards 
-
-\begin{code}
-{-
-instCandSem :: (String, [String]) -> Sem -> Sem
-instCandSem p [] =
-    []
-instCandSem p@(pn1, lp1) (h@(pn2, lp2):rl) =
-    if ((pn1 == pn2) && (length lp1 == length lp2))
-       then let sub = findSubstCand lp1 lp2
-                in (substPred p sub):(instCandSem p (substSem rl sub))
-       else h:(instCandSem p rl) -}
-\end{code}
-
-\begin{code}
-{-
-findSubstCand :: [String] -> [String] -> Subst
-findSubstCand [] [] =
-    []
-findSubstCand (w1:l1) (w2:l2) =
-    if (isVar w2) 
-       then (w2, w1):findSubstCand l1 l2
-       else findSubstCand l1 l2
--}
-\end{code}
+%\paragraph{instantiate} 
+%Given a predicate (name, listParams) p and the
+%semantics s of a candidate, it instantiates s in terms of p.  
+%I.e variables in s are instantiated according to p, but notice
+%that variables in s are left as is and no error is reported.  
+%Candidates should be checked for subsumeSem afterwards 
+%
+%\begin{code}
+%instCandSem :: (String, [String]) -> Sem -> Sem
+%instCandSem p [] =
+%    []
+%instCandSem p@(pn1, lp1) (h@(pn2, lp2):rl) =
+%    if ((pn1 == pn2) && (length lp1 == length lp2))
+%       then let sub = findSubstCand lp1 lp2
+%                in (substPred p sub):(instCandSem p (substSem rl sub))
+%       else h:(instCandSem p rl) -}
+%\end{code}
+%
+%\begin{code}
+%findSubstCand :: [String] -> [String] -> Subst
+%findSubstCand [] [] =
+%    []
+%findSubstCand (w1:l1) (w2:l2) =
+%    if (isVar w2) 
+%       then (w2, w1):findSubstCand l1 l2
+%       else findSubstCand l1 l2
+%\end{code}
 
 \begin{code}
 substPred :: Pred -> Subst -> Pred
@@ -544,6 +541,9 @@ substPred (h, n, lp) ((a,b):l) = substPred (fixHandle, n, repXbyY a b lp) l
 
 Given the target Sem ts and the Sem s of a potential lexical candidate,
 returns the list of possible substitutions so that s is a subset of ts.
+Note: we return more than one possible substitution because s could be
+different subsets of ts.  Consider, for example, \semexpr{love(j,m),
+  name(j,john), name(m,mary)} and the candidate \semexpr{name(X,Y)}.
 
 TODO WE ASSUME BOTH SEMANTICS ARE ORDERED and non-empty.
 
@@ -602,6 +602,7 @@ Sorts semantics according with it's predicate
 sortSem :: Sem -> Sem
 sortSem s = sortBy (\(_, p1, _) -> \(_, p2, _) -> compare p1 p2) s
 \end{code}
+
 
 
 % ----------------------------------------------------------------------
