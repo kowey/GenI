@@ -1,0 +1,33 @@
+# 11a from Carroll 1999
+# ---------------------
+# koller          - 1.4 s               (700 mHz Pentium III)
+# carroll 2 phase - 1.8 s / 314 edges
+# carroll 1 phase - 5.6 s / 923 edges
+
+semantics: [ directeur(m)    def(m)     de(m o) 
+             bureau(o)       dem(o)          
+             consultant(c)   indef(c)   de(c g)   nouveau(c)
+             allemagne(g)
+             auditioner(int m c) ]
+
+[ le directeur de ce bureau auditioner le nouveau 
+  consultant de allemagne ]
+# [ the manager in that office interviewed a new consultant from 
+#  germany ]
+
+# 11b from Carroll 1999 (48 strings)
+# ---------------------
+# koller          -  0.8 s 
+# carroll 2 phase -  4.3 s /  776 edges
+# carroll 1 phase - 54.8 s / 4710 edges
+
+semantics: [ directeur(m) poss(m us) 
+             seminaire(c) indef(c) special(c) hebdomadaire(c) nouveau(c)
+             equipe(e)    de(c e) 
+             organiser(org m c) ]
+
+# [ our manager organized an unusual additional weekly departemental
+#  conference ]
+[ notre directeur organiser un nouveau seminaire de equipe 
+  hebdomadaire special ]
+  

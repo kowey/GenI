@@ -1,0 +1,109 @@
+%% $Id: semlex,v 1.1 2005/01/09 22:35:22 kow Exp $
+
+% ----------------------------------------------------------------------
+% bits and pieces
+% ----------------------------------------------------------------------
+
+% this seems wrong
+notre det [idx:X]
+semantics:[poss(m us)]
+
+le det [idx:X]
+semantics:[def(X)]
+
+un det [idx:X]
+semantics:[indef(X)]
+
+ce det [idx:X]
+semantics:[dem(X)]
+
+% ----------------------------------------------------------------------
+% nouns
+% ----------------------------------------------------------------------
+
+directeur n [idx:X]
+semantics:[directeur(X)]
+
+bureau n  [idx:X]
+semantics:[bureau(X)]
+
+consultant n [idx:X]
+semantics:[consultant(X)]
+
+allemagne pn [idx:X] % co-anchors would be useful for this word
+semantics:[allemagne(X)]
+
+seminaire n [idx:X]
+semantics:[seminaire(X)]
+
+equipe n [idx:X]
+semantics:[equipe(X)]
+
+% ----------------------------------------------------------------------
+% adjectives 
+% ----------------------------------------------------------------------
+
+special adj [idx:X]  
+semantics:[special(X)]
+
+hebdomadaire adj [idx:X]
+semantics:[hebdomadaire(X)]
+
+nouveau adj [idx:X]
+semantics:[nouveau(X)]
+
+dequipe adj [idx:X]
+semantics:[dequipe(X)]
+
+
+% ----------------------------------------------------------------------
+% prepositions 
+% ----------------------------------------------------------------------
+
+% FIXME: what should be set to X ?
+
+de prep [genitiveI:Y] % [idx:X loc:Y] 
+semantics:[de(X Y)]
+
+% ----------------------------------------------------------------------
+% verbs 
+% ----------------------------------------------------------------------
+
+auditioner v [evt:X arg1:X arg2:Y] 
+semantics:[auditioner(I X Y)]
+
+organiser v [evt:X arg1:X arg2:Y] 
+semantics:[organiser(I X Y)]
+
+%% ----------------------------------------------------------------------
+%% semantic weights 
+%% ----------------------------------------------------------------------
+%
+%%!
+%%
+%%1:(0) [      
+%%  def 
+%%  indef 
+%%  qu 
+%%]
+%%
+%%1:(1) [ 
+%%  book 
+%%  present
+%%  john
+%%  mary
+%%  claire
+%%  paul
+%%] 
+%%
+%%1:(-1 -1 -1) [ 
+%%  convince 
+%%  promise 
+%%  give 
+%%]
+%%
+%%1:(-1 -1) [
+%%  love
+%%  hope 
+%%]
+%

@@ -1,0 +1,46 @@
+%% $Date: 2005/01/09 22:35:22 $ 
+%% French TAG
+%% Note: i use fake tree names until the grammar can be sorted out
+
+% ----------------------------------------------------------------------
+% bits and pieces
+% ----------------------------------------------------------------------
+
+notre det PossFam %  FIXME
+le    det stddeterminer 
+un    det stddeterminer 
+ce    det stddeterminer 
+
+% ----------------------------------------------------------------------
+% nouns
+% ----------------------------------------------------------------------
+
+directeur  n   commonNoun
+bureau     n   commonNoun
+consultant n   commonNoun
+seminaire  n   commonNoun
+equipe     n   commonNoun 
+allemagne  pn  propername 
+
+
+% ----------------------------------------------------------------------
+% adjectives 
+% ----------------------------------------------------------------------
+
+special      adj EpithPost 
+hebdomadaire adj EpithPost 
+dequipe      adj EpithPost 
+nouveau      adj EpithAnte 
+
+% ----------------------------------------------------------------------
+% prepositions 
+% ----------------------------------------------------------------------
+
+de   prep n0vNden1 
+
+% ----------------------------------------------------------------------
+% verbs 
+% ----------------------------------------------------------------------
+
+auditioner v  n0Vn1 
+organiser   v  n0Vn1 
