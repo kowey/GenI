@@ -117,7 +117,9 @@ We add some buttons for loading files and running the generator.
        let config = pa mst 
        -- Target Semantics
        tsText <- readFile (tsFile $ pa mst)
-       tsTextBox <- textCtrl f WrapWord [ text := tsText, clientSize := sz 300 80 ]
+       tsTextBox <- textCtrl f [ text := tsText 
+                               , wrap := WrapWord
+                               , clientSize := sz 300 80 ]
        -- Box and Frame for files loaded 
        let gFilename = grammarFile config 
        grammarFileLabel <- staticText f [ text := gFilename ]
@@ -232,11 +234,11 @@ gramsemBrowser pst guiParts = do
       gfile = grammarFile config
   f <- frame [text := "Grammar and semantics", clientSize := sz 400 150]
   -- Grammar files selection
-  entryG  <- textEntry f AlignLeft [ text := trim gfile ]
+  entryG  <- textEntry f [ text := trim gfile ]
   fselBtG <- button f [ text := "Browse"
                       , on command := newFileSel f entryG  ]
   -- Target semantics file selection
-  entryS   <- textEntry f AlignLeft [ text := trim tfile ]
+  entryS   <- textEntry f [ text := trim tfile ]
   fselBtS <- button f [ text := "Browse"
                       , on command := newFileSel f entryS ]
   -- Cancel button
@@ -593,7 +595,7 @@ debuggerTab f config tsem cachedir cands = do
                            , checked := False ]
   restartBt   <- button p [text := "Start over"]
   nextBt   <- button p [text := "Leap by..."]
-  leapVal  <- textEntry p AlignLeft [ text := "1", clientSize := sz 30 25 ]
+  leapVal  <- textEntry p [ text := "1", clientSize := sz 30 25 ]
   finishBt <- button p [text := "Continue"]
   statsTxt <- staticText p []
   -- commands
@@ -759,14 +761,14 @@ graphvizGui f txtChoiceTip cachedir gvRef = do
   p <- panel f [ fullRepaintOnResize := False ]
   split <- splitterWindow p []
   (dtBitmap,sw) <- scrolledBitmap split 
-  rchoice  <- singleListBox split False 
+  rchoice  <- singleListBox split 
               [selection := 1, tooltip := txtChoiceTip]
   -- set handlers
   let openFn   = openImage sw dtBitmap 
   -- pack it all together
   let lay = fill $ container p $ margin 1 $ fill $ 
             vsplit split 5 200 (widget rchoice) (widget sw) 
-  set p [ on closing :~ \previous -> do{ closeImage dtBitmap; previous } ]
+  set p [ on closing :~ \previous -> do{ closeImage sw dtBitmap; previous } ]
   -- bind an action to rchoice
   let showItem = createAndOpenImage cachedir p gvRef openFn
   -- create an updater function
@@ -822,22 +824,21 @@ openImage :: Window a -> VarBitmap -> OpenImageFn
 openImage sw vbitmap fname = do 
     -- load the new bitmap
     bm <- bitmapCreateFromFile fname  -- can fail with exception
-    closeImage vbitmap
-    varSet vbitmap (Just bm)
+    closeImage sw vbitmap
+    set vbitmap [value := Just bm]
     -- set status [text := fname]
     -- reset the scrollbars 
-    bmsize <- bitmapGetSize bm
+    bmsize <- get bm size 
     set sw [virtualSize := bmsize]
-    --refit sw
     repaint sw
       `catch` \_ -> repaint sw
 
-closeImage :: VarBitmap -> IO ()
-closeImage vbitmap = do 
-    mbBitmap <- varSwap vbitmap Nothing
+closeImage :: Window a -> VarBitmap -> IO ()
+closeImage _ vbitmap = do 
+    mbBitmap <- swap vbitmap value Nothing
     case mbBitmap of
         Nothing -> return ()
-        Just bm -> bitmapDelete bm
+        Just bm -> objectDelete bm
 \end{code}
 
 \begin{code}
@@ -845,8 +846,9 @@ onPaint :: VarBitmap -> DC a -> b -> IO ()
 onPaint vbitmap dc _ = do 
     mbBitmap <- varGet vbitmap
     case mbBitmap of
-      Nothing -> dcClear dc
-      Just bm -> drawBitmap dc bm pointZero False []
+      Nothing -> return () 
+      Just bm -> do dcClear dc
+                    drawBitmap dc bm pointZero False []
 \end{code}
 
 \subsection{Drawing stuff}
