@@ -39,11 +39,13 @@ instance GraphvizShow TagElem where
      ++ " edge [ arrowhead = none ];\n"
      -- we display the tree semantics as the graph label
      ++ " label = \"" ++ label ++ "\";\n" 
-     -- derivation tree is displayed without any decoration
-     ++ (graphvizShowDerivation $ snd $ derivation te)
      -- derived tree nodes' labels are their feature structures 
      ++ " node [ shape = plaintext ];\n" 
-     ++ (graphvizShow' (showfeats te) (ttree te) "DerivedTree0") ++ "}\n" 
+     ++ (graphvizShow' (showfeats te) (ttree te) "DerivedTree0") 
+     -- derivation tree is displayed without any decoration
+     ++ (graphvizShowDerivation $ snd $ derivation te)
+     --
+     ++ "}\n" 
    where treename = "name: " ++ (idname te)
          semlist  = "semantics: " ++ (showSem $ tsemantics te)
          label    = treename ++ "\\n" ++ semlist 
