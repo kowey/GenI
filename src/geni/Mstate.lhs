@@ -1,5 +1,9 @@
 \chapter{Mstate}
 
+Mstate implements the GenI chart generation algorithm and related
+operations like TAG substitution, adjunction and feature structure
+unification are also implemented here.
+
 TODO:
 \begin{enumerate}
 \item For some reason, trees with incomplete semantics (eg, mia loves )but with an 
@@ -345,9 +349,8 @@ different values for the \textit{number} attribute:
 \fs{\it cat:np\\ \it number:2\\}
 \end{quotation}
 
-Note that the following input should also fail because the second fs
-list has the value \textit{1} for the attribute \textit{two}, by
-unification on the variable \textit{?X}:
+Note that the following input should also fail as a result on the
+coreference on \textit{?X}.
 
 \begin{quotation}
 \fs{\it cat:np\\ \it one: 1\\  \it two:2\\}
@@ -356,7 +359,14 @@ unification on the variable \textit{?X}:
 
 On the other hand, any other pair of feature lists should unify
 succesfully, even those that do not share the same attributes.
-For example, the following two lists should unify as follows
+Below are some examples of successful unifications:
+
+\begin{quotation}
+\fs{\it cat:np\\ \it one: 1\\  \it two:2\\}
+\fs{\it cat:np\\ \it one: ?X\\ \it two:?Y\\}
+$\rightarrow$
+\fs{\it cat:np\\ \it one: 1\\ \it two:2\\}
+\end{quotation}
 
 \begin{quotation}
 \fs{\it cat:np\\ \it number:3\\}
@@ -450,6 +460,7 @@ unifyFeatI f v1 v2 l1 l2 =
 
 % --------------------------------------------------------------------  
 \section{Substitution}
+\label{sec:substitution}
 % --------------------------------------------------------------------  
 
 \paragraph{applySubstitution} Given a TagElem it returns the list of all
@@ -524,6 +535,7 @@ iapplySubstNode te1 te2 sn@(n, fu, _) =
 
 % --------------------------------------------------------------------  
 \section{Adjunction}
+\label{sec:adjunction}
 \label{sec:ordered_adjunction}
 \label{sec:foot_constraint}
 % ---------------------------------------------------------------  

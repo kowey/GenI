@@ -1,5 +1,12 @@
 \chapter{Btypes}
 
+This module provides basic datatypes like GNode as well as some simple
+operations on trees, nodes and semantics. Things here are meant to be
+relatively low-level and primitive. For example, we implement TAG
+substitution and adjunction, but only the cutting up and reassembling of
+trees, none of the feature structure unification, which we leave to some
+other module.
+
 \begin{code}
 module Btypes(
    -- Datatypes
@@ -54,8 +61,9 @@ import Data.Tree
 \section{Grammar}
 % ----------------------------------------------------------------------
 
-A grammar is composed of some unanchored trees and individual lexical
-entries. See section \ref{sec:combine_macros} for the process that
+A grammar is composed of some unanchored trees (macros) and individual
+lexical entries. Each macro in the grammar is associated with a unique
+name. See also section \ref{sec:combine_macros} for the process that
 combines these into a set of anchored trees.
 
 \begin{code}
@@ -559,12 +567,11 @@ can lookup.  \texttt{fn} extracts the property from the item.
 \begin{code}
 groupByFM :: (Ord b) => (a -> b) -> [a] -> (FiniteMap b [a])
 groupByFM fn list = 
-  let helper acc [] = acc
-      helper acc (x:xs) = helper (addIt acc x) xs
-      addIt acc x = case (lookupFM acc (fn x)) of
-                         Just y  -> addToFM acc (fn x) (x:y)
-                         Nothing -> addToFM acc (fn x) [x]
-  in helper emptyFM list 
+  let helper x acc = case (lookupFM acc key)) of
+                         Just y  -> addToFM acc key (x:y)
+                         Nothing -> addToFM acc key [x]
+                     where key = fn x 
+  in foldr helper emptyFM list 
 \end{code}
 
 \begin{code}

@@ -75,30 +75,33 @@
 
 \chapter{Overview}
 
-In this chapter, we provide a basic overview of the Geni source code.
-Note: module imports are typically not shown in the code.
+This is the source code to the GenI generator being adapted to a
+literate programming style.  
 
 \section{Core files}
 
-The two core files are Geni.lhs and Mstate.lhs; they are the ones that
-perform the candidate selection and generation.  Geni.lhs also controls
-the input file parsers.
+Geni.lhs and Mstate.lhs perform the candidate selection and generation.
+They will tend make heavy use of the modules Btypes.lhs and Tags.lhs, in
+which we try to encapsulate some basic or generic operations into the
+files.
 
 \begin{description}
  \item[Geni.lhs] - parses and formats data for the generator 
  \item[Mstate.lhs] - the chart generator itself (note: substitution,
- adjunction, FS unification are done here, not in Tags.hs)
+ adjunction, FS unification are done here, not in Tags.lhs)
+ \item[Btypes.lhs] - basic data types 
+ \item[Tags.lhs] - TAG specific data types
 \end{description}
 
-\section{Data types}
+\section{Optimisation}
 
-We try to encapsulate some basic or generic operations into these two
-data type files.  A lot of the functions in the core files will make
-heavy use of the following two files.
+In addition to the modules below, chapter \ref{chp:other_optimisations}
+will point you to ones which could not be cleanly seperated into
+modules.
 
 \begin{description}
- \item[Btypes.hs] - basic data types 
- \item[Tags.hs] - TAG specific data types
+ \item[Polarity.lhs] - the polarity automaton optimisation 
+ \item[Predictors.lhs] - the now defunct predictors optimisation
 \end{description}
 
 \section{User Interface}
@@ -111,6 +114,9 @@ visualisation tool.
 \begin{description}
  \item[Main.hs] - provides console and batch processing 
  \item[Gui.lhs] - main GUI code 
+ \item[Treeprint.lhs] - outputs trees in various formats 
+                        (currently as sentences and as graphviz dot
+                        files)
  \item[Graphviz.lhs] - interacts with the graphviz drawing tool
 \end{description}
 
@@ -150,17 +156,18 @@ Also of interest are XML grammar files (processed with the HaXml toolkit
 
 \part{Core files}
 
+\input{Geni.lhs}       
+\input{Mstate.lhs}       
 \input{Btypes.lhs}       
 \input{Tags.lhs}       
-\input{Mstate.lhs}       
-\input{Geni.lhs}       
 
 \part{Optimisation}
 
 \input{Polarity.lhs}       
-\input{Predictors.lhs}
+% \input{Predictors.lhs}
 
 \chapter{Other optimisations}
+\label{chp:other_optimisations}
 
 Some of the optimisations related to adjunction are integrated into
 to the generator.
@@ -178,6 +185,9 @@ See section \ref{sec:ordered_adjunction}
 See section \ref{sec:foot_constraint}
 
 \part{User interface}
+
+\chapter{Main}
+\verbatiminput{Main.hs}
 
 \input{Gui.lhs}
 \input{Graphviz.lhs}

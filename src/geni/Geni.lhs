@@ -1,5 +1,11 @@
 \chapter{Geni}
 
+Geni is the interface between everything and everything else. The GUI
+and the console interface both talk to this module, and in turn, this
+module talks to the input file parsers and the surface realisation
+engine.  This module also does lexical selection and anchoring because
+these processes might involve some messy IO performance tricks.
+
 \begin{code}
 module Geni (State(..), PState, GeniResults(..), 
              showRealisations, showOptResults,
@@ -556,7 +562,7 @@ loadTargetSemStr pst str =
 \paragraph{flattenTargetSem} takes a recursively embedded target
 semantics like \verb$love(me wear(you sw))$ \verb$sweater(sw)$
 and converts it into a flat semantics with handles like
-\verb$love(h1 me h1.3)$ $wear(h1.3 you)$ $sweater(h2 sw)$
+\verb$love(h1 me h1.3)$ \verb$wear(h1.3 you)$ $sweater(h2 sw)$
 
 \begin{code}
 flattenTargetSem :: [Tree String] -> Sem

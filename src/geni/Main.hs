@@ -1,3 +1,9 @@
+{-
+  This module has three jobs: deciding between the text/graphical 
+  interface, providing the text interface, batch processing, if 
+  relevant.
+-}
+
 {- TODO Prepare a report from the slides of the talk -}
 
 {- TODO To eliminate redundant generations enforce that substitution

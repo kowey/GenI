@@ -664,9 +664,9 @@ resulting automaton could look like this:
 
 \begin{verbatim}
      bar     foo
-(0)------(0)------(-1)
-   |               
-   +-----(1)------(0)
+(0)--+---(0)------(-1)
+     |               
+     +---(1)------(0)
 \end{verbatim}
 
 With semantic sorting, we would explore foo before bar because foo has

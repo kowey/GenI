@@ -1,4 +1,8 @@
-\chapter{Tags.lhs}
+\chapter{Tags}
+
+This module provides basic datatypes specific to Tree Adjoining Grammar
+(TAG). Note that we don't handle substitution and adjunction here; 
+see sections \ref{sec:substitution} and \ref{sec:adjunction} instead.  
 
 \begin{code}
 module Tags(
@@ -19,7 +23,7 @@ module Tags(
    substTagElem, appendToVars,
 
    -- General functions
-   mapBySem, sumPredictors, drawTagTrees, subsumedBy, showTagSites,
+   mapBySem, drawTagTrees, subsumedBy, showTagSites,
 ) where
 \end{code}
 
@@ -40,14 +44,43 @@ import Btypes (Ptype(Initial, Auxiliar), AvPair,
 }
 
 % ----------------------------------------------------------------------
+\section{Tags}
+% ----------------------------------------------------------------------
+
+Tags is the datatype for an anchored grammar. The grammar associates
+a set of semantic predicates to a list of trees each.
+
+\begin{code}
+type Tags = FiniteMap String [TagElem]                            
+\end{code}
+
+\paragraph{addToTags} Given a Tags (a FM), a key (a String) and a TagElem 
+it adds the elem to the list of elements associated to the key.
+
+\begin{code}
+addToTags :: Tags -> String -> TagElem -> Tags
+addToTags t k e = addToFM_C (++) t k [e]
+\end{code}
+
+\begin{code}
+findInTags :: Tags -> String -> [TagElem]
+findInTags t k = 
+    case (lookupFM t k) of 
+       Just l -> l
+       Nothing -> []
+\end{code}
+
+% ----------------------------------------------------------------------
 \section{TagElem}
 % ----------------------------------------------------------------------
 
-Final types used for the combined grammar + lexicon.  Note: we assume that
-a two trees are the same if and only if they have the same tidnum.
+Final types used for the combined macros + lexicon.  We assume that
+a two trees are the same iff they have the same tidnum.  To make this
+work, we assign each tree with a unique id during the process of
+combining macros with lexicon (see section \ref{sec:combine_macros}).
 
 \begin{code}
-type TPredictors = FiniteMap AvPair Int 
+-- type TPredictors = FiniteMap AvPair Int 
 type TagSite = (String, Flist, Flist)
 data TagElem = TE {
                    idname :: String,
@@ -89,10 +122,6 @@ instance Ord TagElem where
          (Auxiliar, Auxiliar) -> compare' 
          _                    -> error "TagElem compare not exhaustively defined"
     where compare' = compare (tidnum t1) (tidnum t2)
-\end{code}
-
-\begin{code}
-type Tags = FiniteMap String [TagElem]                            
 \end{code}
 
 \begin{code}
@@ -150,22 +179,6 @@ appendToVars suf te =
           adjnodes   = map sitefn (adjnodes te)}
 \end{code}
 
-\paragraph{addToTags} Given a Tags (a FM), a key (a String) and a TagElem 
-it adds the elem to the list of elements associated to the key.
-
-\begin{code}
-addToTags :: Tags -> String -> TagElem -> Tags
-addToTags t k e = addToFM_C (++) t k [e]
-\end{code}
-
-\begin{code}
-findInTags :: Tags -> String -> [TagElem]
-findInTags t k = 
-    case (lookupFM t k) of 
-       Just l -> l
-       Nothing -> []
-\end{code}
-
 % ----------------------------------------------------------------------
 \section{Map by sem}
 % ----------------------------------------------------------------------
@@ -216,20 +229,19 @@ subsumedBy ((ch, cp, cla):cl) (th, tp,tla)
     | otherwise                  = False
 \end{code}
 
-% ----------------------------------------------------------------------
-\section{Predictors}
-% ----------------------------------------------------------------------
-
-\paragraph{sumPredictors} merges two tree predictors together.
-The idea is that if one tree has $-2np$ and the other $+np$, then
-this will merge to $-np$.  
-
-\begin{code}
-sumPredictors :: TPredictors -> TPredictors -> TPredictors
-sumPredictors tp1 tp2 = 
-  filterFM (\_ e -> e /= 0) $ plusFM_C (+) tp1 tp2
-\end{code}
-
+%% ----------------------------------------------------------------------
+%\section{Predictors}
+%% ----------------------------------------------------------------------
+%
+%\paragraph{sumPredictors} merges two tree predictors together.
+%The idea is that if one tree has $-2np$ and the other $+np$, then
+%this will merge to $-np$.  
+%
+%\begin{code}
+%sumPredictors :: TPredictors -> TPredictors -> TPredictors
+%sumPredictors tp1 tp2 = 
+%  filterFM (\_ e -> e /= 0) $ plusFM_C (+) tp1 tp2
+%\end{code}
 
 % ----------------------------------------------------------------------
 \section{Drawings TAG Tree}
