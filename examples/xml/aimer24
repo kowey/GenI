@@ -80,6 +80,7 @@
       </fs>
     </interface>
   </entry>
+  <!--
   <entry name="TcliticElle-416">
     <family>cliticElle</family>
     <trace>
@@ -132,6 +133,7 @@
       </fs>
     </interface>
   </entry>
+  -->
   <entry name="TnounMarie-205">
     <family>nounMarie</family>
     <trace>
@@ -211,6 +213,7 @@
       </fs>
     </interface>
   </entry>
+  <!--
   <entry name="TcliticL-206">
     <family>cliticL</family>
     <trace>
@@ -263,6 +266,7 @@
       </fs>
     </interface>
   </entry>
+  -->
   <entry name="TLexemeDonner-208">
     <family>LexemeDonner</family>
     <trace>
@@ -33421,6 +33425,7 @@
       </fs>
     </interface>
   </entry>
+  <!--
   <entry name="TcliticLa-412">
     <family>cliticLa</family>
     <trace>
@@ -33473,6 +33478,7 @@
       </fs>
     </interface>
   </entry>
+  -->
   <entry name="TnounJean-413">
     <family>nounJean</family>
     <trace>
@@ -33552,6 +33558,7 @@
       </fs>
     </interface>
   </entry>
+  <!--
   <entry name="TcliticIl-414">
     <family>cliticIl</family>
     <trace>
@@ -33604,6 +33611,7 @@
       </fs>
     </interface>
   </entry>
+  -->
   <entry name="TnounPatrick-415">
     <family>nounPatrick</family>
     <trace>
@@ -99999,6 +100007,7 @@
       </fs>
     </interface>
   </entry>
+  <!--
   <entry name="TcliticLe-207">
     <family>cliticLe</family>
     <trace>
@@ -100051,4 +100060,5 @@
       </fs>
     </interface>
   </entry>
+  -->
 </grammar>
