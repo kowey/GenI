@@ -8,9 +8,6 @@ import ParserLib (Token(Comma, Colon, ID, Semantics, OP, CP, CB, OB),
                   PosToken,
                   E(..), thenE, returnE, failE, parserError)
 
-import Btypes (sortSem)
-
-
 }
 
 %name targetSemParser Sem

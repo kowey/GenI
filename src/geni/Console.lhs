@@ -11,11 +11,11 @@ module Console(consoleGenerate) where
 \ignore{
 \begin{code}
 import Data.Char(toLower)
-import Data.List(intersperse,sort,partition,(\\))
+import Data.List(intersperse,sort,partition)
 import Monad(mapM, foldM, when)
 import IOExts(readIORef, modifyIORef)
 
-import Btypes(Sem,showSem)
+import Bfuncs(Sem,showSem)
 import Geni
 import Mstate(avgGstats, numcompar, szchart, geniter)
 
@@ -210,9 +210,10 @@ showTestCase sem expected results =
   let expected2     = sort expected
       results2      = sort results
       --
-      (pass,fail)   = partition resfn expected2 
-                      where resfn x = x `elem` results2 
-      overgen       = results \\ expected2 
+      (pass,overgen) = partition expfn results2
+                       where expfn x = x `elem` expected2
+      fail           = filter (not.resfn) expected2 
+                       where resfn x = x `elem` results2 
       --
   in ""
      ++ "\n================================================================="

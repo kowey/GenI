@@ -232,8 +232,10 @@ ListTree :
 
 
 Descrip :
-   anchor '[' FeatList ']' '!' '[' FeatList ']' 
-     {("anchor","",$3,$7)} 
+   anchor
+     {("anchor","",[],[])}
+ | type ':' anchor '[' FeatList ']' '!' '[' FeatList ']' 
+     {("anchor","",$5,$9)} 
  | type ':' lexeme str 
      {("lexeme",$4,[],[])}
  | type ':' subst '[' FeatList ']' '!' '[' FeatList ']' 

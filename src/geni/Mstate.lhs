@@ -1,8 +1,7 @@
 \chapter{Mstate}
 
 Mstate implements the GenI chart generation algorithm and related
-operations like TAG substitution, adjunction and feature structure
-unification are also implemented here.
+operations like TAG substitution, adjunction are implemented here.
 
 TODO:
 \begin{enumerate}
@@ -40,12 +39,7 @@ module Mstate (
    incrNumcompar, incrSzchart, incrGeniter, 
    renameTagElem, getGenRep, lookupGenRep, genRepToList,
    getInitRep,
-   addListToGenRep,
-
-   -- for debugging only!
-   unifyFeat
-)
-
+   addListToGenRep)
 where
 \end{code}
 
@@ -62,29 +56,30 @@ import MonadState (State,
                    put)
 
 import Data.List (intersect, partition, delete, sort, nub, (\\))
+import Data.Maybe (mapMaybe)
+import Data.Tree 
 import Data.Bits
 import FiniteMap 
 
-import Btypes (Ptype(Initial,Auxiliar),
+import Bfuncs (Ptype(Initial,Auxiliar),
                Flist, 
                Sem, sortSem,
                GType(Other), GNode(..),
                BitVector,
                rootUpd,
                repAdj,
-               isVar, isAnon,
                renameTree,
                repSubst,
                constrainAdj, 
                root, foot, 
-               substFlist, substFlist')
+               substFlist, unifyFeat)
 
 import Tags (TagElem, TagDerivation, 
              idname, tidnum,
              derivation,
              ttree, ttype, tsemantics, 
              tpolpaths,
-             substTagElem,
+             substTagElem, 
              adjnodes,
              substnodes)
 import Configuration (Params, semfiltered, orderedadj, footconstr)
@@ -101,7 +96,7 @@ import Configuration (Params, semfiltered, orderedadj, footconstr)
 %import Data.Tree 
 %import Polarity 
 %import Tags
-%import Btypes
+%import Bfuncs
 %\end{code}
 
 % --------------------------------------------------------------------  
@@ -326,140 +321,6 @@ polarity paths
 \begin{code}
 intersectPolPaths :: TagElem -> TagElem -> BitVector
 intersectPolPaths te1 te2 = (tpolpaths te1) .&. (tpolpaths te2) 
-\end{code}
-
-% --------------------------------------------------------------------  
-\section{Feature Structure Unification}
-\label{sec:fs_unification}
-% --------------------------------------------------------------------  
-
-Feature structure unification takes two feature lists as input and
-returns a tuple:
-
-\begin{enumerate}
-\item true if unification is possible
-\item a unified feature structure list
-\item a list of variable replacements that will need to be propagated
-      across other feature structures with the same variables
-\end{enumerate}
-
-Unification fails if, at any point during the unification process, the
-two lists have different constant values for the same attribute.
-For example, unification fails on the following inputs because they have
-different values for the \textit{number} attribute:
-
-\begin{quotation}
-\fs{\it cat:np\\ \it number:3\\}
-\fs{\it cat:np\\ \it number:2\\}
-\end{quotation}
-
-Note that the following input should also fail as a result on the
-coreference on \textit{?X}.
-
-\begin{quotation}
-\fs{\it cat:np\\ \it one: 1\\  \it two:2\\}
-\fs{\it cat:np\\ \it one: ?X\\ \it two:?X\\}
-\end{quotation}
-
-On the other hand, any other pair of feature lists should unify
-succesfully, even those that do not share the same attributes.
-Below are some examples of successful unifications:
-
-\begin{quotation}
-\fs{\it cat:np\\ \it one: 1\\  \it two:2\\}
-\fs{\it cat:np\\ \it one: ?X\\ \it two:?Y\\}
-$\rightarrow$
-\fs{\it cat:np\\ \it one: 1\\ \it two:2\\},
-\end{quotation}
-
-\begin{quotation}
-\fs{\it cat:np\\ \it number:3\\}
-\fs{\it cat:np\\ \it case:nom\\}
-$\rightarrow$
-\fs{\it cat:np\\ \it case:nom\\ \it number:3\\},
-\end{quotation}
-
-\paragraph{unifyFeat} is an implementation of feature structure
-unification. It makes the following assumptions:
-
-\begin{itemize}
-\item Features are ordered
-
-\item The Flists do not share variables!!!
-      
-      More precisely, if the two Flists have the same variable, they
-      will have the same value. Though this behaviour may not be
-      desirable, we don't really care because we never encounter the
-      situation  (see page \pageref{par:lexSelection}).
-\end{itemize}
-
-\begin{code}
-unifyFeat :: Flist -> Flist -> (Bool, Flist, [(String,String)])
-\end{code}
-
-Trivial base cases:
-
-\begin{code}
-unifyFeat [] [] = (True, [], [])
-
-unifyFeat [] (a:x) = 
-  (succ, a:res, subst)
-  where (succ, res, subst) = unifyFeat [] x
-
-unifyFeat (a:x) [] = 
-  (succ, a:res, subst)
-  where (succ, res, subst) = unifyFeat x []
-\end{code}
-
-The less trivial case is when neither list is empty.  If we are looking
-at the same attribute, then we transfer control to the helper function.
-Otherwise, we remove the (alphabetically) smaller att-val pair, add it
-to the results, and move on.  This only works if the lists are
-alphabetically sorted beforehand!
-
-\begin{code}
-unifyFeat fs1@((f1, v1):l1) fs2@((f2, v2):l2) =
-  case () of _ | f1 == f2 -> unifyFeatI f1 v1 v2 l1 l2 
-               | f1 <  f2 -> (succ1, (f1, v1):res1, subst1)
-               | f1 >  f2 -> (succ2, (f2, v2):res2, subst2)
-               | otherwise -> error "Feature structure unification is badly broken"
-  where (succ1, res1, subst1) = unifyFeat l1 fs2
-        (succ2, res2, subst2) = unifyFeat fs1 l2
-\end{code}
-
-\paragraph{unifyFeatI} is a helper function that determines what we
-should do when we have two values for the same attribute.
-
-\begin{code}
-unifyFeatI :: String ->String -> String -> Flist -> Flist -> (Bool, Flist, [(String,String)])
-\end{code}
-
-\begin{enumerate}
-\item if either v1 or v2 are anonymous, we add the other to the result,
-      and we don't add any replacements.
-\item if v1 is a variable then we replace it by v2,
-      regardless of whether or not v2 is a variable
-\item if v2 is a variable then we replace it by v1
-\item if neither v1 and v2 are variables, but they match, we arbitarily add one
-      of them to the result, but we don't add any replacements.
-\item if neither are variables and they do \emph{not} match, we fail
-\end{enumerate}
-
-\begin{code}
-unifyFeatI f v1 v2 l1 l2 = 
-  let unifyval
-        | (isAnon v1) = (succ3, (f, v2):res3, subst3)
-        | (isAnon v2) = (succ3, (f, v1):res3, subst3)
-        | (isVar v1)  = (succ1, (f, v2):res1, (v1, v2):subst1) 
-        | (isVar v2)  = (succ2, (f, v1):res2, (v2, v1):subst2)
-        | (v1 == v2)  = (succ3, (f, v1):res3, subst3)
-        | otherwise   = (False, [], [])
-      --
-      (succ1, res1, subst1) = unifyFeat (substFlist' l1 (v1,v2)) l2 
-      (succ2, res2, subst2) = unifyFeat l1 (substFlist' l2 (v2,v1)) 
-      (succ3, res3, subst3) = unifyFeat l1 l2
-      --
-  in unifyval 
 \end{code}
 
 % --------------------------------------------------------------------  
@@ -800,7 +661,8 @@ Given a list of TagElem, for each tree:
 \begin{enumerate}
 \item if the tree is both syntactically complete (no more subst nodes) and
       semantically complete (matches target semantics), it is a result, so
-      return it
+      unify the top and bottom feature structures of each node.  If that
+      succeeds, return it, otherwise discard it completely.
 \item if it is only syntactically complete and it is an auxiliary tree, 
       then we don't need to do any more substitutions with it, so set it 
       aside on the auxiliary agenda (AuxRep)
@@ -816,8 +678,11 @@ classifyNew l = do
   let isResult x = (ttype x /= Auxiliar) && (null $ substnodes x) 
                    && (inputSem == treeSem) 
                    where treeSem = (sortSem $ tsemantics x)
+      tbunify x ls = case (tbUnifyTree x) of
+                       Nothing -> ls
+                       Just x2 -> x2:ls
       classify ls x = 
-        case () of _ | isResult  x -> return (x:ls)
+        case () of _ | isResult  x -> return (tbunify x ls)
                      | isPureAux x -> do addToAuxRep x
                                          return ls
                      | otherwise   -> do addToInitRep x
@@ -893,6 +758,39 @@ semfilter inputsem aux initial =
 % --------------------------------------------------------------------  
 \section{Miscellaneous}
 % --------------------------------------------------------------------  
+
+\paragraph{tbUnifyTree} unifies the top and bottom feature structures
+of each node on each tree. If succesful we return the tree, otherwise we
+return Nothing. 
+
+FIXME? this could be very bad, but we ignore all feature value
+propogations and assume that anything that goes on during 
+unification is local to the node.
+
+\begin{code}
+tbUnifyTree :: TagElem -> Maybe TagElem
+tbUnifyTree te =
+  let tt = ttree te
+  in case (tbUnifyTree' tt) of 
+       Nothing -> Nothing
+       Just x  -> Just (te { ttree = x })
+
+tbUnifyTree' :: Tree GNode -> Maybe (Tree GNode)
+tbUnifyTree' (Node gn l) = 
+  let gnu  = tbUnifyNode gn
+      next = mapMaybe tbUnifyTree' l
+  in case gnu of 
+       Nothing    -> Nothing
+       Just gnOut -> if (length next == length l) 
+                     then Just (Node gnOut next)
+                     else Nothing
+
+tbUnifyNode :: GNode -> Maybe GNode
+tbUnifyNode gn =
+  let (succ, unf, _) = unifyFeat (gup gn) (gdown gn)
+      gnSucc = gn { gup = unf, gdown = [] }
+  in if succ then Just gnSucc else Nothing
+\end{code}
 
 \paragraph{renameTagElem} Given a Char c and a TagElem te, renames nodes in
 substnodes, adjnodes and the tree in te by prefixing c. 

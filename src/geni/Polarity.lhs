@@ -40,7 +40,7 @@ realisation seperately, treating each path as a set of candidate trees.
 
 \begin{code}
 module Polarity(PolAut,makePolAut,
-                TagLite, reduceTags,
+                TagLite, reduceTags, buildSemWeights,
                 walkAutomaton, detectPols, detectPolPaths, 
                 defaultPolPaths,
                 showLite, showLitePm, showPolPaths, showPolPaths',
@@ -58,9 +58,9 @@ import Data.List
 
 import Graphviz(GraphvizShow(..))
 import Tags(TagElem(..), mapBySem, substnodes)
-import Btypes(Pred, Sem, emptyPred, Ptype(Initial),
+import Bfuncs(Pred, Sem, emptyPred, Ptype(Initial),
               showPred, showSem, root, gup,
-              BitVector, 
+              BitVector, toKeys,
               groupByFM, isEmptyIntersect, third)
 \end{code}
 
@@ -83,7 +83,7 @@ import Btypes(Pred, Sem, emptyPred, Ptype(Initial),
 %               in aut3
 %
 %\end{code}
-
+%
 \section{Overview}
 
 We start with the controller function (the general architecture) and
@@ -111,10 +111,10 @@ like ``I only want sentences'' or ``I only want expressions where
 the object is topicalised''.
 
 \begin{code}
-makePolAut :: [TagLite] -> Sem -> PolMap 
-           -> ([(String, PolAut, PolAut)], PolAut)
-makePolAut cands tsem extraPol = let
-    (ks,seed) = makePolAutHelper cands tsem extraPol
+makePolAut :: [TagLite] -> Sem -> PolMap -> SemWeightMap 
+              -> ([(String, PolAut, PolAut)], PolAut)
+makePolAut cands tsem extraPol swmap = let
+    (ks,seed) = makePolAutHelper cands tsem extraPol swmap
     -- building and remembering the automata 
     build k xs = (k,aut,prune aut):xs
                  where aut   = buildPolAut k initK (third $ head xs)
@@ -122,16 +122,18 @@ makePolAut cands tsem extraPol = let
     res = foldr build [("(seed)",seed,prune seed)] ks
     in (reverse res, third $ head res)
 
-makePolAutHelper :: [TagLite] -> Sem -> PolMap -> ([String],PolAut)
-makePolAutHelper cands tsem extraPol =
+makePolAutHelper :: [TagLite] -> Sem -> PolMap -> SemWeightMap ->
+                    ([String],PolAut)
+makePolAutHelper cands tsemRaw extraPol swmap =
   let -- polarity items 
       ksCands = concatMap (keysFM.tlPolarities) cands 
       ksExtra = keysFM extraPol
       ks      = nub $ ksCands ++ ksExtra
       -- candidates by predicate
-      smap   = delFromFM fm emptyPred
-               where fm = mapBySem tlSemantics cands 
-      -- sorted semantics (hard coded to be enabled)
+      smapRaw  = mapBySem tlSemantics cands 
+      -- accounting for multi-use items
+      (tsem, smap) = addExtraIndices swmap (tsemRaw,smapRaw)
+      -- sorted semantics (for more efficient construction)
       sortedsem = sortSemByFreq tsem smap
       -- the seed automaton
       seed   = buildSeedAut smap sortedsem
@@ -432,6 +434,7 @@ walkAutomaton' transFm st =
 % ====================================================================
 \section{Multi-use items}
 \label{sec:multiuse}
+\label{semantic_weights}
 % ====================================================================
 
 There is a complication when generating items that refer to the same
@@ -439,130 +442,279 @@ entity more than once. Say for instance we have the input
 \semexpr{e1:love(j,j), j:name(John)}.  To simplify matters, we will
 ignore pronouns and clitics, and also forget that the generator actually
 prevents items with overlapping semantics to combine.  If we take the
-assumptions above, the generator would be capcable of producing the
-realisation \natlang{John loves John} 
-(what we really want is \natlang{John loves himself}, but one thing at a
- time, we'll get there).  
-However, once we introduce polarity filtering, it and many other valid
-results get ruled out.  Why? Because polarity counting assumes that all
-items are used exactly once. 
+assumptions above, the generator would be capaable of producing the
+realisation \natlang{John loves himself}.  However, once we introduce
+polarity filtering, it and many other valid results get ruled out.  Why?
+Because polarity counting assumes that all items are used exactly once. 
 
 \begin{center}
 \begin{tabular}{|c|c|}
 \hline
-\semexpr{j:name(John)}  & \semexpr{e1:love(j,j)} \\
+\semexpr{h1:john(j)}  & \semexpr{h2:like(j,j)} \\
 \hline
-\tautree{John} \color{blue}{+1np} & 
-\tautree{loves} \color{red}{-1np}\\
+\tautree{John} \color{blue}{+1np}& 
+\tautree{likes} \color{red}{-2np}\\
+\tautree{himself} \color{blue}{+1np} & 
+\\
 \hline
 \end{tabular}\\
 \end{center}
 
 If you look at the table above, you can see that what needs to happen is
-that we count the {\color{blue}{+1np}} for \tautree{John} twice.  One
-possible solution is to repeat the literal as many times as we need it.
-For example, in the the table below, \tautree{John} gets counted twice
-as is the expected/desired behaviour:
+that we count two {\color{blue}{+1np}}s for \semexpr{j:name(John)}, but
+since we only have one column for \semexpr{h1:john(j)}, it only gets
+counted once.
 
-\begin{center}
-\begin{tabular}{|c|c|c|}
-\hline
-\semexpr{j:name(John)}  &\semexpr{j:name(John)}  & \semexpr{e1:love(j,j)} \\
-\hline
-\tautree{John} \color{blue}{+1np} & 
-\tautree{John} \color{blue}{+1np} & 
-\tautree{loves} \color{red}{-1np}\\
-\hline
-\end{tabular}\\
-\end{center}
+%One
+%possible solution is to repeat the literal as many times as we need it.
+%For example, in the the table below, \tautree{John} gets counted twice
+%as is the expected/desired behaviour:
+%
+%\begin{center}
+%\begin{tabular}{|c|c|c|}
+%\hline
+%\semexpr{j:john(j)}  &\semexpr{j:name(John)}  & \semexpr{e1:likes(j,j)} \\
+%\hline
+%\tautree{John} \color{blue}{+1np} & 
+%\tautree{John} \color{blue}{+1np} & 
+%\tautree{loves} \color{red}{-2np}\\
+%\hline
+%\end{tabular}\\
+%\end{center}
 
 \subsection{Multi-counting}
 
-FIXME: this does not work
-
-The next problem is to know which literals need to be repeated and how
-many times. I propose the following model: a literal is repeated once
-for every time its handle appears in the 2nd or higherth argument of 
-any literal.  Below we present some examples of repeated literals:
+We propose a solution based on counting the indices in our target
+semantics. We augment the semantic lexicon with a map of
+\jargon{semantic weights}.  Semantic weights are positive or negative
+integers attached to the parameters of each semantic predicate, for
+example:
 
 \begin{center}
-\begin{tabular}{|l|l|l|}
+\begin{tabular}{|c|c|c|c|}
 \hline
-\textbf{sentence} & \textbf{semantics} & \textbf{repeated} \\  
+\textbf{semantics} & \textbf{params} & \textbf{weights}
+\\
 \hline
-\natlang{John loves John} &
-\semexpr{j:name(John), e1:love(j,j)} &
-\semexpr{j:name(John) 1} \\
-
-\natlang{John gives John to John} &
-\semexpr{j:name(John), e1:give(j,j,j)} &
-\semexpr{j:name(John) 2} \\
-
-\natlang{the man loves the man} &
-\semexpr{m:man(m), d:def(m), e1:love(m,m)} &
-\semexpr{m:man(m) 1} \\
+\semexpr{H:john(X)}      & H X    &  -1 -1  \\
+\hline
+\semexpr{H:mary(X)}      & H X    &  -1 -1  \\
+\hline
+\semexpr{H:dog(X)}       & H X    &  -1 -1  \\
+\hline
+\semexpr{H:black(X)}     & H X    &  -1 0  \\
+\hline
+\semexpr{H:def(X)}       & H X    &  -1 0  \\
+\hline
+\semexpr{E:like(X Y)}    & E X Y  &  -1 1 1 \\
+\hline
+\semexpr{E:hope(X Y)}    & E X Y  &  -1 0 1 \\
+\hline
+\semexpr{E:say(X Y)}     & E X Y  &  -1 1 1 \\
 \hline
 \end{tabular}\\
 \end{center}
 
-This model is implemented in the functions below
+The idea is that the number of (extra) times that each index must be
+accounted for is equal to its total weight in the target semantics:
 
-\paragraph{handlesInArgPos} returns all the handles which in argument
-position of a semantics.  Handles will appear for as many times as
-they appear in argument position.  For example, given the nonsense
-semantics \semexpr{j:name(John), e1:give(j,j,j), e2:love(m,m)}, this
-function should return [j,j,m], the two js being for \semexpr{give} and
-m for \semexpr{love}.
+\begin{center}
+\begin{tabular}{|c|c|}
+\hline
+\textbf{sentence} & \textbf{semantics and weights} \\
+\hline
+\multirow{3}*{\natlang{John likes Mary}} 
+  & \verb$h1:like(j m) h2:john( j) h3:mary( m)$ \\
+  & \verb$-1:like(1 1) -1:john(-1) -1:mary(-1)$ \\
+  & j:0, m:0\\
+\hline
+\multirow{3}*{\natlang{John likes himself}}
+  & \verb$h1:like(j j) h2:john(j)$ \\
+  & \verb$-1:like(1 1) -1:john(-1)$ \\
+  & j:1 \\
+\hline
+\multirow{3}*{\natlang{John says he likes himself}}
+  & \verb$h1:say(j h3) h2:john( j) h3:like(j j)$ \\
+  & \verb$-1:say(1 0 ) -1:john(-1) -1:like(1 1)$ \\
+  & j:2 \\
+\hline
+\multirow{3}*{\natlang{John hopes to like himself}}
+  & \verb$h1:hope(j h3) h2:john( j) h3:like(j j)$ \\
+  & \verb$-1:hope(0 0 ) -1:john(-1) -1:like(1 1)$ \\
+  & j:1 \\
+\hline
+\multirow{3}*{\natlang{John hopes to like Mary}}
+  & \verb$h1:hope(j h3) h2:john( j) h3:like(j m) h4:mary( m)$ \\
+  & \verb$-1:hope(0 0 ) -1:john(-1) -1:like(1 1) -1:mary(-1)$ \\
+  & j:0, m:0 \\
+\hline
+\multirow{3}*{\natlang{The black dog likes itself}}
+  & \verb$h1:like(d d) h2:dog( d) h3:def(d) h4:black(d)$\\
+  & \verb$-1:like(1 1) -1:dog(-1) -1:def(0) -1:black(0)$ \\
+  & d:1 \\
+\hline
+\end{tabular}\\
+\end{center}
+
+So what do we do with this information?  We add extra columns for the
+indices: the number of columns that we add is equal to the weight of
+each index.  As for the contents of these columns, we'll just dump in 
+null semantic items like pronouns 
+(assuming of course that pronouns, clitics, and so forth are treated
+ as null semantic items):
+
+\begin{center}
+\natlang{John says he likes himself}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\semexpr{h1:say(j h3)}  & \semexpr{h2:john( j)} & 
+\semexpr{h3:like(j j)}  & j & j \\
+\hline
+\tautree{says} \color{red}{-1np}  &
+\tautree{John} \color{blue}{+1np} & 
+\tautree{likes} \color{red}{-2np} &
+\tautree{he}    \color{blue}{+1np} &
+\tautree{he}    \color{blue}{+1np} 
+\\
+&
+&
+&
+\tautree{himself} \color{blue}{+1np} & 
+\tautree{himself} \color{blue}{+1np}  
+\\
+\hline
+\end{tabular}\\
+\end{center}
+
+This model is implemented in the functions below:
+
+\paragraph{buildSemWeights} compiles information from the semantic lexicon
+regarding semantic weights (see section \ref{semantic_weights}).  We
+take a list of inputs that maps a semantic weight profile to the list of
+predicates that have that profile.  We output a map from a semantic keys
+(predicate + arity) to its semantic weight profile, following the 
+assumption that each semantic key only has a single profile.
 
 \begin{code}
--- handlesInArgPos :: Sem -> [String]
+buildSemWeights :: [ ([Int], [String]) ] -> SemWeightMap 
+buildSemWeights wps = 
+  let helper :: ([Int], [String]) -> SemWeightMap -> SemWeightMap
+      helper (ws,prs) fm = foldr (addfn ws arity) fm prs
+                           where arity = show $ length ws - 1
+      --
+      addfn :: [Int] -> String -> String -> SemWeightMap -> SemWeightMap 
+      addfn ws arity pr fm = addToFM fm (pr ++ arity) ws 
+      --
+  in foldr helper emptyFM wps
 \end{code}
 
-\subsection{Null semantic items}
+\paragraph{addExtraIndices} modifies an input semantics and a semantic
+map so that 1) extra indices (extra columns) are added to the input
+semantics to account for repeated mentions to an index 2) null semantic
+items (stuff to fill the extra columns) are added to the semantic map.  
 
-Now let's say that we are no longer satisfied with \natlang{John loves
-John} and that we want to generate \natlang{John loves himself}.  This
-part is simple; now that we have a mechanism for tracking the number of
-times an item is used, all we have to do is to add null semantic items
-like pronouns and clitics to every column of the table:
+Note that in addition to the null semantic items, we also add the
+possibility for an empty transition. Why?  Because the case for control
+verbs might be more complicated than we mentioned above.  For example, 
+the input semantics \semexpr{h1:hope(j h3) h2:john(j) h3:like(j j)}
+could be realised not only as \natlang{John hopes to like himself} but
+also as \natlang{John hopes that he likes himself}; note how one uses
+more pronouns than the other.  To account for this, we actually give
+control verbs the same semantic weight as regular verbs, 0:(1 1) in the
+case of hope, but make use of empty transitions to allow for a
+realisation with one pronoun less.
 
-\begin{center}
-\begin{tabular}{|c|c|c|}
-\hline
-\semexpr{j:name(John)}  &\semexpr{j:name(John)}  & \semexpr{e1:love(j,j)} \\
-\hline
-\tautree{John} \color{blue}{+1np} & 
-\tautree{John} \color{blue}{+1np} & 
-\tautree{loves} \color{red}{-1np}\\
+\begin{code}
+addExtraIndices :: SemWeightMap -> (Sem, SemMap) -> (Sem, SemMap)
+addExtraIndices swmap (tsem,smap) = 
+  let emptysem' = lookupWithDefaultFM smap [] emptyPred
+      emptysem  = emptyTL : emptysem'
+      --
+      smapDel  = delFromFM smap emptyPred
+      extra  = map (\x -> (x,"",[])) i
+               where i = countExtraIndices swmap tsem
+      --
+      tsem2  = tsem ++ extra
+      smap2  = foldr addfn smapDel extra
+               where addfn x f = addToFM f x emptysem 
+      --
+  in (tsem2, smap2)
+\end{code}
 
-\tautree{himself} \color{blue}{+1np} & 
-\tautree{himself} \color{blue}{+1np} & 
-\tautree{himself} \color{blue}{+1np} \\ 
-\hline
-\end{tabular}\\
-\end{center}
+\paragraph{countExtraIndices} is a helper function to addExtraIndices.
+It takes a map of semantic weights 
+(defined above) and an input semantics.  It compares the items in the
+input semantics against the weight map, and determines what extra
+columns need to be added.  These extra columns are returned as a list,
+with columns appearing as many times as they need to be added.
 
-That's it! We just construct the polarity automaton as before.  The
-resulting automaton allows us to construct \natlang{John loves John},
-\natlang{John loves himself}, \natlang{himself loves John} and
-\natlang{himself loves himself}.  And once we pass these to the 
-generator, the incorrect results among these are easily avoided by
-the generator proper.  Here is why:
+\begin{code}
+countExtraIndices :: SemWeightMap -> Sem -> [String]
+countExtraIndices swmap sem = 
+  let semkeys  = zip sem (toKeys sem)
+      -- convert from (literal, key) to [(index,count)]
+      extra :: (Pred, String) -> [(String,Int)]
+      extra (s,k) = zip is ws
+        where is = idxfn s 
+              ws = lookupWithDefaultFM swmap [] k     
+      idxfn :: Pred -> [String]
+      idxfn (h,_,i) = h:i
+      -- the total number of times each index is used
+      counts :: FiniteMap String Int
+      counts = foldr helper emptyFM semkeys 
+      helper :: (Pred, String) -> FiniteMap String Int 
+                               -> FiniteMap String Int
+      helper sk fm = addListToFM_C (+) fm (extra sk)
+      -- 
+      indices (i,c) = take c (repeat i)
+  in concatMap indices (fmToList counts)
+\end{code}
 
-\begin{center}
-\begin{tabular}{|l|l|}
-\hline
-\textbf{bad result} & \textbf{ruled out by...} \\  
-\hline
-\natlang{John loves John} &
-repeated use of \semexpr{j:name(John)} \\ 
-\natlang{himself loves John} &
-\natlang{himself} in subj position (fs conflict)\\
-\natlang{himself loves himself} &
-\semexpr{j:name(John)} is not covered \\
-\hline
-\end{tabular}\\
-\end{center}
+%\subsection{Null semantic items}
+%
+%Now let's say that we are no longer satisfied with \natlang{John loves
+%John} and that we want to generate \natlang{John loves himself}.  This
+%part is simple; now that we have a mechanism for tracking the number of
+%times an item is used, all we have to do is to add null semantic items
+%like pronouns and clitics to every column of the table:
+%
+%\begin{center}
+%\begin{tabular}{|c|c|c|}
+%\hline
+%\semexpr{j:name(John)}  &\semexpr{j:name(John)}  & \semexpr{e1:love(j,j)} \\
+%\hline
+%\tautree{John} \color{blue}{+1np} & 
+%\tautree{John} \color{blue}{+1np} & 
+%\tautree{loves} \color{red}{-1np}\\
+%
+%\tautree{himself} \color{blue}{+1np} & 
+%\tautree{himself} \color{blue}{+1np} & 
+%\tautree{himself} \color{blue}{+1np} \\ 
+%\hline
+%\end{tabular}\\
+%\end{center}
+%
+%That's it! We just construct the polarity automaton as before.  The
+%resulting automaton allows us to construct \natlang{John loves John},
+%\natlang{John loves himself}, \natlang{himself loves John} and
+%\natlang{himself loves himself}.  And once we pass these to the 
+%generator, the incorrect results among these are easily avoided by
+%the generator proper.  Here is why:
+%
+%\begin{center}
+%\begin{tabular}{|l|l|}
+%\hline
+%\textbf{bad result} & \textbf{ruled out by...} \\  
+%\hline
+%\natlang{John loves John} &
+%repeated use of \semexpr{j:name(John)} \\ 
+%\natlang{himself loves John} &
+%\natlang{himself} in subj position (fs conflict)\\
+%\natlang{himself loves himself} &
+%\semexpr{j:name(John)} is not covered \\
+%\hline
+%\end{tabular}\\
+%\end{center}
 
 \subsection{Pitfalls}
 
@@ -761,6 +913,7 @@ sortSemByFreq tsem smap =
 \begin{code}
 type SemMap = FiniteMap Pred [TagLite]
 type PolMap = FiniteMap String Int
+type SemWeightMap = FiniteMap String [Int]
 \end{code}
 
 \subsection{TagLite}

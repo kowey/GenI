@@ -24,9 +24,9 @@ import System.Directory
 import Graphviz 
 import Treeprint
 import Geni (State(..), GeniResults(..), PState,
-             runGeni, customGeni, combine,
+             runGeni, customGeni, combine, 
              loadGrammar, loadTargetSemStr)
-import Btypes (showSem, showPred, Sem)
+import Bfuncs (showSem, showPred, Sem)
 import Tags (idname,mapBySem,emptyTE,tsemantics,tpolarities,
              showfeats,TagElem)
 
@@ -323,6 +323,7 @@ resultsGui :: GeniResults -> State -> IO ()
 resultsGui res mst = do
   let config = pa mst
       tsem   = ts mst
+      semweights = sweights mst
   -- results window
   f <- frame [ text := "Results" 
              , fullRepaintOnResize := False 
@@ -337,7 +338,7 @@ resultsGui res mst = do
   -- automata tab
   let (candLite, _) = reduceTags (polsig config) cand
       extraPol = extrapol config 
-      (auts, finalaut) = makePolAut candLite tsem extraPol
+      (auts, finalaut) = makePolAut candLite tsem extraPol semweights
   autTab <- if (polarised config) 
             then polarityGui nb auts finalaut
             else messageGui  nb "Polarities disabled"

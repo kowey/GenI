@@ -13,7 +13,7 @@ module Geni (State(..), PState, GeniResults(..),
              loadGrammar, 
              loadTargetSem, loadTargetSemStr,
              -- for debugging only
-             combine, chooseCand)
+             combine)
 where
 \end{code}
 
@@ -31,9 +31,9 @@ import FiniteMap
 import Monad (when)
 import CPUTime (getCPUTime)
 
-import Btypes (Macros, MTtree, ILexEntry, Lexicon, Sem, Flist, Subst,
+import Bfuncs (Macros, MTtree, ILexEntry, Lexicon, Sem, Flist, 
                GNode, GType(Subs), 
-               isemantics, itreename, iword, iparams, ipfeat,
+               isemantics, ifamname, icategory, iword, iparams, ipfeat,
                gnname, gtype, gaconstr, gup, gdown, toKeys,
                sortSem, subsumeSem, params, 
                substSem, substFlist', substFlist,
@@ -46,8 +46,8 @@ import Tags (Tags, TagElem, emptyTE, TagSite,
              idname, tidnum,
              derivation, ttype, tsemantics, ttree, 
              tpolarities, 
-             substnodes, adjnodes, findInTags, 
-             appendToVars, substTagElem)
+             substnodes, adjnodes, 
+             appendToVars)
 
 import Configuration(Params, defaultParams, getConf, treatArgs,
                      grammarFile, tsFile, isTestSuite,
@@ -90,12 +90,13 @@ Data types for keeping track of the program state.
 Note: if tags is non-empty, we can ignore gr and le
 
 \begin{code}
-data State = ST{pa      :: Params,
-                batchPa :: [Params], -- list of configurations
-                gr      :: Macros,
-                le      :: Lexicon,
-                ts      :: Sem,
-                tsuite  :: [(Sem,[String])]
+data State = ST{pa       :: Params,
+                batchPa  :: [Params], -- list of configurations
+                gr       :: Macros,
+                le       :: Lexicon,
+                ts       :: Sem,
+                sweights :: FiniteMap String [Int],
+                tsuite   :: [(Sem,[String])]
                }
 
 type PState = IORef State
@@ -125,6 +126,7 @@ initGeni = do
                        gr = emptyFM,
                        le = emptyFM,
                        ts = [],
+                       sweights = emptyFM,
                        tsuite = [] }
     return pst 
 \end{code}
@@ -152,8 +154,9 @@ customGeni pst runFn = do
   when (length (show purecand) == -1) $ exitWith ExitSuccess
   clockBefore <- getCPUTime 
   -- do any optimisations
-  let config = pa mst
-      tsem  = ts mst
+  let config   = pa mst
+      tsem     = ts mst
+      swmap    = sweights mst 
       extraPol = extrapol config 
   let -- polarity optimisation (if enabled)
       isPol        = polarised config 
@@ -162,7 +165,7 @@ customGeni pst runFn = do
                      then detectPols purecand
                      else purecand
       (candLite, lookupCand) = reduceTags (polsig config) cand
-      (_,finalaut) = makePolAut candLite tsem extraPol
+      (_,finalaut) = makePolAut candLite tsem extraPol swmap
       pathsLite    = walkAutomaton finalaut 
       paths        = map (concatMap lookupCand) pathsLite 
       combosPol    = if isPol then paths else [cand]
@@ -171,19 +174,6 @@ customGeni pst runFn = do
       combosChart = if isChartSharing 
                     then [ detectPolPaths combosPol ] 
                     else map defaultPolPaths combosPol 
-      -- predictors optimisation (if enabled) 
-      {- FIXME: disabled until we get around to making predictors
-         and chart sharing interact properly 
-      isPredicting = predicting config 
-      predictmap   = mapByPredictors cand
-      notnullsem t = not.null $ tsemantics t
-      candwithsem    = filter notnullsem cand
-      optimisedPred  = optimisePredictors p predictmap
-                       where p = if isPol then combosChart else [candwithsem]
-      (combos,fstGstats) = if isPredicting  
-                           then optimisedPred
-                           else (fillPredictors combosChart predictmap, initGstats)
-      -}
       -- 
       combos    = combosChart
       fstGstats = initGstats
@@ -278,7 +268,7 @@ We start by collecting all the features and parameters we want to combine.
 \begin{code}
 combine g lexicon =
   let helper li = map (combineOne li) macs 
-                  where tn   = itreename li
+                  where tn   = ifamname li
                         macs = lookupWithDefaultFM g [] tn
   in mapFM (\_ e -> concatMap helper e) lexicon 
 \end{code}
@@ -290,7 +280,7 @@ list of trees is returned.
 \begin{code}
 combineList :: Macros -> ILexEntry -> [TagElem]
 combineList g lexitem = 
-  let tn = itreename lexitem
+  let tn = ifamname lexitem
       macs = case (lookupFM g tn) of
                 Just tt -> tt
                 Nothing -> error ("Family " ++ tn ++ " not found in Macros")
@@ -304,7 +294,7 @@ form a bonafide TagElem
 combineOne :: ILexEntry -> MTtree -> TagElem
 combineOne lexitem e = 
    let wt = "(Word: "++ (iword lexitem) ++
-            ", Family:" ++ (itreename lexitem) ++ ")\n"
+            ", Family:" ++ (ifamname lexitem) ++ ")\n"
        -- lexitem stuff
        sem  = isemantics lexitem
        p    = iparams lexitem
@@ -315,7 +305,7 @@ combineOne lexitem e =
        tpf  = pfeat e
        ftpf = map fst tpf
        -- unify the Features and Parameters.
-       paramsUnified = replacePar (zip tp p) (Btypes.tree e)
+       paramsUnified = replacePar (zip tp p) (Bfuncs.tree e)
        (unified,snodes,anodes) = replaceFeat pf paramsUnified 
        -- the final result
        sol = emptyTE {
@@ -380,7 +370,26 @@ updateNode2 ((at,v):l) a =
 
 % --------------------------------------------------------------------
 \subsubsection{Instatiation of arguments}
+\label{arg_instantiation}
 % --------------------------------------------------------------------
+
+The purpose of this section is essentially to prevent us from generating
+sentences like \natlang{John likes Mary} when we mean to say
+\natlang{Mary likes John}. We do this by propagating semantic
+information to trees in the form of index variables in the feature
+structures.  
+
+To be more precise, the trees already have some feature structures which
+take variable values, and we are setting those values to restrict the
+tree's behaviour.  For example, we would use this to restrict the tree 
+S(N$\downarrow$, V, N$\downarrow$)
+to something more like 
+S(N$\downarrow$\fs{\it idx:m\\}, V, N$\downarrow$ \fs{\it idx:j\\}), 
+and similiarly, a tree like N(Mary) to N\fs{\it idx:m}(Mary).
+The intended effect is that feature structure unification will allow
+the tree for \natlang{Mary} to substitute into the left of the tree for
+\natlang{likes}, but not into the right, hence producing the desired
+\natlang{Mary likes John} and not \natlang{John likes Mary}.
 
 \paragraph{replacePar}: Given 
    - a tree of (GNode) and 
@@ -415,22 +424,19 @@ updateNode1 ((x,y):l) a =
 \subsection{The selection process}
 % --------------------------------------------------------------------
 
-\paragraph{chooseCand} It access the Grammar for the candidate tags and
-loads them in the Agenda.  It checks for semantics which adds more than
-the required input, discarding those tags.  It also instantiates the
-semantics of candidates to match the target semantics. 
-
-See page \pageref{fn:subsumeSem} for the definition of semantic subsumption.
+\paragraph{chooseLexCand} selects and returns the set of entries from
+the lexicon whose semantics subsumes the input semantics. 
 
 \begin{code}
-chooseCand :: Tags -> Sem -> [TagElem]
-chooseCand t tsem =
-  let -- we also retrieve empty-semantic elements
+chooseLexCand :: Lexicon -> Sem -> [ILexEntry]
+chooseLexCand slex tsem = 
+  let -- the initial "MYEMPTY" takes care of items with empty semantics
       keys = "MYEMPTY":(toKeys tsem)   
       -- we choose candidates that match keys
-      cand = concatMap (findInTags t) keys
-      -- and then refine the selection...
-  in chooseCandI tsemantics substTagElem tsem cand
+      lookuplex t = lookupWithDefaultFM slex [] t
+      cand    = concatMap lookuplex keys
+      -- and refine the selection... 
+  in chooseCandI tsem cand
 \end{code}
 
 With a helper function, we refine the candidate selection by
@@ -439,39 +445,20 @@ do not stay within the target semantics, and finally eliminating
 the duplicates.
 
 \begin{code}
-chooseCandI :: (Eq a) => (a->Sem) -> (a->Subst->a) 
-                         -> Sem -> [a] -> [a]
-chooseCandI semfn substfn tsem cand =
-  let psubst te = if (null sem) then [[]] else subsumeSem tsem sem
-                  where sem = semfn te
-      helper te = map (substfn te) (psubst te)
-  in nub $ concatMap helper cand
-\end{code}
-
-% --------------------------------------------------------------------
-\subsubsection{Lexicon-only selection}
-% --------------------------------------------------------------------
-
-An alternative to candidate selection (of trees) is to do lexical
-selection (just the lexical items), and combine these lexically 
-selected items with the grammar.
-
-\begin{code}
-chooseLexCand :: Lexicon -> Sem -> [ILexEntry]
-chooseLexCand slex tsem = 
+chooseCandI :: Sem -> [ILexEntry] -> [ILexEntry]
+chooseCandI tsem cand =
   let substLex i sub = i { isemantics = substSem (isemantics i) sub
                          , ipfeat     = substFlist (ipfeat i)   sub  
                          , iparams    = substPar  (iparams i)   sub
                          }
       substPar par sub = map (\p -> foldl sfn p sub) par
                          where sfn z (x,y) = if (z == x) then y else z
-      -- the initial "MYEMPTY" takes care of items with empty semantics
-      keys = "MYEMPTY":(toKeys tsem)   
-      -- we choose candidates that match keys
-      lookuplex t = lookupWithDefaultFM slex [] t
-      cand    = concatMap lookuplex keys
-      -- and refine the selection... 
-  in chooseCandI isemantics substLex tsem cand
+      --
+      psubst te = if (null sem) then [[]] else subsumeSem tsem sem
+                  where sem = isemantics te
+      --
+      helper te = map (substLex te) (psubst te)
+  in nub $ concatMap helper cand
 \end{code}
 
 \paragraph{mapBySemKeys} organises items by their semantic key.  A
@@ -490,6 +477,34 @@ mapBySemKeys semfn xs =
               where s = semfn t
   in multiGroupByFM gfn xs
 \end{code}
+
+%\subsubsection{Null semantic items}
+%
+%We have to include some special code whose entire purpose (so far) is to
+%ensure that we never generate \natlang{John likes himself} when we mean
+%to generate \natlang{John likes him} and vice versa, the assumption
+%being that pronouns like \natlang{him} and \natlang{himself} are null
+%semantic items.  
+%
+%If you look in section \ref{arg_instantiation}, you see that with
+%regular items \natlang{Mary}, you can propagate some semantic
+%information to the tree feature structures through parameter
+%instantiation.  However, with null semantic items, there is no
+%semantics, and no hence no semantic information to propagate! 
+%
+%So what can we do?  The idea is simple; we restrict the 
+%
+%\paragraph{assignIndex} is a mechanism for restricting the use of 
+%null semantic items in the lexical selection.  Given an index i,
+%we perform feature structure unification on the top node of the tree
+%with the fs \fs{\it idx:i\\}.  So far, this is only useful after 
+%some optimisations in the polarity automaton...
+%
+%\begin{code}
+%assignIndex :: String -> TagElem -> TagElem
+%assign
+%
+%\end{code}
 
 % --------------------------------------------------------------------
 \section{Loading and parsing}
@@ -546,17 +561,22 @@ loadLexicon pst config = do
        putStr $ "Loading Semantic Lexicon " ++ sfilename ++ "..."
        hFlush stdout
        sf <- readFile sfilename
-       let semmapper = mapBySemKeys isemantics
-           semlex    = (semmapper . semlexParser . lexer) sf
+       let semmapper  = mapBySemKeys isemantics
+           semparsed  = (semlexParser . lexer) sf
+           semlex     = semmapper  $ fst semparsed
+           semweights = buildSemWeights $ snd semparsed
        putStr ((show $ length $ keysFM semlex) ++ " entries\n")
 
        putStr $ "Loading Lexicon " ++ lfilename ++ "..."
        hFlush stdout
        lf <- readFile lfilename 
-       let lex' = (lexParser . lexer) lf
-           lex  = groupByFM iword lex'
+       let wordcatfn l  = (iword l, icategory l)
+           sortlexsem l = l { isemantics = sortSem $ isemantics l }
+           lex' = ( (map sortlexsem) . lexParser . lexer) lf
+           lex  = groupByFM wordcatfn lex'
        putStr ((show $ length lex') ++ " entries\n")
-       modifyIORef pst (\x -> x{le = combineLexicon semlex lex})
+       modifyIORef pst (\x -> x{le = combineLexicon lex semlex,
+                                sweights = semweights })
        return ()
 \end{code}
 
@@ -570,12 +590,14 @@ up in the (surprise!) lemma lexicon, and copy the semantic information
 into each instance.
 
 \begin{code}
-combineLexicon :: Lexicon -> Lexicon -> Lexicon
-combineLexicon sl ll = 
+type LemmaLexicon = FiniteMap (String,String) [ILexEntry] 
+combineLexicon :: LemmaLexicon -> Lexicon -> Lexicon
+combineLexicon ll sl = 
   let merge si li = li { isemantics = (isemantics si)
                        , iparams   = (iparams si) }
       helper si = map (merge si) lemmas
-                  where lemmas  = lookupWithDefaultFM ll [] (iword si)
+                  where wordcat = (iword si, icategory si)
+                        lemmas  = lookupWithDefaultFM ll [] wordcat 
   in mapFM (\_ e -> concatMap helper e) sl 
 \end{code}
 

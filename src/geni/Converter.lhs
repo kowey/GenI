@@ -18,7 +18,7 @@ import System (ExitCode(ExitFailure),
                exitWith, getArgs, getProgName)
 import System.IO(getContents)
 
-import Btypes (itreename, iword)
+import Btypes (ifamname, iword, icategory)
 import GrammarXml (parseXmlGrammar, parseXmlLexicon)
 import Treeprint (toGeniHand)
 \end{code}
@@ -46,7 +46,9 @@ convertLexicon :: IO ()
 convertLexicon = 
   do lf <- getContents 
      let lex = parseXmlLexicon lf
-         showlex l = (iword l) ++ " " ++ (itreename l) ++ "\n"
+         showlex l = (iword l) 
+                     ++ " " ++ (icategory l) ++ "\n"
+                     ++ " " ++ (ifamname l) ++ "\n"
          outstr    = concatMap showlex lex
      putStr outstr 
 

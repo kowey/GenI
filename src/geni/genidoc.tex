@@ -9,6 +9,7 @@
 \usepackage{fancyhdr}
 \usepackage{framed}
 \usepackage{color}
+\usepackage{multirow}
 
 \usepackage{covington}  % included with GenI
 
@@ -64,6 +65,7 @@
 \long\def\ignore#1{}
 
 \newcommand{\tuple}[1]{\langle #1 \rangle}
+\setcounter{secnumdepth}{3}
 
 \begin{document}
 \title{Literate Geni}
@@ -93,6 +95,7 @@ files.
  \item[Mstate.lhs] - the chart generator itself (note: substitution,
  adjunction, FS unification are done here, not in Tags.lhs)
  \item[Btypes.lhs] - basic data types 
+ \item[Bfuncs.lhs] - basic operations 
  \item[Tags.lhs] - TAG specific data types
 \end{description}
 
@@ -162,6 +165,7 @@ Also of interest are XML grammar files (processed with the HaXml toolkit
 \input{Geni.lhs}       
 \input{Mstate.lhs}       
 \input{Btypes.lhs}       
+\input{Bfuncs.lhs}       
 \input{Tags.lhs}       
 
 \part{Optimisation}

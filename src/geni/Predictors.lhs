@@ -17,7 +17,7 @@ import Data.List (nub, sortBy, groupBy, intersect)
 import Monad (when, ap, foldM)
 import MonadState (get, put)
 
-import Btypes (Sem, Flist, AvPair, showSem, showAv, isVar)
+import Bfuncs (Sem, Flist, AvPair, showSem, showAv, isVar)
 import Tags (TagElem(TE), emptyTE, idname, tsemantics, substnodes, 
              derivation, tpredictors, drawTagTrees)
 import Configuration (defaultParams)

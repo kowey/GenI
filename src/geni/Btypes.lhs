@@ -1,52 +1,17 @@
 \chapter{Btypes}
 
-This module provides basic datatypes like GNode as well as some simple
-operations on trees, nodes and semantics. Things here are meant to be
-relatively low-level and primitive. For example, we implement TAG
-substitution and adjunction, but only the cutting up and reassembling of
-trees, none of the feature structure unification, which we leave to some
-other module.
+This module provides basic datatypes like GNode.  
+Operations on these datatypes can be found in the Bfuncs module.
 
 \begin{code}
 module Btypes(
-   -- Datatypes
-   GNode(GN), GType(Subs, Foot, Lex, Other), 
-   Ttree(TT), MTtree,
+   GNode(..), GType(Subs, Foot, Lex, Other), 
+   Ttree(..), MTtree,
    Ptype(Initial,Auxiliar,Unspecified), 
    Pred, Flist, AvPair, 
-   Lexicon, ILexEntry(ILE), Macros, Sem, Subst,
-   BitVector,
-
-   -- Functions from Tree GNode
-   repSubst, repAdj, constrainAdj, 
-   renameTree, substTree, root, rootUpd, foot, setLexeme,
-   showGNodeAll,
-
-   emptyGNode, emptyMacro,
-
-   -- Functions from Sem
-   toKeys, subsumeSem, sortSem, substSem, showSem, showPred,
-   emptyPred,
-
-   -- Projectors from GNode
-   gnname, gup, gdown, ganchor, glexeme, gtype, gaconstr,
-
-   -- Projectors from Tdesc
-   params, pidname, pfeat, ptype, tree, 
-   ptpolarities, ptpredictors,
-
-   -- Projectors from ILexEntry
-   iword, itreename, iparams, ipfeat, iptype, isemantics, ipredictors, 
- 
-   -- Functions from Flist
-   substFlist, substFlist', sortFlist,
-   showPairs, showAv,
-
-   -- Other functions
-   isVar, isAnon, testBtypes, 
-   groupByFM, multiGroupByFM,
-   isEmptyIntersect, third
-) where
+   Lexicon, ILexEntry(..), Macros, Sem, Subst,
+   emptyMacro, emptyGNode, emptyPred)
+where
 \end{code}
 
 \ignore{
@@ -111,17 +76,17 @@ emptyMacro = TT { params  = [],
 \end{code}
 
 Auxiliary types used during the parsing of the Lexicon.  
-A lexicon maps lemmas to lexical entries.
+A lexicon maps semantic predicates to lexical entries.
 
 \begin{code}
 type Lexicon   = FiniteMap String [ILexEntry]
 data ILexEntry = ILE{iword :: String,
-                     itreename :: String,
+                     icategory :: String,
+                     ifamname :: String,
                      iparams :: [String],
                      ipfeat :: Flist,
                      iptype :: Ptype,
-                     isemantics :: Sem,
-                     ipredictors :: [(AvPair,Int)]}
+                     isemantics :: Sem }
                deriving (Show, Eq)
 \end{code}
 
@@ -161,199 +126,6 @@ emptyGNode = GN { gnname = "",
                   gaconstr = False }
 \end{code}
 
-\paragraph{show (GNode)} the default show for GNode tries to
-be very compact; it only shows the value for cat attribute 
-and any flags which are marked on that node.
-
-\begin{code}
-instance Show GNode where
-  show gn = 
-    let cat' = filter (\ (f,_) -> f == "cat") $ gup gn
-        cat  = if (null cat') then "" else snd $ head cat'
-        lex  = if (null $ glexeme gn) then "" else glexeme gn
-        -- 
-        extra = case (gtype gn) of         
-                   Subs -> " (s)"
-                   Foot -> " *"
-                   otherwise -> if (gaconstr gn)  then " (na)"   else ""
-    in if (not (null cat || null lex))
-       then cat ++ ":" ++ lex ++ extra
-       else cat ++ lex ++ extra
-\end{code}
-
-\paragraph{showGNodeAll} shows everything you would want to know about a
-gnode, probably more than you want to know
-
-\begin{code}
-showGNodeAll gn = 
-        let sgup = if (null $ gup gn) 
-                   then "" 
-                   else "Top: [" ++ showPairs (gup gn) ++ "]\n"
-            sgdown = if (null $ gdown gn)
-                     then ""
-                     else "Bot: [" ++ showPairs (gdown gn) ++ "]\n"
-            extra = case (gtype gn) of         
-                        Subs -> " (s)"
-                        Foot -> " *"
-                        otherwise -> if (gaconstr gn)  then " (na)"   else ""
-            label  = if (null $ glexeme gn) 
-                     then (if null extra then "" else "Etc: " ++ extra ++ "\n")
-                     else (glexeme gn) ++ extra ++ "\n"
-        in sgup ++ sgdown ++ label -- (show gn ++ "\n" ++)
-\end{code}
-
-\paragraph{substGNode} 
-Given a GNode and a substitution, it applies the
- substitution to GNode
-\begin{code}
-substGNode :: GNode -> Subst -> GNode
-substGNode gn l =
-    gn{gup = substFlist (gup gn) l,
-       gdown = substFlist (gdown gn) l}
-\end{code}
-
-\subsection{Tree and GNode}
-
-Projector and Update function for Tree
-
-\begin{code}
-root :: Tree a -> a
-root (Node a l) = a
-\end{code}
-
-\begin{code}
-rootUpd :: Tree a -> a -> Tree a
-rootUpd (Node a l) b = (Node b l)
-\end{code}
-
-\begin{code}
-foot :: Tree GNode -> GNode
-foot t = let (ln, flag) = listFoot [t] in (head ln)
-
-listFoot :: [Tree GNode] -> ([GNode], Bool)
-listFoot [] = ([], False)
-listFoot ((Node a l1):l2) =
-    if (gtype a == Foot)
-    then ([a], True)
-    else let (ln1, flag1)  = listFoot l1 
-             (ln2, flag2) = listFoot l2 
-             in if flag1
-                then (ln1, flag1)
-                else (ln2, flag2)
-\end{code}
-
-\paragraph{setLexeme} 
-Given a string l and a Tree GNode t, returns the tree t'
-where l has been assigned to the "lexeme" node in t'
-
-\begin{code}
-setLexeme :: String -> Tree GNode -> Tree GNode
-setLexeme s t =
-  let filt (Node a _) = (gtype a == Lex && ganchor a)
-      fn (Node a l)   = Node a{glexeme = s} l
-  in (head.fst) $ listRepNode fn filt [t]
-\end{code}
-
-\paragraph{substTree} 
-Given a tree GNode and a substitution, applies the 
-substitution to the tree.
-
-\begin{code}
-substTree :: Tree GNode -> Subst -> Tree GNode
-substTree (Node a l) s =
-    Node (substGNode a s) (map (\t -> substTree t s) l)
-\end{code}
-
-\paragraph{renameTree} 
-Given a Char c and a tree, renames nodes in 
-the tree by prefixing c.
-
-\begin{code}
-renameTree :: Char -> Tree GNode -> Tree GNode
-renameTree c (Node a l) =
-    Node a{gnname = c:(gnname a)} (map (renameTree c) l)
-\end{code}
-
-\subsection{Substitution}
-
-\paragraph{repSubst} 
-Given two trees t1 t2, and the name n of a node in t2, 
-replaces t1 in t2 at the (leaf) node named n.
-\begin{code}
-repSubst :: String -> Tree GNode -> Tree GNode -> Tree GNode
-repSubst n t1 t2 =
-  let filt (Node a []) = (gnname a) == n 
-      filt (Node a _)  = False
-      fn _ = t1
-      -- 
-      (lt,flag) = listRepNode fn filt [t2]
-  in if flag 
-     then head lt 
-     else error ("substitution unexpectedly failed on node " ++ n)
-\end{code}
-
-\subsection{Adjuction}
-
-\paragraph{repAdj} 
-Given two trees t1 t2 (where t1 is an auxiliar tree), and
-the name n of a node in t2, replaces t1 in t2 at the node named n by an
-adjunction move (using newFoot to replace the foot node in t1).  
-
-Minor ugliness: we copy any lexical information from the t2 node
-to the new foot node.
-\begin{code}
-
-repAdj :: GNode -> String -> Tree GNode -> Tree GNode -> Tree GNode
-repAdj newFoot n t1 t2 =
-  let filt (Node a _) = (gnname a == n)
-      fn (Node a l)   = repFoot nf t1 l
-                        where nf = newFoot { ganchor = ganchor a
-                                           , glexeme = glexeme a }
-      (lt,flag) = listRepNode fn filt [t2] 
-  in if flag 
-     then head lt 
-     else error ("adjunction unexpectedly failed on node " ++ n)
-
-repFoot :: GNode -> Tree GNode -> [Tree GNode] -> Tree GNode
-repFoot newFoot t l =
-  let filt (Node a _) = (gtype a == Foot)
-      fn (Node a _) = Node newFoot l
-  in (head.fst) $ listRepNode fn filt [t]  
-\end{code}
-
-\paragraph{constrainAdj} could be moved to Btypes if the 
-ordered adjunction becomes standard.  We search the tree for a 
-node with the given name and add an adjunction constraint on it.
-
-\begin{code}
-constrainAdj :: String -> Tree GNode -> Tree GNode
-constrainAdj n t =
-  let filt (Node a _) = (gnname a == n)
-      fn (Node a l)   = Node a { gaconstr = True } l
-  in (head.fst) $ listRepNode fn filt [t] 
-\end{code}
-
-\subsection{repNode} 
-
-listRepNode is a generic tree-walking/editing function.  It takes a
-replacement function, a filtering function and a tree.  It returns the
-tree, except that the first node for which the filtering function
-returns True is transformed with the replacement function.
-
-\begin{code}
-listRepNode :: (Tree a -> Tree a) -> (Tree a -> Bool) 
-              -> [Tree a] -> ([Tree a], Bool)
-listRepNode _ _ [] = ([], False)
-listRepNode fn filt ((n@(Node a l1)):l2) = 
-  if filt n
-  then ((fn n):(l2), True)
-  else let (lt1, flag1) = listRepNode fn filt l1 
-           (lt2, flag2) = listRepNode fn filt l2
-       in if flag1
-          then ((Node a lt1):l2, flag1)
-          else (n:lt2, flag2)
-\end{code}
-
 % ----------------------------------------------------------------------
 \section{Features and variables}
 % ----------------------------------------------------------------------
@@ -361,62 +133,6 @@ listRepNode fn filt ((n@(Node a l1)):l2) =
 \begin{code}
 type Flist   = [AvPair]
 type AvPair  = (String,String)
-\end{code}
-
-\paragraph{substFlist} 
-Given an Flist and a substitution, applies 
- the substitution to the Flist.
-\begin{code}
-substFlist :: Flist -> Subst -> Flist
-substFlist fl sl = foldl substFlist' fl sl
-
-testSubstFlist =
-  let input    = [ ("a","1") ]
-      expected = [ ("a","3") ]
-      subst    = [ ("1","2"), ("2","3")]
-      output   = substFlist input subst 
-      debugstr =  "input: "    ++ showPairs input
-               ++ "\nsubst: "  ++ showPairs expected 
-               ++ "\noutput: " ++ showPairs output
-  in trace debugstr (output == expected) 
-\end{code}
-
-\paragraph{substFlist'} Given an Flist and a single substition, applies
-that substitution to the Flist... 
-
-\begin{code}
-substFlist' :: Flist -> (String,String) -> Flist 
-substFlist' fl (s1, s2) = map (\ (f, v) -> (f, if (v ==s1) then s2 else v)) fl
-\end{code}
-
-\paragraph{sortFlist} sorts Flists according with its feature
-
-\begin{code}
-sortFlist :: Flist -> Flist
-sortFlist fl = sortBy (\(f1,v1) (f2, v2) -> compare f1 f2) fl
-\end{code}
-
-\begin{code}
-showPairs :: Flist -> String
-showPairs l = concat $ intersperse " " $ map showAv l
-showAv (y,z) = y ++ ":" ++ z 
-\end{code}
-
-\subsection{Variables}
-
-\paragraph{isVar} 
-Returns true if the string starts with a capital or is an anonymous variable.  
-
-\begin{code}
-isVar :: String -> Bool
-isVar s  = (isUpper . head) s || (isAnon s)
-\end{code}
-
-\paragraph{isAnon}
-Returns true if the string is an underscore 
-\begin{code}
-isAnon :: String -> Bool
-isAnon = (==) "_" 
 \end{code}
 
 % ----------------------------------------------------------------------
@@ -432,190 +148,4 @@ type Subst = [(String, String)]
 emptyPred = ("","",[])
 \end{code}
 
-\begin{code}
-showSem :: Sem -> String
-showSem l =
-    "[" ++ (concat $ intersperse "," $ map showPred l) ++ "]"
-\end{code}
-
-\begin{code}
-showPred (h, p, l) = showh ++ p ++ "(" ++ (showAtr l)++ ")"
-                     where showh = if (null h) then "" else h ++ ":"
-showAtr l = concat $ intersperse "," l
-\end{code}
-
-\paragraph{substSem} 
-Given a Sem and a substitution, applies the substitution
-  to Sem
-\begin{code}
-substSem :: Sem -> Subst -> Sem
-substSem s l = map (\p -> substPred p l) s
-\end{code}
-
-\paragraph{toKeys} 
-Given a Semantics, returns the string with the proper keys
-(propsymbol+arity) to access the agenda
-\begin{code}
-toKeys :: Sem -> [String] 
-toKeys l = map (\(h,prop,par) -> prop++(show (length par))) l
-\end{code}
-
-\paragraph{repXbyY} 
-Given two values s1 and s2 and a list, it replace the 
-first by the second in the list
-\begin{code}
-repXbyY :: (Eq a) => a -> a -> [a] -> [a] 
-repXbyY s1 s2 l = map (\x->if (x == s1) then s2 else x) l
-\end{code}
-
-\paragraph{instantiate} 
-Given a predicate (name, listParams) p and the
-semantics s of a candidate, it instantiates s in terms of p.  
-I.e variables in s are instantiated according to p, but notice
-that variables in s are left as is and no error is reported.  
-Candidates should be checked for subsumeSem afterwards 
-
-\begin{code}
-{-
-instCandSem :: (String, [String]) -> Sem -> Sem
-instCandSem p [] =
-    []
-instCandSem p@(pn1, lp1) (h@(pn2, lp2):rl) =
-    if ((pn1 == pn2) && (length lp1 == length lp2))
-       then let sub = findSubstCand lp1 lp2
-                in (substPred p sub):(instCandSem p (substSem rl sub))
-       else h:(instCandSem p rl) -}
-\end{code}
-
-\begin{code}
-{-
-findSubstCand :: [String] -> [String] -> Subst
-findSubstCand [] [] =
-    []
-findSubstCand (w1:l1) (w2:l2) =
-    if (isVar w2) 
-       then (w2, w1):findSubstCand l1 l2
-       else findSubstCand l1 l2
--}
-\end{code}
-
-\begin{code}
-substPred :: Pred -> Subst -> Pred
-substPred p [] = p
-substPred (h, n, lp) ((a,b):l) = substPred (fixHandle, n, repXbyY a b lp) l
-  where fixHandle = if (h == a) then b else h 
-\end{code}
-
-\paragraph{subsumeSem} 
-\label{fn:subsumeSem}
-
-Given the target Sem ts and the Sem s of a TagElem,
-returns the list of possible substitutions so that s is a subset of ts.
-
-TODO WE ASSUME BOTH SEMANTICS ARE ORDERED and non-empty.
-
-\begin{code}
-subsumeSem :: Sem -> Sem -> [Subst]
-subsumeSem ts [(h,p,par)] = subsumePred ts (h,p,par)
-subsumeSem ts (at@(h,p,par):l) =
-    let psubst = subsumePred ts at
-        res    = map (\x -> subsumeSem (substSem ts x) (substSem l x)) psubst
-        pairs  = zip psubst res
-        res2   = map (\ (s1,s2) -> map (\x -> s1++x) s2) pairs
-        in concat res2
-\end{code}
-
-\paragraph{subsumePred}
-The first Sem s1 and second Sem s2 are the same when we start we cicle on s2
-looking for a match for Pred, and meanwhile we apply the partical substitutions
-to s1.  Note: we treat the handle as if it were a parameter.
-
-\begin{code}
-subsumePred :: Sem -> Pred -> [Subst]
-subsumePred [] (h, p, la) = []
-subsumePred ((h1, p1, la1):l) (h2,p2,la2) =
-    -- if we found the proper predicate
-    if ((p1 == p2) && (length la1 == length la2))
-    then let subst = map nub (pairVar (h1:la1) (h2:la2) [])
-             isNotVar = not.isVar
-             -- defines the subst, taking care of clashing of var. with check
-             pairVar [] [] l = [[]]   -- [[]] means: Empty subst is a solution
-             pairVar (v1:l1) (v2:l2) l  
-               | v1 == v2 = pairVar l1 l2 l
-               | isNotVar v1 && isNotVar v2 = [] -- no solution
-               | isVar v1 && checkAss (v1,v2) l = 
-                   map ((v1,v2):) (pairVar l1 l2 ((v1,v2):l))
-               | isVar v2 && checkAss (v2,v1) l =
-                   map ((v2,v1):) (pairVar l1 l2 ((v2,v1):l))
-               | otherwise                      = []
-             checkAss (v1,v2) [] = True
-             checkAss (v1,v2) ((v3,v4):l)  
-               | (v1 /= v3) = checkAss (v1,v2) l
-               | (v2 == v4) = checkAss (v1,v2) l
-               | otherwise  = False
-         in subst++(subsumePred l (h2, p2,la2))
-    else if (p1 > p2)
-         then []
-         else subsumePred l (h2, p2,la2)
-\end{code}
-
-\paragraph{sortSem} 
-Sorts semantics according with it's predicate
-\begin{code}
-sortSem :: Sem -> Sem
-sortSem s = sortBy (\(h1, p1, par1) -> \(h2, p2, par2) -> compare p1 p2) s
-\end{code}
-
-% ----------------------------------------------------------------------
-\section{General}
-% ----------------------------------------------------------------------
-
-This section contains miscellaneous bits of generic code.
-
-\begin{code}
-third :: (a,b,c) -> c
-third (_,_,x) = x
-\end{code}
-
-\begin{code}
-type BitVector = Integer
-\end{code}
-
-\paragraph{isEmptyIntersect} is true if the intersection of two lists is
-empty.
-
-\begin{code}
-isEmptyIntersect :: (Eq a) => [a] -> [a] -> Bool
-isEmptyIntersect a b = null $ intersect a b
-\end{code}
-
-\paragraph{groupByFM} serves the same function as Data.List.groupBy.  It
-groups together items by some property they have in common. The
-difference is that the property is used as a key to a FiniteMap that you
-can lookup.  \texttt{fn} extracts the property from the item.
-
-\begin{code}
-groupByFM :: (Ord b) => (a -> b) -> [a] -> (FiniteMap b [a])
-groupByFM fn list = 
-  let addfn  x acc key = addToFM_C (++) acc key [x]
-      helper x acc     = addfn x acc (fn x)
-  in foldr helper emptyFM list 
-\end{code}
-
-\paragraph{multiGroupByFM} is the same as groupByFM, except that we
-assume an item can appear in multiple groups.  \texttt{fn} extracts the
-property from the item, and returns multiple results in the form of a
-list.
-
-\begin{code}
-multiGroupByFM :: (Ord b) => (a -> [b]) -> [a] -> (FiniteMap b [a])
-multiGroupByFM fn list = 
-  let addfn  x key acc = addToFM_C (++) acc key [x]
-      helper x acc     = foldr (addfn x) acc (fn x)
-  in foldr helper emptyFM list 
-\end{code}
-
-\begin{code}
-testBtypes = testSubstFlist
-\end{code}
 

@@ -14,7 +14,7 @@ import Data.Tree
 import Data.List(intersperse,nub)
 
 import Tags (TagElem, idname, tsemantics, ttree, derivation, showfeats)
-import Btypes (MTtree, Ttree(..), Ptype(..), 
+import Bfuncs (MTtree, Ttree(..), Ptype(..), 
                GNode(..), GType(..),
                showSem, showGNodeAll, showPairs)
 import Graphviz (GraphvizShow(..))
@@ -99,7 +99,7 @@ toGeniHand tr =
       gtypestr n = case (gtype n) of 
                      Subs -> "type:subst"
                      Foot -> "type:foot"
-                     Lex  -> if (ganchor n) then "anchor" else "type:lex" 
+                     Lex  -> if (ganchor n) then "type:anchor" else "type:lex" 
                      _    -> ""
       --
       nodestr :: GNode -> String

@@ -1,8 +1,9 @@
 \chapter{Tags}
 
 This module provides basic datatypes specific to Tree Adjoining Grammar
-(TAG). Note that we don't handle substitution and adjunction here; 
-see sections \ref{sec:substitution} and \ref{sec:adjunction} instead.  
+(TAG) and some low-level operations. Note that we don't handle
+substitution and adjunction here; see sections \ref{sec:substitution}
+and \ref{sec:adjunction} instead.  
 
 \begin{code}
 module Tags(
@@ -17,7 +18,7 @@ module Tags(
    showfeats,
 
    -- Functions from Tags
-   addToTags, findInTags, 
+   addToTags, 
 
    -- Functions from TagElem
    substTagElem, appendToVars,
@@ -31,13 +32,14 @@ module Tags(
 \begin{code}
 import Data.List (intersperse)
 import Data.Tree
-import FiniteMap (FiniteMap, emptyFM, addToFM_C, lookupWithDefaultFM)
+import FiniteMap (FiniteMap, emptyFM, addToFM_C)
 
-import Btypes (Ptype(Initial, Auxiliar), 
+import Bfuncs (Ptype(Initial, Auxiliar), 
                Subst, GNode(gup, gdown), Flist, 
                Sem, Pred, emptyPred, BitVector,
                emptyGNode,
-               substFlist, substTree, substSem, showPairs,
+               substFlist, 
+               substTree, substSem, showPairs,
                isAnon, isVar, groupByFM)
 \end{code}
 }
@@ -59,11 +61,6 @@ it adds the elem to the list of elements associated to the key.
 \begin{code}
 addToTags :: Tags -> String -> TagElem -> Tags
 addToTags t k e = addToFM_C (++) t k [e]
-\end{code}
-
-\begin{code}
-findInTags :: Tags -> String -> [TagElem]
-findInTags t k = lookupWithDefaultFM t [] k
 \end{code}
 
 % ----------------------------------------------------------------------
@@ -177,6 +174,7 @@ appendToVars suf te =
           adjnodes   = map sitefn (adjnodes te)}
 \end{code}
 
+
 % ----------------------------------------------------------------------
 \section{Map by sem}
 % ----------------------------------------------------------------------
@@ -240,6 +238,7 @@ subsumedBy ((ch, cp, cla):cl) (th, tp,tla)
 %sumPredictors tp1 tp2 = 
 %  filterFM (\_ e -> e /= 0) $ plusFM_C (+) tp1 tp2
 %\end{code}
+
 
 % ----------------------------------------------------------------------
 \section{Drawings TAG Tree}

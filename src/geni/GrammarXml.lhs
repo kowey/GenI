@@ -80,18 +80,21 @@ parseLex l =
             then "UNKWNOWN" 
             else (snd.head) famFeats
       -- getting the lemma 
-      lemmaF = attributed "name" (keep /> tag "anchor" /> tag "lemmaref")
+      lemmarefF = keep /> tag "anchor" /> tag "lemmaref"
+      catF   = attributed "cat" lemmarefF
+      cat    = toLowerHead $ concatMap fst (catF l) -- should only be one element 
+      lemmaF = attributed "name" lemmarefF
       lemma  = toLowerHead $ concatMap fst (lemmaF l) -- should only be one element 
       -- creating a lexical entry: note that we leave the
       -- semantics empty; this will have to be read from 
       -- another file
   in ILE{ iword = lemma
-        , itreename = fam
+        , icategory = cat
+        , ifamname = fam
         , iparams = []
         , ipfeat = []
         , iptype = Unspecified
         , isemantics = []
-        , ipredictors = []
   }
 \end{code}
 

@@ -7,7 +7,7 @@ where
 
 import ParserLib(Token(..), 
                  PosToken, simpleParserError)
-import Btypes
+import Btypes(ILexEntry(..), Ptype(..))
 
 createHandleVars predargs = 
   let handle newh oldh = if null oldh 
@@ -18,16 +18,16 @@ createHandleVars predargs =
    in map fn zpa
 
 emptyLE = ILE { iword = "",
-                itreename = "", 
+                icategory = "",
+                ifamname = "", 
                 iparams = [],
                 ipfeat  = [],
                 iptype = Unspecified,
-                isemantics = [],
-                ipredictors = []}
+                isemantics = [] }
 }
 
 %name lexParser    LInput
-%name semlexParser SInput
+%name semlexParser SLexicon
 %tokentype { PosToken }
 
 %token 
@@ -40,7 +40,6 @@ emptyLE = ILE { iword = "",
     '!'   {(Bang,         _, _)} 
     ']'   {(CB,           _, _)}
     '['   {(OB,           _, _)}
-    '+'      {(PolPositive, _, _)}
     '-'      {(PolNegative, _, _)}
  
 %%
@@ -50,31 +49,35 @@ LInput :
  | LexEntry LInput
      {$1:$2}
         
-LexEntry: id id 
-   { emptyLE { iword = $1, itreename = $2 } }
+LexEntry: id id id 
+   { emptyLE { iword = $1, 
+               icategory = $2,
+               ifamname = $3 } }
+
+SLexicon : SInput 
+     {($1, [])}
+ | SInput '!' SemFamList 
+     {($1, $3)}
 
 SInput :
      {[]}
- | SDef SInput
+ | SLexEntry SInput
      {$1:$2}
-
-SDef :
-    SLexEntry Sem 
-     {$1{ isemantics = $2 }}
- |  SLexEntry '(' '!' PredictorList ')' Sem 
-     {$1{ isemantics = $6,
-          ipredictors = $4}}
  
-SLexEntry: id '(' IDFeat ')'
+
+SLexEntry: id id '(' IDFeat ')' Sem
          {emptyLE { iword   = $1,
-                    iparams = fst $3,
-                    ipfeat  = snd $3 }
+                    icategory = $2,
+                    iparams = fst $4,
+                    ipfeat  = snd $4,
+                    isemantics = $6
+                  }
          }
  
 Sem: 
      {[]}
  | sem ':' '[' ListPred ']' 
-     {sortSem (createHandleVars $4)}
+     {createHandleVars $4}
 
 ListPred :
      {[]}
@@ -109,20 +112,23 @@ FeatList :
  | id ':' id FeatList
      {($1,$3):$4}
 
-PredictorList : 
-      {[]}
-  | PolVal Predictor PredictorList 
-      {($2,$1):$3}
-  | PolVal num Predictor PredictorList 
-      {(map (const ($3,$1)) [1..($2)]) ++ ($4)}
+SemFamList:
+          { [] }
+        | SemFam SemFamList
+          { $1 : $2 }
 
-Predictor: id 
-    { ($1,"") }
-  | id ':' id
-    { ($1,$3) }
-  
-PolVal: '+' {(1)}
-      | '-' {(-1)}
+SemFam: Num ':' '(' NumList ')' '[' IDList ']'
+      {($1:$4, $7)}
+    
+NumList:
+        {[]}
+ | Num NumList
+        {$1:$2}
+
+Num: num 
+    { $1 }
+   | '-' num
+    { (-$2) }
 
 {
 happyError = simpleParserError
