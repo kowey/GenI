@@ -290,11 +290,12 @@ parseGramIndex filename contents =
       isAbs []    = False
       isAbs (a:_) = (a == slash)
       --
+      morphf = morphFile gp
   in gp {
        macrosFile  = toAbs (macrosFile gp),
        lexiconFile = toAbs (lexiconFile gp),
        semlexFile  = toAbs (semlexFile gp),
-       morphFile   = toAbs (morphFile gp)
+       morphFile   = if (null morphf) then "" else toAbs morphf
      }
 \end{code}
 

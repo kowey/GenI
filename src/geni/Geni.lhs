@@ -19,7 +19,6 @@ where
 
 \ignore{
 \begin{code}
-import Data.Char (toLower)
 import Data.FiniteMap
 import Data.IORef (IORef, readIORef, newIORef, modifyIORef)
 import Data.List (intersect, intersperse, sort, nub, group)
@@ -220,7 +219,7 @@ customGeni pst runFn = do
   let uninflected = map tagLeaves res
   sentences <- runMorph pst uninflected
   -- final rensults 
-  return (results { grSentences = map (map toLower) sentences,
+  return (results { grSentences = sentences,
                     grTimeStr  = statsTime })
 \end{code}
 

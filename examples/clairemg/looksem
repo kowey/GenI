@@ -1,6 +1,6 @@
-semantics:[lookAt(e) agent(e j) patient(e m) 
-           john(j) mary(m)]
-restrictors:[cleft:m]
+%semantics:[lookAt(e) agent(e j) patient(e m) john(j) mary(m)]
+semantics:[lookAt(e) agent(e j) patient(e m) mary(m)]
+%restrictors:[cleft:m]
 
 
 %semantics:[lookAt(e) agent(e j) patient(e m) mary(m)]
