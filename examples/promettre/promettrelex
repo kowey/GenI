@@ -3,63 +3,55 @@
 %% X promet Y a Z
 %% Canonique, interrogatives, relatives
 
-
+%% --------------------------------------------------------------------- 
 %% Determinants
+%% --------------------------------------------------------------------- 
 
-un Det(I)
-semantics:[def(I)]
+un Det
+quel DetQ
 
-quel DetQ(I)
-semantics:[qu(I)]
-
+%% --------------------------------------------------------------------- 
 %% Noms communs
+%% --------------------------------------------------------------------- 
 
-cadeau nC(I) 
-semantics:[present(I)]
+cadeau nC
+livre  nC
 
+%% --------------------------------------------------------------------- 
 %% Noms Propres
+%% --------------------------------------------------------------------- 
 
-marie nP(I) 
-semantics:[marie(I)]
-
-jean nP(I) 
-semantics:[jean(I)]
-
-peter nP(I) 
-semantics:[peter(I)]
+marie   nP
+jean    nP
+peter   nP
+paul    nP
+olivier nP
 
 %% --------------------------------------------------------------------- 
 %% Verbs
 %% --------------------------------------------------------------------- 
-% marie promet un cadeau a jean
-promettre n0Vn1sp2(E X Y Z) 
-semantics:[promise(E X Y Z)]
 
-% marie promet a jean de partir
-promettre n0Vn1inf2(E X Y Z) 
-semantics:[promise(E X Y Z)]
+promettre n0Vn1sp2
+promettre n0Vn1inf2
+promettre qu0Vn1sp2
+promettre qu1Vn0sp2
+promettre qu2Vn0n1
+promettre rel0Vn1sp2
+promettre rel1Vn0sp2
+promettre rel2Vn0n1
 
-% qui promet un cadeau a jean 
-promettre qu0Vn1sp2(E X Y Z) 
-semantics:[promise(E X Y Z)]
+donner vinfn1sp2
+donner n0vn1sp2
+donner qu1vn0sp2
+donner qu2n0vn1
+donner rel0vn1sp2
+donner rel1vn0sp2
+donner rel2n0vn1
 
-% que promet jean a marie 
-promettre qu1Vn0sp2(E X Y Z) 
-semantics:[promise(E X Y Z)]
-
-% a qui jean promet-il un cadeau?
-promettre qu2Vn0n1(E X Y Z) 
-semantics:[promise(E X Y Z)]
-
-% la personne qui promet un cadeau a jean
-promettre rel0Vn1sp2(E X Y Z) 
-semantics:[promise(E X Y Z)]
-
-% le cadeau que promet marie a jean
-promettre rel1Vn0sp2(E X Y Z) 
-semantics:[promise(E X Y Z)]
-
-% la personne a qui jean promet un cadeau
-promettre rel2Vn0n1(E X Y Z) 
-semantics:[promise(E X Y Z)]
+persuader n0vn2pinf1
+persuader vinfn2pinf1
+persuader qu0vn2pinf1
+persuader qu2n0vpinf1
+persuader rel0vn2pinf1
+persuader rel1n0vn2
 

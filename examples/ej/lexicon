@@ -1,0 +1,66 @@
+%%
+%% The LEXICON
+%%
+%% 
+%% Nouns
+%%   common nouns
+%%     (hat, man, rabbit, woman)
+%%   proper names
+%%     (mia, vincent)
+%% Verbs
+%%   intransitive verbs
+%%     (runs, sleeps)
+%%   transitive verbs
+%%     (loves, removes)
+%% Modifiers
+%%   adjectives
+%%     (big, tall, white)
+%%   adverbs
+%%     (fast)
+%% Determiners
+%%   (a, the)
+
+
+%% Nouns
+%% common nouns
+
+hat    Cn
+man    Cn
+rabbit Cn
+woman  Cn
+
+%% proper names
+
+mia     Pn
+vincent Pn
+
+%% Verbs
+%% intransitive verbs
+
+runs   IntrV
+sleeps IntrV
+
+%% transitive verbs
+
+loves   TrV
+removes TrVPP
+
+%% Modifiers
+%% adjectives
+
+big  Adj
+tall Adj
+
+%bigtall Adj(Entity)
+%semantics:[big(_ Entity) tall(_ Entity)]
+
+white Adj
+
+%% adverbs
+
+fast Adv
+
+%% Determiners
+
+%a Dp
+the Dp

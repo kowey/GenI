@@ -1,10 +1,10 @@
-semantics : [ promise(e1 a b e2)
-	      jean(a)
-	      marie(b)
-	      give(e2 a c d)
+semantics : [ e1:promise(a b e2)
+	      a:jean()
+	      b:marie()
+	      e2:give(a c d)
 	      indef(c)
-	      book(c)
-	      paul(d)
+	      c:book()
+	      d:paul()
 	     ]
 
 

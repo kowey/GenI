@@ -1,0 +1,51 @@
+%% 21 april 2004
+%% French TAG
+%% X promet Y a Z
+%% Canonique, interrogatives, relatives
+
+
+%% Determinants
+
+un (I)
+semantics:[indef(I)]
+
+quel (I)
+semantics:[qu(I)]
+
+%% Noms communs
+
+livre (I)
+semantics:[I:book(I)]
+
+cadeau (I) 
+semantics:[I:present(I)]
+
+%% Noms Propres
+
+marie (I) 
+semantics:[I:marie(I)]
+
+jean (I) 
+semantics:[I:jean(I)]
+
+peter (I) 
+semantics:[I:peter(I)]
+
+paul (I)
+semantics:[I:paul(I)]
+
+olivier(I)
+semantics:[I:olivier(I)]
+
+%% --------------------------------------------------------------------- 
+%% Verbs
+%% --------------------------------------------------------------------- 
+promettre (E X Y Z) 
+semantics:[E:promise(X Y Z)]
+
+persuader (E X Y Z) 
+semantics:[E:convince(X Y Z)]
+
+donner (E X Y Z) 
+semantics:[E:give(X Y Z)]
+
