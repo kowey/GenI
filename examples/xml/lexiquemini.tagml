@@ -10,14 +10,7 @@
       <tree>
         <fs>
           <f name="family">
-            <sym value="binaryPredicate"/></f></fs></tree>
-      <anchor noderef="anchor">
-        <lemmaref name="aimer" cat="v"/></anchor></lexicalization>
-    <lexicalization>
-      <tree>
-        <fs>
-          <f name="family">
-            <sym value="n0Vcs1"/></f></fs></tree>
+            <sym value="binaryPredicates"/></f></fs></tree>
       <anchor noderef="anchor">
         <lemmaref name="aimer" cat="v"/></anchor></lexicalization>
     <lexicalization>
@@ -62,6 +55,13 @@
             <sym value="commonnoun"/></f></fs></tree>
       <anchor noderef="anchor">
         <lemmaref name="homme" cat="n"/></anchor></lexicalization>
+  <lexicalization>
+      <tree>
+        <fs>
+          <f name="family">
+            <sym value="stddeterminer"/></f></fs></tree>
+      <anchor noderef="anchor">
+        <lemmaref name="le" cat="d"/></anchor></lexicalization>
 
   </lexicalizationLib>
 </tagml>
