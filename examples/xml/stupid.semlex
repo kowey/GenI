@@ -24,25 +24,25 @@
 %% Nouns
 %% common nouns
 
-hamburger _(Entity) 
+hamburger (Entity) 
 semantics:[hamburger(Entity)]
 
-homme _(Entity)
+homme (Entity)
 semantics:[man(Entity)]
 
-lapin _(Entity)
+lapin (Entity)
 semantics:[rabbit(Entity)]
 
-femme _(Entity)
+femme (Entity)
 semantics:[woman(Entity)]
 
 
 %% proper names
 
-jacques _(Entity)
+jacques (Entity)
 semantics:[name(Entity jacques)]
 
-emma _(Entity)
+emma (Entity)
 semantics:[name(Entity emma)]
 
 %% Verbs
@@ -56,7 +56,7 @@ semantics:[name(Entity emma)]
 %
 %% transitive verbs
 
-aimer _(Agent Experiencer )
+aimer (Agent Experiencer )
 semantics:[love(Agent Experiencer)]
 
 %removes TrVPP(Event Agent Theme Loc )
@@ -89,7 +89,7 @@ semantics:[love(Agent Experiencer)]
 
 %un  Dp(Entity )
 
-le _(Entity)
+le (Entity)
 semantics:[def(Entity)]
 
 

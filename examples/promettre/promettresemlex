@@ -9,6 +9,9 @@
 un (I)
 semantics:[indef(I)]
 
+le (I)
+semantics:[def(I)]
+
 quel (I)
 semantics:[qu(I)]
 
