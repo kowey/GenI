@@ -6,16 +6,20 @@ where
 import Btypes (ILexEntry)
 import ParserLib(Token(..),PosToken,parserError)
 import Data.List (intersperse)
+
+untok (a,_,_) = a
 }
 %name cParser
 %tokentype { PosToken }
 
 %token 
-    macros     {(Macros,      _, _)} 
-    lexicon    {(Lexicon,     _, _)}  
-    grammarXml {(GrammarXml,     _, _)}  
-    tsem       {(TSemantics,  _, _)}
-    graphical  {(Graphical,   _, _)}
+    macros      {(Macros,      _, _)} 
+    lexicon     {(Lexicon,     _, _)}  
+    gramtype    {(GrammarType,     _, _)}  
+    TAGML       {(TAGMLTok, _, _)}
+    GeniHand    {(GeniHandTok, _, _)}
+    tsem        {(TSemantics,  _, _)}
+    graphical   {(Graphical,   _, _)}
     optimisations {(Optimisations, _,_)}
     polarised    {(Polarised,   _, _)}
     polsig       {(PolSig,      _,_)}
@@ -47,21 +51,22 @@ InputList :
      {[]}
  | repeat '=' num InputList
      {(Repeat,show $3):$4}
- | filekey '=' id InputList
-     {($1,$3):$4}
+ | idkey '=' id InputList
+     {(untok $1,$3):$4}
+ | gramtype '=' GramTypes InputList
+     {(untok $1, $3):$4}
  | boolkey '=' true InputList
      {($1,"True"):$4}
  | boolkey '=' false InputList
      {($1,"False"):$4}
  | optimisations '=' OptList InputList
-     {(Optimisations,$3):$4}
+     {(untok $1, $3):$4}
  | extrapol '=' PolList InputList
-     {(ExtraPolarities,$3):$4}
+     {(untok $1, $3):$4}
  
-filekey: lexicon    {Lexicon}
-       | macros     {Macros}
-       | grammarXml {GrammarXml}
-       | tsem       {TSemantics}
+idkey:   lexicon  {$1}  
+       | macros   {$1}  
+       | tsem     {$1}  
 
 boolkey: graphical  {Graphical}
 
@@ -72,6 +77,9 @@ optkey: polarised    {Polarised}
       | chartsharing {ChartSharing}
       | orderedadj   {OrderedAdj}
       | footconstr   {FootConstraint}
+
+GramTypes : TAGML    { (show.untok) $1 } 
+          | GeniHand { (show.untok) $1 } 
 
 OptList : 
     batch  

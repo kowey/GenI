@@ -347,8 +347,6 @@ different values for the \textit{number} attribute:
 \begin{quotation}
 \fs{\it cat:np\\ \it number:3\\}
 \fs{\it cat:np\\ \it number:2\\}
-$\rightarrow$
-\tuple{False,\fs{},\fs{}}\\
 \end{quotation}
 
 Note that the following input should also fail as a result on the
@@ -357,8 +355,6 @@ coreference on \textit{?X}.
 \begin{quotation}
 \fs{\it cat:np\\ \it one: 1\\  \it two:2\\}
 \fs{\it cat:np\\ \it one: ?X\\ \it two:?X\\}
-$\rightarrow$
-\tuple{False,\fs{},\fs{}}\\
 \end{quotation}
 
 On the other hand, any other pair of feature lists should unify
@@ -369,20 +365,14 @@ Below are some examples of successful unifications:
 \fs{\it cat:np\\ \it one: 1\\  \it two:2\\}
 \fs{\it cat:np\\ \it one: ?X\\ \it two:?Y\\}
 $\rightarrow$
-\tuple{True,
-       \fs{\it cat:np\\ \it one: 1\\ \it two:2\\},
-       \fs{\it ?X $\leftarrow$ 1\\ \it ?Y $\leftarrow$ 2\\}
-      }\\
+\fs{\it cat:np\\ \it one: 1\\ \it two:2\\},
 \end{quotation}
 
 \begin{quotation}
 \fs{\it cat:np\\ \it number:3\\}
 \fs{\it cat:np\\ \it case:nom\\}
 $\rightarrow$
-\tuple{True,
-       \fs{\it cat:np\\ \it case:nom\\ \it number:3\\},
-       \fs{}
-      }\\
+\fs{\it cat:np\\ \it case:nom\\ \it number:3\\},
 \end{quotation}
 
 \paragraph{unifyFeat} is an implementation of feature structure

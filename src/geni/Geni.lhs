@@ -11,7 +11,7 @@ module Geni (State(..), PState, GeniResults(..),
              showRealisations, showOptResults,
              verboseGeni, customGeni,
              initGeni, runGeni, 
-             loadMacros, loadLexicon, loadGrammarXml, loadTargetSem,
+             loadMacros, loadLexicon, loadTargetSem,
              loadTargetSemStr,
              -- for debugging only
              combine, chooseCand)
@@ -31,15 +31,16 @@ import FiniteMap
 import Monad (when)
 import CPUTime (getCPUTime)
 
-import Btypes (Grammar, ILexEntry, Sem, Flist, 
+import Btypes (Macros, MTtree, ILexEntry, Sem, Flist, Subst,
                GNode, GType(Subs), 
                isemantics, itreename, iword, iparams, ipfeat,
                gnname, gtype, gaconstr, gup, gdown, toKeys,
                sortSem, subsumeSem, params, 
-               substFlist',
-               pfeat, ptype, 
+               substSem, substFlist',
+               pidname, pfeat, ptype, 
                ptpolarities, 
-               setLexeme, tree)
+               setLexeme, tree,
+               multiGroupByFM)
 
 import Tags (Tags, TagElem, emptyTE, TagSite, 
              idname, tidnum,
@@ -49,7 +50,8 @@ import Tags (Tags, TagElem, emptyTE, TagSite,
              appendToVars, substTagElem)
 
 import Configuration(Params, defaultParams, getConf, treatArgs,
-                     macrosFile, lexiconFile, grammarXmlFile, tsFile, 
+                     macrosFile, lexiconFile, tsFile, grammarType,
+                     GrammarType(..),
                      polarised, polsig, chartsharing, 
                      semfiltered, orderedadj, extrapol)
 
@@ -89,7 +91,7 @@ Note: if tags is non-empty, we can ignore gr and le
 data State = ST{pa      :: Params,
                 batchPa :: [Params], -- list of configurations
                 tags    :: Tags,
-                gr      :: Grammar,
+                gr      :: Macros,
                 le      :: [ILexEntry],
                 ts      :: Sem
                }
@@ -241,12 +243,18 @@ runLexSelection :: IORef State -> IO [TagElem]
 runLexSelection pst = do
     mst <- readIORef pst
     let tsem     = ts mst
-        preCombined = tags mst
-        combined = if (isEmptyFM preCombined) 
-                   then combine (gr mst) (le mst)
-                   else preCombined
-        cand = chooseCand combined tsem 
-        --
+        lexicon  = le mst
+        -- approach 1 (small grammars)
+        combined1 = combine (gr mst) lexicon 
+        cand1     = chooseCand combined1 tsem 
+        -- approach 2 (large grammars - search the lexicon first)
+        sortedLex = mapBySemKeys isemantics lexicon 
+        lexCand   = chooseLexCand sortedLex tsem
+        combined2 = combine (gr mst) lexCand
+        cand2     = concat $ eltsFM combined2
+        -- choose which approach you want
+        cand      = cand1
+        -- assure unique variable names
         setnum c i = appendToVars (mksuf i) (c { tidnum = i })
         mksuf i = "-" ++ (show i)
     return $ zipWith setnum cand [1..]
@@ -278,7 +286,7 @@ runGeni' config tsem combos =
 % --------------------------------------------------------------------
 
 combine: Given 
-- the Grammar and 
+- the Macros and 
 - a list of ILexEntry (read from the Lexicon.in file) 
 
 it creates the Tags repository combining lexical entries and
@@ -287,7 +295,7 @@ used to specialize un-anchored trees and propagates additional features
 given in the ILexEntry. 
 
 \begin{code}
-combine :: Grammar -> [ILexEntry] -> Tags
+combine :: Macros -> [ILexEntry] -> Tags
 combine _ [] = emptyFM
 \end{code}
 
@@ -297,28 +305,41 @@ We start by collecting all the features and parameters we want to combine.
 combine g (lexitem:rest) =
    let trest = combine g rest -- rest of the combination
        --
-       sem = isemantics lexitem
        tn = itreename lexitem
-       wt = "(Word: "++ (iword lexitem) ++ ", Tree:" ++ (itreename lexitem) ++ ")\n"
-       e  = case (lookupFM g tn) of
-            Just tt -> tt
-            Nothing -> error ("Tree used in lexicon not found in Grammar" ++ wt)
-       p = iparams lexitem
-       pf = ipfeat lexitem
-       fpf = map fst pf
-       tp = params e
-       tpf = pfeat e
-       ftpf = map fst tpf
+       macs = case (lookupFM g tn) of
+                Just tt -> tt
+                Nothing -> error ("Family " ++ tn ++ " not found in Macros")
+       sol  = map (combineOne lexitem) macs
+       --
+       keys = if null sem then ["MYEMPTY"] else toKeys sem
+              where sem = isemantics lexitem
+       --
+   in foldr (\k f -> addToFM_C (++) f k sol) trest keys 
 \end{code}
 
-Here we unify Features and Parameters.
+\paragraph{combineOne} combines a single tree with its lexical item to
+form a bonafide TagElem
 
 \begin{code}
+combineOne :: ILexEntry -> MTtree -> TagElem
+combineOne lexitem e = 
+   let wt = "(Word: "++ (iword lexitem) ++
+            ", Family:" ++ (itreename lexitem) ++ ")\n"
+       -- lexitem stuff
+       sem  = isemantics lexitem
+       p    = iparams lexitem
+       pf   = ipfeat lexitem
+       fpf  = map fst pf
+       -- tree stuff
+       tp   = params e
+       tpf  = pfeat e
+       ftpf = map fst tpf
+       -- unify the Features and Parameters.
        paramsUnified = replacePar (zip tp p) (Btypes.tree e)
        (unified,snodes,anodes) = replaceFeat pf paramsUnified 
-       --
+       -- the final result
        sol = emptyTE {
-                idname = tn ++ "-" ++ (iword lexitem),
+                idname = (iword lexitem) ++ "-" ++ (pidname e),
                 derivation = (0,[]),
                 ttype = ptype e,
                 ttree = setLexeme (iword lexitem) unified,
@@ -328,21 +349,14 @@ Here we unify Features and Parameters.
                 tpolarities = ptpolarities e
                 -- tpredictors = combinePredictors e lexitem
                }        
-       keys = if null sem
-              then ["MYEMPTY"]     -- words with empty semantics are add under key "MYEMPTY"
-              else toKeys sem
-\end{code}
-
-Now we actually perform the process that we defined above.
-
-\begin{code}
-       in if ((length p) /= (length tp))  -- if the parameters are of different length
-          then error ("Wrong number of parameters. " ++ wt)
-          else if (intersect fpf ftpf /= fpf) -- if the features specified in ILexEntry 
-                                              -- are not a subset of the ones 
-                                              -- specified in the grammar.
-               then error ("Feature atributes don't match. " ++ wt)
-               else foldr (\k -> \fm -> addToTags fm k sol) trest keys
+    in -- error checking
+       if ((length p) /= (length tp))  -- if the parameters are of different length
+       then error ("Wrong number of parameters. " ++ wt)
+       else -- if the features specified in ILexEntry are not a subset
+            -- of the ones specified in the grammar.
+            if (intersect fpf ftpf /= fpf) 
+            then error ("Feature atributes don't match. " ++ wt)
+            else sol
 \end{code}
 
 % --------------------------------------------------------------------
@@ -388,7 +402,7 @@ updateNode2 ((at,v):l) a =
 \subsection{Instatiation of arguments}
 % --------------------------------------------------------------------
 
-replacePar: Given 
+\paragraph{replacePar}: Given 
    - a tree of (GNode) and 
    - a list of pairs of strings 
 
@@ -432,19 +446,67 @@ See page \pageref{fn:subsumeSem} for the definition of semantic subsumption.
 \begin{code}
 chooseCand :: Tags -> Sem -> [TagElem]
 chooseCand t tsem =
-    let keys = "MYEMPTY":(toKeys tsem)   -- the initial "" takes care of words with empty semantics
-        -- we choose candidates that match keys
-        cand = concatMap (findInTags t) keys
-        -- we filter those that do not stay within the target semantics and instantiate 
-        -- semantics and tree, finaly we eliminate duplicates.
-        res = nub (concatMap (chooseCandI tsem) cand)
-        in res
+  let -- we also retrieve empty-semantic elements
+      keys = "MYEMPTY":(toKeys tsem)   
+      -- we choose candidates that match keys
+      cand = concatMap (findInTags t) keys
+      -- and then refine the selection...
+  in chooseCandI tsemantics substTagElem tsem cand
+\end{code}
 
-chooseCandI :: Sem -> TagElem -> [TagElem]
-chooseCandI tsem te =
-    let sem = tsemantics te
-        psubst = if (null sem) then [[]] else subsumeSem tsem sem
-    in map (substTagElem te) psubst 
+With a helper function, we refine the candidate selection by
+instatiating the semantics, at the same time filtering those which
+do not stay within the target semantics, and finally eliminating 
+the duplicates.
+
+\begin{code}
+chooseCandI :: (Eq a) => (a->Sem) -> (a->Subst->a) 
+                         -> Sem -> [a] -> [a]
+chooseCandI semfn substfn tsem cand =
+  let psubst te = if (null sem) then [[]] else subsumeSem tsem sem
+                  where sem = semfn te
+      helper te = map (substfn te) (psubst te)
+  in nub $ concatMap helper cand
+\end{code}
+
+% --------------------------------------------------------------------
+\subsection{Lexicon-only selection}
+% --------------------------------------------------------------------
+
+An alternative to candidate selection (of trees) is to do lexical
+selection (just the lexical items), and combine these lexically 
+selected items with the grammar.
+
+\begin{code}
+type SortedLex = FiniteMap String [ILexEntry] 
+chooseLexCand :: SortedLex -> Sem -> [ILexEntry]
+chooseLexCand slex tsem = 
+  let substLex i sub = i { isemantics = substSem sem sub }
+                       where sem = isemantics i
+      -- the initial "MYEMPTY" takes care of items with empty semantics
+      keys = "MYEMPTY":(toKeys tsem)   
+      -- we choose candidates that match keys
+      lookuplex t = lookupWithDefaultFM slex [] t
+      cand    = concatMap lookuplex keys
+      -- and refine the selection... 
+  in chooseCandI isemantics substLex tsem cand
+\end{code}
+
+\paragraph{mapBySemKeys} organises items by their semantic key.  A
+semantic key is a semantic literal boiled down to predicate plus arity
+(see section \ref{btypes_semantics}).  Given \texttt{xs} a list of items
+and \texttt{fn} a function which retrieves the item's semantics, we
+return a FiniteMap from semantic key to a list of items with that key.
+An item may have multiple keys.
+
+This is used to organise the lexicon by its semantics.
+
+\begin{code}
+mapBySemKeys :: (a -> Sem) -> [a] -> FiniteMap String [a]
+mapBySemKeys semfn xs = 
+  let gfn t = if (null s) then ["MYEMPTY"] else toKeys s 
+              where s = semfn t
+  in multiGroupByFM gfn xs
 \end{code}
 
 % --------------------------------------------------------------------
@@ -460,8 +522,8 @@ of a macros file and lexicon file.  The generator reads these into
 memory and combines them into a grammar (page \pageref{sec:combine_macros}).
 
 Automatically generated grammars are built from a meta-grammar compiler.
-They are available as a single XML file containing the whole grammar 
-(no need for combining).
+For now, we only have a syntax for the macros file; the lexicon file 
+will continue to use the old GeniHand syntax.
 
 \subsubsection{Hand-written grammars}
 
@@ -471,19 +533,24 @@ The Macros are storded as a hashing function in the monad.
 
 \begin{code}
 loadMacros :: PState -> IO ()
-loadMacros pst =  
-    do st <- readIORef pst
-       let config   = pa st
-           filename = macrosFile config 
-       putStr $ "Loading Macros " ++ filename ++ "... "
-       gf <- readFile filename
-       let (g, u) = mParser (lexer gf)
-           errmsg  = "Some trees in grammar declared neither initial nor auxiliar.\n  Aborting.\n"
-       if not (null u)
-          then error (errmsg ++ (show u))
-          else do putStr ((show $ sizeFM g) ++ " trees\n")
-                  modifyIORef pst (\x -> x{gr = g})
-                  return ()
+loadMacros pst = 
+  do st <- readIORef pst
+     let config   = pa st
+         filename = macrosFile config 
+         isTAGML  = (grammarType config == TAGML)
+     putStr $ if isTAGML 
+              then "Loading XML Macros " ++ filename ++ "... "
+              else "Loading Macros " ++ filename ++ "... "
+     gf <- readFile filename
+     let (g, u) = if isTAGML  
+                  then (parseXmlGrammar gf, [])
+                  else mParser (lexer gf)
+         errmsg  = "Some trees in grammar declared neither initial nor auxiliar.\n  Aborting.\n"
+     if null u -- if no errors
+        then do putStr ((show $ sizeFM g) ++ " trees\n")
+                modifyIORef pst (\x -> x{gr = g})
+                return ()
+        else error (errmsg ++ (show u))
 \end{code}
 
 \paragraph{loadLexicon} Given the pointer to the monadic state pst, it
@@ -502,27 +569,6 @@ loadLexicon pst = do
        putStr ((show $ length l) ++ " entries\n")
        modifyIORef pst (\x -> x{le = l})
        return ()
-\end{code}
-
-\subsubsection{XML grammar}
-\paragraph{loadGrammarXml}
-
-Given the pointer to the monadic state pst, it reads and parses the
-grammar from the macro file indicated in the monad.  The grammar is
-storded as a hashing function in the monad.
-
-\begin{code}
-loadGrammarXml :: PState -> IO ()
-loadGrammarXml pst = do 
-  st <- readIORef pst
-  let config   = pa st
-      filename = grammarXmlFile config 
-  putStr $ "Loading XML Grammar " ++ filename ++ "..."
-  gf <- readFile filename
-  let g = parseXmlGrammar gf 
-  modifyIORef pst (\x -> x{tags = g})
-  putStr "done\n"
-  return ()
 \end{code}
 
 \subsection{Target semantics}

@@ -23,6 +23,7 @@ emptyPolPred = (emptyFM, [])
 
 buildTree ttype id (params,feats) (pol,pred) t = 
   (id, TT{params = params, 
+          pidname = id,
           pfeat = feats, 
           ptype = ttype, 
           tree = t, 
@@ -67,11 +68,11 @@ Input :
  | DefI Input
      {let {(c,u) = $2 ;
            (k,e) = $1}
-      in (addToFM c k e, u)}
+      in (addToFM c k [e], u)}
  | DefA Input
      {let {(c,u) = $2 ;
            (k,e) = $1 }
-      in (addToFM c k e, u)}
+      in (addToFM c k [e], u)}
  | Def Input
      {let (c,u) = $2 in (c, $1:u)}
  | begin initial Input end initial Input
@@ -79,13 +80,13 @@ Input :
            (c',u') = $3; 
            cc' = plusFM c c'} 
       in (foldr (\(k,e) -> 
-                 \fm -> (addToFM fm k e{ptype = Initial})) cc' u', u)}
+                 \fm -> (addToFM fm k [e{ptype = Initial}])) cc' u', u)}
  | begin auxiliar Input end auxiliar Input 
      {let {(c, u ) = $6;
            (c',u') = $3;
            cc' = plusFM c c' }
       in (foldr (\(k,e) ->
-                 \fm -> (addToFM fm k e{ptype = Auxiliar})) cc' u',u)}
+                 \fm -> (addToFM fm k [e{ptype = Auxiliar}])) cc' u',u)}
 
 Def :
    id '(' IDFeat ')' TopTree

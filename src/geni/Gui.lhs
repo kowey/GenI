@@ -25,13 +25,13 @@ import Graphviz
 import Treeprint
 import Geni (State(..), GeniResults(..), PState,
              runGeni, customGeni, combine,
-             loadMacros, loadLexicon, loadGrammarXml, loadTargetSemStr)
+             loadMacros, loadLexicon, loadTargetSemStr)
 import Btypes (showSem, showPred, Sem)
 import Tags (idname,mapBySem,emptyTE,tsemantics,tpolarities,
              showfeats,TagElem)
 
 import Configuration(Params, GrammarType(..), 
-                     macrosFile, lexiconFile, grammarXmlFile, grammarType,
+                     macrosFile, lexiconFile, grammarType,
                      tsFile, optimisations, 
                      polarised, polsig, chartsharing, 
                      semfiltered, orderedadj, extrapol, footconstr)
@@ -50,11 +50,8 @@ import Polarity
 \begin{code}
 guiGenerate :: PState -> IO() 
 guiGenerate pst = do
-  mst <- readIORef pst
-  if ((null.grammarXmlFile.pa) mst)
-     then do loadMacros pst
-             loadLexicon pst
-     else loadGrammarXml pst
+  loadMacros pst
+  loadLexicon pst
   start (mainGui pst)
 \end{code}
 
@@ -102,12 +99,9 @@ We add some buttons for loading files and running the generator.
        tsText <- readFile (tsFile $ pa mst)
        tsTextBox <- textCtrl f WrapWord [ text := tsText, clientSize := sz 300 80 ]
        -- Box and Frame for files loaded 
-       let macFilename = macrosFile  config 
-           lexFilename = lexiconFile config
-           xmlFilename = grammarXmlFile config
-           (gFilename,lFilename) = if (grammarType config == MacLex) 
-                                   then (macFilename, lexFilename) 
-                                   else (xmlFilename, "")
+       let gFilename = macrosFile  config 
+           lFilename = lexiconFile config
+
        grammarFileLabel <- staticText f [ text := gFilename ]
        lexiconFileLabel <- staticText f [ text := lFilename ]
        tsFileLabel      <- staticText f [ text := (trim.tsFile) config ]
@@ -216,16 +210,15 @@ gramsemBrowser pst guiParts = do
   let config = pa mst
       tfile = tsFile config 
       gtype = grammarType config
-      (gfile,lfile) = if (gtype == MgXml) 
-                      then (grammarXmlFile config,"")
-                      else (macrosFile config, lexiconFile config)
+      gfile = macrosFile config
+      lfile = lexiconFile config
   f <- frame [text := "Grammar and semantics", clientSize := sz 400 150]
   -- Grammar files selection
   entryG  <- textEntry f AlignLeft [ text := trim gfile ]
   fselBtG <- button f [ text := "Browse"
                       , on command := newFileSel f entryG  ]
   entryL  <- textEntry f AlignLeft [ text := trim lfile,
-                                     enabled := (gtype == MacLex) ]
+                                     enabled := (gtype == GeniHand) ]
   fselBtL <- button f [ text := "Browse" 
                       , on command := newFileSel f entryL ]
   -- Target semantics file selection
@@ -235,24 +228,12 @@ gramsemBrowser pst guiParts = do
   -- Grammar type selection
   let rlabels = ["handwritten", "TAGMLish"]
   rBox <- radioBox f Horizontal rlabels [ text := "Grammar type"
-                                        , selection := if (gtype == MgXml) then 1 else 0
+                                        , selection := if (gtype == TAGML) then 1 else 0
                                         ]
-  let rCmd = do s <- get rBox selection
-                let enableLex = (s == 0)
-                set entryL  [ enabled := enableLex 
-                            , visible := enableLex
-                            , text :~ \l -> if enableLex then l else "" ]
-                set fselBtL [ enabled :~ \_ -> enableLex ]
-                repaint entryL
-  set rBox [ on select := rCmd ]
-  rCmd -- run rCmd to en/disable the lexicon stuff 
   -- Cancel button
   cancelBt <- button f [ text := "Cancel" , on command := close f ]
   -- Load button
   let (gl,ll,tl,tsBox) = guiParts
-  let loadMac teG = do loadMacros pst  
-                       modifyIORef pst (\x -> x { tags = emptyFM }) 
-                       set gl [ text := teG ]
   let loadCmd reload = do -- get new values
                          teG' <- get entryG text
                          teL' <- get entryL text
@@ -260,31 +241,26 @@ gramsemBrowser pst guiParts = do
                          let teG = trim teG'
                              teL = trim teL'
                              teS = trim teS'
+                         -- what kind of grammar does the user want?
                          gramSel <- get rBox selection
-                         let enableLex = (gramSel == 0)
-                             gStuff = if enableLex 
-                                      then (MacLex,"",teL) 
-                                      else (MgXml,teG,"") 
-                             (newGtype, newGfile, newLfile) = gStuff
+                         let newGtype = if (gramSel == 0) 
+                                        then GeniHand 
+                                        else TAGML
                          -- write the new values
                          let newPa p = p { macrosFile  = teG 
-                                         , lexiconFile = newLfile 
-                                         , grammarXmlFile = newGfile
+                                         , lexiconFile = teL 
                                          , grammarType = newGtype 
                                          , tsFile = teS }
                          modifyIORef pst (\x -> let pa' = pa x in x{pa = newPa pa'})
                          -- load in any new files
-                         set ll [ visible := enableLex ]
                          Monad.when (reload || teG /= gfile ) $ 
-                           if (newGtype == MgXml) 
-                              then loadGrammarXml pst
-                              else loadMac teG
-                         Monad.when (reload || (enableLex && teL /= lfile) ) $ 
-                           if (newGtype == MgXml)
-                              then return ()
-                              else do loadLexicon pst
-                                      set ll [ text := teL ]
-                         Monad.when (reload || (teS /= tfile )) $ 
+                           do loadMacros pst  
+                              modifyIORef pst (\x -> x { tags = emptyFM }) 
+                              set gl [ text := teG ]
+                         Monad.when (reload || teL /= lfile ) $ 
+                           do loadLexicon pst
+                              set ll [ text := teL ]
+                         Monad.when (reload || teS /= tfile ) $ 
                            do readTargetSem pst tsBox
                               set tl [ text := teS ]
                          close f 

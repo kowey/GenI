@@ -31,7 +31,9 @@ module Tags(
 \begin{code}
 import Data.List (intersperse)
 import Data.Tree
-import FiniteMap (FiniteMap, emptyFM, addToFM_C, lookupFM)
+import FiniteMap (FiniteMap, emptyFM, addToFM_C, lookupFM,
+                  lookupWithDefaultFM
+                  )
 
 import Btypes (Ptype(Initial, Auxiliar), 
                Subst, GNode(gup, gdown), Flist, 
@@ -63,10 +65,7 @@ addToTags t k e = addToFM_C (++) t k [e]
 
 \begin{code}
 findInTags :: Tags -> String -> [TagElem]
-findInTags t k = 
-    case (lookupFM t k) of 
-       Just l -> l
-       Nothing -> []
+findInTags t k = lookupWithDefaultFM t [] k
 \end{code}
 
 % ----------------------------------------------------------------------

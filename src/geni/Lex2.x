@@ -23,7 +23,10 @@ tokens :-
   
   Macros                     { tok Macros     }
   Lexicon                    { tok Lexicon    }
-  GrammarXml                 { tok GrammarXml }
+  
+  GrammarType                { tok GrammarType }
+  GeniHand                   { tok GeniHandTok }
+  TAGML                      { tok TAGMLTok }
 
   Optimisations              { tok Optimisations }
   Polarised                  { tok Polarised  }

@@ -32,7 +32,7 @@ import Gui(guiGenerate)
 import Geni
 import Mstate(avgGstats)
 import Configuration(Params, graphical, 
-                     macrosFile, lexiconFile, tsFile, grammarXmlFile,
+                     macrosFile, lexiconFile, tsFile, 
                      emptyParams, optimisations, isBatch, batchRepeat,
                      optBatch, Token(..))
 
@@ -70,15 +70,9 @@ consoleGenerate' pst lastPa newPa = do
   -- only load files if neccesary
   let lastMacros     = macrosFile lastPa
       lastLexicon    = lexiconFile lastPa
-      lastGrammarXml = grammarXmlFile lastPa
-      lastTargetSem = tsFile lastPa
-      newGrammarXml  = grammarXmlFile newPa
-  -- FIXME: should implement some kind of mutual exclusivity
-  -- between macros/lexicon and grammar
+      lastTargetSem  = tsFile lastPa
   when (lastMacros /= macrosFile newPa)  $ loadMacros pst
   when (lastLexicon /= lexiconFile newPa)  $ loadLexicon pst
-  when ((lastGrammarXml /= newGrammarXml) && 
-        (not $ null newGrammarXml)) $ loadGrammarXml pst
   when (lastTargetSem /= tsFile newPa) $ loadTargetSem pst
   -- determine if we have to run a batch of optimisations 
   let batch = map (\o -> newPa { optimisations = o }) optBatch  

@@ -1,7 +1,7 @@
 \chapter{XML Parser}
 
 A simple DOM-like parser (using HaXml) for grammars in XML format.
-This produces a set of trees hashed according to their predicate and arity.
+This produces a set of trees indexed by their name.
 
 \begin{code}
 module GrammarXml where
@@ -10,7 +10,7 @@ module GrammarXml where
 \ignore{
 \begin{code}
 import Data.Char
-import Data.FiniteMap (FiniteMap,emptyFM)
+import Data.FiniteMap (FiniteMap,emptyFM,addToFM_C)
 import Data.List (partition,sort)
 import Data.Tree
 import MonadState (State, 
@@ -21,16 +21,21 @@ import Text.XML.HaXml.Types
 import Text.XML.HaXml.Combinators
 import Text.XML.HaXml.Parse
 
-import Btypes(AvPair,GType(Subs,Foot,Lex,Other),GNode(..),
-              Ptype(..), toKeys, Pred, emptyGNode)
+import Btypes(AvPair, Flist, 
+              GType(Subs,Foot,Lex,Other),
+              GNode(..), Macros, Ttree(..),
+              emptyGNode, emptyMacro,
+              Ptype(..), Pred)
 import PolParser(polParser)
 import Lex2(lexer)
-import Tags(emptyTE,TagElem(..),Tags,TagSite,addToTags)
+-- import Tags(emptyTE,TagElem(..),Tags,TagSite,addToTags)
 \end{code}
 }
 
 \begin{code}
-parseXmlGrammar :: String -> Tags
+type MTree = Ttree GNode
+
+parseXmlGrammar :: String -> Macros
 parseXmlGrammar g = 
   -- extract a CElem out of the String
   let (Document _ _ ele) = xmlParse "" g 
@@ -42,29 +47,50 @@ parseXmlGrammar g =
       res = foldr parseEntry emptyFM entries
   in res
 
-parseEntry :: Content -> Tags -> Tags
-parseEntry e gram =
-  let litF = keep /> tag "semantics" /> tag "literal"
-      synF = keep /> tag "tree"    
+parseEntry :: Content -> Macros -> Macros 
+parseEntry e mac =
+  let synF = keep /> tag "tree"    
       trcF = keep /> tag "trace"    
-      sem  = map parseLiteral (litF e)
+      intF = keep /> tag "interface"
+      -- litF = keep /> tag "semantics" /> tag "literal"
+      -- sem  = map parseLiteral (litF e)
       syn  = synF e
       trc  = trcF e
-      -- read the tree name if there is one
+      int  = intF e
+      -- read the tree name 
       nameF = attributed "name" keep
       name  = concatMap fst (nameF e) -- should only be one element 
+      -- read the tree family name 
+      famNameF = keep /> tag "family" /> txt 
+      famName  = unwrap (famNameF e) -- should only be one element 
       -- build the tree 
-      te = t { idname = name,
-               tpolarities = p,
-               tsemantics = sem }
-           where p = if null trc then emptyFM else parseTrace (head trc)
-                 t = if null syn then emptyTE else parseTree  (head syn)
-      -- add the tree into the grammar for every key in its semantics 
-      keys = if null sem
-             then ["MYEMPTY"]     -- words with empty semantics are add under key "MYEMPTY"
-             else toKeys sem
-  -- add the tree in the grammar for at every key in its semantics 
-  in foldr (\k f -> addToTags f k te) gram keys
+      t = t2 { ptpolarities = if null trc 
+                              then emptyFM 
+                              else parseTrace (head trc) 
+             -- there should only be one interface though
+             , pidname = name
+             , params  = fst pf 
+             , pfeat   = snd pf
+             }
+          where t2 = if null syn 
+                     then emptyMacro 
+                     else parseTree (head syn)
+                pf = if null int 
+                     then ([],[])
+                     else parseInterface (head int)
+  in addToFM_C (++) mac famName [t]
+\end{code}
+
+% ----------------------------------------------------------------------
+\section{Format}
+% ----------------------------------------------------------------------
+
+We collect bits and pieces of the XML format as global functions for
+use throughout the code.
+
+\begin{code}
+featStructF = tag "fs"
+featF       = tag "f"
 \end{code}
 
 % ----------------------------------------------------------------------
@@ -72,12 +98,13 @@ parseEntry e gram =
 % ----------------------------------------------------------------------
 
 Below, we're going need to use a state monad to keep track of some stuff like
-node numbering, the tree type, etc.  Here will be the contents of the state
+node numbering, the tree type, etc.  Here will be the contents of the
+state.
 
 \begin{code}
 data TreeInfo = TI {
-  tiAdjnodes :: [TagSite],
-  tiSubstnodes :: [TagSite],
+  -- tiAdjnodes :: [TagSite],
+  -- tiSubstnodes :: [TagSite],
   tiNum     :: Int,
   tiLex     :: String,
   tiHasFoot :: Bool
@@ -89,22 +116,19 @@ function parseNode, and then extracting (from the State monad)
 some information which is global to the tree.
 
 \begin{code}
-parseTree :: Content -> TagElem 
+parseTree :: Content -> MTree 
 parseTree t = 
   let nodeF  = keep /> tag "node"
       node   = nodeF t
-      initTi = TI { tiNum = 0, tiLex = "", tiHasFoot = False,
-                    tiAdjnodes = [], tiSubstnodes = [] }
+      initTi = TI { tiNum = 0, tiLex = "", tiHasFoot = False }
+                    -- tiAdjnodes = [], tiSubstnodes = [] }
       (parsedTr,finalTi)  = runState (parseNode $ head node) initTi
       (tr,info) = if null node  
                   then (Node emptyGNode [], initTi) 
                   else (parsedTr, finalTi)
-  in emptyTE { idname = tiLex info,
-               ttree  = tr,
-               ttype  = if (tiHasFoot info) then Auxiliar else Initial,
-               adjnodes   = (reverse.tiAdjnodes) info,
-               substnodes = (reverse.tiSubstnodes) info
-             }
+  in emptyMacro { tree = tr
+                , ptype = if (tiHasFoot info) then Auxiliar else Initial
+                }
 \end{code}
 
 We recurse through a basic tree structure to build the TAG tree.  Nodes 
@@ -135,15 +159,12 @@ lists, top and bottom.   We work around this by simply assuming that
 the fs recursion never goes further than that one level, and that 
 global features belong to both the top and bottom lists.
 
-
 \begin{code}
 parseNode :: Content -> State TreeInfo (Tree GNode)
 parseNode n = do
   st <- get
   let -- the fs parent structure 
       wholeF = keep /> tag "narg" /> featStructF /> featF
-      featStructF = tag "fs"
-      featF       = tag "f"
       -- detecting top, bottom and global features
       makeAttrF v = attrval ("name", AttValue [Left v])
       topAttrF = makeAttrF "top"
@@ -184,18 +205,22 @@ parseNode n = do
                 glexeme = lex,
                 gtype   = ntype,
                 gaconstr = aconstr }
+      {-
       -- add to the list of substitution and adjunction nodes as needed
       snodes' = tiSubstnodes st
       anodes' = tiAdjnodes st
       site   = (name, gup gn, gdown gn)
       snodes = if (ntype == Subs) then (site:snodes') else snodes' 
       anodes = if aconstr then anodes' else (site:anodes')
+      -}
   -- update the monadic state
   let st2 = st { tiNum = (tiNum st) + 1,
                  tiLex = if ntype == Lex then lex else (tiLex st),
-                 tiHasFoot = (tiHasFoot st) || (ntype == Foot),
+                 tiHasFoot = (tiHasFoot st) || (ntype == Foot) }
+                 {- ,
                  tiAdjnodes = anodes,
                  tiSubstnodes = snodes }
+                 -}
   put st2
   -- recursion to the kids  
   let kidsF  = keep /> tag "node"
@@ -210,7 +235,7 @@ the XML.
 \begin{verbatim}
 <f name="att">
   <sym varname="value"/>
-</feature>
+</f>
 \end{verbatim}
 
 Note: GenI does \emph{not} handle atomic disjunctions, so we simply
@@ -230,8 +255,8 @@ parseFeature :: Content -> AvPair
 parseFeature f =
   let -- parsing the attribute
       -- the TAG fs attribute is expressed as the value of XML attribute "name"
-      featF  = attributed "name" keep
-      feat   = concatMap fst (featF f) -- should only be one element 
+      subfeatF = attributed "name" keep
+      feat     = concatMap fst (subfeatF f) -- should only be one element 
       -- parsing the value
       symF  = keep /> tag "sym"
       disjF = attributed "coref" (keep /> tag "vAlt")
@@ -268,6 +293,50 @@ parseLiteral lit =
       arguments = map parseSym (argsF lit)
   in (label, predicate, arguments)
 \end{code}
+
+% ----------------------------------------------------------------------
+\section{Interface}
+% ----------------------------------------------------------------------
+
+The interface is the mechanism which allows us to perform lexicalisaiton
+and to instantiate the semantic indices of a tree.  For example, a tree
+like \verb$S(N [idx:X], V, N [idx:Y])$ could have an interface
+\verb$[arg0:X, arg1:Y]$.  In order to instantiate the tree with the
+semantics \texttt{hates(h,m,j)}, we could set \verb$X$ to \texttt{m} and
+\verb$Y$ to j.
+
+In the TAGMLish format, the interface takes the form of a feature
+structure.  Following the current GenI design, we seperate the interface
+into a list of parameters and tree features.  For example, in the
+interface below, the parameters would be \verb$[?A,?I]$ and the features
+would be 
+\fs{\it anch:manger\\ \it obj:?I\\  \it suj:?A\\}
+
+\begin{verbatim}
+<interface>
+  <fs>
+    <f name="anch"><sym value="manger"/></f>
+    <f name="arg0"><sym varname="@A"/></f>
+    <f name="arg1"><sym varname="@I"/></f>
+    <f name="obj"> <sym varname="@I"/></f>
+    <f name="suj"> <sym varname="@A"/></f>
+  </fs>
+</interface>
+\end{verbatim}
+
+\begin{code}
+parseInterface :: Content -> ([String], Flist)
+parseInterface int =
+  let iFeatsF  = keep /> featStructF /> featF
+      feats    = map parseFeature (iFeatsF int)
+      --
+      (args,noargs) = partition fn feats 
+                      where fn (a,_) = take 3 a == "arg" 
+      --
+      params   = (snd.unzip) args
+  in (params, noargs)
+\end{code}
+
 
 % ----------------------------------------------------------------------
 \section{Trace}

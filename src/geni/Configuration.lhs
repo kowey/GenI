@@ -12,7 +12,7 @@ the optimisations that Geni should handle.
 module Configuration(
    Params, GrammarType(..),
    treatArgs, 
-   macrosFile, lexiconFile, grammarXmlFile, grammarType,
+   macrosFile, lexiconFile, grammarType,
    tsFile, graphical, 
    optimisations,
    polarised, polsig, chartsharing, extrapol,
@@ -59,8 +59,8 @@ import ParserLib(Token(..))
 % --------------------------------------------------------------------  
 
 \begin{code}
-data GrammarType = MacLex | MgXml 
-     deriving (Eq,Show)
+data GrammarType = GeniHand | TAGML 
+     deriving (Show, Eq)
 \end{code}
 
 The Params data structure holds the specification for how Geni should be
@@ -71,7 +71,6 @@ found in the configuration file.
 data Params = Prms{
            macrosFile     :: String,
            lexiconFile    :: String,
-           grammarXmlFile :: String,
            grammarType    :: GrammarType,
            tsFile         :: String,
            graphical      :: Bool,
@@ -106,23 +105,21 @@ emptyParams :: Params
 emptyParams = Prms {
   macrosFile     = "",
   lexiconFile    = "",
-  grammarXmlFile = "",
   tsFile         = "",
-  grammarType = MacLex,
-  graphical = False,
-  optimisations = [],
-  extrapol = emptyFM,
-  batchRepeat = 1
+  grammarType    = GeniHand,
+  graphical      = False,
+  optimisations  = [],
+  extrapol       = emptyFM,
+  batchRepeat    = 1
 }
 
 defaultParams :: Params
 defaultParams = emptyParams {
    macrosFile     = "examples/ej/mac",
    lexiconFile    = "examples/ej/lex",
-   grammarXmlFile = "",
    tsFile         = "examples/ej/ej1",
-   graphical = True,
-   grammarType    = MacLex
+   graphical      = True,
+   grammarType    = GeniHand
 }
 \end{code}
 
@@ -218,9 +215,12 @@ defineParams' p [] = p
 defineParams' p ((f,v):s) =
   case f of Macros  ->  defineParams' p{macrosFile     = v} s
             Lexicon ->  defineParams' p{lexiconFile    = v} s
-            GrammarXml ->  defineParams' p{grammarXmlFile = v,
-                                           grammarType = t} s
-                           where t = if (null v) then MacLex else MgXml
+            GrammarType -> defineParams' p{grammarType = t} s
+                           where t = case (read v) of 
+                                       GeniHandTok -> GeniHand 
+                                       TAGMLTok    -> TAGML 
+                                       _           -> error (show v ++ e) 
+                                 e = " is not a grammar type"
             TSemantics -> defineParams' p{tsFile  = v} s
             Graphical  -> defineParams' p{graphical  = (v == "True")} s
             Optimisations   -> defineParams' p{optimisations = readOpt } s

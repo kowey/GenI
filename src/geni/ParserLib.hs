@@ -5,8 +5,12 @@ type PosToken = (Token, Int, Int)
 
 data Token = 
     TTT | FFF |
-    GrammarXml | Macros | Lexicon | TSemantics |
+    -- 
+    Macros | Lexicon | TSemantics |
     Graphical |
+    -- formats for grammars 
+    GrammarType | 
+    GeniHandTok | TAGMLTok |
     -- optimisations
     Optimisations | 
     Polarised | PolSig | Predicting | ChartSharing | ExtraPolarities |

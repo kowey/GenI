@@ -10,16 +10,19 @@ other module.
 \begin{code}
 module Btypes(
    -- Datatypes
-   GNode(GN), GType(Subs, Foot, Lex, Other), GTtree,
-   Ttree(TT), Ptype(Initial,Auxiliar,Unspecified), 
+   GNode(GN), GType(Subs, Foot, Lex, Other), 
+   Ttree(TT), MTtree,
+   Ptype(Initial,Auxiliar,Unspecified), 
    Pred, Flist, AvPair, 
-   ILexEntry(ILE), Grammar, Sem, Subst,
+   ILexEntry(ILE), Macros, Sem, Subst,
    BitVector,
 
    -- Functions from Tree GNode
    repSubst, repAdj, constrainAdj, 
    renameTree, substTree, root, rootUpd, foot, setLexeme,
    showGNodeAll,
+
+   emptyGNode, emptyMacro,
 
    -- Functions from Sem
    toKeys, subsumeSem, sortSem, substSem, showSem, showPred,
@@ -29,7 +32,7 @@ module Btypes(
    gnname, gup, gdown, ganchor, glexeme, gtype, gaconstr,
 
    -- Projectors from Tdesc
-   params, pfeat, ptype, tree, 
+   params, pidname, pfeat, ptype, tree, 
    ptpolarities, ptpredictors,
 
    -- Projectors from ILexEntry
@@ -40,8 +43,9 @@ module Btypes(
    showPairs, showAv,
 
    -- Other functions
-   isVar, isAnon, emptyGNode, testBtypes, 
-   groupByFM, isEmptyIntersect, third
+   isVar, isAnon, testBtypes, 
+   groupByFM, multiGroupByFM,
+   isEmptyIntersect, third
 ) where
 \end{code}
 
@@ -51,7 +55,8 @@ import Debug.Trace -- for test stuff
 import Data.Bits
 import Data.Char (isUpper)
 import Data.FiniteMap (FiniteMap, fmToList, 
-                       emptyFM, isEmptyFM, lookupFM, addToFM)
+                       emptyFM, isEmptyFM, lookupFM, 
+                       addToFM, addToFM_C)
 import Data.List (intersect, intersperse, sortBy, nub)
 import Data.Tree
 \end{code}
@@ -62,23 +67,26 @@ import Data.Tree
 % ----------------------------------------------------------------------
 
 A grammar is composed of some unanchored trees (macros) and individual
-lexical entries. Each macro in the grammar is associated with a unique
-name. See also section \ref{sec:combine_macros} for the process that
-combines these into a set of anchored trees.
+lexical entries. The trees are grouped into families. Every lexical
+entry is associated with a single family.  See section section
+\ref{sec:combine_macros} for the process that combines lexical items
+and trees into a set of anchored trees.
 
 \begin{code}
-type GTtree  = Ttree GNode
-type Grammar = FiniteMap String GTtree
+type MTtree = Ttree GNode
+type Macros = FiniteMap String [MTtree]
 \end{code}
 
 \begin{code}
-data Ttree a = TT{params :: [String],
+data Ttree a = TT{params  :: [String],
+                  pidname :: String,
                   pfeat :: Flist,
                   ptype :: Ptype,
                   tree :: Tree a,
                   -- optimisation stuff
-                  ptpolarities  :: FiniteMap String Int,
-                  ptpredictors  :: [(AvPair,Int)]}
+                  ptpredictors  :: [(AvPair,Int)],
+                  ptpolarities  :: FiniteMap String Int
+                  }
            deriving Show
 
 data Ptype = Initial | Auxiliar | Unspecified   
@@ -86,6 +94,20 @@ data Ptype = Initial | Auxiliar | Unspecified
 
 instance (Show k, Show e) => Show (FiniteMap k e) where 
   show fm = show $ fmToList fm
+\end{code}
+
+\paragraph{emptyMacro} provides a null tree which you can use for
+various debugging or display purposes.
+
+\begin{code}
+emptyMacro :: MTtree
+emptyMacro = TT { params  = [],
+                  pidname = "", 
+                  pfeat = [],
+                  ptype = Unspecified,
+                  tree  = Node emptyGNode [],
+                  ptpredictors = [],
+                  ptpolarities = emptyFM }
 \end{code}
 
 Auxiliar types used during the parsing of the Lexicon 
@@ -98,7 +120,7 @@ data ILexEntry = ILE{iword :: String,
                      iptype :: Ptype,
                      isemantics :: Sem,
                      ipredictors :: [(AvPair,Int)]}
-               deriving Show
+               deriving (Show, Eq)
 \end{code}
 
 % ----------------------------------------------------------------------
@@ -392,6 +414,7 @@ isAnon = (==) "_"
 
 % ----------------------------------------------------------------------
 \section{Semantics}
+\label{btypes_semantics}
 % ----------------------------------------------------------------------
 
 \begin{code}
@@ -567,10 +590,21 @@ can lookup.  \texttt{fn} extracts the property from the item.
 \begin{code}
 groupByFM :: (Ord b) => (a -> b) -> [a] -> (FiniteMap b [a])
 groupByFM fn list = 
-  let helper x acc = case (lookupFM acc key) of
-                         Just y  -> addToFM acc key (x:y)
-                         Nothing -> addToFM acc key [x]
-                     where key = fn x 
+  let addfn  x acc key = addToFM_C (++) acc key [x]
+      helper x acc     = addfn x acc (fn x)
+  in foldr helper emptyFM list 
+\end{code}
+
+\paragraph{multiGroupByFM} is the same as groupByFM, except that we
+assume an item can appear in multiple groups.  \texttt{fn} extracts the
+property from the item, and returns multiple results in the form of a
+list.
+
+\begin{code}
+multiGroupByFM :: (Ord b) => (a -> [b]) -> [a] -> (FiniteMap b [a])
+multiGroupByFM fn list = 
+  let addfn  x key acc = addToFM_C (++) acc key [x]
+      helper x acc     = foldr (addfn x) acc (fn x)
   in foldr helper emptyFM list 
 \end{code}
 
