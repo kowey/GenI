@@ -59,13 +59,15 @@ ListPred :
      {$1:$2}
 
 Pred :
-   id '(' Params ')'  
-     {(Node $1 $3)}
+     id ':' id '(' Params ')'  
+     {(Node ($1,$3) $5)}
+   | id '(' Params ')'  
+     {(Node ("",$1) $3)}
 
 Params :
      {[]}
  | id Params 
-     {(Node $1 []):$2}
+     {(Node ("",$1) []):$2}
  | Pred Params
      {$1:$2}
 

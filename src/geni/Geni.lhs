@@ -46,7 +46,7 @@ import Tags (Tags, TagElem, emptyTE, TagSite,
              idname, tidnum,
              derivation, ttype, tsemantics, ttree, 
              tpolarities, 
-             substnodes, adjnodes, addToTags, findInTags, 
+             substnodes, adjnodes, findInTags, 
              appendToVars, substTagElem)
 
 import Configuration(Params, defaultParams, getConf, treatArgs,
@@ -253,7 +253,7 @@ runLexSelection pst = do
         combined2 = combine (gr mst) lexCand
         cand2     = concat $ eltsFM combined2
         -- choose which approach you want
-        cand      = cand1
+        cand      = cand2
         -- assure unique variable names
         setnum c i = appendToVars (mksuf i) (c { tidnum = i })
         mksuf i = "-" ++ (show i)
@@ -611,7 +611,7 @@ and converts it into a flat semantics with handles like
 \verb$love(h1 me h1.3)$ \verb$wear(h1.3 you)$ $sweater(h2 sw)$
 
 \begin{code}
-flattenTargetSem :: [Tree String] -> Sem
+flattenTargetSem :: [Tree (String, String)] -> Sem
 flattenTargetSem trees = sortSem results
   where results  = concat $ snd $ unzip results'
         results' = map fn $ zip [1..] trees 
@@ -627,18 +627,19 @@ children of its own, then its index is its string value (like \verb$john$); if
 it does have children, then we return a handle for it (like \verb$h1.3.4$)
 
 \begin{code}
-flattenTargetSem' :: [Int] -> Tree String -> (String, Sem)
-flattenTargetSem' _  (Node predicate []) = (predicate, []) 
+flattenTargetSem' :: [Int] -> Tree (String,String) -> (String, Sem)
+flattenTargetSem' _  (Node (_,pred) []) = (pred, []) 
 
-flattenTargetSem' gorn (Node predicate kids) =
-  let smooshGorn = 'h' : (concat $ intersperse "." $ map show gorn)
+flattenTargetSem' gorn (Node (hand,pred) kids) =
+  let smooshGorn = "gh" ++ (concat $ intersperse "." $ map show gorn)
       -- recursive step
       kidGorn   = map (\x -> (x:gorn)) [1..] 
       next      = zip kidGorn kids
       nextRes   = map (\ (g,k) -> flattenTargetSem' g k) next
       (kidIndexes, kidSem) = unzip nextRes
       -- create the predicate
-      result     = (smooshGorn, predicate, kidIndexes)
+      handle    = if null hand then smooshGorn else hand
+      result    = (handle, pred, kidIndexes)
   in (smooshGorn, result:(concat kidSem))
 \end{code}
 

@@ -153,7 +153,7 @@ Pack it all together.
        togglePolStuff
        --
        let gramsemBox = boxed "Files last loaded" $
-                   row 5 [ column 5 [ row 5 [ label "trees: ", widget grammarFileLabel ]
+                   row 5 [ column 5 [ row 5 [ label "macros: ", widget grammarFileLabel ]
                                     , row 5 [ label "lexicon: ", widget lexiconFileLabel ]
                                     , row 5 [ label "input sem: ", widget tsFileLabel ] ] 
                          , floatBottomRight $ column 5 [ hfloatRight $ widget loadfileBt ] 
@@ -217,8 +217,7 @@ gramsemBrowser pst guiParts = do
   entryG  <- textEntry f AlignLeft [ text := trim gfile ]
   fselBtG <- button f [ text := "Browse"
                       , on command := newFileSel f entryG  ]
-  entryL  <- textEntry f AlignLeft [ text := trim lfile,
-                                     enabled := (gtype == GeniHand) ]
+  entryL  <- textEntry f AlignLeft [ text := trim lfile ]
   fselBtL <- button f [ text := "Browse" 
                       , on command := newFileSel f entryL ]
   -- Target semantics file selection
