@@ -295,19 +295,20 @@ in semantic lexicon and one in the syntactic lexicon are considered as
 referring to the same lexical entry (\jargon{lexentry}) iff they have
 the same lemma and category.  
 
-The lexicon is then used with macros for lexical selection.  The input
-to the lexical selection process is a semantics, and the output is a set
-of lexicalised tree.  The surface realiser chooses the lexentries whose
-semantics subsume the input semantics.  For each lexentry, it performs
-unification between the input semantics and the lexentry semantics; then
-between the lexentry semantics and its parameters.  The surface realiser
-then selects the tree families associated with the lexentry, and
-lexicalises all of the trees within by replacing the anchor node with
-the lemma and performing unification between the lexentry parameters,
-the tree parameters and tree feature structures.  In short, the
-propogation of semantic indices is from input semantics $\rightarrow$
-lexentry semantics $\rightarrow$ lexentry parameters $\rightarrow$ tree
-parameters $\rightarrow$ tree feature structures.  
+The lexicon is then consulted for lexical selection in conjuction with
+the macros file.  The input to the lexical selection process is a
+semantics, and the output is a set of lexicalised tree.  The surface
+realiser chooses the lexentries whose semantics subsume the input
+semantics.  For each lexentry, it performs unification between the input
+semantics and the lexentry semantics; then between the lexentry
+semantics and its parameters.  The surface realiser then selects the
+tree families associated with the lexentry, and lexicalises all of the
+trees within by replacing the anchor node with the lemma and performing
+unification between the lexentry parameters, the tree parameters and
+tree feature structures.  In short, the propogation of semantic indices
+is from input semantics $\rightarrow$ lexentry semantics $\rightarrow$
+lexentry parameters $\rightarrow$ tree parameters $\rightarrow$ tree
+feature structures.  
 
 \subsection{Index file}
 
@@ -477,13 +478,13 @@ A more formal specification of the macros file format is as follows
 
 <node>    := <name> "anchor" 
            | <name> <typelex> <id>
-           | <name> <type> <topfs> "!" <topfs> 
+           | <name> <type> <topfs> "!" <botfs> 
 <type>    := "" | "type:subst" | "type:foot"
 <typelex> := "type:lex"
 
 <topfs>   := <fs>
 <botfs>   := <fs>
-<fs>      := "[" <avpair*> "]"
+<fs>      := "[" <avpair>* "]"
 <avpair>  := <id> ":" <id>
 
 <id>      := ([a-z]|[A-Z]|_)*
