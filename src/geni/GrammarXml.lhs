@@ -47,7 +47,8 @@ parseXmlLexicon g =
   let (Document _ _ ele) = xmlParse "" g 
       c = CElem ele
       -- processing phase
-      lexF = tag "tagml" /> tag "lexicalization"
+      lexF = tag "tagml" /> tag "lexicalizationLib" 
+             /> tag "lexicalization"
       lex  = lexF c
   in map parseLex lex
 \end{code}
@@ -79,7 +80,7 @@ parseLex l =
             then "UNKWNOWN" 
             else (snd.head) famFeats
       -- getting the lemma 
-      lemmaF = attributed "name" (keep /> tag "anchor")
+      lemmaF = attributed "name" (keep /> tag "anchor" /> tag "lemmaref")
       lemma  = concatMap fst (lemmaF l) -- should only be one element 
       -- creating a lexical entry: note that we leave the
       -- semantics empty; this will have to be read from 

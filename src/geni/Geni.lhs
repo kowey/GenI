@@ -25,7 +25,8 @@ import IOExts(IORef, readIORef, newIORef, modifyIORef)
 
 import System (ExitCode(ExitSuccess), 
                exitWith, getArgs)
- 
+import System.IO(hFlush, stdout)
+
 import FiniteMap
 import Monad (when)
 import CPUTime (getCPUTime)
@@ -69,7 +70,7 @@ import Lex2 (lexer)
 import Mparser (mParser)
 import Lparser (lParser)
 import Tsparser (tsParser, E(..))
-import GrammarXml (parseXmlGrammar)
+import GrammarXml (parseXmlGrammar, parseXmlLexicon)
 \end{code}
 }
 
@@ -509,6 +510,8 @@ simple human-friendly format.  Automatically generated grammars are
 built from a meta-grammar compiler and have an XML syntax.  The grammar
 index file will indicate what kind of grammar we have.
 
+Note: the semantic lexicon still uses the GeniHand format
+
 \paragraph{loadGrammar} Given the pointer to the monadic state pst it
 reads and parses the grammar file index; and from this information,
 it reads the rest of the grammar (macros, lexicon, etc).  The Macros
@@ -523,12 +526,13 @@ loadGrammar pst =
          filename = grammarFile config
      -- 
      putStr $ "Loading index file " ++ filename ++ "..."
+     hFlush stdout
      gf <- readFile filename
      putStrLn $ "done"
      --
      let gparams = parseGramIndex filename gf
-     loadMacros  pst gparams
      loadLexicon pst gparams
+     loadMacros  pst gparams
 \end{code}
 
 \paragraph{loadLexicon} Given the pointer to the monadic state pst and
@@ -541,19 +545,25 @@ loadLexicon :: PState -> GramParams -> IO ()
 loadLexicon pst config = do 
        let lfilename = lexiconFile config
            sfilename = semlexFile config
-
+           isTAGML   = (grammarType config == TAGML)
+ 
        putStr $ "Loading Semantic Lexicon " ++ sfilename ++ "..."
+       hFlush stdout
        sf <- readFile sfilename
        let semmapper = mapBySemKeys isemantics
            semlex    = (semmapper . lParser . lexer) sf
        putStr ((show $ length $ keysFM semlex) ++ " entries\n")
 
-       putStr $ "Loading Lexicon " ++ lfilename ++ "..."
+       putStr $ "Loading Lexicon " 
+              ++ (if isTAGML then "(XML) " else "")
+              ++ lfilename ++ "..."
+       hFlush stdout
        lf <- readFile lfilename 
-       let lemmapper = groupByFM iword
-           lex = (lemmapper . lParser . lexer) lf
+       let lex' = if isTAGML
+                  then parseXmlLexicon lf
+                  else (lParser . lexer) lf
+           lex  = groupByFM iword lex'
        putStr ((show $ length $ keysFM lex) ++ " entries\n")
-       
        modifyIORef pst (\x -> x{le = combineLexicon semlex lex})
        return ()
 \end{code}
@@ -587,16 +597,19 @@ loadMacros pst config =
   do let filename = macrosFile config
          isTAGML  = (grammarType config == TAGML)
      --
-     putStr $ if isTAGML 
-              then "Loading XML Macros " ++ filename ++ "... "
-              else "Loading Macros " ++ filename ++ "... "
+     putStr $ "Loading Macros " 
+              ++ (if isTAGML then "(XML) " else "") 
+              ++ filename ++ "..."
+     hFlush stdout
      gf <- readFile filename
      let (g, u) = if isTAGML  
                   then (parseXmlGrammar gf, [])
                   else mParser (lexer gf)
+         sizeg  = sum (map length $ eltsFM g)
          errmsg  = "Some trees in grammar declared neither initial nor auxiliar.\n  Aborting.\n"
      if null u -- if no errors
-        then do putStr ((show $ sizeFM g) ++ " families\n")
+        then do putStr $ show sizeg ++ " trees in " 
+                putStr $ (show $ sizeFM g) ++ " families\n"
                 modifyIORef pst (\x -> x{gr = g})
                 return ()
         else error (errmsg ++ (show u))
