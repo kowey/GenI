@@ -673,7 +673,7 @@ declare
 		node xCleft(color=red)[cat = s,bot=[wh = -]]{
 			node xVNCleft(color=red)[cat=vn]{
 				node xClCleft(color=red,mark=subst)[cat=cl,top=[case = ce]]
-				node xAuxCleft(color=red,mark=subst)[cat=v,top=[mode=@{ind,subj},pers=3]]
+				node xAuxCleft(color=red,mark=subst)[cat=v,top=[mode=@{ind,subj},pers=3,phon=etre]]
 			}
 			node xClefttop(color=red)
 			node xSe(mark=nadj)	
@@ -774,6 +774,15 @@ class n0Vn1nonpassivable[E,X,Y]{
 %% class call {ternaryRel[]*=[theta1=agent,theta2=theme,theta3=beneficiary]}
 %% value call
 
+%% Help verbs
+
+class cleftEtre
+declare ?xN
+{
+	<syn>{
+		node xN(color=red)[cat = v,bot=[mode = ind, pers = 3,phon = etre]]
+	}
+}
 
 %* NP Classes
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

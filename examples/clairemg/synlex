@@ -16,6 +16,7 @@ paul    n properNameNP [num=m]
 %% --------------------------------------------------------------------- 
 
 se se cliticNP [case=acc,pers=3,refl= +]
+c ce cliticNP [case=ce]
 il il cliticNP [case=nom,gen=m,num=sg,pers=3,refl= -]
 la laCl cliticNP [case=acc,gen=f,num=sg,pers=3,refl= -]
 le leCl cliticNP [case=acc,gen=m,num=sg,pers=3,refl= -]
@@ -35,3 +36,4 @@ que que quNP [case=acc,wh= +]
 
 regarde v nOVn1nonpassivable
 
+est est cleftEtre
