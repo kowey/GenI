@@ -238,7 +238,7 @@ declare
    ?xS ?xVN ?xV ?fU ?fV ?fW ?fX ?I
 {
         <syn>{
-                node xS(color=black)[cat = s,bot=[mode=?fX]]{
+                node xS(color=black)[cat = s,bot=[mode=?fX,top=[idx=I]]]{
                         node xVN(color=black)[cat = vn,top=[mode=?fX]]{
                                 node xV(mark=anchor,color=black)[cat = v,top=[idx=I]]
                         }
@@ -517,7 +517,7 @@ class CanonicalSententialSubjectFinite
 import
 	CanonicalArgument[]
 declare
-	?xSubj ?xTop ?xComp ?xQue
+	?xSubj ?xTop ?xComp ?xQue ?I
 {
 	<syn>{
 		node xS{
@@ -525,11 +525,11 @@ declare
 				node xComp(color=red)[cat=c]{
 					node xQue(color=red,mark=flex)[cat=que]
 				}
-				node xSubj(color=red,mark=subst)[cat=s]
+				node xSubj(color=red,mark=subst)[cat=s,top=[idx=I]]
 			}
 			node xVN
 		}
-	}
+	}*=[subjectI=I]
 }
 
 class CanonicalSententialSubjectInFinitive 
@@ -537,14 +537,14 @@ class CanonicalSententialSubjectInFinitive
 import 
 	CanonicalArgument[]
 declare
-	?xSubj
+	?xSubj ?I
 {
 	<syn>{
 		node xS{
-			node xSubj(color=red,mark=subst)[cat=s]
+			node xSubj(color=red,mark=subst)[cat=s,top=[idx=I]]
 			node xVN
 		}
-	}
+	}*=[subjectI=I]
 }
 
 
@@ -1477,6 +1477,11 @@ class Subject
  	|InvertedNominalSubject[]
 }
 
+class SententialSubject{
+	CanonicalSententialSubjectFinite[]
+	|CanonicalSententialSubjectInFinitive[]
+	|Subject[] %always true ? it seems...
+}
 class Object
 {
 	CanonicalObject[]
@@ -1675,6 +1680,13 @@ class n0Vn1des2_1[E,X,Y,Z]{
         Subject[]*=[subjectI=X];
 	CanonicalSententialObjectInFinitiveDe[]*=[sobjectI=Z,controlI=Y];
 	Object[]*=[objectI=Y];activeVerbMorphology[]*=[vbI=E] 
+}
+
+class s0Van1[E,X,Y]{
+	binaryRel[]*=[evt=E,arg1=X,arg2=Y] ;
+	SententialSubject[]*=[subjectI=X]; 
+	Iobject[]*=[iobjectI=XY; 
+	activeVerbMorphology[]*=[vbI=E] 
 }
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
