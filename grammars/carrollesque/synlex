@@ -1,4 +1,4 @@
-%% $Date: 2005/01/09 22:35:22 $ 
+%% $Date: 2005/01/13 13:59:44 $ 
 %% French TAG
 %% Note: i use fake tree names until the grammar can be sorted out
 
@@ -6,10 +6,11 @@
 % bits and pieces
 % ----------------------------------------------------------------------
 
-notre det PossFam %  FIXME
+notre det stddeterminer 
 le    det stddeterminer 
 un    det stddeterminer 
 ce    det stddeterminer 
+%ce    cl  Subjclitic 
 
 % ----------------------------------------------------------------------
 % nouns
@@ -27,20 +28,20 @@ allemagne  pn  propername
 % adjectives 
 % ----------------------------------------------------------------------
 
-special      adj EpithPost 
-hebdomadaire adj EpithPost 
-dequipe      adj EpithPost 
-nouveau      adj EpithAnte 
+special      adj n0vApost 
+hebdomadaire adj n0vApost 
+dequipe      adj n0vApost 
+nouveau      adj n0vApre
 
 % ----------------------------------------------------------------------
 % prepositions 
 % ----------------------------------------------------------------------
 
-de   prep n0vNden1 
+de   prep PrepositionN 
 
 % ----------------------------------------------------------------------
 % verbs 
 % ----------------------------------------------------------------------
 
-auditioner v  n0Vn1 
-organiser   v  n0Vn1 
+auditionne v  n0Vn1 
+organise   v  n0Vn1 

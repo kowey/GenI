@@ -1,4 +1,4 @@
-%% $Id: semlex,v 1.1 2005/01/09 22:35:22 kow Exp $
+%% $Id: semlex,v 1.2 2005/01/13 13:59:44 kow Exp $
 
 % ----------------------------------------------------------------------
 % bits and pieces
@@ -6,7 +6,7 @@
 
 % this seems wrong
 notre det [idx:X]
-semantics:[poss(m us)]
+semantics:[poss(X us)]
 
 le det [idx:X]
 semantics:[def(X)]
@@ -16,6 +16,10 @@ semantics:[indef(X)]
 
 ce det [idx:X]
 semantics:[dem(X)]
+
+%ce cl [idx:X]
+%semantics:[]
+
 
 % ----------------------------------------------------------------------
 % nouns
@@ -62,17 +66,17 @@ semantics:[dequipe(X)]
 
 % FIXME: what should be set to X ?
 
-de prep [genitiveI:Y] % [idx:X loc:Y] 
+de prep [idx:X idx2:Y] 
 semantics:[de(X Y)]
 
 % ----------------------------------------------------------------------
 % verbs 
 % ----------------------------------------------------------------------
 
-auditioner v [evt:X arg1:X arg2:Y] 
+auditionne v [evt:X arg1:X arg2:Y] 
 semantics:[auditioner(I X Y)]
 
-organiser v [evt:X arg1:X arg2:Y] 
+organise v [evt:X arg1:X arg2:Y] 
 semantics:[organiser(I X Y)]
 
 %% ----------------------------------------------------------------------

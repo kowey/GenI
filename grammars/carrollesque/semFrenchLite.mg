@@ -3,17 +3,14 @@ include semFrenchTAG.mg
 % VALUATION
 %%%%%%%%%%%%%%%%%%%%%%%%%
 
+value PrepositionN
+
 %Nominal
 value n0Vn1		%Jean regarde Marie
 
 % PREDICATIVE ADJECTIVES
-value EpithAnte % un heureux événement
-value EpithPost % un garçon heureux
-
-%value n0vA		% Jean est heureux, un garçon heureux, un heureux événement
-
-%PREDICATIVE NOUNS
-value n0vNden1		%Marie est la *femme* de Jean; La *femme* de Jean s'appelle Marie
+value n0vApre  % un heureux événement
+value n0vApost % un garçon heureux
 
 value propername	%Marie
 value commonNoun        %chat

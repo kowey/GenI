@@ -785,7 +785,7 @@ declare
 		node xComp[cat=de];
 		xCtrollee = xArg;
 		xVNCtroller = xVN;
-		node xCtrollee[bot=[idx=I,controlIdx=CI]]
+		node xCtrollee(mark=subst)[bot=[idx=I,controlIdx=CI]]
 	}*=[sobjectI=I,controlI=CI]
 }
 
@@ -1179,8 +1179,8 @@ declare
 	<syn>{
 		node xCleft(color=red)[cat = s,bot=[wh = -]]{
 			node xVNCleft(color=red)[cat=vn]{
-				node xClCleft(color=red,mark=subst)[cat=cl,top=[case = ce]]
-				node xAuxCleft(color=red,mark=subst)[cat=v,top=[mode=@{ind,subj},pers=3]]
+				node xClCleft(color=red)[cat=cl,phon=ce,top=[case = ce]]
+				node xAuxCleft(color=red)[cat=v,phon=etre,top=[mode=@{ind,subj},pers=3]]
 			}
 			node xClefttop(color=red)
 			node xSe(mark=nadj)	
@@ -1193,14 +1193,14 @@ import
 export 
 	xComp
 declare
-	?xComp
+	?xComp ?I
 {
 	<syn>{
-		node xClefttop(mark=subst)[cat = n,top=[det = +,wh = -, num = sg]];
+		node xClefttop(mark=subst)[cat = n,idx=I,top=[det = +,wh = -, num = sg]];
 		node xtop[cat = c]{
 			node xComp(color=red,mark=flex)
 		}	
-	}
+	}*=[objectI=I,cleft=I]
 }
 
 class CleftObject
@@ -1419,8 +1419,8 @@ declare
 	<syn>{
 		node xSe(color=red)[cat = s, bot=[wh = -]]{
 			node xVNCleft(color=red)[cat=vn]{
-				node xCl(color=red,mark=subst)[cat=cl,top=[cat=ce]]
-				node xVcleft(color=red,mark=subst)[cat=v,top=[pers = 3,mode=ind]]
+				node xCl(color=red)[cat=cl,phon=ce,top=[cat=cl]]
+				node xVcleft(color=red)[cat=v,phon=etre,top=[pers = 3,mode=ind]]
 			}
 			node xArg(color=red,mark=subst,extracted = +)[cat=n,top=[idx=I]]
 			node xS[bot=[wh = -, mode = ind]]{
@@ -1687,10 +1687,15 @@ class n0Vn1des2_1[E,X,Y,Z]{
 % GenI has this restriction that tree features must be a 
 % superset of the lexical item features, but stuff like
 % adjectiveForm has subjectO but not idx
-class KoweyAdj {
-    EpithAnte[]
-   |EpithPost[]
+class n0vApre {
+  {Subject[]; adjectiveForm[]}
+  |EpithAnte[]
 }
+class n0vApost {
+  {Subject[]; adjectiveForm[]}
+  |EpithPost[]
+}
+
 
 class n0vA
 {
@@ -1991,17 +1996,17 @@ import
 class PrepositionN
 % as postnominal modifier
 declare
-	?xroot ?xfoot ?xprepph ?xprep ?xnoun ?fX ?fT ?fY ?fZ ?fU ?fW ?LP ?PrepRel ?X ?Y
+	?A ?B ?xroot ?xfoot ?xprepph ?xprep ?xnoun ?fX ?fT ?fY ?fZ ?fU ?fW ?LP ?PrepRel ?X ?Y
 {
 	<syn>{
-		node xroot(color=red)[cat = n,bot=[det = -, def = ?fT, num = ?fY,gen = ?fZ,pers = ?fU, wh = ?fW]]{
+		node xroot(color=red)[cat = n,idx=?A, bot=[det = -, def = ?fT, num = ?fY,gen = ?fZ,pers = ?fU, wh = ?fW]]{
 			node xfoot(color=red,mark=foot)[cat = n,top=[det = -, def = ?fT, num = ?fY,gen = ?fZ,pers = ?fU, wh = ?fW,idx=X]]
 			node xprepph(color=red)[cat = pp]{
 				node xprep (color=red,mark=anchor)[cat = p]
-				node xnoun (color=red,mark=subst)[cat = n,idx=Y]
+				node xnoun (color=red,mark=subst)[cat = n,idx=?B]
 			}
 		}
-	};
+	} *= [idx=?A,idx2=?B];
 	<sem>{
 		LP:PrepRel(X,Y)
 		}	

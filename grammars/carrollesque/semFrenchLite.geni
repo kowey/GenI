@@ -1,26 +1,16 @@
 
 
 % ----------------------------------------------------------------------
-begin family EpithAnte
+begin family PrepositionN
 % ----------------------------------------------------------------------
 
-TEpithAnte_199 ( ! idx:H) auxiliary
-n0   [cat:n idx:H]![cat:n def:A det:B gen:C idx:H num:D pers:E wh:F]{
- n1 type:anchor  [cat:adj gen:C num:D]![cat:adj]
- n2 type:foot  [cat:n def:A det:B gen:C idx:H num:D pers:E wh:F]![cat:n idx:H]
-}
-
-end family
-
-
-% ----------------------------------------------------------------------
-begin family EpithPost
-% ----------------------------------------------------------------------
-
-TEpithPost_154 ( ! idx:H) auxiliary
-n0   [cat:n idx:H]![cat:n def:A det:B gen:C idx:H num:D pers:E wh:F]{
- n1 type:foot  [cat:n def:A det:B gen:C idx:H num:D pers:E wh:F]![cat:n idx:H]
- n2 type:anchor  [cat:adj gen:C num:D]![cat:adj]
+TPrepositionN_175 ( ! idx:G idx2:J) auxiliary
+n0   [cat:n idx:G]![cat:n def:A det:_ gen:B idx:G num:C pers:D wh:E]{
+ n1 type:foot  [cat:n def:A det:_ gen:B idx:H num:C pers:D wh:E]![cat:n]
+ n2   [cat:pp]![cat:pp]{
+  n3 type:anchor  [cat:p]![cat:p]
+  n4 type:subst  [cat:n idx:J]![cat:n idx:J]
+ }
 }
 
 end family
@@ -30,7 +20,7 @@ end family
 begin family commonNoun
 % ----------------------------------------------------------------------
 
-TcommonNoun_155 ( ! idx:C) initial
+TcommonNoun_1 ( ! idx:C) initial
 n0 type:anchor  [cat:n idx:C]![cat:n det:_ idx:C nlabel:A pers:3]{}
 
 end family
@@ -40,7 +30,7 @@ end family
 begin family n0Vn1
 % ----------------------------------------------------------------------
 
-Tn0Vn1_153 ( ! arg1:R arg2:N evt:L rel:P subjectI:N vbI:L) initial
+Tn0Vn1_173 ( ! arg1:R arg2:N evt:L rel:P subjectI:N vbI:L) initial
 n0   [cat:s]![cat:s inv:n mode:A wh:_]{
  n1   [cat:vn gen:G mode:A num:H pers:I]![cat:vn gen:C mode:D num:E pers:3 tense:present]{
   n2   [cat:cl]![cat:cl]{
@@ -51,7 +41,7 @@ n0   [cat:s]![cat:s inv:n mode:A wh:_]{
  n5 type:subst  [cat:n det:+ gen:G idx:N num:H pers:I]![cat:n]
 }
 
-Tn0Vn1_152 ( ! arg1:M arg2:O evt:I rel:K subjectI:O vbI:I) initial
+Tn0Vn1_172 ( ! arg1:M arg2:O evt:I rel:K subjectI:O vbI:I) initial
 n0   [cat:s]![cat:s mode:imp]{
  n1   [cat:vn mode:imp pers:F]![cat:vn gen:B mode:C num:D pers:3 tense:present]{
   n2   [cat:cl]![cat:cl]{
@@ -61,7 +51,7 @@ n0   [cat:s]![cat:s mode:imp]{
  }
 }
 
-Tn0Vn1_151 ( ! arg1:P arg2:D evt:L rel:N subjectI:D vbI:L) initial
+Tn0Vn1_171 ( ! arg1:P arg2:D evt:L rel:N subjectI:D vbI:L) initial
 n0   [cat:s]![cat:s control_gen:A control_num:B control_pers:C controlIdx:D mode:inf]{
  n1   [cat:vn gen:A mode:inf num:B pers:C]![cat:vn gen:F mode:G num:H pers:3 tense:present]{
   n2   [cat:cl]![cat:cl]{
@@ -71,11 +61,11 @@ n0   [cat:s]![cat:s control_gen:A control_num:B control_pers:C controlIdx:D mode
  }
 }
 
-Tn0Vn1_150 ( ! arg1:U arg2:E evt:Q rel:S subjectI:E vbI:Q) initial
+Tn0Vn1_170 ( ! arg1:U arg2:E evt:Q rel:S subjectI:E vbI:Q) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [cat:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:ind pers:3]![cat:v]
+  n2 type:lex "ce" [cat:cl cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:ind pers:3]![cat:v]
  }
  n4 type:subst  [cat:n gen:D idx:E num:F pers:G]![cat:n]
  n5   [cat:s]![cat:s inv:I mode:ind wh:_]{
@@ -91,7 +81,7 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_149 ( ! arg1:Z arg2:H evt:V rel:X subjectI:H vbI:V) auxiliary
+Tn0Vn1_169 ( ! arg1:Z arg2:H evt:V rel:X subjectI:H vbI:V) auxiliary
 n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  n1 type:foot  [cat:n def:A det:B gen:C idx:H num:D pers:E wh:F]![cat:n]
  n2   [cat:s]![cat:s inv:J mode:ind wh:_]{
@@ -105,7 +95,7 @@ n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  }
 }
 
-Tn0Vn1_148 ( ! arg1:S arg2:E evt:O rel:Q subjectI:E vbI:O) initial
+Tn0Vn1_168 ( ! arg1:S arg2:E evt:O rel:Q subjectI:E vbI:O) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:+]{
  n1 type:subst  [cat:n gen:D idx:E num:F pers:G wh:+]![cat:n]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I mode:J num:K pers:3 tense:present]{
@@ -116,7 +106,7 @@ n0   [cat:s]![cat:s inv:A mode:B wh:+]{
  }
 }
 
-Tn0Vn1_147 ( ! arg1:S arg2:E evt:O rel:Q subjectI:E vbI:O) initial
+Tn0Vn1_167 ( ! arg1:S arg2:E evt:O rel:Q subjectI:E vbI:O) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1 type:subst  [case:nom cat:cl det:+ gen:D idx:E num:F pers:G]![cat:cl]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I mode:J num:K pers:3 tense:present]{
@@ -127,7 +117,7 @@ n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  }
 }
 
-Tn0Vn1_146 ( ! arg1:S arg2:E evt:O rel:Q subjectI:E vbI:O) initial
+Tn0Vn1_166 ( ! arg1:S arg2:E evt:O rel:Q subjectI:E vbI:O) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1 type:subst  [cat:n det:+ gen:D idx:E num:F pers:G]![cat:n]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I mode:J num:K pers:3 tense:present]{
@@ -138,13 +128,13 @@ n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  }
 }
 
-Tn0Vn1_145 ( ! arg1:E1 arg2:F evt:A1 objectI:F rel:C1 vbI:A1) initial
+Tn0Vn1_165 ( ! arg1:E1 arg2:E cleft:E evt:A1 objectI:E rel:C1 vbI:A1) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
- n4 type:subst  [cat:n det:+ gen:E idx:F num:sg wh:_]![cat:n]
+ n4 type:subst  [cat:n det:+ gen:F idx:E idx:E num:sg wh:_]![cat:n idx:E]
  n5   [cat:s]![cat:s]{
   n6   [cat:c]![cat:c]{
    n7   [cat:que]![cat:que]
@@ -153,7 +143,7 @@ n0   [cat:s]![cat:s wh:_]{
    n9   [cat:cl det:+ gen:m num:sg pers:3]![cat:cl]{
     n10   [cat:il]![cat:il]
    }
-   n11   [cat:vn gen:m inv:H mode:I num:sg pers:3]![cat:vn gen:N inv:O mode:P num:Q pers:R pp_gen:E pp_num:sg]{
+   n11   [cat:vn gen:m inv:H mode:I num:sg pers:3]![cat:vn gen:N inv:O mode:P num:Q pers:R pp_gen:F pp_num:sg]{
     n12 type:subst  [cat:v cop:+ gen:N inv:O mode:P num:Q pers:R]![cat:v gen:U inv:_ mode:V num:W pers:X]
     n13 type:anchor  [aux_pass:_ cat:v idx:A1 mode:ppart pp_gen:N pp_num:Q]![cat:v]
    }
@@ -161,7 +151,7 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_144 ( ! arg1:J1 arg2:H evt:F1 objectI:H rel:H1 vbI:F1) auxiliary
+Tn0Vn1_164 ( ! arg1:J1 arg2:H evt:F1 objectI:H rel:H1 vbI:F1) auxiliary
 n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  n1 type:foot  [cat:n def:A det:B gen:C idx:H num:D pers:E wh:F]![cat:n]
  n2   [cat:s]![cat:s]{
@@ -178,7 +168,7 @@ n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  }
 }
 
-Tn0Vn1_143 ( ! arg1:D1 arg2:E evt:Z objectI:E rel:B1 vbI:Z) initial
+Tn0Vn1_163 ( ! arg1:D1 arg2:E evt:Z objectI:E rel:B1 vbI:Z) initial
 n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  n1 type:subst  [cat:n gen:D idx:E num:F wh:+]![cat:n]
  n2   [cat:s inv:A wh:_]![cat:s inv:H mode:I wh:_]{
@@ -192,7 +182,7 @@ n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  }
 }
 
-Tn0Vn1_142 ( ! arg1:Y arg2:M evt:U objectI:M rel:W vbI:U) initial
+Tn0Vn1_162 ( ! arg1:Y arg2:M evt:U objectI:M rel:W vbI:U) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1   [cat:cl det:+ gen:m num:sg pers:3]![cat:cl]{
   n2   [cat:il]![cat:il]
@@ -204,7 +194,7 @@ n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  }
 }
 
-Tn0Vn1_141 ( ! arg1:Y arg2:M evt:U objectI:M rel:W vbI:U) initial
+Tn0Vn1_161 ( ! arg1:Y arg2:M evt:U objectI:M rel:W vbI:U) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1   [cat:cl det:+ gen:m num:sg pers:3]![cat:cl]{
   n2   [cat:il]![cat:il]
@@ -216,7 +206,7 @@ n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  }
 }
 
-Tn0Vn1_140 ( ! arg1:Y arg2:A1 evt:U objectI:A1 rel:W vbI:U) initial
+Tn0Vn1_160 ( ! arg1:Y arg2:A1 evt:U objectI:A1 rel:W vbI:U) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1   [cat:cl det:+ gen:m num:sg pers:3]![cat:cl]{
   n2   [cat:il]![cat:il]
@@ -228,7 +218,7 @@ n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  }
 }
 
-Tn0Vn1_139 ( ! arg1:Y arg2:A1 evt:U objectI:A1 rel:W vbI:U) initial
+Tn0Vn1_159 ( ! arg1:Y arg2:A1 evt:U objectI:A1 rel:W vbI:U) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1   [cat:cl det:+ gen:m num:sg pers:3]![cat:cl]{
   n2   [cat:il]![cat:il]
@@ -240,7 +230,7 @@ n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  }
 }
 
-Tn0Vn1_138 ( ! arg1:Z arg2:N evt:V objectI:N rel:X vbI:V) initial
+Tn0Vn1_158 ( ! arg1:Z arg2:N evt:V objectI:N rel:X vbI:V) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1   [cat:cl det:+ gen:m num:sg pers:3]![cat:cl]{
   n2   [cat:il]![cat:il]
@@ -252,7 +242,7 @@ n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  }
 }
 
-Tn0Vn1_137 ( ! arg1:Z arg2:N evt:V objectI:N rel:X vbI:V) initial
+Tn0Vn1_157 ( ! arg1:Z arg2:N evt:V objectI:N rel:X vbI:V) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1   [cat:cl det:+ gen:m num:sg pers:3]![cat:cl]{
   n2   [cat:il]![cat:il]
@@ -264,7 +254,7 @@ n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  }
 }
 
-Tn0Vn1_136 ( ! arg1:W arg2:Y evt:R objectI:Y rel:U vbI:R) initial
+Tn0Vn1_156 ( ! arg1:W arg2:Y evt:R objectI:Y rel:U vbI:R) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1   [cat:cl det:+ gen:m num:sg pers:3]![cat:cl]{
   n2   [cat:il]![cat:il]
@@ -276,7 +266,7 @@ n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n6 type:subst  [cat:n det:+]![cat:n]
 }
 
-Tn0Vn1_135 ( ! arg1:Y arg2:U evt:S rel:W subjectI:U vbI:S) initial
+Tn0Vn1_155 ( ! arg1:Y arg2:U evt:S rel:W subjectI:U vbI:S) initial
 n0   [cat:s]![cat:s inv:n mode:A wh:_]{
  n1   [cat:vn gen:I mode:A num:J pers:K]![cat:vn gen:C inv:D mode:E num:F pers:G]{
   n2 type:subst  [cat:v cop:+ gen:C inv:D mode:E num:F pers:G]![cat:v gen:M inv:_ mode:N num:O pers:P]
@@ -285,7 +275,7 @@ n0   [cat:s]![cat:s inv:n mode:A wh:_]{
  n4 type:subst  [cat:n det:+ gen:I idx:U num:J pers:K]![cat:n]
 }
 
-Tn0Vn1_134 ( ! arg1:T arg2:V evt:P rel:R subjectI:V vbI:P) initial
+Tn0Vn1_154 ( ! arg1:T arg2:V evt:P rel:R subjectI:V vbI:P) initial
 n0   [cat:s]![cat:s mode:imp]{
  n1   [cat:vn mode:imp pers:H]![cat:vn gen:B inv:C mode:D num:E pers:F]{
   n2 type:subst  [cat:v cop:+ gen:B inv:C mode:D num:E pers:F]![cat:v gen:J inv:_ mode:K num:L pers:M]
@@ -293,7 +283,7 @@ n0   [cat:s]![cat:s mode:imp]{
  }
 }
 
-Tn0Vn1_133 ( ! arg1:W arg2:D evt:S rel:U subjectI:D vbI:S) initial
+Tn0Vn1_153 ( ! arg1:W arg2:D evt:S rel:U subjectI:D vbI:S) initial
 n0   [cat:s]![cat:s control_gen:A control_num:B control_pers:C controlIdx:D mode:inf]{
  n1   [cat:vn gen:A mode:inf num:B pers:C]![cat:vn gen:F inv:G mode:H num:I pers:J]{
   n2 type:subst  [cat:v cop:+ gen:F inv:G mode:H num:I pers:J]![cat:v gen:M inv:_ mode:N num:O pers:P]
@@ -301,11 +291,11 @@ n0   [cat:s]![cat:s control_gen:A control_num:B control_pers:C controlIdx:D mode
  }
 }
 
-Tn0Vn1_132 ( ! arg1:B1 arg2:E evt:X rel:Z subjectI:E vbI:X) initial
+Tn0Vn1_152 ( ! arg1:B1 arg2:E evt:X rel:Z subjectI:E vbI:X) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [cat:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:ind pers:3]![cat:v]
+  n2 type:lex "ce" [cat:cl cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:ind pers:3]![cat:v]
  }
  n4 type:subst  [cat:n gen:D idx:E num:F pers:G]![cat:n]
  n5   [cat:s]![cat:s inv:I mode:ind wh:_]{
@@ -319,7 +309,7 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_131 ( ! arg1:G1 arg2:H evt:C1 rel:E1 subjectI:H vbI:C1) auxiliary
+Tn0Vn1_151 ( ! arg1:G1 arg2:H evt:C1 rel:E1 subjectI:H vbI:C1) auxiliary
 n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  n1 type:foot  [cat:n def:A det:B gen:C idx:H num:D pers:E wh:F]![cat:n]
  n2   [cat:s]![cat:s inv:J mode:ind wh:_]{
@@ -331,7 +321,7 @@ n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  }
 }
 
-Tn0Vn1_130 ( ! arg1:Z arg2:E evt:V rel:X subjectI:E vbI:V) initial
+Tn0Vn1_150 ( ! arg1:Z arg2:E evt:V rel:X subjectI:E vbI:V) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:+]{
  n1 type:subst  [cat:n gen:D idx:E num:F pers:G wh:+]![cat:n]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I inv:J mode:K num:L pers:M]{
@@ -340,7 +330,7 @@ n0   [cat:s]![cat:s inv:A mode:B wh:+]{
  }
 }
 
-Tn0Vn1_129 ( ! arg1:Z arg2:E evt:V rel:X subjectI:E vbI:V) initial
+Tn0Vn1_149 ( ! arg1:Z arg2:E evt:V rel:X subjectI:E vbI:V) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1 type:subst  [case:nom cat:cl det:+ gen:D idx:E num:F pers:G]![cat:cl]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I inv:J mode:K num:L pers:M]{
@@ -349,7 +339,7 @@ n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  }
 }
 
-Tn0Vn1_128 ( ! arg1:Z arg2:E evt:V rel:X subjectI:E vbI:V) initial
+Tn0Vn1_148 ( ! arg1:Z arg2:E evt:V rel:X subjectI:E vbI:V) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1 type:subst  [cat:n det:+ gen:D idx:E num:F pers:G]![cat:n]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I inv:J mode:K num:L pers:M]{
@@ -358,11 +348,11 @@ n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  }
 }
 
-Tn0Vn1_127 ( ! arg1:E arg2:C1 evt:A1 genitiveI:E rel:E1 subjectI:C1 vbI:A1) initial
+Tn0Vn1_147 ( ! arg1:E arg2:C1 cleft:E evt:A1 genitiveI:E objectI:E rel:E1 subjectI:C1 vbI:A1) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
  n4 type:subst  [cat:n det:+ idx:E num:sg wh:_]![cat:n idx:E]
  n5   [cat:s]![cat:s]{
@@ -379,11 +369,11 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_126 ( ! arg1:E arg2:B1 evt:Z genitiveI:E rel:D1 subjectI:B1 vbI:Z) initial
+Tn0Vn1_146 ( ! arg1:E arg2:B1 evt:Z genitiveI:E rel:D1 subjectI:B1 vbI:Z) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
  n4 type:subst  [cat:n]![cat:n]
  n5   [cat:s]![cat:s]{
@@ -403,11 +393,11 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_125 ( ! arg1:E arg2:C1 evt:A1 genitiveI:E rel:E1 subjectI:C1 vbI:A1) initial
+Tn0Vn1_145 ( ! arg1:E arg2:C1 evt:A1 genitiveI:E rel:E1 subjectI:C1 vbI:A1) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
  n4   [cat:pp]![cat:pp]{
   n5   [cat:p]![cat:p]{
@@ -429,7 +419,7 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_124 ( ! arg1:I arg2:G1 evt:E1 genitiveI:I rel:I1 subjectI:G1 vbI:E1) auxiliary
+Tn0Vn1_144 ( ! arg1:I arg2:G1 evt:E1 genitiveI:I rel:I1 subjectI:G1 vbI:E1) auxiliary
 n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  n1 type:foot  [cat:n def:A det:B gen:C num:D pers:E wh:F]![cat:n]
  n2   [cat:s]![cat:s]{
@@ -449,7 +439,7 @@ n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  }
 }
 
-Tn0Vn1_123 ( ! arg1:D arg2:A1 evt:Y genitiveI:D rel:C1 subjectI:A1 vbI:Y) initial
+Tn0Vn1_143 ( ! arg1:D arg2:A1 evt:Y genitiveI:D rel:C1 subjectI:A1 vbI:Y) initial
 n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  n1   [cat:pp]![cat:pp]{
   n2   [cat:p]![cat:p]{
@@ -466,7 +456,7 @@ n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  }
 }
 
-Tn0Vn1_122 ( ! arg1:M arg2:W evt:U genitiveI:M rel:Y subjectI:W vbI:U) initial
+Tn0Vn1_142 ( ! arg1:M arg2:W evt:U genitiveI:M rel:Y subjectI:W vbI:U) initial
 n0   [cat:s]![cat:s inv:n mode:A wh:_]{
  n1   [cat:vn gen:I mode:A num:J pers:K]![cat:vn gen:C inv:D mode:E num:F pers:G]{
   n2 type:subst  [case:gen cat:cl idx:M refl:_]![cat:cl]
@@ -476,7 +466,7 @@ n0   [cat:s]![cat:s inv:n mode:A wh:_]{
  n5 type:subst  [cat:n det:+ gen:I idx:W num:J pers:K]![cat:n]
 }
 
-Tn0Vn1_121 ( ! arg1:M arg2:W evt:U genitiveI:M rel:Y subjectI:W vbI:U) initial
+Tn0Vn1_141 ( ! arg1:M arg2:W evt:U genitiveI:M rel:Y subjectI:W vbI:U) initial
 n0   [cat:s]![cat:s inv:n mode:A wh:_]{
  n1   [cat:vn gen:I mode:A num:J pers:K]![cat:vn gen:C inv:D mode:E num:F pers:G]{
   n2 type:subst  [case:gen cat:cl idx:M refl:_]![cat:cl]
@@ -486,7 +476,7 @@ n0   [cat:s]![cat:s inv:n mode:A wh:_]{
  n5 type:subst  [cat:n det:+ gen:I idx:W num:J pers:K]![cat:n]
 }
 
-Tn0Vn1_120 ( ! arg1:W arg2:U evt:S genitiveI:W rel:Y subjectI:U vbI:S) initial
+Tn0Vn1_140 ( ! arg1:W arg2:U evt:S genitiveI:W rel:Y subjectI:U vbI:S) initial
 n0   [cat:s]![cat:s inv:n mode:A wh:_]{
  n1   [cat:vn gen:I mode:A num:J pers:K]![cat:vn gen:C inv:D mode:E num:F pers:G]{
   n2 type:subst  [cat:v cop:+ gen:C inv:D mode:E num:F pers:G]![cat:v gen:M inv:_ mode:N num:O pers:P]
@@ -501,7 +491,7 @@ n0   [cat:s]![cat:s inv:n mode:A wh:_]{
  }
 }
 
-Tn0Vn1_119 ( ! arg1:U arg2:W evt:S genitiveI:U rel:Y subjectI:W vbI:S) initial
+Tn0Vn1_139 ( ! arg1:U arg2:W evt:S genitiveI:U rel:Y subjectI:W vbI:S) initial
 n0   [cat:s]![cat:s inv:n mode:A wh:_]{
  n1   [cat:vn gen:I mode:A num:J pers:K]![cat:vn gen:C inv:D mode:E num:F pers:G]{
   n2 type:subst  [cat:v cop:+ gen:C inv:D mode:E num:F pers:G]![cat:v gen:M inv:_ mode:N num:O pers:P]
@@ -516,11 +506,11 @@ n0   [cat:s]![cat:s inv:n mode:A wh:_]{
  n8 type:subst  [cat:n det:+ gen:I idx:W num:J pers:K]![cat:n]
 }
 
-Tn0Vn1_118 ( ! arg1:E arg2:C1 evt:X genitiveI:E rel:Z subjectI:C1 vbI:X) initial
+Tn0Vn1_138 ( ! arg1:E arg2:C1 cleft:E evt:X genitiveI:E objectI:E rel:Z subjectI:C1 vbI:X) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
  n4 type:subst  [cat:n det:+ idx:E num:sg wh:_]![cat:n idx:E]
  n5   [cat:s]![cat:s]{
@@ -536,11 +526,11 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_117 ( ! arg1:E arg2:B1 evt:W genitiveI:E rel:Y subjectI:B1 vbI:W) initial
+Tn0Vn1_137 ( ! arg1:E arg2:B1 evt:W genitiveI:E rel:Y subjectI:B1 vbI:W) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
  n4 type:subst  [cat:n]![cat:n]
  n5   [cat:s]![cat:s]{
@@ -559,11 +549,11 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_116 ( ! arg1:E arg2:C1 evt:X genitiveI:E rel:Z subjectI:C1 vbI:X) initial
+Tn0Vn1_136 ( ! arg1:E arg2:C1 evt:X genitiveI:E rel:Z subjectI:C1 vbI:X) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
  n4   [cat:pp]![cat:pp]{
   n5   [cat:p]![cat:p]{
@@ -584,7 +574,7 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_115 ( ! arg1:I arg2:G1 evt:B1 genitiveI:I rel:D1 subjectI:G1 vbI:B1) auxiliary
+Tn0Vn1_135 ( ! arg1:I arg2:G1 evt:B1 genitiveI:I rel:D1 subjectI:G1 vbI:B1) auxiliary
 n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  n1 type:foot  [cat:n def:A det:B gen:C num:D pers:E wh:F]![cat:n]
  n2   [cat:s]![cat:s]{
@@ -603,7 +593,7 @@ n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  }
 }
 
-Tn0Vn1_114 ( ! arg1:D arg2:A1 evt:V genitiveI:D rel:X subjectI:A1 vbI:V) initial
+Tn0Vn1_134 ( ! arg1:D arg2:A1 evt:V genitiveI:D rel:X subjectI:A1 vbI:V) initial
 n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  n1   [cat:pp]![cat:pp]{
   n2   [cat:p]![cat:p]{
@@ -619,7 +609,7 @@ n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  }
 }
 
-Tn0Vn1_113 ( ! arg1:J arg2:W evt:R genitiveI:J rel:T subjectI:W vbI:R) initial
+Tn0Vn1_133 ( ! arg1:J arg2:W evt:R genitiveI:J rel:T subjectI:W vbI:R) initial
 n0   [cat:s]![cat:s mode:imp]{
  n1   [cat:vn mode:imp pers:H]![cat:vn gen:B inv:C mode:D num:E pers:F]{
   n2 type:subst  [case:gen cat:cl idx:J refl:_]![cat:cl]
@@ -628,7 +618,7 @@ n0   [cat:s]![cat:s mode:imp]{
  }
 }
 
-Tn0Vn1_112 ( ! arg1:J arg2:W evt:R genitiveI:J rel:T subjectI:W vbI:R) initial
+Tn0Vn1_132 ( ! arg1:J arg2:W evt:R genitiveI:J rel:T subjectI:W vbI:R) initial
 n0   [cat:s]![cat:s mode:imp]{
  n1   [cat:vn mode:imp pers:H]![cat:vn gen:B inv:C mode:D num:E pers:F]{
   n2 type:subst  [case:gen cat:cl idx:J refl:_]![cat:cl]
@@ -637,7 +627,7 @@ n0   [cat:s]![cat:s mode:imp]{
  }
 }
 
-Tn0Vn1_111 ( ! arg1:R arg2:W evt:P genitiveI:R rel:T subjectI:W vbI:P) initial
+Tn0Vn1_131 ( ! arg1:R arg2:W evt:P genitiveI:R rel:T subjectI:W vbI:P) initial
 n0   [cat:s]![cat:s mode:imp]{
  n1   [cat:vn mode:imp pers:H]![cat:vn gen:B inv:C mode:D num:E pers:F]{
   n2 type:subst  [cat:v cop:+ gen:B inv:C mode:D num:E pers:F]![cat:v gen:J inv:_ mode:K num:L pers:M]
@@ -651,11 +641,11 @@ n0   [cat:s]![cat:s mode:imp]{
  }
 }
 
-Tn0Vn1_110 ( ! arg1:E arg2:J evt:A1 genitiveI:E rel:C1 subjectI:J vbI:A1) initial
+Tn0Vn1_130 ( ! arg1:E arg2:J cleft:E evt:A1 genitiveI:E objectI:E rel:C1 subjectI:J vbI:A1) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
  n4 type:subst  [cat:n det:+ idx:E num:sg wh:_]![cat:n idx:E]
  n5   [cat:s]![cat:s]{
@@ -671,11 +661,11 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_109 ( ! arg1:E arg2:I evt:Z genitiveI:E rel:B1 subjectI:I vbI:Z) initial
+Tn0Vn1_129 ( ! arg1:E arg2:I evt:Z genitiveI:E rel:B1 subjectI:I vbI:Z) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
  n4 type:subst  [cat:n]![cat:n]
  n5   [cat:s]![cat:s]{
@@ -694,11 +684,11 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_108 ( ! arg1:E arg2:J evt:A1 genitiveI:E rel:C1 subjectI:J vbI:A1) initial
+Tn0Vn1_128 ( ! arg1:E arg2:J evt:A1 genitiveI:E rel:C1 subjectI:J vbI:A1) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
  n4   [cat:pp]![cat:pp]{
   n5   [cat:p]![cat:p]{
@@ -719,7 +709,7 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_107 ( ! arg1:I arg2:N evt:E1 genitiveI:I rel:G1 subjectI:N vbI:E1) auxiliary
+Tn0Vn1_127 ( ! arg1:I arg2:N evt:E1 genitiveI:I rel:G1 subjectI:N vbI:E1) auxiliary
 n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  n1 type:foot  [cat:n def:A det:B gen:C num:D pers:E wh:F]![cat:n]
  n2   [cat:s]![cat:s]{
@@ -738,7 +728,7 @@ n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  }
 }
 
-Tn0Vn1_106 ( ! arg1:D arg2:I evt:Y genitiveI:D rel:A1 subjectI:I vbI:Y) initial
+Tn0Vn1_126 ( ! arg1:D arg2:I evt:Y genitiveI:D rel:A1 subjectI:I vbI:Y) initial
 n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  n1   [cat:pp]![cat:pp]{
   n2   [cat:p]![cat:p]{
@@ -754,7 +744,7 @@ n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  }
 }
 
-Tn0Vn1_105 ( ! arg1:M arg2:D evt:U genitiveI:M rel:W subjectI:D vbI:U) initial
+Tn0Vn1_125 ( ! arg1:M arg2:D evt:U genitiveI:M rel:W subjectI:D vbI:U) initial
 n0   [cat:s]![cat:s control_gen:A control_num:B control_pers:C controlIdx:D mode:inf]{
  n1   [cat:vn gen:A mode:inf num:B pers:C]![cat:vn gen:F inv:G mode:H num:I pers:J]{
   n2 type:subst  [case:gen cat:cl idx:M refl:_]![cat:cl]
@@ -763,7 +753,7 @@ n0   [cat:s]![cat:s control_gen:A control_num:B control_pers:C controlIdx:D mode
  }
 }
 
-Tn0Vn1_104 ( ! arg1:M arg2:D evt:U genitiveI:M rel:W subjectI:D vbI:U) initial
+Tn0Vn1_124 ( ! arg1:M arg2:D evt:U genitiveI:M rel:W subjectI:D vbI:U) initial
 n0   [cat:s]![cat:s control_gen:A control_num:B control_pers:C controlIdx:D mode:inf]{
  n1   [cat:vn gen:A mode:inf num:B pers:C]![cat:vn gen:F inv:G mode:H num:I pers:J]{
   n2 type:subst  [case:gen cat:cl idx:M refl:_]![cat:cl]
@@ -772,7 +762,7 @@ n0   [cat:s]![cat:s control_gen:A control_num:B control_pers:C controlIdx:D mode
  }
 }
 
-Tn0Vn1_103 ( ! arg1:U arg2:D evt:S genitiveI:U rel:W subjectI:D vbI:S) initial
+Tn0Vn1_123 ( ! arg1:U arg2:D evt:S genitiveI:U rel:W subjectI:D vbI:S) initial
 n0   [cat:s]![cat:s control_gen:A control_num:B control_pers:C controlIdx:D mode:inf]{
  n1   [cat:vn gen:A mode:inf num:B pers:C]![cat:vn gen:F inv:G mode:H num:I pers:J]{
   n2 type:subst  [cat:v cop:+ gen:F inv:G mode:H num:I pers:J]![cat:v gen:M inv:_ mode:N num:O pers:P]
@@ -786,11 +776,11 @@ n0   [cat:s]![cat:s control_gen:A control_num:B control_pers:C controlIdx:D mode
  }
 }
 
-Tn0Vn1_102 ( ! arg1:R arg2:E evt:Z genitiveI:R rel:B1 subjectI:E vbI:Z) initial
+Tn0Vn1_122 ( ! arg1:R arg2:E evt:Z genitiveI:R rel:B1 subjectI:E vbI:Z) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [cat:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:ind pers:3]![cat:v]
+  n2 type:lex "ce" [cat:cl cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:ind pers:3]![cat:v]
  }
  n4 type:subst  [cat:n gen:D idx:E num:F pers:G]![cat:n]
  n5   [cat:s]![cat:s inv:I mode:ind wh:_]{
@@ -805,11 +795,11 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_101 ( ! arg1:R arg2:E evt:Z genitiveI:R rel:B1 subjectI:E vbI:Z) initial
+Tn0Vn1_121 ( ! arg1:R arg2:E evt:Z genitiveI:R rel:B1 subjectI:E vbI:Z) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [cat:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:ind pers:3]![cat:v]
+  n2 type:lex "ce" [cat:cl cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:ind pers:3]![cat:v]
  }
  n4 type:subst  [cat:n gen:D idx:E num:F pers:G]![cat:n]
  n5   [cat:s]![cat:s inv:I mode:ind wh:_]{
@@ -824,11 +814,11 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_100 ( ! arg1:Z arg2:E evt:X genitiveI:Z rel:B1 subjectI:E vbI:X) initial
+Tn0Vn1_120 ( ! arg1:Z arg2:E evt:X genitiveI:Z rel:B1 subjectI:E vbI:X) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [cat:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:ind pers:3]![cat:v]
+  n2 type:lex "ce" [cat:cl cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:ind pers:3]![cat:v]
  }
  n4 type:subst  [cat:n gen:D idx:E num:F pers:G]![cat:n]
  n5   [cat:s]![cat:s inv:I mode:ind wh:_]{
@@ -848,7 +838,7 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_99 ( ! arg1:W arg2:H evt:E1 genitiveI:W rel:G1 subjectI:H vbI:E1) auxiliary
+Tn0Vn1_119 ( ! arg1:W arg2:H evt:E1 genitiveI:W rel:G1 subjectI:H vbI:E1) auxiliary
 n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  n1 type:foot  [cat:n def:A det:B gen:C idx:H num:D pers:E wh:F]![cat:n]
  n2   [cat:s]![cat:s inv:J mode:ind wh:_]{
@@ -861,7 +851,7 @@ n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  }
 }
 
-Tn0Vn1_98 ( ! arg1:W arg2:H evt:E1 genitiveI:W rel:G1 subjectI:H vbI:E1) auxiliary
+Tn0Vn1_118 ( ! arg1:W arg2:H evt:E1 genitiveI:W rel:G1 subjectI:H vbI:E1) auxiliary
 n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  n1 type:foot  [cat:n def:A det:B gen:C idx:H num:D pers:E wh:F]![cat:n]
  n2   [cat:s]![cat:s inv:J mode:ind wh:_]{
@@ -874,7 +864,7 @@ n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  }
 }
 
-Tn0Vn1_97 ( ! arg1:E1 arg2:H evt:C1 genitiveI:E1 rel:G1 subjectI:H vbI:C1) auxiliary
+Tn0Vn1_117 ( ! arg1:E1 arg2:H evt:C1 genitiveI:E1 rel:G1 subjectI:H vbI:C1) auxiliary
 n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  n1 type:foot  [cat:n def:A det:B gen:C idx:H num:D pers:E wh:F]![cat:n]
  n2   [cat:s]![cat:s inv:J mode:ind wh:_]{
@@ -892,7 +882,7 @@ n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  }
 }
 
-Tn0Vn1_96 ( ! arg1:P arg2:E evt:X genitiveI:P rel:Z subjectI:E vbI:X) initial
+Tn0Vn1_116 ( ! arg1:P arg2:E evt:X genitiveI:P rel:Z subjectI:E vbI:X) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:+]{
  n1 type:subst  [cat:n gen:D idx:E num:F pers:G wh:+]![cat:n]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I inv:J mode:K num:L pers:M]{
@@ -902,7 +892,7 @@ n0   [cat:s]![cat:s inv:A mode:B wh:+]{
  }
 }
 
-Tn0Vn1_95 ( ! arg1:P arg2:E evt:X genitiveI:P rel:Z subjectI:E vbI:X) initial
+Tn0Vn1_115 ( ! arg1:P arg2:E evt:X genitiveI:P rel:Z subjectI:E vbI:X) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:+]{
  n1 type:subst  [cat:n gen:D idx:E num:F pers:G wh:+]![cat:n]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I inv:J mode:K num:L pers:M]{
@@ -912,7 +902,7 @@ n0   [cat:s]![cat:s inv:A mode:B wh:+]{
  }
 }
 
-Tn0Vn1_94 ( ! arg1:X arg2:E evt:V genitiveI:X rel:Z subjectI:E vbI:V) initial
+Tn0Vn1_114 ( ! arg1:X arg2:E evt:V genitiveI:X rel:Z subjectI:E vbI:V) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:+]{
  n1 type:subst  [cat:n gen:D idx:E num:F pers:G wh:+]![cat:n]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I inv:J mode:K num:L pers:M]{
@@ -927,11 +917,11 @@ n0   [cat:s]![cat:s inv:A mode:B wh:+]{
  }
 }
 
-Tn0Vn1_93 ( ! arg1:E arg2:M evt:D1 genitiveI:E rel:F1 subjectI:M vbI:D1) initial
+Tn0Vn1_113 ( ! arg1:E arg2:M cleft:E evt:D1 genitiveI:E objectI:E rel:F1 subjectI:M vbI:D1) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
  n4 type:subst  [cat:n det:+ idx:E num:sg wh:_]![cat:n idx:E]
  n5   [cat:s]![cat:s]{
@@ -948,11 +938,11 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_92 ( ! arg1:E arg2:L evt:C1 genitiveI:E rel:E1 subjectI:L vbI:C1) initial
+Tn0Vn1_112 ( ! arg1:E arg2:L evt:C1 genitiveI:E rel:E1 subjectI:L vbI:C1) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
  n4 type:subst  [cat:n]![cat:n]
  n5   [cat:s]![cat:s]{
@@ -972,11 +962,11 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_91 ( ! arg1:E arg2:M evt:D1 genitiveI:E rel:F1 subjectI:M vbI:D1) initial
+Tn0Vn1_111 ( ! arg1:E arg2:M evt:D1 genitiveI:E rel:F1 subjectI:M vbI:D1) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
  n4   [cat:pp]![cat:pp]{
   n5   [cat:p]![cat:p]{
@@ -998,7 +988,7 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_90 ( ! arg1:I arg2:Q evt:H1 genitiveI:I rel:J1 subjectI:Q vbI:H1) auxiliary
+Tn0Vn1_110 ( ! arg1:I arg2:Q evt:H1 genitiveI:I rel:J1 subjectI:Q vbI:H1) auxiliary
 n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  n1 type:foot  [cat:n def:A det:B gen:C num:D pers:E wh:F]![cat:n]
  n2   [cat:s]![cat:s]{
@@ -1018,7 +1008,7 @@ n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  }
 }
 
-Tn0Vn1_89 ( ! arg1:D arg2:K evt:B1 genitiveI:D rel:D1 subjectI:K vbI:B1) initial
+Tn0Vn1_109 ( ! arg1:D arg2:K evt:B1 genitiveI:D rel:D1 subjectI:K vbI:B1) initial
 n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  n1   [cat:pp]![cat:pp]{
   n2   [cat:p]![cat:p]{
@@ -1035,7 +1025,7 @@ n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  }
 }
 
-Tn0Vn1_88 ( ! arg1:P arg2:E evt:X genitiveI:P rel:Z subjectI:E vbI:X) initial
+Tn0Vn1_108 ( ! arg1:P arg2:E evt:X genitiveI:P rel:Z subjectI:E vbI:X) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1 type:subst  [case:nom cat:cl det:+ gen:D idx:E num:F pers:G]![cat:cl]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I inv:J mode:K num:L pers:M]{
@@ -1045,7 +1035,7 @@ n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  }
 }
 
-Tn0Vn1_87 ( ! arg1:P arg2:E evt:X genitiveI:P rel:Z subjectI:E vbI:X) initial
+Tn0Vn1_107 ( ! arg1:P arg2:E evt:X genitiveI:P rel:Z subjectI:E vbI:X) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1 type:subst  [case:nom cat:cl det:+ gen:D idx:E num:F pers:G]![cat:cl]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I inv:J mode:K num:L pers:M]{
@@ -1055,7 +1045,7 @@ n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  }
 }
 
-Tn0Vn1_86 ( ! arg1:X arg2:E evt:V genitiveI:X rel:Z subjectI:E vbI:V) initial
+Tn0Vn1_106 ( ! arg1:X arg2:E evt:V genitiveI:X rel:Z subjectI:E vbI:V) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1 type:subst  [case:nom cat:cl det:+ gen:D idx:E num:F pers:G]![cat:cl]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I inv:J mode:K num:L pers:M]{
@@ -1070,11 +1060,11 @@ n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  }
 }
 
-Tn0Vn1_85 ( ! arg1:E arg2:M evt:D1 genitiveI:E rel:F1 subjectI:M vbI:D1) initial
+Tn0Vn1_105 ( ! arg1:E arg2:M cleft:E evt:D1 genitiveI:E objectI:E rel:F1 subjectI:M vbI:D1) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
  n4 type:subst  [cat:n det:+ idx:E num:sg wh:_]![cat:n idx:E]
  n5   [cat:s]![cat:s]{
@@ -1091,11 +1081,11 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_84 ( ! arg1:E arg2:L evt:C1 genitiveI:E rel:E1 subjectI:L vbI:C1) initial
+Tn0Vn1_104 ( ! arg1:E arg2:L evt:C1 genitiveI:E rel:E1 subjectI:L vbI:C1) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
  n4 type:subst  [cat:n]![cat:n]
  n5   [cat:s]![cat:s]{
@@ -1115,11 +1105,11 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_83 ( ! arg1:E arg2:M evt:D1 genitiveI:E rel:F1 subjectI:M vbI:D1) initial
+Tn0Vn1_103 ( ! arg1:E arg2:M evt:D1 genitiveI:E rel:F1 subjectI:M vbI:D1) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
  n4   [cat:pp]![cat:pp]{
   n5   [cat:p]![cat:p]{
@@ -1141,7 +1131,7 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_82 ( ! arg1:I arg2:Q evt:H1 genitiveI:I rel:J1 subjectI:Q vbI:H1) auxiliary
+Tn0Vn1_102 ( ! arg1:I arg2:Q evt:H1 genitiveI:I rel:J1 subjectI:Q vbI:H1) auxiliary
 n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  n1 type:foot  [cat:n def:A det:B gen:C num:D pers:E wh:F]![cat:n]
  n2   [cat:s]![cat:s]{
@@ -1161,7 +1151,7 @@ n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  }
 }
 
-Tn0Vn1_81 ( ! arg1:D arg2:K evt:B1 genitiveI:D rel:D1 subjectI:K vbI:B1) initial
+Tn0Vn1_101 ( ! arg1:D arg2:K evt:B1 genitiveI:D rel:D1 subjectI:K vbI:B1) initial
 n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  n1   [cat:pp]![cat:pp]{
   n2   [cat:p]![cat:p]{
@@ -1178,7 +1168,7 @@ n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  }
 }
 
-Tn0Vn1_80 ( ! arg1:P arg2:E evt:X genitiveI:P rel:Z subjectI:E vbI:X) initial
+Tn0Vn1_100 ( ! arg1:P arg2:E evt:X genitiveI:P rel:Z subjectI:E vbI:X) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1 type:subst  [cat:n det:+ gen:D idx:E num:F pers:G]![cat:n]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I inv:J mode:K num:L pers:M]{
@@ -1188,7 +1178,7 @@ n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  }
 }
 
-Tn0Vn1_79 ( ! arg1:P arg2:E evt:X genitiveI:P rel:Z subjectI:E vbI:X) initial
+Tn0Vn1_99 ( ! arg1:P arg2:E evt:X genitiveI:P rel:Z subjectI:E vbI:X) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1 type:subst  [cat:n det:+ gen:D idx:E num:F pers:G]![cat:n]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I inv:J mode:K num:L pers:M]{
@@ -1198,7 +1188,7 @@ n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  }
 }
 
-Tn0Vn1_78 ( ! arg1:X arg2:E evt:V genitiveI:X rel:Z subjectI:E vbI:V) initial
+Tn0Vn1_98 ( ! arg1:X arg2:E evt:V genitiveI:X rel:Z subjectI:E vbI:V) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1 type:subst  [cat:n det:+ gen:D idx:E num:F pers:G]![cat:n]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I inv:J mode:K num:L pers:M]{
@@ -1213,11 +1203,11 @@ n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  }
 }
 
-Tn0Vn1_77 ( ! arg1:E arg2:C1 cagentI:E evt:A1 rel:E1 subjectI:C1 vbI:A1) initial
+Tn0Vn1_97 ( ! arg1:E arg2:C1 cagentI:E evt:A1 rel:E1 subjectI:C1 vbI:A1) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
  n4 type:subst  [cat:n idx:E]![cat:n]
  n5   [cat:s]![cat:s]{
@@ -1237,11 +1227,11 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_76 ( ! arg1:E arg2:C1 cagentI:E evt:A1 rel:E1 subjectI:C1 vbI:A1) initial
+Tn0Vn1_96 ( ! arg1:E arg2:C1 cagentI:E evt:A1 rel:E1 subjectI:C1 vbI:A1) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
  n4   [cat:pp]![cat:pp]{
   n5   [cat:p]![cat:p]{
@@ -1263,7 +1253,7 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_75 ( ! arg1:I arg2:G1 cagentI:I evt:E1 rel:I1 subjectI:G1 vbI:E1) auxiliary
+Tn0Vn1_95 ( ! arg1:I arg2:G1 cagentI:I evt:E1 rel:I1 subjectI:G1 vbI:E1) auxiliary
 n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  n1 type:foot  [cat:n def:A det:B gen:C num:D pers:E wh:F]![cat:n]
  n2   [cat:s]![cat:s]{
@@ -1283,7 +1273,7 @@ n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  }
 }
 
-Tn0Vn1_74 ( ! arg1:D arg2:A1 cagentI:D evt:Y rel:C1 subjectI:A1 vbI:Y) initial
+Tn0Vn1_94 ( ! arg1:D arg2:A1 cagentI:D evt:Y rel:C1 subjectI:A1 vbI:Y) initial
 n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  n1   [cat:pp]![cat:pp]{
   n2   [cat:p]![cat:p]{
@@ -1300,7 +1290,7 @@ n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  }
 }
 
-Tn0Vn1_73 ( ! arg1:W arg2:U cagentI:W evt:S rel:Y subjectI:U vbI:S) initial
+Tn0Vn1_93 ( ! arg1:W arg2:U cagentI:W evt:S rel:Y subjectI:U vbI:S) initial
 n0   [cat:s]![cat:s inv:n mode:A wh:_]{
  n1   [cat:vn gen:I mode:A num:J pers:K]![cat:vn gen:C inv:D mode:E num:F pers:G]{
   n2 type:subst  [cat:v cop:+ gen:C inv:D mode:E num:F pers:G]![cat:v gen:M inv:_ mode:N num:O pers:P]
@@ -1315,7 +1305,7 @@ n0   [cat:s]![cat:s inv:n mode:A wh:_]{
  }
 }
 
-Tn0Vn1_72 ( ! arg1:U arg2:W cagentI:U evt:S rel:Y subjectI:W vbI:S) initial
+Tn0Vn1_92 ( ! arg1:U arg2:W cagentI:U evt:S rel:Y subjectI:W vbI:S) initial
 n0   [cat:s]![cat:s inv:n mode:A wh:_]{
  n1   [cat:vn gen:I mode:A num:J pers:K]![cat:vn gen:C inv:D mode:E num:F pers:G]{
   n2 type:subst  [cat:v cop:+ gen:C inv:D mode:E num:F pers:G]![cat:v gen:M inv:_ mode:N num:O pers:P]
@@ -1330,11 +1320,11 @@ n0   [cat:s]![cat:s inv:n mode:A wh:_]{
  n8 type:subst  [cat:n det:+ gen:I idx:W num:J pers:K]![cat:n]
 }
 
-Tn0Vn1_71 ( ! arg1:E arg2:C1 cagentI:E evt:X rel:Z subjectI:C1 vbI:X) initial
+Tn0Vn1_91 ( ! arg1:E arg2:C1 cagentI:E evt:X rel:Z subjectI:C1 vbI:X) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
  n4 type:subst  [cat:n idx:E]![cat:n]
  n5   [cat:s]![cat:s]{
@@ -1353,11 +1343,11 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_70 ( ! arg1:E arg2:C1 cagentI:E evt:X rel:Z subjectI:C1 vbI:X) initial
+Tn0Vn1_90 ( ! arg1:E arg2:C1 cagentI:E evt:X rel:Z subjectI:C1 vbI:X) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
  n4   [cat:pp]![cat:pp]{
   n5   [cat:p]![cat:p]{
@@ -1378,7 +1368,7 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_69 ( ! arg1:I arg2:G1 cagentI:I evt:B1 rel:D1 subjectI:G1 vbI:B1) auxiliary
+Tn0Vn1_89 ( ! arg1:I arg2:G1 cagentI:I evt:B1 rel:D1 subjectI:G1 vbI:B1) auxiliary
 n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  n1 type:foot  [cat:n def:A det:B gen:C num:D pers:E wh:F]![cat:n]
  n2   [cat:s]![cat:s]{
@@ -1397,7 +1387,7 @@ n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  }
 }
 
-Tn0Vn1_68 ( ! arg1:D arg2:A1 cagentI:D evt:V rel:X subjectI:A1 vbI:V) initial
+Tn0Vn1_88 ( ! arg1:D arg2:A1 cagentI:D evt:V rel:X subjectI:A1 vbI:V) initial
 n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  n1   [cat:pp]![cat:pp]{
   n2   [cat:p]![cat:p]{
@@ -1413,7 +1403,7 @@ n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  }
 }
 
-Tn0Vn1_67 ( ! arg1:R arg2:W cagentI:R evt:P rel:T subjectI:W vbI:P) initial
+Tn0Vn1_87 ( ! arg1:R arg2:W cagentI:R evt:P rel:T subjectI:W vbI:P) initial
 n0   [cat:s]![cat:s mode:imp]{
  n1   [cat:vn mode:imp pers:H]![cat:vn gen:B inv:C mode:D num:E pers:F]{
   n2 type:subst  [cat:v cop:+ gen:B inv:C mode:D num:E pers:F]![cat:v gen:J inv:_ mode:K num:L pers:M]
@@ -1427,11 +1417,11 @@ n0   [cat:s]![cat:s mode:imp]{
  }
 }
 
-Tn0Vn1_66 ( ! arg1:E arg2:J cagentI:E evt:A1 rel:C1 subjectI:J vbI:A1) initial
+Tn0Vn1_86 ( ! arg1:E arg2:J cagentI:E evt:A1 rel:C1 subjectI:J vbI:A1) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
  n4 type:subst  [cat:n idx:E]![cat:n]
  n5   [cat:s]![cat:s]{
@@ -1450,11 +1440,11 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_65 ( ! arg1:E arg2:J cagentI:E evt:A1 rel:C1 subjectI:J vbI:A1) initial
+Tn0Vn1_85 ( ! arg1:E arg2:J cagentI:E evt:A1 rel:C1 subjectI:J vbI:A1) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
  n4   [cat:pp]![cat:pp]{
   n5   [cat:p]![cat:p]{
@@ -1475,7 +1465,7 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_64 ( ! arg1:I arg2:N cagentI:I evt:E1 rel:G1 subjectI:N vbI:E1) auxiliary
+Tn0Vn1_84 ( ! arg1:I arg2:N cagentI:I evt:E1 rel:G1 subjectI:N vbI:E1) auxiliary
 n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  n1 type:foot  [cat:n def:A det:B gen:C num:D pers:E wh:F]![cat:n]
  n2   [cat:s]![cat:s]{
@@ -1494,7 +1484,7 @@ n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  }
 }
 
-Tn0Vn1_63 ( ! arg1:D arg2:I cagentI:D evt:Y rel:A1 subjectI:I vbI:Y) initial
+Tn0Vn1_83 ( ! arg1:D arg2:I cagentI:D evt:Y rel:A1 subjectI:I vbI:Y) initial
 n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  n1   [cat:pp]![cat:pp]{
   n2   [cat:p]![cat:p]{
@@ -1510,7 +1500,7 @@ n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  }
 }
 
-Tn0Vn1_62 ( ! arg1:U arg2:D cagentI:U evt:S rel:W subjectI:D vbI:S) initial
+Tn0Vn1_82 ( ! arg1:U arg2:D cagentI:U evt:S rel:W subjectI:D vbI:S) initial
 n0   [cat:s]![cat:s control_gen:A control_num:B control_pers:C controlIdx:D mode:inf]{
  n1   [cat:vn gen:A mode:inf num:B pers:C]![cat:vn gen:F inv:G mode:H num:I pers:J]{
   n2 type:subst  [cat:v cop:+ gen:F inv:G mode:H num:I pers:J]![cat:v gen:M inv:_ mode:N num:O pers:P]
@@ -1524,11 +1514,11 @@ n0   [cat:s]![cat:s control_gen:A control_num:B control_pers:C controlIdx:D mode
  }
 }
 
-Tn0Vn1_61 ( ! arg1:Z arg2:E cagentI:Z evt:X rel:B1 subjectI:E vbI:X) initial
+Tn0Vn1_81 ( ! arg1:Z arg2:E cagentI:Z evt:X rel:B1 subjectI:E vbI:X) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [cat:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:ind pers:3]![cat:v]
+  n2 type:lex "ce" [cat:cl cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:ind pers:3]![cat:v]
  }
  n4 type:subst  [cat:n gen:D idx:E num:F pers:G]![cat:n]
  n5   [cat:s]![cat:s inv:I mode:ind wh:_]{
@@ -1548,7 +1538,7 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_60 ( ! arg1:E1 arg2:H cagentI:E1 evt:C1 rel:G1 subjectI:H vbI:C1) auxiliary
+Tn0Vn1_80 ( ! arg1:E1 arg2:H cagentI:E1 evt:C1 rel:G1 subjectI:H vbI:C1) auxiliary
 n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  n1 type:foot  [cat:n def:A det:B gen:C idx:H num:D pers:E wh:F]![cat:n]
  n2   [cat:s]![cat:s inv:J mode:ind wh:_]{
@@ -1566,7 +1556,7 @@ n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  }
 }
 
-Tn0Vn1_59 ( ! arg1:X arg2:E cagentI:X evt:V rel:Z subjectI:E vbI:V) initial
+Tn0Vn1_79 ( ! arg1:X arg2:E cagentI:X evt:V rel:Z subjectI:E vbI:V) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:+]{
  n1 type:subst  [cat:n gen:D idx:E num:F pers:G wh:+]![cat:n]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I inv:J mode:K num:L pers:M]{
@@ -1581,11 +1571,11 @@ n0   [cat:s]![cat:s inv:A mode:B wh:+]{
  }
 }
 
-Tn0Vn1_58 ( ! arg1:E arg2:M cagentI:E evt:D1 rel:F1 subjectI:M vbI:D1) initial
+Tn0Vn1_78 ( ! arg1:E arg2:M cagentI:E evt:D1 rel:F1 subjectI:M vbI:D1) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
  n4 type:subst  [cat:n idx:E]![cat:n]
  n5   [cat:s]![cat:s]{
@@ -1605,11 +1595,11 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_57 ( ! arg1:E arg2:M cagentI:E evt:D1 rel:F1 subjectI:M vbI:D1) initial
+Tn0Vn1_77 ( ! arg1:E arg2:M cagentI:E evt:D1 rel:F1 subjectI:M vbI:D1) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
  n4   [cat:pp]![cat:pp]{
   n5   [cat:p]![cat:p]{
@@ -1631,7 +1621,7 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_56 ( ! arg1:I arg2:Q cagentI:I evt:H1 rel:J1 subjectI:Q vbI:H1) auxiliary
+Tn0Vn1_76 ( ! arg1:I arg2:Q cagentI:I evt:H1 rel:J1 subjectI:Q vbI:H1) auxiliary
 n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  n1 type:foot  [cat:n def:A det:B gen:C num:D pers:E wh:F]![cat:n]
  n2   [cat:s]![cat:s]{
@@ -1651,7 +1641,7 @@ n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  }
 }
 
-Tn0Vn1_55 ( ! arg1:D arg2:K cagentI:D evt:B1 rel:D1 subjectI:K vbI:B1) initial
+Tn0Vn1_75 ( ! arg1:D arg2:K cagentI:D evt:B1 rel:D1 subjectI:K vbI:B1) initial
 n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  n1   [cat:pp]![cat:pp]{
   n2   [cat:p]![cat:p]{
@@ -1668,7 +1658,7 @@ n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  }
 }
 
-Tn0Vn1_54 ( ! arg1:X arg2:E cagentI:X evt:V rel:Z subjectI:E vbI:V) initial
+Tn0Vn1_74 ( ! arg1:X arg2:E cagentI:X evt:V rel:Z subjectI:E vbI:V) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1 type:subst  [case:nom cat:cl det:+ gen:D idx:E num:F pers:G]![cat:cl]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I inv:J mode:K num:L pers:M]{
@@ -1683,11 +1673,11 @@ n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  }
 }
 
-Tn0Vn1_53 ( ! arg1:E arg2:M cagentI:E evt:D1 rel:F1 subjectI:M vbI:D1) initial
+Tn0Vn1_73 ( ! arg1:E arg2:M cagentI:E evt:D1 rel:F1 subjectI:M vbI:D1) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
  n4 type:subst  [cat:n idx:E]![cat:n]
  n5   [cat:s]![cat:s]{
@@ -1707,11 +1697,11 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_52 ( ! arg1:E arg2:M cagentI:E evt:D1 rel:F1 subjectI:M vbI:D1) initial
+Tn0Vn1_72 ( ! arg1:E arg2:M cagentI:E evt:D1 rel:F1 subjectI:M vbI:D1) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
  n4   [cat:pp]![cat:pp]{
   n5   [cat:p]![cat:p]{
@@ -1733,7 +1723,7 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_51 ( ! arg1:I arg2:Q cagentI:I evt:H1 rel:J1 subjectI:Q vbI:H1) auxiliary
+Tn0Vn1_71 ( ! arg1:I arg2:Q cagentI:I evt:H1 rel:J1 subjectI:Q vbI:H1) auxiliary
 n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  n1 type:foot  [cat:n def:A det:B gen:C num:D pers:E wh:F]![cat:n]
  n2   [cat:s]![cat:s]{
@@ -1753,7 +1743,7 @@ n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  }
 }
 
-Tn0Vn1_50 ( ! arg1:D arg2:K cagentI:D evt:B1 rel:D1 subjectI:K vbI:B1) initial
+Tn0Vn1_70 ( ! arg1:D arg2:K cagentI:D evt:B1 rel:D1 subjectI:K vbI:B1) initial
 n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  n1   [cat:pp]![cat:pp]{
   n2   [cat:p]![cat:p]{
@@ -1770,7 +1760,7 @@ n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  }
 }
 
-Tn0Vn1_49 ( ! arg1:X arg2:E cagentI:X evt:V rel:Z subjectI:E vbI:V) initial
+Tn0Vn1_69 ( ! arg1:X arg2:E cagentI:X evt:V rel:Z subjectI:E vbI:V) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1 type:subst  [cat:n det:+ gen:D idx:E num:F pers:G]![cat:n]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I inv:J mode:K num:L pers:M]{
@@ -1785,27 +1775,27 @@ n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  }
 }
 
-Tn0Vn1_48 ( ! arg1:Y arg2:F evt:W objectI:F rel:A1 subjectI:Y vbI:W) initial
+Tn0Vn1_68 ( ! arg1:Y arg2:E cleft:E evt:W objectI:E rel:A1 subjectI:Y vbI:W) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
- n4 type:subst  [cat:n det:+ gen:E idx:F num:sg wh:_]![cat:n]
+ n4 type:subst  [cat:n det:+ gen:F idx:E idx:E num:sg wh:_]![cat:n idx:E]
  n5   [cat:s]![cat:s]{
   n6   [cat:c]![cat:c]{
    n7   [cat:que]![cat:que]
   }
   n8   [cat:s inv:J wh:_]![cat:s inv:n mode:H wh:_]{
-   n9   [cat:vn gen:R mode:H num:S pers:T]![cat:vn gen:L inv:M mode:N num:O pers:P pp_gen:E pp_num:sg]{
-    n10 type:anchor  [cat:v gen:L idx:W inv:M mode:N num:O pers:P pp_gen:E pp_num:sg]![cat:v inv:_]
+   n9   [cat:vn gen:R mode:H num:S pers:T]![cat:vn gen:L inv:M mode:N num:O pers:P pp_gen:F pp_num:sg]{
+    n10 type:anchor  [cat:v gen:L idx:W inv:M mode:N num:O pers:P pp_gen:F pp_num:sg]![cat:v inv:_]
    }
    n11 type:subst  [cat:n det:+ gen:R idx:Y num:S pers:T]![cat:n]
   }
  }
 }
 
-Tn0Vn1_47 ( ! arg1:D1 arg2:H evt:B1 objectI:H rel:F1 subjectI:D1 vbI:B1) auxiliary
+Tn0Vn1_67 ( ! arg1:D1 arg2:H evt:B1 objectI:H rel:F1 subjectI:D1 vbI:B1) auxiliary
 n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  n1 type:foot  [cat:n def:A det:B gen:C idx:H num:D pers:E wh:F]![cat:n]
  n2   [cat:s]![cat:s]{
@@ -1819,7 +1809,7 @@ n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  }
 }
 
-Tn0Vn1_46 ( ! arg1:X arg2:E evt:V objectI:E rel:Z subjectI:X vbI:V) initial
+Tn0Vn1_66 ( ! arg1:X arg2:E evt:V objectI:E rel:Z subjectI:X vbI:V) initial
 n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  n1 type:subst  [cat:n gen:D idx:E num:F wh:+]![cat:n]
  n2   [cat:s inv:A wh:_]![cat:s inv:n mode:H wh:_]{
@@ -1830,7 +1820,7 @@ n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  }
 }
 
-Tn0Vn1_45 ( ! arg1:S arg2:N evt:Q objectI:N rel:U subjectI:S vbI:Q) initial
+Tn0Vn1_65 ( ! arg1:S arg2:N evt:Q objectI:N rel:U subjectI:S vbI:Q) initial
 n0   [cat:s]![cat:s inv:n mode:A wh:_]{
  n1   [cat:vn gen:K mode:A num:I pers:L]![cat:vn gen:C inv:D mode:E num:F pers:G pp_gen:H pp_num:I]{
   n2 type:subst  [case:acc cat:cl gen:H idx:N num:I pers:L refl:+]![cat:cl]
@@ -1839,7 +1829,7 @@ n0   [cat:s]![cat:s inv:n mode:A wh:_]{
  n4 type:subst  [cat:n det:+ gen:K idx:S num:I pers:L]![cat:n]
 }
 
-Tn0Vn1_44 ( ! arg1:S arg2:X evt:Q objectI:X rel:U subjectI:S vbI:Q) initial
+Tn0Vn1_64 ( ! arg1:S arg2:X evt:Q objectI:X rel:U subjectI:S vbI:Q) initial
 n0   [cat:s]![cat:s inv:n mode:A wh:_]{
  n1   [cat:vn gen:K mode:A num:L pers:M]![cat:vn gen:C inv:D mode:E num:F pers:G pp_gen:H pp_num:I]{
   n2 type:subst  [case:acc3rd cat:cl gen:H num:I refl:_]![cat:cl]
@@ -1848,7 +1838,7 @@ n0   [cat:s]![cat:s inv:n mode:A wh:_]{
  n4 type:subst  [cat:n det:+ gen:K idx:S num:L pers:M]![cat:n]
 }
 
-Tn0Vn1_43 ( ! arg1:T arg2:O evt:R objectI:O rel:V subjectI:T vbI:R) initial
+Tn0Vn1_63 ( ! arg1:T arg2:O evt:R objectI:O rel:V subjectI:T vbI:R) initial
 n0   [cat:s]![cat:s inv:n mode:A wh:_]{
  n1   [cat:vn gen:K mode:A num:L pers:M]![cat:vn gen:C inv:D mode:E num:F pers:G pp_gen:H pp_num:I]{
   n2 type:subst  [case:acc cat:cl gen:H idx:O num:I refl:_]![cat:cl]
@@ -1857,7 +1847,7 @@ n0   [cat:s]![cat:s inv:n mode:A wh:_]{
  n4 type:subst  [cat:n det:+ gen:K idx:T num:L pers:M]![cat:n]
 }
 
-Tn0Vn1_42 ( ! arg1:R arg2:X evt:P objectI:X rel:U subjectI:R vbI:P) initial
+Tn0Vn1_62 ( ! arg1:R arg2:X evt:P objectI:X rel:U subjectI:R vbI:P) initial
 n0   [cat:s]![cat:s inv:n mode:A wh:_]{
  n1   [cat:vn gen:K mode:A num:L pers:M]![cat:vn gen:C inv:D mode:E num:F pers:G pp_gen:H pp_num:I]{
   n2 type:anchor  [cat:v gen:C idx:P inv:D mode:E num:F pers:G pp_gen:H pp_num:I]![cat:v inv:_]
@@ -1866,7 +1856,7 @@ n0   [cat:s]![cat:s inv:n mode:A wh:_]{
  n4 type:subst  [cat:n det:+]![cat:n]
 }
 
-Tn0Vn1_41 ( ! arg1:S arg2:X evt:P objectI:X rel:U subjectI:S vbI:P) initial
+Tn0Vn1_61 ( ! arg1:S arg2:X evt:P objectI:X rel:U subjectI:S vbI:P) initial
 n0   [cat:s]![cat:s inv:n mode:A wh:_]{
  n1   [cat:vn gen:K mode:A num:L pers:M]![cat:vn gen:C inv:D mode:E num:F pers:G pp_gen:H pp_num:I]{
   n2 type:anchor  [cat:v gen:C idx:P inv:D mode:E num:F pers:G pp_gen:H pp_num:I]![cat:v inv:_]
@@ -1875,26 +1865,26 @@ n0   [cat:s]![cat:s inv:n mode:A wh:_]{
  n4 type:subst  [cat:n det:+ gen:K idx:S num:L pers:M]![cat:n]
 }
 
-Tn0Vn1_40 ( ! arg1:X arg2:F evt:T objectI:F rel:V subjectI:X vbI:T) initial
+Tn0Vn1_60 ( ! arg1:X arg2:E cleft:E evt:T objectI:E rel:V subjectI:X vbI:T) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
- n4 type:subst  [cat:n det:+ gen:E idx:F num:sg wh:_]![cat:n]
+ n4 type:subst  [cat:n det:+ gen:F idx:E idx:E num:sg wh:_]![cat:n idx:E]
  n5   [cat:s]![cat:s]{
   n6   [cat:c]![cat:c]{
    n7   [cat:que]![cat:que]
   }
   n8   [cat:s inv:I wh:_]![cat:s mode:imp]{
-   n9   [cat:vn mode:imp pers:Q]![cat:vn gen:K inv:L mode:M num:N pers:O pp_gen:E pp_num:sg]{
-    n10 type:anchor  [cat:v gen:K idx:T inv:L mode:M num:N pers:O pp_gen:E pp_num:sg]![cat:v inv:_]
+   n9   [cat:vn mode:imp pers:Q]![cat:vn gen:K inv:L mode:M num:N pers:O pp_gen:F pp_num:sg]{
+    n10 type:anchor  [cat:v gen:K idx:T inv:L mode:M num:N pers:O pp_gen:F pp_num:sg]![cat:v inv:_]
    }
   }
  }
 }
 
-Tn0Vn1_39 ( ! arg1:C1 arg2:H evt:Y objectI:H rel:A1 subjectI:C1 vbI:Y) auxiliary
+Tn0Vn1_59 ( ! arg1:C1 arg2:H evt:Y objectI:H rel:A1 subjectI:C1 vbI:Y) auxiliary
 n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  n1 type:foot  [cat:n def:A det:B gen:C idx:H num:D pers:E wh:F]![cat:n]
  n2   [cat:s]![cat:s]{
@@ -1907,7 +1897,7 @@ n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  }
 }
 
-Tn0Vn1_38 ( ! arg1:W arg2:E evt:S objectI:E rel:U subjectI:W vbI:S) initial
+Tn0Vn1_58 ( ! arg1:W arg2:E evt:S objectI:E rel:U subjectI:W vbI:S) initial
 n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  n1 type:subst  [cat:n gen:D idx:E num:F wh:+]![cat:n]
  n2   [cat:s inv:A wh:_]![cat:s mode:imp]{
@@ -1917,7 +1907,7 @@ n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  }
 }
 
-Tn0Vn1_37 ( ! arg1:S arg2:L evt:O objectI:L rel:Q subjectI:S vbI:O) initial
+Tn0Vn1_57 ( ! arg1:S arg2:L evt:O objectI:L rel:Q subjectI:S vbI:O) initial
 n0   [cat:s]![cat:s mode:imp]{
  n1   [cat:vn mode:imp num:H pers:J]![cat:vn gen:B inv:C mode:D num:E pers:F pp_gen:G pp_num:H]{
   n2 type:subst  [case:acc cat:cl gen:G idx:L num:H pers:J refl:+]![cat:cl]
@@ -1925,7 +1915,7 @@ n0   [cat:s]![cat:s mode:imp]{
  }
 }
 
-Tn0Vn1_36 ( ! arg1:R arg2:T evt:N objectI:T rel:P subjectI:R vbI:N) initial
+Tn0Vn1_56 ( ! arg1:R arg2:T evt:N objectI:T rel:P subjectI:R vbI:N) initial
 n0   [cat:s]![cat:s mode:imp]{
  n1   [cat:vn mode:imp pers:J]![cat:vn gen:B inv:C mode:D num:E pers:F pp_gen:G pp_num:H]{
   n2 type:subst  [case:acc3rd cat:cl gen:G num:H refl:_]![cat:cl]
@@ -1933,7 +1923,7 @@ n0   [cat:s]![cat:s mode:imp]{
  }
 }
 
-Tn0Vn1_35 ( ! arg1:S arg2:L evt:O objectI:L rel:Q subjectI:S vbI:O) initial
+Tn0Vn1_55 ( ! arg1:S arg2:L evt:O objectI:L rel:Q subjectI:S vbI:O) initial
 n0   [cat:s]![cat:s mode:imp]{
  n1   [cat:vn mode:imp pers:J]![cat:vn gen:B inv:C mode:D num:E pers:F pp_gen:G pp_num:H]{
   n2 type:subst  [case:acc cat:cl gen:G idx:L num:H refl:_]![cat:cl]
@@ -1941,7 +1931,7 @@ n0   [cat:s]![cat:s mode:imp]{
  }
 }
 
-Tn0Vn1_34 ( ! arg1:R arg2:T evt:M objectI:T rel:P subjectI:R vbI:M) initial
+Tn0Vn1_54 ( ! arg1:R arg2:T evt:M objectI:T rel:P subjectI:R vbI:M) initial
 n0   [cat:s]![cat:s mode:imp]{
  n1   [cat:vn mode:imp pers:J]![cat:vn gen:B inv:C mode:D num:E pers:F pp_gen:G pp_num:H]{
   n2 type:anchor  [cat:v gen:B idx:M inv:C mode:D num:E pers:F pp_gen:G pp_num:H]![cat:v inv:_]
@@ -1949,26 +1939,26 @@ n0   [cat:s]![cat:s mode:imp]{
  n3 type:subst  [cat:n det:+]![cat:n]
 }
 
-Tn0Vn1_33 ( ! arg1:K arg2:F evt:W objectI:F rel:Y subjectI:K vbI:W) initial
+Tn0Vn1_53 ( ! arg1:K arg2:E cleft:E evt:W objectI:E rel:Y subjectI:K vbI:W) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
- n4 type:subst  [cat:n det:+ gen:E idx:F num:sg wh:_]![cat:n]
+ n4 type:subst  [cat:n det:+ gen:F idx:E idx:E num:sg wh:_]![cat:n idx:E]
  n5   [cat:s]![cat:s]{
   n6   [cat:c]![cat:c]{
    n7   [cat:que]![cat:que]
   }
   n8   [cat:s inv:M wh:_]![cat:s control_gen:H control_num:I control_pers:J controlIdx:K mode:inf]{
-   n9   [cat:vn gen:H mode:inf num:I pers:J]![cat:vn gen:O inv:P mode:Q num:R pers:S pp_gen:E pp_num:sg]{
-    n10 type:anchor  [cat:v gen:O idx:W inv:P mode:Q num:R pers:S pp_gen:E pp_num:sg]![cat:v inv:_]
+   n9   [cat:vn gen:H mode:inf num:I pers:J]![cat:vn gen:O inv:P mode:Q num:R pers:S pp_gen:F pp_num:sg]{
+    n10 type:anchor  [cat:v gen:O idx:W inv:P mode:Q num:R pers:S pp_gen:F pp_num:sg]![cat:v inv:_]
    }
   }
  }
 }
 
-Tn0Vn1_32 ( ! arg1:P arg2:H evt:B1 objectI:H rel:D1 subjectI:P vbI:B1) auxiliary
+Tn0Vn1_52 ( ! arg1:P arg2:H evt:B1 objectI:H rel:D1 subjectI:P vbI:B1) auxiliary
 n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  n1 type:foot  [cat:n def:A det:B gen:C idx:H num:D pers:E wh:F]![cat:n]
  n2   [cat:s]![cat:s]{
@@ -1981,7 +1971,7 @@ n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  }
 }
 
-Tn0Vn1_31 ( ! arg1:K arg2:E evt:V objectI:E rel:X subjectI:K vbI:V) initial
+Tn0Vn1_51 ( ! arg1:K arg2:E evt:V objectI:E rel:X subjectI:K vbI:V) initial
 n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  n1 type:subst  [cat:n gen:D idx:E num:F wh:+]![cat:n]
  n2   [cat:s inv:A wh:_]![cat:s control_gen:H control_num:I control_pers:J controlIdx:K mode:inf]{
@@ -1991,7 +1981,7 @@ n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  }
 }
 
-Tn0Vn1_30 ( ! arg1:D arg2:N evt:Q objectI:N rel:S subjectI:D vbI:Q) initial
+Tn0Vn1_50 ( ! arg1:D arg2:N evt:Q objectI:N rel:S subjectI:D vbI:Q) initial
 n0   [cat:s]![cat:s control_gen:A control_num:B control_pers:C controlIdx:D mode:inf]{
  n1   [cat:vn gen:A mode:inf num:B pers:C]![cat:vn gen:F inv:G mode:H num:I pers:J pp_gen:K pp_num:B]{
   n2 type:subst  [case:acc cat:cl gen:K idx:N num:B pers:C refl:+]![cat:cl]
@@ -1999,7 +1989,7 @@ n0   [cat:s]![cat:s control_gen:A control_num:B control_pers:C controlIdx:D mode
  }
 }
 
-Tn0Vn1_29 ( ! arg1:D arg2:V evt:Q objectI:V rel:S subjectI:D vbI:Q) initial
+Tn0Vn1_49 ( ! arg1:D arg2:V evt:Q objectI:V rel:S subjectI:D vbI:Q) initial
 n0   [cat:s]![cat:s control_gen:A control_num:B control_pers:C controlIdx:D mode:inf]{
  n1   [cat:vn gen:A mode:inf num:B pers:C]![cat:vn gen:F inv:G mode:H num:I pers:J pp_gen:K pp_num:L]{
   n2 type:subst  [case:acc3rd cat:cl gen:K num:L refl:_]![cat:cl]
@@ -2007,7 +1997,7 @@ n0   [cat:s]![cat:s control_gen:A control_num:B control_pers:C controlIdx:D mode
  }
 }
 
-Tn0Vn1_28 ( ! arg1:D arg2:O evt:R objectI:O rel:T subjectI:D vbI:R) initial
+Tn0Vn1_48 ( ! arg1:D arg2:O evt:R objectI:O rel:T subjectI:D vbI:R) initial
 n0   [cat:s]![cat:s control_gen:A control_num:B control_pers:C controlIdx:D mode:inf]{
  n1   [cat:vn gen:A mode:inf num:B pers:C]![cat:vn gen:F inv:G mode:H num:I pers:J pp_gen:K pp_num:L]{
   n2 type:subst  [case:acc cat:cl gen:K idx:O num:L refl:_]![cat:cl]
@@ -2015,7 +2005,7 @@ n0   [cat:s]![cat:s control_gen:A control_num:B control_pers:C controlIdx:D mode
  }
 }
 
-Tn0Vn1_27 ( ! arg1:D arg2:V evt:P objectI:V rel:S subjectI:D vbI:P) initial
+Tn0Vn1_47 ( ! arg1:D arg2:V evt:P objectI:V rel:S subjectI:D vbI:P) initial
 n0   [cat:s]![cat:s control_gen:A control_num:B control_pers:C controlIdx:D mode:inf]{
  n1   [cat:vn gen:A mode:inf num:B pers:C]![cat:vn gen:F inv:G mode:H num:I pers:J pp_gen:K pp_num:L]{
   n2 type:anchor  [cat:v gen:F idx:P inv:G mode:H num:I pers:J pp_gen:K pp_num:L]![cat:v inv:_]
@@ -2023,11 +2013,11 @@ n0   [cat:s]![cat:s control_gen:A control_num:B control_pers:C controlIdx:D mode
  n3 type:subst  [cat:n det:+]![cat:n]
 }
 
-Tn0Vn1_26 ( ! arg1:E arg2:S evt:V objectI:S rel:X subjectI:E vbI:V) initial
+Tn0Vn1_46 ( ! arg1:E arg2:S evt:V objectI:S rel:X subjectI:E vbI:V) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [cat:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:ind pers:3]![cat:v]
+  n2 type:lex "ce" [cat:cl cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:ind pers:3]![cat:v]
  }
  n4 type:subst  [cat:n gen:D idx:E num:F pers:G]![cat:n]
  n5   [cat:s]![cat:s inv:I mode:ind wh:_]{
@@ -2041,11 +2031,11 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_25 ( ! arg1:E arg2:A1 evt:V objectI:A1 rel:X subjectI:E vbI:V) initial
+Tn0Vn1_45 ( ! arg1:E arg2:A1 evt:V objectI:A1 rel:X subjectI:E vbI:V) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [cat:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:ind pers:3]![cat:v]
+  n2 type:lex "ce" [cat:cl cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:ind pers:3]![cat:v]
  }
  n4 type:subst  [cat:n gen:D idx:E num:F pers:G]![cat:n]
  n5   [cat:s]![cat:s inv:I mode:ind wh:_]{
@@ -2059,11 +2049,11 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_24 ( ! arg1:E arg2:T evt:W objectI:T rel:Y subjectI:E vbI:W) initial
+Tn0Vn1_44 ( ! arg1:E arg2:T evt:W objectI:T rel:Y subjectI:E vbI:W) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [cat:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:ind pers:3]![cat:v]
+  n2 type:lex "ce" [cat:cl cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:ind pers:3]![cat:v]
  }
  n4 type:subst  [cat:n gen:D idx:E num:F pers:G]![cat:n]
  n5   [cat:s]![cat:s inv:I mode:ind wh:_]{
@@ -2077,11 +2067,11 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_23 ( ! arg1:E arg2:A1 evt:U objectI:A1 rel:X subjectI:E vbI:U) initial
+Tn0Vn1_43 ( ! arg1:E arg2:A1 evt:U objectI:A1 rel:X subjectI:E vbI:U) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [cat:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:ind pers:3]![cat:v]
+  n2 type:lex "ce" [cat:cl cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:ind pers:3]![cat:v]
  }
  n4 type:subst  [cat:n gen:D idx:E num:F pers:G]![cat:n]
  n5   [cat:s]![cat:s inv:I mode:ind wh:_]{
@@ -2095,7 +2085,7 @@ n0   [cat:s]![cat:s wh:_]{
  }
 }
 
-Tn0Vn1_22 ( ! arg1:H arg2:X evt:A1 objectI:X rel:C1 subjectI:H vbI:A1) auxiliary
+Tn0Vn1_42 ( ! arg1:H arg2:X evt:A1 objectI:X rel:C1 subjectI:H vbI:A1) auxiliary
 n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  n1 type:foot  [cat:n def:A det:B gen:C idx:H num:D pers:E wh:F]![cat:n]
  n2   [cat:s]![cat:s inv:J mode:ind wh:_]{
@@ -2107,7 +2097,7 @@ n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  }
 }
 
-Tn0Vn1_21 ( ! arg1:H arg2:F1 evt:A1 objectI:F1 rel:C1 subjectI:H vbI:A1) auxiliary
+Tn0Vn1_41 ( ! arg1:H arg2:F1 evt:A1 objectI:F1 rel:C1 subjectI:H vbI:A1) auxiliary
 n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  n1 type:foot  [cat:n def:A det:B gen:C idx:H num:D pers:E wh:F]![cat:n]
  n2   [cat:s]![cat:s inv:J mode:ind wh:_]{
@@ -2119,7 +2109,7 @@ n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  }
 }
 
-Tn0Vn1_20 ( ! arg1:H arg2:Y evt:B1 objectI:Y rel:D1 subjectI:H vbI:B1) auxiliary
+Tn0Vn1_40 ( ! arg1:H arg2:Y evt:B1 objectI:Y rel:D1 subjectI:H vbI:B1) auxiliary
 n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  n1 type:foot  [cat:n def:A det:B gen:C idx:H num:D pers:E wh:F]![cat:n]
  n2   [cat:s]![cat:s inv:J mode:ind wh:_]{
@@ -2131,7 +2121,7 @@ n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  }
 }
 
-Tn0Vn1_19 ( ! arg1:H arg2:F1 evt:Z objectI:F1 rel:C1 subjectI:H vbI:Z) auxiliary
+Tn0Vn1_39 ( ! arg1:H arg2:F1 evt:Z objectI:F1 rel:C1 subjectI:H vbI:Z) auxiliary
 n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  n1 type:foot  [cat:n def:A det:B gen:C idx:H num:D pers:E wh:F]![cat:n]
  n2   [cat:s]![cat:s inv:J mode:ind wh:_]{
@@ -2143,7 +2133,7 @@ n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  }
 }
 
-Tn0Vn1_18 ( ! arg1:E arg2:Q evt:T objectI:Q rel:V subjectI:E vbI:T) initial
+Tn0Vn1_38 ( ! arg1:E arg2:Q evt:T objectI:Q rel:V subjectI:E vbI:T) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:+]{
  n1 type:subst  [cat:n gen:D idx:E num:F pers:G wh:+]![cat:n]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I inv:J mode:K num:L pers:M pp_gen:N pp_num:F]{
@@ -2152,7 +2142,7 @@ n0   [cat:s]![cat:s inv:A mode:B wh:+]{
  }
 }
 
-Tn0Vn1_17 ( ! arg1:E arg2:Y evt:T objectI:Y rel:V subjectI:E vbI:T) initial
+Tn0Vn1_37 ( ! arg1:E arg2:Y evt:T objectI:Y rel:V subjectI:E vbI:T) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:+]{
  n1 type:subst  [cat:n gen:D idx:E num:F pers:G wh:+]![cat:n]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I inv:J mode:K num:L pers:M pp_gen:N pp_num:O]{
@@ -2161,7 +2151,7 @@ n0   [cat:s]![cat:s inv:A mode:B wh:+]{
  }
 }
 
-Tn0Vn1_16 ( ! arg1:E arg2:R evt:U objectI:R rel:W subjectI:E vbI:U) initial
+Tn0Vn1_36 ( ! arg1:E arg2:R evt:U objectI:R rel:W subjectI:E vbI:U) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:+]{
  n1 type:subst  [cat:n gen:D idx:E num:F pers:G wh:+]![cat:n]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I inv:J mode:K num:L pers:M pp_gen:N pp_num:O]{
@@ -2170,7 +2160,7 @@ n0   [cat:s]![cat:s inv:A mode:B wh:+]{
  }
 }
 
-Tn0Vn1_15 ( ! arg1:E arg2:Y evt:S objectI:Y rel:V subjectI:E vbI:S) initial
+Tn0Vn1_35 ( ! arg1:E arg2:Y evt:S objectI:Y rel:V subjectI:E vbI:S) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:+]{
  n1 type:subst  [cat:n gen:D idx:E num:F pers:G wh:+]![cat:n]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I inv:J mode:K num:L pers:M pp_gen:N pp_num:O]{
@@ -2179,27 +2169,27 @@ n0   [cat:s]![cat:s inv:A mode:B wh:+]{
  n4 type:subst  [cat:n det:+]![cat:n]
 }
 
-Tn0Vn1_14 ( ! arg1:N arg2:F evt:Z objectI:F rel:B1 subjectI:N vbI:Z) initial
+Tn0Vn1_34 ( ! arg1:N arg2:E cleft:E evt:Z objectI:E rel:B1 subjectI:N vbI:Z) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
- n4 type:subst  [cat:n det:+ gen:E idx:F num:sg wh:_]![cat:n]
+ n4 type:subst  [cat:n det:+ gen:F idx:E idx:E num:sg wh:_]![cat:n idx:E]
  n5   [cat:s]![cat:s]{
   n6   [cat:c]![cat:c]{
    n7   [cat:que]![cat:que]
   }
   n8   [cat:s inv:K wh:_]![cat:s inv:H mode:I wh:_]{
    n9 type:subst  [case:nom cat:cl det:+ gen:M idx:N num:O pers:P]![cat:cl]
-   n10   [cat:vn gen:M inv:H mode:I num:O pers:P]![cat:vn gen:R inv:S mode:T num:U pers:V pp_gen:E pp_num:sg]{
-    n11 type:anchor  [cat:v gen:R idx:Z inv:S mode:T num:U pers:V pp_gen:E pp_num:sg]![cat:v inv:_]
+   n10   [cat:vn gen:M inv:H mode:I num:O pers:P]![cat:vn gen:R inv:S mode:T num:U pers:V pp_gen:F pp_num:sg]{
+    n11 type:anchor  [cat:v gen:R idx:Z inv:S mode:T num:U pers:V pp_gen:F pp_num:sg]![cat:v inv:_]
    }
   }
  }
 }
 
-Tn0Vn1_13 ( ! arg1:S arg2:H evt:E1 objectI:H rel:G1 subjectI:S vbI:E1) auxiliary
+Tn0Vn1_33 ( ! arg1:S arg2:H evt:E1 objectI:H rel:G1 subjectI:S vbI:E1) auxiliary
 n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  n1 type:foot  [cat:n def:A det:B gen:C idx:H num:D pers:E wh:F]![cat:n]
  n2   [cat:s]![cat:s]{
@@ -2213,7 +2203,7 @@ n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  }
 }
 
-Tn0Vn1_12 ( ! arg1:M arg2:E evt:Y objectI:E rel:A1 subjectI:M vbI:Y) initial
+Tn0Vn1_32 ( ! arg1:M arg2:E evt:Y objectI:E rel:A1 subjectI:M vbI:Y) initial
 n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  n1 type:subst  [cat:n gen:D idx:E num:F wh:+]![cat:n]
  n2   [cat:s inv:A wh:_]![cat:s inv:H mode:I wh:_]{
@@ -2224,7 +2214,7 @@ n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  }
 }
 
-Tn0Vn1_11 ( ! arg1:E arg2:Q evt:T objectI:Q rel:V subjectI:E vbI:T) initial
+Tn0Vn1_31 ( ! arg1:E arg2:Q evt:T objectI:Q rel:V subjectI:E vbI:T) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1 type:subst  [case:nom cat:cl det:+ gen:D idx:E num:F pers:G]![cat:cl]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I inv:J mode:K num:L pers:M pp_gen:N pp_num:F]{
@@ -2233,7 +2223,7 @@ n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  }
 }
 
-Tn0Vn1_10 ( ! arg1:E arg2:Y evt:T objectI:Y rel:V subjectI:E vbI:T) initial
+Tn0Vn1_30 ( ! arg1:E arg2:Y evt:T objectI:Y rel:V subjectI:E vbI:T) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1 type:subst  [case:nom cat:cl det:+ gen:D idx:E num:F pers:G]![cat:cl]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I inv:J mode:K num:L pers:M pp_gen:N pp_num:O]{
@@ -2242,7 +2232,7 @@ n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  }
 }
 
-Tn0Vn1_9 ( ! arg1:E arg2:R evt:U objectI:R rel:W subjectI:E vbI:U) initial
+Tn0Vn1_29 ( ! arg1:E arg2:R evt:U objectI:R rel:W subjectI:E vbI:U) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1 type:subst  [case:nom cat:cl det:+ gen:D idx:E num:F pers:G]![cat:cl]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I inv:J mode:K num:L pers:M pp_gen:N pp_num:O]{
@@ -2251,7 +2241,7 @@ n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  }
 }
 
-Tn0Vn1_8 ( ! arg1:E arg2:Y evt:S objectI:Y rel:V subjectI:E vbI:S) initial
+Tn0Vn1_28 ( ! arg1:E arg2:Y evt:S objectI:Y rel:V subjectI:E vbI:S) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1 type:subst  [case:nom cat:cl det:+ gen:D idx:E num:F pers:G]![cat:cl]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I inv:J mode:K num:L pers:M pp_gen:N pp_num:O]{
@@ -2260,27 +2250,27 @@ n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n4 type:subst  [cat:n det:+]![cat:n]
 }
 
-Tn0Vn1_7 ( ! arg1:N arg2:F evt:Z objectI:F rel:B1 subjectI:N vbI:Z) initial
+Tn0Vn1_27 ( ! arg1:N arg2:E cleft:E evt:Z objectI:E rel:B1 subjectI:N vbI:Z) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
+  n2 type:lex "ce" [case:ce cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:C pers:3]![cat:v]
  }
- n4 type:subst  [cat:n det:+ gen:E idx:F num:sg wh:_]![cat:n]
+ n4 type:subst  [cat:n det:+ gen:F idx:E idx:E num:sg wh:_]![cat:n idx:E]
  n5   [cat:s]![cat:s]{
   n6   [cat:c]![cat:c]{
    n7   [cat:que]![cat:que]
   }
   n8   [cat:s inv:K wh:_]![cat:s inv:H mode:I wh:_]{
    n9 type:subst  [cat:n det:+ gen:M idx:N num:O pers:P]![cat:n]
-   n10   [cat:vn gen:M inv:H mode:I num:O pers:P]![cat:vn gen:R inv:S mode:T num:U pers:V pp_gen:E pp_num:sg]{
-    n11 type:anchor  [cat:v gen:R idx:Z inv:S mode:T num:U pers:V pp_gen:E pp_num:sg]![cat:v inv:_]
+   n10   [cat:vn gen:M inv:H mode:I num:O pers:P]![cat:vn gen:R inv:S mode:T num:U pers:V pp_gen:F pp_num:sg]{
+    n11 type:anchor  [cat:v gen:R idx:Z inv:S mode:T num:U pers:V pp_gen:F pp_num:sg]![cat:v inv:_]
    }
   }
  }
 }
 
-Tn0Vn1_6 ( ! arg1:S arg2:H evt:E1 objectI:H rel:G1 subjectI:S vbI:E1) auxiliary
+Tn0Vn1_26 ( ! arg1:S arg2:H evt:E1 objectI:H rel:G1 subjectI:S vbI:E1) auxiliary
 n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  n1 type:foot  [cat:n def:A det:B gen:C idx:H num:D pers:E wh:F]![cat:n]
  n2   [cat:s]![cat:s]{
@@ -2294,7 +2284,7 @@ n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  }
 }
 
-Tn0Vn1_5 ( ! arg1:M arg2:E evt:Y objectI:E rel:A1 subjectI:M vbI:Y) initial
+Tn0Vn1_25 ( ! arg1:M arg2:E evt:Y objectI:E rel:A1 subjectI:M vbI:Y) initial
 n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  n1 type:subst  [cat:n gen:D idx:E num:F wh:+]![cat:n]
  n2   [cat:s inv:A wh:_]![cat:s inv:H mode:I wh:_]{
@@ -2305,7 +2295,7 @@ n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
  }
 }
 
-Tn0Vn1_4 ( ! arg1:E arg2:Q evt:T objectI:Q rel:V subjectI:E vbI:T) initial
+Tn0Vn1_24 ( ! arg1:E arg2:Q evt:T objectI:Q rel:V subjectI:E vbI:T) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1 type:subst  [cat:n det:+ gen:D idx:E num:F pers:G]![cat:n]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I inv:J mode:K num:L pers:M pp_gen:N pp_num:F]{
@@ -2314,7 +2304,7 @@ n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  }
 }
 
-Tn0Vn1_3 ( ! arg1:E arg2:Y evt:T objectI:Y rel:V subjectI:E vbI:T) initial
+Tn0Vn1_23 ( ! arg1:E arg2:Y evt:T objectI:Y rel:V subjectI:E vbI:T) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1 type:subst  [cat:n det:+ gen:D idx:E num:F pers:G]![cat:n]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I inv:J mode:K num:L pers:M pp_gen:N pp_num:O]{
@@ -2323,7 +2313,7 @@ n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  }
 }
 
-Tn0Vn1_2 ( ! arg1:E arg2:R evt:U objectI:R rel:W subjectI:E vbI:U) initial
+Tn0Vn1_22 ( ! arg1:E arg2:R evt:U objectI:R rel:W subjectI:E vbI:U) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1 type:subst  [cat:n det:+ gen:D idx:E num:F pers:G]![cat:n]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I inv:J mode:K num:L pers:M pp_gen:N pp_num:O]{
@@ -2332,7 +2322,7 @@ n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  }
 }
 
-Tn0Vn1_1 ( ! arg1:E arg2:Y evt:S objectI:Y rel:V subjectI:E vbI:S) initial
+Tn0Vn1_21 ( ! arg1:E arg2:Y evt:S objectI:Y rel:V subjectI:E vbI:S) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1 type:subst  [cat:n det:+ gen:D idx:E num:F pers:G]![cat:n]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I inv:J mode:K num:L pers:M pp_gen:N pp_num:O]{
@@ -2345,444 +2335,45 @@ end family
 
 
 % ----------------------------------------------------------------------
-begin family n0vNden1
+begin family n0vApost
 % ----------------------------------------------------------------------
 
-Tn0vNden1_198 ( ! genitiveI:A) initial
-n0   [cat:n]![cat:n]{
- n1 type:anchor  [cat:n]![cat:n]
- n2   [cat:pp]![cat:pp]{
-  n3   [cat:p]![cat:p]{
-   n4   [cat:de]![cat:de]
-  }
-  n5 type:subst  [cat:n det:+ idx:A]![cat:n]
- }
+Tn0vApost_20 ( ! idx:H) auxiliary
+n0   [cat:n idx:H]![cat:n def:A det:B gen:C idx:H num:D pers:E wh:F]{
+ n1 type:foot  [cat:n def:A det:B gen:C idx:H num:D pers:E wh:F]![cat:n idx:H]
+ n2 type:anchor  [cat:adj gen:C num:D]![cat:adj]
 }
 
-Tn0vNden1_197 ( ! genitiveI:E subjectI:V) initial
-n0   [cat:s]![cat:s wh:_]{
- n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
- }
- n4 type:subst  [cat:n det:+ idx:E num:sg wh:_]![cat:n idx:E]
- n5   [cat:s]![cat:s]{
-  n6   [cat:c]![cat:c]{
-   n7   [cat:dont]![cat:dont]
-  }
-  n8   [cat:s inv:I wh:_]![cat:s inv:n mode:G wh:_]{
-   n9   [cat:vn gen:P mode:G num:Q pers:R]![cat:vn gen:K mode:L num:M pers:N]{
-    n10 type:subst  [cat:v cop:+ mode:L num:M pers:N]![cat:v]
-    n11 type:anchor  [cat:n gen:K num:M]![cat:n]
-   }
-   n12 type:subst  [cat:n det:+ gen:P idx:V num:Q pers:R]![cat:n]
-  }
- }
-}
-
-Tn0vNden1_196 ( ! genitiveI:E subjectI:U) initial
-n0   [cat:s]![cat:s wh:_]{
- n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
- }
- n4 type:subst  [cat:n]![cat:n]
- n5   [cat:s]![cat:s]{
-  n6   [cat:pp]![cat:pp]{
-   n7   [cat:p]![cat:p]{
-    n8   [cat:de]![cat:de]
-   }
-   n9 type:subst  [cat:n idx:E]![cat:n idx:E]
-  }
-  n10   [cat:s inv:H wh:_]![cat:s inv:n mode:F wh:_]{
-   n11   [cat:vn gen:O mode:F num:P pers:Q]![cat:vn gen:J mode:K num:L pers:M]{
-    n12 type:subst  [cat:v cop:+ mode:K num:L pers:M]![cat:v]
-    n13 type:anchor  [cat:n gen:J num:L]![cat:n]
-   }
-   n14 type:subst  [cat:n det:+ gen:O idx:U num:P pers:Q]![cat:n]
-  }
- }
-}
-
-Tn0vNden1_195 ( ! genitiveI:E subjectI:V) initial
-n0   [cat:s]![cat:s wh:_]{
- n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
- }
- n4   [cat:pp]![cat:pp]{
-  n5   [cat:p]![cat:p]{
-   n6   [cat:de]![cat:de]
-  }
-  n7 type:subst  [cat:n det:+ idx:E num:sg wh:_]![cat:n]
- }
- n8   [cat:s]![cat:s]{
-  n9   [cat:c]![cat:c]{
-   n10   [cat:que]![cat:que]
-  }
-  n11   [cat:s inv:I wh:_]![cat:s inv:n mode:G wh:_]{
-   n12   [cat:vn gen:P mode:G num:Q pers:R]![cat:vn gen:K mode:L num:M pers:N]{
-    n13 type:subst  [cat:v cop:+ mode:L num:M pers:N]![cat:v]
-    n14 type:anchor  [cat:n gen:K num:M]![cat:n]
-   }
-   n15 type:subst  [cat:n det:+ gen:P idx:V num:Q pers:R]![cat:n]
-  }
- }
-}
-
-Tn0vNden1_194 ( ! genitiveI:I subjectI:Z) auxiliary
-n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
- n1 type:foot  [cat:n def:A det:B gen:C num:D pers:E wh:F]![cat:n]
- n2   [cat:s]![cat:s]{
-  n3   [cat:pp]![cat:pp]{
-   n4   [cat:p]![cat:p]{
-    n5   [cat:de]![cat:de]
-   }
-   n6 type:subst  [cat:n det:+ idx:I wh:+]![cat:n]
-  }
-  n7   [cat:s inv:M wh:_]![cat:s inv:n mode:K wh:_]{
-   n8   [cat:vn gen:T mode:K num:U pers:V]![cat:vn gen:O mode:P num:Q pers:R]{
-    n9 type:subst  [cat:v cop:+ mode:P num:Q pers:R]![cat:v]
-    n10 type:anchor  [cat:n gen:O num:Q]![cat:n]
-   }
-   n11 type:subst  [cat:n det:+ gen:T idx:Z num:U pers:V]![cat:n]
-  }
- }
-}
-
-Tn0vNden1_193 ( ! genitiveI:D subjectI:T) initial
-n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
- n1   [cat:pp]![cat:pp]{
-  n2   [cat:p]![cat:p]{
-   n3   [cat:de]![cat:de]
-  }
-  n4 type:subst  [cat:n det:+ idx:D wh:+]![cat:n]
- }
- n5   [cat:s inv:A wh:_]![cat:s inv:n mode:F wh:_]{
-  n6   [cat:vn gen:N mode:F num:O pers:P]![cat:vn gen:I mode:J num:K pers:L]{
-   n7 type:subst  [cat:v cop:+ mode:J num:K pers:L]![cat:v]
-   n8 type:anchor  [cat:n gen:I num:K]![cat:n]
-  }
-  n9 type:subst  [cat:n det:+ gen:N idx:T num:O pers:P]![cat:n]
- }
-}
-
-Tn0vNden1_192 ( ! genitiveI:L subjectI:P) initial
-n0   [cat:s]![cat:s inv:n mode:A wh:_]{
- n1   [cat:vn gen:H mode:A num:I pers:J]![cat:vn gen:C mode:D num:E pers:F]{
-  n2 type:subst  [case:gen cat:cl idx:L refl:_]![cat:cl]
-  n3 type:subst  [cat:v cop:+ mode:D num:E pers:F]![cat:v]
-  n4 type:anchor  [cat:n gen:C num:E]![cat:n]
- }
- n5 type:subst  [cat:n det:+ gen:H idx:P num:I pers:J]![cat:n]
-}
-
-Tn0vNden1_191 ( ! genitiveI:P subjectI:N) initial
+Tn0vApost_19 ( ! subjectI:N) initial
 n0   [cat:s]![cat:s inv:n mode:A wh:_]{
  n1   [cat:vn gen:H mode:A num:I pers:J]![cat:vn gen:C mode:D num:E pers:F]{
   n2 type:subst  [cat:v cop:+ mode:D num:E pers:F]![cat:v]
-  n3 type:anchor  [cat:n gen:C num:E]![cat:n]
+  n3 type:anchor  [cat:adj gen:C num:E]![cat:adj]
  }
  n4 type:subst  [cat:n det:+ gen:H idx:N num:I pers:J]![cat:n]
- n5   [cat:pp]![cat:pp]{
-  n6   [cat:p]![cat:p]{
-   n7   [cat:de]![cat:de]
-  }
-  n8 type:subst  [cat:n det:+ idx:P]![cat:n]
- }
 }
 
-Tn0vNden1_190 ( ! genitiveI:N subjectI:P) initial
-n0   [cat:s]![cat:s inv:n mode:A wh:_]{
- n1   [cat:vn gen:H mode:A num:I pers:J]![cat:vn gen:C mode:D num:E pers:F]{
-  n2 type:subst  [cat:v cop:+ mode:D num:E pers:F]![cat:v]
-  n3 type:anchor  [cat:n gen:C num:E]![cat:n]
- }
- n4   [cat:pp]![cat:pp]{
-  n5   [cat:p]![cat:p]{
-   n6   [cat:de]![cat:de]
-  }
-  n7 type:subst  [cat:n det:+ idx:N]![cat:n]
- }
- n8 type:subst  [cat:n det:+ gen:H idx:P num:I pers:J]![cat:n]
-}
-
-Tn0vNden1_189 ( ! genitiveI:E) initial
-n0   [cat:s]![cat:s wh:_]{
- n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
- }
- n4 type:subst  [cat:n det:+ idx:E num:sg wh:_]![cat:n idx:E]
- n5   [cat:s]![cat:s]{
-  n6   [cat:c]![cat:c]{
-   n7   [cat:dont]![cat:dont]
-  }
-  n8   [cat:s inv:H wh:_]![cat:s mode:imp]{
-   n9   [cat:vn mode:imp pers:O]![cat:vn gen:J mode:K num:L pers:M]{
-    n10 type:subst  [cat:v cop:+ mode:K num:L pers:M]![cat:v]
-    n11 type:anchor  [cat:n gen:J num:L]![cat:n]
-   }
-  }
- }
-}
-
-Tn0vNden1_188 ( ! genitiveI:E) initial
-n0   [cat:s]![cat:s wh:_]{
- n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
- }
- n4 type:subst  [cat:n]![cat:n]
- n5   [cat:s]![cat:s]{
-  n6   [cat:pp]![cat:pp]{
-   n7   [cat:p]![cat:p]{
-    n8   [cat:de]![cat:de]
-   }
-   n9 type:subst  [cat:n idx:E]![cat:n idx:E]
-  }
-  n10   [cat:s inv:G wh:_]![cat:s mode:imp]{
-   n11   [cat:vn mode:imp pers:N]![cat:vn gen:I mode:J num:K pers:L]{
-    n12 type:subst  [cat:v cop:+ mode:J num:K pers:L]![cat:v]
-    n13 type:anchor  [cat:n gen:I num:K]![cat:n]
-   }
-  }
- }
-}
-
-Tn0vNden1_187 ( ! genitiveI:E) initial
-n0   [cat:s]![cat:s wh:_]{
- n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
- }
- n4   [cat:pp]![cat:pp]{
-  n5   [cat:p]![cat:p]{
-   n6   [cat:de]![cat:de]
-  }
-  n7 type:subst  [cat:n det:+ idx:E num:sg wh:_]![cat:n]
- }
- n8   [cat:s]![cat:s]{
-  n9   [cat:c]![cat:c]{
-   n10   [cat:que]![cat:que]
-  }
-  n11   [cat:s inv:H wh:_]![cat:s mode:imp]{
-   n12   [cat:vn mode:imp pers:O]![cat:vn gen:J mode:K num:L pers:M]{
-    n13 type:subst  [cat:v cop:+ mode:K num:L pers:M]![cat:v]
-    n14 type:anchor  [cat:n gen:J num:L]![cat:n]
-   }
-  }
- }
-}
-
-Tn0vNden1_186 ( ! genitiveI:I) auxiliary
-n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
- n1 type:foot  [cat:n def:A det:B gen:C num:D pers:E wh:F]![cat:n]
- n2   [cat:s]![cat:s]{
-  n3   [cat:pp]![cat:pp]{
-   n4   [cat:p]![cat:p]{
-    n5   [cat:de]![cat:de]
-   }
-   n6 type:subst  [cat:n det:+ idx:I wh:+]![cat:n]
-  }
-  n7   [cat:s inv:L wh:_]![cat:s mode:imp]{
-   n8   [cat:vn mode:imp pers:S]![cat:vn gen:N mode:O num:P pers:Q]{
-    n9 type:subst  [cat:v cop:+ mode:O num:P pers:Q]![cat:v]
-    n10 type:anchor  [cat:n gen:N num:P]![cat:n]
-   }
-  }
- }
-}
-
-Tn0vNden1_185 ( ! genitiveI:D) initial
-n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
- n1   [cat:pp]![cat:pp]{
-  n2   [cat:p]![cat:p]{
-   n3   [cat:de]![cat:de]
-  }
-  n4 type:subst  [cat:n det:+ idx:D wh:+]![cat:n]
- }
- n5   [cat:s inv:A wh:_]![cat:s mode:imp]{
-  n6   [cat:vn mode:imp pers:M]![cat:vn gen:H mode:I num:J pers:K]{
-   n7 type:subst  [cat:v cop:+ mode:I num:J pers:K]![cat:v]
-   n8 type:anchor  [cat:n gen:H num:J]![cat:n]
-  }
- }
-}
-
-Tn0vNden1_184 ( ! genitiveI:I) initial
-n0   [cat:s]![cat:s mode:imp]{
- n1   [cat:vn mode:imp pers:G]![cat:vn gen:B mode:C num:D pers:E]{
-  n2 type:subst  [case:gen cat:cl idx:I refl:_]![cat:cl]
-  n3 type:subst  [cat:v cop:+ mode:C num:D pers:E]![cat:v]
-  n4 type:anchor  [cat:n gen:B num:D]![cat:n]
- }
-}
-
-Tn0vNden1_183 ( ! genitiveI:K) initial
+Tn0vApost_18 ( ! ) initial
 n0   [cat:s]![cat:s mode:imp]{
  n1   [cat:vn mode:imp pers:G]![cat:vn gen:B mode:C num:D pers:E]{
   n2 type:subst  [cat:v cop:+ mode:C num:D pers:E]![cat:v]
-  n3 type:anchor  [cat:n gen:B num:D]![cat:n]
- }
- n4   [cat:pp]![cat:pp]{
-  n5   [cat:p]![cat:p]{
-   n6   [cat:de]![cat:de]
-  }
-  n7 type:subst  [cat:n det:+ idx:K]![cat:n]
+  n3 type:anchor  [cat:adj gen:B num:D]![cat:adj]
  }
 }
 
-Tn0vNden1_182 ( ! genitiveI:E subjectI:J) initial
-n0   [cat:s]![cat:s wh:_]{
- n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
- }
- n4 type:subst  [cat:n det:+ idx:E num:sg wh:_]![cat:n idx:E]
- n5   [cat:s]![cat:s]{
-  n6   [cat:c]![cat:c]{
-   n7   [cat:dont]![cat:dont]
-  }
-  n8   [cat:s inv:L wh:_]![cat:s control_gen:G control_num:H control_pers:I controlIdx:J mode:inf]{
-   n9   [cat:vn gen:G mode:inf num:H pers:I]![cat:vn gen:N mode:O num:P pers:Q]{
-    n10 type:subst  [cat:v cop:+ mode:O num:P pers:Q]![cat:v]
-    n11 type:anchor  [cat:n gen:N num:P]![cat:n]
-   }
-  }
- }
-}
-
-Tn0vNden1_181 ( ! genitiveI:E subjectI:I) initial
-n0   [cat:s]![cat:s wh:_]{
- n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
- }
- n4 type:subst  [cat:n]![cat:n]
- n5   [cat:s]![cat:s]{
-  n6   [cat:pp]![cat:pp]{
-   n7   [cat:p]![cat:p]{
-    n8   [cat:de]![cat:de]
-   }
-   n9 type:subst  [cat:n idx:E]![cat:n idx:E]
-  }
-  n10   [cat:s inv:K wh:_]![cat:s control_gen:F control_num:G control_pers:H controlIdx:I mode:inf]{
-   n11   [cat:vn gen:F mode:inf num:G pers:H]![cat:vn gen:M mode:N num:O pers:P]{
-    n12 type:subst  [cat:v cop:+ mode:N num:O pers:P]![cat:v]
-    n13 type:anchor  [cat:n gen:M num:O]![cat:n]
-   }
-  }
- }
-}
-
-Tn0vNden1_180 ( ! genitiveI:E subjectI:J) initial
-n0   [cat:s]![cat:s wh:_]{
- n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
- }
- n4   [cat:pp]![cat:pp]{
-  n5   [cat:p]![cat:p]{
-   n6   [cat:de]![cat:de]
-  }
-  n7 type:subst  [cat:n det:+ idx:E num:sg wh:_]![cat:n]
- }
- n8   [cat:s]![cat:s]{
-  n9   [cat:c]![cat:c]{
-   n10   [cat:que]![cat:que]
-  }
-  n11   [cat:s inv:L wh:_]![cat:s control_gen:G control_num:H control_pers:I controlIdx:J mode:inf]{
-   n12   [cat:vn gen:G mode:inf num:H pers:I]![cat:vn gen:N mode:O num:P pers:Q]{
-    n13 type:subst  [cat:v cop:+ mode:O num:P pers:Q]![cat:v]
-    n14 type:anchor  [cat:n gen:N num:P]![cat:n]
-   }
-  }
- }
-}
-
-Tn0vNden1_179 ( ! genitiveI:I subjectI:N) auxiliary
-n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
- n1 type:foot  [cat:n def:A det:B gen:C num:D pers:E wh:F]![cat:n]
- n2   [cat:s]![cat:s]{
-  n3   [cat:pp]![cat:pp]{
-   n4   [cat:p]![cat:p]{
-    n5   [cat:de]![cat:de]
-   }
-   n6 type:subst  [cat:n det:+ idx:I wh:+]![cat:n]
-  }
-  n7   [cat:s inv:P wh:_]![cat:s control_gen:K control_num:L control_pers:M controlIdx:N mode:inf]{
-   n8   [cat:vn gen:K mode:inf num:L pers:M]![cat:vn gen:R mode:S num:T pers:U]{
-    n9 type:subst  [cat:v cop:+ mode:S num:T pers:U]![cat:v]
-    n10 type:anchor  [cat:n gen:R num:T]![cat:n]
-   }
-  }
- }
-}
-
-Tn0vNden1_178 ( ! genitiveI:D subjectI:I) initial
-n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
- n1   [cat:pp]![cat:pp]{
-  n2   [cat:p]![cat:p]{
-   n3   [cat:de]![cat:de]
-  }
-  n4 type:subst  [cat:n det:+ idx:D wh:+]![cat:n]
- }
- n5   [cat:s inv:A wh:_]![cat:s control_gen:F control_num:G control_pers:H controlIdx:I mode:inf]{
-  n6   [cat:vn gen:F mode:inf num:G pers:H]![cat:vn gen:L mode:M num:N pers:O]{
-   n7 type:subst  [cat:v cop:+ mode:M num:N pers:O]![cat:v]
-   n8 type:anchor  [cat:n gen:L num:N]![cat:n]
-  }
- }
-}
-
-Tn0vNden1_177 ( ! genitiveI:L subjectI:D) initial
-n0   [cat:s]![cat:s control_gen:A control_num:B control_pers:C controlIdx:D mode:inf]{
- n1   [cat:vn gen:A mode:inf num:B pers:C]![cat:vn gen:F mode:G num:H pers:I]{
-  n2 type:subst  [case:gen cat:cl idx:L refl:_]![cat:cl]
-  n3 type:subst  [cat:v cop:+ mode:G num:H pers:I]![cat:v]
-  n4 type:anchor  [cat:n gen:F num:H]![cat:n]
- }
-}
-
-Tn0vNden1_176 ( ! genitiveI:N subjectI:D) initial
+Tn0vApost_17 ( ! subjectI:D) initial
 n0   [cat:s]![cat:s control_gen:A control_num:B control_pers:C controlIdx:D mode:inf]{
  n1   [cat:vn gen:A mode:inf num:B pers:C]![cat:vn gen:F mode:G num:H pers:I]{
   n2 type:subst  [cat:v cop:+ mode:G num:H pers:I]![cat:v]
-  n3 type:anchor  [cat:n gen:F num:H]![cat:n]
- }
- n4   [cat:pp]![cat:pp]{
-  n5   [cat:p]![cat:p]{
-   n6   [cat:de]![cat:de]
-  }
-  n7 type:subst  [cat:n det:+ idx:N]![cat:n]
+  n3 type:anchor  [cat:adj gen:F num:H]![cat:adj]
  }
 }
 
-Tn0vNden1_175 ( ! genitiveI:Q subjectI:E) initial
+Tn0vApost_16 ( ! subjectI:E) initial
 n0   [cat:s]![cat:s wh:_]{
  n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [cat:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:ind pers:3]![cat:v]
- }
- n4 type:subst  [cat:n gen:D idx:E num:F pers:G]![cat:n]
- n5   [cat:s]![cat:s inv:I mode:ind wh:_]{
-  n6   [cat:c]![cat:c]{
-   n7   [cat:qui]![cat:qui]
-  }
-  n8   [cat:vn gen:D inv:I mode:ind num:F pers:G]![cat:vn gen:K mode:L num:M pers:N]{
-   n9 type:subst  [case:gen cat:cl idx:Q refl:_]![cat:cl]
-   n10 type:subst  [cat:v cop:+ mode:L num:M pers:N]![cat:v]
-   n11 type:anchor  [cat:n gen:K num:M]![cat:n]
-  }
- }
-}
-
-Tn0vNden1_174 ( ! genitiveI:S subjectI:E) initial
-n0   [cat:s]![cat:s wh:_]{
- n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [cat:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:ind pers:3]![cat:v]
+  n2 type:lex "ce" [cat:cl cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:ind pers:3]![cat:v]
  }
  n4 type:subst  [cat:n gen:D idx:E num:F pers:G]![cat:n]
  n5   [cat:s]![cat:s inv:I mode:ind wh:_]{
@@ -2791,336 +2382,142 @@ n0   [cat:s]![cat:s wh:_]{
   }
   n8   [cat:vn gen:D inv:I mode:ind num:F pers:G]![cat:vn gen:K mode:L num:M pers:N]{
    n9 type:subst  [cat:v cop:+ mode:L num:M pers:N]![cat:v]
-   n10 type:anchor  [cat:n gen:K num:M]![cat:n]
-  }
-  n11   [cat:pp]![cat:pp]{
-   n12   [cat:p]![cat:p]{
-    n13   [cat:de]![cat:de]
-   }
-   n14 type:subst  [cat:n det:+ idx:S]![cat:n]
+   n10 type:anchor  [cat:adj gen:K num:M]![cat:adj]
   }
  }
 }
 
-Tn0vNden1_173 ( ! genitiveI:V subjectI:H) auxiliary
-n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
- n1 type:foot  [cat:n def:A det:B gen:C idx:H num:D pers:E wh:F]![cat:n]
- n2   [cat:s]![cat:s inv:J mode:ind wh:_]{
-  n3 type:subst  [cat:n gen:L idx:H num:M pers:N wh:rel]![cat:n]
-  n4   [cat:vn gen:L inv:J mode:ind num:M pers:N]![cat:vn gen:P mode:Q num:R pers:S]{
-   n5 type:subst  [case:gen cat:cl idx:V refl:_]![cat:cl]
-   n6 type:subst  [cat:v cop:+ mode:Q num:R pers:S]![cat:v]
-   n7 type:anchor  [cat:n gen:P num:R]![cat:n]
-  }
- }
-}
-
-Tn0vNden1_172 ( ! genitiveI:X subjectI:H) auxiliary
+Tn0vApost_15 ( ! subjectI:H) auxiliary
 n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
  n1 type:foot  [cat:n def:A det:B gen:C idx:H num:D pers:E wh:F]![cat:n]
  n2   [cat:s]![cat:s inv:J mode:ind wh:_]{
   n3 type:subst  [cat:n gen:L idx:H num:M pers:N wh:rel]![cat:n]
   n4   [cat:vn gen:L inv:J mode:ind num:M pers:N]![cat:vn gen:P mode:Q num:R pers:S]{
    n5 type:subst  [cat:v cop:+ mode:Q num:R pers:S]![cat:v]
-   n6 type:anchor  [cat:n gen:P num:R]![cat:n]
-  }
-  n7   [cat:pp]![cat:pp]{
-   n8   [cat:p]![cat:p]{
-    n9   [cat:de]![cat:de]
-   }
-   n10 type:subst  [cat:n det:+ idx:X]![cat:n]
+   n6 type:anchor  [cat:adj gen:P num:R]![cat:adj]
   }
  }
 }
 
-Tn0vNden1_171 ( ! genitiveI:O subjectI:E) initial
-n0   [cat:s]![cat:s inv:A mode:B wh:+]{
- n1 type:subst  [cat:n gen:D idx:E num:F pers:G wh:+]![cat:n]
- n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I mode:J num:K pers:L]{
-  n3 type:subst  [case:gen cat:cl idx:O refl:_]![cat:cl]
-  n4 type:subst  [cat:v cop:+ mode:J num:K pers:L]![cat:v]
-  n5 type:anchor  [cat:n gen:I num:K]![cat:n]
- }
-}
-
-Tn0vNden1_170 ( ! genitiveI:Q subjectI:E) initial
+Tn0vApost_14 ( ! subjectI:E) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:+]{
  n1 type:subst  [cat:n gen:D idx:E num:F pers:G wh:+]![cat:n]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I mode:J num:K pers:L]{
   n3 type:subst  [cat:v cop:+ mode:J num:K pers:L]![cat:v]
-  n4 type:anchor  [cat:n gen:I num:K]![cat:n]
- }
- n5   [cat:pp]![cat:pp]{
-  n6   [cat:p]![cat:p]{
-   n7   [cat:de]![cat:de]
-  }
-  n8 type:subst  [cat:n det:+ idx:Q]![cat:n]
+  n4 type:anchor  [cat:adj gen:I num:K]![cat:adj]
  }
 }
 
-Tn0vNden1_169 ( ! genitiveI:E subjectI:M) initial
-n0   [cat:s]![cat:s wh:_]{
- n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
- }
- n4 type:subst  [cat:n det:+ idx:E num:sg wh:_]![cat:n idx:E]
- n5   [cat:s]![cat:s]{
-  n6   [cat:c]![cat:c]{
-   n7   [cat:dont]![cat:dont]
-  }
-  n8   [cat:s inv:J wh:_]![cat:s inv:G mode:H wh:_]{
-   n9 type:subst  [case:nom cat:cl det:+ gen:L idx:M num:N pers:O]![cat:cl]
-   n10   [cat:vn gen:L inv:G mode:H num:N pers:O]![cat:vn gen:Q mode:R num:S pers:T]{
-    n11 type:subst  [cat:v cop:+ mode:R num:S pers:T]![cat:v]
-    n12 type:anchor  [cat:n gen:Q num:S]![cat:n]
-   }
-  }
- }
-}
-
-Tn0vNden1_168 ( ! genitiveI:E subjectI:L) initial
-n0   [cat:s]![cat:s wh:_]{
- n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
- }
- n4 type:subst  [cat:n]![cat:n]
- n5   [cat:s]![cat:s]{
-  n6   [cat:pp]![cat:pp]{
-   n7   [cat:p]![cat:p]{
-    n8   [cat:de]![cat:de]
-   }
-   n9 type:subst  [cat:n idx:E]![cat:n idx:E]
-  }
-  n10   [cat:s inv:I wh:_]![cat:s inv:F mode:G wh:_]{
-   n11 type:subst  [case:nom cat:cl det:+ gen:K idx:L num:M pers:N]![cat:cl]
-   n12   [cat:vn gen:K inv:F mode:G num:M pers:N]![cat:vn gen:P mode:Q num:R pers:S]{
-    n13 type:subst  [cat:v cop:+ mode:Q num:R pers:S]![cat:v]
-    n14 type:anchor  [cat:n gen:P num:R]![cat:n]
-   }
-  }
- }
-}
-
-Tn0vNden1_167 ( ! genitiveI:E subjectI:M) initial
-n0   [cat:s]![cat:s wh:_]{
- n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
- }
- n4   [cat:pp]![cat:pp]{
-  n5   [cat:p]![cat:p]{
-   n6   [cat:de]![cat:de]
-  }
-  n7 type:subst  [cat:n det:+ idx:E num:sg wh:_]![cat:n]
- }
- n8   [cat:s]![cat:s]{
-  n9   [cat:c]![cat:c]{
-   n10   [cat:que]![cat:que]
-  }
-  n11   [cat:s inv:J wh:_]![cat:s inv:G mode:H wh:_]{
-   n12 type:subst  [case:nom cat:cl det:+ gen:L idx:M num:N pers:O]![cat:cl]
-   n13   [cat:vn gen:L inv:G mode:H num:N pers:O]![cat:vn gen:Q mode:R num:S pers:T]{
-    n14 type:subst  [cat:v cop:+ mode:R num:S pers:T]![cat:v]
-    n15 type:anchor  [cat:n gen:Q num:S]![cat:n]
-   }
-  }
- }
-}
-
-Tn0vNden1_166 ( ! genitiveI:I subjectI:Q) auxiliary
-n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
- n1 type:foot  [cat:n def:A det:B gen:C num:D pers:E wh:F]![cat:n]
- n2   [cat:s]![cat:s]{
-  n3   [cat:pp]![cat:pp]{
-   n4   [cat:p]![cat:p]{
-    n5   [cat:de]![cat:de]
-   }
-   n6 type:subst  [cat:n det:+ idx:I wh:+]![cat:n]
-  }
-  n7   [cat:s inv:N wh:_]![cat:s inv:K mode:L wh:_]{
-   n8 type:subst  [case:nom cat:cl det:+ gen:P idx:Q num:R pers:S]![cat:cl]
-   n9   [cat:vn gen:P inv:K mode:L num:R pers:S]![cat:vn gen:U mode:V num:W pers:X]{
-    n10 type:subst  [cat:v cop:+ mode:V num:W pers:X]![cat:v]
-    n11 type:anchor  [cat:n gen:U num:W]![cat:n]
-   }
-  }
- }
-}
-
-Tn0vNden1_165 ( ! genitiveI:D subjectI:K) initial
-n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
- n1   [cat:pp]![cat:pp]{
-  n2   [cat:p]![cat:p]{
-   n3   [cat:de]![cat:de]
-  }
-  n4 type:subst  [cat:n det:+ idx:D wh:+]![cat:n]
- }
- n5   [cat:s inv:A wh:_]![cat:s inv:F mode:G wh:_]{
-  n6 type:subst  [case:nom cat:cl det:+ gen:J idx:K num:L pers:M]![cat:cl]
-  n7   [cat:vn gen:J inv:F mode:G num:L pers:M]![cat:vn gen:O mode:P num:Q pers:R]{
-   n8 type:subst  [cat:v cop:+ mode:P num:Q pers:R]![cat:v]
-   n9 type:anchor  [cat:n gen:O num:Q]![cat:n]
-  }
- }
-}
-
-Tn0vNden1_164 ( ! genitiveI:O subjectI:E) initial
-n0   [cat:s]![cat:s inv:A mode:B wh:_]{
- n1 type:subst  [case:nom cat:cl det:+ gen:D idx:E num:F pers:G]![cat:cl]
- n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I mode:J num:K pers:L]{
-  n3 type:subst  [case:gen cat:cl idx:O refl:_]![cat:cl]
-  n4 type:subst  [cat:v cop:+ mode:J num:K pers:L]![cat:v]
-  n5 type:anchor  [cat:n gen:I num:K]![cat:n]
- }
-}
-
-Tn0vNden1_163 ( ! genitiveI:Q subjectI:E) initial
+Tn0vApost_13 ( ! subjectI:E) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1 type:subst  [case:nom cat:cl det:+ gen:D idx:E num:F pers:G]![cat:cl]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I mode:J num:K pers:L]{
   n3 type:subst  [cat:v cop:+ mode:J num:K pers:L]![cat:v]
-  n4 type:anchor  [cat:n gen:I num:K]![cat:n]
- }
- n5   [cat:pp]![cat:pp]{
-  n6   [cat:p]![cat:p]{
-   n7   [cat:de]![cat:de]
-  }
-  n8 type:subst  [cat:n det:+ idx:Q]![cat:n]
+  n4 type:anchor  [cat:adj gen:I num:K]![cat:adj]
  }
 }
 
-Tn0vNden1_162 ( ! genitiveI:E subjectI:M) initial
-n0   [cat:s]![cat:s wh:_]{
- n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
- }
- n4 type:subst  [cat:n det:+ idx:E num:sg wh:_]![cat:n idx:E]
- n5   [cat:s]![cat:s]{
-  n6   [cat:c]![cat:c]{
-   n7   [cat:dont]![cat:dont]
-  }
-  n8   [cat:s inv:J wh:_]![cat:s inv:G mode:H wh:_]{
-   n9 type:subst  [cat:n det:+ gen:L idx:M num:N pers:O]![cat:n]
-   n10   [cat:vn gen:L inv:G mode:H num:N pers:O]![cat:vn gen:Q mode:R num:S pers:T]{
-    n11 type:subst  [cat:v cop:+ mode:R num:S pers:T]![cat:v]
-    n12 type:anchor  [cat:n gen:Q num:S]![cat:n]
-   }
-  }
- }
-}
-
-Tn0vNden1_161 ( ! genitiveI:E subjectI:L) initial
-n0   [cat:s]![cat:s wh:_]{
- n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
- }
- n4 type:subst  [cat:n]![cat:n]
- n5   [cat:s]![cat:s]{
-  n6   [cat:pp]![cat:pp]{
-   n7   [cat:p]![cat:p]{
-    n8   [cat:de]![cat:de]
-   }
-   n9 type:subst  [cat:n idx:E]![cat:n idx:E]
-  }
-  n10   [cat:s inv:I wh:_]![cat:s inv:F mode:G wh:_]{
-   n11 type:subst  [cat:n det:+ gen:K idx:L num:M pers:N]![cat:n]
-   n12   [cat:vn gen:K inv:F mode:G num:M pers:N]![cat:vn gen:P mode:Q num:R pers:S]{
-    n13 type:subst  [cat:v cop:+ mode:Q num:R pers:S]![cat:v]
-    n14 type:anchor  [cat:n gen:P num:R]![cat:n]
-   }
-  }
- }
-}
-
-Tn0vNden1_160 ( ! genitiveI:E subjectI:M) initial
-n0   [cat:s]![cat:s wh:_]{
- n1   [cat:vn]![cat:vn]{
-  n2 type:subst  [case:ce cat:cl]![cat:cl]
-  n3 type:subst  [cat:v mode:C pers:3]![cat:v]
- }
- n4   [cat:pp]![cat:pp]{
-  n5   [cat:p]![cat:p]{
-   n6   [cat:de]![cat:de]
-  }
-  n7 type:subst  [cat:n det:+ idx:E num:sg wh:_]![cat:n]
- }
- n8   [cat:s]![cat:s]{
-  n9   [cat:c]![cat:c]{
-   n10   [cat:que]![cat:que]
-  }
-  n11   [cat:s inv:J wh:_]![cat:s inv:G mode:H wh:_]{
-   n12 type:subst  [cat:n det:+ gen:L idx:M num:N pers:O]![cat:n]
-   n13   [cat:vn gen:L inv:G mode:H num:N pers:O]![cat:vn gen:Q mode:R num:S pers:T]{
-    n14 type:subst  [cat:v cop:+ mode:R num:S pers:T]![cat:v]
-    n15 type:anchor  [cat:n gen:Q num:S]![cat:n]
-   }
-  }
- }
-}
-
-Tn0vNden1_159 ( ! genitiveI:I subjectI:Q) auxiliary
-n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
- n1 type:foot  [cat:n def:A det:B gen:C num:D pers:E wh:F]![cat:n]
- n2   [cat:s]![cat:s]{
-  n3   [cat:pp]![cat:pp]{
-   n4   [cat:p]![cat:p]{
-    n5   [cat:de]![cat:de]
-   }
-   n6 type:subst  [cat:n det:+ idx:I wh:+]![cat:n]
-  }
-  n7   [cat:s inv:N wh:_]![cat:s inv:K mode:L wh:_]{
-   n8 type:subst  [cat:n det:+ gen:P idx:Q num:R pers:S]![cat:n]
-   n9   [cat:vn gen:P inv:K mode:L num:R pers:S]![cat:vn gen:U mode:V num:W pers:X]{
-    n10 type:subst  [cat:v cop:+ mode:V num:W pers:X]![cat:v]
-    n11 type:anchor  [cat:n gen:U num:W]![cat:n]
-   }
-  }
- }
-}
-
-Tn0vNden1_158 ( ! genitiveI:D subjectI:K) initial
-n0   [cat:s princ:+]![cat:s inv:A princ:A wh:+]{
- n1   [cat:pp]![cat:pp]{
-  n2   [cat:p]![cat:p]{
-   n3   [cat:de]![cat:de]
-  }
-  n4 type:subst  [cat:n det:+ idx:D wh:+]![cat:n]
- }
- n5   [cat:s inv:A wh:_]![cat:s inv:F mode:G wh:_]{
-  n6 type:subst  [cat:n det:+ gen:J idx:K num:L pers:M]![cat:n]
-  n7   [cat:vn gen:J inv:F mode:G num:L pers:M]![cat:vn gen:O mode:P num:Q pers:R]{
-   n8 type:subst  [cat:v cop:+ mode:P num:Q pers:R]![cat:v]
-   n9 type:anchor  [cat:n gen:O num:Q]![cat:n]
-  }
- }
-}
-
-Tn0vNden1_157 ( ! genitiveI:O subjectI:E) initial
-n0   [cat:s]![cat:s inv:A mode:B wh:_]{
- n1 type:subst  [cat:n det:+ gen:D idx:E num:F pers:G]![cat:n]
- n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I mode:J num:K pers:L]{
-  n3 type:subst  [case:gen cat:cl idx:O refl:_]![cat:cl]
-  n4 type:subst  [cat:v cop:+ mode:J num:K pers:L]![cat:v]
-  n5 type:anchor  [cat:n gen:I num:K]![cat:n]
- }
-}
-
-Tn0vNden1_156 ( ! genitiveI:Q subjectI:E) initial
+Tn0vApost_12 ( ! subjectI:E) initial
 n0   [cat:s]![cat:s inv:A mode:B wh:_]{
  n1 type:subst  [cat:n det:+ gen:D idx:E num:F pers:G]![cat:n]
  n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I mode:J num:K pers:L]{
   n3 type:subst  [cat:v cop:+ mode:J num:K pers:L]![cat:v]
-  n4 type:anchor  [cat:n gen:I num:K]![cat:n]
+  n4 type:anchor  [cat:adj gen:I num:K]![cat:adj]
  }
- n5   [cat:pp]![cat:pp]{
-  n6   [cat:p]![cat:p]{
-   n7   [cat:de]![cat:de]
+}
+
+end family
+
+
+% ----------------------------------------------------------------------
+begin family n0vApre
+% ----------------------------------------------------------------------
+
+Tn0vApre_10 ( ! idx:H) auxiliary
+n0   [cat:n idx:H]![cat:n def:A det:B gen:C idx:H num:D pers:E wh:F]{
+ n1 type:anchor  [cat:adj gen:C num:D]![cat:adj]
+ n2 type:foot  [cat:n def:A det:B gen:C idx:H num:D pers:E wh:F]![cat:n idx:H]
+}
+
+Tn0vApre_9 ( ! subjectI:N) initial
+n0   [cat:s]![cat:s inv:n mode:A wh:_]{
+ n1   [cat:vn gen:H mode:A num:I pers:J]![cat:vn gen:C mode:D num:E pers:F]{
+  n2 type:subst  [cat:v cop:+ mode:D num:E pers:F]![cat:v]
+  n3 type:anchor  [cat:adj gen:C num:E]![cat:adj]
+ }
+ n4 type:subst  [cat:n det:+ gen:H idx:N num:I pers:J]![cat:n]
+}
+
+Tn0vApre_8 ( ! ) initial
+n0   [cat:s]![cat:s mode:imp]{
+ n1   [cat:vn mode:imp pers:G]![cat:vn gen:B mode:C num:D pers:E]{
+  n2 type:subst  [cat:v cop:+ mode:C num:D pers:E]![cat:v]
+  n3 type:anchor  [cat:adj gen:B num:D]![cat:adj]
+ }
+}
+
+Tn0vApre_7 ( ! subjectI:D) initial
+n0   [cat:s]![cat:s control_gen:A control_num:B control_pers:C controlIdx:D mode:inf]{
+ n1   [cat:vn gen:A mode:inf num:B pers:C]![cat:vn gen:F mode:G num:H pers:I]{
+  n2 type:subst  [cat:v cop:+ mode:G num:H pers:I]![cat:v]
+  n3 type:anchor  [cat:adj gen:F num:H]![cat:adj]
+ }
+}
+
+Tn0vApre_6 ( ! subjectI:E) initial
+n0   [cat:s]![cat:s wh:_]{
+ n1   [cat:vn]![cat:vn]{
+  n2 type:lex "ce" [cat:cl cat:cl]![cat:cl]
+  n3 type:lex "etre" [cat:v mode:ind pers:3]![cat:v]
+ }
+ n4 type:subst  [cat:n gen:D idx:E num:F pers:G]![cat:n]
+ n5   [cat:s]![cat:s inv:I mode:ind wh:_]{
+  n6   [cat:c]![cat:c]{
+   n7   [cat:qui]![cat:qui]
   }
-  n8 type:subst  [cat:n det:+ idx:Q]![cat:n]
+  n8   [cat:vn gen:D inv:I mode:ind num:F pers:G]![cat:vn gen:K mode:L num:M pers:N]{
+   n9 type:subst  [cat:v cop:+ mode:L num:M pers:N]![cat:v]
+   n10 type:anchor  [cat:adj gen:K num:M]![cat:adj]
+  }
+ }
+}
+
+Tn0vApre_5 ( ! subjectI:H) auxiliary
+n0   [cat:n]![cat:n def:A det:B gen:C num:D pers:E wh:F]{
+ n1 type:foot  [cat:n def:A det:B gen:C idx:H num:D pers:E wh:F]![cat:n]
+ n2   [cat:s]![cat:s inv:J mode:ind wh:_]{
+  n3 type:subst  [cat:n gen:L idx:H num:M pers:N wh:rel]![cat:n]
+  n4   [cat:vn gen:L inv:J mode:ind num:M pers:N]![cat:vn gen:P mode:Q num:R pers:S]{
+   n5 type:subst  [cat:v cop:+ mode:Q num:R pers:S]![cat:v]
+   n6 type:anchor  [cat:adj gen:P num:R]![cat:adj]
+  }
+ }
+}
+
+Tn0vApre_4 ( ! subjectI:E) initial
+n0   [cat:s]![cat:s inv:A mode:B wh:+]{
+ n1 type:subst  [cat:n gen:D idx:E num:F pers:G wh:+]![cat:n]
+ n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I mode:J num:K pers:L]{
+  n3 type:subst  [cat:v cop:+ mode:J num:K pers:L]![cat:v]
+  n4 type:anchor  [cat:adj gen:I num:K]![cat:adj]
+ }
+}
+
+Tn0vApre_3 ( ! subjectI:E) initial
+n0   [cat:s]![cat:s inv:A mode:B wh:_]{
+ n1 type:subst  [case:nom cat:cl det:+ gen:D idx:E num:F pers:G]![cat:cl]
+ n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I mode:J num:K pers:L]{
+  n3 type:subst  [cat:v cop:+ mode:J num:K pers:L]![cat:v]
+  n4 type:anchor  [cat:adj gen:I num:K]![cat:adj]
+ }
+}
+
+Tn0vApre_2 ( ! subjectI:E) initial
+n0   [cat:s]![cat:s inv:A mode:B wh:_]{
+ n1 type:subst  [cat:n det:+ gen:D idx:E num:F pers:G]![cat:n]
+ n2   [cat:vn gen:D inv:A mode:B num:F pers:G]![cat:vn gen:I mode:J num:K pers:L]{
+  n3 type:subst  [cat:v cop:+ mode:J num:K pers:L]![cat:v]
+  n4 type:anchor  [cat:adj gen:I num:K]![cat:adj]
  }
 }
 
@@ -3131,7 +2528,7 @@ end family
 begin family propername
 % ----------------------------------------------------------------------
 
-Tpropername_200 ( ! idx:A) initial
+Tpropername_11 ( ! idx:A) initial
 n0 type:anchor  [cat:n]![cat:n det:+ idx:A pers:3]{}
 
 end family
@@ -3141,7 +2538,7 @@ end family
 begin family stddeterminer
 % ----------------------------------------------------------------------
 
-Tstddeterminer_201 ( ! idx:F) auxiliary
+Tstddeterminer_174 ( ! idx:F) auxiliary
 n0   [cat:n idx:F vlabel:G wh:_]![cat:n def:A det:+ gen:B num:C pers:D wh:_]{
  n1 type:anchor  [cat:d]![cat:d gen:B num:C]
  n2 type:foot  [cat:n def:A det:_ gen:B num:C pers:D]![cat:n idx:F nlabel:J]
