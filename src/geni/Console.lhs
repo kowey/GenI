@@ -10,17 +10,25 @@ module Console(consoleGenerate) where
 
 \ignore{
 \begin{code}
+import Data.Char(toLower)
+import Data.List(intersperse,sort,partition,(\\))
 import Monad(mapM, foldM, when)
-
 import IOExts(readIORef, modifyIORef)
+
+import Btypes(Sem,showSem)
 import Geni
-import Mstate(avgGstats)
-import Configuration(Params, isGraphical, 
+import Mstate(avgGstats, numcompar, szchart, geniter)
+
+import Configuration(Params, isGraphical, isTestSuite,
+                     isBatch,
                      grammarFile, tsFile, 
                      emptyParams, optimisations, batchRepeat,
-                     optBatch, Token(..))
+                     optBatch) 
+import Treeprint(showLeaves)
 \end{code}
 }
+
+\section{Outer layer}
 
 There are three kinds of batch processing:
 
@@ -44,7 +52,11 @@ consoleGenerate pst = do
 \end{code}
 
 The middle layer operates on a single entry: It loads the grammar file
-and the target semantics (if they are different from the last time).  
+and the target semantics (if they are different from the last time),
+runs the generator, and returns the updated parameters 
+(so that in the future we can determine if we have to reload stuff).
+
+We run the generator in the following manner:
 
 \begin{enumerate}
 \item If we have a test-suite instead of a target semantics, then we run the
@@ -69,27 +81,45 @@ consoleGenerate' pst lastPa newPa = do
   let lastGrammar    = grammarFile lastPa
       lastTargetSem  = tsFile lastPa
   when (lastGrammar /= grammarFile newPa)  $ loadGrammar pst
-  when (lastTargetSem /= tsFile newPa) $ loadTargetSem pst
-  -- determine if we have to run a batch of optimisations 
-  let batch = map (\o -> newPa { optimisations = o }) optBatch  
-  if (Batch `elem` optimisations newPa) 
-     then do resSet <- mapM (consoleGenerate'' pst) batch
-             putStrLn ""
-             putStrLn $ showOptResults resSet
-             return ()
-     else do res <- customGeni pst runGeni
-             putStrLn $ show res
+  when (lastTargetSem /= tsFile newPa)     $ loadTargetSem pst
+  -- determine how we should run the generator
+  let runVanilla = do res <- customGeni pst runGeni
+                      putStrLn $ show res
+  --
+  case () of _ | isTestSuite newPa -> runTestSuite pst 
+               | isBatch newPa     -> runBatch pst 
+               | otherwise         -> runVanilla  
   return newPa
 \end{code}
 
-The inner layer runs the generator and prints a reduced version of 
-the summary.  This is only used when the optimisations = Batch; the
-purpose is to reduce the amount of redundant information being 
-displayed to the user; and to summarise everything in a fancy table.
+\section{Batch testing of optimisations}
+
+\paragraph{runBatch} runs a batch processing suite and prints the
+results.  We assume that the grammar and target semantics are already
+loaded into the monadic state.
 
 \begin{code}
-consoleGenerate'' :: PState -> Params -> IO GeniResults
-consoleGenerate'' pst newPa = do 
+runBatch :: PState -> IO ()
+runBatch pst = 
+  do mst <- readIORef pst 
+     let curPa = pa mst
+         batch = map (\o -> curPa { optimisations = o }) optBatch  
+     resSet <- mapM (runBatchSample pst) batch
+     putStrLn ""
+     putStrLn $ showOptResults resSet
+     return ()
+\end{code}
+
+\paragraph{runSample} is used to run a single sample for batch
+processing of optimisations for as many iterations as requested. The
+inner layer runs the generator and prints a reduced version of the
+summary.  The purpose is to reduce the amount of redundant information
+being displayed to the user; and to summarise everything in a fancy
+table.
+
+\begin{code}
+runBatchSample :: PState -> Params -> IO GeniResults
+runBatchSample pst newPa = do 
   modifyIORef pst (\x -> x{pa = newPa})
   let numIter = batchRepeat newPa
   resSet <- mapM (\_ -> customGeni pst runGeni) [1..numIter]
@@ -104,6 +134,102 @@ consoleGenerate'' pst newPa = do
   putStrLn $ "Optimisations: " ++ optStr1 ++ optStr2 
   putStrLn $ "Automaton paths explored: " ++ (grAutPaths res)
   putStrLn $ "\nRealisations: " 
-  putStrLn $ showRealisations derived 
+  putStrLn $ showRealisations $ map showLeaves derived 
   return res
 \end{code}
+
+\paragraph{showOptResults} displays a list of performance results in a
+single table.  The intention is for each item in the list to be the 
+result of a different optimisation on the same grammar/semantics
+
+\begin{code}
+showOptResults :: [GeniResults] -> String
+showOptResults grs = 
+  let headOpt = "         optimisations"
+      headNumRes = "rslts"
+      headAgenda = "agnd sz"
+      headChart  = "chrt sz"
+      headComparisons = "compared"
+      headTime = "time ms"
+      header   = [ headOpt, headNumRes, headAgenda, headChart, headComparisons, headTime ] 
+      showIt l = concat $ intersperse " | " $ l
+      showLine = concat $ intersperse "-+-" $ map linestr header
+      resStr r = [ pad (fst  $ grOptStr r) headOpt,
+                   pad (show $ length $ grDerived r) headNumRes,
+                   pad (show $ geniter s) headAgenda,
+                   pad (show $ szchart s) headChart,
+                   pad (show $ numcompar s) headComparisons, 
+                   pad (grTimeStr r) headTime ]
+                 where s = grStats r
+      -- a list of "-" with the same length as l 
+      linestr str2 = map (const '-') str2
+      -- pad str to be as long as str2
+      pad str str2 = if (diff > 0) then padding ++ str else str
+                     where padding = map (const ' ') [1..diff]
+                           diff = (length str2) - (length str)   
+      --
+      headerStr = showIt header ++ "\n" ++ showLine ++ "\n" 
+      bodyStr   = concat $ intersperse "\n" $ map (showIt.resStr) grs
+  in headerStr ++ bodyStr
+\end{code}
+
+\section{Test suites}
+
+\paragraph{runTestSuite} runs a test suite and summarises the results
+
+\begin{code}
+runTestSuite :: PState -> IO () 
+runTestSuite pst = 
+  do mst <- readIORef pst 
+     let (slist, xlist) = (unzip . tsuite) mst
+     rlist <- mapM (runTestCase pst) slist 
+     let summaries = zipWith3 showTestCase slist xlist rlist
+     mapM putStrLn summaries 
+     return ()
+\end{code}
+
+\paragraph{runTestCase} runs a single case in a test suite and returns
+the sentences generated.
+
+\begin{code}
+runTestCase :: PState -> Sem -> IO [String]
+runTestCase pst sem = 
+  do modifyIORef pst (\x -> x{ts = sem})
+     res <- customGeni pst runGeni
+     let prettify t = map ( (map toLower) . showLeaves) t
+         sentences  = (prettify . grDerived) res
+     return sentences
+\end{code}
+
+\paragraph{showTestCase} returns a pretty-printed string summarising
+the results of running a test case.  Note that for 
+
+\begin{code}
+showTestCase :: Sem -> [String] -> [String] -> String
+showTestCase sem expected results = 
+  let expected2     = sort expected
+      results2      = sort results
+      --
+      (pass,fail)   = partition resfn expected2 
+                      where resfn x = x `elem` results2 
+      overgen       = results \\ expected2 
+      --
+  in ""
+     ++ "\n================================================================="
+     ++ "\n" ++ showSem sem 
+     ++ "\n================================================================="
+     ++ "\n" 
+     ++ "\nfail"
+     ++ "\n----"
+     ++ "\n" ++ showRealisations fail
+     ++ "\n"
+     ++ "\npass"
+     ++ "\n----"
+     ++ "\n" ++ showRealisations pass 
+     ++ "\n"
+     ++ "\novergeneration"
+     ++ "\n--------------"
+     ++ "\n" ++ showRealisations overgen 
+\end{code}
+
+

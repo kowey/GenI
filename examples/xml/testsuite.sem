@@ -1,0 +1,7 @@
+semantics:[d:def(a) s1:man(a) e:love(a ex) s2:name(ex emma)]
+[ le homme aimer emma ]
+[ emma le homme aimer ]        
+[ le blah blah blah ]
+
+semantics:[d:def(a) s1:man(a) e:love(ex a) s2:name(ex emma)]
+[ emma aimer le homme ]

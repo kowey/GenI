@@ -25,7 +25,7 @@ import Geni(initGeni, pa, batchPa)
 import Gui(guiGenerate)
 import Console(consoleGenerate)
 
-import Configuration(isGraphical, isBatch)
+import Configuration(isGraphical, isBatch, isTestSuite)
 
 main :: IO ()
 
@@ -33,8 +33,10 @@ main = do
   pst <- initGeni
   mst <- readIORef pst
   let headPa   = pa mst
-  let notBatch = (length (batchPa mst) == 1) && (not $ isBatch headPa)
-      isGraphical = isGraphical headPa
-  if (notBatch && isGraphical) 
+  let notBatch  = (  ((length $ batchPa mst) == 1) 
+                  && (not $ isBatch headPa)
+                  && (not $ isTestSuite headPa))
+      graphical = isGraphical headPa
+  if (graphical && notBatch) 
      then guiGenerate pst
      else consoleGenerate pst

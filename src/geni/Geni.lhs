@@ -8,7 +8,7 @@ involve some messy IO performance tricks.
 
 \begin{code}
 module Geni (State(..), PState, GeniResults(..), 
-             showRealisations, showOptResults,
+             showRealisations, groupAndCount,
              initGeni, customGeni, runGeni, 
              loadGrammar, 
              loadTargetSem, loadTargetSemStr,
@@ -50,7 +50,7 @@ import Tags (Tags, TagElem, emptyTE, TagSite,
              appendToVars, substTagElem)
 
 import Configuration(Params, defaultParams, getConf, treatArgs,
-                     grammarFile, tsFile, 
+                     grammarFile, tsFile, isTestSuite,
                      GramParams, parseGramIndex,
                      macrosFile, lexiconFile, semlexFile, grammarType,
                      GrammarType(TAGML), 
@@ -69,7 +69,7 @@ import Treeprint (showLeaves)
 import Lex2 (lexer)
 import Mparser (mParser)
 import Lparser (lParser)
-import Tsparser (targetSemParser, E(..))
+import Tsparser (targetSemParser, testSuiteParser, E(..))
 import GrammarXml (parseXmlGrammar, parseXmlLexicon)
 \end{code}
 }
@@ -85,6 +85,7 @@ Data types for keeping track of the program state.
 \item[batchPa] the list of possible configurations.  This list is
                never empty.  If we are doing batch processing, 
                then its only item is pa
+\item 
 \end{description}
 
 Note: if tags is non-empty, we can ignore gr and le
@@ -94,7 +95,8 @@ data State = ST{pa      :: Params,
                 batchPa :: [Params], -- list of configurations
                 gr      :: Macros,
                 le      :: Lexicon,
-                ts      :: Sem
+                ts      :: Sem,
+                tsuite  :: [(Sem,[String])]
                }
 
 type PState = IORef State
@@ -123,7 +125,8 @@ initGeni = do
                        batchPa = confArgs, 
                        gr = emptyFM,
                        le = emptyFM,
-                       ts = []}
+                       ts = [],
+                       tsuite = [] }
     return pst 
 \end{code}
 
@@ -617,26 +620,43 @@ loadMacros pst config =
 
 \subsection{Target semantics}
 
-loadTargetSem: Given 
-   - a pointer pst to the general state st, 
+\paragraph{loadTargetSem} given a pointer pst to the general state st,
 it access the parameters and the name of the file for the target
-semantics from params.  parses the file and assigns the target
-semantics to the ts field of st 
+semantics from params.  From the params, it determines if the file
+is a test suite or a target semantics.  If it is a test suite, it parses
+the file as a test suite, and assigns it to the tsuite field of st;
+otherwise it parses it as a target semantics and assigns it to st.
 
 \begin{code}
 loadTargetSem :: PState -> IO ()
 loadTargetSem pst = do
-       st <- readIORef pst
-       let filename = tsFile (pa st)
-       putStr $ "Loading Target Semantics " ++ filename ++ "..."
-       tstr <- readFile filename
-       loadTargetSemStr pst tstr
-       putStr "done\n"
+  st <- readIORef pst
+  let config   = pa st
+      filename = tsFile config 
+      isTsuite = isTestSuite config
+  putStr $ "Loading " 
+           ++ (if isTsuite then "Test Suite " else "Target Semantics ")
+           ++ filename ++ "..."
+  hFlush stdout
+  tstr <- readFile filename
+  -- helper functions for test suite stuff
+  let cleanup (sm,sn) = (flattenTargetSem sm, sort sn)
+      updateTsuite s  = modifyIORef pst (\x -> x {tsuite = s2})
+                        where s2 = map cleanup s
+  --  
+  if isTsuite
+     then do let sem = (testSuiteParser . lexer) tstr
+             case sem of 
+               Ok s     -> updateTsuite s 
+               Failed s -> fail s
+     else loadTargetSemStr pst tstr
+  -- in the end we just say we're done
+  putStr "done\n"
 \end{code}
 
-loadTargetSemStr: Given a string with some semantics, it parses
-the string and assigns the assigns the target semantics to the ts field
-of st 
+\paragraph{loadTargetSemStr} Given a string with some semantics, it
+parses the string and assigns the assigns the target semantics to the ts
+field of st 
 
 \begin{code}
 loadTargetSemStr :: PState -> String -> IO ()
@@ -749,58 +769,34 @@ instance Show GeniResults where
        ++ "\nTotal chart size:  " ++ (show $ szchart gstats) 
        ++ "\nComparisons made:  " ++ (show $ numcompar gstats)
        ++ "\nGeneration time:  " ++ (grTimeStr gres) ++ " ms"
-       ++ "\n\nRealisations:\n" ++ (showRealisations $ grDerived gres)
+       ++ "\n\nRealisations:\n" ++ (showRealisations $ map showLeaves $ grDerived gres)
 \end{code}
 
-\paragraph{showOptResults} displays a list of performance results in a
-single table.  The intention is for each item in the list to be the 
-result of a different optimisation on the same grammar/semantics
+\paragraph{groupAndCount} is a generic list-processing function.
+It converts a list of items into a list of tuples (a,b) where 
+a is an item in the list and b is the number of times a in occurs 
+in the list.
 
 \begin{code}
-showOptResults :: [GeniResults] -> String
-showOptResults grs = 
-  let headOpt = "         optimisations"
-      headNumRes = "rslts"
-      headAgenda = "agnd sz"
-      headChart  = "chrt sz"
-      headComparisons = "compared"
-      headTime = "time ms"
-      header   = [ headOpt, headNumRes, headAgenda, headChart, headComparisons, headTime ] 
-      showIt l = concat $ intersperse " | " $ l
-      showLine = concat $ intersperse "-+-" $ map linestr header
-      resStr r = [ pad (fst  $ grOptStr r) headOpt,
-                   pad (show $ length $ grDerived r) headNumRes,
-                   pad (show $ geniter s) headAgenda,
-                   pad (show $ szchart s) headChart,
-                   pad (show $ numcompar s) headComparisons, 
-                   pad (grTimeStr r) headTime ]
-                 where s = grStats r
-      -- a list of "-" with the same length as l 
-      linestr str2 = map (const '-') str2
-      -- pad str to be as long as str2
-      pad str str2 = if (diff > 0) then padding ++ str else str
-                     where padding = map (const ' ') [1..diff]
-                           diff = (length str2) - (length str)   
-      --
-      headerStr = showIt header ++ "\n" ++ showLine ++ "\n" 
-      bodyStr   = concat $ intersperse "\n" $ map (showIt.resStr) grs
-  in headerStr ++ bodyStr
+groupAndCount :: (Eq a, Ord a) => [a] -> [(a, Int)]
+groupAndCount xs = 
+  map (\x -> (head x, length x)) grouped
+  where grouped = (group.sort) xs
 \end{code}
 
-\paragraph{showRealisations} shows the sentences produced by the generator in a
-relatively compact form 
+\paragraph{showRealisations} shows the sentences produced by the
+generator in a relatively compact form 
 
 \begin{code}
-showRealisations :: [TagElem] -> String
-showRealisations derived =
-  let sentences        = map showLeaves derived
-      sentencesGrouped = map (\s -> head s ++ count s) g
-                         where g = group $ sort sentences 
-      count s = if (length s > 1) 
-                then " (" ++ (show $ length s) ++ " instances)"
+showRealisations :: [String] -> String
+showRealisations sentences =
+  let sentencesGrouped = map (\ (s,c) -> s ++ count c) g
+                         where g = groupAndCount sentences 
+      count c = if (c > 1) 
+                then " (" ++ show c ++ " instances)"
                 else ""
-  in if (null derived)
-     then "(No results found)"
+  in if (null sentences)
+     then "(none)"
      else concat $ intersperse "\n" $ sentencesGrouped
 \end{code}
 

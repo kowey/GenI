@@ -71,7 +71,7 @@ data Params = Prms{
   grammarFile    :: String,
   tsFile         :: String,
   isGraphical    :: Bool,
-  isTestsuite    :: Bool,
+  isTestSuite    :: Bool,
   optimisations  :: [Token],
   extrapol       :: FiniteMap String Int,
   batchRepeat    :: Integer
@@ -104,7 +104,7 @@ emptyParams = Prms {
   grammarFile    = "",
   tsFile         = "",
   isGraphical    = False,
-  isTestsuite    = False,
+  isTestSuite    = False,
   optimisations  = [],
   extrapol       = emptyFM,
   batchRepeat    = 1
@@ -209,9 +209,9 @@ defineParams' p [] = p
 defineParams' p ((f,v):s) =
   case f of GrammarTok -> defineParams' p{grammarFile = v} s
             TSemantics -> defineParams' p{ tsFile  = v
-                                         , isTestsuite = False } s
+                                         , isTestSuite = False } s
             TestSuiteTok -> defineParams' p{ tsFile = v
-                                           , isTestsuite = True } s
+                                           , isTestSuite = True } s
             Graphical  -> defineParams' p{isGraphical  = (v == "True")} s
             Optimisations   -> defineParams' p{optimisations = readOpt } s
                                where readOpt = map read $ words v
