@@ -40,7 +40,8 @@ realisation seperately, treating each path as a set of candidate trees.
 
 \begin{code}
 module Polarity(PolAut,makePolAut,
-                TagLite, reduceTags, buildSemWeights,
+                TagLite, reduceTags, 
+                buildSemWeights,
                 walkAutomaton, detectPols, detectPolPaths, 
                 defaultPolPaths,
                 showLite, showLitePm, showPolPaths, showPolPaths',
@@ -50,16 +51,17 @@ where
 \end{code}
 
 \begin{code}
-import FiniteMap
 import Data.Array (listArray, (!)) 
 import Data.Bits
+import Data.FiniteMap
 import Data.List
 --import Data.Set
 
 import Graphviz(GraphvizShow(..))
 import Tags(TagElem(..), mapBySem, substnodes)
 import Bfuncs(Pred, Sem, emptyPred, Ptype(Initial),
-              showPred, showSem, root, gup,
+              showPred, showSem, 
+              root, gup, 
               BitVector, toKeys,
               groupByFM, isEmptyIntersect, third)
 \end{code}
@@ -85,6 +87,7 @@ import Bfuncs(Pred, Sem, emptyPred, Ptype(Initial),
 %\end{code}
 %
 \section{Overview}
+\label{polarity:overview}
 
 We start with the controller function (the general architecture) and
 detail the individual steps in the following sections.  The basic
@@ -131,13 +134,29 @@ makePolAutHelper cands tsemRaw extraPol swmap =
       ks      = nub $ ksCands ++ ksExtra
       -- candidates by predicate
       smapRaw  = mapBySem tlSemantics cands 
-      -- accounting for multi-use items
+      -- perform index counting
       (tsem, smap) = addExtraIndices swmap (tsemRaw,smapRaw)
       -- sorted semantics (for more efficient construction)
       sortedsem = sortSemByFreq tsem cands 
       -- the seed automaton
       seed   = buildSeedAut smap sortedsem
   in (ks, seed)
+\end{code}
+
+\paragraph{reduceTags}
+We provide two ways to do the TagLite reduction: If \texttt{polsig} is False,
+we just perform a direct one-on-one mapping.  If it is True, we use the
+polarity signatures optimisation in section \ref{sec:polarity_signatures}.  In
+both cases, we return a conversion function that maps the returned TagLites to
+their original TagElems.
+
+\begin{code}
+reduceTags :: Bool -> [TagElem] -> ([TagLite], TagLite -> [TagElem])
+reduceTags polsig tes =
+  let tls          = map toTagLite tes 
+      fromTagLite  = listArray (1,length tes) tes 
+      lookupfn t   = [ fromTagLite ! (fromInteger $ tlIdnum t) ]
+  in if polsig then mapByPolsig tes else (tls, lookupfn)
 \end{code}
 
 % ====================================================================
@@ -432,7 +451,7 @@ walkAutomaton' transFm st =
 \end{code}
 
 % ====================================================================
-\section{Multi-use items}
+\section{Index counting}
 \label{sec:multiuse}
 \label{semantic_weights}
 % ====================================================================
@@ -482,7 +501,7 @@ counted once.
 %\end{tabular}\\
 %\end{center}
 
-\subsection{Multi-counting}
+\subsection{Index counting idea}
 
 We propose a solution based on counting the indices in our target
 semantics. We augment the semantic lexicon with a map of
@@ -638,8 +657,11 @@ addExtraIndices swmap (tsem,smap) =
       extra  = map (\x -> (x,"",[])) i
                where i = countExtraIndices swmap tsem
       tsem2  = tsem ++ extra
+      --
+      addfn x f = addToFM f x (emptyTL:empty2)
+                  where empty2 = map modsem emptysem
+                        modsem t = t { tlSemantics = [x] }
       smap2  = foldr addfn cleanSmap extra
-               where addfn x f = addToFM f x (emptyTL:emptysem)
       --
   in (tsem2, smap2)
 \end{code}
@@ -672,52 +694,6 @@ countExtraIndices swmap sem =
       indices (i,c) = take c (repeat i)
   in concatMap indices (fmToList counts)
 \end{code}
-
-%\subsection{Null semantic items}
-%
-%Now let's say that we are no longer satisfied with \natlang{John loves
-%John} and that we want to generate \natlang{John loves himself}.  This
-%part is simple; now that we have a mechanism for tracking the number of
-%times an item is used, all we have to do is to add null semantic items
-%like pronouns and clitics to every column of the table:
-%
-%\begin{center}
-%\begin{tabular}{|c|c|c|}
-%\hline
-%\semexpr{j:name(John)}  &\semexpr{j:name(John)}  & \semexpr{e1:love(j,j)} \\
-%\hline
-%\tautree{John} \color{blue}{+1np} & 
-%\tautree{John} \color{blue}{+1np} & 
-%\tautree{loves} \color{red}{-1np}\\
-%
-%\tautree{himself} \color{blue}{+1np} & 
-%\tautree{himself} \color{blue}{+1np} & 
-%\tautree{himself} \color{blue}{+1np} \\ 
-%\hline
-%\end{tabular}\\
-%\end{center}
-%
-%That's it! We just construct the polarity automaton as before.  The
-%resulting automaton allows us to construct \natlang{John loves John},
-%\natlang{John loves himself}, \natlang{himself loves John} and
-%\natlang{himself loves himself}.  And once we pass these to the 
-%generator, the incorrect results among these are easily avoided by
-%the generator proper.  Here is why:
-%
-%\begin{center}
-%\begin{tabular}{|l|l|}
-%\hline
-%\textbf{bad result} & \textbf{ruled out by...} \\  
-%\hline
-%\natlang{John loves John} &
-%repeated use of \semexpr{j:name(John)} \\ 
-%\natlang{himself loves John} &
-%\natlang{himself} in subj position (fs conflict)\\
-%\natlang{himself loves himself} &
-%\semexpr{j:name(John)} is not covered \\
-%\hline
-%\end{tabular}\\
-%\end{center}
 
 \subsection{Pitfalls}
 
@@ -826,7 +802,7 @@ showPolPaths' bv counter =
 
 \subsection{Polarity signatures}
 \label{sec:polarity_signatures}
- 
+
 Polarity signatures is an optimisation of the automaton construction.  We
 pre-process the lexically selected trees, and group together trees with
 identical semantics and polarity keys.  The groups are labeled with a tuple of
@@ -924,7 +900,8 @@ type SemWeightMap = FiniteMap String [Int]
 To avoid passing around entire TagElems during the construction
 of polarity automata, we reduce the candidates to the lighter-
 weight TagLite structure that contains just the information needed
-to build automata.
+to build automata.  See section \ref{polarity:overview} for the
+reduction code.
 
 \begin{code}
 data TagLite = TELite {
@@ -952,21 +929,6 @@ toTagLite te = TELite { tlIdname     = idname te,
                         tlSemantics  = tsemantics te,
                         tlPolarities = tpolarities te
                       }
-\end{code}
-
-We provide two ways to do the TagLite reduction: If \texttt{polsig} is False,
-we just perform a direct one-on-one mapping.  If it is True, we use the
-polarity signatures optimisation in section \ref{sec:polarity_signatures}.  In
-both cases, we return a conversion function that maps the returned TagLites to
-their original TagElems.
-
-\begin{code}
-reduceTags :: Bool -> [TagElem] -> ([TagLite], TagLite -> [TagElem])
-reduceTags polsig tes =
-  let tls          = map toTagLite tes 
-      fromTagLite  = listArray (1,length tes) tes 
-      lookupfn t   = [ fromTagLite ! (fromInteger $ tlIdnum t) ]
-  in if polsig then mapByPolsig tes else (tls, lookupfn)
 \end{code}
 
 
@@ -1146,10 +1108,10 @@ The advantage is that it displays fewer quotation marks.
 showLitePm :: PolMap -> String
 showLitePm pm = 
   let showPair (f, pol) = charge pol ++ f 
-      charge c = case () of _ | c == -1   -> "-"
-                              | c ==  1   -> "+"
-                              | c  >  0   -> "+" ++ (show c)
-                              | otherwise -> (show c) 
+      charge c | c == -1   = "-"
+               | c ==  1   = "+"
+               | c  >  0   = "+" ++ (show c)
+               | otherwise = show c 
   in concat $ intersperse " " $ map showPair $ fmToList pm
 \end{code}
 
@@ -1269,3 +1231,5 @@ calculateTreeCombos cands tsemRaw swmap =
       ambiguity = map length $ eltsFM smap 
   in foldr (*) 1 ambiguity     
 \end{code}
+
+

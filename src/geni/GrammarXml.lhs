@@ -11,7 +11,7 @@ module GrammarXml where
 \begin{code}
 import Data.Char
 import Data.FiniteMap (FiniteMap,emptyFM,addToFM_C)
-import Data.List (partition,sort,sortBy)
+import Data.List (sort)
 import Data.Tree
 import MonadState (State, 
                    runState,
@@ -319,19 +319,21 @@ parseLiteral lit =
 \subsection{Interface}
 % ----------------------------------------------------------------------
 
-The interface is the mechanism which allows us to perform lexicalisaiton
-and to instantiate the semantic indices of a tree.  For example, a tree
+The interface is the mechanism which allows us to parameterise the tree
+and to set its semantic indices.  We treat the interface as a feature
+structure which is associated with the entire tree.  For example, a tree
 like \verb$S(N [idx:X], V, N [idx:Y])$ could have an interface
 \verb$[arg0:X, arg1:Y]$.  In order to instantiate the tree with the
-semantics \texttt{hates(h,m,j)}, we could set \verb$X$ to \texttt{m} and
-\verb$Y$ to j.
+semantics \texttt{hates(h,m,j)}, we could set \verb$arg0$ to \texttt{m}
+and \verb$arg1$ to j.
 
-In the TAGMLish format, the interface takes the form of a feature
-structure.  Following the current GenI design, we seperate the interface
-into a list of parameters and tree features.  For example, in the
-interface below, the parameters would be \verb$[?A,?I]$ and the features
-would be 
-\fs{\it anch:manger\\ \it obj:?I\\  \it suj:?A\\}
+In the TAGMLish format, the following FS would be produced by the XML
+below.
+\fs{\it anch:manger\\ 
+    \it arg0:?A\\
+    \it arg1:?I\\
+    \it obj:?I\\  
+    \it suj:?A\\}
 
 \begin{verbatim}
 <interface>
@@ -350,25 +352,8 @@ parseInterface :: Content -> ([String], Flist)
 parseInterface int =
   let iFeatsF  = keep /> featStructF /> featF
       feats    = map parseFeature (iFeatsF int)
-      --
-      (args,noargs) = partition fn feats 
-      fn (a,_) = t3 == "arg" || t3 == "evt"
-                 where t3 = take 3 a
-      -- evt first, then args sorted by numerical order
-      ordfn :: AvPair -> AvPair -> Ordering
-      ordfn (a1,_) (a2,_) = case (a1, a2) of 
-        ("evt","evt") -> EQ
-        ("evt",_)     -> LT
-        (_,"evt")     -> GT
-        _ -> compare (da a1) (da a2)
-        where da :: String -> Int
-              da = read . (drop 3)  
-      -- 
-      params   = (snd.unzip.(sortBy ordfn)) args
-  in (params, noargs)
+  in ([], feats)
 \end{code}
-
-
 
 % ----------------------------------------------------------------------
 \subsection{Trace}

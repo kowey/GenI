@@ -55,10 +55,10 @@ import MonadState (State,
                    get, 
                    put)
 
+import Data.FiniteMap 
 import Data.List (intersect, partition, delete, sort, nub, (\\))
 import Data.Tree 
 import Data.Bits
-import FiniteMap 
 
 import Bfuncs (Ptype(Initial,Auxiliar),
                Flist, 
@@ -708,12 +708,12 @@ classifyNew l = do
                        Nothing -> do addToTrashRep x      
                                      return ls
                        Just x2 -> return (x2:ls)
-      classify ls x = 
-        case () of _ | isResult  x -> tbUnify x ls
-                     | isPureAux x -> do addToAuxRep x
-                                         return ls
-                     | otherwise   -> do addToInitRep x
-                                         return ls
+      classify ls x 
+        | isResult  x = tbUnify x ls
+        | isPureAux x = do addToAuxRep x
+                           return ls
+        | otherwise   = do addToInitRep x
+                           return ls
   foldM classify [] l
 \end{code}
 

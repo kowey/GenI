@@ -12,7 +12,7 @@ where
 
 \begin{code}
 import Debug.Trace
-import FiniteMap
+import Data.FiniteMap
 import Data.List (nub, sortBy, groupBy, intersect)
 import Monad (when, ap, foldM)
 import MonadState (get, put)

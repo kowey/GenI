@@ -19,14 +19,14 @@ semantics:[h1:john(j)
 semantics:[h1:john(j) 
            h2:mary(m) 
            e1:love(j m) 
-           e2:promise(j m e1)]
+           e2:promise(j e1 m)]
 [ jean promettre a marie de le aimer ]
 [ jean promettre marie de le aimer ]
 
 semantics:[h1:john(j) 
            h2:mary(m) 
            h3:book(b) h3:indef(b)
-           e1:give(j m b)]
+           e1:give(j b m)]
 [ jean donner un livre a marie ]
 
 semantics:[h1:john(j) 
@@ -34,14 +34,14 @@ semantics:[h1:john(j)
            h3:book(b) h3:indef(b)
            h4:claire(c)
            e1:give(j b c) 
-           e2:promise(j m e1) ]
+           e2:promise(j e1 m) ]
 [ jean promettre a marie de donner un livre a claire ]
 
 semantics:[h1:john(j) 
            h2:mary(m) 
            h3:book(b) h3:indef(b)
            e1:give(j b m) 
-           e2:promise(j m e1) ]
+           e2:promise(j e1 m) ]
 [ jean promettre a marie de le donner un livre ]
 
 semantics:[h1:john(j) 

@@ -5,6 +5,7 @@ where
 
 -- import Data.FiniteMap
 
+import Data.List(sort)
 import ParserLib(Token(..), 
                  PosToken, simpleParserError)
 import Btypes(ILexEntry(..), Ptype(..))
@@ -54,8 +55,13 @@ LInput :
      {[]}
  | LexEntry LInput
      {$1:$2}
-        
-LexEntry: id id id 
+       
+LexEntry: LexEntryCore
+   { $1 }
+ | LexEntryCore '[' FeatList ']'
+   { $1 { ipfeat = sort $3 } }
+
+LexEntryCore: id id id 
    { emptyLE { iword = $1, 
                icategory = $2,
                ifamname = $3 } }
@@ -96,7 +102,14 @@ SLexEntry: id id '(' IDFeat ')' Sem
          {emptyLE { iword   = $1,
                     icategory = $2,
                     iparams = fst $4,
-                    ipfeat  = snd $4,
+                    ipfeat  = sort $ snd $4,
+                    isemantics = $6
+                  }
+         }
+ | id id '[' FeatList ']' Sem
+         {emptyLE { iword   = $1,
+                    icategory = $2,
+                    ipfeat  = sort $ $4,
                     isemantics = $6
                   }
          }

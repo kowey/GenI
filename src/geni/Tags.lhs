@@ -30,9 +30,9 @@ module Tags(
 
 \ignore{
 \begin{code}
+import Data.FiniteMap (FiniteMap, emptyFM, addToFM_C)
 import Data.List (intersperse)
 import Data.Tree
-import FiniteMap (FiniteMap, emptyFM, addToFM_C)
 
 import Bfuncs (Ptype(Initial, Auxiliar), 
                Subst, GNode(gup, gdown), Flist, 

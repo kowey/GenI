@@ -802,7 +802,8 @@ declare
 	?xN ?G ?I
 {
 	<syn>{
-		node xN(color=red,mark=anchor)[cat = n,idx=I,bot=[det = +, pers = 3,gen=G]]
+		node xN(color=red,mark=anchor)[cat = n,idx=I,
+                                               bot=[det = +, pers = 3,gen=G]]
 	}*=[gen=G,idx=I]
 }
 
@@ -843,14 +844,16 @@ value properNameNP
 value cliticNP
 value quNP
 
-%lexical entries calls
-%subject "il"
-class IL
-	{cliticNP[]*=[case=nom,gen=m,num=sg,pers=3,refl= -]}
-value IL
+value cleftEtre
 
-%Proper names : Jean, Marie
-class JEAN
-	{properNameNP[]*=[gen=m]}
-value JEAN
+%%lexical entries calls
+%%subject "il"
+%class IL
+%	{cliticNP[]*=[case=nom,gen=m,num=sg,pers=3,refl= -]}
+%value IL
+%
+%%Proper names : Jean, Marie
+%class JEAN
+%	{properNameNP[]*=[gen=m]}
+%value JEAN
 

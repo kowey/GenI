@@ -6,34 +6,34 @@
 %% Noms Propres
 %% --------------------------------------------------------------------- 
 
-marie   n properNameNP [num=f]
-claire  n properNameNP [num=f]
-jean    n properNameNP [num=m]
-paul    n properNameNP [num=m]
+marie   n properNameNP [gen:f]
+claire  n properNameNP [gen:f]
+jean    n properNameNP [gen:m]
+paul    n properNameNP [gen:m]
 
 %% --------------------------------------------------------------------- 
 %% Clitiques
 %% --------------------------------------------------------------------- 
 
-se se cliticNP [case=acc,pers=3,refl= +]
-c ce cliticNP [case=ce]
-il il cliticNP [case=nom,gen=m,num=sg,pers=3,refl= -]
-la laCl cliticNP [case=acc,gen=f,num=sg,pers=3,refl= -]
-le leCl cliticNP [case=acc,gen=m,num=sg,pers=3,refl= -]
+se se cliticNP [case:acc pers:third refl:plus]
+c ce cliticNP [case:ce]
+il il cliticNP [case:nom gen:m num:sg pers:third refl:minus]
+la laCl cliticNP [case:acc gen:f num:sg pers:third refl:minus]
+le leCl cliticNP [case:acc gen:m num:sg pers:third refl:minus]
 
 %% --------------------------------------------------------------------- 
 %% qu-
 %% --------------------------------------------------------------------- 
 
-qui qui quNP [case=nom,wh=rel]
-qui qui quNP [case=nom,wh= +]
-que que quNP [case=acc,wh=rel]
-que que quNP [case=acc,wh= +]
+qui qui quNP [case:nom wh:rel]
+qui qui quNP [case:nom wh:plus]
+que que quNP [case:acc wh:rel]
+que que quNP [case:acc wh:plus]
 
 %%--------------------------------------------------------------------- 
 %% Verbs
 %% --------------------------------------------------------------------- 
 
-regarde v nOVn1nonpassivable
+regarde v n0Vn1nonpassivable
 
 est est cleftEtre

@@ -1,3 +1,18 @@
+%% 06/11/04
+Changes:
+- fs syntax is 
+   att:val (not att=val) 
+   space delimited (no commas)
+- weakness in GeniHand lexer:
+  "3"  replaced with "third"
+  " +" replaced with "plus"
+  " -" replaced with "minus"
+- mg changes:
+  added cleftEtre
+  commented IL, JEAN, etc
+- synlex changes:
+  changed feature num to gen
+
 %% 05/11/04
 
 The grammar n0Vn1semt.mg associates 45 trees with the class

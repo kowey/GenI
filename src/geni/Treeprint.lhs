@@ -16,7 +16,7 @@ import Data.List(intersperse,nub)
 import Tags (TagElem, idname, tsemantics, ttree, derivation, showfeats)
 import Bfuncs (MTtree, Ttree(..), Ptype(..), 
                GNode(..), GType(..),
-               showSem, showGNodeAll, showPairs)
+               showSem, showPairs, showAv)
 import Graphviz (GraphvizShow(..))
 -- import Debug.Trace 
 \end{code}
@@ -63,8 +63,10 @@ graphviz will choke on `.' or `-', even underscore.
 graphvizShow' :: Bool -> Tree GNode -> String -> String
 graphvizShow' sf (Node node l) label =
    let showFn   = if sf then showGNodeAll else show 
+       shapeStr = if sf then "shape = \"record\" " else ""
        node'    = concatMap newlineToSlashN (showFn node)
-       shownode = " " ++ label ++ " [ label = \"" ++ node' ++ "\"];\n"       
+       shownode = " " ++ label ++ " [ " ++ shapeStr 
+                  ++ "label = \"" ++ node' ++ "\"];\n"       
        pairs    = zip [0..] l
        kidname index = (label ++ "x" ++ (show index))
        -- we show the kid and the fact that the node is connected
@@ -72,7 +74,27 @@ graphvizShow' sf (Node node l) label =
        showkid (index,kid) = (graphvizShow' sf kid (kidname index)) ++
                              " " ++ label ++ " -> " ++ (kidname index) ++ ";\n"
        -- now let's run this thing!
-       in shownode ++ (concat (map showkid pairs))
+   in shownode ++ (concat (map showkid pairs))
+\end{code}
+
+\paragraph{showGNodeAll} shows everything you would want to know about a
+gnode, probably more than you want to know
+
+\begin{code}
+showGNodeAll gn = 
+        let showFs l = (concat $ intersperse "\\n" $ map showAv l)
+            sgup = if (null $ gup gn) 
+                   then "" 
+                   else showFs (gup gn) 
+            sgdown = if (null $ gdown gn)
+                     then ""
+                     else "|" ++ showFs (gdown gn) 
+            extra = case (gtype gn) of         
+                        Subs -> " (s)"
+                        Foot -> " *"
+                        _    -> if (gaconstr gn)  then " (na)"   else ""
+            label  = show gn
+        in "{" ++ label ++ "|" ++ sgup ++ sgdown ++ "}"-- (show gn ++ "\n" ++)
 \end{code}
 
 % ----------------------------------------------------------------------
@@ -117,7 +139,7 @@ toGeniHand tr =
       -- misc helpers
       spaces :: Int -> String 
       spaces i = take i $ repeat ' '
-      -- helpers to account for shortcomings in genihand parser 
+      -- helpers to account for shortcomings in genihand lexer 
       dashtobar :: Char -> Char
       dashtobar c = if ('-' == c) then '_' else c 
       substf (a,v) = case (a,v) of (_,"+") -> (a, "minus")
@@ -128,10 +150,13 @@ toGeniHand tr =
                                    _       -> (map d2u a, map d2u v)
       d2u '-' = '_'
       d2u x = x
-      showflist = showPairs . (map substf)
+      --
+      showflist  = showPairs . (map substf)
+      showparams = concat $ intersperse " " (params tr)
       --
   in ((map dashtobar).pidname) tr 
-     ++ " (" ++ (concat $ intersperse " " (params tr)) ++ ")"
+     ++ " ("  ++ showparams 
+     ++ " ! " ++ showflist (pfeat tr) ++ ")"
      ++ " " ++ (ptypestr.ptype) tr 
      ++ "\n" ++ ((treestr 0).tree) tr ++ "\n"
 \end{code}

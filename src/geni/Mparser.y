@@ -11,13 +11,13 @@ import Btypes (Ptype(Initial,Auxiliar,Unspecified),
                GType(Foot, Lex, Subs, Other),
                GNode(..))
 
-import FiniteMap (FiniteMap, 
-                  addToFM,
-                  addToFM_C,
-                  emptyFM,
-                  plusFM)
+import Data.FiniteMap (FiniteMap, 
+                       addToFM,
+                       addToFM_C,
+                       emptyFM,
+                       plusFM)
 
-import List (sort)
+import Data.List (sort)
 import qualified Data.Tree 
 
 polParser x = case polParserE x of 

@@ -19,6 +19,7 @@ where
 
 \ignore{
 \begin{code}
+import Data.FiniteMap
 import Data.List (intersect, intersperse, sort, nub, group)
 import Data.Tree
 import IOExts(IORef, readIORef, newIORef, modifyIORef)
@@ -27,7 +28,6 @@ import System (ExitCode(ExitSuccess),
                exitWith, getArgs)
 import System.IO(hFlush, stdout)
 
-import FiniteMap
 import Monad (when)
 import CPUTime (getCPUTime)
 
@@ -37,10 +37,10 @@ import Bfuncs (Macros, MTtree, ILexEntry, Lexicon, Sem, Flist,
                iprecedence,
                gnname, gtype, gaconstr, gup, gdown, toKeys,
                sortSem, subsumeSem, params, 
-               substSem, substFlist', substFlist,
+               substSem, substFlist', substFlist, substTree, showPairs,
                pidname, pfeat, ptype, 
                ptpolarities, 
-               setLexeme, tree,
+               setLexeme, tree, unifyFeat,
                groupByFM, multiGroupByFM)
 
 import Tags (Tags, TagElem, emptyTE, TagSite, 
@@ -305,9 +305,17 @@ combineOne lexitem e =
        tp   = params e
        tpf  = pfeat e
        ftpf = map fst tpf
-       -- unify the Features and Parameters.
-       paramsUnified = replacePar (zip tp p) (Bfuncs.tree e)
-       (unified,snodes,anodes) = replaceFeat pf paramsUnified 
+       -- unify the parameters
+       psubst = zip tp p
+       paramsUnified = substTree (Bfuncs.tree e) psubst 
+       -- unify the features
+       pf2  = substFlist pf  psubst
+       tpf2 = substFlist tpf psubst
+       (fsucc, _, fsubst) = unifyFeat pf2 tpf2
+       featsUnified = substTree paramsUnified fsubst 
+       -- detect subst and adj nodes
+       unified = featsUnified
+       (snodes,anodes) = detectSites unified 
        -- the final result
        sol = emptyTE {
                 idname = (iword lexitem) ++ "-" ++ (pidname e),
@@ -320,105 +328,37 @@ combineOne lexitem e =
                 tpolarities = ptpolarities e
                 -- tpredictors = combinePredictors e lexitem
                }        
-    in -- error checking
-       if ((length p) /= (length tp))  -- if the parameters are of different length
-       then error ("Wrong number of parameters. " ++ wt)
-       else -- if the features specified in ILexEntry are not a subset
-            -- of the ones specified in the grammar.
-            if (intersect fpf ftpf /= fpf) 
-            then error ("Feature atributes don't match. " ++ wt)
-            else sol
+       -- well... with error checking
+       wterror s = error (s ++ " " ++ wt)
+       result 
+         -- if the parameters are of different length
+         | (length p) /= (length tp) = wterror "Wrong number of parameters."
+         -- if the lex item features are not a subset of the tree features
+         | intersect fpf ftpf /= fpf = error $
+             "Lex entry's features are not a subset of"
+             ++ " tree's features: "  
+             ++ "\nlex:  " ++ show fpf  
+             ++ "\ntree: " ++ show ftpf
+         -- if fs unification fails for any reason (probably a bug)
+         | not fsucc = wterror "Feature unification failed."
+         -- success! 
+         | otherwise = sol
+   in result
 \end{code}
 
-% --------------------------------------------------------------------
-\subsubsection{Replace feat}
-% --------------------------------------------------------------------
-
-\paragraph{replaceFeat}: Given 
-- a tree(GNode) and 
-- a list of pairs (feature:value)
-, replaces through the tree any appearance of (feature:whatever) by
-(feature:value) and returns a list of substitution or adjunction nodes
+\paragraph{detectSites}: Given a tree(GNode) 
+returns a list of substitution or adjunction nodes
 
 \begin{code}
-replaceFeat :: Flist -> Tree GNode -> (Tree GNode, [TagSite], [TagSite])
-replaceFeat l (Node a lt) =
-  let newa = updateNode2 l a
-      next = map (replaceFeat l) lt
-      (newlt, snodes', anodes') = unzip3 next
+detectSites :: Tree GNode -> ([TagSite], [TagSite])
+detectSites (Node a lt) =
+  let next = map detectSites lt
+      (snodes', anodes') = unzip next
       --
-      site = [(gnname newa, gup newa, gdown newa)]
-      snodes = if (gtype newa == Subs)  then (site:snodes') else snodes' 
-      anodes = if (gaconstr newa)       then anodes' else (site:anodes')
-  in (Node newa newlt, concat snodes, concat anodes)
-\end{code}
-
-\begin{code}
-updateNode2 :: Flist -> GNode -> GNode
-updateNode2 [] a = a
-
-updateNode2 ((at,v):l) a =
-    let rn = updateNode2 l a
-        -- Note that this isn't the same thing as substList'.
-        -- Here we hunt the tree for attributes that appear 
-        -- in our FeatList and update their values 
-        rep (at',v') = (at', if (at' == at) then v else v')
-        ngup = map rep (gup rn)
-        ngdown = map rep (gdown rn)
-        in rn{gup = ngup,                
-              gdown = ngdown}
-\end{code}
-
-% --------------------------------------------------------------------
-\subsubsection{Instatiation of arguments}
-\label{arg_instantiation}
-% --------------------------------------------------------------------
-
-The purpose of this section is essentially to prevent us from generating
-sentences like \natlang{John likes Mary} when we mean to say
-\natlang{Mary likes John}. We do this by propagating semantic
-information to trees in the form of index variables in the feature
-structures.  
-
-To be more precise, the trees already have some feature structures which
-take variable values, and we are setting those values to restrict the
-tree's behaviour.  For example, we would use this to restrict the tree 
-S(N$\downarrow$, V, N$\downarrow$)
-to something more like 
-S(N$\downarrow$\fs{\it idx:m\\}, V, N$\downarrow$ \fs{\it idx:j\\}), 
-and similiarly, a tree like N(Mary) to N\fs{\it idx:m}(Mary).
-The intended effect is that feature structure unification will allow
-the tree for \natlang{Mary} to substitute into the left of the tree for
-\natlang{likes}, but not into the right, hence producing the desired
-\natlang{Mary likes John} and not \natlang{John likes Mary}.
-
-\paragraph{replacePar}: Given 
-   - a tree of (GNode) and 
-   - a list of pairs of strings 
-
-replaces through the tree the first component by the second component
-
-\begin{code}
-replacePar :: [(String,String)] -> Tree GNode -> Tree GNode
-replacePar l (Node a []) = Node (updateNode1 l a) []
-
-replacePar l (Node a lt) = 
-    let newa = updateNode1 l a
-        newlt = map (replacePar l) lt
-        in Node newa newlt 
-\end{code}
-
-\begin{code}
-updateNode1 :: [(String,String)] -> GNode -> GNode
-updateNode1 [] a = a
-
-updateNode1 ((x,y):l) a = 
-    let rn     = updateNode1 l a
-        rep f  = substFlist' f (x,y) 
-        ngup   = rep (gup rn)
-        ngdown = rep (gdown rn)
-        in rn{gup = ngup,
-              gdown = ngdown}
+      site = [(gnname a, gup a, gdown a)]
+      snodes = if (gtype a == Subs) then (site:snodes') else snodes' 
+      anodes = if (gaconstr a)      then anodes' else (site:anodes')
+  in (concat snodes, concat anodes)
 \end{code}
 
 % --------------------------------------------------------------------
@@ -478,34 +418,6 @@ mapBySemKeys semfn xs =
               where s = semfn t
   in multiGroupByFM gfn xs
 \end{code}
-
-%\subsubsection{Null semantic items}
-%
-%We have to include some special code whose entire purpose (so far) is to
-%ensure that we never generate \natlang{John likes himself} when we mean
-%to generate \natlang{John likes him} and vice versa, the assumption
-%being that pronouns like \natlang{him} and \natlang{himself} are null
-%semantic items.  
-%
-%If you look in section \ref{arg_instantiation}, you see that with
-%regular items \natlang{Mary}, you can propagate some semantic
-%information to the tree feature structures through parameter
-%instantiation.  However, with null semantic items, there is no
-%semantics, and no hence no semantic information to propagate! 
-%
-%So what can we do?  The idea is simple; we restrict the 
-%
-%\paragraph{assignIndex} is a mechanism for restricting the use of 
-%null semantic items in the lexical selection.  Given an index i,
-%we perform feature structure unification on the top node of the tree
-%with the fs \fs{\it idx:i\\}.  So far, this is only useful after 
-%some optimisations in the polarity automaton...
-%
-%\begin{code}
-%assignIndex :: String -> TagElem -> TagElem
-%assign
-%
-%\end{code}
 
 % --------------------------------------------------------------------
 \section{Loading and parsing}
@@ -572,7 +484,7 @@ loadLexicon pst config = do
        putStr $ "Loading Lexicon " ++ lfilename ++ "..."
        hFlush stdout
        lf <- readFile lfilename 
-       let (ptight, ploose, rawlex) = (lexParser . lexer) lf
+       let (_, _, rawlex) = (lexParser . lexer) lf
            lemlex = groupByFM fn rawlex
                     where fn l = (iword l, icategory l)
        putStr ((show $ length rawlex) ++ " entries\n")
@@ -628,7 +540,8 @@ into each instance.
 combineLexicon :: LemmaLexicon -> Lexicon -> Lexicon
 combineLexicon ll sl = 
   let merge si li = li { isemantics = (isemantics si)
-                       , iparams   = (iparams si) }
+                       , iparams   = (iparams si) 
+                       , ipfeat    = sort (ipfeat li ++ ipfeat si) }
       helper si = map (merge si) lemmas
                   where wordcat = (iword si, icategory si)
                         lemmas  = lookupWithDefaultFM ll [] wordcat 

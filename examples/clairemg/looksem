@@ -1,7 +1,7 @@
 semantics:[lookAt(e) agent(e j) john(j) patient(e m) mary(m)]
-semantics:[lookAt(e) agent(e j) patient(e m) mary(m)]
-semantics:[lookAt(e) agent(e j) john(j) patient(e m) ]
-semantics:[lookAt(e) agent(e j) patient(e m)]
-
+%semantics:[lookAt(e) agent(e j) patient(e m) mary(m)]
+%semantics:[lookAt(e) agent(e j) john(j) patient(e m) ]
+%semantics:[lookAt(e) agent(e j) patient(e m)]
+%
 %% selection on : cleft(j) should give
 %% C'est Jean qui regarde Marie
