@@ -20,7 +20,7 @@ module Tags(
    thighlight,
 
    -- Functions from Tags
-   addToTags, 
+   addToTags, tagLeaves,
 
    -- Functions from TagElem
    substTagElem, appendToVars,
@@ -32,17 +32,19 @@ module Tags(
 
 \ignore{
 \begin{code}
+import Data.Char(toUpper)
 import Data.FiniteMap (FiniteMap, emptyFM, addToFM_C)
 import Data.List (intersperse)
 import Data.Tree
 
 import Bfuncs (Ptype(Initial, Auxiliar), 
-               Subst, GNode(gup, gdown), Flist, 
+               Subst, GNode(gup, gdown, glexeme, gnname), Flist, 
                Sem, Pred, emptyPred, BitVector,
                emptyGNode,
                substFlist, 
                substTree, substSem, showPairs,
-               isAnon, isVar, groupByFM)
+               isAnon, isVar, groupByFM,
+               treeLeaves)
 \end{code}
 }
 
@@ -177,6 +179,7 @@ substTagElem te l =
     let substNodes sn = map (\ (n, fu, fd) -> (n, substFlist fu l, substFlist fd l)) sn
         in te{substnodes = substNodes (substnodes te),
               adjnodes   = substNodes (adjnodes te),
+              tinterface = substFlist (tinterface te) l,
               ttree      = substTree (ttree te) l,
               tsemantics = substSem (tsemantics te) l}
 \end{code}
@@ -199,6 +202,7 @@ appendToVars suf te =
       sitefn (n, fu, fd) = (n, map appfn fu, map appfn fd)
       --
   in te { ttree = treefn (ttree te),
+          tinterface = map appfn (tinterface te),
           substnodes = map sitefn (substnodes te),
           adjnodes   = map sitefn (adjnodes te)}
 \end{code}
@@ -260,6 +264,30 @@ subsumedBy ((ch, cp, cla):cl) (th, tp,tla)
 %  filterFM (\_ e -> e /= 0) $ plusFM_C (+) tp1 tp2
 %\end{code}
 
+% ----------------------------------------------------------------------
+\section{Extracting sentences}
+% ----------------------------------------------------------------------
+
+\paragraph{tagLeaves} returns the leaves of a TAG tree as a list of
+lemmas and features.  This is meant for converting TAG trees to 
+sentences, the idea being that you'd pass the lemma and feature pairs 
+to morphological generator and get an inflected form for each word.  
+
+\begin{code}
+tagLeaves :: TagElem -> [(String,Flist)]
+tagLeaves te = map tagLeaf $ (treeLeaves.ttree) te 
+
+tagLeaf :: GNode -> (String,Flist)
+tagLeaf node = 
+  let lexeme = (glexeme node)
+      cat' = filter (\ (f,_) -> f == "cat") $ gup node 
+      cat  = if (null cat') 
+             then gnname node     
+             else snd $ head cat'
+      name   = map toUpper cat 
+      output = if (null lexeme) then name else lexeme
+  in (output, gup node)
+\end{code}
 
 % ----------------------------------------------------------------------
 \section{Drawings TAG Tree}

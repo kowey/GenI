@@ -1,7 +1,7 @@
 \chapter{Mstate}
 
 Mstate implements the GenI chart generation algorithm and related
-operations like TAG substitution, adjunction are implemented here.
+operations like TAG substitution, adjunction. 
 
 TODO:
 \begin{enumerate}

@@ -10,7 +10,6 @@ module Console(consoleGenerate) where
 
 \ignore{
 \begin{code}
-import Data.Char(toLower)
 import Data.List(intersperse,sort,partition)
 import Monad(mapM, foldM, when)
 import IOExts(readIORef, modifyIORef)
@@ -18,13 +17,12 @@ import IOExts(readIORef, modifyIORef)
 import Bfuncs(SemInput,showSem)
 import Geni
 import Mstate(avgGstats, numcompar, szchart, geniter)
-
+import Tags(tagLeaves) 
 import Configuration(Params, isGraphical, isTestSuite,
                      isBatch,
                      grammarFile, tsFile, 
                      emptyParams, optimisations, batchRepeat,
                      optBatch) 
-import Treeprint(showLeaves)
 \end{code}
 }
 
@@ -124,17 +122,18 @@ runBatchSample pst newPa = do
   let numIter = batchRepeat newPa
   resSet <- mapM (\_ -> customGeni pst runGeni) [1..numIter]
   --
-  let avgStats = avgGstats $ map grStats resSet
-      res      = (head resSet) { grStats = avgStats } 
-      derived  = grDerived res
-      optPair  = grOptStr res
-      optStr1  = fst optPair
-      optStr2  = if (optStr1 /= "none ") then ("(" ++ snd optPair ++ ")") else ""
+  let avgStats  = avgGstats $ map grStats resSet
+      res       = (head resSet) { grStats = avgStats } 
+      sentences = grSentences res
+      optPair   = grOptStr res
+      optStr1   = fst optPair
+      optStr2   = if (optStr1 /= "none ") then ("(" ++ snd optPair ++ ")") else ""
+  --
   putStrLn $ "------------" 
   putStrLn $ "Optimisations: " ++ optStr1 ++ optStr2 
   putStrLn $ "Automaton paths explored: " ++ (grAutPaths res)
   putStrLn $ "\nRealisations: " 
-  putStrLn $ showRealisations $ map showLeaves derived 
+  putStrLn $ showRealisations sentences 
   return res
 \end{code}
 
@@ -196,8 +195,7 @@ runTestCase :: PState -> SemInput -> IO [String]
 runTestCase pst sem = 
   do modifyIORef pst (\x -> x{ts = sem})
      res <- customGeni pst runGeni
-     let prettify t = map ( (map toLower) . showLeaves) t
-         sentences  = (prettify . grDerived) res
+     let sentences = grSentences res
      return sentences
 \end{code}
 

@@ -22,10 +22,13 @@ import Data.List (nub, delete)
 import System.Directory 
 
 import Graphviz 
-import Treeprint
+import Treeprint(graphvizShowTagElem)
+
+import Tags (tagLeaves)
+import Morphology (sansMorph)
 import Geni (State(..), GeniResults(..), PState,
              runGeni, customGeni, 
-             runLexSelection, buildAutomaton, 
+             runLexSelection, buildAutomaton, runMorph,
              combine, loadGrammar, loadTargetSemStr)
 import Bfuncs (showPred, Sem)
 import Tags (idname,mapBySem,emptyTE,tpolarities,thighlight, 
@@ -308,7 +311,7 @@ doGenerate f pst sembox debugger = do
                    return ()
       dogen = do loadTargetSemStr pst sem
                  res <- customGeni pst runGeni 
-                 resultsGui res 
+                 resultsGui pst res 
   -- FIXME: it would be nice to distinguish between generation and ts
   -- parsing errors
   (if debugger then dodebug else dogen) `catch` handler1
@@ -321,8 +324,8 @@ various tabs for intermediary results in lexical
 selection, derived trees, derivation trees and generation statistics.
 
 \begin{code}
-resultsGui :: GeniResults -> IO () 
-resultsGui res = do
+resultsGui :: PState -> GeniResults -> IO () 
+resultsGui pst res = do
   -- results window
   f <- frame [ text := "Results" 
              , fullRepaintOnResize := False 
@@ -332,7 +335,7 @@ resultsGui res = do
   p    <- panel f []
   nb   <- notebook p []
   -- realisations tab
-  resTab <- realisationsGui nb $ grDerived res
+  resTab <- realisationsGui pst nb $ grDerived res
   -- statistics tab
   statTab <- messageGui nb $ show res 
   -- pack it all together 
@@ -383,15 +386,18 @@ Browser for derived/derivation trees, except if there are no results, we show a
 message box
 
 \begin{code}
-realisationsGui :: (Window a) -> [TagElem] -> IO Layout
-realisationsGui f [] = messageGui f "No results found"
-realisationsGui f resultsRaw = do
-  let results   = map (\t -> t {thighlight = []}) resultsRaw
-      sentences = map showLeaves results
-      itNlabl   = zip results sentences
-      tip       = "result"
-  (lay,_) <- tagViewerGui f tip "derived" itNlabl
-  return lay
+realisationsGui :: PState -> (Window a) -> [TagElem] -> IO Layout
+realisationsGui _   f [] = messageGui f "No results found"
+realisationsGui pst f resultsRaw = 
+  do let results = map (\t -> t {thighlight = []}) resultsRaw
+     -- morphology
+     let uninflected = map tagLeaves resultsRaw 
+     sentences <- runMorph pst uninflected
+     --
+     let itNlabl   = zip results sentences
+         tip       = "result"
+     (lay,_) <- tagViewerGui f tip "derived" itNlabl
+     return lay
 \end{code}
 
 \subsection{TAG viewer and browser}
@@ -632,7 +638,7 @@ showGenState res st =
                  ++ ("___DISCARDED___" : (labelFn trash)) 
                  ++ ("___RESULTS___"   : (labelFn res)) 
       labelFn trs = map fn trs 
-                    where fn t = showLeaves t ++ " (" ++ showPolPaths t ++ ")"
+        where fn t = (sansMorph.tagLeaves) t ++ " (" ++ showPolPaths t ++ ")"
   in (trees,labels)
 \end{code}
 
@@ -921,4 +927,7 @@ createDotPath subdir name =
   gv_CACHEDIR ++ "/" ++ subdir ++ "/" ++ name ++ ".dot"
 \end{code}
 
-
+\begin{code}
+instance GraphvizShow TagElem where
+  graphvizShow = graphvizShowTagElem
+\end{code}

@@ -10,7 +10,7 @@ involve some messy IO performance tricks.
 module Geni (State(..), PState, GeniResults(..), 
              showRealisations, groupAndCount,
              initGeni, customGeni, runGeni, 
-             runLexSelection, buildAutomaton, 
+             runLexSelection, buildAutomaton, runMorph,
              loadGrammar, 
              loadTargetSem, loadTargetSemStr,
              combine)
@@ -22,6 +22,7 @@ where
 import Data.FiniteMap
 import Data.IORef (IORef, readIORef, newIORef, modifyIORef)
 import Data.List (intersect, intersperse, sort, nub, group)
+import Data.Maybe (isNothing)
 import Data.Tree
 
 import System (ExitCode(ExitSuccess), 
@@ -32,7 +33,7 @@ import Control.Monad (when)
 import CPUTime (getCPUTime)
 
 import Bfuncs (Macros, MTtree, ILexEntry, Lexicon, Sem, SemInput,
-               GNode, GType(Subs), 
+               GNode, GType(Subs), Flist,
                isemantics, ifamname, icategory, iword, iparams, ipfeat,
                iprecedence, icontrol,
                gnname, gtype, gaconstr, gup, gdown, toKeys,
@@ -44,16 +45,16 @@ import Bfuncs (Macros, MTtree, ILexEntry, Lexicon, Sem, SemInput,
                groupByFM, multiGroupByFM)
 
 import Tags (Tags, TagElem, emptyTE, TagSite, 
-             idname, tidnum,
+             idname, tidnum, tagLeaves,
              derivation, ttype, tsemantics, ttree,
              tinterface, tpolarities, tcontrol, 
              substnodes, adjnodes, 
              appendToVars)
 
 import Configuration(Params, defaultParams, getConf, treatArgs,
-                     grammarFile, tsFile, isTestSuite,
+                     grammarFile, tsFile, isTestSuite, morphCmd,
                      GramParams, parseGramIndex,
-                     macrosFile, lexiconFile, semlexFile, 
+                     macrosFile, lexiconFile, semlexFile, morphFile,
                      autopol, polarised, polsig, chartsharing, 
                      semfiltered, orderedadj, extrapol)
 
@@ -61,14 +62,14 @@ import Mstate (Gstats, numcompar, szchart, geniter, initGstats,
                addGstats, initMState, runState, genstats,
                generate)
 
+import Morphology
 import Polarity
-import Treeprint (showLeaves)
 --import Predictors (PredictorMap, mapByPredictors, 
 --                   fillPredictors, optimisePredictors)
 
 import Lex2 (lexer)
 import Mparser (mParser)
-import Lparser (lexParser, semlexParser)
+import Lparser (lexParser, semlexParser, morphParser)
 import Tsparser (targetSemParser, testSuiteParser)
 import ParserLib (E(..))
 \end{code}
@@ -95,6 +96,7 @@ data State = ST{pa       :: Params,
                 batchPa  :: [Params], -- list of configurations
                 gr       :: Macros,
                 le       :: Lexicon,
+                morphinf :: MorphFn,
                 ts       :: SemInput,
                 sweights :: FiniteMap String [Int],
                 tsuite   :: [(SemInput,[String])]
@@ -126,6 +128,7 @@ initGeni = do
                        batchPa = confArgs, 
                        gr = emptyFM,
                        le = emptyFM,
+                       morphinf = const Nothing,
                        ts = ([],[]),
                        sweights = emptyFM,
                        tsuite = [] }
@@ -147,9 +150,15 @@ type GeniFn = State -> Sem -> [[TagElem]] -> IO ([TagElem], Gstats)
 
 customGeni :: PState -> GeniFn -> IO GeniResults 
 customGeni pst runFn = do 
-  mst      <- readIORef pst
   -- lexical selection
-  purecand <- runLexSelection mst 
+  mstLex   <- readIORef pst
+  purecand <- runLexSelection mstLex
+  -- stripping morphological predicates
+  let nonmorphfn = isNothing.(morphinf mstLex)
+      tsLex      = ts mstLex
+      tsLex2     = (filter nonmorphfn (fst tsLex), snd tsLex)
+  modifyIORef pst (\x -> x{ts = tsLex2})
+  mst      <- readIORef pst
   -- force lexical selection (and hence grammar reading)
   -- to be evaluated before the clock 
   when (length (show purecand) == -1) $ exitWith ExitSuccess
@@ -193,6 +202,7 @@ customGeni pst runFn = do
                      -- grAuts = auts,
                      -- grCombos   = combos,
                      grDerived  = res, 
+                     grSentences = [],
                      grOptStr   = (statsOpt, showLitePm extraPol),
                      grAutPaths = statsAut,
                      grTimeStr  = "",
@@ -205,8 +215,12 @@ customGeni pst runFn = do
   let timediff = (fromInteger $ clockAfter - clockBefore) / 1000000000
       statsTime = (show $ timediff) 
   when (length statsTime == 0) $ exitWith ExitSuccess
-  -- one last addendum to the results 
-  return (results { grTimeStr  = statsTime })
+  -- morphology 
+  let uninflected = map tagLeaves res
+  sentences <- runMorph pst uninflected
+  -- final rensults 
+  return (results { grSentences = sentences,
+                    grTimeStr  = statsTime })
 \end{code}
 
 % --------------------------------------------------------------------
@@ -232,10 +246,13 @@ runLexSelection mst = do
         -- then anchor these lexical items to trees
         combiner = combineList (gr mst) 
         cand     = concatMap combiner lexCand
+        -- attach any morphological information to the candidates
+        morphfn  = morphinf mst
+        cand2    = attachMorph morphfn tsem cand 
         -- assure unique variable names
         setnum c i = appendToVars (mksuf i) (c { tidnum = i })
         mksuf i = "-" ++ (show i)
-    return $ zipWith setnum cand [1..]
+    return $ zipWith setnum cand2 [1..]
 \end{code}
 
 \paragraph{buildAutomaton} constructs the polarity automaton from the
@@ -485,8 +502,9 @@ loadGrammar pst =
      putStrLn $ "done"
      --
      let gparams = parseGramIndex filename gf
-     loadLexicon pst gparams
-     loadMacros  pst gparams
+     loadMacros    pst gparams
+     loadLexicon   pst gparams
+     loadMorphInfo pst gparams
 \end{code}
 
 \paragraph{loadLexicon} Given the pointer to the monadic state pst and
@@ -581,7 +599,7 @@ combineLexicon ll sl =
 
 \paragraph{loadMacros} Given the pointer to the monadic state pst and
 the parameters from a grammar index file parameters; it reads and parses
-macros file.  The macros are storded as a hashing function in the monad.
+macros file.  The macros are stored as a hashing function in the monad.
 
 \begin{code}
 loadMacros :: PState -> GramParams -> IO ()
@@ -598,6 +616,25 @@ loadMacros pst config =
      putStr $ show sizeg ++ " trees in " 
      putStr $ (show $ sizeFM g) ++ " families\n"
      modifyIORef pst (\x -> x{gr = g})
+\end{code}
+
+\paragraph{loadMorphInfo} Given the pointer to the monadic state pst and
+the parameters from a grammar index file parameters; it reads and parses
+the morphological information file, if available.  The results are stored
+as a lookup function in the monad.
+
+\begin{code}
+loadMorphInfo :: PState -> GramParams -> IO ()
+loadMorphInfo pst config = 
+  do let filename = morphFile config
+     --
+     putStr $ "Loading Morphological Info " ++ filename ++ "..."
+     hFlush stdout
+     gf <- readFile filename
+     let g = (morphParser.lexer) gf
+         sizeg  = length g
+     putStr $ show sizeg ++ " entries\n" 
+     modifyIORef pst (\x -> x{morphinf = readMorph g})
 \end{code}
 
 \subsection{Target semantics}
@@ -731,17 +768,19 @@ data GeniResults = GR {
   grAmbiguity :: String,
   grTimeStr   :: String,
   -- the final results
-  grDerived  :: [TagElem]
+  grDerived   :: [TagElem],
+  grSentences :: [String]
 } 
 \end{code}
 
-We provide a default means of displaying the results
+We provide a default means of displaying the results/u
 
 \begin{code}
 instance Show GeniResults where
   show gres = 
     let gstats = grStats gres 
         gopts  = grOptStr gres
+        sentences = grSentences gres
     in    "Optimisations: " ++ fst gopts ++ snd gopts ++ "\n"
        ++ "\nAutomaton paths explored: " ++ (grAutPaths  gres)
        ++ "\nEst. lexical ambiguity:   " ++ (grAmbiguity gres)
@@ -749,7 +788,7 @@ instance Show GeniResults where
        ++ "\nTotal chart size:  " ++ (show $ szchart gstats) 
        ++ "\nComparisons made:  " ++ (show $ numcompar gstats)
        ++ "\nGeneration time:  " ++ (grTimeStr gres) ++ " ms"
-       ++ "\n\nRealisations:\n" ++ (showRealisations $ map showLeaves $ grDerived gres)
+       ++ "\n\nRealisations:\n" ++ (showRealisations sentences)
 \end{code}
 
 \paragraph{groupAndCount} is a generic list-processing function.
@@ -780,4 +819,15 @@ showRealisations sentences =
      else concat $ intersperse "\n" $ sentencesGrouped
 \end{code}
 
+\paragraph{runMorph} inflects a list of sentences if a morphlogical generator
+has been specified.  If not, it returns the sentences as lemmas.
 
+\begin{code}
+runMorph :: PState -> [[(String,Flist)]] -> IO [String]
+runMorph pst sentences = 
+  do mst <- readIORef pst
+     let mcmd = morphCmd (pa mst)
+     if null mcmd
+        then return (map sansMorph sentences)
+        else inflectSentences mcmd sentences 
+\end{code}

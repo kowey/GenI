@@ -44,7 +44,8 @@ module Bfuncs(
         
    -- generic functions
    BitVector, groupByFM, multiGroupByFM,
-   isEmptyIntersect, fst3, thd3, mapTree
+   isEmptyIntersect, fst3, snd3, thd3, 
+   mapTree, filterTree, treeLeaves, listRepNode
 ) where
 \end{code}
 
@@ -96,27 +97,16 @@ Projector and Update function for Tree
 \begin{code}
 root :: Tree a -> a
 root (Node a _) = a
-\end{code}
 
-\begin{code}
 rootUpd :: Tree a -> a -> Tree a
 rootUpd (Node _ l) b = (Node b l)
 \end{code}
 
+\paragraph{foot} extracts the foot node of a tree
+
 \begin{code}
 foot :: Tree GNode -> GNode
-foot t = let (ln, _) = listFoot [t] in (head ln)
-
-listFoot :: [Tree GNode] -> ([GNode], Bool)
-listFoot [] = ([], False)
-listFoot ((Node a l1):l2) =
-    if (gtype a == Foot)
-    then ([a], True)
-    else let (ln1, flag1)  = listFoot l1 
-             (ln2, flag2) = listFoot l2 
-             in if flag1
-                then (ln1, flag1)
-                else (ln2, flag2)
+foot t = head $ filterTree (\n -> gtype n == Foot) t
 \end{code}
 
 \paragraph{setLexeme} 
@@ -206,27 +196,6 @@ constrainAdj n t =
   let filt (Node a _) = (gnname a == n)
       fn (Node a l)   = Node a { gaconstr = True } l
   in (head.fst) $ listRepNode fn filt [t] 
-\end{code}
-
-\subsection{repNode} 
-
-listRepNode is a generic tree-walking/editing function.  It takes a
-replacement function, a filtering function and a tree.  It returns the
-tree, except that the first node for which the filtering function
-returns True is transformed with the replacement function.
-
-\begin{code}
-listRepNode :: (Tree a -> Tree a) -> (Tree a -> Bool) 
-              -> [Tree a] -> ([Tree a], Bool)
-listRepNode _ _ [] = ([], False)
-listRepNode fn filt ((n@(Node a l1)):l2) = 
-  if filt n
-  then ((fn n):(l2), True)
-  else let (lt1, flag1) = listRepNode fn filt l1 
-           (lt2, flag2) = listRepNode fn filt l2
-       in if flag1
-          then ((Node a lt1):l2, flag1)
-          else (n:lt2, flag2)
 \end{code}
 
 % ----------------------------------------------------------------------
@@ -582,6 +551,9 @@ This section contains miscellaneous bits of generic code.
 fst3 :: (a,b,c) -> a
 fst3 (x,_,_) = x
 
+snd3 :: (a,b,c) -> b
+snd3 (_,x,_) = x
+
 thd3 :: (a,b,c) -> c
 thd3 (_,_,x) = x
 \end{code}
@@ -625,7 +597,7 @@ multiGroupByFM fn list =
 \end{code}
 
 \paragraph{mapTree} is like map, except on Trees.  This has to be
-tucked away somewhere!
+tucked away somewhere (i.e. i must be reinventing the wheel)!
 
 \begin{code}
 mapTree :: (a->b) -> Tree a -> Tree b
@@ -633,6 +605,48 @@ mapTree fn (Node a []) = (Node (fn a) [])
 mapTree fn (Node a l)  = (Node (fn a) (map (mapTree fn) l))
 \end{code}
 
+\paragraph{filterTree} is like filter, except on Trees.  Filter 
+might not be a good name, though, because we return a list of 
+nodes, not a tree.
+
+\begin{code}
+filterTree :: (a->Bool) -> Tree a -> [a]
+filterTree fn (Node a []) = 
+  if fn a then [a] else []
+filterTree fn (Node a l)  = 
+  if fn a then a:next else next
+  where next = concatMap (filterTree fn) l
+\end{code}
+
+\paragraph{treeLeaves} returns the leaf nodes of a Tree.
+
+\begin{code}
+treeLeaves :: Tree a -> [a]
+treeLeaves (Node n []) = [n]
+treeLeaves (Node _ l ) = concatMap treeLeaves l
+\end{code}
+
+\paragraph{listRepNode} is a generic tree-walking/editing function.  It
+takes a replacement function, a filtering function and a tree.  It
+returns the tree, except that the first node for which the filtering
+function returns True is transformed with the replacement function.
+
+\begin{code}
+listRepNode :: (Tree a -> Tree a) -> (Tree a -> Bool) 
+              -> [Tree a] -> ([Tree a], Bool)
+listRepNode _ _ [] = ([], False)
+listRepNode fn filt ((n@(Node a l1)):l2) = 
+  if filt n
+  then ((fn n):(l2), True)
+  else let (lt1, flag1) = listRepNode fn filt l1 
+           (lt2, flag2) = listRepNode fn filt l2
+       in if flag1
+          then ((Node a lt1):l2, flag1)
+          else (n:lt2, flag2)
+\end{code}
+
 \begin{code}
 testBtypes = testSubstFlist
 \end{code}
+
+

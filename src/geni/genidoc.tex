@@ -63,6 +63,7 @@
 \newcommand{\tautree}[1] {$\tau_{#1}$}
 \newcommand{\koweytree}{\texttt}
 \long\def\ignore#1{}
+\newcommand{\fnparam}{\texttt}
 
 \newcommand{\tuple}[1]{\langle #1 \rangle}
 \setcounter{secnumdepth}{3}
@@ -99,13 +100,16 @@ files.
  \item[Tags.lhs] - TAG specific data types
 \end{description}
 
-\section{Optimisation}
+\section{Enhancements}
 
+This portion is for optimisations and other optional features of the
+generator.
 In addition to the modules below, chapter \ref{chp:other_optimisations}
 will point you to ones which could not be cleanly seperated into
 modules.
 
 \begin{description}
+ \item[Morphology.lhs] - morphology in Geni  
  \item[Polarity.lhs] - the polarity automaton optimisation 
  \item[Predictors.lhs] - the now defunct predictors optimisation
 \end{description}
@@ -168,8 +172,9 @@ Also of interest are XML grammar files (processed with the HaXml toolkit
 \input{Bfuncs.lhs}       
 \input{Tags.lhs}       
 
-\part{Optimisation}
+\part{Optional}
 
+\input{Morphology.lhs}       
 \input{Polarity.lhs}       
 % \input{Predictors.lhs}
 

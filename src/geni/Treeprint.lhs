@@ -9,7 +9,6 @@ where
 
 \ignore{
 \begin{code}
-import Data.Char(toUpper)
 import Data.Tree
 import Data.List(delete,intersperse,nub)
 
@@ -18,7 +17,7 @@ import Tags (TagElem, idname, tsemantics, ttree, thighlight, tinterface,
 import Bfuncs (MTtree, Ttree(..), Ptype(..), 
                GNode(..), GType(..), Flist,
                showSem, showPairs, showAv)
-import Graphviz (GraphvizShow(..), GvParam)
+import Graphviz (GvParam)
 -- import Debug.Trace 
 \end{code}
 }
@@ -27,11 +26,12 @@ import Graphviz (GraphvizShow(..), GvParam)
 \section{For GraphViz}
 % ----------------------------------------------------------------------
 
-graphVizShow converts a TAG tree into Graphviz's \textit{dot} format.
+\paragraph{graphVizShowTagElem} converts a TAG tree into Graphviz's
+\textit{dot} format.
 
 \begin{code}
-instance GraphvizShow TagElem where
-  graphvizShow sf te =
+graphvizShowTagElem :: GvParam -> TagElem -> String
+graphvizShowTagElem sf te =
      -- we want a directed graph (but without arrows)
      "digraph " ++ (dehyphen $ idname te) ++ " {\n" 
      ++ " fontsize = 10\n"
@@ -231,32 +231,4 @@ dropTillDot l = f [] l
         f acc (x:xs) = if (x == '.') then f [] xs else f (x:acc) xs
 \end{code}   
 
-% ----------------------------------------------------------------------
-\section{Printing sentences}
-% ----------------------------------------------------------------------
-
-\paragraph{showLeaves} returns the phrase that the TAG tree represents.
-Any leaf nodes which are not words are returned as the node name.
-
-\begin{code}
-showLeaves :: TagElem -> String
-showLeaves te = concat $ intersperse " " w
-                where w = showLeaves' (ttree te) 
-\end{code}
-
-\begin{code}
-showLeaves' :: Tree GNode -> [ String ]
-showLeaves' (Node node []) = 
-  let lexeme = (glexeme node)
-      cat' = filter (\ (f,_) -> f == "cat") $ gup node 
-      cat  = if (null cat') 
-             then gnname node     
-             else snd $ head cat'
-      name   = map toUpper cat 
-      output = if (null lexeme) then name else lexeme
-  in [ output ]            
-\end{code}
-\begin{code}
-showLeaves' (Node _ l) = concatMap showLeaves' l 
-\end{code}
 

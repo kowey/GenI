@@ -12,6 +12,8 @@ import Btypes(AvPair, emptyLE, ILexEntry(..), Ptype(..), Sem)
 
 %name lexParser    Lexicon 
 %name semlexParser SLexicon
+%name morphParser  MorphInfo  
+
 %tokentype { PosToken }
 
 %token 
@@ -29,6 +31,17 @@ import Btypes(AvPair, emptyLE, ILexEntry(..), Ptype(..), Sem)
     '+'      {(PlusTok, _, _)}
  
 %%
+
+{- -----------------------------------------------------------------
+   morphological information 
+   ----------------------------------------------------------------- -}
+
+MorphInfo :: { [(String,[AvPair])] } 
+MorphInfo :                 { [] }
+          | Morph MorphInfo { $1:$2 }
+
+Morph :: { (String,[AvPair]) } 
+Morph : id '[' FeatList ']' { ($1,$3) }
 
 {- -----------------------------------------------------------------
    syntactic lexicon 

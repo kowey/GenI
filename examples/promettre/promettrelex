@@ -26,10 +26,10 @@ livre  n nC
 %% Noms Propres
 %% --------------------------------------------------------------------- 
 
-marie   n nP
-jean    n nP
-claire  n nP
-paul    n nP
+marie   n nP [ gen:f num:sg pers:3 ]
+jean    n nP [ num:sg pers:3 ]
+claire  n nP [ gen:f num:sg pers:3 ]
+paul    n nP [ num:sg pers:3 ]
 
 %% --------------------------------------------------------------------- 
 %% Verbs

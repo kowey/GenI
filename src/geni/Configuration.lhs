@@ -13,7 +13,7 @@ comes from Cparser.y
 module Configuration(
    Params, 
    treatArgs, 
-   grammarFile, tsFile, isGraphical, isTestSuite,
+   grammarFile, tsFile, isGraphical, isTestSuite, morphCmd,
    optimisations,
    autopol, polarised, polsig, chartsharing, extrapol,
    predicting, semfiltered, orderedadj, footconstr,
