@@ -11,7 +11,7 @@ module Morphology where
 
 \ignore{
 \begin{code}
-import Data.List (lines, unlines, unwords, nub)
+import Data.List (lines, unlines, unwords, intersperse)
 import Data.Tree
 import Data.FiniteMap
 import System.IO
@@ -19,8 +19,6 @@ import System.IO
 import Graphviz -- FIXME: temporary, just for the process stuff 
 import Bfuncs
 import Tags
-
-import Debug.Trace
 \end{code}
 }
 
@@ -116,24 +114,33 @@ of converting lemmas and morphological information into inflected forms.
 We do this by calling some third party software specified by the user.
 
 The morphological software must accept on stdin a newline delimited list
-of lemmas and features like so:
+of lemmas and features, with \verb$----$ (four hyphens) as an intersentence
+delimiter:
 
 \begin{verbatim}
-the  [num:sg]
-girl [num:sg]
-hate [tense:past num:sg]
-that [num:pl]
-boy  [num:pl]
+le       [num:sg gen:f]
+fille    [num:sg]
+detester [num:sg tense:past]
+le       [num:pl gen:m]
+garcon   [num:pl]
+----     []
+ce       []
+etre     []
+le       [num:pl]
+garcon   [num:pl]
+que      []
+le       [num:sg gen:f]
+fille    [num:sg] 
+detester [num:sg tense:past]
 \end{verbatim}
 
-It must return inflected forms on stdout, delimited by newlines
+It must return inflected forms on stdout, \emph{sentences} delimited by
+newlines.  Notice that the morphological generator can choose to delete
+spaces or do other orthographical tricks in between words:
 
 \begin{verbatim}
-the
-girl
-hated
-those
-boys
+la fille detestait les garcons
+c'est les garcons que la fille detestait
 \end{verbatim}
 
 If your morphological software does not do this, you could wrap it
@@ -152,42 +159,28 @@ sansMorph s = (unwords . (map fst)) s
 into inflected ones by calling the third party software.  Since we're
 using system calls, we're stuck with an IO monad. 
 
-Note: we try to avoid system calls by remembering the inflected forms.
-
 \begin{code}
 inflectSentences :: String -> [[(String,Flist)]] -> IO [String]
 inflectSentences morphcmd sentences =  
-  do -- determine what inflections to perform 
-     let morphlst = (nub.concat) sentences
-     -- perform the inflections
-     inflections <- callInflector morphcmd morphlst 
-     let morphmem = listToFM (zip morphlst inflections)
-     -- apply the inflections to the sentences 
-     let lookupfn w = lookupWithDefaultFM morphmem (fst w) w
-         sentences2 = map (unwords . (map lookupfn)) sentences
-     return sentences2
-  `catch` \_ -> do putStrLn "Error calling morphological generator"
-                   return $ map sansMorph sentences
-\end{code}
-
-\paragraph{callInflector} performs the Unix stuff which calls the
-morphological generator
-
-\begin{code}
-callInflector :: String -> [(String,Flist)] -> IO [String]
-callInflector morphcmd request = 
-  do -- format the stuff as input to the inflector
+  do -- add intersential delimiters
+     let delim    = [("----",[])]
+         morphlst = concat (intersperse delim sentences)
+     -- format the stuff as input to the inflector
      let fn (lem,fs) = lem ++ " [" ++ showPairs fs ++ "]"
-         order = unlines $ map fn request
+         order = unlines $ map fn morphlst 
      -- run the inflector
      (pid, fromP, toP) <- runPiped morphcmd [] Nothing Nothing
      hPutStrLn toP order
      hClose toP 
      awaitProcess pid 
      -- read the inflector output back as a list of strings
-     resRaw <- hGetContents fromP 
-     let res = lines resRaw
-     return res
+     res <- hGetContents fromP 
+     let sentences2 = lines res
+     --
+     return sentences2
+  `catch` \_ -> do putStrLn "Error calling morphological generator"
+                   return $ map sansMorph sentences
 \end{code}
+
 
 

@@ -7,72 +7,91 @@ use strict;
 # --------------------------------------------------------------------  
 # very stupid morphological generator for french
 #
-# Our intention here is not to build a useful morphological generator
-# but to demonstrate what kind of inputs and outputs GenI expects 
-# from third party generators.
+# Our intention here is not to build a useful (or correct) 
+# morphological generator but to demonstrate what kind of inputs 
+# and outputs GenI expects from third party generators.
 # --------------------------------------------------------------------  
+  
+my $in_sentence = 0;
 
 while (<STDIN>) {
   my $lemma = "";
-  my %has_feat;
+  my %has = ();
+  my %hasav = ();
+  my %feat = ();
 
-  if (/(.*) \[(.*)\]/) {   # parse out values
+  if (/(.*?)\s*\[(.*)\]/) {   # parse out values
     $lemma = $1;
     my $featstr = $2;
     # store the features into a hash
     # note: this is not feature -> attribute but a simple
     # hash with feat:attr as key
-    %has_feat = ();
-    $_ = $featstr;
-    for (split) { $has_feat{$_} = 1 }
+    %has = ();
+    my $av = "";
+    for (split(/ /, $featstr)) { 
+      $av = $_;
+      my ($attr, $val) = split(/:/,$av);
+      $has{$attr} = 1;
+      $hasav{$av} = 1;
+      $feat{$attr} = $val
+    }
+  }
+
+  # control of spaces
+  if ($lemma eq "----") { 
+    print "\n"; 
+    $in_sentence = 0;
+    next;
+  } elsif ($in_sentence) {
+    print " ";
+  } else { # start new sentence
+    $in_sentence = 1;
   }
 
   # determiners
   if ($lemma eq "le") {
-    if    ($has_feat{"num:pl"}) { print "les"; }
-    elsif ($has_feat{"gen:f"})  { print "la"; }
+    if    ($hasav{"num:pl"}) { print "les" }
+    elsif ($hasav{"gen:f"})  { print "la"; }
     else  { print "le"; }
   }
-  if ($lemma eq "un") {
-    if    ($has_feat{"num:pl"}) { print "des"; }
-    elsif ($has_feat{"gen:f"})  { print "une"; }
+  elsif ($lemma eq "un") {
+    if    ($hasav{"num:pl"}) { print "des"; }
+    elsif ($hasav{"gen:f"})  { print "une"; }
     else  { print "un"; }
   }
-
-
-  # verbs
-  elsif ($has_feat{"cat:v"}) {
+  # verbs (-er and -re verbs)
+  elsif ($hasav{"cat:v"}) {
     my $stem = $lemma;
     if ($stem =~ s/er$//) {
-      if ($has_feat{"num:pl"}) {
-        print $stem."ons" if ($has_feat{"pers:1"});
-        print $stem."ez"  if ($has_feat{"pers:2"});
-        print $stem."ent" if ($has_feat{"pers:3"});
+      if ($hasav{"num:pl"} and $has{"pers"}) {
+        my $pers = $feat{"pers"};
+        print $stem."ons" if ($pers eq "1");
+        print $stem."ez"  if ($pers eq "2");
+        print $stem."ent" if ($pers eq "3");
       } else {
-        if ($has_feat{"pers:2"}) { print $stem."es" }
+        if ($hasav{"pers:2"}) { print $stem."es" }
         else { print $stem."e" }
       }
     }
     if ($stem =~ s/re$//) {
-      if ($has_feat{"num:pl"}) {
-        print $stem."ons" if ($has_feat{"pers:1"});
-        print $stem."ez"  if ($has_feat{"pers:2"});
-        print $stem."ent" if ($has_feat{"pers:3"});
+      if ($hasav{"num:pl"} and $has{"pers"}) {
+        my $pers = $feat{"pers"};
+        print $stem."ons" if ($pers eq "1");
+        print $stem."ez"  if ($pers eq "2");
+        print $stem."ent" if ($pers eq "3");
       } else {
-        if ($has_feat{"pers:3"}) { print $stem }
+        if ($hasav{"pers:3"}) { print $stem }
         else { print $stem."s" }
       }
     }
   }
-
   # nouns ˆ l'anglaise
-  elsif ($has_feat{"cat:n"}) {
+  elsif ($hasav{"cat:n"}) {
     my $stem = $lemma;
-    if ($has_feat{"num:pl"}) {
+    if ($hasav{"num:pl"}) {
       print $stem."s";
     } else { print $stem; }
   }
   
-  else { print $lemma; }
-  print "\n";
+  else { print $lemma }
 }
