@@ -1,0 +1,52 @@
+%% $Date: 2005/01/13 14:42:10 $ 
+%% French TAG
+%% Note: i use fake tree names until the grammar can be sorted out
+
+% ----------------------------------------------------------------------
+% bits and pieces
+% ----------------------------------------------------------------------
+
+notre det stddeterminer 
+le    det stddeterminer 
+un    det stddeterminer 
+ce    det stddeterminer 
+il    pro pronoun
+le    cl   CliticT
+
+% ----------------------------------------------------------------------
+% nouns
+% ----------------------------------------------------------------------
+
+directeur  n   commonNoun
+bureau     n   commonNoun
+equipe     n   commonNoun
+consultant n   commonNoun
+seminaire  n   commonNoun
+
+allemagne  pn  propername 
+
+% ----------------------------------------------------------------------
+% adjectives 
+% ----------------------------------------------------------------------
+
+allemand     adj n0vApost
+special      adj n0vApost 
+hebdomadaire adj n0vApost 
+dequipe      adj n0vApost 
+nouveau      adj n0vApre
+
+% ----------------------------------------------------------------------
+% prepositions 
+% ----------------------------------------------------------------------
+
+de   prep PrepositionN 
+
+% ----------------------------------------------------------------------
+% verbs 
+% ----------------------------------------------------------------------
+
+auditionne v  n0Vn1 
+organise   v  n0Vn1 
+ennuie	   v  s0Vn1
+promets    v  n0Van1des2_0
+travailler v  n0V

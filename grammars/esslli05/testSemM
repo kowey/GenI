@@ -1,0 +1,12 @@
+semantics: [ directeur(m)    def(m)     
+              de(m o) bureau(o)       dem(o)                      
+             consultant(c)   indef(c) nouveau(c)                 
+             de(c g)         allemagne(g)             
+             auditioner(int m c) 
+%             jean(j) promettre(pro m int j) 
+           ]
+
+%semantics: [ directeur(m) def(m)
+%             seminaire(c) indef(c) special(c) hebdomadaire(c) nouveau(c) dequipe(c)
+%             organiser(org m c) ]
+%

@@ -1,4 +1,4 @@
-% GeNI surface realiser
+% GenI surface realiser
 % Copyright (C) 2005 Carlos Areces and Eric Kow
 %
 % This program is free software; you can redistribute it and/or

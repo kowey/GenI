@@ -254,7 +254,7 @@ optBatch =
       chartBatch = -- map (ChartSharing:) polarised 
                    polarised  ++ map (ChartSharing:) polarised
       sigBatch   = chartBatch -- chartBatch ++ map (PolSig:) chartBatch 
-      polBatch   = [] : sigBatch 
+      polBatch   = sigBatch -- [] : sigBatch 
       --
       -- filBatch = polBatch ++ map (SemFiltered:) polBatch
       -- adjBatch = filBatch ++ map (OrderedAdj:) filBatch

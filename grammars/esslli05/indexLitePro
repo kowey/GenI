@@ -1,0 +1,4 @@
+Macros     = semFrenchLite.geni
+Lexicon    = synlex
+SemLexicon = semlex_pro 
+%MorphInfo = morphinfo
