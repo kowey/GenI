@@ -30,7 +30,7 @@ import FiniteMap
 import Monad (when)
 import CPUTime (getCPUTime)
 
-import Btypes (Macros, MTtree, ILexEntry, Sem, Flist, Subst,
+import Btypes (Macros, MTtree, ILexEntry, Lexicon, Sem, Flist, Subst,
                GNode, GType(Subs), 
                isemantics, itreename, iword, iparams, ipfeat,
                gnname, gtype, gaconstr, gup, gdown, toKeys,
@@ -39,7 +39,7 @@ import Btypes (Macros, MTtree, ILexEntry, Sem, Flist, Subst,
                pidname, pfeat, ptype, 
                ptpolarities, 
                setLexeme, tree,
-               multiGroupByFM)
+               groupByFM, multiGroupByFM)
 
 import Tags (Tags, TagElem, emptyTE, TagSite, 
              idname, tidnum,
@@ -51,7 +51,7 @@ import Tags (Tags, TagElem, emptyTE, TagSite,
 import Configuration(Params, defaultParams, getConf, treatArgs,
                      grammarFile, tsFile, 
                      GramParams, parseGramIndex,
-                     macrosFile, lexiconFile, grammarType,
+                     macrosFile, lexiconFile, semlexFile, grammarType,
                      GrammarType(TAGML), 
                      polarised, polsig, chartsharing, 
                      semfiltered, orderedadj, extrapol)
@@ -91,9 +91,8 @@ Note: if tags is non-empty, we can ignore gr and le
 \begin{code}
 data State = ST{pa      :: Params,
                 batchPa :: [Params], -- list of configurations
-                tags    :: Tags,
                 gr      :: Macros,
-                le      :: [ILexEntry],
+                le      :: Lexicon,
                 ts      :: Sem
                }
 
@@ -121,9 +120,8 @@ initGeni = do
     -- Initialize the general state.  
     pst <- newIORef ST{pa = head confArgs,
                        batchPa = confArgs, 
-                       tags = emptyFM,
-                       gr   = emptyFM,
-                       le = [],
+                       gr = emptyFM,
+                       le = emptyFM,
                        ts = []}
     return pst 
 \end{code}
@@ -240,16 +238,11 @@ runLexSelection pst = do
     mst <- readIORef pst
     let tsem     = ts mst
         lexicon  = le mst
-        -- approach 1 (small grammars)
-        combined1 = combine (gr mst) lexicon 
-        cand1     = chooseCand combined1 tsem 
-        -- approach 2 (large grammars - search the lexicon first)
-        sortedLex = mapBySemKeys isemantics lexicon 
-        lexCand   = chooseLexCand sortedLex tsem
-        combined2 = combine (gr mst) lexCand
-        cand2     = concat $ eltsFM combined2
-        -- choose which approach you want
-        cand      = cand2
+        -- select lexical items first 
+        lexCand   = chooseLexCand lexicon tsem
+        -- then anchor these lexical items to trees
+        combiner = combineList (gr mst) 
+        cand     = concatMap combiner lexCand
         -- assure unique variable names
         setnum c i = appendToVars (mksuf i) (c { tidnum = i })
         mksuf i = "-" ++ (show i)
@@ -272,26 +265,31 @@ used to specialize un-anchored trees and propagates additional features
 given in the ILexEntry. 
 
 \begin{code}
-combine :: Macros -> [ILexEntry] -> Tags
-combine _ [] = emptyFM
+combine :: Macros -> Lexicon -> Tags
 \end{code}
 
 We start by collecting all the features and parameters we want to combine.
 
 \begin{code}
-combine g (lexitem:rest) =
-   let trest = combine g rest -- rest of the combination
-       --
-       tn = itreename lexitem
-       macs = case (lookupFM g tn) of
+combine g lexicon =
+  let helper li = map (combineOne li) macs 
+                  where tn   = itreename li
+                        macs = lookupWithDefaultFM g [] tn
+  in mapFM (\_ e -> concatMap helper e) lexicon 
+\end{code}
+
+\paragraph{combineList} takes a lexical item; it looks up the tree
+families for that item, and anchors the item to the trees.  A simple
+list of trees is returned.
+
+\begin{code}
+combineList :: Macros -> ILexEntry -> [TagElem]
+combineList g lexitem = 
+  let tn = itreename lexitem
+      macs = case (lookupFM g tn) of
                 Just tt -> tt
                 Nothing -> error ("Family " ++ tn ++ " not found in Macros")
-       sol  = map (combineOne lexitem) macs
-       --
-       keys = if null sem then ["MYEMPTY"] else toKeys sem
-              where sem = isemantics lexitem
-       --
-   in foldr (\k f -> addToFM_C (++) f k sol) trest keys 
+  in map (combineOne lexitem) macs
 \end{code}
 
 \paragraph{combineOne} combines a single tree with its lexical item to
@@ -454,8 +452,7 @@ selection (just the lexical items), and combine these lexically
 selected items with the grammar.
 
 \begin{code}
-type SortedLex = FiniteMap String [ILexEntry] 
-chooseLexCand :: SortedLex -> Sem -> [ILexEntry]
+chooseLexCand :: Lexicon -> Sem -> [ILexEntry]
 chooseLexCand slex tsem = 
   let substLex i sub = i { isemantics = substSem (isemantics i) sub
                          , ipfeat     = substFlist (ipfeat i)   sub  
@@ -534,6 +531,52 @@ loadGrammar pst =
      loadLexicon pst gparams
 \end{code}
 
+\paragraph{loadLexicon} Given the pointer to the monadic state pst and
+the parameters from a grammar index file parameters; it reads and parses
+the lexicon file and the semantic lexicon.   These are then stored in
+the mondad.
+
+\begin{code}
+loadLexicon :: PState -> GramParams -> IO ()
+loadLexicon pst config = do 
+       let lfilename = lexiconFile config
+           sfilename = semlexFile config
+
+       putStr $ "Loading Semantic Lexicon " ++ sfilename ++ "..."
+       sf <- readFile sfilename
+       let semmapper = mapBySemKeys isemantics
+           semlex    = (semmapper . lParser . lexer) sf
+       putStr ((show $ length $ keysFM semlex) ++ " entries\n")
+
+       putStr $ "Loading Lexicon " ++ lfilename ++ "..."
+       lf <- readFile lfilename 
+       let lemmapper = groupByFM iword
+           lex = (lemmapper . lParser . lexer) lf
+       putStr ((show $ length $ keysFM lex) ++ " entries\n")
+       
+       modifyIORef pst (\x -> x{le = combineLexicon semlex lex})
+       return ()
+\end{code}
+
+\paragraph{combineLexicon} merges the lemma lexicon and the semantic
+lexicon into a single lexicon.  The idea is that the semantic lexicon
+and the lemma lexicon both use the ILexEntry data type, but they contain
+different information: the semantic lexicon has the semantics and the
+parameters, whereas the lemma lexicon has everything else.  Each entry
+in the semantic lexicon has a semantics and a lemma.  We look the lemma
+up in the (surprise!) lemma lexicon, and copy the semantic information
+into each instance.
+
+\begin{code}
+combineLexicon :: Lexicon -> Lexicon -> Lexicon
+combineLexicon sl ll = 
+  let merge si li = li { isemantics = (isemantics si)
+                       , iparams   = (iparams si) }
+      helper si = map (merge si) lemmas
+                  where lemmas  = lookupWithDefaultFM ll [] (iword si)
+  in mapFM (\_ e -> concatMap helper e) sl 
+\end{code}
+
 \paragraph{loadMacros} Given the pointer to the monadic state pst and
 the parameters from a grammar index file parameters; it reads and parses
 macros file.  The macros are storded as a hashing function in the monad.
@@ -557,22 +600,6 @@ loadMacros pst config =
                 modifyIORef pst (\x -> x{gr = g})
                 return ()
         else error (errmsg ++ (show u))
-\end{code}
-
-\paragraph{loadMacros} Given the pointer to the monadic state pst and
-the parameters from a grammar index file parameters; it reads and parses
-the lexicon file. The lexicon is stored as a list in the monad.
-
-\begin{code}
-loadLexicon :: PState -> GramParams -> IO ()
-loadLexicon pst config = do 
-       let filename = lexiconFile config
-       putStr $ "Loading Lexicon " ++ filename ++ "..."
-       lf <- readFile filename 
-       let l = lParser (lexer lf)
-       putStr ((show $ length l) ++ " entries\n")
-       modifyIORef pst (\x -> x{le = l})
-       return ()
 \end{code}
 
 \subsection{Target semantics}

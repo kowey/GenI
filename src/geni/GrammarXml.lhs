@@ -21,7 +21,7 @@ import Text.XML.HaXml.Types
 import Text.XML.HaXml.Combinators
 import Text.XML.HaXml.Parse
 
-import Btypes(AvPair, Flist, Lexicon, ILexEntry(..), 
+import Btypes(AvPair, Flist, ILexEntry(..), 
               GType(Subs,Foot,Lex,Other),
               GNode(..), Macros, Ttree(..),
               emptyGNode, emptyMacro,
@@ -41,7 +41,7 @@ FIXME: For the moment, we do not handle coanchors!  We actually
 drop a good deal of the information that is the lexicon.
 
 \begin{code}
-parseXmlLexicon :: String -> Lexicon 
+parseXmlLexicon :: String -> [ILexEntry]
 parseXmlLexicon g = 
   -- extract a CElem out of the String
   let (Document _ _ ele) = xmlParse "" g 
@@ -49,9 +49,7 @@ parseXmlLexicon g =
       -- processing phase
       lexF = tag "tagml" /> tag "lexicalization"
       lex  = lexF c
-      --
-      -- res = foldr parseLexEntry emptyFM lex 
-  in emptyFM 
+  in map parseLex lex
 \end{code}
 
 Lexical entries can be really fancy.  Each lexical entry looks 

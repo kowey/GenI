@@ -244,6 +244,7 @@ GenI grammar
 \begin{code}
 data GramParams = GrmPrms {
   macrosFile     :: String,
+  semlexFile     :: String,
   lexiconFile    :: String,
   grammarType    :: GrammarType
 }
@@ -269,14 +270,15 @@ parseGramIndex filename contents =
       -- expand the relative paths 
       toAbs path = if isAbs path        
                    then path
-                   else dirname ++ (slash : path)
+                   else dirname ++ path
       --
       isAbs []    = False
       isAbs (a:_) = (a == slash)
       --
   in gp {
        macrosFile  = toAbs (macrosFile gp),
-       lexiconFile = toAbs (lexiconFile gp)
+       lexiconFile = toAbs (lexiconFile gp),
+       semlexFile  = toAbs (semlexFile gp)
      }
 \end{code}
 
@@ -285,13 +287,15 @@ defineGramParams :: [(Token,String)] -> GramParams
 
 defineGramParams [] = GrmPrms {
   macrosFile  = "",
+  semlexFile  = "",
   lexiconFile = "",
   grammarType = GeniHand
 }
 
 defineGramParams ((f,v):s) =
-  case f of Macros  ->  next {macrosFile     = v}
-            Lexicon ->  next {lexiconFile    = v} 
+  case f of Macros     -> next {macrosFile     = v}
+            Lexicon    -> next {lexiconFile    = v} 
+            SemLexicon -> next {semlexFile   = v}
             GrammarType -> next {grammarType = t} 
                            where t = case (read v) of 
                                        GeniHandTok -> GeniHand 

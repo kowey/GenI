@@ -15,6 +15,7 @@ untok (a,_,_) = a
 %token 
     macros      {(Macros,      _, _)} 
     lexicon     {(Lexicon,     _, _)}  
+    semlex      {(SemLexicon,  _, _)}
     gramtype    {(GrammarType,     _, _)}  
     TAGML       {(TAGMLTok, _, _)}
     GeniHand    {(GeniHandTok, _, _)}
@@ -34,6 +35,7 @@ InputList :
  
 idkey:   lexicon  {$1}  
        | macros   {$1}  
+       | semlex   {$1}
 
 GramTypes : TAGML    { (show.untok) $1 } 
           | GeniHand { (show.untok) $1 } 

@@ -228,7 +228,6 @@ gramsemBrowser pst guiParts = do
                          -- load in any new files
                          Monad.when (reload || teG /= gfile ) $ 
                            do loadGrammar pst  
-                              modifyIORef pst (\x -> x { tags = emptyFM }) 
                               set gl [ text := teG ]
                          Monad.when (reload || teS /= tfile ) $ 
                            do readTargetSem pst tsBox
@@ -465,10 +464,7 @@ treeBrowserGui :: PState -> IO ()
 treeBrowserGui pst = do
   mst <- readIORef pst
   -- ALL THE TREES in the grammar... muahahaha!
-  let preCombined = tags mst
-      semmap = if (isEmptyFM preCombined) 
-               then combine (gr mst) (le mst)
-               else preCombined 
+  let semmap = combine (gr mst) (le mst)
   -- browser window
   f <- frame [ text := "Tree Browser" 
              , fullRepaintOnResize := False 
