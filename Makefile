@@ -98,9 +98,10 @@ docs: $(MAKE_DOCS)
 html: $(MAKE_HTML)
 
 tarball:
+	sed -e "s/^Geni/$(MYDIR)/" etc/geniexclude > /tmp/geniexclude
 	rm -f $(MYDIR)*.tar.gz;\
 	cd .. ;\
-	tar -czvf --exclude=grammars --exclude=_darcs $(MYDIR)_$(DATE).tar.gz $(MYDIR);\
+	tar --exclude-from /tmp/geniexclude -czf $(MYDIR)_$(DATE).tar.gz $(MYDIR);\
 	mv $(MYDIR)_$(DATE).tar.gz $(MYDIR)
 
 clean: tidy

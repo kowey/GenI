@@ -399,21 +399,24 @@ iapplySubst te1 te2 (sn:_) =
   else iapplySubstNode te1 te2 sn
 
 iapplySubstNode :: TagElem -> TagElem -> (String, Flist, Flist) -> [TagElem]
-iapplySubstNode te1 te2 sn@(n, fu, _) =
+iapplySubstNode te1 te2 sn@(n, fu, fd) =
   let isInit x = (ttype x) == Initial
       t1 = ttree te1
       t2 = ttree te2
       r = root t1
       tfup = gup r
       (success, newgup, subst) = unifyFeat tfup fu
+
       -- IMPORTANT: nt1 should be ready for replacement 
       -- (e.g, top features unified, type changed to Other) 
       -- when passed to repSubst
-      nr  = r { gup = newgup,
+      nr  = r { gup   = newgup,
+                -- note that the bot features come from sn, not r!
+                gdown = substFlist fd subst,
                 gtype = Other }
       nt1 = rootUpd t1 nr 
       ntree = repSubst n nt1 t2 
-      
+
       --
       ncopy x = (gnname x, gup x, gdown x)
       adj1  = (ncopy nr) : (delete (ncopy r) $ adjnodes te1) 
