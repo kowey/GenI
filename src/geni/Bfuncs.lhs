@@ -16,7 +16,7 @@ module Bfuncs(
    Ttree(TT), MTtree,
    Ptype(Initial,Auxiliar,Unspecified), 
    Pred, Flist, AvPair, 
-   Lexicon, ILexEntry(ILE), Macros, Sem, Subst,
+   Lexicon, ILexEntry(ILE), Macros, Sem, SemInput, Subst,
    emptyGNode, emptyMacro, 
 
    -- Projectors from GNode (re-exported)
@@ -34,7 +34,6 @@ module Bfuncs(
    repSubst, repAdj, constrainAdj, 
    renameTree, substTree, substGNode,
    root, rootUpd, foot, setLexeme,
-   showGNodeAll,
 
    -- Functions from Sem
    toKeys, subsumeSem, sortSem, substSem, showSem, showPred,
@@ -49,19 +48,13 @@ module Bfuncs(
         
    -- generic functions
    BitVector, groupByFM, multiGroupByFM,
-   isEmptyIntersect, third, mapTree
+   isEmptyIntersect, fst3, thd3, mapTree
 ) where
 \end{code}
 
 \ignore{
 \begin{code}
-import Btypes(GNode(..), GType(Subs, Foot, Lex, Other), 
-   Ttree(..), MTtree,
-   Ptype(Initial,Auxiliar,Unspecified), 
-   Pred, Flist, AvPair, 
-   Lexicon, ILexEntry(..), Macros, Sem, Subst,
-   emptyGNode, emptyMacro, emptyPred)
-
+import Btypes
 import Debug.Trace -- for test stuff
 import Data.Char (isUpper)
 import Data.FiniteMap (emptyFM, FiniteMap, addToFM_C)
@@ -88,28 +81,6 @@ instance Show GNode where
     in if (not (null cat || null lex))
        then cat ++ ":" ++ lex ++ extra
        else cat ++ lex ++ extra
-\end{code}
-
-\paragraph{showGNodeAll} shows everything you would want to know about a
-gnode, probably more than you want to know
-
-\begin{code}
-showGNodeAll gn = 
-        let topstr = if null sgdown then "" else "Top: "
-            sgup = if (null $ gup gn) 
-                   then "" 
-                   else topstr ++ "[" ++ showPairs (gup gn) ++ "]\n"
-            sgdown = if (null $ gdown gn)
-                     then ""
-                     else "Bot: [" ++ showPairs (gdown gn) ++ "]\n"
-            extra = case (gtype gn) of         
-                        Subs -> " (s)"
-                        Foot -> " *"
-                        _    -> if (gaconstr gn)  then " (na)"   else ""
-            label  = if (null $ glexeme gn) 
-                     then (if null extra then "" else "Etc: " ++ extra ++ "\n")
-                     else (glexeme gn) ++ extra ++ "\n"
-        in sgup ++ sgdown ++ label -- (show gn ++ "\n" ++)
 \end{code}
 
 \paragraph{substGNode} 
@@ -612,8 +583,11 @@ sortSem s = sortBy (\(_, p1, _) -> \(_, p2, _) -> compare p1 p2) s
 This section contains miscellaneous bits of generic code.
 
 \begin{code}
-third :: (a,b,c) -> c
-third (_,_,x) = x
+fst3 :: (a,b,c) -> a
+fst3 (x,_,_) = x
+
+thd3 :: (a,b,c) -> c
+thd3 (_,_,x) = x
 \end{code}
 
 \begin{code}

@@ -14,8 +14,8 @@ module Tags(
    -- Projection Functions
    idname, tidnum, derivation, ttype, ttree, 
    substnodes, adjnodes, 
-   tsemantics, tpolarities, tpolpaths,
-   showfeats,
+   tsemantics, 
+   tinterface, tpolarities, tpolpaths, thighlight,
 
    -- Functions from Tags
    addToTags, 
@@ -86,11 +86,12 @@ data TagElem = TE {
                    tsemantics   :: Sem,
                    -- optimisation stuff
                    tpolarities  :: FiniteMap String Int,
+                   tinterface   :: Flist, -- for restrictors 
                    -- tpredictors  :: TPredictors,
                    tpolpaths    :: BitVector,
                    tprecedence  :: Int,
-                   -- display stuff
-                   showfeats    :: Bool
+                   -- display stuff,
+                   thighlight   :: [String] -- nodes to highlight 
                 }
              deriving (Show, Eq)
 \end{code}
@@ -130,8 +131,9 @@ emptyTE = TE { idname = "",
                tpolarities = emptyFM,
                tprecedence = 0, -- FIXME: you sure?
                -- tpredictors = emptyFM,
-               tpolpaths   = 0, 
-               showfeats   = False
+               tpolpaths   = 0,
+               tinterface  = [],
+               thighlight  = [] 
              }
 \end{code}
 

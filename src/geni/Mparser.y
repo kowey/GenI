@@ -26,6 +26,8 @@ polParser x = case polParserE x of
 
 emptyPolPred = (emptyFM, [])
 
+nullpair = ([],[])
+
 buildTree ttype id (params,feats) (pol,pred) t = 
        TT{params = params, 
           pidname = id,
@@ -67,8 +69,8 @@ buildTree ttype id (params,feats) (pol,pred) t =
     '('      {(OP,       _, _)} 
     ')'      {(CP,       _, _)} 
     '!'      {(Bang,     _, _)} 
-    '+'      {(PolPositive, _, _)}
-    '-'      {(PolNegative, _, _)}
+    '+'      {(PlusTok, _, _)}
+    '-'      {(MinusTok, _, _)}
  
 %%
 
@@ -180,7 +182,7 @@ TopTree :
    id Descrip '{' ListTree '}'
      {let {
            lt = $4;
-           (x1,x2,x3,x4) = $2;
+           (x1,x2,(x3,x4)) = $2;
            sortedx3 = sort x3;
            sortedx4 = sort x4;
            (a,l,t,ac) = 
@@ -206,7 +208,7 @@ ListTree :
  | id Descrip ListTree
      {let {
            lt = $3;
-           (x1,x2,x3,x4) = $2;
+           (x1,x2,(x3,x4)) = $2;
            sortedx3 = sort x3;
            sortedx4 = sort x4;
            (a,l,t,ac) =     -- Anchor, Lexeme, Type, AdjConstr
@@ -232,24 +234,35 @@ ListTree :
 
 Descrip :
    anchor
-     {("anchor","",[],[])}
- | type ':' anchor '[' FeatList ']' '!' '[' FeatList ']' 
-     {("anchor","",$5,$9)} 
+     {("anchor","",nullpair)}
+ | type ':' anchor  TopBotF
+     {("anchor","",$4)} 
+ | type ':' lexeme str TopBotF
+     {("lexeme",$4,$5)}
  | type ':' lexeme str 
-     {("lexeme",$4,[],[])}
- | type ':' subst '[' FeatList ']' '!' '[' FeatList ']' 
-     {("subst","",$5,$9)} 
- | type ':' foot '[' FeatList ']' '!' '[' FeatList ']' 
-     {("foot","",$5,$9)} 
- | aconstr ':' noadj '[' FeatList ']' '!' '[' FeatList ']' 
-     {("aconstr","",$5,$9)} 
- | '[' FeatList ']' '!' '[' FeatList ']' 
-     {("","",$2,$6)} 
+     {("lexeme",$4,nullpair)}
+ | type ':' subst TopBotF 
+     {("subst","",$4)}
+ | type ':' foot TopBotF 
+     {("foot","",$4)} 
+ | aconstr ':' noadj TopBotF 
+     {("aconstr","",$4)} 
+ | TopBotF 
+     {("","",$1)} 
+
+TopBotF : '[' FeatList ']' '!' '[' FeatList ']'
+    {($2,$6)}
  
 FeatList : 
      {[]} 
- | id ':' id FeatList
+ | id ':' FeatVal FeatList
      {($1,$3):$4}
+
+FeatVal: id  {$1}
+       | num {show $1}
+       | '+' {"+"}
+       | '-' {"-"}
+
 
 
 {

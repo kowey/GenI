@@ -10,9 +10,9 @@ involve some messy IO performance tricks.
 module Geni (State(..), PState, GeniResults(..), 
              showRealisations, groupAndCount,
              initGeni, customGeni, runGeni, 
+             runLexSelection, buildAutomaton, 
              loadGrammar, 
              loadTargetSem, loadTargetSemStr,
-             -- for debugging only
              combine)
 where
 \end{code}
@@ -20,18 +20,18 @@ where
 \ignore{
 \begin{code}
 import Data.FiniteMap
+import Data.IORef (IORef, readIORef, newIORef, modifyIORef)
 import Data.List (intersect, intersperse, sort, nub, group)
 import Data.Tree
-import IOExts(IORef, readIORef, newIORef, modifyIORef)
 
 import System (ExitCode(ExitSuccess), 
                exitWith, getArgs)
 import System.IO(hFlush, stdout)
 
-import Monad (when)
+import Control.Monad (when)
 import CPUTime (getCPUTime)
 
-import Bfuncs (Macros, MTtree, ILexEntry, Lexicon, Sem, Flist, 
+import Bfuncs (Macros, MTtree, ILexEntry, Lexicon, Sem, SemInput,
                GNode, GType(Subs), 
                isemantics, ifamname, icategory, iword, iparams, ipfeat,
                iprecedence,
@@ -45,8 +45,8 @@ import Bfuncs (Macros, MTtree, ILexEntry, Lexicon, Sem, Flist,
 
 import Tags (Tags, TagElem, emptyTE, TagSite, 
              idname, tidnum,
-             derivation, ttype, tsemantics, ttree, 
-             tpolarities, 
+             derivation, ttype, tsemantics, ttree,
+             tinterface, tpolarities, 
              substnodes, adjnodes, 
              appendToVars)
 
@@ -95,9 +95,9 @@ data State = ST{pa       :: Params,
                 batchPa  :: [Params], -- list of configurations
                 gr       :: Macros,
                 le       :: Lexicon,
-                ts       :: Sem,
+                ts       :: SemInput,
                 sweights :: FiniteMap String [Int],
-                tsuite   :: [(Sem,[String])]
+                tsuite   :: [(SemInput,[String])]
                }
 
 type PState = IORef State
@@ -126,7 +126,7 @@ initGeni = do
                        batchPa = confArgs, 
                        gr = emptyFM,
                        le = emptyFM,
-                       ts = [],
+                       ts = ([],[]),
                        sweights = emptyFM,
                        tsuite = [] }
     return pst 
@@ -143,33 +143,29 @@ instead of the vanilla generator.  To run the vanilla generator,
 call this function with runGeni as the runFn argument.
 
 \begin{code}
-type GeniFn = Params -> Sem -> [[TagElem]] -> IO ([TagElem], Gstats)
+type GeniFn = State -> Sem -> [[TagElem]] -> IO ([TagElem], Gstats)
 
 customGeni :: PState -> GeniFn -> IO GeniResults 
 customGeni pst runFn = do 
-  mst         <- readIORef pst
+  mst      <- readIORef pst
   -- lexical selection
-  purecand <- runLexSelection pst
+  purecand <- runLexSelection mst 
   -- force lexical selection (and hence grammar reading)
   -- to be evaluated before the clock 
   when (length (show purecand) == -1) $ exitWith ExitSuccess
   clockBefore <- getCPUTime 
   -- do any optimisations
   let config   = pa mst
-      tsem     = ts mst
-      swmap    = sweights mst 
-      extraPol = extrapol config 
+      (tsem,_) = ts mst
+      extraPol    = extrapol  config
+      isPol       = polarised config
   let -- polarity optimisation (if enabled)
-      isPol        = polarised config 
-      isAutoPol    = autopol   config
-      cand         = if (isPol && isAutoPol) 
-                     then detectPols purecand
-                     else purecand
-      (candLite, lookupCand) = reduceTags (polsig config) cand
-      (_,finalaut) = makePolAut candLite tsem extraPol swmap
-      pathsLite    = walkAutomaton finalaut 
-      paths        = map (concatMap lookupCand) pathsLite 
-      combosPol    = if isPol then paths else [cand]
+      autstuff   = buildAutomaton purecand mst
+      finalaut   = (snd.fst) autstuff
+      lookupCand = snd autstuff
+      pathsLite  = walkAutomaton finalaut 
+      paths      = map (concatMap lookupCand) pathsLite 
+      combosPol  = if isPol then paths else [purecand]
       -- chart sharing optimisation (if enabled)
       isChartSharing = chartsharing config
       combosChart = if isChartSharing 
@@ -179,7 +175,7 @@ customGeni pst runFn = do
       combos    = combosChart
       fstGstats = initGstats
   -- do the generation
-  (res, gstats') <- runFn config tsem combos
+  (res, gstats') <- runFn mst tsem combos
   let gstats  = addGstats fstGstats gstats'
   -- statistics 
   let statsOpt =  if (null optAll) then "none " else optAll
@@ -190,19 +186,17 @@ customGeni pst runFn = do
                         optSem   = if semfiltered config then "sfilt " else ""
                         optOAdj  = if orderedadj config then "oadj " else ""
 
-      statsAut = if isPol 
-                 then    (show $ length combosPol) ++ "/"
-                      ++ (show $ calculateTreeCombos candLite tsem swmap) 
-                 else ""
+      statsAut     = if isPol then show $ length combosPol else ""
+      ambiguityStr = show $ calculateTreeCombos purecand 
   -- pack up the results
-  let results = GR { grCand = cand,
+  let results = GR { -- grCand     = purecand,
                      -- grAuts = auts,
-                     grCombos   = combos,
-                     grFinalAut = finalaut,
+                     -- grCombos   = combos,
                      grDerived  = res, 
                      grOptStr   = (statsOpt, showLitePm extraPol),
                      grAutPaths = statsAut,
                      grTimeStr  = "",
+                     grAmbiguity = ambiguityStr,
                      grStats    = gstats }
   -- note: we have to do something with the results to force evaluation
   -- of the generator (for timing)
@@ -229,11 +223,10 @@ selected tree. This is to avoid nasty collisions during unification as
 mentioned in section \ref{sec:fs_unification}).
 
 \begin{code}
-runLexSelection :: IORef State -> IO [TagElem] 
-runLexSelection pst = do
-    mst <- readIORef pst
-    let tsem     = ts mst
-        lexicon  = le mst
+runLexSelection :: State -> IO [TagElem] 
+runLexSelection mst = do
+    let (tsem,_) = ts mst
+        lexicon     = le mst
         -- select lexical items first 
         lexCand   = chooseLexCand lexicon tsem
         -- then anchor these lexical items to trees
@@ -245,6 +238,37 @@ runLexSelection pst = do
     return $ zipWith setnum cand [1..]
 \end{code}
 
+\paragraph{buildAutomaton} constructs the polarity automaton from the
+lexical selection.
+
+\begin{code}
+buildAutomaton :: [TagElem] -> State -> (PolResult, TagLite -> [TagElem])
+type PolResult = ([(String, PolAut, PolAut)], PolAut)
+
+buildAutomaton candRaw mst =
+  let config   = pa mst
+      (tsem,tres) = ts mst
+      swmap    = sweights mst
+      -- restrictors and extra polarities
+      mergePol = plusFM_C (+)
+      extraPol = mergePol (extrapol config) r
+                 where r = declareRestrictors tres
+      detect   = detectRestrictors tres
+      restrict t = t { tpolarities = mergePol p r
+                     } --, tinterface  = [] }
+                   where p  = tpolarities t
+                         r  = (detect . tinterface) t
+      candRest  = map restrict candRaw 
+      -- polarity detection (if needed)
+      isAutoPol = autopol   config
+      cand = if isAutoPol 
+             then detectPols candRest
+             else candRest
+      -- building the automaton
+      (candLite, lookupCand) = reduceTags (polsig config) cand
+      auts = makePolAut candLite tsem extraPol swmap
+  in (auts, lookupCand)
+\end{code}
 
 % --------------------------------------------------------------------
 \subsection{Combine}
@@ -311,7 +335,7 @@ combineOne lexitem e =
        -- unify the features
        pf2  = substFlist pf  psubst
        tpf2 = substFlist tpf psubst
-       (fsucc, _, fsubst) = unifyFeat pf2 tpf2
+       (fsucc, funif, fsubst) = unifyFeat pf2 tpf2
        featsUnified = substTree paramsUnified fsubst 
        -- detect subst and adj nodes
        unified = featsUnified
@@ -325,7 +349,8 @@ combineOne lexitem e =
                 substnodes = snodes,
                 adjnodes   = anodes,
                 tsemantics = sem,
-                tpolarities = ptpolarities e
+                tpolarities = ptpolarities e,
+                tinterface  = funif
                 -- tpredictors = combinePredictors e lexitem
                }        
        -- well... with error checking
@@ -591,9 +616,9 @@ loadTargetSem pst = do
   hFlush stdout
   tstr <- readFile filename
   -- helper functions for test suite stuff
-  let cleanup (sm,sn) = (flattenTargetSem sm, sort sn)
-      updateTsuite s  = modifyIORef pst (\x -> x {tsuite = s2})
-                        where s2 = map cleanup s
+  let cleanup ((sm,sr),sn) = ((flattenTargetSem sm, sort sr), sort sn)
+      updateTsuite s = modifyIORef pst (\x -> x {tsuite = s2})
+                       where s2 = map cleanup s
   --  
   if isTsuite
      then do let sem = (testSuiteParser . lexer) tstr
@@ -613,9 +638,10 @@ field of st
 loadTargetSemStr :: PState -> String -> IO ()
 loadTargetSemStr pst str = 
     do putStr "Parsing Target Semantics..."
-       let sem = (targetSemParser . lexer) str
-       case sem of 
-         Ok s       -> modifyIORef pst (\x -> x{ts = flattenTargetSem s})
+       let semi = (targetSemParser . lexer) str
+       case semi of 
+         Ok (s,r)   -> modifyIORef pst (\x -> x{ts = (flattenTargetSem s, 
+                                                      sort r)})
          Failed s   -> fail s
        putStr "done\n"
 \end{code}
@@ -630,9 +656,9 @@ FIXME: we do not know how to handle literals with no arguments!
 \begin{code}
 flattenTargetSem :: [Tree (String, String)] -> Sem
 flattenTargetSem trees = sortSem results
-  where results  = concat $ snd $ unzip results'
-        results' = map fn $ zip [1..] trees 
-        fn (g,k) = flattenTargetSem' [g] k
+  where results  = (concat . snd . unzip) results'
+        results' = zipWith fn [1..] trees 
+        fn g k   = flattenTargetSem' [g] k
 \end{code}
 
 \paragraph{flattenTargetSem'} We walk the semantic tree, returning an index and
@@ -645,7 +671,7 @@ it does have children, then we return a handle for it (like \verb$h1.3.4$)
 
 \begin{code}
 flattenTargetSem' :: [Int] -> Tree (String,String) -> (String, Sem)
-flattenTargetSem' _  (Node (_,pred) []) = (pred, []) 
+flattenTargetSem' _  (Node ("",pred) []) = (pred, []) 
 
 flattenTargetSem' gorn (Node (hand,pred) kids) =
   let smooshGorn = "gh" ++ (concat $ intersperse "." $ map show gorn)
@@ -670,8 +696,8 @@ simplifications in order.
 
 \begin{code}
 runGeni :: GeniFn 
-runGeni config tsem combos = do
-  return (runGeni' config tsem combos) 
+runGeni mst tsem combos = do
+  return (runGeni' (pa mst) tsem combos) 
 
 runGeni' :: Params -> Sem -> [[TagElem]] -> ([TagElem], Gstats)
 runGeni' config tsem combos = 
@@ -691,19 +717,13 @@ We provide a data structure to be used by verboseGeni for returning the results
 
 \begin{code}
 data GeniResults = GR {
-  -- candidate selection
-  grCand     :: [TagElem],
-  -- modification of candidate selection
-  -- grAuts     :: [(String,PolAut,PolAut)],
-  grFinalAut :: PolAut,
-  -- paths through the automaton, if any
-  grCombos   :: [[TagElem]],
   -- optimisations and extra polarities
   grOptStr   :: (String,String),
   -- some numbers (in string form)
-  grStats    :: Gstats,
-  grAutPaths :: String,
-  grTimeStr  :: String,
+  grStats     :: Gstats,
+  grAutPaths  :: String,
+  grAmbiguity :: String,
+  grTimeStr   :: String,
   -- the final results
   grDerived  :: [TagElem]
 } 
@@ -717,7 +737,8 @@ instance Show GeniResults where
     let gstats = grStats gres 
         gopts  = grOptStr gres
     in    "Optimisations: " ++ fst gopts ++ snd gopts ++ "\n"
-       ++ "\nAutomaton paths explored: " ++ (grAutPaths gres)
+       ++ "\nAutomaton paths explored: " ++ (grAutPaths  gres)
+       ++ "\nEst. lexical ambiguity:   " ++ (grAmbiguity gres)
        ++ "\nTotal agenda size: " ++ (show $ geniter gstats) 
        ++ "\nTotal chart size:  " ++ (show $ szchart gstats) 
        ++ "\nComparisons made:  " ++ (show $ numcompar gstats)

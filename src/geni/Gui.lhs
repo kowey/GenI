@@ -10,25 +10,26 @@ module Gui(guiGenerate) where
 
 \ignore{
 \begin{code}
-import Graphics.UI.WXCore 
+import Graphics.UI.WXCore hiding (when) 
 import Graphics.UI.WX
 
-import IOExts(readIORef, modifyIORef)
 import Monad (when)
 import Data.Array
 import Data.Char (isSpace)
 import Data.FiniteMap
+import Data.IORef
 import Data.List (nub, delete)
 import System.Directory 
 
 import Graphviz 
 import Treeprint
 import Geni (State(..), GeniResults(..), PState,
-             runGeni, customGeni, combine, 
-             loadGrammar, loadTargetSemStr)
-import Bfuncs (showSem, showPred, Sem)
-import Tags (idname,mapBySem,emptyTE,tsemantics,tpolarities,
-             showfeats,TagElem)
+             runGeni, customGeni, 
+             runLexSelection, buildAutomaton, 
+             combine, loadGrammar, loadTargetSemStr)
+import Bfuncs (showPred, Sem)
+import Tags (idname,mapBySem,emptyTE,tsemantics,tpolarities,thighlight, 
+             TagElem)
 
 import Configuration(Params, grammarFile, 
                      tsFile, optimisations, 
@@ -307,8 +308,7 @@ doGenerate f pst sembox debugger = do
                    return ()
       dogen = do loadTargetSemStr pst sem
                  res <- customGeni pst runGeni 
-                 mst <- readIORef pst
-                 resultsGui res mst 
+                 resultsGui res 
   -- FIXME: it would be nice to distinguish between generation and ts
   -- parsing errors
   (if debugger then dodebug else dogen) `catch` handler1
@@ -321,11 +321,8 @@ various tabs for intermediary results in lexical
 selection, derived trees, derivation trees and generation statistics.
 
 \begin{code}
-resultsGui :: GeniResults -> State -> IO () 
-resultsGui res mst = do
-  let config = pa mst
-      tsem   = ts mst
-      semweights = sweights mst
+resultsGui :: GeniResults -> IO () 
+resultsGui res = do
   -- results window
   f <- frame [ text := "Results" 
              , fullRepaintOnResize := False 
@@ -334,25 +331,13 @@ resultsGui res mst = do
              ] 
   p    <- panel f []
   nb   <- notebook p []
-  -- candidate selection tab
-  let cand = grCand res
-  canTab <- candidateGui nb cand 
-  -- automata tab
-  let (candLite, _) = reduceTags (polsig config) cand
-      extraPol = extrapol config 
-      (auts, finalaut) = makePolAut candLite tsem extraPol semweights
-  autTab <- if (polarised config) 
-            then polarityGui nb auts finalaut
-            else messageGui  nb "Polarities disabled"
   -- realisations tab
   resTab <- realisationsGui nb $ grDerived res
   -- statistics tab
   statTab <- messageGui nb $ show res 
   -- pack it all together 
   set f [ layout := container p $ column 0 [ tabs nb 
-               [ tab "lex selection" canTab
-               , tab "automata"      autTab
-               , tab "realisations"  resTab 
+               [ tab "realisations"  resTab 
                , tab "summary"       statTab
                ] ]
         , clientSize := sz 700 600 
@@ -385,9 +370,10 @@ polarityGui   f xs final = do
       autlist = map toGvPolAut $ concatMap aut2 xs ++ [ final ] 
       labels  = concatMap autLabel xs ++ [ "final" ]
       --
-      itNlabl  = zip autlist labels
       tip      = "automata"
-  (lay,_) <- graphvizGui f tip "polarity" itNlabl
+  gvRef   <- newGvRef False labels
+  setGvDrawables gvRef autlist
+  (lay,_) <- graphvizGui f tip "polarity" gvRef 
   return lay
 \end{code}
       
@@ -399,8 +385,9 @@ message box
 \begin{code}
 realisationsGui :: (Window a) -> [TagElem] -> IO Layout
 realisationsGui f [] = messageGui f "No results found"
-realisationsGui f results = do
-  let sentences = map showLeaves results
+realisationsGui f resultsRaw = do
+  let results   = map (\t -> t {thighlight = []}) resultsRaw
+      sentences = map showLeaves results
       itNlabl   = zip results sentences
       tip       = "result"
   (lay,_) <- tagViewerGui f tip "derived" itNlabl
@@ -435,19 +422,19 @@ of TAG feature structures.
 
 \begin{code}
 tagViewerGui :: (Window a) -> String -> String -> [(TagElem,String)] 
-               -> (IO (Layout, ([(TagElem,String)] -> Int -> IO ())))
+               -> GvIO TagElem
 tagViewerGui f tip cachedir itNlab = do
   p <- panel f []      
-  (lay,updaterFn) <- graphvizGui p tip cachedir itNlab
+  let (items,labels) = unzip itNlab
+  gvRef <- newGvRef False labels
+  setGvDrawables gvRef items 
+  (lay,updaterFn) <- graphvizGui p tip cachedir gvRef 
   detailsChk <- checkBox p [ text := "Show features"
                            , checked := False ]
   -- commands
-  let (trees,labels)  = unzip itNlab
-      showTrees d = zip newTrees labels 
-                    where newTrees = map fn trees
-                          fn t   = t { showfeats = d }
   let onDetailsChk = do isDetailed <- get detailsChk checked 
-                        updaterFn (showTrees isDetailed) (-1)
+                        setGvParams gvRef isDetailed 
+                        updaterFn 
   -- handlers
   set detailsChk [ on command := onDetailsChk ]
   -- pack it all in      
@@ -512,23 +499,34 @@ user the agenda, chart and results at various stages in the generation
 process.  
 
 \begin{code}
-debugGui :: Params -> Sem -> [[TagElem]] -> IO ([TagElem], Gstats)
-debugGui config tsem combos = do
+debugGui :: State -> Sem -> [[TagElem]] -> IO ([TagElem], Gstats)
+debugGui mst tsem combos = do
   f <- frame [ text := "Geni Debugger" 
              , fullRepaintOnResize := False 
              , clientSize := sz 300 300 
              ] 
   p    <- panel f []
   nb   <- notebook p []
+  {-
   -- create an information tab (FIXME: this is mostly a hack to hide
   -- a GUI bug with the first debugger tab under Linux) 
   pinfo <- panel nb []
   let infoText = "Input Semantics: " ++ showSem tsem
       infoLay  = fill $ container pinfo $ margin 1 $ label infoText
       infoTab  = tab "info" infoLay
+  -}
   -- candidate selection tab
-  let cand = concat combos
+  cand   <- runLexSelection mst
   canTab <- candidateGui nb cand 
+  -- automata tab
+  let config           = pa mst
+      (auts, finalaut) = fst $ buildAutomaton cand mst
+  autTab <- if polarised config 
+            then polarityGui nb auts finalaut
+            else messageGui nb "polarities disabled"
+  -- basic tabs 
+  let basicTabs = tab "lexical selection" canTab :
+                  (if polarised config then [tab "automata" autTab] else [])
   -- start the generator for each path
   let tabLabels = map (\x -> "session " ++ show x) [1..] 
       createTab (cd,xs) = debuggerTab nb config tsem cd xs
@@ -537,9 +535,7 @@ debugGui config tsem combos = do
                 where fn (l,t) = tab l t
   --
   set f [ layout := container p $ column 0 
-          [ tabs nb (infoTab
-                    :(tab "lexical selection" canTab)
-                    :genTabs) ]   
+          [ tabs nb (basicTabs ++ genTabs) ]
         , clientSize := sz 700 600      
         ]
   return ([], initGstats)
@@ -553,11 +549,13 @@ debuggerTab :: (Window a) -> Params -> Sem -> String -> [TagElem] -> IO Layout
 debuggerTab f config tsem cachedir cands = do
   let initRes = []
       initSt  = initMState cands [] tsem (config {usetrash=True})
-  let itNlabl   = showGenState False initRes initSt 
-      tip       = "debugger session"
+  let (items,labels) = showGenState initRes initSt 
+      tip            = "debugger session"
   -- widgets
   p <- panel f []      
-  (lay,updaterFn) <- graphvizGui p tip cachedir itNlabl
+  gvRef <- newGvRef False labels
+  setGvDrawables gvRef items 
+  (lay,updaterFn) <- graphvizGui p tip cachedir gvRef 
   detailsChk <- checkBox p [ text := "Show features"
                            , checked := False ]
   restartBt   <- button p [text := "Start over"]
@@ -570,29 +568,33 @@ debuggerTab f config tsem cachedir cands = do
       txtStats   gs =  "itr " ++ (show $ geniter gs) ++ " " 
                     ++ "chart sz: " ++ (show $ szchart gs) 
                     ++ "\ncomparisons: " ++ (show $ numcompar gs)
-  let onDetailsChk r s sel = do isDetailed <- get detailsChk checked 
-                                updaterFn (showGenState isDetailed r s) sel
-                                let cmd _ = onDetailsChk r s (-1) 
-                                set detailsChk [ on command :~ cmd ]
+  let onDetailsChk = do isDetailed <- get detailsChk checked 
+                        setGvParams gvRef isDetailed
+                        updaterFn
   let genStep _ (r2,s2) = (r2 ++ r3,s3)
                           where (r3,s3) = runState generateStep s2
   let showNext r s = do leapTxt <- get leapVal text
                         let leapInt = read leapTxt
-                        let (r2,s2) = foldr genStep (r,s) [1..leapInt]
-                        onDetailsChk r2 s2 1
+                            (r2,s2) = foldr genStep (r,s) [1..leapInt]
+                        setGvDrawables2 gvRef (showGenState r2 s2)
+                        setGvSel gvRef 1
+                        updaterFn
                         updateStatsTxt (genstats s2)
                         set nextBt [ on command :~ (\_ -> showNext r2 s2) ]
   let showLast = do -- redo generation from scratch
                     let (r,s) = runState generate initSt 
-                    onDetailsChk r s (-1)
+                    setGvDrawables2 gvRef (showGenState r s)
+                    updaterFn
                     updateStatsTxt (genstats s)
   let showReset = do let res = initRes 
                          st  = initSt 
                      set nextBt   [ on command  := showNext res st ]
                      updateStatsTxt initGstats
-                     onDetailsChk res st 1
+                     setGvDrawables2 gvRef (showGenState res st)
+                     setGvSel gvRef 1
+                     updaterFn
   -- handlers
-  set detailsChk [ on command := onDetailsChk initRes initSt (-1) ]
+  set detailsChk [ on command := onDetailsChk ] 
   set finishBt [ on command := showLast ]
   set restartBt [ on command := showReset ]
   showReset
@@ -612,19 +614,18 @@ debuggerTab f config tsem cachedir cands = do
 of trees and labels the way graphvizGui likes it.
 
 \begin{code}
-showGenState :: Bool -> [TagElem] -> Mstate -> [(TagElem,String)]
-showGenState detailed res st = 
+showGenState :: [TagElem] -> Mstate -> ([TagElem],[String])
+showGenState res st = 
   let agenda    = initrep st
       auxiliary = auxrep st
       trash     = trashrep st
       chart     = genRepToList $ genrep  st
       --
-      trees'     =  (emptyTE:agenda) 
+      trees     =  (emptyTE:agenda) 
                  ++ (emptyTE:chart) 
                  ++ (emptyTE:auxiliary) 
                  ++ (emptyTE:trash) 
                  ++ (emptyTE:res) 
-      trees      = map (\x -> x { showfeats = detailed }) trees'
       labels     =  ("___AGENDA___"    : (labelFn agenda))
                  ++ ("___CHART___"     : (labelFn chart))
                  ++ ("___AUXILIARY___" : (labelFn auxiliary))
@@ -632,7 +633,7 @@ showGenState detailed res st =
                  ++ ("___RESULTS___"   : (labelFn res)) 
       labelFn trs = map fn trs 
                     where fn t = showLeaves t ++ " (" ++ showPolPaths t ++ ")"
-  in zip trees labels
+  in (trees,labels)
 \end{code}
 
 % --------------------------------------------------------------------
@@ -640,14 +641,66 @@ showGenState detailed res st =
 \label{sec:graphviz_gui}
 % --------------------------------------------------------------------
 
-A general-purpose GUI for displaying a list of items graphically
-via AT\&T's excellent Graphviz utility.  This returns a layout
-(wxhaskell container) and a function for updating the contents
-of this GUI.
+A general-purpose GUI for displaying a list of items graphically via
+AT\&T's excellent Graphviz utility.  We have a list box where we display
+all the labels the user provided.  If the user selects an entry from
+this box, then the item corresponding to that label will be displayed.
+See section \ref{sec:draw_item}.
 
-We have a list box where we display all the labels the user provided.
-If the user selects an entry from this box, then the item corresponding
-to that label will be displayed.  See section \ref{sec:draw_item}.
+\paragraph{gvRef}
+
+We use IORef as a way to keep track of the gui state and to provide you
+the possibility for modifying the contents of the GUI.  The idea is that 
+
+\begin{enumerate}
+\item you create a GvRef with newGvRef
+\item you call graphvizGui and get back an updater function
+\item whenever you want to modify something, you use setGvWhatever
+      and call the updater function
+\end{enumerate}
+
+\begin{code}
+data GraphvizOrder = GvoParams | GvoItems | GvoSel 
+     deriving Eq
+data GraphvizGuiSt a b = 
+        GvSt { gvitems   :: Array Int a,
+               gvparams  :: b,
+               gvlabels  :: [String],
+               gvsel     :: Int,
+               gvorders  :: [GraphvizOrder] }
+type GraphvizRef a b = IORef (GraphvizGuiSt a b)
+
+newGvRef p l =
+  let st = GvSt { gvparams = p,
+                  gvitems  = array (0,0) [],
+                  gvlabels = l, 
+                  gvsel    = 0,
+                  gvorders = [] }
+  in newIORef st
+
+setGvSel gvref s  =
+  do let fn x = x { gvsel = s,
+                    gvorders = GvoSel : (gvorders x) }
+     modifyIORef gvref fn 
+  
+setGvParams gvref c  =
+  do let fn x = x { gvparams = c,
+                    gvorders = GvoParams : (gvorders x) }
+     modifyIORef gvref fn 
+
+setGvDrawables gvref it =
+  do let fn x = x { gvitems = array (0, length it) (zip [0..] it),
+                    gvorders = GvoItems : (gvorders x) }
+     modifyIORef gvref fn 
+
+setGvDrawables2 gvref (it,lb) =
+  do let fn x = x { gvlabels = lb }
+     modifyIORef gvref fn 
+     setGvDrawables gvref it
+\end{code}
+
+\paragraph{graphvizGui} returns a layout (wxhaskell container) and a
+function for updating the contents of this GUI.
 
 Arguments:
 \begin{enumerate}
@@ -657,8 +710,7 @@ Arguments:
 \item glab - (gui labels) a tuple of strings (tooltip, next button text)
 \item cachedir - the cache subdirectory.  We intialise this by creating a cache
           directory for images which will be generated from the results
-\item itNlab - (items and labels) a list of pairs of $(it,lab)$ where $it$
-          is an item to visualise and $lab$ is its lable.
+\item gvRef - see above
 \end{enumerate}
 
 Returns: a function for updating the GUI 
@@ -666,10 +718,10 @@ Returns: a function for updating the GUI
  -1 to keep the same selection)
 
 \begin{code}
-graphvizGui :: (GraphvizShow d) => (Window a) -> String -> String 
-               -> [(d,String)] 
-               -> (IO (Layout, ([(d,String)] -> Int -> IO ())))
-graphvizGui f txtChoiceTip cachedir itNlab = do
+graphvizGui :: (GraphvizShow d) => 
+  (Window a) -> String -> String -> GraphvizRef d Bool -> GvIO d
+type GvIO d = IO (Layout, IO ())
+graphvizGui f txtChoiceTip cachedir gvRef = do
   -- widgets
   p <- panel f [ fullRepaintOnResize := False ]
   split <- splitterWindow p []
@@ -682,22 +734,30 @@ graphvizGui f txtChoiceTip cachedir itNlab = do
   let lay = fill $ container p $ margin 1 $ fill $ 
             vsplit split 5 200 (widget rchoice) (widget sw) 
   set p [ on closing :~ \previous -> do{ closeImage dtBitmap; previous } ]
+  -- bind an action to rchoice
+  let showItem = createAndOpenImage cachedir p gvRef openFn
   -- create an updater function
-  let updaterFn itNlab2 newSel = do 
+  let updaterFn = do 
+        gvSt <- readIORef gvRef
+        let orders = gvorders gvSt 
+            labels = gvlabels gvSt
+            sel    = gvsel    gvSt
         initCacheDir cachedir 
-        let (it,labels) = unzip itNlab2
-            drawables   = array (0, length it) (zip [0..] it)
-            showItem = do { sel <- get rchoice selection; 
-                            createAndOpenImage cachedir p sel drawables openFn }
-        sel' <- get rchoice selection;
-        let sel = if (newSel < 0) 
-                  then if (sel' < 0) then 0 else sel'
-                  else newSel
-        set rchoice [ items :~ (\_ -> labels), selection :~ (\_ -> sel), 
-                      on select :~ (\_ -> showItem) ]
+        Monad.when (GvoItems `elem` orders) $ 
+          set rchoice [ items :~ (\_ -> labels) ]
+        Monad.when (GvoSel `elem` orders) $
+          set rchoice [ selection :~ (\_ -> sel) ]
+        modifyIORef gvRef (\x -> x { gvorders = []})
         showItem 
+  -- enable the tree selector
+  let selectAndShow = do
+        sel <- get rchoice selection
+        setGvSel gvRef sel
+        updaterFn
+  set rchoice [ on select := selectAndShow ]
   -- call the updater function for the first time
-  updaterFn itNlab 1
+  setGvSel gvRef 1
+  updaterFn 
   -- return a layout and the updater function 
   return (lay, updaterFn)
 \end{code}
@@ -766,28 +826,33 @@ if it fails.
 
 \begin{code}
 createAndOpenImage :: (GraphvizShow b) => 
-  FilePath -> Window a -> Int -> Array Int b -> OpenImageFn -> IO ()
-createAndOpenImage cachedir f sel drawables openFn = do 
-  r <- createImage cachedir f sel drawables 
+  FilePath -> Window a -> GraphvizRef b Bool -> OpenImageFn -> IO ()
+createAndOpenImage cachedir f gvref openFn = do 
+  r <- createImage cachedir f gvref 
   case r of 
     Just graphic -> openFn graphic
     Nothing -> return ()
 \end{code}
 
 \paragraph{createImage}
-Creates a graphical visualisation for a tree or automaton.
-arguments: a drawing function, an array of trees and an index 
+Creates a graphical visualisation for a tree or automaton. arguments: a
+cache directory, a WxHaskell window, and index and an array of trees.
 Returns Just filename if the index is valid or Nothing otherwise 
 
 \begin{code}
-createImage :: (GraphvizShow b) => FilePath -> Window a -> Int -> Array Int b -> IO (Maybe FilePath) 
-createImage cachedir f sel drawables = do
+createImage :: (GraphvizShow b) => 
+  FilePath -> Window a -> GraphvizRef b Bool -> IO (Maybe FilePath) 
+createImage cachedir f gvref = do
+  gvSt <- readIORef gvref
   --putStrLn $ "creating image for " ++ (show sel) ++ " in " ++ (show trees)
-  let te = drawables ! sel
+  let drawables = gvitems  gvSt
+      sel       = gvsel    gvSt
+      config    = gvparams gvSt
+      te = (drawables ! sel)
       b  = bounds drawables 
       dotFile     = createDotPath cachedir (show sel)
       graphicFile = createImagePath cachedir (show sel)
-      create = do toGraphviz te dotFile graphicFile
+      create = do toGraphviz config te dotFile graphicFile
                   return (Just graphicFile)
       handler err = do errorDialog f "Error calling graphviz" (show err) 
                        return Nothing

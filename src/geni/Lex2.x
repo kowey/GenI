@@ -45,12 +45,13 @@ tokens :-
   Repeat                     { tok Repeat }
   ExtraPolarities            { tok ExtraPolarities }
 
+  restrictors                { tok RestrictorsTok }
   semantics                  { tok Semantics  }
   polarities                 { tok Polarities }
   predictors                 { tok Predictors }
   
-  \+                         { tok PolPositive }
-  \-                         { tok PolNegative }
+  \+                         { tok PlusTok }
+  \-                         { tok MinusTok }
   \=                         { tok Eq }
   
   initial                    { tok Init }

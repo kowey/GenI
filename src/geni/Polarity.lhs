@@ -43,6 +43,7 @@ module Polarity(PolAut,makePolAut,
                 TagLite, reduceTags, 
                 buildSemWeights,
                 walkAutomaton, detectPols, detectPolPaths, 
+                declareRestrictors, detectRestrictors,
                 defaultPolPaths,
                 showLite, showLitePm, showPolPaths, showPolPaths',
                 toGvPolAut, calculateTreeCombos 
@@ -59,11 +60,12 @@ import Data.List
 
 import Graphviz(GraphvizShow(..))
 import Tags(TagElem(..), mapBySem, substnodes)
-import Bfuncs(Pred, Sem, emptyPred, Ptype(Initial),
+import Bfuncs(Pred, Sem, Flist, showAv,
+              emptyPred, Ptype(Initial),
               showPred, showSem, 
               root, gup, 
               BitVector, toKeys,
-              groupByFM, isEmptyIntersect, third)
+              groupByFM, isEmptyIntersect, thd3)
 \end{code}
 
 %\begin{code}
@@ -120,10 +122,10 @@ makePolAut cands tsem extraPol swmap = let
     (ks,seed) = makePolAutHelper cands tsem extraPol swmap
     -- building and remembering the automata 
     build k xs = (k,aut,prune aut):xs
-                 where aut   = buildPolAut k initK (third $ head xs)
+                 where aut   = buildPolAut k initK (thd3 $ head xs)
                        initK = lookupWithDefaultFM extraPol 0 k
     res = foldr build [("(seed)",seed,prune seed)] ks
-    in (reverse res, third $ head res)
+    in (reverse res, thd3 $ head res)
 
 makePolAutHelper :: [TagLite] -> Sem -> PolMap -> SemWeightMap ->
                     ([String],PolAut)
@@ -705,6 +707,42 @@ now, we assume that this never happens.
 \section{Further optimisations}
 % ====================================================================
 
+\subsection{Lexical filtering}
+
+Lexical filtering allows the user to restricte the lexical selection
+to only those items that contain a certain property, for example, the
+realising an item as a cleft.
+
+The idea is that the user provides an input like
+\verb$restrictors:[cleft:j]$ which means that the lexical selection
+must include exactly one tree with the property cleft:j in its
+interface.  This mechanism works as pre-processing step after
+lexical selection and before polarity automaton construction, in
+conjuction with the ExtraPolarities mechanism.  What we do is
+
+\begin{enumerate}
+\item Preprocess the lexically selected trees; any tree which has a
+      a desired property (e.g. cleft:j) in its interface is assigned
+      a positive polarity for that property (+cleft:j)
+\item Add all the restrictions as negative extra polarities (-cleft:j)
+\end{enumerate}
+
+Note: we assume the restrictors and interface are sorted
+
+\begin{code}
+detectRestrictors :: Flist -> Flist -> PolMap 
+detectRestrictors restrict interface =
+  let matches  = intersect restrict interface
+      matchStr = map showAv matches
+  in listToFM $ zip matchStr (repeat 1)
+
+declareRestrictors :: Flist -> PolMap
+declareRestrictors restrict =
+  let restrictStr = map showAv restrict
+      minusone    = repeat (-1)
+  in listToFM $ zip restrictStr minusone
+\end{code}
+
 \subsection{Automatic detection}
 
 Automatic detection is not an optimisation in itself, but a means to
@@ -1128,7 +1166,7 @@ toGvPolAut aut   = GvPolAut aut
 
 instance GraphvizShow GvPolAut where
   -- we want a directed graph (arrows)
-  graphvizShow (GvPolAut aut) = 
+  graphvizShow _ (GvPolAut aut) = 
      "digraph aut {\n" 
      ++ "rankdir=LR\n" 
      ++ "ranksep = 0.02\n"
@@ -1224,11 +1262,10 @@ product of these ambiguities: $\prod_{1 \leq i \leq n} a_i$.
  number of tree combinations is $a^n$).  
 
 \begin{code}
-calculateTreeCombos :: [TagLite] -> Sem -> SemWeightMap -> Int
-calculateTreeCombos cands tsemRaw swmap = 
-  let smapRaw   = mapBySem tlSemantics cands
-      (_, smap) = addExtraIndices swmap (tsemRaw, smapRaw)
-      ambiguity = map length $ eltsFM smap 
+calculateTreeCombos :: [TagElem] -> Int
+calculateTreeCombos cands = 
+  let smapRaw   = mapBySem tsemantics cands
+      ambiguity = map length $ eltsFM smapRaw 
   in foldr (*) 1 ambiguity     
 \end{code}
 

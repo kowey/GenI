@@ -4,31 +4,31 @@
 
 %% Determinants
 
-un Det
-le Det
+un det Det
+le det Det
 
 %% Noms communs
 
-chat   nC
-souris nC
+chat   _ nC
+souris _ nC
 
 %% Noms Propres
 
-marie   nP
-claire  nP
-olivier nP
-pierre  nP
-jean    nP
-paul    nP
+marie   _ nP
+claire  _ nP
+olivier _ nP
+pierre  _ nP
+jean    _ nP
+paul    _ nP
 
 %% --------------------------------------------------------------------- 
 %% Adjectives
 %% --------------------------------------------------------------------- 
 
-noir adj_post
+noir _ adj_post
 %noir2 adj_pre(I)
-petit adj_pre
-mechant adj_pre
+petit _ adj_pre
+mechant _ adj_pre
 
 %% --------------------------------------------------------------------- 
 %% chasse
@@ -37,4 +37,4 @@ mechant adj_pre
 % chasser une souris vinfn1
 % le chat chasse la souris
 % qui chasse une souris ?
-chasser vArity2 
+chasser _ vArity2 

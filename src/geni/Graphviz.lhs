@@ -29,20 +29,33 @@ import Monad(when)
 \section{Interface}
 
 We expose one or two functions to directly convert our data structures 
-into graphics files.  The conversion process and graphviz invocation 
-itself is in the sections below.  Note: the dotFile argument allows you 
-to save the intermediary dot output to a file.  You can pass in the 
-empty string if you don't want this.
+into graphics files.  
+
+\paragraph{GraphvizShow} 
+The idea is that data structures which can be visualised with GraphViz
+should implement this class.  Note the first argument to graphvizShow is
+so that you can parameterise your show function 
+(i.e. pass in flags to change the way you show particular object)
+
+FIXME: ideally the flag would be of parameterisable type... but it 
+       seems i'll have to enable glasgow-exts to get classes that
+       let me do that.  
 
 \begin{code}
+type GvParam = Bool
 class GraphvizShow a where
-  graphvizShow :: a -> String
+  graphvizShow :: GvParam -> a -> String
 \end{code}
 
+The conversion process and graphviz invocation itself is in the sections
+below.  Note: the dotFile argument allows you to save the intermediary
+dot output to a file.  You can pass in the empty string if you don't
+want this.
+
 \begin{code}
-toGraphviz :: (GraphvizShow a) => a -> String -> String -> IO () 
-toGraphviz te dotFile outputFile =
-   graphviz (graphvizShow te) dotFile outputFile
+toGraphviz :: (GraphvizShow a) => GvParam -> a -> String -> String -> IO () 
+toGraphviz p x dotFile outputFile =
+   graphviz (graphvizShow p x) dotFile outputFile
 \end{code}
 
 \section{Invocation}

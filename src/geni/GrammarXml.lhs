@@ -11,7 +11,7 @@ module GrammarXml where
 \begin{code}
 import Data.Char
 import Data.FiniteMap (FiniteMap,emptyFM,addToFM_C)
-import Data.List (sort)
+import Data.List (partition,sort)
 import Data.Tree
 import MonadState (State, 
                    runState,
@@ -239,22 +239,21 @@ parseNode n = do
       -- saving the feature lists 
       topFl  = map parseFeature (topF n)
       botFl  = map parseFeature (botF n)
-      gloFl  = map parseFeature (gloF n)
+      gloFl' = map parseFeature (gloF n)
       -- reading the node type
       ntypeF    = attributed "type" keep
       ntypeStr  = concatMap fst (ntypeF n) -- should only be one element 
-      ntype     = case ntypeStr of 
+      ntype'    = case ntypeStr of 
                     "subst"  -> Subs
                     "foot"   -> Foot
                     "anchor" -> Lex
                     _        -> Other
-      {- 
-      -- the cat feature
+      -- hard setting the lexeme 
       isLexeme (a,_) = a == "phon"
       (lexL, gloFl)  = partition isLexeme gloFl'
       (ntype, lex)   = if null lexL 
                        then (ntype', "") 
-                       else (Lex   , snd $ head lexL) -}
+                       else (Lex   , snd $ head lexL) 
       -- FIXME: explicit constraints need to be accounted for
       aconstr  = (ntype == Subs || ntype == Foot)
       -- the node name is just the counter
@@ -263,8 +262,8 @@ parseNode n = do
       gn = GN { gnname  = name,
                 gup     = sort $ topFl ++ gloFl,
                 gdown   = sort $ botFl ++ gloFl,
-                ganchor = (ntype == Lex),
-                glexeme = "",
+                ganchor = (null lex && ntype == Lex),
+                glexeme = lex,
                 gtype   = ntype,
                 gaconstr = aconstr }
       {-

@@ -40,8 +40,8 @@ untok (a,_,_) = a
     '='        {(Eq,          _, _)} 
     num        {(Num $$,    _, _)} 
     '!'        {(Bang, _, _)}
-    '+'        {(PolPositive, _, _)}
-    '-'        {(PolNegative, _, _)}
+    '+'        {(PlusTok, _, _)}
+    '-'        {(MinusTok, _, _)}
     ','        {(Comma, _, _)}
  %%
 

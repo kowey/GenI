@@ -42,7 +42,8 @@ emptyLE = ILE { iword = "",
     '!'   {(Bang,         _, _)} 
     ']'   {(CB,           _, _)}
     '['   {(OB,           _, _)}
-    '-'      {(PolNegative, _, _)}
+    '-'      {(MinusTok, _, _)}
+    '+'      {(PlusTok, _, _)}
  
 %%
 
@@ -143,10 +144,13 @@ IDFeat :
 
 FeatList : 
      {[]} 
- | id ':' id FeatList
+ | id ':' FeatVal FeatList
      {($1,$3):$4}
 
-
+FeatVal: id  {$1}
+       | num {show $1}
+       | '+' {"+"}
+       | '-' {"-"}
 
 SemFamList:
           { [] }

@@ -72,12 +72,12 @@ import Bfuncs (Ptype(Initial,Auxiliar),
                constrainAdj, 
                root, foot, 
                substTree, substGNode, substFlist, unifyFeat, 
-               mapTree)
+               mapTree, fst3)
 
 import Tags (TagElem, TagSite, TagDerivation, 
              idname, tidnum,
              derivation,
-             ttree, ttype, tsemantics, 
+             ttree, ttype, tsemantics, thighlight,
              tpolpaths,
              substTagElem, 
              adjnodes,
@@ -408,7 +408,8 @@ iapplySubstNode te1 te2 sn@(n, fu, _) =
                   adjnodes =   newadjnodes,
                   tsemantics = sort (nub ((tsemantics te1) ++ (tsemantics te2))),
                   -- tpredictors = sumPredictors (tpredictors te1) (tpredictors te2),
-                  tpolpaths  = intersectPolPaths te1 te2 }
+                  tpolpaths  = intersectPolPaths te1 te2,
+                  thighlight = [gnname nr]} 
       res = substTagElem newTe subst   
       {- debugstr = ("============================================\n" 
                   ++ "substitute " ++ showLite te1 
@@ -460,9 +461,11 @@ applyAdjunction te = do
        -- te2 is to account for the case where we simply don't do
        -- adjunction on that particular node
        resOrdered = if (null ranodes) then [] else te2:applied
-                    where gn (a,_,_) = a 
-                          ntree = constrainAdj (gn ahead) (ttree te)
-                          te2   = te {adjnodes = atail, ttree = ntree}
+                    where gn    = fst3 ahead
+                          ntree = constrainAdj gn (ttree te)
+                          te2   = te {adjnodes = atail, 
+                                      ttree = ntree,
+                                      thighlight = [gn]}
                           applied = sn $ map fn rgr'
                           fn x = iapplyAdjNode isFootC x rte (head ranodes)
        resNormal  = concatMap fn rgr'
@@ -560,7 +563,8 @@ iapplyAdjNode fconstr te1 te2 an@(n, an_up, an_down) =
                    ttree = ntree,
                    adjnodes = newadjnodes', 
                    tsemantics = sort ((tsemantics te1) ++ (tsemantics te2)),
-                   tpolpaths = intersectPolPaths te1 te2
+                   tpolpaths = intersectPolPaths te1 te2,
+                   thighlight = map gnname [anr, anf] 
                  }
       res' = substTagElem nte2 subst 
       -- 4) add the new adjunction nodes 

@@ -11,13 +11,14 @@ where
 \begin{code}
 import Data.Char(toUpper)
 import Data.Tree
-import Data.List(intersperse,nub)
+import Data.List(delete,intersperse,nub)
 
-import Tags (TagElem, idname, tsemantics, ttree, derivation, showfeats)
+import Tags (TagElem, idname, tsemantics, ttree, thighlight, tinterface, 
+             derivation)
 import Bfuncs (MTtree, Ttree(..), Ptype(..), 
-               GNode(..), GType(..),
+               GNode(..), GType(..), Flist,
                showSem, showPairs, showAv)
-import Graphviz (GraphvizShow(..))
+import Graphviz (GraphvizShow(..), GvParam)
 -- import Debug.Trace 
 \end{code}
 }
@@ -30,7 +31,7 @@ graphVizShow converts a TAG tree into Graphviz's \textit{dot} format.
 
 \begin{code}
 instance GraphvizShow TagElem where
-  graphvizShow te =
+  graphvizShow sf te =
      -- we want a directed graph (but without arrows)
      "digraph " ++ (dehyphen $ idname te) ++ " {\n" 
      ++ " fontsize = 10\n"
@@ -41,7 +42,8 @@ instance GraphvizShow TagElem where
      ++ " label = \"" ++ label ++ "\";\n" 
      -- derived tree nodes' labels are their feature structures 
      ++ " node [ shape = plaintext ];\n" 
-     ++ (graphvizShow' (showfeats te) (ttree te) "DerivedTree0") 
+     ++ (graphvizShowInterface sf (tinterface te))
+     ++ (graphvizShow' sf (thighlight te) (ttree te) "DerivedTree0") 
      -- derivation tree is displayed without any decoration
      ++ (graphvizShowDerivation $ snd $ derivation te)
      --
@@ -62,21 +64,24 @@ them distinct.  Note : We use the letter `x' as seperator because
 graphviz will choke on `.' or `-', even underscore.
 
 \begin{code}
-graphvizShow' :: Bool -> Tree GNode -> String -> String
-graphvizShow' sf (Node node l) label =
+graphvizShow' :: GvParam-> [String] -> Tree GNode -> String -> String
+graphvizShow' sf hl (Node node l) label =
    let showFn   = if sf then showGNodeAll else show 
-       shapeStr = if sf then "shape = \"record\" " else ""
-       node'    = concatMap newlineToSlashN (showFn node)
-       shownode = " " ++ label ++ " [ " ++ shapeStr 
-                  ++ "label = \"" ++ node' ++ "\"];\n"       
-       pairs    = zip [0..] l
+       shapeStr = if sf then "shape = record, " else ""
+       -- highlight any specially marked nodes
+       (hlStr, hl2) = if (n `elem` hl)
+                      then ("color = red, fontcolor = red, ", delete n hl)
+                      else ("", hl)
+                      where n = gnname node 
+       shownode = " " ++ label ++ " [ " ++ hlStr ++ shapeStr 
+                  ++ "label = \"" ++ showFn node ++ "\"];\n"       
        kidname index = (label ++ "x" ++ (show index))
        -- we show the kid and the fact that the node is connected
        -- to the kid
-       showkid (index,kid) = (graphvizShow' sf kid (kidname index)) ++
+       showkid (index,kid) = (graphvizShow' sf hl2 kid (kidname index)) ++
                              " " ++ label ++ " -> " ++ (kidname index) ++ ";\n"
        -- now let's run this thing!
-   in shownode ++ (concat (map showkid pairs))
+   in shownode ++ (concatMap showkid $ zip [0..] l)
 \end{code}
 
 \paragraph{showGNodeAll} shows everything you would want to know about a
@@ -84,19 +89,30 @@ gnode, probably more than you want to know
 
 \begin{code}
 showGNodeAll gn = 
-        let showFs l = (concat $ intersperse "\\n" $ map showAv l)
-            sgup = if (null $ gup gn) 
-                   then "" 
-                   else showFs (gup gn) 
-            sgdown = if (null $ gdown gn)
-                     then ""
-                     else "|" ++ showFs (gdown gn) 
-            extra = case (gtype gn) of         
-                        Subs -> " (s)"
-                        Foot -> " *"
-                        _    -> if (gaconstr gn)  then " (na)"   else ""
-            label  = show gn
-        in "{" ++ label ++ "|" ++ sgup ++ sgdown ++ "}"-- (show gn ++ "\n" ++)
+  let showFs l = (concat $ intersperse "\\n" $ map showAv l)
+      sgup = if (null $ gup gn) 
+             then "" 
+             else showFs (gup gn) 
+      sgdown = if (null $ gdown gn)
+               then ""
+               else "|" ++ showFs (gdown gn) 
+      label  = show gn
+  in "{" ++ label ++ "|" ++ sgup ++ sgdown ++ "}"-- (show gn ++ "\n" ++)
+\end{code}
+
+\paragraph{graphvizShowInterface} displays the contents of a TagElem's
+interface.  This is only used for debugging.
+
+\begin{code}
+graphvizShowInterface :: Bool -> Flist -> String
+graphvizShowInterface sf iface 
+  | sf == False = ""
+  | null iface  = ""
+  | otherwise =
+      let showFs = concat $ intersperse "\\n" $ map showAv iface 
+          str    = " interface [ shape = record, " 
+                   ++ "label = \"{ interface | " ++ showFs ++ "}\"];\n"       
+      in str
 \end{code}
 
 % ----------------------------------------------------------------------
@@ -125,10 +141,12 @@ toGeniHand tr =
                      Foot -> "type:foot"
                      Lex  -> if (ganchor n) then "type:anchor" else "type:lex" 
                      _    -> ""
+      glexstr  n = if null gl then "" else "\"" ++ gl ++ "\""
+                   where gl = glexeme n
       --
       nodestr :: GNode -> String
       nodestr n = "n" ++ gnname n 
-                  ++ " " ++ gtypestr n ++ " "
+                  ++ " " ++ gtypestr n ++ " " ++ glexstr n ++ " "
                   ++ "[" ++ showflist (gup n) ++ "]!"
                   ++ "[" ++ showflist (gdown n) ++ "]"
       --
@@ -144,12 +162,7 @@ toGeniHand tr =
       -- helpers to account for shortcomings in genihand lexer 
       dashtobar :: Char -> Char
       dashtobar c = if ('-' == c) then '_' else c 
-      substf (a,v) = case (a,v) of (_,"+") -> (a, "minus")
-                                   (_,"-") -> (a, "minus")
-                                   (_,"3") -> (a, "third")
-                                   (_,"2") -> (a, "second")
-                                   (_,"1") -> (a, "first")
-                                   _       -> (map d2u a, map d2u v)
+      substf (a,v) = case (a,v) of _       -> (map d2u a, map d2u v)
       d2u '-' = '_'
       d2u x = x
       --

@@ -15,7 +15,7 @@ import Data.List(intersperse,sort,partition)
 import Monad(mapM, foldM, when)
 import IOExts(readIORef, modifyIORef)
 
-import Bfuncs(Sem,showSem)
+import Bfuncs(SemInput,showSem)
 import Geni
 import Mstate(avgGstats, numcompar, szchart, geniter)
 
@@ -192,7 +192,7 @@ runTestSuite pst =
 the sentences generated.
 
 \begin{code}
-runTestCase :: PState -> Sem -> IO [String]
+runTestCase :: PState -> SemInput -> IO [String]
 runTestCase pst sem = 
   do modifyIORef pst (\x -> x{ts = sem})
      res <- customGeni pst runGeni
@@ -205,8 +205,8 @@ runTestCase pst sem =
 the results of running a test case.  Note that for 
 
 \begin{code}
-showTestCase :: Sem -> [String] -> [String] -> String
-showTestCase sem expected results = 
+showTestCase :: SemInput -> [String] -> [String] -> String
+showTestCase (sem,_) expected results = 
   let expected2     = sort expected
       results2      = sort results
       --

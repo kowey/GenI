@@ -9,7 +9,8 @@ module Btypes(
    Ttree(..), MTtree,
    Ptype(Initial,Auxiliar,Unspecified), 
    Pred, Flist, AvPair, 
-   Lexicon, ILexEntry(..), Macros, Sem, Subst,
+   Lexicon, ILexEntry(..), Macros, Sem, SemInput,
+   Subst,
    emptyMacro, emptyGNode, emptyPred)
 where
 \end{code}
@@ -142,9 +143,10 @@ type AvPair  = (String,String)
 % ----------------------------------------------------------------------
 
 \begin{code}
--- handle, id, parameters
+-- handle, predicate, parameters
 type Pred = (String, String, [String])
 type Sem = [Pred]
+type SemInput = (Sem,Flist)
 type Subst = [(String, String)]
 emptyPred = ("","",[])
 \end{code}
