@@ -1,4 +1,5 @@
-Macros  = promettremac
-Lexicon = promettrelex
-SemLexicon = promettresemlex 
-MorphInfo = morphinfo
+Macros     = macros 
+Lexicon    = synlex 
+SemLexicon = semlex 
+MorphInfo  = morphinfo
+RootCategories = p

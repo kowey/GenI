@@ -53,7 +53,6 @@ tokens :-
 
   restrictors                { tok RestrictorsTok }
   semantics                  { tok Semantics  }
-  controlled                 { tok ControlledTok }
   polarities                 { tok Polarities }
   predictors                 { tok Predictors }
   

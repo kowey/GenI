@@ -20,7 +20,6 @@ import Btypes(AvPair, emptyLE, ILexEntry(..), Ptype(..), Sem)
     ':'   {(Colon,         _, _)} 
     id    {(ID $$,         _, _)}  
     num   {(Num $$,        _, _)}
-    con   {(ControlledTok, _, _)} 
     sem   {(Semantics,    _, _)}
     '('   {(OP,           _, _)} 
     ')'   {(CP,           _, _)} 
@@ -69,7 +68,7 @@ LexEntryCore : id id id
 {- precedence directives -}
 
 PredDrctv :: { {-pred directives-} [[AvPair]] }
-PredDrctv :  {-empty-}                         { [] }
+PredDrctv :  {-empty-}                   { [] }
           | '[' PredItems ']' PredDrctv  { $2 : $4 }
 
 PredItems :: { [AvPair] }
@@ -93,22 +92,21 @@ SInput : {-empty-}        {[]}
        | SLexEntry SInput {$1:$2}
 
 SLexEntry :: { ILexEntry }
-SLexEntry : SLexEntryI Control { $1 { icontrol = $2 } }
-        
-SLexEntryI :: { ILexEntry }
-SLexEntryI: id id '(' IDFeat ')' Sem
+SLexEntry: id id '(' IDFeat ')' Sem
          {emptyLE { iword   = $1,
                     icategory = $2,
                     iparams = fst $4,
                     ipfeat  = sort $ snd $4,
-                    isemantics = $6
+                    isemantics = fst $6,
+                    isempols = snd $6
                   }
          }
  | id id '[' FeatList ']' Sem
          {emptyLE { iword   = $1,
                     icategory = $2,
                     ipfeat  = sort $ $4,
-                    isemantics = $6
+                    isemantics = fst $6,
+                    isempols = snd $6
                   }
          }
 
@@ -118,21 +116,27 @@ IDFeat : IDList               { ($1,[]) }
 
 {- semantics -}
 
-Sem :: { Btypes.Sem }
-Sem: {-empty-}                {[]}
-   | sem ':' '[' ListPred ']' {createHandleVars $4}
+Sem :: { (Btypes.Sem,[LpSemPols]) }
+Sem: {-empty-}                {([],[])}
+   | sem ':' '[' ListPred ']' {(createHandleVars $4,
+                                extractSemPolarities $4)}
 
 ListPred :: { [LpRawPred] }
 ListPred : {-empty-}         {[]}
          | Pred ListPred     {$1:$2}
 
 Pred :: { LpRawPred }
-Pred : id ':' id '(' Params ')'  {(($1,$3),  $5)}
-     | id        '(' Params ')'  {(("", $1), $3)}
+Pred : PolId ':' id '(' Params ')'  {( (    $1, $3), $5)}
+     |           id '(' Params ')'  {( (("",0), $1), $3)}
 
-Params :: { [String] }
+Params :: { [LpParam] }
 Params : {-empty-} {[]}
-       | id Params {$1:$2}
+       | PolId Params {$1:$2}
+
+PolId :: { LpParam }
+PolId : '+' id  { ($2, 1) }
+      | '-' id  { ($2,-1) }
+      |     id  { ($1, 0) }
 
 {- semantic families -}
 
@@ -151,12 +155,6 @@ NumList: {-empty-}   {[]}
 Num :: { Int }
 Num: num     { $1 }
    | '-' num { (-$2) }
-
-{- controlled items -}
-
-Control :: { String }
-Control :             {""}
-        | con ':'  id { $3 }
 
 {- -----------------------------------------------------------------
    generic stuff 
@@ -182,7 +180,9 @@ FeatVal: id  {$1}
 
 {
 
-type LpRawPred   = ((String,String), [String])
+type LpSemPols    = [Int]
+type LpParam     = (String,Int)
+type LpRawPred   = ((LpParam,String), [LpParam])
 type LpSemFam    = ([Int],[String])
 
 createHandleVars :: [LpRawPred] -> Btypes.Sem 
@@ -190,9 +190,15 @@ createHandleVars predargs =
   let handle newh oldh = if null oldh 
                          then "H" ++ show newh 
                          else oldh
-      fn (nh,((oh,p),a)) = (handle nh oh,p,a)
+      fn (nh,((oh,p),a)) = (han, p, map fst a)
+                           where han = handle nh (fst oh)
       zpa = zip [1..] predargs
    in map fn zpa
+
+extractSemPolarities :: [LpRawPred] -> [LpSemPols]
+extractSemPolarities predargs =
+  map fn predargs
+  where fn ((h,p),a) = (snd h) : (map snd a)
 
 happyError = simpleParserError
 }

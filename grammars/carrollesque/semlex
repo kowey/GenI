@@ -78,35 +78,4 @@ semantics:[organiser(I X Y)]
 ennuie v [evt:I arg1:X arg2:Y]
 semantics:[ennuier(I X Y)]
 
-%% ----------------------------------------------------------------------
-%% semantic weights 
-%% ----------------------------------------------------------------------
-%
-%%!
-%%
-%%1:(0) [      
-%%  def 
-%%  indef 
-%%  qu 
-%%]
-%%
-%%1:(1) [ 
-%%  book 
-%%  present
-%%  john
-%%  mary
-%%  claire
-%%  paul
-%%] 
-%%
-%%1:(-1 -1 -1) [ 
-%%  convince 
-%%  promise 
-%%  give 
-%%]
-%%
-%%1:(-1 -1) [
-%%  love
-%%  hope 
-%%]
-%
+

@@ -1,3 +1,2 @@
-semantics:[john(j) 
-           book(b) indef(b)
-           love(j b)]
+semantics:[mary(m) 
+           love(j m)]

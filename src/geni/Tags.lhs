@@ -32,15 +32,14 @@ module Tags(
    idname, tidnum, derivation, ttype, ttree, 
    substnodes, adjnodes, 
    tsemantics, 
-   tinterface, tpolarities, 
-   tcontrol, tpolpaths, 
+   tinterface, tpolarities, tpolpaths, tsempols,
    thighlight,
 
    -- Functions from Tags
    addToTags, tagLeaves,
 
    -- Functions from TagElem
-   substTagElem, appendToVars,
+   substTagElem, setTidnums, fixateTidnums,
 
    -- General functions
    mapBySem, drawTagTrees, subsumedBy, showTagSites,
@@ -54,7 +53,7 @@ import Data.FiniteMap (FiniteMap, emptyFM, addToFM_C)
 import Data.List (intersperse)
 import Data.Tree
 
-import Bfuncs (Ptype(Initial, Auxiliar), 
+import Bfuncs (Ptype(Initial, Auxiliar), SemPols,
                Subst, GNode(gup, gdown, glexeme, gnname), Flist, 
                Sem, Pred, emptyPred, BitVector,
                emptyGNode,
@@ -106,9 +105,9 @@ data TagElem = TE {
                    adjnodes     :: [TagSite],
                    tsemantics   :: Sem,
                    -- optimisation stuff
-                   tpolarities  :: FiniteMap String Int,
-                   tcontrol     :: String, -- controlled index if applcbl 
+                   tpolarities  :: FiniteMap String Int, -- polarity key   to charge
                    tinterface   :: Flist,  -- for restrictors 
+                   tsempols     :: [SemPols],
                    -- tpredictors  :: TPredictors,
                    tpolpaths    :: BitVector,
                    tprecedence  :: Int,
@@ -138,8 +137,7 @@ instance Ord TagElem where
          (Auxiliar, Initial)  -> GT
          (Auxiliar, Auxiliar) -> compareId 
          _                    -> error "TagElem compare not exhaustively defined"
-    where id t = (show $ tidnum t) ++ (idname t)
-          compareId  = compare (id t1) (id t2)
+    where compareId  = compare (tidnum t1) (tidnum t2)
 \end{code}
 
 \begin{code}
@@ -152,7 +150,7 @@ emptyTE = TE { idname = "",
                substnodes = [], adjnodes   = [],
                tsemantics = [], 
                tpolarities = emptyFM,
-               tcontrol    = "", 
+               tsempols    = [],
                tprecedence = 0, -- FIXME: you sure?
                -- tpredictors = emptyFM,
                tpolpaths   = 0,
@@ -160,6 +158,61 @@ emptyTE = TE { idname = "",
                thighlight  = [] 
              }
 \end{code}
+
+\subsection{Unique ID}
+
+TagElem comparison relies exclusively on \fnparam{tidnum}, so you must
+ensure that every TagElem you use has a unique ID.  We provide two
+helpful functions for this.  These are most likely useful \emph{between}
+lexical selection and generation proper, because during generation
+proper, you can simply keep a counter within a State monad to assign
+unique IDs to new TagElems.
+
+\paragraph{setTidnums} assigns a unique id to each element of this list,
+that is, an integer between 1 and the size of the list.
+
+\begin{code}
+setTidnums :: [TagElem] -> [TagElem]
+setTidnums xs = zipWith (\c i -> c {tidnum = i}) xs [1..]
+\end{code}
+
+\paragraph{fixateTidnums} should be called right before generation
+proper, when you have assigned a unique id to each TagElem 
+(see setTidnums above).  It appends the tree id to each variable in each
+selected tree, so as to avoid nasty collisions during unification.  
+It's sorta like how you do $\alpha$-reduction in $\lambda$ calculus; see
+section \ref{sec:fs_unification} for details.
+
+\begin{code}
+fixateTidnums :: [TagElem] -> [TagElem]
+fixateTidnums = 
+  map (\x -> appendToVars (fn x) x) 
+  where fn x =  "-" ++ (show $ tidnum x) 
+\end{code}
+
+\subparagraph{appendToVars} is a helper function to fixateIdnums.  Given
+a TagElem and a suffix, it appends the suffix to all the variables that
+occur in it. 
+
+\begin{code}
+appendToVars :: String -> TagElem -> TagElem
+appendToVars suf te = 
+  let appfn (f,v) = (f, if (isVar v && (not.isAnon) v) 
+                        then v ++ suf 
+                        else v)
+      --
+      nodefn a = a { gup = map appfn (gup a),
+                     gdown = map appfn (gdown a) }
+      treefn (Node a l) = Node (nodefn a) (map treefn l)
+      --
+      sitefn (n, fu, fd) = (n, map appfn fu, map appfn fd)
+      --
+  in te { ttree = treefn (ttree te),
+          tinterface = map appfn (tinterface te),
+          substnodes = map sitefn (substnodes te),
+          adjnodes   = map sitefn (adjnodes te)}
+\end{code}
+
 
 % ----------------------------------------------------------------------
 \section{TAG Item}
@@ -199,29 +252,6 @@ substTagElem te l =
               tinterface = substFlist (tinterface te) l,
               ttree      = substTree (ttree te) l,
               tsemantics = substSem (tsemantics te) l}
-\end{code}
-
-\paragraph{appendToVars} given a TagElem and a suffix, appends the
-suffix to all the variables that occur in it. See section
-\ref{sec:fs_unification} to understand why this is neccesary.
-
-\begin{code}
-appendToVars :: String -> TagElem -> TagElem
-appendToVars suf te = 
-  let appfn (f,v) = (f, if (isVar v && (not.isAnon) v) 
-                        then v ++ suf 
-                        else v)
-      --
-      nodefn a = a { gup = map appfn (gup a),
-                     gdown = map appfn (gdown a) }
-      treefn (Node a l) = Node (nodefn a) (map treefn l)
-      --
-      sitefn (n, fu, fd) = (n, map appfn fu, map appfn fd)
-      --
-  in te { ttree = treefn (ttree te),
-          tinterface = map appfn (tinterface te),
-          substnodes = map sitefn (substnodes te),
-          adjnodes   = map sitefn (adjnodes te)}
 \end{code}
 
 

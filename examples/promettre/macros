@@ -20,12 +20,12 @@ n1[cat:n idx:I det:plus qu:minus]![cat:n idx:I qu:minus]
 end family
 
 begin family clitic 
-cl(H X) initial
+cl(H X ! idx:X ) initial
 n1 type:anchor [cat:cl idx:X]![cat:cl idx:X] {}
 end family
 
 begin family pronoun 
-pn(H X ! num:Num gen:Gen pers:Pers) initial
+pn(H X ! idx:X num:Num gen:Gen pers:Pers) initial
 n1 [cat:n idx:X num:Num gen:Gen pers:Pers]![cat:n idx:X]
 {
   n2 type:anchor [cat:pn num:Num gen:Gen pers:Pers]![] 

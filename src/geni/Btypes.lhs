@@ -23,7 +23,7 @@ Operations on these datatypes can be found in the Bfuncs module.
 \begin{code}
 module Btypes(
    GNode(..), GType(Subs, Foot, Lex, Other), 
-   Ttree(..), MTtree,
+   Ttree(..), MTtree, SemPols,
    Ptype(Initial,Auxiliar,Unspecified), 
    Pred, Flist, AvPair, 
    Lexicon, ILexEntry(..), Macros, Sem, SemInput,
@@ -97,15 +97,17 @@ Auxiliary types used during the parsing of the Lexicon.
 A lexicon maps semantic predicates to lexical entries.
 
 \begin{code}
-type Lexicon   = FiniteMap String [ILexEntry]
-data ILexEntry = ILE{iword :: String,
-                     icategory :: String,
-                     ifamname :: String,
-                     iparams :: [String],
-                     ipfeat :: Flist,
-                     iptype :: Ptype,
-                     isemantics :: Sem,
-                     icontrol   :: String,
+type Lexicon = FiniteMap String [ILexEntry]
+type SemPols  = [Int]
+data ILexEntry = ILE{iword       :: String,
+                     icategory   :: String,
+                     ifamname    :: String,
+                     iparams     :: [String],
+                     ipfeat      :: Flist,
+                     iptype      :: Ptype,
+                     isemantics  :: Sem,
+                     isempols    :: [SemPols],
+                     icontrol    :: String,
                      iprecedence :: Int}
                deriving (Show, Eq)
 
@@ -117,6 +119,7 @@ emptyLE = ILE { iword = "",
                 ipfeat  = [],
                 iptype = Unspecified,
                 isemantics = [],
+                isempols   = [],
                 icontrol   = "",
                 iprecedence = 0 }
 \end{code}

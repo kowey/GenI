@@ -26,7 +26,7 @@ data Token =
     Anchor | Lexeme | Type | LSubst | LFoot | Aconstr | Noadj |
     Comma | Colon | Bang | Str String |
     OC | CC | OP | CP | OB | CB | ID String | Num Int |
-    Semantics | RestrictorsTok | ControlledTok |
+    Semantics | RestrictorsTok | 
     Polarities | Predictors |
     Begin | End |
     PlusTok | MinusTok 

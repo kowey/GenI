@@ -547,7 +547,7 @@ debugGui mst tsem combos = do
       infoTab  = tab "info" infoLay
   -}
   -- candidate selection tab
-  cand   <- runLexSelection mst
+  cand <- runLexSelection mst
   let candsem = (nub $ concatMap tsemantics cand)
       missed  = tsem \\ candsem
   canTab <- candidateGui nb cand missed

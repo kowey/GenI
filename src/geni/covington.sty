@@ -11,7 +11,7 @@
 %%%
 %%% See covington.tex for documentation.
 
-\typeout{* covington.sty : Covington's linguistic macros, 1997 March 12 *}
+\typeout{* covington.sty : Covington's linguistic macros, 2001 March 27 *}
 
 %%%
 %%% Preferences about how text is laid out
@@ -106,7 +106,7 @@
 
 \newenvironment{examples}%         % define "example" environment
 {%
-\begin{list}{\textsf{(\theequation)}}%
+\begin{list}{(\theequation)}%
 {%
 \setcounter{equationsave}{\arabic{equation}}%
 \usecounter{equation}%                          % sets it to zero, unwantedly
@@ -218,7 +218,6 @@
 \glossglue = 5pt plus 2pt minus 1pt % allow stretch/shrink between words
 \newif\ifnotdone
 
-
 \let\eachwordone=\it
 \let\eachwordtwo=\rm
 \let\eachwordthree=\rm
@@ -317,24 +316,24 @@
 
 % \fs         To print a feature structure by itself, type for example
 %             \fs{case:nom \\ person:P}
-%             or (better, for true italics),
-%             \fs{\it case:nom \\ \it person:P}
 %
 % \lfs        To print the same feature structure with the category
 %             label N at the top, type:
-%             \lfs{N}{\it case:nom \\ \it person:P}
+%             \lfs{N}{case:nom \\ person:P}
 
 %    Modified 1990 Dec 5 so that features are left aligned.
+%    Modified 2001 Mar 27 so that italics are used without the user typing \it.
 \newcommand{\fs}[1]
 {
     \mbox{\small 
-          $ 
+          $
+          \it 
           \left[
-%          \!\!
+          \!\!
           \begin{array}{l}
           #1
           \end{array}
-%          \!\!
+          \!\!
           \right]
           $}
 }
@@ -343,22 +342,24 @@
 \newcommand{\lfs}[2]
    {
      \mbox{$
- %          \!\!
+           \it
+           \!\!
            \begin{array}[t]{c}
            #1
            \\
            \mbox{\small%
                  $
+                 \it
                  \left[
-%                 \!\!
+                 \!\!
                  \begin{array}{l}
                  #2
                  \end{array}
-%                 \!\!
+                 \!\!
                  \right]
                  $}
            \end{array}
-%           \!\!
+           \!\!
            $}
    }
 
@@ -475,8 +476,9 @@
 \@addtoreset{exercise}{section}
 \@addtoreset{exercise}{chapter}
 
-\newcommand{\bx}{\begin{exercise}}
-\newcommand{\ex}{\end{exercise}}
+% Commented by Eric Kow to avoid clash with lingmacros
+%\newcommand{\bx}{\begin{exercise}}
+%\newcommand{\ex}{\end{exercise}}
 
 \@ifundefined{reflist}{
 \newenvironment{reflist}{\begin{list}{}%

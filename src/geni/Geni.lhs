@@ -54,7 +54,7 @@ import CPUTime (getCPUTime)
 import Bfuncs (Macros, MTtree, ILexEntry, Lexicon, Sem, SemInput,
                GNode, GType(Subs), Flist,
                isemantics, ifamname, icategory, iword, iparams, ipfeat,
-               iprecedence, icontrol,
+               iprecedence, icontrol, isempols,
                gnname, gtype, gaconstr, gup, gdown, toKeys,
                sortSem, subsumeSem, params, 
                substSem, substFlist', substFlist, substTree, showPairs,
@@ -64,11 +64,10 @@ import Bfuncs (Macros, MTtree, ILexEntry, Lexicon, Sem, SemInput,
                groupByFM, multiGroupByFM)
 
 import Tags (Tags, TagElem, emptyTE, TagSite, 
-             idname, tidnum, tagLeaves,
-             derivation, ttype, tsemantics, ttree,
-             tinterface, tpolarities, tcontrol, 
-             substnodes, adjnodes, 
-             appendToVars)
+             idname, tagLeaves,
+             derivation, ttype, tsemantics, ttree, tsempols,
+             tinterface, tpolarities, substnodes, adjnodes, 
+             setTidnums, fixateTidnums)
 
 import Configuration(Params, defaultParams, getConf, treatArgs,
                      grammarFile, tsFile, isTestSuite, morphCmd,
@@ -117,8 +116,7 @@ data State = ST{pa       :: Params,
                 le       :: Lexicon,
                 morphinf :: MorphFn,
                 rootCats :: [String],
-                ts       :: SemInput,
-                sweights :: FiniteMap String [Int],
+                ts       :: SemInput, 
                 tsuite   :: [(SemInput,[String])]
                }
 
@@ -150,7 +148,6 @@ initGeni = do
                        le = emptyFM,
                        morphinf = const Nothing,
                        ts = ([],[]),
-                       sweights = emptyFM,
                        rootCats = [],
                        tsuite = [] }
     return pst 
@@ -175,10 +172,9 @@ customGeni pst runFn = do
   mstLex   <- readIORef pst
   purecand <- runLexSelection mstLex
   -- stripping morphological predicates
-  let nonmorphfn = isNothing.(morphinf mstLex)
-      tsLex      = ts mstLex
-      tsLex2     = (filter nonmorphfn (fst tsLex), snd tsLex)
-  modifyIORef pst (\x -> x{ts = tsLex2})
+  let (tsem,tresLex) = ts mstLex
+      tsemLex        = filter (isNothing.(morphinf mstLex)) tsem
+  modifyIORef pst ( \x -> x{ts = (tsemLex,tresLex)} )
   mst      <- readIORef pst
   -- force the grammar to be read before the clock
   when (-1 == (length.show.le) mst) $ exitWith ExitSuccess
@@ -189,23 +185,23 @@ customGeni pst runFn = do
   clockBefore <- getCPUTime 
   -- do any optimisations
   let config   = pa mst
-      (tsem,_) = ts mst
       extraPol    = extrapol config  
       isPol       = polarised config
   let -- polarity optimisation (if enabled)
-      autstuff   = buildAutomaton purecand mst
+      preautcand = purecand
+      autstuff   = buildAutomaton preautcand mst
       finalaut   = (snd.fst) autstuff
       lookupCand = lookupAndTweak (snd autstuff)
       pathsLite  = walkAutomaton finalaut 
       paths      = map (concatMap lookupCand) pathsLite 
-      combosPol  = if isPol then paths else [purecand]
+      combosPol  = if isPol then paths else [preautcand]
       -- chart sharing optimisation (if enabled)
       isChartSharing = chartsharing config
       combosChart = if isChartSharing 
                     then [ detectPolPaths combosPol ] 
                     else map defaultPolPaths combosPol 
       -- 
-      combos    = combosChart
+      combos = map (fixateTidnums.setTidnums) combosChart
       fstGstats = initGstats
   -- do the generation
   (res, gstats') <- runFn mst tsem combos
@@ -227,9 +223,9 @@ customGeni pst runFn = do
                                    else "" 
                         optAdj   = if null adjplus then "" else " adj:" ++ adjplus
       statsAut     = if isPol then show $ length combosPol else ""
-      ambiguityStr = show $ calculateTreeCombos purecand 
+      ambiguityStr = show $ calculateTreeCombos preautcand 
   -- pack up the results
-  let results = GR { -- grCand     = purecand,
+  let results = GR { -- grCand     = preautcand,
                      -- grAuts = auts,
                      -- grCombos   = combos,
                      grDerived  = res, 
@@ -262,28 +258,21 @@ customGeni pst runFn = do
 \paragraph{runLexSelection} determines which candidates trees which
 will be used to generate the current target semantics.  
 
-Note: we assign a tree id to each selected tree, and we append some
-unique suffix (coincidentally the tree id) to each variable in each
-selected tree. This is to avoid nasty collisions during unification as
-mentioned in section \ref{sec:fs_unification}).
-
 \begin{code}
-runLexSelection :: State -> IO [TagElem] 
+runLexSelection :: State -> IO [TagElem]
 runLexSelection mst = do
-    let (tsem,_) = ts mst
-        lexicon     = le mst
-        -- select lexical items first 
-        lexCand   = chooseLexCand lexicon tsem
-        -- then anchor these lexical items to trees
-        combiner = combineList (gr mst) 
-        cand     = concatMap combiner lexCand
-        -- attach any morphological information to the candidates
-        morphfn  = morphinf mst
-        cand2    = attachMorph morphfn tsem cand 
-        -- assure unique variable names
-        setnum c i = appendToVars (mksuf i) (c { tidnum = i })
-        mksuf i = "-" ++ (show i)
-    return $ zipWith setnum cand2 [1..]
+  let (tsem,_) = ts mst
+      lexicon  = le mst
+      config   = pa mst
+      -- select lexical items first 
+      lexCand   = chooseLexCand lexicon tsem
+      -- then anchor these lexical items to trees
+      combiner = combineList (gr mst) 
+      cand     = concatMap combiner lexCand
+      -- attach any morphological information to the candidates
+      morphfn  = morphinf mst
+      cand2    = attachMorph morphfn tsem cand 
+  return $ setTidnums cand2
 \end{code}
 
 \paragraph{buildAutomaton} constructs the polarity automaton from the
@@ -296,7 +285,6 @@ type PolResult = ([(String, PolAut, PolAut)], PolAut)
 buildAutomaton candRaw mst =
   let config   = pa mst
       (tsem,tres) = ts mst
-      swmap    = sweights mst
       -- restrictors and extra polarities
       mergePol = plusFM_C (+)
       rootCatPref = prefixRootCat $ head $ rootCats mst
@@ -318,7 +306,7 @@ buildAutomaton candRaw mst =
              else candRest
       -- building the automaton
       (candLite, lookupCand) = reduceTags (polsig config) cand
-      auts = makePolAut candLite tsem extraPol swmap
+      auts = makePolAut candLite tsem extraPol 
   in (auts, lookupCand)
 \end{code}
 
@@ -403,8 +391,8 @@ combineOne lexitem e =
                 adjnodes   = anodes,
                 tsemantics = substSem sem fsubst,
                 tpolarities = ptpolarities e,
-                tinterface  = funif,
-                tcontrol    = icontrol lexitem
+                tsempols    = isempols lexitem,
+                tinterface  = funif
                 -- tpredictors = combinePredictors e lexitem
                }        
        -- well... with error checking
@@ -476,8 +464,9 @@ chooseCandI tsem cand =
   let substLex i sub = i { isemantics = substSem (isemantics i) sub
                          , ipfeat     = substFlist (ipfeat i)   sub  
                          , iparams    = substPar  (iparams i)   sub
-                         , icontrol   = substOne (icontrol i)  sub
+                         , icontrol   = substOne (icontrol i)   sub
                          }
+      --
       substPar par sub = map (\p -> substOne p sub) par
       substOne p sub = foldl sfn p sub
                        where sfn z (x,y) = if (z == x) then y else z
@@ -567,7 +556,6 @@ loadLexicon pst config = do
            semmapper    = mapBySemKeys isemantics
            semparsed    = (semlexParser . lexer) sf
            semlex       = (semmapper . (map sortlexsem) . fst) semparsed
-           semweights   = buildSemWeights $ snd semparsed
        putStr ((show $ length $ keysFM semlex) ++ " entries\n")
 
        putStr $ "Loading Lexicon " ++ lfilename ++ "..."
@@ -579,8 +567,7 @@ loadLexicon pst config = do
        putStr ((show $ length rawlex) ++ " entries\n")
 
        -- combine the two lexicons
-       modifyIORef pst (\x -> x{le = combineLexicon lemlex semlex,
-                                sweights = semweights })
+       modifyIORef pst (\x -> x{le = combineLexicon lemlex semlex})
        return ()
 \end{code}
 
@@ -631,7 +618,8 @@ combineLexicon ll sl =
   let merge si li = li { isemantics = isemantics si
                        , iparams    = iparams si
                        , ipfeat     = sort (ipfeat li ++ ipfeat si) 
-                       , icontrol   = icontrol si 
+                       , icontrol   = icontrol si
+                       , isempols   = isempols si
                        }
       helper si = map (merge si) lemmas
                   where wordcat = (iword si, icategory si)
@@ -697,7 +685,7 @@ loadTargetSem pst = do
       isTsuite = isTestSuite config
   putStr $ "Loading " 
            ++ (if isTsuite then "Test Suite " else "Target Semantics ")
-           ++ filename ++ "..."
+           ++ filename ++ "...\n"
   hFlush stdout
   tstr <- readFile filename
   -- helper functions for test suite stuff
@@ -712,7 +700,7 @@ loadTargetSem pst = do
                Failed s -> fail s
      else loadTargetSemStr pst tstr
   -- in the end we just say we're done
-  putStr "done\n"
+  --putStr "done\n"
 \end{code}
 
 \paragraph{loadTargetSemStr} Given a string with some semantics, it
@@ -724,10 +712,10 @@ loadTargetSemStr :: PState -> String -> IO ()
 loadTargetSemStr pst str = 
     do putStr "Parsing Target Semantics..."
        let semi = (targetSemParser . lexer) str
+           smooth (s,r) = (flattenTargetSem s, sort r)
        case semi of 
-         Ok (s,r)   -> modifyIORef pst (\x -> x{ts = (flattenTargetSem s, 
-                                                      sort r)})
-         Failed s   -> fail s
+         Ok sr    -> modifyIORef pst (\x -> x{ts = smooth sr})
+         Failed s -> fail s
        putStr "done\n"
 \end{code}
 

@@ -30,7 +30,7 @@ low-level operation.
 module Bfuncs(
    -- Datatypes (re-exported)
    GNode(GN), GType(Subs, Foot, Lex, Other), 
-   Ttree(TT), MTtree,
+   Ttree(TT), MTtree, SemPols,
    Ptype(Initial,Auxiliar,Unspecified), 
    Pred, Flist, AvPair, 
    Lexicon, ILexEntry(..), Macros, Sem, SemInput, Subst,
@@ -415,7 +415,7 @@ isAnon = (==) "_"
 
 % ----------------------------------------------------------------------
 \section{Semantics}
-\label{btypes_semantics}
+\label{bfuncs_semantics}
 % ----------------------------------------------------------------------
 
 \begin{code}

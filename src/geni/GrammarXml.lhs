@@ -112,6 +112,7 @@ parseLex l =
         , ipfeat = []
         , iptype = Unspecified
         , isemantics = []
+        , isempols = []
         , icontrol = ""
         , iprecedence = 0
   }

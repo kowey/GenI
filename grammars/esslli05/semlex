@@ -28,22 +28,22 @@ semantics:[dem(X)]
 % ----------------------------------------------------------------------
 
 directeur n [idx:X]
-semantics:[directeur(X)]
+semantics:[directeur(+X)]
 
 bureau n  [idx:X]
-semantics:[bureau(X)]
+semantics:[bureau(+X)]
 
 equipe n [idx:X]
-semantics:[equipe(X)]
+semantics:[equipe(+X)]
 
 consultant n [idx:X]
-semantics:[consultant(X)]
+semantics:[consultant(+X)]
 
 allemagne pn [idx:X] % co-anchors would be useful for this word
-semantics:[allemagne(X)]
+semantics:[allemagne(+X)]
 
 seminaire n [idx:X]
-semantics:[seminaire(X)]
+semantics:[seminaire(+X)]
 
 % ----------------------------------------------------------------------
 % adjectives 
@@ -80,44 +80,14 @@ semantics:[de(X Y)]
 % ----------------------------------------------------------------------
 
 auditionne v [evt:I arg1:X arg2:Y] 
-semantics:[auditioner(I X Y)]
+semantics:[auditioner(+I -X -Y)]
 
 organise v [evt:I arg1:X arg2:Y] 
-semantics:[organiser(I X Y)]
+semantics:[organiser(+I -X -Y)]
 
 ennuie v [evt:I arg1:X arg2:Y]
-semantics:[ennuier(I X Y)]
+semantics:[ennuier(+I -X -Y)]
 
 promets v [evt:I arg1:X arg2:Y arg3:Z]
-semantics:[promettre(I X Y Z)]
-controlled:X
-
-% ----------------------------------------------------------------------
-% semantic weights 
-% ----------------------------------------------------------------------
-
-!
-
-0:(0) [      
-  def 
-  dem 
-  indef
-]
-
-0:(1) [ 
-  directeur
-  bureau
-  equipe
-  consultant
-] 
-
-0:(1 -1 -1) [
-  auditioner
-  organiser
-  ennuier
-]
-
-0:(1 -1 -1 -1) [ 
-  promettre 
-]
+semantics:[promettre(+I X -Y -Z)]
 
