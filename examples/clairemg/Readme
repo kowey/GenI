@@ -1,14 +1,45 @@
 %% 06/11/04
+
+Notes:
+
+(1) Contrary to my initial expectations, I have had to rely on the
+    polarity automata to make restrictors like (cleft:j) work.  
+    
+    The basic problem is that we can't tell from the semantics alone
+    which lexical items we are suppose to apply the restrictor to.  
+    
+    What I do for the time being is 
+      1) for every restrictor you declare, i set a negative polarity
+         (-cleft:j) 
+      2) every tree that has the restrictor in its interface gets a
+         positive polarity for that restrictor 
+         (+cleft:j) 
+      3) we build the automaton as normal, passing the restrictors as
+         polarities to be cancelled out
+
+    (restrictor is my terminology until we find something more standard)
+    
+    BTW: cleft:j doesn't seem to work, but cleft:m does
+
+(2) An alternate solution to (2) is to tie the restrictors to 
+    specific literals.  
+    
+    For example, we could say something like lookAt(e) agent(e
+    j):[cleft:j] patient(e m). This way, the generator knows that
+    the [cleft:j] restrictor applies only to the lexical items
+    that provide the semantics agent(e j).  If we do something
+    like this, we won't have to use the polarities for filtering.
+
+    Not yet implemented!
+
 Changes:
 - fs syntax is 
    att:val (not att=val) 
    space delimited (no commas)
-- weakness in GeniHand lexer:
-  "3"  replaced with "third"
-  " +" replaced with "plus"
-  " -" replaced with "minus"
 - mg changes:
-  added cleftEtre
+  cleft "ce"   category changed from "cl" to "ce"
+  cleft "etre" category changed from "v"  to "etre"
+  added value cleftEtre
   commented IL, JEAN, etc
 - synlex changes:
   changed feature num to gen

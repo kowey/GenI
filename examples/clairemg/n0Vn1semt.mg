@@ -436,8 +436,8 @@ declare
 	<syn>{
 		node xSe(color=red)[cat = s, bot=[wh = -]]{
 			node xVNCleft(color=red)[cat=vn]{
-				node xCl(color=red,mark=subst)[cat=cl,top=[cat=ce]]
-				node xVcleft(color=red,mark=subst)[cat=v,top=[pers = 3,mode=ind]]
+				node xCl(color=red)[cat=cl,phon=ce,top=[cat=cl]]
+				node xVcleft(color=red,mark=subst)[cat=v,phon=etre,top=[pers = 3,mode=ind]]
 			}
 			node xArg(color=red,mark=subst,extracted = +)[cat=n,idx=I]
 			node xS[bot=[wh = -, mode = ind]]{
@@ -672,8 +672,8 @@ declare
 	<syn>{
 		node xCleft(color=red)[cat = s,bot=[wh = -]]{
 			node xVNCleft(color=red)[cat=vn]{
-				node xClCleft(color=red,mark=subst)[cat=cl,top=[case = ce]]
-				node xAuxCleft(color=red,mark=subst)[cat=v,top=[mode=@{ind,subj},pers=3,phon=etre]]
+				node xClCleft(color=red)[cat=cl,phon=ce,top=[case = ce]]
+				node xAuxCleft(color=red)[cat=v,phon=etre,top=[mode=@{ind,subj},pers=3]]
 			}
 			node xClefttop(color=red)
 			node xSe(mark=nadj)	
@@ -780,7 +780,7 @@ class cleftEtre
 declare ?xN
 {
 	<syn>{
-		node xN(color=red)[cat = v,bot=[mode = ind, pers = 3,phon = etre]]
+		node xN(color=red,mark=anchor)[cat = v,bot=[mode = ind, pers = 3,phon = etre]]
 	}
 }
 

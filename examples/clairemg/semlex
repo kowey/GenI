@@ -43,3 +43,21 @@ semantics:[]
 que que [idx:X] 
 semantics:[]
 
+%% --------------------------------------------------------------------- 
+%% Semantic weights for polarity automata
+%% 
+%% Note that these are for semantic predicates and not for lexical
+%% entries.
+%% --------------------------------------------------------------------- 
+
+!
+
+0:(-1) [ 
+  john
+  mary
+] 
+
+0:(0 1) [
+  agent
+  patient
+]

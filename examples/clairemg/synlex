@@ -15,20 +15,20 @@ paul    n properNameNP [gen:m]
 %% Clitiques
 %% --------------------------------------------------------------------- 
 
-se se cliticNP [case:acc pers:third refl:plus]
-c ce cliticNP [case:ce]
-il il cliticNP [case:nom gen:m num:sg pers:third refl:minus]
-la laCl cliticNP [case:acc gen:f num:sg pers:third refl:minus]
-le leCl cliticNP [case:acc gen:m num:sg pers:third refl:minus]
+se se cliticNP [case:acc pers:3 refl:+]
+c  ce cliticNP [case:ce]
+il il cliticNP [case:nom gen:m num:sg pers:3 refl:-]
+la laCl cliticNP [case:acc gen:f num:sg pers:3 refl:-]
+le leCl cliticNP [case:acc gen:m num:sg pers:3 refl:-]
 
 %% --------------------------------------------------------------------- 
 %% qu-
 %% --------------------------------------------------------------------- 
 
 qui qui quNP [case:nom wh:rel]
-qui qui quNP [case:nom wh:plus]
+qui qui quNP [case:nom wh:+]
 que que quNP [case:acc wh:rel]
-que que quNP [case:acc wh:plus]
+que que quNP [case:acc wh:+]
 
 %%--------------------------------------------------------------------- 
 %% Verbs
