@@ -74,6 +74,7 @@ while (<STDIN>) {
       }
     }
     if ($stem =~ s/re$//) {
+      $stem =~ s/tt$/t/;
       if ($hasav{"num:pl"} and $has{"pers"}) {
         my $pers = $feat{"pers"};
         print $stem."ons" if ($pers eq "1");

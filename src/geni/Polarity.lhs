@@ -1041,8 +1041,14 @@ sortSemByFreq tsem cands =
   let counts = map lenfn tsem 
       lenfn l = length $ filter fn cands 
                 where fn x = l `elem` (tlSemantics x)
-      --
-      sortfn a b = compare (snd a) (snd b) 
+      -- note: we introduce an extra hack to push
+      -- index-counted extra columns to the end; just for UI reasons
+      sortfn a b 
+        | isX a && isX b = compare (snd a) (snd b)
+        | isX a          = GT
+        | isX b          = LT
+        | otherwise      = compare (snd a) (snd b)
+        where isX = isExtraCol.fst 
       sorted = sortBy sortfn $ zip tsem counts 
   in (fst.unzip) sorted 
 \end{code}

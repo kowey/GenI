@@ -95,6 +95,7 @@ parseLex l =
         , ipfeat = []
         , iptype = Unspecified
         , isemantics = []
+        , icontrol = ""
         , iprecedence = 0
   }
 \end{code}

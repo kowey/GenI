@@ -19,6 +19,7 @@ where
 
 \ignore{
 \begin{code}
+import Data.Char (toLower)
 import Data.FiniteMap
 import Data.IORef (IORef, readIORef, newIORef, modifyIORef)
 import Data.List (intersect, intersperse, sort, nub, group)
@@ -56,7 +57,7 @@ import Configuration(Params, defaultParams, getConf, treatArgs,
                      GramParams, parseGramIndex,
                      macrosFile, lexiconFile, semlexFile, morphFile,
                      autopol, polarised, polsig, chartsharing, 
-                     semfiltered, orderedadj, extrapol)
+                     semfiltered, orderedadj, extrapol, footconstr)
 
 import Mstate (Gstats, numcompar, szchart, geniter, initGstats,
                addGstats, initMState, runState, genstats,
@@ -188,13 +189,20 @@ customGeni pst runFn = do
   let gstats  = addGstats fstGstats gstats'
   -- statistics 
   let statsOpt =  if (null optAll) then "none " else optAll
-                  where optAll   = optSem ++ optPol ++ optChart 
-                                   ++ optOAdj
-                        optPol   = if isPol then "pol " else ""
-                        optChart = if isChartSharing then "c-shr " else ""
-                        optSem   = if semfiltered config then "sfilt " else ""
-                        optOAdj  = if orderedadj config then "oadj " else ""
-
+                  where polkey   = "pol"
+                        polplus  =    (if autopol config then "A" else "")
+                                   ++ (if polsig  config then "S" else "")
+                                   ++ (if isChartSharing then "C" else "")
+                        --
+                        adjplus  =    (if semfiltered config then "S" else "")
+                                   ++ (if orderedadj  config then "O" else "")
+                                   ++ (if footconstr  config then "F" else "")
+                        --
+                        optAll   = optPol ++ optAdj
+                        optPol   = if isPol     
+                                   then (if null polplus then polkey else polkey ++ ":" ++ polplus) 
+                                   else "" 
+                        optAdj   = if null adjplus then "" else " adj:" ++ adjplus
       statsAut     = if isPol then show $ length combosPol else ""
       ambiguityStr = show $ calculateTreeCombos purecand 
   -- pack up the results
@@ -219,7 +227,7 @@ customGeni pst runFn = do
   let uninflected = map tagLeaves res
   sentences <- runMorph pst uninflected
   -- final rensults 
-  return (results { grSentences = sentences,
+  return (results { grSentences = map (map toLower) sentences,
                     grTimeStr  = statsTime })
 \end{code}
 
@@ -366,7 +374,7 @@ combineOne lexitem e =
                 ttree = setLexeme (iword lexitem) unified,
                 substnodes = snodes,
                 adjnodes   = anodes,
-                tsemantics = sem,
+                tsemantics = substSem sem fsubst,
                 tpolarities = ptpolarities e,
                 tinterface  = funif,
                 tcontrol    = icontrol lexitem
@@ -379,7 +387,8 @@ combineOne lexitem e =
          | (length p) /= (length tp) = wterror "Wrong number of parameters."
          -- if the lex item features are not a subset of the tree features
          | intersect fpf ftpf /= fpf = error $
-             "Lex entry's features are not a subset of"
+             "Lex entry " ++ iword lexitem 
+             ++ "'s features are not a subset of"
              ++ " tree's features: "  
              ++ "\nlex:  " ++ show fpf  
              ++ "\ntree: " ++ show ftpf

@@ -1,6 +1,6 @@
 semantics : [ e1:promise(a e2 b)
-	      jean(a)
-	      marie(b)
+	      john(a)
+	      mary(b)
 	      e2:convince(a e3 d)
 	      e3:give(d c e)
 	      h3:indef(c)

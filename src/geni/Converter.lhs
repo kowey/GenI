@@ -56,9 +56,12 @@ convertMacros :: IO ()
 convertMacros = 
   do gf <- getContents 
      let g = parseXmlGrammar gf 
-         showfam f = "begin family " ++ f ++ "\n\n"
-                     ++ (concatMap toGeniHand t)
-                     ++ "end family\n\n"
+         showfam f = "\n\n" 
+                     ++ "% ----------------------------------------------------------------------"
+                     ++ "\n" ++ "begin family " ++ f ++ "\n"
+                     ++ "% ----------------------------------------------------------------------"
+                     ++ "\n\n" ++ (concatMap toGeniHand t)
+                     ++ "end family\n"
                      where t = lookupWithDefaultFM g [] f
          outstr = concatMap showfam (keysFM g)
      putStr outstr

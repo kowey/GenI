@@ -15,10 +15,9 @@ import Graphics.UI.WX
 
 import Monad (when)
 import Data.Array
-import Data.Char (isSpace)
 import Data.FiniteMap
 import Data.IORef
-import Data.List (nub, delete)
+import Data.List (nub, delete, (\\))
 import System.Directory 
 
 import Graphviz 
@@ -30,8 +29,8 @@ import Geni (State(..), GeniResults(..), PState,
              runGeni, customGeni, 
              runLexSelection, buildAutomaton, runMorph,
              combine, loadGrammar, loadTargetSemStr)
-import Bfuncs (showPred, Sem)
-import Tags (idname,mapBySem,emptyTE,tpolarities,thighlight, 
+import Bfuncs (showPred, showSem, Sem, trim)
+import Tags (idname,mapBySem,emptyTE,tsemantics,tpolarities,thighlight, 
              TagElem)
 
 import Configuration(Params, grammarFile, 
@@ -355,9 +354,16 @@ selected items by the semantics they subsume, inserting along the way some
 fake trees and labels for the semantics.
 
 \begin{code}
-candidateGui :: (Window a) -> [TagElem] -> IO Layout
-candidateGui f xs = 
-  tagBrowserGui f xs "lexically selected item" "candidates"
+candidateGui :: (Window a) -> [TagElem] -> Sem -> IO Layout
+candidateGui f xs missed = do
+  p  <- panel f []      
+  tb <- tagBrowserGui p xs "lexically selected item" "candidates"
+  let warning = if null missed 
+                then ""
+                else "WARNING: no lexical selection for " ++ showSem missed
+      items = if null missed then [ fill tb ] else [ label warning , fill tb ]
+      lay   = fill $ container p $ column 5 items
+  return lay
 \end{code}
       
 \subsection{Polarity Automata}
@@ -369,9 +375,9 @@ step.
 polarityGui :: (Window a) -> [(String,PolAut,PolAut)] -> PolAut -> IO Layout
 polarityGui   f xs final = do
   let aut2  (_ , a1, a2) = [ a1, a2 ]
-      autLabel (fv,_,_) = [ (show fv), (show fv ++ " pruned") ]
-      autlist = map toGvPolAut $ concatMap aut2 xs ++ [ final ] 
-      labels  = concatMap autLabel xs ++ [ "final" ]
+      autLabel (fv,_,_) = [ fv, (fv ++ " pruned") ]
+      autlist = map toGvPolAut $ (concatMap aut2 xs) ++ [ final ] 
+      labels  = (concatMap autLabel xs) ++ [ "final" ]
       --
       tip      = "automata"
   gvRef   <- newGvRef False labels
@@ -523,7 +529,9 @@ debugGui mst tsem combos = do
   -}
   -- candidate selection tab
   cand   <- runLexSelection mst
-  canTab <- candidateGui nb cand 
+  let candsem = (nub $ concatMap tsemantics cand)
+      missed  = tsem \\ candsem
+  canTab <- candidateGui nb cand missed
   -- automata tab
   let config           = pa mst
       (auts, finalaut) = fst $ buildAutomaton cand mst
@@ -906,11 +914,6 @@ messageGui :: (Window a) -> String -> IO Layout
 messageGui f msg = do 
   p <- panel f []
   return (fill $ container p $ margin 10 $ fill $ column 1 $ [ label msg ]) 
-\end{code}
-
-\begin{code}
-trim :: String -> String
-trim = reverse . (dropWhile isSpace) . reverse . (dropWhile isSpace) 
 \end{code}
 
 \begin{code}

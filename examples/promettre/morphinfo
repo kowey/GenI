@@ -1,0 +1,33 @@
+% associates predicates with feature structures which will be 
+% unified with the anchor node 
+%
+% Note: if you want to specify features for certain lexical entries
+%       via the syntactic lexicon, you should do it through the 
+%       interface.  This means you'll have to modify your trees so
+%       that they export the relevant features through their 
+%       interface 
+%
+%   john [gender:m]
+%   mary [gender:f]
+%
+% since we already have a mechanism for applying fs via the
+% syntactic lexicon, i figured we could just keep things
+% consistent
+%
+% the idea is that if you have plural(p)
+% then this applies to any tree for which p is the first index
+
+male      [gen:m]
+female    [gen:f]
+
+plural    [num:pl] 
+singular  [num:sg]
+
+past      [tense:past]
+future    [tense:future]
+
+% -------------------------------------------------------------------- 
+% output features
+% -------------------------------------------------------------------- 
+% 
+

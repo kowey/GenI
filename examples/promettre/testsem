@@ -1,5 +1,3 @@
-semantics:[h1:john(j) 
-           h2:mary(m) 
-           h3:book(b) h3:indef(b)
-           plural(b)
-           e1:give(j b m)]
+semantics:[john(j) 
+           book(b) indef(b)
+           love(j b)]

@@ -175,7 +175,7 @@ inflectSentences morphcmd sentences =
      awaitProcess pid 
      -- read the inflector output back as a list of strings
      res <- hGetContents fromP 
-     let sentences2 = lines res
+     let sentences2 = map trim $ lines res
      --
      return sentences2
   `catch` \_ -> do putStrLn "Error calling morphological generator"

@@ -44,7 +44,7 @@ module Bfuncs(
         
    -- generic functions
    BitVector, groupByFM, multiGroupByFM,
-   isEmptyIntersect, fst3, snd3, thd3, 
+   isEmptyIntersect, trim, fst3, snd3, thd3, 
    mapTree, filterTree, treeLeaves, listRepNode
 ) where
 \end{code}
@@ -53,9 +53,9 @@ module Bfuncs(
 \begin{code}
 import Btypes
 import Debug.Trace -- for test stuff
-import Data.Char (isUpper)
+import Data.Char (isUpper, isSpace)
 import Data.FiniteMap (emptyFM, FiniteMap, addToFM_C)
-import Data.List (intersect, intersperse, sortBy, nub)
+import Data.List (intersect, sortBy, nub, unwords)
 import Data.Tree
 \end{code}
 }
@@ -241,7 +241,7 @@ sortFlist fl = sortBy (\(f1,_) (f2, _) -> compare f1 f2) fl
 
 \begin{code}
 showPairs :: Flist -> String
-showPairs l = concat $ intersperse " " $ map showAv l
+showPairs l = unwords $ map showAv l
 showAv (y,z) = y ++ ":" ++ z 
 \end{code}
 
@@ -404,14 +404,13 @@ isAnon = (==) "_"
 \begin{code}
 showSem :: Sem -> String
 showSem l =
-    "[" ++ (concat $ intersperse "," $ map showPred l) ++ "]"
+    "[" ++ (unwords $ map showPred l) ++ "]"
 \end{code}
 
 \begin{code}
-showPred (h, p, l) = showh ++ p ++ "(" ++ (showAtr l)++ ")"
+showPred (h, p, l) = showh ++ p ++ "(" ++ unwords l++ ")"
                      where hideh = null h || (take 2 h == "gh")
                            showh = if hideh then "" else h ++ ":"
-showAtr l = concat $ intersperse "," l
 \end{code}
 
 \paragraph{substSem} 
@@ -547,6 +546,11 @@ sortSem s = sortBy (\(_, p1, _) -> \(_, p2, _) -> compare p1 p2) s
 % ----------------------------------------------------------------------
 
 This section contains miscellaneous bits of generic code.
+
+\begin{code}
+trim :: String -> String
+trim = reverse . (dropWhile isSpace) . reverse . (dropWhile isSpace) 
+\end{code}
 
 \begin{code}
 fst3 :: (a,b,c) -> a

@@ -1,7 +1,7 @@
 semantics : [ h1:def(b)
 	      h1:present(b)
 	      e:promise(a b c)
-	      marie(a)
-	      jean(c)
+	      mary(a)
+	      john(c)
 	     ]
 
