@@ -190,7 +190,6 @@ $(MAKE_HTML): %-html: %.tex
 ./src/geni/MainNoGui.o : ./src/geni/Polarity.hi
 ./src/geni/MainNoGui.o : ./src/geni/Mstate.hi
 ./src/geni/MainNoGui.o : ./src/geni/Console.hi
-./src/geni/MainNoGui.o : ./src/geni/Configuration.hi
 ./src/geni/MainNoGui.o : ./src/geni/Geni.hi
 ./src/geni/Mparser.o : ./src/geni/Mparser.hs
 ./src/geni/Mparser.o : ./src/geni/Btypes.hi
@@ -214,18 +213,10 @@ $(MAKE_HTML): %-html: %.tex
 ./src/geni/Console.o : ./src/geni/Geni.hi
 ./src/geni/Console.o : ./src/geni/Btypes.hi
 ./src/geni/Converter.o : ./src/geni/Converter.lhs
-./src/geni/Converter.o : ./src/geni/Tsparser.hi
 ./src/geni/Converter.o : ./src/geni/Treeprint.hi
-./src/geni/Converter.o : ./src/geni/ParserLib.hi
-./src/geni/Converter.o : ./src/geni/Lparser.hi
-./src/geni/Converter.o : ./src/geni/Lex2.hi
-./src/geni/Converter.o : ./src/geni/Mparser.hi
 ./src/geni/Converter.o : ./src/geni/GrammarXml.hi
-./src/geni/Converter.o : ./src/geni/Geni.hi
-./src/geni/Converter.o : ./src/geni/Configuration.hi
 ./src/geni/Converter.o : ./src/geni/Btypes.hi
 ./src/geni/Geni.o : ./src/geni/Geni.lhs
-./src/geni/Geni.o : ./src/geni/GrammarXml.hi
 ./src/geni/Geni.o : ./src/geni/ParserLib.hi
 ./src/geni/Geni.o : ./src/geni/Tsparser.hi
 ./src/geni/Geni.o : ./src/geni/Lparser.hi

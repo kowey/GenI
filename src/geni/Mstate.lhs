@@ -23,7 +23,7 @@ module Mstate (
    szchart, numcompar, geniter, initGstats, addGstats, avgGstats,
 
    -- From Mstate
-   initrep, auxrep, genrep,
+   initrep, auxrep, genrep, trashrep,
    initMState, 
    addToInitRep, addToGenRep,
    genstats,
@@ -56,14 +56,13 @@ import MonadState (State,
                    put)
 
 import Data.List (intersect, partition, delete, sort, nub, (\\))
-import Data.Maybe (mapMaybe)
 import Data.Tree 
 import Data.Bits
 import FiniteMap 
 
 import Bfuncs (Ptype(Initial,Auxiliar),
                Flist, 
-               Sem, sortSem,
+               Sem, sortSem, Subst,
                GType(Other), GNode(..),
                BitVector,
                rootUpd,
@@ -72,9 +71,10 @@ import Bfuncs (Ptype(Initial,Auxiliar),
                repSubst,
                constrainAdj, 
                root, foot, 
-               substFlist, unifyFeat)
+               substTree, substGNode, substFlist, unifyFeat, 
+               mapTree)
 
-import Tags (TagElem, TagDerivation, 
+import Tags (TagElem, TagSite, TagDerivation, 
              idname, tidnum,
              derivation,
              ttree, ttype, tsemantics, 
@@ -82,7 +82,8 @@ import Tags (TagElem, TagDerivation,
              substTagElem, 
              adjnodes,
              substnodes)
-import Configuration (Params, semfiltered, orderedadj, footconstr)
+import Configuration (Params, semfiltered, orderedadj, footconstr,
+                      usetrash)
 \end{code}
 }
 
@@ -108,6 +109,7 @@ type InitRep = [TagElem]
 type AuxRep  = [TagElem]
 -- bitvector of polarity automaton paths
 type GenRep  = FiniteMap BitVector [TagElem] 
+type TrashRep = [TagElem]
 
 iaddToInitRep :: InitRep -> TagElem -> InitRep
 iaddToInitRep a te = te:a
@@ -117,6 +119,9 @@ iaddToAuxRep a te = te:a
 
 iaddToGenRep :: GenRep -> TagElem -> GenRep
 iaddToGenRep c te = addToFM_C (++) c (tpolpaths te) [te] 
+
+iaddToTrashRep :: TrashRep -> TagElem -> TrashRep 
+iaddToTrashRep t te = te:t
 
 listToGenRep :: [TagElem] -> GenRep
 listToGenRep = addListToGenRep emptyFM 
@@ -165,10 +170,19 @@ avgGstats lst =
 
 \subsection{Mstate}
 
+Note the trashrep is not actually essential to the operation of the
+generator; it is for pratical debugging of grammars.  Instead of
+trees dissapearing off the face of the debugger; they go into the
+trash where the user can inspect them and try to figure out why they
+went wrong.  To keep the generator from exploding we also keep an
+option not to use the trash, so that it is only enabled in debugger
+mode.
+
 \begin{code}
 data Mstate = S{initrep    :: InitRep, 
                 auxrep     :: AuxRep,
                 genrep     :: GenRep,
+                trashrep   :: TrashRep,
                 tsem       :: Sem,
                 step       :: Ptype,
                 gencounter :: Integer,
@@ -187,6 +201,7 @@ initMState cands chart ts config =
   in S{initrep  = i, 
        auxrep   = a,
        genrep   = c,
+       trashrep = [],
        tsem     = ts,
        step     = Initial,
        gencounter = toInteger $ length cands,
@@ -223,6 +238,12 @@ addToGenRep te = do
   s <- get  
   put s { genrep = (iaddToGenRep (genrep s) te) }
   incrSzchart 1
+
+addToTrashRep :: TagElem -> MS ()
+addToTrashRep te = do 
+  s <- get
+  when ((usetrash.genconfig) s) $
+    put s { trashrep = (iaddToTrashRep (trashrep s) te) }
 
 incrGeniter :: Int -> MS ()
 incrGeniter n = do
@@ -638,7 +659,9 @@ generateStep' = do
   -- (monadic state) and which should go in the result (res')
   res' <- classifyNew res
   -- put the given into the chart untouched 
-  when (curStep == Initial) (addToGenRep given)
+  if (curStep == Initial) 
+     then addToGenRep   given
+     else addToTrashRep given
   return res'
 \end{code}
 
@@ -679,10 +702,11 @@ classifyNew l = do
                    && (inputSem == treeSem) 
                    where treeSem = (sortSem $ tsemantics x)
       tbunify x ls = case (tbUnifyTree x) of
-                       Nothing -> ls
-                       Just x2 -> x2:ls
+                       Nothing -> do addToTrashRep x      
+                                     return ls
+                       Just x2 -> return (x2:ls)
       classify ls x = 
-        case () of _ | isResult  x -> return (tbunify x ls)
+        case () of _ | isResult  x -> tbunify x ls
                      | isPureAux x -> do addToAuxRep x
                                          return ls
                      | otherwise   -> do addToInitRep x
@@ -756,41 +780,107 @@ semfilter inputsem aux initial =
 \end{code}
 
 % --------------------------------------------------------------------  
-\section{Miscellaneous}
+\section{Top and bottom unification}
 % --------------------------------------------------------------------  
 
 \paragraph{tbUnifyTree} unifies the top and bottom feature structures
 of each node on each tree. If succesful we return the tree, otherwise we
-return Nothing. 
+return Nothing.  This is is the final step in generation of a result.
 
-FIXME? this could be very bad, but we ignore all feature value
-propogations and assume that anything that goes on during 
-unification is local to the node.
+We actually do unification twice: the first time is to check if
+unification is possible and to determine/apply variable substitutions
+throughout the entire tree.  The first time we do unification, we
+discard the results.  The second time we do unification is to get the
+result and only that; we do not do any more success checks or
+substitutions.  Why this crazy two pass approach?  Either simplicity or
+stupidity.  I could not figure out how to do it in one go without making
+a huge mess of the code or lots of traversals through the tree.
 
 \begin{code}
+type TbMaybe = Maybe (Subst, Tree GNode)
 tbUnifyTree :: TagElem -> Maybe TagElem
 tbUnifyTree te =
-  let tt = ttree te
-  in case (tbUnifyTree' tt) of 
-       Nothing -> Nothing
-       Just x  -> Just (te { ttree = x })
-
-tbUnifyTree' :: Tree GNode -> Maybe (Tree GNode)
-tbUnifyTree' (Node gn l) = 
-  let gnu  = tbUnifyNode gn
-      next = mapMaybe tbUnifyTree' l
-  in case gnu of 
-       Nothing    -> Nothing
-       Just gnOut -> if (length next == length l) 
-                     then Just (Node gnOut next)
-                     else Nothing
-
-tbUnifyNode :: GNode -> Maybe GNode
-tbUnifyNode gn =
-  let (succ, unf, _) = unifyFeat (gup gn) (gdown gn)
-      gnSucc = gn { gup = unf, gdown = [] }
-  in if succ then Just gnSucc else Nothing
+  let tryUnification :: Tree GNode -> TbMaybe 
+      tryUnification t = foldr tbUnifyNode start flat 
+        where start = Just ([], t)
+              flat  = flatten t
+      --
+      fixNode :: GNode -> GNode
+      fixNode gn = gn { gup = u, gdown = [] }
+                   where (_,u,_) = unifyFeat (gup gn) (gdown gn)
+      -- 
+      fixSite :: Subst -> TagSite -> TagSite 
+      fixSite sb (n, u, d) = (n, u3, [])
+        where u2 = substFlist sb u 
+              d2 = substFlist sb d
+              (_,u3,_) = unifyFeat u2 d2
+      --
+      fixTe :: Subst -> Tree GNode -> TagElem
+      fixTe sb tt2 = te { ttree      = mapTree fixNode tt2
+                        , adjnodes   = map (fixSite sb) (adjnodes te)
+                        , substnodes = map (fixSite sb) (substnodes te)}
+  in case (tryUnification $ ttree te) of 
+       Nothing       -> Nothing
+       Just (sb,tt2) -> Just (fixTe sb tt2)
 \end{code}
+
+Our helper function corresponds to the first unification step.  It is
+meant to be called from a fold.  The node argument represents the
+current node being explored.  The Maybe argument holds a list of 
+pending substitutions and a copy of the entire tree.
+
+There are three things going on in here:
+
+\begin{enumerate}
+\item check if unification is possible - first we apply the pending
+      substitutions on the node and then we check if unification
+      of the top and bottom feature structures of that node 
+      succeeds
+\item keep track of the substitutions that need to be performed -
+      any new substitutions that result from unification are 
+      appendend to the pending list
+\item propagate new substitutions throughout the tree - this is
+      why we keep a copy of the tree; note that we \emph{have}
+      to keep the entire tree around because variable substitutions
+      must be back-propagated to nodes we had visited in the past.
+\end{enumerate}
+
+You might also think it redundant to apply substitutions both to the
+entire tree and the current node; but we have to because the node is
+only a copy of the tree data and not a reference to it.  This is why 
+we keep a list of pending substitutions instead of simply returning
+the corrected tree.  
+
+Note that we wrap the second argument in a Maybe; this is used to
+prevent the function from doing any work if a unification failure had
+already occured. Getting this right was a big pain in the butt, so don't
+go trying to simplify this over-complicated code unless you know what
+you're doing.
+
+\begin{code}
+tbUnifyNode :: GNode -> TbMaybe -> TbMaybe 
+tbUnifyNode gnRaw st = 
+  case st of 
+    Just (pending, whole) ->
+      let -- apply pending substitutions
+          gn = substGNode gnRaw pending
+          -- check top/bottom unification on this node
+          (succ, _, sb) = unifyFeat (gup gn) (gdown gn)
+          pending2 = pending ++ sb
+          whole2   = substTree whole sb
+      in if succ 
+         then -- apply any new substutions to the whole tree
+              Just (pending2, whole2)
+         else -- stop all future iterations
+              Nothing 
+    -- don't bother   
+    Nothing -> Nothing
+\end{code}
+
+% --------------------------------------------------------------------  
+\section{Miscellaneous}
+% --------------------------------------------------------------------  
+
 
 \paragraph{renameTagElem} Given a Char c and a TagElem te, renames nodes in
 substnodes, adjnodes and the tree in te by prefixing c. 

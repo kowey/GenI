@@ -32,12 +32,14 @@ import Tags (idname,mapBySem,emptyTE,tsemantics,tpolarities,
 
 import Configuration(Params, grammarFile, 
                      tsFile, optimisations, 
+                     usetrash,
                      autopol, polarised, polsig, chartsharing, 
                      semfiltered, orderedadj, extrapol, footconstr)
 import ParserLib 
 
 import Mstate (Gstats, Mstate, initGstats, initMState, runState, 
-               generate, generateStep, initrep, auxrep, genrep,
+               generate, generateStep,  
+               initrep, auxrep, genrep, trashrep,
                genRepToList,
                genstats, szchart, numcompar, geniter)
 import Polarity
@@ -550,7 +552,7 @@ tasks, so we create a separate tab for each task.
 debuggerTab :: (Window a) -> Params -> Sem -> String -> [TagElem] -> IO Layout 
 debuggerTab f config tsem cachedir cands = do
   let initRes = []
-      initSt  = initMState cands [] tsem config
+      initSt  = initMState cands [] tsem (config {usetrash=True})
   let itNlabl   = showGenState False initRes initSt 
       tip       = "debugger session"
   -- widgets
@@ -614,14 +616,19 @@ showGenState :: Bool -> [TagElem] -> Mstate -> [(TagElem,String)]
 showGenState detailed res st = 
   let agenda    = initrep st
       auxiliary = auxrep st
+      trash     = trashrep st
       chart     = genRepToList $ genrep  st
       --
-      trees'     =  (emptyTE:agenda) ++ (emptyTE:chart) 
-                 ++ (emptyTE:auxiliary) ++ (emptyTE:res) 
+      trees'     =  (emptyTE:agenda) 
+                 ++ (emptyTE:chart) 
+                 ++ (emptyTE:auxiliary) 
+                 ++ (emptyTE:trash) 
+                 ++ (emptyTE:res) 
       trees      = map (\x -> x { showfeats = detailed }) trees'
       labels     =  ("___AGENDA___"    : (labelFn agenda))
                  ++ ("___CHART___"     : (labelFn chart))
                  ++ ("___AUXILIARY___" : (labelFn auxiliary))
+                 ++ ("___DISCARDED___" : (labelFn trash)) 
                  ++ ("___RESULTS___"   : (labelFn res)) 
       labelFn trs = map fn trs 
                     where fn t = showLeaves t ++ " (" ++ showPolPaths t ++ ")"

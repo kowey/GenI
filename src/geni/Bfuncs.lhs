@@ -31,7 +31,8 @@ module Bfuncs(
  
    -- Functions from Tree GNode
    repSubst, repAdj, constrainAdj, 
-   renameTree, substTree, root, rootUpd, foot, setLexeme,
+   renameTree, substTree, substGNode,
+   root, rootUpd, foot, setLexeme,
    showGNodeAll,
 
    -- Functions from Sem
@@ -44,9 +45,10 @@ module Bfuncs(
 
    -- Other functions
    isVar, isAnon, testBtypes, 
-
+        
+   -- generic functions
    BitVector, groupByFM, multiGroupByFM,
-   isEmptyIntersect, third
+   isEmptyIntersect, third, mapTree
 ) where
 \end{code}
 
@@ -167,8 +169,7 @@ substitution to the tree.
 
 \begin{code}
 substTree :: Tree GNode -> Subst -> Tree GNode
-substTree (Node a l) s =
-    Node (substGNode a s) (map (\t -> substTree t s) l)
+substTree t s = mapTree (\n -> substGNode n s) t
 \end{code}
 
 \paragraph{renameTree} 
@@ -177,8 +178,7 @@ the tree by prefixing c.
 
 \begin{code}
 renameTree :: Char -> Tree GNode -> Tree GNode
-renameTree c (Node a l) =
-    Node a{gnname = c:(gnname a)} (map (renameTree c) l)
+renameTree c = mapTree (\a -> a{gnname = c:(gnname a)}) 
 \end{code}
 
 \subsection{Substitution}
@@ -271,7 +271,10 @@ Given an Flist and a substitution, applies
 \begin{code}
 substFlist :: Flist -> Subst -> Flist
 substFlist fl sl = foldl substFlist' fl sl
+\end{code}
 
+\ignore{
+\begin{code}
 testSubstFlist =
   let input    = [ ("a","1") ]
       expected = [ ("a","3") ]
@@ -282,6 +285,7 @@ testSubstFlist =
                ++ "\noutput: " ++ showPairs output
   in trace debugstr (output == expected) 
 \end{code}
+}
 
 \paragraph{substFlist'} Given an Flist and a single substition, applies
 that substitution to the Flist... 
@@ -646,6 +650,15 @@ multiGroupByFM fn list =
   let addfn  x key acc = addToFM_C (++) acc key [x]
       helper x acc     = foldr (addfn x) acc (fn x)
   in foldr helper emptyFM list 
+\end{code}
+
+\paragraph{mapTree} is like map, except on Trees.  This has to be
+tucked away somewhere!
+
+\begin{code}
+mapTree :: (a->b) -> Tree a -> Tree b
+mapTree fn (Node a []) = (Node (fn a) [])
+mapTree fn (Node a l)  = (Node (fn a) (map (mapTree fn) l))
 \end{code}
 
 \begin{code}

@@ -17,7 +17,7 @@ module Configuration(
    optimisations,
    autopol, polarised, polsig, chartsharing, extrapol,
    predicting, semfiltered, orderedadj, footconstr,
-   isBatch, batchRepeat, 
+   isBatch, batchRepeat, usetrash,
    defaultParams, emptyParams, getConf, optBatch,
 
    GramParams(..),
@@ -74,7 +74,8 @@ data Params = Prms{
   isTestSuite    :: Bool,
   optimisations  :: [Token],
   extrapol       :: FiniteMap String Int,
-  batchRepeat    :: Integer
+  batchRepeat    :: Integer,
+  usetrash       :: Bool
 } deriving (Show)
 
 autopol      :: Params -> Bool
@@ -109,7 +110,8 @@ emptyParams = Prms {
   isTestSuite    = False,
   optimisations  = [],
   extrapol       = emptyFM,
-  batchRepeat    = 1
+  batchRepeat    = 1,
+  usetrash       = False
 }
 
 defaultParams :: Params
