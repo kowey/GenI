@@ -70,7 +70,7 @@ import Tags (Tags, TagElem, emptyTE, TagSite,
              setTidnums, fixateTidnums)
 
 import Configuration(Params, defaultParams, getConf, treatArgs,
-                     grammarFile, tsFile, isTestSuite, morphCmd,
+                     grammarFile, tsFile, isTestSuite, testCases, morphCmd,
                      GramParams, parseGramIndex,
                      macrosFile, lexiconFile, semlexFile, morphFile, rootCatsParam,
                      autopol, polarised, polsig, chartsharing, 
@@ -117,7 +117,8 @@ data State = ST{pa       :: Params,
                 morphinf :: MorphFn,
                 rootCats :: [String],
                 ts       :: SemInput, 
-                tsuite   :: [(SemInput,[String])]
+                tcases   :: [String],
+                tsuite   :: [(String,SemInput,[String])]
                }
 
 type PState = IORef State
@@ -149,6 +150,7 @@ initGeni = do
                        morphinf = const Nothing,
                        ts = ([],[]),
                        rootCats = [],
+                       tcases = [],
                        tsuite = [] }
     return pst 
 \end{code}
@@ -263,7 +265,6 @@ runLexSelection :: State -> IO [TagElem]
 runLexSelection mst = do
   let (tsem,_) = ts mst
       lexicon  = le mst
-      config   = pa mst
       -- select lexical items first 
       lexCand   = chooseLexCand lexicon tsem
       -- then anchor these lexical items to trees
@@ -364,11 +365,9 @@ combineOne lexitem e =
        sem  = isemantics lexitem
        p    = iparams lexitem
        pf   = ipfeat lexitem
-       fpf  = map fst pf
        -- tree stuff
        tp   = params e
        tpf  = pfeat e
-       ftpf = map fst tpf
        -- unify the parameters
        psubst = zip tp p
        paramsUnified = substTree (Bfuncs.tree e) psubst 
@@ -689,9 +688,10 @@ loadTargetSem pst = do
   hFlush stdout
   tstr <- readFile filename
   -- helper functions for test suite stuff
-  let cleanup ((sm,sr),sn) = ((flattenTargetSem sm, sort sr), sort sn)
-      updateTsuite s = modifyIORef pst (\x -> x {tsuite = s2})
-                       where s2 = map cleanup s
+  let cleanup (id, (sm,sr), sn) = (id, newsmsr, sort sn)
+        where newsmsr = (flattenTargetSem sm, sort sr)
+      updateTsuite s = modifyIORef pst (\x -> x {tsuite = map cleanup s,   
+                                                 tcases = testCases config})
   --  
   if isTsuite
      then do let sem = (testSuiteParser . lexer) tstr

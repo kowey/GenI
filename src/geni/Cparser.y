@@ -23,6 +23,7 @@ import Data.List (intersperse)
     morphcmd    {(MorphCmdTok,     _, _)}
     tsem        {(TSemanticsTok,  _, _)}
     tsuite      {(TestSuiteTok,  _, _)}
+    tcases      {(TestCasesTok,  _, _)}
     graphical   {(GraphicalTok,   _, _)}
     optimisations {(Optimisations, _,_)}
     polarised    {(Polarised,   _, _)}
@@ -70,6 +71,8 @@ InputList :
      {($1,"True"):$4}
  | boolkey '=' false InputList
      {($1,"False"):$4}
+ | tcases  '=' idList InputList
+     {(untok $1,unwords $3):$4}
  | optimisations '=' OptList InputList
      {(untok $1, $3):$4}
  | extrapol '=' PolList InputList
@@ -83,6 +86,10 @@ idkey:   grammar  {$1}
 
 boolkey :: { Token }
 boolkey: graphical  {GraphicalTok}
+
+idList :: { [String] }
+idList :            { [] }
+       |  id idList {$1:$2}
 
 {- optimisations -}
 

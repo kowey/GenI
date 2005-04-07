@@ -30,7 +30,8 @@ comes from Cparser.y
 module Configuration(
    Params, 
    treatArgs, 
-   grammarFile, tsFile, isGraphical, isTestSuite, morphCmd,
+   grammarFile, tsFile, isGraphical, isTestSuite, 
+   morphCmd, testCases,
    optimisations,
    autopol, polarised, polsig, chartsharing, extrapol,
    predicting, semfiltered, orderedadj, footconstr,
@@ -91,6 +92,7 @@ data Params = Prms{
   isGraphical    :: Bool,
   isTestSuite    :: Bool,
   optimisations  :: [Token],
+  testCases      :: [String],
   extrapol       :: FiniteMap String Int,
   batchRepeat    :: Integer,
   usetrash       :: Bool
@@ -127,6 +129,7 @@ emptyParams = Prms {
   morphCmd       = "",
   isGraphical    = False,
   isTestSuite    = False,
+  testCases      = [],
   optimisations  = [],
   extrapol       = emptyFM,
   batchRepeat    = 1,
@@ -229,19 +232,19 @@ defineParams p (fv:next) = nextP : (defineParams nextP next)
 
 defineParams' :: Params -> [(Token,String)] -> Params
 defineParams' p [] = p
-defineParams' p ((f,v):s) =
-  case f of GrammarTok  -> defineParams' p {grammarFile = v} s
-            MorphCmdTok -> defineParams' p {morphCmd = v} s
-            TSemanticsTok -> defineParams' p{ tsFile  = v
-                                         , isTestSuite = False } s
-            TestSuiteTok -> defineParams' p{ tsFile = v
-                                           , isTestSuite = True } s
-            GraphicalTok  -> defineParams' p{isGraphical  = (v == "True")} s
-            Optimisations   -> defineParams' p{optimisations = readOpt } s
-            ExtraPolarities -> defineParams' p{extrapol = (polParser . lexer) v} s
-            Repeat -> defineParams' p{batchRepeat = read v} s 
+defineParams' p ((f,v):s) = defineParams' pnext s
+  where pnext = case f of 
+            GrammarTok      -> p {grammarFile = v}
+            MorphCmdTok     -> p {morphCmd = v}
+            TSemanticsTok   -> p {tsFile  = v, isTestSuite = False }
+            TestCasesTok    -> p {testCases = words v }
+            TestSuiteTok    -> p {tsFile = v, isTestSuite = True }
+            GraphicalTok    -> p {isGraphical = (v == "True")}
+            Optimisations   -> p {optimisations = readOpt } 
+            ExtraPolarities -> p {extrapol = (polParser . lexer) v} 
+            Repeat          -> p {batchRepeat = read v} 
             p -> error ("Unknown configuration parameter: " ++ show p)
-  where -- when PolOpts and AdjOpts are in the list of optimisations
+        -- when PolOpts and AdjOpts are in the list of optimisations
         -- then include all polarity-related optimisations and 
         -- all adjunction-related optimisations respectively
         readOpt = (addif PolOptsTok polOpts) 

@@ -27,14 +27,14 @@ module Console(consoleGenerate) where
 
 \ignore{
 \begin{code}
-import Data.List(intersperse,sort,partition)
+import Data.List(intersperse,sort,partition,zipWith4)
 import Monad(mapM, foldM, when)
 import IOExts(readIORef, modifyIORef)
 
-import Bfuncs(SemInput,showSem)
+import Bfuncs(SemInput,showSem,fst3,snd3,thd3)
 import Geni
 import Mstate(avgGstats, numcompar, szchart, geniter)
-import Configuration(Params, isGraphical, isTestSuite,
+import Configuration(Params, isGraphical, isTestSuite, testCases,
                      isBatch,
                      grammarFile, tsFile, 
                      emptyParams, optimisations, batchRepeat,
@@ -161,32 +161,20 @@ result of a different optimisation on the same grammar/semantics
 \begin{code}
 showOptResults :: [GeniResults] -> String
 showOptResults grs = 
-  let headOpt = "      optimisations"
-      headNumRes = "rslts"
-      headAgenda = "agnd sz"
-      headChart  = "chrt sz"
-      headComparisons = "compared"
-      headTime = "time ms  "
-      header   = [ headOpt, headNumRes, headAgenda, headChart, headComparisons, headTime ] 
-      showIt l = concat $ intersperse " | " $ l
-      showLine = concat $ intersperse "-+-" $ map linestr header
-      resStr r = [ pad (fst  $ grOptStr r) headOpt,
-                   pad (show $ length $ grDerived r) headNumRes,
-                   pad (show $ geniter s) headAgenda,
-                   pad (show $ szchart s) headChart,
-                   pad (show $ numcompar s) headComparisons, 
-                   pad (grTimeStr r) headTime ]
+  let header   = [ "      optimisations" 
+                 , "rslts"
+                 , "agnd sz"
+                 , "chrt sz"
+                 , "compared"
+                 , "time ms  " ]
+      display r = [ fst  $ grOptStr r ,
+                    show $ length $ grDerived r,
+                    show $ geniter s,
+                    show $ szchart s,
+                    show $ numcompar s,
+                    grTimeStr r ]
                  where s = grStats r
-      -- a list of "-" with the same length as l 
-      linestr str2 = map (const '-') str2
-      -- pad str to be as long as str2
-      pad str str2 = if (diff > 0) then padding ++ str else str
-                     where padding = map (const ' ') [1..diff]
-                           diff = (length str2) - (length str)   
-      --
-      headerStr = showIt header ++ "\n" ++ showLine ++ "\n" 
-      bodyStr   = concat $ intersperse "\n" $ map (showIt.resStr) grs
-  in headerStr ++ bodyStr
+  in showTable header grs display
 \end{code}
 
 \section{Test suites}
@@ -197,31 +185,42 @@ showOptResults grs =
 runTestSuite :: PState -> IO () 
 runTestSuite pst = 
   do mst <- readIORef pst 
-     let (slist, xlist) = (unzip . tsuite) mst
+     let mstCases  = tcases mst
+         mstSuite  = tsuite mst
+         matchFn y = [ x | x <- mstSuite, fst3 x ==  y ]
+         suite  = if null mstCases 
+                  then mstSuite 
+                  else concatMap matchFn mstCases
+     let (ids, slist, xlist) = unzip3 suite
      rlist <- mapM (runTestCase pst) slist 
-     let summaries = zipWith3 showTestCase slist xlist rlist
-     mapM putStrLn summaries 
+     let rsList  = map grSentences rlist
+         pfoList = zipWith groupTestCaseResults xlist rsList
+         details = zipWith3 showTestCase ids slist pfoList 
+     -- show a summary
+     putStrLn (showTestSuiteResults $ zip3 ids pfoList rlist)
+     -- show all the details
+     mapM putStrLn details 
      return ()
 \end{code}
 
 \paragraph{runTestCase} runs a single case in a test suite and returns
-the sentences generated.
+the results.
 
 \begin{code}
-runTestCase :: PState -> SemInput -> IO [String]
+runTestCase :: PState -> SemInput -> IO GeniResults
 runTestCase pst sem = 
   do modifyIORef pst (\x -> x{ts = sem})
      res <- customGeni pst runGeni
-     let sentences = grSentences res
-     return sentences
+     return res 
 \end{code}
 
-\paragraph{showTestCase} returns a pretty-printed string summarising
-the results of running a test case.  Note that for 
+\paragraph{groupTestCaseResults} groups the results of a test case into a three
+tuple (pass,fail,overgeneration) 
 
 \begin{code}
-showTestCase :: SemInput -> [String] -> [String] -> String
-showTestCase (sem,_) expected results = 
+type TestCaseResults = ([String],[String],[String])
+groupTestCaseResults :: [String] -> [String] -> TestCaseResults
+groupTestCaseResults expected results = 
   let expected2     = sort expected
       results2      = sort results
       --
@@ -229,9 +228,16 @@ showTestCase (sem,_) expected results =
                        where expfn x = x `elem` expected2
       fail           = filter (not.resfn) expected2 
                        where resfn x = x `elem` results2 
-      --
+  in (pass,fail,overgen)
+\end{code}
+
+\begin{code}
+showTestCase :: String -> SemInput -> TestCaseResults -> String
+showTestCase id (sem,_) results = 
+  let (pass,fail,overgen) = results
   in ""
      ++ "\n================================================================="
+     ++ (if (null id) then "" else "\n" ++ id)
      ++ "\n" ++ showSem sem 
      ++ "\n================================================================="
      ++ "\n" 
@@ -252,6 +258,60 @@ showTestCase (sem,_) expected results =
         else "\novergeneration"
              ++ "\n--------------"
              ++ "\n" ++ showRealisations overgen)
+\end{code}
+
+\paragraph{showTestSuiteResults} shows a summary of the test suite run, including
+for each test case, its name, the number of passes, fails, and overgenerations and
+the generation time.
+
+\begin{code}
+showTestSuiteResults :: [(String,TestCaseResults,GeniResults)] -> String
+showTestSuiteResults items =
+  let header = [ "name             "
+               , "pass    "
+               , "fail    "
+               , "overgen "
+               , "time ms  " ]
+      display :: (String,TestCaseResults,GeniResults) -> [String]
+      display (id,pfo,r) = [ id
+                           , show $ length (fst3 pfo)
+                           , show $ length (snd3 pfo)
+                           , show $ length (thd3 pfo)
+                           , grTimeStr r ]
+  in showTable header items display 
+\end{code}
+
+\section{Generic}
+
+\paragraph{showTable} pretty-prints an ASCII table from a list of items.
+More precisely, it builds this from 
+\begin{enumerate}
+\item \fnparam{header} a list of headers, 
+\item \fnparam{items}  a list of items and
+\item \fnparam{displayfn} which converts the items to list of pretty-printed strings.
+\end{enumerate}
+Each item corresponds to a row.  The list returned by \fnparam{displayfn} ought
+to be the same length as \fnparam{header}, since each item in the list
+corresponds to a column.  Note that this function tries to make the table
+pretty by padding each column to be same length as the header 
+(so to adjust the size of columns, just pad the header with spaces).
+
+\begin{code}
+showTable :: [String] -> [a] -> (a -> [String]) -> String
+showTable header items displayfn = 
+  let showIt l = concat $ intersperse " | " $ l
+      showLine = concat $ intersperse "-+-" $ map linestr header
+      resStr r = zipWith pad (displayfn r) header
+      -- a list of "-" with the same length as l 
+      linestr str2 = map (const '-') str2
+      -- pad str to be as long as str2
+      pad str str2 = if (diff > 0) then padding ++ str else str
+                     where padding = map (const ' ') [1..diff]
+                           diff = (length str2) - (length str)   
+      --
+      headerStr = showIt header ++ "\n" ++ showLine ++ "\n" 
+      bodyStr   = concat $ intersperse "\n" $ map (showIt.resStr) items 
+  in headerStr ++ bodyStr
 \end{code}
 
 
