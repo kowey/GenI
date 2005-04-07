@@ -1,0 +1,93 @@
+%%
+%% The LEXICON
+%%
+%% 
+%% Nouns
+%%   common nouns
+%%     (hat, man, rabbit, woman)
+%%   proper names
+%%     (mia, vincent)
+%% Verbs
+%%   intransitive verbs
+%%     (runs, sleeps)
+%%   transitive verbs
+%%     (loves, removes)
+%% Modifiers
+%%   adjectives
+%%     (big, tall, white)
+%%   adverbs
+%%     (fast)
+%% Determiners
+%%   (a, the)
+
+
+%% Nouns
+%% common nouns
+
+hat n (Entity ! agr:sg3)
+semantics:[hat(_ Entity)]
+
+man n (Entity ! agr:sg3)
+semantics:[man(_ Entity)]
+
+rabbit n (Entity ! agr:sg3)
+semantics:[rabbit(_ Entity)]
+
+woman n (Entity ! agr:sg3)
+semantics:[woman(_ Entity)]
+
+
+%% proper names
+
+mia n (Entity ! agr:sg3)
+semantics:[name(_ Entity mia)]
+
+vincent n (Entity ! agr:sg3)
+semantics:[name(_ Entity vincent)]
+
+%% Verbs
+%% intransitive verbs
+
+runs v (Event Agent ! agr:sg3)
+semantics:[run(Event Agent)]
+
+sleeps v (Event Agent ! agr:sg3)
+semantics:[sleep(Event Agent)]
+
+%% transitive verbs
+
+loves v (Event Agent Experiencer ! agr:sg3)
+semantics:[love(Event Agent Experiencer)]
+
+removes v (Event Agent Theme Loc ! agr:sg3)
+semantics:[remove(Event Agent Theme Loc)]
+
+
+%% Modifiers
+%% adjectives
+
+big adj (Entity)
+semantics:[big(_ Entity)]
+
+tall adj (Entity)
+semantics:[tall(_ Entity)]
+
+%bigtall adj (Entity)
+%semantics:[big(_ Entity) tall(_ Entity)]
+
+white adj (Entity)
+semantics:[white(_ Entity)]
+
+
+%% adverbs
+
+fast adv (Event)
+semantics:[fast(_ Event)]
+
+
+%% Determiners
+
+%a Dp(Entity ! agr:sg3)
+
+the det (Entity)
+semantics:[def(Entity)]
