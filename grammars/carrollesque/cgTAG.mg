@@ -579,8 +579,8 @@ import
 declare ?I
 {
         <syn>{
-                node xtop(mark=subst)[cat = n,top=[det = +]]
-        }
+                node xtop(mark=subst)[cat = n,top=[det = +,idx=I]]
+        }*=[objectI=I]
 }
 
 class CanonicalAttribute
@@ -1393,7 +1393,7 @@ import
 declare ?I
 {
 	<syn>{
-		node xS[bot=[wh = +]]{ %should be wh = + better w/ a default ?
+		node xS[top=[wh = +]]{ %should be wh = + better w/ a default ?
 			node xArg(color=red,mark=subst,extracted = +)[cat=n,top=[idx=I,wh = +]]
 			node xVN
 		}		
@@ -1485,30 +1485,40 @@ declare
 
 class Subject
 {
+	ImperativeSubject[]
+	|InfinitiveSubject[]
+	|FiniteSubject[]
+}
+
+class FiniteSubject
+{
 	CanonicalSubject[]
 	|CliticSubject[]
 	|whSubject[]
 	|RelativeSubject[]
 	|CleftSubject[]
-	|InfinitiveSubject[]
- 	|ImperativeSubject[]
- 	|InvertedNominalSubject[]
 }
 
+class ExtraposedObject
+{
+	whObject[]
+	|RelativeObject[]
+	|CleftObject[]
+}
 
-class Object
+class NonExtraposedObject
 {
 	CanonicalObject[]
 	|CliticObjectII[]
 	|CliticObject3[]
 	|reflexiveAccusative[]
-	|whObject[]
-	|RelativeObject[]
-	|CleftObject[]
 }
 
-
-
+class Object
+{
+	ExtraposedObject[]
+	|NonExtraposedObject[]
+}
 
 class SententialSubject{
 	CanonicalSententialSubjectFinite[]
@@ -1545,15 +1555,19 @@ class Iobject
 	|CleftIobjectTwo[]
 }
 
-class CAgent
+class ExtraposedCAgent
 {
-	CanonicalCAgent[]
-	|whCAgent[]
+	whCAgent[]
 	|RelativeCAgent[]
 	|CleftCAgentOne[]
 	|CleftCAgentTwo[]
 }
 
+class CAgent
+{
+	ExtraposedCAgent[]
+	|CanonicalCAgent[]
+}
 class Oblique
 {
 	CanonicalOblique[]
@@ -1574,18 +1588,35 @@ class Locative
 }
 
 
-class Genitive
+class NonCleftGenitive
 {
 	CanonicalGenitive[]
 	|CliticGenitive[]
 	|whGenitive[]
 	|RelativeGenitive[]
-	|CleftGenitiveOne[]
-	|CleftGenitiveTwo[]
 	|CleftDont[]
 }
-
-
+class CleftGenitive
+{
+	CleftGenitiveOne[]
+	|CleftGenitiveTwo[]
+}
+class Genitive
+{
+	NonCleftGenitive[]
+	|CleftGenitive[]
+}
+class ExtraposedGenitive
+{
+	whGenitive[]
+	|RelativeGenitive[]
+	|CleftDont[]
+}
+class NonExtraposedGenitive
+{
+	CanonicalGenitive[]
+	|CliticGenitive[]
+}
 %* <Alternances de diathèse>
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1595,20 +1626,40 @@ class dian0V[E,X]{
 }
 
 class dian0Vn1Active[E,X,Y]{
-                Subject[]*=[subjectI=X] ; Object[]*=[objectI=Y] ; activeVerbMorphology[]*=[vbI=E]          
+    {{ ImperativeSubject[]*=[subjectI=X] ;NonExtraposedObject[]*=[objectI=Y] } |
+      { InvertedNominalSubject[]*=[subjectI=X];ExtraposedObject[]*=[objectI=Y] } |
+      {InfinitiveSubject[]*=[subjectI=X] ;
+       {NonExtraposedObject[]*=[objectI=Y] | whObject[]*=[objectI=Y]} } |
+     {FiniteSubject[]*=[subjectI=X] ; Object[]*=[objectI=Y]}} 
+     ; activeVerbMorphology[]*=[vbI=E]
 }
 class dian0Vn1Passive[E,X,Y]{
-                Subject[]*=[subjectI=Y] ; CAgent[]*=[cagentI=X] ; passiveVerbMorphology[]*=[vbI=E]        
+    { {	ImperativeSubject[]*=[subjectI=Y]|
+	InfinitiveSubject[]*=[subjectI=Y]|
+	InvertedNominalSubject[]*=[subjectI=X]
+      }; 
+	CanonicalCAgent[]*=[cagentI=Y]} 
+     |
+      {FiniteSubject[]*=[subjectI=Y] ; CAgent[]*=[cagentI=Y]}
+       ; passiveVerbMorphology[]*=[vbI=E]        
 }
+
 class dian0Vn1dePassive[E,X,Y]{
-                Subject[]*=[subjectI=Y] ; Genitive[]*=[genitiveI=X] ;
-                passiveVerbMorphology[]*=[vbI=E] }
+ {
+    { ImperativeSubject[]*=[subjectI=X] ; NonExtraposedGenitive[]*=[genitiveI=Y] } |
+    { InvertedNominalSubject[]*=[subjectI=X];ExtraposedGenitive[]*=[genitiveI=Y] } |
+    {InfinitiveSubject[]*=[subjectI=X] ;
+       {NonExtraposedGenitive[]*=[genitiveI=Y] | whGenitive[]*=[genitiveI=Y]} } |
+    {FiniteSubject[]*=[subjectI=X] ; Genitive[]*=[genitiveI=Y]}
+ };
+ passiveVerbMorphology[]*=[vbI=E]
+}
 
 class dian0Vn1ShortPassive[E,X,Y]{
                 Subject[]*=[subjectI=Y] ; passiveVerbMorphology[]*=[vbI=E]                
 }
 class dian0Vn1ImpersonalPassive[E,X,Y]{
-                ImpersonalSubject[] ; Object[]*=[objectI=Y]; passiveVerbMorphology[]*=[vbI=E]                
+                ImpersonalSubject[] ; NonExtraposedObject[]*=[objectI=Y]; passiveVerbMorphology[]*=[vbI=E]                
 }
 class dian0Vn1middle[E,X,Y]{
                 Subject[]*=[subjectI=Y] ; middleVerbMorphology[]*=[vbI=E]       
@@ -1925,7 +1976,7 @@ declare
 	?xN ?LPN ?Rel ?X
 {
 	<syn>{
-		node xN(color=red,mark=anchor)[cat = n,bot=[det = +,pers = 3,idx=X]]
+		node xN(color=red,mark=anchor)[cat = n,top=[wh= - ],bot=[det = +,pers = 3,idx=X]]
 	}*=[idx=X];
 	<sem>{
 		LPN:Rel(X)

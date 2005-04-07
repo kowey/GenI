@@ -46,16 +46,16 @@ semantics:[seminaire(+X)]
 % adjectives 
 % ----------------------------------------------------------------------
 
-special adj [idx:X]  
+special adj [arg1:X]  
 semantics:[special(X)]
 
-hebdomadaire adj [idx:X]
+hebdomadaire adj [arg1:X]
 semantics:[hebdomadaire(X)]
 
-nouveau adj [idx:X]
+nouveau adj [arg1:X]
 semantics:[nouveau(X)]
 
-dequipe adj [idx:X]
+dequipe adj [arg1:X]
 semantics:[dequipe(X)]
 
 

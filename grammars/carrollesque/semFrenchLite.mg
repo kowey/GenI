@@ -1,4 +1,4 @@
-include semFrenchTAG.mg
+include cgTAG.mg
 
 % VALUATION
 %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -19,3 +19,4 @@ value stddeterminer	%*Le* lutin
 
 value CliticT		%Tree for any clitic : Jean *le* donne
 
+value CleftObject
