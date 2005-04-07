@@ -1646,11 +1646,11 @@ class dian0Vn1Passive[E,X,Y]{
 
 class dian0Vn1dePassive[E,X,Y]{
  {
-    { ImperativeSubject[]*=[subjectI=X] ; NonExtraposedGenitive[]*=[genitiveI=Y] } |
-    { InvertedNominalSubject[]*=[subjectI=X];ExtraposedGenitive[]*=[genitiveI=Y] } |
-    {InfinitiveSubject[]*=[subjectI=X] ;
-       {NonExtraposedGenitive[]*=[genitiveI=Y] | whGenitive[]*=[genitiveI=Y]} } |
-    {FiniteSubject[]*=[subjectI=X] ; Genitive[]*=[genitiveI=Y]}
+    { ImperativeSubject[]*=[subjectI=Y] ; NonExtraposedGenitive[]*=[genitiveI=X] } |
+    { InvertedNominalSubject[]*=[subjectI=Y];ExtraposedGenitive[]*=[genitiveI=X] } |
+    {InfinitiveSubject[]*=[subjectI=Y] ;
+       {NonExtraposedGenitive[]*=[genitiveI=Y] | whGenitive[]*=[genitiveI=X]} } |
+    {FiniteSubject[]*=[subjectI=Y] ; Genitive[]*=[genitiveI=X]}
  };
  passiveVerbMorphology[]*=[vbI=E]
 }
