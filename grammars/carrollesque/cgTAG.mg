@@ -246,9 +246,9 @@ declare
    ?xS ?xVN ?xV ?fU ?fV ?fW ?fX ?I
 {
         <syn>{
-                node xS(color=black)[cat = s,bot=[mode=?fX],top=[idx=I]]{
-                        node xVN(color=black)[cat = vn,top=[mode=?fX]]{
-                                node xV(mark=anchor,color=black)[cat = v,top=[idx=I]]
+                node xS(color=black)[cat = s,bot=[mode=?fX],bot=[idx=I]]{
+                        node xVN(color=black)[cat = vn,top=[mode=?fX],bot=[idx=I]]{
+                                node xV(mark=anchor,color=black)[cat = v,bot=[idx=I]]
                         }
                 }
         }*=[vbI=I]       
@@ -366,11 +366,11 @@ import
 export
         xS xVN
 declare
-        ?xS ?xVN     
+        ?xS ?xVN ?E 
 {
         <syn>{
-                node xS(color=white)[cat = @{s,n}]{
-                        node xVN(color=white)[cat = @{vn,adj,n}]
+                node xS(color=white)[cat = @{s,n},bot=[idx=?E]]{
+                        node xVN(color=white)[cat = @{vn,adj,n},bot=[idx=?E]]
                 }               
         }
 }
@@ -528,14 +528,14 @@ declare
 	?xSubj ?xTop ?xComp ?xQue ?I
 {
 	<syn>{
-		node xS{
+		node xS[bot=[idx=I]]{
 			node xTop(color=red)[cat=s]{
 				node xComp(color=red)[cat=c]{
 					node xQue(color=red,mark=flex)[cat=que,phon=que]
 				}
-				node xSubj(color=red,mark=subst)[cat=s,top=[idx=I]]
+				node xSubj(color=red,mark=subst)[cat=s]
 			}
-			node xVN
+			node xVN[bot=[idx=I]]
 		}
 	}*=[subjectI=I]
 }
@@ -548,8 +548,8 @@ declare
 	?xSubj ?I
 {
 	<syn>{
-		node xS{
-			node xSubj(color=red,mark=subst)[cat=s,top=[idx=I]]
+		node xS[bot=[idx=I]]{
+			node xSubj(color=red,mark=subst)[cat=s]
 			node xVN
 		}
 	}*=[subjectI=I]
@@ -967,12 +967,12 @@ import
 export
 	xSe xtop
 declare
-	?xSe ?xtop ?fX
+	?xSe ?xtop ?fX ?E
 {
 	<syn>{
-		node xSe(color=red,extracted)[cat = s]{
+		node xSe(color=red,extracted)[cat = s,bot=[idx=?E]]{
 			node xtop(color=red)
-			node xS[top=[wh = -,inv = @{n,-}]]   
+			node xS[top=[wh = -,inv = @{n,-}],bot=[idx=?E]]   
 		}
 	}
 }
@@ -1182,16 +1182,16 @@ import
 export 
 	xClefttop
 declare
-	?xCleft ?xVNCleft ?xClCleft ?xAuxCleft ?xClefttop
+	?xCleft ?xVNCleft ?xClCleft ?xAuxCleft ?xClefttop ?E
 {
 	<syn>{
-		node xCleft(color=red)[cat = s,bot=[wh = -]]{
+		node xCleft(color=red)[cat = s,bot=[wh = - , idx=?E]]{
 			node xVNCleft(color=red)[cat=vn]{
 				node xClCleft(color=red)[cat=cl,phon=ce,top=[case = ce]]
 				node xAuxCleft(color=red)[cat=v,phon=etre,top=[mode=@{ind,subj},pers=3]]
 			}
 			node xClefttop(color=red)
-			node xSe(mark=nadj)	
+			node xSe(mark=nadj)[bot=[idx=?E]]	
 		}		
 	}
 }
@@ -1451,9 +1451,11 @@ declare
                                    bot =[det = ?fX, def = ?fT, num = ?fY,gen = ?fZ,pers = ?fU, wh = ?fW]]
                 {
 			node xHead(color=red,mark=anchor)[cat = adj, top=[num = ?fY,gen = ?fZ]]
-			node xFoot(color=red,mark=foot)[cat = n, idx=?I, top=[det = ?fX, def = ?fT, num = ?fY,gen = ?fZ,pers = ?fU, wh = ?fW]]
+			node xFoot(color=red,mark=foot)[cat = n,
+			idx=?I, top=[det = ?fX, def = ?fT, num = ?fY,
+			gen = ?fZ,pers = ?fU, wh = ?fW]]
 		}; fX= -
-	}*=[arg1=I];
+		}*=[arg1=I];	
 	<sem>{
 		L:P(I)
 		}
@@ -1461,7 +1463,7 @@ declare
 
 class EpithPost
 declare
-	?I ?xR ?xHead ?xFoot ?fT ?fU ?fW ?fX ?fY ?fZ
+	?I ?xR ?xHead ?xFoot ?fT ?fU ?fW ?fX ?fY ?fZ !L ?P 
 {
 	<syn>{
 		node xR(color=black)[cat=n, idx=?I, 
@@ -1471,7 +1473,10 @@ declare
 			node xHead(color=black,mark=anchor)[cat = adj,top=[num = ?fY,gen = ?fZ]]
 		}
                 ; fX= -
-	}*=[idx=I]
+	}*=[arg1=I];	
+	<sem>{
+		L:P(I)
+		}
 }
 
 
@@ -1762,17 +1767,19 @@ class s0Vn1[E,X,Y]{
 % FIXME: ask Claire how to deal with this
 % We only want the EpithAnte and EpithPost classes
 class n0vApre[X]{
-  {state[]*=[arg1=X];
-   Subject[]*=[subjectI=X]; 
-   adjectiveForm[]}
-  |EpithAnte[]
+  state[]*=[arg1=X];
+  { {CliticSubject[]*=[subjectI=X]|SententialSubject[]*=[subjectI=X]}; 
+   adjectiveForm[]
+  }
+  |EpithAnte[]*=[arg1=X]
 }
-class n0vApost {
-  {
-  Subject[]; adjectiveForm[]}
-  |EpithPost[]
-}
-
+%%CG: changed Subject to FiniteSubject
+class n0vApost[X] {
+  state[]*=[arg1=X];
+  { {CliticSubject[]*=[subjectI=X]|SententialSubject[]*=[subjectI=X]}; 
+   adjectiveForm[]
+  }
+  |EpithPost[]*=[arg1=X]}
 
 class n0vA
 {
@@ -1841,19 +1848,19 @@ declare
 
 class nounWithCompl
 declare 
-	?xR ?xHead
+	?xR ?xHead ?I
 {
 	<syn>{
-		node xR(color=black)[cat = n]{
-			node xHead(color=black,mark=anchor)[cat = n]
+		node xR(color=black)[cat = n,bot=[idx=I]]{
+			node xHead(color=black,mark=anchor)[cat = n,top=[idx=I]]
 		}
-	}
+	}*=[nounI=I]
 }
 
 
 class n0vN
 {
-	{Subject[];nominalForm[]}
+	{Subject[];nominalForm[]}	
 	|noun[]
 }
 
@@ -1863,6 +1870,12 @@ class n0vNden1
 	{Subject[];nominalForm[];Genitive[]}
 	|{nounWithCompl[];CanonicalGenitive[]}
 }
+%%Ajout CG -- 07/04/05 achat de X par Y
+class n0vNden1parn2[E,X,Y]{
+        binaryRel[]*=[evt=E,arg1=X,arg2=Y] ;
+	nounWithCompl[]*=[nounI=E];CanonicalGenitive[]*=[genitiveI=Y];CanonicalCAgent[]*=[cagentI=X]
+}
+
 class n0vNan1
 {	{Subject[];nominalForm[];Iobject[]}
 	|{nounWithCompl[];CanonicalIobject[]}

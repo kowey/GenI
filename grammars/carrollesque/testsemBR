@@ -1,5 +1,6 @@
 semantics: [ directeur(m) poss(m us)
-             seminaire(c) indef(c) special(c) hebdomadaire(c) nouveau(c) dequipe(c)
+             seminaire(c) indef(c) special(c) hebdomadaire(c)
+             nouveau(c) dequipe(c)
              organiser(org m c) ]
 restrictors: [cleft:c]
 

@@ -39,8 +39,18 @@ semantics:[consultant(+X)]
 allemagne pn [idx:X] % co-anchors would be useful for this word
 semantics:[allemagne(+X)]
 
+jean pn [idx:X] % co-anchors would be useful for this word
+semantics:[jean(+X)]
+
+marie pn [idx:X] % co-anchors would be useful for this word
+semantics:[marie(+X)]
+
 seminaire n [idx:X]
 semantics:[seminaire(+X)]
+
+achat n [evt:I arg1:X arg2:Y] 
+semantics:[achat(+I -X -Y)]
+
 
 % ----------------------------------------------------------------------
 % adjectives 
@@ -49,6 +59,9 @@ semantics:[seminaire(+X)]
 special adj [arg1:X]  
 semantics:[special(X)]
 
+ennuyeux adj [arg1:X]  
+semantics:[ennuyeux(X)]
+ 
 hebdomadaire adj [arg1:X]
 semantics:[hebdomadaire(X)]
 
@@ -81,4 +94,6 @@ semantics:[organiser(+I -X -Y)]
 ennuie v [evt:I arg1:X arg2:Y]
 semantics:[ennuier(+I -X -Y)]
 
+achete v [evt:I arg1:X arg2:Y] 
+semantics:[achat(+I -X -Y)]
 

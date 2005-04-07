@@ -1,0 +1,6 @@
+semantics: [ bureau(o) def(o)
+	     achat(int j o) 
+	     jean(j) 
+	     ennuyeux(int) 
+           ]
+

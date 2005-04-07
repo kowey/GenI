@@ -21,16 +21,20 @@ bureau     n   commonNoun
 equipe     n   commonNoun
 consultant n   commonNoun
 seminaire  n   commonNoun
-
+achat	   n   n0vNden1parn2
 allemagne  pn  propername 
+jean  pn  propername 
+marie  pn  propername 
 
 % ----------------------------------------------------------------------
 % adjectives 
 % ----------------------------------------------------------------------
 
-special      adj n0vApost 
-hebdomadaire adj n0vApost 
+special      adj n0vApost  
+hebdomadaire adj n0vApost  
 dequipe      adj n0vApost 
+ennuyeux     adj n0vApost 
+
 nouveau      adj n0vApre
 
 % ----------------------------------------------------------------------
@@ -44,5 +48,6 @@ de   prep PrepositionN
 % ----------------------------------------------------------------------
 
 auditionne v  n0Vn1 
+achete	   v  n0Vn1 
 organise   v  n0Vn1 
 ennuie	   v  s0Vn1
