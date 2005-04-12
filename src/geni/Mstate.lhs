@@ -388,7 +388,7 @@ applySubstitution te =
 \paragraph{iapplySubst} Given two TagElem t1 t2 (with no overlaping names) and the list of
 substitution nodes in t2 it returns ONE possible substitution (the head node)
   of the first in the second.  As all substitutions nodes should be substituted
-  we force substitution in orden. 
+  we force substitution in order.
 
 \begin{code}
 iapplySubst :: TagElem -> TagElem -> [(String, Flist, Flist)] -> [TagElem]
@@ -499,8 +499,8 @@ applyAdjunction te = do
    return res
 \end{code}
 
-\paragraph{iapplyAdj} Given two TagElem t1 (auxiliar) t2 (initial) with
-no overlaping names, and the list of adjunction nodes in t2 it returns
+\paragraph{iapplyAdj} Given two TagElem \texttt{te1} (auxiliar) \texttt{te2} (initial) with
+no overlapping names, and the list of adjunction nodes in \texttt{te2} it returns
 the list of possible adjunctions of the first in the second.  Note: first
 argument (boolean) is a configuration setting that determines if foot nodes 
 should retain an adjunction constraint even after adjunction is complete.
