@@ -34,6 +34,7 @@ module Tags(
    tsemantics, 
    tinterface, tpolarities, tpolpaths, tsempols,
    thighlight,
+tadjlist,
 
    -- Functions from Tags
    addToTags, tagLeaves,
@@ -113,6 +114,10 @@ data TagElem = TE {
                    tprecedence  :: Int,
                    -- display stuff,
                    thighlight   :: [String] -- nodes to highlight 
+
+-- jackie
+, tadjlist :: [(String,Integer)] -- (node name, auxiliary tree id)
+-- jackie
                 }
              deriving (Show, Eq)
 \end{code}
@@ -155,7 +160,10 @@ emptyTE = TE { idname = "",
                -- tpredictors = emptyFM,
                tpolpaths   = 0,
                tinterface  = [],
-               thighlight  = [] 
+               thighlight  = []
+-- jackie
+, tadjlist = []
+-- jackie 
              }
 \end{code}
 

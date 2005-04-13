@@ -177,7 +177,7 @@ repSubst n t1 t2 =
 \subsection{Adjuction}
 
 \paragraph{repAdj} 
-Given two trees t1 t2 (where t1 is an auxiliar tree), and
+Given two trees \fnparam{t1} \fnparam{t2} (where t1 is an auxiliary tree), and
 the name n of a node in t2, replaces t1 in t2 at the node named n by an
 adjunction move (using newFoot to replace the foot node in t1).  
 
@@ -188,6 +188,7 @@ to the new foot node.
 repAdj :: GNode -> String -> Tree GNode -> Tree GNode -> Tree GNode
 repAdj newFoot n t1 t2 =
   let filt (Node a _) = (gnname a == n)
+                        -- replace the footnode of t1 with nf  
       fn (Node a l)   = repFoot nf t1 l
                         where nf = newFoot { ganchor = ganchor a
                                            , glexeme = glexeme a }
@@ -196,6 +197,7 @@ repAdj newFoot n t1 t2 =
      then head lt 
      else error ("adjunction unexpectedly failed on node " ++ n)
 
+-- repFoot replaces the footnode of t with newFoot
 repFoot :: GNode -> Tree GNode -> [Tree GNode] -> Tree GNode
 repFoot newFoot t l =
   let filt (Node a _) = (gtype a == Foot)

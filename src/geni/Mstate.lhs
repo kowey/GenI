@@ -98,7 +98,9 @@ import Tags (TagElem, TagSite, TagDerivation,
              tpolpaths,
              substTagElem, 
              adjnodes,
-             substnodes)
+             substnodes,
+             tadjlist
+            )
 import Configuration (Params, semfiltered, orderedadj, footconstr,
                       usetrash)
 \end{code}
@@ -555,12 +557,19 @@ iapplyAdjNode fconstr te1 te2 an@(n, an_up, an_down) =
       anr_up = substFlist anr_up' subst2
       -- combined substitution list and success condition
       subst   = subst1++subst2
-      success = succ1 && succ2
-   
+      -- success = succ1 && succ2
+
+-- jackie
+      success' = succ1 && succ2
+      repeatadj = elem (n, (tidnum te1)) (tadjlist te2)
+      success = success' && (not repeatadj)
+-- jackie
+
       -- the adjoined tree
       -- ----------------- 
       -- the result of unifying the t1 root and the t2 an 
-      anr = r { gup = anr_up,
+      anr = r { gnname = n, -- jackie
+                gup = anr_up,
                 gtype = Other }
       -- the result of unifying the t1 foot and the t2 an
       anf = f { gdown = anf_down,
@@ -594,7 +603,11 @@ iapplyAdjNode fconstr te1 te2 an@(n, an_up, an_down) =
 
       -- the final result  
       -- ----------------
-      res  = res' { adjnodes = (addextra.adjnodes) res' }
+      res  = res' { adjnodes = (addextra.adjnodes) res' 
+-- jackie
+, tadjlist = (n, (tidnum te1)):(tadjlist te2)
+-- jackie
+}
       {- debugstr = ("============================================\n" 
                   ++ "adjoin " ++ showLite te1 ++ " to node " ++ n
                   ++ "\nfs aux : " ++ showPairs r_up ++ " and " ++ showPairs f_down
@@ -921,9 +934,11 @@ renameTagElem :: Char -> TagElem -> TagElem
 renameTagElem c te = 
   let sn = map (\(n, fu, fd) -> (c:n, fu, fd)) (substnodes te)
       an = map (\(n, fu, fd) -> (c:n, fu, fd)) (adjnodes te)
+      al = map (\(n, tid) -> (c:n, tid)) (tadjlist te)
       t = renameTree c (ttree te)
   in te{substnodes = sn, 
         adjnodes = an,
+        tadjlist = al,
         ttree = t}
 \end{code}
 
