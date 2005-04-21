@@ -53,7 +53,7 @@ import Configuration(Params, grammarFile,
                      tsFile, optimisations, 
                      usetrash,
                      autopol, polarised, polsig, chartsharing, 
-                     semfiltered, orderedadj, extrapol, footconstr)
+                     semfiltered, extrapol, footconstr)
 import ParserLib 
 
 import Mstate (Gstats, Mstate, initGstats, initMState, runState, 
@@ -142,7 +142,8 @@ We add some buttons for loading files and running the generator.
        semfilterChk <- checkBox f [ text := "Semantic filters"
                                   , checked := semfiltered config ]
        orderedadjChk <- checkBox f [ text := "Ordered adjunction"
-                                  , checked := orderedadj config ]
+                                  , checked := True
+                                  , enabled := False ]
        footconstrChk <- checkBox f [ text := "Foot constraint"
                                    , checked := footconstr config ]
        extrapolText <- staticText f [ text := showLitePm $ extrapol config ]
@@ -159,7 +160,6 @@ We add some buttons for loading files and running the generator.
        -- set predictingChk   [on command := toggleChk pst predictingChk Predicting] 
        set chartsharingChk [on command := toggleChk pst chartsharingChk ChartSharing]
        set semfilterChk    [on command := toggleChk pst semfilterChk SemFiltered] 
-       set orderedadjChk   [on command := toggleChk pst orderedadjChk OrderedAdj]
        set footconstrChk   [on command := toggleChk pst footconstrChk FootConstraint] 
        -- Generate and Debug 
        debugBt <- button f [ text := "  Debug  "

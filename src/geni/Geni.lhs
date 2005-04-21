@@ -75,7 +75,7 @@ import Configuration(Params, defaultParams, emptyGramParams, getConf, treatArgs,
                      GramParams, parseGramIndex, GrammarType(..),
                      macrosFile, lexiconFile, semlexFile, morphFile, rootCatsParam,
                      autopol, polarised, polsig, chartsharing, 
-                     semfiltered, orderedadj, extrapol, footconstr)
+                     semfiltered, extrapol, footconstr)
 
 import Mstate (Gstats, numcompar, szchart, geniter, initGstats,
                addGstats, initMState, runState, genstats,
@@ -231,7 +231,7 @@ runGeni pst runFn = do
                                    ++ (if isChartSharing then "C" else "")
                         --
                         adjplus  =    (if semfiltered config then "S" else "")
-                                   ++ (if orderedadj  config then "O" else "")
+                                   ++ "O" -- always uses ordered adjunction
                                    ++ (if footconstr  config then "F" else "")
                         --
                         optAll   = optPol ++ optAdj
@@ -262,7 +262,7 @@ runGeni pst runFn = do
   -- morphology 
   let uninflected = map tagLeaves res
   sentences <- runMorph pst uninflected
-  -- final rensults 
+  -- final results 
   return (results { grSentences = map (map toLower) sentences,
                     grTimeStr  = statsTime })
 \end{code}

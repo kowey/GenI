@@ -34,7 +34,7 @@ module Configuration(
    morphCmd, testCases,
    optimisations,
    autopol, polarised, polsig, chartsharing, extrapol,
-   predicting, semfiltered, orderedadj, footconstr,
+   predicting, semfiltered, footconstr,
    isBatch, batchRepeat, usetrash,
    defaultParams, emptyParams, getConf, optBatch,
    emptyGramParams,
@@ -105,7 +105,6 @@ polsig       :: Params -> Bool
 predicting   :: Params -> Bool
 semfiltered  :: Params -> Bool
 chartsharing :: Params -> Bool
-orderedadj   :: Params -> Bool
 footconstr   :: Params -> Bool
 isBatch      :: Params -> Bool
 
@@ -115,7 +114,6 @@ polsig       p = PolSig       `elem` (optimisations p)
 predicting   p = Predicting   `elem` (optimisations p)  
 semfiltered  p = SemFiltered  `elem` (optimisations p)
 chartsharing p = ChartSharing `elem` (optimisations p)
-orderedadj   p = OrderedAdj   `elem` (optimisations p)
 footconstr   p = FootConstraint `elem` (optimisations p)
 isBatch      p = Batch        `elem` (optimisations p)
 \end{code}
@@ -199,7 +197,7 @@ defaultParamsStr p =
      "\n% Optimisations should be a comma delimited list containing any " ++
      "\n% number of the following items:" ++
      "\n%  Polarised, PolSig, ChartSharing," ++
-     "\n%  SemFiltered, OrderedAdj, FootConstraint" ++
+     "\n%  SemFiltered, FootConstraint" ++
      "\nOptimisations = " ++ 
      "\n" ++ (concat $ intersperse "," $ map show op) ++ 
      "\n% ExtraPolarities should be a list of polarities as in the macro " ++
@@ -252,7 +250,7 @@ defineParams' p ((f,v):s) = defineParams' pnext s
                   $ (addif AdjOptsTok adjOpts) $ (map read $ words v)
         addif t x o = if (t `elem` o) then x ++ o else o
         polOpts     = [Polarised, AutoPol, ChartSharing] 
-        adjOpts     = [SemFiltered, FootConstraint, OrderedAdj]
+        adjOpts     = [SemFiltered, FootConstraint]
 \end{code}
 
 
@@ -275,7 +273,7 @@ optBatch enabledRaw =
       polBatch  = if Polarised `elem` enabled
                  then polBatch' 
                  else [] : polBatch'
-      adjBatch  = foldr use polBatch [SemFiltered,OrderedAdj,FootConstraint]
+      adjBatch  = foldr use polBatch [SemFiltered,FootConstraint]
       -- 
   in adjBatch
 \end{code}

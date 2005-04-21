@@ -101,7 +101,7 @@ import Tags (TagElem, TagSite, TagDerivation,
              substnodes,
              tadjlist
             )
-import Configuration (Params, semfiltered, orderedadj, footconstr,
+import Configuration (Params, semfiltered, footconstr,
                       usetrash)
 \end{code}
 }
@@ -458,6 +458,7 @@ iapplySubstNode te1 te2 sn@(n, fu, fd) =
 possible adjunctions between it and the elements in GenRep.  GenRep
 contains Auxiliars, while TagElem is an Initial
 
+13 april 2005 - only uses ordered adjunction as described in \cite{kow04a}
 \begin{code}
 applyAdjunction :: TagElem -> MS ([TagElem])
 applyAdjunction te = do
@@ -482,7 +483,7 @@ applyAdjunction te = do
        isFootC = (footconstr.genconfig) st
        -- te2 is to account for the case where we simply don't do
        -- adjunction on that particular node
-       resOrdered = if (null ranodes) then [] else te2:applied
+       res = if (null ranodes) then [] else te2:applied
                     where gn    = fst3 ahead
                           ntree = constrainAdj gn (ttree te)
                           te2   = te {adjnodes = atail, 
@@ -490,13 +491,8 @@ applyAdjunction te = do
                                       thighlight = [gn]}
                           applied = sn $ map fn rgr'
                           fn x = iapplyAdjNode isFootC x rte (head ranodes)
-       resNormal  = concatMap fn rgr'
-                    where fn x = iapplyAdj isFootC x rte ranodes
        --
-       isOrdered = (orderedadj.genconfig) st
-       res     = if isOrdered then resOrdered else resNormal
-       countTe = if isOrdered then 1 else (length $ adjnodes rte)  
-       count   = (length gr) * countTe
+       count   = (length gr)
    incrNumcompar count 
    return res
 \end{code}
@@ -507,7 +503,9 @@ the list of possible adjunctions of the first in the second.  Note: first
 argument (boolean) is a configuration setting that determines if foot nodes 
 should retain an adjunction constraint even after adjunction is complete.
 
+Note: no longer used because of mandatory ordered adjunction (change 13 april 2005)
 \begin{code}
+{--
 iapplyAdj :: Bool -> TagElem -> TagElem -> [(String, Flist, Flist)] -> [TagElem]
 iapplyAdj _ _ _ [] = []
 iapplyAdj fconstr te1 te2 (an:l) =
@@ -516,6 +514,7 @@ iapplyAdj fconstr te1 te2 (an:l) =
   in case cur of
        Nothing  -> next
        Just res -> res:next
+--}
 \end{code}
 
 The main work for adjunction is done in the helper function below
@@ -696,12 +695,9 @@ generateStep' = do
   -- (monadic state) and which should go in the result (res')
   res' <- classifyNew res
   -- put the given into the chart untouched 
-  st <- get
-  let isNotOrdered = (not.orderedadj.genconfig) st
-      isNullAdj    = (null.adjnodes)
   if (curStep == Initial) 
      then addToGenRep   given
-     else when ((isNullAdj given) || isNotOrdered) $ addToTrashRep given
+     else when ((null.adjnodes) given) $ addToTrashRep given
   return res'
 \end{code}
 
@@ -739,7 +735,7 @@ classifyNew [] =
 classifyNew l = do 
   inputSem <- getSem
   let isResult x = (ttype x /= Auxiliar) && (null $ substnodes x) 
-                   && (inputSem == treeSem) 
+                   && (inputSem == treeSem) && (null $ adjnodes x)
                    where treeSem = (sortSem $ tsemantics x)
       tbUnify x ls = case (tbUnifyTree x) of
                        Left n  -> do addToTrashRep (x {thighlight = [n]})     
@@ -751,6 +747,7 @@ classifyNew l = do
                            return ls
         | otherwise   = do addToInitRep x
                            return ls
+  -- return list of completed trees (as defined above in comments)
   foldM classify [] l
 \end{code}
 
@@ -950,6 +947,7 @@ no substitution nodes
 isPureAux :: TagElem -> Bool 
 isPureAux x = ((ttype x) == Auxiliar && (null $ substnodes x))
 \end{code}
+
 
 \subsection{Derivation trees}
 
