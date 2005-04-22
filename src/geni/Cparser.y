@@ -20,6 +20,8 @@ import Data.List (intersperse)
     morphinfo   {(MorphInfoTok,   _, _)}
     rootcats    {(RootCategoriesTok, _,_)}
     grammar     {(GrammarTok,      _, _)} 
+    grammartype {(GrammarType,     _, _)}
+    cgmanifesto {(CGManifestoTok,  _, _)}
     morphcmd    {(MorphCmdTok,     _, _)}
     tsem        {(TSemanticsTok,  _, _)}
     tsuite      {(TestSuiteTok,  _, _)}
@@ -42,7 +44,7 @@ import Data.List (intersperse)
     id           {(ID $$,       _, _)}
     true       {(TTT,         _, _)}
     false      {(FFF,         _, _)}
-    '='        {(Eq,          _, _)} 
+    '='        {(EqTok,       _, _)} 
     num        {(Num $$,    _, _)} 
     '!'        {(Bang, _, _)}
     '+'        {(PlusTok, _, _)}
@@ -67,6 +69,8 @@ InputList :
      {(Repeat,show $3):$4}
  | idkey '=' id InputList
      {(untok $1,$3):$4}
+ | grammartype '=' gtype InputList 
+     {(untok $1,show $3):$4}
  | boolkey '=' true InputList
      {($1,"True"):$4}
  | boolkey '=' false InputList
@@ -152,6 +156,9 @@ gramIdkey: lexicon   {$1}
          | macros    {$1}  
          | semlex    {$1}
          | morphinfo {$1}
+
+gtype :: { Token }
+      :  cgmanifesto { untok $1 }
 
 {
 

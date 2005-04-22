@@ -12,12 +12,14 @@ import Btypes(AvPair, emptyLE, ILexEntry(..), Ptype(..), Sem)
 
 %name lexParser    Lexicon 
 %name semlexParser SLexicon
+%name filParser    FilEntryList 
 %name morphParser  MorphInfo  
 
 %tokentype { PosToken }
 
 %token 
     ':'   {(Colon,         _, _)} 
+    ','   {(Comma,         _, _)} 
     id    {(ID $$,         _, _)}  
     num   {(Num $$,        _, _)}
     sem   {(Semantics,    _, _)}
@@ -28,6 +30,7 @@ import Btypes(AvPair, emptyLE, ILexEntry(..), Ptype(..), Sem)
     '['   {(OB,           _, _)}
     '-'      {(MinusTok, _, _)}
     '+'      {(PlusTok, _, _)}
+    '='      {(EqTok, _,_)}
  
 %%
 
@@ -155,6 +158,43 @@ NumList: {-empty-}   {[]}
 Num :: { Int }
 Num: num     { $1 }
    | '-' num { (-$2) }
+
+
+{- -----------------------------------------------------------------
+   fil format 
+   see the common grammar manifesto
+   ----------------------------------------------------------------- -}
+
+FilEntryList :: { [ILexEntry] }
+FilEntryList : {-empty-}              {[]}
+             | FilEntry FilEntryList  {$1:$2}
+
+FilEntry :: { ILexEntry }
+FilEntry : id '[' FilTerList ']' '(' FilFeatList ')'
+         { emptyLE { iword   = $1,
+                     icategory = "",
+                     iparams = [],
+                     ipfeat  =  $3,
+                     ifilters = $6
+                   }
+         }
+
+FilTerList :: { {-FilTerList-} [AvPair] }
+FilTerList : {-empty-}               {[]}
+           | FilTer                  {[$1]}
+           | FilTer ',' FilTerList   {($1:$3)}
+
+FilTer :: { AvPair }
+FilTer : id ':' FeatVal {($1,$3)}
+
+FilFeatList :: { {-FilFeatList-} [AvPair] }
+FilFeatList : {-empty-}               {[]}
+            | FilFeat                 {[$1]}
+            | FilFeat ',' FilFeatList {($1:$3)}
+
+{- note that we treat equations like foo.bar.baz as a single string -}
+FilFeat :: { AvPair }
+FilFeat : id '=' FeatVal {($1,$3)}
 
 {- -----------------------------------------------------------------
    generic stuff 

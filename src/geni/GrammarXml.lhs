@@ -110,6 +110,7 @@ parseLex l =
         , ifamname = fam
         , iparams = []
         , ipfeat = []
+        , ifilters = []
         , iptype = Unspecified
         , isemantics = []
         , isempols = []

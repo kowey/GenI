@@ -288,7 +288,7 @@ grammar type and refers to the other files in the grammar.  The functions
 in this section interpret the contents of the grammar index file.
 
 \begin{code}
-data GrammarType = GeniHand | TAGML 
+data GrammarType = GeniHand | TAGML | CGManifesto 
      deriving (Show, Eq)
 \end{code}
 
@@ -362,6 +362,7 @@ defineGramParams ((f,v):s) =
                            where t = case (read v) of 
                                        GeniHandTok -> GeniHand 
                                        TAGMLTok    -> TAGML 
+                                       CGManifestoTok -> CGManifesto
                                        _           -> error (show v ++ e) 
                                  e = " is not a grammar type"
             p -> error ("Unknown index file parameter: " ++ show p)

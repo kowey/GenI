@@ -34,7 +34,7 @@ tokens :-
   GrammarType                { tok GrammarType }
   GeniHand                   { tok GeniHandTok }
   TAGML                      { tok TAGMLTok }
-
+  CGManifesto                { tok CGManifestoTok }
 
   Optimisations              { tok Optimisations }
   PolOpts                    { tok PolOptsTok }
@@ -59,7 +59,7 @@ tokens :-
   
   \+                         { tok PlusTok }
   \-                         { tok MinusTok }
-  \=                         { tok Eq }
+  \=                         { tok EqTok }
   
   initial                    { tok Init }
   auxiliary                  { tok Aux }

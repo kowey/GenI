@@ -54,7 +54,7 @@ import CPUTime (getCPUTime)
 import Bfuncs (Macros, MTtree, ILexEntry, Lexicon, Sem, SemInput,
                GNode, GType(Subs), Flist,
                isemantics, ifamname, icategory, iword, iparams, ipfeat,
-               iprecedence, icontrol, isempols,
+               iprecedence, icontrol, isempols, 
                gnname, gtype, gaconstr, gup, gdown, toKeys,
                sortSem, subsumeSem, params, 
                substSem, substFlist', substFlist, substTree, showPairs,
@@ -70,8 +70,8 @@ import Tags (Tags, TagElem, emptyTE, TagSite,
              setTidnums, fixateTidnums)
 
 import Configuration(Params, defaultParams, getConf, treatArgs,
-                     grammarFile, tsFile, isTestSuite, testCases, morphCmd,
-                     GramParams, parseGramIndex,
+                     grammarFile, grammarType, tsFile, isTestSuite, morphCmd,
+                     GramParams, parseGramIndex, GrammarType(..),
                      macrosFile, lexiconFile, semlexFile, morphFile, rootCatsParam,
                      autopol, polarised, polsig, chartsharing, 
                      semfiltered, orderedadj, extrapol, footconstr)
@@ -87,7 +87,7 @@ import Polarity
 
 import Lex2 (lexer)
 import Mparser (mParser)
-import Lparser (lexParser, semlexParser, morphParser)
+import Lparser (lexParser, semlexParser, morphParser, filParser)
 import Tsparser (targetSemParser, testSuiteParser)
 import ParserLib (E(..))
 \end{code}
@@ -494,6 +494,39 @@ mapBySemKeys semfn xs =
   in multiGroupByFM gfn xs
 \end{code}
 
+\subsection{CGM selection}
+
+This describes lexical selection for common grammar manifesto 
+\cite{kow05CGM} lexicons.
+
+\paragraph{chooseCGMLexCand}
+
+\begin{code}
+chooseCGMLexCand :: Lexicon -> Sem -> [ILexEntry]
+chooseCGMLexCand slex tsem = 
+  let -- the initial "MYEMPTY" takes care of items with empty semantics
+      keys  = "MYEMPTY":(map snd3 tsem)   
+      -- we choose candidates that match keys
+      lookuplex t = lookupWithDefaultFM slex [] t
+      cand = concatMap lookuplex keys
+      -- 
+  in cand 
+\end{code}
+
+\paragraph{mapByRelation} organises lexical items by their relation.  
+The relation is found in the path equations for enrichment, associated
+with the attribute \texttt{interface.rel}
+This is used for lexicons in the common grammar manifesto format 
+pretty much in the same way as mapBySemKeys.
+
+\begin{code}
+mapByRelation :: [ILexEntry] -> FiniteMap String [ILexEntry]
+mapByRelation xs =
+  let gfn t = [ snd x | x <- ipfeat t, fst x == "interface.rel" ] 
+  in multiGroupByFM gfn xs
+\end{code}
+
+
 % --------------------------------------------------------------------
 \section{Loading and parsing}
 % --------------------------------------------------------------------
@@ -532,10 +565,14 @@ loadGrammar pst =
      --
      let gparams = parseGramIndex filename gf
      loadMacros    pst gparams
-     loadLexicon   pst gparams
+     case (grammarType gparams) of 
+        CGManifesto -> loadCGMLexicon pst gparams 
+        _           -> loadLexicon    pst gparams
      loadMorphInfo pst gparams
      modifyIORef pst (\x -> x{rootCats = rootCatsParam gparams})
 \end{code}
+
+\subsubsection{Lexicon}
 
 \paragraph{loadLexicon} Given the pointer to the monadic state pst and
 the parameters from a grammar index file parameters; it reads and parses
@@ -626,6 +663,29 @@ combineLexicon ll sl =
   in mapFM (\_ e -> concatMap helper e) sl 
 \end{code}
 
+\paragraph{loadCGMLexicon} Given the pointer to the monadic state pst and
+the parameters from a grammar index file parameters; it reads and parses
+the lexicon file using the common grammar manifesto format.
+
+\begin{code}
+loadCGMLexicon :: PState -> GramParams -> IO ()
+loadCGMLexicon pst config = do 
+       let lfilename = lexiconFile config
+ 
+       putStr $ "Loading CGManifesto Lexicon " ++ lfilename ++ "..."
+       hFlush stdout
+       lf <- readFile lfilename
+       let sortlexsem l = l { isemantics = sortSem $ isemantics l }
+           lex          = (mapByRelation . filParser . lexer) lf
+       putStr ((show $ length $ keysFM lex) ++ " entries\n")
+
+       -- combine the two lexicons
+       modifyIORef pst (\x -> x{le = lex})
+       return ()
+\end{code}
+
+\subsubsection{Macros}
+
 \paragraph{loadMacros} Given the pointer to the monadic state pst and
 the parameters from a grammar index file parameters; it reads and parses
 macros file.  The macros are stored as a hashing function in the monad.
@@ -646,6 +706,8 @@ loadMacros pst config =
      putStr $ (show $ sizeFM g) ++ " families\n"
      modifyIORef pst (\x -> x{gr = g})
 \end{code}
+
+\subsubsection{Misc}
 
 \paragraph{loadMorphInfo} Given the pointer to the monadic state pst and
 the parameters from a grammar index file parameters; it reads and parses

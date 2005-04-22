@@ -9,7 +9,7 @@ data Token =
     GrammarTok   | TSemanticsTok | TestCasesTok | TestSuiteTok | 
     GraphicalTok | MorphCmdTok | 
     -- grammar file
-    GrammarType | GeniHandTok | TAGMLTok |
+    GrammarType | GeniHandTok | TAGMLTok | CGManifestoTok |
     MacrosTok | LexiconTok | SemLexiconTok | MorphInfoTok | RootCategoriesTok | 
     -- optimisations
     Optimisations | PolOptsTok | AdjOptsTok |
@@ -20,7 +20,7 @@ data Token =
     Grammar | Entry | Syntax | Features | Avm | Var | 
     Id | Sem | Label |
     Const | Predicate | Argument |
-    Mark | Name | Negated | Eq | Feature |
+    Mark | Name | Negated | EqTok | Feature |
     Node | Literal | Lt | Gt | Bar |
     Init | Aux | FamilyTok |  
     Anchor | Lexeme | Type | LSubst | LFoot | Aconstr | Noadj |
