@@ -156,10 +156,10 @@ debugger: $(LEXERS) $(PARSERS)
 DOC_SRC=$(SRC_GENI)/Mstate.lhs $(SRC_GENI)/Geni.lhs $(SRC_GENI)/Polarity.lhs
 
 $(MAKE_DOCS): %.pdf: %.tex $(DOC_SRC)
-	cd `dirname $<`;\
+	cd `dirname $<` &&\
 	$(BIBTEX)\
-	$(LATEX) `basename $<`;\
-	$(LATEX) `basename $<`;\
+	$(LATEX) `basename $<` &&\
+	$(LATEX) `basename $<` ;\ 
 	$(DVIPDF)
 
 $(MAKE_HTML): %-html: %.tex
