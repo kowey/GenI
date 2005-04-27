@@ -33,7 +33,7 @@ import Data.Tree
 import Data.FiniteMap
 import System.IO
 
-import Graphviz -- FIXME: temporary, just for the process stuff 
+import SysGeni (runPiped, awaitProcess)
 import Bfuncs
 import Tags
 \end{code}

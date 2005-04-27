@@ -16,6 +16,7 @@
 % Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 \chapter{XML Parser}
+\label{cha:xml}
 
 A simple DOM-like parser (using HaXml) for grammars in XML format.
 This produces a set of trees indexed by their name.
@@ -126,7 +127,24 @@ parseLex l =
 
 \begin{code}
 type MTree = Ttree GNode
+\end{code}
 
+Macros can either be organised as a simple list of macros, or be grouped into
+subgrammars.  The list of macros organisation is with traditional, basic
+lexical selection where each macro identifies what family it belongs to. The
+subgrammar organisation is useful if you have a third party anchoring mechanism
+that just spits out the trees relevant to your lexical selection 
+(see section \ref{sec:cgm_selection}).
+
+\paragraph{parseXmlGrammar} handles the basic list of macros.  Since each
+macro identifies what family it belongs to, we group the macros by their
+family.
+
+TODO: one point of consideration is that if you have a large grammar (XML)
+then you probably don't want the basic lexical selection, and so, should 
+be able to dump this business of family mapping.
+
+\begin{code}
 parseXmlGrammar :: String -> Macros
 parseXmlGrammar g = 
   -- extract a CElem out of the String
@@ -136,11 +154,45 @@ parseXmlGrammar g =
       entriesF = tag "grammar" /> tag "entry"
       entries  = entriesF c
       --
-      res = foldr parseEntry emptyFM entries
-  in res
+      buildMacros :: Content -> Macros -> Macros 
+      buildMacros e m = addToFM_C (++) m f [t]
+        where (t,f) = parseEntry e 
+  in foldr buildMacros emptyFM entries
+\end{code}
 
-parseEntry :: Content -> Macros -> Macros 
-parseEntry e mac =
+\paragraph{parseXmlTrees} handles the subgrammar organisation of macros.
+We group the macros by their subgrammar
+
+\begin{code}
+parseXmlTrees :: String -> [(String, [MTree])]
+parseXmlTrees g = 
+  -- extract a CElem out of the String
+  let (Document _ _ ele) = xmlParse "" g 
+      c = CElem ele
+      -- processing phase
+      subgramF = tag "grammar" /> tag "subgrammar"
+      subgrams = subgramF c 
+      --
+  in map parseSubGrammar subgrams 
+
+-- returns subgrammar id and the associated trees
+parseSubGrammar :: Content -> (String , [MTree])
+parseSubGrammar g = 
+  let entriesF = keep /> tag "entry"
+      entries  = entriesF g 
+      --
+      idF = attributed "id" keep
+      id  = concatMap fst (idF g) -- should only be one element 
+      -- 
+      trees = map (fst.parseEntry) entries 
+  in (id,trees)
+\end{code}
+
+
+
+\begin{code}
+parseEntry :: Content -> (MTree,String)
+parseEntry e =
   let synF = keep /> tag "tree"    
       trcF = keep /> tag "trace"    
       intF = keep /> tag "interface"
@@ -170,10 +222,8 @@ parseEntry e mac =
                 pf = if null int 
                      then ([],[])
                      else parseInterface (head int)
-  in addToFM_C (++) mac famName [t]
+  in (t, famName)
 \end{code}
-
-
 
 % ----------------------------------------------------------------------
 \subsection{Syntax}

@@ -35,8 +35,8 @@ import System (ExitCode(ExitFailure),
                exitWith, getArgs, getProgName)
 import System.IO(getContents)
 
-import Btypes (ifamname, iword, icategory)
-import GrammarXml (parseXmlGrammar, parseXmlLexicon)
+import Btypes (ifamname, iword, icategory, MTtree)
+import GrammarXml (parseXmlTrees, parseXmlGrammar, parseXmlLexicon)
 import Treeprint (toGeniHand)
 \end{code}
 }
@@ -44,19 +44,27 @@ import Treeprint (toGeniHand)
 \begin{code}
 main :: IO ()
 main = do       
-  -- we take exactly one argument: a grammar index file name
+  -- we take one argument: a switch telling what to convert 
   args <- getArgs
   progname <- getProgName
-  let usage p = "usage: " ++ p ++ " [--macros|--lexicon] < input > output"
+  let usage p = "usage: " ++ p ++ " [--macros|--trees] < input > output"
       showusage = do putStrLn (usage progname)
                      exitWith (ExitFailure 1)
   when (length args /= 1) showusage
   let filetype = head args
   case filetype of 
-    "--macros"  -> convertMacros 
-    "--lexicon" -> convertLexicon 
-    _           -> showusage
+    "--macros"   -> convertMacros 
+    "--trees"    -> convertTrees
+    "--lexicon"  -> convertLexicon
+    _            -> showusage
 \end{code}
+
+We know how to convert three things
+\begin{enumerate}
+\item lexicon - a TAGML lexicon (unofficial and unused)
+\item macros  - a macros file of unanchored trees
+\item trees   - the output of a tree anchoring module (section \ref{sec:cgm_selection})
+\end{enumerate}
 
 \begin{code}
 convertLexicon :: IO ()
@@ -69,18 +77,27 @@ convertLexicon =
          outstr    = concatMap showlex lex
      putStr outstr 
 
+convertTrees :: IO ()
+convertTrees = 
+  do gf <- getContents 
+     let g = parseXmlTrees gf
+         showfn = uncurry showfam 
+     putStr (concatMap showfn g)
+
 convertMacros :: IO ()
 convertMacros = 
   do gf <- getContents 
      let g = parseXmlGrammar gf 
-         showfam f = "\n\n" 
-                     ++ "% ----------------------------------------------------------------------"
-                     ++ "\n" ++ "begin family " ++ f ++ "\n"
-                     ++ "% ----------------------------------------------------------------------"
-                     ++ "\n\n" ++ (concatMap toGeniHand t)
-                     ++ "end family\n"
-                     where t = lookupWithDefaultFM g [] f
-         outstr = concatMap showfam (keysFM g)
+         showfn f = showfam f (lookupWithDefaultFM g [] f)
+         outstr = concatMap showfn (keysFM g)
      putStr outstr
+
+showfam :: String -> [MTtree] -> String
+showfam f t = "\n\n" 
+              ++ "% ----------------------------------------------------------------------"
+              ++ "\n" ++ "begin family " ++ f ++ "\n"
+              ++ "% ----------------------------------------------------------------------"
+              ++ "\n\n" ++ (concatMap toGeniHand t)
+              ++ "end family\n"
 \end{code}
 

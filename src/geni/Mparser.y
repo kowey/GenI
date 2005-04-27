@@ -22,7 +22,7 @@ import qualified Data.Tree
 
 }
 
-%name mParser Fam
+%name mParser     Fam   {- returns a FiniteMap indexed by family name -}
 %name polParserE PolList
 
 %tokentype { PosToken }
@@ -66,6 +66,9 @@ Fam:
        {emptyFM}
    | begin family id Input end family Fam
        {addToFM_C (++) $7 $3 $4}
+   | begin family num Input end family Fam
+       {addToFM_C (++) $7 (show $3) $4}
+
 
 {- lists of trees -}
 

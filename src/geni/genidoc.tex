@@ -136,7 +136,7 @@ modules.
 
 \begin{description}
  \item[Morphology.lhs] - morphology in Geni  
- \item[Polarity.lhs] - the polarity automaton optimisation 
+ \item[Polarity.lhs]   - the polarity automaton optimisation 
  \item[Predictors.lhs] - the now defunct predictors optimisation
 \end{description}
 
@@ -148,8 +148,10 @@ We currently visualise our results with Graphviz, a third party graph
 visualisation tool.
 
 \begin{description}
- \item[Main.hs] - provides console and batch processing 
+ \item[Main.hs] - determines which user interface to run 
+ \item[Console.lhs] - provides console and batch processing
  \item[Gui.lhs] - main GUI code 
+ \item[SysGeni.lhs] - handles operating system stuff
  \item[Treeprint.lhs] - outputs trees in various formats 
                         (currently as sentences and as graphviz dot
                         files)
@@ -230,12 +232,14 @@ See section \ref{sec:foot_constraint}
 
 \input{Console.lhs}
 \input{Gui.lhs}
+\input{SysGeni.lhs}
 \input{Graphviz.lhs}
 \input{Treeprint.lhs}
 
 \part{Input files}
 
 \input{Configuration.lhs}
+\input{SysGeni.lhs}
 \input{GrammarXml.lhs}
 \input{Converter.lhs}
 

@@ -36,6 +36,7 @@ where
 
 \ignore{
 \begin{code}
+import Data.Array (listArray, (!))
 import Data.Char (toLower)
 import Data.FiniteMap
 import Data.IORef (IORef, readIORef, newIORef, modifyIORef)
@@ -45,15 +46,17 @@ import Data.Tree
 
 import System (ExitCode(ExitSuccess), 
                exitWith, getArgs)
-import System.IO(hFlush, stdout)
+import System.IO(hPutStrLn, hClose, hGetContents, hFlush, stdout)
 import System.Mem
 
 import Control.Monad (when)
 import CPUTime (getCPUTime)
 
-import Bfuncs (Macros, MTtree, ILexEntry, Lexicon, Sem, SemInput,
+import Bfuncs (Macros, MTtree, ILexEntry, Lexicon, 
+               Pred, Sem, SemInput,
                GNode, GType(Subs), Flist,
-               isemantics, ifamname, icategory, iword, iparams, ipfeat,
+               isemantics, ifamname, icategory, iword, iparams, 
+               ipfeat, ifilters,
                iprecedence, icontrol, isempols, 
                gnname, gtype, gaconstr, gup, gdown, toKeys,
                sortSem, subsumeSem, params, 
@@ -61,7 +64,7 @@ import Bfuncs (Macros, MTtree, ILexEntry, Lexicon, Sem, SemInput,
                pidname, pfeat, ptype, 
                ptpolarities, 
                setLexeme, tree, unifyFeat,
-               groupByFM, multiGroupByFM)
+               groupByFM, multiGroupByFM, snd3, thd3)
 
 import Tags (Tags, TagElem, emptyTE, TagSite, 
              idname, tagLeaves,
@@ -69,8 +72,8 @@ import Tags (Tags, TagElem, emptyTE, TagSite,
              tinterface, tpolarities, substnodes, adjnodes, 
              setTidnums, fixateTidnums)
 
-import Configuration(Params, defaultParams, getConf, treatArgs,
-                     grammarFile, grammarType, tsFile, isTestSuite, morphCmd,
+import Configuration(Params, defaultParams, emptyGramParams, getConf, treatArgs, 
+                     grammarFile, grammarType, tsFile, isTestSuite, testCases, morphCmd,
                      GramParams, parseGramIndex, GrammarType(..),
                      macrosFile, lexiconFile, semlexFile, morphFile, rootCatsParam,
                      autopol, polarised, polsig, chartsharing, 
@@ -90,8 +93,14 @@ import Mparser (mParser)
 import Lparser (lexParser, semlexParser, morphParser, filParser)
 import Tsparser (targetSemParser, testSuiteParser)
 import ParserLib (E(..))
+import SysGeni (runPiped, awaitProcess)
 \end{code}
 }
+
+\begin{code}
+myEMPTY :: String
+myEMPTY = "MYEMPTY" 
+\end{code}
 
 % --------------------------------------------------------------------
 \section{State}
@@ -111,17 +120,20 @@ Note: if tags is non-empty, we can ignore gr and le
 
 \begin{code}
 data State = ST{pa       :: Params,
+                gramPa   :: GramParams,
                 batchPa  :: [Params], -- list of configurations
                 gr       :: Macros,
                 le       :: Lexicon,
                 morphinf :: MorphFn,
-                rootCats :: [String],
                 ts       :: SemInput, 
                 tcases   :: [String],
                 tsuite   :: [(String,SemInput,[String])]
                }
 
 type PState = IORef State
+
+rootCats :: State -> [String]
+rootCats = (rootCatsParam . gramPa)
 \end{code}
 
 % --------------------------------------------------------------------
@@ -144,12 +156,12 @@ initGeni = do
     let confArgs = treatArgs confGenirc args
     -- Initialize the general state.  
     pst <- newIORef ST{pa = head confArgs,
+                       gramPa = emptyGramParams,
                        batchPa = confArgs, 
                        gr = emptyFM,
                        le = emptyFM,
                        morphinf = const Nothing,
                        ts = ([],[]),
-                       rootCats = [],
                        tcases = [],
                        tsuite = [] }
     return pst 
@@ -257,12 +269,18 @@ customGeni pst runFn = do
 \label{sec:candidate_selection} \label{sec:lexical_selecetion} \label{par:lexSelection}
 % --------------------------------------------------------------------
 
-\paragraph{runLexSelection} determines which candidates trees which
-will be used to generate the current target semantics.  
+\paragraph{runLexSelection} \label{fn:runLexSelection} determines which
+candidates trees which will be used to generate the current target semantics.  
 
 \begin{code}
 runLexSelection :: State -> IO [TagElem]
-runLexSelection mst = do
+runLexSelection mst = 
+  case (grammarType $ gramPa mst) of  
+        CGManifesto -> runCGMLexSelection mst
+        _           -> runBasicLexSelection mst
+
+runBasicLexSelection :: State -> IO [TagElem]
+runBasicLexSelection mst = do
   let (tsem,_) = ts mst
       lexicon  = le mst
       -- select lexical items first 
@@ -312,7 +330,8 @@ buildAutomaton candRaw mst =
 \end{code}
 
 % --------------------------------------------------------------------
-\subsection{Combine}
+\subsection{Basic selection}
+\subsubsection{Combine}
 \label{sec:combine_macros}
 % --------------------------------------------------------------------
 
@@ -353,8 +372,8 @@ combineList g lexitem =
   in map (combineOne lexitem) macs
 \end{code}
 
-\paragraph{combineOne} combines a single tree with its lexical item to
-form a bonafide TagElem
+\paragraph{combineOne} \label{fn:combineOne} combines a single tree with its
+lexical item to form a bonafide TagElem
 
 \begin{code}
 combineOne :: ILexEntry -> MTtree -> TagElem
@@ -434,7 +453,7 @@ detectSites (Node a lt) =
 \end{code}
 
 % --------------------------------------------------------------------
-\subsection{The selection process}
+\subsubsection{The selection process}
 % --------------------------------------------------------------------
 
 \paragraph{chooseLexCand} selects and returns the set of entries from
@@ -444,7 +463,7 @@ the lexicon whose semantics subsumes the input semantics.
 chooseLexCand :: Lexicon -> Sem -> [ILexEntry]
 chooseLexCand slex tsem = 
   let -- the initial "MYEMPTY" takes care of items with empty semantics
-      keys = "MYEMPTY":(toKeys tsem)   
+      keys = myEMPTY:(toKeys tsem)   
       -- we choose candidates that match keys
       lookuplex t = lookupWithDefaultFM slex [] t
       cand    = concatMap lookuplex keys
@@ -489,28 +508,50 @@ This is used to organise the lexicon by its semantics.
 \begin{code}
 mapBySemKeys :: (a -> Sem) -> [a] -> FiniteMap String [a]
 mapBySemKeys semfn xs = 
-  let gfn t = if (null s) then ["MYEMPTY"] else toKeys s 
+  let gfn t = if (null s) then [myEMPTY] else toKeys s 
               where s = semfn t
   in multiGroupByFM gfn xs
 \end{code}
 
+% --------------------------------------------------------------------
 \subsection{CGM selection}
+\label{sec:cgm_selection}
+% --------------------------------------------------------------------
 
-This describes lexical selection for common grammar manifesto 
-\cite{kow05CGM} lexicons.
+The common grammar manifesto \cite{kow05CGM} (CGM) is an internal LORIA
+initiative to maintain a TAG grammar and lexicon that can be used both
+for parsing and generation.  One feauture of the CGM is that tree
+selection and anchoring are farmed out to a third party tool we call the
+the Selector.  This module handles most of the CGM-specific bits of 
+the lexical selection process via a CGM lexicon.  Note that we also have
+some bits of code in Lparser.y for parsing said lexicons.
 
-\paragraph{chooseCGMLexCand}
+\paragraph{runCGMLexSelection} is the front end to the CGM lexical
+selection process.  
 
 \begin{code}
-chooseCGMLexCand :: Lexicon -> Sem -> [ILexEntry]
-chooseCGMLexCand slex tsem = 
-  let -- the initial "MYEMPTY" takes care of items with empty semantics
-      keys  = "MYEMPTY":(map snd3 tsem)   
-      -- we choose candidates that match keys
-      lookuplex t = lookupWithDefaultFM slex [] t
-      cand = concatMap lookuplex keys
-      -- 
-  in cand 
+runCGMLexSelection :: State -> IO [TagElem]
+runCGMLexSelection mst = do
+  let (tsem,_) = ts mst
+      lexicon  = le mst
+  -- figure out what grammar file to use
+  let gparams  = gramPa mst
+      gramfile = macrosFile gparams
+  -- select lexical items 
+      lexCand   = chooseCGMLexCand lexicon tsem
+  -- run the selector module
+  let fil = concat $ zipWith lexEntryToFil lexCand [1..]
+  g <- runSelector gramfile fil
+  -- convert the selector output into TagElems
+  let lexArray = listArray (1,length lexCand) lexCand
+      subgramfn :: (String, [MTtree]) -> [TagElem] 
+      subgramfn (id, ts) = map (combineCGM lex) ts
+        where lex = (lexArray ! read id)
+      cand = concatMap subgramfn $ fmToList g
+  -- attach any morphological information to the candidates
+  let morphfn  = morphinf mst
+      cand2    = attachMorph morphfn tsem cand 
+  return $ setTidnums cand2
 \end{code}
 
 \paragraph{mapByRelation} organises lexical items by their relation.  
@@ -526,6 +567,124 @@ mapByRelation xs =
   in multiGroupByFM gfn xs
 \end{code}
 
+\paragraph{chooseCGMLexCand} selects lexical items whose relation
+matches the (the predicate of) one of the literals in the target
+semantics.  Except for the relation, these lexical items have no
+semantics, so we brutally set it to the matching literal.  The 
+effect of this is to propogate the semantic indices to the selected
+item.
+
+\begin{code}
+chooseCGMLexCand :: Lexicon -> Sem -> [ILexEntry]
+chooseCGMLexCand slex tsem = 
+  let lookuplex :: Pred -> [ILexEntry]
+      lookuplex t = map semfn (lookupfn t)
+        where lookupfn t = lookupWithDefaultFM slex [] (snd3 t)
+              semfn x = x { isemantics = [t]} 
+      -- items with nonempty semantics
+      cand      = concatMap lookuplex tsem 
+      -- 
+  in cand 
+\end{code}
+
+\subsubsection{Calling the Selector}
+
+\paragraph{runSelector} calls the Selector, passing it the
+grammar file (argument \fnparam{gfile}) and the
+lexical selection (argument \fnparam{l}).
+It returns a list of anchored trees.
+
+The selector is expected to read cgm filter stuff 
+(see \cite{kow05CGM} and lexEntryToFil below) and output 
+a set of geni formatted trees\footnote{What actually happens
+is that it outputs a set of XML trees; and we use the XML
+converter in \ref{cha:xml} to convert that to geni format}.
+
+\begin{code}
+runSelector :: String -> String -> IO Macros
+runSelector gfile fil = do
+     -- run the selector
+     let selectCmd  = "etc/runSelect.sh"
+         selectArgs = []
+     (pid, fromP, toP) <- runPiped selectCmd selectArgs Nothing Nothing
+     hPutStrLn toP fil 
+     hClose toP 
+     awaitProcess pid 
+     -- read the selector output back as a set of trees 
+     -- grouped into subgrammars
+     res <- hGetContents fromP 
+     putStr $ "Reading selector results..."
+     hFlush stdout
+     let g = case ((mParser.lexer) res) of 
+                   Ok x     -> x 
+                   Failed x -> error x 
+         sizeg  = sum (map length $ eltsFM g)
+     putStr $ show sizeg ++ " trees in " 
+     return g
+\end{code}
+
+\paragraph{lexEntryToFil} converts a lexical entry to a CGM filter for
+use by the selection module.  The selection module is a third-party
+program which selects the trees from a grammar that correspond to each
+lexical item and which performs enrichement and anchoring.  The
+arguments are \fnparam{lex}, the lexical item to convert; and
+\fnparam{n}, the numerical id you wish to associate to that item.  
+
+Note: One weird thing we do in this function is to add some stuff to
+the path equations for enrichment.  This stuff corresponds to semantic
+arguments.  For example, if the semantics of the lexical item is
+\semexpr{hate(m,j)}, we add the equations \verb!interface.arg1=m! and
+\verb!interface.arg2=j!.  In order to do this, we assume that there is
+only one literal in the lexical item semantics.
+
+\begin{code}
+lexEntryToFil :: ILexEntry -> Int -> String
+lexEntryToFil lex n = 
+  let filters   = ifilters lex
+      enrichers = ipfeat lex ++ zipWith argToRel args [1..]
+      sem = isemantics lex
+      args = if length sem <= 1 
+             then concatMap thd3 sem
+             else error "semantics of a cgm item has more than one literal"
+      argToRel arg n = ("interface.arg" ++ show n , arg)
+      --
+      showFil (a,v) = a ++ ":" ++ v
+      showEnr (a,v) = a ++ "=" ++ v
+      concatSperse x y = concat $ intersperse x y
+  in show n 
+    ++ " " ++ iword lex 
+    ++ "[" 
+    ++ (concatSperse ","   $ map showFil filters)
+    ++ "]\n(" 
+    ++ (concatSperse ",\n" $ map showEnr enrichers)
+    ++ ")\n\n"
+\end{code}
+
+\paragraph{combineCGM} is similar to combineOne (page \pageref{combineOne})
+except that we assume the tree is completely anchored and instatiated and
+that thus there no boring unification or checks to worry about.
+
+\begin{code}
+combineCGM :: ILexEntry -> MTtree -> TagElem
+combineCGM lexitem e = 
+   let tree_ = Bfuncs.tree e
+       (snodes,anodes) = detectSites tree_
+       -- the final result
+       sol = emptyTE {
+                idname = iword lexitem ++ "_" ++ pidname e,
+                derivation = (0,[]),
+                ttype  = ptype e,
+                ttree  = tree_,
+                substnodes = snodes,
+                adjnodes   = anodes,
+                tsemantics = isemantics lexitem,
+                tpolarities = emptyFM,
+                tsempols    = isempols lexitem,
+                tinterface  = pfeat e
+                -- tpredictors = combinePredictors e lexitem
+               }        
+   in sol 
+\end{code}
 
 % --------------------------------------------------------------------
 \section{Loading and parsing}
@@ -564,12 +723,12 @@ loadGrammar pst =
      putStrLn $ "done"
      --
      let gparams = parseGramIndex filename gf
-     loadMacros    pst gparams
      case (grammarType gparams) of 
         CGManifesto -> loadCGMLexicon pst gparams 
-        _           -> loadLexicon    pst gparams
+        _           -> do loadMacros  pst gparams
+                          loadLexicon pst gparams
      loadMorphInfo pst gparams
-     modifyIORef pst (\x -> x{rootCats = rootCatsParam gparams})
+     modifyIORef pst (\x -> x{gramPa   = gparams})
 \end{code}
 
 \subsubsection{Lexicon}
@@ -665,7 +824,8 @@ combineLexicon ll sl =
 
 \paragraph{loadCGMLexicon} Given the pointer to the monadic state pst and
 the parameters from a grammar index file parameters; it reads and parses
-the lexicon file using the common grammar manifesto format.
+the lexicon file using the common grammar manifesto format.  See chapter
+\ref{cha:cgmlexicon} for details.
 
 \begin{code}
 loadCGMLexicon :: PState -> GramParams -> IO ()
@@ -699,8 +859,8 @@ loadMacros pst config =
      hFlush stdout
      gf <- readFile filename
      let g = case ((mParser.lexer) gf) of 
-                   Ok g     -> g
-                   Failed g -> error g
+                   Ok x     -> x 
+                   Failed x -> error x 
          sizeg  = sum (map length $ eltsFM g)
      putStr $ show sizeg ++ " trees in " 
      putStr $ (show $ sizeFM g) ++ " families\n"

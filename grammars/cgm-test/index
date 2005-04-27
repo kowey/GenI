@@ -1,5 +1,4 @@
-Macros     = semFrenchLite.geni
-Lexicon    = synlex
-SemLexicon = semlex 
-%MorphInfo = morphinfo
+Macros     = grammaire.rec
+Lexicon    = lemmes.fil
 RootCategories = s
+GrammarType = CGManifesto

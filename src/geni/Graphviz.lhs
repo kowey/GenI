@@ -34,12 +34,9 @@ where
 
 \ignore{
 \begin{code}
-import IO(Handle, BufferMode(..), hSetBuffering, hPutStrLn, hClose)
-import Posix(forkProcess,executeFile, getProcessStatus, sleep,
-             createPipe, dupTo, fdClose, 
-             intToFd, fdToHandle, ProcessID)
-import Directory(setCurrentDirectory)
 import Monad(when)
+import System.IO(hPutStrLn, hClose)
+import SysGeni(runPiped, awaitProcess)
 \end{code}
 }
 
@@ -108,53 +105,4 @@ graphviz dot dotFile outputFile = do
    awaitProcess pid
 \end{code}
 
-\paragraph{runPiped}
 
-To invoke graphviz, we implement a simple function to fork the process and 
-make a system call to graphviz in the child process.  Note, I stole this 
-function from DaVinci.hs by Sven Panne.  Note, there is a much simpler
-\texttt{runProcess} function in the Posix package, but it doesn't return
-a pid for us to wait on.
-
-\begin{code}
-runPiped :: FilePath                        -- Command
-         -> [String]                        -- Arguments
-         -> Maybe [(String, String)]        -- Environment
-         -> Maybe FilePath                  -- Working directory    
-         -> IO (ProcessID, Handle, Handle)  -- (pid, fromChild, toChild)
-\end{code}
-
-\begin{code}
-runPiped path args env dir = do
-   (rd1, wd1) <- createPipe
-   (rd2, wd2) <- createPipe
-   let childWork = do maybe (return ()) setCurrentDirectory dir
-                      dupTo rd1 (intToFd 0)
-                      dupTo wd2 (intToFd 1)
-                      mapM_ fdClose [rd1, wd1, rd2, wd2]
-                      executeFile path True args env
-                      ioError (userError "runPiped")
-
-       parentWork pid = do -- parent
-                           mapM_ fdClose [rd1, wd2]
-                           fromChild <- fdToHandle rd2
-                           toChild   <- fdToHandle wd1
-                           hSetBuffering fromChild LineBuffering
-                           hSetBuffering toChild   LineBuffering
-                           return (pid, fromChild, toChild)
-   do pid <- forkProcess childWork
-      parentWork pid 
-\end{code} 
-
-Potential hack: waits for a process to finish.  It checks the process'
-status every one second until it is killed/stopped/exited.
-
-\begin{code}
-awaitProcess :: ProcessID -> IO () 
-awaitProcess pid = do 
-      status <- getProcessStatus False True pid 
-      case status of 
-         Nothing -> do sleep 1 
-                       awaitProcess pid
-         Just _  -> do return ()
-\end{code}

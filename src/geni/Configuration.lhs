@@ -37,6 +37,7 @@ module Configuration(
    predicting, semfiltered, orderedadj, footconstr,
    isBatch, batchRepeat, usetrash,
    defaultParams, emptyParams, getConf, optBatch,
+   emptyGramParams,
 
    GramParams(..),
    GrammarType(..),
@@ -303,7 +304,9 @@ data GramParams = GrmPrms {
   morphFile      :: String,
   rootCatsParam  :: [String],
   grammarType    :: GrammarType
-}
+} deriving (Show)
+
+emptyGramParams = defineGramParams []
 \end{code}
 
 \paragraph{parseGramIndex} Parses the contents of a grammar index
