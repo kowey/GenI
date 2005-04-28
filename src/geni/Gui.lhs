@@ -42,9 +42,8 @@ import Treeprint(graphvizShowTagElem)
 
 import Tags (tagLeaves)
 import Morphology (sansMorph)
-import Geni (State(..), GeniResults(..), PState,
-             runGeni, customGeni, 
-             runLexSelection, buildAutomaton, runMorph,
+import Geni (State(..), GeniInput(..), GeniResults(..), PState,
+             doGeneration, runGeni, runMorph,
              combine, loadGrammar, loadTargetSemStr)
 import Bfuncs (showPred, showSem, Sem, trim)
 import Tags (idname,mapBySem,emptyTE,tsemantics,tpolarities,thighlight, 
@@ -325,10 +324,10 @@ doGenerate f pst sembox debugger = do
                         --grFinalAut = emptyaut, grDerived  = [], grStats    = ""}
   sem <- get sembox text
   let dodebug = do loadTargetSemStr pst sem
-                   customGeni pst debugGui 
+                   runGeni pst debugGui 
                    return ()
       dogen = do loadTargetSemStr pst sem
-                 res <- customGeni pst runGeni 
+                 res <- runGeni pst doGeneration 
                  resultsGui pst res 
   -- FIXME: it would be nice to distinguish between generation and ts
   -- parsing errors
@@ -525,6 +524,7 @@ treeBrowserGui pst = do
 % --------------------------------------------------------------------
 \section{Debugger}
 \label{sec:debugger_gui}
+\label{fn:debugGui}
 % --------------------------------------------------------------------
 
 This creates an iteractive version of the generator that shows the
@@ -532,14 +532,17 @@ user the agenda, chart and results at various stages in the generation
 process.  
 
 \begin{code}
-debugGui :: State -> Sem -> [[TagElem]] -> IO ([TagElem], Gstats)
-debugGui mst tsem combos = do
+debugGui :: State -> GeniInput -> IO ([TagElem], Gstats)
+debugGui mst input = do
+  let tsem = giSem input
+  --
   f <- frame [ text := "Geni Debugger" 
              , fullRepaintOnResize := False 
              , clientSize := sz 300 300 
              ] 
   p    <- panel f []
   nb   <- notebook p []
+  -- 
   {-
   -- create an information tab (FIXME: this is mostly a hack to hide
   -- a GUI bug with the first debugger tab under Linux) 
@@ -549,13 +552,13 @@ debugGui mst tsem combos = do
       infoTab  = tab "info" infoLay
   -}
   -- candidate selection tab
-  cand <- runLexSelection mst
-  let candsem = (nub $ concatMap tsemantics cand)
+  let cand    = giCands input
+      candsem = (nub $ concatMap tsemantics cand)
       missed  = tsem \\ candsem
   canTab <- candidateGui nb cand missed
   -- automata tab
   let config           = pa mst
-      (auts, finalaut) = fst $ buildAutomaton cand mst
+      (auts, finalaut) = giAuts input 
   autTab <- if polarised config 
             then polarityGui nb auts finalaut
             else messageGui nb "polarities disabled"
@@ -563,7 +566,8 @@ debugGui mst tsem combos = do
   let basicTabs = tab "lexical selection" canTab :
                   (if polarised config then [tab "automata" autTab] else [])
   -- start the generator for each path
-  let tabLabels = map (\x -> "session " ++ show x) [1..] 
+  let combos = giTrees input
+      tabLabels = map (\x -> "session " ++ show x) [1..] 
       createTab (cd,xs) = debuggerTab nb config tsem cd xs
   debugTabs <- mapM createTab $ zip tabLabels combos
   let genTabs = map fn $ zip tabLabels debugTabs

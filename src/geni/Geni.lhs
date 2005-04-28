@@ -24,10 +24,9 @@ module also does lexical selection and anchoring because these processes might
 involve some messy IO performance tricks.
 
 \begin{code}
-module Geni (State(..), PState, GeniResults(..), 
+module Geni (State(..), PState, GeniInput(..), GeniResults(..), 
              showRealisations, groupAndCount,
-             initGeni, customGeni, runGeni, 
-             runLexSelection, buildAutomaton, runMorph,
+             initGeni, runGeni, doGeneration, runMorph,
              loadGrammar, 
              loadTargetSem, loadTargetSemStr,
              combine)
@@ -172,16 +171,17 @@ initGeni = do
 In the generation step, we first perform lexical selection, set up any
 optimisations on the lexical choices, and then perform generation.
 
-\paragraph{customGeni} lets you specify what function you want to use for
-generation: this is useful because it lets you pass in a debugger
-instead of the vanilla generator.  To run the vanilla generator, 
-call this function with runGeni as the runFn argument.
+\paragraph{runGeni} performs the entire Geni pipeline : it does lexical
+selection, sets up any neccesary optimisations, runs the generator
+proper, and returns the results with basic timing info.  We specify a
+\fnparam{runFn} argument, an IO monadic function which runs the
+generator proper. This is used to run the generator with a debugger
+as with \fnref{debugGui}, but for the most part, you want the vanilla
+flavoured generator, \fnref{doGeneration}.
 
 \begin{code}
-type GeniFn = State -> Sem -> [[TagElem]] -> IO ([TagElem], Gstats)
-
-customGeni :: PState -> GeniFn -> IO GeniResults 
-customGeni pst runFn = do 
+runGeni :: PState -> GeniFn -> IO GeniResults 
+runGeni pst runFn = do 
   -- lexical selection
   mstLex   <- readIORef pst
   purecand <- runLexSelection mstLex
@@ -218,8 +218,12 @@ customGeni pst runFn = do
       combos = map (fixateTidnums.setTidnums) combosChart
       fstGstats = initGstats
   -- do the generation
-  (res, gstats') <- runFn mst tsem combos
-  let gstats  = addGstats fstGstats gstats'
+  let genifnInput = GI { giSem = tsem
+                       , giCands = preautcand
+                       , giAuts  = fst autstuff
+                       , giTrees = combos }
+  (res, gstats') <- runFn mst genifnInput 
+  let gstats = addGstats fstGstats gstats'
   -- statistics 
   let statsOpt =  if (null optAll) then "none " else optAll
                   where polkey   = "pol"
@@ -262,6 +266,22 @@ customGeni pst runFn = do
   -- final rensults 
   return (results { grSentences = map (map toLower) sentences,
                     grTimeStr  = statsTime })
+\end{code}
+
+\paragraph{GeniFn and GeniInput} define the type for \fnparam{runFn}
+argument in \fnreflite{runGeni}.  This function should take as input
+not only the input semantics, but all the intermediary results from
+\fnreflite{runGeni}, that is, the lexical selection, automata, etc.
+The vanilla generator \fnref{doGeneration} ignores most of this  
+intermediary stuff, but the debugger tries to display or do other 
+interesting things with them.
+
+\begin{code}
+type GeniFn = State -> GeniInput -> IO ([TagElem], Gstats)
+data GeniInput = GI { giSem   :: Sem
+                    , giCands :: [TagElem]
+                    , giTrees :: [[TagElem]]
+                    , giAuts  :: ([AutDebug], PolAut) }
 \end{code}
 
 % --------------------------------------------------------------------
@@ -983,6 +1003,7 @@ flattenTargetSem' gorn (Node (hand,pred) kids) =
 
 % --------------------------------------------------------------------
 \section{Generation step} 
+\label{fn:doGeneration}
 % --------------------------------------------------------------------
 
 Actually running the generator...  Note: the only reason this is monadic
@@ -990,14 +1011,16 @@ is to be compatible with the debugger GUI.  There could be some code
 simplifications in order.
 
 \begin{code}
-runGeni :: GeniFn 
-runGeni mst tsem combos = do
-  return (runGeni' (pa mst) tsem combos) 
+doGeneration :: GeniFn 
+doGeneration mst input = do
+  return (doGeneration' (pa mst) input) 
 
-runGeni' :: Params -> Sem -> [[TagElem]] -> ([TagElem], Gstats)
-runGeni' config tsem combos = 
-  -- do the generation
-  let genfn c = (res, genstats st) 
+doGeneration' :: Params -> GeniInput -> ([TagElem], Gstats)
+doGeneration' config input = 
+  let tsem   = giSem   input
+      combos = giTrees input
+      -- do the generation
+      genfn c = (res, genstats st) 
                 where ist = initMState c [] tsem config
                       (res,st) = runState generate ist
       res' = map genfn combos

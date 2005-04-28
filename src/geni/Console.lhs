@@ -97,7 +97,7 @@ consoleGenerate' pst lastPa newPa = do
   when (lastGrammar /= grammarFile newPa)  $ loadGrammar pst
   when (lastTargetSem /= tsFile newPa)     $ loadTargetSem pst
   -- determine how we should run the generator
-  let runVanilla = do res <- customGeni pst runGeni
+  let runVanilla = do res <- runGeni pst doGeneration
                       putStrLn $ show res
   --
   case () of _ | isTestSuite newPa -> runTestSuite pst 
@@ -137,7 +137,7 @@ runBatchSample :: PState -> Params -> IO GeniResults
 runBatchSample pst newPa = do 
   modifyIORef pst (\x -> x{pa = newPa})
   let numIter = batchRepeat newPa
-  resSet <- mapM (\_ -> customGeni pst runGeni) [1..numIter]
+  resSet <- mapM (\_ -> runGeni pst doGeneration) [1..numIter]
   --
   let avgStats  = avgGstats $ map grStats resSet
       res       = (head resSet) { grStats = avgStats } 
@@ -210,7 +210,7 @@ the results.
 runTestCase :: PState -> SemInput -> IO GeniResults
 runTestCase pst sem = 
   do modifyIORef pst (\x -> x{ts = sem})
-     res <- customGeni pst runGeni
+     res <- runGeni pst doGeneration
      return res 
 \end{code}
 
