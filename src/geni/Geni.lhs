@@ -574,19 +574,6 @@ runCGMLexSelection mst = do
   return $ setTidnums cand2
 \end{code}
 
-\paragraph{mapByRelation} organises lexical items by their relation.  
-The relation is found in the path equations for enrichment, associated
-with the attribute \texttt{interface.rel}
-This is used for lexicons in the common grammar manifesto format 
-pretty much in the same way as mapBySemKeys.
-
-\begin{code}
-mapByRelation :: [ILexEntry] -> FiniteMap String [ILexEntry]
-mapByRelation xs =
-  let gfn t = [ snd x | x <- ipfeat t, fst x == "interface.rel" ] 
-  in multiGroupByFM gfn xs
-\end{code}
-
 \paragraph{chooseCGMLexCand} selects lexical items whose relation
 matches the (the predicate of) one of the literals in the target
 semantics.  Except for the relation, these lexical items have no
@@ -623,13 +610,16 @@ converter in \ref{cha:xml} to convert that to geni format}.
 \begin{code}
 runSelector :: String -> String -> IO Macros
 runSelector gfile fil = do
-     -- run the selector
-     let selectCmd  = "etc/runSelect.sh"
-         selectArgs = []
+     putStr $ "Running selector..."
+     hFlush stdout
+      -- run the selector
+     let selectCmd  = "etc/runselector.sh"
+         selectArgs = [gfile]
      (pid, fromP, toP) <- runPiped selectCmd selectArgs Nothing Nothing
      hPutStrLn toP fil 
      hClose toP 
      awaitProcess pid 
+     putStr $ "done\n"
      -- read the selector output back as a set of trees 
      -- grouped into subgrammars
      res <- hGetContents fromP 
@@ -639,7 +629,7 @@ runSelector gfile fil = do
                    Ok x     -> x 
                    Failed x -> error x 
          sizeg  = sum (map length $ eltsFM g)
-     putStr $ show sizeg ++ " trees in " 
+     putStr $ show sizeg ++ " trees \n" 
      return g
 \end{code}
 
@@ -672,7 +662,7 @@ lexEntryToFil lex n =
       showEnr (a,v) = a ++ "=" ++ v
       concatSperse x y = concat $ intersperse x y
   in show n 
-    ++ " " ++ iword lex 
+    ++ " " ++ iword lex ++ " "
     ++ "[" 
     ++ (concatSperse ","   $ map showFil filters)
     ++ "]\n(" 
@@ -862,6 +852,20 @@ loadCGMLexicon pst config = do
        -- combine the two lexicons
        modifyIORef pst (\x -> x{le = lex})
        return ()
+\end{code}
+
+\paragraph{mapByRelation} organises lexical items by their relation.  
+The relation is found in the path equations for enrichment, associated
+with the attribute \texttt{interface.rel}
+This is used for lexicons in the common grammar manifesto format 
+pretty much in the same way as mapBySemKeys.
+
+\begin{code}
+mapByRelation :: [ILexEntry] -> FiniteMap String [ILexEntry]
+mapByRelation xs =
+  let gfn t = if null r then [myEMPTY] else r
+        where r = [ snd x | x <- ipfeat t, fst x == "interface.rel" ] 
+  in multiGroupByFM gfn xs
 \end{code}
 
 \subsubsection{Macros}

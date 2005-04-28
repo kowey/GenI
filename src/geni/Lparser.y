@@ -23,6 +23,7 @@ import Btypes(AvPair, emptyLE, ILexEntry(..), Ptype(..), Sem)
     id    {(ID $$,         _, _)}  
     num   {(Num $$,        _, _)}
     sem   {(Semantics,    _, _)}
+    family {(FamilyTok,   _, _)}
     '('   {(OP,           _, _)} 
     ')'   {(CP,           _, _)} 
     '!'   {(Bang,         _, _)} 
@@ -174,8 +175,8 @@ FilEntry : id '[' FilTerList ']' '(' FilFeatList ')'
          { emptyLE { iword   = $1,
                      icategory = "",
                      iparams = [],
-                     ipfeat  =  $3,
-                     ifilters = $6
+                     ipfeat  =  $6,
+                     ifilters = $3
                    }
          }
 
@@ -185,7 +186,8 @@ FilTerList : {-empty-}               {[]}
            | FilTer ',' FilTerList   {($1:$3)}
 
 FilTer :: { AvPair }
-FilTer : id ':' FeatVal {($1,$3)}
+FilTer : id     ':' FeatVal {($1,$3)}
+       | family ':' FeatVal {("family",$3)} {- don't interpret family as a keyword here -}
 
 FilFeatList :: { {-FilFeatList-} [AvPair] }
 FilFeatList : {-empty-}               {[]}

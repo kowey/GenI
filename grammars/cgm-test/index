@@ -1,4 +1,4 @@
-Macros     = grammaire.rec
-Lexicon    = lemmes.fil
-RootCategories = s
 GrammarType = CGManifesto
+Macros     = grammaire.rec
+Lexicon    = test.fil
+RootCategories = s

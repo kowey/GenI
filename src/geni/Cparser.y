@@ -69,8 +69,6 @@ InputList :
      {(Repeat,show $3):$4}
  | idkey '=' id InputList
      {(untok $1,$3):$4}
- | grammartype '=' gtype InputList 
-     {(untok $1,show $3):$4}
  | boolkey '=' true InputList
      {($1,"True"):$4}
  | boolkey '=' false InputList
@@ -142,6 +140,8 @@ GramInput : GramInputList {$1}
 GramInputList :: { [CpPair] }
 GramInputList : 
      {[]}
+ | grammartype '=' gtype GramInputList 
+     {(untok $1,show $3):$4}
  | gramIdkey '=' id GramInputList
      {(untok $1,$3):$4}
  | rootcats  '=' idlist GramInputList
