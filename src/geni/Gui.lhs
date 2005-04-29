@@ -943,7 +943,7 @@ messageGui f msg = do
 
 \begin{code}
 gv_CACHEDIR :: String
-gv_CACHEDIR = "gvcache"
+gv_CACHEDIR = ".gvcache"
 
 -- FIXME: should use OS-independant seperator
 createImagePath :: String -> String -> String

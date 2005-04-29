@@ -27,7 +27,7 @@ module Console(consoleGenerate) where
 
 \ignore{
 \begin{code}
-import Data.List(intersperse,sort,partition,zipWith4)
+import Data.List(intersperse,sort,partition)
 import Monad(mapM, foldM, when)
 import IOExts(readIORef, modifyIORef)
 
