@@ -28,7 +28,7 @@ where
 \ignore{
 \begin{code}
 -- FIXME: This needs to be upgraded when we bump up to GHC 6.4, it seems
-import Posix(getProcessStatus, sleep, createPipe, dupTo, fdClose, 
+import Posix(getProcessStatus, createPipe, dupTo, fdClose, 
              intToFd, fdToHandle, ProcessID)
 import System.IO(Handle, BufferMode(..), hSetBuffering)
 import System.Posix.Process(forkProcess, executeFile)
@@ -83,9 +83,6 @@ status every one second until it is killed/stopped/exited.
 \begin{code}
 awaitProcess :: ProcessID -> IO () 
 awaitProcess pid = do 
-      status <- getProcessStatus False True pid 
-      case status of 
-         Nothing -> do sleep 1 
-                       awaitProcess pid
-         Just _  -> do return ()
+      getProcessStatus False True pid 
+      return ()
 \end{code}

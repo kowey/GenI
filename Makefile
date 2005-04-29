@@ -12,7 +12,7 @@
 # --------------------------------------------------------------------
 
 SRC_GENI 	= ./src/geni
-GHCFLAGS        = -fglasgow-exts 
+GHCFLAGS        = -fglasgow-exts -threaded
 #-O
 GHCINCLUDE      = -i$(SRC_GENI)
 #:$(HXMLDIR)/hparser:$(HXMLDIR)/hdom

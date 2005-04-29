@@ -35,7 +35,6 @@ where
 
 \ignore{
 \begin{code}
-import Data.Array (listArray, (!))
 import Data.Char (toLower)
 import Data.FiniteMap
 import Data.IORef (IORef, readIORef, newIORef, modifyIORef)
@@ -551,27 +550,33 @@ selection process.
 
 \begin{code}
 runCGMLexSelection :: State -> IO [TagElem]
-runCGMLexSelection mst = do
-  let (tsem,_) = ts mst
-      lexicon  = le mst
-  -- figure out what grammar file to use
-  let gparams  = gramPa mst
-      gramfile = macrosFile gparams
-  -- select lexical items 
-      lexCand   = chooseCGMLexCand lexicon tsem
-  -- run the selector module
-  let fil = concat $ zipWith lexEntryToFil lexCand [1..]
-  g <- runSelector gramfile fil
-  -- convert the selector output into TagElems
-  let lexArray = listArray (1,length lexCand) lexCand
-      subgramfn :: (String, [MTtree]) -> [TagElem] 
-      subgramfn (id, ts) = map (combineCGM lex) ts
-        where lex = (lexArray ! read id)
-      cand = concatMap subgramfn $ fmToList g
-  -- attach any morphological information to the candidates
-  let morphfn  = morphinf mst
-      cand2    = attachMorph morphfn tsem cand 
-  return $ setTidnums cand2
+runCGMLexSelection mst = 
+  do let (tsem,_) = ts mst
+         lexicon  = le mst
+     -- figure out what grammar file to use
+     let gparams  = gramPa mst
+         gramfile = macrosFile gparams
+     -- select lexical items 
+         lexCand   = chooseCGMLexCand lexicon tsem
+     -- run the selector module
+     let idxs = [1..]
+         fil  = concat $ zipWith lexEntryToFil lexCand idxs 
+     g <- runSelector gramfile fil
+     -- convert the selector output into TagElems
+     let lexMap = listToFM $ zip (map show idxs) lexCand
+         subgramfn :: (String, [MTtree]) -> IO [TagElem] 
+         subgramfn (id, ts) = 
+           case (lookupFM lexMap id) of
+             Nothing  -> fail ("no such lexical entry " ++ id)
+             Just lex -> return (map (combineCGM lex) ts)
+     completed <- mapM subgramfn (fmToList g)
+     let cand = concat completed
+     -- attach any morphological information to the candidates
+     let morphfn  = morphinf mst
+         cand2    = attachMorph morphfn tsem cand 
+     return $ setTidnums cand2
+  `catch` \e -> do putStrLn ("Error! Selector output malformed : " ++ show e)
+                   return [] 
 \end{code}
 
 \paragraph{chooseCGMLexCand} selects lexical items whose relation
@@ -619,12 +624,9 @@ runSelector gfile fil = do
      hPutStrLn toP fil 
      hClose toP 
      awaitProcess pid 
-     putStr $ "done\n"
      -- read the selector output back as a set of trees 
      -- grouped into subgrammars
      res <- hGetContents fromP 
-     putStr $ "Reading selector results..."
-     hFlush stdout
      let g = case ((mParser.lexer) res) of 
                    Ok x     -> x 
                    Failed x -> error x 
