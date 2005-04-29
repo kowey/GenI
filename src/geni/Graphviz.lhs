@@ -36,7 +36,7 @@ where
 \begin{code}
 import Monad(when)
 import System.IO(hPutStrLn, hClose)
-import SysGeni(runPiped, awaitProcess)
+import SysGeni(runPiped, awaitProcess2)
 \end{code}
 }
 
@@ -102,7 +102,7 @@ graphviz dot dotFile outputFile = do
    Monad.when (null dotFile) $ do 
      hPutStrLn toGV dot 
      hClose toGV
-   awaitProcess pid
+   awaitProcess2 pid
 \end{code}
 
 

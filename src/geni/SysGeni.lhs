@@ -29,7 +29,7 @@ where
 \begin{code}
 -- FIXME: This needs to be upgraded when we bump up to GHC 6.4, it seems
 import Posix(getProcessStatus, createPipe, dupTo, fdClose, 
-             intToFd, fdToHandle, ProcessID)
+             intToFd, fdToHandle, ProcessID, sleep)
 import System.IO(Handle, BufferMode(..), hSetBuffering)
 import System.Posix.Process(forkProcess, executeFile)
 import System.Directory(setCurrentDirectory)
@@ -85,4 +85,19 @@ awaitProcess :: ProcessID -> IO ()
 awaitProcess pid = do 
       getProcessStatus False True pid 
       return ()
+\end{code}
+
+Potential hack: waits for a process to finish.  It checks the process'
+status every one second until it is killed/stopped/exited.
+
+FIXME: 
+
+\begin{code}
+awaitProcess2 :: ProcessID -> IO () 
+awaitProcess2 pid = do 
+      status <- getProcessStatus False True pid 
+      case status of 
+         Nothing -> do sleep 1 
+                       awaitProcess2 pid
+         Just _  -> do return ()
 \end{code}
