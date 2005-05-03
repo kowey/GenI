@@ -198,11 +198,10 @@ defaultParamsStr p =
      "\n% number of the following items:" ++
      "\n%  Polarised, PolSig, ChartSharing," ++
      "\n%  SemFiltered, FootConstraint" ++
+     "\n%  There is also PolOpts (all polarity optimisations)" ++ 
+     "\n%  and AdjOpts (all adjunction optimisations)"  ++
      "\nOptimisations = " ++ 
-     "\n" ++ (concat $ intersperse "," $ map show op) ++ 
-     "\n% ExtraPolarities should be a list of polarities as in the macro " ++
-     "\n% file, but no predictors." ++
-     "\nExtraPolarities =" 
+     "\n" ++ (concat $ intersperse "," $ map show op) 
 \end{code}
 
 % --------------------------------------------------------------------  

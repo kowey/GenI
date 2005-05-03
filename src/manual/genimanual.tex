@@ -405,18 +405,10 @@ persuader v vArity3controlObj
 
 The macros file contains a set of unlexicalised trees organised into
 families.  More precisely, the basic components of the file are
-families, macros, trees and nodes.  Families contain one or more macros.
-Each macro describes a tree, and each tree is composed of nodes.
+macros, trees and nodes.  
 
-\paragraph{Families} are written
-
-\begin{verbatim}
-begin family name-of-family
-% macros
-end family
-\end{verbatim}
-
-\paragraph{Macros} consist of (1) a name (2) a list of parameters (3) ``initial''
+\paragraph{Macros} consist of (1) a family name and (optionally) 
+a macro name, (2) a list of parameters (3) ``initial''
 or ``auxiliary'' (4) a tree.  
 
 \paragraph{Trees} are recursively defined structure of form
@@ -439,8 +431,7 @@ n2 anchor                                 % anchor
 \subsubsection{Example}
 
 \begin{verbatim}
-begin family adj
-adj_post(I)  auxiliary
+adj:post(I)  auxiliary
 n0[cat:n idx:I det:_]![cat:n idx:I det:minus ]
 { 
   n1 type:foot [cat:n idx:I det:minus]![cat:n idx:I det:minus]
@@ -450,7 +441,7 @@ n0[cat:n idx:I det:_]![cat:n idx:I det:minus ]
   }
 }
 
-adj_pre(I)  auxiliary
+adj:pre(I)  auxiliary
 n0[cat:n idx:I det:_ qu:_]![cat:n idx:I det:minus ]
 { 
   n1[cat:a]![]
@@ -459,10 +450,8 @@ n0[cat:n idx:I det:_ qu:_]![cat:n idx:I det:minus ]
   }
   n3 type:foot [cat:n idx:I det:minus]![cat:n idx:I det:minus]
 }
-end family
 
-begin family vArity2
-n0vn1(E X Y) initial
+vArity2:n0vn1(E X Y) initial
 n1[cat:p]![]
 {
   n2 type:subst [cat:n idx:X det:plus]![cat:n idx:X]
@@ -472,7 +461,6 @@ n1[cat:p]![]
   }
   n5 type:subst [cat:n idx:Y det:plus]![cat:n idx:Y]
 } 
-end family
 \end{verbatim}
 
 \subsubsection{Format}
@@ -481,10 +469,11 @@ A more formal specification of the macros file format is as follows
 (whitespace assumed between items) :
 
 \begin{verbatim}
-<mfile>   := <family>*
-<family>  := "begin family" <name> <macro>* "end family"
+<mfile>   := <macro>*
 
-<macro>   := <name> "(" <param>* ")" <initaux> <tree> 
+<macro>   := <famid> "(" <param>* ")" <initaux> <tree> 
+<famid>   := <name>
+           | <name> ":" <name>
 <initaux> := "initial" | "auxiliary"
 <tree>    := <node>
            | <node> "{" <tree>* "}" 

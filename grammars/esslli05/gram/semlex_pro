@@ -1,0 +1,98 @@
+%% $Id: semlex,v 1.3 2005/01/13 14:42:10 gardent Exp $
+
+% ----------------------------------------------------------------------
+% bits and pieces
+% ----------------------------------------------------------------------
+
+% this seems wrong
+notre det [idx:X]
+semantics:[poss(X us)]
+
+le det [idx:X]
+semantics:[def(X)]
+
+un det [idx:X]
+semantics:[indef(X)]
+
+ce det [idx:X]
+semantics:[dem(X)]
+
+le cl []
+semantics:[]
+
+% added for esslli05
+il pro []
+semantics:[]
+
+% ----------------------------------------------------------------------
+% nouns
+% ----------------------------------------------------------------------
+
+directeur n [idx:X]
+semantics:[directeur(+X)]
+
+bureau n  [idx:X]
+semantics:[bureau(+X)]
+
+equipe n [idx:X]
+semantics:[equipe(+X)]
+
+consultant n [idx:X]
+semantics:[consultant(+X)]
+
+allemagne pn [idx:X] % co-anchors would be useful for this word
+semantics:[allemagne(+X)]
+
+seminaire n [idx:X]
+semantics:[seminaire(+X)]
+
+% ----------------------------------------------------------------------
+% adjectives 
+% ----------------------------------------------------------------------
+
+% added for esslli05
+allemand adj [idx:X]
+semantics:[de(X Y) allemagne(Y)]
+
+special adj [idx:X]  
+semantics:[special(X)]
+
+hebdomadaire adj [idx:X]
+semantics:[hebdomadaire(X)]
+
+nouveau adj [idx:X]
+semantics:[nouveau(X)]
+
+dequipe adj [idx:X]
+semantics:[dequipe(X)]
+
+
+% ----------------------------------------------------------------------
+% possessive thingy 
+% ----------------------------------------------------------------------
+
+% FIXME: what should be set to X ?
+
+de prep [idx:X idx2:Y] 
+semantics:[de(X Y)]
+
+% ----------------------------------------------------------------------
+% verbs 
+% ----------------------------------------------------------------------
+
+auditionne v [evt:I arg1:X arg2:Y] 
+semantics:[auditioner(+I -X -Y)]
+
+organise v [evt:I arg1:X arg2:Y] 
+semantics:[organiser(+I -X -Y)]
+
+ennuie v [evt:I arg1:X arg2:Y]
+semantics:[ennuier(+I -X -Y)]
+
+promets v [evt:I arg1:X arg2:Y arg3:Z]
+semantics:[promettre(+I X -Y -Z)]
+
+travailler v [evt:I arg1:X]
+semantics:[travailler(+I -X)]
+
+

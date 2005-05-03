@@ -45,6 +45,8 @@ import Data.Tree
 import System (ExitCode(ExitSuccess), 
                exitWith, getArgs)
 import System.IO(hPutStrLn, hClose, hGetContents, hFlush, stdout)
+import System.IO.Unsafe(unsafePerformIO)
+
 import System.Mem
 
 import Control.Monad (when)
@@ -59,7 +61,7 @@ import Bfuncs (Macros, MTtree, ILexEntry, Lexicon,
                gnname, gtype, gaconstr, gup, gdown, toKeys,
                sortSem, subsumeSem, params, 
                substSem, substFlist', substFlist, substTree, showPairs,
-               pidname, pfeat, ptype, 
+               pidname, pfamily, pfeat, ptype, 
                ptpolarities, 
                setLexeme, tree, unifyFeat,
                groupByFM, multiGroupByFM, snd3, thd3)
@@ -156,7 +158,7 @@ initGeni = do
     pst <- newIORef ST{pa = head confArgs,
                        gramPa = emptyGramParams,
                        batchPa = confArgs, 
-                       gr = emptyFM,
+                       gr = [],
                        le = emptyFM,
                        morphinf = const Nothing,
                        ts = ([],[]),
@@ -370,10 +372,10 @@ combine :: Macros -> Lexicon -> Tags
 We start by collecting all the features and parameters we want to combine.
 
 \begin{code}
-combine g lexicon =
+combine gram lexicon =
   let helper li = map (combineOne li) macs 
-                  where tn   = ifamname li
-                        macs = lookupWithDefaultFM g [] tn
+       where tn   = ifamname li
+             macs = [ t | t <- gram, pfamily t == tn ]
   in mapFM (\_ e -> concatMap helper e) lexicon 
 \end{code}
 
@@ -383,12 +385,14 @@ list of trees is returned.
 
 \begin{code}
 combineList :: Macros -> ILexEntry -> [TagElem]
-combineList g lexitem = 
-  let tn = ifamname lexitem
-      macs = case (lookupFM g tn) of
-                Just tt -> tt
-                Nothing -> error ("Family " ++ tn ++ " not found in Macros")
-  in map (combineOne lexitem) macs
+combineList gram lexitem = 
+  let tn      = ifamname lexitem
+      macs    = [ t | t <- gram, pfamily t == tn ]
+      result  = map (combineOne lexitem) macs
+      warning = "Warning: family " ++ tn ++ " not found in Macros"
+  in unsafePerformIO $ do 
+       when (null macs) $ putStrLn warning 
+       return result 
 \end{code}
 
 \paragraph{combineOne} \label{fn:combineOne} combines a single tree with its
@@ -418,9 +422,11 @@ combineOne lexitem e =
        unified = featsUnified
        (snodes,anodes) = detectSites unified 
        -- the final result
+       showid i = if null i then "" else ("-" ++ i)
        sol = emptyTE {
                 idname = iword lexitem ++ "-" ++ icategory lexitem 
-                         ++ "_" ++ pidname e,
+                         ++ "_" 
+                         ++ pfamily e ++ showid (pidname e),
                 derivation = (0,[]),
                 ttype = ptype e,
                 ttree = setLexeme (iword lexitem) unified,
@@ -564,13 +570,13 @@ runCGMLexSelection mst =
      g <- runSelector gramfile fil
      -- convert the selector output into TagElems
      let lexMap = listToFM $ zip (map show idxs) lexCand
-         subgramfn :: (String, [MTtree]) -> IO [TagElem] 
-         subgramfn (id, ts) = 
+         fixate :: MTtree -> IO TagElem 
+         fixate ts = 
            case (lookupFM lexMap id) of
              Nothing  -> fail ("no such lexical entry " ++ id)
-             Just lex -> return (map (combineCGM lex) ts)
-     completed <- mapM subgramfn (fmToList g)
-     let cand = concat completed
+             Just lex -> return $ combineCGM lex ts
+           where id = pfamily ts
+     cand <- mapM fixate g
      -- attach any morphological information to the candidates
      let morphfn  = morphinf mst
          cand2    = attachMorph morphfn tsem cand 
@@ -630,7 +636,7 @@ runSelector gfile fil = do
      let g = case ((mParser.lexer) res) of 
                    Ok x     -> x 
                    Failed x -> error x 
-         sizeg  = sum (map length $ eltsFM g)
+         sizeg  = length g
      putStr $ show sizeg ++ " trees \n" 
      return g
 \end{code}
@@ -887,9 +893,9 @@ loadMacros pst config =
      let g = case ((mParser.lexer) gf) of 
                    Ok x     -> x 
                    Failed x -> error x 
-         sizeg  = sum (map length $ eltsFM g)
+         sizeg  = length g
      putStr $ show sizeg ++ " trees in " 
-     putStr $ (show $ sizeFM g) ++ " families\n"
+     putStr $ (show $ length g) ++ " families\n"
      modifyIORef pst (\x -> x{gr = g})
 \end{code}
 

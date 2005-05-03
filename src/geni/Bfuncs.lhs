@@ -30,7 +30,7 @@ low-level operation.
 module Bfuncs(
    -- Datatypes (re-exported)
    GNode(GN), GType(Subs, Foot, Lex, Other), 
-   Ttree(TT), MTtree, SemPols,
+   Ttree(..), MTtree, SemPols,
    Ptype(Initial,Auxiliar,Unspecified), 
    Pred, Flist, AvPair, 
    Lexicon, ILexEntry(..), Macros, Sem, SemInput, Subst,
@@ -38,10 +38,6 @@ module Bfuncs(
 
    -- Projectors from GNode (re-exported)
    gnname, gup, gdown, ganchor, glexeme, gtype, gaconstr,
-
-   -- Projectors from Tdesc (re-exported)
-   params, pidname, pfeat, ptype, tree, 
-   ptpolarities, ptpredictors,
 
    -- Functions from Tree GNode
    repSubst, repAdj, constrainAdj, 

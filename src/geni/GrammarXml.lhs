@@ -28,7 +28,7 @@ module GrammarXml where
 \ignore{
 \begin{code}
 import Data.Char
-import Data.FiniteMap (FiniteMap,emptyFM,addToFM_C)
+import Data.FiniteMap (FiniteMap,emptyFM)
 import Data.List (partition,sort)
 import Data.Tree
 import MonadState (State, 
@@ -153,18 +153,14 @@ parseXmlGrammar g =
       -- processing phase
       entriesF = tag "grammar" /> tag "entry"
       entries  = entriesF c
-      --
-      buildMacros :: Content -> Macros -> Macros 
-      buildMacros e m = addToFM_C (++) m f [t]
-        where (t,f) = parseEntry e 
-  in foldr buildMacros emptyFM entries
+  in map parseEntry entries 
 \end{code}
 
 \paragraph{parseXmlTrees} handles the subgrammar organisation of macros.
 We group the macros by their subgrammar
 
 \begin{code}
-parseXmlTrees :: String -> [(String, [MTree])]
+parseXmlTrees :: String -> Macros 
 parseXmlTrees g = 
   -- extract a CElem out of the String
   let (Document _ _ ele) = xmlParse "" g 
@@ -173,25 +169,22 @@ parseXmlTrees g =
       subgramF = tag "grammar" /> tag "subgrammar"
       subgrams = subgramF c 
       --
-  in map parseSubGrammar subgrams 
+  in concatMap parseSubGrammar subgrams 
 
 -- returns subgrammar id and the associated trees
-parseSubGrammar :: Content -> (String , [MTree])
+parseSubGrammar :: Content -> Macros 
 parseSubGrammar g = 
   let entriesF = keep /> tag "entry"
       entries  = entriesF g 
       --
       idF = attributed "id" keep
       id  = concatMap fst (idF g) -- should only be one element 
-      -- 
-      trees = map (fst.parseEntry) entries 
-  in (id,trees)
+      setid t = t { pfamily = id }
+  in map (setid.parseEntry) entries 
 \end{code}
 
-
-
 \begin{code}
-parseEntry :: Content -> (MTree,String)
+parseEntry :: Content -> MTree
 parseEntry e =
   let synF = keep /> tag "tree"    
       trcF = keep /> tag "trace"    
@@ -212,6 +205,7 @@ parseEntry e =
                               then emptyFM 
                               else parseTrace (head trc) 
              -- there should only be one interface though
+             , pfamily = famName
              , pidname = name
              , params  = fst pf 
              , pfeat   = snd pf
@@ -222,7 +216,7 @@ parseEntry e =
                 pf = if null int 
                      then ([],[])
                      else parseInterface (head int)
-  in (t, famName)
+  in t
 \end{code}
 
 % ----------------------------------------------------------------------

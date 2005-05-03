@@ -148,7 +148,11 @@ some kind of SAX based method.
 \begin{code}
 toGeniHand :: MTtree -> String
 toGeniHand tr = 
-  let ptypestr t = case t of 
+  let showid t = dashtobar fam ++ (if null id then "" else ":" ++ id)
+        where fam = pfamily t
+              id  = pidname t
+      --
+      ptypestr t = case t of 
                      Initial  -> "initial" 
                      Auxiliar -> "auxiliary" 
                      _        -> ""
@@ -177,16 +181,14 @@ toGeniHand tr =
       spaces :: Int -> String 
       spaces i = take i $ repeat ' '
       -- helpers to account for shortcomings in genihand lexer 
-      dashtobar :: Char -> Char
-      dashtobar c = if ('-' == c) then '_' else c 
-      substf (a,v) = case (a,v) of _       -> (map dashtobar a, v)
-      --d2u '-' = '_'
-      --d2u x = x
+      dashtobar :: String -> String 
+      dashtobar s = map (\c -> if ('-' == c) then '_' else c) s
+      substf (a,v) = case (a,v) of _ -> (dashtobar a, v)
       --
       showflist  = showPairs . (map substf)
       showparams = concat $ intersperse " " (params tr)
       --
-  in ((map dashtobar).pidname) tr 
+  in showid tr 
      ++ " ("  ++ showparams 
      ++ " ! " ++ showflist (pfeat tr) ++ ")"
      ++ " " ++ (ptypestr.ptype) tr 

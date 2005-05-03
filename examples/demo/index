@@ -1,4 +1,4 @@
-Macros  = demomac 
-Lexicon = demolex
-SemLexicon = demosemlex 
+Macros  = gram/demomac 
+Lexicon = gram/demolex
+SemLexicon = gram/demosemlex 
 RootCategories = p

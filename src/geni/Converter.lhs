@@ -29,13 +29,12 @@ module Main (main) where
 
 \ignore{
 \begin{code}
-import Data.FiniteMap
 import Monad(when)
 import System (ExitCode(ExitFailure), 
                exitWith, getArgs, getProgName)
 import System.IO(getContents)
 
-import Btypes (ifamname, iword, icategory, MTtree)
+import Btypes (ifamname, iword, icategory)
 import GrammarXml (parseXmlTrees, parseXmlGrammar, parseXmlLexicon)
 import Treeprint (toGeniHand)
 \end{code}
@@ -81,23 +80,11 @@ convertTrees :: IO ()
 convertTrees = 
   do gf <- getContents 
      let g = parseXmlTrees gf
-         showfn = uncurry showfam 
-     putStr (concatMap showfn g)
+     putStr $ concatMap toGeniHand g
 
 convertMacros :: IO ()
 convertMacros = 
   do gf <- getContents 
      let g = parseXmlGrammar gf 
-         showfn f = showfam f (lookupWithDefaultFM g [] f)
-         outstr = concatMap showfn (keysFM g)
-     putStr outstr
-
-showfam :: String -> [MTtree] -> String
-showfam f t = "\n\n" 
-              ++ "% ----------------------------------------------------------------------"
-              ++ "\n" ++ "begin family " ++ f ++ "\n"
-              ++ "% ----------------------------------------------------------------------"
-              ++ "\n\n" ++ (concatMap toGeniHand t)
-              ++ "end family\n"
+     putStr $ concatMap toGeniHand g
 \end{code}
-

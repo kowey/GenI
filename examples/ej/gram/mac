@@ -19,9 +19,7 @@
 
 %% INITIAL TREES
 
-begin family vArity1
-
-IntrV(Event Agent ! agr:A) initial
+vArity1:IntrV(Event Agent ! agr:A) initial
 	n1[cat:s idx:Event]![]
 	{	
 	 n2 type:subst [cat:np idx:Agent]![]
@@ -33,11 +31,8 @@ IntrV(Event Agent ! agr:A) initial
 	   }
 	  }
 	}
-end family
 
-begin family vArity2
-
-TrV(Event Agent Experiencer ! agr:A) initial
+vArity2:TrV(Event Agent Experiencer ! agr:A) initial
 	n1[cat:s idx:Event]![]
 	{
 	 n2 type:subst [cat:np idx:Agent ]![]
@@ -51,11 +46,7 @@ TrV(Event Agent Experiencer ! agr:A) initial
 	  }
 	}
 
-end family
-
-begin family vArity3
-
-TrVPP(Event Agent Theme Loc ! agr:A) initial
+vArity3:TrVPP(Event Agent Theme Loc ! agr:A) initial
 	n1[cat:s idx:Event]![]
 	{
 	  n2 type:subst [cat:np idx:Agent ]![]
@@ -77,9 +68,6 @@ TrVPP(Event Agent Theme Loc ! agr:A) initial
 	  }
 	}
 
-end family
-
-begin family Dp
 Dp(Entity ! agr:A) initial
 	n1[cat:np idx:Entity]![]
 	{
@@ -89,9 +77,7 @@ Dp(Entity ! agr:A) initial
 	  }
 	  n4 type:subst [cat:n idx:Entity ]![]
 	}
-end family
 
-begin family Pn
 Pn(Entity ! agr:A) initial
 	n1[cat:np idx:Entity]![]
 	{
@@ -100,20 +86,15 @@ Pn(Entity ! agr:A) initial
 	  n3 anchor
 	 }
 	}
-end family
 
-begin family Cn
 Cn(Entity ! agr:A) initial
 	n1[cat:n idx:Entity]![]
 	{
 	 n2 anchor
 	}
-end family
-
 
 %% AUXILIARY TREES
 
-begin family Adj
 Adj(Entity) auxiliary
 	n1[cat:n idx:Entity]![]
 	{
@@ -123,9 +104,7 @@ Adj(Entity) auxiliary
 	  }
 	  n4 type:foot [cat:n idx:Entity ]![]
 	}
-end family
 
-begin family Adv
 Adv(Event) auxiliary
 	n1[cat:vp idx:Event]![]
 	{
@@ -135,4 +114,3 @@ Adv(Event) auxiliary
 	    n4 anchor
 	  }
 	}	
-end family 

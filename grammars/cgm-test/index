@@ -1,4 +1,4 @@
 GrammarType = CGManifesto
-Macros     = grammaire.rec
-Lexicon    = test.fil
+Macros     = gram/grammaire.rec
+Lexicon    = gram/test.fil
 RootCategories = s

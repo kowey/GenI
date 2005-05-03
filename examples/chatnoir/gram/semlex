@@ -1,0 +1,64 @@
+%% 05 mai 2004
+%% Modifiers (adjectives, relatives and pp)
+
+
+%% Determinants
+
+un det (I)
+semantics:[indef(I)]
+
+le det (I)
+semantics:[def(I)]
+
+%% Noms communs
+
+chat _ (I) 
+semantics:[cat(I)]
+
+souris _ (I) 
+semantics:[mouse(I)]
+
+%% Noms Propres
+
+marie _ (I) 
+semantics:[marie(I)]
+
+claire _ (I) 
+semantics:[claire(I)]
+
+olivier _ (I) 
+semantics:[olivier(I)]
+
+pierre _ (I) 
+semantics:[pierre(I)]
+
+jean _ (I) 
+semantics:[jean(I)]
+
+paul _ (I) 
+semantics:[paul(I)]
+
+%% --------------------------------------------------------------------- 
+%% Adjectives
+%% --------------------------------------------------------------------- 
+
+noir _ (I)
+semantics:[black(I)]
+
+%noir2 (I)
+%semantics:[black(I)]
+
+petit _ (I)
+semantics:[little(I)]
+
+mechant _ (I)
+semantics:[fierce(I)]
+
+
+%% --------------------------------------------------------------------- 
+%% chasse
+%% --------------------------------------------------------------------- 
+
+chasser _ (E X Y) 
+semantics:[chase(E X Y)]
+

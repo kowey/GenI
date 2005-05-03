@@ -1,3 +1,4 @@
-Macros  = mac 
-Lexicon = lexicon
-SemLexicon = semlex 
+Macros  = gram/mac 
+Lexicon = gram/lexicon
+SemLexicon = gram/semlex 
+RootCategories = s

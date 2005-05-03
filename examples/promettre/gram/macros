@@ -10,47 +10,36 @@
 %% 10. promettant un cadeau a Marie
 %% 11. donner un livre a marie
 
-begin family Det 
 Det(I) auxiliary
 n1[cat:n idx:I det:plus qu:minus]![cat:n idx:I qu:minus]
 {
   n2 type:anchor [cat:det]![]
   n4 type:foot [cat:n idx:I]![cat:n idx:I det:minus]
 }
-end family
 
-begin family clitic 
-cl(H X ! idx:X ) initial
+clitic:cl(H X ! idx:X ) initial
 n1 type:anchor [cat:cl idx:X]![cat:cl idx:X] {}
-end family
 
-begin family pronoun 
-pn(H X ! idx:X num:Num gen:Gen pers:Pers) initial
+pronoun:pn(H X ! idx:X num:Num gen:Gen pers:Pers) initial
 n1 [cat:n idx:X num:Num gen:Gen pers:Pers]![cat:n idx:X]
 {
   n2 type:anchor [cat:pn num:Num gen:Gen pers:Pers]![] 
 }
-end family
 
-begin family nC
 % Common Nouns: voyage
 nC(I!num:Num gen:Gen) initial
 n1 [cat:n num:Num gen:Gen idx:I]![cat:n num:Num gen:Gen idx:I det:minus qu:minus]
 {
   n2 type:anchor [cat:n num:Num gen:Gen]![]
 }
-end family
 
 % Proper Nouns: Jean
-begin family nP
 nP(I!pers:Pers num:Num gen:Gen) initial
 n1 type:anchor [cat:n num:Num pers:Pers gen:Gen idx:I det:plus qu:minus]![cat:n idx:I det:plus qu:minus] {}
-end family
 
-begin family vArity2
 % jean se aimer -- note: we rely on top/bottom unification
 % for this to work
-n0v(E X Y) initial 
+vArity2:n0v(E X Y) initial 
 n1[cat:p]![]
 {
   n2 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:Y]
@@ -61,7 +50,7 @@ n1[cat:p]![]
   }
 }
 
-n0cl1v(E X Y) initial
+vArity2:n0cl1v(E X Y) initial
 n1[cat:p]![]
 {
   n2 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X]
@@ -72,7 +61,7 @@ n1[cat:p]![]
   }
 }
 
-n0vn1(E X Y) initial
+vArity2:n0vn1(E X Y) initial
 n1[cat:p]![]
 {
   n2 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X]
@@ -84,7 +73,7 @@ n1[cat:p]![]
 } 
 
 % aimer N (jean espere [aimer Marie])
-vinfn1(E X Y) initial 
+vArity2:vinfn1(E X Y) initial 
 n1[cat:p idx:E mode:inf sujidx:X]![cat:p]
 {
   n2 [cat:v idx:E]![]
@@ -104,13 +93,11 @@ n1[cat:p idx:E mode:inf sujidx:X]![cat:p]
     n3 anchor
   }
 }
-end family
 
-begin family vArity3
 begin initial 
 
 % infinitive: le donner un livre (je promets de le donner un livre)
-cl2vinfn0(E X Y Z) initial 
+vArity3:cl2vinfn0(E X Y Z) initial 
 n1[cat:p idx:E mode:inf sujidx:X]![cat:p]
 {
   n5 type:subst [cat:cl idx:Z det:plus qu:minus]![cat:n idx:Z]
@@ -122,7 +109,7 @@ n1[cat:p idx:E mode:inf sujidx:X]![cat:p]
 }  
 
   %1 declarative	gn promet gn sp_a
-n0vn1sp2(E X Y Z)  
+vArity3:n0vn1sp2(E X Y Z)  
 n1[cat:p]![]
 {
   n2 type:subst [cat:n pers:Pers num:Num idx:X det:plus qu:minus]![cat:n idx:X]
@@ -142,7 +129,7 @@ n1[cat:p]![]
 
 
   %2 infinitive	V GN SP_a
-vinfn1sp2(E X Y Z) 
+vArity3:vinfn1sp2(E X Y Z) 
 n1[cat:p idx:E mode:inf sujidx:X]![cat:p]
 {
   n2[cat:v idx:E]![]
@@ -159,7 +146,7 @@ n1[cat:p idx:E mode:inf sujidx:X]![cat:p]
   }
 }
 
-n0vn1inf2(E X Y Z) 
+vArity3:n0vn1inf2(E X Y Z) 
 n1[cat:p]![]
 {
   n2 type:subst [cat:n idx:X pers:Pers num:Num det:plus qu:minus]![cat:n idx:X]
@@ -181,7 +168,7 @@ n1[cat:p]![]
 end initial
 
 %8 relative objet indirect
-rel2n0vn1(E X Y Z) auxiliary
+vArity3:rel2n0vn1(E X Y Z) auxiliary
 n0[cat:n idx:Z det:plus]![cat:n idx:Z]
 {
   n1 type:foot [cat:n idx:Z]![cat:n idx:Z]
@@ -206,13 +193,9 @@ n0[cat:n idx:Z det:plus]![cat:n idx:Z]
   }
 }
 
-end family
-
-
-begin family vArity3control
 begin initial
   %9 declarative	GN V GN_a Pinf_de
-n0vsp2pinf1(E X Y Z) 
+vArity3control:n0vsp2pinf1(E X Y Z) 
 n1[cat:p]![]
 {
   n2 type:subst [cat:n pers:Pers num:Num idx:X det:plus qu:minus]![cat:n idx:X]
@@ -237,7 +220,7 @@ n1[cat:p]![]
 }
 
   %10 infinitive	V SP_a Inf_de
-vinfsp2pinf1(E X Y Z) 
+vArity3control:vinfsp2pinf1(E X Y Z) 
 n1[cat:p idx:E mode:inf sujidx:X]![cat:p] 
 {
   n2[cat:v idx:E]![]
@@ -263,7 +246,7 @@ n1[cat:p idx:E mode:inf sujidx:X]![cat:p]
 }
 
   % kowey: promettre a marie de faire...
-vinfn2pinf1(E X Y Z) 
+vArity3control:vinfn2pinf1(E X Y Z) 
 n1[cat:p idx:E mode:inf sujidx:X]![cat:p] 
 {
   n2[cat:v idx:E]![]
@@ -291,7 +274,7 @@ end initial
 
 begin auxiliary
   %13 relative sujet	qui V sp_a pinf_de
-rel0vsp2pinf1(E X Y Z) 
+vArity3control:rel0vsp2pinf1(E X Y Z) 
 n0[cat:n idx:X det:plus]![cat:n idx:X]
 {
   n1 type:foot [cat:n idx:X]![cat:n idx:X]
@@ -320,7 +303,7 @@ n0[cat:n idx:X det:plus]![cat:n idx:X]
 
 
 %14 relative objet indirect	a qui GN v Pinf_de
-rel2n0vpinf1(E X Y Z) auxiliary
+vArity3control:rel2n0vpinf1(E X Y Z) auxiliary
 n0[cat:n idx:Y det:plus]![cat:n idx:Y]
 {
   n1 type:foot [cat:n idx:Y]![cat:n idx:Y]
@@ -351,7 +334,7 @@ n0[cat:n idx:Y det:plus]![cat:n idx:Y]
   }}
 
 
-rel0vn2pinf1(E X Y Z) 
+vArity3control:rel0vn2pinf1(E X Y Z) 
 n0[cat:n idx:X det:plus]![cat:n idx:X]
 {
   n1 type:foot [cat:n idx:X]![cat:n idx:X]
@@ -373,7 +356,7 @@ n0[cat:n idx:X det:plus]![cat:n idx:X]
     }}}
 
   % relative sujet
-rel0vn1sp2(E X Y Z) 
+vArity3control:rel0vn1sp2(E X Y Z) 
 n0[cat:n idx:X det:plus]![cat:n idx:X]
 {
   n1 type:foot [cat:n idx:X]![cat:n idx:X]
@@ -396,7 +379,7 @@ n0[cat:n idx:X det:plus]![cat:n idx:X]
 }
 
 % relative objet
-rel1vn0sp2(E X Y Z) auxiliary
+vArity3control:rel1vn0sp2(E X Y Z) auxiliary
 n0[cat:n idx:X det:plus]![cat:n idx:X]
 {
   n1 type:foot [cat:n idx:X]![cat:n idx:X]
@@ -444,13 +427,11 @@ n0[cat:n idx:Y det:plus]![cat:n idx:Y]
   }
 }
 end auxiliary
-end family %vArity3Control
 
-begin family vArity3controlObj
 begin initial
   % kowey: for persuader instead of promettre
   % (sujidx is set differently)
-n0vsp2pinf1b(E X Y Z) 
+vArity3controlObj:n0vsp2pinf1b(E X Y Z) 
 n1[cat:p]![]
 {
   n2 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X]
@@ -475,7 +456,7 @@ n1[cat:p]![]
 }
 
   %15 declarative gn0 persuade gn2 pinf_de1	n0vn2pinf1 
-n0vn2pinf1b(E X Y Z) 
+vArity3controlObj:n0vn2pinf1b(E X Y Z) 
 n1[cat:p]![]
 {
   n2 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X]
@@ -494,7 +475,7 @@ n1[cat:p]![]
 }
 
   %15 infinitive persuader gn  pinf_de	vinfn2pinf1
-vinfn2pinf1b(E X Y Z) 
+vArity3controlObj:vinfn2pinf1b(E X Y Z) 
 n1[cat:p idx:E mode:inf sujidx:X]![cat:p] 
 {
   n2[cat:v idx:E]![]
@@ -512,7 +493,7 @@ n1[cat:p idx:E mode:inf sujidx:X]![cat:p]
 }
 
   %18 rel-sjt	 n qui persuade gn  pinf_de	rel0vn2pinf1
-n0vn1sp2(E X Y Z) 
+vArity3controlObj:n0vn1sp2(E X Y Z) 
 n1[cat:p]![]
 {
   n2 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X]
@@ -532,5 +513,3 @@ n1[cat:p]![]
 }
 
 end initial
-end family %vArity3controlObj
-

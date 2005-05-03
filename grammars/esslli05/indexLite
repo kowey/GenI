@@ -1,5 +1,5 @@
-Macros     = semFrenchLite.geni
-Lexicon    = synlex
-SemLexicon = semlex 
-%MorphInfo = morphinfo
+Macros     = gram/semFrenchLite.geni
+Lexicon    = gram/synlex
+SemLexicon = gram/semlex 
+%MorphInfo = gram/morphinfo
 RootCategories = s

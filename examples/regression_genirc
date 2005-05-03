@@ -1,0 +1,29 @@
+% this genirc file provides a primitive form of regression testing
+% to make sure the surface realiser works on all the example 
+% grammars
+%
+% the basic idea is you run the generator on this genirc and eyeball
+% the results
+
+Graphical  = False 
+Optimisations = PolOpts, AdjOpts
+
+% the tests
+
+Grammar  = examples/ej/index
+TSemantics = examples/ej/ej1
+!
+
+Grammar  = examples/chatnoir/index
+TSemantics = examples/chatnoir/sem
+!
+
+Grammar    = examples/demo/index
+TSemantics = examples/demo/donnersem
+!
+TSemantics = examples/demo/promettredonnersem
+!
+
+Grammar   = examples/promettre/index
+TestSuite = examples/promettre/testsuite
+MorphCmd  = etc/stupidmorph.pl

@@ -4,7 +4,6 @@
 %	DETERMINERS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-begin family Det
 Det(I) (+det ) auxiliary
 n1[cat:n idx:I det:plus qu:minus]![cat:n idx:I det:plus qu:minus]
 {
@@ -14,35 +13,29 @@ n1[cat:n idx:I det:plus qu:minus]![cat:n idx:I det:plus qu:minus]
   }
   n4 type:foot [cat:n idx:I det:_ qu:_]![cat:n idx:I det:minus qu:_]
 }
-end family
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %	NOUNS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-begin family nC
 % Common Nouns: voyage
 nC(I) (+n -det) initial
 n1[cat:n idx:I det:_ qu:_]![cat:n idx:I det:minus qu:minus ]
 {
   n2 anchor
 }
-end family
 
-begin family nP
 % Proper Nouns: Jean
 nP(I) (+n) initial
 n1[cat:n idx:I det:plus qu:minus]![cat:n idx:I det:plus qu:minus ]
 {
   n2 anchor
 }
-end family 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %	ADJECTIVES
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-begin family adj_post
 adj_post(I)  auxiliary
 n0[cat:n idx:I det:_ qu:_]![cat:n idx:I det:minus qu:minus ]
 {
@@ -53,9 +46,7 @@ n0[cat:n idx:I det:_ qu:_]![cat:n idx:I det:minus qu:minus ]
       n3 anchor
     }
 }
-end family
 
-begin family adj_pre
 adj_pre(I)  auxiliary
 n0[cat:n idx:I det:_ qu:_]![cat:n idx:I det:minus qu:minus ]
 {
@@ -66,17 +57,15 @@ n0[cat:n idx:I det:_ qu:_]![cat:n idx:I det:minus qu:minus ]
   n3 type:foot [cat:n idx:I det:minus qu:minus]!
     [cat:n idx:I det:minus qu:_ ]
 }
-end family
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %	TRANSITIVE VERBS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-begin family vArity2
 begin initial
 % infinitive
   % chasser une souris vinfn1
-vinfn1(E X Y) (-n +pinf) 
+vArity2:vinfn1(E X Y) (-n +pinf) 
 n1[cat:p idx:E mode:inf sujidx:X]![cat:n idx:Y mode:_ sujidx:_]
 {
   n2[cat:v idx:E]![]
@@ -88,7 +77,7 @@ n1[cat:p idx:E mode:inf sujidx:X]![cat:n idx:Y mode:_ sujidx:_]
 
 % declarative
   % le chat chasse la souris
-n0vn1(E X Y) (-2n +p)
+vArity2:n0vn1(E X Y) (-2n +p)
 n1[cat:p]![]
 {
   n2 type:subst [cat:n idx:X det:plus qu:minus]!
@@ -103,7 +92,7 @@ n1[cat:p]![]
 
 % question sujet	
   % qui chasse une souris ?
-qu0vn1(E X Y) (-n -c +q) 
+vArity2:qu0vn1(E X Y) (-n -c +q) 
 n1[cat:p]![]
 {
   n2 type:subst [cat:c idx:X det:plus qu:minus]!
@@ -118,7 +107,7 @@ n1[cat:p]![]
 
 % question objet
   % que chasse le chat ?
-qu1vn0(E X Y) (-n -nq +q)
+vArity2:qu1vn0(E X Y) (-n -nq +q)
 n1[cat:p]![]
 {
   n2 type:subst [cat:n idx:Y det:plus qu:plus]!
@@ -139,7 +128,7 @@ end initial
 % relative sujet
 % le chat qui chasse la souris
 
-rel0vn1(E X Y) (-n -c) auxiliary
+vArity2:rel0vn1(E X Y) (-n -c) auxiliary
 n0[cat:n idx:X det:plus qu:_]![cat:n idx:X det:_ qu:_ ]
 {
   n1 type:foot [cat:n idx:X det:_ qu:_]![cat:n idx:X det:_ qu:_ ]
@@ -158,7 +147,7 @@ n0[cat:n idx:X det:plus qu:_]![cat:n idx:X det:_ qu:_ ]
 % relative objet
 % la souris que chasse le chat
 
-rel1vn0(E X Y)  (-n -c) auxiliary
+vArity2:rel1vn0(E X Y)  (-n -c) auxiliary
 n0[cat:n idx:Y det:plus qu:_]![cat:n idx:Y det:_ qu:_ ]
 {
   n1 type:foot [cat:n idx:Y det:_ qu:_]!
@@ -175,4 +164,3 @@ n0[cat:n idx:Y det:plus qu:_]![cat:n idx:Y det:_ qu:_ ]
         [cat:n idx:X det:_ qu:_ ]         
     }
 }
-end family

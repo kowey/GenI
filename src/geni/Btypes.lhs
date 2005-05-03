@@ -57,11 +57,12 @@ and trees into a set of anchored trees.
 
 \begin{code}
 type MTtree = Ttree GNode
-type Macros = FiniteMap String [MTtree]
+type Macros = [MTtree]
 \end{code}
 
 \begin{code}
 data Ttree a = TT{params  :: [String],
+                  pfamily :: String,
                   pidname :: String,
                   pfeat :: Flist,
                   ptype :: Ptype,

@@ -21,8 +21,8 @@ GHCPACKAGES_GUI = -package wx $(GHCPACKAGES)
 GHC             = ghc $(GHCFLAGS) $(GHCINCLUDE)
 
 SOFTWARE        = Geni 
-VERSION         = 0.5
-VERSIONTAG      = geni-0-50  # use: make tagVersion for creating cvs tag
+VERSION         = 0.6
+VERSIONTAG      = geni-0-60  
 SOFTVERS        = $(SOFTWARE)-$(VERSION)
 
 # You should replace the value of this variable with your project
@@ -131,7 +131,7 @@ $(PARSERS): %.hs: %.y
 optimize: $(LEXERS) $(PARSERS)
 	$(GHC) -O2 --make $(GHCPACKAGES_GUI) $(LEXERS) $(PARSERS) 
 	$(GHC) -O2 -W --make $(GHCPACKAGES_GUI) $(IFILE).hs -o $(OFILE) 
-	if [ `uname` = Darwin ]; then macosx-app $(OFILE); fi
+	if [ `uname` = Darwin ]; then macosx-app -v $(OFILE); fi
 
 compile: $(LEXERS) $(PARSERS) $(OFILE) $(COFILE)
 

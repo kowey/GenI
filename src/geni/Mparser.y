@@ -22,7 +22,7 @@ import qualified Data.Tree
 
 }
 
-%name mParser     Fam   {- returns a FiniteMap indexed by family name -}
+%name mParser    Input 
 %name polParserE PolList
 
 %tokentype { PosToken }
@@ -58,19 +58,8 @@ import qualified Data.Tree
 %%
 
 {- -----------------------------------------------------------------
-   families 
+   lists of trees 
    ----------------------------------------------------------------- -}
-
-Fam :: { FiniteMap String [MTtree] }
-Fam:  
-       {emptyFM}
-   | begin family id Input end family Fam
-       {addToFM_C (++) $7 $3 $4}
-   | begin family num Input end family Fam
-       {addToFM_C (++) $7 (show $3) $4}
-
-
-{- lists of trees -}
 
 Input :: { [MTtree] }
 Input : 
@@ -125,24 +114,33 @@ DefIUs :
  
 DefU :: { MTtree }
 DefU :
-   id '(' IDFeat ')' TopTree
+   TreeFamName '(' IDFeat ')' TopTree
      { buildTree Unspecified $1 $3 emptyPolPred $5 }  
- | id '(' IDFeat ')' '(' PolPred ')' TopTree
+ | TreeFamName '(' IDFeat ')' '(' PolPred ')' TopTree
      { buildTree Unspecified $1 $3 $6           $8 }
 
 DefI :: { MTtree }
 DefI :
-   id '(' IDFeat ')' initial TopTree
+   TreeFamName '(' IDFeat ')' initial TopTree
      { buildTree Initial $1 $3 emptyPolPred $6 }
- | id '(' IDFeat ')' '(' PolPred ')' initial TopTree
+ | TreeFamName '(' IDFeat ')' '(' PolPred ')' initial TopTree
      { buildTree Initial $1 $3 $6           $9 }
 
 DefA :: { MTtree }
 DefA :
-   id '(' IDFeat ')' auxiliar TopTree
+   TreeFamName '(' IDFeat ')' auxiliar TopTree
      { buildTree Auxiliar $1 $3 emptyPolPred $6 }
- | id '(' IDFeat ')' '(' PolPred ')' auxiliar TopTree
+ | TreeFamName '(' IDFeat ')' '(' PolPred ')' auxiliar TopTree
      { buildTree Auxiliar $1 $3 $6           $9 }
+
+{- tree family / name -}
+
+TreeFamName :: { (String,String) }
+TreeFamName : id         {($1,"")}
+            | id ':' id  {($1,$3)}
+            | num        {(show $1,"")}
+            | num ':' id {(show $1,$3)}
+
 
 {- parameters, features -}
 
@@ -264,9 +262,10 @@ buildTreeNode name (ntype, lex, (rtop,rbot)) kids =
                 gaconstr=ac}
   in Data.Tree.Node node kids
 
-buildTree :: Ptype -> String -> ([String],Flist) -> (MpPolarities, MpPredictors) -> TrTree GNode -> MTtree
-buildTree ttype id (params,feats) (pol,pred) t = 
+buildTree :: Ptype -> (String,String) -> ([String],Flist) -> (MpPolarities, MpPredictors) -> TrTree GNode -> MTtree
+buildTree ttype (fam,id) (params,feats) (pol,pred) t = 
        TT{params = params, 
+          pfamily = fam,
           pidname = id,
           pfeat = feats, 
           ptype = ttype, 
