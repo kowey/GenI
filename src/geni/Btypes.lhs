@@ -1,4 +1,4 @@
-% GenI surface realiser
+%3 GenI surface realiser
 % Copyright (C) 2005 Carlos Areces and Eric Kow
 %
 % This program is free software; you can redistribute it and/or
@@ -87,6 +87,7 @@ various debugging or display purposes.
 emptyMacro :: MTtree
 emptyMacro = TT { params  = [],
                   pidname = "", 
+                  pfamily = "",
                   pfeat = [],
                   ptype = Unspecified,
                   tree  = Node emptyGNode [],
