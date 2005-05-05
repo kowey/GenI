@@ -1,0 +1,48 @@
+From yannick.parmentier@loria.fr Wed May  4 17:50:36 2005
+Return-Path: <yannick.parmentier@loria.fr>
+X-Original-To: Claire.Gardent@loria.fr
+Delivered-To: gardent@loria.fr
+Received: from localhost.loria.fr (localhost [127.0.0.1])
+	by localhost (Postfix) with ESMTP id 136124EE82;
+	Wed,  4 May 2005 17:50:36 +0200 (CEST)
+X-Amavix: Anti-virus check done by ClamAV
+X-Amavix: Scanned by Amavix
+Received: from nepvant.loria.fr (nepvant.loria.fr [152.81.8.53])
+	by macker.loria.fr (Postfix) with ESMTP id 4F8AD4E53A;
+	Wed,  4 May 2005 17:50:35 +0200 (CEST)
+Message-ID: <11538114.1115221835233.JavaMail.parmenti@nepvant.loria.fr>
+From: yannick.parmentier@loria.fr
+Reply-To: yannick.parmentier@loria.fr
+To: Claire.Gardent@loria.fr
+Subject: syntaxe des mutexs
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+X-Mailer: JMail 0.8.6
+Date: Wed,  4 May 2005 17:50:35 +0200 (CEST)
+Status: RO
+Content-Length: 472
+Lines: 21
+
+%%%%%%%%%%%%%%%%%%%%
+% MUTUAL EXCLUSION %
+%%%%%%%%%%%%%%%%%%%%
+
+mutex EXTR-IMPERATIVE1
+mutex EXTR-IMPERATIVE1 += UnboundedExtraction
+mutex EXTR-IMPERATIVE1 += ImperativeSubject
+
+mutex EXTR-IMPERATIVE2
+mutex EXTR-IMPERATIVE2 += BoundedExtraction
+mutex EXTR-IMPERATIVE2 += ImperativeSubject
+
+mutex SUBJ-INV
+mutex SUBJ-INV += CanonicalObject
+mutex SUBJ-INV += InvertedNominalSubject
+
+mutex SEN-SUBJ
+mutex SEN-SUBJ += SententialSubject
+mutex SEN-SUBJ += UnboundedExtraction
+
+
+

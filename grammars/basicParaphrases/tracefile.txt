@@ -1,0 +1,9929 @@
+
+Famille : CliticT
+Solution : TCliticT-1
+Trace summary : 
+
+
+
+Famille : n0ClVpn1
+Solution : Tn0ClVpn1-2
+Trace summary : 
+	properReflexive
+	ImperativeSubject
+	CanonicalOblique
+
+
+Solution : Tn0ClVpn1-3
+Trace summary : 
+	properReflexive
+	CanonicalOblique
+	InfinitiveSubject
+
+
+Solution : Tn0ClVpn1-4
+Trace summary : 
+	properReflexive
+	InfinitiveSubject
+	whOblique
+
+
+Solution : Tn0ClVpn1-5
+Trace summary : 
+	properReflexive
+	InfinitiveSubject
+	RelativeOblique
+
+
+Solution : Tn0ClVpn1-6
+Trace summary : 
+	properReflexive
+	CleftObliqueOne
+	InfinitiveSubject
+
+
+Solution : Tn0ClVpn1-7
+Trace summary : 
+	properReflexive
+	InfinitiveSubject
+	CleftObliqueTwo
+
+
+Solution : Tn0ClVpn1-8
+Trace summary : 
+	properReflexive
+	CanonicalSubject
+	CanonicalOblique
+
+
+Solution : Tn0ClVpn1-9
+Trace summary : 
+	whOblique
+	properReflexive
+	CanonicalSubject
+
+
+Solution : Tn0ClVpn1-10
+Trace summary : 
+	properReflexive
+	CanonicalSubject
+	RelativeOblique
+
+
+Solution : Tn0ClVpn1-11
+Trace summary : 
+	properReflexive
+	CanonicalSubject
+	CleftObliqueOne
+
+
+Solution : Tn0ClVpn1-12
+Trace summary : 
+	properReflexive
+	CanonicalSubject
+	CleftObliqueTwo
+
+
+Solution : Tn0ClVpn1-13
+Trace summary : 
+	properReflexive
+	CliticSubject
+	CanonicalOblique
+
+
+Solution : Tn0ClVpn1-14
+Trace summary : 
+	whOblique
+	properReflexive
+	CliticSubject
+
+
+Solution : Tn0ClVpn1-15
+Trace summary : 
+	properReflexive
+	CliticSubject
+	RelativeOblique
+
+
+Solution : Tn0ClVpn1-16
+Trace summary : 
+	properReflexive
+	CliticSubject
+	CleftObliqueOne
+
+
+Solution : Tn0ClVpn1-17
+Trace summary : 
+	properReflexive
+	CliticSubject
+	CleftObliqueTwo
+
+
+Solution : Tn0ClVpn1-18
+Trace summary : 
+	properReflexive
+	CanonicalOblique
+	whSubject
+
+
+Solution : Tn0ClVpn1-19
+Trace summary : 
+	properReflexive
+	CanonicalOblique
+	RelativeSubject
+
+
+Solution : Tn0ClVpn1-20
+Trace summary : 
+	CleftSubject
+	properReflexive
+	CanonicalOblique
+
+
+
+Famille : propername
+Solution : Tpropername-21
+Trace summary : 
+
+
+
+Famille : prepositionN
+Solution : TprepositionN-22
+Trace summary : 
+
+
+
+Famille : adjectifEpithete
+Solution : TadjectifEpithete-23
+Trace summary : 
+
+
+
+Famille : n0ClVn1
+Solution : Tn0ClVn1-24
+Trace summary : 
+	properReflexive
+	ImperativeSubject
+	CanonicalObject
+
+
+Solution : Tn0ClVn1-25
+Trace summary : 
+	properReflexive
+	ImperativeSubject
+	CliticObject3
+
+
+Solution : Tn0ClVn1-26
+Trace summary : 
+	properReflexive
+	InfinitiveSubject
+	whObject
+
+
+Solution : Tn0ClVn1-27
+Trace summary : 
+	properReflexive
+	InfinitiveSubject
+	CanonicalObject
+
+
+Solution : Tn0ClVn1-28
+Trace summary : 
+	properReflexive
+	CliticObject3
+	InfinitiveSubject
+
+
+Solution : Tn0ClVn1-29
+Trace summary : 
+	properReflexive
+	whObject
+	CanonicalSubject
+
+
+Solution : Tn0ClVn1-30
+Trace summary : 
+	RelativeObject
+	properReflexive
+	CanonicalSubject
+
+
+Solution : Tn0ClVn1-31
+Trace summary : 
+	CleftObject
+	properReflexive
+	CanonicalSubject
+
+
+Solution : Tn0ClVn1-32
+Trace summary : 
+	properReflexive
+	CanonicalSubject
+	CanonicalObject
+
+
+Solution : Tn0ClVn1-33
+Trace summary : 
+	CliticObject3
+	properReflexive
+	CanonicalSubject
+
+
+Solution : Tn0ClVn1-34
+Trace summary : 
+	properReflexive
+	whObject
+	CliticSubject
+
+
+Solution : Tn0ClVn1-35
+Trace summary : 
+	RelativeObject
+	properReflexive
+	CliticSubject
+
+
+Solution : Tn0ClVn1-36
+Trace summary : 
+	CleftObject
+	properReflexive
+	CliticSubject
+
+
+Solution : Tn0ClVn1-37
+Trace summary : 
+	properReflexive
+	CliticSubject
+	CanonicalObject
+
+
+Solution : Tn0ClVn1-38
+Trace summary : 
+	CliticObject3
+	properReflexive
+	CliticSubject
+
+
+Solution : Tn0ClVn1-39
+Trace summary : 
+	properReflexive
+	CanonicalObject
+	whSubject
+
+
+Solution : Tn0ClVn1-40
+Trace summary : 
+	CliticObject3
+	properReflexive
+	whSubject
+
+
+Solution : Tn0ClVn1-41
+Trace summary : 
+	properReflexive
+	CanonicalObject
+	RelativeSubject
+
+
+Solution : Tn0ClVn1-42
+Trace summary : 
+	CliticObject3
+	properReflexive
+	RelativeSubject
+
+
+Solution : Tn0ClVn1-43
+Trace summary : 
+	CleftSubject
+	properReflexive
+	CanonicalObject
+
+
+Solution : Tn0ClVn1-44
+Trace summary : 
+	CleftSubject
+	CliticObject3
+	properReflexive
+
+
+
+Famille : n0ClVden1
+Solution : Tn0ClVden1-45
+Trace summary : 
+	properReflexive
+	ImperativeSubject
+	CanonicalGenitive
+
+
+Solution : Tn0ClVden1-46
+Trace summary : 
+	properReflexive
+	ImperativeSubject
+	CliticGenitive
+
+
+Solution : Tn0ClVden1-47
+Trace summary : 
+	properReflexive
+	InfinitiveSubject
+	CanonicalGenitive
+
+
+Solution : Tn0ClVden1-48
+Trace summary : 
+	properReflexive
+	InfinitiveSubject
+	CliticGenitive
+
+
+Solution : Tn0ClVden1-49
+Trace summary : 
+	properReflexive
+	InfinitiveSubject
+	whGenitive
+
+
+Solution : Tn0ClVden1-50
+Trace summary : 
+	properReflexive
+	InfinitiveSubject
+	RelativeGenitive
+
+
+Solution : Tn0ClVden1-51
+Trace summary : 
+	properReflexive
+	InfinitiveSubject
+	CleftDont
+
+
+Solution : Tn0ClVden1-52
+Trace summary : 
+	properReflexive
+	CleftGenitiveOne
+	InfinitiveSubject
+
+
+Solution : Tn0ClVden1-53
+Trace summary : 
+	properReflexive
+	InfinitiveSubject
+	CleftGenitiveTwo
+
+
+Solution : Tn0ClVden1-54
+Trace summary : 
+	properReflexive
+	CanonicalSubject
+	CanonicalGenitive
+
+
+Solution : Tn0ClVden1-55
+Trace summary : 
+	properReflexive
+	CanonicalSubject
+	CliticGenitive
+
+
+Solution : Tn0ClVden1-56
+Trace summary : 
+	properReflexive
+	CanonicalSubject
+	whGenitive
+
+
+Solution : Tn0ClVden1-57
+Trace summary : 
+	properReflexive
+	CanonicalSubject
+	RelativeGenitive
+
+
+Solution : Tn0ClVden1-58
+Trace summary : 
+	properReflexive
+	CanonicalSubject
+	CleftDont
+
+
+Solution : Tn0ClVden1-59
+Trace summary : 
+	properReflexive
+	CanonicalSubject
+	CleftGenitiveOne
+
+
+Solution : Tn0ClVden1-60
+Trace summary : 
+	CleftGenitiveTwo
+	properReflexive
+	CanonicalSubject
+
+
+Solution : Tn0ClVden1-61
+Trace summary : 
+	properReflexive
+	CanonicalGenitive
+	CliticSubject
+
+
+Solution : Tn0ClVden1-62
+Trace summary : 
+	properReflexive
+	CliticSubject
+	CliticGenitive
+
+
+Solution : Tn0ClVden1-63
+Trace summary : 
+	properReflexive
+	CliticSubject
+	whGenitive
+
+
+Solution : Tn0ClVden1-64
+Trace summary : 
+	properReflexive
+	CliticSubject
+	RelativeGenitive
+
+
+Solution : Tn0ClVden1-65
+Trace summary : 
+	properReflexive
+	CliticSubject
+	CleftDont
+
+
+Solution : Tn0ClVden1-66
+Trace summary : 
+	properReflexive
+	CliticSubject
+	CleftGenitiveOne
+
+
+Solution : Tn0ClVden1-67
+Trace summary : 
+	CleftGenitiveTwo
+	properReflexive
+	CliticSubject
+
+
+Solution : Tn0ClVden1-68
+Trace summary : 
+	properReflexive
+	CanonicalGenitive
+	whSubject
+
+
+Solution : Tn0ClVden1-69
+Trace summary : 
+	properReflexive
+	CliticGenitive
+	whSubject
+
+
+Solution : Tn0ClVden1-70
+Trace summary : 
+	properReflexive
+	CanonicalGenitive
+	RelativeSubject
+
+
+Solution : Tn0ClVden1-71
+Trace summary : 
+	properReflexive
+	CliticGenitive
+	RelativeSubject
+
+
+Solution : Tn0ClVden1-72
+Trace summary : 
+	CleftSubject
+	properReflexive
+	CanonicalGenitive
+
+
+Solution : Tn0ClVden1-73
+Trace summary : 
+	CleftSubject
+	properReflexive
+	CliticGenitive
+
+
+
+Famille : n0Vn1an2
+Solution : Tn0Vn1an2-74
+Trace summary : 
+	ImperativeSubject
+	activeVerbMorphology
+	CanonicalIobject
+	CanonicalObject
+
+
+Solution : Tn0Vn1an2-75
+Trace summary : 
+	ImperativeSubject
+	activeVerbMorphology
+	CanonicalIobject
+	CanonicalObject
+
+
+Solution : Tn0Vn1an2-76
+Trace summary : 
+	ImperativeSubject
+	activeVerbMorphology
+	CanonicalObject
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-77
+Trace summary : 
+	CliticIobject3
+	ImperativeSubject
+	activeVerbMorphology
+	CanonicalObject
+
+
+Solution : Tn0Vn1an2-78
+Trace summary : 
+	ImperativeSubject
+	activeVerbMorphology
+	CanonicalObject
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-79
+Trace summary : 
+	reflexiveDative
+	ImperativeSubject
+	activeVerbMorphology
+	CanonicalObject
+
+
+Solution : Tn0Vn1an2-80
+Trace summary : 
+	CliticObjectII
+	ImperativeSubject
+	activeVerbMorphology
+	CanonicalIobject
+
+
+Solution : Tn0Vn1an2-81
+Trace summary : 
+	CliticObjectII
+	CliticIobject3
+	ImperativeSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-82
+Trace summary : 
+	CliticObjectII
+	ImperativeSubject
+	activeVerbMorphology
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-83
+Trace summary : 
+	CliticObject3
+	ImperativeSubject
+	activeVerbMorphology
+	CanonicalIobject
+
+
+Solution : Tn0Vn1an2-84
+Trace summary : 
+	CliticObject3
+	ImperativeSubject
+	activeVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-85
+Trace summary : 
+	CliticIobject3
+	CliticObject3
+	ImperativeSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-86
+Trace summary : 
+	CliticObject3
+	ImperativeSubject
+	activeVerbMorphology
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-87
+Trace summary : 
+	CliticObject3
+	reflexiveDative
+	ImperativeSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-88
+Trace summary : 
+	ImperativeSubject
+	reflexiveAccusative
+	activeVerbMorphology
+	CanonicalIobject
+
+
+Solution : Tn0Vn1an2-89
+Trace summary : 
+	CliticIobject3
+	ImperativeSubject
+	reflexiveAccusative
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-90
+Trace summary : 
+	ImperativeSubject
+	reflexiveAccusative
+	activeVerbMorphology
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-91
+Trace summary : 
+	InfinitiveSubject
+	whObject
+	activeVerbMorphology
+	CanonicalIobject
+
+
+Solution : Tn0Vn1an2-92
+Trace summary : 
+	InfinitiveSubject
+	whObject
+	activeVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-93
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	whObject
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-94
+Trace summary : 
+	InfinitiveSubject
+	whObject
+	activeVerbMorphology
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-95
+Trace summary : 
+	InfinitiveSubject
+	reflexiveDative
+	whObject
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-96
+Trace summary : 
+	InfinitiveSubject
+	activeVerbMorphology
+	CanonicalIobject
+	CanonicalObject
+
+
+Solution : Tn0Vn1an2-97
+Trace summary : 
+	InfinitiveSubject
+	activeVerbMorphology
+	CanonicalIobject
+	CanonicalObject
+
+
+Solution : Tn0Vn1an2-98
+Trace summary : 
+	InfinitiveSubject
+	activeVerbMorphology
+	CanonicalObject
+	whIobject
+
+
+Solution : Tn0Vn1an2-99
+Trace summary : 
+	InfinitiveSubject
+	activeVerbMorphology
+	CanonicalObject
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-100
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	activeVerbMorphology
+	CanonicalObject
+
+
+Solution : Tn0Vn1an2-101
+Trace summary : 
+	InfinitiveSubject
+	activeVerbMorphology
+	CanonicalObject
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-102
+Trace summary : 
+	InfinitiveSubject
+	reflexiveDative
+	activeVerbMorphology
+	CanonicalObject
+
+
+Solution : Tn0Vn1an2-103
+Trace summary : 
+	InfinitiveSubject
+	activeVerbMorphology
+	RelativeIobject
+	CanonicalObject
+
+
+Solution : Tn0Vn1an2-104
+Trace summary : 
+	InfinitiveSubject
+	activeVerbMorphology
+	CanonicalObject
+	CleftIobjectOne
+
+
+Solution : Tn0Vn1an2-105
+Trace summary : 
+	InfinitiveSubject
+	CleftIobjectTwo
+	activeVerbMorphology
+	CanonicalObject
+
+
+Solution : Tn0Vn1an2-106
+Trace summary : 
+	InfinitiveSubject
+	CliticObjectII
+	activeVerbMorphology
+	CanonicalIobject
+
+
+Solution : Tn0Vn1an2-107
+Trace summary : 
+	InfinitiveSubject
+	CliticObjectII
+	activeVerbMorphology
+	whIobject
+
+
+Solution : Tn0Vn1an2-108
+Trace summary : 
+	InfinitiveSubject
+	CliticObjectII
+	CliticIobject3
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-109
+Trace summary : 
+	InfinitiveSubject
+	CliticObjectII
+	activeVerbMorphology
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-110
+Trace summary : 
+	InfinitiveSubject
+	CliticObjectII
+	activeVerbMorphology
+	RelativeIobject
+
+
+Solution : Tn0Vn1an2-111
+Trace summary : 
+	InfinitiveSubject
+	CliticObjectII
+	activeVerbMorphology
+	CleftIobjectOne
+
+
+Solution : Tn0Vn1an2-112
+Trace summary : 
+	InfinitiveSubject
+	CliticObjectII
+	CleftIobjectTwo
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-113
+Trace summary : 
+	InfinitiveSubject
+	CliticObject3
+	activeVerbMorphology
+	CanonicalIobject
+
+
+Solution : Tn0Vn1an2-114
+Trace summary : 
+	InfinitiveSubject
+	CliticObject3
+	activeVerbMorphology
+	whIobject
+
+
+Solution : Tn0Vn1an2-115
+Trace summary : 
+	InfinitiveSubject
+	CliticObject3
+	activeVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-116
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	CliticObject3
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-117
+Trace summary : 
+	InfinitiveSubject
+	CliticObject3
+	activeVerbMorphology
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-118
+Trace summary : 
+	InfinitiveSubject
+	CliticObject3
+	reflexiveDative
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-119
+Trace summary : 
+	InfinitiveSubject
+	CliticObject3
+	activeVerbMorphology
+	RelativeIobject
+
+
+Solution : Tn0Vn1an2-120
+Trace summary : 
+	InfinitiveSubject
+	CliticObject3
+	activeVerbMorphology
+	CleftIobjectOne
+
+
+Solution : Tn0Vn1an2-121
+Trace summary : 
+	InfinitiveSubject
+	CliticObject3
+	CleftIobjectTwo
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-122
+Trace summary : 
+	InfinitiveSubject
+	reflexiveAccusative
+	activeVerbMorphology
+	CanonicalIobject
+
+
+Solution : Tn0Vn1an2-123
+Trace summary : 
+	InfinitiveSubject
+	reflexiveAccusative
+	activeVerbMorphology
+	whIobject
+
+
+Solution : Tn0Vn1an2-124
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	reflexiveAccusative
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-125
+Trace summary : 
+	InfinitiveSubject
+	reflexiveAccusative
+	activeVerbMorphology
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-126
+Trace summary : 
+	InfinitiveSubject
+	reflexiveAccusative
+	activeVerbMorphology
+	RelativeIobject
+
+
+Solution : Tn0Vn1an2-127
+Trace summary : 
+	InfinitiveSubject
+	reflexiveAccusative
+	activeVerbMorphology
+	CleftIobjectOne
+
+
+Solution : Tn0Vn1an2-128
+Trace summary : 
+	InfinitiveSubject
+	reflexiveAccusative
+	CleftIobjectTwo
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-129
+Trace summary : 
+	whObject
+	CanonicalSubject
+	activeVerbMorphology
+	CanonicalIobject
+
+
+Solution : Tn0Vn1an2-130
+Trace summary : 
+	whObject
+	CanonicalSubject
+	activeVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-131
+Trace summary : 
+	CliticIobject3
+	whObject
+	CanonicalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-132
+Trace summary : 
+	whObject
+	CanonicalSubject
+	activeVerbMorphology
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-133
+Trace summary : 
+	reflexiveDative
+	whObject
+	CanonicalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-134
+Trace summary : 
+	RelativeObject
+	CanonicalSubject
+	activeVerbMorphology
+	CanonicalIobject
+
+
+Solution : Tn0Vn1an2-135
+Trace summary : 
+	RelativeObject
+	CanonicalSubject
+	activeVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-136
+Trace summary : 
+	RelativeObject
+	CliticIobject3
+	CanonicalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-137
+Trace summary : 
+	RelativeObject
+	CanonicalSubject
+	activeVerbMorphology
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-138
+Trace summary : 
+	RelativeObject
+	reflexiveDative
+	CanonicalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-139
+Trace summary : 
+	CleftObject
+	CanonicalSubject
+	activeVerbMorphology
+	CanonicalIobject
+
+
+Solution : Tn0Vn1an2-140
+Trace summary : 
+	CleftObject
+	CanonicalSubject
+	activeVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-141
+Trace summary : 
+	CleftObject
+	CliticIobject3
+	CanonicalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-142
+Trace summary : 
+	CleftObject
+	CanonicalSubject
+	activeVerbMorphology
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-143
+Trace summary : 
+	CleftObject
+	reflexiveDative
+	CanonicalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-144
+Trace summary : 
+	CanonicalSubject
+	activeVerbMorphology
+	CanonicalIobject
+	CanonicalObject
+
+
+Solution : Tn0Vn1an2-145
+Trace summary : 
+	CanonicalSubject
+	activeVerbMorphology
+	CanonicalIobject
+	CanonicalObject
+
+
+Solution : Tn0Vn1an2-146
+Trace summary : 
+	CanonicalSubject
+	activeVerbMorphology
+	CanonicalObject
+	whIobject
+
+
+Solution : Tn0Vn1an2-147
+Trace summary : 
+	CanonicalSubject
+	activeVerbMorphology
+	CanonicalObject
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-148
+Trace summary : 
+	CliticIobject3
+	CanonicalSubject
+	activeVerbMorphology
+	CanonicalObject
+
+
+Solution : Tn0Vn1an2-149
+Trace summary : 
+	CanonicalSubject
+	activeVerbMorphology
+	CanonicalObject
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-150
+Trace summary : 
+	reflexiveDative
+	CanonicalSubject
+	activeVerbMorphology
+	CanonicalObject
+
+
+Solution : Tn0Vn1an2-151
+Trace summary : 
+	CanonicalSubject
+	activeVerbMorphology
+	RelativeIobject
+	CanonicalObject
+
+
+Solution : Tn0Vn1an2-152
+Trace summary : 
+	CanonicalSubject
+	activeVerbMorphology
+	CanonicalObject
+	CleftIobjectOne
+
+
+Solution : Tn0Vn1an2-153
+Trace summary : 
+	CleftIobjectTwo
+	CanonicalSubject
+	activeVerbMorphology
+	CanonicalObject
+
+
+Solution : Tn0Vn1an2-154
+Trace summary : 
+	CliticObjectII
+	CanonicalSubject
+	activeVerbMorphology
+	CanonicalIobject
+
+
+Solution : Tn0Vn1an2-155
+Trace summary : 
+	CliticObjectII
+	CanonicalSubject
+	activeVerbMorphology
+	whIobject
+
+
+Solution : Tn0Vn1an2-156
+Trace summary : 
+	CliticObjectII
+	CliticIobject3
+	CanonicalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-157
+Trace summary : 
+	CliticObjectII
+	CanonicalSubject
+	activeVerbMorphology
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-158
+Trace summary : 
+	CliticObjectII
+	CanonicalSubject
+	activeVerbMorphology
+	RelativeIobject
+
+
+Solution : Tn0Vn1an2-159
+Trace summary : 
+	CliticObjectII
+	CanonicalSubject
+	activeVerbMorphology
+	CleftIobjectOne
+
+
+Solution : Tn0Vn1an2-160
+Trace summary : 
+	CliticObjectII
+	CleftIobjectTwo
+	CanonicalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-161
+Trace summary : 
+	CliticObject3
+	CanonicalSubject
+	activeVerbMorphology
+	CanonicalIobject
+
+
+Solution : Tn0Vn1an2-162
+Trace summary : 
+	CliticObject3
+	CanonicalSubject
+	activeVerbMorphology
+	whIobject
+
+
+Solution : Tn0Vn1an2-163
+Trace summary : 
+	CliticObject3
+	CanonicalSubject
+	activeVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-164
+Trace summary : 
+	CliticIobject3
+	CliticObject3
+	CanonicalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-165
+Trace summary : 
+	CliticObject3
+	CanonicalSubject
+	activeVerbMorphology
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-166
+Trace summary : 
+	CliticObject3
+	reflexiveDative
+	CanonicalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-167
+Trace summary : 
+	CliticObject3
+	CanonicalSubject
+	activeVerbMorphology
+	RelativeIobject
+
+
+Solution : Tn0Vn1an2-168
+Trace summary : 
+	CliticObject3
+	CanonicalSubject
+	activeVerbMorphology
+	CleftIobjectOne
+
+
+Solution : Tn0Vn1an2-169
+Trace summary : 
+	CliticObject3
+	CleftIobjectTwo
+	CanonicalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-170
+Trace summary : 
+	reflexiveAccusative
+	CanonicalSubject
+	activeVerbMorphology
+	CanonicalIobject
+
+
+Solution : Tn0Vn1an2-171
+Trace summary : 
+	reflexiveAccusative
+	CanonicalSubject
+	activeVerbMorphology
+	whIobject
+
+
+Solution : Tn0Vn1an2-172
+Trace summary : 
+	CliticIobject3
+	reflexiveAccusative
+	CanonicalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-173
+Trace summary : 
+	reflexiveAccusative
+	CanonicalSubject
+	activeVerbMorphology
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-174
+Trace summary : 
+	reflexiveAccusative
+	CanonicalSubject
+	activeVerbMorphology
+	RelativeIobject
+
+
+Solution : Tn0Vn1an2-175
+Trace summary : 
+	reflexiveAccusative
+	CanonicalSubject
+	activeVerbMorphology
+	CleftIobjectOne
+
+
+Solution : Tn0Vn1an2-176
+Trace summary : 
+	reflexiveAccusative
+	CleftIobjectTwo
+	CanonicalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-177
+Trace summary : 
+	whObject
+	activeVerbMorphology
+	CliticSubject
+	CanonicalIobject
+
+
+Solution : Tn0Vn1an2-178
+Trace summary : 
+	whObject
+	activeVerbMorphology
+	CliticSubject
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-179
+Trace summary : 
+	CliticIobject3
+	whObject
+	activeVerbMorphology
+	CliticSubject
+
+
+Solution : Tn0Vn1an2-180
+Trace summary : 
+	whObject
+	activeVerbMorphology
+	CliticSubject
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-181
+Trace summary : 
+	reflexiveDative
+	whObject
+	activeVerbMorphology
+	CliticSubject
+
+
+Solution : Tn0Vn1an2-182
+Trace summary : 
+	RelativeObject
+	activeVerbMorphology
+	CliticSubject
+	CanonicalIobject
+
+
+Solution : Tn0Vn1an2-183
+Trace summary : 
+	RelativeObject
+	activeVerbMorphology
+	CliticSubject
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-184
+Trace summary : 
+	RelativeObject
+	CliticIobject3
+	activeVerbMorphology
+	CliticSubject
+
+
+Solution : Tn0Vn1an2-185
+Trace summary : 
+	RelativeObject
+	activeVerbMorphology
+	CliticSubject
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-186
+Trace summary : 
+	RelativeObject
+	reflexiveDative
+	activeVerbMorphology
+	CliticSubject
+
+
+Solution : Tn0Vn1an2-187
+Trace summary : 
+	CleftObject
+	activeVerbMorphology
+	CliticSubject
+	CanonicalIobject
+
+
+Solution : Tn0Vn1an2-188
+Trace summary : 
+	CleftObject
+	activeVerbMorphology
+	CliticSubject
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-189
+Trace summary : 
+	CleftObject
+	CliticIobject3
+	activeVerbMorphology
+	CliticSubject
+
+
+Solution : Tn0Vn1an2-190
+Trace summary : 
+	CleftObject
+	activeVerbMorphology
+	CliticSubject
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-191
+Trace summary : 
+	CleftObject
+	reflexiveDative
+	activeVerbMorphology
+	CliticSubject
+
+
+Solution : Tn0Vn1an2-192
+Trace summary : 
+	activeVerbMorphology
+	CliticSubject
+	CanonicalIobject
+	CanonicalObject
+
+
+Solution : Tn0Vn1an2-193
+Trace summary : 
+	activeVerbMorphology
+	CliticSubject
+	CanonicalIobject
+	CanonicalObject
+
+
+Solution : Tn0Vn1an2-194
+Trace summary : 
+	activeVerbMorphology
+	CliticSubject
+	CanonicalObject
+	whIobject
+
+
+Solution : Tn0Vn1an2-195
+Trace summary : 
+	activeVerbMorphology
+	CliticSubject
+	CanonicalObject
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-196
+Trace summary : 
+	CliticIobject3
+	activeVerbMorphology
+	CliticSubject
+	CanonicalObject
+
+
+Solution : Tn0Vn1an2-197
+Trace summary : 
+	activeVerbMorphology
+	CliticSubject
+	CanonicalObject
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-198
+Trace summary : 
+	reflexiveDative
+	activeVerbMorphology
+	CliticSubject
+	CanonicalObject
+
+
+Solution : Tn0Vn1an2-199
+Trace summary : 
+	activeVerbMorphology
+	CliticSubject
+	RelativeIobject
+	CanonicalObject
+
+
+Solution : Tn0Vn1an2-200
+Trace summary : 
+	activeVerbMorphology
+	CliticSubject
+	CanonicalObject
+	CleftIobjectOne
+
+
+Solution : Tn0Vn1an2-201
+Trace summary : 
+	CleftIobjectTwo
+	activeVerbMorphology
+	CliticSubject
+	CanonicalObject
+
+
+Solution : Tn0Vn1an2-202
+Trace summary : 
+	CliticObjectII
+	activeVerbMorphology
+	CliticSubject
+	CanonicalIobject
+
+
+Solution : Tn0Vn1an2-203
+Trace summary : 
+	CliticObjectII
+	activeVerbMorphology
+	CliticSubject
+	whIobject
+
+
+Solution : Tn0Vn1an2-204
+Trace summary : 
+	CliticObjectII
+	CliticIobject3
+	activeVerbMorphology
+	CliticSubject
+
+
+Solution : Tn0Vn1an2-205
+Trace summary : 
+	CliticObjectII
+	activeVerbMorphology
+	CliticSubject
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-206
+Trace summary : 
+	CliticObjectII
+	activeVerbMorphology
+	CliticSubject
+	RelativeIobject
+
+
+Solution : Tn0Vn1an2-207
+Trace summary : 
+	CliticObjectII
+	activeVerbMorphology
+	CliticSubject
+	CleftIobjectOne
+
+
+Solution : Tn0Vn1an2-208
+Trace summary : 
+	CliticObjectII
+	CleftIobjectTwo
+	activeVerbMorphology
+	CliticSubject
+
+
+Solution : Tn0Vn1an2-209
+Trace summary : 
+	CliticObject3
+	activeVerbMorphology
+	CliticSubject
+	CanonicalIobject
+
+
+Solution : Tn0Vn1an2-210
+Trace summary : 
+	CliticObject3
+	activeVerbMorphology
+	CliticSubject
+	whIobject
+
+
+Solution : Tn0Vn1an2-211
+Trace summary : 
+	CliticObject3
+	activeVerbMorphology
+	CliticSubject
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-212
+Trace summary : 
+	CliticIobject3
+	CliticObject3
+	activeVerbMorphology
+	CliticSubject
+
+
+Solution : Tn0Vn1an2-213
+Trace summary : 
+	CliticObject3
+	activeVerbMorphology
+	CliticSubject
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-214
+Trace summary : 
+	CliticObject3
+	reflexiveDative
+	activeVerbMorphology
+	CliticSubject
+
+
+Solution : Tn0Vn1an2-215
+Trace summary : 
+	CliticObject3
+	activeVerbMorphology
+	CliticSubject
+	RelativeIobject
+
+
+Solution : Tn0Vn1an2-216
+Trace summary : 
+	CliticObject3
+	activeVerbMorphology
+	CliticSubject
+	CleftIobjectOne
+
+
+Solution : Tn0Vn1an2-217
+Trace summary : 
+	CliticObject3
+	CleftIobjectTwo
+	activeVerbMorphology
+	CliticSubject
+
+
+Solution : Tn0Vn1an2-218
+Trace summary : 
+	reflexiveAccusative
+	activeVerbMorphology
+	CliticSubject
+	CanonicalIobject
+
+
+Solution : Tn0Vn1an2-219
+Trace summary : 
+	reflexiveAccusative
+	activeVerbMorphology
+	CliticSubject
+	whIobject
+
+
+Solution : Tn0Vn1an2-220
+Trace summary : 
+	CliticIobject3
+	reflexiveAccusative
+	activeVerbMorphology
+	CliticSubject
+
+
+Solution : Tn0Vn1an2-221
+Trace summary : 
+	reflexiveAccusative
+	activeVerbMorphology
+	CliticSubject
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-222
+Trace summary : 
+	reflexiveAccusative
+	activeVerbMorphology
+	CliticSubject
+	RelativeIobject
+
+
+Solution : Tn0Vn1an2-223
+Trace summary : 
+	reflexiveAccusative
+	activeVerbMorphology
+	CliticSubject
+	CleftIobjectOne
+
+
+Solution : Tn0Vn1an2-224
+Trace summary : 
+	reflexiveAccusative
+	CleftIobjectTwo
+	activeVerbMorphology
+	CliticSubject
+
+
+Solution : Tn0Vn1an2-225
+Trace summary : 
+	activeVerbMorphology
+	CanonicalIobject
+	CanonicalObject
+	whSubject
+
+
+Solution : Tn0Vn1an2-226
+Trace summary : 
+	activeVerbMorphology
+	CanonicalIobject
+	CanonicalObject
+	whSubject
+
+
+Solution : Tn0Vn1an2-227
+Trace summary : 
+	activeVerbMorphology
+	CanonicalObject
+	whSubject
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-228
+Trace summary : 
+	CliticIobject3
+	activeVerbMorphology
+	CanonicalObject
+	whSubject
+
+
+Solution : Tn0Vn1an2-229
+Trace summary : 
+	activeVerbMorphology
+	CanonicalObject
+	whSubject
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-230
+Trace summary : 
+	reflexiveDative
+	activeVerbMorphology
+	CanonicalObject
+	whSubject
+
+
+Solution : Tn0Vn1an2-231
+Trace summary : 
+	CliticObjectII
+	activeVerbMorphology
+	CanonicalIobject
+	whSubject
+
+
+Solution : Tn0Vn1an2-232
+Trace summary : 
+	CliticObjectII
+	CliticIobject3
+	activeVerbMorphology
+	whSubject
+
+
+Solution : Tn0Vn1an2-233
+Trace summary : 
+	CliticObjectII
+	activeVerbMorphology
+	whSubject
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-234
+Trace summary : 
+	CliticObject3
+	activeVerbMorphology
+	CanonicalIobject
+	whSubject
+
+
+Solution : Tn0Vn1an2-235
+Trace summary : 
+	CliticObject3
+	activeVerbMorphology
+	whSubject
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-236
+Trace summary : 
+	CliticIobject3
+	CliticObject3
+	activeVerbMorphology
+	whSubject
+
+
+Solution : Tn0Vn1an2-237
+Trace summary : 
+	CliticObject3
+	activeVerbMorphology
+	whSubject
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-238
+Trace summary : 
+	CliticObject3
+	reflexiveDative
+	activeVerbMorphology
+	whSubject
+
+
+Solution : Tn0Vn1an2-239
+Trace summary : 
+	reflexiveAccusative
+	activeVerbMorphology
+	CanonicalIobject
+	whSubject
+
+
+Solution : Tn0Vn1an2-240
+Trace summary : 
+	CliticIobject3
+	reflexiveAccusative
+	activeVerbMorphology
+	whSubject
+
+
+Solution : Tn0Vn1an2-241
+Trace summary : 
+	reflexiveAccusative
+	activeVerbMorphology
+	whSubject
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-242
+Trace summary : 
+	activeVerbMorphology
+	CanonicalIobject
+	CanonicalObject
+	RelativeSubject
+
+
+Solution : Tn0Vn1an2-243
+Trace summary : 
+	activeVerbMorphology
+	CanonicalIobject
+	CanonicalObject
+	RelativeSubject
+
+
+Solution : Tn0Vn1an2-244
+Trace summary : 
+	activeVerbMorphology
+	CanonicalObject
+	RelativeSubject
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-245
+Trace summary : 
+	CliticIobject3
+	activeVerbMorphology
+	CanonicalObject
+	RelativeSubject
+
+
+Solution : Tn0Vn1an2-246
+Trace summary : 
+	activeVerbMorphology
+	CanonicalObject
+	CliticLocative
+	RelativeSubject
+
+
+Solution : Tn0Vn1an2-247
+Trace summary : 
+	reflexiveDative
+	activeVerbMorphology
+	CanonicalObject
+	RelativeSubject
+
+
+Solution : Tn0Vn1an2-248
+Trace summary : 
+	CliticObjectII
+	activeVerbMorphology
+	CanonicalIobject
+	RelativeSubject
+
+
+Solution : Tn0Vn1an2-249
+Trace summary : 
+	CliticObjectII
+	CliticIobject3
+	activeVerbMorphology
+	RelativeSubject
+
+
+Solution : Tn0Vn1an2-250
+Trace summary : 
+	CliticObjectII
+	activeVerbMorphology
+	CliticLocative
+	RelativeSubject
+
+
+Solution : Tn0Vn1an2-251
+Trace summary : 
+	CliticObject3
+	activeVerbMorphology
+	CanonicalIobject
+	RelativeSubject
+
+
+Solution : Tn0Vn1an2-252
+Trace summary : 
+	CliticObject3
+	activeVerbMorphology
+	RelativeSubject
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-253
+Trace summary : 
+	CliticIobject3
+	CliticObject3
+	activeVerbMorphology
+	RelativeSubject
+
+
+Solution : Tn0Vn1an2-254
+Trace summary : 
+	CliticObject3
+	activeVerbMorphology
+	CliticLocative
+	RelativeSubject
+
+
+Solution : Tn0Vn1an2-255
+Trace summary : 
+	CliticObject3
+	reflexiveDative
+	activeVerbMorphology
+	RelativeSubject
+
+
+Solution : Tn0Vn1an2-256
+Trace summary : 
+	reflexiveAccusative
+	activeVerbMorphology
+	CanonicalIobject
+	RelativeSubject
+
+
+Solution : Tn0Vn1an2-257
+Trace summary : 
+	CliticIobject3
+	reflexiveAccusative
+	activeVerbMorphology
+	RelativeSubject
+
+
+Solution : Tn0Vn1an2-258
+Trace summary : 
+	reflexiveAccusative
+	activeVerbMorphology
+	CliticLocative
+	RelativeSubject
+
+
+Solution : Tn0Vn1an2-259
+Trace summary : 
+	CleftSubject
+	activeVerbMorphology
+	CanonicalIobject
+	CanonicalObject
+
+
+Solution : Tn0Vn1an2-260
+Trace summary : 
+	CleftSubject
+	activeVerbMorphology
+	CanonicalIobject
+	CanonicalObject
+
+
+Solution : Tn0Vn1an2-261
+Trace summary : 
+	CleftSubject
+	activeVerbMorphology
+	CanonicalObject
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-262
+Trace summary : 
+	CleftSubject
+	CliticIobject3
+	activeVerbMorphology
+	CanonicalObject
+
+
+Solution : Tn0Vn1an2-263
+Trace summary : 
+	CleftSubject
+	activeVerbMorphology
+	CanonicalObject
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-264
+Trace summary : 
+	CleftSubject
+	reflexiveDative
+	activeVerbMorphology
+	CanonicalObject
+
+
+Solution : Tn0Vn1an2-265
+Trace summary : 
+	CleftSubject
+	CliticObjectII
+	activeVerbMorphology
+	CanonicalIobject
+
+
+Solution : Tn0Vn1an2-266
+Trace summary : 
+	CleftSubject
+	CliticObjectII
+	CliticIobject3
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-267
+Trace summary : 
+	CleftSubject
+	CliticObjectII
+	activeVerbMorphology
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-268
+Trace summary : 
+	CleftSubject
+	CliticObject3
+	activeVerbMorphology
+	CanonicalIobject
+
+
+Solution : Tn0Vn1an2-269
+Trace summary : 
+	CleftSubject
+	CliticObject3
+	activeVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-270
+Trace summary : 
+	CleftSubject
+	CliticIobject3
+	CliticObject3
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-271
+Trace summary : 
+	CleftSubject
+	CliticObject3
+	activeVerbMorphology
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-272
+Trace summary : 
+	CleftSubject
+	CliticObject3
+	reflexiveDative
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-273
+Trace summary : 
+	CleftSubject
+	reflexiveAccusative
+	activeVerbMorphology
+	CanonicalIobject
+
+
+Solution : Tn0Vn1an2-274
+Trace summary : 
+	CleftSubject
+	CliticIobject3
+	reflexiveAccusative
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1an2-275
+Trace summary : 
+	CleftSubject
+	reflexiveAccusative
+	activeVerbMorphology
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-276
+Trace summary : 
+	ImperativeSubject
+	CanonicalCAgent
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-277
+Trace summary : 
+	ImperativeSubject
+	CanonicalCAgent
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-278
+Trace summary : 
+	ImperativeSubject
+	CanonicalCAgent
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-279
+Trace summary : 
+	ImperativeSubject
+	CanonicalCAgent
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-280
+Trace summary : 
+	CliticIobject3
+	ImperativeSubject
+	CanonicalCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-281
+Trace summary : 
+	CliticIobject3
+	ImperativeSubject
+	CanonicalCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-282
+Trace summary : 
+	ImperativeSubject
+	CanonicalCAgent
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-283
+Trace summary : 
+	ImperativeSubject
+	CanonicalCAgent
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-284
+Trace summary : 
+	reflexiveDative
+	ImperativeSubject
+	CanonicalCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-285
+Trace summary : 
+	reflexiveDative
+	ImperativeSubject
+	CanonicalCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-286
+Trace summary : 
+	InfinitiveSubject
+	whCAgent
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-287
+Trace summary : 
+	InfinitiveSubject
+	whCAgent
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-288
+Trace summary : 
+	InfinitiveSubject
+	whCAgent
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-289
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	whCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-290
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	whCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-291
+Trace summary : 
+	InfinitiveSubject
+	whCAgent
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-292
+Trace summary : 
+	InfinitiveSubject
+	whCAgent
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-293
+Trace summary : 
+	InfinitiveSubject
+	reflexiveDative
+	whCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-294
+Trace summary : 
+	InfinitiveSubject
+	reflexiveDative
+	whCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-295
+Trace summary : 
+	InfinitiveSubject
+	RelativeCAgent
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-296
+Trace summary : 
+	InfinitiveSubject
+	RelativeCAgent
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-297
+Trace summary : 
+	InfinitiveSubject
+	RelativeCAgent
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-298
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	RelativeCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-299
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	RelativeCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-300
+Trace summary : 
+	InfinitiveSubject
+	RelativeCAgent
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-301
+Trace summary : 
+	InfinitiveSubject
+	RelativeCAgent
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-302
+Trace summary : 
+	InfinitiveSubject
+	reflexiveDative
+	RelativeCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-303
+Trace summary : 
+	InfinitiveSubject
+	reflexiveDative
+	RelativeCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-304
+Trace summary : 
+	InfinitiveSubject
+	CanonicalIobject
+	CleftCAgentOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-305
+Trace summary : 
+	InfinitiveSubject
+	CleftCAgentOne
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-306
+Trace summary : 
+	InfinitiveSubject
+	CleftCAgentOne
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-307
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	CleftCAgentOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-308
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	CleftCAgentOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-309
+Trace summary : 
+	InfinitiveSubject
+	CleftCAgentOne
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-310
+Trace summary : 
+	InfinitiveSubject
+	CleftCAgentOne
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-311
+Trace summary : 
+	InfinitiveSubject
+	reflexiveDative
+	CleftCAgentOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-312
+Trace summary : 
+	InfinitiveSubject
+	reflexiveDative
+	CleftCAgentOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-313
+Trace summary : 
+	InfinitiveSubject
+	CanonicalIobject
+	CleftCAgentTwo
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-314
+Trace summary : 
+	InfinitiveSubject
+	CleftCAgentTwo
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-315
+Trace summary : 
+	InfinitiveSubject
+	CleftCAgentTwo
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-316
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	CleftCAgentTwo
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-317
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	CleftCAgentTwo
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-318
+Trace summary : 
+	InfinitiveSubject
+	CleftCAgentTwo
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-319
+Trace summary : 
+	InfinitiveSubject
+	CleftCAgentTwo
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-320
+Trace summary : 
+	InfinitiveSubject
+	reflexiveDative
+	CleftCAgentTwo
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-321
+Trace summary : 
+	InfinitiveSubject
+	reflexiveDative
+	CleftCAgentTwo
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-322
+Trace summary : 
+	InfinitiveSubject
+	CanonicalCAgent
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-323
+Trace summary : 
+	InfinitiveSubject
+	CanonicalCAgent
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-324
+Trace summary : 
+	InfinitiveSubject
+	CanonicalCAgent
+	whIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-325
+Trace summary : 
+	InfinitiveSubject
+	CanonicalCAgent
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-326
+Trace summary : 
+	InfinitiveSubject
+	CanonicalCAgent
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-327
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	CanonicalCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-328
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	CanonicalCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-329
+Trace summary : 
+	InfinitiveSubject
+	CanonicalCAgent
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-330
+Trace summary : 
+	InfinitiveSubject
+	CanonicalCAgent
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-331
+Trace summary : 
+	InfinitiveSubject
+	reflexiveDative
+	CanonicalCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-332
+Trace summary : 
+	InfinitiveSubject
+	reflexiveDative
+	CanonicalCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-333
+Trace summary : 
+	InfinitiveSubject
+	CanonicalCAgent
+	RelativeIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-334
+Trace summary : 
+	InfinitiveSubject
+	CanonicalCAgent
+	CleftIobjectOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-335
+Trace summary : 
+	InfinitiveSubject
+	CleftIobjectTwo
+	CanonicalCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-336
+Trace summary : 
+	whCAgent
+	CanonicalSubject
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-337
+Trace summary : 
+	whCAgent
+	CanonicalSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-338
+Trace summary : 
+	whCAgent
+	CanonicalSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-339
+Trace summary : 
+	CliticIobject3
+	whCAgent
+	CanonicalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-340
+Trace summary : 
+	CliticIobject3
+	whCAgent
+	CanonicalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-341
+Trace summary : 
+	whCAgent
+	CanonicalSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-342
+Trace summary : 
+	whCAgent
+	CanonicalSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-343
+Trace summary : 
+	reflexiveDative
+	whCAgent
+	CanonicalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-344
+Trace summary : 
+	reflexiveDative
+	whCAgent
+	CanonicalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-345
+Trace summary : 
+	CanonicalSubject
+	RelativeCAgent
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-346
+Trace summary : 
+	CanonicalSubject
+	RelativeCAgent
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-347
+Trace summary : 
+	CanonicalSubject
+	RelativeCAgent
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-348
+Trace summary : 
+	CliticIobject3
+	CanonicalSubject
+	RelativeCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-349
+Trace summary : 
+	CliticIobject3
+	CanonicalSubject
+	RelativeCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-350
+Trace summary : 
+	CanonicalSubject
+	RelativeCAgent
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-351
+Trace summary : 
+	CanonicalSubject
+	RelativeCAgent
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-352
+Trace summary : 
+	reflexiveDative
+	CanonicalSubject
+	RelativeCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-353
+Trace summary : 
+	reflexiveDative
+	CanonicalSubject
+	RelativeCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-354
+Trace summary : 
+	CanonicalSubject
+	CanonicalIobject
+	CleftCAgentOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-355
+Trace summary : 
+	CanonicalSubject
+	CleftCAgentOne
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-356
+Trace summary : 
+	CanonicalSubject
+	CleftCAgentOne
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-357
+Trace summary : 
+	CliticIobject3
+	CanonicalSubject
+	CleftCAgentOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-358
+Trace summary : 
+	CliticIobject3
+	CanonicalSubject
+	CleftCAgentOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-359
+Trace summary : 
+	CanonicalSubject
+	CleftCAgentOne
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-360
+Trace summary : 
+	CanonicalSubject
+	CleftCAgentOne
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-361
+Trace summary : 
+	reflexiveDative
+	CanonicalSubject
+	CleftCAgentOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-362
+Trace summary : 
+	reflexiveDative
+	CanonicalSubject
+	CleftCAgentOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-363
+Trace summary : 
+	CanonicalSubject
+	CanonicalIobject
+	CleftCAgentTwo
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-364
+Trace summary : 
+	CanonicalSubject
+	CleftCAgentTwo
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-365
+Trace summary : 
+	CanonicalSubject
+	CleftCAgentTwo
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-366
+Trace summary : 
+	CliticIobject3
+	CanonicalSubject
+	CleftCAgentTwo
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-367
+Trace summary : 
+	CliticIobject3
+	CanonicalSubject
+	CleftCAgentTwo
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-368
+Trace summary : 
+	CanonicalSubject
+	CleftCAgentTwo
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-369
+Trace summary : 
+	CanonicalSubject
+	CleftCAgentTwo
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-370
+Trace summary : 
+	reflexiveDative
+	CanonicalSubject
+	CleftCAgentTwo
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-371
+Trace summary : 
+	reflexiveDative
+	CanonicalSubject
+	CleftCAgentTwo
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-372
+Trace summary : 
+	CanonicalCAgent
+	CanonicalSubject
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-373
+Trace summary : 
+	CanonicalCAgent
+	CanonicalSubject
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-374
+Trace summary : 
+	CanonicalCAgent
+	CanonicalSubject
+	whIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-375
+Trace summary : 
+	CanonicalCAgent
+	CanonicalSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-376
+Trace summary : 
+	CanonicalCAgent
+	CanonicalSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-377
+Trace summary : 
+	CliticIobject3
+	CanonicalCAgent
+	CanonicalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-378
+Trace summary : 
+	CliticIobject3
+	CanonicalCAgent
+	CanonicalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-379
+Trace summary : 
+	CanonicalCAgent
+	CanonicalSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-380
+Trace summary : 
+	CanonicalCAgent
+	CanonicalSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-381
+Trace summary : 
+	reflexiveDative
+	CanonicalCAgent
+	CanonicalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-382
+Trace summary : 
+	reflexiveDative
+	CanonicalCAgent
+	CanonicalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-383
+Trace summary : 
+	CanonicalCAgent
+	CanonicalSubject
+	RelativeIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-384
+Trace summary : 
+	CanonicalCAgent
+	CanonicalSubject
+	CleftIobjectOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-385
+Trace summary : 
+	CleftIobjectTwo
+	CanonicalCAgent
+	CanonicalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-386
+Trace summary : 
+	whCAgent
+	CliticSubject
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-387
+Trace summary : 
+	whCAgent
+	CliticSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-388
+Trace summary : 
+	whCAgent
+	CliticSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-389
+Trace summary : 
+	CliticIobject3
+	whCAgent
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-390
+Trace summary : 
+	CliticIobject3
+	whCAgent
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-391
+Trace summary : 
+	whCAgent
+	CliticSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-392
+Trace summary : 
+	whCAgent
+	CliticSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-393
+Trace summary : 
+	reflexiveDative
+	whCAgent
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-394
+Trace summary : 
+	reflexiveDative
+	whCAgent
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-395
+Trace summary : 
+	RelativeCAgent
+	CliticSubject
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-396
+Trace summary : 
+	RelativeCAgent
+	CliticSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-397
+Trace summary : 
+	RelativeCAgent
+	CliticSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-398
+Trace summary : 
+	CliticIobject3
+	RelativeCAgent
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-399
+Trace summary : 
+	CliticIobject3
+	RelativeCAgent
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-400
+Trace summary : 
+	RelativeCAgent
+	CliticSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-401
+Trace summary : 
+	RelativeCAgent
+	CliticSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-402
+Trace summary : 
+	reflexiveDative
+	RelativeCAgent
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-403
+Trace summary : 
+	reflexiveDative
+	RelativeCAgent
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-404
+Trace summary : 
+	CliticSubject
+	CanonicalIobject
+	CleftCAgentOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-405
+Trace summary : 
+	CliticSubject
+	CleftCAgentOne
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-406
+Trace summary : 
+	CliticSubject
+	CleftCAgentOne
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-407
+Trace summary : 
+	CliticIobject3
+	CliticSubject
+	CleftCAgentOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-408
+Trace summary : 
+	CliticIobject3
+	CliticSubject
+	CleftCAgentOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-409
+Trace summary : 
+	CliticSubject
+	CleftCAgentOne
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-410
+Trace summary : 
+	CliticSubject
+	CleftCAgentOne
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-411
+Trace summary : 
+	reflexiveDative
+	CliticSubject
+	CleftCAgentOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-412
+Trace summary : 
+	reflexiveDative
+	CliticSubject
+	CleftCAgentOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-413
+Trace summary : 
+	CliticSubject
+	CanonicalIobject
+	CleftCAgentTwo
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-414
+Trace summary : 
+	CliticSubject
+	CleftCAgentTwo
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-415
+Trace summary : 
+	CliticSubject
+	CleftCAgentTwo
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-416
+Trace summary : 
+	CliticIobject3
+	CliticSubject
+	CleftCAgentTwo
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-417
+Trace summary : 
+	CliticIobject3
+	CliticSubject
+	CleftCAgentTwo
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-418
+Trace summary : 
+	CliticSubject
+	CleftCAgentTwo
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-419
+Trace summary : 
+	CliticSubject
+	CleftCAgentTwo
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-420
+Trace summary : 
+	reflexiveDative
+	CliticSubject
+	CleftCAgentTwo
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-421
+Trace summary : 
+	reflexiveDative
+	CliticSubject
+	CleftCAgentTwo
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-422
+Trace summary : 
+	CanonicalCAgent
+	CliticSubject
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-423
+Trace summary : 
+	CanonicalCAgent
+	CliticSubject
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-424
+Trace summary : 
+	CanonicalCAgent
+	CliticSubject
+	whIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-425
+Trace summary : 
+	CanonicalCAgent
+	CliticSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-426
+Trace summary : 
+	CanonicalCAgent
+	CliticSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-427
+Trace summary : 
+	CliticIobject3
+	CanonicalCAgent
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-428
+Trace summary : 
+	CliticIobject3
+	CanonicalCAgent
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-429
+Trace summary : 
+	CanonicalCAgent
+	CliticSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-430
+Trace summary : 
+	CanonicalCAgent
+	CliticSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-431
+Trace summary : 
+	reflexiveDative
+	CanonicalCAgent
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-432
+Trace summary : 
+	reflexiveDative
+	CanonicalCAgent
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-433
+Trace summary : 
+	CanonicalCAgent
+	CliticSubject
+	RelativeIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-434
+Trace summary : 
+	CanonicalCAgent
+	CliticSubject
+	CleftIobjectOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-435
+Trace summary : 
+	CleftIobjectTwo
+	CanonicalCAgent
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-436
+Trace summary : 
+	CanonicalCAgent
+	CanonicalIobject
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-437
+Trace summary : 
+	CanonicalCAgent
+	CanonicalIobject
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-438
+Trace summary : 
+	CanonicalCAgent
+	whSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-439
+Trace summary : 
+	CanonicalCAgent
+	whSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-440
+Trace summary : 
+	CliticIobject3
+	CanonicalCAgent
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-441
+Trace summary : 
+	CliticIobject3
+	CanonicalCAgent
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-442
+Trace summary : 
+	CanonicalCAgent
+	whSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-443
+Trace summary : 
+	CanonicalCAgent
+	whSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-444
+Trace summary : 
+	reflexiveDative
+	CanonicalCAgent
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-445
+Trace summary : 
+	reflexiveDative
+	CanonicalCAgent
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-446
+Trace summary : 
+	CanonicalCAgent
+	CanonicalIobject
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-447
+Trace summary : 
+	CanonicalCAgent
+	CanonicalIobject
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-448
+Trace summary : 
+	CanonicalCAgent
+	RelativeSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-449
+Trace summary : 
+	CanonicalCAgent
+	RelativeSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-450
+Trace summary : 
+	CliticIobject3
+	CanonicalCAgent
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-451
+Trace summary : 
+	CliticIobject3
+	CanonicalCAgent
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-452
+Trace summary : 
+	CanonicalCAgent
+	CliticLocative
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-453
+Trace summary : 
+	CanonicalCAgent
+	CliticLocative
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-454
+Trace summary : 
+	reflexiveDative
+	CanonicalCAgent
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-455
+Trace summary : 
+	reflexiveDative
+	CanonicalCAgent
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-456
+Trace summary : 
+	CleftSubject
+	CanonicalCAgent
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-457
+Trace summary : 
+	CleftSubject
+	CanonicalCAgent
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-458
+Trace summary : 
+	CleftSubject
+	CanonicalCAgent
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-459
+Trace summary : 
+	CleftSubject
+	CanonicalCAgent
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-460
+Trace summary : 
+	CleftSubject
+	CliticIobject3
+	CanonicalCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-461
+Trace summary : 
+	CleftSubject
+	CliticIobject3
+	CanonicalCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-462
+Trace summary : 
+	CleftSubject
+	CanonicalCAgent
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-463
+Trace summary : 
+	CleftSubject
+	CanonicalCAgent
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-464
+Trace summary : 
+	CleftSubject
+	reflexiveDative
+	CanonicalCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-465
+Trace summary : 
+	CleftSubject
+	reflexiveDative
+	CanonicalCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-466
+Trace summary : 
+	ImperativeSubject
+	CanonicalGenitive
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-467
+Trace summary : 
+	ImperativeSubject
+	CanonicalGenitive
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-468
+Trace summary : 
+	ImperativeSubject
+	CanonicalGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-469
+Trace summary : 
+	ImperativeSubject
+	CanonicalGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-470
+Trace summary : 
+	CliticIobject3
+	ImperativeSubject
+	CanonicalGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-471
+Trace summary : 
+	CliticIobject3
+	ImperativeSubject
+	CanonicalGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-472
+Trace summary : 
+	ImperativeSubject
+	CanonicalGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-473
+Trace summary : 
+	ImperativeSubject
+	CanonicalGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-474
+Trace summary : 
+	reflexiveDative
+	ImperativeSubject
+	CanonicalGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-475
+Trace summary : 
+	reflexiveDative
+	ImperativeSubject
+	CanonicalGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-476
+Trace summary : 
+	ImperativeSubject
+	CanonicalIobject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-477
+Trace summary : 
+	ImperativeSubject
+	CanonicalIobject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-478
+Trace summary : 
+	ImperativeSubject
+	CliticGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-479
+Trace summary : 
+	ImperativeSubject
+	CliticGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-480
+Trace summary : 
+	ImperativeSubject
+	CliticGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-481
+Trace summary : 
+	ImperativeSubject
+	CliticGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-482
+Trace summary : 
+	CliticIobject3
+	ImperativeSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-483
+Trace summary : 
+	CliticIobject3
+	ImperativeSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-484
+Trace summary : 
+	CliticIobject3
+	ImperativeSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-485
+Trace summary : 
+	CliticIobject3
+	ImperativeSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-486
+Trace summary : 
+	ImperativeSubject
+	CliticGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-487
+Trace summary : 
+	ImperativeSubject
+	CliticGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-488
+Trace summary : 
+	ImperativeSubject
+	CliticGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-489
+Trace summary : 
+	ImperativeSubject
+	CliticGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-490
+Trace summary : 
+	reflexiveDative
+	ImperativeSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-491
+Trace summary : 
+	reflexiveDative
+	ImperativeSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-492
+Trace summary : 
+	reflexiveDative
+	ImperativeSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-493
+Trace summary : 
+	reflexiveDative
+	ImperativeSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-494
+Trace summary : 
+	InfinitiveSubject
+	CanonicalGenitive
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-495
+Trace summary : 
+	InfinitiveSubject
+	CanonicalGenitive
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-496
+Trace summary : 
+	InfinitiveSubject
+	CanonicalGenitive
+	whIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-497
+Trace summary : 
+	InfinitiveSubject
+	CanonicalGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-498
+Trace summary : 
+	InfinitiveSubject
+	CanonicalGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-499
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	CanonicalGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-500
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	CanonicalGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-501
+Trace summary : 
+	InfinitiveSubject
+	CanonicalGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-502
+Trace summary : 
+	InfinitiveSubject
+	CanonicalGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-503
+Trace summary : 
+	InfinitiveSubject
+	reflexiveDative
+	CanonicalGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-504
+Trace summary : 
+	InfinitiveSubject
+	reflexiveDative
+	CanonicalGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-505
+Trace summary : 
+	InfinitiveSubject
+	CanonicalGenitive
+	RelativeIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-506
+Trace summary : 
+	InfinitiveSubject
+	CanonicalGenitive
+	CleftIobjectOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-507
+Trace summary : 
+	InfinitiveSubject
+	CleftIobjectTwo
+	CanonicalGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-508
+Trace summary : 
+	InfinitiveSubject
+	CanonicalIobject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-509
+Trace summary : 
+	InfinitiveSubject
+	CanonicalIobject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-510
+Trace summary : 
+	InfinitiveSubject
+	CliticGenitive
+	whIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-511
+Trace summary : 
+	InfinitiveSubject
+	CliticGenitive
+	whIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-512
+Trace summary : 
+	InfinitiveSubject
+	CliticGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-513
+Trace summary : 
+	InfinitiveSubject
+	CliticGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-514
+Trace summary : 
+	InfinitiveSubject
+	CliticGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-515
+Trace summary : 
+	InfinitiveSubject
+	CliticGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-516
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-517
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-518
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-519
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-520
+Trace summary : 
+	InfinitiveSubject
+	CliticGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-521
+Trace summary : 
+	InfinitiveSubject
+	CliticGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-522
+Trace summary : 
+	InfinitiveSubject
+	CliticGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-523
+Trace summary : 
+	InfinitiveSubject
+	CliticGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-524
+Trace summary : 
+	InfinitiveSubject
+	reflexiveDative
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-525
+Trace summary : 
+	InfinitiveSubject
+	reflexiveDative
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-526
+Trace summary : 
+	InfinitiveSubject
+	reflexiveDative
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-527
+Trace summary : 
+	InfinitiveSubject
+	reflexiveDative
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-528
+Trace summary : 
+	InfinitiveSubject
+	CliticGenitive
+	RelativeIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-529
+Trace summary : 
+	InfinitiveSubject
+	CliticGenitive
+	RelativeIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-530
+Trace summary : 
+	InfinitiveSubject
+	CliticGenitive
+	CleftIobjectOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-531
+Trace summary : 
+	InfinitiveSubject
+	CliticGenitive
+	CleftIobjectOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-532
+Trace summary : 
+	InfinitiveSubject
+	CleftIobjectTwo
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-533
+Trace summary : 
+	InfinitiveSubject
+	CleftIobjectTwo
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-534
+Trace summary : 
+	InfinitiveSubject
+	CanonicalIobject
+	whGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-535
+Trace summary : 
+	InfinitiveSubject
+	whGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-536
+Trace summary : 
+	InfinitiveSubject
+	whGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-537
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	whGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-538
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	whGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-539
+Trace summary : 
+	InfinitiveSubject
+	whGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-540
+Trace summary : 
+	InfinitiveSubject
+	whGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-541
+Trace summary : 
+	InfinitiveSubject
+	reflexiveDative
+	whGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-542
+Trace summary : 
+	InfinitiveSubject
+	reflexiveDative
+	whGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-543
+Trace summary : 
+	InfinitiveSubject
+	CanonicalIobject
+	RelativeGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-544
+Trace summary : 
+	InfinitiveSubject
+	RelativeGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-545
+Trace summary : 
+	InfinitiveSubject
+	RelativeGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-546
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	RelativeGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-547
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	RelativeGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-548
+Trace summary : 
+	InfinitiveSubject
+	RelativeGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-549
+Trace summary : 
+	InfinitiveSubject
+	RelativeGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-550
+Trace summary : 
+	InfinitiveSubject
+	reflexiveDative
+	RelativeGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-551
+Trace summary : 
+	InfinitiveSubject
+	reflexiveDative
+	RelativeGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-552
+Trace summary : 
+	InfinitiveSubject
+	CanonicalIobject
+	CleftDont
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-553
+Trace summary : 
+	InfinitiveSubject
+	CleftDont
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-554
+Trace summary : 
+	InfinitiveSubject
+	CleftDont
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-555
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	CleftDont
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-556
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	CleftDont
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-557
+Trace summary : 
+	InfinitiveSubject
+	CliticLocative
+	CleftDont
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-558
+Trace summary : 
+	InfinitiveSubject
+	CliticLocative
+	CleftDont
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-559
+Trace summary : 
+	InfinitiveSubject
+	reflexiveDative
+	CleftDont
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-560
+Trace summary : 
+	InfinitiveSubject
+	reflexiveDative
+	CleftDont
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-561
+Trace summary : 
+	InfinitiveSubject
+	CanonicalIobject
+	CleftGenitiveOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-562
+Trace summary : 
+	InfinitiveSubject
+	CleftGenitiveOne
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-563
+Trace summary : 
+	InfinitiveSubject
+	CleftGenitiveOne
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-564
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	CleftGenitiveOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-565
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	CleftGenitiveOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-566
+Trace summary : 
+	InfinitiveSubject
+	CleftGenitiveOne
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-567
+Trace summary : 
+	InfinitiveSubject
+	CleftGenitiveOne
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-568
+Trace summary : 
+	InfinitiveSubject
+	reflexiveDative
+	CleftGenitiveOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-569
+Trace summary : 
+	InfinitiveSubject
+	reflexiveDative
+	CleftGenitiveOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-570
+Trace summary : 
+	CleftGenitiveTwo
+	InfinitiveSubject
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-571
+Trace summary : 
+	CleftGenitiveTwo
+	InfinitiveSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-572
+Trace summary : 
+	CleftGenitiveTwo
+	InfinitiveSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-573
+Trace summary : 
+	CleftGenitiveTwo
+	InfinitiveSubject
+	CliticIobject3
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-574
+Trace summary : 
+	CleftGenitiveTwo
+	InfinitiveSubject
+	CliticIobject3
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-575
+Trace summary : 
+	CleftGenitiveTwo
+	InfinitiveSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-576
+Trace summary : 
+	CleftGenitiveTwo
+	InfinitiveSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-577
+Trace summary : 
+	CleftGenitiveTwo
+	InfinitiveSubject
+	reflexiveDative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-578
+Trace summary : 
+	CleftGenitiveTwo
+	InfinitiveSubject
+	reflexiveDative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-579
+Trace summary : 
+	CanonicalSubject
+	CanonicalGenitive
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-580
+Trace summary : 
+	CanonicalSubject
+	CanonicalGenitive
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-581
+Trace summary : 
+	CanonicalSubject
+	CanonicalGenitive
+	whIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-582
+Trace summary : 
+	CanonicalSubject
+	CanonicalGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-583
+Trace summary : 
+	CanonicalSubject
+	CanonicalGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-584
+Trace summary : 
+	CliticIobject3
+	CanonicalSubject
+	CanonicalGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-585
+Trace summary : 
+	CliticIobject3
+	CanonicalSubject
+	CanonicalGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-586
+Trace summary : 
+	CanonicalSubject
+	CanonicalGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-587
+Trace summary : 
+	CanonicalSubject
+	CanonicalGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-588
+Trace summary : 
+	reflexiveDative
+	CanonicalSubject
+	CanonicalGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-589
+Trace summary : 
+	reflexiveDative
+	CanonicalSubject
+	CanonicalGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-590
+Trace summary : 
+	CanonicalSubject
+	CanonicalGenitive
+	RelativeIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-591
+Trace summary : 
+	CanonicalSubject
+	CanonicalGenitive
+	CleftIobjectOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-592
+Trace summary : 
+	CleftIobjectTwo
+	CanonicalSubject
+	CanonicalGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-593
+Trace summary : 
+	CanonicalSubject
+	CanonicalIobject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-594
+Trace summary : 
+	CanonicalSubject
+	CanonicalIobject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-595
+Trace summary : 
+	CanonicalSubject
+	CliticGenitive
+	whIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-596
+Trace summary : 
+	CanonicalSubject
+	CliticGenitive
+	whIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-597
+Trace summary : 
+	CanonicalSubject
+	CliticGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-598
+Trace summary : 
+	CanonicalSubject
+	CliticGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-599
+Trace summary : 
+	CanonicalSubject
+	CliticGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-600
+Trace summary : 
+	CanonicalSubject
+	CliticGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-601
+Trace summary : 
+	CliticIobject3
+	CanonicalSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-602
+Trace summary : 
+	CliticIobject3
+	CanonicalSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-603
+Trace summary : 
+	CliticIobject3
+	CanonicalSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-604
+Trace summary : 
+	CliticIobject3
+	CanonicalSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-605
+Trace summary : 
+	CanonicalSubject
+	CliticGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-606
+Trace summary : 
+	CanonicalSubject
+	CliticGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-607
+Trace summary : 
+	CanonicalSubject
+	CliticGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-608
+Trace summary : 
+	CanonicalSubject
+	CliticGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-609
+Trace summary : 
+	reflexiveDative
+	CanonicalSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-610
+Trace summary : 
+	reflexiveDative
+	CanonicalSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-611
+Trace summary : 
+	reflexiveDative
+	CanonicalSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-612
+Trace summary : 
+	reflexiveDative
+	CanonicalSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-613
+Trace summary : 
+	CanonicalSubject
+	CliticGenitive
+	RelativeIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-614
+Trace summary : 
+	CanonicalSubject
+	CliticGenitive
+	RelativeIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-615
+Trace summary : 
+	CanonicalSubject
+	CliticGenitive
+	CleftIobjectOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-616
+Trace summary : 
+	CanonicalSubject
+	CliticGenitive
+	CleftIobjectOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-617
+Trace summary : 
+	CleftIobjectTwo
+	CanonicalSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-618
+Trace summary : 
+	CleftIobjectTwo
+	CanonicalSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-619
+Trace summary : 
+	CanonicalSubject
+	CanonicalIobject
+	whGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-620
+Trace summary : 
+	CanonicalSubject
+	whGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-621
+Trace summary : 
+	CanonicalSubject
+	whGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-622
+Trace summary : 
+	CliticIobject3
+	CanonicalSubject
+	whGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-623
+Trace summary : 
+	CliticIobject3
+	CanonicalSubject
+	whGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-624
+Trace summary : 
+	CanonicalSubject
+	whGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-625
+Trace summary : 
+	CanonicalSubject
+	whGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-626
+Trace summary : 
+	reflexiveDative
+	CanonicalSubject
+	whGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-627
+Trace summary : 
+	reflexiveDative
+	CanonicalSubject
+	whGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-628
+Trace summary : 
+	CanonicalSubject
+	CanonicalIobject
+	RelativeGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-629
+Trace summary : 
+	CanonicalSubject
+	RelativeGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-630
+Trace summary : 
+	CanonicalSubject
+	RelativeGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-631
+Trace summary : 
+	CliticIobject3
+	CanonicalSubject
+	RelativeGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-632
+Trace summary : 
+	CliticIobject3
+	CanonicalSubject
+	RelativeGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-633
+Trace summary : 
+	CanonicalSubject
+	RelativeGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-634
+Trace summary : 
+	CanonicalSubject
+	RelativeGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-635
+Trace summary : 
+	reflexiveDative
+	CanonicalSubject
+	RelativeGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-636
+Trace summary : 
+	reflexiveDative
+	CanonicalSubject
+	RelativeGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-637
+Trace summary : 
+	CanonicalSubject
+	CanonicalIobject
+	CleftDont
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-638
+Trace summary : 
+	CanonicalSubject
+	CleftDont
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-639
+Trace summary : 
+	CanonicalSubject
+	CleftDont
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-640
+Trace summary : 
+	CliticIobject3
+	CanonicalSubject
+	CleftDont
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-641
+Trace summary : 
+	CliticIobject3
+	CanonicalSubject
+	CleftDont
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-642
+Trace summary : 
+	CanonicalSubject
+	CliticLocative
+	CleftDont
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-643
+Trace summary : 
+	CanonicalSubject
+	CliticLocative
+	CleftDont
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-644
+Trace summary : 
+	reflexiveDative
+	CanonicalSubject
+	CleftDont
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-645
+Trace summary : 
+	reflexiveDative
+	CanonicalSubject
+	CleftDont
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-646
+Trace summary : 
+	CanonicalSubject
+	CanonicalIobject
+	CleftGenitiveOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-647
+Trace summary : 
+	CanonicalSubject
+	CleftGenitiveOne
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-648
+Trace summary : 
+	CanonicalSubject
+	CleftGenitiveOne
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-649
+Trace summary : 
+	CliticIobject3
+	CanonicalSubject
+	CleftGenitiveOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-650
+Trace summary : 
+	CliticIobject3
+	CanonicalSubject
+	CleftGenitiveOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-651
+Trace summary : 
+	CanonicalSubject
+	CleftGenitiveOne
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-652
+Trace summary : 
+	CanonicalSubject
+	CleftGenitiveOne
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-653
+Trace summary : 
+	reflexiveDative
+	CanonicalSubject
+	CleftGenitiveOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-654
+Trace summary : 
+	reflexiveDative
+	CanonicalSubject
+	CleftGenitiveOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-655
+Trace summary : 
+	CleftGenitiveTwo
+	CanonicalSubject
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-656
+Trace summary : 
+	CleftGenitiveTwo
+	CanonicalSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-657
+Trace summary : 
+	CleftGenitiveTwo
+	CanonicalSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-658
+Trace summary : 
+	CleftGenitiveTwo
+	CliticIobject3
+	CanonicalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-659
+Trace summary : 
+	CleftGenitiveTwo
+	CliticIobject3
+	CanonicalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-660
+Trace summary : 
+	CleftGenitiveTwo
+	CanonicalSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-661
+Trace summary : 
+	CleftGenitiveTwo
+	CanonicalSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-662
+Trace summary : 
+	CleftGenitiveTwo
+	reflexiveDative
+	CanonicalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-663
+Trace summary : 
+	CleftGenitiveTwo
+	reflexiveDative
+	CanonicalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-664
+Trace summary : 
+	CanonicalGenitive
+	CliticSubject
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-665
+Trace summary : 
+	CanonicalGenitive
+	CliticSubject
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-666
+Trace summary : 
+	CanonicalGenitive
+	CliticSubject
+	whIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-667
+Trace summary : 
+	CanonicalGenitive
+	CliticSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-668
+Trace summary : 
+	CanonicalGenitive
+	CliticSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-669
+Trace summary : 
+	CliticIobject3
+	CanonicalGenitive
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-670
+Trace summary : 
+	CliticIobject3
+	CanonicalGenitive
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-671
+Trace summary : 
+	CanonicalGenitive
+	CliticSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-672
+Trace summary : 
+	CanonicalGenitive
+	CliticSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-673
+Trace summary : 
+	reflexiveDative
+	CanonicalGenitive
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-674
+Trace summary : 
+	reflexiveDative
+	CanonicalGenitive
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-675
+Trace summary : 
+	CanonicalGenitive
+	CliticSubject
+	RelativeIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-676
+Trace summary : 
+	CanonicalGenitive
+	CliticSubject
+	CleftIobjectOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-677
+Trace summary : 
+	CleftIobjectTwo
+	CanonicalGenitive
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-678
+Trace summary : 
+	CliticSubject
+	CanonicalIobject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-679
+Trace summary : 
+	CliticSubject
+	CanonicalIobject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-680
+Trace summary : 
+	CliticSubject
+	CliticGenitive
+	whIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-681
+Trace summary : 
+	CliticSubject
+	CliticGenitive
+	whIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-682
+Trace summary : 
+	CliticSubject
+	CliticGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-683
+Trace summary : 
+	CliticSubject
+	CliticGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-684
+Trace summary : 
+	CliticSubject
+	CliticGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-685
+Trace summary : 
+	CliticSubject
+	CliticGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-686
+Trace summary : 
+	CliticIobject3
+	CliticSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-687
+Trace summary : 
+	CliticIobject3
+	CliticSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-688
+Trace summary : 
+	CliticIobject3
+	CliticSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-689
+Trace summary : 
+	CliticIobject3
+	CliticSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-690
+Trace summary : 
+	CliticSubject
+	CliticGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-691
+Trace summary : 
+	CliticSubject
+	CliticGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-692
+Trace summary : 
+	CliticSubject
+	CliticGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-693
+Trace summary : 
+	CliticSubject
+	CliticGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-694
+Trace summary : 
+	reflexiveDative
+	CliticSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-695
+Trace summary : 
+	reflexiveDative
+	CliticSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-696
+Trace summary : 
+	reflexiveDative
+	CliticSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-697
+Trace summary : 
+	reflexiveDative
+	CliticSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-698
+Trace summary : 
+	CliticSubject
+	CliticGenitive
+	RelativeIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-699
+Trace summary : 
+	CliticSubject
+	CliticGenitive
+	RelativeIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-700
+Trace summary : 
+	CliticSubject
+	CliticGenitive
+	CleftIobjectOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-701
+Trace summary : 
+	CliticSubject
+	CliticGenitive
+	CleftIobjectOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-702
+Trace summary : 
+	CleftIobjectTwo
+	CliticSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-703
+Trace summary : 
+	CleftIobjectTwo
+	CliticSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-704
+Trace summary : 
+	CliticSubject
+	CanonicalIobject
+	whGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-705
+Trace summary : 
+	CliticSubject
+	whGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-706
+Trace summary : 
+	CliticSubject
+	whGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-707
+Trace summary : 
+	CliticIobject3
+	CliticSubject
+	whGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-708
+Trace summary : 
+	CliticIobject3
+	CliticSubject
+	whGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-709
+Trace summary : 
+	CliticSubject
+	whGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-710
+Trace summary : 
+	CliticSubject
+	whGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-711
+Trace summary : 
+	reflexiveDative
+	CliticSubject
+	whGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-712
+Trace summary : 
+	reflexiveDative
+	CliticSubject
+	whGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-713
+Trace summary : 
+	CliticSubject
+	CanonicalIobject
+	RelativeGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-714
+Trace summary : 
+	CliticSubject
+	RelativeGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-715
+Trace summary : 
+	CliticSubject
+	RelativeGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-716
+Trace summary : 
+	CliticIobject3
+	CliticSubject
+	RelativeGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-717
+Trace summary : 
+	CliticIobject3
+	CliticSubject
+	RelativeGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-718
+Trace summary : 
+	CliticSubject
+	RelativeGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-719
+Trace summary : 
+	CliticSubject
+	RelativeGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-720
+Trace summary : 
+	reflexiveDative
+	CliticSubject
+	RelativeGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-721
+Trace summary : 
+	reflexiveDative
+	CliticSubject
+	RelativeGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-722
+Trace summary : 
+	CliticSubject
+	CanonicalIobject
+	CleftDont
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-723
+Trace summary : 
+	CliticSubject
+	CleftDont
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-724
+Trace summary : 
+	CliticSubject
+	CleftDont
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-725
+Trace summary : 
+	CliticIobject3
+	CliticSubject
+	CleftDont
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-726
+Trace summary : 
+	CliticIobject3
+	CliticSubject
+	CleftDont
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-727
+Trace summary : 
+	CliticSubject
+	CliticLocative
+	CleftDont
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-728
+Trace summary : 
+	CliticSubject
+	CliticLocative
+	CleftDont
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-729
+Trace summary : 
+	reflexiveDative
+	CliticSubject
+	CleftDont
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-730
+Trace summary : 
+	reflexiveDative
+	CliticSubject
+	CleftDont
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-731
+Trace summary : 
+	CliticSubject
+	CanonicalIobject
+	CleftGenitiveOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-732
+Trace summary : 
+	CliticSubject
+	CleftGenitiveOne
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-733
+Trace summary : 
+	CliticSubject
+	CleftGenitiveOne
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-734
+Trace summary : 
+	CliticIobject3
+	CliticSubject
+	CleftGenitiveOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-735
+Trace summary : 
+	CliticIobject3
+	CliticSubject
+	CleftGenitiveOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-736
+Trace summary : 
+	CliticSubject
+	CleftGenitiveOne
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-737
+Trace summary : 
+	CliticSubject
+	CleftGenitiveOne
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-738
+Trace summary : 
+	reflexiveDative
+	CliticSubject
+	CleftGenitiveOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-739
+Trace summary : 
+	reflexiveDative
+	CliticSubject
+	CleftGenitiveOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-740
+Trace summary : 
+	CleftGenitiveTwo
+	CliticSubject
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-741
+Trace summary : 
+	CleftGenitiveTwo
+	CliticSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-742
+Trace summary : 
+	CleftGenitiveTwo
+	CliticSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-743
+Trace summary : 
+	CleftGenitiveTwo
+	CliticIobject3
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-744
+Trace summary : 
+	CleftGenitiveTwo
+	CliticIobject3
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-745
+Trace summary : 
+	CleftGenitiveTwo
+	CliticSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-746
+Trace summary : 
+	CleftGenitiveTwo
+	CliticSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-747
+Trace summary : 
+	CleftGenitiveTwo
+	reflexiveDative
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-748
+Trace summary : 
+	CleftGenitiveTwo
+	reflexiveDative
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-749
+Trace summary : 
+	CanonicalGenitive
+	CanonicalIobject
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-750
+Trace summary : 
+	CanonicalGenitive
+	CanonicalIobject
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-751
+Trace summary : 
+	CanonicalGenitive
+	whSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-752
+Trace summary : 
+	CanonicalGenitive
+	whSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-753
+Trace summary : 
+	CliticIobject3
+	CanonicalGenitive
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-754
+Trace summary : 
+	CliticIobject3
+	CanonicalGenitive
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-755
+Trace summary : 
+	CanonicalGenitive
+	whSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-756
+Trace summary : 
+	CanonicalGenitive
+	whSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-757
+Trace summary : 
+	reflexiveDative
+	CanonicalGenitive
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-758
+Trace summary : 
+	reflexiveDative
+	CanonicalGenitive
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-759
+Trace summary : 
+	CanonicalIobject
+	CliticGenitive
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-760
+Trace summary : 
+	CanonicalIobject
+	CliticGenitive
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-761
+Trace summary : 
+	CliticGenitive
+	whSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-762
+Trace summary : 
+	CliticGenitive
+	whSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-763
+Trace summary : 
+	CliticGenitive
+	whSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-764
+Trace summary : 
+	CliticGenitive
+	whSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-765
+Trace summary : 
+	CliticIobject3
+	CliticGenitive
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-766
+Trace summary : 
+	CliticIobject3
+	CliticGenitive
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-767
+Trace summary : 
+	CliticIobject3
+	CliticGenitive
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-768
+Trace summary : 
+	CliticIobject3
+	CliticGenitive
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-769
+Trace summary : 
+	CliticGenitive
+	whSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-770
+Trace summary : 
+	CliticGenitive
+	whSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-771
+Trace summary : 
+	CliticGenitive
+	whSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-772
+Trace summary : 
+	CliticGenitive
+	whSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-773
+Trace summary : 
+	reflexiveDative
+	CliticGenitive
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-774
+Trace summary : 
+	reflexiveDative
+	CliticGenitive
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-775
+Trace summary : 
+	reflexiveDative
+	CliticGenitive
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-776
+Trace summary : 
+	reflexiveDative
+	CliticGenitive
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-777
+Trace summary : 
+	CanonicalGenitive
+	CanonicalIobject
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-778
+Trace summary : 
+	CanonicalGenitive
+	CanonicalIobject
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-779
+Trace summary : 
+	CanonicalGenitive
+	RelativeSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-780
+Trace summary : 
+	CanonicalGenitive
+	RelativeSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-781
+Trace summary : 
+	CliticIobject3
+	CanonicalGenitive
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-782
+Trace summary : 
+	CliticIobject3
+	CanonicalGenitive
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-783
+Trace summary : 
+	CanonicalGenitive
+	CliticLocative
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-784
+Trace summary : 
+	CanonicalGenitive
+	CliticLocative
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-785
+Trace summary : 
+	reflexiveDative
+	CanonicalGenitive
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-786
+Trace summary : 
+	reflexiveDative
+	CanonicalGenitive
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-787
+Trace summary : 
+	CanonicalIobject
+	CliticGenitive
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-788
+Trace summary : 
+	CanonicalIobject
+	CliticGenitive
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-789
+Trace summary : 
+	CliticGenitive
+	RelativeSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-790
+Trace summary : 
+	CliticGenitive
+	RelativeSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-791
+Trace summary : 
+	CliticGenitive
+	RelativeSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-792
+Trace summary : 
+	CliticGenitive
+	RelativeSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-793
+Trace summary : 
+	CliticIobject3
+	CliticGenitive
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-794
+Trace summary : 
+	CliticIobject3
+	CliticGenitive
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-795
+Trace summary : 
+	CliticIobject3
+	CliticGenitive
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-796
+Trace summary : 
+	CliticIobject3
+	CliticGenitive
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-797
+Trace summary : 
+	CliticGenitive
+	CliticLocative
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-798
+Trace summary : 
+	CliticGenitive
+	CliticLocative
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-799
+Trace summary : 
+	CliticGenitive
+	CliticLocative
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-800
+Trace summary : 
+	CliticGenitive
+	CliticLocative
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-801
+Trace summary : 
+	reflexiveDative
+	CliticGenitive
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-802
+Trace summary : 
+	reflexiveDative
+	CliticGenitive
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-803
+Trace summary : 
+	reflexiveDative
+	CliticGenitive
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-804
+Trace summary : 
+	reflexiveDative
+	CliticGenitive
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-805
+Trace summary : 
+	CleftSubject
+	CanonicalGenitive
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-806
+Trace summary : 
+	CleftSubject
+	CanonicalGenitive
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-807
+Trace summary : 
+	CleftSubject
+	CanonicalGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-808
+Trace summary : 
+	CleftSubject
+	CanonicalGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-809
+Trace summary : 
+	CleftSubject
+	CliticIobject3
+	CanonicalGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-810
+Trace summary : 
+	CleftSubject
+	CliticIobject3
+	CanonicalGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-811
+Trace summary : 
+	CleftSubject
+	CanonicalGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-812
+Trace summary : 
+	CleftSubject
+	CanonicalGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-813
+Trace summary : 
+	CleftSubject
+	reflexiveDative
+	CanonicalGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-814
+Trace summary : 
+	CleftSubject
+	reflexiveDative
+	CanonicalGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-815
+Trace summary : 
+	CleftSubject
+	CanonicalIobject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-816
+Trace summary : 
+	CleftSubject
+	CanonicalIobject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-817
+Trace summary : 
+	CleftSubject
+	CliticGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-818
+Trace summary : 
+	CleftSubject
+	CliticGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-819
+Trace summary : 
+	CleftSubject
+	CliticGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-820
+Trace summary : 
+	CleftSubject
+	CliticGenitive
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-821
+Trace summary : 
+	CleftSubject
+	CliticIobject3
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-822
+Trace summary : 
+	CleftSubject
+	CliticIobject3
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-823
+Trace summary : 
+	CleftSubject
+	CliticIobject3
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-824
+Trace summary : 
+	CleftSubject
+	CliticIobject3
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-825
+Trace summary : 
+	CleftSubject
+	CliticGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-826
+Trace summary : 
+	CleftSubject
+	CliticGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-827
+Trace summary : 
+	CleftSubject
+	CliticGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-828
+Trace summary : 
+	CleftSubject
+	CliticGenitive
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-829
+Trace summary : 
+	CleftSubject
+	reflexiveDative
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-830
+Trace summary : 
+	CleftSubject
+	reflexiveDative
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-831
+Trace summary : 
+	CleftSubject
+	reflexiveDative
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-832
+Trace summary : 
+	CleftSubject
+	reflexiveDative
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-833
+Trace summary : 
+	ImperativeSubject
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-834
+Trace summary : 
+	ImperativeSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-835
+Trace summary : 
+	ImperativeSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-836
+Trace summary : 
+	CliticIobject3
+	ImperativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-837
+Trace summary : 
+	CliticIobject3
+	ImperativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-838
+Trace summary : 
+	ImperativeSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-839
+Trace summary : 
+	ImperativeSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-840
+Trace summary : 
+	reflexiveDative
+	ImperativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-841
+Trace summary : 
+	reflexiveDative
+	ImperativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-842
+Trace summary : 
+	InfinitiveSubject
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-843
+Trace summary : 
+	InfinitiveSubject
+	whIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-844
+Trace summary : 
+	InfinitiveSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-845
+Trace summary : 
+	InfinitiveSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-846
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-847
+Trace summary : 
+	InfinitiveSubject
+	CliticIobject3
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-848
+Trace summary : 
+	InfinitiveSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-849
+Trace summary : 
+	InfinitiveSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-850
+Trace summary : 
+	InfinitiveSubject
+	reflexiveDative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-851
+Trace summary : 
+	InfinitiveSubject
+	reflexiveDative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-852
+Trace summary : 
+	InfinitiveSubject
+	RelativeIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-853
+Trace summary : 
+	InfinitiveSubject
+	CleftIobjectOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-854
+Trace summary : 
+	InfinitiveSubject
+	CleftIobjectTwo
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-855
+Trace summary : 
+	CanonicalSubject
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-856
+Trace summary : 
+	CanonicalSubject
+	whIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-857
+Trace summary : 
+	CanonicalSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-858
+Trace summary : 
+	CanonicalSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-859
+Trace summary : 
+	CliticIobject3
+	CanonicalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-860
+Trace summary : 
+	CliticIobject3
+	CanonicalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-861
+Trace summary : 
+	CanonicalSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-862
+Trace summary : 
+	CanonicalSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-863
+Trace summary : 
+	reflexiveDative
+	CanonicalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-864
+Trace summary : 
+	reflexiveDative
+	CanonicalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-865
+Trace summary : 
+	CanonicalSubject
+	RelativeIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-866
+Trace summary : 
+	CanonicalSubject
+	CleftIobjectOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-867
+Trace summary : 
+	CleftIobjectTwo
+	CanonicalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-868
+Trace summary : 
+	CliticSubject
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-869
+Trace summary : 
+	CliticSubject
+	whIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-870
+Trace summary : 
+	CliticSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-871
+Trace summary : 
+	CliticSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-872
+Trace summary : 
+	CliticIobject3
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-873
+Trace summary : 
+	CliticIobject3
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-874
+Trace summary : 
+	CliticSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-875
+Trace summary : 
+	CliticSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-876
+Trace summary : 
+	reflexiveDative
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-877
+Trace summary : 
+	reflexiveDative
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-878
+Trace summary : 
+	CliticSubject
+	RelativeIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-879
+Trace summary : 
+	CliticSubject
+	CleftIobjectOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-880
+Trace summary : 
+	CleftIobjectTwo
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-881
+Trace summary : 
+	CanonicalIobject
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-882
+Trace summary : 
+	whSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-883
+Trace summary : 
+	whSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-884
+Trace summary : 
+	CliticIobject3
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-885
+Trace summary : 
+	CliticIobject3
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-886
+Trace summary : 
+	whSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-887
+Trace summary : 
+	whSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-888
+Trace summary : 
+	reflexiveDative
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-889
+Trace summary : 
+	reflexiveDative
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-890
+Trace summary : 
+	CanonicalIobject
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-891
+Trace summary : 
+	RelativeSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-892
+Trace summary : 
+	RelativeSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-893
+Trace summary : 
+	CliticIobject3
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-894
+Trace summary : 
+	CliticIobject3
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-895
+Trace summary : 
+	CliticLocative
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-896
+Trace summary : 
+	CliticLocative
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-897
+Trace summary : 
+	reflexiveDative
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-898
+Trace summary : 
+	reflexiveDative
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-899
+Trace summary : 
+	CleftSubject
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-900
+Trace summary : 
+	CleftSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-901
+Trace summary : 
+	CleftSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-902
+Trace summary : 
+	CleftSubject
+	CliticIobject3
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-903
+Trace summary : 
+	CleftSubject
+	CliticIobject3
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-904
+Trace summary : 
+	CleftSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-905
+Trace summary : 
+	CleftSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-906
+Trace summary : 
+	CleftSubject
+	reflexiveDative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-907
+Trace summary : 
+	CleftSubject
+	reflexiveDative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-908
+Trace summary : 
+	whObject
+	ImpersonalSubject
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-909
+Trace summary : 
+	whObject
+	ImpersonalSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-910
+Trace summary : 
+	whObject
+	ImpersonalSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-911
+Trace summary : 
+	CliticIobject3
+	whObject
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-912
+Trace summary : 
+	CliticIobject3
+	whObject
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-913
+Trace summary : 
+	whObject
+	ImpersonalSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-914
+Trace summary : 
+	whObject
+	ImpersonalSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-915
+Trace summary : 
+	reflexiveDative
+	whObject
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-916
+Trace summary : 
+	reflexiveDative
+	whObject
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-917
+Trace summary : 
+	RelativeObject
+	ImpersonalSubject
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-918
+Trace summary : 
+	RelativeObject
+	ImpersonalSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-919
+Trace summary : 
+	RelativeObject
+	ImpersonalSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-920
+Trace summary : 
+	RelativeObject
+	CliticIobject3
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-921
+Trace summary : 
+	RelativeObject
+	CliticIobject3
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-922
+Trace summary : 
+	RelativeObject
+	ImpersonalSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-923
+Trace summary : 
+	RelativeObject
+	ImpersonalSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-924
+Trace summary : 
+	RelativeObject
+	reflexiveDative
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-925
+Trace summary : 
+	RelativeObject
+	reflexiveDative
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-926
+Trace summary : 
+	CleftObject
+	ImpersonalSubject
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-927
+Trace summary : 
+	CleftObject
+	ImpersonalSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-928
+Trace summary : 
+	CleftObject
+	ImpersonalSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-929
+Trace summary : 
+	CleftObject
+	CliticIobject3
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-930
+Trace summary : 
+	CleftObject
+	CliticIobject3
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-931
+Trace summary : 
+	CleftObject
+	ImpersonalSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-932
+Trace summary : 
+	CleftObject
+	ImpersonalSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-933
+Trace summary : 
+	CleftObject
+	reflexiveDative
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-934
+Trace summary : 
+	CleftObject
+	reflexiveDative
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-935
+Trace summary : 
+	ImpersonalSubject
+	CanonicalIobject
+	CanonicalObject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-936
+Trace summary : 
+	ImpersonalSubject
+	CanonicalIobject
+	CanonicalObject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-937
+Trace summary : 
+	ImpersonalSubject
+	CanonicalObject
+	whIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-938
+Trace summary : 
+	ImpersonalSubject
+	CanonicalObject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-939
+Trace summary : 
+	ImpersonalSubject
+	CanonicalObject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-940
+Trace summary : 
+	CliticIobject3
+	ImpersonalSubject
+	CanonicalObject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-941
+Trace summary : 
+	CliticIobject3
+	ImpersonalSubject
+	CanonicalObject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-942
+Trace summary : 
+	ImpersonalSubject
+	CanonicalObject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-943
+Trace summary : 
+	ImpersonalSubject
+	CanonicalObject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-944
+Trace summary : 
+	reflexiveDative
+	ImpersonalSubject
+	CanonicalObject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-945
+Trace summary : 
+	reflexiveDative
+	ImpersonalSubject
+	CanonicalObject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-946
+Trace summary : 
+	ImpersonalSubject
+	RelativeIobject
+	CanonicalObject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-947
+Trace summary : 
+	ImpersonalSubject
+	CanonicalObject
+	CleftIobjectOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-948
+Trace summary : 
+	CleftIobjectTwo
+	ImpersonalSubject
+	CanonicalObject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-949
+Trace summary : 
+	CliticObjectII
+	ImpersonalSubject
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-950
+Trace summary : 
+	CliticObjectII
+	ImpersonalSubject
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-951
+Trace summary : 
+	CliticObjectII
+	ImpersonalSubject
+	whIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-952
+Trace summary : 
+	CliticObjectII
+	ImpersonalSubject
+	whIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-953
+Trace summary : 
+	CliticObjectII
+	CliticIobject3
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-954
+Trace summary : 
+	CliticObjectII
+	CliticIobject3
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-955
+Trace summary : 
+	CliticObjectII
+	CliticIobject3
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-956
+Trace summary : 
+	CliticObjectII
+	CliticIobject3
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-957
+Trace summary : 
+	CliticObjectII
+	ImpersonalSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-958
+Trace summary : 
+	CliticObjectII
+	ImpersonalSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-959
+Trace summary : 
+	CliticObjectII
+	ImpersonalSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-960
+Trace summary : 
+	CliticObjectII
+	ImpersonalSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-961
+Trace summary : 
+	CliticObjectII
+	ImpersonalSubject
+	RelativeIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-962
+Trace summary : 
+	CliticObjectII
+	ImpersonalSubject
+	RelativeIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-963
+Trace summary : 
+	CliticObjectII
+	ImpersonalSubject
+	CleftIobjectOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-964
+Trace summary : 
+	CliticObjectII
+	ImpersonalSubject
+	CleftIobjectOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-965
+Trace summary : 
+	CliticObjectII
+	CleftIobjectTwo
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-966
+Trace summary : 
+	CliticObjectII
+	CleftIobjectTwo
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-967
+Trace summary : 
+	CliticObject3
+	ImpersonalSubject
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-968
+Trace summary : 
+	CliticObject3
+	ImpersonalSubject
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-969
+Trace summary : 
+	CliticObject3
+	ImpersonalSubject
+	whIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-970
+Trace summary : 
+	CliticObject3
+	ImpersonalSubject
+	whIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-971
+Trace summary : 
+	CliticObject3
+	ImpersonalSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-972
+Trace summary : 
+	CliticObject3
+	ImpersonalSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-973
+Trace summary : 
+	CliticObject3
+	ImpersonalSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-974
+Trace summary : 
+	CliticObject3
+	ImpersonalSubject
+	passiveVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Vn1an2-975
+Trace summary : 
+	CliticIobject3
+	CliticObject3
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-976
+Trace summary : 
+	CliticIobject3
+	CliticObject3
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-977
+Trace summary : 
+	CliticIobject3
+	CliticObject3
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-978
+Trace summary : 
+	CliticIobject3
+	CliticObject3
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-979
+Trace summary : 
+	CliticObject3
+	ImpersonalSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-980
+Trace summary : 
+	CliticObject3
+	ImpersonalSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-981
+Trace summary : 
+	CliticObject3
+	ImpersonalSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-982
+Trace summary : 
+	CliticObject3
+	ImpersonalSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-983
+Trace summary : 
+	CliticObject3
+	reflexiveDative
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-984
+Trace summary : 
+	CliticObject3
+	reflexiveDative
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-985
+Trace summary : 
+	CliticObject3
+	reflexiveDative
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-986
+Trace summary : 
+	CliticObject3
+	reflexiveDative
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-987
+Trace summary : 
+	CliticObject3
+	ImpersonalSubject
+	RelativeIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-988
+Trace summary : 
+	CliticObject3
+	ImpersonalSubject
+	RelativeIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-989
+Trace summary : 
+	CliticObject3
+	ImpersonalSubject
+	CleftIobjectOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-990
+Trace summary : 
+	CliticObject3
+	ImpersonalSubject
+	CleftIobjectOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-991
+Trace summary : 
+	CliticObject3
+	CleftIobjectTwo
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-992
+Trace summary : 
+	CliticObject3
+	CleftIobjectTwo
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-993
+Trace summary : 
+	reflexiveAccusative
+	ImpersonalSubject
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-994
+Trace summary : 
+	reflexiveAccusative
+	ImpersonalSubject
+	CanonicalIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-995
+Trace summary : 
+	reflexiveAccusative
+	ImpersonalSubject
+	whIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-996
+Trace summary : 
+	reflexiveAccusative
+	ImpersonalSubject
+	whIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-997
+Trace summary : 
+	CliticIobject3
+	reflexiveAccusative
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-998
+Trace summary : 
+	CliticIobject3
+	reflexiveAccusative
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-999
+Trace summary : 
+	CliticIobject3
+	reflexiveAccusative
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-1000
+Trace summary : 
+	CliticIobject3
+	reflexiveAccusative
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-1001
+Trace summary : 
+	reflexiveAccusative
+	ImpersonalSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-1002
+Trace summary : 
+	reflexiveAccusative
+	ImpersonalSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-1003
+Trace summary : 
+	reflexiveAccusative
+	ImpersonalSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-1004
+Trace summary : 
+	reflexiveAccusative
+	ImpersonalSubject
+	CliticLocative
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-1005
+Trace summary : 
+	reflexiveAccusative
+	ImpersonalSubject
+	RelativeIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-1006
+Trace summary : 
+	reflexiveAccusative
+	ImpersonalSubject
+	RelativeIobject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-1007
+Trace summary : 
+	reflexiveAccusative
+	ImpersonalSubject
+	CleftIobjectOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-1008
+Trace summary : 
+	reflexiveAccusative
+	ImpersonalSubject
+	CleftIobjectOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-1009
+Trace summary : 
+	reflexiveAccusative
+	CleftIobjectTwo
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-1010
+Trace summary : 
+	reflexiveAccusative
+	CleftIobjectTwo
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1an2-1011
+Trace summary : 
+	middleVerbMorphology
+	ImperativeSubject
+	CanonicalIobject
+
+
+Solution : Tn0Vn1an2-1012
+Trace summary : 
+	middleVerbMorphology
+	CliticIobject3
+	ImperativeSubject
+
+
+Solution : Tn0Vn1an2-1013
+Trace summary : 
+	middleVerbMorphology
+	ImperativeSubject
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-1014
+Trace summary : 
+	InfinitiveSubject
+	middleVerbMorphology
+	CanonicalIobject
+
+
+Solution : Tn0Vn1an2-1015
+Trace summary : 
+	InfinitiveSubject
+	middleVerbMorphology
+	whIobject
+
+
+Solution : Tn0Vn1an2-1016
+Trace summary : 
+	InfinitiveSubject
+	middleVerbMorphology
+	CliticIobject3
+
+
+Solution : Tn0Vn1an2-1017
+Trace summary : 
+	InfinitiveSubject
+	middleVerbMorphology
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-1018
+Trace summary : 
+	InfinitiveSubject
+	middleVerbMorphology
+	RelativeIobject
+
+
+Solution : Tn0Vn1an2-1019
+Trace summary : 
+	InfinitiveSubject
+	middleVerbMorphology
+	CleftIobjectOne
+
+
+Solution : Tn0Vn1an2-1020
+Trace summary : 
+	InfinitiveSubject
+	middleVerbMorphology
+	CleftIobjectTwo
+
+
+Solution : Tn0Vn1an2-1021
+Trace summary : 
+	middleVerbMorphology
+	CanonicalSubject
+	CanonicalIobject
+
+
+Solution : Tn0Vn1an2-1022
+Trace summary : 
+	middleVerbMorphology
+	CanonicalSubject
+	whIobject
+
+
+Solution : Tn0Vn1an2-1023
+Trace summary : 
+	middleVerbMorphology
+	CliticIobject3
+	CanonicalSubject
+
+
+Solution : Tn0Vn1an2-1024
+Trace summary : 
+	middleVerbMorphology
+	CanonicalSubject
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-1025
+Trace summary : 
+	middleVerbMorphology
+	CanonicalSubject
+	RelativeIobject
+
+
+Solution : Tn0Vn1an2-1026
+Trace summary : 
+	middleVerbMorphology
+	CanonicalSubject
+	CleftIobjectOne
+
+
+Solution : Tn0Vn1an2-1027
+Trace summary : 
+	middleVerbMorphology
+	CleftIobjectTwo
+	CanonicalSubject
+
+
+Solution : Tn0Vn1an2-1028
+Trace summary : 
+	middleVerbMorphology
+	CliticSubject
+	CanonicalIobject
+
+
+Solution : Tn0Vn1an2-1029
+Trace summary : 
+	middleVerbMorphology
+	CliticSubject
+	whIobject
+
+
+Solution : Tn0Vn1an2-1030
+Trace summary : 
+	middleVerbMorphology
+	CliticIobject3
+	CliticSubject
+
+
+Solution : Tn0Vn1an2-1031
+Trace summary : 
+	middleVerbMorphology
+	CliticSubject
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-1032
+Trace summary : 
+	middleVerbMorphology
+	CliticSubject
+	RelativeIobject
+
+
+Solution : Tn0Vn1an2-1033
+Trace summary : 
+	middleVerbMorphology
+	CliticSubject
+	CleftIobjectOne
+
+
+Solution : Tn0Vn1an2-1034
+Trace summary : 
+	middleVerbMorphology
+	CleftIobjectTwo
+	CliticSubject
+
+
+Solution : Tn0Vn1an2-1035
+Trace summary : 
+	middleVerbMorphology
+	CanonicalIobject
+	whSubject
+
+
+Solution : Tn0Vn1an2-1036
+Trace summary : 
+	middleVerbMorphology
+	CliticIobject3
+	whSubject
+
+
+Solution : Tn0Vn1an2-1037
+Trace summary : 
+	middleVerbMorphology
+	whSubject
+	CliticLocative
+
+
+Solution : Tn0Vn1an2-1038
+Trace summary : 
+	middleVerbMorphology
+	CanonicalIobject
+	RelativeSubject
+
+
+Solution : Tn0Vn1an2-1039
+Trace summary : 
+	middleVerbMorphology
+	CliticIobject3
+	RelativeSubject
+
+
+Solution : Tn0Vn1an2-1040
+Trace summary : 
+	middleVerbMorphology
+	CliticLocative
+	RelativeSubject
+
+
+Solution : Tn0Vn1an2-1041
+Trace summary : 
+	CleftSubject
+	middleVerbMorphology
+	CanonicalIobject
+
+
+Solution : Tn0Vn1an2-1042
+Trace summary : 
+	CleftSubject
+	middleVerbMorphology
+	CliticIobject3
+
+
+Solution : Tn0Vn1an2-1043
+Trace summary : 
+	CleftSubject
+	middleVerbMorphology
+	CliticLocative
+
+
+
+Famille : n0Van1
+Solution : Tn0Van1-1044
+Trace summary : 
+	CanonicalIobject
+	ImperativeSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Van1-1045
+Trace summary : 
+	ImperativeSubject
+	CliticIobjectII
+	activeVerbMorphology
+
+
+Solution : Tn0Van1-1046
+Trace summary : 
+	CliticIobject3
+	ImperativeSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Van1-1047
+Trace summary : 
+	CliticLocative
+	ImperativeSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Van1-1048
+Trace summary : 
+	ImperativeSubject
+	reflexiveDative
+	activeVerbMorphology
+
+
+Solution : Tn0Van1-1049
+Trace summary : 
+	CanonicalIobject
+	InfinitiveSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Van1-1050
+Trace summary : 
+	whIobject
+	InfinitiveSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Van1-1051
+Trace summary : 
+	CliticIobjectII
+	InfinitiveSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Van1-1052
+Trace summary : 
+	CliticIobject3
+	InfinitiveSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Van1-1053
+Trace summary : 
+	CliticLocative
+	InfinitiveSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Van1-1054
+Trace summary : 
+	reflexiveDative
+	InfinitiveSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Van1-1055
+Trace summary : 
+	InfinitiveSubject
+	activeVerbMorphology
+	RelativeIobject
+
+
+Solution : Tn0Van1-1056
+Trace summary : 
+	CleftIobjectOne
+	InfinitiveSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Van1-1057
+Trace summary : 
+	InfinitiveSubject
+	CleftIobjectTwo
+	activeVerbMorphology
+
+
+Solution : Tn0Van1-1058
+Trace summary : 
+	CanonicalIobject
+	CanonicalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Van1-1059
+Trace summary : 
+	CanonicalSubject
+	activeVerbMorphology
+	whIobject
+
+
+Solution : Tn0Van1-1060
+Trace summary : 
+	CanonicalSubject
+	activeVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Van1-1061
+Trace summary : 
+	CliticIobject3
+	CanonicalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Van1-1062
+Trace summary : 
+	CanonicalSubject
+	activeVerbMorphology
+	CliticLocative
+
+
+Solution : Tn0Van1-1063
+Trace summary : 
+	reflexiveDative
+	CanonicalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Van1-1064
+Trace summary : 
+	CanonicalSubject
+	activeVerbMorphology
+	RelativeIobject
+
+
+Solution : Tn0Van1-1065
+Trace summary : 
+	CanonicalSubject
+	activeVerbMorphology
+	CleftIobjectOne
+
+
+Solution : Tn0Van1-1066
+Trace summary : 
+	CleftIobjectTwo
+	CanonicalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Van1-1067
+Trace summary : 
+	activeVerbMorphology
+	CliticSubject
+	CanonicalIobject
+
+
+Solution : Tn0Van1-1068
+Trace summary : 
+	activeVerbMorphology
+	CliticSubject
+	whIobject
+
+
+Solution : Tn0Van1-1069
+Trace summary : 
+	activeVerbMorphology
+	CliticSubject
+	CliticIobjectII
+
+
+Solution : Tn0Van1-1070
+Trace summary : 
+	CliticIobject3
+	activeVerbMorphology
+	CliticSubject
+
+
+Solution : Tn0Van1-1071
+Trace summary : 
+	activeVerbMorphology
+	CliticSubject
+	CliticLocative
+
+
+Solution : Tn0Van1-1072
+Trace summary : 
+	reflexiveDative
+	activeVerbMorphology
+	CliticSubject
+
+
+Solution : Tn0Van1-1073
+Trace summary : 
+	activeVerbMorphology
+	CliticSubject
+	RelativeIobject
+
+
+Solution : Tn0Van1-1074
+Trace summary : 
+	activeVerbMorphology
+	CliticSubject
+	CleftIobjectOne
+
+
+Solution : Tn0Van1-1075
+Trace summary : 
+	CleftIobjectTwo
+	activeVerbMorphology
+	CliticSubject
+
+
+Solution : Tn0Van1-1076
+Trace summary : 
+	activeVerbMorphology
+	CanonicalIobject
+	whSubject
+
+
+Solution : Tn0Van1-1077
+Trace summary : 
+	activeVerbMorphology
+	whSubject
+	CliticIobjectII
+
+
+Solution : Tn0Van1-1078
+Trace summary : 
+	CliticIobject3
+	activeVerbMorphology
+	whSubject
+
+
+Solution : Tn0Van1-1079
+Trace summary : 
+	activeVerbMorphology
+	whSubject
+	CliticLocative
+
+
+Solution : Tn0Van1-1080
+Trace summary : 
+	reflexiveDative
+	activeVerbMorphology
+	whSubject
+
+
+Solution : Tn0Van1-1081
+Trace summary : 
+	activeVerbMorphology
+	CanonicalIobject
+	RelativeSubject
+
+
+Solution : Tn0Van1-1082
+Trace summary : 
+	activeVerbMorphology
+	RelativeSubject
+	CliticIobjectII
+
+
+Solution : Tn0Van1-1083
+Trace summary : 
+	CliticIobject3
+	activeVerbMorphology
+	RelativeSubject
+
+
+Solution : Tn0Van1-1084
+Trace summary : 
+	activeVerbMorphology
+	CliticLocative
+	RelativeSubject
+
+
+Solution : Tn0Van1-1085
+Trace summary : 
+	reflexiveDative
+	activeVerbMorphology
+	RelativeSubject
+
+
+Solution : Tn0Van1-1086
+Trace summary : 
+	CleftSubject
+	activeVerbMorphology
+	CanonicalIobject
+
+
+Solution : Tn0Van1-1087
+Trace summary : 
+	CleftSubject
+	activeVerbMorphology
+	CliticIobjectII
+
+
+Solution : Tn0Van1-1088
+Trace summary : 
+	CleftSubject
+	CliticIobject3
+	activeVerbMorphology
+
+
+Solution : Tn0Van1-1089
+Trace summary : 
+	CleftSubject
+	activeVerbMorphology
+	CliticLocative
+
+
+Solution : Tn0Van1-1090
+Trace summary : 
+	CleftSubject
+	reflexiveDative
+	activeVerbMorphology
+
+
+
+Famille : n0Vloc1
+Solution : Tn0Vloc1-1093
+Trace summary : 
+	ImperativeSubject
+	CanonicalLocative
+	activeVerbMorphology
+
+
+Solution : Tn0Vloc1-1094
+Trace summary : 
+	CliticLocative
+	ImperativeSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vloc1-1095
+Trace summary : 
+	CanonicalLocative
+	InfinitiveSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vloc1-1096
+Trace summary : 
+	InfinitiveSubject
+	activeVerbMorphology
+	whLocative
+
+
+Solution : Tn0Vloc1-1097
+Trace summary : 
+	RelativeLocative
+	InfinitiveSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vloc1-1098
+Trace summary : 
+	CliticLocative
+	InfinitiveSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vloc1-1099
+Trace summary : 
+	CanonicalSubject
+	CanonicalLocative
+	activeVerbMorphology
+
+
+Solution : Tn0Vloc1-1100
+Trace summary : 
+	CanonicalSubject
+	activeVerbMorphology
+	whLocative
+
+
+Solution : Tn0Vloc1-1101
+Trace summary : 
+	CanonicalSubject
+	RelativeLocative
+	activeVerbMorphology
+
+
+Solution : Tn0Vloc1-1102
+Trace summary : 
+	CliticLocative
+	CanonicalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vloc1-1103
+Trace summary : 
+	CliticSubject
+	CanonicalLocative
+	activeVerbMorphology
+
+
+Solution : Tn0Vloc1-1104
+Trace summary : 
+	CliticSubject
+	activeVerbMorphology
+	whLocative
+
+
+Solution : Tn0Vloc1-1105
+Trace summary : 
+	RelativeLocative
+	CliticSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vloc1-1106
+Trace summary : 
+	CliticLocative
+	CliticSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vloc1-1107
+Trace summary : 
+	whSubject
+	CanonicalLocative
+	activeVerbMorphology
+
+
+Solution : Tn0Vloc1-1108
+Trace summary : 
+	whSubject
+	CliticLocative
+	activeVerbMorphology
+
+
+Solution : Tn0Vloc1-1109
+Trace summary : 
+	RelativeSubject
+	CanonicalLocative
+	activeVerbMorphology
+
+
+Solution : Tn0Vloc1-1110
+Trace summary : 
+	CliticLocative
+	RelativeSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vloc1-1111
+Trace summary : 
+	CleftSubject
+	CanonicalLocative
+	activeVerbMorphology
+
+
+Solution : Tn0Vloc1-1112
+Trace summary : 
+	CliticLocative
+	CleftSubject
+	activeVerbMorphology
+
+
+
+Famille : pronoun
+Solution : Tpronoun-1092
+Trace summary : 
+
+
+
+Famille : stddeterminer
+Solution : Tstddeterminer-1091
+Trace summary : 
+
+
+
+Famille : n0Vpn1
+Solution : Tn0Vpn1-1241
+Trace summary : 
+	ImperativeSubject
+	CanonicalOblique
+	activeVerbMorphology
+
+
+Solution : Tn0Vpn1-1242
+Trace summary : 
+	CanonicalOblique
+	InfinitiveSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vpn1-1243
+Trace summary : 
+	InfinitiveSubject
+	whOblique
+	activeVerbMorphology
+
+
+Solution : Tn0Vpn1-1244
+Trace summary : 
+	InfinitiveSubject
+	RelativeOblique
+	activeVerbMorphology
+
+
+Solution : Tn0Vpn1-1245
+Trace summary : 
+	CleftObliqueOne
+	InfinitiveSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vpn1-1246
+Trace summary : 
+	InfinitiveSubject
+	CleftObliqueTwo
+	activeVerbMorphology
+
+
+Solution : Tn0Vpn1-1247
+Trace summary : 
+	CanonicalSubject
+	CanonicalOblique
+	activeVerbMorphology
+
+
+Solution : Tn0Vpn1-1248
+Trace summary : 
+	CanonicalSubject
+	whOblique
+	activeVerbMorphology
+
+
+Solution : Tn0Vpn1-1249
+Trace summary : 
+	CanonicalSubject
+	RelativeOblique
+	activeVerbMorphology
+
+
+Solution : Tn0Vpn1-1250
+Trace summary : 
+	CanonicalSubject
+	CleftObliqueOne
+	activeVerbMorphology
+
+
+Solution : Tn0Vpn1-1251
+Trace summary : 
+	CanonicalSubject
+	CleftObliqueTwo
+	activeVerbMorphology
+
+
+Solution : Tn0Vpn1-1252
+Trace summary : 
+	CanonicalOblique
+	CliticSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vpn1-1253
+Trace summary : 
+	CliticSubject
+	whOblique
+	activeVerbMorphology
+
+
+Solution : Tn0Vpn1-1254
+Trace summary : 
+	CliticSubject
+	RelativeOblique
+	activeVerbMorphology
+
+
+Solution : Tn0Vpn1-1255
+Trace summary : 
+	CliticSubject
+	CleftObliqueOne
+	activeVerbMorphology
+
+
+Solution : Tn0Vpn1-1256
+Trace summary : 
+	CliticSubject
+	CleftObliqueTwo
+	activeVerbMorphology
+
+
+Solution : Tn0Vpn1-1257
+Trace summary : 
+	whSubject
+	CanonicalOblique
+	activeVerbMorphology
+
+
+Solution : Tn0Vpn1-1258
+Trace summary : 
+	RelativeSubject
+	CanonicalOblique
+	activeVerbMorphology
+
+
+Solution : Tn0Vpn1-1259
+Trace summary : 
+	CanonicalOblique
+	CleftSubject
+	activeVerbMorphology
+
+
+
+Famille : n0V
+Solution : Tn0V-1227
+Trace summary : 
+	ImperativeSubject
+	activeVerbMorphology
+
+
+Solution : Tn0V-1228
+Trace summary : 
+	InfinitiveSubject
+	activeVerbMorphology
+
+
+Solution : Tn0V-1229
+Trace summary : 
+	CanonicalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0V-1230
+Trace summary : 
+	CliticSubject
+	activeVerbMorphology
+
+
+Solution : Tn0V-1231
+Trace summary : 
+	whSubject
+	activeVerbMorphology
+
+
+Solution : Tn0V-1232
+Trace summary : 
+	RelativeSubject
+	activeVerbMorphology
+
+
+Solution : Tn0V-1233
+Trace summary : 
+	CleftSubject
+	activeVerbMorphology
+
+
+Solution : Tn0V-1234
+Trace summary : 
+	ImpersonalSubject
+	activeVerbMorphology
+	whObject
+
+
+Solution : Tn0V-1235
+Trace summary : 
+	RelativeObject
+	ImpersonalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0V-1236
+Trace summary : 
+	ImpersonalSubject
+	activeVerbMorphology
+	CleftObject
+
+
+Solution : Tn0V-1237
+Trace summary : 
+	ImpersonalSubject
+	CanonicalObject
+	activeVerbMorphology
+
+
+Solution : Tn0V-1238
+Trace summary : 
+	CliticObjectII
+	ImpersonalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0V-1239
+Trace summary : 
+	CliticObject3
+	ImpersonalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0V-1240
+Trace summary : 
+	reflexiveAccusative
+	ImpersonalSubject
+	activeVerbMorphology
+
+
+
+Famille : n0Vn1
+Solution : Tn0Vn1-1113
+Trace summary : 
+	ImperativeSubject
+	CanonicalObject
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1-1114
+Trace summary : 
+	ImperativeSubject
+	CliticObjectII
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1-1115
+Trace summary : 
+	ImperativeSubject
+	CliticObject3
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1-1116
+Trace summary : 
+	ImperativeSubject
+	reflexiveAccusative
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1-1117
+Trace summary : 
+	InfinitiveSubject
+	activeVerbMorphology
+	whObject
+
+
+Solution : Tn0Vn1-1118
+Trace summary : 
+	InfinitiveSubject
+	CanonicalObject
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1-1119
+Trace summary : 
+	CliticObjectII
+	InfinitiveSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1-1120
+Trace summary : 
+	CliticObject3
+	InfinitiveSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1-1121
+Trace summary : 
+	InfinitiveSubject
+	reflexiveAccusative
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1-1122
+Trace summary : 
+	whObject
+	CanonicalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1-1123
+Trace summary : 
+	RelativeObject
+	CanonicalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1-1124
+Trace summary : 
+	CleftObject
+	CanonicalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1-1125
+Trace summary : 
+	CanonicalSubject
+	activeVerbMorphology
+	CanonicalObject
+
+
+Solution : Tn0Vn1-1126
+Trace summary : 
+	CliticObjectII
+	CanonicalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1-1127
+Trace summary : 
+	CliticObject3
+	CanonicalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1-1128
+Trace summary : 
+	reflexiveAccusative
+	CanonicalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1-1129
+Trace summary : 
+	whObject
+	activeVerbMorphology
+	CliticSubject
+
+
+Solution : Tn0Vn1-1130
+Trace summary : 
+	RelativeObject
+	activeVerbMorphology
+	CliticSubject
+
+
+Solution : Tn0Vn1-1131
+Trace summary : 
+	CleftObject
+	activeVerbMorphology
+	CliticSubject
+
+
+Solution : Tn0Vn1-1132
+Trace summary : 
+	activeVerbMorphology
+	CliticSubject
+	CanonicalObject
+
+
+Solution : Tn0Vn1-1133
+Trace summary : 
+	CliticObjectII
+	activeVerbMorphology
+	CliticSubject
+
+
+Solution : Tn0Vn1-1134
+Trace summary : 
+	CliticObject3
+	activeVerbMorphology
+	CliticSubject
+
+
+Solution : Tn0Vn1-1135
+Trace summary : 
+	reflexiveAccusative
+	activeVerbMorphology
+	CliticSubject
+
+
+Solution : Tn0Vn1-1136
+Trace summary : 
+	activeVerbMorphology
+	CanonicalObject
+	whSubject
+
+
+Solution : Tn0Vn1-1137
+Trace summary : 
+	CliticObjectII
+	activeVerbMorphology
+	whSubject
+
+
+Solution : Tn0Vn1-1138
+Trace summary : 
+	CliticObject3
+	activeVerbMorphology
+	whSubject
+
+
+Solution : Tn0Vn1-1139
+Trace summary : 
+	reflexiveAccusative
+	activeVerbMorphology
+	whSubject
+
+
+Solution : Tn0Vn1-1140
+Trace summary : 
+	activeVerbMorphology
+	CanonicalObject
+	RelativeSubject
+
+
+Solution : Tn0Vn1-1141
+Trace summary : 
+	CliticObjectII
+	activeVerbMorphology
+	RelativeSubject
+
+
+Solution : Tn0Vn1-1142
+Trace summary : 
+	CliticObject3
+	activeVerbMorphology
+	RelativeSubject
+
+
+Solution : Tn0Vn1-1143
+Trace summary : 
+	reflexiveAccusative
+	activeVerbMorphology
+	RelativeSubject
+
+
+Solution : Tn0Vn1-1144
+Trace summary : 
+	CleftSubject
+	activeVerbMorphology
+	CanonicalObject
+
+
+Solution : Tn0Vn1-1145
+Trace summary : 
+	CleftSubject
+	CliticObjectII
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1-1146
+Trace summary : 
+	CleftSubject
+	CliticObject3
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1-1147
+Trace summary : 
+	CleftSubject
+	reflexiveAccusative
+	activeVerbMorphology
+
+
+Solution : Tn0Vn1-1148
+Trace summary : 
+	ImperativeSubject
+	CanonicalCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1149
+Trace summary : 
+	InfinitiveSubject
+	whCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1150
+Trace summary : 
+	InfinitiveSubject
+	RelativeCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1151
+Trace summary : 
+	InfinitiveSubject
+	CleftCAgentOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1152
+Trace summary : 
+	InfinitiveSubject
+	CleftCAgentTwo
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1153
+Trace summary : 
+	InfinitiveSubject
+	CanonicalCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1154
+Trace summary : 
+	whCAgent
+	CanonicalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1155
+Trace summary : 
+	CanonicalSubject
+	RelativeCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1156
+Trace summary : 
+	CanonicalSubject
+	CleftCAgentOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1157
+Trace summary : 
+	CanonicalSubject
+	CleftCAgentTwo
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1158
+Trace summary : 
+	CanonicalCAgent
+	CanonicalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1159
+Trace summary : 
+	whCAgent
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1160
+Trace summary : 
+	RelativeCAgent
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1161
+Trace summary : 
+	CliticSubject
+	CleftCAgentOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1162
+Trace summary : 
+	CliticSubject
+	CleftCAgentTwo
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1163
+Trace summary : 
+	CanonicalCAgent
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1164
+Trace summary : 
+	CanonicalCAgent
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1165
+Trace summary : 
+	CanonicalCAgent
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1166
+Trace summary : 
+	CleftSubject
+	CanonicalCAgent
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1167
+Trace summary : 
+	ImperativeSubject
+	CanonicalGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1168
+Trace summary : 
+	ImperativeSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1169
+Trace summary : 
+	ImperativeSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1170
+Trace summary : 
+	InfinitiveSubject
+	CanonicalGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1171
+Trace summary : 
+	InfinitiveSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1172
+Trace summary : 
+	InfinitiveSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1173
+Trace summary : 
+	InfinitiveSubject
+	whGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1174
+Trace summary : 
+	InfinitiveSubject
+	RelativeGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1175
+Trace summary : 
+	InfinitiveSubject
+	CleftDont
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1176
+Trace summary : 
+	InfinitiveSubject
+	CleftGenitiveOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1177
+Trace summary : 
+	CleftGenitiveTwo
+	InfinitiveSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1178
+Trace summary : 
+	CanonicalSubject
+	CanonicalGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1179
+Trace summary : 
+	CanonicalSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1180
+Trace summary : 
+	CanonicalSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1181
+Trace summary : 
+	CanonicalSubject
+	whGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1182
+Trace summary : 
+	CanonicalSubject
+	RelativeGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1183
+Trace summary : 
+	CanonicalSubject
+	CleftDont
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1184
+Trace summary : 
+	CanonicalSubject
+	CleftGenitiveOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1185
+Trace summary : 
+	CleftGenitiveTwo
+	CanonicalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1186
+Trace summary : 
+	CanonicalGenitive
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1187
+Trace summary : 
+	CliticSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1188
+Trace summary : 
+	CliticSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1189
+Trace summary : 
+	CliticSubject
+	whGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1190
+Trace summary : 
+	CliticSubject
+	RelativeGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1191
+Trace summary : 
+	CliticSubject
+	CleftDont
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1192
+Trace summary : 
+	CliticSubject
+	CleftGenitiveOne
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1193
+Trace summary : 
+	CleftGenitiveTwo
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1194
+Trace summary : 
+	CanonicalGenitive
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1195
+Trace summary : 
+	CliticGenitive
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1196
+Trace summary : 
+	CliticGenitive
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1197
+Trace summary : 
+	CanonicalGenitive
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1198
+Trace summary : 
+	CliticGenitive
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1199
+Trace summary : 
+	CliticGenitive
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1200
+Trace summary : 
+	CleftSubject
+	CanonicalGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1201
+Trace summary : 
+	CleftSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1202
+Trace summary : 
+	CleftSubject
+	CliticGenitive
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1203
+Trace summary : 
+	ImperativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1204
+Trace summary : 
+	InfinitiveSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1205
+Trace summary : 
+	CanonicalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1206
+Trace summary : 
+	CliticSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1207
+Trace summary : 
+	whSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1208
+Trace summary : 
+	RelativeSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1209
+Trace summary : 
+	CleftSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1210
+Trace summary : 
+	whObject
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1211
+Trace summary : 
+	RelativeObject
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1212
+Trace summary : 
+	CleftObject
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1213
+Trace summary : 
+	ImpersonalSubject
+	CanonicalObject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1214
+Trace summary : 
+	CliticObjectII
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1215
+Trace summary : 
+	CliticObjectII
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1216
+Trace summary : 
+	CliticObject3
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1217
+Trace summary : 
+	CliticObject3
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1218
+Trace summary : 
+	reflexiveAccusative
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1219
+Trace summary : 
+	reflexiveAccusative
+	ImpersonalSubject
+	passiveVerbMorphology
+
+
+Solution : Tn0Vn1-1220
+Trace summary : 
+	middleVerbMorphology
+	ImperativeSubject
+
+
+Solution : Tn0Vn1-1221
+Trace summary : 
+	InfinitiveSubject
+	middleVerbMorphology
+
+
+Solution : Tn0Vn1-1222
+Trace summary : 
+	middleVerbMorphology
+	CanonicalSubject
+
+
+Solution : Tn0Vn1-1223
+Trace summary : 
+	middleVerbMorphology
+	CliticSubject
+
+
+Solution : Tn0Vn1-1224
+Trace summary : 
+	middleVerbMorphology
+	whSubject
+
+
+Solution : Tn0Vn1-1225
+Trace summary : 
+	middleVerbMorphology
+	RelativeSubject
+
+
+Solution : Tn0Vn1-1226
+Trace summary : 
+	CleftSubject
+	middleVerbMorphology
+
+
+
+Famille : ilV
+Solution : TilV-1260
+Trace summary : 
+	ImpersonalSubject
+	activeVerbMorphology
+
+
+
+Famille : n0Vden1
+Solution : Tn0Vden1-1268
+Trace summary : 
+	ImperativeSubject
+	activeVerbMorphology
+	CanonicalGenitive
+
+
+Solution : Tn0Vden1-1269
+Trace summary : 
+	ImperativeSubject
+	activeVerbMorphology
+	CliticGenitive
+
+
+Solution : Tn0Vden1-1270
+Trace summary : 
+	InfinitiveSubject
+	activeVerbMorphology
+	CanonicalGenitive
+
+
+Solution : Tn0Vden1-1271
+Trace summary : 
+	InfinitiveSubject
+	activeVerbMorphology
+	CliticGenitive
+
+
+Solution : Tn0Vden1-1272
+Trace summary : 
+	InfinitiveSubject
+	whGenitive
+	activeVerbMorphology
+
+
+Solution : Tn0Vden1-1273
+Trace summary : 
+	InfinitiveSubject
+	activeVerbMorphology
+	RelativeGenitive
+
+
+Solution : Tn0Vden1-1274
+Trace summary : 
+	InfinitiveSubject
+	CleftDont
+	activeVerbMorphology
+
+
+Solution : Tn0Vden1-1275
+Trace summary : 
+	CleftGenitiveOne
+	InfinitiveSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vden1-1276
+Trace summary : 
+	InfinitiveSubject
+	activeVerbMorphology
+	CleftGenitiveTwo
+
+
+Solution : Tn0Vden1-1277
+Trace summary : 
+	CanonicalSubject
+	CanonicalGenitive
+	activeVerbMorphology
+
+
+Solution : Tn0Vden1-1278
+Trace summary : 
+	CanonicalSubject
+	activeVerbMorphology
+	CliticGenitive
+
+
+Solution : Tn0Vden1-1279
+Trace summary : 
+	CanonicalSubject
+	activeVerbMorphology
+	whGenitive
+
+
+Solution : Tn0Vden1-1280
+Trace summary : 
+	CanonicalSubject
+	activeVerbMorphology
+	RelativeGenitive
+
+
+Solution : Tn0Vden1-1281
+Trace summary : 
+	CanonicalSubject
+	activeVerbMorphology
+	CleftDont
+
+
+Solution : Tn0Vden1-1282
+Trace summary : 
+	CanonicalSubject
+	activeVerbMorphology
+	CleftGenitiveOne
+
+
+Solution : Tn0Vden1-1283
+Trace summary : 
+	CleftGenitiveTwo
+	CanonicalSubject
+	activeVerbMorphology
+
+
+Solution : Tn0Vden1-1284
+Trace summary : 
+	activeVerbMorphology
+	CanonicalGenitive
+	CliticSubject
+
+
+Solution : Tn0Vden1-1285
+Trace summary : 
+	activeVerbMorphology
+	CliticSubject
+	CliticGenitive
+
+
+Solution : Tn0Vden1-1286
+Trace summary : 
+	activeVerbMorphology
+	CliticSubject
+	whGenitive
+
+
+Solution : Tn0Vden1-1287
+Trace summary : 
+	activeVerbMorphology
+	CliticSubject
+	RelativeGenitive
+
+
+Solution : Tn0Vden1-1288
+Trace summary : 
+	activeVerbMorphology
+	CliticSubject
+	CleftDont
+
+
+Solution : Tn0Vden1-1289
+Trace summary : 
+	activeVerbMorphology
+	CliticSubject
+	CleftGenitiveOne
+
+
+Solution : Tn0Vden1-1290
+Trace summary : 
+	CleftGenitiveTwo
+	activeVerbMorphology
+	CliticSubject
+
+
+Solution : Tn0Vden1-1291
+Trace summary : 
+	activeVerbMorphology
+	CanonicalGenitive
+	whSubject
+
+
+Solution : Tn0Vden1-1292
+Trace summary : 
+	activeVerbMorphology
+	CliticGenitive
+	whSubject
+
+
+Solution : Tn0Vden1-1293
+Trace summary : 
+	activeVerbMorphology
+	CanonicalGenitive
+	RelativeSubject
+
+
+Solution : Tn0Vden1-1294
+Trace summary : 
+	activeVerbMorphology
+	CliticGenitive
+	RelativeSubject
+
+
+Solution : Tn0Vden1-1295
+Trace summary : 
+	CleftSubject
+	activeVerbMorphology
+	CanonicalGenitive
+
+
+Solution : Tn0Vden1-1296
+Trace summary : 
+	CleftSubject
+	activeVerbMorphology
+	CliticGenitive
+
+
+
+Famille : n0ClV
+Solution : Tn0ClV-1261
+Trace summary : 
+	ImperativeSubject
+	properReflexive
+
+
+Solution : Tn0ClV-1262
+Trace summary : 
+	properReflexive
+	InfinitiveSubject
+
+
+Solution : Tn0ClV-1263
+Trace summary : 
+	properReflexive
+	CanonicalSubject
+
+
+Solution : Tn0ClV-1264
+Trace summary : 
+	properReflexive
+	CliticSubject
+
+
+Solution : Tn0ClV-1265
+Trace summary : 
+	whSubject
+	properReflexive
+
+
+Solution : Tn0ClV-1266
+Trace summary : 
+	RelativeSubject
+	properReflexive
+
+
+Solution : Tn0ClV-1267
+Trace summary : 
+	properReflexive
+	CleftSubject
+
+
+
+Famille : commonNoun
+Solution : TcommonNoun-1297
+Trace summary : 
+
+

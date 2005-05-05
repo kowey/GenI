@@ -1,0 +1,7 @@
+% Grammar = head.mg
+
+To produce GenI compatible grammar:
+
+MetaTAG --xml -o XMLfile MGfile
+
+geniconvert --macros < XMLfile > geniFile

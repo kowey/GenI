@@ -1,0 +1,9 @@
+
+class dian0Vn1Active[E,X,Y]{
+    {{ ImperativeSubject[]*=[subjectI=X] ;NonExtraposedObject[]*=[objectI=Y] } |
+      { InvertedNominalSubject[]*=[subjectI=X];ExtraposedObject[]*=[objectI=Y] } |
+      {InfinitiveSubject[]*=[subjectI=X] ;
+       {NonExtraposedObject[]*=[objectI=Y] | whObject[]*=[objectI=Y]} } |
+     {FiniteSubject[]*=[subjectI=X] ; Object[]*=[objectI=Y]}} 
+     ; activeVerbMorphology[]*=[vbI=E]
+}
