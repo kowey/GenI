@@ -1,7 +1,4 @@
 % Grammar = head.mg
 
-To produce GenI compatible grammar:
-
-MetaTAG --xml -o XMLfile MGfile
-
-geniconvert --macros < XMLfile > geniFile
+See http://wiki.loria.fr/wiki/Common_grammar_manifesto 
+to make this all work with GenI.

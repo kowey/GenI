@@ -1,5 +1,5 @@
 %% Lexicon file
-%% Built using GDE -Thu Apr 21 11:17:04 CEST 2005
+%% Built using GDE -Mon May 09 14:06:05 CEST 2005
 Jean
 [family:propername]
 (anchor.gen=m,
@@ -30,19 +30,7 @@ anchor.num=sg,
 interface.rel=the)
 
 peser
-[family:n0,passivable:+]
-(interface.rel=peser)
-
-peser
-[family:n0V,passivable:+]
-(interface.rel=peser)
-
-peser
-[family:n0G,passivable:+]
-(interface.rel=peser)
-
-peser
-[family:n0VG,passivable:+]
+[family:n0Vn1,passivable:+]
 (interface.rel=peser)
 
 regarder
