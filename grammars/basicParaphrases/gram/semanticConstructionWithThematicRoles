@@ -1,29 +1,12 @@
-%% Without
-semlex 
-	auditionne v [evt:I arg1:X arg2:Y] 
-synlex
-	auditionne v  n0Vn1 
 
-class dian0Vn1Active[E,X,Y]{
-                Subject[]*=[subjectI=X] ; Object[]*=[objectI=Y] ; activeVerbMorphology[]*=[vbI=E]         
-}
-class dian0Vn1Passive[E,X,Y]{
-                Subject[]*=[subjectI=Y] ; CAgent[]*=[cagentI=X]  ; passiveVerbMorphology[]*=[vbI=E]        
-}
-class n0Vn1[E,X,Y]{
- 		binaryRel[]*=[evt=E,arg1=X,arg2=Y] ;
-               { dian0Vn1Active[E,X,Y]
-		| dian0Vn1Passive[E,X,Y]
-		| dian0Vn1dePassive[E,X,Y]
-		| dian0Vn1ShortPassive[E,X,Y]
-		| dian0Vn1ImpersonalPassive[E,X,Y]
-		| dian0Vn1middle[E,X,Y]
-		}
-}
+%% 05/05/05 
+%% Claire
+%% To account for the link between the lexicon and thematic grids, we
+%% use the following approach in the metagrammar
+%% (changes implemented in verbesSem.mg, lexique.mg,semRel.mg
 
-%% With
 1) Change semantic relation defn to include Theta roles as variables
-(rather than constants)
+(rather than constants) e.g.,
 
 
 class binaryRel 
@@ -55,6 +38,9 @@ class dian0Vn1Active[E,X,Y]{
 }
 
 4) lexical class specifies thematic roles
-
+% Jean aime Marie
+class aime[E,X,Y]{
+      n0Vn1[E,X,Y,exp,cause]}
+% Marie plait a Jean
 class aime[E,X,Y]{
       n0Vn1[E,X,Y,exp,cause]}

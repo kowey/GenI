@@ -13,7 +13,7 @@ declare
 	};
 	<sem>{
 		L:P(I) 
-	      }
+	      }*=[arg1=I]
 }
 
 % chien, chat, (la) France
