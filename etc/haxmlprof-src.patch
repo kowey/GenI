@@ -1,0 +1,81 @@
+Only in kowey-HaXml-1.12/src: .Makefile.swp
+diff -u orig-HaXml-1.12/src/Makefile kowey-HaXml-1.12/src/Makefile
+--- orig-HaXml-1.12/src/Makefile	Tue May 18 12:30:12 2004
++++ kowey-HaXml-1.12/src/Makefile	Wed May  4 12:33:35 2005
+@@ -15,6 +15,7 @@
+ 	Text/ParserCombinators/HuttonMeijerWallace.hs
+ 
+ LIBOBJS = $(patsubst %.hs, %.o, $(LIBSRCS))
++LIBOBJSPROF = $(patsubst %.hs, %.p_o, $(LIBSRCS))
+ 
+ TOOLSRCS = \
+ 	Text/XML/HaXml/DtdToHaskell/TypeDef.hs \
+@@ -33,7 +34,8 @@
+ # The caller *must* set the HC variable.
+ COMPILER := $(findstring ghc, $(HC))
+ ifeq "$(COMPILER)" "ghc"
+-COMPILE  = $(HC) --make -cpp -i. $(shell cat ghcpkgs) -package-name HaXml
++COMPILE     = $(HC) -O --make -cpp -i. $(shell cat ghcpkgs) -package-name HaXml
++COMPILEPROF = $(COMPILE) -prof -auto-all -hisuf p_hi -osuf p_o 
+ RENAME   = mv a.out
+ endif
+ COMPILER := $(findstring nhc98, $(HC))
+@@ -45,16 +47,18 @@
+ .PHONY: all libs toolset
+ 
+ all: libs toolset
+-libs: libHSHaXml.a
++libs: libHSHaXml.a 
+ toolset: $(TOOLSET)
+ install-filesonly-ghc: libs $(INSTALLDIR)
+-	cp libHSHaXml.a `cat ghclibdir`
++	cp libHSHaXml.a	libHSHaXml_p.a  `cat ghclibdir`
+ 	-ranlib `cat ghclibdir`/libHSHaXml.a	# ignore if fails on Linux
++	-ranlib `cat ghclibdir`/libHSHaXml_p.a	# ignore if fails on Linux
+ 	-cp HSHaXml.o `cat ghclibdir`		# file may not exist on MacOS X
++	-cp HSHaXml.p_o `cat ghclibdir`		# file may not exist on MacOS X
+ 	-rm -r `cat ghcincdir`/HaXml
+ 	mkdir `cat ghcincdir`/HaXml
+ 	cp interfaces.tar `cat ghcincdir`/HaXml
+-	cd `cat ghcincdir`/HaXml; tar xf interfaces.tar; rm interfaces.tar
++	cd `cat ghcincdir`/HaXml; tar xf interfaces.tar;  rm interfaces.tar
+ 	cp $(TOOLSET) $(INSTALLDIR)
+ install-filesonly-nhc98: libs $(INSTALLDIR)
+ 	cp libHSHaXml.a `cat nhc98libdir`/`harch`
+@@ -66,7 +70,8 @@
+ 	cp $(TOOLSET) $(INSTALLDIR)
+ install-ghc: install-filesonly-ghc
+ 	`cat ghcpkgcmd` --remove-package=HaXml || true
+-	`cat ghcpkgcmd` --add-package <pkg.conf
++	`cat ghcpkgcmd` --auto-ghci-libs --add-package <pkg.conf
++
+ install-nhc98: install-filesonly-nhc98
+ install-tools-hugs: toolset-hugs $(INSTALLDIR)
+ 	cp $(patsubst ../../%, %, ${TOOLSET}) $(INSTALLDIR)
+@@ -75,14 +80,21 @@
+ $(LIBSRCS) $(TOOLSRCS) Makefile Text/PrettyPrint/HughesPJ.hs: %: ../../src/%
+ 	cp $< $@
+ 
++ifdef COMPILEPROF
++define makeprofiler
++$(COMPILEPROF) $(LIBSRCS)
++ar r libHSHaXml_p.a $(LIBOBJSPROF)
++endef
++else
++makeprofiler=
++endif
+ 
+ # packaged library
+ libHSHaXml.a: $(LIBSRCS)
+ 	$(COMPILE) $(LIBSRCS)
+ 	ar r libHSHaXml.a $(LIBOBJS)
+-	-ld -r --whole-archive -o HSHaXml.o libHSHaXml.a	# for GHCi only
+-	tar cf interfaces.tar `find Text -name *.hi -print`
+-
++	$(makeprofiler)
++	tar cf interfaces.tar `find Text \( -name '*.hi' -o -name '*.p_hi' \) -print`
+ 
+ # standalone tools
+ $(TOOLSET): $(LIBSRCS) $(TOOLSRCS)
+Common subdirectories: orig-HaXml-1.12/src/Text and kowey-HaXml-1.12/src/Text
+Common subdirectories: orig-HaXml-1.12/src/tools and kowey-HaXml-1.12/src/tools

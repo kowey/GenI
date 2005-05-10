@@ -1,0 +1,25 @@
+Only in kowey-HaXml-1.12: .Makefile.swp
+Only in kowey-HaXml-1.12: .configure.swp
+Only in kowey-HaXml-1.12: Canonicalise
+Only in kowey-HaXml-1.12: DtdToHaskell
+Only in kowey-HaXml-1.12: MkOneOf
+Only in kowey-HaXml-1.12: Validate
+Only in kowey-HaXml-1.12: Xtract
+diff -u orig-HaXml-1.12/configure kowey-HaXml-1.12/configure
+--- orig-HaXml-1.12/configure	Tue May 18 12:28:59 2004
++++ kowey-HaXml-1.12/configure	Wed May  4 11:40:43 2005
+@@ -263,7 +263,8 @@
+   echo $GHCINCDIR >obj/ghc/ghcincdir
+   echo ghc-pkg-$GHCVERSION >obj/ghc/ghcpkgcmd
+   echo ${BUILDWITH-ghc} >obj/ghccmd
+-  cp -Rp src/Text src/tools src/Makefile src/pkg.conf obj/ghc
++  cp -Rp src/Text src/tools src/Makefile obj/ghc
++  sed -e "s!\$libdir!${GHCLIBDIR}!" src/pkg.conf > obj/ghc/pkg.conf
+   if [ "$GHCNUM" -ge "504" ]
+   then rm -rf obj/ghc/Text/PrettyPrint
+        echo "-package base" >obj/ghc/ghcpkgs
+Common subdirectories: orig-HaXml-1.12/docs and kowey-HaXml-1.12/docs
+Common subdirectories: orig-HaXml-1.12/examples and kowey-HaXml-1.12/examples
+Only in kowey-HaXml-1.12: obj
+Common subdirectories: orig-HaXml-1.12/script and kowey-HaXml-1.12/script
+Common subdirectories: orig-HaXml-1.12/src and kowey-HaXml-1.12/src
