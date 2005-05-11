@@ -356,7 +356,9 @@ drawTagTrees :: [TagElem] -> String
 drawTagTrees tes = concat $ intersperse "\n" $ map drawTagTree tes  
 
 drawTagTree :: TagElem -> String 
-drawTagTree te = idname te ++ ":\n" ++ (drawTree $ ttree te)
+drawTagTree te = idname te ++ ":\n"
+-- FIXME : BROKEN!
+-- ++ (drawTree $ ttree te)
 \end{code}
 
 \paragraph{showTagSites} is useful for debugging adjunction and

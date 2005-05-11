@@ -62,11 +62,11 @@ where
 
 \ignore{
 \begin{code}
-import Monad (ap, 
+import Control.Monad (ap, 
               when, 
               foldM)
 
-import MonadState (State, 
+import Control.Monad.State (State, 
                    evalState, 
                    runState,
                    get, 

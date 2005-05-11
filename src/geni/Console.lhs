@@ -28,8 +28,8 @@ module Console(consoleGenerate) where
 \ignore{
 \begin{code}
 import Data.List(intersperse,sort,partition)
-import Monad(mapM, foldM, when)
-import IOExts(readIORef, modifyIORef)
+import Control.Monad(mapM, foldM, when)
+import Data.IORef(readIORef, modifyIORef)
 
 import Bfuncs(SemInput,showSem)
 import General(fst3,snd3,thd3)

@@ -17,7 +17,7 @@ module Main (main)
  
 where
 
-import IOExts(readIORef)
+import Data.IORef(readIORef)
 import Geni(initGeni, pa, batchPa)
 import Gui(guiGenerate)
 import Console(consoleGenerate)

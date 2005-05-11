@@ -4,7 +4,7 @@ module Main (main)
  
 where
 
-import IOExts(readIORef, modifyIORef)
+import Data.IORef(readIORef, modifyIORef)
 import Geni
 import Console(consoleGenerate)
 import Mstate (generate)
