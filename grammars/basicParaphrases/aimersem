@@ -1,1 +1,1 @@
-semantics : [ jean(j) aimer(j m) marie(m) ]
+semantics : [ jean(j) aimer(a) agent(a j) theme(a m) marie(m) ]

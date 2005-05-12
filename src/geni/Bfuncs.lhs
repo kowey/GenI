@@ -53,23 +53,19 @@ module Bfuncs(
    showPairs, showAv,
 
    -- Other functions
-   isVar, isAnon, testBtypes, 
-        
-   -- generic functions
-   BitVector, groupByFM, multiGroupByFM,
-   isEmptyIntersect, trim, fst3, snd3, thd3, 
-   mapTree, filterTree, treeLeaves, listRepNode
+   isVar, isAnon, testBtypes 
 ) where
 \end{code}
 
 \ignore{
 \begin{code}
-import Btypes
 import Debug.Trace -- for test stuff
-import Data.Char (isUpper, isSpace)
-import Data.FiniteMap (emptyFM, FiniteMap, addToFM_C)
-import Data.List (intersect, sortBy, nub, unwords)
+import Data.Char (isUpper)
+import Data.List (sortBy, nub, unwords)
 import Data.Tree
+
+import Btypes
+import General(mapTree, filterTree, listRepNode)
 \end{code}
 }
 
@@ -401,6 +397,7 @@ Returns true if the string starts with a capital or is an anonymous variable.
 
 \begin{code}
 isVar :: String -> Bool
+isVar [] = error "isVar on null string" -- should just be true?
 isVar s  = (isUpper . head) s || (isAnon s)
 \end{code}
 
@@ -502,7 +499,7 @@ TODO WE ASSUME BOTH SEMANTICS ARE ORDERED and non-empty.
 subsumeSem :: Sem -> Sem -> [Subst]
 subsumeSem [] _  = error "target semantics is non-empty in subsumeSem"
 subsumeSem _  [] = error "tree semantics is non-empty in subsumeSem"
-subsumeSem ts [(h,p,par)] = subsumePred ts (h,p,par)
+subsumeSem ts [at] = subsumePred ts at 
 subsumeSem ts (at:l) =
     let psubst = subsumePred ts at
         res    = map (\x -> subsumeSem (substSem ts x) (substSem l x)) psubst
@@ -519,7 +516,7 @@ to s1.  Note: we treat the handle as if it were a parameter.
 \begin{code}
 subsumePred :: Sem -> Pred -> [Subst]
 subsumePred [] _ = []
-subsumePred ((h1, p1, la1):l) (h2,p2,la2) =
+subsumePred ((pred1@(h1, p1, la1)):l) (pred2@(h2,p2,la2)) = 
     -- if we found the proper predicate
     if ((p1 == p2) && (length la1 == length la2))
     then let subst = map nub (pairVar (h1:la1) (h2:la2) [])
@@ -541,10 +538,10 @@ subsumePred ((h1, p1, la1):l) (h2,p2,la2) =
                | (v1 /= v3) = checkAss (v1,v2) l
                | (v2 == v4) = checkAss (v1,v2) l
                | otherwise  = False
-         in subst++(subsumePred l (h2, p2,la2))
+         in subst++(subsumePred l pred2)
     else if (p1 > p2)
          then []
-         else subsumePred l (h2, p2,la2)
+         else subsumePred l pred2 
 \end{code}
 
 \paragraph{sortSem} 
@@ -554,116 +551,6 @@ sortSem :: Sem -> Sem
 sortSem s = sortBy (\(_, p1, _) -> \(_, p2, _) -> compare p1 p2) s
 \end{code}
 
-
-
-% ----------------------------------------------------------------------
-\section{General}
-% ----------------------------------------------------------------------
-
-This section contains miscellaneous bits of generic code.
-
-\begin{code}
-trim :: String -> String
-trim = reverse . (dropWhile isSpace) . reverse . (dropWhile isSpace) 
-\end{code}
-
-\begin{code}
-fst3 :: (a,b,c) -> a
-fst3 (x,_,_) = x
-
-snd3 :: (a,b,c) -> b
-snd3 (_,x,_) = x
-
-thd3 :: (a,b,c) -> c
-thd3 (_,_,x) = x
-\end{code}
-
-\begin{code}
-type BitVector = Integer
-\end{code}
-
-\paragraph{isEmptyIntersect} is true if the intersection of two lists is
-empty.
-
-\begin{code}
-isEmptyIntersect :: (Eq a) => [a] -> [a] -> Bool
-isEmptyIntersect a b = null $ intersect a b
-\end{code}
-
-\paragraph{groupByFM} serves the same function as Data.List.groupBy.  It
-groups together items by some property they have in common. The
-difference is that the property is used as a key to a FiniteMap that you
-can lookup.  \texttt{fn} extracts the property from the item.
-
-\begin{code}
-groupByFM :: (Ord b) => (a -> b) -> [a] -> (FiniteMap b [a])
-groupByFM fn list = 
-  let addfn  x acc key = addToFM_C (++) acc key [x]
-      helper x acc     = addfn x acc (fn x)
-  in foldr helper emptyFM list 
-\end{code}
-
-\paragraph{multiGroupByFM} is the same as groupByFM, except that we
-assume an item can appear in multiple groups.  \texttt{fn} extracts the
-property from the item, and returns multiple results in the form of a
-list.
-
-\begin{code}
-multiGroupByFM :: (Ord b) => (a -> [b]) -> [a] -> (FiniteMap b [a])
-multiGroupByFM fn list = 
-  let addfn  x key acc = addToFM_C (++) acc key [x]
-      helper x acc     = foldr (addfn x) acc (fn x)
-  in foldr helper emptyFM list 
-\end{code}
-
-\paragraph{mapTree} is like map, except on Trees.  This has to be
-tucked away somewhere (i.e. i must be reinventing the wheel)!
-
-\begin{code}
-mapTree :: (a->b) -> Tree a -> Tree b
-mapTree fn (Node a []) = (Node (fn a) [])
-mapTree fn (Node a l)  = (Node (fn a) (map (mapTree fn) l))
-\end{code}
-
-\paragraph{filterTree} is like filter, except on Trees.  Filter 
-might not be a good name, though, because we return a list of 
-nodes, not a tree.
-
-\begin{code}
-filterTree :: (a->Bool) -> Tree a -> [a]
-filterTree fn (Node a []) = 
-  if fn a then [a] else []
-filterTree fn (Node a l)  = 
-  if fn a then a:next else next
-  where next = concatMap (filterTree fn) l
-\end{code}
-
-\paragraph{treeLeaves} returns the leaf nodes of a Tree.
-
-\begin{code}
-treeLeaves :: Tree a -> [a]
-treeLeaves (Node n []) = [n]
-treeLeaves (Node _ l ) = concatMap treeLeaves l
-\end{code}
-
-\paragraph{listRepNode} is a generic tree-walking/editing function.  It
-takes a replacement function, a filtering function and a tree.  It
-returns the tree, except that the first node for which the filtering
-function returns True is transformed with the replacement function.
-
-\begin{code}
-listRepNode :: (Tree a -> Tree a) -> (Tree a -> Bool) 
-              -> [Tree a] -> ([Tree a], Bool)
-listRepNode _ _ [] = ([], False)
-listRepNode fn filt ((n@(Node a l1)):l2) = 
-  if filt n
-  then ((fn n):(l2), True)
-  else let (lt1, flag1) = listRepNode fn filt l1 
-           (lt2, flag2) = listRepNode fn filt l2
-       in if flag1
-          then ((Node a lt1):l2, flag1)
-          else (n:lt2, flag2)
-\end{code}
 
 \begin{code}
 testBtypes = testSubstFlist

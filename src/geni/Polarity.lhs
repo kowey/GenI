@@ -82,9 +82,8 @@ import Bfuncs(Pred, Sem, Flist, AvPair, showAv,
               emptyPred, Ptype(Initial), 
               showSem, sortSem, 
               root, gup, 
-              BitVector, SemPols,
-              unifyFeat, rootUpd,
-              groupByFM, isEmptyIntersect, fst3, snd3, thd3)
+              SemPols, unifyFeat, rootUpd)
+import General(BitVector, groupByFM, isEmptyIntersect, fst3, snd3, thd3)
 \end{code}
 
 %\begin{code}

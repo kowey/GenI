@@ -3,8 +3,9 @@ module Tsparser
  
 where 
 
-import Data.Tree
+--import Data.Tree
 import ParserLib hiding (Node)
+import Btypes(AvPair, emptyLE, ILexEntry(..), Ptype(..), Sem, Pred)
 }
 
 %name targetSemParser SemR
@@ -54,6 +55,22 @@ String: id { $1 }
 
 {- semantics -}
 
+Sem :: { Btypes.Sem }
+Sem: sem ':' '[' ListPred ']' {$4}
+
+ListPred :: { [Btypes.Pred] }
+ListPred : {-empty-}         {[]}
+         | Pred ListPred     {$1:$2}
+
+Pred :: { Btypes.Pred }
+Pred : id '(' Params ')'  {("", $1, $3)}
+
+Params :: { [String] }
+Params : {-empty-} {[]}
+       | id Params {$1:$2}
+
+{- tree representation for semantics: 
+   for now, i don't want to deal with this, or handles
 Sem :: { TpSem }
 Sem : sem ':' '[' ListPred ']' { $4 }
 
@@ -69,6 +86,7 @@ Params :: { TpSem }
 Params :             {[]}
        | id Params   {(Node ("",$1) []):$2}
        | Pred Params {$1:$2}
+-}
 
 {- restrictors -}
 
@@ -86,11 +104,10 @@ FeatVal: id  {$1}
        | '-' {"-"}
 
 {
-type AvPair = (String,String)
-
 type TpCase = ( String, (TpSem, [AvPair]), [String] )
-type TpSem  = [Tree (String,String)]
-type TpPred = (String,String)
+type TpSem  = Btypes.Sem
+-- type TpSem  = [Tree (String,String)]
+-- type TpPred = (String,String)
 
 happyError :: [PosToken] -> E a
 happyError = parserError

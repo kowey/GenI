@@ -31,7 +31,8 @@ import Data.List(intersperse,sort,partition)
 import Monad(mapM, foldM, when)
 import IOExts(readIORef, modifyIORef)
 
-import Bfuncs(SemInput,showSem,fst3,snd3,thd3)
+import Bfuncs(SemInput,showSem)
+import General(fst3,snd3,thd3)
 import Geni
 import Mstate(avgGstats, numcompar, szchart, geniter)
 import Configuration(Params, isGraphical, isTestSuite, testCases,

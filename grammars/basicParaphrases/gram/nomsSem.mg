@@ -13,7 +13,7 @@ declare
 	};
 	<sem>{
 		L:P(I) 
-	      }*=[arg1=I]
+	      }*=[idx=I,rel=P]
 }
 
 % chien, chat, (la) France
@@ -26,7 +26,7 @@ declare
 	};
 	<sem>{
 		L:P(I) 
-	      }
+	      }*=[idx=I,rel=P]
 }
 
 % moi, toi
@@ -38,7 +38,7 @@ declare
 	       node xN(color=red,mark=anchor)[cat = n,bot=[det = +],top=[idx=I]]		};
 	<sem>{
 		I
-	      }
+	      }*=[idx=I]
 }
 
 % je, tu,le, me, se 
@@ -50,5 +50,5 @@ declare
 		node xCl(color=red,mark=anchor)[cat = cl,top=[idx=I]]	};
 	<sem>{
 		I  
-	     }
+	     }*=[idx=I]
 }

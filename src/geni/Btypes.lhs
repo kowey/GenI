@@ -110,8 +110,7 @@ data ILexEntry = ILE{iword       :: String,
                      iptype      :: Ptype,
                      isemantics  :: Sem,
                      isempols    :: [SemPols],
-                     icontrol    :: String,
-                     iprecedence :: Int}
+                     icontrol    :: String}
                deriving (Show, Eq)
 
 emptyLE :: ILexEntry  
@@ -124,8 +123,7 @@ emptyLE = ILE { iword = "",
                 iptype = Unspecified,
                 isemantics = [],
                 isempols   = [],
-                icontrol   = "",
-                iprecedence = 0 }
+                icontrol   = ""}
 \end{code}
 
 % ----------------------------------------------------------------------

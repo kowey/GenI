@@ -56,12 +56,12 @@ import Data.Tree
 
 import Bfuncs (Ptype(Initial, Auxiliar), SemPols,
                Subst, GNode(gup, gdown, glexeme, gnname), Flist, 
-               Sem, Pred, emptyPred, BitVector,
+               Sem, Pred, emptyPred, 
                emptyGNode,
                substFlist, 
                substTree, substSem, showPairs,
-               isAnon, isVar, groupByFM,
-               treeLeaves)
+               isAnon, isVar)
+import General (BitVector, treeLeaves, groupByFM)
 \end{code}
 }
 

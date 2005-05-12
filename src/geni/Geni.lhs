@@ -29,7 +29,7 @@ module Geni (State(..), PState, GeniInput(..), GeniResults(..),
              initGeni, runGeni, doGeneration, runMorph,
              loadGrammar, 
              loadTargetSem, loadTargetSemStr,
-             combine)
+             combine, testGeni)
 where
 \end{code}
 
@@ -38,7 +38,7 @@ where
 import Data.Char (toLower)
 import Data.FiniteMap
 import Data.IORef (IORef, readIORef, newIORef, modifyIORef)
-import Data.List (intersect, intersperse, sort, nub, group)
+import Data.List (intersperse, sort, nub, group)
 import Data.Maybe (isNothing)
 import Data.Tree
 
@@ -46,25 +46,27 @@ import System (ExitCode(ExitSuccess),
                exitWith, getArgs)
 import System.IO(hPutStrLn, hClose, hGetContents, hFlush, stdout)
 import System.IO.Unsafe(unsafePerformIO)
-
+import System.Posix.Files(fileMode, getFileStatus, unionFileModes, 
+                          setFileMode, ownerExecuteMode)
 import System.Mem
 
 import Control.Monad (when)
 import CPUTime (getCPUTime)
 
+import General(groupByFM, multiGroupByFM, startsWith)
+
 import Bfuncs (Macros, MTtree, ILexEntry, Lexicon, 
-               Pred, Sem, SemInput,
+               Sem, SemInput,
                GNode, GType(Subs), Flist,
                isemantics, ifamname, icategory, iword, iparams, 
                ipfeat, ifilters,
-               iprecedence, icontrol, isempols, 
+               icontrol, isempols, 
                gnname, gtype, gaconstr, gup, gdown, toKeys,
                sortSem, subsumeSem, params, 
-               substSem, substFlist', substFlist, substTree, showPairs,
+               substSem, substFlist, substTree, 
                pidname, pfamily, pfeat, ptype, 
                ptpolarities, 
-               setLexeme, tree, unifyFeat,
-               groupByFM, multiGroupByFM, snd3, thd3)
+               setLexeme, tree, unifyFeat)
 
 import Tags (Tags, TagElem, emptyTE, TagSite, 
              idname, tagLeaves,
@@ -94,12 +96,21 @@ import Lparser (lexParser, semlexParser, morphParser, filParser)
 import Tsparser (targetSemParser, testSuiteParser)
 import ParserLib (E(..))
 import SysGeni (runPiped, awaitProcess)
+import GrammarXml (parseXmlTrees)
+
+import Debug.Trace
+import Btypes (emptyLE)
+import Bfuncs (showSem,showPairs)
+showlex l = iword l ++ "\n sem: " ++ (showSem.isemantics) l ++ "\n enrich: " ++ (showPairs.ipfeat) l ++ "\n--\n" 
+
 \end{code}
 }
 
 \begin{code}
 myEMPTY :: String
 myEMPTY = "MYEMPTY" 
+
+testGeni = testExtractCGMSem
 \end{code}
 
 % --------------------------------------------------------------------
@@ -518,7 +529,9 @@ chooseCandI tsem cand =
       helper le = if (null sem) then [le] else map (substLex le) psubst 
                   where psubst = subsumeSem tsem sem
                         sem = isemantics le
-  in nub $ concatMap helper cand
+      --
+  --in --trace ("\n\n" ++ (concatMap showlex cand)) $ 
+  in nub $ concatMap helper cand 
 \end{code}
 
 \paragraph{mapBySemKeys} organises items by their semantic key.  A
@@ -563,18 +576,20 @@ runCGMLexSelection mst =
      let gparams  = gramPa mst
          gramfile = macrosFile gparams
      -- select lexical items 
-         lexCand   = chooseCGMLexCand lexicon tsem
+         lexCand = chooseLexCand lexicon tsem
+         -- lexCand = trace ("\n===============\n" ++ (concatMap showlex lexCand')) $ lexCand'
      -- run the selector module
      let idxs = [1..]
          fil  = concat $ zipWith lexEntryToFil lexCand idxs 
-     g <- runSelector gramfile fil
-     -- convert the selector output into TagElems
-     let lexMap = listToFM $ zip (map show idxs) lexCand
-         fixate :: MTtree -> IO TagElem 
-         fixate ts = 
+     tagml <- runSelector gramfile fil
+     let g = parseXmlTrees tagml 
+         --
+         lexMap = listToFM $ zip (map show idxs) lexCand
+         fixate :: (MTtree,Sem) -> IO TagElem 
+         fixate (ts,s) = 
            case (lookupFM lexMap id) of
              Nothing  -> fail ("no such lexical entry " ++ id)
-             Just lex -> return $ combineCGM lex ts
+             Just lex -> return $ combineCGM lex ts s
            where id = pfamily ts
      cand <- mapM fixate g
      -- attach any morphological information to the candidates
@@ -583,26 +598,6 @@ runCGMLexSelection mst =
      return $ setTidnums cand2
   `catch` \e -> do putStrLn ("Error! Selector output malformed : " ++ show e)
                    return [] 
-\end{code}
-
-\paragraph{chooseCGMLexCand} selects lexical items whose relation
-matches the (the predicate of) one of the literals in the target
-semantics.  Except for the relation, these lexical items have no
-semantics, so we brutally set it to the matching literal.  The 
-effect of this is to propogate the semantic indices to the selected
-item.
-
-\begin{code}
-chooseCGMLexCand :: Lexicon -> Sem -> [ILexEntry]
-chooseCGMLexCand slex tsem = 
-  let lookuplex :: Pred -> [ILexEntry]
-      lookuplex t = map semfn (lookupfn t)
-        where lookupfn t = lookupWithDefaultFM slex [] (snd3 t)
-              semfn x = x { isemantics = [t]} 
-      -- items with nonempty semantics
-      cand      = concatMap lookuplex tsem 
-      -- 
-  in cand 
 \end{code}
 
 \subsubsection{Calling the Selector}
@@ -619,13 +614,19 @@ is that it outputs a set of XML trees; and we use the XML
 converter in \ref{cha:xml} to convert that to geni format}.
 
 \begin{code}
-runSelector :: String -> String -> IO Macros
+runSelector :: String -> String -> IO String 
 runSelector gfile fil = do
-     putStr $ "Running selector..."
+     putStr $ "Selector started.\n"
      hFlush stdout
       -- run the selector
      let selectCmd  = "etc/runselector.sh"
          selectArgs = [gfile]
+     -- set u+x
+     statusSelectCmd <- getFileStatus selectCmd
+     let oldMode = fileMode statusSelectCmd
+         newMode = unionFileModes ownerExecuteMode oldMode
+     setFileMode selectCmd newMode 
+     --
      (pid, fromP, toP) <- runPiped selectCmd selectArgs Nothing Nothing
      hPutStrLn toP fil 
      hClose toP 
@@ -633,12 +634,7 @@ runSelector gfile fil = do
      -- read the selector output back as a set of trees 
      -- grouped into subgrammars
      res <- hGetContents fromP 
-     let g = case ((mParser.lexer) res) of 
-                   Ok x     -> x 
-                   Failed x -> error x 
-         sizeg  = length g
-     putStr $ show sizeg ++ " trees \n" 
-     return g
+     return res 
 \end{code}
 
 \paragraph{lexEntryToFil} converts a lexical entry to a CGM filter for
@@ -659,12 +655,7 @@ only one literal in the lexical item semantics.
 lexEntryToFil :: ILexEntry -> Int -> String
 lexEntryToFil lex n = 
   let filters   = ifilters lex
-      enrichers = ipfeat lex ++ zipWith argToRel args [1..]
-      sem = isemantics lex
-      args = if length sem <= 1 
-             then concatMap thd3 sem
-             else error "semantics of a cgm item has more than one literal"
-      argToRel arg n = ("interface.arg" ++ show n , arg)
+      enrichers = ipfeat lex 
       --
       showFil (a,v) = a ++ ":" ++ v
       showEnr (a,v) = a ++ "=" ++ v
@@ -683,10 +674,12 @@ except that we assume the tree is completely anchored and instatiated and
 that thus there no boring unification or checks to worry about.
 
 \begin{code}
-combineCGM :: ILexEntry -> MTtree -> TagElem
-combineCGM lexitem e = 
+combineCGM :: ILexEntry -> MTtree -> Sem -> TagElem
+combineCGM lexitem e sem = 
    let tree_ = Bfuncs.tree e
        (snodes,anodes) = detectSites tree_
+       -- FIXME: dirty hack strips off the semantic handle
+       aDIRTY_HACK (_,p,a) = ("",p,a) 
        -- the final result
        sol = emptyTE {
                 idname = iword lexitem ++ "_" ++ pidname e,
@@ -695,7 +688,7 @@ combineCGM lexitem e =
                 ttree  = tree_,
                 substnodes = snodes,
                 adjnodes   = anodes,
-                tsemantics = isemantics lexitem,
+                tsemantics = map aDIRTY_HACK sem,
                 tpolarities = emptyFM,
                 tsempols    = isempols lexitem,
                 tinterface  = pfeat e
@@ -774,7 +767,7 @@ loadLexicon pst config = do
        putStr $ "Loading Lexicon " ++ lfilename ++ "..."
        hFlush stdout
        lf <- readFile lfilename 
-       let (_, _, rawlex) = (lexParser . lexer) lf
+       let rawlex = (lexParser . lexer) lf
            lemlex = groupByFM fn rawlex
                     where fn l = (iword l, icategory l)
        putStr ((show $ length rawlex) ++ " entries\n")
@@ -784,37 +777,37 @@ loadLexicon pst config = do
        return ()
 \end{code}
 
-\paragraph{setPrecedence} takes two lists of precedence directives
-(FIXME: explained where?) and a lemma lexicon.  It returns the lemma
-lexicon modified so that each item is assigned a precedence according to
-its membership in the list of precedence directives.  The first list of
-directives are items with tight precedence; the second list are those
-with loose precedence.  In both lists, items closest to the front have
-tightest precedence.  Items which are not in either the tight or loose
-precedence list have default precedence.
-
-\begin{code}
-type WordCat = (String,String)
-type LemmaLexicon = FiniteMap WordCat [ILexEntry] 
-setPrecedence :: [[WordCat]] -> [[WordCat]] 
-                 -> LemmaLexicon -> LemmaLexicon
-setPrecedence tight loose lemlex =
-  let start  = 0 - (length tight)
-      tightp = zip [start..(-1)] tight
-      loosep = zip [0..] loose
-      --
-      tightlex = foldr setPrecedence' lemlex   tightp
-  in foldr setPrecedence' tightlex loosep
-
-setPrecedence' :: (Int,[WordCat]) -> LemmaLexicon -> LemmaLexicon
-setPrecedence' (pr,items) lemlex =
-  let setpr li     = li {iprecedence = pr}
-      --
-      helper :: WordCat -> LemmaLexicon -> LemmaLexicon
-      helper wc ll = addToFM ll wc (map setpr lems)
-                     where lems = lookupWithDefaultFM ll [] wc 
-  in foldr helper lemlex items
-\end{code}
+%\paragraph{setPrecedence} takes two lists of precedence directives
+%(FIXME: explained where?) and a lemma lexicon.  It returns the lemma
+%lexicon modified so that each item is assigned a precedence according to
+%its membership in the list of precedence directives.  The first list of
+%directives are items with tight precedence; the second list are those
+%with loose precedence.  In both lists, items closest to the front have
+%tightest precedence.  Items which are not in either the tight or loose
+%precedence list have default precedence.
+%
+%\begin{code}
+%
+%
+%setPrecedence :: [[WordCat]] -> [[WordCat]] 
+%                 -> LemmaLexicon -> LemmaLexicon
+%setPrecedence tight loose lemlex =
+%  let start  = 0 - (length tight)
+%      tightp = zip [start..(-1)] tight
+%      loosep = zip [0..] loose
+%      --
+%      tightlex = foldr setPrecedence' lemlex   tightp
+%  in foldr setPrecedence' tightlex loosep
+%
+%setPrecedence' :: (Int,[WordCat]) -> LemmaLexicon -> LemmaLexicon
+%setPrecedence' (pr,items) lemlex =
+%  let setpr li     = li {iprecedence = pr}
+%      --
+%      helper :: WordCat -> LemmaLexicon -> LemmaLexicon
+%      helper wc ll = addToFM ll wc (map setpr lems)
+%                     where lems = lookupWithDefaultFM ll [] wc 
+%  in foldr helper lemlex items
+%\end{code}
 
 \paragraph{combineLexicon} merges the lemma lexicon and the semantic
 lexicon into a single lexicon.  The idea is that the semantic lexicon
@@ -826,6 +819,9 @@ up in the (surprise!) lemma lexicon, and copy the semantic information
 into each instance.
 
 \begin{code}
+type WordCat = (String,String)
+type LemmaLexicon = FiniteMap WordCat [ILexEntry] 
+
 combineLexicon :: LemmaLexicon -> Lexicon -> Lexicon
 combineLexicon ll sl = 
   let merge si li = li { isemantics = isemantics si
@@ -840,6 +836,8 @@ combineLexicon ll sl =
   in mapFM (\_ e -> concatMap helper e) sl 
 \end{code}
 
+\subsubsection{Lexicon - CGM}
+
 \paragraph{loadCGMLexicon} Given the pointer to the monadic state pst and
 the parameters from a grammar index file parameters; it reads and parses
 the lexicon file using the common grammar manifesto format.  See chapter
@@ -853,8 +851,11 @@ loadCGMLexicon pst config = do
        putStr $ "Loading CGManifesto Lexicon " ++ lfilename ++ "..."
        hFlush stdout
        lf <- readFile lfilename
-       let sortlexsem l = l { isemantics = sortSem $ isemantics l }
-           lex          = (mapByRelation . filParser . lexer) lf
+       let semmapper = mapBySemKeys isemantics
+           setsem l  = l { isemantics = sortSem sem
+                         , ipfeat = ipfeat l ++ enr }
+             where (sem,enr) = extractCGMSem l
+           lex       = (semmapper . map setsem . filParser . lexer) lf
        putStr ((show $ length $ keysFM lex) ++ " entries\n")
 
        -- combine the two lexicons
@@ -862,19 +863,71 @@ loadCGMLexicon pst config = do
        return ()
 \end{code}
 
-\paragraph{mapByRelation} organises lexical items by their relation.  
-The relation is found in the path equations for enrichment, associated
-with the attribute \texttt{interface.rel}
-This is used for lexicons in the common grammar manifesto format 
-pretty much in the same way as mapBySemKeys.
+\paragraph{extractCGMSem} Determines the semantics of a CGM lexical entry.
+
+Lexical entries have a semantics of the form $relation <theta1,...,thetan>$.
+This is expressed in the enrichment interface like
+\begin{verbatim}
+interface.rel = hates
+interface.theta1 = agt
+interface.theta2 = pat
+\end{verbatim}
+
+We do things with this
+\begin{enumerate}
+\item We translate this into a semantics of the form \verb$hates(E), agt(E,X1),
+      pat(E,X2)$. Note that E, X1, X2, are just variable names that we make up,
+      following the GenI convention that upper case initial means they are
+      variable.
+\item Because we want to propogate the indices to trees, we also generate
+      a set of enrichement instructions of the form
+\begin{verbatim}
+interface.idx  = E
+interface.arg1 = X1
+interface.arg2 = X2
+\end{verbatim}
+\end{enumerate}
 
 \begin{code}
-mapByRelation :: [ILexEntry] -> FiniteMap String [ILexEntry]
-mapByRelation xs =
-  let gfn t = if null r then [myEMPTY] else r
-        where r = [ snd x | x <- ipfeat t, fst x == "interface.rel" ] 
-  in multiGroupByFM gfn xs
+extractCGMSem :: ILexEntry -> (Sem,Flist)
+extractCGMSem lex =
+  let attr_theta = "interface.theta"
+      attr_rel   = "interface.rel"
+      --
+      theta   = [ x | x <- ipfeat lex, startsWith attr_theta (fst x) ]
+      relList = [ x | x <- ipfeat lex, fst x == attr_rel ] 
+      rel | null relList        = error (relErr ++ "has no relation")
+          | length relList > 1  = error (relErr ++ "has more than one relation")
+          | otherwise           = head relList
+        where relErr  = "lexical entry " ++ show lex ++ ""
+      -- 
+      numfn x = drop (length attr_theta) (fst x) -- interface.theta1 -> 1
+      relPred       = ("", snd rel, ["E"])
+      thetaPredFn x = ("", snd x  , ["E", "X" ++ numfn x])
+      --
+      relEnrich = if null theta 
+                  then ("interface.idx","E") -- not verbs
+                  else ("interface.evt","E") -- verbs
+      thetaEnrichFn x = ("interface.arg" ++ num, "X" ++ num)
+                          where num = numfn x
+      --
+      sem    = relPred   : (map thetaPredFn   theta)
+      enrich = relEnrich : (map thetaEnrichFn theta)
+  in (sem,enrich)
 \end{code}
+
+\ignore{
+\begin{code}
+testExtractCGMSem :: Bool
+testExtractCGMSem =
+  let feats       = [ ("interface.rel","hates"),
+                      ("interface.theta1","agt"),
+                      ("interface.theta2","pat") ]
+      example_lex = emptyLE { ipfeat = feats }
+      extracted   = fst $ extractCGMSem example_lex
+  in trace (show extracted) (length extracted == 3) 
+\end{code}
+}
 
 \subsubsection{Macros}
 
@@ -943,7 +996,7 @@ loadTargetSem pst = do
   tstr <- readFile filename
   -- helper functions for test suite stuff
   let cleanup (id, (sm,sr), sn) = (id, newsmsr, sort sn)
-        where newsmsr = (flattenTargetSem sm, sort sr)
+        where newsmsr = (sortSem sm, sort sr)
       updateTsuite s = modifyIORef pst (\x -> x {tsuite = map cleanup s,   
                                                  tcases = testCases config})
   --  
@@ -966,52 +1019,52 @@ loadTargetSemStr :: PState -> String -> IO ()
 loadTargetSemStr pst str = 
     do putStr "Parsing Target Semantics..."
        let semi = (targetSemParser . lexer) str
-           smooth (s,r) = (flattenTargetSem s, sort r)
+           smooth (s,r) = (sortSem s, sort r)
        case semi of 
          Ok sr    -> modifyIORef pst (\x -> x{ts = smooth sr})
          Failed s -> fail s
        putStr "done\n"
 \end{code}
 
-\paragraph{flattenTargetSem} takes a recursively embedded target
-semantics like \verb$love(me wear(you sw))$ \verb$sweater(sw)$
-and converts it into a flat semantics with handles like
-\verb$love(h1 me h1.3)$ \verb$wear(h1.3 you)$ $sweater(h2 sw)$
-
-FIXME: we do not know how to handle literals with no arguments!
-
-\begin{code}
-flattenTargetSem :: [Tree (String, String)] -> Sem
-flattenTargetSem trees = sortSem results
-  where results  = (concat . snd . unzip) results'
-        results' = zipWith fn [1..] trees 
-        fn g k   = flattenTargetSem' [g] k
-\end{code}
-
-\paragraph{flattenTargetSem'} We walk the semantic tree, returning an index and
-a list of predicates representing the flat semantics for the entire semantic
-tree.  Normally, only the second result is interesting for you; the first
-result is used for recursion, the idea being that a node's parameters is the
-list of indices returned by its children.  If a child does not have any
-children of its own, then its index is its string value (like \verb$john$); if
-it does have children, then we return a handle for it (like \verb$h1.3.4$)
-
-\begin{code}
-flattenTargetSem' :: [Int] -> Tree (String,String) -> (String, Sem)
-flattenTargetSem' _  (Node ("",pred) []) = (pred, []) 
-
-flattenTargetSem' gorn (Node (hand,pred) kids) =
-  let smooshGorn = "gh" ++ (concat $ intersperse "." $ map show gorn)
-      -- recursive step
-      kidGorn   = map (\x -> (x:gorn)) [1..] 
-      next      = zip kidGorn kids
-      nextRes   = map (\ (g,k) -> flattenTargetSem' g k) next
-      (kidIndexes, kidSem) = unzip nextRes
-      -- create the predicate
-      handle    = if null hand then smooshGorn else hand
-      result    = (handle, pred, kidIndexes)
-  in (smooshGorn, result:(concat kidSem))
-\end{code}
+%\paragraph{flattenTargetSem} takes a recursively embedded target
+%semantics like \verb$love(me wear(you sw))$ \verb$sweater(sw)$
+%and converts it into a flat semantics with handles like
+%\verb$love(h1 me h1.3)$ \verb$wear(h1.3 you)$ $sweater(h2 sw)$
+%
+%FIXME: we do not know how to handle literals with no arguments!
+%
+%\begin{code}
+%flattenTargetSem :: [Tree (String, String)] -> Sem
+%flattenTargetSem trees = sortSem results
+%  where results  = (concat . snd . unzip) results'
+%        results' = zipWith fn [1..] trees 
+%        fn g k   = flattenTargetSem' [g] k
+%\end{code}
+%
+%\paragraph{flattenTargetSem'} We walk the semantic tree, returning an index and
+%a list of predicates representing the flat semantics for the entire semantic
+%tree.  Normally, only the second result is interesting for you; the first
+%result is used for recursion, the idea being that a node's parameters is the
+%list of indices returned by its children.  If a child does not have any
+%children of its own, then its index is its string value (like \verb$john$); if
+%it does have children, then we return a handle for it (like \verb$h1.3.4$)
+%
+%\begin{code}
+%flattenTargetSem' :: [Int] -> Tree (String,String) -> (String, Sem)
+%flattenTargetSem' _  (Node ("",pred) []) = (pred, []) 
+%
+%flattenTargetSem' gorn (Node (hand,pred) kids) =
+%  let smooshGorn = "gh" ++ (concat $ intersperse "." $ map show gorn)
+%      -- recursive step
+%      kidGorn   = map (\x -> (x:gorn)) [1..] 
+%      next      = zip kidGorn kids
+%      nextRes   = map (\ (g,k) -> flattenTargetSem' g k) next
+%      (kidIndexes, kidSem) = unzip nextRes
+%      -- create the predicate
+%      handle    = if null hand then smooshGorn else hand
+%      result    = (handle, pred, kidIndexes)
+%  in (smooshGorn, result:(concat kidSem))
+%\end{code}
 
 % --------------------------------------------------------------------
 \section{Generation step} 

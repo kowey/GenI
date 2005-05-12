@@ -81,15 +81,13 @@ import Bfuncs (Ptype(Initial,Auxiliar),
                Flist, 
                Sem, sortSem, Subst,
                GType(Other), GNode(..),
-               BitVector,
                rootUpd,
                repAdj,
                renameTree,
                repSubst,
                constrainAdj, 
                root, foot, 
-               substTree, substGNode, substFlist, unifyFeat, 
-               mapTree, fst3)
+               substTree, substGNode, substFlist, unifyFeat)
 
 import Tags (TagElem, TagSite, TagDerivation, 
              idname, tidnum,
@@ -103,6 +101,7 @@ import Tags (TagElem, TagSite, TagDerivation,
             )
 import Configuration (Params, semfiltered, footconstr,
                       usetrash)
+import General (BitVector, fst3, mapTree)
 \end{code}
 }
 

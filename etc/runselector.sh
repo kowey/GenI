@@ -10,7 +10,9 @@ cat > ${TMP_FIL_FILE}
 # run the selector
 SelectTAG ${GRAMMAR_FILE} ${TMP_FIL_FILE} --xml -o ${TMP_RES_FILE} > /dev/null
 
-# convert the selector output
-`dirname $0`/../geniconvert --trees < ${TMP_RES_FILE} 
+cat ${TMP_RES_FILE}
 
-rm ${TMP_FIL_FILE} ${TMP_RES_FILE}
+# convert the selector output
+#`dirname $0`/../geniconvert --trees < ${TMP_RES_FILE} 
+
+# rm ${TMP_FIL_FILE} ${TMP_RES_FILE}

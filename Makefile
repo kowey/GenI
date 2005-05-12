@@ -73,7 +73,6 @@ DIFILE = $(SRC_GENI)/MainNoGui
 
 OFILE = geni
 COFILE = geniconvert
-DOFILE = debugger
 
 LEXERS		= $(SRC_GENI)/Lex2.hs
 PARSERS		= \
@@ -128,11 +127,6 @@ $(LEXERS): %.hs: %.x
 $(PARSERS): %.hs: %.y
 	happy -a -g -c -m `basename $@ .hs` $< 
 
-optimize: $(LEXERS) $(PARSERS)
-	$(GHC) -O2 --make $(GHCPACKAGES_GUI) $(LEXERS) $(PARSERS) 
-	$(GHC) -O2 -W --make $(GHCPACKAGES_GUI) $(IFILE).hs -o $(OFILE) 
-	if [ `uname` = Darwin ]; then macosx-app -v $(OFILE); fi
-
 compile: $(LEXERS) $(PARSERS) $(OFILE) $(COFILE)
 
 $(OFILE) : $(LEXERS) $(PARSERS) 
@@ -141,18 +135,16 @@ $(OFILE) : $(LEXERS) $(PARSERS)
 	if [ `uname` = Darwin ]; then macosx-app $(OFILE); fi
 
 $(COFILE) : $(LEXERS) $(PARSERS) 
-	$(GHC) -O2 --make $(GHCPACKAGES) $(LEXERS) $(PARSERS) 
-	$(GHC) -O2 -W --make $(GHCPACKAGES) $(CIFILE).lhs -o $(COFILE) 
+	$(GHC) -O --make $(GHCPACKAGES) $(LEXERS) $(PARSERS) 
+	$(GHC) -O -W --make $(GHCPACKAGES) $(CIFILE).lhs -o $(COFILE) 
 
 nogui : $(LEXERS) $(PARSERS) 
 	$(GHC) --make $(GHCPACKAGES) $(LEXERS) $(PARSERS) 
 	$(GHC) -W --make $(GHCPACKAGES) $(DIFILE).hs -o $(OFILE) 
 
 debugger: $(LEXERS) $(PARSERS)
-	$(GHC) -O2 -prof --make $(LEXERS) $(PARSERS) 
-	$(GHC) -O2 -prof -auto-all --make $(DIFILE).hs -o $(DOFILE)
-	if [ `uname` = Darwin ]; then macosx-app $(DOFILE); fi
-	
+	$(GHC) -O -prof -auto-all --make $(DIFILE).hs -o debugger-$(OFILE)
+	$(GHC) -O -prof -auto-all --make $(CIFILE).lhs -o debugger-$(COFILE)
 
 # --------------------------------------------------------------------
 # documentation 

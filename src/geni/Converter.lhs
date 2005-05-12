@@ -35,7 +35,7 @@ import System (ExitCode(ExitFailure),
 import System.IO(getContents)
 
 import Btypes (ifamname, iword, icategory)
-import GrammarXml (parseXmlTrees, parseXmlGrammar, parseXmlLexicon)
+import GrammarXml (parseXmlGrammar, parseXmlLexicon)
 import Treeprint (toGeniHand)
 \end{code}
 }
@@ -46,14 +46,13 @@ main = do
   -- we take one argument: a switch telling what to convert 
   args <- getArgs
   progname <- getProgName
-  let usage p = "usage: " ++ p ++ " [--macros|--trees] < input > output"
+  let usage p = "usage: " ++ p ++ " [--macros|--lexicon] < input > output"
       showusage = do putStrLn (usage progname)
                      exitWith (ExitFailure 1)
   when (length args /= 1) showusage
   let filetype = head args
   case filetype of 
     "--macros"   -> convertMacros 
-    "--trees"    -> convertTrees
     "--lexicon"  -> convertLexicon
     _            -> showusage
 \end{code}
@@ -75,12 +74,6 @@ convertLexicon =
                      ++ " " ++ (ifamname l) ++ "\n"
          outstr    = concatMap showlex lex
      putStr outstr 
-
-convertTrees :: IO ()
-convertTrees = 
-  do gf <- getContents 
-     let g = parseXmlTrees gf
-     putStr $ concatMap toGeniHand g
 
 convertMacros :: IO ()
 convertMacros = 

@@ -45,7 +45,8 @@ import Morphology (sansMorph)
 import Geni (State(..), GeniInput(..), GeniResults(..), PState,
              doGeneration, runGeni, runMorph,
              combine, loadGrammar, loadTargetSemStr)
-import Bfuncs (showPred, showSem, Sem, trim)
+import General (trim)
+import Bfuncs (showPred, showSem, Sem)
 import Tags (idname,mapBySem,emptyTE,tsemantics,tpolarities,thighlight, 
              TagElem)
 
@@ -244,29 +245,24 @@ gramsemBrowser pst guiParts = do
   cancelBt <- button f [ text := "Cancel" , on command := close f ]
   -- Load button
   let (gl,tl,tsBox) = guiParts
-  let loadCmd reload = do -- get new values
-                         teG' <- get entryG text
-                         teS' <- get entryS text
-                         let teG = trim teG'
-                             teS = trim teS'
-                         -- write the new values
-                         let newPa p = p { grammarFile = teG 
-                                         , tsFile = teS }
-                         modifyIORef pst (\x -> let pa' = pa x in x{pa = newPa pa'})
-                         -- load in any new files
-                         Monad.when (reload || teG /= gfile ) $ 
-                           do loadGrammar pst  
-                              set gl [ text := teG ]
-                         Monad.when (reload || teS /= tfile ) $ 
-                           do readTargetSem pst tsBox
-                              set tl [ text := teS ]
-                         close f 
+  let loadCmd = do -- get new values
+                   teG' <- get entryG text
+                   teS' <- get entryS text
+                   let teG = trim teG'
+                       teS = trim teS'
+                   -- write the new values
+                   let newPa p = p { grammarFile = teG 
+                                   , tsFile = teS }
+                   modifyIORef pst (\x -> let pa' = pa x in x{pa = newPa pa'})
+                   -- load in the files
+                   loadGrammar pst  
+                   readTargetSem pst tsBox
+                   set gl [ text := teG ]
+                   set tl [ text := teS ]
+                   --
+                   close f 
   loadBt   <- button f [ text := "Load" 
-                       , on command := loadCmd False ]
-  -- a reload button is useful for people who edit the grammar while playing
-  -- with the generator  
-  reloadBt <- button f [ text := "Reload" 
-                       , on command := loadCmd True ]
+                       , on command := loadCmd ]
   -- Pack it all together.
   set f [layout := column 5 
               [ -- Grammar selection 
@@ -274,7 +270,7 @@ gramsemBrowser pst guiParts = do
               , -- Semantics
                 hfill $ row 5 [ label "input sem", hfill $ widget entryS, widget fselBtS ]
               , -- Load button 
-                hfloatRight $ row 5 [ widget cancelBt, widget loadBt, widget reloadBt ]
+                hfloatRight $ row 5 [ widget cancelBt, widget loadBt ]
               ] ]
 \end{code}
 
@@ -379,7 +375,7 @@ candidateGui f xs missed = do
   let warning = if null missed 
                 then ""
                 else "WARNING: no lexical selection for " ++ showSem missed
-      items = if null missed then [ fill tb ] else [ label warning , fill tb ]
+      items = if null missed then [ fill tb ] else [ hfill (label warning) , fill tb ]
       lay   = fill $ container p $ column 5 items
   return lay
 \end{code}

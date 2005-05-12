@@ -35,6 +35,7 @@ import System.IO
 
 import SysGeni (runPiped, awaitProcess)
 import Bfuncs
+import General 
 import Tags
 \end{code}
 }

@@ -155,8 +155,8 @@ getConf p =
       where getConf' = do fconf <- readFile ".genirc"
                           return (defineParams p (cParser (lexer fconf)))
             createConf = do writeFile ".genirc" (defaultParamsStr p)
-                            putStr "File .genirc does not exists.\n"
-                            putStr "Writing default configuration file.\n"
+                            putStr "Looks like the first time you are running GenI\n"
+                            putStr "Writing default configuration file in .genirc.\n"
                             return [p]
 \end{code}
 

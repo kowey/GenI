@@ -43,7 +43,7 @@ import Btypes(AvPair, Flist, ILexEntry(..),
               GType(Subs,Foot,Lex,Other),
               GNode(..), Macros, Ttree(..),
               emptyGNode, emptyMacro,
-              Ptype(..), Pred)
+              Ptype(..), Pred, Sem)
 import Mparser(polParser)
 import Lex2(lexer)
 -- import Tags(emptyTE,TagElem(..),Tags,TagSite,addToTags)
@@ -116,7 +116,6 @@ parseLex l =
         , isemantics = []
         , isempols = []
         , icontrol = ""
-        , iprecedence = 0
   }
 \end{code}
 
@@ -134,15 +133,10 @@ subgrammars.  The list of macros organisation is with traditional, basic
 lexical selection where each macro identifies what family it belongs to. The
 subgrammar organisation is useful if you have a third party anchoring mechanism
 that just spits out the trees relevant to your lexical selection 
-(see section \ref{sec:cgm_selection}).
+(see section \ref{sec:cgm_selection}).  Both organisations of macros are handled
+in essentially the same manner : we return a list of trees.
 
-\paragraph{parseXmlGrammar} handles the basic list of macros.  Since each
-macro identifies what family it belongs to, we group the macros by their
-family.
-
-TODO: one point of consideration is that if you have a large grammar (XML)
-then you probably don't want the basic lexical selection, and so, should 
-be able to dump this business of family mapping.
+\paragraph{parseXmlGrammar} handles the basic list of macros.  
 
 \begin{code}
 parseXmlGrammar :: String -> Macros
@@ -157,10 +151,11 @@ parseXmlGrammar g =
 \end{code}
 
 \paragraph{parseXmlTrees} handles the subgrammar organisation of macros.
-We group the macros by their subgrammar
+Since the output here comes from a third party anchoring mechanism, the
+trees are assumed to be complete, with a semantics and all.
 
 \begin{code}
-parseXmlTrees :: String -> Macros 
+parseXmlTrees :: String -> [(MTree,Sem)]
 parseXmlTrees g = 
   -- extract a CElem out of the String
   let (Document _ _ ele) = xmlParse "" g 
@@ -172,18 +167,27 @@ parseXmlTrees g =
   in concatMap parseSubGrammar subgrams 
 
 -- returns subgrammar id and the associated trees
-parseSubGrammar :: Content -> Macros 
+parseSubGrammar :: Content -> [(MTree,Sem)]
 parseSubGrammar g = 
   let entriesF = keep /> tag "entry"
       entries  = entriesF g 
       --
       idF = attributed "id" keep
       id  = concatMap fst (idF g) -- should only be one element 
-      setid t = t { pfamily = id }
-  in map (setid.parseEntry) entries 
+      setid (t,s) = (t { pfamily = id }, s)
+  in map (setid.parseEntryAndSem) entries 
 \end{code}
 
+\paragraph{parseEntryAndSem and parseEntry} do the job of parsing
+a single TAG tree. 
+
 \begin{code}
+parseEntryAndSem :: Content -> (MTree,Sem) 
+parseEntryAndSem e =
+  let litF = keep /> tag "semantics" /> tag "literal"
+      sem  = map parseLiteral (litF e)
+  in  (parseEntry e, sem)
+
 parseEntry :: Content -> MTree
 parseEntry e =
   let synF = keep /> tag "tree"    

@@ -50,14 +50,9 @@ Morph : id '[' FeatList ']' { ($1,$3) }
    syntactic lexicon 
    ----------------------------------------------------------------- -}
 
-
-Lexicon :: { ([[AvPair]],[[AvPair]],[ILexEntry]) }
-Lexicon : LInput                          { ([],[],$1) }
-        | PredDrctv '!' PredDrctv LInput  { ($1,$3,$4) }
-
-LInput :: { [ILexEntry] }
-LInput : {-empty-}       {[]}
-       | LexEntry LInput {$1:$2}
+Lexicon :: { [ILexEntry] }
+Lexicon : {-empty-}        {[]}
+        | LexEntry Lexicon {$1:$2}
 
 LexEntry :: { ILexEntry }
 LexEntry: LexEntryCore                  { $1 }
@@ -71,6 +66,7 @@ LexEntryCore : id id id
 
 {- precedence directives -}
 
+{-
 PredDrctv :: { {-pred directives-} [[AvPair]] }
 PredDrctv :  {-empty-}                   { [] }
           | '[' PredItems ']' PredDrctv  { $2 : $4 }
@@ -81,7 +77,7 @@ PredItems :  {-empty-}         { [] }
 
 PredItem :: { [AvPair] } 
 PredItem: '(' id ':' IDList ')' { map (\a -> (a,$2)) $4 }
-
+-}
 
 {- -----------------------------------------------------------------
    semantic lexicon 
@@ -219,7 +215,6 @@ FeatVal: id  {$1}
        | '-' {"-"}
 
 
-
 {
 
 type LpSemPols    = [Int]
@@ -229,6 +224,12 @@ type LpSemFam    = ([Int],[String])
 
 createHandleVars :: [LpRawPred] -> Btypes.Sem 
 createHandleVars predargs = 
+  let fn ((_,p),a) = ("", p, map fst a)
+  in  map fn predargs 
+
+{- this is if you want to deal with handles -- i don't
+createHandleVars :: [LpRawPred] -> Btypes.Sem 
+createHandleVars predargs = 
   let handle newh oldh = if null oldh 
                          then "H" ++ show newh 
                          else oldh
@@ -236,6 +237,7 @@ createHandleVars predargs =
                            where han = handle nh (fst oh)
       zpa = zip [1..] predargs
    in map fn zpa
+-}
 
 extractSemPolarities :: [LpRawPred] -> [LpSemPols]
 extractSemPolarities predargs =
