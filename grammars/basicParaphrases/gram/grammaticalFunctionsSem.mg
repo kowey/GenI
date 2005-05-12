@@ -1258,37 +1258,22 @@ class Subject
 {
 	ImperativeSubject[]
 	|InfinitiveSubject[]
-	|FiniteSubject[]
-}
-
-class FiniteSubject
-{
-	CanonicalSubject[]
+	|CanonicalSubject[]
 	|CliticSubject[]
 	|whSubject[]
 	|RelativeSubject[]
 	|CleftSubject[]
 }
 
-class ExtraposedObject
+class Object
 {
 	whObject[]
 	|RelativeObject[]
-	|CleftObject[]
-}
-
-class NonExtraposedObject
-{
-	CanonicalObject[]
+	|CanonicalObject[]
 	|CliticObjectII[]
 	|CliticObject3[]
-	|reflexiveAccusative[]
-}
-
-class Object
-{
-	ExtraposedObject[]
-	|NonExtraposedObject[]
+	|reflexiveAccusative[]	
+	|CleftObject[]
 }
 
 class SententialSubject{
@@ -1319,26 +1304,22 @@ class Iobject
 	|whIobject[]
 	|CliticIobjectII[]
 	|CliticIobject3[]
-	|CliticLocative[] %Jean pense à Marie / y pense (pas de distinction ici) 
-	|reflexiveDative[]
+	|CliticLocative[] %Jean pense à Marie / y pense (pas de distinction ici)	|reflexiveDative[]
 	|RelativeIobject[]
 	|CleftIobjectOne[]
 	|CleftIobjectTwo[]
 }
 
-class ExtraposedCAgent
+
+class CAgent
 {
 	whCAgent[]
 	|RelativeCAgent[]
 	|CleftCAgentOne[]
 	|CleftCAgentTwo[]
-}
-
-class CAgent
-{
-	ExtraposedCAgent[]
 	|CanonicalCAgent[]
 }
+
 class Oblique
 {
 	CanonicalOblique[]
@@ -1359,32 +1340,14 @@ class Locative
 }
 
 
-class NonCleftGenitive
+class Genitive
 {
 	CanonicalGenitive[]
 	|CliticGenitive[]
 	|whGenitive[]
 	|RelativeGenitive[]
-	|CleftDont[]
-}
-class CleftGenitive
-{
-	CleftGenitiveOne[]
+	|CleftGenitiveOne[]
 	|CleftGenitiveTwo[]
-}
-class Genitive
-{
-	NonCleftGenitive[]
-	|CleftGenitive[]
-}
-class ExtraposedGenitive
-{
-	whGenitive[]
-	|RelativeGenitive[]
 	|CleftDont[]
-}
-class NonExtraposedGenitive
-{
-	CanonicalGenitive[]
-	|CliticGenitive[]
+
 }
