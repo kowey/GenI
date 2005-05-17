@@ -317,11 +317,13 @@ parseNode n = do
                     "anchor" -> Lex
                     _        -> Other
       -- hard setting the lexeme 
-      isLexeme (a,_) = a == "phon"
+      isLexeme (a,_) = a == "phon" || a == "lex"
       (lexL, gloFl)  = partition isLexeme gloFl'
       (ntype, lex)   = if null lexL 
                        then (ntype', "") 
-                       else (Lex   , snd $ head lexL) 
+                       -- FIXME: hack: we sort lexL so that priority 
+                       -- is given to the lex attribute (lexicographically)
+                       else (Lex   , snd $ head $ sort lexL) 
       -- FIXME: explicit constraints need to be accounted for
       aconstr  = (ntype == Subs || ntype == Foot)
       -- the node name is just the counter
