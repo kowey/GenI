@@ -34,7 +34,7 @@ import Monad (when)
 import Data.Array
 import Data.FiniteMap
 import Data.IORef
-import Data.List (nub, delete, (\\))
+import Data.List (nub, delete, (\\), (!!))
 import System.Directory 
 
 import Graphviz 
@@ -45,12 +45,12 @@ import Morphology (sansMorph)
 import Geni (State(..), GeniInput(..), GeniResults(..), PState,
              doGeneration, runGeni, runMorph,
              combine, loadGrammar, loadTargetSemStr)
-import General (trim)
+import General (trim, thd3)
 import Bfuncs (showPred, showSem, Sem)
 import Tags (idname,mapBySem,emptyTE,tsemantics,tpolarities,thighlight, 
-             TagElem)
+             TagElem, derivation)
 
-import Configuration(Params, grammarFile, 
+import Configuration(Params, grammarFile, macrosFile,
                      tsFile, optimisations, 
                      usetrash,
                      autopol, polarised, polsig, chartsharing, 
@@ -63,6 +63,7 @@ import Mstate (Gstats, Mstate, initGstats, initMState, runState,
                genRepToList,
                genstats, szchart, numcompar, geniter)
 import Polarity
+import SysGeni (runPiped)
 \end{code}
 }
 
@@ -368,10 +369,10 @@ selected items by the semantics they subsume, inserting along the way some
 fake trees and labels for the semantics.
 
 \begin{code}
-candidateGui :: (Window a) -> [TagElem] -> Sem -> IO Layout
-candidateGui f xs missed = do
+candidateGui :: State -> (Window a) -> [TagElem] -> Sem -> IO Layout
+candidateGui mst f xs missed = do
   p  <- panel f []      
-  tb <- tagBrowserGui p xs "lexically selected item" "candidates"
+  tb <- tagBrowserGui mst p xs "lexically selected item" "candidates"
   let warning = if null missed 
                 then ""
                 else "WARNING: no lexical selection for " ++ showSem missed
@@ -418,7 +419,9 @@ realisationsGui pst f resultsRaw =
      --
      let itNlabl   = zip results sentences
          tip       = "result"
-     (lay,_) <- tagViewerGui f tip "derived" itNlabl
+     --
+     mst     <- readIORef pst
+     (lay,_) <- tagViewerGui mst f tip "derived" itNlabl
      return lay
 \end{code}
 
@@ -428,8 +431,8 @@ A TAG browser is a TAG viewer (see below) that groups trees by
 their semantics.
 
 \begin{code}
-tagBrowserGui :: (Window a) -> [TagElem] -> String -> String -> IO Layout
-tagBrowserGui f xs tip cachedir = do 
+tagBrowserGui :: State -> (Window a) -> [TagElem] -> String -> String -> IO Layout
+tagBrowserGui mst f xs tip cachedir = do 
   let semmap   = mapBySem xs
       sem      = keysFM semmap
       --
@@ -441,7 +444,7 @@ tagBrowserGui f xs tip cachedir = do
       trees    = concatMap treesfor sem
       labels   = concatMap labsfor  sem
       itNlabl  = zip trees labels
-  (lay,_) <- tagViewerGui f tip cachedir itNlabl
+  (lay,_) <- tagViewerGui mst f tip cachedir itNlabl
   return lay
 \end{code}
       
@@ -449,24 +452,33 @@ A TAG viewer is a graphvizGui that lets the user toggle the display
 of TAG feature structures.
 
 \begin{code}
-tagViewerGui :: (Window a) -> String -> String -> [(TagElem,String)] 
+tagViewerGui :: State -> (Window a) -> String -> String -> [(TagElem,String)] 
                -> GvIO TagElem
-tagViewerGui f tip cachedir itNlab = do
+tagViewerGui mst f tip cachedir itNlab = do
   p <- panel f []      
   let (items,labels) = unzip itNlab
   gvRef <- newGvRef False labels
   setGvDrawables gvRef items 
   (lay,updaterFn) <- graphvizGui p tip cachedir gvRef 
+  -- commands
+  let onDisplayTrace = do gvSt <- readIORef gvRef
+                          let selected = items !! (gvsel gvSt)
+                          callViewTag mst (idname selected)
+  let onDetailsChk c = do isDetailed <- get c checked 
+                          setGvParams gvRef isDetailed 
+                          updaterFn 
+  -- widgets
   detailsChk <- checkBox p [ text := "Show features"
                            , checked := False ]
-  -- commands
-  let onDetailsChk = do isDetailed <- get detailsChk checked 
-                        setGvParams gvRef isDetailed 
-                        updaterFn 
+  displayTraceBut <- button p [ text := "Display trace"
+                              , on command := onDisplayTrace ] 
   -- handlers
-  set detailsChk [ on command := onDetailsChk ]
+  set detailsChk [ on command := onDetailsChk detailsChk ]
   -- pack it all in      
-  let cmdBar = hfill $ row 5 [ dynamic $ widget detailsChk ]
+  let cmdBar = hfill $ row 5 
+                [ dynamic $ widget detailsChk
+                , dynamic $ widget displayTraceBut
+                ]
       lay2   = fill $ container p $ column 5 [ lay, cmdBar ] 
   return (lay2,updaterFn)
 \end{code}
@@ -505,7 +517,7 @@ treeBrowserGui pst = do
       --
       trees    = concatMap treesfor sem
       itNlabl  = zip trees (concatMap labsfor sem)
-  (browser,_) <- tagViewerGui f "tree browser" "grambrowser" itNlabl
+  (browser,_) <- tagViewerGui mst f "tree browser" "grambrowser" itNlabl
   -- the button panel
   let count = length trees - length sem
   quitBt <- button f [ text := "Close", on command := close f ]
@@ -551,7 +563,7 @@ debugGui mst input = do
   let cand    = giCands input
       candsem = (nub $ concatMap tsemantics cand)
       missed  = tsem \\ candsem
-  canTab <- candidateGui nb cand missed
+  canTab <- candidateGui mst nb cand missed
   -- automata tab
   let config           = pa mst
       (auts, finalaut) = giAuts input 
@@ -955,3 +967,34 @@ createDotPath subdir name =
 instance GraphvizShow TagElem where
   graphvizShow = graphvizShowTagElem
 \end{code}
+
+\subsection{XMG Metagrammar stuff}
+
+FIXME: this is so the wrong place to put this.  To help debug the use of a
+metagrammar, we provide a handy function to call Yannick Parmentier's
+ViewTAG program on the topmost tree used in the derivation.
+
+FIXME: need more comments URGENTLY
+
+\begin{code}
+extractDerivationRoot :: TagElem -> Maybe String 
+extractDerivationRoot te = 
+  let deriv   = snd $ derivation te
+      parents = map thd3 deriv
+  in if null parents then Nothing else Just (head parents)
+
+callViewTag :: State -> String -> IO ()
+callViewTag mst idname =  
+  do -- figure out what grammar file to use
+     let gparams  = gramPa mst
+         gramfile = macrosFile gparams
+     -- extract the relevant bits of the treename
+     let extractCGMName n = tail $ dropWhile (/= '_') n 
+         drName = extractCGMName idname 
+     -- run the viewer 
+     let viewCmd = "viewTAG"
+         selectArgs = [gramfile, drName]
+     runPiped viewCmd selectArgs Nothing Nothing
+     return ()
+\end{code}
+
