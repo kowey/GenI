@@ -12,8 +12,7 @@
 # --------------------------------------------------------------------
 
 SRC_GENI 	= ./src/geni
-GHCFLAGS        = -fglasgow-exts -threaded
-#-O
+GHCFLAGS        = -fglasgow-exts -threaded -O
 GHCINCLUDE      = -i$(SRC_GENI)
 #:$(HXMLDIR)/hparser:$(HXMLDIR)/hdom
 GHCPACKAGES     = -package HaXml
@@ -127,7 +126,7 @@ $(LEXERS): %.hs: %.x
 $(PARSERS): %.hs: %.y
 	happy -a -g -c -m `basename $@ .hs` $< 
 
-compile: $(LEXERS) $(PARSERS) $(OFILE) $(COFILE)
+compile: $(LEXERS) $(PARSERS) $(OFILE) 
 
 $(OFILE) : $(LEXERS) $(PARSERS) 
 	$(GHC) --make $(GHCPACKAGES_GUI) $(LEXERS) $(PARSERS) 
