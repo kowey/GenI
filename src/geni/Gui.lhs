@@ -47,7 +47,7 @@ import Morphology (sansMorph)
 import Geni (State(..), GeniInput(..), GeniResults(..), PState,
              doGeneration, runGeni, runMorph,
              combine, loadGrammar, loadTargetSemStr)
-import General (trim, thd3)
+import General (trim, snd3)
 import Bfuncs (showPred, showSem, Sem)
 import Tags (idname,mapBySem,emptyTE,tsemantics,tpolarities,thighlight, 
              TagElem, derivation)
@@ -398,10 +398,9 @@ polarityGui   f xs final = do
       autlist = map toGvPolAut $ (concatMap aut2 xs) ++ [ final ] 
       labels  = (concatMap autLabel xs) ++ [ "final" ++ numsts final ]
       --
-      tip      = "automata"
-  gvRef   <- newGvRef False labels
+  gvRef   <- newGvRef False labels "automata"
   setGvDrawables gvRef autlist
-  (lay,_) <- graphvizGui f tip "polarity" gvRef 
+  (lay,_) <- graphvizGui f "polarity" gvRef 
   return lay
 \end{code}
       
@@ -458,28 +457,38 @@ tagViewerGui :: State -> (Window a) -> String -> String -> [(TagElem,String)]
                -> GvIO TagElem
 tagViewerGui mst f tip cachedir itNlab = do
   p <- panel f []      
-  let (items,labels) = unzip itNlab
-  gvRef <- newGvRef False labels
-  setGvDrawables gvRef items 
-  (lay,updaterFn) <- graphvizGui p tip cachedir gvRef 
-  -- commands
-  let onDisplayTrace = do gvSt <- readIORef gvRef
-                          let selected = items !! (gvsel gvSt)
-                          callViewTag mst (idname selected)
-  let onDetailsChk c = do isDetailed <- get c checked 
-                          setGvParams gvRef isDetailed 
-                          updaterFn 
+  let (tagelems,labels) = unzip itNlab
+  gvRef <- newGvRef False labels tip
+  setGvDrawables gvRef tagelems 
+  (lay,updaterFn) <- graphvizGui p cachedir gvRef 
   -- widgets
   detailsChk <- checkBox p [ text := "Show features"
                            , checked := False ]
-  displayTraceBut <- button p [ text := "Display trace"
-                              , on command := onDisplayTrace ] 
+  displayTraceBut <- button p [ text := "Display trace for" ]
+  displayTraceCom <- choice p [ tooltip := "derivation tree" ]
   -- handlers
+  let onDisplayTrace = do gvSt <- readIORef gvRef
+                          s <- get displayTraceCom selection
+                          let tree = tagelems !! (gvsel gvSt)
+                              derv = extractDerivation tree
+                          runViewTag mst (derv !! s)
+  let onDetailsChk c = do isDetailed <- get c checked 
+                          setGvParams gvRef isDetailed 
+                          updaterFn 
+  let selHandler gvSt = do
+      let selected = tagelems !! (gvsel gvSt)
+          subtrees = extractDerivation selected
+      set displayTraceCom [ items :~ (\_ -> subtrees) 
+                          , selection :~ (\_ -> 0) ]
+  --
+  setGvHandler gvRef (Just selHandler)
   set detailsChk [ on command := onDetailsChk detailsChk ]
+  set displayTraceBut [ on command := onDisplayTrace ]
   -- pack it all in      
   let cmdBar = hfill $ row 5 
                 [ dynamic $ widget detailsChk
                 , dynamic $ widget displayTraceBut
+                , dynamic $ widget displayTraceCom 
                 ]
       lay2   = fill $ container p $ column 5 [ lay, cmdBar ] 
   return (lay2,updaterFn)
@@ -599,12 +608,11 @@ debuggerTab f config tsem cachedir cands = do
   let initRes = []
       initSt  = initMState cands [] tsem (config {usetrash=True})
   let (items,labels) = showGenState initRes initSt 
-      tip            = "debugger session"
   -- widgets
   p <- panel f []      
-  gvRef <- newGvRef False labels
+  gvRef <- newGvRef False labels "debugger session" 
   setGvDrawables gvRef items 
-  (lay,updaterFn) <- graphvizGui p tip cachedir gvRef 
+  (lay,updaterFn) <- graphvizGui p cachedir gvRef 
   detailsChk <- checkBox p [ text := "Show features"
                            , checked := False ]
   restartBt   <- button p [text := "Start over"]
@@ -706,6 +714,8 @@ the possibility for modifying the contents of the GUI.  The idea is that
 \item you call graphvizGui and get back an updater function
 \item whenever you want to modify something, you use setGvWhatever
       and call the updater function
+\item if you want to react to the selection being changed,
+      you should set gvhandler
 \end{enumerate}
 
 \begin{code}
@@ -715,14 +725,21 @@ data GraphvizGuiSt a b =
         GvSt { gvitems   :: Array Int a,
                gvparams  :: b,
                gvlabels  :: [String],
+               -- tooltip for the selection box
+               gvtip     :: String, 
+               -- handler function to call when the selection is
+               -- updated
+               gvhandler :: Maybe (GraphvizGuiSt a b -> IO ()),
                gvsel     :: Int,
                gvorders  :: [GraphvizOrder] }
 type GraphvizRef a b = IORef (GraphvizGuiSt a b)
 
-newGvRef p l =
+newGvRef p l t =
   let st = GvSt { gvparams = p,
                   gvitems  = array (0,0) [],
-                  gvlabels = l, 
+                  gvlabels  = l, 
+                  gvhandler = Nothing,
+                  gvtip    = t,
                   gvsel    = 0,
                   gvorders = [] }
   in newIORef st
@@ -746,6 +763,13 @@ setGvDrawables2 gvref (it,lb) =
   do let fn x = x { gvlabels = lb }
      modifyIORef gvref fn 
      setGvDrawables gvref it
+
+setGvHandler gvref h =
+  do gvSt <- readIORef gvref
+     modifyIORef gvref (\x -> x { gvhandler = h })
+     case h of 
+       Nothing -> return ()
+       Just fn -> fn gvSt
 \end{code}
 
 \paragraph{graphvizGui} returns a layout (wxhaskell container) and a
@@ -768,15 +792,16 @@ Returns: a function for updating the GUI
 
 \begin{code}
 graphvizGui :: (GraphvizShow d) => 
-  (Window a) -> String -> String -> GraphvizRef d Bool -> GvIO d
+  (Window a) -> String -> GraphvizRef d Bool -> GvIO d
 type GvIO d = IO (Layout, IO ())
-graphvizGui f txtChoiceTip cachedir gvRef = do
+graphvizGui f cachedir gvRef = do
+  initGvSt <- readIORef gvRef
   -- widgets
   p <- panel f [ fullRepaintOnResize := False ]
   split <- splitterWindow p []
   (dtBitmap,sw) <- scrolledBitmap split 
   rchoice  <- singleListBox split 
-              [selection := 1, tooltip := txtChoiceTip]
+              [selection := 1, tooltip := gvtip initGvSt]
   -- set handlers
   let openFn   = openImage sw dtBitmap 
   -- pack it all together
@@ -785,7 +810,9 @@ graphvizGui f txtChoiceTip cachedir gvRef = do
   set p [ on closing :~ \previous -> do{ closeImage sw dtBitmap; previous } ]
   -- bind an action to rchoice
   let showItem = createAndOpenImage cachedir p gvRef openFn
+  ------------------------------------------------
   -- create an updater function
+  ------------------------------------------------
   let updaterFn = do 
         gvSt <- readIORef gvRef
         let orders = gvorders gvSt 
@@ -798,11 +825,19 @@ graphvizGui f txtChoiceTip cachedir gvRef = do
           set rchoice [ selection :~ (\_ -> sel) ]
         modifyIORef gvRef (\x -> x { gvorders = []})
         showItem 
+  ------------------------------------------------
   -- enable the tree selector
+  ------------------------------------------------
   let selectAndShow = do
-        sel <- get rchoice selection
+        sel  <- get rchoice selection
         setGvSel gvRef sel
         updaterFn
+        gvSt <- readIORef gvRef
+        -- call the handler if there is one 
+        case (gvhandler gvSt) of 
+          Nothing -> return ()
+          Just h  -> h gvSt
+  ------------------------------------------------
   set rchoice [ on select := selectAndShow ]
   -- call the updater function for the first time
   setGvSel gvRef 1
@@ -972,21 +1007,34 @@ instance GraphvizShow TagElem where
 
 \subsection{XMG Metagrammar stuff}
 
-FIXME: this is so the wrong place to put this.  To help debug the use of a
-metagrammar, we provide a handy function to call Yannick Parmentier's
-ViewTAG program on the topmost tree used in the derivation.
+CGM trees are produced by the XMG metagrammar system
+\cite{FIXME:XMGref}. To debug these grammars, it is useful, 
+given a TAG tree, to see what its metagrammar origins are.
+We provide here an interface to the handy visualisation tool
+ViewTAG that just does this.
 
-FIXME: need more comments URGENTLY
+\paragraph{extractDerivation} retrieves the names of all the
+CGM trees that went to building a TagElem, including the TagElem
+itself.  NB: for a tree like "love_Tn0Vn1", we extract just the
+Tn0Vn1 bit.
 
 \begin{code}
-extractDerivationRoot :: TagElem -> Maybe String 
-extractDerivationRoot te = 
-  let deriv   = snd $ derivation te
-      parents = map thd3 deriv
-  in if null parents then Nothing else Just (head parents)
+extractDerivation :: TagElem -> [String]
+extractDerivation te = 
+  let -- strips all gorn addressing stuff
+      stripGorn n = if dot `elem` n then stripGorn stripped else n
+        where stripped =  (tail $ dropWhile (/= dot) n)
+              dot = '.'
+      deriv  = map (stripGorn.snd3) $ snd $ derivation te
+  in  nub (idname te : deriv)
+\end{code}
 
-callViewTag :: State -> String -> IO ()
-callViewTag mst idname =  
+\paragraph{runViewTag} runs Yannick Parmentier's ViewTAG module, which
+displays trees produced by the XMG metagrammar system.  
+
+\begin{code}
+runViewTag :: State -> String -> IO ()
+runViewTag mst idname =  
   do -- figure out what grammar file to use
      let gparams  = gramPa mst
          gramfile = macrosFile gparams
