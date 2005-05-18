@@ -1,4 +1,4 @@
 GrammarType = CGManifesto
 Macros     = gram/headSem.rec
-Lexicon    = lex/psyTest.prefil
+Lexicon    = my.prefil
 RootCategories = s

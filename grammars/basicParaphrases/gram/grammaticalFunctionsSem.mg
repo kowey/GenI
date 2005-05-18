@@ -122,7 +122,7 @@ declare
 {
 	<syn>{
 		node xVN[bot=[num=?fX,pers=?fY]]{
-			node xClitic(mark=subst)[top=[num=?fX,pers=?fY,refl = +]]
+			node xClitic(mark=flex)[phon = se,top=[num=?fX,pers=?fY,refl = +]]
 		}
 	}
 }
@@ -1014,7 +1014,7 @@ declare
 			node xX(color=red)[cat=p]{
 				node xPrep(mark=flex,color=red)
 			}
-			node xArg(color=red,mark=subst)[det = +, cat = @{qui,n},top=[wh = -, num = sg]]		
+			node xArg(color=red,mark=subst)[det = +, cat = n,top=[wh = -, num = sg]]		
 		} 		
 	};
 	<syn>{

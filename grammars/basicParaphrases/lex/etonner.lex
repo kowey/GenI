@@ -1,5 +1,5 @@
 
-*ENTRY : s etonne
+*ENTRY : etonne
 *CAT : v
 *SEM : etonner<exp,cause>
 *ACC : 1

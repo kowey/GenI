@@ -80,7 +80,9 @@ class n0Vden1[E,X,Y,T1,T2,P]{
 }
 class n0ClVden1[E,X,Y,T1,T2,P]{
       binaryRel[]*=[evt=E,arg1=X,arg2=Y,theta1=T1,theta2=T2,rel=P] ;
-      {Subject[]*=[subjectI=X]; Genitive[]*=[genitiveI=Y]; properReflexive[]*=[vbI=E]}
+      {Subject[]*=[subjectI=X]; 
+      Genitive[]*=[genitiveI=Y]; 
+      properReflexive[]*=[vbI=E]}
 }
 class n0ClVpn1[E,X,Y,T1,T2,P]{
       binaryRel[]*=[evt=E,arg1=X,arg2=Y,theta1=T1,theta2=T2,rel=P] ;
