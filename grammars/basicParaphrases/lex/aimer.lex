@@ -1,73 +1,32 @@
-%% Verbs
-
-*ENTRY : regarder
-*CAT : v
-*SEM : regarder<agent,theme>
-*ACC : 1
-*FAM : n0Vn1
-*FILTERS : []
-*EX:{}
-*EQUATIONS: 
-*COANCHORS:
-
-*ENTRY : peser
-*CAT : v
-*SEM : peser
-*ACC : 1
-*FAM : n0Vn1
-*FILTERS : [passivable = +]       
-*EX:{}
-*EQUATIONS:
-*COANCHORS:
-
-*ENTRY : avoir
-*CAT : v
-*SEM : avoir
-*ACC : 1
-*FAM : n0Vn1
-*FILTERS : []
-*EX:{}
-*EQUATIONS:
-*COANCHORS:
-
-
-%% Proper nouns
-*ENTRY : Jean
-*CAT :    n
-*SEM : jean
-*ACC : 1
-*FAM : propername
-*FILTERS : []
-*EX:{}
-*EQUATIONS: anchor -> gen = m
-*COANCHORS:
-
-
-*ENTRY : Marie
-*CAT :    n
-*SEM : marie
-*ACC : 1
-*FAM : propername
-*FILTERS : []
-*EX:{}
-*EQUATIONS: anchor -> gen = f 
-*COANCHORS:
-
 
 *ENTRY : aimer 
 *CAT : v
-*SEM : like<experiencer,cause>
+*SEM : like<exp,cause>
 *ACC : 1
 *FAM : n0Vn1
 *FILTERS : []
 *EX:{}
 *EQUATIONS: 
 *COANCHORS:
+
+
+*ENTRY : amour
+*CAT : n
+*SEM : like<exp,cause>
+*ACC : 1
+*FAM : n0vPNpn1
+*FILTERS : []
+*EX:{}
+*EQUATIONS: 
+*COANCHORS: 
+vsup -> eprouve/v
+vppPrep -> de/p
+obliquePrep -> pour/p
 
 
 *ENTRY : plaire
 *CAT : v
-*SEM : like<cause,experiencer>
+*SEM : like<cause,exp>
 *ACC : 1
 *FAM : n0Van1
 *FILTERS : []
@@ -75,74 +34,182 @@
 *EQUATIONS: 
 *COANCHORS:
 
-*ENTRY : la
-*CAT : d
-*SEM : the
+
+*ENTRY : admirer 
+*CAT : v
+*SEM : like<exp,cause>
 *ACC : 1
-*FAM : stddeterminer
-*FILTERS : []
-*EX:{}
-*EQUATIONS: anchor -> gen = f
-            anchor -> num = sg
-*COANCHORS:
-
-
-*ENTRY : un
-*CAT : d
-*SEM : exists
-*ACC : 1
-*FAM : stddeterminer
-*FILTERS : []
-*EX:{}
-*EQUATIONS: anchor ->  gen = m
-            anchor -> num = sg
-*COANCHORS:
-
-%% Adjectives
-
-*ENTRY : beau
-*CAT : adj
-*SEM : pretty
-*ACC : 1
-*FAM : adjectifEpithete
+*FAM : n0Vn1
 *FILTERS : []
 *EX:{}
 *EQUATIONS: 
 *COANCHORS:
 
-% Nouns
 
-*ENTRY : telescope
+*ENTRY : admiration
 *CAT : n
-*SEM : telescope
+*SEM : like<exp,cause>
 *ACC : 1
-*FAM : commonNoun
+*FAM : n0vPNpn1
 *FILTERS : []
 *EX:{}
-*EQUATIONS: anchor -> gen = m
-            anchor -> num = sg
-*COANCHORS:
+*EQUATIONS: 
+*COANCHORS: 
+vsup -> eprouve/v
+vppPrep -> de/p
+obliquePrep -> pour/p
 
-*ENTRY : fille
-*CAT : n
-*SEM : girl
+
+*ENTRY : adorer 
+*CAT : v
+*SEM : like<exp,cause>
 *ACC : 1
-*FAM : commonNoun
-*FILTERS : []
-*EX:{} 
-*EQUATIONS: anchor -> gen = f
-            anchor -> num = sg
-*COANCHORS:
-
-% Prepositions
-
-*ENTRY : avec
-*CAT : p
-*SEM : with
-*ACC : 1
-*FAM : prepositionN
+*FAM : n0Vn1
 *FILTERS : []
 *EX:{}
-*EQUATIONS:
+*EQUATIONS: 
 *COANCHORS:
 
+
+*ENTRY : adoration
+*CAT : n
+*SEM : like<exp,cause>
+*ACC : 1
+*FAM : n0vPNpn1
+*FILTERS : []
+*EX:{}
+*EQUATIONS: 
+*COANCHORS: 
+vsup -> eprouve/v
+vppPrep -> de/p
+obliquePrep -> pour/p
+
+
+*ENTRY : aduler 
+*CAT : v
+*SEM : like<exp,cause>
+*ACC : 1
+*FAM : n0Vn1
+*FILTERS : []
+*EX:{}
+*EQUATIONS: 
+*COANCHORS:
+
+
+*ENTRY : adulation
+*CAT : n
+*SEM : like<exp,cause>
+*ACC : 1
+*FAM : n0vPNpn1
+*FILTERS : []
+*EX:{}
+*EQUATIONS: 
+*COANCHORS: 
+vsup -> eprouve/v
+vppPrep -> de/p
+obliquePrep -> pour/p
+
+
+*ENTRY : affectionner
+*CAT : v
+*SEM : like<exp,cause>
+*ACC : 1
+*FAM : n0Vn1
+*FILTERS : []
+*EX:{}
+*EQUATIONS: 
+*COANCHORS:
+
+
+*ENTRY : apprecier
+*CAT : v
+*SEM : like<exp,cause>
+*ACC : 1
+*FAM : n0Vn1
+*FILTERS : []
+*EX:{}
+*EQUATIONS: 
+*COANCHORS:
+
+
+*ENTRY : cherir
+*CAT : v
+*SEM : like<exp,cause>
+*ACC : 1
+*FAM : n0Vn1
+*FILTERS : []
+*EX:{}
+*EQUATIONS: 
+*COANCHORS:
+
+
+*ENTRY : estimer
+*CAT : v
+*SEM : like<exp,cause>
+*ACC : 1
+*FAM : n0Vn1
+*FILTERS : []
+*EX:{}
+*EQUATIONS: 
+*COANCHORS:
+
+
+*ENTRY : estime
+*CAT : n
+*SEM : like<exp,cause>
+*ACC : 1
+*FAM : n0vPNpn1
+*FILTERS : []
+*EX:{}
+*EQUATIONS: 
+*COANCHORS: 
+vsup -> eprouve/v
+vppPrep -> de/p
+obliquePrep -> pour/p
+
+
+*ENTRY : idolatrer 
+*CAT : v
+*SEM : like<exp,cause>
+*ACC : 1
+*FAM : n0Vn1
+*FILTERS : []
+*EX:{}
+*EQUATIONS: 
+*COANCHORS:
+
+
+*ENTRY : reverer
+*CAT : v
+*SEM : like<exp,cause>
+*ACC : 1
+*FAM : n0Vn1
+*FILTERS : []
+*EX:{}
+*EQUATIONS: 
+*COANCHORS:
+
+
+*ENTRY : venerer
+*CAT : v
+*SEM : like<exp,cause>
+*ACC : 1
+*FAM : n0Vn1
+*FILTERS : []
+*EX:{}
+*EQUATIONS: 
+*COANCHORS:
+
+
+*ENTRY : veneration
+*CAT : n
+*SEM : like<exp,cause>
+*ACC : 1
+*FAM : n0vPNpn1
+*FILTERS : []
+*EX:{}
+*EQUATIONS: 
+*COANCHORS: 
+vsup -> eprouve/v
+vppPrep -> de/p
+obliquePrep -> pour/p
