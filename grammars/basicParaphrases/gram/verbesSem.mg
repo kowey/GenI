@@ -10,19 +10,19 @@ class dian0Vn1Active[E,X,Y]{
                 Subject[]*=[subjectI=X] ; Object[]*=[objectI=Y] ; activeVerbMorphology[]*=[vbI=E]         
 }
 class dian0Vn1Passive[E,X,Y]{
-                Subject[]*=[subjectI=Y] ; CAgent[]*=[cagentI=X]  ; passiveVerbMorphology[]*=[vbI=E]        
+                Subject[]*=[subjectI=Y] ; CAgent[]*=[cagentI=X]  ; passiveVerbMorphology[]*=[vbI=E,passivePar = +]        
 }
 class dian0Vn1dePassive[E,X,Y]{
-                Subject[]*=[subjectI=Y] ; Genitive[]*=[genitiveI=X]  ; passiveVerbMorphology[]*=[vbI=E]        
+                Subject[]*=[subjectI=Y] ; Genitive[]*=[genitiveI=X]  ; passiveVerbMorphology[]*=[vbI=E,passiveDe = +]        
 }
 class dian0Vn1ShortPassive[E,X,Y]{
-                Subject[]*=[subjectI=Y] ; passiveVerbMorphology[]*=[vbI=E]        
+                Subject[]*=[subjectI=Y] ; passiveVerbMorphology[]*=[vbI=E,passiveShort = +]        
 }
 class dian0Vn1ImpersonalPassive[E,X,Y]{
-                ImpersonalSubject[] ; Object[]*=[objectI=X]; passiveVerbMorphology[]*=[vbI=E]        
+                ImpersonalSubject[] ; Object[]*=[objectI=X]; passiveVerbMorphology[]*=[vbI=E,passiveImpersonal = +]        
 }
 class dian0Vn1middle[E,X,Y]{
-                Subject[]*=[subjectI=Y] ; middleVerbMorphology[]*=[vbI=E]       
+                Subject[]*=[subjectI=Y] ; middleVerbMorphology[]*=[vbI=E,middle = +]       
 }
 class dian0Van1[E,X,Y]{
 		Subject[]*=[subjectI=X] ; Iobject[]*=[iobjectI=Y] ; activeVerbMorphology[]*=[vbI=E]     
@@ -105,6 +105,12 @@ class n0Vn1des2_1[E,X,Y,Z,T1,T2,T3,P]{
         Subject[]*=[subjectI=X];
 	CanonicalSententialObjectInFinitiveDe[]*=[sobjectI=Z,controlI=Y];
 	Object[]*=[objectI=Y];activeVerbMorphology[]*=[vbI=E] 
+}
+
+class s0V[E,X,T1,P]{
+	unaryRel[]*=[evt=E,arg1=X,theta1=T1,rel=P] ;
+	SententialSubject[]*=[subjectI=X]; 
+	activeVerbMorphology[]*=[vbI=E]
 }
 
 class s0Vn1[E,X,Y,T1,T2,P]{

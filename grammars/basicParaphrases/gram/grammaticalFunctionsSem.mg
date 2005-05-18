@@ -286,25 +286,7 @@ declare
 	}
 }
 
-class ** CanonicalSententialSubjectFinite
-%#Que Jean aille à la montagne plait à Marie
-import
-	CanonicalArgument[]
-declare
-	?xSubj ?xTop ?xComp ?xQue ?I
-{
-	<syn>{
-		node xS[bot=[idx=I]]{
-			node xTop(color=red)[cat=s]{
-				node xComp(color=red)[cat=c]{
-					node xQue(color=red,mark=flex)[cat=que,phon=que]
-				}
-				node xSubj(color=red,mark=subst)[cat=s]
-			}
-			node xVN[bot=[idx=I]]
-		}
-	}*=[subjectI=I]
-}
+
 
 class ** CanonicalSententialSubjectInFinitive 
 %#Aller à la montagne plait à Marie
@@ -314,14 +296,29 @@ declare
 	?xSubj ?I
 {
 	<syn>{
-		node xS[bot=[idx=I]]{
-			node xSubj(color=red,mark=subst)[cat=s]
+		node xS{
+			node xSubj(color=red,mark=subst)[cat=s,top=[idx=I]]
 			node xVN
 		}
 	}*=[subjectI=I]
 }
 
-
+class ** CanonicalSententialSubjectFinite
+%#Que Jean aille à la montagne plait à Marie
+import
+	CanonicalArgument[]
+declare
+	?xSubj ?xTop ?xComp ?xQue ?I
+{
+	<syn>{
+	     node xS{
+		node xTop(color=red)[cat=s,bot=[idx = I]]{
+			node xComp(color=red)[cat=c]{
+				node xQue(color=red,mark=flex)[cat=que,phon=que]				}
+			node xSubj(color=red,mark=subst)[cat=s,top=[idx=I]]}			node xVN
+		}
+	}*=[subjectI=I]
+}
 class CanonicalnonSubjectArg 
 %# = postverbal arg
 import
@@ -361,7 +358,7 @@ declare
 	}
 }
 
-
+%% pp(p([prep]) !n)
 class CanonicalPP
 import
         CanonicalnonSubjectArg[]
@@ -419,7 +416,7 @@ import
 declare ?I
 {
 	<syn>{
-		node xPrep;
+		node xPrep(name=obliquePrep);
 		node xArg[top=[idx = I]]	
 	}*=[obliqueI=I]
 }
@@ -834,7 +831,7 @@ import
 declare ?I
 {
 	<syn>{
-		node xPrep;
+		node xPrep(name=obliquePrep);
 		node xArg[top=[idx = I]] %nothing much for now
 	}*=[obliqueI = I]
 }
@@ -937,7 +934,7 @@ import
 declare ?I
 {
 	<syn>{
-		node xPrep;
+		node xPrep(name=obliquePrep);
 		node xArg[top=[idx = I]] % nothing much for now
 	}*=[obliqueI=I]
 }
@@ -1065,7 +1062,7 @@ import
 declare ?I
 {
 	<syn>{
-		node xPrep[cat = par];
+		node xPrep(name=obliquePrep);
 		node xArg[top=[idx = I]]
 	}*=[obliqueI=I]	
 }
@@ -1086,7 +1083,8 @@ declare
 			node xX(color =red)[cat = p]{
 				node xPrep(mark=flex,color=red)
 			}
-			node xArg(color=red,mark=subst)[cat = n]
+			node xArg(color=red,mark=subst)[cat = n,
+			top=[wh = +]]
 		}
 	}
 }	
@@ -1125,7 +1123,7 @@ import
 declare ?I
 {
 	<syn>{
-		node xPrep;
+		node xPrep(name=obliquePrep);
 		node xArg[top=[idx = I]] %nothing much for now
 	}*=[obliqueI=I]	
 }
@@ -1297,7 +1295,6 @@ class SententialInterrogative{
 	CanonicalSententialObjectInterrogativeFinite[]
 	|CanonicalSententialObjectInterrogativeInFinitive[]
 }
-
 class Iobject
 {
 	CanonicalIobject[]

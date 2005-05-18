@@ -1,4 +1,6 @@
 #!/bin/sh
 
+GRAMMAR=headSem
+
 cd gram
-MetaTAG headSemLite.mg --chk -c headSemLite.rec 
+MetaTAG ${GRAMMAR}.mg --chk -c ${GRAMMAR}.rec 

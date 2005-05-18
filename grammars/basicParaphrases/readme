@@ -1,2 +1,11 @@
-See http://wiki.loria.fr/wiki/Common_grammar_manifesto 
-to make this all work with GenI.
+To run geni on grammar and lexicon set in buildGrammar.sh and
+buildLexicon.sh
+
+in basicParaphrase dir do
+
+./buildGrammar.sh
+./buildLexicon.sh
+
+mv to Geni
+
+./geni
