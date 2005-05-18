@@ -356,9 +356,11 @@ resultsGui pst res = do
   statTab <- messageGui nb $ show res 
   -- pack it all together 
   set f [ layout := container p $ column 0 [ tabs nb 
-               [ tab "realisations"  resTab 
-               , tab "summary"       statTab
-               ] ]
+        -- we put the realisations tab last because of what
+        -- seems to be buggy behaviour wrt to wxhaskell 
+        -- or wxWidgets 2.4 and the splitter
+               [ tab "summary"       statTab
+               , tab "realisations"  resTab ] ]
         , clientSize := sz 700 600 
         ] 
   return ()
