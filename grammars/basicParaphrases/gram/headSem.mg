@@ -6,13 +6,6 @@ include functionwordsSem.mg
 include adjectifsSem.mg
 include nomsSem.mg
 include lexique.mg
-
-%% predicative constructions
-include predicativeFormsSem.mg
-include nominalPredicatesSem.mg
-include adjectivalPredicatesSem.mg
-include prepositionalPredicatesSem.mg
-
 %include verbes.mg
 %include adjectifs.mg
 
@@ -81,5 +74,5 @@ value relationalNoun
 %value adjectifEpithete
 
 % Lexique
-%value aime
-%value plaire
+value aime
+value plaire

@@ -1,4 +1,5 @@
 
+
 %* <Syntactic classes>
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -734,7 +735,7 @@ declare
 {
 	<syn>{
 		node xSe(color=red,extracted)[cat = s,bot=[idx=?E]]{
-			node xtop(color=red)
+			node xtop(color=red)[top=[wh = +]]
 			node xS[top=[wh = -,inv = @{n,-}],bot=[idx=?E]]   
 		}
 	}
@@ -1013,7 +1014,7 @@ declare
 			node xX(color=red)[cat=p]{
 				node xPrep(mark=flex,color=red)
 			}
-			node xArg(color=red,mark=subst)[cat=n,top=[det = +,wh = -, num = sg]]		
+			node xArg(color=red,mark=subst)[det = +, cat = @{qui,n},top=[wh = -, num = sg]]		
 		} 		
 	};
 	<syn>{
@@ -1083,19 +1084,21 @@ declare
 			node xX(color =red)[cat = p]{
 				node xPrep(mark=flex,color=red)
 			}
-			node xArg(color=red,mark=subst)[cat = n,
-			top=[wh = +]]
+			node xArg(color=red,mark=subst)[cat = n]
 		}
 	}
 }	
 class  ** CleftIobjectTwo
 import 
 	NominalPrepCleft[]
+declare ?I
 {
 	<syn>{
-		node xPrep[cat = a]
-	}	
+		node xPrep[cat = a];
+		node xClefttop[top=[idx = I]]
+	}*=[iobjectI=I]	
 }
+
 class ** CleftGenitiveTwo
 import 
 	NominalPrepCleft[]

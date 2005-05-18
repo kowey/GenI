@@ -61,13 +61,21 @@
 *EQUATIONS: anchor -> gen = f 
 *COANCHORS:
 
-%% Determiners
-
-*ENTRY : la
-*CAT : d
-*SEM : the
+*ENTRY : aimer 
+*CAT : v
+*SEM : aimer<agent,theme>
 *ACC : 1
-*FAM : stddeterminer
+*FAM : n0Vn1
+*FILTERS : []
+*EX:{}
+*EQUATIONS: 
+*COANCHORS:
+
+*ENTRY : regarder
+*CAT : v
+*SEM : regarder<agent,theme>
+*ACC : 1
+*FAM : n0Vn1
 *FILTERS : []
 *EX:{}
 *EQUATIONS: anchor -> gen = f
