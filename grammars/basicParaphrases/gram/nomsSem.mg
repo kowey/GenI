@@ -9,7 +9,7 @@ declare
 {
 	<syn>{
 		node xN(color=red,mark=anchor)[cat = n,bot=[pers = 3,
-		det = +],top=[idx=I,label=L, det = +]]
+		det = +],top=[idx=I,label=L, det = +, wh = - ]]
 	};
 	<sem>{
 		L:P(I) 

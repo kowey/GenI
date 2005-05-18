@@ -1084,7 +1084,8 @@ declare
 			node xX(color =red)[cat = p]{
 				node xPrep(mark=flex,color=red)
 			}
-			node xArg(color=red,mark=subst)[cat = n]
+			node xArg(color=red,mark=subst)[cat = n,
+			top=[wh = +]]
 		}
 	}
 }	

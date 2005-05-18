@@ -61,9 +61,10 @@
 *EQUATIONS: anchor -> gen = f 
 *COANCHORS:
 
+
 *ENTRY : aimer 
 *CAT : v
-*SEM : aimer<agent,theme>
+*SEM : like<experiencer,cause>
 *ACC : 1
 *FAM : n0Vn1
 *FILTERS : []
@@ -71,17 +72,27 @@
 *EQUATIONS: 
 *COANCHORS:
 
-*ENTRY : regarder
+
+*ENTRY : plaire
 *CAT : v
-*SEM : regarder<agent,theme>
+*SEM : like<cause,experiencer>
 *ACC : 1
-*FAM : n0Vn1
+*FAM : n0Van1
+*FILTERS : []
+*EX:{}
+*EQUATIONS: 
+*COANCHORS:
+
+*ENTRY : la
+*CAT : d
+*SEM : the
+*ACC : 1
+*FAM : stddeterminer
 *FILTERS : []
 *EX:{}
 *EQUATIONS: anchor -> gen = f
             anchor -> num = sg
 *COANCHORS:
-
 
 
 *ENTRY : un

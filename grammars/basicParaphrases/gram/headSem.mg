@@ -5,7 +5,13 @@ include verbesSem.mg
 include functionwordsSem.mg
 include adjectifsSem.mg
 include nomsSem.mg
-include lexique.mg
+
+%% predicative constructions
+include predicativeFormsSem.mg
+include nominalPredicatesSem.mg
+include adjectivalPredicatesSem.mg
+include prepositionalPredicatesSem.mg
+
 %include verbes.mg
 %include adjectifs.mg
 
@@ -26,7 +32,7 @@ include lexique.mg
 %Nominal
 %value n0V 		%Jean dort			15 trees
 %value n0ClV		%Jean s'évanouit		8 trees
-%value n0Vn1		%Jean regarde Marie		165 trees > 107
+value n0Vn1		%Jean regarde Marie		165 trees > 107
 %value n0%van1		%Jean parle à Marie		65 trees
 
 %value n0ClVn1		%L'enfant s'appelle Marie	35 trees
@@ -72,7 +78,3 @@ value relationalNoun
 
 % Adjectifs
 %value adjectifEpithete
-
-% Lexique
-value aime
-value plaire
