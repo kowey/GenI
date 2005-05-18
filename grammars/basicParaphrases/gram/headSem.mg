@@ -33,12 +33,12 @@ include prepositionalPredicatesSem.mg
 %value n0V 		%Jean dort			15 trees
 %value n0ClV		%Jean s'évanouit		8 trees
 value n0Vn1		%Jean regarde Marie		165 trees > 107
-%value n0%van1		%Jean parle à Marie		65 trees
+value n0Van1		%Jean parle à Marie		65 trees
 
 %value n0ClVn1		%L'enfant s'appelle Marie	35 trees
 
 %value n0Vden1		%Jean parle de ses %vacances	47 trees
-%value n0ClVden1		%Jean se souvient de Marc	47 trees
+value n0ClVden1		%Jean se souvient de Marc	47 trees
 %value n0Vpn1		%Jean parle avec Marie		33 trees
 %value n0ClVpn1		%Jean se bat contre Paul	33 trees
 %value n0Vloc1		%Jean %va à Paris		29 trees
