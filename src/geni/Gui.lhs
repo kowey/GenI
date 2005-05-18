@@ -36,6 +36,8 @@ import Data.FiniteMap
 import Data.IORef
 import Data.List (nub, delete, (\\), (!!))
 import System.Directory 
+import System.Posix.Files(fileMode, getFileStatus, unionFileModes, 
+                          setFileMode, ownerExecuteMode)
 
 import Graphviz 
 import Treeprint(graphvizShowTagElem)
@@ -992,9 +994,15 @@ callViewTag mst idname =
      let extractCGMName n = tail $ dropWhile (/= '_') n 
          drName = extractCGMName idname 
      -- run the viewer 
-     let viewCmd = "viewTAG"
-         selectArgs = [gramfile, drName]
-     runPiped viewCmd selectArgs Nothing Nothing
+     let cmd  = "etc/runviewer.sh"
+         args = [gramfile, drName]
+     -- set u+x
+     statusCmd <- getFileStatus cmd
+     let oldMode = fileMode statusCmd
+         newMode = unionFileModes ownerExecuteMode oldMode
+     setFileMode cmd newMode 
+     -- run the viewer
+     runPiped cmd args Nothing Nothing
      return ()
 \end{code}
 
