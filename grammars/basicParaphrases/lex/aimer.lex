@@ -1,15 +1,5 @@
 %% Verbs
 
-*ENTRY : aimer 
-*CAT : v
-*SEM : aimer<agent,theme>
-*ACC : 1
-*FAM : n0Vn1
-*FILTERS : []
-*EX:{}
-*EQUATIONS: 
-*COANCHORS:
-
 *ENTRY : regarder
 *CAT : v
 *SEM : regarder<agent,theme>
@@ -40,6 +30,7 @@
 *EQUATIONS:
 *COANCHORS:
 
+
 %% Proper nouns
 *ENTRY : Jean
 *CAT :    n
@@ -50,6 +41,7 @@
 *EX:{}
 *EQUATIONS: anchor -> gen = m
 *COANCHORS:
+
 
 *ENTRY : Marie
 *CAT :    n
