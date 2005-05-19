@@ -985,8 +985,9 @@ A message panel for use by the Results gui panels \ref{sec:results_gui}.
 messageGui :: (Window a) -> String -> IO Layout 
 messageGui f msg = do 
   p <- panel f []
-  t <- staticText p [ text := msg ]
-  return (fill $ container p $ margin 10 $ fill $ column 1 $ [ widget t ]) 
+  -- sw <- scrolledWindow p [scrollRate := sz 10 10 ]
+  t  <- textCtrl p [ text := msg, enabled := False ]
+  return (fill $ container p $ column 1 $ [ fill $ widget t ]) 
 \end{code}
 
 \begin{code}
