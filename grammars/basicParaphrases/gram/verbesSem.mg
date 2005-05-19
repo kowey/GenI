@@ -42,6 +42,7 @@ class n0V[E,X,T1,P]{
 class n0Vinf[E,X,T1,P]{
 	unaryRel[]*=[evt=E,arg1=X,theta1=T1,rel=P] ;
 	InfinitiveSubject[]*=[subjectI=X] ; activeVerbMorphology[]*=[vbI=E]     }
+
 class n0Vn1[E,X,Y,T1,T2,P]{
  		binaryRel[]*=[evt=E,arg1=X,arg2=Y,theta1=T1,theta2=T2,rel=P] ;
                { dian0Vn1Active[E,X,Y]
@@ -69,6 +70,11 @@ class n0Vn1an2[E,X,Y,Z,T1,T2,T3,P]{
 class n0ClV[E,X,T1,P]{
 	unaryRel[]*=[evt=E,arg1=X,theta1=T1,rel=P] ;
 	{Subject[]*=[subjectI=X]; properReflexive[]*=[vbI=E]}
+}
+
+class n0ClVs1[E,X,Y,T1,T2,P]{
+	binaryRel[]*=[evt=E,arg1=X,arg2=Y,theta1=T1,theta2=T2,rel=P] ;
+	{Subject[]*=[subjectI=X]; CanonicalSententialObjectFinite[]*=[objectI=Y]; properReflexive[]*=[vbI=E]  }
 }
 class n0ClVn1[E,X,Y,T1,T2,P]{
 	binaryRel[]*=[evt=E,arg1=X,arg2=Y,theta1=T1,theta2=T2,rel=P] ;
@@ -115,9 +121,20 @@ class s0V[E,X,T1,P]{
 	activeVerbMorphology[]*=[vbI=E]
 }
 
+% que Marie parte etonne Jean
 class s0Vn1[E,X,Y,T1,T2,P]{
 	binaryRel[]*=[evt=E,arg1=X,arg2=Y,theta1=T1,theta2=T2,rel=P] ;
+	{ dias0Vn1Active[E,X,Y]
+	| dias0Vn1Passive[E,X,Y] }
+}
+
+class dias0Vn1Active[E,X,Y]{
 	SententialSubject[]*=[subjectI=X]; 
 	Object[]*=[objectI=Y]; 
-	activeVerbMorphology[]*=[vbI=E] 
+	activeVerbMorphology[]*=[vbI=E]} 
+class dias0Vn1Passive[E,X,Y]{
+	Subject[]*=[subjectI=Y]; 
+	SententialCObject[]*=[objectI=X]; 
+	passiveVerbMorphology[]*=[vbI=E]
 }
+

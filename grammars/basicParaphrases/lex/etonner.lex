@@ -11,9 +11,29 @@
 
 *ENTRY : etonne
 *CAT : v
+*SEM : etonner<exp,cause>
+*ACC : 1
+*FAM : n0ClVs1
+*FILTERS : []
+*EX:{}
+*EQUATIONS: 
+*COANCHORS: 
+
+*ENTRY : etonne
+*CAT : v
 *SEM : etonner<cause,exp>
 *ACC : 1
 *FAM : n0Vn1
+*FILTERS : []
+*EX:{}
+*EQUATIONS: 
+*COANCHORS: 
+
+*ENTRY : etonne
+*CAT : v
+*SEM : etonner<cause,exp>
+*ACC : 1
+*FAM : s0Vn1
 *FILTERS : []
 *EX:{}
 *EQUATIONS: 

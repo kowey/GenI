@@ -29,7 +29,7 @@ type LABEL !
 type CASE={nom,acc,acc3rd,dat3rd,dat,gen,locative,ce}
 
 type MARK  = {subst,nadj,foot,anchor,flex,none}
-type NAME  = {subject,object,iobject,vsup,vppPrep,obliquePrep,det,prep}
+type NAME  = {subject,object,iobject,vsup,vppPrep,obliquePrep,det,prep,vNdet}
 type RANK  = [1..7]
 type AUX = {etre,avoir,-}
 type TENSE = {present,past}

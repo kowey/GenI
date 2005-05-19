@@ -494,14 +494,17 @@ import
 	}
 }
 
+%% CG added foot mark on xArg
 class  ** CanonicalSententialObjectFinite
 import
 	CanonicalSententialXObjectWithComplementizerNonBounding[]
+declare
+	?I
 {
 	<syn>{
 		node xComp[cat=que];
-		node xArg[top=[mode = @{ind,subj}]]
-	}
+		node xArg(mark=foot)[top=[mode = @{ind,subj},idx=I]]
+	}*=[objectI = I]
 }
 
 class CanonicalSententialXObjectwithoutComplementizer
@@ -537,13 +540,13 @@ import
 	CanonicalSententialXObjectwithoutComplementizerNonBounding[]
 	Subject-Control[]
 declare
-	?fX ?fY ?fZ
+	?fX ?fY ?fZ ?I
 {
 	<syn>{
-		node xtop[top=[mode=inf]];
+		node xtop[top=[mode=inf], bot =[idx=I]];
 		xCtrollee = xtop;
 		xVNCtroller = xVN
-	}
+	}*=[objectI = I]
 }
 
 class  ** CanonicalSententialObjectInFinitiveDe
@@ -1281,7 +1284,7 @@ class Object
 class SententialSubject{
 	CanonicalSententialSubjectFinite[]
 	|CanonicalSententialSubjectInFinitive[]
-	|Subject[] %always true ? it seems...
+%	|Subject[] %always true ? it seems...
 }
 class SententialCObject{
 	CanonicalSententialObjectFinite[]

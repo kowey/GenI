@@ -18,15 +18,19 @@ declare
 }
 
 % Nominal predicate
-% s(vn(v[vsup = +] <n>)) 
+% s(vn(v[vsup = +] n(det,<n>)) )
 % pousser un cri
 
 class ** NominalPredicativeform
 import
 	predicativeForm[]
+declare
+	?xDet ?xN
 {
-	<syn>{	node xHead(mark=anchor)[cat = n]}
-}
+	<syn>{	node xHead[cat = n]{
+			node xDet(color=black,name = vNdet)[cat = det]
+			node xN(color=black,mark=anchor)[cat = n]}
+}}
 
 % Adjectival predicate
 % s(vn(v[vsup = +] <adj>))
