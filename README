@@ -1,22 +1,15 @@
-users manual
-------------
-cd src/manual
-make
-see src/manual/genimanual.pdf
+documentation
+-------------
+1. users manual: see http://wiki.loria.fr/wiki/GenI
+2. semi-literate source code: (pdflatex needed)
+      make doc
+      src/geni/genidoc.pdf 
 
 installing GenI
 ---------------
 (tested on Linux and MacOs X)
 
-see etc/INSTALL for details
+see INSTALL for details
 
 assuming everything above is installed correctly,
 it should possible to just make
-
-readable source code?
----------------------
-make doc
-  
-the GenI source code is halfway written in a literate programming style;
-if you run the above command, you should get a nice pdf in
-src/geni/genidoc.pdf, assuming you have pdflatex
