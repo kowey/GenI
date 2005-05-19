@@ -73,7 +73,7 @@ InputList :
      {($1,"True"):$4}
  | boolkey '=' false InputList
      {($1,"False"):$4}
- | tcases  '=' idList InputList
+ | tcases  '=' idlist InputList
      {(untok $1,unwords $3):$4}
  | optimisations '=' OptList InputList
      {(untok $1, $3):$4}
@@ -82,16 +82,11 @@ InputList :
 
 idkey :: { PosToken }
 idkey:   grammar  {$1}  
-       | tsem     {$1}  
        | tsuite   {$1}
        | morphcmd {$1}
 
 boolkey :: { Token }
 boolkey: graphical  {GraphicalTok}
-
-idList :: { [String] }
-idList :            { [] }
-       |  id idList {$1:$2}
 
 {- optimisations -}
 

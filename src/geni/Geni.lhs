@@ -28,7 +28,7 @@ module Geni (State(..), PState, GeniInput(..), GeniResults(..),
              showRealisations, groupAndCount,
              initGeni, runGeni, doGeneration, runMorph,
              loadGrammar, 
-             loadTargetSem, loadTargetSemStr,
+             loadTestSuite, loadTargetSemStr,
              combine, testGeni)
 where
 \end{code}
@@ -75,7 +75,7 @@ import Tags (Tags, TagElem, emptyTE, TagSite,
              setTidnums, fixateTidnums)
 
 import Configuration(Params, defaultParams, emptyGramParams, getConf, treatArgs, 
-                     grammarFile, grammarType, tsFile, isTestSuite, testCases, morphCmd,
+                     grammarFile, grammarType, tsFile, testCases, morphCmd,
                      GramParams, parseGramIndex, GrammarType(..),
                      macrosFile, lexiconFile, semlexFile, morphFile, rootCatsParam,
                      autopol, polarised, polsig, chartsharing, 
@@ -132,13 +132,16 @@ Note: if tags is non-empty, we can ignore gr and le
 \begin{code}
 data State = ST{pa       :: Params,
                 gramPa   :: GramParams,
-                batchPa  :: [Params], -- list of configurations
+                -- list of configurations
+                batchPa  :: [Params], 
                 gr       :: Macros,
                 le       :: Lexicon,
                 morphinf :: MorphFn,
                 ts       :: SemInput, 
-                tcases   :: [String],
-                tsuite   :: [(String,SemInput,[String])]
+                -- names of test cases
+                tcases   :: [String], 
+                -- name, sem, sentences
+                tsuite   :: [(String,SemInput,[String])] 
                }
 
 type PState = IORef State
@@ -975,37 +978,30 @@ loadMorphInfo pst config =
 
 \subsection{Target semantics}
 
-\paragraph{loadTargetSem} given a pointer pst to the general state st,
+\paragraph{loadTestSuite} given a pointer pst to the general state st,
 it access the parameters and the name of the file for the target
-semantics from params.  From the params, it determines if the file
-is a test suite or a target semantics.  If it is a test suite, it parses
-the file as a test suite, and assigns it to the tsuite field of st;
-otherwise it parses it as a target semantics and assigns it to st.
+semantics from params.  It parses the file as a test suite, and assigns
+it to the tsuite field of st.
 
 \begin{code}
-loadTargetSem :: PState -> IO ()
-loadTargetSem pst = do
+loadTestSuite :: PState -> IO ()
+loadTestSuite pst = do
   st <- readIORef pst
   let config   = pa st
       filename = tsFile config 
-      isTsuite = isTestSuite config
-  putStr $ "Loading " 
-           ++ (if isTsuite then "Test Suite " else "Target Semantics ")
+  putStr $ "Loading Test Suite " 
            ++ filename ++ "...\n"
   hFlush stdout
   tstr <- readFile filename
   -- helper functions for test suite stuff
   let cleanup (id, (sm,sr), sn) = (id, newsmsr, sort sn)
         where newsmsr = (sortSem sm, sort sr)
-      updateTsuite s = modifyIORef pst (\x -> x {tsuite = map cleanup s,   
-                                                 tcases = testCases config})
-  --  
-  if isTsuite
-     then do let sem = (testSuiteParser . lexer) tstr
-             case sem of 
-               Ok s     -> updateTsuite s 
-               Failed s -> fail s
-     else loadTargetSemStr pst tstr
+      updateTsuite s x = x { tsuite = map cleanup s   
+                           , tcases = testCases config}
+  let sem = (testSuiteParser . lexer) tstr
+  case sem of 
+    Ok s     -> modifyIORef pst $ updateTsuite s 
+    Failed s -> fail s
   -- in the end we just say we're done
   --putStr "done\n"
 \end{code}

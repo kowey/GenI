@@ -46,9 +46,9 @@ import Tags (tagLeaves)
 import Morphology (sansMorph)
 import Geni (State(..), GeniInput(..), GeniResults(..), PState,
              doGeneration, runGeni, runMorph,
-             combine, loadGrammar, loadTargetSemStr)
-import General (trim, snd3)
-import Bfuncs (showPred, showSem, Sem)
+             combine, loadGrammar, loadTestSuite, loadTargetSemStr)
+import General (trim, fst3, snd3)
+import Bfuncs (showPred, showSem, showPairs, Sem)
 import Tags (idname,mapBySem,emptyTE,tsemantics,tpolarities,thighlight, 
              TagElem, derivation)
 
@@ -81,6 +81,7 @@ guiGenerate pst = do
 \begin{code}
 mainGui :: PState -> IO ()
 mainGui pst = do 
+       loadTestSuite pst
        mst <- readIORef pst
        -- Top Window
        f <- frame [text := "Geni Project", clientSize := sz 600 350]
@@ -120,9 +121,36 @@ We add some buttons for loading files and running the generator.
        let config = pa mst 
        -- Target Semantics
        tsText <- readFile (tsFile $ pa mst)
+       let suite = tsuite mst
+           cases = tcases mst
+           suiteCases = map fst3 suite 
+       -- we select the first case in cases, if available
+       let fstInCases _ [] = 0 
+           fstInCases n (x:xs) = 
+             if (x `elem` cases) then n else fstInCases (n+1) xs
+           caseSel = if null cases then 0 
+                     else fstInCases 0 suiteCases
+       -- we number the cases for easy identification, putting 
+       -- a star to highlight those which are in TestCases
+       let numfn n t = (if t `elem` cases then "* " else "")
+                       ++ (show n) ++ ". " ++ t
+           tcaseLabels = zipWith numfn [1..] suiteCases 
+       testCaseChoice <- choice f [ items := tcaseLabels 
+                                  , selection := caseSel ]
        tsTextBox <- textCtrl f [ text := tsText 
                                , wrap := WrapWord
                                , clientSize := sz 300 80 ]
+       -- handler for selecting a test case
+       let displaySemInput (s,r) = 
+                "semantics: " ++ showSem s 
+             ++ (if null r then "" 
+                 else "\nrestrictors:" ++ showPairs r)
+       let onTestCaseChoice = do
+           csel <- get testCaseChoice selection
+           let s = snd3 (suite !! csel)
+           set tsTextBox [ text :~ (\_ -> displaySemInput s) ]
+       --
+       set testCaseChoice [ on select := onTestCaseChoice ]
        -- Box and Frame for files loaded 
        let gFilename = grammarFile config 
        grammarFileLabel <- staticText f [ text := gFilename ]
@@ -130,9 +158,7 @@ We add some buttons for loading files and running the generator.
        let guiParts = (grammarFileLabel, tsFileLabel, tsTextBox)
        loadfileBt <- button f [ text := "Load files"
                               , on command := gramsemBrowser pst guiParts ] 
-       --reloadSemBt <- button f [ text := "Reload semantics"
-       --                        , on command := readTargetSem pst tsTextBox ] 
-       -- Configuration
+
        polChk <- checkBox f [ text := "Polarities"
                             , checked := polarised config ]
 --       predictingChk <- checkBox f [ text := "Predictors"
@@ -195,7 +221,9 @@ Pack it all together.
                              --, dynamic $ widget predictingChk
                              ]
        set f [layout := column 5 [ gramsemBox
-                   , row 5 [ fill $ boxed "Input Semantics" $ column 5 [ fill $ widget tsTextBox ]  
+                   , row 5 [ fill $ boxed "Input Semantics" $ 
+                             column 5 [ hfill $ widget testCaseChoice
+                                      , fill  $ widget tsTextBox ]
                            , vfill optimBox ]
                     -- ----------------------------- Generate and quit 
                    , hfloatRight $ row 5 [ widget debugBt, widget genBt 
@@ -293,7 +321,7 @@ newFileSel f ety =
         Just file     -> set ety [ text := file ]
 \end{code}
 
-\paragraph{loadTargetSem} Loads but does not parse the target semantics. 
+\paragraph{loadTestSuite} Loads but does not parse the target semantics. 
 This is used when you click on "Reload target semantics" or if you load
 a new target semantics.
 

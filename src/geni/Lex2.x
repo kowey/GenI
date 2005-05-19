@@ -18,7 +18,6 @@ tokens :-
   True                        { tok TTT }
   False                       { tok FFF }
 
-  TSemantics                 { tok TSemanticsTok }
   TestCases                  { tok TestCasesTok }
   TestSuite                  { tok TestSuiteTok }
   Graphical                  { tok GraphicalTok  }

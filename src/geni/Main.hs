@@ -3,8 +3,6 @@
   interface.
 -}
 
-{- TODO Prepare a report from the slides of the talk -}
-
 {- TODO Define what is and what is not exported from the modules.  In particular
         in BTypes take care to export the inspection function but not the types.  
         Re-write functions in Main as needed.-}
@@ -22,7 +20,7 @@ import Geni(initGeni, pa, batchPa)
 import Gui(guiGenerate)
 import Console(consoleGenerate)
 
-import Configuration(isGraphical, isBatch, isTestSuite)
+import Configuration(isGraphical, isBatch)
 
 main :: IO ()
 
@@ -31,8 +29,7 @@ main = do
   mst <- readIORef pst
   let headPa   = pa mst
   let notBatch  = (  ((length $ batchPa mst) == 1) 
-                  && (not $ isBatch headPa)
-                  && (not $ isTestSuite headPa))
+                  && (not $ isBatch headPa))
       graphical = isGraphical headPa
   if (graphical && notBatch) 
      then guiGenerate pst

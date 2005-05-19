@@ -18,8 +18,7 @@
 \chapter{Console}
 
 This module handles the console user interface, batch processing, and test
-suites.  Test suites could be seen as a type of batch processing, but they
-produce fancy HTML reports, oh la la!
+suites.  
 
 \begin{code}
 module Console(consoleGenerate) where
@@ -35,8 +34,7 @@ import Bfuncs(SemInput,showSem)
 import General(fst3,snd3,thd3)
 import Geni
 import Mstate(avgGstats, numcompar, szchart, geniter)
-import Configuration(Params, isGraphical, isTestSuite, testCases,
-                     isBatch,
+import Configuration(Params, isGraphical, isBatch,
                      grammarFile, tsFile, 
                      emptyParams, optimisations, batchRepeat,
                      optBatch) 
@@ -96,14 +94,13 @@ consoleGenerate' pst lastPa newPa = do
   let lastGrammar    = grammarFile lastPa
       lastTargetSem  = tsFile lastPa
   when (lastGrammar /= grammarFile newPa)  $ loadGrammar pst
-  when (lastTargetSem /= tsFile newPa)     $ loadTargetSem pst
+  when (lastTargetSem /= tsFile newPa)     $ loadTestSuite pst
   -- determine how we should run the generator
   let runVanilla = do res <- runGeni pst doGeneration
                       putStrLn $ show res
   --
-  case () of _ | isTestSuite newPa -> runTestSuite pst 
-               | isBatch newPa     -> runBatch pst 
-               | otherwise         -> runVanilla  
+  case () of _ | isBatch newPa     -> runBatch pst 
+               | otherwise         -> runTestSuite pst 
   return newPa
 \end{code}
 

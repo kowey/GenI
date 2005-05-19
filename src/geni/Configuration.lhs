@@ -30,7 +30,7 @@ comes from Cparser.y
 module Configuration(
    Params, 
    treatArgs, 
-   grammarFile, tsFile, isGraphical, isTestSuite, 
+   grammarFile, tsFile, isGraphical,
    morphCmd, testCases,
    optimisations,
    autopol, polarised, polsig, chartsharing, extrapol,
@@ -91,9 +91,8 @@ data Params = Prms{
   morphCmd       :: String,
   tsFile         :: String,
   isGraphical    :: Bool,
-  isTestSuite    :: Bool,
   optimisations  :: [Token],
-  testCases      :: [String],
+  testCases      :: [String], -- names of test cases
   extrapol       :: FiniteMap String Int,
   batchRepeat    :: Integer,
   usetrash       :: Bool
@@ -127,7 +126,6 @@ emptyParams = Prms {
   tsFile         = "",
   morphCmd       = "",
   isGraphical    = False,
-  isTestSuite    = False,
   testCases      = [],
   optimisations  = [],
   extrapol       = emptyFM,
@@ -139,7 +137,6 @@ defaultParams :: Params
 defaultParams = emptyParams {
    grammarFile    = "examples/ej/index",
    tsFile         = "examples/ej/ej1",
-   isTestSuite    = False,
    isGraphical    = True
 }
 \end{code}
@@ -234,9 +231,8 @@ defineParams' p ((f,v):s) = defineParams' pnext s
   where pnext = case f of 
             GrammarTok      -> p {grammarFile = v}
             MorphCmdTok     -> p {morphCmd = v}
-            TSemanticsTok   -> p {tsFile  = v, isTestSuite = False }
             TestCasesTok    -> p {testCases = words v }
-            TestSuiteTok    -> p {tsFile = v, isTestSuite = True }
+            TestSuiteTok    -> p {tsFile = v}
             GraphicalTok    -> p {isGraphical = (v == "True")}
             Optimisations   -> p {optimisations = readOpt } 
             ExtraPolarities -> p {extrapol = (polParser . lexer) v} 
