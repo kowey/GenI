@@ -62,7 +62,7 @@ obliquePrep -> pour/p
 
 *ENTRY : adorer 
 *CAT : v
-*SEM : like<exp,cause>
+*SEM : like<exp,cause>; beaucoup
 *ACC : 1
 *FAM : n0Vn1
 *FILTERS : []

@@ -38,7 +38,7 @@ where
 import Data.Char (toLower)
 import Data.FiniteMap
 import Data.IORef (IORef, readIORef, newIORef, modifyIORef)
-import Data.List (intersperse, sort, nub, group)
+import Data.List (intersperse, sort, nub, group, isPrefixOf)
 import Data.Maybe (isNothing)
 import Data.Tree
 
@@ -900,16 +900,15 @@ extractCGMSem lex =
   let attr_theta = "interface.theta"
       attr_rel   = "interface.rel"
       --
-      theta   = [ x | x <- ipfeat lex, startsWith attr_theta (fst x) ]
-      relList = [ x | x <- ipfeat lex, fst x == attr_rel ] 
+      theta   = [ x | x <- ipfeat lex, isPrefixOf attr_theta (fst x) ]
+      relList = [ x | x <- ipfeat lex, isPrefixOf attr_rel   (fst x) ] 
       rel | null relList        = error (relErr ++ "has no relation")
-          | length relList > 1  = error (relErr ++ "has more than one relation")
-          | otherwise           = head relList
+          | otherwise           = relList
         where relErr  = "lexical entry " ++ show lex ++ ""
       -- 
       numfn x = drop (length attr_theta) (fst x) -- interface.theta1 -> 1
-      relPred       = ("", snd rel, ["E"])
-      thetaPredFn x = ("", snd x  , ["E", "X" ++ numfn x])
+      relPredFn   x = ("", snd x, ["E"])
+      thetaPredFn x = ("", snd x, ["E", "X" ++ numfn x])
       --
       relEnrich = if null theta 
                   then ("interface.idx","E") -- not verbs
@@ -917,7 +916,7 @@ extractCGMSem lex =
       thetaEnrichFn x = ("interface.arg" ++ num, "X" ++ num)
                           where num = numfn x
       --
-      sem    = relPred   : (map thetaPredFn   theta)
+      sem    = map relPredFn rel ++ map thetaPredFn theta
       enrich = relEnrich : (map thetaEnrichFn theta)
   in (sortSem sem,enrich)
 \end{code}

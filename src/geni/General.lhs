@@ -44,13 +44,6 @@ trim :: String -> String
 trim = reverse . (dropWhile isSpace) . reverse . (dropWhile isSpace) 
 \end{code}
 
-\paragraph{startsWith} returns true if \fnparam{s2} begins with \fnparam{s1}
-
-\begin{code}
-startsWith :: String -> String -> Bool
-startsWith s1 s2 = and (zipWith (==) s1 s2) 
-\end{code}
-
 \section{Three-tuples}
 
 \begin{code}
