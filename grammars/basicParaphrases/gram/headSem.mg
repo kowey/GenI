@@ -59,11 +59,15 @@ value s0Vn1		%Que Jean soit parti désole Marie
 %value n0Vcs1		%Jean pense qu'il a raison
 
 % Light verb constructions
+% Predicate = Noun
 value n0vN		% Jean pousse un cri; Jean est un angoisse
-%value n0vNden1
-%value n0vNan1
-%value n0vNpn1
+value n0vNden1
+value n0vNan1
+value n0vNpn1
+% Predicate = prepositional phrase
 value n0vPNpn1
+value n0vPNan1
+value n0vPNden1
 
 %% Noms
 
