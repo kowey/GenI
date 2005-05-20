@@ -1,6 +1,10 @@
+
+% semantics : [ jean(j) sadden(l) cause(l j) exp(l m) marie(m) ]
+
+
 *ENTRY : attriste
 *CAT : v
-*SEM : attrister<cause,exp>
+*SEM : sadden<cause,exp>
 *ACC : 1
 *FAM : n0Vn1
 *FILTERS : []
@@ -8,12 +12,10 @@
 *EQUATIONS: 
 *COANCHORS: 
 
-
-
-%Marie ressent de l\'affliction devant les problèmes de Jean  ex,Tlfi
+%Marie-ressent-de-l-affliction-devant-les-problemes-de-Jean
 *ENTRY : affliction
 *CAT : n
-*SEM : attrister<exp,cause>
+*SEM : sadden<exp,cause>
 *ACC : 1
 *FAM : n0vPNpn1
 *FILTERS : []
@@ -25,14 +27,14 @@ vppPrep -> de/p
 obliquePrep -> devant/p
 
 
-
+%Jean eprouve de la tristesse pour Marie
 *ENTRY : tristesse
 *CAT : n
-*SEM : attrister<exp,cause>
+*SEM : sadden<exp,cause>
 *ACC : 1
 *FAM : n0vPNpn1
 *FILTERS : []
-*EX:{Jean eprouve de la tristesse pour Marie}
+*EX:{}
 *EQUATIONS: 
 *COANCHORS: 
 vsup -> eprouve/v
@@ -40,13 +42,15 @@ vppPrep -> de/p
 obliquePrep -> pour/p
 
 
+
+% Jean eprouve du chagrin pour Marie
 *ENTRY : chagrin
 *CAT : n
-*SEM : attrister<exp,cause>
+*SEM : sadden<exp,cause>
 *ACC : 1
 *FAM : n0vPNpn1
 *FILTERS : []
-*EX:{Jean eprouve de le chagrin pour Marie}
+*EX:{}
 *EQUATIONS: 
 *COANCHORS: 
 vsup -> eprouve/v
@@ -54,9 +58,10 @@ vppPrep -> de/p
 obliquePrep -> pour/p
 
 
+% Marie eprouve de la contrariete devant Jean
 *ENTRY : contrariete
 *CAT : n
-*SEM : attrister<exp,cause>
+*SEM : sadden<exp,cause>
 *ACC : 1
 *FAM : n0vPNpn1
 *FILTERS : []
@@ -68,9 +73,10 @@ vppPrep -> de/p
 obliquePrep -> devant/p
 
 
+% Marie eprouve de la peine pour Jean
 *ENTRY : peine
 *CAT : n
-*SEM : attrister<exp,cause>
+*SEM : sadden<exp,cause>
 *ACC : 1
 *FAM : n0vPNpn1
 *FILTERS : []
