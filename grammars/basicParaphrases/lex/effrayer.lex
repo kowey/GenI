@@ -1,145 +1,142 @@
+% semantics : [ jean(j) frighten(l) cause(l j) exp(l m) marie(m) ]
+
+
 *ENTRY : effraye
 *CAT : v
-*SEM : effrayer<cause,exp>
+*SEM : frighten<cause,exp>
 *ACC : 1
 *FAM : n0Vn1
 *FILTERS : []
-*EX:{}
+*EX:{Jean-effraye-Marie}
 *EQUATIONS: 
 *COANCHORS: 
 
 
 
-% Marie eprouve de l\'affolement de Jean
 *ENTRY : affolement
 *CAT : n
-*SEM : effrayer<exp,cause>
+*SEM : frighten<exp,cause>
 *ACC : 1
 *FAM : n0vPNpn1
 *FILTERS : []
-*EX:{}
+*EX:{Marie-eprouve-de-l-affolement-devant-Jean}
 *EQUATIONS: 
 *COANCHORS: 
 vsup -> eprouve/v
 vppPrep -> de/p
-obliquePrep -> de/p
+obliquePrep -> devant/p
 
 
-% Marie est en alarme à l\'égard de  Jean ??
+
 *ENTRY : alarme
 *CAT : n
-*SEM : effrayer<exp,cause>
+*SEM : frighten<exp,cause>
 *ACC : 1
 *FAM : n0vPNpn1
 *FILTERS : []
-*EX:{}
+*EX:{Marie-est-en-alarme-devant-jean}
 *EQUATIONS: 
 *COANCHORS: 
 vsup -> etre/v
 vppPrep -> en/p
-obliquePrep -> a l\'egard de/p  % ??
+obliquePrep -> devant/p 
 
 
-% Marie éprouve de l\'angoisse de Jean.
-*ENTRY : 
+*ENTRY : angoisse
 *CAT : n
-*SEM : effrayer<exp,cause>
+*SEM : frighten<exp,cause>
 *ACC : 1
 *FAM : n0vPNpn1
 *FILTERS : []
-*EX:{}
+*EX:{Marie-eprouve-de-l-angoisse-devant-Jean}
 *EQUATIONS: 
 *COANCHORS: 
 vsup -> eprouve/v
 vppPrep -> de/p
-obliquePrep -> de/p
+obliquePrep -> devant/p
 
 
-% Marie a peur de Jean
+
 *ENTRY : peur
 *CAT : n
-*SEM : effrayer<exp,cause>
+*SEM : frighten<exp,cause>
 *ACC : 1
-*FAM : n0vNpn1
+*FAM : n0vNden1
 *FILTERS : []
-*EX:{}
+*EX:{Marie-a-peur-de-Jean}
 *EQUATIONS: 
 *COANCHORS: 
 vsup -> avoir/v
-obliquePrep -> de/p
 
 
-% Marie éprouve de la frayeur du comportement de Jean
+
+
 *ENTRY : frayeur
 *CAT : n
-*SEM : effrayer<exp,cause>
+*SEM : frighten<exp,cause>
 *ACC : 1
 *FAM : n0vPNpn1
 *FILTERS : []
-*EX:{}
+*EX:{Marie-eprouve-de-la-frayeur-devant-Jean}
 *EQUATIONS: 
 *COANCHORS: 
 vsup -> eprouve/v
 vppPrep -> de/p
-obliquePrep -> de/p
+obliquePrep -> devant/p
 
 
-
-% Marie a de l\'épouvante de l\'arrivee de Jean
 *ENTRY : epouvante
 *CAT : n
-*SEM : effrayer<exp,cause>
+*SEM : frighten<exp,cause>
 *ACC : 1
-*FAM : n0vPNpn1
+*FAM : n0vPNden1
 *FILTERS : []
-*EX:{}
+*EX:{Marie-a-de-l-epouvante-de-Jean}
 *EQUATIONS: 
 *COANCHORS: 
 vsup -> avoir/v
 vppPrep -> de/p
-obliquePrep -> de/p
-
 
 
 *ENTRY : inquietude
 *CAT : n
-*SEM : effrayer<exp,cause>
+*SEM : frighten<exp,cause>
 *ACC : 1
 *FAM : n0vPNpn1
 *FILTERS : []
-*EX:{}
+*EX:{Marie-eprouve-de-l-inquietude-pour-Jean}
 *EQUATIONS: 
 *COANCHORS: 
 vsup -> eprouve/v
 vppPrep -> de/p
-obliquePrep -> a l\'egard de/p
+obliquePrep -> pour/p
 
 
-% Marie éprouve de la panique à l\'égard de Jean
+
 *ENTRY : panique
 *CAT : n
-*SEM : effrayer<exp,cause>
+*SEM : frighten<exp,cause>
 *ACC : 1
 *FAM : n0vPNpn1
 *FILTERS : []
-*EX:{}
+*EX:{Marie-eprouve-de-la-panique-devant-Jean}
 *EQUATIONS: 
 *COANCHORS: 
 vsup -> eprouve/v
 vppPrep -> de/p
-obliquePrep -> a l\'egard de /p
+obliquePrep -> devant/p
 
 
 
 *ENTRY : terreur
 *CAT : n
-*SEM : effrayer<exp,cause>
+*SEM : frighten<exp,cause>
 *ACC : 1
-*FAM : n0vPNpn1
+*FAM : n0vPNden1
 *FILTERS : []
-*EX:{}
+*EX:{Marie-eprouve-de-la-terreur-de-Jean}
 *EQUATIONS: 
 *COANCHORS: 
 vsup -> eprouve/v
 vppPrep -> de/p
-obliquePrep -> de/p
+
