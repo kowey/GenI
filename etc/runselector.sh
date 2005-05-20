@@ -8,7 +8,7 @@ TMP_RES_FILE="/tmp/geniselect_from.$$.xml"
 cat > ${TMP_FIL_FILE}
 
 # run the selector
-SelectTAG ${GRAMMAR_FILE} ${TMP_FIL_FILE} --xml -o ${TMP_RES_FILE} > /dev/null
+SelectTAG ${GRAMMAR_FILE} ${TMP_FIL_FILE} --geni -o ${TMP_RES_FILE} > /dev/null
 
 cat ${TMP_RES_FILE}
 

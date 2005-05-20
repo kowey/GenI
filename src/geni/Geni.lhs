@@ -96,7 +96,6 @@ import Lparser (lexParser, semlexParser, morphParser, filParser)
 import Tsparser (targetSemParser, testSuiteParser)
 import ParserLib (E(..))
 import SysGeni (runPiped, awaitProcess)
-import GrammarXml (parseXmlTrees)
 
 import Debug.Trace
 import Btypes (emptyLE)
@@ -584,15 +583,17 @@ runCGMLexSelection mst =
      -- run the selector module
      let idxs = [1..]
          fil  = concat $ zipWith lexEntryToFil lexCand idxs 
-     tagml <- runSelector gramfile fil
-     let g = parseXmlTrees tagml 
+     selected <- runSelector gramfile fil
+     let g = case ((mParser.lexer) selected) of 
+              Ok x     -> x 
+              Failed x -> error x 
          --
          lexMap = listToFM $ zip (map show idxs) lexCand
-         fixate :: (MTtree,Sem) -> IO TagElem 
-         fixate (ts,s) = 
+         fixate :: MTtree -> IO TagElem 
+         fixate ts = 
            case (lookupFM lexMap id) of
              Nothing  -> fail ("no such lexical entry " ++ id)
-             Just lex -> return $ combineCGM lex ts s
+             Just lex -> return $ combineCGM lex ts 
            where id = pfamily ts
      cand <- mapM fixate g
      -- attach any morphological information to the candidates
@@ -677,12 +678,12 @@ except that we assume the tree is completely anchored and instatiated and
 that thus there no boring unification or checks to worry about.
 
 \begin{code}
-combineCGM :: ILexEntry -> MTtree -> Sem -> TagElem
-combineCGM lexitem e sem = 
+combineCGM :: ILexEntry -> MTtree -> TagElem
+combineCGM lexitem e = 
    let tree_ = Bfuncs.tree e
        (snodes,anodes) = detectSites tree_
        -- FIXME: dirty hack strips off the semantic handle
-       aDIRTY_HACK (_,p,a) = ("",p,a) 
+       -- aDIRTY_HACK (_,p,a) = ("",p,a) 
        -- the final result
        sol = emptyTE {
                 idname = iword lexitem ++ "_" ++ pidname e,
@@ -691,7 +692,9 @@ combineCGM lexitem e sem =
                 ttree  = tree_,
                 substnodes = snodes,
                 adjnodes   = anodes,
-                tsemantics = map aDIRTY_HACK sem,
+                -- FIXME: we completely ignore semantic info from the tree
+                -- this allows us to handle multi-literal semantics
+                tsemantics = isemantics lexitem,
                 tpolarities = emptyFM,
                 tsempols    = isempols lexitem,
                 tinterface  = pfeat e
@@ -855,7 +858,7 @@ loadCGMLexicon pst config = do
        hFlush stdout
        lf <- readFile lfilename
        let semmapper = mapBySemKeys isemantics
-           setsem l  = l { isemantics = sortSem sem
+           setsem l  = l { isemantics = sem
                          , ipfeat = ipfeat l ++ enr }
              where (sem,enr) = extractCGMSem l
            lex       = (semmapper . map setsem . filParser . lexer) lf
@@ -916,7 +919,7 @@ extractCGMSem lex =
       --
       sem    = relPred   : (map thetaPredFn   theta)
       enrich = relEnrich : (map thetaEnrichFn theta)
-  in (sem,enrich)
+  in (sortSem sem,enrich)
 \end{code}
 
 \ignore{

@@ -15,7 +15,8 @@ SRC_GENI 	= ./src/geni
 GHCFLAGS        = -fglasgow-exts -threaded -O
 GHCINCLUDE      = -i$(SRC_GENI)
 #:$(HXMLDIR)/hparser:$(HXMLDIR)/hdom
-GHCPACKAGES     = -package HaXml
+GHCPACKAGES     = 
+#-package HaXml
 GHCPACKAGES_GUI = -package wx $(GHCPACKAGES) 
 GHC             = ghc $(GHCFLAGS) $(GHCINCLUDE)
 
