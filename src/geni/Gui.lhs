@@ -251,6 +251,7 @@ gramsemBrowser pst guiParts = do
   cancelBt <- button f [ text := "Cancel" , on command := close f ]
   -- Load button
   let (gl,tl,tsBox,tsChoice) = guiParts
+  let errHandler title err = errorDialog f title (show err)
   let loadCmd = do -- get new values
                    teG' <- get entryG text
                    teS' <- get entryS text
@@ -261,13 +262,16 @@ gramsemBrowser pst guiParts = do
                                    , tsFile = teS }
                    modifyIORef pst (\x -> let pa' = pa x in x{pa = newPa pa'})
                    -- load in the files
-                   loadGrammar pst 
+                   loadGrammar pst  
+                   set gl [ text := teG ]
+                   --
                    loadTestSuite pst 
                    readTestSuite pst tsBox tsChoice
-                   set gl [ text := teG ]
                    set tl [ text := teS ]
                    --
                    close f 
+                `catch` (errHandler "Error loading the grammar or test suite: ")
+
   loadBt   <- button f [ text := "Load" 
                        , on command := loadCmd ]
   -- Pack it all together.
