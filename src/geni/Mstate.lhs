@@ -703,6 +703,7 @@ Given a list of TagElem, for each tree:
       semantically complete (matches target semantics), it is a result, so
       unify the top and bottom feature structures of each node.  If that
       succeeds, return it, otherwise discard it completely.
+\item if the number of subtrees exceeds the numTreesLimit, discard
 \item if it is only syntactically complete and it is an auxiliary tree, 
       then we don't need to do any more substitutions with it, so set it 
       aside on the auxiliary agenda (AuxRep)
@@ -715,7 +716,9 @@ classifyNew [] =
   return []
 classifyNew l = do 
   inputSem <- getSem
-  let isResult x = (ttype x /= Auxiliar) && (null $ substnodes x) 
+  let numTreesLimit = 5
+      numTrees x = length (snd $ derivation x)
+      isResult x = (ttype x /= Auxiliar) && (null $ substnodes x) 
                    && (inputSem == treeSem) && (null $ adjnodes x)
                    where treeSem = (sortSem $ tsemantics x)
       tbUnify x ls = case (tbUnifyTree x) of
@@ -723,8 +726,11 @@ classifyNew l = do
                                      addToTrashRep x2 TS_TbUnify 
                                      return ls
                        Right x2 -> return (x2:ls)
+      
+
       classify ls x 
         | isResult  x = tbUnify x ls
+        | numTrees  x > numTreesLimit =  return ls -- discard
         | isPureAux x = do addToAuxRep x
                            return ls
         | otherwise   = do addToInitRep x
