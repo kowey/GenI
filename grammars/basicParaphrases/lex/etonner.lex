@@ -1,4 +1,17 @@
 
+*ENTRY : etonnement
+*CAT : n
+*SEM : etonner<exp,cause>
+*ACC : 1
+*FAM : n0vPNpn1
+*FILTERS : []
+*EX:{}
+*EQUATIONS: 
+*COANCHORS: 
+vsup -> eprouve/v
+vppPrep -> de/p
+obliquePrep -> de/p
+
 *ENTRY : etonne
 *CAT : v
 *SEM : etonner<exp,cause>
@@ -49,7 +62,6 @@
 *EX:{}
 *EQUATIONS: 
 *COANCHORS: 
-
 
 *ENTRY : frappe
 *CAT : v
@@ -394,3 +406,4 @@ obliquePrep -> de/p
 vsup -> eprouve/v
 vppPrep -> de/p
 obliquePrep -> de/p
+

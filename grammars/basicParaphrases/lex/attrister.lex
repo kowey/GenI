@@ -32,7 +32,7 @@ obliquePrep -> devant/p
 *ACC : 1
 *FAM : n0vPNpn1
 *FILTERS : []
-*EX:{}
+*EX:{Jean eprouve de la tristesse pour Marie}
 *EQUATIONS: 
 *COANCHORS: 
 vsup -> eprouve/v
@@ -46,7 +46,7 @@ obliquePrep -> pour/p
 *ACC : 1
 *FAM : n0vPNpn1
 *FILTERS : []
-*EX:{}
+*EX:{Jean eprouve de le chagrin pour Marie}
 *EQUATIONS: 
 *COANCHORS: 
 vsup -> eprouve/v

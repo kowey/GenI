@@ -1,5 +1,11 @@
 aimer 
-semantics : [ jean(j) like(l) experiencer(l j) cause(l m) marie(m) ]
+semantics : [ jean(j) aimer(l) exp(l j) cause(l m) marie(m) ]
 
-depart_de_luc
-semantics : [ jean(j) partir(a) agent(a j) etonner(b) exp(b m) cause(b a) marie(m) ]
+etonner
+semantics : [ jean(j) surprise(l) experiencer(l j) cause(l m) marie(m) ]
+
+foo
+semantics : [ jean(j) foo(l j) cause(l m) marie(m) ]
+
+
+
