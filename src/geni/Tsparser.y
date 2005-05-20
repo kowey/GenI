@@ -6,6 +6,7 @@ where
 --import Data.Tree
 import ParserLib hiding (Node)
 import Btypes(AvPair, emptyLE, ILexEntry(..), Ptype(..), Sem, Pred)
+import System.IO.Unsafe(unsafePerformIO)
 }
 
 %name targetSemParser SemR
@@ -64,6 +65,11 @@ ListPred : {-empty-}         {[]}
 
 Pred :: { Btypes.Pred }
 Pred : id '(' Params ')'  {("", $1, $3)}
+     | id ':' id '(' Params ')' {
+        unsafePerformIO $ do  
+          putStrLn "Warning: handle detected and ignored (we don't do handles)"
+          return ("",$3,$5)
+      }
 
 Params :: { [String] }
 Params : {-empty-} {[]}

@@ -11,17 +11,17 @@ Optimisations = PolOpts, AdjOpts
 % the tests
 
 Grammar  = examples/ej/index
-TSemantics = examples/ej/ej1
+TestSuite = examples/ej/ej1
 !
 
 Grammar  = examples/chatnoir/index
-TSemantics = examples/chatnoir/sem
+TestSuite = examples/chatnoir/sem
 !
 
 Grammar    = examples/demo/index
-TSemantics = examples/demo/donnersem
+TestSuite = examples/demo/donnersem
 !
-TSemantics = examples/demo/promettredonnersem
+TestSuite = examples/demo/promettredonnersem
 !
 
 Grammar   = examples/promettre/index

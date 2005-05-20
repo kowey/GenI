@@ -120,45 +120,19 @@ We add some buttons for loading files and running the generator.
 \begin{code}
        let config = pa mst 
        -- Target Semantics
-       tsText <- readFile (tsFile $ pa mst)
-       let suite = tsuite mst
-           cases = tcases mst
-           suiteCases = map fst3 suite 
-       -- we select the first case in cases, if available
-       let fstInCases _ [] = 0 
-           fstInCases n (x:xs) = 
-             if (x `elem` cases) then n else fstInCases (n+1) xs
-           caseSel = if null cases then 0 
-                     else fstInCases 0 suiteCases
-       -- we number the cases for easy identification, putting 
-       -- a star to highlight those which are in TestCases
-       let numfn n t = (if t `elem` cases then "* " else "")
-                       ++ (show n) ++ ". " ++ t
-           tcaseLabels = zipWith numfn [1..] suiteCases 
-       testCaseChoice <- choice f [ items := tcaseLabels 
-                                  , selection := caseSel ]
-       tsTextBox <- textCtrl f [ text := tsText 
-                               , wrap := WrapWord
-                               , clientSize := sz 300 80 ]
-       -- handler for selecting a test case
-       let displaySemInput (s,r) = 
-                "semantics: " ++ showSem s 
-             ++ (if null r then "" 
-                 else "\nrestrictors:" ++ showPairs r)
-       let onTestCaseChoice = do
-           csel <- get testCaseChoice selection
-           let s = snd3 (suite !! csel)
-           set tsTextBox [ text :~ (\_ -> displaySemInput s) ]
-       --
-       set testCaseChoice [ on select := onTestCaseChoice ]
+       tsTextBox <- textCtrl f [ text := ""
+                             , wrap := WrapWord
+                             , clientSize := sz 300 80 ]
+       testCaseChoice <- choice f []
+       readTestSuite pst tsTextBox testCaseChoice 
        -- Box and Frame for files loaded 
        let gFilename = grammarFile config 
        grammarFileLabel <- staticText f [ text := gFilename ]
        tsFileLabel      <- staticText f [ text := (trim.tsFile) config ]
-       let guiParts = (grammarFileLabel, tsFileLabel, tsTextBox)
+       let guiParts = (grammarFileLabel, tsFileLabel, 
+                       tsTextBox, testCaseChoice)
        loadfileBt <- button f [ text := "Load files"
                               , on command := gramsemBrowser pst guiParts ] 
-
        polChk <- checkBox f [ text := "Polarities"
                             , checked := polarised config ]
 --       predictingChk <- checkBox f [ text := "Predictors"
@@ -257,7 +231,8 @@ the Load files button.  Allows for changing grammar and semantics files.
 TODO: respond to the Enter key select the text?
 
 \begin{code}
-gramsemBrowser :: (Textual a, Visible a, Textual b) => PState -> (a,a,b) -> IO ()
+gramsemBrowser :: (Textual a, Visible a, Textual b, Selecting c, Selection c, Items c String) 
+               => PState -> (a,a,b,c) -> IO ()
 gramsemBrowser pst guiParts = do
   mst <- readIORef pst
   let config = pa mst
@@ -275,7 +250,7 @@ gramsemBrowser pst guiParts = do
   -- Cancel button
   cancelBt <- button f [ text := "Cancel" , on command := close f ]
   -- Load button
-  let (gl,tl,tsBox) = guiParts
+  let (gl,tl,tsBox,tsChoice) = guiParts
   let loadCmd = do -- get new values
                    teG' <- get entryG text
                    teS' <- get entryS text
@@ -286,8 +261,9 @@ gramsemBrowser pst guiParts = do
                                    , tsFile = teS }
                    modifyIORef pst (\x -> let pa' = pa x in x{pa = newPa pa'})
                    -- load in the files
-                   loadGrammar pst  
-                   readTargetSem pst tsBox
+                   loadGrammar pst 
+                   loadTestSuite pst 
+                   readTestSuite pst tsBox tsChoice
                    set gl [ text := teG ]
                    set tl [ text := teS ]
                    --
@@ -321,16 +297,47 @@ newFileSel f ety =
         Just file     -> set ety [ text := file ]
 \end{code}
 
-\paragraph{loadTestSuite} Loads but does not parse the target semantics. 
-This is used when you click on "Reload target semantics" or if you load
-a new target semantics.
+\paragraph{readTestSuite} is used to update the graphical interface after
+calling \fnref{loadTestSuite}.  This used when you first start the 
+graphical interface or when you load a new test suite.
 
 \begin{code}
-readTargetSem :: (Textual a) => PState -> a -> IO ()
-readTargetSem pst tsBox= do 
-  mst <- readIORef pst
-  t   <- (readFile.tsFile.pa) mst 
-  set tsBox [ text := trim t ]
+readTestSuite :: (Textual a, Selecting b, Selection b, Items b String) 
+              => PState -> a -> b -> IO ()
+readTestSuite pst tsBox tsChoice = 
+  do mst <- readIORef pst
+     let suite = tsuite mst
+         cases = tcases mst
+         suiteCases = map fst3 suite 
+     -- we number the cases for easy identification, putting 
+     -- a star to highlight those which are in TestCases
+     let numfn n t = (if t `elem` cases then "* " else "")
+                      ++ (show n) ++ ". " ++ t
+         tcaseLabels = zipWith numfn [1..] suiteCases 
+     -- we select the first case in cases_, if available
+     let fstInCases _ [] = 0 
+         fstInCases n (x:xs) = 
+           if (x `elem` cases) then n else fstInCases (n+1) xs
+         caseSel = if null cases then 0 
+                   else fstInCases 0 suiteCases
+     ----------------------------------------------------
+     -- handler for selecting a test case
+     ----------------------------------------------------
+     let displaySemInput (s,r) = 
+              "semantics: " ++ showSem s 
+           ++ (if null r then "" 
+               else "\nrestrictors:" ++ showPairs r)
+     let onTestCaseChoice = do
+         csel <- get tsChoice selection
+         let s = snd3 (suite !! csel)
+         set tsBox [ text :~ (\_ -> displaySemInput s) ]
+     ----------------------------------------------------
+     t   <- (readFile.tsFile.pa) mst 
+     set tsBox    [ text := trim t ]
+     set tsChoice [ items := tcaseLabels 
+                  , selection := caseSel
+                  , on select := onTestCaseChoice ]
+     onTestCaseChoice -- run this once
 \end{code}
    
 % --------------------------------------------------------------------

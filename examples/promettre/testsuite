@@ -53,3 +53,55 @@ semantics:[john(j)
 %           e2:promise(j e1 m) 
 %           e3:convince(p e2 j) ]
 %[ paul persuader jean de promettre a marie de le donner un livre ]
+
+promettre
+semantics : [ h1:def(b)
+	      h1:present(b)
+	      e:promise(a b c)
+	      mary(a)
+	      john(c)
+	     ]
+
+promettre_donner
+semantics : [ e1:promise(a e2 b)
+	      john(a)
+	      mary(b)
+	      e2:give(a c d)
+	      h1:indef(c)
+	      h1:book(c)
+	      paul(d)
+	     ]
+
+aimer
+semantics:[mary(m) love(j m)]
+
+promettre_donner_persuader
+semantics : [ e1:promise(a e2 b)
+	      john(a)
+	      mary(b)
+	      e2:convince(a e3 d)
+	      e3:give(d c e)
+	      h3:indef(c)
+	      h3:book(c)
+	      paul(d)
+	      claire(e)
+	     ]
+
+% "Jean promet a Marie de persuader Paul de persuader Pierre de
+% persuader Olivier de donner
+% un livre a Claire" 
+pr_per_per_per_do
+semantics : [ e1:promise(a e2 b)
+	      jean(a)
+	      marie(b)
+	      e2:convince(a e3 d)
+	      paul(d)
+	      e3:convince(d e4 e)
+	      pierre(e)
+	      e4:convince(e e5 o)
+	      olivier(o)
+	      e5:give(o l f)
+	      h1:indef(l)
+	      h1:book(l)
+	      claire(f)
+	     ]

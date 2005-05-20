@@ -978,10 +978,10 @@ loadMorphInfo pst config =
 
 \subsection{Target semantics}
 
-\paragraph{loadTestSuite} given a pointer pst to the general state st,
-it access the parameters and the name of the file for the target
-semantics from params.  It parses the file as a test suite, and assigns
-it to the tsuite field of st.
+\paragraph{loadTestSuite} \label{fn:loadTestSuite} 
+given a pointer pst to the general state st, it access the parameters and the
+name of the file for the target semantics from params.  It parses the file as a
+test suite, and assigns it to the tsuite field of st.
 
 \begin{code}
 loadTestSuite :: PState -> IO ()

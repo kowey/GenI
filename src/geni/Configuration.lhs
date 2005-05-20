@@ -114,7 +114,7 @@ predicting   p = Predicting   `elem` (optimisations p)
 semfiltered  p = SemFiltered  `elem` (optimisations p)
 chartsharing p = ChartSharing `elem` (optimisations p)
 footconstr   p = FootConstraint `elem` (optimisations p)
-isBatch      p = Batch        `elem` (optimisations p)
+isBatch      p = Batch          `elem` (optimisations p)
 \end{code}
 
 \paragraph{defaultParams} returns the default parameters configuration
