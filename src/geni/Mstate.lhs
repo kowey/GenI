@@ -944,7 +944,8 @@ Given a trees $t_p$ with derivation $(c_p, h_p)$ and a tree $t_c$ with
 derivation $(c_c, h_c)$, the derivation history that results from performing
 some operation on $t_p$ (either substituting or adjoining $t_c$ into it) is:
 $(c,h)$ where $c = c' + 1$ and $h$ is $h_p$ appended to $h_c'$ where $h_c'$ is
-the result of prepending $c_p$ to every item of $h_c$.
+the result of prepending $c_p$ + 1 to every item of $h_c$. The counter $c$ is
+used (uniquely?) in the Gorn address.
 
 \begin{code}
 addToDerivation :: Char -> TagElem -> TagElem -> TagDerivation

@@ -755,7 +755,7 @@ loadGrammar pstRef =
 \paragraph{loadLexicon} Given the pointer to the monadic state pstRef and
 the parameters from a grammar index file parameters; it reads and parses
 the lexicon file and the semantic lexicon.   These are then stored in
-the mondad.
+the monad.
 
 FIXME: differentiate
 \begin{code}
