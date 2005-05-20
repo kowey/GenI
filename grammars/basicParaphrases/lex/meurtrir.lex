@@ -1,97 +1,98 @@
+%semantics : [ jean(j) bless(l) cause(l j) exp(l m) marie(m) ]
+
 *ENTRY : meurtrit
 *CAT : v
-*SEM : meurtrir<cause,exp>
+*SEM : bless<cause,exp>
 *ACC : 1
 *FAM : n0Vn1
 *FILTERS : []
-*EX:{}
+*EX:{Jean-meurtrit-Marie}
 *EQUATIONS: 
 *COANCHORS: 
 
 
 
-%Marie éprouve de l\'accablement devant la situation de Jean   Tlfi: si complément avec de ou par
+% Tlfi:  complément avec de ou par
 *ENTRY : accablement
 *CAT : n
-*SEM : meurtrir<exp,cause>
+*SEM : bless<exp,cause>
 *ACC : 1
 *FAM : n0vPNpn1
 *FILTERS : []
-*EX:{}
+*EX:{Marie-eprouve-de-l-accablement-devant-la-situation-de-Jean}
 *EQUATIONS: 
 *COANCHORS: 
 vsup -> eprouve/v
-vppPrep -> devant/p
-obliquePrep -> de/p
+vppPrep -> de/p
+obliquePrep -> devant/p
 
 
 
-%Marie inflige une blessure a Jean
+
 *ENTRY : blessure
 *CAT : n
-*SEM : meurtrir<cause,exp>
+*SEM : bless<cause,exp>
 *ACC : 1
 *FAM : n0vNan1
 *FILTERS : []
-*EX:{}
+*EX:{Jean-inflige-une-blessure-a-Marie}
 *EQUATIONS: 
 *COANCHORS: 
-vsup -> eprouve/v
-obliquePrep -> par/p
+vsup -> inflige/v
+
 
 
 
 *ENTRY : dechirure
 *CAT : n
-*SEM : meurtrir<cause,exp>
+*SEM : bless<cause,exp>
 *ACC : 1
 *FAM : n0vNan1
 *FILTERS : []
-*EX:{}
+*EX:{Jean-inflige-une-dechirure-a-Marie}
 *EQUATIONS: 
 *COANCHORS: 
 vsup -> inflige/v
 
 
 
-%Marie inflige un supplice a marie   ???
+
 *ENTRY : supplice
 *CAT : n
-*SEM : meurtrir<cause,exp>
+*SEM : bless<cause,exp>
 *ACC : 1
 *FAM : n0vNan1
 *FILTERS : []
-*EX:{}
+*EX:{Jean-inflige-un-supplice-a-Marie}
 *EQUATIONS: 
 *COANCHORS: 
 vsup -> inflige/v
 
 
 
-%Marie éprouve de la torture - etre à la torture ?? Marie est a la torture par le comportement de ses enfants  ??
+
 *ENTRY : torture
 *CAT : n
-*SEM : meurtrir<exp,cause>
+*SEM : bless<cause,exp>
 *ACC : 1
-*FAM : n0vPNpn1
+*FAM : n0vNan1
 *FILTERS : []
-*EX:{}
+*EX:{Jean-inflige-une-torture-a-Marie}
 *EQUATIONS: 
 *COANCHORS: 
-vsup -> etre/v
-vppPrep -> a/p
-obliquePrep -> par/p
+vsup -> inflige/v
 
 
-% Marie subit un traumatisme par les mots violents de J
+
+
 *ENTRY : traumatisme
 *CAT : n
-*SEM : meurtrir<exp,cause>
+*SEM : bless<cause,exp>
 *ACC : 1
-*FAM : n0vNpn1
+*FAM : n0vNan1
 *FILTERS : []
-*EX:{}
+*EX:{Jean-inflige-un-traumatisme-a-Marie}
 *EQUATIONS: 
 *COANCHORS: 
 vsup -> subit/v
-obliquePrep -> par/p
+
