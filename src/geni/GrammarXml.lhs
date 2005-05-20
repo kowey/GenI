@@ -324,8 +324,7 @@ parseNode n = do
                        -- FIXME: hack: we sort lexL so that priority 
                        -- is given to the lex attribute (lexicographically)
                        else (Lex   , snd $ head $ sort lexL) 
-      -- FIXME: explicit constraints need to be accounted for
-      aconstr  = (ntype == Subs || ntype == Foot)
+      aconstr  = (ntype == Subs || ntype == Foot || ntypeStr == "nadj")
       -- the node name is just the counter
       name = show $ tiNum st
       -- saving the results in a Gnode
