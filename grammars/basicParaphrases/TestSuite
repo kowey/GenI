@@ -1,0 +1,36 @@
+
+% Jean aime Marie
+aimer 
+semantics : [ jean(j) like(l) exp(l j) cause(l m) marie(m) ]
+
+% Jean etonne Marie
+etonner1
+semantics : [ jean(j) etonner(l) exp(l j) cause(l m) marie(m) ]
+
+%  Le depart de Jean etonne Marie
+etonner2
+semantics : [ jean(j) partir(a) agent(a j) etonner(b) exp(b m) cause(b a) marie(m) ]
+
+% Jean meurtrit Marie
+meurtrir
+semantics : [ jean(j) bless(l) cause(l j) exp(l m) marie(m) ]
+
+
+% Jean effraye Marie
+effrayer
+semantics : [ jean(j) frighten(l) cause(l j) exp(l m) marie(m) ]
+
+%Jean flatte Marie
+flatter
+semantics : [ jean(j) flatter(l) cause(l j) exp(l m) marie(m) ]
+
+
+% Jean attriste Marie
+attrister
+semantics : [ jean(j) sadden(l) cause(l j) exp(l m) marie(m) ]
+
+foo
+semantics : [ jean(j) foo(l j) cause(l m) marie(m) ]
+
+
+
