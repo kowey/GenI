@@ -32,16 +32,25 @@ class n0vN[E,X,T1,P]
 }
 
 % etre le chef du departement
-class n0vNden1
-{
-	Subject[];NominalPredicativeform[];Genitive[]
+class n0vNden1[E,X,Y,T1,T2,P]
+{	binaryRel[]*=[evt=E,arg1=X,theta1=T1,arg2=Y,theta2=T2,rel=P];
+	Subject[]*=[subjectI=X];
+	NominalPredicativeform[]*=[vbI=E];
+	Genitive[]*=[genitiveI=Y]
 }
 %  faire un cadeau a marie
-class n0vNan1
-{	Subject[];NominalPredicativeform[];Iobject[]
+class n0vNan1[E,X,Y,T1,T2,P]
+{	binaryRel[]*=[evt=E,arg1=X,theta1=T1,arg2=Y,theta2=T2,rel=P];
+	Subject[]*=[subjectI=X];
+	NominalPredicativeform[]*=[vbI=E];
+	Iobject[]*=[iobjectI=Y];
 }
 % commettre une agression contre marie 		
-class n0vNpn1
-{	Subject[];NominalPredicativeform[];Oblique[]
+class n0vNpn1[E,X,Y,T1,T2,P]
+{	binaryRel[]*=[evt=E,arg1=X,theta1=T1,arg2=Y,theta2=T2,rel=P];
+	Subject[]*=[subjectI=X];
+	NominalPredicativeform[]*=[vbI=E];
+	Oblique[]*=[obliqueI=Y];
 }
+
 
