@@ -43,14 +43,14 @@ class n0vNan1[E,X,Y,T1,T2,P]
 {	binaryRel[]*=[evt=E,arg1=X,theta1=T1,arg2=Y,theta2=T2,rel=P];
 	Subject[]*=[subjectI=X];
 	NominalPredicativeform[]*=[vbI=E];
-	Iobject[]*=[iobjectI=Y];
+	Iobject[]*=[iobjectI=Y]
 }
 % commettre une agression contre marie 		
 class n0vNpn1[E,X,Y,T1,T2,P]
 {	binaryRel[]*=[evt=E,arg1=X,theta1=T1,arg2=Y,theta2=T2,rel=P];
 	Subject[]*=[subjectI=X];
 	NominalPredicativeform[]*=[vbI=E];
-	Oblique[]*=[obliqueI=Y];
+	Oblique[]*=[obliqueI=Y]
 }
 
 
