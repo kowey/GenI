@@ -516,7 +516,7 @@ to s1.  Note: we treat the handle as if it were a parameter.
 \begin{code}
 subsumePred :: Sem -> Pred -> [Subst]
 subsumePred [] _ = []
-subsumePred ((pred1@(h1, p1, la1)):l) (pred2@(h2,p2,la2)) = 
+subsumePred ((h1, p1, la1):l) (pred2@(h2,p2,la2)) = 
     -- if we found the proper predicate
     if ((p1 == p2) && (length la1 == length la2))
     then let subst = map nub (pairVar (h1:la1) (h2:la2) [])

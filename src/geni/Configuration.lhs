@@ -186,7 +186,7 @@ defaultParamsStr p =
       op = optimisations p
       gr = if (isGraphical p)  then "True" else "False"
   in "\nGrammar  = " ++ g  ++ 
-     "\nTSemantics = " ++ ts ++
+     "\nTestSuite = " ++ ts ++
      "\n" ++
      "\n% True or False" ++
      "\nGraphical  = " ++ gr ++ 
