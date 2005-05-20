@@ -594,7 +594,8 @@ runCGMLexSelection mst =
            case (lookupFM lexMap id) of
              Nothing  -> fail ("no such lexical entry " ++ id)
              Just lex -> return $ combineCGM lex ts 
-           where id = pfamily ts
+           where id  = reverse $ tail $ dropWhile (/= 'x') $ reverse fam -- FIXME : HACK!
+                 fam = tail $ pfamily ts -- FIXME: hack! 
      cand <- mapM fixate g
      -- attach any morphological information to the candidates
      let morphfn  = morphinf mst
@@ -683,7 +684,6 @@ combineCGM lexitem e =
    let tree_ = Bfuncs.tree e
        (snodes,anodes) = detectSites tree_
        -- FIXME: dirty hack strips off the semantic handle
-       -- aDIRTY_HACK (_,p,a) = ("",p,a) 
        -- the final result
        sol = emptyTE {
                 idname = iword lexitem ++ "_" ++ pidname e,

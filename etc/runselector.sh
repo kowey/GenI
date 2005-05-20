@@ -2,7 +2,7 @@
 
 GRAMMAR_FILE=${1}
 TMP_FIL_FILE="/tmp/geniselect_to.$$.fil"
-TMP_RES_FILE="/tmp/geniselect_from.$$.xml"
+TMP_RES_FILE="/tmp/geniselect_from.$$.geni"
 
 # write the stuff from stdin into a filter file
 cat > ${TMP_FIL_FILE}
