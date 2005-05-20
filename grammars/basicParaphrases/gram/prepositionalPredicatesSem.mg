@@ -15,8 +15,11 @@ class n0vPNden1[E,X,Y,T1,T2,P]
 	Genitive[]*=[genitiveI=Y]
 }
 %  ??
-class n0vPNan1
-{	Subject[];PrepositionalPredicativeform[];Iobject[]
+class n0vPNan1[E,X,Y,T1,T2,P]
+{	binaryRel[]*=[evt=E,arg1=X,theta1=T1,arg2=Y,theta2=T2,rel=P] ;
+	Subject[]*=[subjectI=X];
+	PrepositionalPredicativeform[]*=[vbI=E];
+	Iobject[]*=[iobjectI=X]
 }
 % eprouver de la passion pour
 class n0vPNpn1[E,X,Y,T1,T2,P]
