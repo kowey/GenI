@@ -7,7 +7,7 @@
 *EX:{}
 *EQUATIONS: 
 *COANCHORS: 
-det -> le/v
+det -> le/det
 prep -> de/p
 
 *ENTRY : parte

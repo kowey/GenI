@@ -27,10 +27,11 @@ class ** NominalPredicativeform
 import
 	predicativeForm[]
 declare
-	?xDet ?xN
+	?xDet ?xN ?xLexDet
 {
 	<syn>{	node xHead[cat = n]{
-			node xDet(color=black,name = vNdet)[cat = det]
+		  node xDet(color=black)[cat = det]{
+		    node xLexDet(color=black,mark=flex,name=vNdet)}
 			node xN(color=black,mark=anchor)[cat = n]}
 }}
 
