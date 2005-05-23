@@ -325,23 +325,19 @@ readGrammar pst lexChoice =
      ldirContents' <- if null ldir then return [] 
                       else getDirectoryContents ldir
      let ldirContents = ldirContents' \\ [".", ".."]
-     -- if the lexicon file is specfied and it is a member
-     -- of the lexicon directory, we select it, otherwise
-     -- we select the first item
-     let pathfn x = ldir ++ slash ++ x 
-         idx = 0
      ----------------------------------------------------
      -- handler for selecting a lexicon
      ----------------------------------------------------
      let onLexChoice = do
          csel <- get lexChoice selection
          let l = ldirContents !! csel
+             pathfn x = ldir ++ slash ++ x 
              newGramConfig = gramConfig { lexiconFile = pathfn l }
          loadLexicon pst newGramConfig 
      ----------------------------------------------------
      set lexChoice [ items := ldirContents
                    , enabled := (not.null) ldirContents  
-                   , selection := idx
+                   , selection := 0 
                    , on select := onLexChoice ]
      onLexChoice -- call this once
 \end{code}
