@@ -1,6 +1,9 @@
 aimer 
 semantics : [ jean(j) aimer(l) exp(l j) cause(l m) marie(m) ]
 
+aimerBeaucoup 
+semantics : [ jean(j) aimer(l) beaucoup(l) exp(l j) cause(l m) marie(m) ]
+
 adorer
 semantics : [ jean(j) like(l) beaucoup(l) exp(l j) cause(l m) marie(m) ]
 

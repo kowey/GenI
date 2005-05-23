@@ -33,6 +33,18 @@ prep -> de/p
 *EQUATIONS:
 *COANCHORS:
 
+% Adverbs
+
+*ENTRY : beaucoup
+*CAT : adv
+*SEM : beaucoup
+*ACC : 1
+*FAM : advVPost
+*FILTERS : []
+*EX:{}
+*EQUATIONS:
+*COANCHORS:
+
 *ENTRY : la
 *CAT : d
 *SEM : the

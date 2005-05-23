@@ -15,7 +15,7 @@ include prepositionalPredicatesSem.mg
 %include verbes.mg
 %include adjectifs.mg
 
-%include adverbes.mg
+include adverbesSem.mg
 %include misc.mg
 
  
@@ -83,3 +83,7 @@ value relationalNoun
 
 % Adjectifs
 %value adjectifEpithete
+
+
+% Adverbs
+value advVPost		% jean aime beaucoup Marie
