@@ -234,6 +234,9 @@ declare
 	}
 }
 
+%% CG 20/05/05
+%% added top=[mode =ind] on root node to block use as infinitival complt
+
 class RealisedNonExtractedSubject 
 import 
 	CanonicalArgument[]
@@ -245,7 +248,7 @@ declare
         ?xSubj ?fX ?fY ?fZ
 {
 	<syn>{
-		node xS[bot=[wh = -]]{
+		node xS[bot=[wh = -], top=[mode =ind]]{
 			node xSubj(color=red)[top=[det = +]]
 			node xVN(color=white)[cat = vn]
 		};
@@ -298,7 +301,8 @@ declare
 {
 	<syn>{
 		node xS{
-			node xSubj(color=red,mark=subst)[cat=s,top=[idx=I]]
+			node
+			xSubj(color=red,mark=subst)[cat=s,top=[idx=I,mode=inf]]
 			node xVN
 		}
 	}*=[subjectI=I]
@@ -316,7 +320,9 @@ declare
 		node xTop(color=red)[cat=s,bot=[idx = I]]{
 			node xComp(color=red)[cat=c]{
 				node xQue(color=red,mark=flex)[cat=que,phon=que]				}
-			node xSubj(color=red,mark=subst)[cat=s,top=[idx=I]]}			node xVN
+			node
+			xSubj(color=red,mark=subst)[cat=s,top=[idx=I, cleft = - ]]}			
+			node xVN
 		}
 	}*=[subjectI=I]
 }
@@ -503,7 +509,8 @@ declare
 {
 	<syn>{
 		node xComp[cat=que];
-		node xArg(mark=foot)[top=[mode = @{ind,subj},idx=I]]
+		node xArg(mark=foot)[top=[mode =
+		@{ind,subj},idx=I], bot = [cleft = - , wh = - ]]
 	}*=[objectI = I]
 }
 
@@ -952,13 +959,14 @@ declare
 	?xCleft ?xVNCleft ?xClCleft ?xAuxCleft ?xClefttop ?E
 {
 	<syn>{
-		node xCleft(color=red)[cat = s,bot=[wh = - , idx=?E]]{
+		node xCleft(color=red)[cat = s,bot=[cleft = +,wh = - ,
+		idx=?E], top = [cleft = + ]]{
 			node xVNCleft(color=red)[cat=vn]{
 				node xClCleft(color=red)[cat=cl,phon=ce,top=[case = ce]]
 				node xAuxCleft(color=red)[cat=v,phon=etre,top=[mode=@{ind,subj},pers=3]]
 			}
 			node xClefttop(color=red)
-			node xSe(mark=nadj)[bot=[idx=?E]]	
+			node xSe(mark=nadj)[bot=[idx=?E, wh = + ]]	
 		}		
 	}
 }
@@ -1187,6 +1195,13 @@ declare
 		}
 	}*=[subjectI=I]
 }
+%CG 20-05-05 added cleft info on root node 
+%CG added null adjunction constraint on xS node to block "C'est Jean
+% (Marie s'etonne que) qui parte" 
+% added top = [cleft = + ] on root node to prevent substitution into
+%subject completive ** Que c'est jean qui part etonne Marie
+%CG 20-05-05 added top=[mode=ind] on root node to block use in
+% infinitival context ** c'est Jean qui aime etonne marie
 
 class ** CleftSubject
 import 
@@ -1196,13 +1211,14 @@ declare
 
 {
 	<syn>{
-		node xSe(color=red)[cat = s, bot=[wh = -]]{
+		node xSe(color=red)[cat = s, top=[mode=ind],bot=[cleft = +,wh = -],
+			top = [cleft = + ,mode = ind]]{
 			node xVNCleft(color=red)[cat=vn]{
 				node xCl(color=red)[cat=cl,phon=ce,top=[cat=cl]]
 				node xVcleft(color=red)[cat=v,phon=etre,top=[pers = 3,mode=ind]]
 			}
 			node xArg(color=red,mark=subst,extracted = +)[cat=n,top=[idx=I]]
-			node xS[bot=[wh = -, mode = ind]]{
+			node xS(mark=nadj)[bot=[wh = -, mode = ind]]{
 				node xComp(color=red)[cat=c]{
 					node xCompl(color=red,mark=flex)[cat=qui]
 				}

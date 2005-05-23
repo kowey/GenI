@@ -134,7 +134,7 @@ class dias0Vn1Active[E,X,Y]{
 	activeVerbMorphology[]*=[vbI=E]} 
 class dias0Vn1Passive[E,X,Y]{
 	Subject[]*=[subjectI=Y]; 
-	SententialCObject[]*=[objectI=X]; 
+	CanonicalSententialObjectFinite[]*=[objectI=X]; 
 	passiveVerbMorphology[]*=[vbI=E]
 }
 

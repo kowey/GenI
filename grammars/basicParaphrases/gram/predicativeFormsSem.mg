@@ -4,13 +4,15 @@
 class predicativeForm
 export  xHead
 declare
-	?xR ?xVN ?xCop ?xHead ?fX ?fY ?fZ ?fU ?fW
+	?xR ?xVN ?xCop ?xLexCop ?xHead ?fX ?fY ?fZ ?fU ?fW
 
 {
 	<syn>{
 		node xR(color=black)[cat = s,bot=[mode = ?fX]]{
 			node xVN(color=black)[cat = vn,top=[mode = ?fX],bot=[mode = ?fY,gen = ?fU,num = ?fZ,pers=?fW]]{
-				node xCop(color=black,name=vsup)[cat = v,top=[vsup = +, mode= ?fY,pers=?fW,num=?fZ]]
+				node xCop(color=black)[cat =
+	v,top=[vsup = +, mode= ?fY,pers=?fW,num=?fZ]]{
+		    node xLexCop(color=black,mark=flex,name=vsup)}
 				node xHead(color=black)[cat = @{adj,n,pp},top=[gen=?fU,num=?fZ]]
 			}
 		}
@@ -51,11 +53,16 @@ class ** PrepositionalPredicativeform
 import
 	predicativeForm[]
 declare
-	?xPrep ?xN
+	?xPrep ?xPrep2 ?xN ?xDet ?xPred ?xLexDet
 {
 	<syn>{	node xHead[cat = pp]{
-			node xPrep(color=black,name = vppPrep)[cat = p]
-			node xN(color=black,mark=anchor)[cat = n]
+			node xPrep(color=black)[cat =
+			p]{
+			     node xPrep2(color=black,name = vppPrep,mark=flex)}
+			node xN(color=black)[cat = n]{
+			     node xDet(color=black)[cat=det]{
+		    node xLexDet(color=black,mark=flex,name=vppDet)}
+			     node xPred(color=black,mark=anchor)[cat=n]}
 			}
 		}
 }

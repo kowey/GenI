@@ -1,11 +1,14 @@
 aimer 
 semantics : [ jean(j) aimer(l) exp(l j) cause(l m) marie(m) ]
 
-etonner
-semantics : [ jean(j) surprise(l) experiencer(l j) cause(l m) marie(m) ]
+adorer
+semantics : [ jean(j) like(l) beaucoup(l) exp(l j) cause(l m) marie(m) ]
 
-foo
-semantics : [ jean(j) foo(l j) cause(l m) marie(m) ]
+etonner1
+semantics : [ jean(j) etonner(a) exp(a j) cause(a m) marie(m) ]
 
+etonner2
+semantics : [ jean(j) partir(a) agent(a j) etonner(b) exp(b m) cause(b
+a) marie(m) ]
 
 
