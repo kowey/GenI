@@ -334,7 +334,8 @@ tagLeaves te = map tagLeaf $ (treeLeaves.ttree) te
 tagLeaf :: GNode -> (String,Flist)
 tagLeaf node = 
   let lexeme = (glexeme node)
-      cat' = filter (\ (f,_) -> f == "cat") $ gup node 
+      -- FIXME: SILLY HACK: reverse the list so that "phon" gets the top priority
+      cat' = reverse $ filter (\ (f,_) -> f == "cat" || f == "phon") $ gup node 
       cat  = if (null cat') 
              then gnname node     
              else snd $ head cat'
