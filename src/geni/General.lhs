@@ -31,6 +31,7 @@ import Data.Char (isSpace)
 import Data.FiniteMap (emptyFM, FiniteMap, addToFM_C)
 import Data.List (intersect)
 import Data.Tree
+import System.Directory (getCurrentDirectory, setCurrentDirectory)
 \end{code}
 }
 
