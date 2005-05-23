@@ -1,8 +1,16 @@
 #!/bin/sh
 
 GRAMMAR_FILE=${1}
-TMP_FIL_FILE="/tmp/geniselect_to.$$.fil"
-TMP_RES_FILE="/tmp/geniselect_from.$$.geni"
+USERNAME=`whoami`
+
+TMP_FILE_PREFIX="/tmp/geni_to_sel-"${USERNAME}
+TMP_RES_PREFIX="/tmp/geni_from_sel-"${USERNAME}
+
+TMP_FIL_FILE="${TMP_FILE_PREFIX}-$$.fil"
+TMP_RES_FILE="${TMP_RES_PREFIX}-$$.geni"
+
+# clean up the old fil/res files
+rm ${TMP_FILE_PREFIX}* ${TMP_RES_PREFIX}*
 
 # write the stuff from stdin into a filter file
 cat > ${TMP_FIL_FILE}
@@ -15,4 +23,3 @@ cat ${TMP_RES_FILE}
 # convert the selector output
 #`dirname $0`/../geniconvert --trees < ${TMP_RES_FILE} 
 
-# rm ${TMP_FIL_FILE} ${TMP_RES_FILE}
