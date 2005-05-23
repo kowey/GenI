@@ -46,13 +46,15 @@ import Tags (tagLeaves)
 import Morphology (sansMorph)
 import Geni (State(..), GeniInput(..), GeniResults(..), PState,
              doGeneration, runGeni, runMorph,
-             combine, loadGrammar, loadTestSuite, loadTargetSemStr)
-import General (trim, fst3, snd3)
+             combine, loadGrammar, loadLexicon, 
+             loadTestSuite, loadTargetSemStr)
+import General (trim, fst3, snd3,slash)
 import Bfuncs (showPred, showSem, showPairs, Sem)
 import Tags (idname,mapBySem,emptyTE,tsemantics,tpolarities,thighlight, 
              TagElem, derivation)
 
-import Configuration(Params, grammarFile, macrosFile,
+import Configuration(Params, grammarFile, macrosFile, 
+                     lexiconDir, lexiconFile,
                      tsFile, optimisations, 
                      usetrash,
                      autopol, polarised, polsig, chartsharing, 
@@ -118,7 +120,7 @@ We set up the menu and the status bars.
 We add some buttons for loading files and running the generator.
 
 \begin{code}
-       let config = pa mst 
+       let config     = pa mst 
        -- Target Semantics
        tsTextBox <- textCtrl f [ text := ""
                              , wrap := WrapWord
@@ -127,14 +129,18 @@ We add some buttons for loading files and running the generator.
        readTestSuite pst tsTextBox testCaseChoice 
        -- Box and Frame for files loaded 
        let gFilename = grammarFile config 
-       grammarFileLabel <- staticText f [ text := gFilename ]
-       tsFileLabel      <- staticText f [ text := (trim.tsFile) config ]
+       tsFileLabel       <- staticText f [ text := (trim.tsFile) config ]
+       grammarFileLabel  <- staticText f [ text := gFilename ]
+       lexiconFileChoice <- choice f []
+       readGrammar pst lexiconFileChoice 
+        -- lexFleL
        let guiParts = (grammarFileLabel, tsFileLabel, 
                        tsTextBox, testCaseChoice)
        loadfileBt <- button f [ text := "Load files"
                               , on command := gramsemBrowser pst guiParts ] 
        polChk <- checkBox f [ text := "Polarities"
                             , checked := polarised config ]
+       
 --       predictingChk <- checkBox f [ text := "Predictors"
 --                                   , checked := predicting config ]
        autopolChk <- checkBox f [ text := "Pol detection"
@@ -178,8 +184,10 @@ Pack it all together.
        togglePolStuff
        --
        let gramsemBox = boxed "Files last loaded" $
-                   row 5 [ column 5 [ row 5 [ label "grammar: ", widget grammarFileLabel ]
-                                    , row 5 [ label "input sem: ", widget tsFileLabel ] ] 
+                   row 5 [ column 5 [ row 5 [ label "input sem: ",     widget tsFileLabel ] 
+                                    , row 5 [ label "grammar index: ", widget grammarFileLabel
+                                            , label "(includes lexicon)" ]
+                                    , row 5 [ label "-lexicon file: ", hfill $ widget lexiconFileChoice ] ] 
                          , floatBottomRight $ column 5 [ hfloatRight $ widget loadfileBt ] 
                          ] 
            optimBox =  boxed "Optimisations " $
@@ -299,6 +307,43 @@ newFileSel f ety =
         Nothing       -> return () 
         --
         Just file     -> set ety [ text := file ]
+\end{code}
+
+\paragraph{readGrammar} is used to update the graphical interface after
+calling \fnref{loadGrammar}. This used when you first start the 
+graphical interface or when you load a grammar.
+
+\begin{code}
+readGrammar :: (Selecting b, Selection b, Items b String, Able b) 
+              => PState -> b -> IO ()
+readGrammar pst lexChoice = 
+  do mst <- readIORef pst
+     let gramConfig = gramPa mst
+         ldir       = lexiconDir gramConfig
+     -- if the lexicon directory is set, we look at its
+     -- contents
+     ldirContents' <- if null ldir then return [] 
+                      else getDirectoryContents ldir
+     let ldirContents = ldirContents' \\ [".", ".."]
+     -- if the lexicon file is specfied and it is a member
+     -- of the lexicon directory, we select it, otherwise
+     -- we select the first item
+     let pathfn x = ldir ++ slash ++ x 
+         idx = 0
+     ----------------------------------------------------
+     -- handler for selecting a lexicon
+     ----------------------------------------------------
+     let onLexChoice = do
+         csel <- get lexChoice selection
+         let l = ldirContents !! csel
+             newGramConfig = trace ("foo: " ++ pathfn l) $ gramConfig { lexiconFile = pathfn l }
+         loadLexicon pst newGramConfig 
+     ----------------------------------------------------
+     set lexChoice [ items := ldirContents
+                   , enabled := (not.null) ldirContents  
+                   , selection := idx
+                   , on select := onLexChoice ]
+     onLexChoice -- call this once
 \end{code}
 
 \paragraph{readTestSuite} is used to update the graphical interface after

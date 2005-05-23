@@ -26,6 +26,7 @@ tokens :-
   MorphCmd                   { tok MorphCmdTok }
 
   Macros                     { tok MacrosTok  }
+  LexiconDir                 { tok LexiconDirTok }
   Lexicon                    { tok LexiconTok }
   SemLexicon                 { tok SemLexiconTok }
   MorphInfo                  { tok MorphInfoTok  }

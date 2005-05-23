@@ -16,6 +16,7 @@ import Data.List (intersperse)
 %token 
     macros      {(MacrosTok,      _, _)} 
     lexicon     {(LexiconTok,     _, _)}  
+    lexicondir  {(LexiconDirTok,     _, _)}  
     semlex      {(SemLexiconTok,  _, _)}
     morphinfo   {(MorphInfoTok,   _, _)}
     rootcats    {(RootCategoriesTok, _,_)}
@@ -147,10 +148,11 @@ idlist : id            { [$1]  }
        | id ',' idlist { $1:$3 }
 
 gramIdkey :: { PosToken }
-gramIdkey: lexicon   {$1}  
-         | macros    {$1}  
-         | semlex    {$1}
-         | morphinfo {$1}
+gramIdkey: lexicon    {$1}  
+         | lexicondir {$1}
+         | macros     {$1}  
+         | semlex     {$1}
+         | morphinfo  {$1}
 
 gtype :: { Token }
       :  cgmanifesto { untok $1 }

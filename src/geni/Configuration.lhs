@@ -294,6 +294,7 @@ data GramParams = GrmPrms {
   macrosFile     :: String,
   semlexFile     :: String,
   lexiconFile    :: String,
+  lexiconDir     :: String,
   morphFile      :: String,
   rootCatsParam  :: [String],
   grammarType    :: GrammarType
@@ -331,6 +332,7 @@ parseGramIndex filename contents =
   in gp {
        macrosFile  = toAbs (macrosFile gp),
        lexiconFile = toAbs (lexiconFile gp),
+       lexiconDir  = toAbs (lexiconDir gp),
        semlexFile  = toAbs (semlexFile gp),
        morphFile   = if (null morphf) then "" else toAbs morphf
      }
@@ -343,6 +345,7 @@ defineGramParams [] = GrmPrms {
   macrosFile  = "",
   semlexFile  = "",
   lexiconFile = "",
+  lexiconDir  = "",
   morphFile   = "",
   rootCatsParam = [],
   grammarType   = GeniHand
@@ -351,6 +354,7 @@ defineGramParams [] = GrmPrms {
 defineGramParams ((f,v):s) =
   case f of MacrosTok     -> next {macrosFile  = v}
             LexiconTok    -> next {lexiconFile = v} 
+            LexiconDirTok -> next {lexiconDir  = v}
             SemLexiconTok -> next {semlexFile  = v}
             MorphInfoTok  -> next {morphFile   = v}
             RootCategoriesTok -> next {rootCatsParam = words v}

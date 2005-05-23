@@ -10,7 +10,8 @@ data Token =
     GraphicalTok | MorphCmdTok | 
     -- grammar file
     GrammarType | GeniHandTok | TAGMLTok | CGManifestoTok |
-    MacrosTok | LexiconTok | SemLexiconTok | MorphInfoTok | RootCategoriesTok | 
+    MacrosTok | LexiconTok | SemLexiconTok | MorphInfoTok | 
+    RootCategoriesTok | LexiconDirTok |
     -- optimisations
     Optimisations | PolOptsTok | AdjOptsTok |
     Polarised | AutoPol | PolSig | Predicting | ChartSharing | ExtraPolarities |

@@ -27,7 +27,7 @@ involve some messy IO performance tricks.
 module Geni (State(..), PState, GeniInput(..), GeniResults(..), 
              showRealisations, groupAndCount,
              initGeni, runGeni, doGeneration, runMorph,
-             loadGrammar, 
+             loadGrammar, loadLexicon, 
              loadTestSuite, loadTargetSemStr,
              combine, testGeni)
 where
@@ -741,9 +741,9 @@ loadGrammar pst =
      --
      let gparams = parseGramIndex filename gf
      case (grammarType gparams) of 
-        CGManifesto -> loadCGMLexicon pst gparams 
-        _           -> do loadMacros  pst gparams
-                          loadLexicon pst gparams
+        CGManifesto -> return ()
+        _           -> loadGeniMacros  pst gparams
+     loadLexicon   pst gparams
      loadMorphInfo pst gparams
      modifyIORef pst (\x -> x{gramPa   = gparams})
 \end{code}
@@ -755,9 +755,23 @@ the parameters from a grammar index file parameters; it reads and parses
 the lexicon file and the semantic lexicon.   These are then stored in
 the mondad.
 
+FIXME: differentiate
 \begin{code}
 loadLexicon :: PState -> GramParams -> IO ()
-loadLexicon pst config = do 
+loadLexicon pst config =
+  case (grammarType config) of 
+        CGManifesto -> loadCGMLexicon  pst config 
+        _           -> loadGeniLexicon pst config 
+\end{code}
+
+\paragraph{loadGeniLexicon} Given the pointer to the monadic state pst and
+the parameters from a grammar index file parameters; it reads and parses
+the lexicon file and the semantic lexicon.   These are then stored in
+the mondad.
+
+\begin{code}
+loadGeniLexicon :: PState -> GramParams -> IO ()
+loadGeniLexicon pst config = do 
        let lfilename = lexiconFile config
            sfilename = semlexFile config
  
@@ -916,7 +930,8 @@ extractCGMSem lex =
       --
       sem    = map relPredFn rel ++ map thetaPredFn theta
       enrich = relEnrich : (map thetaEnrichFn theta)
-  in (sortSem sem,enrich)
+  in -- trace (showSem sem) $ 
+     (sortSem sem,enrich)
 \end{code}
 
 \ignore{
@@ -934,13 +949,13 @@ testExtractCGMSem =
 
 \subsubsection{Macros}
 
-\paragraph{loadMacros} Given the pointer to the monadic state pst and
+\paragraph{loadGeniMacros} Given the pointer to the monadic state pst and
 the parameters from a grammar index file parameters; it reads and parses
 macros file.  The macros are stored as a hashing function in the monad.
 
 \begin{code}
-loadMacros :: PState -> GramParams -> IO ()
-loadMacros pst config = 
+loadGeniMacros :: PState -> GramParams -> IO ()
+loadGeniMacros pst config = 
   do let filename = macrosFile config
      --
      putStr $ "Loading Macros " ++ filename ++ "..."
