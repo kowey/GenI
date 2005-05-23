@@ -72,12 +72,12 @@ import
 export
    xInfl
 declare
-   ?xInfl ?fS ?fT ?fU ?fV ?fX ?fY ?fZ ?fW ?f0
+   ?xInfl ?fS ?fT ?fU ?fV ?fX ?fY ?fZ ?fW ?f0 ?xLexInfl
 {
         <syn>{
 		     node xVN[bot=[num = ?fX, gen = ?fY, pers = ?fZ, mode = ?fW,inv = ?f0]]{
-                     	node xInfl(color=black,mark=flex)[cat = v,phon=etre,top=[num = ?fX, gen = ?fY, pers = ?fZ, mode = ?fW,cop = +,inv = ?f0],bot=[inv = -, num = ?fT,gen = ?fU, pers = ?fV, mode = ?fS]]
-                     	node xV(color=black)[cat = v,top=[mode = ppart,pp-gen=?fY,pp-num=?fX,aux-pass= -]]
+                     	node xInfl(color=black)[cat = v,phon=etre,top=[num = ?fX, gen = ?fY, pers = ?fZ, mode = ?fW,cop = +,inv = ?f0],bot=[inv = -, num = ?fT,gen = ?fU, pers = ?fV, mode = ?fS]]{
+			  node xLexInfl(color=black,mark=flex)[cat = etre] }                    	node xV(color=black)[cat = v,top=[mode = ppart,pp-gen=?fY,pp-num=?fX,aux-pass= -]]
 		     }		              
         }
 }

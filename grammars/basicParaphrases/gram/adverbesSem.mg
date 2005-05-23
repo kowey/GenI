@@ -59,7 +59,7 @@ declare
 		node xR[cat = v,bot=[idx=E,mode = ?fX, num = ?fY, gen = ?fZ, pers = ?fU, pp-num = ?fV,pp-gen = ?fW, inv = ?fR, aux = ?fS, aux-pass = ?fT]];
 		node xFoot[cat = v,top=[idx=E,mode = ?fX, num = ?fY, gen = ?fZ, pers = ?fU, pp-num = ?fV,pp-gen = ?fW, inv = ?fR, aux = ?fS, aux-pass = ?fT]]	
 	};
-	semRel[]*=[evt=E]
+	semRel[]*=[index=E]
 		
 }
 

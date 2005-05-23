@@ -7,7 +7,7 @@ declare ?Rel ?E !L0
 	<sem>{
 		L0:Rel(E) 
 	      }
-	      *=[rel=Rel,evt=E]
+	      *=[rel=Rel,index=E]
 	  }
 class unaryRel
 import semRel[]

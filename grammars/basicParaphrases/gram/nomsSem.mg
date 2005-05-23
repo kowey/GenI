@@ -13,7 +13,7 @@ declare
 	};
 	<sem>{
 		L:P(I) 
-	      }*=[idx=I,rel=P]
+	      }*=[index=I,rel=P]
 }
 
 % chien, chat, (la) France
@@ -26,7 +26,7 @@ declare
 	};
 	<sem>{
 		L:P(I) 
-	      }*=[idx=I,rel=P]
+	      }*=[index=I,rel=P]
 }
 % le depart de X 
 % Generation Hack: the determiner is included in the tree
@@ -46,7 +46,7 @@ declare	 ?xRoot ?xDet ?xN ?xAnchor ?xPP  ?xPrep ?xArg ?I ?L ?P ?E ?X ?Theta1
 		       top = [idx = X]]}}}};
 	<sem>{
 		L:P(E); L:Theta1(E,X) 
-	      }*=[evt=E,rel=P,arg1=X,theta1=Theta1]
+	      }*=[index=E,rel=P,arg1=X,theta1=Theta1]
 }
 
 % moi, toi
@@ -58,7 +58,7 @@ declare
 	       node xN(color=red,mark=anchor)[cat = n,bot=[det = +],top=[idx=I]]		};
 	<sem>{
 		I
-	      }*=[idx=I]
+	      }*=[index=I]
 }
 
 % je, tu,le, me, se 
@@ -70,5 +70,5 @@ declare
 		node xCl(color=red,mark=anchor)[cat = cl,top=[idx=I]]	};
 	<sem>{
 		I  
-	     }*=[idx=I]
+	     }*=[index=I]
 }
