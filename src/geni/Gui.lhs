@@ -34,7 +34,7 @@ import Monad (when)
 import Data.Array
 import Data.FiniteMap
 import Data.IORef
-import Data.List (nub, delete, (\\), (!!))
+import Data.List (nub, delete, (\\), (!!), isPrefixOf, findIndex)
 import System.Directory 
 import System.Posix.Files(fileMode, getFileStatus, unionFileModes, 
                           setFileMode, ownerExecuteMode)
@@ -336,7 +336,7 @@ readGrammar pst lexChoice =
      let onLexChoice = do
          csel <- get lexChoice selection
          let l = ldirContents !! csel
-             newGramConfig = trace ("foo: " ++ pathfn l) $ gramConfig { lexiconFile = pathfn l }
+             newGramConfig = gramConfig { lexiconFile = pathfn l }
          loadLexicon pst newGramConfig 
      ----------------------------------------------------
      set lexChoice [ items := ldirContents
