@@ -1,0 +1,20 @@
+argV-etonner
+semantics : [ jean(j) etonner(a) exp(a j) cause(a m) marie(m) ]
+
+troponymieV-etonner
+semantics : [ jean(j) etonner(a) beaucoup(a) exp(a j) cause(a m) marie(m) ]
+
+alternationV-etonner
+semantics : [ jean(j) etonner(a) exp(a j) cause(a b) partir(b) agent(b
+m) marie(m)]
+
+passionner
+semantics : [ passionner(b) exp(b m) cause(b p) marie(m) peinture(p) def(p)]
+
+etonner-s0Vn1
+semantics : [ jean(j) etonner(a) exp(a j) cause(a b) partir(b) agent(b
+m) marie(m)]
+
+irriter
+semantics : [ jean(j) etonner(a) exp(a j) cause(a b) partir(b) agent(b
+m) marie(m)]
