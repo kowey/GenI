@@ -224,7 +224,9 @@ IDList : {-empty-}  {[]}
 
 FeatList :: { {-FeatList-} [AvPair] }
 FeatList : {-empty-}               {[]} 
-         | id ':' FeatVal FeatList {($1,$3):$4}
+         | id  ':' FeatVal FeatList {($1,$3):$4}
+           {- let's not be shocked by "lex" -}
+         | lexeme ':' FeatVal FeatList {("lex",$3):$4} 
 
 FeatVal :: { String }
 FeatVal: id  {$1}
