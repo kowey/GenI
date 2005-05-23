@@ -53,7 +53,7 @@ import System.Mem
 import Control.Monad (when)
 import CPUTime (getCPUTime)
 
-import General(groupByFM, multiGroupByFM, startsWith)
+import General(groupByFM, multiGroupByFM)
 
 import Bfuncs (Macros, MTtree, ILexEntry, Lexicon, 
                Sem, SemInput,
