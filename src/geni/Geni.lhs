@@ -910,9 +910,7 @@ extractCGMSem lex =
       relPredFn   x = ("", snd x, ["E"])
       thetaPredFn x = ("", snd x, ["E", "X" ++ numfn x])
       --
-      relEnrich = if null theta 
-                  then ("interface.idx","E") -- not verbs
-                  else ("interface.evt","E") -- verbs
+      relEnrich = ("interface.index","E") 
       thetaEnrichFn x = ("interface.arg" ++ num, "X" ++ num)
                           where num = numfn x
       --
