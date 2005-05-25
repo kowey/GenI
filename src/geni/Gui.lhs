@@ -335,11 +335,12 @@ readGrammar pst lexChoice =
              newGramConfig = gramConfig { lexiconFile = pathfn l }
          loadLexicon pst newGramConfig 
      ----------------------------------------------------
+     let enable = (not.null) ldirContents
      set lexChoice [ items := ldirContents
-                   , enabled := (not.null) ldirContents  
+                   , enabled := enable
                    , selection := 0 
                    , on select := onLexChoice ]
-     onLexChoice -- call this once
+     Monad.when enable onLexChoice -- call this once
 \end{code}
 
 \paragraph{readTestSuite} is used to update the graphical interface after
