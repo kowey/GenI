@@ -48,7 +48,7 @@ import Geni (State(..), GeniInput(..), GeniResults(..), PState,
              doGeneration, runGeni, runMorph,
              combine, loadGrammar, loadLexicon, 
              loadTestSuite, loadTargetSemStr)
-import General (trim, fst3, snd3,slash)
+import General (trim, fst3, snd3, slash, bugInGeni)
 import Bfuncs (showPred, showSem, showPairs, Sem)
 import Tags (idname,mapBySem,emptyTE,tsemantics,tpolarities,thighlight, 
              TagElem, derivation)
@@ -375,8 +375,12 @@ readTestSuite pst tsBox tsChoice =
                else "\nrestrictors:" ++ showPairs r)
      let onTestCaseChoice = do
          csel <- get tsChoice selection
-         let s = snd3 (suite !! csel)
-         set tsBox [ text :~ (\_ -> displaySemInput s) ]
+         if (boundsCheck csel suite)
+           then do let s = snd3 (suite !! csel)
+                   set tsBox [ text :~ (\_ -> displaySemInput s) ]
+           else fail ("Gui: test case selector bounds check error: " ++
+                      show csel ++ " of " ++ show suite ++ "\n" ++
+                      bugInGeni)
      ----------------------------------------------------
      t   <- (readFile.tsFile.pa) mst 
      set tsBox    [ text := trim t ]
@@ -552,21 +556,29 @@ tagViewerGui mst f tip cachedir itNlab = do
   -- handlers
   let onDisplayTrace = do gvSt <- readIORef gvRef
                           s <- get displayTraceCom selection
-                          let tree = tagelems !! (gvsel gvSt)
-                              derv = extractDerivation tree
-                          runViewTag mst (derv !! s)
+                          let tsel = gvsel gvSt
+                          Monad.when (boundsCheck tsel tagelems) $ do
+                            let tree = tagelems !! (gvsel gvSt)
+                                derv = extractDerivation tree
+                            if (boundsCheck s derv)
+                              then runViewTag mst (derv !! s)
+                              else fail $ "Gui: bounds check in onDisplayTrace\n" ++
+                                          bugInGeni
   let onDetailsChk c = do isDetailed <- get c checked 
                           setGvParams gvRef isDetailed 
                           updaterFn 
   let selHandler gvSt = do
-      let selected = tagelems !! (gvsel gvSt)
-          subtrees = extractDerivation selected
-      set displayTraceCom [ items :~ (\_ -> subtrees) 
-                          , selection :~ (\_ -> 0) ]
+      let tsel = gvsel gvSt
+      Monad.when (boundsCheck tsel tagelems) $ do
+        let selected = tagelems !! tsel 
+            subtrees = extractDerivation selected
+        set displayTraceCom [ items :~ (\_ -> subtrees) 
+                            , selection :~ (\_ -> 0) ]
   --
-  setGvHandler gvRef (Just selHandler)
-  set detailsChk [ on command := onDetailsChk detailsChk ]
-  set displayTraceBut [ on command := onDisplayTrace ]
+  Monad.when (not $ null tagelems) $ do 
+    setGvHandler gvRef (Just selHandler)
+    set detailsChk [ on command := onDetailsChk detailsChk ]
+    set displayTraceBut [ on command := onDisplayTrace ]
   -- pack it all in      
   let cmdBar = hfill $ row 5 
                 [ dynamic $ widget detailsChk
@@ -1083,6 +1095,15 @@ createImagePath subdir name =
 createDotPath :: String -> String -> String
 createDotPath subdir name = 
   gv_CACHEDIR ++ "/" ++ subdir ++ "/" ++ name ++ ".dot"
+\end{code}
+
+\paragraph{boundsCheck} makes sure that index s is in the bounds of list l.
+This is useful for the various blocks of code that manipulate wxhaskell
+selections.  Surely there must be some more intelligent way to deal with
+this.
+
+\begin{code}
+boundsCheck s l = s >= 0 && s < length l
 \end{code}
 
 \begin{code}

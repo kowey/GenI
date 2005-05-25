@@ -109,6 +109,17 @@ listRepNode fn filt ((n@(Node a l1)):l2) =
           else (n:lt2, flag2)
 \end{code}
 
+\section{Errors}
+
+\paragrah{bugInGeni} is the standard stuff to display there is an error
+in GenI which is very likely NOT the user's fault.
+
+\begin{code}
+bugInGeni = 
+ "Bug in GenI. Please file a report on the wiki:" ++
+ "http://wiki.loria.fr/wiki/GenI/Complaints" 
+\end{code}
+
 \section{Files}
 
 \begin{code}
