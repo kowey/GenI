@@ -777,8 +777,9 @@ the mondad.
 loadGeniLexicon :: ProgStateRef -> GramParams -> IO ()
 loadGeniLexicon pstRef config = do 
        let lfilename = lexiconFile config
-           sfilename = semlexFile config
- 
+           --sfilename = semlexFile config
+
+{- 
        putStr $ "Loading Semantic Lexicon " ++ sfilename ++ "..."
        hFlush stdout
        sf <- readFile sfilename
@@ -788,16 +789,21 @@ loadGeniLexicon pstRef config = do
            semlex       = (semmapper . (map sortlexsem) . fst) semparsed
        putStr ((show $ length $ Map.keys semlex) ++ " entries\n")
 
+       trace (concatMap (concatMap showlex) $ eltsFM semlex) $ modifyIORef pstRef (\x -> x{le = semlex})
+-}
+
        putStr $ "Loading Lexicon " ++ lfilename ++ "..."
        hFlush stdout
        lf <- readFile lfilename 
-       let rawlex = (lexParser . lexer) lf
-           lemlex = groupByFM fn rawlex
-                    where fn l = (iword l, icategory l)
-       putStr ((show $ length rawlex) ++ " entries\n")
+       let sortlexsem l = l { isemantics = sortSem $ isemantics l }
+           semmapper    = mapBySemKeys isemantics
+           rawlex       = (lexParser . lexer) lf
+           lex          = (semmapper . (map sortlexsem) . fst) rawlex
+       putStr ((show $ length $ Map.keys lex) ++ " entries\n")
 
        -- combine the two lexicons
-       modifyIORef pstRef (\x -> x{le = combineLexicon lemlex semlex})
+       modifyIORef pstRef (\x -> x{le = lex})
+
        return ()
 \end{code}
 

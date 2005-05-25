@@ -11,7 +11,7 @@ import Btypes(AvPair, emptyLE, ILexEntry(..), Ptype(..), Sem)
 }
 
 %name lexParser    Lexicon 
-%name semlexParser SLexicon
+{- %name semlexParser SLexicon -}
 %name filParser    FilEntryList 
 %name morphParser  MorphInfo  
 
@@ -48,7 +48,7 @@ Morph : id '[' FeatList ']' { ($1,$3) }
 
 {- -----------------------------------------------------------------
    syntactic lexicon 
-   ----------------------------------------------------------------- -}
+   -----------------------------------------------------------------
 
 Lexicon :: { [ILexEntry] }
 Lexicon : {-empty-}        {[]}
@@ -64,6 +64,7 @@ LexEntryCore : id id id
                icategory = $2,
                ifamname = $3 } }
 
+ -}
 {- precedence directives -}
 
 {-
@@ -83,27 +84,27 @@ PredItem: '(' id ':' IDList ')' { map (\a -> (a,$2)) $4 }
    semantic lexicon 
    ----------------------------------------------------------------- -}
 
-SLexicon :: { ([ILexEntry], [LpSemFam]) }
-SLexicon : SInput                {($1, [])}
-         | SInput '!' SemFamList {($1, $3)}
+Lexicon :: { ([ILexEntry], [LpSemFam]) }
+Lexicon : LInput             {($1, [])}
+        | LInput '!' SemFamList {($1, $3)}
 
-SInput :: { [ILexEntry] }
-SInput : {-empty-}        {[]}
-       | SLexEntry SInput {$1:$2}
+LInput :: { [ILexEntry] }
+LInput : {-empty-}        {[]}
+       | LexEntry LInput {$1:$2}
 
-SLexEntry :: { ILexEntry }
-SLexEntry: id id '(' IDFeat ')' Sem
-         {emptyLE { iword   = $1,
-                    icategory = $2,
-                    iparams = fst $4,
-                    ipfeat  = sort $ snd $4,
-                    isemantics = fst $6,
-                    isempols = snd $6
-                  }
-         }
+LexEntry :: { ILexEntry }
+LexEntry: id id '(' IDFeat ')' Sem
+        {emptyLE { iword   = $1,
+                   ifamname = $2,
+                   iparams = fst $4,
+                   ipfeat  = sort $ snd $4,
+                   isemantics = fst $6,
+                   isempols = snd $6
+                 }
+        }
  | id id '[' FeatList ']' Sem
          {emptyLE { iword   = $1,
-                    icategory = $2,
+                    ifamname = $2,
                     ipfeat  = sort $ $4,
                     isemantics = fst $6,
                     isempols = snd $6
