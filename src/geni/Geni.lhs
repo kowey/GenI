@@ -895,8 +895,9 @@ interface.theta2 = pat
 
 We do things with this
 \begin{enumerate}
-\item We translate this into a semantics of the form \verb$hates(E), agt(E,X1),
-      pat(E,X2)$. Note that E, X1, X2, are just variable names that we make up,
+\item We translate this into a semantics of the form 
+      \verb$hates(E), agt(E,X1), pat(E,X2)$. 
+      Note that E, X1, X2, are just variable names that we make up,
       following the GenI convention that upper case initial means they are
       variable.
 \item Because we want to propogate the indices to trees, we also generate

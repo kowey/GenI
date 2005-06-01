@@ -1121,7 +1121,7 @@ ViewTAG that just does this.
 
 \paragraph{extractDerivation} retrieves the names of all the
 CGM trees that went to building a TagElem, including the TagElem
-itself.  NB: for a tree like "love_Tn0Vn1", we extract just the
+itself.  NB: for a tree like ``love_Tn0Vn1'', we extract just the
 Tn0Vn1 bit.
 
 \begin{code}
