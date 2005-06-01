@@ -427,7 +427,7 @@ iapplySubstNode te1 te2 sn@(n, fu, fd) =
                   ttree = ntree,
                   substnodes = (delete sn (substnodes te2))++ (substnodes te1),
                   adjnodes =   newadjnodes,
-                  tsemantics = sort (nub ((tsemantics te1) ++ (tsemantics te2))),
+                  tsemantics = sortSem (tsemantics te1 ++ tsemantics te2),
                   -- tpredictors = sumPredictors (tpredictors te1) (tpredictors te2),
                   tpolpaths  = intersectPolPaths te1 te2,
                   thighlight = [gnname nr]} 
@@ -589,7 +589,7 @@ iapplyAdjNode fconstr te1 te2 an@(n, an_up, an_down) =
       nte2 = te2 { derivation = addToDerivation 'a' te1 te2,
                    ttree = ntree,
                    adjnodes = newadjnodes', 
-                   tsemantics = sort ((tsemantics te1) ++ (tsemantics te2)),
+                   tsemantics = sortSem (tsemantics te1 ++ tsemantics te2),
                    tpolpaths = intersectPolPaths te1 te2,
                    thighlight = map gnname [anr, anf] 
                  }
@@ -735,7 +735,7 @@ classifyNew l = do
   inputSem <- getSem
   let isResult x = (ttype x /= Auxiliar) && (null $ substnodes x) 
                    && (inputSem == treeSem) && (null $ adjnodes x)
-                   where treeSem = (sortSem $ tsemantics x)
+                   where treeSem = tsemantics x
       tbUnify x ls = case (tbUnifyTree x) of
                        Left n  -> do addToTrashRep (x {thighlight = [n]})     
                                      return ls

@@ -545,10 +545,11 @@ subsumePred ((h1, p1, la1):l) (pred2@(h2,p2,la2)) =
 \end{code}
 
 \paragraph{sortSem} 
-Sorts semantics according with it's predicate
+Sorts semantics first according to its predicate, and then to its handles.
+
 \begin{code}
 sortSem :: Sem -> Sem
-sortSem s = sortBy (\(_, p1, _) -> \(_, p2, _) -> compare p1 p2) s
+sortSem = sortBy (\(h1,p1,a1) (h2,p2,a2) -> compare (p1, h1:a1) (p2, h2:a2))  
 \end{code}
 
 
