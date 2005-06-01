@@ -1,4 +1,4 @@
-include gram/cgTAG.mg
+include cgTAG.mg
 
 % VALUATION
 %%%%%%%%%%%%%%%%%%%%%%%%%

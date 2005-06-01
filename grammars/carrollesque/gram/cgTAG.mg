@@ -1989,7 +1989,7 @@ declare
 	?xN ?LPN ?Rel ?X
 {
 	<syn>{
-		node xN(color=red,mark=anchor)[cat = n,top=[wh= - ],bot=[det = +,pers = 3,idx=X]]
+		node xN(color=red,mark=anchor)[cat = n,idx=X,top=[wh= - ],bot=[det = +,pers = 3]]
 	}*=[idx=X];
 	<sem>{
 		LPN:Rel(X)
