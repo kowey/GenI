@@ -25,8 +25,8 @@ and \ref{sec:adjunction} instead.
 \begin{code}
 module Tags(
    -- Main Datatypes
-   Tags, TagElem(TE), TagItem(..), TagSite, TagDerivation, 
-   emptyTE,
+   Tags, TagElem(TE), TagItem(..), TagSite, TagStatus(..), 
+   TagDerivation, emptyTE,
 
    -- Projection Functions
    idname, tidnum, derivation, ttype, ttree, 
@@ -34,7 +34,7 @@ module Tags(
    tsemantics, 
    tinterface, tpolarities, tpolpaths, tsempols,
    thighlight,
-   tadjlist,
+   tadjlist, tdiagnostic,
 
    -- Functions from Tags
    addToTags, tagLeaves,
@@ -113,7 +113,8 @@ data TagElem = TE {
                    tpolpaths    :: BitVector,
                    tprecedence  :: Int,
                    -- display stuff,
-                   thighlight   :: [String], -- nodes to highlight 
+                   thighlight   :: [String],  -- nodes to highlight 
+                   tdiagnostic  :: TagStatus, -- why this tree was discarded 
                    -- jackie
                    tadjlist :: [(String,Integer)] -- (node name, auxiliary tree id)
                    -- jackie
@@ -159,6 +160,8 @@ emptyTE = TE { idname = "",
                -- tpredictors = emptyFM,
                tpolpaths   = 0,
                tinterface  = [],
+               --
+               tdiagnostic = TS_None,
                thighlight  = [],
                -- jackie
                tadjlist = []
@@ -345,6 +348,7 @@ tagLeaf node =
   in (output, gup node)
 \end{code}
 
+
 % ----------------------------------------------------------------------
 \section{Drawings TAG Tree}
 % ----------------------------------------------------------------------
@@ -369,4 +373,25 @@ substitution nodes
 showTagSites :: [TagSite] -> String
 showTagSites sites = concat $ intersperse "\n  " $ map fn sites
   where fn (n,t,b) = n ++ "/" ++ showPairs t ++ "/" ++ showPairs b
+\end{code}
+
+% ----------------------------------------------------------------------
+\section{Diagnostic messages}
+% ----------------------------------------------------------------------
+
+Diagnostic messages let us know why a TAG tree is not returned as a result.
+Whenever GenI decides to discard a tree, it sets the tdiagnostic field of 
+the TagElem so that the person using a debugger can find out what went wrong.
+
+\begin{code}
+data TagStatus = TS_None              -- no error
+               | TS_NotAResult        -- was not a result 
+               | TS_TbUnify           -- top/bottom unification error
+     deriving (Eq)
+
+instance Show TagStatus where
+  show ts = case ts of 
+              TS_None -> ""
+              TS_NotAResult -> "not a result"
+              TS_TbUnify    -> "top/bot unification failure" 
 \end{code}

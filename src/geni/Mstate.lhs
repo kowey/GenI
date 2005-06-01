@@ -89,10 +89,10 @@ import Bfuncs (Ptype(Initial,Auxiliar),
                root, foot, 
                substTree, substGNode, substFlist, unifyFeat)
 
-import Tags (TagElem, TagSite, TagDerivation, 
+import Tags (TagElem, TagSite, TagDerivation,  TagStatus(..),
              idname, tidnum,
              derivation,
-             ttree, ttype, tsemantics, thighlight,
+             ttree, ttype, tsemantics, thighlight, tdiagnostic,
              tpolpaths,
              substTagElem, 
              adjnodes,
@@ -257,11 +257,12 @@ addToGenRep te = do
   put s { genrep = (iaddToGenRep (genrep s) te) }
   incrSzchart 1
 
-addToTrashRep :: TagElem -> MS ()
-addToTrashRep te = do 
+addToTrashRep :: TagElem -> TagStatus -> MS ()
+addToTrashRep te err = do 
   s <- get
+  let te2 = te { tdiagnostic = err }
   when ((usetrash.genconfig) s) $
-    put s { trashrep = (iaddToTrashRep (trashrep s) te) }
+    put s { trashrep = (iaddToTrashRep (trashrep s) te2) }
 
 incrGeniter :: Int -> MS ()
 incrGeniter n = do
@@ -696,7 +697,7 @@ generateStep' = do
   -- put the given into the chart untouched 
   if (curStep == Initial) 
      then addToGenRep   given
-     else when ((null.adjnodes) given) $ addToTrashRep given
+     else when ((null.adjnodes) given) $ addToTrashRep given TS_NotAResult
   return res'
 \end{code}
 
@@ -737,7 +738,8 @@ classifyNew l = do
                    && (inputSem == treeSem) && (null $ adjnodes x)
                    where treeSem = tsemantics x
       tbUnify x ls = case (tbUnifyTree x) of
-                       Left n  -> do addToTrashRep (x {thighlight = [n]})     
+                       Left n  -> do let x2  = x { thighlight = [n] }
+                                     addToTrashRep x2 TS_TbUnify 
                                      return ls
                        Right x2 -> return (x2:ls)
       classify ls x 

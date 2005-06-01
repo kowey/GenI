@@ -29,7 +29,8 @@ where
 import Data.Tree
 import Data.List(delete,intersperse,nub)
 
-import Tags (TagElem, idname, tsemantics, ttree, thighlight, tinterface, 
+import Tags (TagElem, idname, tdiagnostic, 
+             tsemantics, ttree, thighlight, tinterface, 
              derivation)
 import Bfuncs (MTtree, Ttree(..), Ptype(..), 
                GNode(..), GType(..), Flist,
@@ -67,7 +68,9 @@ graphvizShowTagElem sf te =
      ++ "}\n" 
    where treename = "name: " ++ (idname te)
          semlist  = "semantics: " ++ (showSem $ tsemantics te)
-         label    = treename ++ "\\n" ++ semlist 
+         tdiag = if null s then "" else "\\n" ++ s 
+           where s = show (tdiagnostic te)
+         label    = treename ++ "\\n" ++ semlist ++ tdiag
 \end{code}
 
 \paragraph{graphvizShow'} invokes a helper function which walks the actual
