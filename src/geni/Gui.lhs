@@ -27,7 +27,7 @@ module Gui(guiGenerate) where
 
 \ignore{
 \begin{code}
-import Graphics.UI.WXCore hiding (when) 
+import Graphics.UI.WXCore 
 import Graphics.UI.WX
 
 import Monad (when)
@@ -68,6 +68,7 @@ import Mstate (Gstats, Mstate, initGstats, initMState, runState,
                genstats, szchart, numcompar, geniter)
 import Polarity
 import SysGeni (runPiped)
+import Debug.Trace
 \end{code}
 }
 
@@ -125,7 +126,7 @@ We add some buttons for loading files and running the generator.
        tsTextBox <- textCtrl f [ text := ""
                              , wrap := WrapWord
                              , clientSize := sz 300 80 ]
-       testCaseChoice <- choice f []
+       testCaseChoice <- choice f [ selection := 0 ]
        readTestSuite pst tsTextBox testCaseChoice 
        -- Box and Frame for files loaded 
        let gFilename = grammarFile config 
@@ -262,11 +263,16 @@ gramsemBrowser pst guiParts = do
   -- Load button
   let (gl,tl,tsBox,tsChoice) = guiParts
   let errHandler title err = errorDialog f title (show err)
-  let loadCmd = do -- get new values
+  let loadCmd = do -- get current directory
+                   curDir <- getCurrentDirectory
+                   let isAbs x    = slash `isPrefixOf` x
+                       toAbs path = if isAbs path then path
+                                    else (curDir ++ slash ++ path)
+                   -- get new values
                    teG' <- get entryG text
                    teS' <- get entryS text
-                   let teG = trim teG'
-                       teS = trim teS'
+                   let teG = (toAbs.trim) teG'
+                       teS = (toAbs.trim) teS'
                    -- write the new values
                    let newPa p = p { grammarFile = teG 
                                    , tsFile = teS }
@@ -384,8 +390,6 @@ readTestSuite pst tsBox tsChoice =
                       show csel ++ " of " ++ show suite ++ "\n" ++
                       bugInGeni)
      ----------------------------------------------------
-     t   <- (readFile.tsFile.pa) mst 
-     set tsBox    [ text := trim t ]
      set tsChoice [ items := tcaseLabels 
                   , selection := caseSel
                   , on select := onTestCaseChoice ]
