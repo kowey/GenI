@@ -11,10 +11,6 @@ url=http://www.haskell.org/happy/dist/1.14/happy-1.14-src.tar.gz
 -O 
 url=http://www.haskell.org/alex/dist/alex-2.0-src.tar.gz
 
-# HaXML
--O 
-url=http://www.haskell.org/HaXml/HaXml-1.12.tar.gz
-
 # wxhaskell
 -O 
 url=http://dl.sourceforge.net/wxhaskell/wxhaskell-src-0.9.zip

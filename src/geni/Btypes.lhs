@@ -76,8 +76,10 @@ data Ttree a = TT{params  :: [String],
 data Ptype = Initial | Auxiliar | Unspecified   
              deriving (Show, Eq)
 
+#if __GLASGOW_HASKELL__ < 604
 instance (Show k, Show e) => Show (FiniteMap k e) where 
   show fm = show $ fmToList fm
+#endif
 \end{code}
 
 \paragraph{emptyMacro} provides a null tree which you can use for

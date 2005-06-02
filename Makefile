@@ -11,18 +11,27 @@
 # configuration 
 # --------------------------------------------------------------------
 
+# i know, i know, i should be using autotools... 
+# but *whine* it's so hard!
+OS:=$(shell uname)
+
 SRC_GENI 	= ./src/geni
-GHCFLAGS        = -fglasgow-exts -threaded -O
+GHCFLAGS        = -cpp -fglasgow-exts -threaded -O
+ifeq ($(OS),Darwin)
+GHCFLAGS += -framework AppKit
+endif
+
+#-O
 GHCINCLUDE      = -i$(SRC_GENI)
 #:$(HXMLDIR)/hparser:$(HXMLDIR)/hdom
-GHCPACKAGES     = 
+GHCPACKAGES     = -package posix 
 #-package HaXml
 GHCPACKAGES_GUI = -package wx $(GHCPACKAGES) 
 GHC             = ghc $(GHCFLAGS) $(GHCINCLUDE)
 
 SOFTWARE        = Geni 
-VERSION         = 0.6
-VERSIONTAG      = geni-0-60  
+VERSION         = 0.7
+VERSIONTAG      = geni-0-70  
 SOFTVERS        = $(SOFTWARE)-$(VERSION)
 
 # You should replace the value of this variable with your project
@@ -73,6 +82,11 @@ DIFILE = $(SRC_GENI)/MainNoGui
 
 OFILE = geni
 COFILE = geniconvert
+
+ifeq ($(OS),Darwin)
+OS_SPECIFIC_STUFF = macosx-app $(OFILE)
+endif
+
 
 LEXERS		= $(SRC_GENI)/Lex2.hs
 PARSERS		= \
@@ -131,8 +145,8 @@ compile: $(LEXERS) $(PARSERS) $(OFILE)
 
 $(OFILE) : $(LEXERS) $(PARSERS) 
 	$(GHC) --make $(GHCPACKAGES_GUI) $(LEXERS) $(PARSERS) 
-	$(GHC) -W --make $(GHCPACKAGES_GUI) $(IFILE).hs -o $(OFILE) 
-	if [ `uname` = Darwin ]; then macosx-app $(OFILE); fi
+	$(GHC) -W --make $(GHCPACKAGES_GUI) $(IFILE).hs -o $(OFILE)
+	$(OS_SPECIFIC_STUFF)
 
 $(COFILE) : $(LEXERS) $(PARSERS) 
 	$(GHC) -O --make $(GHCPACKAGES) $(LEXERS) $(PARSERS) 

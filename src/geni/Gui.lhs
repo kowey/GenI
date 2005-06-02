@@ -183,15 +183,17 @@ Pack it all together.
 \begin{code}
        togglePolStuff
        --
-       let gramsemBox = boxed "Files last loaded" $
-                   row 5 [ column 5 [ row 5 [ label "input sem: ",     widget tsFileLabel ] 
+       let gramsemBox = --boxed "Files last loaded" $ -- can't used boxed with wxwidgets 2.6 -- bug?
+                   hfill $ row 5 [ column 5 [ label "Files last loaded" 
+                                    , row 5 [ label "input sem: ",     widget tsFileLabel ] 
                                     , row 5 [ label "grammar index: ", widget grammarFileLabel
                                             , label "(includes lexicon)" ]
                                     , row 5 [ label "-lexicon file: ", hfill $ widget lexiconFileChoice ] ] 
                          , floatBottomRight $ column 5 [ hfloatRight $ widget loadfileBt ] 
                          ] 
-           optimBox =  boxed "Optimisations " $
-                    column 5 [ dynamic $ widget polChk 
+           optimBox =  --boxed "Optimisations " $ -- can't used boxed with wxwidgets 2.6 -- bug?
+                    column 5 [ label "Optimisations" 
+                             , dynamic $ widget polChk 
                              , row 5 [ label "  ", column 5 
                                      [ dynamic $ row 5 [ label "Extra: ", widget extrapolText ]
                                      , dynamic $ widget autopolChk 
@@ -203,9 +205,9 @@ Pack it all together.
                              --, dynamic $ widget predictingChk
                              ]
        set f [layout := column 5 [ gramsemBox
-                   , row 5 [ fill $ boxed "Input Semantics" $ 
-                             column 5 [ hfill $ widget testCaseChoice
-                                      , fill  $ widget tsTextBox ]
+                   , row 5 [ fill $ -- boxed "Input Semantics" $ 
+                             hfill $ column 5 [ hfill $ widget testCaseChoice
+                                              , fill  $ widget tsTextBox ]
                            , vfill optimBox ]
                     -- ----------------------------- Generate and quit 
                    , hfloatRight $ row 5 [ widget debugBt, widget genBt 
