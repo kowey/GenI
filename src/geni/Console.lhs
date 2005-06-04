@@ -27,7 +27,7 @@ module Console(consoleGenerate) where
 \ignore{
 \begin{code}
 import Data.List(intersperse,sort,partition)
-import Control.Monad(mapM, foldM, when)
+import Control.Monad(foldM, when)
 import Data.IORef(readIORef, modifyIORef)
 
 import Bfuncs(SemInput,showSem)

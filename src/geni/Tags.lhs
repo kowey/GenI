@@ -50,7 +50,7 @@ module Tags(
 \ignore{
 \begin{code}
 import Data.Char(toUpper)
-import Data.FiniteMap (FiniteMap, emptyFM, addToFM_C)
+import qualified Data.Map as Map
 import Data.List (intersperse)
 import Data.Tree
 
@@ -73,7 +73,7 @@ Tags is the datatype for an anchored grammar. The grammar associates
 a set of semantic predicates to a list of trees each.
 
 \begin{code}
-type Tags = FiniteMap String [TagElem]                            
+type Tags = Map.Map String [TagElem]                            
 \end{code}
 
 \paragraph{addToTags} Given a Tags (a FM), a key (a String) and a TagElem 
@@ -81,7 +81,7 @@ it adds the elem to the list of elements associated to the key.
 
 \begin{code}
 addToTags :: Tags -> String -> TagElem -> Tags
-addToTags t k e = addToFM_C (++) t k [e]
+addToTags t k e = Map.insertWith (++) k [e] t
 \end{code}
 
 % ----------------------------------------------------------------------
@@ -94,7 +94,7 @@ work, we assign each tree with a unique id during the process of
 combining macros with lexicon (see section \ref{sec:combine_macros}).
 
 \begin{code}
--- type TPredictors = FiniteMap AvPair Int 
+-- type TPredictors = Map.Map AvPair Int 
 type TagSite = (String, Flist, Flist)
 data TagElem = TE {
                    idname       :: String,
@@ -106,7 +106,7 @@ data TagElem = TE {
                    adjnodes     :: [TagSite],
                    tsemantics   :: Sem,
                    -- optimisation stuff
-                   tpolarities  :: FiniteMap String Int, -- polarity key   to charge
+                   tpolarities  :: Map.Map String Int, -- polarity key   to charge
                    tinterface   :: Flist,  -- for restrictors 
                    tsempols     :: [SemPols],
                    -- tpredictors  :: TPredictors,
@@ -154,10 +154,10 @@ emptyTE = TE { idname = "",
                derivation = (0,[]),
                substnodes = [], adjnodes   = [],
                tsemantics = [], 
-               tpolarities = emptyFM,
+               tpolarities = Map.empty,
                tsempols    = [],
                tprecedence = 0, -- FIXME: you sure?
-               -- tpredictors = emptyFM,
+               -- tpredictors = Map.empty,
                tpolpaths   = 0,
                tinterface  = [],
                --
@@ -269,14 +269,14 @@ substTagElem te l =
 \section{Map by sem}
 % ----------------------------------------------------------------------
 
-The mapBySem function sorts trees into a FiniteMap organised by the
+The mapBySem function sorts trees into a Map.Map organised by the
 first literal of their semantics.  This is useful in at least three
 places: the polarity optimisation, the gui display code, and code for
 measuring the efficiency of Geni.  Note: trees with a null semantics
 are filed under an empty predicate, if any.
 
 \begin{code}
-mapBySem :: (TagItem t) => [t] -> FiniteMap Pred [t]
+mapBySem :: (TagItem t) => [t] -> Map.Map Pred [t]
 mapBySem ts = 
   let gfn t = if (null s) then emptyPred else head s 
               where s = tgSemantics t 

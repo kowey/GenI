@@ -34,9 +34,10 @@ where
 
 \ignore{
 \begin{code}
-import Monad(when)
+import Control.Monad(when)
 import System.IO(hPutStrLn, hClose)
-import SysGeni(runPiped, awaitProcess2)
+import System.Exit(ExitCode)
+import System.Process(waitForProcess, runInteractiveProcess)
 \end{code}
 }
 
@@ -67,7 +68,7 @@ dot output to a file.  You can pass in the empty string if you don't
 want this.
 
 \begin{code}
-toGraphviz :: (GraphvizShow a) => GvParam -> a -> String -> String -> IO () 
+toGraphviz :: (GraphvizShow a) => GvParam -> a -> String -> String -> IO ExitCode 
 toGraphviz p x dotFile outputFile =
    graphviz (graphvizShow p x) dotFile outputFile
 \end{code}
@@ -81,7 +82,7 @@ to.  If the second argument is the empty string, then we don't write any
 dot file.
 
 \begin{code}
-graphviz:: String -> String -> String -> IO () 
+graphviz:: String -> String -> String -> IO ExitCode
 \end{code}
 
 We write the dot String to a temporary file which we then feed to graphviz.
@@ -97,12 +98,12 @@ graphviz dot dotFile outputFile = do
                    "-Tpng", "-o" ++ outputFile ]
        dotArgs = dotArgs' ++ (if (null dotFile) then [] else [dotFile])
    -- putStrLn ("sending to graphviz:\n" ++ dot) 
-   Monad.when (not $ null dotFile) $ writeFile dotFile dot
-   (pid, _, toGV) <- runPiped "dot" dotArgs Nothing Nothing
-   Monad.when (null dotFile) $ do 
+   when (not $ null dotFile) $ writeFile dotFile dot
+   (_, toGV, _, pid) <- runInteractiveProcess "dot" dotArgs Nothing Nothing
+   when (null dotFile) $ do 
      hPutStrLn toGV dot 
      hClose toGV
-   awaitProcess2 pid
+   waitForProcess pid
 \end{code}
 
 

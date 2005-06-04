@@ -24,7 +24,7 @@ endif
 #-O
 GHCINCLUDE      = -i$(SRC_GENI)
 #:$(HXMLDIR)/hparser:$(HXMLDIR)/hdom
-GHCPACKAGES     = -package posix 
+GHCPACKAGES     = 
 #-package HaXml
 GHCPACKAGES_GUI = -package wx $(GHCPACKAGES) 
 GHC             = ghc $(GHCFLAGS) $(GHCINCLUDE)

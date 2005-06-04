@@ -61,7 +61,7 @@ module Bfuncs(
 \begin{code}
 import Debug.Trace -- for test stuff
 import Data.Char (isUpper)
-import Data.List (sortBy, nub, unwords)
+import Data.List (sortBy, nub)
 import Data.Tree
 
 import Btypes

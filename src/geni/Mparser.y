@@ -11,11 +11,7 @@ import Btypes (Ptype(Initial,Auxiliar,Unspecified),
                GType(Foot, Lex, Subs, Other),
                GNode(..), MTtree)
 
-import Data.FiniteMap (FiniteMap, 
-                       addToFM,
-                       addToFM_C,
-                       emptyFM,
-                       plusFM)
+import qualified Data.Map as Map 
 
 import Data.List (sort)
 import qualified Data.Tree 
@@ -155,8 +151,8 @@ PolPred : PolList                   { ($1,[]) }
         | PolList '!' PredictorList { ($1,$3) }
 
 PolList :: { MpPolarities }
-PolList :                    {emptyFM}
-        | Charge id PolList {addToFM_C (+) $3 $2 $1}
+PolList :                   {Map.empty}
+        | Charge id PolList {Map.insertWith (+) $2 $1 $3}
 
 PredictorList :: { MpPredictors }
 PredictorList : 
@@ -240,9 +236,9 @@ FeatVal: id  {$1}
 type TrTree   = Data.Tree.Tree
 type MpStuff = (String,String,(Flist,Flist)) 
 type MpPredictors = [(AvPair,Int)]
-type MpPolarities = FiniteMap String Int
+type MpPolarities = Map.Map String Int
 
-emptyPolPred = (emptyFM, [])
+emptyPolPred = (Map.empty, [])
 
 nullpair :: ([a],[a])
 nullpair = ([],[])

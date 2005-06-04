@@ -72,7 +72,7 @@ import Control.Monad.State (State,
                    get, 
                    put)
 
-import Data.FiniteMap 
+import qualified Data.Map as Map -- ghc 6.2.2 compatability layer  
 import Data.List (intersect, partition, delete, sort, nub, (\\))
 import Data.Tree 
 import Data.Bits
@@ -126,7 +126,7 @@ import General (BitVector, fst3, mapTree)
 type InitRep = [TagElem]
 type AuxRep  = [TagElem]
 -- bitvector of polarity automaton paths
-type GenRep  = FiniteMap BitVector [TagElem] 
+type GenRep  = Map.Map BitVector [TagElem] 
 type TrashRep = [TagElem]
 
 iaddToInitRep :: InitRep -> TagElem -> InitRep
@@ -136,19 +136,19 @@ iaddToAuxRep :: AuxRep -> TagElem -> AuxRep
 iaddToAuxRep a te = te:a
 
 iaddToGenRep :: GenRep -> TagElem -> GenRep
-iaddToGenRep c te = addToFM_C (++) c (tpolpaths te) [te] 
+iaddToGenRep c te = Map.insertWith (++) (tpolpaths te) [te] c
 
 iaddToTrashRep :: TrashRep -> TagElem -> TrashRep 
 iaddToTrashRep t te = te:t
 
 listToGenRep :: [TagElem] -> GenRep
-listToGenRep = addListToGenRep emptyFM 
+listToGenRep = addListToGenRep Map.empty 
 
 addListToGenRep :: GenRep -> [TagElem] -> GenRep
 addListToGenRep g tes = foldr (flip iaddToGenRep) g tes 
 
 genRepToList :: GenRep -> [TagElem]
-genRepToList gr = concat $ eltsFM gr
+genRepToList gr = concat $ Map.elems gr
 \end{code}
 
 \subsection{Generator statistics}
@@ -347,12 +347,12 @@ lookupGenRep :: TagElem -> MS [TagElem]
 lookupGenRep given = do
   chart <- getGenRep
   -- we ought to count each key lookup
-  -- incrNumcompar (length $ keysFM chart)
+  -- incrNumcompar (length $ Map.keys chart)
   -- do the lookup itself
   let gpaths = tpolpaths given
       isGood k _ = isect /= 0
                    where isect = k .&. gpaths 
-      goodChart  = filterFM isGood chart 
+      goodChart  = Map.filterWithKey isGood chart 
   return (genRepToList goodChart)
 \end{code}
 

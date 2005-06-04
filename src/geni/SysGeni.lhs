@@ -27,15 +27,9 @@ where
 
 \ignore{
 \begin{code}
--- FIXME: This needs to be upgraded when we bump up to GHC 6.4, it seems
-import Posix(getProcessStatus, createPipe, dupTo, fdClose, 
-             intToFd, fdToHandle, ProcessID, sleep)
+import System.Posix
 import System.IO(Handle, BufferMode(..), hSetBuffering)
-import System.Posix.Process(forkProcess, executeFile)
 import System.Directory(setCurrentDirectory)
---import Posix(forkProcess,executeFile, getProcessStatus, sleep,
---             createPipe, dupTo, fdClose, 
---             intToFd, fdToHandle, ProcessID)
 \end{code}
 }
 
@@ -60,14 +54,14 @@ runPiped path args env dir = do
    (rd1, wd1) <- createPipe
    (rd2, wd2) <- createPipe
    let childWork = do maybe (return ()) setCurrentDirectory dir
-                      dupTo rd1 (intToFd 0)
-                      dupTo wd2 (intToFd 1)
-                      mapM_ fdClose [rd1, wd1, rd2, wd2]
+                      dupTo rd1 stdInput 
+                      dupTo wd2 stdOutput 
+                      mapM_ closeFd [rd1, wd1, rd2, wd2]
                       executeFile path True args env
                       ioError (userError "runPiped")
 
        parentWork pid = do -- parent
-                           mapM_ fdClose [rd1, wd2]
+                           mapM_ closeFd [rd1, wd2]
                            fromChild <- fdToHandle rd2
                            toChild   <- fdToHandle wd1
                            hSetBuffering fromChild LineBuffering
@@ -77,8 +71,8 @@ runPiped path args env dir = do
       parentWork pid 
 \end{code} 
 
-Potential hack: waits for a process to finish.  It checks the process'
-status every one second until it is killed/stopped/exited.
+Waits for a process to finish.  I don't really understand all this process
+stuff, but i suspect this is blocking.
 
 \begin{code}
 awaitProcess :: ProcessID -> IO () 
@@ -87,17 +81,3 @@ awaitProcess pid = do
       return ()
 \end{code}
 
-Potential hack: waits for a process to finish.  It checks the process'
-status every one second until it is killed/stopped/exited.
-
-FIXME: 
-
-\begin{code}
-awaitProcess2 :: ProcessID -> IO () 
-awaitProcess2 pid = do 
-      status <- getProcessStatus False True pid 
-      case status of 
-         Nothing -> do sleep 1 
-                       awaitProcess2 pid
-         Just _  -> do return ()
-\end{code}

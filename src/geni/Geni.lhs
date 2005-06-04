@@ -36,7 +36,7 @@ where
 \ignore{
 \begin{code}
 import Data.Char (toLower)
-import Data.FiniteMap
+import qualified Data.Map as Map
 import Data.IORef (IORef, readIORef, newIORef, modifyIORef)
 import Data.List (intersperse, sort, nub, group, isPrefixOf)
 import Data.Maybe (isNothing)
@@ -49,6 +49,7 @@ import System.IO.Unsafe(unsafePerformIO)
 import System.Posix.Files(fileMode, getFileStatus, unionFileModes, 
                           setFileMode, ownerExecuteMode)
 import System.Mem
+import System.Process 
 
 import Control.Monad (when)
 import CPUTime (getCPUTime)
@@ -95,13 +96,13 @@ import Mparser (mParser)
 import Lparser (lexParser, semlexParser, morphParser, filParser)
 import Tsparser (targetSemParser, testSuiteParser)
 import ParserLib (E(..))
-import SysGeni (runPiped, awaitProcess)
 
 import Debug.Trace
 import Btypes (emptyLE)
 --import Bfuncs (showSem,showPairs)
 --showlex l = iword l ++ "\n sem: " ++ (showSem.isemantics) l ++ "\n enrich: " ++ (showPairs.ipfeat) l ++ "\n--\n" 
 import General(geniReadFile)
+import SysGeni 
 
 \end{code}
 }
@@ -173,7 +174,7 @@ initGeni = do
                        gramPa = emptyGramParams,
                        batchPa = confArgs, 
                        gr = [],
-                       le = emptyFM,
+                       le = Map.empty,
                        morphinf = const Nothing,
                        ts = ([],[]),
                        tcases = [],
@@ -340,11 +341,11 @@ buildAutomaton candRaw mst =
   let config   = pa mst
       (tsem,tres) = ts mst
       -- restrictors and extra polarities
-      mergePol = plusFM_C (+)
+      mergePol = Map.unionWith (+)
       rootCatPref = prefixRootCat $ head $ rootCats mst
       rcatPol = if (null $ rootCats mst)
-                then emptyFM
-                else addToFM emptyFM rootCatPref (-1)
+                then Map.empty
+                else Map.singleton rootCatPref (-1)
       extraPol = mergePol (extrapol config) $ mergePol rest rcatPol
                  where rest = declareRestrictors tres
       detect   = detectRestrictors tres
@@ -390,7 +391,7 @@ combine gram lexicon =
   let helper li = map (combineOne li) macs 
        where tn   = ifamname li
              macs = [ t | t <- gram, pfamily t == tn ]
-  in mapFM (\_ e -> concatMap helper e) lexicon 
+  in Map.map (\e -> concatMap helper e) lexicon 
 \end{code}
 
 \paragraph{combineList} takes a lexical item; it looks up the tree
@@ -504,7 +505,7 @@ chooseLexCand slex tsem =
   let -- the initial "MYEMPTY" takes care of items with empty semantics
       keys = myEMPTY:(toKeys tsem)   
       -- we choose candidates that match keys
-      lookuplex t = lookupWithDefaultFM slex [] t
+      lookuplex t = Map.findWithDefault [] t slex
       cand    = concatMap lookuplex keys
       -- and refine the selection... 
   in chooseCandI tsem cand
@@ -541,13 +542,13 @@ chooseCandI tsem cand =
 semantic key is a semantic literal boiled down to predicate plus arity
 (see section \ref{btypes_semantics}).  Given \texttt{xs} a list of items
 and \texttt{fn} a function which retrieves the item's semantics, we
-return a FiniteMap from semantic key to a list of items with that key.
+return a Map from semantic key to a list of items with that key.
 An item may have multiple keys.
 
 This is used to organise the lexicon by its semantics.
 
 \begin{code}
-mapBySemKeys :: (a -> Sem) -> [a] -> FiniteMap String [a]
+mapBySemKeys :: (a -> Sem) -> [a] -> Map.Map String [a]
 mapBySemKeys semfn xs = 
   let gfn t = if (null s) then [myEMPTY] else toKeys s 
               where s = semfn t
@@ -589,10 +590,10 @@ runCGMLexSelection mst =
               Ok x     -> x 
               Failed x -> error x 
          --
-         lexMap = listToFM $ zip (map show idxs) lexCand
+         lexMap = Map.fromList $ zip (map show idxs) lexCand
          fixate :: MTtree -> IO TagElem 
          fixate ts = 
-           case (lookupFM lexMap id) of
+           case (Map.lookup id lexMap) of
              Nothing  -> fail ("no such lexical entry " ++ id)
              Just lex -> return $ combineCGM lex ts 
            where id  = reverse $ tail $ dropWhile (/= 'x') $ reverse fam -- FIXME : HACK!
@@ -633,14 +634,13 @@ runSelector gfile fil = do
          newMode = unionFileModes ownerExecuteMode oldMode
      setFileMode selectCmd newMode 
      --
+     -- (toP, fromP, _, pid) <- runInteractiveProcess selectCmd selectArgs Nothing Nothing
      (pid, fromP, toP) <- runPiped selectCmd selectArgs Nothing Nothing
-     hPutStrLn toP fil 
-     hClose toP 
-     awaitProcess pid 
-     -- read the selector output back as a set of trees 
-     -- grouped into subgrammars
+     hPutStrLn toP fil
+     hClose toP -- so that process gets EOF and knows it can stop
      res <- hGetContents fromP 
-     return res 
+     awaitProcess pid 
+     return res
 \end{code}
 
 \paragraph{lexEntryToFil} converts a lexical entry to a CGM filter for
@@ -696,7 +696,7 @@ combineCGM lexitem e =
                 -- FIXME: we completely ignore semantic info from the tree
                 -- this allows us to handle multi-literal semantics
                 tsemantics = isemantics lexitem,
-                tpolarities = emptyFM,
+                tpolarities = Map.empty,
                 tsempols    = isempols lexitem,
                 tinterface  = pfeat e
                 -- tpredictors = combinePredictors e lexitem
@@ -783,7 +783,7 @@ loadGeniLexicon pst config = do
            semmapper    = mapBySemKeys isemantics
            semparsed    = (semlexParser . lexer) sf
            semlex       = (semmapper . (map sortlexsem) . fst) semparsed
-       putStr ((show $ length $ keysFM semlex) ++ " entries\n")
+       putStr ((show $ length $ Map.keys semlex) ++ " entries\n")
 
        putStr $ "Loading Lexicon " ++ lfilename ++ "..."
        hFlush stdout
@@ -841,7 +841,7 @@ into each instance.
 
 \begin{code}
 type WordCat = (String,String)
-type LemmaLexicon = FiniteMap WordCat [ILexEntry] 
+type LemmaLexicon = Map.Map WordCat [ILexEntry] 
 
 combineLexicon :: LemmaLexicon -> Lexicon -> Lexicon
 combineLexicon ll sl = 
@@ -853,8 +853,8 @@ combineLexicon ll sl =
                        }
       helper si = map (merge si) lemmas
                   where wordcat = (iword si, icategory si)
-                        lemmas  = lookupWithDefaultFM ll [] wordcat 
-  in mapFM (\_ e -> concatMap helper e) sl 
+                        lemmas  = Map.findWithDefault [] wordcat ll
+  in Map.map (\e -> concatMap helper e) sl 
 \end{code}
 
 \subsubsection{Lexicon - CGM}
@@ -877,7 +877,7 @@ loadCGMLexicon pst config = do
                          , ipfeat = ipfeat l ++ enr }
              where (sem,enr) = extractCGMSem l
            lex       = (semmapper . map setsem . filParser . lexer) lf
-       putStr ((show $ length $ keysFM lex) ++ " entries\n")
+       putStr ((show $ length $ Map.keys lex) ++ " entries\n")
 
        -- combine the two lexicons
        modifyIORef pst (\x -> x{le = lex})

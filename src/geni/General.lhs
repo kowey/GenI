@@ -28,10 +28,11 @@ where
 \ignore{
 \begin{code}
 import Data.Char (isSpace)
-import Data.FiniteMap (emptyFM, FiniteMap, addToFM_C)
 import Data.List (intersect)
 import Data.Tree
 import System.Directory (getCurrentDirectory, setCurrentDirectory)
+
+import qualified Data.Map as Map
 \end{code}
 }
 
@@ -156,15 +157,15 @@ isEmptyIntersect a b = null $ intersect a b
 
 \paragraph{groupByFM} serves the same function as Data.List.groupBy.  It
 groups together items by some property they have in common. The
-difference is that the property is used as a key to a FiniteMap that you
+difference is that the property is used as a key to a Map that you
 can lookup.  \texttt{fn} extracts the property from the item.
 
 \begin{code}
-groupByFM :: (Ord b) => (a -> b) -> [a] -> (FiniteMap b [a])
+groupByFM :: (Ord b) => (a -> b) -> [a] -> (Map.Map b [a])
 groupByFM fn list = 
-  let addfn  x acc key = addToFM_C (++) acc key [x]
+  let addfn  x acc key = Map.insertWith (++) key [x] acc 
       helper x acc     = addfn x acc (fn x)
-  in foldr helper emptyFM list 
+  in foldr helper Map.empty list 
 \end{code}
 
 \paragraph{multiGroupByFM} is the same as groupByFM, except that we
@@ -173,11 +174,11 @@ property from the item, and returns multiple results in the form of a
 list.
 
 \begin{code}
-multiGroupByFM :: (Ord b) => (a -> [b]) -> [a] -> (FiniteMap b [a])
+multiGroupByFM :: (Ord b) => (a -> [b]) -> [a] -> (Map.Map b [a])
 multiGroupByFM fn list = 
-  let addfn  x key acc = addToFM_C (++) acc key [x]
+  let addfn  x key acc = Map.insertWith (++) key [x] acc
       helper x acc     = foldr (addfn x) acc (fn x)
-  in foldr helper emptyFM list 
+  in foldr helper Map.empty list 
 \end{code}
 
 

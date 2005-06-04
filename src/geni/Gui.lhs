@@ -27,17 +27,17 @@ module Gui(guiGenerate) where
 
 \ignore{
 \begin{code}
-import Graphics.UI.WXCore 
 import Graphics.UI.WX
 
-import Monad (when)
+import qualified Control.Monad as Monad 
 import Data.Array
-import Data.FiniteMap
+import qualified Data.Map as Map
 import Data.IORef
-import Data.List (nub, delete, (\\), (!!), isPrefixOf, findIndex)
+import Data.List (nub, delete, (\\), isPrefixOf)
 import System.Directory 
 import System.Posix.Files(fileMode, getFileStatus, unionFileModes, 
                           setFileMode, ownerExecuteMode)
+import System.Process (runProcess)
 
 import Graphviz 
 import Treeprint(graphvizShowTagElem)
@@ -67,8 +67,7 @@ import Mstate (Gstats, Mstate, initGstats, initMState, runState,
                genRepToList,
                genstats, szchart, numcompar, geniter)
 import Polarity
-import SysGeni (runPiped)
-import Debug.Trace
+-- import Debug.Trace
 \end{code}
 }
 
@@ -528,9 +527,9 @@ their semantics.
 tagBrowserGui :: State -> (Window a) -> [TagElem] -> String -> String -> IO Layout
 tagBrowserGui mst f xs tip cachedir = do 
   let semmap   = mapBySem xs
-      sem      = keysFM semmap
+      sem      = Map.keys semmap
       --
-      lookupTr   = lookupWithDefaultFM semmap []
+      lookupTr k = Map.findWithDefault [] k semmap
       treesfor k = emptyTE : (lookupTr k)
       labsfor  k = ("___" ++ showPred k ++ "___") : (map fn $ lookupTr k)
                    where fn t = idname t 
@@ -617,13 +616,13 @@ treeBrowserGui pst = do
              , fullRepaintOnResize := False 
              ] 
   -- the heavy GUI artillery
-  let sem      = keysFM semmap
+  let sem      = Map.keys semmap
       --
-      lookupTr   = lookupWithDefaultFM semmap [] 
+      lookupTr k = Map.findWithDefault [] k semmap
       treesfor k = emptyTE : (lookupTr k)
       labsfor  k = ("___" ++ k ++ "___") : (map fn $ lookupTr k)
                    where fn    t = idname t ++ polfn (tpolarities t)
-                         polfn p = if isEmptyFM p 
+                         polfn p = if Map.null p 
                                    then "" 
                                    else " (" ++ showLitePm p ++ ")"
       --
@@ -1162,7 +1161,7 @@ runViewTag mst idname =
          newMode = unionFileModes ownerExecuteMode oldMode
      setFileMode cmd newMode 
      -- run the viewer
-     runPiped cmd args Nothing Nothing
+     runProcess cmd args Nothing Nothing Nothing Nothing Nothing
      return ()
 \end{code}
 

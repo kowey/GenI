@@ -54,8 +54,8 @@ where
 Some basic haskell library stuff to import:
 
 \begin{code}
-import Data.List (words, intersperse)
-import Data.FiniteMap 
+import Data.List (intersperse)
+import qualified Data.Map as Map
 \end{code}
 
 We also import some stuff from the rest of the generator.
@@ -93,7 +93,7 @@ data Params = Prms{
   isGraphical    :: Bool,
   optimisations  :: [Token],
   testCases      :: [String], -- names of test cases
-  extrapol       :: FiniteMap String Int,
+  extrapol       :: Map.Map String Int,
   batchRepeat    :: Integer,
   usetrash       :: Bool
 } deriving (Show)
@@ -128,7 +128,7 @@ emptyParams = Prms {
   isGraphical    = False,
   testCases      = [],
   optimisations  = [],
-  extrapol       = emptyFM,
+  extrapol       = Map.empty,
   batchRepeat    = 1,
   usetrash       = False
 }

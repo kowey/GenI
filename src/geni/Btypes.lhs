@@ -37,9 +37,7 @@ where
 import Debug.Trace -- for test stuff
 import Data.Bits
 import Data.Char (isUpper)
-import Data.FiniteMap (FiniteMap, fmToList, 
-                       emptyFM, isEmptyFM, lookupFM, 
-                       addToFM, addToFM_C)
+import qualified Data.Map as Map 
 import Data.List (intersect, intersperse, sortBy, nub)
 import Data.Tree
 \end{code}
@@ -69,17 +67,12 @@ data Ttree a = TT{params  :: [String],
                   tree :: Tree a,
                   -- optimisation stuff
                   ptpredictors  :: [(AvPair,Int)],
-                  ptpolarities  :: FiniteMap String Int
+                  ptpolarities  :: Map.Map String Int
                   }
            deriving Show
 
 data Ptype = Initial | Auxiliar | Unspecified   
              deriving (Show, Eq)
-
-#if __GLASGOW_HASKELL__ < 604
-instance (Show k, Show e) => Show (FiniteMap k e) where 
-  show fm = show $ fmToList fm
-#endif
 \end{code}
 
 \paragraph{emptyMacro} provides a null tree which you can use for
@@ -94,14 +87,14 @@ emptyMacro = TT { params  = [],
                   ptype = Unspecified,
                   tree  = Node emptyGNode [],
                   ptpredictors = [],
-                  ptpolarities = emptyFM }
+                  ptpolarities = Map.empty }
 \end{code}
 
 Auxiliary types used during the parsing of the Lexicon.  
 A lexicon maps semantic predicates to lexical entries.
 
 \begin{code}
-type Lexicon = FiniteMap String [ILexEntry]
+type Lexicon = Map.Map String [ILexEntry]
 type SemPols  = [Int]
 data ILexEntry = ILE{iword       :: String,
                      icategory   :: String,

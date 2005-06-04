@@ -29,7 +29,7 @@ where
 
 \begin{code}
 import Debug.Trace
-import Data.FiniteMap
+import qualified Data.Map as Map
 import Data.List (nub, sortBy, groupBy, intersect)
 import Monad (when, ap, foldM)
 import MonadState (get, put)
@@ -74,7 +74,7 @@ optimisePredictors cands predictmap =
       optPath p = (r, sumup s)
                   where (r,s) = unzip $ map optTree p       
       (res, stats) = optPath trees
-      treemap = listToFM $ zip trees res
+      treemap = Map.fromList $ zip trees res
       -- replace trees with their predicted equivalents
       repTree t = lookupWithDefaultFM treemap [t] t  
       repPath p = concatMap repTree p
@@ -93,7 +93,7 @@ optimisePredictors' :: PredictorMap -> TagElem -> ([TagElem], Gstats)
 optimisePredictors' predictmap te =
   let -- grab the predictors (helper fns)
       isneg _ e    = e < 0 
-      predictors t = keysFM $ filterFM isneg $ tpredictors t
+      predictors t = Map.keys $ filterFM isneg $ tpredictors t
       ptrees     t = concatMap fn (predictors t)
                      where fn = lookupWithDefaultFM predictmap []
       -- generate
@@ -145,7 +145,7 @@ miniGenerate :: MS [TagElem]
 miniGenerate = do 
   nir <- nullInitRep
   gr  <- getGenRep
-  if nir then return (concat $ eltsFM gr) else do 
+  if nir then return (concat $ elems gr) else do 
     incrGeniter 1
     tsem <- getSem
     -- choose a secondary tree from the agenda
@@ -237,7 +237,7 @@ fillPredictors :: [[TagElem]] -> PredictorMap -> [[TagElem]]
 fillPredictors paths predictmap =
   let isneg _ pol   = pol < 0 
       getP          = lookupWithDefaultFM predictmap []
-      predictors te = keysFM $ filterFM isneg $ tpredictors te
+      predictors te = Map.keys $ filterFM isneg $ tpredictors te
       addP te       = te : (concatMap getP $ predictors te)
   in map (\p -> nub $ concatMap addP p) paths
 \end{code}
@@ -264,7 +264,7 @@ combinePredictors tt le =
       tpr             = sort $ ptpredictors tt
       isVpr ((f,v),_) = (not $ null v) && isVar v
       (varPr,constPr) = partition isVpr tpr
-      constPrFm       = foldr addP emptyFM constPr
+      constPrFm       = foldr addP Map.empty constPr
       -- separating the charges from the fv
       (lfv, lc) = unzip lpr 
       (vfv, vc) = unzip varPr
@@ -299,17 +299,17 @@ combinePredictors tt le =
 We create a map between predictors and the trees that provide them.
 
 \begin{code}
-type PredictorMap = FiniteMap AvPair [TagElem]
+type PredictorMap = Map AvPair [TagElem]
 \end{code}
 
 \begin{code}
 mapByPredictors :: [TagElem] -> PredictorMap 
-mapByPredictors trees = foldr mapByPredictors' emptyFM trees 
+mapByPredictors trees = foldr mapByPredictors' Map.empty trees 
 
 mapByPredictors' :: TagElem -> PredictorMap -> PredictorMap 
 mapByPredictors' tree fm = 
    let ispos _ pol = (pol > 0)
-       predictors  = keysFM $ filterFM ispos $ tpredictors tree
+       predictors  = Map.keys $ filterFM ispos $ tpredictors tree
        addp p f    = addToFM_C (++) f p [tree]
    in foldr addp fm predictors 
 \end{code}

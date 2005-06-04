@@ -72,12 +72,13 @@ where
 \begin{code}
 import Data.Array (listArray, (!)) 
 import Data.Bits
-import Data.FiniteMap
+import qualified Data.Map as Map
 import Data.List
+import Data.Maybe (isNothing)
 --import Data.Set
 
 import Graphviz(GraphvizShow(..))
-import Tags(TagElem(..), TagItem(..), mapBySem, substnodes, substTagElem)
+import Tags(TagElem(..), TagItem(..), mapBySem, substTagElem)
 import Bfuncs(Pred, Sem, Flist, AvPair, showAv,
               emptyPred, Ptype(Initial), 
               showSem, sortSem, 
@@ -91,11 +92,11 @@ import General(BitVector, groupByFM, isEmptyIntersect, fst3, snd3, thd3)
 %--import Tags
 %import Btypes
 %
-%emptyaut = NFA { transitions = emptyFM,
+%emptyaut = NFA { transitions = Map.empty,
 %                 startSt = polstart [],
 %                 finalSt = [] }
 %
-%emptyaut2 = NFA { transitions = emptyFM,
+%emptyaut2 = NFA { transitions = Map.empty,
 %                  startSt = "start",
 %                  finalSt = [] }
 %
@@ -143,15 +144,15 @@ makePolAut cands tsem extraPol = let
     -- building and remembering the automata 
     build k xs = (k,aut,prune aut):xs
                  where aut   = buildPolAut k initK (thd3 $ head xs)
-                       initK = lookupWithDefaultFM extraPol 0 k
+                       initK = Map.findWithDefault 0 k extraPol
     res = foldr build [("(seed)",seed,prune seed)] ks
     in (reverse res, thd3 $ head res)
 
 makePolAutHelper :: [TagLite] -> Sem -> PolMap -> ([String],PolAut)
 makePolAutHelper candsRaw tsemRaw extraPol =
   let -- polarity items 
-      ksCands = concatMap (keysFM.tlPolarities) cands
-      ksExtra = keysFM extraPol
+      ksCands = concatMap ((Map.keys).tlPolarities) cands
+      ksExtra = Map.keys extraPol
       ks      = nub $ ksCands ++ ksExtra
       -- perform index counting
       (tsem, cands) = fixPronouns (tsemRaw,candsRaw)
@@ -250,16 +251,16 @@ preserve the order of the input semantics is important for our handling
 of multi-literal semantics and for semantic frequency sorting.
 
 \begin{code}
-buildColumns :: (TagItem t) => [t] -> Sem -> FiniteMap Pred [t] 
+buildColumns :: (TagItem t) => [t] -> Sem -> Map.Map Pred [t] 
 buildColumns cands [] = 
-  addToFM emptyFM emptyPred e 
+  Map.singleton emptyPred e 
   where e = filter (null.tgSemantics) cands
 
 buildColumns cands (l:ls) = 
   let matchfn t = l `elem` tgSemantics t
       (match, cands2) = partition matchfn cands
       next = buildColumns cands2 ls
-  in addToFM next l match
+  in Map.insert l match next
 \end{code}
 
 % ----------------------------------------------------------------------
@@ -281,7 +282,7 @@ buildSeedAut cands tsem =
       initAut = NFA { startSt = start,
                       finalSt = end,
                       states  = [[start]],
-                      transitions = emptyFM }
+                      transitions = Map.empty }
   in nubAut $ buildSeedAut' cands tsem 1 initAut
 
 -- for each literal...
@@ -291,7 +292,7 @@ buildSeedAut' cands (l:ls) i aut =
   let -- previously created candidates 
       prev   = head $ states aut
       -- candidates that match the target semantics
-      tcands = lookupWithDefaultFM cands [] l 
+      tcands = Map.findWithDefault [] l cands
       -- create the next batch of states
       fn st ap             = buildSeedAutHelper tcands l i st ap
       (newAut,newStates)   = foldr fn (aut,[]) prev
@@ -350,7 +351,7 @@ buildPolAut k initK skelAut =
       initAut  = NFA { startSt = newStart,
                     finalSt = map (concatPol 0) $ finalSt skelAut,
                     states  = [[newStart]],
-                    transitions = emptyFM }
+                    transitions = Map.empty }
       -- cand' = observe "candidate map" cand 
   in nubAut $ buildPolAut' k (transitions skelAut) initAut 
 \end{code}
@@ -388,17 +389,17 @@ buildPolAutHelper fk skeleton st (aut,prev) =
       skelSt = PolSt pr ex skelpo1
       -- for each transition out of the current state...
       result      = foldr addT (aut,prev) cands 
-      skelStTrans = lookupWithDefaultFM skeleton emptyFM skelSt
-      cands       = keysFM skelStTrans 
+      skelStTrans = Map.findWithDefault Map.empty skelSt skeleton
+      cands       = Map.keys skelStTrans 
       -- . for each state that a label transitions to...
       addT tr (a,n) = foldr (addTS tr) (a,n) (lookupTr tr)
-      lookupTr tr   = lookupWithDefaultFM skelStTrans [] tr
+      lookupTr tr   = Map.findWithDefault [] tr skelStTrans
       -- .. calculate a new state and add a transition to it
       addTS tr skel2 (a,n) = (addTrans a st tr st2, st2:n)
                              where st2 = newSt tr skel2
       newSt t skel2 = PolSt pr2 ex2 (po2:skelPo2)
                       where PolSt pr2 ex2 skelPo2 = skel2 
-                            po2 = po1 + (lookupWithDefaultFM pol 0 fk)
+                            po2 = po1 + (Map.findWithDefault 0 fk pol)
                             pol = tlPolarities t   
   in result 
 \end{code}
@@ -450,17 +451,15 @@ prune' (sts:next) oldAut =
   let -- calculate the blacklist
       oldT  = transitions oldAut
       oldSt = states oldAut
-      sansTrans st = case (lookupFM oldT st) of 
-                       Nothing -> True 
-                       Just _  -> False 
+      sansTrans st = isNothing (Map.lookup st oldT)
       blacklist    = filter sansTrans sts
       -- removing all transitions to the blacklist
-      subDelete  = mapFM (\_ e -> e \\ blacklist)
+      subDelete  = Map.map (\e -> e \\ blacklist)
       -- removing all transitions labels that only go to the blacklist
-      subCleanup = filterFM (\_ e -> not $ null e)
+      subCleanup = Map.filter (\e -> not $ null e)
       -- removing all states that only transition to the blacklist
-      newT    = cleanup $ mapFM (\_ e -> subCleanup $ subDelete e) oldT
-      cleanup = filterFM (\_ e -> not $ isEmptyFM e)
+      newT    = cleanup $ Map.map (\e -> subCleanup $ subDelete e) oldT
+      cleanup = Map.filter (\e -> not $ Map.null e)
       -- new list of states and new automaton
       newSts = sts \\ blacklist
       newAut = oldAut { transitions = newT,
@@ -500,11 +499,11 @@ walkAutomaton aut = walkAutomaton' (transitions aut) (startSt aut)
 
 walkAutomaton' :: PolTransFn -> PolState -> [[TagLite]]
 walkAutomaton' transFm st = 
-  let trans        = lookupWithDefaultFM transFm emptyFM st
-      lookupTr ab  = lookupWithDefaultFM trans [] ab
-      newTransFm   = delFromFM transFm st
+  let trans        = Map.findWithDefault Map.empty st transFm
+      lookupTr ab  = Map.findWithDefault [] ab trans
+      newTransFm   = Map.delete st transFm 
       --   
-      cands      = keysFM trans
+      cands      = Map.keys trans
       -- recursive steps: we call walkAutomaton' for each state we 
       -- transition to and then add the label for the current 
       -- transition to the results
@@ -686,7 +685,7 @@ selection in which pronouns are properly accounted for.
 
 \begin{code}
 type PredLite = (String,[String]) -- handle is head of arg list 
-type SemWeightMap = FiniteMap PredLite SemPols
+type SemWeightMap = Map.Map PredLite SemPols
 fixPronouns :: (Sem,[TagLite]) -> (Sem,[TagLite])
 fixPronouns (tsem,cands) = 
 \end{code}
@@ -702,9 +701,9 @@ smallest charge for each of its semantic indices.
       sempols :: [ (PredLite,SemPols) ]
       sempols = concatMap getpols cands
       usagefn :: (PredLite,SemPols) -> SemWeightMap -> SemWeightMap 
-      usagefn (lit,cnts) m = addToFM_C (zipWith min) m lit cnts 
+      usagefn (lit,cnts) m = Map.insertWith (zipWith min) lit cnts m
       usagemap :: SemWeightMap 
-      usagemap = foldr usagefn emptyFM sempols 
+      usagemap = foldr usagefn Map.empty sempols 
 \end{code}
 
 Second, we cancel out the polarities for every index in the input
@@ -712,11 +711,10 @@ semantics.
 
 \begin{code}
       usagelist :: [(String,Int)]
-      usagelist = concatMap fn (fmToList usagemap)
+      usagelist = concatMap fn (Map.toList usagemap)
         where fn ((_,idxs),pols) = zip idxs pols
-      chargemap :: FiniteMap String Int -- index to charge 
-      chargemap =  foldr fn emptyFM usagelist 
-        where fn (idx,pol) m = addToFM_C (+) m idx pol 
+      chargemap :: Map.Map String Int -- index to charge 
+      chargemap =  foldr addPol Map.empty usagelist 
 \end{code}
 
 Third, we compensate for any uncancelled negative polarities by an
@@ -724,7 +722,7 @@ adding an additional literal to the input semantics -- a pronoun --
 for every negative charge.
 
 \begin{code}
-      indices = concatMap fn (fmToList chargemap) 
+      indices = concatMap fn (Map.toList chargemap) 
         where fn (i,c) = take (0-c) (repeat i)
       -- the extra columns 
       extraSem = map indexPred indices
@@ -749,7 +747,7 @@ excess pronouns in their extra literal semantics (see page
       compare :: (PredLite,SemPols) -> [String]
       compare (lit,c1) = concat $ zipWith3 comparefn idxs c1 c2
         where idxs = snd lit
-              c2   = lookupWithDefaultFM usagemap [] lit 
+              c2   = Map.findWithDefault [] lit usagemap
       addextra :: TagLite -> TagLite
       addextra c = c { tlSemantics = sortSem (sem ++ extra) } 
         where sem   = tlSemantics c
@@ -845,13 +843,13 @@ detectRestrictors :: Flist -> Flist -> PolMap
 detectRestrictors restrict interface =
   let matches  = intersect restrict interface
       matchStr = map showRestrictor matches
-  in listToFM $ zip matchStr (repeat 1)
+  in Map.fromList $ zip matchStr (repeat 1)
 
 declareRestrictors :: Flist -> PolMap
 declareRestrictors restrict =
   let restrictStr = map showRestrictor restrict
       minusone    = repeat (-1)
-  in listToFM $ zip restrictStr minusone
+  in Map.fromList $ zip restrictStr minusone
 
 showRestrictor :: AvPair -> String
 showRestrictor = ('.' :) . showAv
@@ -893,8 +891,7 @@ detectPols' te =
       pols  = if ttype te == Initial then ipols else apols
       --
       oldfm = tpolarities te
-      addpol (p,c) fm = addToFM_C (+) fm p c 
-  in te { tpolarities = foldr addpol oldfm pols }
+  in te { tpolarities = foldr addPol oldfm pols }
 \end{code}
 
 \paragraph{prefixRootCat} converts a category like ``s'' into an negative
@@ -923,19 +920,19 @@ tree is annotated with the paths it belongs to.
 \begin{code}
 detectPolPaths :: [[TagElem]] -> [TagElem] 
 detectPolPaths paths = 
-  let pathFM     = detectPolPaths' emptyFM 0 paths
-      lookupTr k = lookupWithDefaultFM pathFM 0 k
+  let pathFM     = detectPolPaths' Map.empty 0 paths
+      lookupTr k = Map.findWithDefault 0 k pathFM
       setPath k  = k {tpolpaths = lookupTr k}
-  in map setPath $ keysFM pathFM
+  in map setPath $ Map.keys pathFM
 
-type PolPathMap = FiniteMap TagElem BitVector
+type PolPathMap = Map.Map TagElem BitVector
 detectPolPaths' :: PolPathMap -> Int -> [[TagElem]] -> PolPathMap  
 
 detectPolPaths' accFM _ [] = accFM
 detectPolPaths' accFM counter (path:ps) = 
   let currentBits = shiftL 1 counter -- shift counter times the 1 bit
       fn f []     = f
-      fn f (t:ts) = fn (addToFM_C (.|.) f t currentBits) ts 
+      fn f (t:ts) = fn (Map.insertWith (.|.) t currentBits f) ts 
       newFM       = fn accFM path
   in detectPolPaths' newFM (counter+1) ps
 \end{code}
@@ -996,10 +993,12 @@ mapByPolsig tes =
                                  tlSemantics = tsemantics rep,
                                  tlSempols   = tsempols rep,
                                  tlPolarities = tpolarities rep}
-                        where rep = head $ lookupWithDefaultFM sigmap [] key 
-      taglites = zipWith createTl (keysFM sigmap) [0..]
+                        where rep = case (Map.lookup key sigmap) of
+                                      Just (x:_) -> x
+                                      _          -> error "mapByPolSig error" 
+      taglites = zipWith createTl (Map.keys sigmap) [0..]
       -- creating a lookup function
-      lookupfn t = lookupWithDefaultFM sigmap [] (tlIdname t)
+      lookupfn t = Map.findWithDefault [] (tlIdname t) sigmap
   in (taglites, lookupfn)
 \end{code}
 
@@ -1065,8 +1064,16 @@ sortSemByFreq tsem cands =
 % ----------------------------------------------------------------------
 
 \begin{code}
-type SemMap = FiniteMap Pred [TagLite]
-type PolMap = FiniteMap String Int
+type SemMap = Map.Map Pred [TagLite]
+type PolMap = Map.Map String Int
+\end{code}
+
+\paragraph{addToPol} adds a new polarity item to a PolMap.  If there
+already is a polarity for that item, it is summed with the new polarity.
+
+\begin{code}
+addPol :: (String,Int) -> PolMap -> PolMap
+addPol (p,c) m = Map.insertWith (+) p c m
 \end{code}
 
 \subsection{TagLite}
@@ -1081,7 +1088,7 @@ reduction code.
 data TagLite = TELite { tlIdname      :: String
                       , tlIdnum       :: Integer
                       , tlSemantics   :: Sem
-                      , tlPolarities  :: FiniteMap String Int
+                      , tlPolarities  :: Map.Map String Int
                       , tlSempols     :: [SemPols] }
         deriving (Show, Eq)
 
@@ -1100,7 +1107,7 @@ emptyTL = TELite { tlIdname = ""
                  , tlIdnum  = -1
                  , tlSemantics = []
                  , tlSempols   = []
-                 , tlPolarities = emptyFM }
+                 , tlPolarities = Map.empty }
 
 toTagLite :: TagElem -> TagLite
 toTagLite te = TELite { tlIdname     = idname te
@@ -1112,7 +1119,7 @@ toTagLite te = TELite { tlIdname     = idname te
 
 \subsection{NFA}
 Having not found a suitable automaton library for Haskell, we define our
-own version of NFA using FiniteMap for the transition function.  Leon P.
+own version of NFA using Map for the transition function.  Leon P.
 Smith's Automata library requires us to know before-hand the size of our
 alphabet, which is highly unacceptable for this task.  
 
@@ -1121,7 +1128,7 @@ Note: these are NFAs without the empty-transition.
 \begin{code}
 data NFA st ab = NFA { startSt :: st,
                        finalSt :: [st],
-                       transitions :: FiniteMap st (FiniteMap ab [st]),
+                       transitions :: Map.Map st (Map.Map ab [st]),
                        -- set of states 
                        -- note: we use a list of list to group the states,
                        -- for the polarity automaton we group them by literal
@@ -1135,18 +1142,18 @@ via $a$, if possible.
 
 \begin{code}
 lookupTrans :: (Ord ab, Ord st) => NFA st ab -> st -> ab -> [st]
-lookupTrans aut st ab = lookupWithDefaultFM subT [] ab
-  where subT = lookupWithDefaultFM (transitions aut) emptyFM st
+lookupTrans aut st ab = Map.findWithDefault [] ab subT
+  where subT = Map.findWithDefault Map.empty st (transitions aut) 
 \end{code}
 
 \begin{code}
 addTrans :: (Ord ab, Ord st) => NFA st ab -> st -> ab -> st -> NFA st ab 
 addTrans aut st1 ab st2 = 
-  aut { transitions = addToFM oldT st1 newSubT }
-  where oldSt2   = lookupWithDefaultFM oldSubT [] ab  
+  aut { transitions = Map.insert st1 newSubT oldT }
+  where oldSt2   = Map.findWithDefault [] ab oldSubT 
         oldT     = transitions aut
-        oldSubT  = lookupWithDefaultFM oldT emptyFM st1
-        newSubT  = addToFM oldSubT ab (st2:oldSt2)
+        oldSubT  = Map.findWithDefault Map.empty st1 oldT 
+        newSubT  = Map.insert ab (st2:oldSt2) oldSubT
 \end{code}
 
 \paragraph{nubAut} ensures that all states and transitions in the polarity automaton 
@@ -1157,10 +1164,9 @@ this check be done after construction
 \begin{code}
 nubAut :: (Ord ab, Ord st) => NFA st ab -> NFA st ab 
 nubAut aut = 
-  let subnub _ e = nub e
-  in aut {
-      transitions = mapFM (\_ e -> mapFM subnub e) (transitions aut)
-     }
+  aut {
+      transitions = Map.map (\e -> Map.map nub e) (transitions aut)
+  }
 \end{code}
 
 \subsection{Polarity NFA}
@@ -1197,7 +1203,7 @@ Note:
 data PolState = PolSt Int [Pred] [Int] deriving (Eq)
 type PolTrans = TagLite
 type PolAut   = NFA PolState PolTrans
-type PolTransFn = FiniteMap PolState (FiniteMap PolTrans [PolState])
+type PolTransFn = Map.Map PolState (Map.Map PolTrans [PolState])
 \end{code}
 
 \begin{code}
@@ -1260,7 +1266,7 @@ instance ShowLite Char where showLite = show
 %\begin{code}
 %instance (Show st, ShowLite ab) => ShowLite (NFA st ab) where
 %  showLite aut = 
-%    concatMap showTrans $ fmToList (transitions aut)
+%    concatMap showTrans $ toList (transitions aut)
 %    where showTrans ((st1, x), st2) = show st1 ++ showArrow x 
 %                                 ++ show st2 ++ "\n"
 %          showArrow x = " --" ++ showLite x ++ "--> " 
@@ -1280,7 +1286,7 @@ instance ShowLite TagLite where
 {-
 showLiteSm :: SemMap -> String
 showLiteSm sm = 
-  concatMap showPair $ fmToList sm 
+  concatMap showPair $ toList sm 
   where showPair  (pr, cs) = showPred pr ++ "\t: " ++ showPair' cs ++ "\n"
         showPair' [] = ""
         showPair' (te:cs) = tlIdname te ++ "[" ++ showLitePm (tlPolarities te) ++ "]"
@@ -1298,7 +1304,7 @@ showLitePm pm =
                | c ==  1   = "+"
                | c  >  0   = "+" ++ (show c)
                | otherwise = show c 
-  in concat $ intersperse " " $ map showPair $ fmToList pm
+  in concat $ intersperse " " $ map showPair $ Map.toList pm
 \end{code}
 
 \subsection{Drawing automata}
@@ -1332,7 +1338,7 @@ instance GraphvizShow GvPolAut where
      where st    = (concat.states) aut
            ids   = map (\x -> "n" ++ show x) [0..]
            -- map which permits us to assign an id to a state
-           stmap = listToFM $ zip st ids
+           stmap = Map.fromList $ zip st ids
 \end{code}
 
 \begin{code}
@@ -1347,7 +1353,7 @@ gvShowState stId st = " " ++ stId ++ " [ label=\"" ++ showSt st ++ "\" ];\n"
 Specify that the final states are drawn with a double circle
 
 \begin{code}
-gvShowFinal :: PolAut -> FiniteMap PolState String -> String
+gvShowFinal :: PolAut -> Map.Map PolState String -> String
 gvShowFinal aut stmap = 
   if isEmptyIntersect (concat $ states aut) fin 
   then ""
@@ -1355,7 +1361,7 @@ gvShowFinal aut stmap =
   ++ concatMap (\x -> " " ++ lookupId x) fin
   ++ "\n"
   where fin = finalSt aut
-        lookupId x = lookupWithDefaultFM stmap "error_final" x
+        lookupId x = Map.findWithDefault "error_final" x stmap 
 \end{code}
 
 Each transition is displayed with the name of the tree.  If there is more
@@ -1363,18 +1369,18 @@ than one transition to the same state, they are displayed on a single
 label.
 
 \begin{code}
-gvShowTrans :: PolAut -> FiniteMap PolState String
+gvShowTrans :: PolAut -> Map.Map PolState String
                -> String -> PolState -> String 
 gvShowTrans aut stmap idFrom st = 
   let -- outgoing transition labels from st
-      alpha = keysFM $ lookupWithDefaultFM (transitions aut) emptyFM st
+      alpha = Map.keys $ Map.findWithDefault Map.empty st (transitions aut) 
       -- associate each st2 with a list of labels that transition to it
       inverter x fm = foldr fn fm (lookupTrans aut st x)
-                      where fn    s f   = addToFM f s (xlist s f x)
-                            xlist s f x = x:(lookupWithDefaultFM f [] s)
-      invFM = foldr inverter emptyFM alpha
+                      where fn    s f   = Map.insert s (xlist s f x) f
+                            xlist s f x = x:(Map.findWithDefault [] s f)
+      invFM = foldr inverter Map.empty alpha
       -- returns the graphviz dot command to draw a labeled transition
-      drawTrans (stTo,x) = case lookupFM stmap stTo of
+      drawTrans (stTo,x) = case Map.lookup stTo stmap of
                              Nothing   -> drawTrans' ("id_error_" ++ (showSem stTo)) x 
                              Just idTo -> drawTrans' idTo x
                            where showSem (PolSt i _ _) = show i 
@@ -1390,7 +1396,7 @@ gvShowTrans aut stmap idFrom st =
                                       then (take max labstrs) ++ [ excess ]
                                       else labstrs 
                                fn x = if (x == emptyTL) then "EMPTY" else tlIdname x
-  in concatMap drawTrans $ fmToList invFM
+  in concatMap drawTrans $ Map.toList invFM
 \end{code}
 
 %gvShowTransPred te = 
@@ -1402,7 +1408,7 @@ gvShowTrans aut stmap idFrom st =
 %                  where c = lookupWithDefaultFM p 0 fv
 %      showfv (f,v) = charge (f,v) ++ f 
 %                   ++ (if (null v) then "" else ":" ++ v)
-%  in map showfv $ keysFM p 
+%  in map showfv $ Map.keys p 
 
 % ----------------------------------------------------------------------
 \section{Miscellaneous}
@@ -1421,8 +1427,10 @@ product of these ambiguities: $\prod_{1 \leq i \leq n} a_i$.
 calculateTreeCombos :: (TagItem t) => [t] -> Int
 calculateTreeCombos cands = 
   let smapRaw   = mapBySem cands
-      ambiguity = map length $ eltsFM smapRaw 
+      ambiguity = map length $ Map.elems smapRaw 
   in foldr (*) 1 ambiguity     
 \end{code}
+
+
 
 

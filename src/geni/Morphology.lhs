@@ -28,12 +28,12 @@ module Morphology where
 
 \ignore{
 \begin{code}
-import Data.List (lines, unlines, unwords, intersperse)
+import Data.List (intersperse)
 import Data.Tree
-import Data.FiniteMap
+import qualified Data.Map as Map
 import System.IO
+import System.Process
 
-import SysGeni (runPiped, awaitProcess)
 import Bfuncs
 import General 
 import Tags
@@ -56,8 +56,8 @@ information file into GenI's internal format.
 
 \begin{code}
 readMorph :: [(String,[AvPair])] -> MorphFn
-readMorph minfo pred = lookupFM fm key
-  where fm = listToFM minfo
+readMorph minfo pred = Map.lookup key fm
+  where fm = Map.fromList minfo
         key = snd3 pred 
 \end{code}
 
@@ -187,10 +187,10 @@ inflectSentences morphcmd sentences =
      let fn (lem,fs) = lem ++ " [" ++ showPairs fs ++ "]"
          order = unlines $ map fn morphlst 
      -- run the inflector
-     (pid, fromP, toP) <- runPiped morphcmd [] Nothing Nothing
+     (fromP, toP, _, pid) <- runInteractiveCommand morphcmd 
      hPutStrLn toP order
      hClose toP 
-     awaitProcess pid 
+     waitForProcess pid 
      -- read the inflector output back as a list of strings
      res <- hGetContents fromP 
      let sentences2 = map trim $ lines res

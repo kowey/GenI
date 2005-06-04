@@ -28,7 +28,7 @@ module GrammarXml where
 \ignore{
 \begin{code}
 import Data.Char
-import Data.FiniteMap (FiniteMap,emptyFM)
+import qualified Data.Map as Map
 import Data.List (partition,sort)
 import Data.Tree
 import MonadState (State, 
@@ -206,7 +206,7 @@ parseEntry e =
       famName  = unwrap (famNameF e) -- should only be one element 
       -- build the tree 
       t = t2 { ptpolarities = if null trc 
-                              then emptyFM 
+                              then Map.empty 
                               else parseTrace (head trc) 
              -- there should only be one interface though
              , pfamily = famName
@@ -437,7 +437,7 @@ as an underscore-delimeted suffix to the class name, for instance,
 \verb$[+np,+vp]$.  There should be no underscores in the class name.
 
 \begin{code}
-parseTrace :: Content -> FiniteMap String Int
+parseTrace :: Content -> Map String Int
 parseTrace tr = 
   let classF  = keep /> tag "class" /> keep
       classes = map (unwrap.txt) $ classF tr
