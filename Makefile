@@ -63,7 +63,7 @@ DVIPDF_CMD=dvips `basename $< .tex`.dvi -o `basename $< .tex`.ps;\
 # If you use BibTeX you should uncomment 
 BIBTEX_CMD=$(LATEX) `basename $<` &&\
 	   bibtex `basename $< .tex`;
-#BIBTEX=$(BIBTEX_CMD)
+BIBTEX=$(BIBTEX_CMD)
 
 # -- latex2html -- (currently off)
 LATEX2HTML = latex2html -math -math_parsing -local_icons -noimages -split 5
@@ -145,7 +145,7 @@ compile: $(LEXERS) $(PARSERS) $(OFILE)
 
 $(OFILE) : $(LEXERS) $(PARSERS) 
 	$(GHC) --make $(GHCPACKAGES_GUI) $(LEXERS) $(PARSERS) 
-	$(GHC) -W --make $(GHCPACKAGES_GUI) $(IFILE).hs -o $(OFILE)
+	$(GHC) -W --make $(GHCPACKAGES_GUI) $(IFILE).lhs -o $(OFILE)
 	$(OS_SPECIFIC_STUFF)
 
 $(COFILE) : $(LEXERS) $(PARSERS) 
@@ -154,17 +154,17 @@ $(COFILE) : $(LEXERS) $(PARSERS)
 
 nogui : $(LEXERS) $(PARSERS) 
 	$(GHC) --make $(GHCPACKAGES) $(LEXERS) $(PARSERS) 
-	$(GHC) -W --make $(GHCPACKAGES) $(DIFILE).hs -o $(OFILE) 
+	$(GHC) -W --make $(GHCPACKAGES) $(DIFILE).lhs -o $(OFILE) 
 
 debugger: $(LEXERS) $(PARSERS)
-	$(GHC) -O -prof -auto-all --make $(DIFILE).hs -o debugger-$(OFILE)
+	$(GHC) -O -prof -auto-all --make $(DIFILE).lhs -o debugger-$(OFILE)
 	$(GHC) -O -prof -auto-all --make $(CIFILE).lhs -o debugger-$(COFILE)
 
 # --------------------------------------------------------------------
 # documentation 
 # --------------------------------------------------------------------
 
-DOC_SRC=$(SRC_GENI)/Mstate.lhs $(SRC_GENI)/Geni.lhs $(SRC_GENI)/Polarity.lhs
+DOC_SRC=$(SRC_GENI)/*.lhs
 
 $(MAKE_DOCS): %.pdf: %.tex $(DOC_SRC)
 	cd `dirname $<` &&\

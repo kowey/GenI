@@ -17,6 +17,7 @@
 
 \chapter{Graphical User Interface} 
 
+TODO
 \begin{enumerate}
 \item Tool tips - for the optimisations at least
 \end{enumerate}
@@ -1119,14 +1120,14 @@ instance GraphvizShow TagElem where
 \subsection{XMG Metagrammar stuff}
 
 CGM trees are produced by the XMG metagrammar system
-\cite{FIXME:XMGref}. To debug these grammars, it is useful, 
-given a TAG tree, to see what its metagrammar origins are.
-We provide here an interface to the handy visualisation tool
-ViewTAG that just does this.
+(\url{http://sourcesup.cru.fr/xmg/}). To debug these grammars, it is
+useful, given a TAG tree, to see what its metagrammar origins are.  We
+provide here an interface to the handy visualisation tool ViewTAG that
+just does this.
 
 \paragraph{extractDerivation} retrieves the names of all the
 CGM trees that went to building a TagElem, including the TagElem
-itself.  NB: for a tree like ``love_Tn0Vn1'', we extract just the
+itself.  NB: for a tree like ``love\_Tn0Vn1'', we extract just the
 Tn0Vn1 bit.
 
 \begin{code}

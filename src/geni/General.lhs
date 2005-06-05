@@ -112,7 +112,7 @@ listRepNode fn filt ((n@(Node a l1)):l2) =
 
 \section{Errors}
 
-\paragrah{bugInGeni} is the standard stuff to display there is an error
+\paragraph{bugInGeni} is the standard stuff to display there is an error
 in GenI which is very likely NOT the user's fault.
 
 \begin{code}

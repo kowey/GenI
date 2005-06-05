@@ -141,7 +141,7 @@ data ProgState = ST{pa       :: Params,
                 ts       :: SemInput, 
                 -- names of test cases
                 tcases   :: [String], 
-                -- name, sem, sentences
+                --name, sem, sentences
                 tsuite   :: [(String,SemInput,[String])] 
                }
 
@@ -675,7 +675,7 @@ lexEntryToFil lex n =
     ++ ")\n\n"
 \end{code}
 
-\paragraph{combineCGM} is similar to combineOne (page \pageref{combineOne})
+\paragraph{combineCGM} is similar to combineOne (page \fnref{combineOne})
 except that we assume the tree is completely anchored and instatiated and
 that thus there no boring unification or checks to worry about.
 
@@ -722,10 +722,10 @@ Grammars consist of the following:
 The generator reads these into memory and combines them into a grammar
 (page \pageref{sec:combine_macros}).
 
-\paragraph{loadGrammar} Given the pointer to the monadic state pstRef it
-reads and parses the grammar file index; and from this information,
-it reads the rest of the grammar (macros, lexicon, etc).  The Macros
-and the Lexicon 
+\paragraph{loadGrammar} \label{fn:loadGrammar} Given the pointer to the
+monadic state pstRef it reads and parses the grammar file index; and
+from this information, it reads the rest of the grammar (macros,
+lexicon, etc).  The Macros and the Lexicon 
 
 \begin{code}
 loadGrammar :: ProgStateRef -> IO() 
@@ -861,8 +861,7 @@ combineLexicon ll sl =
 
 \paragraph{loadCGMLexicon} Given the pointer to the monadic state pstRef and
 the parameters from a grammar index file parameters; it reads and parses
-the lexicon file using the common grammar manifesto format.  See chapter
-\ref{cha:cgmlexicon} for details.
+the lexicon file using the common grammar manifesto format.  
 
 \begin{code}
 loadCGMLexicon :: ProgStateRef -> GramParams -> IO ()
