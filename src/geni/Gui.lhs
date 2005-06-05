@@ -60,7 +60,7 @@ import Configuration(Params, grammarFile, macrosFile,
                      usetrash,
                      autopol, polarised, polsig, chartsharing, 
                      semfiltered, extrapol, footconstr)
-import ParserLib 
+import GeniParsers 
 
 import Mstate (Gstats, Mstate, initGstats, initMState, runState, 
                generate, generateStep,  

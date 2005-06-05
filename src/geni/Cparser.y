@@ -4,7 +4,8 @@ module Cparser
 where 
 
 import Btypes (ILexEntry)
-import ParserLib(Token(..),PosToken,simpleParserError)
+import ParserLib(Token(..),PosToken,parserError,
+                 E(..), thenE, returnE, failE)
 import Data.List (intersperse)
 
 }
@@ -12,6 +13,7 @@ import Data.List (intersperse)
 %name cParser Input
 %name giParser GramInput
 %tokentype { PosToken }
+%monad { E } { thenE } { returnE }
 
 %token 
     macros      {(MacrosTok,      _, _)} 
@@ -163,6 +165,6 @@ type CpPair = (Token,String)
 
 untok (a,_,_) = a
 
-happyError = simpleParserError
+happyError = parserError
 }
 

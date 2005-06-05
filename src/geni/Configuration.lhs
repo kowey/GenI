@@ -51,20 +51,11 @@ where
 \end{code}
 
 \ignore{
-Some basic haskell library stuff to import:
-
 \begin{code}
 import Data.List (intersperse)
 import qualified Data.Map as Map
-\end{code}
 
-We also import some stuff from the rest of the generator.
-
-\begin{code}
-import Lex2 (lexer)
-import Cparser (cParser, giParser)
-import Mparser (polParser)
-import ParserLib(Token(..))
+import GeniParsers (lexer, Token(..), E(..), cParser, giParser, polParser)
 \end{code}
 }
 
@@ -150,7 +141,9 @@ getConf :: Params -> IO [Params]
 getConf p =
   catch getConf' (\_ -> createConf)
       where getConf' = do fconf <- readFile ".genirc"
-                          return (defineParams p (cParser (lexer fconf)))
+                          case (cParser.lexer) fconf of 
+                            Ok x     -> return (defineParams p x)
+                            Failed x -> fail x 
             createConf = do writeFile ".genirc" (defaultParamsStr p)
                             putStr "Looks like the first time you are running GenI\n"
                             putStr "Writing default configuration file in .genirc.\n"
@@ -169,8 +162,9 @@ and nothing more.
 \begin{code}
 treatArgs :: [Params] -> [String] -> [Params]
 treatArgs params s =
-  params ++ defineParams (last params) args 
-  where args = (cParser . lexer . unwords) s
+  case (cParser . lexer . unwords) s of
+   Ok x     -> params ++ defineParams (last params) x
+   Failed x -> error x
 \end{code}
 
 
@@ -315,7 +309,9 @@ parseGramIndex :: FilePath -> String -> GramParams
 parseGramIndex filename contents =
   let slash = '/'
       -- parse the index file 
-      args = (giParser . lexer) contents 
+      args = case (giParser . lexer) contents of
+               Ok x     -> x 
+               Failed x -> error x
       gp   = defineGramParams args
       -- get the parent directory of filename 
       getParent = reverse . dropWhile (/= slash) . reverse
