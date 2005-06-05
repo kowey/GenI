@@ -4,7 +4,7 @@ GDEPATH=${HOME}/phd/tools/GDE
 
 LEXDIR=lex
 TMPLEX=${LEXDIR}/tmp
-LEX_COMM=${LEXDIR}/commonLexicon.lex
+LEX_COMM=lex/commonLexicon.lex
 
 touch $TMPLEX
 for i in ${LEXDIR}/*.lex; do
