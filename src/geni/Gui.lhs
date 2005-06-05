@@ -44,7 +44,7 @@ import Treeprint(graphvizShowTagElem)
 
 import Tags (tagLeaves)
 import Morphology (sansMorph)
-import Geni (State(..), GeniInput(..), GeniResults(..), PState,
+import Geni (ProgState(..), GeniInput(..), GeniResults(..), ProgStateRef,
              doGeneration, runGeni, runMorph,
              combine, loadGrammar, loadLexicon, 
              loadTestSuite, loadTargetSemStr)
@@ -74,17 +74,17 @@ import Polarity
 \section{Main Gui}
 
 \begin{code}
-guiGenerate :: PState -> IO() 
-guiGenerate pst = do
-  loadGrammar pst
-  start (mainGui pst)
+guiGenerate :: ProgStateRef -> IO() 
+guiGenerate pstRef = do
+  loadGrammar pstRef
+  start (mainGui pstRef)
 \end{code}
 
 \begin{code}
-mainGui :: PState -> IO ()
-mainGui pst = do 
-       loadTestSuite pst
-       mst <- readIORef pst
+mainGui :: ProgStateRef -> IO ()
+mainGui pstRef = do 
+       loadTestSuite pstRef
+       pst <- readIORef pstRef
        -- Top Window
        f <- frame [text := "Geni Project", clientSize := sz 600 350]
        -- create statusbar field
@@ -113,31 +113,31 @@ We set up the menu and the status bars.
              -- put the menu event handler for an about box on the frame.
              , on (menu aboutMeIt) := infoDialog f "About GenI" "The GenI generator" 
              -- event handler for the tree browser
-             , on (menu gbrowserMenIt) := treeBrowserGui pst  
+             , on (menu gbrowserMenIt) := treeBrowserGui pstRef  
              ]
 \end{code}
 
 We add some buttons for loading files and running the generator.
 
 \begin{code}
-       let config     = pa mst 
+       let config     = pa pst 
        -- Target Semantics
        tsTextBox <- textCtrl f [ text := ""
                              , wrap := WrapWord
                              , clientSize := sz 300 80 ]
        testCaseChoice <- choice f [ selection := 0 ]
-       readTestSuite pst tsTextBox testCaseChoice 
+       readTestSuite pstRef tsTextBox testCaseChoice 
        -- Box and Frame for files loaded 
        let gFilename = grammarFile config 
        tsFileLabel       <- staticText f [ text := (trim.tsFile) config ]
        grammarFileLabel  <- staticText f [ text := gFilename ]
        lexiconFileChoice <- choice f []
-       readGrammar pst lexiconFileChoice 
+       readGrammar pstRef lexiconFileChoice 
         -- lexFleL
        let guiParts = (grammarFileLabel, tsFileLabel, 
                        tsTextBox, testCaseChoice)
        loadfileBt <- button f [ text := "Load files"
-                              , on command := gramsemBrowser pst guiParts ] 
+                              , on command := gramsemBrowser pstRef guiParts ] 
        polChk <- checkBox f [ text := "Polarities"
                             , checked := polarised config ]
        
@@ -164,18 +164,18 @@ We add some buttons for loading files and running the generator.
                                set chartsharingChk [ enabled := c ]
                                set extrapolText    [ enabled := c ] 
        set polChk          [on command := do togglePolStuff
-                                             toggleChk pst polChk Polarised ] 
-       set autopolChk      [on command := toggleChk pst autopolChk AutoPol ] 
-       set polsigChk       [on command := toggleChk pst polsigChk PolSig] 
-       -- set predictingChk   [on command := toggleChk pst predictingChk Predicting] 
-       set chartsharingChk [on command := toggleChk pst chartsharingChk ChartSharing]
-       set semfilterChk    [on command := toggleChk pst semfilterChk SemFiltered] 
-       set footconstrChk   [on command := toggleChk pst footconstrChk FootConstraint] 
+                                             toggleChk pstRef polChk Polarised ] 
+       set autopolChk      [on command := toggleChk pstRef autopolChk AutoPol ] 
+       set polsigChk       [on command := toggleChk pstRef polsigChk PolSig] 
+       -- set predictingChk   [on command := toggleChk pstRef predictingChk Predicting] 
+       set chartsharingChk [on command := toggleChk pstRef chartsharingChk ChartSharing]
+       set semfilterChk    [on command := toggleChk pstRef semfilterChk SemFiltered] 
+       set footconstrChk   [on command := toggleChk pstRef footconstrChk FootConstraint] 
        -- Generate and Debug 
        debugBt <- button f [ text := "  Debug  "
-                           , on command := doGenerate f pst tsTextBox True ]
+                           , on command := doGenerate f pstRef tsTextBox True ]
        genBt  <- button f [text := "  Generate  ",
-                 on command := doGenerate f pst tsTextBox False ]
+                 on command := doGenerate f pstRef tsTextBox False ]
 \end{code}
       
 Pack it all together.
@@ -222,13 +222,13 @@ Toggles for optimisatons controlled by a check box.  They enable or
 disable the said optmisation.
 
 \begin{code}
-toggleChk :: (Checkable a) => PState -> a -> Token -> IO ()
-toggleChk pst chk tok = do
+toggleChk :: (Checkable a) => ProgStateRef -> a -> Token -> IO ()
+toggleChk pstRef chk tok = do
   isChecked <- get chk checked
   let fn config = config { optimisations = nub newopt }
                   where opt = optimisations config 
                         newopt = if isChecked then tok:opt else delete tok opt
-  modifyIORef pst (\x -> x{pa = fn (pa x)})
+  modifyIORef pstRef (\x -> x{pa = fn (pa x)})
   return ()
 \end{code}
  
@@ -242,10 +242,10 @@ TODO: respond to the Enter key select the text?
 
 \begin{code}
 gramsemBrowser :: (Textual a, Visible a, Textual b, Selecting c, Selection c, Items c String) 
-               => PState -> (a,a,b,c) -> IO ()
-gramsemBrowser pst guiParts = do
-  mst <- readIORef pst
-  let config = pa mst
+               => ProgStateRef -> (a,a,b,c) -> IO ()
+gramsemBrowser pstRef guiParts = do
+  pst <- readIORef pstRef
+  let config = pa pst
       tfile = tsFile config 
       gfile = grammarFile config
   f <- frame [text := "Grammar and semantics", clientSize := sz 400 150]
@@ -275,13 +275,13 @@ gramsemBrowser pst guiParts = do
                    -- write the new values
                    let newPa p = p { grammarFile = teG 
                                    , tsFile = teS }
-                   modifyIORef pst (\x -> let pa' = pa x in x{pa = newPa pa'})
+                   modifyIORef pstRef (\x -> let pa' = pa x in x{pa = newPa pa'})
                    -- load in the files
-                   loadGrammar pst  
+                   loadGrammar pstRef  
                    set gl [ text := teG ]
                    --
-                   loadTestSuite pst 
-                   readTestSuite pst tsBox tsChoice
+                   loadTestSuite pstRef 
+                   readTestSuite pstRef tsBox tsChoice
                    set tl [ text := teS ]
                    --
                    close f 
@@ -322,10 +322,10 @@ graphical interface or when you load a grammar.
 
 \begin{code}
 readGrammar :: (Selecting b, Selection b, Items b String, Able b) 
-              => PState -> b -> IO ()
-readGrammar pst lexChoice = 
-  do mst <- readIORef pst
-     let gramConfig = gramPa mst
+              => ProgStateRef -> b -> IO ()
+readGrammar pstRef lexChoice = 
+  do pst <- readIORef pstRef
+     let gramConfig = gramPa pst
          ldir       = lexiconDir gramConfig
      -- if the lexicon directory is set, we look at its
      -- contents
@@ -340,7 +340,7 @@ readGrammar pst lexChoice =
          let l = ldirContents !! csel
              pathfn x = ldir ++ slash ++ x 
              newGramConfig = gramConfig { lexiconFile = pathfn l }
-         loadLexicon pst newGramConfig 
+         loadLexicon pstRef newGramConfig 
      ----------------------------------------------------
      let enable = (not.null) ldirContents
      set lexChoice [ items := ldirContents
@@ -356,11 +356,11 @@ graphical interface or when you load a new test suite.
 
 \begin{code}
 readTestSuite :: (Textual a, Selecting b, Selection b, Items b String) 
-              => PState -> a -> b -> IO ()
-readTestSuite pst tsBox tsChoice = 
-  do mst <- readIORef pst
-     let suite = tsuite mst
-         cases = tcases mst
+              => ProgStateRef -> a -> b -> IO ()
+readTestSuite pstRef tsBox tsChoice = 
+  do pst <- readIORef pstRef
+     let suite = tsuite pst
+         cases = tcases pst
          suiteCases = map fst3 suite 
      -- we number the cases for easy identification, putting 
      -- a star to highlight those which are in TestCases
@@ -404,20 +404,20 @@ readTestSuite pst tsBox tsChoice =
 generator and displays the result in a results gui (below).
 
 \begin{code}
-doGenerate :: Textual b => Window a -> PState -> b -> Bool -> IO ()
-doGenerate f pst sembox debugger = do 
+doGenerate :: Textual b => Window a -> ProgStateRef -> b -> Bool -> IO ()
+doGenerate f pstRef sembox debugger = do 
   let handler title err = errorDialog f title (show err)
       handler1 err = handler "Error (probably the target semantics): " err 
       -- handler2 err = do handler "Error during generation:" err
                         --return GR { grCand = [], grAuts = [], grCombos = [], 
                         --grFinalAut = emptyaut, grDerived  = [], grStats    = ""}
   sem <- get sembox text
-  let dodebug = do loadTargetSemStr pst sem
-                   runGeni pst debugGui 
+  let dodebug = do loadTargetSemStr pstRef sem
+                   runGeni pstRef debugGui 
                    return ()
-      dogen = do loadTargetSemStr pst sem
-                 res <- runGeni pst doGeneration 
-                 resultsGui pst res 
+      dogen = do loadTargetSemStr pstRef sem
+                 res <- runGeni pstRef doGeneration 
+                 resultsGui pstRef res 
   -- FIXME: it would be nice to distinguish between generation and ts
   -- parsing errors
   (if debugger then dodebug else dogen) `catch` handler1
@@ -430,8 +430,8 @@ various tabs for intermediary results in lexical
 selection, derived trees, derivation trees and generation statistics.
 
 \begin{code}
-resultsGui :: PState -> GeniResults -> IO () 
-resultsGui pst res = do
+resultsGui :: ProgStateRef -> GeniResults -> IO () 
+resultsGui pstRef res = do
   -- results window
   f <- frame [ text := "Results" 
              , fullRepaintOnResize := False 
@@ -441,7 +441,7 @@ resultsGui pst res = do
   p    <- panel f []
   nb   <- notebook p []
   -- realisations tab
-  resTab <- realisationsGui pst nb $ grDerived res
+  resTab <- realisationsGui pstRef nb $ grDerived res
   -- statistics tab
   statTab <- messageGui nb $ show res 
   -- pack it all together 
@@ -463,10 +463,10 @@ selected items by the semantics they subsume, inserting along the way some
 fake trees and labels for the semantics.
 
 \begin{code}
-candidateGui :: State -> (Window a) -> [TagElem] -> Sem -> IO Layout
-candidateGui mst f xs missed = do
+candidateGui :: ProgState -> (Window a) -> [TagElem] -> Sem -> IO Layout
+candidateGui pst f xs missed = do
   p  <- panel f []      
-  tb <- tagBrowserGui mst p xs "lexically selected item" "candidates"
+  tb <- tagBrowserGui pst p xs "lexically selected item" "candidates"
   let warning = if null missed 
                 then ""
                 else "WARNING: no lexical selection for " ++ showSem missed
@@ -502,19 +502,19 @@ Browser for derived/derivation trees, except if there are no results, we show a
 message box
 
 \begin{code}
-realisationsGui :: PState -> (Window a) -> [TagElem] -> IO Layout
+realisationsGui :: ProgStateRef -> (Window a) -> [TagElem] -> IO Layout
 realisationsGui _   f [] = messageGui f "No results found"
-realisationsGui pst f resultsRaw = 
+realisationsGui pstRef f resultsRaw = 
   do let results = map (\t -> t {thighlight = []}) resultsRaw
      -- morphology
      let uninflected = map tagLeaves resultsRaw 
-     sentences <- runMorph pst uninflected
+     sentences <- runMorph pstRef uninflected
      --
      let itNlabl   = zip results sentences
          tip       = "result"
      --
-     mst     <- readIORef pst
-     (lay,_) <- tagViewerGui mst f tip "derived" itNlabl
+     pst     <- readIORef pstRef
+     (lay,_) <- tagViewerGui pst f tip "derived" itNlabl
      return lay
 \end{code}
 
@@ -524,8 +524,8 @@ A TAG browser is a TAG viewer (see below) that groups trees by
 their semantics.
 
 \begin{code}
-tagBrowserGui :: State -> (Window a) -> [TagElem] -> String -> String -> IO Layout
-tagBrowserGui mst f xs tip cachedir = do 
+tagBrowserGui :: ProgState -> (Window a) -> [TagElem] -> String -> String -> IO Layout
+tagBrowserGui pst f xs tip cachedir = do 
   let semmap   = mapBySem xs
       sem      = Map.keys semmap
       --
@@ -537,7 +537,7 @@ tagBrowserGui mst f xs tip cachedir = do
       trees    = concatMap treesfor sem
       labels   = concatMap labsfor  sem
       itNlabl  = zip trees labels
-  (lay,_) <- tagViewerGui mst f tip cachedir itNlabl
+  (lay,_) <- tagViewerGui pst f tip cachedir itNlabl
   return lay
 \end{code}
       
@@ -545,9 +545,9 @@ A TAG viewer is a graphvizGui that lets the user toggle the display
 of TAG feature structures.
 
 \begin{code}
-tagViewerGui :: State -> (Window a) -> String -> String -> [(TagElem,String)] 
+tagViewerGui :: ProgState -> (Window a) -> String -> String -> [(TagElem,String)] 
                -> GvIO TagElem
-tagViewerGui mst f tip cachedir itNlab = do
+tagViewerGui pst f tip cachedir itNlab = do
   p <- panel f []      
   let (tagelems,labels) = unzip itNlab
   gvRef <- newGvRef False labels tip
@@ -566,7 +566,7 @@ tagViewerGui mst f tip cachedir itNlab = do
                             let tree = tagelems !! (gvsel gvSt)
                                 derv = extractDerivation tree
                             if (boundsCheck s derv)
-                              then runViewTag mst (derv !! s)
+                              then runViewTag pst (derv !! s)
                               else fail $ "Gui: bounds check in onDisplayTrace\n" ++
                                           bugInGeni
   let onDetailsChk c = do isDetailed <- get c checked 
@@ -606,11 +606,11 @@ ignore the arguments in tree semantics, and we display the tree
 polarities in its label.
 
 \begin{code}
-treeBrowserGui :: PState -> IO () 
-treeBrowserGui pst = do
-  mst <- readIORef pst
+treeBrowserGui :: ProgStateRef -> IO () 
+treeBrowserGui pstRef = do
+  pst <- readIORef pstRef
   -- ALL THE TREES in the grammar... muahahaha!
-  let semmap = combine (gr mst) (le mst)
+  let semmap = combine (gr pst) (le pst)
   -- browser window
   f <- frame [ text := "Tree Browser" 
              , fullRepaintOnResize := False 
@@ -628,7 +628,7 @@ treeBrowserGui pst = do
       --
       trees    = concatMap treesfor sem
       itNlabl  = zip trees (concatMap labsfor sem)
-  (browser,_) <- tagViewerGui mst f "tree browser" "grambrowser" itNlabl
+  (browser,_) <- tagViewerGui pst f "tree browser" "grambrowser" itNlabl
   -- the button panel
   let count = length trees - length sem
   quitBt <- button f [ text := "Close", on command := close f ]
@@ -651,8 +651,8 @@ user the agenda, chart and results at various stages in the generation
 process.  
 
 \begin{code}
-debugGui :: State -> GeniInput -> IO ([TagElem], Gstats)
-debugGui mst input = do
+debugGui :: ProgState -> GeniInput -> IO ([TagElem], Gstats)
+debugGui pst input = do
   let tsem = giSem input
   --
   f <- frame [ text := "Geni Debugger" 
@@ -674,9 +674,9 @@ debugGui mst input = do
   let cand    = giCands input
       candsem = (nub $ concatMap tsemantics cand)
       missed  = tsem \\ candsem
-  canTab <- candidateGui mst nb cand missed
+  canTab <- candidateGui pst nb cand missed
   -- automata tab
-  let config           = pa mst
+  let config           = pa pst
       (auts, finalaut) = giAuts input 
   autTab <- if polarised config 
             then polarityGui nb auts finalaut
@@ -1144,10 +1144,10 @@ extractDerivation te =
 displays trees produced by the XMG metagrammar system.  
 
 \begin{code}
-runViewTag :: State -> String -> IO ()
-runViewTag mst idname =  
+runViewTag :: ProgState -> String -> IO ()
+runViewTag pst idname =  
   do -- figure out what grammar file to use
-     let gparams  = gramPa mst
+     let gparams  = gramPa pst
          gramfile = macrosFile gparams
      -- extract the relevant bits of the treename
      let extractCGMName n = tail $ dropWhile (/= '_') n 

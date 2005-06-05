@@ -24,7 +24,7 @@ module also does lexical selection and anchoring because these processes might
 involve some messy IO performance tricks.
 
 \begin{code}
-module Geni (State(..), PState, GeniInput(..), GeniResults(..), 
+module Geni (ProgState(..), ProgStateRef, GeniInput(..), GeniResults(..), 
              showRealisations, groupAndCount,
              initGeni, runGeni, doGeneration, runMorph,
              loadGrammar, loadLexicon, 
@@ -115,7 +115,7 @@ testGeni = testExtractCGMSem
 \end{code}
 
 % --------------------------------------------------------------------
-\section{State}
+\section{ProgState}
 % --------------------------------------------------------------------
 
 Data types for keeping track of the program state.  
@@ -131,7 +131,7 @@ Data types for keeping track of the program state.
 Note: if tags is non-empty, we can ignore gr and le
 
 \begin{code}
-data State = ST{pa       :: Params,
+data ProgState = ST{pa       :: Params,
                 gramPa   :: GramParams,
                 -- list of configurations
                 batchPa  :: [Params], 
@@ -145,9 +145,9 @@ data State = ST{pa       :: Params,
                 tsuite   :: [(String,SemInput,[String])] 
                }
 
-type PState = IORef State
+type ProgStateRef = IORef ProgState
 
-rootCats :: State -> [String]
+rootCats :: ProgState -> [String]
 rootCats = (rootCatsParam . gramPa)
 \end{code}
 
@@ -164,13 +164,13 @@ initGeni should be called when Geni is started.  This is typically
 called from the user interface code.
 
 \begin{code}
-initGeni :: IO PState 
+initGeni :: IO ProgStateRef 
 initGeni = do
     confGenirc <- getConf defaultParams
     args       <- getArgs
     let confArgs = treatArgs confGenirc args
     -- Initialize the general state.  
-    pst <- newIORef ST{pa = head confArgs,
+    pstRef <- newIORef ST{pa = head confArgs,
                        gramPa = emptyGramParams,
                        batchPa = confArgs, 
                        gr = [],
@@ -179,7 +179,7 @@ initGeni = do
                        ts = ([],[]),
                        tcases = [],
                        tsuite = [] }
-    return pst 
+    return pstRef 
 \end{code}
 
 \subsection{Generation step}
@@ -196,30 +196,30 @@ as with \fnref{debugGui}, but for the most part, you want the vanilla
 flavoured generator, \fnref{doGeneration}.
 
 \begin{code}
-runGeni :: PState -> GeniFn -> IO GeniResults 
-runGeni pst runFn = do 
+runGeni :: ProgStateRef -> GeniFn -> IO GeniResults 
+runGeni pstRef runFn = do 
   -- lexical selection
-  mstLex   <- readIORef pst
+  mstLex   <- readIORef pstRef
   purecand <- runLexSelection mstLex
   -- stripping morphological predicates
   let (tsem,tresLex) = ts mstLex
       tsemLex        = filter (isNothing.(morphinf mstLex)) tsem
-  modifyIORef pst ( \x -> x{ts = (tsemLex,tresLex)} )
-  mst      <- readIORef pst
+  modifyIORef pstRef ( \x -> x{ts = (tsemLex,tresLex)} )
+  pst      <- readIORef pstRef
   -- force the grammar to be read before the clock
-  when (-1 == (length.show.le) mst) $ exitWith ExitSuccess
-  when (-1 == (length.show.gr) mst) $ exitWith ExitSuccess
+  when (-1 == (length.show.le) pst) $ exitWith ExitSuccess
+  when (-1 == (length.show.gr) pst) $ exitWith ExitSuccess
   performGC
   -- force lexical selection to be run before clock
   -- when (-1 == (length.show) purecand) $ exitWith ExitSuccess
   clockBefore <- getCPUTime 
   -- do any optimisations
-  let config   = pa mst
+  let config   = pa pst
       extraPol    = extrapol config  
       isPol       = polarised config
   let -- polarity optimisation (if enabled)
       preautcand = purecand
-      autstuff   = buildAutomaton preautcand mst
+      autstuff   = buildAutomaton preautcand pst
       finalaut   = (snd.fst) autstuff
       lookupCand = lookupAndTweak (snd autstuff)
       pathsLite  = walkAutomaton finalaut 
@@ -238,7 +238,7 @@ runGeni pst runFn = do
                        , giCands = preautcand
                        , giAuts  = fst autstuff
                        , giTrees = combos }
-  (res, gstats') <- runFn mst genifnInput 
+  (res, gstats') <- runFn pst genifnInput 
   let gstats = addGstats fstGstats gstats'
   -- statistics 
   let statsOpt =  if (null optAll) then "none " else optAll
@@ -278,7 +278,7 @@ runGeni pst runFn = do
   when (length statsTime == 0) $ exitWith ExitSuccess
   -- morphology 
   let uninflected = map tagLeaves res
-  sentences <- runMorph pst uninflected
+  sentences <- runMorph pstRef uninflected
   -- final results 
   return (results { grSentences = map (map toLower) sentences,
                     grTimeStr  = statsTime })
@@ -293,7 +293,7 @@ intermediary stuff, but the debugger tries to display or do other
 interesting things with them.
 
 \begin{code}
-type GeniFn = State -> GeniInput -> IO ([TagElem], Gstats)
+type GeniFn = ProgState -> GeniInput -> IO ([TagElem], Gstats)
 data GeniInput = GI { giSem   :: Sem
                     , giCands :: [TagElem]
                     , giTrees :: [[TagElem]]
@@ -309,23 +309,23 @@ data GeniInput = GI { giSem   :: Sem
 candidates trees which will be used to generate the current target semantics.  
 
 \begin{code}
-runLexSelection :: State -> IO [TagElem]
-runLexSelection mst = 
-  case (grammarType $ gramPa mst) of  
-        CGManifesto -> runCGMLexSelection mst
-        _           -> runBasicLexSelection mst
+runLexSelection :: ProgState -> IO [TagElem]
+runLexSelection pst = 
+  case (grammarType $ gramPa pst) of  
+        CGManifesto -> runCGMLexSelection pst
+        _           -> runBasicLexSelection pst
 
-runBasicLexSelection :: State -> IO [TagElem]
-runBasicLexSelection mst = do
-  let (tsem,_) = ts mst
-      lexicon  = le mst
+runBasicLexSelection :: ProgState -> IO [TagElem]
+runBasicLexSelection pst = do
+  let (tsem,_) = ts pst
+      lexicon  = le pst
       -- select lexical items first 
       lexCand   = chooseLexCand lexicon tsem
       -- then anchor these lexical items to trees
-      combiner = combineList (gr mst) 
+      combiner = combineList (gr pst) 
       cand     = concatMap combiner lexCand
       -- attach any morphological information to the candidates
-      morphfn  = morphinf mst
+      morphfn  = morphinf pst
       cand2    = attachMorph morphfn tsem cand 
   return $ setTidnums cand2
 \end{code}
@@ -334,16 +334,16 @@ runBasicLexSelection mst = do
 lexical selection.
 
 \begin{code}
-buildAutomaton :: [TagElem] -> State -> (PolResult, TagLite -> [TagElem])
+buildAutomaton :: [TagElem] -> ProgState -> (PolResult, TagLite -> [TagElem])
 type PolResult = ([(String, PolAut, PolAut)], PolAut)
 
-buildAutomaton candRaw mst =
-  let config   = pa mst
-      (tsem,tres) = ts mst
+buildAutomaton candRaw pst =
+  let config   = pa pst
+      (tsem,tres) = ts pst
       -- restrictors and extra polarities
       mergePol = Map.unionWith (+)
-      rootCatPref = prefixRootCat $ head $ rootCats mst
-      rcatPol = if (null $ rootCats mst)
+      rootCatPref = prefixRootCat $ head $ rootCats pst
+      rcatPol = if (null $ rootCats pst)
                 then Map.empty
                 else Map.singleton rootCatPref (-1)
       extraPol = mergePol (extrapol config) $ mergePol rest rcatPol
@@ -572,12 +572,12 @@ some bits of code in Lparser.y for parsing said lexicons.
 selection process.  
 
 \begin{code}
-runCGMLexSelection :: State -> IO [TagElem]
-runCGMLexSelection mst = 
-  do let (tsem,_) = ts mst
-         lexicon  = le mst
+runCGMLexSelection :: ProgState -> IO [TagElem]
+runCGMLexSelection pst = 
+  do let (tsem,_) = ts pst
+         lexicon  = le pst
      -- figure out what grammar file to use
-     let gparams  = gramPa mst
+     let gparams  = gramPa pst
          gramfile = macrosFile gparams
      -- select lexical items 
          lexCand = chooseLexCand lexicon tsem
@@ -600,7 +600,7 @@ runCGMLexSelection mst =
                  fam = tail $ pfamily ts -- FIXME: hack! 
      cand <- mapM fixate g
      -- attach any morphological information to the candidates
-     let morphfn  = morphinf mst
+     let morphfn  = morphinf pst
          cand2    = attachMorph morphfn tsem cand 
      return $ setTidnums cand2
   `catch` \e -> do putStrLn ("Error! Selector output malformed : " ++ show e)
@@ -722,17 +722,17 @@ Grammars consist of the following:
 The generator reads these into memory and combines them into a grammar
 (page \pageref{sec:combine_macros}).
 
-\paragraph{loadGrammar} Given the pointer to the monadic state pst it
+\paragraph{loadGrammar} Given the pointer to the monadic state pstRef it
 reads and parses the grammar file index; and from this information,
 it reads the rest of the grammar (macros, lexicon, etc).  The Macros
 and the Lexicon 
 
 \begin{code}
-loadGrammar :: PState -> IO() 
-loadGrammar pst =
-  do st <- readIORef pst
+loadGrammar :: ProgStateRef -> IO() 
+loadGrammar pstRef =
+  do pst <- readIORef pstRef
      --
-     let config   = pa st
+     let config   = pa pst
          filename = grammarFile config
      -- 
      putStr $ "Loading index file " ++ filename ++ "..."
@@ -743,36 +743,36 @@ loadGrammar pst =
      let gparams = parseGramIndex filename gf
      case (grammarType gparams) of 
         CGManifesto -> return ()
-        _           -> loadGeniMacros  pst gparams
-     loadLexicon   pst gparams
-     loadMorphInfo pst gparams
-     modifyIORef pst (\x -> x{gramPa   = gparams})
+        _           -> loadGeniMacros  pstRef gparams
+     loadLexicon   pstRef gparams
+     loadMorphInfo pstRef gparams
+     modifyIORef pstRef (\x -> x{gramPa   = gparams})
 \end{code}
 
 \subsubsection{Lexicon}
 
-\paragraph{loadLexicon} Given the pointer to the monadic state pst and
+\paragraph{loadLexicon} Given the pointer to the monadic state pstRef and
 the parameters from a grammar index file parameters; it reads and parses
 the lexicon file and the semantic lexicon.   These are then stored in
 the mondad.
 
 FIXME: differentiate
 \begin{code}
-loadLexicon :: PState -> GramParams -> IO ()
-loadLexicon pst config =
+loadLexicon :: ProgStateRef -> GramParams -> IO ()
+loadLexicon pstRef config =
   case (grammarType config) of 
-        CGManifesto -> loadCGMLexicon  pst config 
-        _           -> loadGeniLexicon pst config 
+        CGManifesto -> loadCGMLexicon  pstRef config 
+        _           -> loadGeniLexicon pstRef config 
 \end{code}
 
-\paragraph{loadGeniLexicon} Given the pointer to the monadic state pst and
+\paragraph{loadGeniLexicon} Given the pointer to the monadic state pstRef and
 the parameters from a grammar index file parameters; it reads and parses
 the lexicon file and the semantic lexicon.   These are then stored in
 the mondad.
 
 \begin{code}
-loadGeniLexicon :: PState -> GramParams -> IO ()
-loadGeniLexicon pst config = do 
+loadGeniLexicon :: ProgStateRef -> GramParams -> IO ()
+loadGeniLexicon pstRef config = do 
        let lfilename = lexiconFile config
            sfilename = semlexFile config
  
@@ -794,7 +794,7 @@ loadGeniLexicon pst config = do
        putStr ((show $ length rawlex) ++ " entries\n")
 
        -- combine the two lexicons
-       modifyIORef pst (\x -> x{le = combineLexicon lemlex semlex})
+       modifyIORef pstRef (\x -> x{le = combineLexicon lemlex semlex})
        return ()
 \end{code}
 
@@ -859,14 +859,14 @@ combineLexicon ll sl =
 
 \subsubsection{Lexicon - CGM}
 
-\paragraph{loadCGMLexicon} Given the pointer to the monadic state pst and
+\paragraph{loadCGMLexicon} Given the pointer to the monadic state pstRef and
 the parameters from a grammar index file parameters; it reads and parses
 the lexicon file using the common grammar manifesto format.  See chapter
 \ref{cha:cgmlexicon} for details.
 
 \begin{code}
-loadCGMLexicon :: PState -> GramParams -> IO ()
-loadCGMLexicon pst config = do 
+loadCGMLexicon :: ProgStateRef -> GramParams -> IO ()
+loadCGMLexicon pstRef config = do 
        let lfilename = lexiconFile config
  
        putStr $ "Loading CGManifesto Lexicon " ++ lfilename ++ "..."
@@ -880,7 +880,7 @@ loadCGMLexicon pst config = do
        putStr ((show $ length $ Map.keys lex) ++ " entries\n")
 
        -- combine the two lexicons
-       modifyIORef pst (\x -> x{le = lex})
+       modifyIORef pstRef (\x -> x{le = lex})
        return ()
 \end{code}
 
@@ -951,13 +951,13 @@ testExtractCGMSem =
 
 \subsubsection{Macros}
 
-\paragraph{loadGeniMacros} Given the pointer to the monadic state pst and
+\paragraph{loadGeniMacros} Given the pointer to the monadic state pstRef and
 the parameters from a grammar index file parameters; it reads and parses
 macros file.  The macros are stored as a hashing function in the monad.
 
 \begin{code}
-loadGeniMacros :: PState -> GramParams -> IO ()
-loadGeniMacros pst config = 
+loadGeniMacros :: ProgStateRef -> GramParams -> IO ()
+loadGeniMacros pstRef config = 
   do let filename = macrosFile config
      --
      putStr $ "Loading Macros " ++ filename ++ "..."
@@ -969,19 +969,19 @@ loadGeniMacros pst config =
          sizeg  = length g
      putStr $ show sizeg ++ " trees in " 
      putStr $ (show $ length g) ++ " families\n"
-     modifyIORef pst (\x -> x{gr = g})
+     modifyIORef pstRef (\x -> x{gr = g})
 \end{code}
 
 \subsubsection{Misc}
 
-\paragraph{loadMorphInfo} Given the pointer to the monadic state pst and
+\paragraph{loadMorphInfo} Given the pointer to the monadic state pstRef and
 the parameters from a grammar index file parameters; it reads and parses
 the morphological information file, if available.  The results are stored
 as a lookup function in the monad.
 
 \begin{code}
-loadMorphInfo :: PState -> GramParams -> IO ()
-loadMorphInfo pst config = 
+loadMorphInfo :: ProgStateRef -> GramParams -> IO ()
+loadMorphInfo pstRef config = 
   do let filename = morphFile config
      when (not $ null filename ) $ do --
         putStr $ "Loading Morphological Info " ++ filename ++ "..."
@@ -990,21 +990,21 @@ loadMorphInfo pst config =
         let g = (morphParser.lexer) gf
             sizeg  = length g
         putStr $ show sizeg ++ " entries\n" 
-        modifyIORef pst (\x -> x{morphinf = readMorph g})
+        modifyIORef pstRef (\x -> x{morphinf = readMorph g})
 \end{code}
 
 \subsection{Target semantics}
 
 \paragraph{loadTestSuite} \label{fn:loadTestSuite} 
-given a pointer pst to the general state st, it access the parameters and the
+given a pointer pstRef to the general state st, it access the parameters and the
 name of the file for the target semantics from params.  It parses the file as a
 test suite, and assigns it to the tsuite field of st.
 
 \begin{code}
-loadTestSuite :: PState -> IO ()
-loadTestSuite pst = do
-  st <- readIORef pst
-  let config   = pa st
+loadTestSuite :: ProgStateRef -> IO ()
+loadTestSuite pstRef = do
+  pst <- readIORef pstRef
+  let config   = pa pst
       filename = tsFile config 
   putStr $ "Loading Test Suite " 
            ++ filename ++ "...\n"
@@ -1017,24 +1017,24 @@ loadTestSuite pst = do
                            , tcases = testCases config}
   let sem = (testSuiteParser . lexer) tstr
   case sem of 
-    Ok s     -> modifyIORef pst $ updateTsuite s 
+    Ok s     -> modifyIORef pstRef $ updateTsuite s 
     Failed s -> fail s
   -- in the end we just say we're done
   --putStr "done\n"
 \end{code}
 
 \paragraph{loadTargetSemStr} Given a string with some semantics, it
-parses the string and assigns the assigns the target semantics to the ts
-field of st 
+parses the string and assigns the assigns the target semantics to the 
+ts field of the ProgState 
 
 \begin{code}
-loadTargetSemStr :: PState -> String -> IO ()
-loadTargetSemStr pst str = 
+loadTargetSemStr :: ProgStateRef -> String -> IO ()
+loadTargetSemStr pstRef str = 
     do putStr "Parsing Target Semantics..."
        let semi = (targetSemParser . lexer) str
            smooth (s,r) = (sortSem s, sort r)
        case semi of 
-         Ok sr    -> modifyIORef pst (\x -> x{ts = smooth sr})
+         Ok sr    -> modifyIORef pstRef (\x -> x{ts = smooth sr})
          Failed s -> fail s
        putStr "done\n"
 \end{code}
@@ -1090,8 +1090,8 @@ simplifications in order.
 
 \begin{code}
 doGeneration :: GeniFn 
-doGeneration mst input = do
-  return (doGeneration' (pa mst) input) 
+doGeneration pst input = do
+  return (doGeneration' (pa pst) input) 
 
 doGeneration' :: Params -> GeniInput -> ([TagElem], Gstats)
 doGeneration' config input = 
@@ -1176,10 +1176,10 @@ showRealisations sentences =
 has been specified.  If not, it returns the sentences as lemmas.
 
 \begin{code}
-runMorph :: PState -> [[(String,Flist)]] -> IO [String]
-runMorph pst sentences = 
-  do mst <- readIORef pst
-     let mcmd = morphCmd (pa mst)
+runMorph :: ProgStateRef -> [[(String,Flist)]] -> IO [String]
+runMorph pstRef sentences = 
+  do pst <- readIORef pstRef
+     let mcmd = morphCmd (pa pst)
      if null mcmd
         then return (map sansMorph sentences)
         else inflectSentences mcmd sentences 

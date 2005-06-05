@@ -54,13 +54,13 @@ There are three kinds of batch processing:
 The outer layer runs the middle layer over each vanilla batch processing item.
 
 \begin{code}
-consoleGenerate :: PState -> IO()
-consoleGenerate pst = do 
+consoleGenerate :: ProgStateRef -> IO()
+consoleGenerate pstRef = do 
   let nogui =  "Graphical interface not available for "
              ++ "batch processing"
-  mst <- readIORef pst
-  when (isGraphical $ pa mst) (putStrLn nogui)
-  foldM (consoleGenerate' pst) emptyParams (batchPa mst)
+  pst <- readIORef pstRef
+  when (isGraphical $ pa pst) (putStrLn nogui)
+  foldM (consoleGenerate' pstRef) emptyParams (batchPa pst)
   return ()
 \end{code}
 
@@ -86,21 +86,21 @@ Note: if there is a test-suite and batch if batch processing is
 set, we simply ignore the batch processing.
 
 \begin{code}
-consoleGenerate' :: PState -> Params -> Params -> IO Params
-consoleGenerate' pst lastPa newPa = do 
-  modifyIORef pst (\x -> x{pa = newPa})
+consoleGenerate' :: ProgStateRef -> Params -> Params -> IO Params
+consoleGenerate' pstRef lastPa newPa = do 
+  modifyIORef pstRef (\x -> x{pa = newPa})
   putStrLn "======================================================"
   -- only load files if neccesary
   let lastGrammar    = grammarFile lastPa
       lastTargetSem  = tsFile lastPa
-  when (lastGrammar /= grammarFile newPa)  $ loadGrammar pst
-  when (lastTargetSem /= tsFile newPa)     $ loadTestSuite pst
+  when (lastGrammar /= grammarFile newPa)  $ loadGrammar pstRef
+  when (lastTargetSem /= tsFile newPa)     $ loadTestSuite pstRef
   -- determine how we should run the generator
-  let runVanilla = do res <- runGeni pst doGeneration
+  let runVanilla = do res <- runGeni pstRef doGeneration
                       putStrLn $ show res
   --
-  case () of _ | isBatch newPa     -> runBatch pst 
-               | otherwise         -> runTestSuite pst 
+  case () of _ | isBatch newPa     -> runBatch pstRef 
+               | otherwise         -> runTestSuite pstRef 
   return newPa
 \end{code}
 
@@ -111,13 +111,13 @@ results.  We assume that the grammar and target semantics are already
 loaded into the monadic state.
 
 \begin{code}
-runBatch :: PState -> IO ()
-runBatch pst = 
-  do mst <- readIORef pst 
-     let curPa = pa mst
+runBatch :: ProgStateRef -> IO ()
+runBatch pstRef = 
+  do pst <- readIORef pstRef 
+     let curPa = pa pst
          batch = map withopt $ optBatch (optimisations curPa)
                  where withopt o = curPa { optimisations = o } 
-     resSet <- mapM (runBatchSample pst) batch
+     resSet <- mapM (runBatchSample pstRef) batch
      putStrLn ""
      putStrLn $ showOptResults resSet
      return ()
@@ -131,11 +131,11 @@ being displayed to the user; and to summarise everything in a fancy
 table.
 
 \begin{code}
-runBatchSample :: PState -> Params -> IO GeniResults
-runBatchSample pst newPa = do 
-  modifyIORef pst (\x -> x{pa = newPa})
+runBatchSample :: ProgStateRef -> Params -> IO GeniResults
+runBatchSample pstRef newPa = do 
+  modifyIORef pstRef (\x -> x{pa = newPa})
   let numIter = batchRepeat newPa
-  resSet <- mapM (\_ -> runGeni pst doGeneration) [1..numIter]
+  resSet <- mapM (\_ -> runGeni pstRef doGeneration) [1..numIter]
   --
   let avgStats  = avgGstats $ map grStats resSet
       res       = (head resSet) { grStats = avgStats } 
@@ -180,17 +180,17 @@ showOptResults grs =
 \paragraph{runTestSuite} runs a test suite and summarises the results
 
 \begin{code}
-runTestSuite :: PState -> IO () 
-runTestSuite pst = 
-  do mst <- readIORef pst 
-     let mstCases  = tcases mst
-         mstSuite  = tsuite mst
+runTestSuite :: ProgStateRef -> IO () 
+runTestSuite pstRef = 
+  do pst <- readIORef pstRef 
+     let mstCases  = tcases pst
+         mstSuite  = tsuite pst
          matchFn y = [ x | x <- mstSuite, fst3 x ==  y ]
          suite  = if null mstCases 
                   then mstSuite 
                   else concatMap matchFn mstCases
      let (ids, slist, xlist) = unzip3 suite
-     rlist <- mapM (runTestCase pst) slist 
+     rlist <- mapM (runTestCase pstRef) slist 
      let rsList  = map grSentences rlist
          pfoList = zipWith groupTestCaseResults xlist rsList
          details = zipWith3 showTestCase ids slist pfoList 
@@ -205,10 +205,10 @@ runTestSuite pst =
 the results.
 
 \begin{code}
-runTestCase :: PState -> SemInput -> IO GeniResults
-runTestCase pst sem = 
-  do modifyIORef pst (\x -> x{ts = sem})
-     res <- runGeni pst doGeneration
+runTestCase :: ProgStateRef -> SemInput -> IO GeniResults
+runTestCase pstRef sem = 
+  do modifyIORef pstRef (\x -> x{ts = sem})
+     res <- runGeni pstRef doGeneration
      return res 
 \end{code}
 
