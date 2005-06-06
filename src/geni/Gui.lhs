@@ -34,7 +34,7 @@ import qualified Control.Monad as Monad
 import Data.Array
 import qualified Data.Map as Map
 import Data.IORef
-import Data.List (nub, delete, (\\), isPrefixOf)
+import Data.List (nub, delete, (\\))
 import System.Directory 
 import System.Posix.Files(fileMode, getFileStatus, unionFileModes, 
                           setFileMode, ownerExecuteMode)
@@ -249,13 +249,8 @@ loadMenuCmd pstRef f guiParts =
        Just file     -> loadMenuHelper pstRef f (trim file) guiParts
 
 loadMenuHelper pstRef f filename guiParts = 
-  do -- get current directory
-     curDir <- getCurrentDirectory
-     let isAbs x    = slash `isPrefixOf` x
-         toAbs path = if isAbs path then path
-                      else (curDir ++ slash ++ path)
-     -- write the new values
-     let newPa p = p { grammarFile = toAbs filename }
+  do -- write the new values
+     let newPa p = p { grammarFile = filename }
      modifyIORef pstRef (\x -> x{pa = newPa (pa x)})
      -- load in the files
      let (gText, tsBox, tsChoice, lexChoice) = guiParts

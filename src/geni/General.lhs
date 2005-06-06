@@ -127,20 +127,6 @@ bugInGeni =
 slash = "/"
 \end{code}
 
-\paragraph{geniReadFile}
-
-readFile in Linux seems to change the current directory to where the file is:
-we force it back to one where GenI was called so that the GUI doesn't start
-behaving funny.
-
-\begin{code}
-geniReadFile filename = do
-     curDir <- getCurrentDirectory
-     contents <- readFile filename
-     setCurrentDirectory curDir
-     return contents
-\end{code}
-
 \section{Other}
 
 \begin{code}

@@ -99,9 +99,7 @@ import Debug.Trace
 import Btypes (emptyLE)
 --import Bfuncs (showSem,showPairs)
 --showlex l = iword l ++ "\n sem: " ++ (showSem.isemantics) l ++ "\n enrich: " ++ (showPairs.ipfeat) l ++ "\n--\n" 
-import General(geniReadFile)
 import SysGeni 
-
 \end{code}
 }
 
@@ -735,7 +733,7 @@ loadGrammar pstRef =
      -- 
      putStr $ "Loading index file " ++ filename ++ "..."
      hFlush stdout
-     gf <- geniReadFile filename
+     gf <- readFile filename
      putStrLn $ "done"
      --
      let gparams = parseGramIndex filename gf
@@ -777,7 +775,7 @@ loadGeniLexicon pstRef config = do
  
        putStr $ "Loading Semantic Lexicon " ++ sfilename ++ "..."
        hFlush stdout
-       sf <- geniReadFile sfilename
+       sf <- readFile sfilename
        let sortlexsem l = l { isemantics = sortSem $ isemantics l }
            semmapper    = mapBySemKeys isemantics
            semparsed    = (semlexParser . lexer) sf
@@ -786,7 +784,7 @@ loadGeniLexicon pstRef config = do
 
        putStr $ "Loading Lexicon " ++ lfilename ++ "..."
        hFlush stdout
-       lf <- geniReadFile lfilename 
+       lf <- readFile lfilename 
        let rawlex = (lexParser . lexer) lf
            lemlex = groupByFM fn rawlex
                     where fn l = (iword l, icategory l)
@@ -869,7 +867,7 @@ loadCGMLexicon pstRef config = do
  
        putStr $ "Loading CGManifesto Lexicon " ++ lfilename ++ "..."
        hFlush stdout
-       lf <- geniReadFile lfilename
+       lf <- readFile lfilename
        let semmapper = mapBySemKeys isemantics
            setsem l  = l { isemantics = sem
                          , ipfeat = ipfeat l ++ enr }
@@ -960,7 +958,7 @@ loadGeniMacros pstRef config =
      --
      putStr $ "Loading Macros " ++ filename ++ "..."
      hFlush stdout
-     gf <- geniReadFile filename
+     gf <- readFile filename
      let g = case ((mParser.lexer) gf) of 
                    Ok x     -> x 
                    Failed x -> error x 
@@ -984,7 +982,7 @@ loadMorphInfo pstRef config =
      when (not $ null filename ) $ do --
         putStr $ "Loading Morphological Info " ++ filename ++ "..."
         hFlush stdout
-        gf <- geniReadFile filename
+        gf <- readFile filename
         let g = (morphParser.lexer) gf
             sizeg  = length g
         putStr $ show sizeg ++ " entries\n" 
@@ -1006,7 +1004,7 @@ loadTestSuite pstRef = do
       filename = (tsFile.gramPa) pst
   putStr $ "Loading Test Suite " ++ filename ++ "...\n"
   hFlush stdout
-  tstr <- geniReadFile filename
+  tstr <- readFile filename
   -- helper functions for test suite stuff
   let cleanup (id, (sm,sr), sn) = (id, newsmsr, sort sn)
         where newsmsr = (sortSem sm, sort sr)
