@@ -30,7 +30,7 @@ comes from Cparser.y
 module Configuration(
    Params, 
    treatArgs, 
-   grammarFile, tsFile, isGraphical,
+   grammarFile, isGraphical,
    morphCmd, testCases,
    optimisations,
    autopol, polarised, polsig, chartsharing, extrapol,
@@ -80,7 +80,6 @@ found in the configuration file.
 data Params = Prms{
   grammarFile    :: String,
   morphCmd       :: String,
-  tsFile         :: String,
   isGraphical    :: Bool,
   optimisations  :: [Token],
   testCases      :: [String], -- names of test cases
@@ -114,7 +113,6 @@ isBatch      p = Batch          `elem` (optimisations p)
 emptyParams :: Params
 emptyParams = Prms {
   grammarFile    = "",
-  tsFile         = "",
   morphCmd       = "",
   isGraphical    = False,
   testCases      = [],
@@ -127,7 +125,6 @@ emptyParams = Prms {
 defaultParams :: Params
 defaultParams = emptyParams {
    grammarFile    = "examples/ej/index",
-   tsFile         = "examples/ej/ej1",
    isGraphical    = True
 }
 \end{code}
@@ -176,11 +173,9 @@ configuration file
 defaultParamsStr :: Params -> String
 defaultParamsStr p = 
   let g  = grammarFile p
-      ts = tsFile p
       op = optimisations p
       gr = if (isGraphical p)  then "True" else "False"
   in "\nGrammar  = " ++ g  ++ 
-     "\nTestSuite = " ++ ts ++
      "\n" ++
      "\n% True or False" ++
      "\nGraphical  = " ++ gr ++ 
@@ -226,7 +221,6 @@ defineParams' p ((f,v):s) = defineParams' pnext s
             GrammarTok      -> p {grammarFile = v}
             MorphCmdTok     -> p {morphCmd = v}
             TestCasesTok    -> p {testCases = words v }
-            TestSuiteTok    -> p {tsFile = v}
             GraphicalTok    -> p {isGraphical = (v == "True")}
             Optimisations   -> p {optimisations = readOpt } 
             ExtraPolarities -> p {extrapol = (polParser . lexer) v} 
@@ -289,6 +283,7 @@ data GramParams = GrmPrms {
   semlexFile     :: String,
   lexiconFile    :: String,
   lexiconDir     :: String,
+  tsFile         :: String, 
   morphFile      :: String,
   rootCatsParam  :: [String],
   grammarType    :: GrammarType
@@ -330,6 +325,7 @@ parseGramIndex filename contents =
        macrosFile  = toAbs (macrosFile gp),
        lexiconFile = toAbs (lexiconFile gp),
        semlexFile  = toAbs (semlexFile gp),
+       tsFile      = toAbs (tsFile gp),
        lexiconDir  = if null ldir then "" else toAbs ldir,
        morphFile   = if null morphf then "" else toAbs morphf
      }
@@ -343,6 +339,7 @@ defineGramParams [] = GrmPrms {
   semlexFile  = "",
   lexiconFile = "",
   lexiconDir  = "",
+  tsFile      = "",
   morphFile   = "",
   rootCatsParam = [],
   grammarType   = GeniHand
@@ -353,6 +350,7 @@ defineGramParams ((f,v):s) =
             LexiconTok    -> next {lexiconFile = v} 
             LexiconDirTok -> next {lexiconDir  = v}
             SemLexiconTok -> next {semlexFile  = v}
+            TestSuiteTok  -> next {tsFile = v}
             MorphInfoTok  -> next {morphFile   = v}
             RootCategoriesTok -> next {rootCatsParam = words v}
             GrammarType -> next {grammarType = t} 

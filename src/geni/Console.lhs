@@ -35,8 +35,7 @@ import General(fst3,snd3,thd3)
 import Geni
 import Mstate(avgGstats, numcompar, szchart, geniter)
 import Configuration(Params, isGraphical, isBatch,
-                     grammarFile, tsFile, 
-                     emptyParams, optimisations, batchRepeat,
+                     grammarFile, emptyParams, optimisations, batchRepeat,
                      optBatch) 
 \end{code}
 }
@@ -92,9 +91,8 @@ consoleGenerate' pstRef lastPa newPa = do
   putStrLn "======================================================"
   -- only load files if neccesary
   let lastGrammar    = grammarFile lastPa
-      lastTargetSem  = tsFile lastPa
-  when (lastGrammar /= grammarFile newPa)  $ loadGrammar pstRef
-  when (lastTargetSem /= tsFile newPa)     $ loadTestSuite pstRef
+  when (lastGrammar /= grammarFile newPa) $ do
+    loadGrammar pstRef
   -- determine how we should run the generator
   let runVanilla = do res <- runGeni pstRef doGeneration
                       putStrLn $ show res

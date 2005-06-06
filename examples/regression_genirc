@@ -11,19 +11,12 @@ Optimisations = PolOpts, AdjOpts
 % the tests
 
 Grammar  = examples/ej/index
-TestSuite = examples/ej/ej1
 !
 
 Grammar  = examples/chatnoir/index
-TestSuite = examples/chatnoir/sem
 !
 
-Grammar    = examples/demo/index
-TestSuite = examples/demo/donnersem
+Grammar   = examples/demo/index
 !
-TestSuite = examples/demo/promettredonnersem
-!
-
 Grammar   = examples/promettre/index
-TestSuite = examples/promettre/testsuite
 MorphCmd  = etc/stupidmorph.pl

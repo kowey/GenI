@@ -49,7 +49,7 @@ import System.IO.Unsafe(unsafePerformIO)
 import System.Posix.Files(fileMode, getFileStatus, unionFileModes, 
                           setFileMode, ownerExecuteMode)
 import System.Mem
-import System.Process 
+-- import System.Process 
 
 import Control.Monad (when)
 import CPUTime (getCPUTime)
@@ -739,12 +739,13 @@ loadGrammar pstRef =
      putStrLn $ "done"
      --
      let gparams = parseGramIndex filename gf
+     modifyIORef pstRef (\x -> x{gramPa   = gparams})
      case (grammarType gparams) of 
         CGManifesto -> return ()
         _           -> loadGeniMacros  pstRef gparams
      loadLexicon   pstRef gparams
      loadMorphInfo pstRef gparams
-     modifyIORef pstRef (\x -> x{gramPa   = gparams})
+     loadTestSuite pstRef 
 \end{code}
 
 \subsubsection{Lexicon}
@@ -1002,9 +1003,8 @@ loadTestSuite :: ProgStateRef -> IO ()
 loadTestSuite pstRef = do
   pst <- readIORef pstRef
   let config   = pa pst
-      filename = tsFile config 
-  putStr $ "Loading Test Suite " 
-           ++ filename ++ "...\n"
+      filename = (tsFile.gramPa) pst
+  putStr $ "Loading Test Suite " ++ filename ++ "...\n"
   hFlush stdout
   tstr <- geniReadFile filename
   -- helper functions for test suite stuff

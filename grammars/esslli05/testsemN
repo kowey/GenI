@@ -1,5 +1,0 @@
-semantics: [ consultant(c)   def(c) 
-             directeur(m)   def(m) 
-             travailler(tra c) 
-             promettre(pro m c int) 
-           ]

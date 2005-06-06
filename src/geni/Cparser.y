@@ -85,7 +85,6 @@ InputList :
 
 idkey :: { PosToken }
 idkey:   grammar  {$1}  
-       | tsuite   {$1}
        | morphcmd {$1}
 
 boolkey :: { Token }
@@ -155,6 +154,7 @@ gramIdkey: lexicon    {$1}
          | macros     {$1}  
          | semlex     {$1}
          | morphinfo  {$1}
+         | tsuite     {$1}
 
 gtype :: { Token }
       :  cgmanifesto { untok $1 }

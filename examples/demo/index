@@ -1,4 +1,5 @@
 Macros  = gram/demomac 
 Lexicon = gram/demolex
 SemLexicon = gram/demosemlex 
+TestSuite = suite
 RootCategories = p

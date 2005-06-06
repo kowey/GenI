@@ -2,4 +2,5 @@ GrammarType = CGManifesto
 Macros     = gram/headSem.rec
 Lexicon    = prefil/my.prefil
 LexiconDir = prefil/
+TestSuite  = suite
 RootCategories = s

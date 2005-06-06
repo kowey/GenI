@@ -3,3 +3,4 @@ Lexicon    = gram/synlex
 SemLexicon = gram/semlex_pro 
 %MorphInfo = gram/morphinfo
 RootCategories = s
+TestSuite  = suite

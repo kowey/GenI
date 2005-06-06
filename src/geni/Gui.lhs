@@ -56,7 +56,7 @@ import Tags (idname,mapBySem,emptyTE,tsemantics,tpolarities,thighlight,
 
 import Configuration(Params, grammarFile, macrosFile, 
                      lexiconDir, lexiconFile,
-                     tsFile, optimisations, 
+                     optimisations, 
                      usetrash,
                      autopol, polarised, polsig, chartsharing, 
                      semfiltered, extrapol, footconstr)
@@ -77,34 +77,35 @@ import Polarity
 \begin{code}
 guiGenerate :: ProgStateRef -> IO() 
 guiGenerate pstRef = do
-  loadGrammar pstRef
+  pst <- readIORef pstRef
+  let gramConfig = gramPa pst
+      ldir       = lexiconDir gramConfig
+  Monad.when (null ldir) $ loadGrammar pstRef
   start (mainGui pstRef)
 \end{code}
 
+This is the first screen that the user sees in the GenI interface.
+We start things off by creating a frame and some menus.
+
 \begin{code}
 mainGui :: ProgStateRef -> IO ()
-mainGui pstRef = do 
+mainGui pstRef 
+  = do --
        loadTestSuite pstRef
        pst <- readIORef pstRef
        -- Top Window
        f <- frame [text := "Geni Project", clientSize := sz 600 350]
        -- create statusbar field
        status <- statusField   [text := "Welcome to GenI"]
-\end{code}
-
-We set up the menu and the status bars.
-
-\begin{code}
        -- create the file menu
        fileMen   <- menuPane [text := "&File"]
-       quitMenIt <- menuQuit fileMen [text := "Quit"]
+       loadMenIt <- menuItem fileMen [text := "&Open index file"]
+       quitMenIt <- menuQuit fileMen [text := "&Quit"]
        set quitMenIt [on command := close f]
        -- create the tools menu
        toolsMen      <- menuPane [text := "&Tools"]
        gbrowserMenIt <- menuItem toolsMen [ text := "&Inspect grammar" 
-                                          , help := "Displays the trees in the grammar" 
-                                          ]
-
+                                          , help := "Displays the trees in the grammar" ]
        -- create the help menu
        helpMen   <- menuPane [text := "&Help"]
        aboutMeIt <- menuAbout helpMen [help := "About"]
@@ -123,27 +124,25 @@ We add some buttons for loading files and running the generator.
 \begin{code}
        let config     = pa pst 
        -- Target Semantics
-       tsTextBox <- textCtrl f [ text := ""
-                             , wrap := WrapWord
-                             , clientSize := sz 300 80 ]
+       tsTextBox <- textCtrl f [ wrap := WrapWord
+                               , clientSize := sz 300 80 ]
        testCaseChoice <- choice f [ selection := 0 ]
        readTestSuite pstRef tsTextBox testCaseChoice 
        -- Box and Frame for files loaded 
-       let gFilename = grammarFile config 
-       tsFileLabel       <- staticText f [ text := (trim.tsFile) config ]
-       grammarFileLabel  <- staticText f [ text := gFilename ]
+       grammarFileLabel  <- staticText f []
        lexiconFileChoice <- choice f []
-       readGrammar pstRef lexiconFileChoice 
-        -- lexFleL
-       let guiParts = (grammarFileLabel, tsFileLabel, 
-                       tsTextBox, testCaseChoice)
-       loadfileBt <- button f [ text := "Load files"
-                              , on command := gramsemBrowser pstRef guiParts ] 
+       -- Generate and Debug 
+       debugBt <- button f [ text := "  Debug  "
+                           , on command := doGenerate f pstRef tsTextBox True ]
+       genBt  <- button f [text := "  Generate  ",
+                 on command := doGenerate f pstRef tsTextBox False ]
+\end{code}
+
+Let's not forget the optimisations...
+
+\begin{code}
        polChk <- checkBox f [ text := "Polarities"
                             , checked := polarised config ]
-       
---       predictingChk <- checkBox f [ text := "Predictors"
---                                   , checked := predicting config ]
        autopolChk <- checkBox f [ text := "Pol detection"
                                 , checked := autopol config ]
        polsigChk <- checkBox f [ text := "Pol signatures"
@@ -172,26 +171,23 @@ We add some buttons for loading files and running the generator.
        set chartsharingChk [on command := toggleChk pstRef chartsharingChk ChartSharing]
        set semfilterChk    [on command := toggleChk pstRef semfilterChk SemFiltered] 
        set footconstrChk   [on command := toggleChk pstRef footconstrChk FootConstraint] 
-       -- Generate and Debug 
-       debugBt <- button f [ text := "  Debug  "
-                           , on command := doGenerate f pstRef tsTextBox True ]
-       genBt  <- button f [text := "  Generate  ",
-                 on command := doGenerate f pstRef tsTextBox False ]
 \end{code}
-      
-Pack it all together.
+
+Pack it all together, perform the layout operation.
 
 \begin{code}
+       -- set any last minute handlers, run any last minute functions
+       let guiParts = (grammarFileLabel, 
+                       tsTextBox, testCaseChoice, 
+                       lexiconFileChoice)
+       set loadMenIt [ on command := loadMenuCmd pstRef f guiParts ]  
+       readGrammar pstRef grammarFileLabel lexiconFileChoice 
        togglePolStuff
        --
        let gramsemBox = --boxed "Files last loaded" $ -- can't used boxed with wxwidgets 2.6 -- bug?
-                   hfill $ row 5 [ column 5 [ label "Files last loaded" 
-                                    , row 5 [ label "input sem: ",     widget tsFileLabel ] 
-                                    , row 5 [ label "grammar index: ", widget grammarFileLabel
-                                            , label "(includes lexicon)" ]
-                                    , row 5 [ label "-lexicon file: ", hfill $ widget lexiconFileChoice ] ] 
-                         , floatBottomRight $ column 5 [ hfloatRight $ widget loadfileBt ] 
-                         ] 
+                   hfill $ column 5 [ 
+                              row 5 [ label "index file: ", widget grammarFileLabel ]
+                            , row 5 [ label "lexicon: ", hfill $ widget lexiconFileChoice ] ] 
            optimBox =  --boxed "Optimisations " $ -- can't used boxed with wxwidgets 2.6 -- bug?
                     column 5 [ label "Optimisations" 
                              , dynamic $ widget polChk 
@@ -217,6 +213,8 @@ Pack it all together.
                    ]]
 \end{code}
 
+Don't forget all the helper functions!
+
 \subsection{Configuration}
 
 Toggles for optimisatons controlled by a check box.  They enable or 
@@ -232,102 +230,60 @@ toggleChk pstRef chk tok = do
   modifyIORef pstRef (\x -> x{pa = fn (pa x)})
   return ()
 \end{code}
- 
+
+\paragraph{loadMenuCmd} is meant to be the handler executed when you
+select the "Open index file" menu item.  It loads the grammar and 
+updates all the relevant GUI widgets.
+
+\begin{code}
+loadMenuCmd :: (Textual b, Able c, Selecting c, Selection c, Items c String) 
+               => ProgStateRef -> Window a -> (StaticText d, b, c, c) -> IO ()
+loadMenuCmd pstRef f guiParts = 
+  do pst <- readIORef pstRef
+     let filename  = grammarFile (pa pst)
+         filetypes = [("Any file",["*.*"])]
+     fsel <- fileOpenDialog f True True "Choose your file..." filetypes "" filename
+     case fsel of
+       -- if the user does not select any file there are no changes
+       Nothing       -> return () 
+       Just file     -> loadMenuHelper pstRef f (trim file) guiParts
+
+loadMenuHelper pstRef f filename guiParts = 
+  do -- get current directory
+     curDir <- getCurrentDirectory
+     let isAbs x    = slash `isPrefixOf` x
+         toAbs path = if isAbs path then path
+                      else (curDir ++ slash ++ path)
+     -- write the new values
+     let newPa p = p { grammarFile = toAbs filename }
+     modifyIORef pstRef (\x -> x{pa = newPa (pa x)})
+     -- load in the files
+     let (gText, tsBox, tsChoice, lexChoice) = guiParts
+     loadGrammar pstRef 
+     readGrammar pstRef gText lexChoice
+     readTestSuite pstRef tsBox tsChoice
+  `catch` (errHandler "Error loading the grammar or test suite: ")
+  where errHandler title err = errorDialog f title (show err)
+\end{code}
+
 % --------------------------------------------------------------------
 \section{Loading files}
 % --------------------------------------------------------------------
-
-\paragraph{gramsemBrowser}: creates the popup window when you press 
-the Load files button.  Allows for changing grammar and semantics files.
-TODO: respond to the Enter key select the text?
-
-\begin{code}
-gramsemBrowser :: (Textual a, Visible a, Textual b, Selecting c, Selection c, Items c String) 
-               => ProgStateRef -> (a,a,b,c) -> IO ()
-gramsemBrowser pstRef guiParts = do
-  pst <- readIORef pstRef
-  let config = pa pst
-      tfile = tsFile config 
-      gfile = grammarFile config
-  f <- frame [text := "Grammar and semantics", clientSize := sz 400 150]
-  -- Grammar files selection
-  entryG  <- textEntry f [ text := trim gfile ]
-  fselBtG <- button f [ text := "Browse"
-                      , on command := newFileSel f entryG  ]
-  -- Target semantics file selection
-  entryS   <- textEntry f [ text := trim tfile ]
-  fselBtS <- button f [ text := "Browse"
-                      , on command := newFileSel f entryS ]
-  -- Cancel button
-  cancelBt <- button f [ text := "Cancel" , on command := close f ]
-  -- Load button
-  let (gl,tl,tsBox,tsChoice) = guiParts
-  let errHandler title err = errorDialog f title (show err)
-  let loadCmd = do -- get current directory
-                   curDir <- getCurrentDirectory
-                   let isAbs x    = slash `isPrefixOf` x
-                       toAbs path = if isAbs path then path
-                                    else (curDir ++ slash ++ path)
-                   -- get new values
-                   teG' <- get entryG text
-                   teS' <- get entryS text
-                   let teG = (toAbs.trim) teG'
-                       teS = (toAbs.trim) teS'
-                   -- write the new values
-                   let newPa p = p { grammarFile = teG 
-                                   , tsFile = teS }
-                   modifyIORef pstRef (\x -> let pa' = pa x in x{pa = newPa pa'})
-                   -- load in the files
-                   loadGrammar pstRef  
-                   set gl [ text := teG ]
-                   --
-                   loadTestSuite pstRef 
-                   readTestSuite pstRef tsBox tsChoice
-                   set tl [ text := teS ]
-                   --
-                   close f 
-                `catch` (errHandler "Error loading the grammar or test suite: ")
-
-  loadBt   <- button f [ text := "Load" 
-                       , on command := loadCmd ]
-  -- Pack it all together.
-  set f [layout := column 5 
-              [ -- Grammar selection 
-                hfill $ row 5 [ label "grammar", hfill $ widget entryG, widget fselBtG ]
-              , -- Semantics
-                hfill $ row 5 [ label "input sem", hfill $ widget entryS, widget fselBtS ]
-              , -- Load button 
-                hfloatRight $ row 5 [ widget cancelBt, widget loadBt ]
-              ] ]
-\end{code}
-
-\paragraph{newFileSel} Create a file selection dialog that gets its initial
-filename from the given entry and writes the result back to the entry 
-
-\begin{code}
-newFileSel :: (Window a) -> (TextCtrl b) -> IO ()
-newFileSel f ety = 
-    do filename' <- get ety text
-       let filename = trim filename'
-       fsel <- fileOpenDialog f True True "Choose your file..." [] "" filename
-       case fsel of
-        -- if the user does not select any file there are no changes
-        Nothing       -> return () 
-        --
-        Just file     -> set ety [ text := file ]
-\end{code}
 
 \paragraph{readGrammar} is used to update the graphical interface after
 calling \fnref{loadGrammar}. This used when you first start the 
 graphical interface or when you load a grammar.
 
 \begin{code}
-readGrammar :: (Selecting b, Selection b, Items b String, Able b) 
-              => ProgStateRef -> b -> IO ()
-readGrammar pstRef lexChoice = 
+readGrammar :: (Textual a, Selecting b, Selection b, Items b String, Able b) 
+              => ProgStateRef -> a -> b -> IO ()
+readGrammar pstRef gText lexChoice = 
   do pst <- readIORef pstRef
      let gramConfig = gramPa pst
          ldir       = lexiconDir gramConfig
+         config     = pa pst
+         gFilename  = grammarFile config
+     set gText [ text := gFilename ]
      -- if the lexicon directory is set, we look at its
      -- contents
      ldirContents' <- if null ldir then return [] 
