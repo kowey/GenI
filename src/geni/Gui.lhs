@@ -125,7 +125,7 @@ We add some buttons for loading files and running the generator.
        let config     = pa pst 
        -- Target Semantics
        tsTextBox <- textCtrl f [ wrap := WrapWord
-                               , clientSize := sz 300 80 ]
+                               , clientSize := sz 400 80 ]
        testCaseChoice <- choice f [ selection := 0 ]
        readTestSuite pstRef tsTextBox testCaseChoice 
        -- Box and Frame for files loaded 
@@ -186,8 +186,8 @@ Pack it all together, perform the layout operation.
        --
        let gramsemBox = --boxed "Files last loaded" $ -- can't used boxed with wxwidgets 2.6 -- bug?
                    hfill $ column 5 [ 
-                              row 5 [ label "index file: ", widget grammarFileLabel ]
-                            , row 5 [ label "lexicon: ", hfill $ widget lexiconFileChoice ] ] 
+                              row 5 [ label "index file: ", hfill $ widget grammarFileLabel ]
+                            , row 5 [ label "lexicon: ",    hfill $ widget lexiconFileChoice ] ] 
            optimBox =  --boxed "Optimisations " $ -- can't used boxed with wxwidgets 2.6 -- bug?
                     column 5 [ label "Optimisations" 
                              , dynamic $ widget polChk 
@@ -241,8 +241,8 @@ loadMenuCmd :: (Textual b, Able c, Selecting c, Selection c, Items c String)
 loadMenuCmd pstRef f guiParts = 
   do pst <- readIORef pstRef
      let filename  = grammarFile (pa pst)
-         filetypes = [("Any file",["*.*"])]
-     fsel <- fileOpenDialog f True True "Choose your file..." filetypes "" filename
+         filetypes = [("Any file",["*","*.*"])]
+     fsel <- fileOpenDialog f False True "Choose your file..." filetypes "" filename
      case fsel of
        -- if the user does not select any file there are no changes
        Nothing       -> return () 
