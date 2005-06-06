@@ -139,7 +139,7 @@ $(LEXERS): %.hs: %.x
 	alex -g $< 
 
 $(PARSERS): %.hs: %.y
-	happy -i/tmp/happy-`basename $@ .hs`.log -a -g -c -m `basename $@ .hs` $< 
+	happy -a -g -c -m `basename $@ .hs` $< 
 
 compile: $(LEXERS) $(PARSERS) $(OFILE) 
 
