@@ -375,10 +375,8 @@ doGenerate f pstRef sembox debugger = do
   (if debugger then dodebug else dogen) `catch` handler1
 \end{code}
 
-\paragraph{resultsGui} 
-
-Results displays generation result in a window.  The window consists of
-various tabs for intermediary results in lexical
+\paragraph{resultsGui} displays generation result in a window.  The window
+consists of various tabs for intermediary results in lexical
 selection, derived trees, derivation trees and generation statistics.
 
 \begin{code}
@@ -393,9 +391,9 @@ resultsGui pstRef res = do
   p    <- panel f []
   nb   <- notebook p []
   -- realisations tab
-  resTab <- realisationsGui pstRef nb $ grDerived res
+  resTab <- realisationsGui pstRef nb (grDerived res)
   -- statistics tab
-  statTab <- messageGui nb $ show res 
+  statTab <- statsGui nb (show res)
   -- pack it all together 
   set f [ layout := container p $ column 0 [ tabs nb 
         -- we put the realisations tab last because of what
@@ -406,6 +404,29 @@ resultsGui pstRef res = do
         , clientSize := sz 700 600 
         ] 
   return ()
+\end{code}
+
+\paragraph{statsGui} displays the generation statistics and provides a
+handy button for saving results to a text file.
+
+\begin{code}
+statsGui :: (Window a) -> String -> IO Layout 
+statsGui f msg = 
+  do p <- panel f []
+     -- sw <- scrolledWindow p [scrollRate := sz 10 10 ]
+     t  <- textCtrl p [ text := msg, enabled := False ]
+     saveBt <- button p [ text := "Save to file" 
+                        , on command := saveCmd ]
+     return (fill $ container p $ column 1 $ 
+              [ fill $ widget t,
+                hfloatRight $ widget saveBt ] )
+  where
+    saveCmd = 
+      do let filetypes = [("Any file",["*","*.*"])]
+         fsel <- fileSaveDialog f False True "Save to" filetypes "" "" 
+         case fsel of
+           Nothing   -> return () 
+           Just file -> writeFile file msg
 \end{code}
 
 \subsection{Lexically selected items}
