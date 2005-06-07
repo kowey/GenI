@@ -36,8 +36,6 @@ module GeniParsers (
   Token(..)
 ) where
 
-import Mparser (mParser)
-
 import Lex2
 import ParserLib
 import Cparser

@@ -381,8 +381,8 @@ applySubstitution te =
          -- we rename tags to do a proper substitution
          rte = renameTagElem 'A' te
          rgr' = map (renameTagElem 'B') gr'
-         res = ((concat (map (\x -> iapplySubst rte x (substnodes   x)) rgr')) ++
-                (concat (map (\x -> iapplySubst x rte (substnodes rte)) rgr')))
+         res = ((concatMap (\x -> iapplySubst rte x (substnodes   x)) rgr') ++
+                (concatMap (\x -> iapplySubst x rte (substnodes rte)) rgr'))
      incrNumcompar (2 * (length gr))
      return res
 \end{code}
