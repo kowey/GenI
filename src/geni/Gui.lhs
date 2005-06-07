@@ -65,7 +65,6 @@ import GeniParsers
 import Mstate (Gstats, Mstate, initGstats, initMState, runState, 
                generate, generateStep,  
                initrep, auxrep, genrep, trashrep,
-               genRepToList,
                genstats, szchart, numcompar, geniter)
 import Polarity
 -- import Debug.Trace
@@ -749,7 +748,7 @@ showGenState res st =
   let agenda    = initrep st
       auxiliary = auxrep st
       trash     = trashrep st
-      chart     = genRepToList $ genrep  st
+      chart     = genrep  st
       --
       trees     =  (emptyTE:agenda) 
                  ++ (emptyTE:chart) 

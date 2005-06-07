@@ -54,9 +54,8 @@ module Mstate (
    -- Make your own generator!   
    iapplySubstNode, nullInitRep, getSem, selectGiven,
    incrNumcompar, incrSzchart, incrGeniter, 
-   renameTagElem, getGenRep, lookupGenRep, genRepToList,
-   getInitRep,
-   addListToGenRep)
+   renameTagElem, getGenRep, lookupGenRep,
+   getInitRep)
 where
 \end{code}
 
@@ -72,7 +71,6 @@ import Control.Monad.State (State,
                    get, 
                    put)
 
-import qualified Data.Map as Map -- ghc 6.2.2 compatability layer  
 import Data.List (intersect, partition, delete, sort, nub, (\\))
 import Data.Tree 
 import Data.Bits
@@ -125,8 +123,7 @@ import General (BitVector, fst3, mapTree)
 \begin{code}
 type InitRep = [TagElem]
 type AuxRep  = [TagElem]
--- bitvector of polarity automaton paths
-type GenRep  = Map.Map BitVector [TagElem] 
+type GenRep  = [TagElem] 
 type TrashRep = [TagElem]
 
 iaddToInitRep :: InitRep -> TagElem -> InitRep
@@ -136,19 +133,10 @@ iaddToAuxRep :: AuxRep -> TagElem -> AuxRep
 iaddToAuxRep a te = te:a
 
 iaddToGenRep :: GenRep -> TagElem -> GenRep
-iaddToGenRep c te = Map.insertWith (++) (tpolpaths te) [te] c
+iaddToGenRep c te = te:c
 
 iaddToTrashRep :: TrashRep -> TagElem -> TrashRep 
 iaddToTrashRep t te = te:t
-
-listToGenRep :: [TagElem] -> GenRep
-listToGenRep = addListToGenRep Map.empty 
-
-addListToGenRep :: GenRep -> [TagElem] -> GenRep
-addListToGenRep g tes = foldr (flip iaddToGenRep) g tes 
-
-genRepToList :: GenRep -> [TagElem]
-genRepToList gr = concat $ Map.elems gr
 \end{code}
 
 \subsection{Generator statistics}
@@ -215,7 +203,7 @@ data Mstate = S{initrep    :: InitRep,
 initMState ::  [TagElem] -> [TagElem] -> Sem -> Params -> Mstate
 initMState cands chart ts config = 
   let (a,i) = partition isPureAux cands 
-      c = listToGenRep chart
+      c = chart
   in S{initrep  = i, 
        auxrep   = a,
        genrep   = c,
@@ -346,14 +334,8 @@ The current implementation searches for trees which
 lookupGenRep :: TagElem -> MS [TagElem]
 lookupGenRep given = do
   chart <- getGenRep
-  -- we ought to count each key lookup
-  -- incrNumcompar (length $ Map.keys chart)
-  -- do the lookup itself
   let gpaths = tpolpaths given
-      isGood k _ = isect /= 0
-                   where isect = k .&. gpaths 
-      goodChart  = Map.filterWithKey isGood chart 
-  return (genRepToList goodChart)
+  return [ t | t <- chart, (tpolpaths t) .&. gpaths /= 0 ] 
 \end{code}
 
 \paragraph{intersectPolPaths} calculates the intersection of two trees'
@@ -763,7 +745,7 @@ switchToAux = do
   st <- get
   let doneSub    = null.substnodes 
       isInit  x  = (ttype x) == Initial
-      chart = genRepToList $ genrep st
+      chart = genrep st
       -- You might be wondering why we ignore the auxiliary trees in the 
       -- chart; this is because all the syntactically complete auxiliary
       -- trees have already been filtered away by calls to classifyNew
@@ -777,7 +759,7 @@ switchToAux = do
                    ++ "\naux: " ++ (showLite aux) -}
   put st{initrep = initial,
          auxrep = [], 
-         genrep = listToGenRep aux,
+         genrep = aux,
          step = Auxiliar}
 \end{code}
 
