@@ -42,6 +42,18 @@ semantics: [ directeur(m) poss(m us)
 	     hebdomadaire(c)
              organiser(org m c) ]
 
+BLite
+semantics: [ directeur(m) poss(m us)
+             seminaire(c) indef(c) dequipe(c)  nouveau(c) 
+	     hebdomadaire(c)
+             organiser(org m c) ]
+
+BLite2
+semantics: [ directeur(m) nouveau(m) poss(m us)
+             seminaire(c) indef(c) dequipe(c)  nouveau(c) 
+	     hebdomadaire(c)
+             organiser(org m c) ]
+
 BR
 semantics: [ directeur(m) poss(m us)
              seminaire(c) indef(c) special(c) hebdomadaire(c)

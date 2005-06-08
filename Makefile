@@ -16,7 +16,7 @@
 OS:=$(shell uname)
 
 SRC_GENI 	= ./src/geni
-GHCFLAGS        = -cpp -fglasgow-exts -threaded -O
+GHCFLAGS        = $(LDFLAGS) -cpp -fglasgow-exts -threaded -O
 ifeq ($(OS),Darwin)
 GHCFLAGS += -framework AppKit
 endif
@@ -158,7 +158,7 @@ nogui : $(LEXERS) $(PARSERS)
 
 debugger: $(LEXERS) $(PARSERS)
 	$(GHC) -O -prof -auto-all --make $(DIFILE).lhs -o debugger-$(OFILE)
-	$(GHC) -O -prof -auto-all --make $(CIFILE).lhs -o debugger-$(COFILE)
+#	$(GHC) -O -prof -auto-all --make $(CIFILE).lhs -o debugger-$(COFILE)
 
 # --------------------------------------------------------------------
 # documentation 
