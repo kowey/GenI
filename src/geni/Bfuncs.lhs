@@ -61,7 +61,7 @@ module Bfuncs(
 \begin{code}
 import Debug.Trace -- for test stuff
 import Data.Char (isUpper)
-import Data.List (sortBy, nub)
+import Data.List (sortBy, nub, foldl')
 import Data.Tree
 
 import Btypes
@@ -218,10 +218,11 @@ Given an Flist and a substitution, applies
  the substitution to the Flist.
 \begin{code}
 substFlist :: Flist -> Subst -> Flist
-substFlist fl sl = foldl helper fl sl
+substFlist fl sl = foldl' helper fl sl
   where -- note: don't try to refactor with substFlist';
         -- this is here for performance reasons
-        helper fl (s1, s2) = map (\ (f, v) -> (f, if (v ==s1) then s2 else v)) fl
+        helper [] _ = []
+        helper ((f,v):xs) (s1, s2) = (f, if (v==s1) then s2 else v) : helper xs (s1,s2) 
 \end{code}
 
 \ignore{
