@@ -12,5 +12,5 @@ head out outhead
 diff outhead-stable outhead
 echo "----- here are the performance results -----"
 head prof > profhead
-head ../PerfGeniStable/prof-stable > profhead-stable.prof
+head ../PerfStableGeni/prof-stable > profhead-stable.prof
 diff profhead-stable profhead 

@@ -1,4 +1,4 @@
-Macros     = gram/semFrenchLite.geni
+Macros     = gram/official.geni
 Lexicon    = gram/synlex
 SemLexicon = gram/semlex 
 %MorphInfo = gram/morphinfo
