@@ -28,6 +28,8 @@ GHCPACKAGES     =
 #-package HaXml
 GHCPACKAGES_GUI = -package wx $(GHCPACKAGES) 
 GHC             = ghc $(GHCFLAGS) $(GHCINCLUDE)
+GHC_PROF	= $(GHC) -prof -auto-all -hisuf p_hi -osuf p_o 
+
 
 SOFTWARE        = Geni 
 VERSION         = 0.7
@@ -126,7 +128,7 @@ clean: tidy
 
 tidy:
 	rm -f $(SRC_GENI)/*.{dvi,aux,log,bbl,blg,out,toc}
-	rm -f $(SRC_GENI)/*.{hi,o}
+	rm -f $(SRC_GENI)/*.{p_hi,p_o,hi,o}
 
 dep: 
 	$(GHC) -M $(GHCPACKAGES_GUI) $(IFILE).lhs
@@ -149,15 +151,15 @@ $(OFILE) : $(LEXERS) $(PARSERS)
 	$(OS_SPECIFIC_STUFF)
 
 $(COFILE) : $(LEXERS) $(PARSERS) 
-	$(GHC) -O --make $(GHCPACKAGES) $(LEXERS) $(PARSERS) 
-	$(GHC) -O -W --make $(GHCPACKAGES) $(CIFILE).lhs -o $(COFILE) 
+	$(GHC) --make $(GHCPACKAGES) $(LEXERS) $(PARSERS) 
+	$(GHC) -W --make $(GHCPACKAGES) $(CIFILE).lhs -o $(COFILE) 
 
 nogui : $(LEXERS) $(PARSERS) 
 	$(GHC) --make $(GHCPACKAGES) $(LEXERS) $(PARSERS) 
 	$(GHC) -W --make $(GHCPACKAGES) $(DIFILE).lhs -o $(OFILE) 
 
 debugger: $(LEXERS) $(PARSERS)
-	$(GHC) -O -prof -auto-all --make $(DIFILE).lhs -o debugger-$(OFILE)
+	$(GHC_PROF) --make $(DIFILE).lhs -o debugger-$(OFILE)
 #	$(GHC) -O -prof -auto-all --make $(CIFILE).lhs -o debugger-$(COFILE)
 
 # --------------------------------------------------------------------
