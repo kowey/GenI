@@ -9,6 +9,10 @@ STABLE_PROF_FILE=prof-stable
 cd `dirname $0`/..
 
 make debugger
+# quit if make fails 
+MAKE_STATUS=$?
+if [ "${MAKE_STATUS}" -ne 0 ] ; then exit 1; fi
+
 echo "Running GenI ..."
 ./debugger-geni +RTS -p -K50M > ${OUT_FILE} 
 mv debugger-geni.prof ${PROF_FILE}
