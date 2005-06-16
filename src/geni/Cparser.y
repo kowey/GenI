@@ -30,6 +30,8 @@ import Data.List (intersperse)
     tsuite      {(TestSuiteTok,  _, _)}
     tcases      {(TestCasesTok,  _, _)}
     graphical   {(GraphicalTok,   _, _)}
+    ignoresemantics {(IgnoreSemanticsTok, _, _)}
+    maxtrees    {(MaxTreesTok, _, _)}
     optimisations {(Optimisations, _,_)}
     polarised    {(Polarised,   _, _)}
     polopts      {(PolOptsTok,  _, _)}
@@ -68,8 +70,8 @@ Input : InputList
 InputList :: { [CpPair] }
 InputList :
      {[]}
- | repeat '=' num InputList
-     {(Repeat,show $3):$4}
+ | numkey '=' num InputList
+     {($1,show $3):$4}
  | idkey '=' id InputList
      {(untok $1,$3):$4}
  | boolkey '=' true InputList
@@ -83,12 +85,17 @@ InputList :
  | extrapol '=' PolList InputList
      {(untok $1, $3):$4}
 
+numkey :: { Token }
+numkey : repeat   {Repeat}
+       | maxtrees {MaxTreesTok}
+
 idkey :: { PosToken }
 idkey:   grammar  {$1}  
        | morphcmd {$1}
 
 boolkey :: { Token }
 boolkey: graphical  {GraphicalTok}
+       | ignoresemantics {IgnoreSemanticsTok}
 
 {- optimisations -}
 

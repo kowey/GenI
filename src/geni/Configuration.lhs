@@ -37,7 +37,7 @@ module Configuration(
    predicting, semfiltered, footconstr,
    isBatch, batchRepeat, usetrash,
    defaultParams, emptyParams, getConf, optBatch,
-   emptyGramParams,
+   emptyGramParams, ignoreSemantics, maxTrees,
 
    GramParams(..),
    GrammarType(..),
@@ -74,7 +74,16 @@ import GeniParsers (lexer, Token(..), E(..), cParser, giParser, polParser)
 
 The Params data type holds the specification for how Geni should be
 run, its input files, etc.  This is the stuff that would normally be
-found in the configuration file.
+found in the configuration file. (FIXME move following comment?) There
+are two basic generation modes in Geni: 
+\begin{itemize}
+\item one that does consider semantics (the original mode),
+\item and one that does not consider semantics (addition jackie).
+\end{itemize}
+The purpose of the second option is to list (almost) all of the
+sentences a grammar can produce, without bothering with semantics.
+The generation includes some exceptions to ensure that Geni does not
+infinitely loop.
 
 \begin{code}
 data Params = Prms{
@@ -85,7 +94,9 @@ data Params = Prms{
   testCases      :: [String], -- names of test cases
   extrapol       :: Map.Map String Int,
   batchRepeat    :: Integer,
-  usetrash       :: Bool
+  usetrash       :: Bool,
+  ignoreSemantics :: Bool, -- flag for generation without semantics (jackie FIX)
+  maxTrees       :: Maybe Int -- limit on number of trees and subtrees
 } deriving (Show)
 
 autopol      :: Params -> Bool
@@ -119,7 +130,9 @@ emptyParams = Prms {
   optimisations  = [],
   extrapol       = Map.empty,
   batchRepeat    = 1,
-  usetrash       = False
+  usetrash       = False,
+  ignoreSemantics = False,
+  maxTrees       = Nothing
 }
 
 defaultParams :: Params
@@ -222,9 +235,15 @@ defineParams' p ((f,v):s) = defineParams' pnext s
             MorphCmdTok     -> p {morphCmd = v}
             TestCasesTok    -> p {testCases = words v }
             GraphicalTok    -> p {isGraphical = (v == "True")}
+            IgnoreSemanticsTok -> p { ignoreSemantics = (v == "True")
+                                    , maxTrees = case maxTrees p of
+                                          Nothing  -> if (v == "True") then Just 5
+                                                      else Nothing 
+                                          Just lim -> Just lim }
+            MaxTreesTok     -> p {maxTrees = Just (read v)} 
             Optimisations   -> p {optimisations = readOpt } 
             ExtraPolarities -> p {extrapol = (polParser . lexer) v} 
-            Repeat          -> p {batchRepeat = read v} 
+            Repeat          -> p {batchRepeat = read v}
             p -> error ("Unknown configuration parameter: " ++ show p)
         -- when PolOpts and AdjOpts are in the list of optimisations
         -- then include all polarity-related optimisations and 

@@ -73,8 +73,9 @@ import Tags (Tags, TagElem, emptyTE, TagSite,
              tinterface, tpolarities, substnodes, adjnodes, 
              setTidnums, fixateTidnums)
 
-import Configuration(Params, defaultParams, emptyGramParams, getConf, treatArgs, 
-                     grammarFile, grammarType, tsFile, testCases, morphCmd,
+import Configuration(Params, defaultParams, emptyGramParams, getConf, 
+                     treatArgs, grammarFile, grammarType, tsFile,
+                     testCases, morphCmd, ignoreSemantics,
                      GramParams, parseGramIndex, GrammarType(..),
                      macrosFile, lexiconFile, semlexFile, morphFile, rootCatsParam,
                      autopol, polarised, polsig, chartsharing, 
@@ -99,13 +100,7 @@ import Debug.Trace
 import Btypes (emptyLE)
 --import Bfuncs (showSem,showPairs)
 --showlex l = iword l ++ "\n sem: " ++ (showSem.isemantics) l ++ "\n enrich: " ++ (showPairs.ipfeat) l ++ "\n--\n" 
-
--- Not for windows
--- FIXME: even better would be to really figure out all this
--- Posix stuff so that I don't need to use my SysGeni hack
-#ifndef mingw32_BUILD_OS 
 import SysGeni 
-#endif
 \end{code}
 }
 
@@ -795,13 +790,17 @@ loadGeniLexicon pstRef config = do
        putStr $ "Loading Lexicon " ++ lfilename ++ "..."
        hFlush stdout
        lf <- readFile lfilename 
-       let sortlexsem l = l { isemantics = sortSem $ isemantics l }
+       pst <- readIORef pstRef
+       let params = pa pst
+           sortlexsem l = l { isemantics = if (ignoreSemantics params) then []
+                                           else sortSem $ isemantics l }
            semmapper    = mapBySemKeys isemantics
            rawlex       = (lexParser . lexer) lf
            lex          = (semmapper . (map sortlexsem) . fst) rawlex
        putStr ((show $ length $ Map.keys lex) ++ " entries\n")
 
        -- combine the two lexicons
+       {- trace (concatMap (concatMap showlex) $ eltsFM lex) $ -}
        modifyIORef pstRef (\x -> x{le = lex})
 
        return ()
@@ -1023,8 +1022,9 @@ loadTestSuite pstRef = do
       updateTsuite s x = x { tsuite = map cleanup s   
                            , tcases = testCases config}
   let sem = (testSuiteParser . lexer) tstr
+      useSem = not $ ignoreSemantics config
   case sem of 
-    Ok s     -> modifyIORef pstRef $ updateTsuite s 
+    Ok s     -> when useSem $ modifyIORef pstRef $ updateTsuite s 
     Failed s -> fail s
   -- in the end we just say we're done
   --putStr "done\n"
@@ -1037,12 +1037,15 @@ ts field of the ProgState
 \begin{code}
 loadTargetSemStr :: ProgStateRef -> String -> IO ()
 loadTargetSemStr pstRef str = 
-    do putStr "Parsing Target Semantics..."
+    do pst <- readIORef pstRef
+       putStr "Parsing Target Semantics..."
        let semi = (targetSemParser . lexer) str
            smooth (s,r) = (sortSem s, sort r)
-       case semi of 
-         Ok sr    -> modifyIORef pstRef (\x -> x{ts = smooth sr})
-         Failed s -> fail s
+       let params = pa pst
+       if (ignoreSemantics params) then return ()  --modifyIORef pstRef (\x -> x{ts = ([],[])})
+           else case semi of 
+              Ok sr    -> modifyIORef pstRef (\x -> x{ts = smooth sr})
+              Failed s -> fail s
        putStr "done\n"
 \end{code}
 

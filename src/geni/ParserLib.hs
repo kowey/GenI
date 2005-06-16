@@ -7,7 +7,7 @@ data Token =
     TTT | FFF |
     -- 
     GrammarTok   | TSemanticsTok | TestCasesTok | TestSuiteTok | 
-    GraphicalTok | MorphCmdTok | 
+    GraphicalTok | MorphCmdTok | IgnoreSemanticsTok | MaxTreesTok |
     -- grammar file
     GrammarType | GeniHandTok | TAGMLTok | CGManifestoTok |
     MacrosTok | LexiconTok | SemLexiconTok | MorphInfoTok | 

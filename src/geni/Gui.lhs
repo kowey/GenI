@@ -57,7 +57,7 @@ import Configuration(Params, grammarFile, macrosFile,
                      optimisations, 
                      usetrash,
                      autopol, polarised, polsig, chartsharing, 
-                     semfiltered, extrapol, footconstr)
+                     semfiltered, extrapol, footconstr, ignoreSemantics)
 import GeniParsers 
 
 import Mstate (Gstats, Mstate, initGstats, initMState, runState, 
@@ -120,10 +120,19 @@ We add some buttons for loading files and running the generator.
 
 \begin{code}
        let config     = pa pst 
+           suite      = tsuite pst
+           hasSem     = not (null suite)
+           ignoreSem  = ignoreSemantics config
        -- Target Semantics
        tsTextBox <- textCtrl f [ wrap := WrapWord
-                               , clientSize := sz 400 80 ]
-       testCaseChoice <- choice f [ selection := 0 ]
+                               , clientSize := sz 400 80
+                               , enabled := hasSem 
+                               , text := if ignoreSem
+                                         then "%%IgnoreSemantics = True in .genirc\n %%Change to False if you wish to use semantics."
+                                         else "" ]
+       testCaseChoice <- choice f [ selection := 0 
+                                  , enabled := hasSem ]
+
        readTestSuite pstRef tsTextBox testCaseChoice 
        -- Box and Frame for files loaded 
        grammarFileLabel  <- staticText f []
@@ -341,7 +350,7 @@ readTestSuite pstRef tsBox tsChoice =
      set tsChoice [ items := tcaseLabels 
                   , selection := caseSel
                   , on select := onTestCaseChoice ]
-     onTestCaseChoice -- run this once
+     when (not $ null suite) onTestCaseChoice -- run this once
 \end{code}
    
 % --------------------------------------------------------------------

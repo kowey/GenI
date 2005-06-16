@@ -99,7 +99,7 @@ import Tags (TagElem, TagSite, TagDerivation,  TagStatus(..),
              tadjlist
             )
 import Configuration (Params, semfiltered, footconstr,
-                      usetrash)
+                      usetrash, maxTrees)
 import General (BitVector, fst3, mapTree)
 \end{code}
 }
@@ -730,7 +730,8 @@ classifyNew l = do
 
       classify ls x 
         | isResult  x = tbUnify x ls
-        | numTrees  x > numTreesLimit =  return ls -- discard
+        | overLimit x = return ls -- discard
+        -- | numTrees  x > numTreesLimit =  return ls -- discard
         | isPureAux x = do addToAuxRep x
                            return ls
         | otherwise   = do addToInitRep x

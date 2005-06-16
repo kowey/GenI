@@ -30,6 +30,8 @@ tokens :-
   Lexicon                    { tok LexiconTok }
   SemLexicon                 { tok SemLexiconTok }
   MorphInfo                  { tok MorphInfoTok  }
+  IgnoreSemantics            { tok IgnoreSemanticsTok }
+  MaxTrees                   { tok MaxTreesTok }
 
   GrammarType                { tok GrammarType }
   GeniHand                   { tok GeniHandTok }
