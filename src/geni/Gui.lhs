@@ -46,7 +46,7 @@ import Morphology (sansMorph)
 import Geni (ProgState(..), GeniInput(..), GeniResults(..), ProgStateRef,
              doGeneration, runGeni, runMorph,
              combine, loadGrammar, loadLexicon, 
-             loadTestSuite, loadTargetSemStr)
+             loadTargetSemStr)
 import General (trim, fst3, snd3, slash, bugInGeni)
 import Bfuncs (showPred, showSem, showPairs, Sem)
 import Tags (idname,mapBySem,emptyTE,tsemantics,tpolarities,thighlight, 
@@ -88,7 +88,6 @@ We start things off by creating a frame and some menus.
 mainGui :: ProgStateRef -> IO ()
 mainGui pstRef 
   = do --
-       loadTestSuite pstRef
        pst <- readIORef pstRef
        -- Top Window
        f <- frame [text := "Geni Project", clientSize := sz 600 350]

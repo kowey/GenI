@@ -27,7 +27,7 @@ module GeniParsers (
   -- macros 
   mParser,           
   -- lexicons
-  lexParser, semlexParser, morphParser, filParser, 
+  lexParser, morphParser, filParser, 
   -- polarity stuff
   polParser,
   -- parser error status
