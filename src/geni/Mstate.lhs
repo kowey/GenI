@@ -327,6 +327,7 @@ could be combined with the given agenda tree.
 
 The current implementation searches for trees which 
 \begin{itemize}
+\item do not have overlapping semantics with the given
 \item are on the some of the same polarity automaton paths as the given.
 \end{itemize}
 
@@ -335,7 +336,13 @@ lookupGenRep :: TagElem -> MS [TagElem]
 lookupGenRep given = do
   chart <- getGenRep
   let gpaths = tpolpaths given
-  return [ t | t <- chart, (tpolpaths t) .&. gpaths /= 0 ] 
+      gsem   = tsemantics given
+  return [ t | t <- chart
+             -- should be on the same polarity path (chart sharing)
+             , (tpolpaths t) .&. gpaths /= 0 
+             -- semantics should not be overlapping
+             && (null $ intersect (tsemantics t) gsem)
+         ] 
 \end{code}
 
 \paragraph{intersectPolPaths} calculates the intersection of two trees'
@@ -357,15 +364,13 @@ possible substitutions between it and the elements in GenRep
 applySubstitution :: TagElem -> MS ([TagElem])
 applySubstitution te =  
   do gr <- lookupGenRep te
-     let tesem = tsemantics te
-         -- we only substitute tags with no overlaping semantics
-         gr' = filter (\x -> null (intersect (tsemantics x) tesem)) gr
+     let -- tesem = tsemantics te
          -- we rename tags to do a proper substitution
          rte = renameTagElem 'A' te
-         rgr' = map (renameTagElem 'B') gr'
+         rgr' = map (renameTagElem 'B') gr
          res = ((concatMap (\x -> iapplySubst rte x (substnodes   x)) rgr') ++
                 (concatMap (\x -> iapplySubst x rte (substnodes rte)) rgr'))
-     incrNumcompar (2 * (length gr))
+     incrNumcompar (2 * (length gr)) 
      return res
 \end{code}
 
@@ -446,12 +451,9 @@ applyAdjunction :: TagElem -> MS ([TagElem])
 applyAdjunction te = do
    gr <- lookupGenRep te
    st <- get
-   let tesem = tsemantics te
-       -- we only adjunct tags with no overlaping semantics
-       gr' =  filter (\x -> null (intersect (tsemantics x) tesem)) gr
-       -- we rename tags to do a proper adjunction
+   let -- we rename tags to do a proper adjunction
        rte  = renameTagElem 'A' te
-       rgr' = map (renameTagElem 'B') gr'
+       rgr' = map (renameTagElem 'B') gr
        -- strip Nothing
        sn [] = []
        sn (Nothing:xs) = sn xs
@@ -474,7 +476,7 @@ applyAdjunction te = do
                           applied = sn $ map fn rgr'
                           fn x = iapplyAdjNode isFootC x rte (head ranodes)
        --
-       count   = (length gr)
+       count   = (length gr) 
    incrNumcompar count 
    return res
 \end{code}
