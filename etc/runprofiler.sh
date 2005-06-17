@@ -1,5 +1,10 @@
 #!/bin/sh
 
+if [ $# -lt 1 ]; then
+  echo "usage: $0 profoption"
+  exit 1
+fi
+
 SUFFIX=${1}
 STEM=profres-${SUFFIX}
 
