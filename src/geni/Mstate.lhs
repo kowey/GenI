@@ -72,6 +72,7 @@ import Control.Monad.State (State,
                    put)
 
 import Data.List (intersect, partition, delete, sort, nub, (\\))
+import Data.Maybe (catMaybes)
 import Data.Tree 
 import Data.Bits
 
@@ -454,10 +455,6 @@ applyAdjunction te = do
    let -- we rename tags to do a proper adjunction
        rte  = renameTagElem 'A' te
        rgr' = map (renameTagElem 'B') gr
-       -- strip Nothing
-       sn [] = []
-       sn (Nothing:xs) = sn xs
-       sn ((Just x):xs) = x:(sn xs)
        --
        anodes  = adjnodes te
        ahead   = head anodes
@@ -473,7 +470,7 @@ applyAdjunction te = do
                           te2   = te {adjnodes = atail, 
                                       ttree = ntree,
                                       thighlight = [gn]}
-                          applied = sn $ map fn rgr'
+                          applied = catMaybes $ map fn rgr'
                           fn x = iapplyAdjNode isFootC x rte (head ranodes)
        --
        count   = (length gr) 
