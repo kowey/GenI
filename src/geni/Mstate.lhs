@@ -731,7 +731,6 @@ classifyNew l = do
       classify ls x 
         | isResult  x = tbUnify x ls
         | overLimit x = return ls -- discard
-        -- | numTrees  x > numTreesLimit =  return ls -- discard
         | isPureAux x = do addToAuxRep x
                            return ls
         | otherwise   = do addToInitRep x

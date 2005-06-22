@@ -1013,21 +1013,22 @@ loadTestSuite pstRef = do
   pst <- readIORef pstRef
   let config   = pa pst
       filename = (tsFile.gramPa) pst
-  putStr $ "Loading Test Suite " ++ filename ++ "...\n"
-  hFlush stdout
-  tstr <- readFile filename
-  -- helper functions for test suite stuff
-  let cleanup (id, (sm,sr), sn) = (id, newsmsr, sort sn)
-        where newsmsr = (sortSem sm, sort sr)
-      updateTsuite s x = x { tsuite = map cleanup s   
-                           , tcases = testCases config}
-  let sem = (testSuiteParser . lexer) tstr
-      useSem = not $ ignoreSemantics config
-  case sem of 
-    Ok s     -> when useSem $ modifyIORef pstRef $ updateTsuite s 
-    Failed s -> fail s
-  -- in the end we just say we're done
-  --putStr "done\n"
+      useSem   = not $ ignoreSemantics config
+  when useSem $ do
+    putStr $ "Loading Test Suite " ++ filename ++ "...\n"
+    hFlush stdout
+    tstr <- readFile filename
+    -- helper functions for test suite stuff
+    let cleanup (id, (sm,sr), sn) = (id, newsmsr, sort sn)
+          where newsmsr = (sortSem sm, sort sr)
+        updateTsuite s x = x { tsuite = map cleanup s   
+                             , tcases = testCases config}
+    let sem = (testSuiteParser . lexer) tstr
+    case sem of 
+      Ok s     -> modifyIORef pstRef $ updateTsuite s 
+      Failed s -> fail s
+    -- in the end we just say we're done
+    --putStr "done\n"
 \end{code}
 
 \paragraph{loadTargetSemStr} Given a string with some semantics, it
