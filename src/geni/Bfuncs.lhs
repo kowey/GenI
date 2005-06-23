@@ -63,9 +63,12 @@ import Debug.Trace -- for test stuff
 import Data.Char (isUpper)
 import Data.List (sortBy, nub, foldl')
 import Data.Tree
+import QuickCheck
 
 import Btypes
-import General(mapTree, filterTree, listRepNode)
+import General(mapTree, filterTree, listRepNode, fst3, snd3)
+--instance Show (IO()) where
+--  show _ = ""
 \end{code}
 }
 
@@ -350,11 +353,11 @@ to the results, and move on.  This only works if the lists are
 alphabetically sorted beforehand!
 
 \begin{code}
-unifyFeat fs1@((f1, v1):l1) fs2@((f2, v2):l2) =
-  case () of _ | f1 == f2 -> unifyFeatI f1 v1 v2 l1 l2 
-               | f1 <  f2 -> (succ1, (f1, v1):res1, subst1)
-               | f1 >  f2 -> (succ2, (f2, v2):res2, subst2)
-               | otherwise -> error "Feature structure unification is badly broken"
+unifyFeat fs1@((f1, v1):l1) fs2@((f2, v2):l2) 
+   | f1 == f2  = unifyFeatI f1 v1 v2 l1 l2 
+   | f1 <  f2  = (succ1, (f1, v1):res1, subst1)
+   | f1 >  f2  = (succ2, (f2, v2):res2, subst2)
+   | otherwise = error "Feature structure unification is badly broken"
   where (succ1, res1, subst1) = unifyFeat l1 fs2
         (succ2, res2, subst2) = unifyFeat fs1 l2
 \end{code}
@@ -380,18 +383,62 @@ unifyFeatI :: String ->String -> String -> Flist -> Flist -> (Bool, Flist, [(Str
 \begin{code}
 unifyFeatI f v1 v2 l1 l2 = 
   let unifyval
-        | (isAnon v1) = (succ3, (f, v2):res3, subst3)
-        | (isAnon v2) = (succ3, (f, v1):res3, subst3)
-        | (isVar v1)  = (succ1, (f, v2):res1, (v1, v2):subst1) 
-        | (isVar v2)  = (succ2, (f, v1):res2, (v2, v1):subst2)
-        | (v1 == v2)  = (succ3, (f, v1):res3, subst3)
+        | (isAnon v1) = sansrep    v2
+        | (isAnon v2) = sansrep    v1 
+        | (isVar v1)  = withrep v1 v2
+        | (isVar v2)  = withrep v2 v1
+        | (v1 == v2)  = sansrep    v1
         | otherwise   = (False, [], [])
       --
-      (succ1, res1, subst1) = unifyFeat (substFlist' l1 (v1,v2)) l2 
-      (succ2, res2, subst2) = unifyFeat l1 (substFlist' l2 (v2,v1)) 
-      (succ3, res3, subst3) = unifyFeat l1 l2
+      withrep x1 x2 = (succ, r:res, s:subst)
+        where r = (f,x2)
+              s = (x1,x2)
+              (succ,res,subst) = unifyFeat (subfn l1) (subfn l2)
+              subfn l = substFlist' l s 
+      sansrep x2 = (succ, (f,x2):res, subst)
+        where (succ,res,subst) = unifyFeat l1 l2
       --
   in unifyval 
+\end{code}
+
+Note: the unification code should satisfy the following properties 
+(this is using the QuickCheck library)  
+
+\begin{code}
+-- unifying something with itself should always succeed
+sansnull l = null [ (a,b) | (a,b) <- l, null a || null b ]
+
+prop_unifyFeat_self x = sansnull x ==> (fst3 unf == True) && (snd3 unf == x)
+  where unf = unifyFeat x x 
+        
+-- if one side only has anonymous variables, then any unification should
+-- succeed and the attributes of the result should be the union of the
+-- attributes of the things we are unifying
+prop_unifyFeat_uscore x y = sansnull x && sansnull y ==> 
+        (fst3 unf == True) &&
+        map fst (snd3 unf) == (nub $ sort $ union (map fst x2) (map fst y2))
+  where 
+        x2 = tidy x
+        y2 = sort y
+        atts l = nub $ map fst l
+        tidy l = sort $ map (\(a,_) -> (a,"_")) l
+        unf = unifyFeat x2 y2
+        types = (x :: Flist, y :: Flist)
+
+-- if unifying x y suceeeds, then unifying y x should also succeed and give
+-- the same result 
+prop_unifyFeat_sym x y = sansnull x && sansnull y ==> 
+        if fst3 unf 
+        then fst3 unf2 && (snd3 unf == snd3 unf2)
+        else False
+  where 
+        x2 = sort x
+        y2 = sort y
+        unf   = unifyFeat x2 y2
+        unf2  = unifyFeat y2 x2
+        types = (x :: Flist, y :: Flist)
+
+prop_trivial = True
 \end{code}
 
 \subsection{Variables}
