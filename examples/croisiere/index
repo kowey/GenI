@@ -1,5 +1,0 @@
-Macros  = gram/mac 
-Lexicon = gram/lexicon
-SemLexicon = gram/semlex
-RootCategories = p 
-TestSuite = kcroisiere_sem
