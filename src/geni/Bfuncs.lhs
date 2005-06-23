@@ -53,7 +53,7 @@ module Bfuncs(
    showPairs, showAv,
 
    -- Other functions
-   isVar, isAnon, testBtypes 
+   isVar, isAnon, testBtypes,
 ) where
 \end{code}
 
@@ -61,7 +61,7 @@ module Bfuncs(
 \begin{code}
 import Debug.Trace -- for test stuff
 import Data.Char (isUpper)
-import Data.List (sortBy, nub, foldl')
+import Data.List (sortBy, nub, foldl', union, sort)
 import Data.Tree
 import QuickCheck
 
