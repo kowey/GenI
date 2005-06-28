@@ -19,21 +19,20 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 -- This module simply re-exports all functions for GenI parsers.
 
 module GeniParsers ( 
-  lexer, 
   -- configuration files
-  cParser, giParser, 
+  parseConfig, parseIndex,
   -- test suite stuff
-  targetSemParser, testSuiteParser,
+  parseTSem, parseTSuite,
   -- macros 
-  mParser,           
+  parseMac,
   -- lexicons
-  lexParser, morphParser, filParser, 
+  parseLex, parseMorph, parseFil,
   -- polarity stuff
-  polParser,
+  parsePol,
   -- parser error status
   E(..), 
   -- tokens used
-  Token(..)
+  Token(..),
 ) where
 
 import Lex2
@@ -42,3 +41,13 @@ import Cparser
 import Mparser
 import Lparser 
 import Tsparser
+
+parseMac    = mParser.(lexer scMac)
+parseConfig = cParser.(lexer 0) --scConfig
+parseLex    = lexParser.(lexer 0) --scLex
+parseIndex  = giParser.(lexer 0) --scIndex
+parseTSem   = targetSemParser.(lexer 0) --scTSem
+parseTSuite = testSuiteParser.(lexer 0) --scTSuite
+parsePol    = polParser.(lexer 0) --scPol
+parseMorph  = morphParser.(lexer 0) --scMorph
+parseFil    = filParser.(lexer 0) --scFil

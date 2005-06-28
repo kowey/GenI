@@ -583,7 +583,7 @@ runCGMLexSelection pst =
      let idxs = [1..]
          fil  = concat $ zipWith lexEntryToFil lexCand idxs 
      selected <- runSelector gramfile fil
-     let g = case ((mParser.lexer) selected) of 
+     let g = case (parseMac selected) of 
               Ok x     -> x 
               Failed x -> error x 
          --
@@ -780,7 +780,7 @@ loadGeniLexicon pstRef config = do
        sf <- readFile sfilename
        let sortlexsem l = l { isemantics = sortSem $ isemantics l }
            semmapper    = mapBySemKeys isemantics
-           semparsed    = (semlexParser . lexer) sf
+           semparsed    = (semlexParser . lexer) sf -- can't work anymore, no more lexer
            semlex       = (semmapper . (map sortlexsem) . fst) semparsed
        putStr ((show $ length $ Map.keys semlex) ++ " entries\n")
 
@@ -795,7 +795,7 @@ loadGeniLexicon pstRef config = do
            sortlexsem l = l { isemantics = if (ignoreSemantics params) then []
                                            else sortSem $ isemantics l }
            semmapper    = mapBySemKeys isemantics
-           rawlex       = (lexParser . lexer) lf
+           rawlex       = parseLex lf
            lex          = (semmapper . (map sortlexsem) . fst) rawlex
        putStr ((show $ length $ Map.keys lex) ++ " entries\n")
 
@@ -883,7 +883,7 @@ loadCGMLexicon pstRef config = do
            setsem l  = l { isemantics = sem
                          , ipfeat = ipfeat l ++ enr }
              where (sem,enr) = extractCGMSem l
-           lex       = (semmapper . map setsem . filParser . lexer) lf
+           lex       = (semmapper . map setsem . parseFil) lf
        putStr ((show $ length $ Map.keys lex) ++ " entries\n")
 
        -- combine the two lexicons
@@ -970,7 +970,7 @@ loadGeniMacros pstRef config =
      putStr $ "Loading Macros " ++ filename ++ "..."
      hFlush stdout
      gf <- readFile filename
-     let g = case ((mParser.lexer) gf) of 
+     let g = case (parseMac gf) of 
                    Ok x     -> x 
                    Failed x -> error x 
          sizeg  = length g
@@ -994,7 +994,7 @@ loadMorphInfo pstRef config =
         putStr $ "Loading Morphological Info " ++ filename ++ "..."
         hFlush stdout
         gf <- readFile filename
-        let g = (morphParser.lexer) gf
+        let g = parseMorph gf
             sizeg  = length g
         putStr $ show sizeg ++ " entries\n" 
         modifyIORef pstRef (\x -> x{morphinf = readMorph g})
@@ -1023,7 +1023,7 @@ loadTestSuite pstRef = do
           where newsmsr = (sortSem sm, sort sr)
         updateTsuite s x = x { tsuite = map cleanup s   
                              , tcases = testCases config}
-    let sem = (testSuiteParser . lexer) tstr
+    let sem = parseTSuite tstr
     case sem of 
       Ok s     -> modifyIORef pstRef $ updateTsuite s 
       Failed s -> fail s
@@ -1040,7 +1040,7 @@ loadTargetSemStr :: ProgStateRef -> String -> IO ()
 loadTargetSemStr pstRef str = 
     do pst <- readIORef pstRef
        putStr "Parsing Target Semantics..."
-       let semi = (targetSemParser . lexer) str
+       let semi = parseTSem str
            smooth (s,r) = (sortSem s, sort r)
        let params = pa pst
        if (ignoreSemantics params) then return ()  --modifyIORef pstRef (\x -> x{ts = ([],[])})

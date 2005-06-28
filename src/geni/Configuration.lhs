@@ -55,7 +55,7 @@ where
 import Data.List (intersperse)
 import qualified Data.Map as Map
 
-import GeniParsers (lexer, Token(..), E(..), cParser, giParser, polParser)
+import GeniParsers (Token(..), E(..), parseConfig, parseIndex, parsePol)
 \end{code}
 }
 
@@ -151,7 +151,7 @@ getConf :: Params -> IO [Params]
 getConf p =
   catch getConf' (\_ -> createConf)
       where getConf' = do fconf <- readFile ".genirc"
-                          case (cParser.lexer) fconf of 
+                          case parseConfig fconf of 
                             Ok x     -> return (defineParams p x)
                             Failed x -> fail x 
             createConf = do writeFile ".genirc" (defaultParamsStr p)
@@ -172,7 +172,7 @@ and nothing more.
 \begin{code}
 treatArgs :: [Params] -> [String] -> [Params]
 treatArgs params s =
-  case (cParser . lexer . unwords) s of
+  case (parseConfig . unwords) s of
    Ok x     -> params ++ defineParams (last params) x
    Failed x -> error x
 \end{code}
@@ -242,7 +242,7 @@ defineParams' p ((f,v):s) = defineParams' pnext s
                                           Just lim -> Just lim }
             MaxTreesTok     -> p {maxTrees = Just (read v)} 
             Optimisations   -> p {optimisations = readOpt } 
-            ExtraPolarities -> p {extrapol = (polParser . lexer) v} 
+            ExtraPolarities -> p {extrapol = parsePol v} 
             Repeat          -> p {batchRepeat = read v}
             p -> error ("Unknown configuration parameter: " ++ show p)
         -- when PolOpts and AdjOpts are in the list of optimisations
@@ -323,7 +323,7 @@ parseGramIndex :: FilePath -> String -> GramParams
 parseGramIndex filename contents =
   let slash = '/'
       -- parse the index file 
-      args = case (giParser . lexer) contents of
+      args = case parseIndex contents of
                Ok x     -> x 
                Failed x -> error x
       gp   = defineGramParams args

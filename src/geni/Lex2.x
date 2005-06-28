@@ -1,5 +1,12 @@
 {
-module Lex2 (lexer) where
+module Lex2 (
+  lexer,
+  --startcodes
+  scMac,
+  --scConfig, scLex, scIndex, scTSem, scTSuite,
+  --scPol, scMorph, scFil
+
+) where
 
 import ParserLib 
 }
@@ -13,7 +20,7 @@ tokens :-
 
   $white+				;
   \%.*				        ;
-  \".*\"                      { \p s -> tok' (Str $ init $ tail s) p }
+  \".*\"                      { strTok }
 
   True                        { tok TTT }
   False                       { tok FFF }
@@ -68,7 +75,7 @@ tokens :-
   anchor                     { tok Anchor }
   family                     { tok FamilyTok }
   lex                        { tok Lexeme }
-  type                       { tok Type }
+  <scMac> type                       { tok Type }
   subst                      { tok LSubst }
   foot                       { tok LFoot }
   aconstr                    { tok Aconstr }
@@ -85,15 +92,25 @@ tokens :-
   \[                         { tok OB }
   \]                         { tok CB }
  
-  [$digit]+                           { \p s -> tok' (Num $ read s) p  } 
-  [$alpha \_][$alpha $digit \- \_ \/ \. ]*   { \p s -> tok' (ID s) p  } 
+  [$digit]+                           { numTok }
+  [$alpha \_][$alpha $digit \- \_ \/ \. ]*   { idTok }
    
 
 {
-lexer :: String -> [(Token, Int, Int)]
-lexer = alexScanTokens
+lexer :: Int -> String -> [(Token, Int, Int)]
+lexer startcode str = go (alexStartPos,'\n',str)
+  where go inp@(pos,_,str) =
+          case alexScan inp startcode of
+                AlexEOF -> []
+                AlexError _ -> error "lexical error"
+                AlexSkip  inp' len     -> go inp'
+                AlexToken inp' len act -> act pos (take len str) : go inp'
 
 -- Token builder:
 tok  t p s = tok' t p             -- discards the s (this is sugar)
 tok' t (AlexPn _ l c) = (t, l, c) -- used when you need to access the s
+
+strTok posn s = tok' (Str $ init $ tail s) posn 
+numTok posn s = tok' (Num $ read s) posn
+idTok  posn s = tok' (ID s) posn
 }
