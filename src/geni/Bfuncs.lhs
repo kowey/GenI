@@ -401,13 +401,11 @@ unifyFeatI f v1 v2 l1 l2 =
   in unifyval 
 \end{code}
 
-Note: the unification code should satisfy the following properties 
-(this is using the QuickCheck library)  
-
+{\ignore
 \begin{code}
--- unifying something with itself should always succeed
 sansnull l = null [ (a,b) | (a,b) <- l, null a || null b ]
 
+-- unifying something with itself should always succeed
 prop_unifyFeat_self x = sansnull x ==> (fst3 unf == True) && (snd3 unf == x)
   where unf = unifyFeat x x 
         
@@ -437,9 +435,8 @@ prop_unifyFeat_sym x y = sansnull x && sansnull y ==>
         unf   = unifyFeat x2 y2
         unf2  = unifyFeat y2 x2
         types = (x :: Flist, y :: Flist)
-
-prop_trivial = True
 \end{code}
+}
 
 \subsection{Variables}
 
