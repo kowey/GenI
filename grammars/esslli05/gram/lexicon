@@ -5,45 +5,46 @@
 % ----------------------------------------------------------------------
 
 % this seems wrong
-notre det [idx:X]
+notre stddeterminer [idx:X]
 semantics:[poss(X us)]
 
-le det [idx:X]
+le stddeterminer [idx:X]
 semantics:[def(X)]
 
-un det [idx:X]
+un stddeterminer [idx:X]
 semantics:[indef(X)]
 
-ce det [idx:X]
+ce stddeterminer [idx:X]
 semantics:[dem(X)]
 
-le cl []
-semantics:[]
-
+% le    cl 
+ce stddeterminer [idx:X]
+% semantics:[]
 % added for esslli05
-il pro []
-semantics:[]
+% il pro [idx:X]
+ce stddeterminer [idx:X]
+% semantics:[]
 
 % ----------------------------------------------------------------------
 % nouns
 % ----------------------------------------------------------------------
 
-directeur n [idx:X]
+directeur commonNoun [idx:X]
 semantics:[directeur(+X)]
 
-bureau n  [idx:X]
+bureau commonNoun [idx:X]
 semantics:[bureau(+X)]
 
-equipe n [idx:X]
+equipe commonNoun [idx:X]
 semantics:[equipe(+X)]
 
-consultant n [idx:X]
+consultant commonNoun [idx:X]
 semantics:[consultant(+X)]
 
-allemagne pn [idx:X] % co-anchors would be useful for this word
+allemagne propername [idx:X] % co-anchors would be useful for this word
 semantics:[allemagne(+X)]
 
-seminaire n [idx:X]
+seminaire commonNoun [idx:X]
 semantics:[seminaire(+X)]
 
 % ----------------------------------------------------------------------
@@ -51,19 +52,19 @@ semantics:[seminaire(+X)]
 % ----------------------------------------------------------------------
 
 % added for esslli05
-allemand adj [idx:X]
+allemand n0vApost [idx:X]
 semantics:[de(X Y) allemagne(Y)]
 
-special adj [idx:X]  
+special n0vApost [idx:X]  
 semantics:[special(X)]
 
-hebdomadaire adj [idx:X]
+hebdomadaire n0vApost [idx:X]
 semantics:[hebdomadaire(X)]
 
-nouveau adj [idx:X]
+nouveau n0vApre [idx:X]
 semantics:[nouveau(X)]
 
-dequipe adj [idx:X]
+dequipe n0vApost [idx:X]
 semantics:[dequipe(X)]
 
 
@@ -73,26 +74,22 @@ semantics:[dequipe(X)]
 
 % FIXME: what should be set to X ?
 
-de prep [idx:X idx2:Y] 
+de PrepositionN [idx:X idx2:Y] 
 semantics:[de(X Y)]
 
 % ----------------------------------------------------------------------
 % verbs 
 % ----------------------------------------------------------------------
 
-auditionne v [evt:I arg1:X arg2:Y] 
+auditionne n0Vn1 [evt:I arg1:X arg2:Y] 
 semantics:[auditioner(+I -X -Y)]
 
-organise v [evt:I arg1:X arg2:Y] 
+organise n0Vn1 [evt:I arg1:X arg2:Y] 
 semantics:[organiser(+I -X -Y)]
 
-ennuie v [evt:I arg1:X arg2:Y]
+ennuie s0Vn1 [evt:I arg1:X arg2:Y]
 semantics:[ennuier(+I -X -Y)]
 
-promets v [evt:I arg1:X arg2:Y arg3:Z]
+promets n0Van1des2_0 [evt:I arg1:X arg2:Y arg3:Z]
 semantics:[promettre(+I X -Y -Z)]
-
-travailler v [evt:I arg1:X]
-semantics:[travailler(+I -X)]
-
 

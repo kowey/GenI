@@ -4,37 +4,62 @@
 
 %% Determinants
 
-un det Det
-le det Det
+un Det(I)
+semantics:[indef(I)]
+
+le Det(I)
+semantics:[def(I)]
 
 %% Noms communs
 
-chat   _ nC
-souris _ nC
+chat nC(I)
+semantics:[cat(I)]
+
+souris nC(I)
+semantics:[mouse(I)]
 
 %% Noms Propres
 
-marie   _ nP
-claire  _ nP
-olivier _ nP
-pierre  _ nP
-jean    _ nP
-paul    _ nP
+marie nP(I)
+semantics:[marie(I)]
+
+claire nP(I)
+semantics:[claire(I)]
+
+olivier nP(I)
+semantics:[olivier(I)]
+
+pierre nP(I)
+semantics:[pierre(I)]
+
+jean nP(I)
+semantics:[jean(I)]
+
+paul nP(I)
+semantics:[paul(I)]
 
 %% --------------------------------------------------------------------- 
 %% Adjectives
 %% --------------------------------------------------------------------- 
 
-noir _ adj_post
-%noir2 adj_pre(I)
-petit _ adj_pre
-mechant _ adj_pre
+noir adj_post(I)
+semantics:[black(I)]
+
+%noir2 (I)
+noir adj_post(I)
+%semantics:[black(I)]
+
+petit adj_pre(I)
+semantics:[little(I)]
+
+mechant adj_pre(I)
+semantics:[fierce(I)]
+
 
 %% --------------------------------------------------------------------- 
 %% chasse
 %% --------------------------------------------------------------------- 
 
-% chasser une souris vinfn1
-% le chat chasse la souris
-% qui chasse une souris ?
-chasser _ vArity2 
+chasser vArity2(E X Y)
+semantics:[chase(E X Y)]
+

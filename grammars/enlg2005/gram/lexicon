@@ -5,50 +5,50 @@
 % ----------------------------------------------------------------------
 
 % this seems wrong
-notre det [idx:X]
+notre stddeterminer [idx:X]
 semantics:[poss(X us)]
 
-le det [idx:X]
+le stddeterminer [idx:X]
 semantics:[def(X)]
 
-un det [idx:X]
+un stddeterminer [idx:X]
 semantics:[indef(X)]
 
-ce det [idx:X]
+ce stddeterminer [idx:X]
 semantics:[dem(X)]
 
 % ----------------------------------------------------------------------
 % nouns
 % ----------------------------------------------------------------------
 
-il cl [idx:X]
+il CliticT [idx:X]
 semantics:[]
 
-directeur n [idx:X]
+directeur commonNoun [idx:X]
 semantics:[directeur(+X)]
 
-bureau n  [idx:X]
+bureau commonNoun [idx:X]
 semantics:[bureau(+X)]
 
-equipe n [idx:X]
+equipe commonNoun [idx:X]
 semantics:[equipe(+X)]
 
-consultant n [idx:X]
+consultant commonNoun [idx:X]
 semantics:[consultant(+X)]
 
-allemagne pn [idx:X] % co-anchors would be useful for this word
+allemagne propername [idx:X] % co-anchors would be useful for this word
 semantics:[allemagne(+X)]
 
-jean pn [idx:X] % co-anchors would be useful for this word
+jean propername [idx:X] % co-anchors would be useful for this word
 semantics:[jean(+X)]
 
-marie pn [idx:X] % co-anchors would be useful for this word
+marie propername [idx:X] % co-anchors would be useful for this word
 semantics:[marie(+X)]
 
-seminaire n [idx:X]
+seminaire commonNoun [idx:X]
 semantics:[seminaire(+X)]
 
-achat n [evt:I arg1:X arg2:Y] 
+achat n0vNden1parn2 [evt:I arg1:X arg2:Y] 
 semantics:[achat(+I -X -Y)]
 
 
@@ -56,19 +56,19 @@ semantics:[achat(+I -X -Y)]
 % adjectives 
 % ----------------------------------------------------------------------
 
-special adj [arg1:X]  
+special n0vApost [arg1:X]  
 semantics:[special(X)]
 
-ennuyeux adj [arg1:X]  
+ennuyeux n0vApost [arg1:X]  
 semantics:[ennuyeux(X)]
  
-hebdomadaire adj [arg1:X]
+hebdomadaire n0vApost [arg1:X]
 semantics:[hebdomadaire(X)]
 
-nouveau adj [arg1:X]
+nouveau n0vApre [arg1:X]
 semantics:[nouveau(X)]
 
-dequipe adj [arg1:X]
+dequipe n0vApost [arg1:X]
 semantics:[dequipe(X)]
 
 
@@ -78,22 +78,22 @@ semantics:[dequipe(X)]
 
 % FIXME: what should be set to X ?
 
-de prep [idx:X idx2:Y] 
+de PrepositionN [idx:X idx2:Y] 
 semantics:[de(X Y)]
 
 % ----------------------------------------------------------------------
 % verbs 
 % ----------------------------------------------------------------------
 
-auditionne v [evt:I arg1:X arg2:Y] 
+auditionne n0Vn1 [evt:I arg1:X arg2:Y] 
 semantics:[auditioner(+I -X -Y)]
 
-organise v [evt:I arg1:X arg2:Y] 
+organise n0Vn1 [evt:I arg1:X arg2:Y] 
 semantics:[organiser(+I -X -Y)]
 
-ennuie v [evt:I arg1:X arg2:Y]
+ennuie s0Vn1 [evt:I arg1:X arg2:Y]
 semantics:[ennuier(+I -X -Y)]
 
-achete v [evt:I arg1:X arg2:Y] 
+achete n0Vn1 [evt:I arg1:X arg2:Y] 
 semantics:[achat(+I -X -Y)]
 

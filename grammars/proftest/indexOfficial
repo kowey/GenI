@@ -1,6 +1,5 @@
 Macros     = gram/official.geni
-Lexicon    = gram/synlex
-SemLexicon = gram/semlex 
+Lexicon    = gram/lexicon
 %MorphInfo = gram/morphinfo
 RootCategories = s
 TestSuite  = suite

@@ -24,43 +24,67 @@
 %% Nouns
 %% common nouns
 
-hat    n Cn
-man    n Cn
-rabbit n Cn
-woman  n Cn
+hat Cn(Entity ! agr:sg3)
+semantics:[hat(_ Entity)]
+
+man Cn(Entity ! agr:sg3)
+semantics:[man(_ Entity)]
+
+rabbit Cn(Entity ! agr:sg3)
+semantics:[rabbit(_ Entity)]
+
+woman Cn(Entity ! agr:sg3)
+semantics:[woman(_ Entity)]
+
 
 %% proper names
 
-mia     n Pn
-vincent n Pn
-vincent n Pn2
+mia Pn(Entity ! agr:sg3)
+semantics:[name(_ Entity mia)]
+
+vincent Pn(Entity ! agr:sg3)
+semantics:[name(_ Entity vincent)]
 
 %% Verbs
 %% intransitive verbs
 
-runs   v vArity1
-sleeps v vArity1 
+runs vArity1(Event Agent ! agr:sg3)
+semantics:[run(Event Agent)]
+
+sleeps vArity1(Event Agent ! agr:sg3)
+semantics:[sleep(Event Agent)]
 
 %% transitive verbs
 
-loves   v vArity2 
-removes v vArity3 
+loves vArity2(Event Agent Experiencer ! agr:sg3)
+semantics:[love(Event Agent Experiencer)]
+
+removes vArity3(Event Agent Theme Loc ! agr:sg3)
+semantics:[remove(Event Agent Theme Loc)]
+
 
 %% Modifiers
 %% adjectives
 
-big  adj Adj
-tall adj Adj
+big Adj(Entity)
+semantics:[big(_ Entity)]
 
-%bigtall adj Adj
+tall Adj(Entity)
+semantics:[tall(_ Entity)]
 
-white adj Adj
+white Adj(Entity)
+semantics:[white(_ Entity)]
+
 
 %% adverbs
 
-fast adv Adv
+fast Adv(Event)
+semantics:[fast(_ Event)]
+
 
 %% Determiners
 
-%a Dp
-the det Dp
+%a Dp(Entity ! agr:sg3)
+
+the Dp(Entity)
+semantics:[def(Entity)]

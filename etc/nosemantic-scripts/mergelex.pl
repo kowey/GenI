@@ -54,7 +54,7 @@ $word = "";
 $param = "";
 @famlist = [];
 while( $line = <SEMLEX> ) {
-    if( $line =~ /^(\w+)\s(\w+)\s+\((.*)\)/ ) {
+    if( $line =~ /^(\w+)\s(\w+)\s+(.*)/ ) {
 	$word  = $1;
 	my $categ = $2;
 	$param = $3;
@@ -64,7 +64,7 @@ while( $line = <SEMLEX> ) {
 	@famlist = @{$famlistref};
     } elsif( $line =~ /semantics:.*/ ) {
 	foreach $fam (@famlist) {
-	    print "$word $fam($param)\n";
+	    print "$word $fam $param\n";
 	    print $line;
 	}
     } else { print $line; }
