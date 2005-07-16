@@ -36,8 +36,6 @@ import qualified Data.Map as Map
 import Data.IORef
 import Data.List (nub, delete, (\\))
 import System.Directory 
-import System.Posix.Files(fileMode, getFileStatus, unionFileModes, 
-                          setFileMode, ownerExecuteMode)
 import System.Process (runProcess)
 
 import Graphviz 
@@ -1127,11 +1125,6 @@ runViewTag pst idname =
      -- run the viewer 
      let cmd  = "etc/runviewer.sh"
          args = [gramfile, drName]
-     -- set u+x
-     statusCmd <- getFileStatus cmd
-     let oldMode = fileMode statusCmd
-         newMode = unionFileModes ownerExecuteMode oldMode
-     setFileMode cmd newMode 
      -- run the viewer
      runProcess cmd args Nothing Nothing Nothing Nothing Nothing
      return ()

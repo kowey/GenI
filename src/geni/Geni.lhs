@@ -46,8 +46,6 @@ import System (ExitCode(ExitSuccess),
                exitWith, getArgs)
 import System.IO(hPutStrLn, hClose, hGetContents, hFlush, stdout)
 import System.IO.Unsafe(unsafePerformIO)
-import System.Posix.Files(fileMode, getFileStatus, unionFileModes, 
-                          setFileMode, ownerExecuteMode)
 import System.Mem
 -- import System.Process 
 
@@ -99,7 +97,13 @@ import Debug.Trace
 import Btypes (emptyLE)
 --import Bfuncs (showSem,showPairs)
 --showlex l = iword l ++ "\n sem: " ++ (showSem.isemantics) l ++ "\n enrich: " ++ (showPairs.ipfeat) l ++ "\n--\n" 
+
+-- Not for windows
+-- FIXME: even better would be to really figure out all this
+-- Posix stuff so that I don't need to use my SysGeni hack
+#ifndef mingw32_BUILD_OS 
 import SysGeni 
+#endif
 \end{code}
 }
 
@@ -619,17 +623,16 @@ converter in \ref{cha:xml} to convert that to geni format}.
 \begin{code}
 runSelector :: String -> String -> IO String 
 runSelector gfile fil = do
+#ifdef mingw32_BUILD_OS
+     putStr $ "Selector not available under Windows until Eric"
+              ++ " figures out all this Posix stuff.\n"
+     return ""
+#else
      putStr $ "Selector started.\n"
      hFlush stdout
       -- run the selector
      let selectCmd  = "etc/runselector.sh"
          selectArgs = [gfile]
-     -- set u+x
-     statusSelectCmd <- getFileStatus selectCmd
-     let oldMode = fileMode statusSelectCmd
-         newMode = unionFileModes ownerExecuteMode oldMode
-     setFileMode selectCmd newMode 
-     --
      -- (toP, fromP, _, pid) <- runInteractiveProcess selectCmd selectArgs Nothing Nothing
      (pid, fromP, toP) <- runPiped selectCmd selectArgs Nothing Nothing
      hPutStrLn toP fil
@@ -637,6 +640,7 @@ runSelector gfile fil = do
      res <- hGetContents fromP 
      awaitProcess pid 
      return res
+#endif
 \end{code}
 
 \paragraph{lexEntryToFil} converts a lexical entry to a CGM filter for

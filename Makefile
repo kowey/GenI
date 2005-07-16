@@ -78,6 +78,16 @@ LATEX2HTML = latex2html -math -math_parsing -local_icons -noimages -split 5
 # source stuff 
 # --------------------------------------------------------------------
 
+SCRIPT_FILES = etc/runselector.sh\
+	       etc/runviewer.sh\
+	       etc/stupidmorph.pl\
+	       etc/tommorph.pl\
+	       etc/nullmorph\
+	       etc/quickcheck.py\
+	       etc/perf-latest.sh\
+	       etc/perf-save.sh\
+
+
 IFILE = $(SRC_GENI)/Main
 CIFILE = $(SRC_GENI)/Converter
 DIFILE = $(SRC_GENI)/MainNoGui
@@ -99,7 +109,8 @@ PARSERS		= \
 
 # Phony targets do not keep track of file modification times
 .PHONY: all nogui dep clean docs html parsers release optimize\
-       	$(OFILE) $(COFILE)
+       	permissions\
+	$(OFILE) $(COFILE)
 
 # --------------------------------------------------------------------
 # main targets 
@@ -133,6 +144,8 @@ tidy:
 dep: 
 	$(GHC) -M $(GHCPACKAGES_GUI) $(IFILE).lhs
 
+permissions:
+	chmod u+x $(SCRIPT_FILES)
 # --------------------------------------------------------------------
 # compilation 
 # --------------------------------------------------------------------
@@ -145,20 +158,20 @@ $(PARSERS): %.hs: %.y
 
 compile: $(LEXERS) $(PARSERS) $(OFILE) 
 
-$(OFILE) : $(LEXERS) $(PARSERS) 
+$(OFILE) : $(LEXERS) $(PARSERS) permissions
 	$(GHC) --make $(GHCPACKAGES_GUI) $(LEXERS) $(PARSERS) 
 	$(GHC) -W --make $(GHCPACKAGES_GUI) $(IFILE).lhs -o $(OFILE)
 	$(OS_SPECIFIC_STUFF)
 
-$(COFILE) : $(LEXERS) $(PARSERS) 
+$(COFILE) : $(LEXERS) $(PARSERS) permissions 
 	$(GHC) --make $(GHCPACKAGES) $(LEXERS) $(PARSERS) 
 	$(GHC) -W --make $(GHCPACKAGES) $(CIFILE).lhs -o $(COFILE) 
 
-nogui : $(LEXERS) $(PARSERS) 
+nogui : $(LEXERS) $(PARSERS) permissions 
 	$(GHC) --make $(GHCPACKAGES) $(LEXERS) $(PARSERS) 
 	$(GHC) -W --make $(GHCPACKAGES) $(DIFILE).lhs -o $(OFILE) 
 
-debugger: $(LEXERS) $(PARSERS)
+debugger: $(LEXERS) $(PARSERS) permissions
 	$(GHC_PROF) --make $(DIFILE).lhs -o debugger-$(OFILE)
 #	$(GHC) -O -prof -auto-all --make $(CIFILE).lhs -o debugger-$(COFILE)
 
