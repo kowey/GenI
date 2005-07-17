@@ -109,7 +109,8 @@ PARSERS		= \
 
 # Phony targets do not keep track of file modification times
 .PHONY: all nogui dep clean docs html parsers release optimize\
-       	$(OFILE) $(COFILE)
+       	permissions\
+	$(OFILE) $(COFILE)
 
 # --------------------------------------------------------------------
 # main targets 

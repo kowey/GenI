@@ -100,7 +100,13 @@ import Debug.Trace
 import Btypes (emptyLE)
 --import Bfuncs (showSem,showPairs)
 --showlex l = iword l ++ "\n sem: " ++ (showSem.isemantics) l ++ "\n enrich: " ++ (showPairs.ipfeat) l ++ "\n--\n" 
+
+-- Not for windows
+-- FIXME: even better would be to really figure out all this
+-- Posix stuff so that I don't need to use my SysGeni hack
+#ifndef mingw32_BUILD_OS 
 import SysGeni 
+#endif
 \end{code}
 }
 
