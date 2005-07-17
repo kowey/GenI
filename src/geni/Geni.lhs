@@ -57,7 +57,7 @@ import General(groupByFM, multiGroupByFM)
 import Bfuncs (Macros, MTtree, ILexEntry, Lexicon, 
                Sem, SemInput,
                GNode, GType(Subs), Flist,
-               isemantics, ifamname, icategory, iword, iparams, 
+               isemantics, ifamname, iword, iparams, 
                ipfeat, ifilters,
                icontrol, isempols, 
                gnname, gtype, gaconstr, gup, gdown, toKeys,
@@ -77,7 +77,7 @@ import Configuration(Params, defaultParams, emptyGramParams, getConf,
                      treatArgs, grammarFile, grammarType, tsFile,
                      testCases, morphCmd, ignoreSemantics,
                      GramParams, parseGramIndex, GrammarType(..),
-                     macrosFile, lexiconFile, semlexFile, morphFile, rootCatsParam,
+                     macrosFile, lexiconFile, morphFile, rootCatsParam,
                      autopol, polarised, polsig, chartsharing, 
                      semfiltered, extrapol, footconstr)
 
@@ -436,8 +436,7 @@ combineOne lexitem e =
        -- the final result
        showid i = if null i then "" else ("-" ++ i)
        sol = emptyTE {
-                idname = iword lexitem ++ "-" ++ icategory lexitem 
-                         ++ "_" 
+                idname = iword lexitem ++ "_" 
                          ++ pfamily e ++ showid (pidname e),
                 derivation = (0,[]),
                 ttype = ptype e,
@@ -772,21 +771,6 @@ the mondad.
 loadGeniLexicon :: ProgStateRef -> GramParams -> IO ()
 loadGeniLexicon pstRef config = do 
        let lfilename = lexiconFile config
-           --sfilename = semlexFile config
-
-{- 
-       putStr $ "Loading Semantic Lexicon " ++ sfilename ++ "..."
-       hFlush stdout
-       sf <- readFile sfilename
-       let sortlexsem l = l { isemantics = sortSem $ isemantics l }
-           semmapper    = mapBySemKeys isemantics
-           semparsed    = (semlexParser . lexer) sf -- can't work anymore, no more lexer
-           semlex       = (semmapper . (map sortlexsem) . fst) semparsed
-       putStr ((show $ length $ Map.keys semlex) ++ " entries\n")
-
-       trace (concatMap (concatMap showlex) $ eltsFM semlex) $ modifyIORef pstRef (\x -> x{le = semlex})
--}
-
        putStr $ "Loading Lexicon " ++ lfilename ++ "..."
        hFlush stdout
        lf <- readFile lfilename 
@@ -837,33 +821,6 @@ loadGeniLexicon pstRef config = do
 %                     where lems = lookupWithDefaultFM ll [] wc 
 %  in foldr helper lemlex items
 %\end{code}
-
-\paragraph{combineLexicon} merges the lemma lexicon and the semantic
-lexicon into a single lexicon.  The idea is that the semantic lexicon
-and the lemma lexicon both use the ILexEntry data type, but they contain
-different information: the semantic lexicon has the semantics and the
-parameters, whereas the lemma lexicon has everything else.  Each entry
-in the semantic lexicon has a semantics and a lemma.  We look the lemma
-up in the (surprise!) lemma lexicon, and copy the semantic information
-into each instance.
-
-\begin{code}
-type WordCat = (String,String)
-type LemmaLexicon = Map.Map WordCat [ILexEntry] 
-
-combineLexicon :: LemmaLexicon -> Lexicon -> Lexicon
-combineLexicon ll sl = 
-  let merge si li = li { isemantics = isemantics si
-                       , iparams    = iparams si
-                       , ipfeat     = sort (ipfeat li ++ ipfeat si) 
-                       , icontrol   = icontrol si
-                       , isempols   = isempols si
-                       }
-      helper si = map (merge si) lemmas
-                  where wordcat = (iword si, icategory si)
-                        lemmas  = Map.findWithDefault [] wordcat ll
-  in Map.map (\e -> concatMap helper e) sl 
-\end{code}
 
 \subsubsection{Lexicon - CGM}
 

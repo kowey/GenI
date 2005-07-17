@@ -35,7 +35,6 @@ tokens :-
   Macros                     { tok MacrosTok  }
   LexiconDir                 { tok LexiconDirTok }
   Lexicon                    { tok LexiconTok }
-  SemLexicon                 { tok SemLexiconTok }
   MorphInfo                  { tok MorphInfoTok  }
   IgnoreSemantics            { tok IgnoreSemanticsTok }
   MaxTrees                   { tok MaxTreesTok }

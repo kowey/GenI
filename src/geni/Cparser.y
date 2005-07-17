@@ -19,7 +19,6 @@ import Data.List (intersperse)
     macros      {(MacrosTok,      _, _)} 
     lexicon     {(LexiconTok,     _, _)}  
     lexicondir  {(LexiconDirTok,     _, _)}  
-    semlex      {(SemLexiconTok,  _, _)}
     morphinfo   {(MorphInfoTok,   _, _)}
     rootcats    {(RootCategoriesTok, _,_)}
     grammar     {(GrammarTok,      _, _)} 
@@ -159,7 +158,6 @@ gramIdkey :: { PosToken }
 gramIdkey: lexicon    {$1}  
          | lexicondir {$1}
          | macros     {$1}  
-         | semlex     {$1}
          | morphinfo  {$1}
          | tsuite     {$1}
 

@@ -95,8 +95,9 @@ data Params = Prms{
   extrapol       :: Map.Map String Int,
   batchRepeat    :: Integer,
   usetrash       :: Bool,
-  ignoreSemantics :: Bool, -- flag for generation without semantics (jackie FIX)
-  maxTrees       :: Maybe Int -- limit on number of trees and subtrees
+  -- generation sans semantics (not the usual geni mode)
+  ignoreSemantics :: Bool, 
+  maxTrees       :: Maybe Int -- limit on num of trees in a derived tree 
 } deriving (Show)
 
 autopol      :: Params -> Bool
@@ -299,7 +300,6 @@ GenI grammar
 \begin{code}
 data GramParams = GrmPrms {
   macrosFile     :: String,
-  semlexFile     :: String,
   lexiconFile    :: String,
   lexiconDir     :: String,
   tsFile         :: String, 
@@ -343,7 +343,6 @@ parseGramIndex filename contents =
   in gp {
        macrosFile  = toAbs (macrosFile gp),
        lexiconFile = toAbs (lexiconFile gp),
-       semlexFile  = toAbs (semlexFile gp),
        tsFile      = toAbs (tsFile gp),
        lexiconDir  = if null ldir then "" else toAbs ldir,
        morphFile   = if null morphf then "" else toAbs morphf
@@ -355,7 +354,6 @@ defineGramParams :: [(Token,String)] -> GramParams
 
 defineGramParams [] = GrmPrms {
   macrosFile  = "",
-  semlexFile  = "",
   lexiconFile = "",
   lexiconDir  = "",
   tsFile      = "",
@@ -368,7 +366,6 @@ defineGramParams ((f,v):s) =
   case f of MacrosTok     -> next {macrosFile  = v}
             LexiconTok    -> next {lexiconFile = v} 
             LexiconDirTok -> next {lexiconDir  = v}
-            SemLexiconTok -> next {semlexFile  = v}
             TestSuiteTok  -> next {tsFile = v}
             MorphInfoTok  -> next {morphFile   = v}
             RootCategoriesTok -> next {rootCatsParam = words v}

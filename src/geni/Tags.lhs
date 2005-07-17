@@ -115,9 +115,8 @@ data TagElem = TE {
                    -- display stuff,
                    thighlight   :: [String],  -- nodes to highlight 
                    tdiagnostic  :: TagStatus, -- why this tree was discarded 
-                   -- jackie
+                   -- for generation sans semantics 
                    tadjlist :: [(String,Integer)] -- (node name, auxiliary tree id)
-                   -- jackie
                 }
              deriving (Show, Eq)
 \end{code}
@@ -165,9 +164,8 @@ emptyTE = TE { idname = "",
                --
                tdiagnostic = TS_None,
                thighlight  = [],
-               -- jackie
+               -- for generation sans semantics 
                tadjlist = []
-               -- jackie 
              }
 \end{code}
 

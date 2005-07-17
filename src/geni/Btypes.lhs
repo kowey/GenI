@@ -97,7 +97,6 @@ A lexicon maps semantic predicates to lexical entries.
 type Lexicon = Map.Map String [ILexEntry]
 type SemPols  = [Int]
 data ILexEntry = ILE{iword       :: String,
-                     icategory   :: String,
                      ifamname    :: String,
                      iparams     :: [String],
                      ipfeat      :: Flist,
@@ -110,7 +109,6 @@ data ILexEntry = ILE{iword       :: String,
 
 emptyLE :: ILexEntry  
 emptyLE = ILE { iword = "",
-                icategory = "",
                 ifamname = "", 
                 iparams = [],
                 ipfeat   = [],

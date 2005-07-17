@@ -10,7 +10,7 @@ data Token =
     GraphicalTok | MorphCmdTok | IgnoreSemanticsTok | MaxTreesTok |
     -- grammar file
     GrammarType | GeniHandTok | TAGMLTok | CGManifestoTok |
-    MacrosTok | LexiconTok | SemLexiconTok | MorphInfoTok | 
+    MacrosTok | LexiconTok | MorphInfoTok | 
     RootCategoriesTok | LexiconDirTok |
     -- optimisations
     Optimisations | PolOptsTok | AdjOptsTok |

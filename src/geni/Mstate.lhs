@@ -537,13 +537,8 @@ iapplyAdjNode fconstr te1 te2 an@(n, an_up, an_down) =
       anr_up = substFlist anr_up' subst2
       -- combined substitution list and success condition
       subst   = subst1++subst2
-      -- success = succ1 && succ2
-
--- jackie
-      success' = succ1 && succ2
       repeatadj = elem (n, (tidnum te1)) (tadjlist te2)
-      success = success' && (not repeatadj)
--- jackie
+      success = succ1 && succ2 && not repeatadj
 
       -- the adjoined tree
       -- ----------------- 
@@ -584,10 +579,8 @@ iapplyAdjNode fconstr te1 te2 an@(n, an_up, an_down) =
       -- the final result  
       -- ----------------
       res  = res' { adjnodes = (addextra.adjnodes) res' 
--- jackie
-, tadjlist = (n, (tidnum te1)):(tadjlist te2)
--- jackie
-}
+                  , tadjlist = (n, (tidnum te1)):(tadjlist te2)
+                  }
       {- debugstr = ("============================================\n" 
                   ++ "adjoin " ++ showLite te1 ++ " to node " ++ n
                   ++ "\nfs aux : " ++ showPairs r_up ++ " and " ++ showPairs f_down

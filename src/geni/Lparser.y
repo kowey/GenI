@@ -11,7 +11,6 @@ import Btypes(AvPair, emptyLE, ILexEntry(..), Ptype(..), Sem)
 }
 
 %name lexParser    Lexicon 
-{- %name semlexParser SLexicon -}
 %name filParser    FilEntryList 
 %name morphParser  MorphInfo  
 
@@ -47,41 +46,7 @@ Morph :: { (String,[AvPair]) }
 Morph : id '[' FeatList ']' { ($1,$3) }
 
 {- -----------------------------------------------------------------
-   syntactic lexicon 
-   -----------------------------------------------------------------
-
-Lexicon :: { [ILexEntry] }
-Lexicon : {-empty-}        {[]}
-        | LexEntry Lexicon {$1:$2}
-
-LexEntry :: { ILexEntry }
-LexEntry: LexEntryCore                  { $1 }
-        | LexEntryCore '[' FeatList ']' { $1 { ipfeat = sort $3 } }
-
-LexEntryCore :: { ILexEntry }
-LexEntryCore : id id id 
-   { emptyLE { iword = $1, 
-               icategory = $2,
-               ifamname = $3 } }
-
- -}
-{- precedence directives -}
-
-{-
-PredDrctv :: { {-pred directives-} [[AvPair]] }
-PredDrctv :  {-empty-}                   { [] }
-          | '[' PredItems ']' PredDrctv  { $2 : $4 }
-
-PredItems :: { [AvPair] }
-PredItems :  {-empty-}         { [] }
-          | PredItem PredItems { $1 ++ $2 }
-
-PredItem :: { [AvPair] } 
-PredItem: '(' id ':' IDList ')' { map (\a -> (a,$2)) $4 }
--}
-
-{- -----------------------------------------------------------------
-   semantic lexicon 
+   lexicon 
    ----------------------------------------------------------------- -}
 
 Lexicon :: { ([ILexEntry], [LpSemFam]) }
@@ -170,7 +135,6 @@ FilEntryList : {-empty-}              {[]}
 FilEntry :: { ILexEntry }
 FilEntry : id '[' FilTerList ']' '(' FilFeatList ')'
          { emptyLE { iword   = $1,
-                     icategory = "",
                      iparams = [],
                      ipfeat  =  $6,
                      ifilters = $3
