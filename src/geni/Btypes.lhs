@@ -1,4 +1,4 @@
-%3 GenI surface realiser
+% GenI surface realiser
 % Copyright (C) 2005 Carlos Areces and Eric Kow
 %
 % This program is free software; you can redistribute it and/or
@@ -25,10 +25,11 @@ module Btypes(
    GNode(..), GType(Subs, Foot, Lex, Other), 
    Ttree(..), MTtree, SemPols,
    Ptype(Initial,Auxiliar,Unspecified), 
-   Pred, Flist, AvPair, 
+   Pred, Flist, AvPair, GeniVal(..),
    Lexicon, ILexEntry(..), Macros, Sem, SemInput,
    Subst,
-   emptyMacro, emptyLE, emptyGNode, emptyPred)
+   emptyMacro, emptyLE, emptyGNode, emptyPred,
+   readGeniVal, fromGConst, fromGVar)
 where
 \end{code}
 
@@ -40,6 +41,7 @@ import Data.Char (isUpper)
 import qualified Data.Map as Map 
 import Data.List (intersect, intersperse, sortBy, nub)
 import Data.Tree
+import General (toUpperHead, toLowerHead)
 \end{code}
 }
 
@@ -59,7 +61,7 @@ type Macros = [MTtree]
 \end{code}
 
 \begin{code}
-data Ttree a = TT{params  :: [String],
+data Ttree a = TT{params  :: [GeniVal],
                   pfamily :: String,
                   pidname :: String,
                   pfeat :: Flist,
@@ -98,13 +100,12 @@ type Lexicon = Map.Map String [ILexEntry]
 type SemPols  = [Int]
 data ILexEntry = ILE{iword       :: String,
                      ifamname    :: String,
-                     iparams     :: [String],
+                     iparams     :: [GeniVal],
                      ipfeat      :: Flist,
                      ifilters    :: Flist,
                      iptype      :: Ptype,
                      isemantics  :: Sem,
-                     isempols    :: [SemPols],
-                     icontrol    :: String}
+                     isempols    :: [SemPols] }
                deriving (Show, Eq)
 
 emptyLE :: ILexEntry  
@@ -115,8 +116,7 @@ emptyLE = ILE { iword = "",
                 ifilters = [],
                 iptype = Unspecified,
                 isemantics = [],
-                isempols   = [],
-                icontrol   = ""}
+                isempols   = [] }
 \end{code}
 
 % ----------------------------------------------------------------------
@@ -161,7 +161,66 @@ emptyGNode = GN { gnname = "",
 
 \begin{code}
 type Flist   = [AvPair]
-type AvPair  = (String,String)
+type AvPair  = (String,GeniVal)
+\end{code}
+
+\subsection{GeniVal}
+
+\begin{code}
+data GeniVal = GConst String
+             | GVar   String
+             | GAnon
+  deriving (Eq,Ord)
+\end{code}
+
+To maintain some semblance of backwards comptability, we read/show GeniVal 
+in the following manner:
+\begin{itemize}
+\item Constants have the first letter lower cased.
+\item Variables have the first letter capitalised.
+\item Anonymous variables are underscores. 
+\end{itemize}
+
+\begin{code}
+instance Show GeniVal where
+  show (GConst x) = toLowerHead x
+  show (GVar x)   = toUpperHead x
+  show GAnon      = "_"
+
+-- Should figure out how to use a standard type class sometime later
+readGeniVal :: String -> GeniVal
+readGeniVal str = 
+  let h = head str 
+      r | h == '_'  = GAnon
+        | isUpper h = GVar str 
+        | otherwise = GConst str 
+  in r 
+\end{code}
+
+\paragraph{fromGConst and fromGVar} respectively extract the constant or  
+variable string value of a GeniVal, assuming it has that kind of value.
+
+\begin{code}
+fromGConst :: GeniVal -> String
+fromGConst (GConst x) = x
+fromGConst x = error "fromGConst on " ++ show x
+
+fromGVar :: GeniVal -> String
+fromGVar (GVar x) = x
+fromGVar x = error "fromGVar on " ++ show x
+\end{code}
+
+We also throw in include some simple predicates for accessing the GeniVal
+cases.
+
+\begin{code}
+isVar :: GeniVal -> Bool
+isVar (GVar _) = True
+isVar _        = False
+
+isAnon :: GeniVal -> Bool
+isAnon GAnon = True
+isAnon _     = False
 \end{code}
 
 % ----------------------------------------------------------------------
@@ -171,11 +230,11 @@ type AvPair  = (String,String)
 
 \begin{code}
 -- handle, predicate, parameters
-type Pred = (String, String, [String])
+type Pred = (GeniVal, String, [GeniVal])
 type Sem = [Pred]
 type SemInput = (Sem,Flist)
-type Subst = [(String, String)]
-emptyPred = ("","",[])
+type Subst = [(String, GeniVal)]
+emptyPred = (GAnon,"",[])
 \end{code}
 
 

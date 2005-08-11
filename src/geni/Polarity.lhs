@@ -80,6 +80,7 @@ import Data.Maybe (isNothing)
 import Graphviz(GraphvizShow(..))
 import Tags(TagElem(..), TagItem(..), mapBySem, substTagElem)
 import Bfuncs(Pred, Sem, Flist, AvPair, showAv,
+              GeniVal, fromGConst,
               emptyPred, Ptype(Initial), 
               showSem, sortSem, 
               root, gup, 
@@ -684,7 +685,7 @@ paragraph{fixPronouns} returns a modified input semantics and lexical
 selection in which pronouns are properly accounted for.
 
 \begin{code}
-type PredLite = (String,[String]) -- handle is head of arg list 
+type PredLite = (String,[GeniVal]) -- handle is head of arg list 
 type SemWeightMap = Map.Map PredLite SemPols
 fixPronouns :: (Sem,[TagLite]) -> (Sem,[TagLite])
 fixPronouns (tsem,cands) = 
@@ -710,11 +711,12 @@ Second, we cancel out the polarities for every index in the input
 semantics.  
 
 \begin{code}
-      usagelist :: [(String,Int)]
+      usagelist :: [(GeniVal,Int)]
       usagelist = concatMap fn (Map.toList usagemap)
         where fn ((_,idxs),pols) = zip idxs pols
-      chargemap :: Map.Map String Int -- index to charge 
-      chargemap =  foldr addPol Map.empty usagelist 
+      chargemap :: Map.Map GeniVal Int -- index to charge 
+      chargemap =  foldr addfn Map.empty usagelist 
+        where addfn (p,c) m = Map.insertWith (+) p c m
 \end{code}
 
 Third, we compensate for any uncancelled negative polarities by an
@@ -741,10 +743,10 @@ excess pronouns in their extra literal semantics (see page
 
 \begin{code}
       -- fixPronouns  
-      comparefn :: String -> Int -> Int -> [String]
+      comparefn :: GeniVal -> Int -> Int -> [GeniVal]
       comparefn i c1 c2 = if (c2 < c1) then extra else []
         where extra = take (c1 - c2) $ repeat i 
-      compare :: (PredLite,SemPols) -> [String]
+      compare :: (PredLite,SemPols) -> [GeniVal]
       compare (lit,c1) = concat $ zipWith3 comparefn idxs c1 c2
         where idxs = snd lit
               c2   = Map.findWithDefault [] lit usagemap
@@ -760,7 +762,7 @@ excess pronouns in their extra literal semantics (see page
 counting mechanism uses to represent extra columns.
 
 \begin{code}
-indexPred :: String -> Pred
+indexPred :: GeniVal -> Pred
 indexPred x = (x, "", [])
 \end{code}
 
@@ -768,6 +770,7 @@ indexPred x = (x, "", [])
 by the index counting mechanism
 
 \begin{code}
+isExtraCol :: Pred -> Bool
 isExtraCol (_,"",[]) = True
 isExtraCol _         = False
 \end{code}
@@ -794,7 +797,7 @@ Notes
 \end{itemize}
 
 \begin{code}
-assignIndex :: String -> TagElem -> TagElem 
+assignIndex :: GeniVal -> TagElem -> TagElem 
 assignIndex i te =
   let idxfs = [ ("idx", i) ]
       oldt  = ttree te
@@ -882,7 +885,7 @@ detectPols' te =
       -- getidx = getval "idx"
       getval att fl = if null f then "" else attstr
                       where f = filter (\ (a,_) -> att == a) fl 
-                            attstr = att ++ ('_' : ((snd.head) f))
+                            attstr = att ++ ('_' : ((fromGConst.snd.head) f))
       --
       apols = zip substuff negone
               where negone = repeat (-1)

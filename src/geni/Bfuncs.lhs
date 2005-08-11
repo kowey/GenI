@@ -32,7 +32,7 @@ module Bfuncs(
    GNode(GN), GType(Subs, Foot, Lex, Other), 
    Ttree(..), MTtree, SemPols,
    Ptype(Initial,Auxiliar,Unspecified), 
-   Pred, Flist, AvPair, 
+   Pred, Flist, AvPair, GeniVal(..),
    Lexicon, ILexEntry(..), Macros, Sem, SemInput, Subst,
    emptyGNode, emptyMacro, 
 
@@ -49,24 +49,24 @@ module Bfuncs(
    emptyPred,
 
    -- Functions from Flist
-   substFlist, substFlist', sortFlist, unifyFeat,
+   substFlist, substFlist', sortFlist, unifyFeat, substHelper,
    showPairs, showAv,
 
    -- Other functions
-   isVar, isAnon, testBtypes,
+   fromGConst, fromGVar,
+   isVar, isAnon, testBtypes, 
+   testingOnly
 ) where
 \end{code}
 
 \ignore{
 \begin{code}
-import Debug.Trace -- for test stuff
-import Data.Char (isUpper)
-import Data.List (sortBy, nub, foldl', union, sort)
+-- import Debug.Trace -- for test stuff
+import Data.List (sortBy, foldl')
 import Data.Tree
-import QuickCheck
 
 import Btypes
-import General(mapTree, filterTree, listRepNode, fst3, snd3)
+import General(mapTree, filterTree, listRepNode, snd3, bugInGeni)
 --instance Show (IO()) where
 --  show _ = ""
 \end{code}
@@ -79,8 +79,8 @@ and any flags which are marked on that node.
 \begin{code}
 instance Show GNode where
   show gn = 
-    let cat' = filter (\ (f,_) -> f == "cat") $ gup gn
-        cat  = if (null cat') then "" else snd $ head cat'
+    let cat' = [ av | av <- gup gn, fst av == "cat" ]
+        cat  = if (null cat') then "" else show $ snd $ head cat'
         lex  = if (null $ glexeme gn) then "" else glexeme gn
         -- 
         extra = case (gtype gn) of         
@@ -224,12 +224,15 @@ substFlist :: Flist -> Subst -> Flist
 substFlist fl sl = foldl' helper fl sl
   where -- note: don't try to refactor with substFlist';
         -- this is here for performance reasons
+        helper :: Flist -> (String,GeniVal) -> Flist
         helper [] _ = []
-        helper ((f,v):xs) (s1, s2) = (f, if (v==s1) then s2 else v) : helper xs (s1,s2) 
+        helper ((f,v):xs) (s1, s2) = (f, v2) : helper xs (s1,s2) 
+          where v2 = if (v == GVar s1) then s2 else v 
 \end{code}
 
 \ignore{
 \begin{code}
+{-
 testSubstFlist =
   let input    = [ ("a","1") ]
       expected = [ ("a","3") ]
@@ -239,6 +242,7 @@ testSubstFlist =
                ++ "\nsubst: "  ++ showPairs expected 
                ++ "\noutput: " ++ showPairs output
   in trace debugstr (output == expected) 
+-}
 \end{code}
 }
 
@@ -246,8 +250,10 @@ testSubstFlist =
 that substitution to the Flist... 
 
 \begin{code}
-substFlist' :: Flist -> (String,String) -> Flist 
-substFlist' fl (s1, s2) = map (\ (f, v) -> (f, if (v ==s1) then s2 else v)) fl
+substFlist' :: Flist -> (String,GeniVal) -> Flist 
+substFlist' fl (s1, s2) = map (\ (f,v) -> (f, helper v))  fl
+  where helper :: GeniVal -> GeniVal
+        helper v = if (v == GVar s1) then s2 else v
 \end{code}
 
 \paragraph{sortFlist} sorts Flists according with its feature
@@ -260,7 +266,7 @@ sortFlist fl = sortBy (\(f1,_) (f2, _) -> compare f1 f2) fl
 \begin{code}
 showPairs :: Flist -> String
 showPairs l = unwords $ map showAv l
-showAv (y,z) = y ++ ":" ++ z 
+showAv (y,z) = y ++ ":" ++ show z 
 \end{code}
 
 % --------------------------------------------------------------------  
@@ -329,22 +335,15 @@ unification. It makes the following assumptions:
 \end{itemize}
 
 \begin{code}
-unifyFeat :: Flist -> Flist -> (Bool, Flist, [(String,String)])
+unifyFeat :: Flist -> Flist -> (Bool, Flist, Subst)
+unifyFeat f1 f2 = 
+  let (att, val1, val2) = normaliseFeat f1 f2
+  in  case unify val1 val2 of
+        Nothing -> (False, [], [])
+        Just (res, subst) -> (True, zip att res, subst)
 \end{code}
 
-Trivial base cases:
-
-\begin{code}
-unifyFeat [] [] = (True, [], [])
-
-unifyFeat [] (a:x) = 
-  (succ, a:res, subst)
-  where (succ, res, subst) = unifyFeat [] x
-
-unifyFeat (a:x) [] = 
-  (succ, a:res, subst)
-  where (succ, res, subst) = unifyFeat x []
-\end{code}
+\paragraph{normaliseFeat}
 
 The less trivial case is when neither list is empty.  If we are looking
 at the same attribute, then we transfer control to the helper function.
@@ -353,108 +352,133 @@ to the results, and move on.  This only works if the lists are
 alphabetically sorted beforehand!
 
 \begin{code}
-unifyFeat fs1@((f1, v1):l1) fs2@((f2, v2):l2) 
-   | f1 == f2  = unifyFeatI f1 v1 v2 l1 l2 
-   | f1 <  f2  = (succ1, (f1, v1):res1, subst1)
-   | f1 >  f2  = (succ2, (f2, v2):res2, subst2)
+normaliseFeat :: Flist -> Flist -> ([String], [GeniVal], [GeniVal])
+normaliseFeat [] [] = ([], [], [])
+
+normaliseFeat [] ((f,v):x) = 
+  let (att, left, right) = normaliseFeat [] x
+  in  (f:att, GAnon:left, v:right)
+
+normaliseFeat x [] = 
+  let (att, left, right) = normaliseFeat [] x
+  in  (att, right, left)
+
+normaliseFeat fs1@((f1, v1):l1) fs2@((f2, v2):l2) 
+   | f1 == f2  = (f1:att0, v1:left0,    v2:right0)
+   | f1 <  f2  = (f1:att1, v1:left1, GAnon:right1) 
+   | f1 >  f2  = (f2:att2, GAnon:left2, v2:right2)
    | otherwise = error "Feature structure unification is badly broken"
-  where (succ1, res1, subst1) = unifyFeat l1 fs2
-        (succ2, res2, subst2) = unifyFeat fs1 l2
+   --
+  where (att0, left0, right0) = normaliseFeat l1 l2
+        (att1, left1, right1) = normaliseFeat l1 fs2
+        (att2, left2, right2) = normaliseFeat fs1 l2
 \end{code}
 
-\paragraph{unifyFeatI} is a helper function that determines what we
-should do when we have two values for the same attribute.
+\subsection{GeniVal}
+
+We throw in some simple predicates for accessing the GeniVal
+cases.
 
 \begin{code}
-unifyFeatI :: String ->String -> String -> Flist -> Flist -> (Bool, Flist, [(String,String)])
+isVar :: GeniVal -> Bool
+isVar (GVar _) = True
+isVar _        = False
+
+isAnon :: GeniVal -> Bool
+isAnon GAnon = True
+isAnon _     = False
 \end{code}
 
+\subsection{Unification}
+
+\paragraph{unify} performs unification on two lists of GeniVal.  If
+unification succeeds, it returns a list of possible unifications. 
+\verb!Just [(r,s)]! where \verb!r! is the result of unification and \verb!s!
+is a list of substitutions that this unification results in.  
+Notes: 
+\begin{itemize}
+\item there may be multiple results because of disjunction
+\item we need to return \verb!r! because of anonymous variables
+\item the lists need not be same length; we just assume you want
+      the longer of the two
+\end{itemize}
+
 \begin{enumerate}
-\item if either v1 or v2 are anonymous, we add the other to the result,
+\item if either h1 or h2 are anonymous, we add the other to the result,
       and we don't add any replacements.
-\item if v1 is a variable then we replace it by v2,
-      regardless of whether or not v2 is a variable
-\item if v2 is a variable then we replace it by v1
-\item if neither v1 and v2 are variables, but they match, we arbitarily add one
-      of them to the result, but we don't add any replacements.
+\item if h1 is a variable then we replace it by h2,
+      regardless of whether or not h2 is a variable
+\item if h2 is a variable then we replace it by h1
+\item if neither h1 and h2 are variables, but they match, we arbitarily 
+      add one of them to the result, but we don't add any replacements.
 \item if neither are variables and they do \emph{not} match, we fail
 \end{enumerate}
 
 \begin{code}
-unifyFeatI f v1 v2 l1 l2 = 
+unify :: [GeniVal] -> [GeniVal] -> Maybe ([GeniVal], Subst)
+
+unify [] l2 = Just (l2, [])
+unify l1 [] = Just (l1, [])
+
+unify (h1:t1) (h2:t2) =
   let unifyval
-        | (isAnon v1) = sansrep    v2
-        | (isAnon v2) = sansrep    v1 
-        | (isVar v1)  = withrep v1 v2
-        | (isVar v2)  = withrep v2 v1
-        | (v1 == v2)  = sansrep    v1
-        | otherwise   = (False, [], [])
+        | (isAnon h1) = sansrep    h2
+        | (isAnon h2) = sansrep    h1 
+        | (isVar h1)  = withrep h1 h2
+        | (isVar h2)  = withrep h2 h1
+        | (h1 == h2)  = sansrep    h1
+        | otherwise   = Nothing
       --
-      withrep x1 x2 = (succ, r:res, s:subst)
-        where r = (f,x2)
-              s = (x1,x2)
-              (succ,res,subst) = unifyFeat (subfn l1) (subfn l2)
-              subfn l = substFlist' l s 
-      sansrep x2 = (succ, (f,x2):res, subst)
-        where (succ,res,subst) = unifyFeat l1 l2
+      withrep (GVar h1) x2 = do
+        let s = (h1,x2)
+            subfn l = map (substHelper s) l
+        (res,subst) <- unify (subfn t1) (subfn t2)
+        return (x2:res, s:subst) 
+      withrep _ _ = error ("unification error\n" ++ bugInGeni)
+      sansrep x2 = do
+        (res,subst) <- unify t1 t2 
+        return (x2:res, subst)
       --
   in unifyval 
 \end{code}
 
-{\ignore
+\subsubsection{Unification tests} The unification algorithm should satisfy
+the following properties:
+
+Unifying something with itself should always succeed
+
 \begin{code}
-sansnull l = null [ (a,b) | (a,b) <- l, null a || null b ]
+prop_unify_self x = 
+  case (unify x x) of 
+    Nothing  -> False
+    Just unf -> (fst unf == x)
+\end{code}
 
--- unifying something with itself should always succeed
-prop_unifyFeat_self x = sansnull x ==> (fst3 unf == True) && (snd3 unf == x)
-  where unf = unifyFeat x x 
-        
--- if one side only has anonymous variables, then any unification should
--- succeed and the attributes of the result should be the union of the
--- attributes of the things we are unifying
-prop_unifyFeat_uscore x y = sansnull x && sansnull y ==> 
-        (fst3 unf == True) &&
-        map fst (snd3 unf) == (nub $ sort $ union (map fst x2) (map fst y2))
-  where 
-        x2 = tidy x
-        y2 = sort y
-        atts l = nub $ map fst l
-        tidy l = sort $ map (\(a,_) -> (a,"_")) l
-        unf = unifyFeat x2 y2
-        types = (x :: Flist, y :: Flist)
+Unifying something with only anonymous variables should succeed.
 
--- if unifying x y suceeeds, then unifying y x should also succeed and give
--- the same result 
-prop_unifyFeat_sym x y = sansnull x && sansnull y ==> 
-        if fst3 unf 
-        then fst3 unf2 && (snd3 unf == snd3 unf2)
-        else False
-  where 
-        x2 = sort x
-        y2 = sort y
-        unf   = unifyFeat x2 y2
-        unf2  = unifyFeat y2 x2
-        types = (x :: Flist, y :: Flist)
+\begin{code}
+prop_unify_anon x = 
+  case (unify x y) of
+    Nothing  -> False
+    Just unf -> (fst unf == y)
+  where -- 
+    y  = take (length x) $ repeat GAnon
+\end{code}
+
+Unification should be symmetrical.
+         
+\begin{code}
+prop_unify_sym x y = unify x y == unify y x
+\end{code}
+
+\ignore{
+\begin{code}
+-- Appease the compiler for warnings
+testingOnly = prop_unify_self [] &&
+              prop_unify_anon [] &&
+              prop_unify_sym [] []
 \end{code}
 }
-
-\subsection{Variables}
-
-\paragraph{isVar} 
-Returns true if the string starts with a capital or is an anonymous variable.  
-
-\begin{code}
-isVar :: String -> Bool
-isVar [] = error "isVar on null string" -- should just be true?
-isVar s  = (isUpper . head) s || (isAnon s)
-\end{code}
-
-\paragraph{isAnon}
-Returns true if the string is an underscore 
-\begin{code}
-isAnon :: String -> Bool
-isAnon = (==) "_" 
-\end{code}
 
 % ----------------------------------------------------------------------
 \section{Semantics}
@@ -468,9 +492,10 @@ showSem l =
 \end{code}
 
 \begin{code}
-showPred (h, p, l) = showh ++ p ++ "(" ++ unwords l++ ")"
-                     where hideh = null h || (take 2 h == "gh")
-                           showh = if hideh then "" else h ++ ":"
+showPred :: Pred -> String
+showPred (h, p, l) = showh ++ p ++ "(" ++ unwords (map show l) ++ ")"
+                     where hideh = h == GAnon -- FIXME: when handles reinstated, we'll have to do this differently || (take 2 h == "gh")
+                           showh = if hideh then "" else (show h) ++ ":"
 \end{code}
 
 \paragraph{substSem} 
@@ -487,14 +512,6 @@ Given a Semantics, returns the string with the proper keys
 \begin{code}
 toKeys :: Sem -> [String] 
 toKeys l = map (\(_,prop,par) -> prop++(show (length par))) l
-\end{code}
-
-\paragraph{repXbyY} 
-Given two values s1 and s2 and a list, it replace the 
-first by the second in the list
-\begin{code}
-repXbyY :: (Eq a) => a -> a -> [a] -> [a] 
-repXbyY s1 s2 l = map (\x->if (x == s1) then s2 else x) l
 \end{code}
 
 %\paragraph{instantiate} 
@@ -528,69 +545,92 @@ repXbyY s1 s2 l = map (\x->if (x == s1) then s2 else x) l
 \begin{code}
 substPred :: Pred -> Subst -> Pred
 substPred p [] = p
-substPred (h, n, lp) ((a,b):l) = substPred (fixHandle, n, repXbyY a b lp) l
-  where fixHandle = if (h == a) then b else h 
+substPred (h, n, lp) (s:l) = substPred (subst h, n, map subst lp) l
+  where subst = substHelper s 
+
+-- substVals :: [GeniVal] -> Subst -> [GeniVal] 
+-- substVals gl sl = foldl' helper gl sl
+--   where helper :: [GeniVal] -> (String,GeniVal) -> [GeniVal] 
+--         helper lst s = map (substHelper s) lst
+ 
+substHelper :: (String,GeniVal) -> GeniVal -> GeniVal
+substHelper (s1,s2) v = if (v == GVar s1) then s2 else v
 \end{code}
 
-\paragraph{subsumeSem} 
+\subsection{Semantic subsumption} 
 \label{fn:subsumeSem}
 
-Given the target Sem ts and the Sem s of a potential lexical candidate,
-returns the list of possible substitutions so that s is a subset of ts.
+FIXME: comment fix
+
+Given tsem the input semantics, and lsem the semantics of a potential
+lexical candidate, returns a list of possible ways that the lexical
+semantics could subsume the input semantics.  We return a pair with 
+the semantics that would result from unification\footnote{We need to 
+do this because there may be anonymous variables}, and the
+substitutions that need to be propagated throughout the rest of the
+lexical item later on.
+
 Note: we return more than one possible substitution because s could be
 different subsets of ts.  Consider, for example, \semexpr{love(j,m),
   name(j,john), name(m,mary)} and the candidate \semexpr{name(X,Y)}.
 
-TODO WE ASSUME BOTH SEMANTICS ARE ORDERED and non-empty.
+TODO WE ASSUME BOTH SEMANTICS ARE ORDERED and that the input semantics is
+non-empty.
 
 \begin{code}
-subsumeSem :: Sem -> Sem -> [Subst]
-subsumeSem [] _  = error "target semantics is non-empty in subsumeSem"
-subsumeSem _  [] = error "tree semantics is non-empty in subsumeSem"
-subsumeSem ts [at] = subsumePred ts at 
-subsumeSem ts (at:l) =
-    let psubst = subsumePred ts at
-        res    = map (\x -> subsumeSem (substSem ts x) (substSem l x)) psubst
-        pairs  = zip psubst res
-        res2   = map (\ (s1,s2) -> map (\x -> s1++x) s2) pairs
-        in concat res2
+subsumeSem :: Sem -> Sem -> [(Sem,Subst)]
+subsumeSem tsem lsem =
+  subsumeSemHelper ([],[]) (reverse tsem) (reverse lsem)
+\end{code}
+
+This is tricky because each substep returns multiple results.  We solicit
+the help of accumulators to keep things from getting confused.
+
+\begin{code}
+subsumeSemHelper :: (Sem,Subst) -> Sem -> Sem -> [(Sem,Subst)]
+subsumeSemHelper _ [] _  = 
+  error "input semantics is non-empty in subsumeSemHelper"
+subsumeSemHelper acc _ []      = [acc]
+subsumeSemHelper acc tsem (hd:tl) =
+  let (accSem,accSub) = acc
+      -- does the literal hd subsume the input semantics?
+      pRes = subsumePred tsem hd
+      -- toPred reconstructs the literal hd with new parameters p.
+      -- The head of the list is taken to be the handle.
+      toPred p = (head p, snd3 hd, tail p)
+      -- next adds a result from predication subsumption to
+      -- the accumulators and goes to the next recursive step
+      next (p,s) = subsumeSemHelper acc2 tsem2 tl2
+         where tl2   = substSem tl s
+               tsem2 = substSem tsem s
+               acc2  = (toPred p : accSem, accSub ++ s) 
+  in concatMap next pRes
 \end{code}
 
 \paragraph{subsumePred}
-The first Sem s1 and second Sem s2 are the same when we start we cicle on s2
+The first Sem s1 and second Sem s2 are the same when we start we circle on s2
 looking for a match for Pred, and meanwhile we apply the partical substitutions
 to s1.  Note: we treat the handle as if it were a parameter.
 
 \begin{code}
-subsumePred :: Sem -> Pred -> [Subst]
+subsumePred :: Sem -> Pred -> [([GeniVal],Subst)]
 subsumePred [] _ = []
 subsumePred ((h1, p1, la1):l) (pred2@(h2,p2,la2)) = 
     -- if we found the proper predicate
     if ((p1 == p2) && (length la1 == length la2))
-    then let subst = map nub (pairVar (h1:la1) (h2:la2) [])
-             isNotVar = not.isVar
-             -- defines the subst, taking care of clashing of var. with check
-             pairVar [] [] _ = [[]]   -- [[]] means: Empty subst is a solution
-             pairVar _ [] _ = error "unequal parameter lengths" 
-             pairVar [] _ _ = error "unequal parameter lengths" 
-             pairVar (v1:l1) (v2:l2) l  
-               | v1 == v2 = pairVar l1 l2 l
-               | isNotVar v1 && isNotVar v2 = [] -- no solution
-               | isVar v1 && checkAss (v1,v2) l = 
-                   map ((v1,v2):) (pairVar l1 l2 ((v1,v2):l))
-               | isVar v2 && checkAss (v2,v1) l =
-                   map ((v2,v1):) (pairVar l1 l2 ((v2,v1):l))
-               | otherwise                      = []
-             checkAss (_,_) [] = True
-             checkAss (v1,v2) ((v3,v4):l)  
-               | (v1 /= v3) = checkAss (v1,v2) l
-               | (v2 == v4) = checkAss (v1,v2) l
-               | otherwise  = False
-         in subst++(subsumePred l pred2)
-    else if (p1 > p2)
+    then let rs   = unify (h1:la1) (h2:la2)
+             next = subsumePred l pred2
+         in case rs of
+              Nothing -> next
+              Just rs -> rs : next
+    else if (p1 < p2) -- note that the semantics have to be reversed!
          then []
          else subsumePred l pred2 
 \end{code}
+
+\subsection{Other semantic stuff}
+
+FIXME: move this up slightly later
 
 \paragraph{sortSem} 
 Sorts semantics first according to its predicate, and then to its handles.
@@ -602,7 +642,7 @@ sortSem = sortBy (\(h1,p1,a1) (h2,p2,a2) -> compare (p1, h1:a1) (p2, h2:a2))
 
 
 \begin{code}
-testBtypes = testSubstFlist
+testBtypes = False --testSubstFlist
 \end{code}
 
 

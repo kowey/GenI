@@ -56,11 +56,11 @@ import Data.Tree
 
 import Bfuncs (Ptype(Initial, Auxiliar), SemPols,
                Subst, GNode(gup, gdown, glexeme, gnname), Flist, 
+               GeniVal(..),
                Sem, Pred, emptyPred, 
                emptyGNode,
                substFlist, 
-               substTree, substSem, showPairs,
-               isAnon, isVar)
+               substTree, substSem, showPairs)
 import General (BitVector, treeLeaves, groupByFM)
 \end{code}
 }
@@ -207,10 +207,10 @@ occur in it.
 \begin{code}
 appendToVars :: String -> TagElem -> TagElem
 appendToVars suf te = 
-  let appfn (f,v) = (f, if (isVar v && (not.isAnon) v) 
-                        then v ++ suf 
-                        else v)
-      --
+  let appfn (f,v) = (f,v2)
+        where v2 = case v of 
+                     GVar orig -> GVar (orig ++ suf)
+                     orig      -> orig
       nodefn a = a { gup = map appfn (gup a),
                      gdown = map appfn (gdown a) }
       treefn (Node a l) = Node (nodefn a) (map treefn l)
@@ -342,7 +342,8 @@ tagLeaf node =
              [ v | (a,v) <- guppy, a == "lex" ] ++
              [ v | (a,v) <- guppy, a == "phon" ] ++
              [ v | (a,v) <- guppy, a == "cat" ] 
-      cat  = if null cat' then gnname node else head cat'
+             -- grab the first match
+      cat  = if null cat' then gnname node else (show.head) cat'
       name   = map toUpper cat 
       output = if (null lexeme) then name else lexeme
   in (output, gup node)

@@ -39,8 +39,6 @@ import Lex2
 import ParserLib
 import Cparser
 import Mparser
-import Lparser 
-import Tsparser
 
 parseMac    = mParser.(lexer scMac)
 parseConfig = cParser.(lexer 0) --scConfig
@@ -51,3 +49,4 @@ parseTSuite = testSuiteParser.(lexer 0) --scTSuite
 parsePol    = polParser.(lexer 0) --scPol
 parseMorph  = morphParser.(lexer 0) --scMorph
 parseFil    = filParser.(lexer 0) --scFil
+

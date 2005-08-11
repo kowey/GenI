@@ -548,16 +548,6 @@ parseSym s =
       if null varStr then constStr else varStr
 \end{code}
 
-\paragraph{toUpperHead and toLowerHead} make the first character of a
-string upper and lower case, respectively.  
-
-\begin{code}
-toUpperHead []    = []
-toUpperHead (h:t) = (toUpper h):t
-toLowerHead []    = []
-toLowerHead(h:t)  = (toLower h):t
-\end{code}
-
 %\paragraph{ditchAccents} is a stupid hack to strip off the accents
 %of a string because WxWidgets (or something else) chokes whilst
 %trying to display them in Linux.

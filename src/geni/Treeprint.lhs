@@ -189,7 +189,7 @@ toGeniHand tr =
       substf (a,v) = case (a,v) of _ -> (dashtobar a, v)
       --
       showflist  = showPairs . (map substf)
-      showparams = concat $ intersperse " " (params tr)
+      showparams = concat $ intersperse " " $ map show (params tr)
       --
   in showid tr 
      ++ " ("  ++ showparams 

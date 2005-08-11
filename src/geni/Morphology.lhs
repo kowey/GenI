@@ -78,7 +78,7 @@ attachMorph morphfn sem cands =
       relLit i l = if null args then False else (head args == i)
         where args = thd3 l
       -- perform the attachment for a tree if it is relevant
-      attachHelper :: String -> Flist -> TagElem -> TagElem  
+      attachHelper :: GeniVal -> Flist -> TagElem -> TagElem  
       attachHelper i mfs t = 
         if relTree i t then attachMorphHelper mfs t else t 
       -- perform all attachments for a literal
@@ -87,7 +87,7 @@ attachMorph morphfn sem cands =
         case morphfn l of 
           Nothing  -> cs
           Just mfs -> map (attachHelper i mfs) cs
-        where i = if null args then "" else head args
+        where i = if null args then GAnon else head args
               args = thd3 l 
   in foldr attach cands sem 
 \end{code}

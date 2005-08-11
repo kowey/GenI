@@ -6,7 +6,10 @@ where
 import Data.List(sort)
 import ParserLib(Token(..), 
                  PosToken, simpleParserError)
-import Btypes(AvPair, emptyLE, ILexEntry(..), Ptype(..), Sem)
+import Btypes(AvPair, emptyLE, ILexEntry(..), Ptype(..), Sem,
+              GConst, readGeniVal)
+
+)
 
 }
 
@@ -174,10 +177,10 @@ FeatList : {-empty-}               {[]}
          | id ':' FeatVal FeatList {($1,$3):$4}
 
 FeatVal :: { String }
-FeatVal: id  {$1}
-       | num {show $1}
-       | '+' {"+"}
-       | '-' {"-"}
+FeatVal: id  {readGeniVal $1}
+       | num {GConst (show $1)}
+       | '+' {GConst "+"}
+       | '-' {GConst "-"}
 
 
 {

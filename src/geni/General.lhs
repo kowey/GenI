@@ -27,7 +27,7 @@ where
 
 \ignore{
 \begin{code}
-import Data.Char (isSpace)
+import Data.Char (isSpace, toUpper, toLower)
 import Data.List (intersect)
 import Data.Tree
 import System.Directory (getCurrentDirectory, setCurrentDirectory)
@@ -44,6 +44,16 @@ implement.
 \begin{code}
 trim :: String -> String
 trim = reverse . (dropWhile isSpace) . reverse . (dropWhile isSpace) 
+\end{code}
+
+\paragraph{toUpperHead and toLowerHead} make the first character of a
+string upper and lower case, respectively.  
+
+\begin{code}
+toUpperHead []    = []
+toUpperHead (h:t) = (toUpper h):t
+toLowerHead []    = []
+toLowerHead(h:t)  = (toLower h):t
 \end{code}
 
 \section{Three-tuples}
@@ -117,8 +127,8 @@ in GenI which is very likely NOT the user's fault.
 
 \begin{code}
 bugInGeni = 
- "Bug in GenI. Please file a report on the wiki:" ++
- "http://wiki.loria.fr/wiki/GenI/Complaints" 
+ "Bug in GenI." ++ 
+ "Please file a report on http://wiki.loria.fr/wiki/GenI/Complaints" 
 \end{code}
 
 \section{Files}

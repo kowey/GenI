@@ -1,6 +1,24 @@
 module ParserLib 
 where
 
+import Btypes (
+               Ptype(Initial,Auxiliar,Unspecified),
+               Ttree(..), Flist, AvPair,
+               GType(Foot, Lex, Subs, Other),
+               GNode(..), MTtree, 
+
+               emptyLE, ILexEntry(..), Ptype(..), 
+
+               Sem, Pred, readGeniVal, GeniVal(..))
+
+import qualified Data.Map as Map 
+
+import Data.List (sort)
+import qualified Data.Tree 
+
+
+import System.IO.Unsafe(unsafePerformIO)
+
 type PosToken = (Token, Int, Int)
 
 data Token = 
@@ -80,3 +98,90 @@ simpleParserError ((t, l, c):cs) =
 				   show c
     } in 
     error (mess)
+
+
+-- -------------------------------------------------------------------
+-- lexicon helper functions 
+-- -------------------------------------------------------------------
+
+type LpSemPols    = [Int]
+type LpParam     = (GeniVal,Int)
+type LpRawPred   = ((LpParam,String), [LpParam])
+type LpSemFam    = ([Int],[String])
+
+createHandleVars :: [LpRawPred] -> Sem 
+createHandleVars predargs = 
+  let fn ((_,p),a) = (GAnon, p, map fst a)
+  in  map fn predargs 
+
+{- this is if you want to deal with handles -- i don't
+createHandleVars :: [LpRawPred] -> Btypes.Sem 
+createHandleVars predargs = 
+  let handle newh oldh = if null oldh 
+                         then "H" ++ show newh 
+                         else oldh
+      fn (nh,((oh,p),a)) = (han, p, map fst a)
+                           where han = handle nh (fst oh)
+      zpa = zip [1..] predargs
+   in map fn zpa
+-}
+
+extractSemPolarities :: [LpRawPred] -> [LpSemPols]
+extractSemPolarities predargs =
+  map fn predargs
+  where fn ((h,p),a) = (snd h) : (map snd a)
+
+-- -------------------------------------------------------------------
+-- macro helper functions
+-- -------------------------------------------------------------------
+ 
+type TrTree   = Data.Tree.Tree
+type MpStuff = (String,String,(Flist,Flist)) 
+type MpPredictors = [(AvPair,Int)]
+type MpPolarities = Map.Map String Int
+
+emptyPolPred = (Map.empty, [])
+
+nullpair :: ([a],[a])
+nullpair = ([],[])
+
+buildTreeNode :: String -> MpStuff -> [TrTree GNode] -> TrTree GNode
+buildTreeNode name (ntype, lex, (rtop,rbot)) kids =
+  let top = sort rtop 
+      bot = sort rbot 
+      (a,l,t,ac) = case ntype of 
+         "anchor" ->  (True,  "" , Lex,   True)
+         "lexeme" ->  (False, lex, Lex,   True)
+         "subst"  ->  (False, "" , Subs,  True)
+         "foot"   ->  (False, "" , Foot,  True)
+         "aconstr" -> (False, "" , Other, True)
+         "" ->        (False, "" , Other, False) 
+      node = GN{gnname=name, gtype=t,
+                gup=top,   gdown=bot,
+                ganchor=a, glexeme=l,
+                gaconstr=ac}
+  in Data.Tree.Node node kids
+
+buildTree :: Ptype -> (String,String) -> ([GeniVal],Flist) -> (MpPolarities, MpPredictors) -> TrTree GNode -> MTtree
+buildTree ttype (fam,id) (params,feats) (pol,pred) t = 
+       TT{params = params, 
+          pfamily = fam,
+          pidname = id,
+          pfeat = feats, 
+          ptype = ttype, 
+          tree = t, 
+          ptpolarities = pol,
+          ptpredictors = pred} 
+
+-- -------------------------------------------------------------------
+-- test suite helpers 
+-- -------------------------------------------------------------------
+
+type TpCase = ( String,            -- name
+                (TpSem, [AvPair]), -- sem/restrictors
+                [String])          -- sentences 
+type TpSem  = Btypes.Sem
+-- type TpSem  = [Tree (String,String)]
+-- type TpPred = (String,String)
+
+

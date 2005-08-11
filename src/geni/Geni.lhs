@@ -56,13 +56,14 @@ import General(groupByFM, multiGroupByFM)
 
 import Bfuncs (Macros, MTtree, ILexEntry, Lexicon, 
                Sem, SemInput,
+               fromGConst, fromGVar, GeniVal(..),
                GNode, GType(Subs), Flist,
                isemantics, ifamname, iword, iparams, 
                ipfeat, ifilters,
-               icontrol, isempols, 
+               isempols, 
                gnname, gtype, gaconstr, gup, gdown, toKeys,
                sortSem, subsumeSem, params, 
-               substSem, substFlist, substTree, 
+               Subst, substSem, substFlist, substTree, substHelper,
                pidname, pfamily, pfeat, ptype, 
                ptpolarities, 
                setLexeme, tree, unifyFeat)
@@ -426,7 +427,7 @@ combineOne lexitem e =
        p    = iparams lexitem
        pf   = ipfeat lexitem
        -- tree stuff
-       tp   = params e
+       tp   = map fromGVar $ params e
        tpf  = pfeat e
        -- unify the parameters
        psubst = zip tp p
@@ -521,20 +522,22 @@ the duplicates.
 \begin{code}
 chooseCandI :: Sem -> [ILexEntry] -> [ILexEntry]
 chooseCandI tsem cand =
-  let substLex i sub = i { isemantics = substSem (isemantics i) sub
-                         , ipfeat     = substFlist (ipfeat i)   sub  
-                         , iparams    = substPar  (iparams i)   sub
-                         , icontrol   = substOne (icontrol i)   sub
-                         }
+  let substLex i (sem,sub) = 
+        i { isemantics = sem 
+          , ipfeat     = substFlist (ipfeat i)   sub  
+          , iparams    = substPar  (iparams i)   sub
+          }
       --
+      substPar :: [GeniVal] -> Subst -> [GeniVal]
       substPar par sub = map (\p -> substOne p sub) par
-      substOne p sub = foldl sfn p sub
-                       where sfn z (x,y) = if (z == x) then y else z
+      substOne :: GeniVal -> Subst -> GeniVal
+      substOne p sub = foldl (flip substHelper) p sub
       --
       helper :: ILexEntry -> [ILexEntry]
-      helper le = if (null sem) then [le] else map (substLex le) psubst 
-                  where psubst = subsumeSem tsem sem
-                        sem = isemantics le
+      helper le = if (null sem) then [le] 
+                  else map (substLex le) psubsem 
+        where psubsem = subsumeSem tsem sem
+              sem = isemantics le
       --
   --in --trace ("\n\n" ++ (concatMap showlex cand)) $ 
   in nub $ concatMap helper cand 
@@ -665,8 +668,8 @@ lexEntryToFil lex n =
   let filters   = ifilters lex
       enrichers = ipfeat lex 
       --
-      showFil (a,v) = a ++ ":" ++ v
-      showEnr (a,v) = a ++ "=" ++ v
+      showFil (a,v) = a ++ ":" ++ show v
+      showEnr (a,v) = a ++ "=" ++ show v
       concatSperse x y = concat $ intersperse x y
   in show n 
     ++ " " ++ iword lex ++ " "
@@ -782,13 +785,16 @@ loadGeniLexicon pstRef config = do
        lf <- readFile lfilename 
        pst <- readIORef pstRef
        let params = pa pst
-           sortlexsem l = l { isemantics = if (ignoreSemantics params) then []
-                                           else sortSem $ isemantics l }
-           semmapper    = mapBySemKeys isemantics
-           rawlex       = parseLex lf
-           lex          = (semmapper . (map sortlexsem) . fst) rawlex
+           --       
+           getSem l  = if (ignoreSemantics params) then [] else isemantics l 
+           sorter l  = l { isemantics = (sortSem . getSem) l }
+           cleanup   = (mapBySemKeys isemantics) . (map sorter)
+           --
+           lex = case parseLex lf of 
+                   Ok x     -> cleanup x 
+                   Failed x -> error x 
+       --
        putStr ((show $ length $ Map.keys lex) ++ " entries\n")
-
        -- combine the two lexicons
        {- trace (concatMap (concatMap showlex) $ eltsFM lex) $ -}
        modifyIORef pstRef (\x -> x{le = lex})
@@ -843,10 +849,11 @@ loadCGMLexicon pstRef config = do
        hFlush stdout
        lf <- readFile lfilename
        let semmapper = mapBySemKeys isemantics
-           setsem l  = l { isemantics = sem
-                         , ipfeat = ipfeat l ++ enr }
+           setsem l  = l { isemantics = sem, ipfeat = ipfeat l ++ enr }
              where (sem,enr) = extractCGMSem l
-           lex       = (semmapper . map setsem . parseFil) lf
+           lex = case parseFil lf of
+                   Ok     x -> (semmapper . map setsem) x
+                   Failed x -> error x
        putStr ((show $ length $ Map.keys lex) ++ " entries\n")
 
        -- combine the two lexicons
@@ -888,19 +895,24 @@ extractCGMSem lex =
       --
       theta   = [ x | x <- ipfeat lex, isPrefixOf attr_theta (fst x) ]
       relList = [ x | x <- ipfeat lex, isPrefixOf attr_rel   (fst x) ] 
-      rel | null relList        = error (relErr ++ "has no relation")
-          | otherwise           = relList
+      rel | null relList = error (relErr ++ "has no relation")
+          | otherwise    = relList
         where relErr  = "lexical entry " ++ show lex ++ ""
       -- 
+      varE    = GVar "E"
+      varX n  = GVar ("X" ++ numfn n)
       numfn x = drop (length attr_theta) (fst x) -- interface.theta1 -> 1
-      relPredFn   x = ("", snd x, ["E"])
-      thetaPredFn x = ("", snd x, ["E", "X" ++ numfn x])
+      -- FIXME: will have to deal with handles, eh?
+      extractPred   = fromGConst.snd
+      relPredFn   x = (GAnon, extractPred x, [varE])
+      thetaPredFn x = (GAnon, extractPred x, [varE, varX x])
       --
-      relEnrich = ("interface.index","E") 
-      thetaEnrichFn x = ("interface.arg" ++ num, "X" ++ num)
-                          where num = numfn x
+      relEnrich = ("interface.index",varE) 
+      thetaEnrichFn x = ("interface.arg" ++ numfn x, varX x)
       --
-      sem    = map relPredFn rel ++ map thetaPredFn theta
+      sem :: Sem 
+      sem = map relPredFn rel ++ map thetaPredFn theta
+      enrich :: Flist
       enrich = relEnrich : (map thetaEnrichFn theta)
   in -- trace (showSem sem) $ 
      (sortSem sem,enrich)
@@ -910,9 +922,9 @@ extractCGMSem lex =
 \begin{code}
 testExtractCGMSem :: Bool
 testExtractCGMSem =
-  let feats       = [ ("interface.rel","hates"),
-                      ("interface.theta1","agt"),
-                      ("interface.theta2","pat") ]
+  let feats       = [ ("interface.rel",    GConst "hates"),
+                      ("interface.theta1", GConst "agt"),
+                      ("interface.theta2", GConst "pat") ]
       example_lex = emptyLE { ipfeat = feats }
       extracted   = fst $ extractCGMSem example_lex
   in trace (show extracted) (length extracted == 3) 
@@ -935,7 +947,7 @@ loadGeniMacros pstRef config =
      gf <- readFile filename
      let g = case (parseMac gf) of 
                    Ok x     -> x 
-                   Failed x -> error x 
+                   Failed x -> fail x 
          sizeg  = length g
      putStr $ show sizeg ++ " trees in " 
      putStr $ (show $ length g) ++ " families\n"
@@ -957,7 +969,9 @@ loadMorphInfo pstRef config =
         putStr $ "Loading Morphological Info " ++ filename ++ "..."
         hFlush stdout
         gf <- readFile filename
-        let g = parseMorph gf
+        let g = case parseMorph gf of
+                  Ok x     -> x
+                  Failed x -> fail x
             sizeg  = length g
         putStr $ show sizeg ++ " entries\n" 
         modifyIORef pstRef (\x -> x{morphinf = readMorph g})

@@ -3,29 +3,39 @@ module Mparser
  
 where 
 
-import ParserLib(Token(..),PosToken,parserError,
-                 E(..), thenE, returnE, failE)
+import ParserLib 
 
-import Btypes (Ptype(Initial,Auxiliar,Unspecified),
+import Btypes (
+               Ptype(Initial,Auxiliar,Unspecified),
                Ttree(..), Flist, AvPair,
                GType(Foot, Lex, Subs, Other),
-               GNode(..), MTtree)
+               GNode(..), MTtree, 
+
+               emptyLE, ILexEntry(..), Ptype(..), 
+
+               Sem, Pred, readGeniVal, GeniVal(..))
 
 import qualified Data.Map as Map 
 
 import Data.List (sort)
 import qualified Data.Tree 
 
+
+import System.IO.Unsafe(unsafePerformIO)
 }
 
 %name mParser    Input 
 %name polParserE PolList
+%name lexParser    Lexicon 
+%name filParser    FilEntryList 
+%name morphParser  MorphInfo  
+%name targetSemParser SemR
+%name testSuiteParser TestSuite
 
 %tokentype { PosToken }
 %monad { E } { thenE } { returnE }
 
 %token 
-    ':'      {(Colon,    _, _)} 
     anchor   {(Anchor,   _, _)} 
     type     {(Type,     _, _)}
     subst    {(LSubst,   _, _)}
@@ -48,14 +58,126 @@ import qualified Data.Tree
     '('      {(OP,       _, _)} 
     ')'      {(CP,       _, _)} 
     '!'      {(Bang,     _, _)} 
-    '+'      {(PlusTok, _, _)}
+    '+'      {(PlusTok,  _, _)}
     '-'      {(MinusTok, _, _)}
- 
+    '='      {(EqTok, _,_)}
+    ','      {(Comma,    _, _)} 
+    ':'      {(Colon,    _, _)} 
+    sem   {(Semantics,    _, _)}
+    res   {(RestrictorsTok, _,_)}
+
 %%
 
 {- -----------------------------------------------------------------
-   lists of trees 
+   morphological information 
    ----------------------------------------------------------------- -}
+
+MorphInfo :: { [(String,[AvPair])] } 
+MorphInfo :                 { [] }
+          | Morph MorphInfo { $1:$2 }
+
+Morph :: { (String,[AvPair]) } 
+Morph : id '[' FeatList ']' { ($1,$3) }
+
+{- -----------------------------------------------------------------
+   lexicon 
+   ----------------------------------------------------------------- -}
+
+Lexicon :: { [ILexEntry] }
+Lexicon : LInput  {$1}
+
+LInput :: { [ILexEntry] }
+LInput : {-empty-}        {[]}
+       | LexEntry LInput {$1:$2}
+
+LexEntry :: { ILexEntry }
+LexEntry: id id '(' IDFeat ')' LexSem
+        {emptyLE { iword   = $1,
+                   ifamname = $2,
+                   iparams = fst $4,
+                   ipfeat  = sort $ snd $4,
+                   isemantics = fst $6,
+                   isempols = snd $6
+                 }
+        }
+ | id id '[' FeatList ']' LexSem
+         {emptyLE { iword   = $1,
+                    ifamname = $2,
+                    ipfeat  = sort $ $4,
+                    isemantics = fst $6,
+                    isempols = snd $6
+                  }
+         }
+
+{- lexical semantics (not the same as input semantics) 
+   but if we ever figure out how to autodetect the 
+   sem polarities, then we should try to merge them back 
+-}
+
+LexSem :: { (Btypes.Sem,[LpSemPols]) }
+LexSem: {-empty-}                {([],[])}
+   | sem ':' '[' LexListPred ']' 
+      {(createHandleVars $4, extractSemPolarities $4)}
+
+LexListPred :: { [LpRawPred] }
+LexListPred : {-empty-}           {[]}
+            | LexPred LexListPred {$1:$2}
+
+LexPred :: { LpRawPred }
+LexPred : PolId ':' id '(' LexParams ')'  {( (    $1, $3), $5)}
+        |           id '(' LexParams ')'  {( ((GAnon,0), $1), $3)}
+
+LexParams :: { [LpParam] }
+LexParams : {-empty-} {[]}
+          | PolId LexParams {$1:$2}
+
+PolId :: { LpParam }
+PolId : '+' id  { (readGeniVal $2, 1) }
+      | '-' id  { (readGeniVal $2,-1) }
+      |     id  { (readGeniVal $1, 0) }
+
+
+{- -----------------------------------------------------------------
+   .fil lexicon format 
+   see the common grammar manifesto
+   ----------------------------------------------------------------- -}
+
+FilEntryList :: { [ILexEntry] }
+FilEntryList : {-empty-}              {[]}
+             | FilEntry FilEntryList  {$1:$2}
+
+FilEntry :: { ILexEntry }
+FilEntry : id '[' FilTerList ']' '(' FilFeatList ')'
+         { emptyLE { iword   = $1,
+                     iparams = [],
+                     ipfeat  =  $6,
+                     ifilters = $3
+                   }
+         }
+
+FilTerList :: { {-FilTerList-} [AvPair] }
+FilTerList : {-empty-}               {[]}
+           | FilTer                  {[$1]}
+           | FilTer ',' FilTerList   {($1:$3)}
+
+FilTer :: { AvPair }
+FilTer : id     ':' FeatVal {($1,$3)}
+       | family ':' FeatVal {("family",$3)} {- don't interpret family as a keyword here -}
+
+FilFeatList :: { {-FilFeatList-} [AvPair] }
+FilFeatList : {-empty-}               {[]}
+            | FilFeat                 {[$1]}
+            | FilFeat ',' FilFeatList {($1:$3)}
+
+{- note that we treat equations like foo.bar.baz as a single string -}
+FilFeat :: { AvPair }
+FilFeat : id '=' FeatVal {($1,$3)}
+
+{- -----------------------------------------------------------------
+   macros 
+   ----------------------------------------------------------------- -}
+
+{- lists of trees -}
 
 Input :: { [MTtree] }
 Input : 
@@ -101,10 +223,7 @@ DefIUs :
  | DefU DefIUs 
       { $1 : $2 } 
 
-{- -----------------------------------------------------------------
-   trees 
-   ----------------------------------------------------------------- -}
-
+{- ----- trees ----- -}
 
 {- definitions -}
  
@@ -137,13 +256,6 @@ TreeFamName : id         {($1,"")}
             | num        {(show $1,"")}
             | num ':' id {(show $1,$3)}
 
-
-{- parameters, features -}
-
-IDFeat :: { ([String],[AvPair])}
-IDFeat : IDList               { ($1,[]) }
-       | IDList '!' FeatList  { ($1,$3) }
-
 {- polarities and predictors -}
 
 PolPred :: { (MpPolarities, MpPredictors) }
@@ -162,9 +274,10 @@ PredictorList :
   | PolVal num Predictor PredictorList 
       {(map (const ($3,$1)) [1..$2]) ++ $4}
 
+{- FIXME: not sure about GAnon: should check if ever use predictors again -}
 Predictor :: { AvPair }
-Predictor: id        { ($1,"") }
-         | id ':' id { ($1,$3) }
+Predictor: id        { ($1,GAnon) } 
+         | id ':' id { ($1,readGeniVal $3) }
 
 Charge :: { Int }
 Charge: PolVal {($1)}
@@ -207,14 +320,57 @@ Descrip :
 TopBotF :: { (Flist,Flist) }
 TopBotF : '[' FeatList ']' '!' '[' FeatList ']'
     {($2,$6)}
+
+{- -----------------------------------------------------------------
+   test suite and input semantics 
+   ----------------------------------------------------------------- -}
+
+TestSuite :: { [TpCase] }
+TestSuite: TestCase           { [$1] } 
+         | TestCase TestSuite { $1 : $2 } 
+
+TestCase :: { TpCase }
+TestCase:    SemR Sentences { ("",$1,$2) }
+        | id SemR Sentences { ($1,$2,$3) }
+
+SemR :: { (TpSem, [AvPair]) }
+SemR: Sem     { ($1,[]) }
+    | Sem Res { ($1,$2) }
+
+{- sentences -}
+
+Sentences :: { [String] }
+Sentences:                    { [] }
+         | Sentence Sentences { $1 : $2 }
+
+Sentence :: { String }
+Sentence: '[' String ']' { $2 }
+
+String :: { String }
+String: id { $1 }
+      | id String { $1 ++ " " ++ $2 }
+
+{- restrictors -}
+
+Res :: { [AvPair] }
+Res : res ':' '[' FeatList ']' { $4 }
+
  
 {- -----------------------------------------------------------------
    generic stuff 
    ----------------------------------------------------------------- -}
 
-IDList :: { [String] }
+IDList :: { [GeniVal] }
 IDList : {-empty-}  {[]} 
-       | id IDList  {$1:$2} 
+       | id IDList  {(readGeniVal $1):$2} 
+
+IDFeat :: { ([GeniVal],[AvPair])}
+IDFeat : IDList               { ($1,[]) }
+       | IDList '!' FeatList  { ($1,$3) }
+
+Num :: { Int }
+Num: num     { $1 }
+   | '-' num { (-$2) }
 
 {- feature structures -}
 
@@ -224,57 +380,68 @@ FeatList : {-empty-}               {[]}
            {- let's not be shocked by "lex" -}
          | lexeme ':' FeatVal FeatList {("lex",$3):$4} 
 
-FeatVal :: { String }
-FeatVal: id  {$1}
-       | num {show $1}
-       | '+' {"+"}
-       | '-' {"-"}
+FeatVal :: { GeniVal }
+FeatVal: id  {readGeniVal $1}
+       | num {GConst (show $1)}
+       | '+' {GConst "+"}
+       | '-' {GConst "-"}
+
+{- semantics -}
+
+Sem :: { Btypes.Sem }
+Sem: sem ':' '[' ListPred ']' {$4}
+
+ListPred :: { [Btypes.Pred] }
+ListPred : {-empty-}         {[]}
+         | Pred ListPred     {$1:$2}
+
+Pred :: { Btypes.Pred }
+Pred : id '(' Params ')'  {(GAnon, $1, $3)}
+     | id ':' id '(' Params ')' {
+        unsafePerformIO $ do  
+          putStrLn "Warning: handle detected and ignored (we don't do handles)"
+          return (GAnon,$3,$5)
+      }
+
+Params :: { [GeniVal] }
+Params : {-empty-} {[]}
+       | id Params {(readGeniVal $1):$2}
+
+{- tree representation for semantics: 
+   for now, i don't want to deal with this, or handles
+-- Sem :: { TpSem }
+-- Sem : sem ':' '[' ListPred ']' { $4 }
+-- 
+-- ListPred :: { TpSem } 
+-- ListPred :               {[]}
+--          | Pred ListPred {$1:$2}
+-- 
+-- Pred :: { Tree TpPred }
+-- Pred : id ':' id '(' Params ')'  {(Node ($1,$3) $5)}
+--      | id '(' Params ')'         {(Node ("",$1) $3)}
+-- 
+-- Params :: { TpSem } 
+-- Params :             {[]}
+--        | id Params   {(Node ("",$1) []):$2}
+--        | Pred Params {$1:$2}
+-}
 
 
 {
-
-type TrTree   = Data.Tree.Tree
-type MpStuff = (String,String,(Flist,Flist)) 
-type MpPredictors = [(AvPair,Int)]
-type MpPolarities = Map.Map String Int
-
-emptyPolPred = (Map.empty, [])
-
-nullpair :: ([a],[a])
-nullpair = ([],[])
-
-buildTreeNode :: String -> MpStuff -> [TrTree GNode] -> TrTree GNode
-buildTreeNode name (ntype, lex, (rtop,rbot)) kids =
-  let top = sort rtop 
-      bot = sort rbot 
-      (a,l,t,ac) = case ntype of 
-         "anchor" ->  (True,  "" , Lex,   True)
-         "lexeme" ->  (False, lex, Lex,   True)
-         "subst"  ->  (False, "" , Subs,  True)
-         "foot"   ->  (False, "" , Foot,  True)
-         "aconstr" -> (False, "" , Other, True)
-         "" ->        (False, "" , Other, False) 
-      node = GN{gnname=name, gtype=t,
-                gup=top,   gdown=bot,
-                ganchor=a, glexeme=l,
-                gaconstr=ac}
-  in Data.Tree.Node node kids
-
-buildTree :: Ptype -> (String,String) -> ([String],Flist) -> (MpPolarities, MpPredictors) -> TrTree GNode -> MTtree
-buildTree ttype (fam,id) (params,feats) (pol,pred) t = 
-       TT{params = params, 
-          pfamily = fam,
-          pidname = id,
-          pfeat = feats, 
-          ptype = ttype, 
-          tree = t, 
-          ptpolarities = pol,
-          ptpredictors = pred} 
 
 polParser x = case polParserE x of 
                 Ok p     -> p
                 Failed e -> error e
 
+-- -------------------------------------------------------------------
+-- dealing with errors 
+-- -------------------------------------------------------------------
+
+
 happyError :: [PosToken] -> E a
 happyError = parserError
 }
+
+
+ 
+

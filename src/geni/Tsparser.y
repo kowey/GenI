@@ -5,7 +5,8 @@ where
 
 --import Data.Tree
 import ParserLib hiding (Node)
-import Btypes(AvPair, emptyLE, ILexEntry(..), Ptype(..), Sem, Pred)
+import Btypes(AvPair, emptyLE, ILexEntry(..), Ptype(..), Sem, Pred,
+              readGeniVal, GeniVal(..))
 import System.IO.Unsafe(unsafePerformIO)
 }
 
@@ -104,10 +105,10 @@ FeatList : {-empty-}               {[]}
          | id ':' FeatVal FeatList {($1,$3):$4}
 
 FeatVal :: { String }
-FeatVal: id  {$1}
-       | num {show $1}
-       | '+' {"+"}
-       | '-' {"-"}
+FeatVal: id  {readGeniVal $1}
+       | num {GConst (show $1)}
+       | '+' {GConst "+"}
+       | '-' {GConst "-"}
 
 {
 type TpCase = ( String, (TpSem, [AvPair]), [String] )

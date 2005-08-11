@@ -103,9 +103,7 @@ endif
 LEXERS		= $(SRC_GENI)/Lex2.hs
 PARSERS		= \
  $(SRC_GENI)/Mparser.hs \
- $(SRC_GENI)/Cparser.hs \
- $(SRC_GENI)/Lparser.hs \
- $(SRC_GENI)/Tsparser.hs 
+ $(SRC_GENI)/Cparser.hs 
 
 # Phony targets do not keep track of file modification times
 .PHONY: all nogui dep clean docs html parsers release optimize\
