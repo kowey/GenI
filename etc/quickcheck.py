@@ -5,6 +5,10 @@
 # Produces instructions for ghci to run quickCheck on all the properties 
 # of a literate haskell file.
 #
+# You run it like
+#   ./quickcheck.py src/foo.lhs | ghci 
+# Note: you might need your standard ghci arguments as well
+#
 # This is written in python (as opposed to haskell) because I couldn't figure
 # out how to get the quickcheck script to run from the ghci intepreter.
 #
@@ -27,7 +31,7 @@ def processFile(filename):
         print "Error opening",filename
         return
 
-    propPat = re.compile('(?P<p>prop_.*?) ')
+    propPat = re.compile('(?P<p>^prop_.*?) ')
     beginCodePat = re.compile('\\\\begin\{code\}')
     endCodePat   = re.compile('\\\\end\{code\}')
     
