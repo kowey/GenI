@@ -54,14 +54,18 @@ module Bfuncs(
 
    -- Other functions
    fromGConst, fromGVar,
-   isVar, isAnon, testBtypes, 
-   testingOnly
+   isVar, isAnon, testBtypes,
+
+   -- Tests
+   prop_unify_anon, prop_unify_self, prop_unify_sym 
 ) where
 \end{code}
 
 \ignore{
 \begin{code}
 -- import Debug.Trace -- for test stuff
+import QuickCheck -- needed for testing via ghci 
+import Control.Monad (liftM)
 import Data.List (sortBy, foldl')
 import Data.Tree
 
@@ -460,23 +464,32 @@ Unifying something with only anonymous variables should succeed.
 prop_unify_anon x = 
   case (unify x y) of
     Nothing  -> False
-    Just unf -> (fst unf == y)
+    Just unf -> (fst unf == x)
   where -- 
     y  = take (length x) $ repeat GAnon
 \end{code}
 
-Unification should be symmetrical.
+Unification should be symmetrical.  We can't guarantee these if there
+are cases where there are variables in the same place on both sides, so we
+normalise the sides so that this doesn't happen.
          
 \begin{code}
-prop_unify_sym x y = unify x y == unify y x
+prop_unify_sym x y = 
+  let u1 = unify x y 
+      u2 = unify y x
+      --
+      notOverlap (GVar _, GVar _) = False
+      notOverlap _ = True
+  in all (notOverlap) (zip x y) ==> u1 == u2
 \end{code}
 
 \ignore{
 \begin{code}
--- Appease the compiler for warnings
-testingOnly = prop_unify_self [] &&
-              prop_unify_anon [] &&
-              prop_unify_sym [] []
+-- Definition of Arbitrary GeniVal for QuickCheck
+instance Arbitrary GeniVal where
+  arbitrary = oneof [ return $ GAnon, 
+                      liftM GVar arbitrary, 
+                      liftM GConst arbitrary ] 
 \end{code}
 }
 
