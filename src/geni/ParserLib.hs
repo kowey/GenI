@@ -13,6 +13,7 @@ import Btypes (
 
 import qualified Data.Map as Map 
 
+import Data.Char (isLower)
 import Data.List (sort)
 import qualified Data.Tree 
 
@@ -40,11 +41,12 @@ data Token =
     Id | Sem | Label |
     Const | Predicate | Argument |
     Mark | Name | Negated | EqTok | Feature |
-    Node | Literal | Lt | Gt | Bar |
+    Node | Literal | Lt | Gt | BarTok |
     Init | Aux | FamilyTok |  
     Anchor | Lexeme | Type | LSubst | LFoot | Aconstr | Noadj |
-    Comma | Colon | Bang | Str String |
-    OC | CC | OP | CP | OB | CB | ID String | Num Int |
+    Comma | Colon | Bang | 
+    OC | CC | OP | CP | OB | CB | 
+    Str String | ID String | Num Int |
     Semantics | RestrictorsTok | 
     Polarities | Predictors |
     Begin | End |
@@ -184,4 +186,13 @@ type TpSem  = Btypes.Sem
 -- type TpSem  = [Tree (String,String)]
 -- type TpPred = (String,String)
 
+-- -------------------------------------------------------------------
+-- general helper functions 
+-- -------------------------------------------------------------------
 
+rejectNonGConst :: String -> String 
+rejectNonGConst str =
+  let h = head str
+  in  if null str then error "empty string in rejectNonGConst"
+      else if isLower h then str 
+      else error "only constants are allowed in a disjunction!"

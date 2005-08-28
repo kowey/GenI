@@ -63,6 +63,7 @@ import System.IO.Unsafe(unsafePerformIO)
     '='      {(EqTok, _,_)}
     ','      {(Comma,    _, _)} 
     ':'      {(Colon,    _, _)} 
+    '|'      {(BarTok,   _, _)}
     sem   {(Semantics,    _, _)}
     res   {(RestrictorsTok, _,_)}
 
@@ -380,11 +381,16 @@ FeatList : {-empty-}               {[]}
            {- let's not be shocked by "lex" -}
          | lexeme ':' FeatVal FeatList {("lex",$3):$4} 
 
-FeatVal :: { GeniVal }
+FeatVal :: { GeniVal } 
 FeatVal: id  {readGeniVal $1}
-       | num {GConst (show $1)}
-       | '+' {GConst "+"}
-       | '-' {GConst "-"}
+       | num {GConst [show $1]}
+       | '+' {GConst ["+"]}
+       | '-' {GConst ["-"]}
+       | ConstList { GConst (map rejectNonGConst $1) }
+
+ConstList :: { [String] }
+ConstList : id '|' id { [$1,$3] } 
+          | id '|' ConstList { $1 : $3 } 
 
 {- semantics -}
 

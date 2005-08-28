@@ -90,6 +90,7 @@ tokens :-
   \)                         { tok CP }
   \[                         { tok OB }
   \]                         { tok CB }
+  \|                         { tok BarTok }
  
   [$digit]+                           { numTok }
   [$alpha \_][$alpha $digit \- \_ \/ \. ]*   { idTok }

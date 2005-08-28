@@ -167,7 +167,7 @@ type AvPair  = (String,GeniVal)
 \subsection{GeniVal}
 
 \begin{code}
-data GeniVal = GConst String
+data GeniVal = GConst [String]
              | GVar   String
              | GAnon
   deriving (Eq,Ord)
@@ -183,7 +183,7 @@ in the following manner:
 
 \begin{code}
 instance Show GeniVal where
-  show (GConst x) = toLowerHead x
+  show (GConst x) = concat $ intersperse " ! " $ map toLowerHead x
   show (GVar x)   = toUpperHead x
   show GAnon      = "_"
 
@@ -193,7 +193,7 @@ readGeniVal str =
   let h = head str 
       r | h == '_'  = GAnon
         | isUpper h = GVar str 
-        | otherwise = GConst str 
+        | otherwise = GConst [str]
   in r 
 \end{code}
 
@@ -201,26 +201,13 @@ readGeniVal str =
 variable string value of a GeniVal, assuming it has that kind of value.
 
 \begin{code}
-fromGConst :: GeniVal -> String
+fromGConst :: GeniVal -> [String]
 fromGConst (GConst x) = x
-fromGConst x = error "fromGConst on " ++ show x
+fromGConst x = error ("fromGConst on " ++ show x)
 
 fromGVar :: GeniVal -> String
 fromGVar (GVar x) = x
-fromGVar x = error "fromGVar on " ++ show x
-\end{code}
-
-We also throw in include some simple predicates for accessing the GeniVal
-cases.
-
-\begin{code}
-isVar :: GeniVal -> Bool
-isVar (GVar _) = True
-isVar _        = False
-
-isAnon :: GeniVal -> Bool
-isAnon GAnon = True
-isAnon _     = False
+fromGVar x = error ("fromGVar on " ++ show x)
 \end{code}
 
 % ----------------------------------------------------------------------

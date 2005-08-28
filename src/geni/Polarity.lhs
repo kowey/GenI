@@ -885,7 +885,8 @@ detectPols' te =
       -- getidx = getval "idx"
       getval att fl = if null f then "" else attstr
                       where f = filter (\ (a,_) -> att == a) fl 
-                            attstr = att ++ ('_' : ((fromGConst.snd.head) f))
+                            -- FIXME: deal with disjunction here
+                            attstr = att ++ ('_' : ((head.fromGConst.snd.head) f))
       --
       apols = zip substuff negone
               where negone = repeat (-1)

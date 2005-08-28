@@ -49,7 +49,7 @@ module Bfuncs(
    emptyPred,
 
    -- Functions from Flist
-   substFlist, substFlist', sortFlist, unifyFeat, substHelper,
+   substFlist, sortFlist, unifyFeat, substHelper,
    showPairs, showAv,
 
    -- Other functions
@@ -66,7 +66,7 @@ module Bfuncs(
 -- import Debug.Trace -- for test stuff
 import QuickCheck -- needed for testing via ghci 
 import Control.Monad (liftM)
-import Data.List (sortBy, foldl')
+import Data.List (intersect, sortBy, foldl')
 import Data.Tree
 
 import Btypes
@@ -221,17 +221,16 @@ constrainAdj n t =
 % ----------------------------------------------------------------------
 
 \paragraph{substFlist} 
-Given an Flist and a substitution, applies 
- the substitution to the Flist.
+Given an Flist and a substitution, applies the substitution to the Flist.
+
 \begin{code}
 substFlist :: Flist -> Subst -> Flist
 substFlist fl sl = foldl' helper fl sl
-  where -- note: don't try to refactor with substFlist';
-        -- this is here for performance reasons
+  where -- note: written sans map for performance reasons
         helper :: Flist -> (String,GeniVal) -> Flist
         helper [] _ = []
         helper ((f,v):xs) (s1, s2) = (f, v2) : helper xs (s1,s2) 
-          where v2 = if (v == GVar s1) then s2 else v 
+          where v2 = substHelper (s1,s2) v 
 \end{code}
 
 \ignore{
@@ -249,16 +248,6 @@ testSubstFlist =
 -}
 \end{code}
 }
-
-\paragraph{substFlist'} Given an Flist and a single substition, applies
-that substitution to the Flist... 
-
-\begin{code}
-substFlist' :: Flist -> (String,GeniVal) -> Flist 
-substFlist' fl (s1, s2) = map (\ (f,v) -> (f, helper v))  fl
-  where helper :: GeniVal -> GeniVal
-        helper v = if (v == GVar s1) then s2 else v
-\end{code}
 
 \paragraph{sortFlist} sorts Flists according with its feature
 
@@ -341,13 +330,13 @@ unification. It makes the following assumptions:
 \begin{code}
 unifyFeat :: Flist -> Flist -> (Bool, Flist, Subst)
 unifyFeat f1 f2 = 
-  let (att, val1, val2) = normaliseFeat f1 f2
+  let (att, val1, val2) = alignFeat f1 f2
   in  case unify val1 val2 of
         Nothing -> (False, [], [])
         Just (res, subst) -> (True, zip att res, subst)
 \end{code}
 
-\paragraph{normaliseFeat}
+\paragraph{alignFeat}
 
 The less trivial case is when neither list is empty.  If we are looking
 at the same attribute, then we transfer control to the helper function.
@@ -356,26 +345,26 @@ to the results, and move on.  This only works if the lists are
 alphabetically sorted beforehand!
 
 \begin{code}
-normaliseFeat :: Flist -> Flist -> ([String], [GeniVal], [GeniVal])
-normaliseFeat [] [] = ([], [], [])
+alignFeat :: Flist -> Flist -> ([String], [GeniVal], [GeniVal])
+alignFeat [] [] = ([], [], [])
 
-normaliseFeat [] ((f,v):x) = 
-  let (att, left, right) = normaliseFeat [] x
+alignFeat [] ((f,v):x) = 
+  let (att, left, right) = alignFeat [] x
   in  (f:att, GAnon:left, v:right)
 
-normaliseFeat x [] = 
-  let (att, left, right) = normaliseFeat [] x
+alignFeat x [] = 
+  let (att, left, right) = alignFeat [] x
   in  (att, right, left)
 
-normaliseFeat fs1@((f1, v1):l1) fs2@((f2, v2):l2) 
+alignFeat fs1@((f1, v1):l1) fs2@((f2, v2):l2) 
    | f1 == f2  = (f1:att0, v1:left0,    v2:right0)
    | f1 <  f2  = (f1:att1, v1:left1, GAnon:right1) 
    | f1 >  f2  = (f2:att2, GAnon:left2, v2:right2)
    | otherwise = error "Feature structure unification is badly broken"
    --
-  where (att0, left0, right0) = normaliseFeat l1 l2
-        (att1, left1, right1) = normaliseFeat l1 fs2
-        (att2, left2, right2) = normaliseFeat fs1 l2
+  where (att0, left0, right0) = alignFeat l1 l2
+        (att1, left1, right1) = alignFeat l1 fs2
+        (att2, left2, right2) = alignFeat fs1 l2
 \end{code}
 
 \subsection{GeniVal}
@@ -396,9 +385,10 @@ isAnon _     = False
 \subsection{Unification}
 
 \paragraph{unify} performs unification on two lists of GeniVal.  If
-unification succeeds, it returns a list of possible unifications. 
-\verb!Just [(r,s)]! where \verb!r! is the result of unification and \verb!s!
-is a list of substitutions that this unification results in.  
+unification succeeds, it returns \verb!Just (r,s)! where \verb!r! is 
+the result of unification and \verb!s! is a list of substitutions that this
+unification results in.  
+
 Notes: 
 \begin{itemize}
 \item there may be multiple results because of disjunction
@@ -406,6 +396,8 @@ Notes:
 \item the lists need not be same length; we just assume you want
       the longer of the two
 \end{itemize}
+
+The core unification algorithm follows these rules in order:
 
 \begin{enumerate}
 \item if either h1 or h2 are anonymous, we add the other to the result,
@@ -425,12 +417,13 @@ unify [] l2 = Just (l2, [])
 unify l1 [] = Just (l1, [])
 
 unify (h1:t1) (h2:t2) =
-  let unifyval
+  let sect = intersect (fromGConst h1) (fromGConst h2)
+      unifyval
         | (isAnon h1) = sansrep    h2
         | (isAnon h2) = sansrep    h1 
         | (isVar h1)  = withrep h1 h2
         | (isVar h2)  = withrep h2 h1
-        | (h1 == h2)  = sansrep    h1
+        | (not.null) sect = sansrep (GConst sect)
         | otherwise   = Nothing
       --
       withrep (GVar h1) x2 = do
@@ -565,7 +558,13 @@ substPred (h, n, lp) (s:l) = substPred (subst h, n, map subst lp) l
 -- substVals gl sl = foldl' helper gl sl
 --   where helper :: [GeniVal] -> (String,GeniVal) -> [GeniVal] 
 --         helper lst s = map (substHelper s) lst
- 
+\end{code}
+
+\paragraph{substHelper} applies a single substitution on a single value.  
+Note that the value is disjunctive, which is which it is represented as
+\verb![GeniVal]! instead of just GeniVal.
+
+\begin{code}
 substHelper :: (String,GeniVal) -> GeniVal -> GeniVal
 substHelper (s1,s2) v = if (v == GVar s1) then s2 else v
 \end{code}

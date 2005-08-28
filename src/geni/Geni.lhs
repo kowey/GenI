@@ -903,7 +903,7 @@ extractCGMSem lex =
       varX n  = GVar ("X" ++ numfn n)
       numfn x = drop (length attr_theta) (fst x) -- interface.theta1 -> 1
       -- FIXME: will have to deal with handles, eh?
-      extractPred   = fromGConst.snd
+      extractPred   = head.fromGConst.snd
       relPredFn   x = (GAnon, extractPred x, [varE])
       thetaPredFn x = (GAnon, extractPred x, [varE, varX x])
       --
@@ -922,9 +922,9 @@ extractCGMSem lex =
 \begin{code}
 testExtractCGMSem :: Bool
 testExtractCGMSem =
-  let feats       = [ ("interface.rel",    GConst "hates"),
-                      ("interface.theta1", GConst "agt"),
-                      ("interface.theta2", GConst "pat") ]
+  let feats       = [ ("interface.rel",    GConst ["hates"]),
+                      ("interface.theta1", GConst ["agt"]),
+                      ("interface.theta2", GConst ["pat"]) ]
       example_lex = emptyLE { ipfeat = feats }
       extracted   = fst $ extractCGMSem example_lex
   in trace (show extracted) (length extracted == 3) 
