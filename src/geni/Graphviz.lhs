@@ -69,7 +69,7 @@ want this.
 
 \begin{code}
 toGraphviz :: (GraphvizShow a) => GvParam -> a -> String -> String -> IO ExitCode 
-toGraphviz p x dotFile outputFile =
+toGraphviz p x dotFile outputFile = do
    graphviz (graphvizShow p x) dotFile outputFile
 \end{code}
 

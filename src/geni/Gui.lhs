@@ -555,7 +555,7 @@ tagViewerGui pst f tip cachedir itNlab = do
       Monad.when (boundsCheck tsel tagelems) $ do
         let selected = tagelems !! tsel 
             subtrees = extractDerivation selected
-        set displayTraceCom [ items :~ (\_ -> subtrees) 
+        set displayTraceCom [ items :~ (\_ -> subtrees)
                             , selection :~ (\_ -> 0) ]
   --
   Monad.when (not $ null tagelems) $ do 
@@ -868,6 +868,19 @@ Returns: a function for updating the GUI
 (args for the updater function are itNlab and the index you want to select or
  -1 to keep the same selection)
 
+%\begin{code}
+%graphvizGui :: (GraphvizShow d) => 
+%  (Window a) -> String -> GraphvizRef d Bool -> GvIO d
+%type GvIO d = IO (Layout, IO ())
+%graphvizGui f cachedir gvRef = do
+%  initGvSt <- readIORef gvRef
+%  rchoice  <- singleListBox f 
+%              [items := gvlabels initGvSt,
+%               tooltip := gvtip initGvSt]
+%  let lay = fill $ widget rchoice
+%  return (lay, return () )  
+%\end{code}
+
 \begin{code}
 graphvizGui :: (GraphvizShow d) => 
   (Window a) -> String -> GraphvizRef d Bool -> GvIO d
@@ -878,14 +891,13 @@ graphvizGui f cachedir gvRef = do
   p <- panel f [ fullRepaintOnResize := False ]
   split <- splitterWindow p []
   (dtBitmap,sw) <- scrolledBitmap split 
-  rchoice  <- singleListBox split 
-              [selection := 1, tooltip := gvtip initGvSt]
+  rchoice  <- singleListBox split [tooltip := gvtip initGvSt]
   -- set handlers
   let openFn   = openImage sw dtBitmap 
   -- pack it all together
   let lay = fill $ container p $ margin 1 $ fill $ 
             vsplit split 5 200 (widget rchoice) (widget sw) 
-  set p [ on closing :~ \previous -> do{ closeImage sw dtBitmap; previous } ]
+  set p [ on closing := closeImage dtBitmap ]
   -- bind an action to rchoice
   let showItem = createAndOpenImage cachedir p gvRef openFn
   ------------------------------------------------
@@ -902,13 +914,17 @@ graphvizGui f cachedir gvRef = do
         Monad.when (GvoSel `elem` orders) $
           set rchoice [ selection :~ (\_ -> sel) ]
         modifyIORef gvRef (\x -> x { gvorders = []})
+        -- putStrLn "updaterFn called" 
         showItem 
   ------------------------------------------------
   -- enable the tree selector
+  -- FIXME: not sure that this is correct
   ------------------------------------------------
   let selectAndShow = do
+        -- putStrLn "selectAndShow called" 
         sel  <- get rchoice selection
-        setGvSel gvRef sel
+        -- note: do not use setGvSel (infinite loop)
+        modifyIORef gvRef (\x -> x { gvsel = sel })
         updaterFn
         gvSt <- readIORef gvRef
         -- call the handler if there is one 
@@ -918,7 +934,7 @@ graphvizGui f cachedir gvRef = do
   ------------------------------------------------
   set rchoice [ on select := selectAndShow ]
   -- call the updater function for the first time
-  setGvSel gvRef 1
+  -- setGvSel gvRef 1
   updaterFn 
   -- return a layout and the updater function 
   return (lay, updaterFn)
@@ -931,8 +947,8 @@ Bitmap with a scrollbar
 \begin{code}
 scrolledBitmap :: Window a -> IO(VarBitmap, ScrolledWindow ())
 scrolledBitmap p = do
-  dtBitmap <- varCreate Nothing
-  sw       <- scrolledWindow p [scrollRate := sz 10 10, --bgcolor := white,
+  dtBitmap <- variable [value := Nothing]
+  sw       <- scrolledWindow p [scrollRate := sz 10 10, bgcolor := white,
                                 on paint := onPaint dtBitmap,
                                 fullRepaintOnResize := False ]       
   return (dtBitmap, sw)
@@ -951,27 +967,24 @@ openImage :: Window a -> VarBitmap -> OpenImageFn
 openImage sw vbitmap fname = do 
     -- load the new bitmap
     bm <- bitmapCreateFromFile fname  -- can fail with exception
-    closeImage sw vbitmap
+    closeImage vbitmap
     set vbitmap [value := Just bm]
-    -- set status [text := fname]
     -- reset the scrollbars 
     bmsize <- get bm size 
     set sw [virtualSize := bmsize]
     repaint sw
       `catch` \_ -> repaint sw
 
-closeImage :: Window a -> VarBitmap -> IO ()
-closeImage _ vbitmap = do 
+closeImage :: VarBitmap -> IO ()
+closeImage vbitmap = do 
     mbBitmap <- swap vbitmap value Nothing
     case mbBitmap of
         Nothing -> return ()
         Just bm -> objectDelete bm
-\end{code}
 
-\begin{code}
 onPaint :: VarBitmap -> DC a -> b -> IO ()
 onPaint vbitmap dc _ = do 
-    mbBitmap <- varGet vbitmap
+    mbBitmap <- get vbitmap value
     case mbBitmap of
       Nothing -> return () 
       Just bm -> do dcClear dc
@@ -997,16 +1010,17 @@ createAndOpenImage cachedir f gvref openFn = do
 \end{code}
 
 \paragraph{createImage}
-Creates a graphical visualisation for a tree or automaton. arguments: a
-cache directory, a WxHaskell window, and index and an array of trees.
-Returns Just filename if the index is valid or Nothing otherwise 
+Creates a graphical visualisation for anything which can be displayed
+by graphviz. Arguments: a cache directory, a WxHaskell window, and index and an
+array of trees.  Returns Just filename if the index is valid or Nothing
+otherwise 
 
 \begin{code}
 createImage :: (GraphvizShow b) => 
   FilePath -> Window a -> GraphvizRef b Bool -> IO (Maybe FilePath) 
 createImage cachedir f gvref = do
   gvSt <- readIORef gvref
-  --putStrLn $ "creating image for " ++ (show sel) ++ " in " ++ (show trees)
+  -- putStrLn $ "creating image via graphviz"
   let drawables = gvitems  gvSt
       sel       = gvsel    gvSt
       config    = gvparams gvSt

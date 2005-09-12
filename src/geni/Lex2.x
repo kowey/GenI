@@ -14,7 +14,7 @@ import ParserLib
 %wrapper "posn"
 
 $digit = 0-9			-- digits
-$alpha = [a-zA-Z]		-- alphabetic characters
+$alpha = [a-zA-Z\xc0-\xd6\xe9]		-- alphabetic characters
 
 tokens :-
 

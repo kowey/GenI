@@ -18,7 +18,7 @@ OS:=$(shell uname)
 SRC_GENI 	= ./src/geni
 GHCFLAGS        = $(LDFLAGS) -cpp -fglasgow-exts -threaded -O
 ifeq ($(OS),Darwin)
-GHCFLAGS += -framework AppKit
+GHCFLAGS += -framework AppKit 
 endif
 
 #-O
