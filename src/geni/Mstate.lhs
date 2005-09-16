@@ -717,7 +717,7 @@ classifyNew l = do
   inputSem <- getSem
   let isResult x = (ttype x /= Auxiliar) && (null $ substnodes x) 
                    && (inputSem == treeSem) && (null $ adjnodes x)
-                   where treeSem = tsemantics x
+                   where treeSem = (sortSem $ tsemantics x)
       tbUnify x ls = case (tbUnifyTree x) of
                        Left n  -> do let x2  = x { thighlight = [n] }
                                      addToTrashRep x2 TS_TbUnify 
