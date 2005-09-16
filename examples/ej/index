@@ -1,4 +1,4 @@
 Macros  = gram/mac 
+TestSuite  = suite
 Lexicon = gram/lexicon
-SemLexicon = gram/semlex 
 RootCategories = s

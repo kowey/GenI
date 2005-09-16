@@ -709,11 +709,15 @@ classifyNew [] =
   return []
 classifyNew l = do 
   inputSem <- getSem
-  let numTreesLimit = 5
-      numTrees x = length (snd $ derivation x)
-      isResult x = (ttype x /= Auxiliar) && (null $ substnodes x) 
-                   && (inputSem == treeSem) && (null $ adjnodes x)
-                   where treeSem = (sortSem $ tsemantics x)
+  state    <- get
+  let numTreesLimit = (maxTrees.genconfig) state
+      numTrees  x = length (snd $ derivation x)
+      overLimit x = case numTreesLimit of
+                      Nothing  -> False
+                      Just lim -> numTrees x > lim
+      isResult  x = (ttype x /= Auxiliar) && (null $ substnodes x) 
+                    && (inputSem == treeSem) && (null $ adjnodes x)
+                    where treeSem = (sortSem $ tsemantics x)
       tbUnify x ls = case (tbUnifyTree x) of
                        Left n  -> do let x2  = x { thighlight = [n] }
                                      addToTrashRep x2 TS_TbUnify 
