@@ -7,6 +7,11 @@ semantics: [ name(s1 a vincent)
              love(e a ex)
              name(s2 ex mia)]
 
+v_loves_é
+semantics: [ name(s1 a vincent)
+             love(e a ex)
+             name(s2 ex émilie)]
+
 v_loves_m_f
 semantics : [name(s1 a vincent)
              love(e a ex)

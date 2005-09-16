@@ -45,6 +45,10 @@ semantics:[name(_ Entity mia)]
 vincent Pn(Entity ! agr:sg3)
 semantics:[name(_ Entity vincent)]
 
+émilie Pn(Entity ! agr:sg3)
+semantics:[name(_ Entity émilie)]
+
+
 %% Verbs
 %% intransitive verbs
 
