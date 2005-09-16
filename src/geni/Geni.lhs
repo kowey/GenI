@@ -89,10 +89,12 @@ import Polarity
 --import Predictors (PredictorMap, mapByPredictors, 
 --                   fillPredictors, optimisePredictors)
 
-import GeniParsers (lexer, mParser,
-                    lexParser, semlexParser, morphParser, filParser,
-                    targetSemParser, testSuiteParser,
-                    E(..))
+import Lex2 (lexer)
+import Mparser (mParser)
+import Lparser (lexParser, semlexParser, morphParser, filParser)
+import Tsparser (targetSemParser, testSuiteParser)
+import ParserLib (E(..))
+
 import Debug.Trace
 import Btypes (emptyLE)
 --import Bfuncs (showSem,showPairs)
