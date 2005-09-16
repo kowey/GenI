@@ -82,7 +82,6 @@ SCRIPT_FILES = etc/runselector.sh\
 	       etc/runviewer.sh\
 	       etc/stupidmorph.pl\
 	       etc/tommorph.pl\
-	       etc/nullmorph\
 	       etc/quickcheck.py\
 	       etc/perf-latest.sh\
 	       etc/perf-save.sh\
