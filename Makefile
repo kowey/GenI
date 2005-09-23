@@ -100,9 +100,9 @@ endif
 
 
 LEXERS		= $(SRC_GENI)/Lex2.hs
-PARSERS		= \
- $(SRC_GENI)/Mparser.hs \
- $(SRC_GENI)/Cparser.hs 
+PARSERS		= $(SRC_GENI)/Mparser.hs 
+
+PARSERS_OUT  := $(patsubst %.hs,%.o,$(PARSERS))
 
 # Phony targets do not keep track of file modification times
 .PHONY: all nogui dep clean docs html parsers release optimize\
@@ -153,20 +153,22 @@ $(LEXERS): %.hs: %.x
 $(PARSERS): %.hs: %.y
 	happy -a -g -c -m `basename $@ .hs` $< 
 
-compile: $(LEXERS) $(PARSERS) $(OFILE) 
+compile: $(OFILE) 
 
 $(OFILE) : $(LEXERS) $(PARSERS) permissions
-	$(GHC) --make $(GHCPACKAGES_GUI) $(LEXERS) $(PARSERS) 
+	#$(GHC) -c --make $(GHCPACKAGES_GUI) $(LEXERS) $(PARSERS) 
 	$(GHC) -W --make $(GHCPACKAGES_GUI) $(IFILE).lhs -o $(OFILE)
 	$(OS_SPECIFIC_STUFF)
 
 $(COFILE) : $(LEXERS) $(PARSERS) permissions 
-	$(GHC) --make $(GHCPACKAGES) $(LEXERS) $(PARSERS) 
+	#$(GHC) -c --make $(GHCPACKAGES_GUI) $(LEXERS) $(PARSERS) 
 	$(GHC) -W --make $(GHCPACKAGES) $(CIFILE).lhs -o $(COFILE) 
+	$(OS_SPECIFIC_STUFF)
 
 nogui : $(LEXERS) $(PARSERS) permissions 
-	$(GHC) --make $(GHCPACKAGES) $(LEXERS) $(PARSERS) 
+	#$(GHC) -c --make $(GHCPACKAGES_GUI) $(LEXERS) $(PARSERS) 
 	$(GHC) -W --make $(GHCPACKAGES) $(DIFILE).lhs -o $(OFILE) 
+	$(OS_SPECIFIC_STUFF)
 
 debugger: $(LEXERS) $(PARSERS) permissions
 	$(GHC_PROF) --make $(DIFILE).lhs -o debugger-$(OFILE)

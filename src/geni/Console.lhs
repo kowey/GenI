@@ -27,7 +27,7 @@ module Console(consoleGenerate) where
 \ignore{
 \begin{code}
 import Data.List(intersperse,sort,partition)
-import Control.Monad(foldM, when)
+import Control.Monad(when)
 import Data.IORef(readIORef, modifyIORef)
 
 import Bfuncs(SemInput,showSem)
@@ -35,75 +35,40 @@ import General(fst3,snd3,thd3)
 import Geni
 import Mstate(avgGstats, numcompar, szchart, geniter)
 import Configuration(Params, isGraphical, isBatch,
-                     grammarFile, emptyParams, optimisations, batchRepeat,
-                     optBatch) 
+                     optimisations, batchRepeat, optBatch) 
 \end{code}
 }
 
-\section{Outer layer}
-
-There are three kinds of batch processing:
-
-\begin{itemize}
-\item Vanilla batch processing - multiple entries in .genirc
-\item Batch testing of optimisations (in each entry)
-\item Test suite with multiple semantic items (in each entry)
-\end{itemize}
-
-The outer layer runs the middle layer over each vanilla batch processing item.
+We support two mutually exclusive kinds of batch processing: 
+\begin{enumerate}
+\item Test suite processing.  We run the requested test cases 
+      in the suite and print a nice table in the end.
+      See \fnref{runTestSuite}.
+\item Batch testing of optimisations, that is, we assume that
+      you are working with exactly one test case.  We call
+      \fnref{runBatch} to succesively test all the possible
+      optimisiations.  
+\end{enumerate}
 
 \begin{code}
 consoleGenerate :: ProgStateRef -> IO()
 consoleGenerate pstRef = do 
-  let nogui =  "Graphical interface not available for "
-             ++ "batch processing"
   pst <- readIORef pstRef
-  when (isGraphical $ pa pst) (putStrLn nogui)
-  foldM (consoleGenerate' pstRef) emptyParams (batchPa pst)
-  return ()
-\end{code}
-
-The middle layer operates on a single entry: It loads the grammar file
-and the target semantics (if they are different from the last time),
-runs the generator, and returns the updated parameters 
-(so that in the future we can determine if we have to reload stuff).
-
-We run the generator in the following manner:
-
-\begin{enumerate}
-\item If we have a test-suite instead of a target semantics, then we run the
-generator for each entry in the test suite and print some fancy HTML
-tables in the tmp directory.  
-\item If there is batch processing on the
-optimisations, we run the inner layer over each optimisation and then
-pretty-print a summary table.
-\item Finally, if there is neither test-suite nor batch processing, we
-simply run the generator and print out the results.
-\end{enumerate}
-
-Note: if there is a test-suite and batch if batch processing is
-set, we simply ignore the batch processing.
-
-\begin{code}
-consoleGenerate' :: ProgStateRef -> Params -> Params -> IO Params
-consoleGenerate' pstRef lastPa newPa = do 
-  modifyIORef pstRef (\x -> x{pa = newPa})
-  putStrLn "======================================================"
-  -- only load files if neccesary
-  let lastGrammar    = grammarFile lastPa
-  when (lastGrammar /= grammarFile newPa) $ do
-    loadGrammar pstRef
-  -- determine how we should run the generator
-  let runVanilla = do res <- runGeni pstRef doGeneration
-                      putStrLn $ show res
+  let config = pa pst
+  when (isGraphical $ pa pst) $ do
+    putStrLn "GUI not available for batch processing"
   --
-  case () of _ | isBatch newPa     -> runBatch pstRef 
-               | otherwise         -> runTestSuite pstRef 
-  return newPa
+  loadGrammar pstRef
+  putStrLn "======================================================"
+  --
+  let batchTestOpts = isBatch config
+  if batchTestOpts 
+     then runBatch pstRef 
+     else runTestSuite pstRef 
 \end{code}
 
 \section{Batch testing of optimisations}
-
+\label{fn:runBatch}
 \paragraph{runBatch} runs a batch processing suite and prints the
 results.  We assume that the grammar and target semantics are already
 loaded into the monadic state.

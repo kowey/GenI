@@ -17,9 +17,17 @@ cat > ${TMP_FIL_FILE}
 
 # run the selector
 SelectTAG ${GRAMMAR_FILE} ${TMP_FIL_FILE} --geni -o ${TMP_RES_FILE} > /dev/null
+CMDEXIT=$?
 
+#if [ -r ${TMP_RES_FILE} ]; then
 cat ${TMP_RES_FILE}
+#else
+#  exit 1
+#fi
 
 # convert the selector output
 #`dirname $0`/../geniconvert --trees < ${TMP_RES_FILE} 
+
+# exit with the exit status of the command we ran
+#exit ${CMDEXIT}
 

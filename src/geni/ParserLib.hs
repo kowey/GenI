@@ -22,21 +22,7 @@ import System.IO.Unsafe(unsafePerformIO)
 
 type PosToken = (Token, Int, Int)
 
-data Token = 
-    TTT | FFF |
-    -- 
-    GrammarTok   | TSemanticsTok | TestCasesTok | TestSuiteTok | 
-    GraphicalTok | MorphCmdTok | IgnoreSemanticsTok | MaxTreesTok |
-    -- grammar file
-    GrammarType | GeniHandTok | TAGMLTok | CGManifestoTok |
-    MacrosTok | LexiconTok | MorphInfoTok | 
-    RootCategoriesTok | LexiconDirTok |
-    -- optimisations
-    Optimisations | PolOptsTok | AdjOptsTok |
-    Polarised | AutoPol | PolSig | Predicting | ChartSharing | ExtraPolarities |
-    FootConstraint | SemFiltered | OrderedAdj |  
-    Batch | Repeat |  
-    --
+data Token =
     Grammar | Entry | Syntax | Features | Avm | Var | 
     Id | Sem | Label |
     Const | Predicate | Argument |

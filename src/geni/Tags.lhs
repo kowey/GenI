@@ -16,6 +16,7 @@
 % Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 \chapter{Tags}
+\label{cha:Tags}
 
 This module provides basic datatypes specific to Tree Adjoining Grammar
 (TAG) and some low-level operations. Note that we don't handle

@@ -22,44 +22,6 @@ tokens :-
   \%.*				        ;
   \".*\"                      { strTok }
 
-  True                        { tok TTT }
-  False                       { tok FFF }
-
-  TestCases                  { tok TestCasesTok }
-  TestSuite                  { tok TestSuiteTok }
-  Graphical                  { tok GraphicalTok  }
- 
-  Grammar                    { tok GrammarTok  }
-  MorphCmd                   { tok MorphCmdTok }
-
-  Macros                     { tok MacrosTok  }
-  LexiconDir                 { tok LexiconDirTok }
-  Lexicon                    { tok LexiconTok }
-  MorphInfo                  { tok MorphInfoTok  }
-  IgnoreSemantics            { tok IgnoreSemanticsTok }
-  MaxTrees                   { tok MaxTreesTok }
-
-  GrammarType                { tok GrammarType }
-  GeniHand                   { tok GeniHandTok }
-  TAGML                      { tok TAGMLTok }
-  CGManifesto                { tok CGManifestoTok }
-
-  Optimisations              { tok Optimisations }
-  PolOpts                    { tok PolOptsTok }
-  AdjOpts                    { tok AdjOptsTok }
-  Polarised                  { tok Polarised  }
-  AutoPol                    { tok AutoPol }
-  PolSig                     { tok PolSig } 
-  Predicting                 { tok Predicting }
-  SemFiltered                { tok SemFiltered } 
-  ChartSharing               { tok ChartSharing } 
-  OrderedAdj                 { tok OrderedAdj }
-  FootConstraint             { tok FootConstraint }
-  Batch                      { tok Batch }
-  Repeat                     { tok Repeat }
-  ExtraPolarities            { tok ExtraPolarities }
-  RootCategories             { tok RootCategoriesTok }
-
   restrictors                { tok RestrictorsTok }
   semantics                  { tok Semantics  }
   polarities                 { tok Polarities }
@@ -113,4 +75,8 @@ tok' t (AlexPn _ l c) = (t, l, c) -- used when you need to access the s
 strTok posn s = tok' (Str $ init $ tail s) posn 
 numTok posn s = tok' (Num $ read s) posn
 idTok  posn s = tok' (ID s) posn
+
+-- just so we can compile this stuff seperately
+main :: IO ()
+main = return ()
 }

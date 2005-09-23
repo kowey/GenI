@@ -4,6 +4,7 @@ documentation
 2. semi-literate source code: (pdflatex needed)
       make doc
       src/geni/genidoc.pdf 
+      (note: pictures turn up best in Preview.app or Acrobat Reader)
 
 installing GenI
 ---------------

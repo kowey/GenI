@@ -27,6 +27,7 @@ where
 
 \ignore{
 \begin{code}
+import System.Exit(ExitCode)
 import System.Posix
 import System.IO(Handle, BufferMode(..), hSetBuffering)
 import System.Directory(setCurrentDirectory)
@@ -75,9 +76,12 @@ Waits for a process to finish.  I don't really understand all this process
 stuff, but i suspect this is blocking.
 
 \begin{code}
-awaitProcess :: ProcessID -> IO () 
+awaitProcess :: ProcessID -> IO (Maybe ExitCode)
 awaitProcess pid = do 
-      getProcessStatus False True pid 
-      return ()
+      s <- getProcessStatus False True pid 
+      let ret = case s of 
+                  Nothing -> Nothing
+                  Just s2 -> case s2 of Exited c -> Just c; _ -> Nothing
+      return ret 
 \end{code}
 

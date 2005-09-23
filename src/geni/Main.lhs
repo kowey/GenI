@@ -17,8 +17,27 @@
 
 \chapter{Main}
 
+Welcome to the GenI source code.  The main module is where everything
+starts from.  If you're trying to figure out how GenI works, the main
+action is in Geni and Tags 
+(chapters \ref{cha:Geni} and \ref{cha:Tags}).  
+
 This module's sole job is to decide between the text/graphical 
 interface.
+
+\begin{code}
+module Main (main) where
+\end{code}
+
+\ignore{
+\begin{code}
+import Data.IORef(readIORef)
+
+import Geni(initGeni, pa)
+import Gui(guiGenerate)
+import Console(consoleGenerate)
+import Configuration(isGraphical, isBatch)
+\end{code}
 
 TODO 
 \begin{enumerate}
@@ -29,20 +48,6 @@ TODO
 \item Change input in Lexicon and Grammar to allow more than one anchor.
 \item Keys used in Tags are specially bad for Pn, perhaps they can be improved.
 \end{enumerate}
-
-\begin{code}
-module Main (main) where
-\end{code}
-
-\ignore{
-\begin{code}
-import Data.IORef(readIORef)
-
-import Geni(initGeni, pa, batchPa)
-import Gui(guiGenerate)
-import Console(consoleGenerate)
-import Configuration(isGraphical, isBatch)
-\end{code}
 }
 
 \begin{code}
@@ -51,8 +56,7 @@ main = do
   pst <- initGeni
   mst <- readIORef pst
   let headPa   = pa mst
-  let notBatch  = (  ((length $ batchPa mst) == 1) 
-                  && (not $ isBatch headPa))
+  let notBatch  = not (isBatch headPa)
       graphical = isGraphical headPa
   if (graphical && notBatch) 
      then guiGenerate pst

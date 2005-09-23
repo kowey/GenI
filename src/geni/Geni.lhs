@@ -16,6 +16,7 @@
 % Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 \chapter{Geni}
+\label{cha:Geni}
 
 Geni is the interface between the front and backends of the generator. The GUI
 and the console interface both talk to this module, and in turn, this module
@@ -52,7 +53,7 @@ import System.Mem
 import Control.Monad (when)
 import CPUTime (getCPUTime)
 
-import General(groupByFM, multiGroupByFM)
+import General(multiGroupByFM)
 
 import Bfuncs (Macros, MTtree, ILexEntry, Lexicon, 
                Sem, SemInput,
@@ -74,10 +75,11 @@ import Tags (Tags, TagElem, emptyTE, TagSite,
              tinterface, tpolarities, substnodes, adjnodes, 
              setTidnums, fixateTidnums)
 
-import Configuration(Params, defaultParams, emptyGramParams, getConf, 
-                     treatArgs, grammarFile, grammarType, tsFile,
+import Configuration(Params, 
+                     treatArgs, grammarType, tsFile,
                      testCases, morphCmd, ignoreSemantics,
-                     GramParams, parseGramIndex, GrammarType(..),
+                     selectCmd,
+                     GrammarType(..),
                      macrosFile, lexiconFile, morphFile, rootCatsParam,
                      autopol, polarised, polsig, chartsharing, 
                      semfiltered, extrapol, footconstr)
@@ -133,24 +135,22 @@ Data types for keeping track of the program state.
 Note: if tags is non-empty, we can ignore gr and le
 
 \begin{code}
-data ProgState = ST{pa       :: Params,
-                gramPa   :: GramParams,
-                -- list of configurations
-                batchPa  :: [Params], 
-                gr       :: Macros,
-                le       :: Lexicon,
-                morphinf :: MorphFn,
-                ts       :: SemInput, 
-                -- names of test cases
-                tcases   :: [String], 
-                --name, sem, sentences
-                tsuite   :: [(String,SemInput,[String])] 
+data ProgState = ST{pa     :: Params,
+                    --
+                    gr       :: Macros,
+                    le       :: Lexicon,
+                    morphinf :: MorphFn,
+                    ts       :: SemInput, 
+                    -- names of test cases
+                    tcases   :: [String], 
+                    --name, sem, sentences
+                    tsuite   :: [(String,SemInput,[String])] 
                }
 
 type ProgStateRef = IORef ProgState
 
 rootCats :: ProgState -> [String]
-rootCats = (rootCatsParam . gramPa)
+rootCats = (rootCatsParam . pa)
 \end{code}
 
 % --------------------------------------------------------------------
@@ -158,9 +158,23 @@ rootCats = (rootCatsParam . gramPa)
 % --------------------------------------------------------------------
 
 This module mainly exports two monadic functions: an initialisation step
-and a generation step.
+and a generation step.  In figure \ref{fig:code-outline-main} we show
+what happens at the entry point: First \fnref{initGeni} is called to
+start things off, then control is handed off to either the console or
+the graphical user interface.  These functions then invoke the
+generation step \fnref{runGeni} passing it one of \fnref{doGeneration}
+or \fnref{debugGui}.
+
+\begin{figure}
+\begin{center}
+\includegraphics[scale=0.5]{images/code-outline-main}
+\label{fig:code-outline-main}
+\caption{How the GenI entry point is used}
+\end{center}
+\end{figure}
 
 \subsection{Initialisation step}
+\label{fn:initGeni}
 
 initGeni should be called when Geni is started.  This is typically
 called from the user interface code.
@@ -168,19 +182,16 @@ called from the user interface code.
 \begin{code}
 initGeni :: IO ProgStateRef 
 initGeni = do
-    confGenirc <- getConf defaultParams
-    args       <- getArgs
-    let confArgs = treatArgs confGenirc args
+    args     <- getArgs
+    confArgs <- treatArgs args
     -- Initialize the general state.  
-    pstRef <- newIORef ST{pa = head confArgs,
-                       gramPa = emptyGramParams,
-                       batchPa = confArgs, 
-                       gr = [],
-                       le = Map.empty,
-                       morphinf = const Nothing,
-                       ts = ([],[]),
-                       tcases = [],
-                       tsuite = [] }
+    pstRef <- newIORef ST{pa = confArgs,
+                          gr = [],
+                          le = Map.empty,
+                          morphinf = const Nothing,
+                          ts = ([],[]),
+                          tcases = [],
+                          tsuite = [] }
     return pstRef 
 \end{code}
 
@@ -189,11 +200,11 @@ initGeni = do
 In the generation step, we first perform lexical selection, set up any
 optimisations on the lexical choices, and then perform generation.
 
-\paragraph{runGeni} performs the entire Geni pipeline : it does lexical
-selection, sets up any neccesary optimisations, runs the generator
-proper, and returns the results with basic timing info.  We specify a
-\fnparam{runFn} argument, an IO monadic function which runs the
-generator proper. This is used to run the generator with a debugger
+\paragraph{runGeni} \label{fn:runGeni} performs the entire Geni pipeline
+: it does lexical selection, sets up any neccesary optimisations, runs
+the generator proper, and returns the results with basic timing info.
+We specify a \fnparam{runFn} argument, an IO monadic function which runs
+the generator proper. This is used to run the generator with a debugger
 as with \fnref{debugGui}, but for the most part, you want the vanilla
 flavoured generator, \fnref{doGeneration}.
 
@@ -313,7 +324,7 @@ candidates trees which will be used to generate the current target semantics.
 \begin{code}
 runLexSelection :: ProgState -> IO [TagElem]
 runLexSelection pst = 
-  case (grammarType $ gramPa pst) of  
+  case (grammarType $ pa pst) of  
         CGManifesto -> runCGMLexSelection pst
         _           -> runBasicLexSelection pst
 
@@ -580,7 +591,7 @@ runCGMLexSelection pst =
   do let (tsem,_) = ts pst
          lexicon  = le pst
      -- figure out what grammar file to use
-     let gparams  = gramPa pst
+     let gparams  = pa pst
          gramfile = macrosFile gparams
      -- select lexical items 
          lexCand = chooseLexCand lexicon tsem
@@ -588,7 +599,7 @@ runCGMLexSelection pst =
      -- run the selector module
      let idxs = [1..]
          fil  = concat $ zipWith lexEntryToFil lexCand idxs 
-     selected <- runSelector gramfile fil
+     selected <- runSelector pst gramfile fil
      let g = case (parseMac selected) of 
               Ok x     -> x 
               Failed x -> error x 
@@ -606,7 +617,7 @@ runCGMLexSelection pst =
      let morphfn  = morphinf pst
          cand2    = attachMorph morphfn tsem cand 
      return $ setTidnums cand2
-  `catch` \e -> do putStrLn ("Error! Selector output malformed : " ++ show e)
+  `catch` \e -> do putStrLn (show e)
                    return [] 
 \end{code}
 
@@ -624,24 +635,28 @@ is that it outputs a set of XML trees; and we use the XML
 converter in \ref{cha:xml} to convert that to geni format}.
 
 \begin{code}
-runSelector :: String -> String -> IO String 
-runSelector gfile fil = do
+runSelector :: ProgState -> String -> String -> IO String 
+runSelector pst gfile fil = do
 #ifdef mingw32_BUILD_OS
      putStr $ "Selector not available under Windows until Eric"
               ++ " figures out all this Posix stuff.\n"
      return ""
 #else
+      -- run the selector
+     let theCmd  = selectCmd (pa pst)
+         selectArgs = [gfile]
+     when (null theCmd) $ fail "Please specify a tree selection command!"
      putStr $ "Selector started.\n"
      hFlush stdout
-      -- run the selector
-     let selectCmd  = "etc/runselector.sh"
-         selectArgs = [gfile]
      -- (toP, fromP, _, pid) <- runInteractiveProcess selectCmd selectArgs Nothing Nothing
-     (pid, fromP, toP) <- runPiped selectCmd selectArgs Nothing Nothing
+     (pid, fromP, toP) <- runPiped theCmd selectArgs Nothing Nothing
      hPutStrLn toP fil
      hClose toP -- so that process gets EOF and knows it can stop
-     res <- hGetContents fromP 
-     awaitProcess pid 
+     res    <- hGetContents fromP 
+     exCode <- awaitProcess pid 
+     {- case exCode of 
+       Just ExitSuccess -> return ()
+       _ -> fail "There was a problem running the selector. Check your terminal." -}
      return res
 #endif
 \end{code}
@@ -678,9 +693,9 @@ lexEntryToFil lex n =
     ++ ")\n\n"
 \end{code}
 
-\paragraph{combineCGM} is similar to combineOne (page \fnref{combineOne})
-except that we assume the tree is completely anchored and instatiated and
-that thus there no boring unification or checks to worry about.
+\paragraph{combineCGM} is similar to \fnref{combineOne} except that we assume
+the tree is completely anchored and instatiated and that thus there no boring
+unification or checks to worry about.
 
 \begin{code}
 combineCGM :: ILexEntry -> MTtree -> TagElem
@@ -735,21 +750,23 @@ loadGrammar :: ProgStateRef -> IO()
 loadGrammar pstRef =
   do pst <- readIORef pstRef
      --
-     let config   = pa pst
-         filename = grammarFile config
-     -- 
-     putStr $ "Loading index file " ++ filename ++ "..."
-     hFlush stdout
-     gf <- readFile filename
-     putStrLn $ "done"
-     --
-     let gparams = parseGramIndex filename gf
-     modifyIORef pstRef (\x -> x{gramPa   = gparams})
-     case (grammarType gparams) of 
+     let config    = pa pst
+         gfilename = macrosFile config 
+         lfilename = lexiconFile config 
+     -- display 
+     let errorlst  = filter (not.null) $ map errfn src 
+           where errfn (err,msg) = if err then msg else ""
+                 src = [ (null gfilename, "a tree file")
+                       , (null lfilename, "a lexicon file") ]
+         errormsg = "Please specify: " ++ (concat $ intersperse ", " errorlst)
+     when (not $ null errorlst) $ fail errormsg 
+     -- we don't have to read in grammars from the simple format
+     case grammarType config of 
         CGManifesto -> return ()
-        _           -> loadGeniMacros  pstRef gparams
-     loadLexicon   pstRef gparams
-     loadMorphInfo pstRef gparams
+        _           -> loadGeniMacros pstRef config
+     -- in any case, we have to...
+     loadLexicon   pstRef config 
+     loadMorphInfo pstRef config 
      loadTestSuite pstRef 
 \end{code}
 
@@ -762,7 +779,7 @@ the monad.
 
 FIXME: differentiate
 \begin{code}
-loadLexicon :: ProgStateRef -> GramParams -> IO ()
+loadLexicon :: ProgStateRef -> Params -> IO ()
 loadLexicon pstRef config =
   case (grammarType config) of 
         CGManifesto -> loadCGMLexicon  pstRef config 
@@ -775,9 +792,10 @@ the lexicon file and the semantic lexicon.   These are then stored in
 the mondad.
 
 \begin{code}
-loadGeniLexicon :: ProgStateRef -> GramParams -> IO ()
+loadGeniLexicon :: ProgStateRef -> Params -> IO ()
 loadGeniLexicon pstRef config = do 
        let lfilename = lexiconFile config
+       when (null lfilename) $ fail "Please specify a lexicon!"
        putStr $ "Loading Lexicon " ++ lfilename ++ "..."
        hFlush stdout
        lf <- readFile lfilename 
@@ -839,10 +857,10 @@ the parameters from a grammar index file parameters; it reads and parses
 the lexicon file using the common grammar manifesto format.  
 
 \begin{code}
-loadCGMLexicon :: ProgStateRef -> GramParams -> IO ()
+loadCGMLexicon :: ProgStateRef -> Params -> IO ()
 loadCGMLexicon pstRef config = do 
        let lfilename = lexiconFile config
- 
+       when (null lfilename) $ fail "Please specify a lexicon!"
        putStr $ "Loading CGManifesto Lexicon " ++ lfilename ++ "..."
        hFlush stdout
        lf <- readFile lfilename
@@ -936,13 +954,14 @@ the parameters from a grammar index file parameters; it reads and parses
 macros file.  The macros are stored as a hashing function in the monad.
 
 \begin{code}
-loadGeniMacros :: ProgStateRef -> GramParams -> IO ()
+loadGeniMacros :: ProgStateRef -> Params -> IO ()
 loadGeniMacros pstRef config = 
   do let filename = macrosFile config
      --
      putStr $ "Loading Macros " ++ filename ++ "..."
      hFlush stdout
      gf <- readFile filename
+     when (null gf) $ fail "Please specify a trees file!"
      let g = case (parseMac gf) of 
                    Ok x     -> x 
                    Failed x -> fail x 
@@ -960,7 +979,7 @@ the morphological information file, if available.  The results are stored
 as a lookup function in the monad.
 
 \begin{code}
-loadMorphInfo :: ProgStateRef -> GramParams -> IO ()
+loadMorphInfo :: ProgStateRef -> Params -> IO ()
 loadMorphInfo pstRef config = 
   do let filename = morphFile config
      when (not $ null filename ) $ do --
@@ -987,8 +1006,9 @@ loadTestSuite :: ProgStateRef -> IO ()
 loadTestSuite pstRef = do
   pst <- readIORef pstRef
   let config   = pa pst
-      filename = (tsFile.gramPa) pst
+      filename = (tsFile.pa) pst
       useSem   = not $ ignoreSemantics config
+  when (null filename) $ fail "Please specify a test suite!"
   when useSem $ do
     putStr $ "Loading Test Suite " ++ filename ++ "...\n"
     hFlush stdout

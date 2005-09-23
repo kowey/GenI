@@ -28,7 +28,7 @@ where
 \ignore{
 \begin{code}
 import Data.Char (isSpace, toUpper, toLower)
-import Data.List (intersect)
+import Data.List (intersect, words, groupBy)
 import Data.Tree
 import System.Directory (getCurrentDirectory, setCurrentDirectory)
 
@@ -67,6 +67,13 @@ snd3 (_,x,_) = x
 
 thd3 :: (a,b,c) -> c
 thd3 (_,_,x) = x
+\end{code}
+
+A generic version of the Data.List.words
+
+\begin{code}
+wordsBy :: (Eq a) => a -> [a] -> [[a]]
+wordsBy c = groupBy (\x y -> x /= c && y /= c) 
 \end{code}
 
 \section{Trees}

@@ -16,6 +16,7 @@
 % Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 \chapter{Btypes}
+\label{cha:Btypes}
 
 This module provides basic datatypes like GNode.  
 Operations on these datatypes can be found in the Bfuncs module.

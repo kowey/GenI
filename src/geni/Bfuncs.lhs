@@ -16,6 +16,7 @@
 % Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 \chapter{Bfuncs}
+\label{cha:Bfuncs}
 
 This module provides basic operations on trees, nodes and semantics.
 Things here are meant to be relatively low-level and primitive 

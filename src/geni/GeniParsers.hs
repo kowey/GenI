@@ -19,8 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 -- This module simply re-exports all functions for GenI parsers.
 
 module GeniParsers ( 
-  -- configuration files
-  parseConfig, parseIndex,
   -- test suite stuff
   parseTSem, parseTSuite,
   -- macros 
@@ -37,13 +35,10 @@ module GeniParsers (
 
 import Lex2
 import ParserLib
-import Cparser
 import Mparser
 
 parseMac    = mParser.(lexer scMac)
-parseConfig = cParser.(lexer 0) --scConfig
 parseLex    = lexParser.(lexer 0) --scLex
-parseIndex  = giParser.(lexer 0) --scIndex
 parseTSem   = targetSemParser.(lexer 0) --scTSem
 parseTSuite = testSuiteParser.(lexer 0) --scTSuite
 parsePol    = polParser.(lexer 0) --scPol

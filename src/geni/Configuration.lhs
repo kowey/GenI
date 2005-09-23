@@ -17,45 +17,29 @@
 
 \chapter{Configuration}
 
-This module handles configuration parameters such as the input files and
-the optimisations that Geni should handle.  The input to this module
-comes from Cparser.y
-
-\textbf{TODO}:
-\begin{enumerate}
-\item change name functions in of Params to xFile
-\end{enumerate}
+This module handles configuration parameters from the command line.
+The input to this module is simply \texttt{argv}.
 
 \begin{code}
-module Configuration(
-   Params, 
-   treatArgs, 
-   grammarFile, isGraphical,
-   morphCmd, testCases,
-   optimisations,
-   autopol, polarised, polsig, chartsharing, extrapol,
-   predicting, semfiltered, footconstr,
-   isBatch, batchRepeat, usetrash,
-   defaultParams, emptyParams, getConf, optBatch,
-   emptyGramParams, ignoreSemantics, maxTrees,
-
-   GramParams(..),
-   GrammarType(..),
-   parseGramIndex,
-
-   -- re-export
-   Token(Batch)
-)
-
+module Configuration 
+  (Params(..), GrammarType(..), Switch(..),
+   autopol, polarised, polsig, predicting,
+   semfiltered, chartsharing, footconstr, 
+   isBatch, emptyParams, 
+   treatArgs, optBatch)
 where
 \end{code}
 
 \ignore{
 \begin{code}
-import Data.List (intersperse)
 import qualified Data.Map as Map
 
-import GeniParsers (Token(..), E(..), parseConfig, parseIndex, parsePol)
+import System.Console.GetOpt
+import System.Exit ( exitWith, ExitCode(..) )
+import Data.List  ( find, intersperse )
+import Data.Maybe ( catMaybes  )
+import General ( bugInGeni, fst3, snd3, wordsBy ) 
+import GeniParsers (parsePol)
 \end{code}
 }
 
@@ -69,7 +53,7 @@ import GeniParsers (Token(..), E(..), parseConfig, parseIndex, parsePol)
 %\end{code}
 
 % --------------------------------------------------------------------  
-\section{Configuration}
+\section{Params}
 % --------------------------------------------------------------------  
 
 The Params data type holds the specification for how Geni should be
@@ -87,10 +71,23 @@ infinitely loop.
 
 \begin{code}
 data Params = Prms{
-  grammarFile    :: String,
+  -- external morphological generator (optional)
   morphCmd       :: String,
+  -- tree selector (needed if cgmformat)
+  selectCmd      :: String,
+  -- tree viewer  (needed if cgmformat)
+  viewCmd        :: String,
+  --
   isGraphical    :: Bool,
-  optimisations  :: [Token],
+  optimisations  :: [Switch],
+  --
+  macrosFile     :: String,
+  lexiconFile    :: String,
+  tsFile         :: String, 
+  morphFile      :: String,
+  rootCatsParam  :: [String],
+  grammarType    :: GrammarType,
+  --
   testCases      :: [String], -- names of test cases
   extrapol       :: Map.Map String Int,
   batchRepeat    :: Integer,
@@ -109,14 +106,14 @@ chartsharing :: Params -> Bool
 footconstr   :: Params -> Bool
 isBatch      :: Params -> Bool
 
-autopol      p = AutoPol      `elem` (optimisations p)
-polarised    p = Polarised    `elem` (optimisations p)
-polsig       p = PolSig       `elem` (optimisations p)
-predicting   p = Predicting   `elem` (optimisations p)  
-semfiltered  p = SemFiltered  `elem` (optimisations p)
-chartsharing p = ChartSharing `elem` (optimisations p)
-footconstr   p = FootConstraint `elem` (optimisations p)
-isBatch      p = Batch          `elem` (optimisations p)
+autopol      p = AutoPolTok      `elem` (optimisations p)
+polarised    p = PolarisedTok    `elem` (optimisations p)
+polsig       p = PolSigTok       `elem` (optimisations p)
+predicting   p = PredictingTok   `elem` (optimisations p)  
+semfiltered  p = SemFilteredTok  `elem` (optimisations p)
+chartsharing p = ChartSharingTok `elem` (optimisations p)
+footconstr   p = FootConstraintTok `elem` (optimisations p)
+isBatch      p = BatchTok          `elem` (optimisations p)
 \end{code}
 
 \paragraph{defaultParams} returns the default parameters configuration
@@ -124,9 +121,16 @@ isBatch      p = Batch          `elem` (optimisations p)
 \begin{code}
 emptyParams :: Params
 emptyParams = Prms {
-  grammarFile    = "",
+  macrosFile  = "",
+  lexiconFile = "",
+  tsFile      = "",
+  morphFile   = "",
+  rootCatsParam = ["s"],
+  grammarType   = GeniHand,
   morphCmd       = "",
-  isGraphical    = False,
+  selectCmd      = "",
+  viewCmd        = "",
+  isGraphical    = True,
   testCases      = [],
   optimisations  = [],
   extrapol       = Map.empty,
@@ -135,77 +139,174 @@ emptyParams = Prms {
   ignoreSemantics = False,
   maxTrees       = Nothing
 }
-
-defaultParams :: Params
-defaultParams = emptyParams {
-   grammarFile    = "examples/ej/index",
-   isGraphical    = True
-}
 \end{code}
 
-\paragraph{getConf} reads file .genirc for configuration if it exists,
-otherwise it creates the file with default values and warns 
-the user. 
+\section{Parsing command line arguments}
+
+\paragraph{options} We use the Haskell GetOpt library to process the
+command line arguments.  To start things off, here is the list of command lines
+switches that we use.  
 
 \begin{code}
-getConf :: Params -> IO [Params]
-getConf p =
-  catch getConf' (\_ -> createConf)
-      where getConf' = do fconf <- readFile ".genirc"
-                          case parseConfig fconf of 
-                            Ok x     -> return (defineParams p x)
-                            Failed x -> fail x 
-            createConf = do writeFile ".genirc" (defaultParamsStr p)
-                            putStr "Looks like the first time you are running GenI\n"
-                            putStr "Writing default configuration file in .genirc.\n"
-                            return [p]
+data GrammarType = GeniHand | TAGML | CGManifesto 
+     deriving (Show, Eq)
+
+data Switch = 
+    HelpTok      |
+    TestCasesTok String | TestSuiteTok String | 
+    GraphicalTok Bool   | 
+    CmdTok String String | -- key / command 
+    IgnoreSemanticsTok Bool | MaxTreesTok String |
+    -- grammar file
+    GrammarType GrammarType  | 
+    MacrosTok String         | LexiconTok String | MorphInfoTok String | 
+    RootCategoriesTok String | 
+    -- optimisations
+    OptimisationsTok String   | PolOptsTok | AdjOptsTok |
+    PolarisedTok | AutoPolTok | PolSigTok  | PredictingTok | ChartSharingTok |
+    ExtraPolaritiesTok String |
+    FootConstraintTok         | SemFilteredTok | OrderedAdjTok |  
+    BatchTok | RepeatTok String 
+    deriving (Show,Eq)
 \end{code}
 
-\paragraph{treatArgs} Parses L and updates p accordingly, with
-\begin{itemize}
-\item some Param structures p of default values
-\item a list of strings L read from the comand line
-\end{itemize}
-
-Note: we treat the arguments as a continuation of the .genirc file
-and nothing more.
+Here's the switches again and the switches they are associated with.
+Note that we divide them into basic and advanced usage.
 
 \begin{code}
-treatArgs :: [Params] -> [String] -> [Params]
-treatArgs params s =
-  case (parseConfig . unwords) s of
-   Ok x     -> params ++ defineParams (last params) x
-   Failed x -> error x
+options :: [OptDescr Switch]
+options = optionsBasic ++ optionsAdvanced
+
+optionsBasic :: [OptDescr Switch] 
+optionsBasic =
+  [ Option []    ["nogui"] (NoArg  (GraphicalTok False)) 
+      "disable graphical user interface"
+  , Option []    ["help"] (NoArg  HelpTok) 
+      "show full list of command line switches"
+  , Option ['t'] ["trees"] (ReqArg MacrosTok "FILE") 
+      "(unanchored) tree file FILE"
+  , Option ['l'] ["lexicon"] (ReqArg LexiconTok "FILE") 
+      "lexicon file FILE"
+  , Option ['s'] ["testsuite"] (ReqArg TestSuiteTok "FILE") 
+      "test suite FILE"
+  , Option []    ["opts"] (ReqArg OptimisationsTok "LIST")
+      "optimisations LIST (--help for details)"
+  ]
+    
+optionsAdvanced :: [OptDescr Switch] 
+optionsAdvanced =
+  [ Option []    ["cgmformat"] (NoArg (GrammarType CGManifesto))
+      "use Common Grammar Manifesto format for trees and lexicon"
+  , Option []    ["extrapols"] (ReqArg ExtraPolaritiesTok "LIST")
+      "preset polarities (normally, you should use rootcats instead)" 
+  , Option []    ["ignoresem"]   (NoArg (IgnoreSemanticsTok True))
+      "ignore all semantic information"
+  , Option []    ["maxtrees"]   (ReqArg MaxTreesTok "INT")
+      "max tree size INT by number of elementary trees"
+  , Option []    ["morphinfo"] (ReqArg MorphInfoTok "FILE")
+      "morphological lexicon FILE (default: unset)"
+  , Option []    ["morphcmd"]  (ReqArg (CmdTok "morph") "CMD") 
+      "morphological post-processor CMD (default: unset)"
+  , Option []    ["repeat"]   (ReqArg RepeatTok "INT")
+      "perform INT trials during batch testing"
+  , Option []    ["rootcats"] (ReqArg RootCategoriesTok "LIST")
+      ("root categories LIST (for polarities, default:" 
+       ++ (concat $ intersperse "+" $ rootCatsParam emptyParams) 
+       ++ ")")
+  , Option []    ["selectcmd"]  (ReqArg (CmdTok "select") "CMD") 
+      "tree selecting/anchoring CMD (default: unset)"
+  , Option []    ["testcases"]   (ReqArg TestCasesTok "LIST")
+      "run test cases LIST ('+' seperated, default: unset [all])"
+  , Option []    ["viewcmd"]  (ReqArg (CmdTok "view") "CMD") 
+      "XMG tree-view command"
+-- note: need to code optimisations string
+  ]
 \end{code}
 
+\paragraph{optimisationCodes} In addition to the command line switches,
+we have a lookup table of optimisation codes.  Each optimisation is
+assigned a short codes like "a" for polarity detection.  This is useful 
+both for taking command line arguments 
+(something like \texttt{--opt=+pol+F}) and for telling the user in
+concise form what optimisations she used.
 
-\paragraph{defaultParamsStr} given
-  - a Params structure with the default values
-returns a string that is used to generate the .genirc default
-configuration file
 \begin{code}
-defaultParamsStr :: Params -> String
-defaultParamsStr p = 
-  let g  = grammarFile p
-      op = optimisations p
-      gr = if (isGraphical p)  then "True" else "False"
-  in "\nGrammar  = " ++ g  ++ 
-     "\n" ++
-     "\n% True or False" ++
-     "\nGraphical  = " ++ gr ++ 
-     "\n" ++
-     "\n% Optimisations should be a comma delimited list containing any " ++
-     "\n% number of the following items:" ++
-     "\n%  Polarised, PolSig, ChartSharing," ++
-     "\n%  SemFiltered, FootConstraint" ++
-     "\n%  There is also PolOpts (all polarity optimisations)" ++ 
-     "\n%  and AdjOpts (all adjunction optimisations)"  ++
-     "\nOptimisations = " ++ 
-     "\n" ++ (concat $ intersperse "," $ map show op) 
+optimisationCodes :: [(Switch,String,String)]
+optimisationCodes = 
+ [ (PolarisedTok   , "p",      "polarity filtering")
+ , (PolOptsTok  , "pol",    "equivalent to +p+a+s+c")
+ , (AdjOptsTok  , "adj",    "equivalent to +S+F")
+ , (AutoPolTok     , "a",      "polarity detection")
+ , (PolSigTok      , "s",      "polarity signatures")
+ , (ChartSharingTok, "c",      "chart sharing")
+ , (SemFilteredTok , "S",      "semantic filtering")
+ , (OrderedAdjTok  , "O",      "ordered adjunction (by node)")
+ , (FootConstraintTok,    "F", "foot constraints")
+ , (BatchTok,          "batch", "batch processing") ]
+\end{code}
+
+\paragraph{treatArgs} does the actual work of parsing command line arguments 
+(represented as a list of strings).   
+
+\begin{code}
+treatArgs :: [String] -> IO Params
+treatArgs argv = do
+   let header   = "Usage: geni [OPTION...] files..."
+       usage    = usageInfo header optionsBasic 
+       usageAdv = usage ++ usageInfo "Advanced options (note: all LIST are + delimited)" optionsAdvanced 
+                  ++ optimisationsUsage
+   case getOpt Permute options argv of
+     (o,_,[]  ) -> 
+        if   HelpTok `elem` o 
+        then do putStrLn usageAdv
+                exitWith ExitSuccess 
+        else return (defineParams emptyParams o)
+     (_,_,errs) -> ioError (userError $ concat errs ++ usage)
+\end{code}
+
+\paragraph{optimisationsUsage} displays the usage text for optimisations.  
+It shows a table of optimisation codes and their meaning.
+
+\begin{code}
+optimisationsUsage :: String
+optimisationsUsage = 
+  let polopts  = [PolOptsTok, PolarisedTok, AutoPolTok, PolSigTok, ChartSharingTok]
+      adjopts  = [AdjOptsTok, SemFilteredTok, FootConstraintTok]
+      unlinesTab l = concat (intersperse "\n  " l)
+      getstr k = case find (\x -> k == fst3 x) optimisationCodes of 
+                   Just (_, code, desc) -> code ++ " - " ++ desc
+                   Nothing -> error ("code" ++ show k ++ "not found in optimisationsUsage\n" ++ bugInGeni)
+  in "\n" 
+     ++ "List of optimisations.\n"
+     ++ "(ex: --opt=+f+s for foot constraints and semantic filters)\n"
+     ++ "\n"
+     ++ "Polarity optimisations:\n"
+     ++ "  " ++ unlinesTab (map getstr polopts) ++ "\n\n"
+     ++ "Adjunction optimisations:\n"
+     ++ "  " ++ unlinesTab (map getstr adjopts) ++ "\n"
+     ++ "Batch processing:\n"
+     ++ "  " ++ (getstr BatchTok) ++ "\n"
+\end{code}
+
+\paragraph{parseOptimisations} parses a string of codes like \texttt{+pol+c}
+into a list of optimisations.  We blithely ignore codes that we don't
+recognise.
+
+\begin{code}
+parseOptimisations :: String -> [Switch] 
+parseOptimisations str = 
+  let codes = wordsBy '+' str 
+  in  catMaybes (map lookupOptimisation codes)
+
+lookupOptimisation :: String -> Maybe Switch
+lookupOptimisation code = do
+  triple <- find (\x -> snd3 x == code) optimisationCodes
+  return (fst3 triple)
+
 \end{code}
 
 % --------------------------------------------------------------------  
-\subsection{Intepreting commands}
+\section{Values for Params}
 % --------------------------------------------------------------------  
 
 The configuration file is intepreted as a list of lists of tokens.  We
@@ -223,37 +324,42 @@ a singleton list of lists.
 \end{itemize}
 
 \begin{code}
-defineParams :: Params -> [[(Token,String)]] -> [ Params ]
-defineParams _ []        = []
-defineParams p (fv:next) = nextP : (defineParams nextP next)
-  where nextP = defineParams' p fv
-
-defineParams' :: Params -> [(Token,String)] -> Params
-defineParams' p [] = p
-defineParams' p ((f,v):s) = defineParams' pnext s
+defineParams :: Params -> [Switch] -> Params
+defineParams p [] = p
+defineParams p (f:s) = defineParams pnext s
   where pnext = case f of 
-            GrammarTok      -> p {grammarFile = v}
-            MorphCmdTok     -> p {morphCmd = v}
-            TestCasesTok    -> p {testCases = words v }
-            GraphicalTok    -> p {isGraphical = (v == "True")}
-            IgnoreSemanticsTok -> p { ignoreSemantics = (v == "True")
-                                    , maxTrees = case maxTrees p of
-                                          Nothing  -> if (v == "True") then Just 5
-                                                      else Nothing 
+            GraphicalTok v  -> p {isGraphical = v}
+            OptimisationsTok v -> p {optimisations = readOpt v } 
+            -- grammar stuff
+            MacrosTok    v -> p {macrosFile  = v}
+            LexiconTok   v -> p {lexiconFile = v} 
+            TestSuiteTok v -> p {tsFile = v}
+            -- advanced stuff
+            RootCategoriesTok v -> p {rootCatsParam = words v}
+            MorphInfoTok v  -> p {morphFile   = v}
+            CmdTok "morph"   v -> p {morphCmd  = v}
+            CmdTok "select"  v -> p {selectCmd = v}
+            CmdTok "view"    v -> p {viewCmd = v}
+            TestCasesTok v  -> p {testCases = words v }
+            -- 
+            GrammarType v   -> p {grammarType = v} 
+            IgnoreSemanticsTok v -> p { ignoreSemantics = v 
+                                      , maxTrees = case maxTrees p of
+                                          Nothing  -> if v then Just 5 else Nothing 
                                           Just lim -> Just lim }
-            MaxTreesTok     -> p {maxTrees = Just (read v)} 
-            Optimisations   -> p {optimisations = readOpt } 
-            ExtraPolarities -> p {extrapol = parsePol v} 
-            Repeat          -> p {batchRepeat = read v}
+            MaxTreesTok v        -> p {maxTrees = Just (read v)} 
+            ExtraPolaritiesTok v -> p {extrapol = parsePol v} 
+            RepeatTok v          -> p {batchRepeat = read v}
             p -> error ("Unknown configuration parameter: " ++ show p)
         -- when PolOpts and AdjOpts are in the list of optimisations
         -- then include all polarity-related optimisations and 
         -- all adjunction-related optimisations respectively
-        readOpt = (addif PolOptsTok polOpts) 
-                  $ (addif AdjOptsTok adjOpts) $ (map read $ words v)
+        readOpt v = addif PolOptsTok polOpts      
+                  $ addif AdjOptsTok adjOpts 
+                  $ parseOptimisations v
         addif t x o = if (t `elem` o) then x ++ o else o
-        polOpts     = [Polarised, AutoPol, ChartSharing] 
-        adjOpts     = [SemFiltered, FootConstraint]
+        polOpts     = [PolarisedTok, AutoPolTok, ChartSharingTok] 
+        adjOpts     = [SemFilteredTok, FootConstraintTok]
 \end{code}
 
 
@@ -262,120 +368,22 @@ which include \fnparam{enabledRaw}.  By meaningful combination, for example, we
 not have a combination that has polarity signatures, but not polarities.
 
 \begin{code}
-optBatch :: [Token] -> [[Token]] 
+optBatch :: [Switch] -> [[Switch]] 
 optBatch enabledRaw = 
-  let enabled = if (ChartSharing `elem` enabledRaw || PolSig `elem` enabledRaw) 
-                then Polarised:enabledRaw
+  let enabled = if (ChartSharingTok `elem` enabledRaw || PolSigTok `elem` enabledRaw) 
+                then PolarisedTok:enabledRaw
                 else enabledRaw
       use opt prev = if (opt `elem` enabled) 
                      then withopt 
                      else withopt ++ prev
                      where withopt = map (opt:) prev
       -- 
-      polBatch' = foldr use [[Polarised]] [AutoPol,ChartSharing]
-      polBatch  = if Polarised `elem` enabled
+      polBatch' = foldr use [[PolarisedTok]] [AutoPolTok,ChartSharingTok]
+      polBatch  = if PolarisedTok `elem` enabled
                  then polBatch' 
                  else [] : polBatch'
-      adjBatch  = foldr use polBatch [SemFiltered,FootConstraint]
+      adjBatch  = foldr use polBatch [SemFilteredTok,FootConstraintTok]
       -- 
   in adjBatch
 \end{code}
 
-% --------------------------------------------------------------------  
-\section{Reading Grammar Params}
-% --------------------------------------------------------------------  
- 
-All grammars have an index file which contains information about the
-grammar type and refers to the other files in the grammar.  The functions
-in this section interpret the contents of the grammar index file.
-
-\begin{code}
-data GrammarType = GeniHand | TAGML | CGManifesto 
-     deriving (Show, Eq)
-\end{code}
-
-The GramParams data type holds the information about a single
-GenI grammar
-
-\begin{code}
-data GramParams = GrmPrms {
-  macrosFile     :: String,
-  lexiconFile    :: String,
-  lexiconDir     :: String,
-  tsFile         :: String, 
-  morphFile      :: String,
-  rootCatsParam  :: [String],
-  grammarType    :: GrammarType
-} deriving (Show)
-
-emptyGramParams = defineGramParams []
-\end{code}
-
-\paragraph{parseGramIndex} Parses the contents of a grammar index
-file.  All relative filenames in the index are prepended with the
-parent directory of \texttt{filename} 
-(i.e. if i pass in \texttt{examples/foo/index} as filename, then 
- a filename like \texttt{lexicon} will be converted to
- \texttt{examples/foo/lexicon}).
-
-\begin{code}
-parseGramIndex :: FilePath -> String -> GramParams
-parseGramIndex filename contents =
-  let slash = '/'
-      -- parse the index file 
-      args = case parseIndex contents of
-               Ok x     -> x 
-               Failed x -> error x
-      gp   = defineGramParams args
-      -- get the parent directory of filename 
-      getParent = reverse . dropWhile (/= slash) . reverse
-      dirname   = getParent filename
-      -- expand the relative paths 
-      toAbs path = if isAbs path        
-                   then path
-                   else dirname ++ path
-      --
-      isAbs []    = False
-      isAbs (a:_) = (a == slash)
-      --
-      morphf = morphFile gp
-      ldir   = lexiconDir gp
-  in gp {
-       macrosFile  = toAbs (macrosFile gp),
-       lexiconFile = toAbs (lexiconFile gp),
-       tsFile      = toAbs (tsFile gp),
-       lexiconDir  = if null ldir then "" else toAbs ldir,
-       morphFile   = if null morphf then "" else toAbs morphf
-     }
-\end{code}
-
-\begin{code}
-defineGramParams :: [(Token,String)] -> GramParams
-
-defineGramParams [] = GrmPrms {
-  macrosFile  = "",
-  lexiconFile = "",
-  lexiconDir  = "",
-  tsFile      = "",
-  morphFile   = "",
-  rootCatsParam = [],
-  grammarType   = GeniHand
-}
-
-defineGramParams ((f,v):s) =
-  case f of MacrosTok     -> next {macrosFile  = v}
-            LexiconTok    -> next {lexiconFile = v} 
-            LexiconDirTok -> next {lexiconDir  = v}
-            TestSuiteTok  -> next {tsFile = v}
-            MorphInfoTok  -> next {morphFile   = v}
-            RootCategoriesTok -> next {rootCatsParam = words v}
-            GrammarType -> next {grammarType = t} 
-                           where t = case (read v) of 
-                                       GeniHandTok -> GeniHand 
-                                       TAGMLTok    -> TAGML 
-                                       CGManifestoTok -> CGManifesto
-                                       _           -> error (show v ++ e) 
-                                 e = " is not a grammar type"
-            p -> error ("Unknown index file parameter: " ++ show p)
-  where next = defineGramParams s
-\end{code}

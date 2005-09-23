@@ -27,6 +27,7 @@
 \newcommand{\fnreflite}[1]{\textit{#1}}
 
 \newcommand{\tuple}[1]{\langle #1 \rangle}
+\setcounter{chapter}{-1}
 \setcounter{secnumdepth}{3}
 % ----------------------------------------
 
@@ -127,6 +128,7 @@ which we try to encapsulate some basic or generic operations into the
 files.
 
 \begin{description}
+ \item[Main.lhs] - determines which user interface to run 
  \item[Geni.lhs] - parses and formats data for the generator 
  \item[Mstate.lhs] - the chart generator itself (note: substitution,
  adjunction, FS unification are done here, not in Tags.lhs)
@@ -157,7 +159,6 @@ We currently visualise our results with Graphviz, a third party graph
 visualisation tool.
 
 \begin{description}
- \item[Main.hs] - determines which user interface to run 
  \item[Console.lhs] - provides console and batch processing
  \item[Gui.lhs] - main GUI code 
  \item[SysGeni.lhs] - handles operating system stuff
@@ -200,6 +201,8 @@ Also of interest are XML grammar files (processed with the HaXml toolkit
 % future literate notes
 % -------------------------------------------------------------------------
 
+\input{Main.lhs}
+
 \part{Core files}
 
 \input{Geni.lhs}       
@@ -234,7 +237,6 @@ See section \ref{sec:foot_constraint}
 
 \part{User interface}
 
-\input{Main.lhs}
 \input{Console.lhs}
 \input{Gui.lhs}
 \input{Graphviz.lhs}

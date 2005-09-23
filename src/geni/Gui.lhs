@@ -52,8 +52,8 @@ import Bfuncs (showPred, showSem, showPairs, Sem)
 import Tags (idname,mapBySem,emptyTE,tsemantics,tpolarities,thighlight, 
              TagElem, derivation)
 
-import Configuration(Params, grammarFile, macrosFile, 
-                     lexiconDir, lexiconFile,
+import Configuration(Params, Switch(..), 
+                     macrosFile, lexiconFile, tsFile, viewCmd,
                      optimisations, 
                      usetrash,
                      autopol, polarised, polsig, chartsharing, 
@@ -75,9 +75,9 @@ import Polarity
 guiGenerate :: ProgStateRef -> IO() 
 guiGenerate pstRef = do
   pst <- readIORef pstRef
-  let gramConfig = gramPa pst
-      ldir       = lexiconDir gramConfig
-  Monad.when (null ldir) $ loadGrammar pstRef
+  let gramConfig = pa pst
+      -- errHandler title err = errorDialog f title (show err)
+  loadGrammar pstRef -- `catch` (errHandler "Whoops!")
   start (mainGui pstRef)
 \end{code}
 
@@ -95,7 +95,7 @@ mainGui pstRef
        status <- statusField   [text := "Welcome to GenI"]
        -- create the file menu
        fileMen   <- menuPane [text := "&File"]
-       loadMenIt <- menuItem fileMen [text := "&Open index file"]
+       -- loadMenIt <- menuItem fileMen [text := "&Open index file"]
        quitMenIt <- menuQuit fileMen [text := "&Quit"]
        set quitMenIt [on command := close f]
        -- create the tools menu
@@ -127,15 +127,14 @@ We add some buttons for loading files and running the generator.
                                , clientSize := sz 400 80
                                , enabled := hasSem 
                                , text := if ignoreSem
-                                         then "%%IgnoreSemantics = True in .genirc\n %%Change to False if you wish to use semantics."
-                                         else "" ]
+                                         then "% --ignoresemantics set" else "" ]
        testCaseChoice <- choice f [ selection := 0 
                                   , enabled := hasSem ]
-
        readTestSuite pstRef tsTextBox testCaseChoice 
        -- Box and Frame for files loaded 
-       grammarFileLabel  <- staticText f []
-       lexiconFileChoice <- choice f []
+       macrosFileLabel  <- staticText f [ text := macrosFile config  ]
+       lexiconFileLabel <- staticText f [ text := lexiconFile config ]
+       tsFileLabel      <- staticText f [ text := tsFile config ]
        -- Generate and Debug 
        debugBt <- button f [ text := "  Debug  "
                            , on command := doGenerate f pstRef tsTextBox True ]
@@ -169,30 +168,30 @@ Let's not forget the optimisations...
                                set chartsharingChk [ enabled := c ]
                                set extrapolText    [ enabled := c ] 
        set polChk          [on command := do togglePolStuff
-                                             toggleChk pstRef polChk Polarised ] 
-       set autopolChk      [on command := toggleChk pstRef autopolChk AutoPol ] 
-       set polsigChk       [on command := toggleChk pstRef polsigChk PolSig] 
+                                             toggleChk pstRef polChk PolarisedTok ] 
+       set autopolChk      [on command := toggleChk pstRef autopolChk AutoPolTok ] 
+       set polsigChk       [on command := toggleChk pstRef polsigChk PolSigTok] 
        -- set predictingChk   [on command := toggleChk pstRef predictingChk Predicting] 
-       set chartsharingChk [on command := toggleChk pstRef chartsharingChk ChartSharing]
-       set semfilterChk    [on command := toggleChk pstRef semfilterChk SemFiltered] 
-       set footconstrChk   [on command := toggleChk pstRef footconstrChk FootConstraint] 
+       set chartsharingChk [on command := toggleChk pstRef chartsharingChk ChartSharingTok]
+       set semfilterChk    [on command := toggleChk pstRef semfilterChk SemFilteredTok] 
+       set footconstrChk   [on command := toggleChk pstRef footconstrChk FootConstraintTok] 
 \end{code}
 
 Pack it all together, perform the layout operation.
 
 \begin{code}
        -- set any last minute handlers, run any last minute functions
-       let guiParts = (grammarFileLabel, 
-                       tsTextBox, testCaseChoice, 
-                       lexiconFileChoice)
-       set loadMenIt [ on command := loadMenuCmd pstRef f guiParts ]  
-       readGrammar pstRef grammarFileLabel lexiconFileChoice 
+       -- let guiParts = (macrosFileLabel, lexiconFileLabel, tsFileLabel, tsTextBox, testCaseChoice)
+       -- set loadMenIt [ on command := loadMenuCmd pstRef f guiParts ]  
+       -- readGrammar pstRef guiParts 
        togglePolStuff
        --
-       let gramsemBox = --boxed "Files last loaded" $ -- can't used boxed with wxwidgets 2.6 -- bug?
-                   hfill $ column 5 [ 
-                              row 5 [ label "index file: ", hfill $ widget grammarFileLabel ]
-                            , row 5 [ label "lexicon: ",    hfill $ widget lexiconFileChoice ] ] 
+       let gramsemBox = boxed "Files last loaded" $ -- can't used boxed with wxwidgets 2.6 -- bug?
+                   hfill $ column 1 
+                     [ row 1 [ label "trees:", widget macrosFileLabel  ]
+                     , row 1 [ label "lexicon:", widget lexiconFileLabel ] 
+                     , row 1 [ label "test suite:", widget tsFileLabel ] 
+                     ]
            optimBox =  --boxed "Optimisations " $ -- can't used boxed with wxwidgets 2.6 -- bug?
                     column 5 [ label "Optimisations" 
                              , dynamic $ widget polChk 
@@ -208,8 +207,9 @@ Pack it all together, perform the layout operation.
                              ]
        set f [layout := column 5 [ gramsemBox
                    , row 5 [ fill $ -- boxed "Input Semantics" $ 
-                             hfill $ column 5 [ hfill $ widget testCaseChoice
-                                              , fill  $ widget tsTextBox ]
+                             hfill $ column 5 
+                               [ hfill $ row 1 [ label "Test case", hfill $ widget testCaseChoice ]
+                               , fill  $ widget tsTextBox ]
                            , vfill optimBox ]
                     -- ----------------------------- Generate and quit 
                    , hfloatRight $ row 5 [ widget debugBt, widget genBt 
@@ -226,7 +226,7 @@ Toggles for optimisatons controlled by a check box.  They enable or
 disable the said optmisation.
 
 \begin{code}
-toggleChk :: (Checkable a) => ProgStateRef -> a -> Token -> IO ()
+toggleChk :: (Checkable a) => ProgStateRef -> a -> Switch -> IO ()
 toggleChk pstRef chk tok = do
   isChecked <- get chk checked
   let fn config = config { optimisations = nub newopt }
@@ -241,12 +241,13 @@ select the "Open index file" menu item.  It loads the grammar and
 updates all the relevant GUI widgets.
 
 \begin{code}
+{-
 loadMenuCmd :: (Textual b, Able c, Selecting c, Selection c, Items c String) 
                => ProgStateRef -> Window a -> (StaticText d, b, c, c) -> IO ()
 loadMenuCmd pstRef f guiParts = 
   do pst <- readIORef pstRef
      let filename  = grammarFile (pa pst)
-         filetypes = [("Any file",["*","*.*"])]
+     filetypes = [("Any file",["*","*.*"])]
      fsel <- fileOpenDialog f False True "Choose your file..." filetypes "" filename
      case fsel of
        -- if the user does not select any file there are no changes
@@ -264,6 +265,7 @@ loadMenuHelper pstRef f filename guiParts =
      readTestSuite pstRef tsBox tsChoice
   `catch` (errHandler "Error loading the grammar or test suite: ")
   where errHandler title err = errorDialog f title (show err)
+-}
 \end{code}
 
 % --------------------------------------------------------------------
@@ -274,37 +276,10 @@ loadMenuHelper pstRef f filename guiParts =
 calling \fnref{loadGrammar}. This used when you first start the 
 graphical interface or when you load a grammar.
 
+FIXME: do we still need this bit of code? 
 \begin{code}
-readGrammar :: (Textual a, Selecting b, Selection b, Items b String, Able b) 
-              => ProgStateRef -> a -> b -> IO ()
-readGrammar pstRef gText lexChoice = 
-  do pst <- readIORef pstRef
-     let gramConfig = gramPa pst
-         ldir       = lexiconDir gramConfig
-         config     = pa pst
-         gFilename  = grammarFile config
-     set gText [ text := gFilename ]
-     -- if the lexicon directory is set, we look at its
-     -- contents
-     ldirContents' <- if null ldir then return [] 
-                      else getDirectoryContents ldir
-     let ldirContents = ldirContents' \\ [".", ".."]
-     ----------------------------------------------------
-     -- handler for selecting a lexicon
-     ----------------------------------------------------
-     let onLexChoice = do
-         csel <- get lexChoice selection
-         let l = ldirContents !! csel
-             pathfn x = ldir ++ slash ++ x 
-             newGramConfig = gramConfig { lexiconFile = pathfn l }
-         loadLexicon pstRef newGramConfig 
-     ----------------------------------------------------
-     let enable = (not.null) ldirContents
-     set lexChoice [ items := ldirContents
-                   , enabled := enable
-                   , selection := 0 
-                   , on select := onLexChoice ]
-     Monad.when enable onLexChoice -- call this once
+readGrammar :: (Textual a) => ProgStateRef -> a -> IO ()
+readGrammar pstRef gText = return ()
 \end{code}
 
 \paragraph{readTestSuite} is used to update the graphical interface after
@@ -1139,13 +1114,13 @@ displays trees produced by the XMG metagrammar system.
 runViewTag :: ProgState -> String -> IO ()
 runViewTag pst idname =  
   do -- figure out what grammar file to use
-     let gparams  = gramPa pst
-         gramfile = macrosFile gparams
+     let params  = pa pst
+         gramfile = macrosFile params
      -- extract the relevant bits of the treename
      let extractCGMName n = tail $ dropWhile (/= '_') n 
          drName = extractCGMName idname 
      -- run the viewer 
-     let cmd  = "etc/runviewer.sh"
+     let cmd  = viewCmd params 
          args = [gramfile, drName]
      -- run the viewer
      runProcess cmd args Nothing Nothing Nothing Nothing Nothing
