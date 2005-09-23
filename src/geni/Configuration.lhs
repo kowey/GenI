@@ -130,7 +130,7 @@ emptyParams = Prms {
   morphCmd       = "",
   selectCmd      = "",
   viewCmd        = "",
-  isGraphical    = True,
+  isGraphical    = False,
   testCases      = [],
   optimisations  = [],
   extrapol       = Map.empty,
@@ -179,8 +179,8 @@ options = optionsBasic ++ optionsAdvanced
 
 optionsBasic :: [OptDescr Switch] 
 optionsBasic =
-  [ Option []    ["nogui"] (NoArg  (GraphicalTok False)) 
-      "disable graphical user interface"
+  [ Option []    ["gui"] (NoArg  (GraphicalTok True)) 
+      "enable graphical user interface"
   , Option []    ["help"] (NoArg  HelpTok) 
       "show full list of command line switches"
   , Option ['t'] ["trees"] (ReqArg MacrosTok "FILE") 
@@ -251,16 +251,19 @@ optimisationCodes =
 \begin{code}
 treatArgs :: [String] -> IO Params
 treatArgs argv = do
-   let header   = "Usage: geni [OPTION...] files..."
+   let header   = "Usage: geni [OPTION...]"
        usage    = usageInfo header optionsBasic 
-       usageAdv = usage ++ usageInfo "Advanced options (note: all LIST are + delimited)" optionsAdvanced 
+       usageAdv = usage 
+                  ++ usageInfo "Advanced options (note: all LIST are + delimited)" optionsAdvanced 
                   ++ optimisationsUsage
    case getOpt Permute options argv of
      (o,_,[]  ) -> 
-        if   HelpTok `elem` o 
-        then do putStrLn usageAdv
-                exitWith ExitSuccess 
-        else return (defineParams emptyParams o)
+        if null o then do putStrLn usage
+                          exitWith ExitSuccess
+           else if HelpTok `elem` o 
+                   then do putStrLn usageAdv
+                           exitWith ExitSuccess
+                   else return (defineParams emptyParams o)
      (_,_,errs) -> ioError (userError $ concat errs ++ usage)
 \end{code}
 
