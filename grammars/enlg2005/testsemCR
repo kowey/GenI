@@ -1,7 +1,0 @@
-semantics: [ directeur(m) poss(m us)
-             seminaire(c) indef(c) 
-             %de(c t) equipe(t)
-             consultant(x) def(x)
-             organiser(org m c) 
-             ennuier(enn org x) ]
-restrictors:[ cleft:c ]

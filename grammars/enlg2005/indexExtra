@@ -1,3 +1,0 @@
-Macros     = gram/semFrenchBig.geni
-Lexicon    = gram/lexicon2
-%MorphInfo = gram/morphinfo

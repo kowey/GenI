@@ -1,5 +1,0 @@
-Macros     = gram/semFrenchLite.geni
-Lexicon    = gram/lexiconPro
-%MorphInfo = gram/morphinfo
-RootCategories = s
-TestSuite  = suite
