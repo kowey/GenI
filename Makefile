@@ -11,6 +11,8 @@
 # configuration 
 # --------------------------------------------------------------------
 
+include config/config.mk
+
 # i know, i know, i should be using autotools... 
 # but *whine* it's so hard!
 OS:=$(shell uname)
@@ -30,11 +32,10 @@ GHCPACKAGES_GUI = -package wx $(GHCPACKAGES)
 GHC             = ghc $(GHCFLAGS) $(GHCINCLUDE)
 GHC_PROF	= $(GHC) -prof -auto-all -hisuf p_hi -osuf p_o 
 
-
 SOFTWARE        = Geni 
-VERSION         = 0.7
-VERSIONTAG      = geni-0-70  
 SOFTVERS        = $(SOFTWARE)-$(VERSION)
+
+TO_INSTALL=geni runXMGselector.sh
 
 # You should replace the value of this variable with your project
 # directory name.  The default assumption is that the project name
@@ -67,19 +68,12 @@ BIBTEX_CMD=$(LATEX) `basename $<` &&\
 	   bibtex `basename $< .tex`;
 BIBTEX=$(BIBTEX_CMD)
 
-# -- latex2html -- (currently off)
-LATEX2HTML = latex2html -math -math_parsing -local_icons -noimages -split 5
-# If you want to use latex2html you should uncomment this line
-# and add here any tex files you want compiled to html; for 
-# example, if you have foo.tex, you should add foo-html
-#MAKE_HTML = Geni-html
 
 # --------------------------------------------------------------------
 # source stuff 
 # --------------------------------------------------------------------
 
-SCRIPT_FILES = etc/runselector.sh\
-	       etc/runviewer.sh\
+SCRIPT_FILES = bin/runXMGselector.sh\
 	       etc/stupidmorph.pl\
 	       etc/tommorph.pl\
 	       etc/quickcheck.py\
@@ -91,8 +85,8 @@ IFILE = $(SRC_GENI)/Main
 CIFILE = $(SRC_GENI)/Converter
 DIFILE = $(SRC_GENI)/MainNoGui
 
-OFILE = geni
-COFILE = geniconvert
+OFILE = bin/geni
+COFILE = bin/geniconvert
 
 ifeq ($(OS),Darwin)
 OS_SPECIFIC_STUFF = macosx-app $(OFILE)
@@ -106,7 +100,7 @@ PARSERS_OUT  := $(patsubst %.hs,%.o,$(PARSERS))
 
 # Phony targets do not keep track of file modification times
 .PHONY: all nogui dep clean docs html parsers release optimize\
-       	permissions\
+       	permissions install\
 	$(OFILE) $(COFILE)
 
 # --------------------------------------------------------------------
@@ -173,6 +167,26 @@ nogui : $(LEXERS) $(PARSERS) permissions
 debugger: $(LEXERS) $(PARSERS) permissions
 	$(GHC_PROF) --make $(DIFILE).lhs -o debugger-$(OFILE)
 #	$(GHC) -O -prof -auto-all --make $(CIFILE).lhs -o debugger-$(COFILE)
+
+# --------------------------------------------------------------------
+# installing 
+# --------------------------------------------------------------------
+
+# FIXME handling of macosx stuff very ugly?
+
+install:	
+	$(foreach file,$(TO_INSTALL), $(INSTALL) bin/$(file) $(BINDIR) &&)\
+	:
+ifeq ($(OS),Darwin)
+	$(CP) -R bin/geni.app $(BINDIR)
+endif
+
+uninstall:
+	$(foreach file,$(TO_INSTALL), $(RM) $(BINDIR)/$(file) &&)\
+	:
+ifeq ($(OS),Darwin)
+	$(RM) -R $(BINDIR)/geni.app 
+endif
 
 # --------------------------------------------------------------------
 # documentation 

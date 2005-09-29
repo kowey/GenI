@@ -1,21 +1,24 @@
-1) make sure you have these things installed
-   - ghc 6.4       (Glasgow Haskell Compiler)
-   - WxWidgets 2.6 (for GUI)
-     * note: already installed on OS X 10.4 (Tiger)
+Requirements
+------------
+ * ghc 6.4
+ * libgmp (for ghc)
+ * wxhaskell 0.9.4 (requires Unicode patch: see below)
+ * wxWidgets 2.5 or 2.6 (for wxhaskell)
+ * alex 2.0.1
+ * happy 1.14 and up
+ * graphviz (for GUI) 
 
-2) there's also a few other things to install, but rather than fetching 
-them yourself, just use curl!
+wxWidgets and wxhaskell
+-----------------------
+For the moment, you'll need to compile wxWidgets and wxhaskell with special 
+options.  Please see
+  http://wiki.loria.fr/wiki/GenI/Getting_GenI
 
-  mkdir /tmp/genidl
-  cd /tmp/genidl
-  cp /WHATEVER/Geni/etc/geni.curl .
-  curl -K geni.curl
+Building geni
+-------------
+ ./configure
+ make 
+ make install
 
-3) then install all of the packages that get downloaded:
-the downloaded packages should include:
- - Happy     1.13  (yacc for haskell)
- - Alex      2.0   (lex for haskell)
- - WxHaskell 0.9.4 (graphics)
- - graphviz  (for visualisation)
-
-
+(Note: blind users or GUI abstainers can do 'make nogui' 
+ instead of just 'make')
