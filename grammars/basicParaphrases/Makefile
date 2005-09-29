@@ -1,7 +1,6 @@
 # basicParaphrases makefile
 GRAMMAR=headSem
 
-
 # common lexicon file 
 LEX_COMMON=lex/commonLexicon.lex
 

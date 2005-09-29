@@ -1,5 +1,0 @@
-Macros     = gram/official.geni
-Lexicon    = gram/lexicon
-%MorphInfo = gram/morphinfo
-RootCategories = s
-TestSuite  = suite
