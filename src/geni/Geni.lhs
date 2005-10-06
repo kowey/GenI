@@ -95,7 +95,7 @@ import Polarity
 --                   fillPredictors, optimisePredictors)
 
 import GeniParsers (parseMac, parseLex, cgmLexicon,
-                    parseMorph, parseFil,
+                    parseMorph, 
                     parseTSem, parseTSuite,
                     E(..))
 import Debug.Trace

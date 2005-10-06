@@ -32,7 +32,7 @@ module GeniParsers (
   -- macros 
   parseMac,
   -- lexicons
-  parseLex, parseMorph, parseFil, cgmLexicon,
+  parseLex, parseMorph, cgmLexicon,
   -- polarity stuff
   parsePol,
   -- parser error status
@@ -58,7 +58,6 @@ parseTSem   = targetSemParser.(lexer 0) --scTSem
 parseTSuite = testSuiteParser.(lexer 0) --scTSuite
 parsePol    = polParser.(lexer 0) --scPol
 parseMorph  = morphParser.(lexer 0) --scMorph
-parseFil    = filParser.(lexer 0) --scFil
 \end{code}
 
 Common Grammar Manifesto (CGM) parsers

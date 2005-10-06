@@ -27,7 +27,6 @@ import System.IO.Unsafe(unsafePerformIO)
 %name mParser    Input 
 %name polParserE PolList
 %name lexParser    Lexicon 
-%name filParser    FilEntryList 
 %name morphParser  MorphInfo  
 %name targetSemParser SemR
 %name testSuiteParser TestSuite
@@ -46,7 +45,6 @@ import System.IO.Unsafe(unsafePerformIO)
     str      {(Str $$,   _, _)} 
     initial  {(Init,     _, _)} 
     auxiliar {(Aux,      _, _)} 
-    family   {(FamilyTok,_, _)}
     begin    {(Begin,    _, _)}
     end      {(End,      _, _)}
     id       {(ID $$,    _, _)} 
@@ -60,8 +58,6 @@ import System.IO.Unsafe(unsafePerformIO)
     '!'      {(Bang,     _, _)} 
     '+'      {(PlusTok,  _, _)}
     '-'      {(MinusTok, _, _)}
-    '='      {(EqTok, _,_)}
-    ','      {(Comma,    _, _)} 
     ':'      {(Colon,    _, _)} 
     '|'      {(BarTok,   _, _)}
     sem   {(Semantics,    _, _)}
@@ -137,42 +133,6 @@ PolId : '+' id  { (readGeniVal $2, 1) }
       | '-' id  { (readGeniVal $2,-1) }
       |     id  { (readGeniVal $1, 0) }
 
-
-{- -----------------------------------------------------------------
-   .fil lexicon format 
-   see the common grammar manifesto
-   ----------------------------------------------------------------- -}
-
-FilEntryList :: { [ILexEntry] }
-FilEntryList : {-empty-}              {[]}
-             | FilEntry FilEntryList  {$1:$2}
-
-FilEntry :: { ILexEntry }
-FilEntry : id '[' FilTerList ']' '(' FilFeatList ')'
-         { emptyLE { iword   = $1,
-                     iparams = [],
-                     ipfeat  =  $6,
-                     ifilters = $3
-                   }
-         }
-
-FilTerList :: { {-FilTerList-} [AvPair] }
-FilTerList : {-empty-}               {[]}
-           | FilTer                  {[$1]}
-           | FilTer ',' FilTerList   {($1:$3)}
-
-FilTer :: { AvPair }
-FilTer : id     ':' FeatVal {($1,$3)}
-       | family ':' FeatVal {("family",$3)} {- don't interpret family as a keyword here -}
-
-FilFeatList :: { {-FilFeatList-} [AvPair] }
-FilFeatList : {-empty-}               {[]}
-            | FilFeat                 {[$1]}
-            | FilFeat ',' FilFeatList {($1:$3)}
-
-{- note that we treat equations like foo.bar.baz as a single string -}
-FilFeat :: { AvPair }
-FilFeat : id '=' FeatVal {($1,$3)}
 
 {- -----------------------------------------------------------------
    macros 
