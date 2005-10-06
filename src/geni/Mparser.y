@@ -402,36 +402,12 @@ ListPred : {-empty-}         {[]}
          | Pred ListPred     {$1:$2}
 
 Pred :: { Btypes.Pred }
-Pred : id '(' Params ')'  {(GAnon, $1, $3)}
-     | id ':' id '(' Params ')' {
-        unsafePerformIO $ do  
-          putStrLn "Warning: handle detected and ignored (we don't do handles)"
-          return (GAnon,$3,$5)
-      }
+Pred : id '(' Params ')'        { (GAnon, $1, $3) }
+     | id ':' id '(' Params ')' { (readGeniVal $1, $3, $5) }
 
 Params :: { [GeniVal] }
 Params : {-empty-} {[]}
        | id Params {(readGeniVal $1):$2}
-
-{- tree representation for semantics: 
-   for now, i don't want to deal with this, or handles
--- Sem :: { TpSem }
--- Sem : sem ':' '[' ListPred ']' { $4 }
--- 
--- ListPred :: { TpSem } 
--- ListPred :               {[]}
---          | Pred ListPred {$1:$2}
--- 
--- Pred :: { Tree TpPred }
--- Pred : id ':' id '(' Params ')'  {(Node ($1,$3) $5)}
---      | id '(' Params ')'         {(Node ("",$1) $3)}
--- 
--- Params :: { TpSem } 
--- Params :             {[]}
---        | id Params   {(Node ("",$1) []):$2}
---        | Pred Params {$1:$2}
--}
-
 
 {
 

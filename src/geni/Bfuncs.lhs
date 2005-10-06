@@ -501,7 +501,7 @@ showSem l =
 \begin{code}
 showPred :: Pred -> String
 showPred (h, p, l) = showh ++ p ++ "(" ++ unwords (map show l) ++ ")"
-                     where hideh = h == GAnon -- FIXME: when handles reinstated, we'll have to do this differently || (take 2 h == "gh")
+                     where hideh = h == GAnon
                            showh = if hideh then "" else (show h) ++ ":"
 \end{code}
 

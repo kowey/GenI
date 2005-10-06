@@ -703,8 +703,6 @@ combineCGM :: ILexEntry -> MTtree -> TagElem
 combineCGM lexitem e = 
    let tree_ = Bfuncs.tree e
        (snodes,anodes) = detectSites tree_
-       -- FIXME: dirty hack strips off the semantic handle
-       -- the final result
        sol = emptyTE {
                 idname = iword lexitem ++ "_" ++ pidname e,
                 derivation = (0,[]),
@@ -971,46 +969,6 @@ loadTargetSemStr pstRef str =
               Failed s -> fail s
        putStr "done\n"
 \end{code}
-
-%\paragraph{flattenTargetSem} takes a recursively embedded target
-%semantics like \verb$love(me wear(you sw))$ \verb$sweater(sw)$
-%and converts it into a flat semantics with handles like
-%\verb$love(h1 me h1.3)$ \verb$wear(h1.3 you)$ $sweater(h2 sw)$
-%
-%FIXME: we do not know how to handle literals with no arguments!
-%
-%\begin{code}
-%flattenTargetSem :: [Tree (String, String)] -> Sem
-%flattenTargetSem trees = sortSem results
-%  where results  = (concat . snd . unzip) results'
-%        results' = zipWith fn [1..] trees 
-%        fn g k   = flattenTargetSem' [g] k
-%\end{code}
-%
-%\paragraph{flattenTargetSem'} We walk the semantic tree, returning an index and
-%a list of predicates representing the flat semantics for the entire semantic
-%tree.  Normally, only the second result is interesting for you; the first
-%result is used for recursion, the idea being that a node's parameters is the
-%list of indices returned by its children.  If a child does not have any
-%children of its own, then its index is its string value (like \verb$john$); if
-%it does have children, then we return a handle for it (like \verb$h1.3.4$)
-%
-%\begin{code}
-%flattenTargetSem' :: [Int] -> Tree (String,String) -> (String, Sem)
-%flattenTargetSem' _  (Node ("",pred) []) = (pred, []) 
-%
-%flattenTargetSem' gorn (Node (hand,pred) kids) =
-%  let smooshGorn = "gh" ++ (concat $ intersperse "." $ map show gorn)
-%      -- recursive step
-%      kidGorn   = map (\x -> (x:gorn)) [1..] 
-%      next      = zip kidGorn kids
-%      nextRes   = map (\ (g,k) -> flattenTargetSem' g k) next
-%      (kidIndexes, kidSem) = unzip nextRes
-%      -- create the predicate
-%      handle    = if null hand then smooshGorn else hand
-%      result    = (handle, pred, kidIndexes)
-%  in (smooshGorn, result:(concat kidSem))
-%\end{code}
 
 % --------------------------------------------------------------------
 \section{Generation step} 

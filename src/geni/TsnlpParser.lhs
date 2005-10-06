@@ -151,7 +151,7 @@ relthetaToSem (rels, thetas) =
   let indices = take (length thetas) [1..]
       varE    = GVar "E"
       varX n  = GVar ("X" ++ show n)
-      -- FIXME: will have to deal with handles, eh?
+      -- lexical entry is treated as having anonymous handle 
       relPredFn :: String -> Pred
       relPredFn   x = (GAnon, x, [varE])
       thetaPredFn :: (Num a) => String -> a -> Pred
