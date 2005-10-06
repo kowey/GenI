@@ -215,7 +215,7 @@ runGeni pstRef runFn = do
   -- lexical selection
   mstLex   <- readIORef pstRef
   purecand <- runLexSelection mstLex
-  -- stripping morphological predicates
+  -- strip morphological predicates
   let (tsem,tresLex) = ts mstLex
       tsemLex        = filter (isNothing.(morphinf mstLex)) tsem
   modifyIORef pstRef ( \x -> x{ts = (tsemLex,tresLex)} )
@@ -224,7 +224,7 @@ runGeni pstRef runFn = do
   when (-1 == (length.show.le) pst) $ exitWith ExitSuccess
   when (-1 == (length.show.gr) pst) $ exitWith ExitSuccess
   performGC
-  -- force lexical selection to be run before clock
+  -- -- force lexical selection to be run before clock
   -- when (-1 == (length.show) purecand) $ exitWith ExitSuccess
   clockBefore <- getCPUTime 
   -- do any optimisations
@@ -754,11 +754,13 @@ loadGrammar pstRef =
      let config    = pa pst
          gfilename = macrosFile config 
          lfilename = lexiconFile config 
+         sfilename = tsFile config
      -- display 
      let errorlst  = filter (not.null) $ map errfn src 
            where errfn (err,msg) = if err then msg else ""
                  src = [ (null gfilename, "a tree file")
-                       , (null lfilename, "a lexicon file") ]
+                       , (null lfilename, "a lexicon file") 
+                       , (null sfilename, "a test suite") ]
          errormsg = "Please specify: " ++ (concat $ intersperse ", " errorlst)
      when (not $ null errorlst) $ fail errormsg 
      -- we don't have to read in grammars from the simple format
