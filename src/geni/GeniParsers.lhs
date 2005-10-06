@@ -46,7 +46,7 @@ import ParserLib
 import Mparser
 import Btypes
 import Bfuncs (sortSem)
-import TsnlpParser 
+import GdeParser 
 \end{code}
 }
 
@@ -65,5 +65,5 @@ parseFil    = filParser.(lexer 0) --scFil
 Common Grammar Manifesto (CGM) parsers
 
 \begin{code}
-cgmLexicon = tsnlpLexicon
+cgmLexicon = gdeLexicon
 \end{code}
