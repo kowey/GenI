@@ -44,9 +44,8 @@ module GeniParsers (
 import Lex2
 import ParserLib
 import Mparser
-import Btypes
-import Bfuncs (sortSem)
 import GdeParser 
+-- import TsnlpParser 
 \end{code}
 }
 
@@ -66,4 +65,5 @@ Common Grammar Manifesto (CGM) parsers
 
 \begin{code}
 cgmLexicon = gdeLexicon
+-- cgmLexicon = tsnlpLexicon 
 \end{code}

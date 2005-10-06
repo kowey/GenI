@@ -23,7 +23,7 @@ grammar manifesto.  It is implemented in Parsec.  The parser is currently
 unused because we are using the GDE lex format instead.
 
 \begin{code}
-module GdeParser(gdeLexicon) where
+module GdeParser(gdeLexicon, gdeSem, relthetaToSem) where
 \end{code}
 
 \ignore{
