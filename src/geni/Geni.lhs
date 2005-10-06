@@ -48,6 +48,7 @@ import System (ExitCode(ExitSuccess),
 import System.IO(hPutStrLn, hClose, hGetContents, hFlush, stdout)
 import System.IO.Unsafe(unsafePerformIO)
 import System.Mem
+import Text.ParserCombinators.Parsec 
 -- import System.Process 
 
 import Control.Monad (when)
@@ -93,7 +94,7 @@ import Polarity
 --import Predictors (PredictorMap, mapByPredictors, 
 --                   fillPredictors, optimisePredictors)
 
-import GeniParsers (parseMac, parseLex,
+import GeniParsers (parseMac, parseLex, cgmLexicon,
                     parseMorph, parseFil,
                     parseTSem, parseTSuite,
                     E(..))
@@ -115,7 +116,7 @@ import SysGeni
 myEMPTY :: String
 myEMPTY = "MYEMPTY" 
 
-testGeni = testExtractCGMSem
+testGeni = True
 \end{code}
 
 % --------------------------------------------------------------------
@@ -863,89 +864,13 @@ loadCGMLexicon pstRef config = do
        when (null lfilename) $ fail "Please specify a lexicon!"
        putStr $ "Loading CGManifesto Lexicon " ++ lfilename ++ "..."
        hFlush stdout
-       lf <- readFile lfilename
-       let semmapper = mapBySemKeys isemantics
-           setsem l  = l { isemantics = sem, ipfeat = ipfeat l ++ enr }
-             where (sem,enr) = extractCGMSem l
-           lex = case parseFil lf of
-                   Ok     x -> (semmapper . map setsem) x
-                   Failed x -> error x
-       putStr ((show $ length $ Map.keys lex) ++ " entries\n")
-
-       -- combine the two lexicons
-       modifyIORef pstRef (\x -> x{le = lex})
-       return ()
+       parsed <- parseFromFile cgmLexicon lfilename
+       case parsed of 
+         Left  err     -> fail (show err)
+         Right entries -> let lexicon = mapBySemKeys isemantics entries
+                          in  modifyIORef pstRef (\x -> x{le = lexicon})
+                          
 \end{code}
-
-\paragraph{extractCGMSem} Determines the semantics of a CGM lexical entry.
-
-Lexical entries have a semantics of the form $relation <theta1,...,thetan>$.
-This is expressed in the enrichment interface like
-\begin{verbatim}
-interface.rel = hates
-interface.theta1 = agt
-interface.theta2 = pat
-\end{verbatim}
-
-We do things with this
-\begin{enumerate}
-\item We translate this into a semantics of the form 
-      \verb$hates(E), agt(E,X1), pat(E,X2)$. 
-      Note that E, X1, X2, are just variable names that we make up,
-      following the GenI convention that upper case initial means they are
-      variable.
-\item Because we want to propogate the indices to trees, we also generate
-      a set of enrichement instructions of the form
-\begin{verbatim}
-interface.idx  = E
-interface.arg1 = X1
-interface.arg2 = X2
-\end{verbatim}
-\end{enumerate}
-
-\begin{code}
-extractCGMSem :: ILexEntry -> (Sem,Flist)
-extractCGMSem lex =
-  let attr_theta = "interface.theta"
-      attr_rel   = "interface.rel"
-      --
-      theta   = [ x | x <- ipfeat lex, isPrefixOf attr_theta (fst x) ]
-      relList = [ x | x <- ipfeat lex, isPrefixOf attr_rel   (fst x) ] 
-      rel | null relList = error (relErr ++ "has no relation")
-          | otherwise    = relList
-        where relErr  = "lexical entry " ++ show lex ++ ""
-      -- 
-      varE    = GVar "E"
-      varX n  = GVar ("X" ++ numfn n)
-      numfn x = drop (length attr_theta) (fst x) -- interface.theta1 -> 1
-      -- FIXME: will have to deal with handles, eh?
-      extractPred   = head.fromGConst.snd
-      relPredFn   x = (GAnon, extractPred x, [varE])
-      thetaPredFn x = (GAnon, extractPred x, [varE, varX x])
-      --
-      relEnrich = ("interface.index",varE) 
-      thetaEnrichFn x = ("interface.arg" ++ numfn x, varX x)
-      --
-      sem :: Sem 
-      sem = map relPredFn rel ++ map thetaPredFn theta
-      enrich :: Flist
-      enrich = relEnrich : (map thetaEnrichFn theta)
-  in -- trace (showSem sem) $ 
-     (sortSem sem,enrich)
-\end{code}
-
-\ignore{
-\begin{code}
-testExtractCGMSem :: Bool
-testExtractCGMSem =
-  let feats       = [ ("interface.rel",    GConst ["hates"]),
-                      ("interface.theta1", GConst ["agt"]),
-                      ("interface.theta2", GConst ["pat"]) ]
-      example_lex = emptyLE { ipfeat = feats }
-      extracted   = fst $ extractCGMSem example_lex
-  in trace (show extracted) (length extracted == 3) 
-\end{code}
-}
 
 \subsubsection{Macros}
 

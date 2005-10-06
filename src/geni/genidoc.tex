@@ -170,14 +170,17 @@ visualisation tool.
 
 \section{Input files}
 
-We use the package \textit{Happy} to create parsers for our various
-input files.  Happy is essentially Yacc for Haskell.
+We have traditionally use the package \textit{Happy} to create parsers
+for our various input files.  Happy is essentially Yacc for Haskell.
+
+Note: recently, we have started migrated to \textit{Parsec}.  Only 
+the CGM lexicon is parsed with this tool, but eventually everything
+will be using it.  Parsec lets us build parsers with less code and
+hassle.
 
 \begin{description}
- \item[Cparser.y] parser for command line arguments
- \item[Mparser.y] parser for macro files 
- \item[Lparser.y] parser for lexicon files 
- \item[Tparser.y] parser for target semantics files 
+ \item[GenIParsers.lhs] interface to all parsers
+ \item[Mparser.y] parser for macro files, lexicon files and test suite
 \end{description}
 
 We use the package \textit{Alex} to generate a lexer that is common to
@@ -245,6 +248,7 @@ See section \ref{sec:foot_constraint}
 \part{Input files}
 
 \input{Configuration.lhs}
+\input{GeniParser.lhs}
 \input{GrammarXml.lhs}
 \input{Converter.lhs}
 
