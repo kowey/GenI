@@ -33,7 +33,7 @@ data Token =
     Comma | Colon | Bang | 
     OC | CC | OP | CP | OB | CB | 
     Str String | ID String | Num Int |
-    Semantics | RestrictorsTok | 
+    Semantics | RestrictorsTok |  SentenceTok |
     Polarities | Predictors |
     Begin | End |
     PlusTok | MinusTok 

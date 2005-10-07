@@ -24,6 +24,7 @@ tokens :-
 
   restrictors                { tok RestrictorsTok }
   semantics                  { tok Semantics  }
+  sentence                   { tok SentenceTok }
   polarities                 { tok Polarities }
   predictors                 { tok Predictors }
   

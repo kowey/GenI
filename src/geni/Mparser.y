@@ -61,6 +61,7 @@ import System.IO.Unsafe(unsafePerformIO)
     ':'      {(Colon,    _, _)} 
     '|'      {(BarTok,   _, _)}
     sem   {(Semantics,    _, _)}
+    sent  {(SentenceTok, _, _)}
     res   {(RestrictorsTok, _,_)}
 
 %%
@@ -305,7 +306,7 @@ Sentences:                    { [] }
          | Sentence Sentences { $1 : $2 }
 
 Sentence :: { String }
-Sentence: '[' String ']' { $2 }
+Sentence: sent ':' '[' String ']' { $4 }
 
 String :: { String }
 String: id { $1 }
