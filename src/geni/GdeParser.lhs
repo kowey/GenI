@@ -47,6 +47,8 @@ Some preliminaries about the lexicon format - comments start with
 lexer  = makeTokenParser 
          (emptyDef
          { commentLine = "%"
+         , commentStart = "/*"
+         , commentEnd = "*/"
          })
 
 whiteSpace = P.whiteSpace lexer
@@ -110,13 +112,14 @@ pairs.
 
 \begin{code}
 gdeFeats :: Parser Flist
-gdeFeats = squares (sepBy gdeAttVal comma)
+gdeFeats = option [] $ squares $ sepBy gdeAttVal comma
 
 gdeAttVal :: Parser AvPair
 gdeAttVal = do
   att <- identifier <?> "attribute"; symbol "="
   whiteSpace
   val <- many (alphaNum <|> oneOf "+-") <?> "value"
+  whiteSpace
   return (att, GConst [val])
 \end{code}
 
