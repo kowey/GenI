@@ -35,7 +35,7 @@ GHC_PROF	= $(GHC) -prof -auto-all -hisuf p_hi -osuf p_o
 SOFTWARE        = Geni 
 SOFTVERS        = $(SOFTWARE)-$(VERSION)
 
-TO_INSTALL=geni runXMGselector.sh
+TO_INSTALL=geni runXMGselector.sh runXMGfilter.pl
 
 # You should replace the value of this variable with your project
 # directory name.  The default assumption is that the project name
@@ -74,6 +74,7 @@ BIBTEX=$(BIBTEX_CMD)
 # --------------------------------------------------------------------
 
 SCRIPT_FILES = bin/runXMGselector.sh\
+	       bin/runXMGfilter.pl\
 	       etc/stupidmorph.pl\
 	       etc/tommorph.pl\
 	       etc/quickcheck.py\
