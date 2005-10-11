@@ -387,13 +387,15 @@ the TagElem so that the person using a debugger can find out what went wrong.
 
 \begin{code}
 data TagStatus = TS_None              -- no error
-               | TS_NotAResult        -- was not a result 
+               | TS_SynIncomplete     -- semantically incomplete
+               | TS_SemIncomplete     -- semantically incomplete
                | TS_TbUnify           -- top/bottom unification error
      deriving (Eq)
 
 instance Show TagStatus where
   show ts = case ts of 
               TS_None -> ""
-              TS_NotAResult -> "not a result"
-              TS_TbUnify    -> "top/bot unification failure" 
+              TS_SynIncomplete -> "syntactically incomplete"
+              TS_SemIncomplete -> "semantically incomplete"
+              TS_TbUnify       -> "top/bot unification failure" 
 \end{code}

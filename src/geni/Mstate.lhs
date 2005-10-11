@@ -643,7 +643,7 @@ generateStep' = do
   -- put the given into the chart untouched 
   if (curStep == Initial) 
      then addToChart   given
-     else when ((null.adjnodes) given) $ addToTrash given TS_NotAResult
+     else when ((null.adjnodes) given) $ addToTrash given TS_SemIncomplete
   return res'
 \end{code}
 
@@ -717,20 +717,22 @@ step is then changed to Auxiliary
 switchToAux :: MS ()
 switchToAux = do
   st <- get
-  let doneSub    = null.substnodes 
-      isInit  x  = (ttype x) == Initial
-      chart = theChart st
+  let chart = theChart st
       -- You might be wondering why we ignore the auxiliary trees in the 
       -- chart; this is because all the syntactically complete auxiliary
       -- trees have already been filtered away by calls to classifyNew
-      initial' = filter (\x -> isInit x && doneSub x) chart 
+      initialT = filter (\x -> ttype x == Initial) chart
+      (compT, incompT) = partition (null.substnodes) initialT
       aux   = theAuxAgenda st
       --
-      initialFiltered = semfilter (tsem st) aux initial'
-      initial = if (semfiltered $ genconfig st) then initialFiltered else initial'
+      filteredT = semfilter (tsem st) aux compT 
+      initial = if (semfiltered $ genconfig st) 
+                then filteredT else compT 
   {- let debugstr =  "\n====== switch! =====" 
                    ++ "\ninit: " ++ (showLite initial)
                    ++ "\naux: " ++ (showLite aux) -}
+  -- toss the syntactically incomplete stuff in the trash
+  mapM (\t -> addToTrash t TS_SynIncomplete) incompT
   put st{theAgenda = initial,
          theAuxAgenda = [], 
          theChart = aux,
