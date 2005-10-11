@@ -35,15 +35,15 @@ TODO:
 \begin{code}
 module Mstate (
    -- Types
-   InitRep, AuxRep, GenRep, Mstate, MS, Gstats,
+   Agenda, AuxAgenda, Chart, Mstate, MS, Gstats,
 
    -- From Gstats,
    szchart, numcompar, geniter, initGstats, addGstats, avgGstats,
 
    -- From Mstate
-   initrep, auxrep, genrep, trashrep,
+   theAgenda, theAuxAgenda, theChart, theTrash,
    initMState, 
-   addToInitRep, addToGenRep,
+   addToAgenda, addToChart,
    genstats,
 
    -- Re-export from MonadState
@@ -53,10 +53,10 @@ module Mstate (
    generate, generateStep,
   
    -- Make your own generator!   
-   iapplySubstNode, nullInitRep, getSem, selectGiven,
+   iapplySubstNode, nullAgenda, getSem, selectGiven,
    incrNumcompar, incrSzchart, incrGeniter, 
-   renameTagElem, getGenRep, lookupGenRep,
-   getInitRep)
+   renameTagElem, getChart, lookupChart,
+   getAgenda)
 where
 \end{code}
 
@@ -123,22 +123,22 @@ import General (BitVector, fst3, mapTree)
 % --------------------------------------------------------------------  
 
 \begin{code}
-type InitRep = [TagElem]
-type AuxRep  = [TagElem]
-type GenRep  = [TagElem] 
-type TrashRep = [TagElem]
+type Agenda = [TagElem]
+type AuxAgenda  = [TagElem]
+type Chart  = [TagElem] 
+type Trash = [TagElem]
 
-iaddToInitRep :: InitRep -> TagElem -> InitRep
-iaddToInitRep a te = te:a
+iaddToAgenda :: Agenda -> TagElem -> Agenda
+iaddToAgenda a te = te:a
 
-iaddToAuxRep :: AuxRep -> TagElem -> AuxRep 
-iaddToAuxRep a te = te:a
+iaddToAuxAgenda :: AuxAgenda -> TagElem -> AuxAgenda 
+iaddToAuxAgenda a te = te:a
 
-iaddToGenRep :: GenRep -> TagElem -> GenRep
-iaddToGenRep c te = te:c
+iaddToChart :: Chart -> TagElem -> Chart
+iaddToChart c te = te:c
 
-iaddToTrashRep :: TrashRep -> TagElem -> TrashRep 
-iaddToTrashRep t te = te:t
+iaddtoTrash :: Trash -> TagElem -> Trash 
+iaddtoTrash t te = te:t
 \end{code}
 
 \subsection{Generator statistics}
@@ -178,7 +178,7 @@ avgGstats lst =
 
 \subsection{Mstate}
 
-Note the trashrep is not actually essential to the operation of the
+Note the theTrash is not actually essential to the operation of the
 generator; it is for pratical debugging of grammars.  Instead of
 trees dissapearing off the face of the debugger; they go into the
 trash where the user can inspect them and try to figure out why they
@@ -187,10 +187,10 @@ option not to use the trash, so that it is only enabled in debugger
 mode.
 
 \begin{code}
-data Mstate = S{initrep    :: InitRep, 
-                auxrep     :: AuxRep,
-                genrep     :: GenRep,
-                trashrep   :: TrashRep,
+data Mstate = S{theAgenda    :: Agenda, 
+                theAuxAgenda     :: AuxAgenda,
+                theChart     :: Chart,
+                theTrash   :: Trash,
                 tsem       :: Sem,
                 step       :: Ptype,
                 gencounter :: Integer,
@@ -206,10 +206,10 @@ initMState ::  [TagElem] -> [TagElem] -> Sem -> Params -> Mstate
 initMState cands chart ts config = 
   let (a,i) = partition isPureAux cands 
       c = chart
-  in S{initrep  = i, 
-       auxrep   = a,
-       genrep   = c,
-       trashrep = [],
+  in S{theAgenda  = i, 
+       theAuxAgenda   = a,
+       theChart   = c,
+       theTrash = [],
        tsem     = ts,
        step     = Initial,
        gencounter = toInteger $ length cands,
@@ -222,37 +222,37 @@ type MS = State Mstate
 \subsubsection{Mstate updaters}
 
 \begin{code}
-addToInitRep :: TagElem -> MS ()
-addToInitRep te = do 
+addToAgenda :: TagElem -> MS ()
+addToAgenda te = do 
   s <- get
-  put s{initrep = (iaddToInitRep (initrep s) te)}
+  put s{theAgenda = (iaddToAgenda (theAgenda s) te)}
      
-updateInitRep :: InitRep -> MS ()
-updateInitRep a = do 
+updateAgenda :: Agenda -> MS ()
+updateAgenda a = do 
   s <- get  
-  put s{initrep = a}
+  put s{theAgenda = a}
 
-addToAuxRep :: TagElem -> MS ()
-addToAuxRep te = do 
+addToAuxAgenda :: TagElem -> MS ()
+addToAuxAgenda te = do 
   s <- get
   -- each new tree gets a unique id... this makes comparisons faster 
   let counter = (gencounter s) + 1
       te2 = te { tidnum = counter }
   put s{gencounter = counter,
-        auxrep = iaddToAuxRep (auxrep s) te2}
+        theAuxAgenda = iaddToAuxAgenda (theAuxAgenda s) te2}
  
-addToGenRep :: TagElem -> MS ()
-addToGenRep te = do 
+addToChart :: TagElem -> MS ()
+addToChart te = do 
   s <- get  
-  put s { genrep = (iaddToGenRep (genrep s) te) }
+  put s { theChart = (iaddToChart (theChart s) te) }
   incrSzchart 1
 
-addToTrashRep :: TagElem -> TagStatus -> MS ()
-addToTrashRep te err = do 
+addToTrash :: TagElem -> TagStatus -> MS ()
+addToTrash te err = do 
   s <- get
   let te2 = te { tdiagnostic = err }
   when ((usetrash.genconfig) s) $
-    put s { trashrep = (iaddToTrashRep (trashrep s) te2) }
+    put s { theTrash = (iaddtoTrash (theTrash s) te2) }
 
 incrGeniter :: Int -> MS ()
 incrGeniter n = do
@@ -281,20 +281,20 @@ incrNumcompar n = do
 We retrieve the Mstate from the State monad and then retrieve a field from it.
 
 \begin{code}
-getInitRep :: MS InitRep
-getInitRep = do 
+getAgenda :: MS Agenda
+getAgenda = do 
   s <- get
-  return (initrep s)
+  return (theAgenda s)
 
-getGenRep :: MS GenRep
-getGenRep = do 
+getChart :: MS Chart
+getChart = do 
   s <- get
-  return (genrep s)
+  return (theChart s)
 
--- getAuxRep :: MS AuxRep
--- getAuxRep = do 
+-- getAuxAgenda :: MS AuxAgenda
+-- getAuxAgenda = do 
 --   s <- get
---   return (auxrep s)
+--   return (theAuxAgenda s)
  
 getStep :: MS Ptype
 getStep = do 
@@ -307,25 +307,25 @@ getSem = do
   return (tsem s)
 \end{code}
 
-These functions let us find out if the InitRep or the AuxRep are null.
+These functions let us find out if the Agenda or the AuxAgenda are null.
 
 \begin{code}
-nullInitRep :: MS Bool
-nullInitRep = do 
+nullAgenda :: MS Bool
+nullAgenda = do 
   s <- get  
-  return (null (initrep s))
+  return (null (theAgenda s))
 
 {-
-nullAuxRep :: MS Bool
-nullAuxRep = do 
+nullAuxAgenda :: MS Bool
+nullAuxAgenda = do 
   s <- get
-  return (null (auxrep s))
+  return (null (theAuxAgenda s))
 -}
 \end{code}
 
-\paragraph{lookupGenRep} retrieves a list of trees from the chart which 
+\paragraph{lookupChart} retrieves a list of trees from the chart which 
 could be combined with the given agenda tree.
-\label{fn:lookupGenRep}
+\label{fn:lookupChart}
 
 The current implementation searches for trees which 
 \begin{itemize}
@@ -334,9 +334,9 @@ The current implementation searches for trees which
 \end{itemize}
 
 \begin{code}
-lookupGenRep :: TagElem -> MS [TagElem]
-lookupGenRep given = do
-  chart <- getGenRep
+lookupChart :: TagElem -> MS [TagElem]
+lookupChart given = do
+  chart <- getChart
   let gpaths = tpolpaths given
       gsem   = tsemantics given
   return [ t | t <- chart
@@ -360,12 +360,12 @@ intersectPolPaths te1 te2 = (tpolpaths te1) .&. (tpolpaths te2)
 % --------------------------------------------------------------------  
 
 \paragraph{applySubstitution} Given a TagElem it returns the list of all
-possible substitutions between it and the elements in GenRep 
+possible substitutions between it and the elements in Chart 
 
 \begin{code}
 applySubstitution :: TagElem -> MS ([TagElem])
 applySubstitution te =  
-  do gr <- lookupGenRep te
+  do gr <- lookupChart te
      let -- tesem = tsemantics te
          -- we rename tags to do a proper substitution
          rte = renameTagElem 'A' te
@@ -444,14 +444,14 @@ iapplySubstNode te1 te2 sn@(n, fu, fd) =
 % ---------------------------------------------------------------  
 
 \paragraph{applyAdjunction} Given a TagElem, it returns the list of all 
-possible adjunctions between it and the elements in GenRep.  GenRep
-contains Auxiliars, while TagElem is an Initial
+possible adjunctions between it and the elements in Chart.  
+The Chart contains Auxiliars, while TagElem is an Initial
 
 13 april 2005 - only uses ordered adjunction as described in \cite{kow04a}
 \begin{code}
 applyAdjunction :: TagElem -> MS ([TagElem])
 applyAdjunction te = do
-   gr <- lookupGenRep te
+   gr <- lookupChart te
    st <- get
    let -- we rename tags to do a proper adjunction
        rte  = renameTagElem 'A' te
@@ -609,20 +609,20 @@ iapplyAdjNode fconstr te1 te2 an@(n, an_up, an_down) =
 
 
 \begin{itemize}
-\item If both InitRep and AuxRep are empty then there is nothing to do,
-  otherwise, if InitRep is empty then we switch to the application of the 
+\item If both Agenda and AuxAgenda are empty then there is nothing to do,
+  otherwise, if Agenda is empty then we switch to the application of the 
   Adjunction rule. 
 \item After the rule is applied we classify solutions into those that are complete 
   and cover the semantics and those that don't.  The first ones are returned 
-  and added to the result, while the others are sent back to InitRep.  
+  and added to the result, while the others are sent back to Agenda.  
 \item Notice that if we are applying the Substitution rule then given is added
-  to GenRep, otherwise it is deleted. 
+  to Chart, otherwise it is deleted. 
 \end{itemize}
 
 \begin{code}
 generate :: MS [TagElem]
 generate = do 
-  nir     <- nullInitRep 
+  nir     <- nullAgenda 
   curStep <- getStep
 
   if (nir && curStep == Auxiliar)
@@ -634,7 +634,7 @@ generate = do
 
 generateStep :: MS [TagElem]
 generateStep = do
-  nir     <- nullInitRep
+  nir     <- nullAgenda
   curStep <- getStep
   -- this check may seem redundant with generate, but it's needed 
   -- to protect against a user who calls generateStep on a finished
@@ -658,12 +658,12 @@ generateStep' = do
          then applySubstitution given
          else applyAdjunction given
   {-
-  genrep  <- getGenRep
-  initrep <- getInitRep
+  theChart  <- getChart
+  theAgenda <- getAgenda
   let debugstr =  "\ngiven: " ++ (idname given) 
                ++ " | " ++ (showLeaves given)
-               ++ "\nagenda: " ++ (showLite initrep)
-               ++ "\nchart: " ++ (showLite genrep)
+               ++ "\nagenda: " ++ (showLite theAgenda)
+               ++ "\nchart: " ++ (showLite theChart)
                ++ "\nresult: " ++ (showLite res)
   -}
   -- determine which of the res should go in the agenda 
@@ -671,8 +671,8 @@ generateStep' = do
   res' <- classifyNew res
   -- put the given into the chart untouched 
   if (curStep == Initial) 
-     then addToGenRep   given
-     else when ((null.adjnodes) given) $ addToTrashRep given TS_NotAResult
+     then addToChart   given
+     else when ((null.adjnodes) given) $ addToTrash given TS_NotAResult
   return res'
 \end{code}
 
@@ -684,8 +684,8 @@ the Initial and returns it.
 \begin{code}
 selectGiven :: MS TagElem
 selectGiven = do 
-  a <- getInitRep
-  updateInitRep (tail a)
+  a <- getAgenda
+  updateAgenda (tail a)
   return (head a)
 \end{code}
 
@@ -700,8 +700,8 @@ Given a list of TagElem, for each tree:
 \item if the number of subtrees exceeds the numTreesLimit, discard
 \item if it is only syntactically complete and it is an auxiliary tree, 
       then we don't need to do any more substitutions with it, so set it 
-      aside on the auxiliary agenda (AuxRep)
-\item otherwise, put it on the regular agenda (InitRep)
+      aside on the auxiliary agenda (AuxAgenda)
+\item otherwise, put it on the regular agenda (Agenda)
 \end{enumerate}
 
 \begin{code}
@@ -721,7 +721,7 @@ classifyNew l = do
                     where treeSem = (sortSem $ tsemantics x)
       tbUnify x ls = case (tbUnifyTree x) of
                        Left n  -> do let x2  = x { thighlight = [n] }
-                                     addToTrashRep x2 TS_TbUnify 
+                                     addToTrash x2 TS_TbUnify 
                                      return ls
                        Right x2 -> return (x2:ls)
       
@@ -729,9 +729,9 @@ classifyNew l = do
       classify ls x 
         | isResult  x = tbUnify x ls
         | overLimit x = return ls -- discard
-        | isPureAux x = do addToAuxRep x
+        | isPureAux x = do addToAuxAgenda x
                            return ls
-        | otherwise   = do addToInitRep x
+        | otherwise   = do addToAgenda x
                            return ls
   -- return list of completed trees (as defined above in comments)
   foldM classify [] l
@@ -739,7 +739,7 @@ classifyNew l = do
 
 \paragraph{switchToAux} When all substitutions has been done, tags with
 substitution nodes still open are deleted, then the auxiliars tags are put in
-GenRep and the (initial) tags in the repository are moved into the InitRep. The
+Chart and the (initial) tags in the repository are moved into the Agenda. The
 step is then changed to Auxiliary
 
 \begin{code}
@@ -748,21 +748,21 @@ switchToAux = do
   st <- get
   let doneSub    = null.substnodes 
       isInit  x  = (ttype x) == Initial
-      chart = genrep st
+      chart = theChart st
       -- You might be wondering why we ignore the auxiliary trees in the 
       -- chart; this is because all the syntactically complete auxiliary
       -- trees have already been filtered away by calls to classifyNew
       initial' = filter (\x -> isInit x && doneSub x) chart 
-      aux   = auxrep st
+      aux   = theAuxAgenda st
       --
       initialFiltered = semfilter (tsem st) aux initial'
       initial = if (semfiltered $ genconfig st) then initialFiltered else initial'
   {- let debugstr =  "\n====== switch! =====" 
                    ++ "\ninit: " ++ (showLite initial)
                    ++ "\naux: " ++ (showLite aux) -}
-  put st{initrep = initial,
-         auxrep = [], 
-         genrep = aux,
+  put st{theAgenda = initial,
+         theAuxAgenda = [], 
+         theChart = aux,
          step = Auxiliar}
 \end{code}
 

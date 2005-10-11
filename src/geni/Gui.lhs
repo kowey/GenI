@@ -62,7 +62,7 @@ import GeniParsers
 
 import Mstate (Gstats, Mstate, initGstats, initMState, runState, 
                generate, generateStep,  
-               initrep, auxrep, genrep, trashrep,
+               theAgenda, theAuxAgenda, theChart, theTrash,
                genstats, szchart, numcompar, geniter)
 import Polarity
 -- import Debug.Trace
@@ -726,10 +726,10 @@ of trees and labels the way graphvizGui likes it.
 \begin{code}
 showGenState :: [TagElem] -> Mstate -> ([TagElem],[String])
 showGenState res st = 
-  let agenda    = initrep st
-      auxiliary = auxrep st
-      trash     = trashrep st
-      chart     = genrep  st
+  let agenda    = theAgenda st
+      auxiliary = theAuxAgenda st
+      trash     = theTrash st
+      chart     = theChart  st
       --
       trees     =  (emptyTE:agenda) 
                  ++ (emptyTE:chart) 
