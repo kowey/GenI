@@ -307,6 +307,9 @@ Sentences:                    { [] }
 
 Sentence :: { String }
 Sentence: sent ':' '[' String ']' { $4 }
+        | sent ':' '[' ']' { "" }
+        | '[' String ']' { $2 }
+        | '[' ']' {""}
 
 String :: { String }
 String: id { $1 }
