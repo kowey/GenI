@@ -314,13 +314,6 @@ nullAgenda :: MS Bool
 nullAgenda = do 
   s <- get  
   return (null (theAgenda s))
-
-{-
-nullAuxAgenda :: MS Bool
-nullAuxAgenda = do 
-  s <- get
-  return (null (theAuxAgenda s))
--}
 \end{code}
 
 \paragraph{lookupChart} retrieves a list of trees from the chart which 
@@ -447,7 +440,8 @@ iapplySubstNode te1 te2 sn@(n, fu, fd) =
 possible adjunctions between it and the elements in Chart.  
 The Chart contains Auxiliars, while TagElem is an Initial
 
-13 april 2005 - only uses ordered adjunction as described in \cite{kow04a}
+Note: as of 13 april 2005 - only uses ordered adjunction as described in
+\cite{kow04a}
 \begin{code}
 applyAdjunction :: TagElem -> MS ([TagElem])
 applyAdjunction te = do
@@ -477,26 +471,6 @@ applyAdjunction te = do
        count   = (length gr) 
    incrNumcompar count 
    return res
-\end{code}
-
-\paragraph{iapplyAdj} Given two TagElem \texttt{te1} (auxiliar) \texttt{te2} (initial) with
-no overlapping names, and the list of adjunction nodes in \texttt{te2} it returns
-the list of possible adjunctions of the first in the second.  Note: first
-argument (boolean) is a configuration setting that determines if foot nodes 
-should retain an adjunction constraint even after adjunction is complete.
-
-Note: no longer used because of mandatory ordered adjunction (change 13 april 2005)
-\begin{code}
-{--
-iapplyAdj :: Bool -> TagElem -> TagElem -> [(String, Flist, Flist)] -> [TagElem]
-iapplyAdj _ _ _ [] = []
-iapplyAdj fconstr te1 te2 (an:l) =
-  let cur  = iapplyAdjNode fconstr te1 te2 an
-      next = iapplyAdj fconstr te1 te2 l
-  in case cur of
-       Nothing  -> next
-       Just res -> res:next
---}
 \end{code}
 
 The main work for adjunction is done in the helper function below
@@ -602,11 +576,9 @@ iapplyAdjNode fconstr te1 te2 an@(n, an_up, an_down) =
   in if success then Just res else Nothing 
 \end{code}
 
-
 % --------------------------------------------------------------------  
 \section{Generate}
 % --------------------------------------------------------------------  
-
 
 \begin{itemize}
 \item If both Agenda and AuxAgenda are empty then there is nothing to do,
@@ -624,7 +596,6 @@ generate :: MS [TagElem]
 generate = do 
   nir     <- nullAgenda 
   curStep <- getStep
-
   if (nir && curStep == Auxiliar)
      -- then trace "=================================== END" $ return []
      then return []
@@ -908,7 +879,6 @@ tbUnifyNode gnRaw st =
 \section{Miscellaneous}
 % --------------------------------------------------------------------  
 
-
 \paragraph{renameTagElem} Given a Char c and a TagElem te, renames nodes in
 substnodes, adjnodes and the tree in te by prefixing c. 
 
@@ -925,7 +895,6 @@ renameTagElem c te =
         ttree = t}
 \end{code}
 
-
 \paragraph{isPureAux} returns True if a tree is an auxiliary tree with
 no substitution nodes
 
@@ -933,7 +902,6 @@ no substitution nodes
 isPureAux :: TagElem -> Bool 
 isPureAux x = ((ttype x) == Auxiliar && (null $ substnodes x))
 \end{code}
-
 
 \subsection{Derivation trees}
 
