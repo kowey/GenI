@@ -106,19 +106,6 @@ import General (BitVector, fst3, mapTree)
 }
 
 % --------------------------------------------------------------------  
-% Code for debugging. (should be latex-commented
-% when not in use)
-% --------------------------------------------------------------------  
-
-%\begin{code}
-%import Debug.Trace
-%import Data.Tree 
-%import Polarity 
-%import Tags
-%import Bfuncs
-%\end{code}
-
-% --------------------------------------------------------------------  
 \section{Types}
 % --------------------------------------------------------------------  
 
@@ -415,17 +402,6 @@ iapplySubstNode te1 te2 sn@(n, fu, fd) =
                   tpolpaths  = intersectPolPaths te1 te2,
                   thighlight = [gnname nr]} 
       res = substTagElem newTe subst   
-      {- debugstr = ("============================================\n" 
-                  ++ "substitute " ++ showLite te1 
-                  ++ "\ninnertree:\n" ++ (drawTree $ ttree te1) 
-                  ++ "\nbefore:\n" ++ (drawTree $ ttree te2) 
-                  ++ "\nafter:\n"    ++ (if success then (drawTree ntree) else "n/a")
-                  ++ "\nfs: " ++ showPairs tfup ++ " vs. " ++ showPairs fu ++ "\n"
-                  ++ "\n ~~~~~~~~"
-                  ++ "\nmain  adjnodes: " ++ showTagSites (adjnodes te2)
-                  ++ "\ninner adjnodes: " ++ showTagSites (adjnodes te1)
-                  ++ "\nnew   adjnodes: " ++ (if success then showTagSites newadjnodes else "n/a")
-                 ) -}
   in if (isInit te1 && success) then [res] else []
 \end{code}
 
@@ -556,23 +532,6 @@ iapplyAdjNode fconstr te1 te2 an@(n, an_up, an_down) =
       res  = res' { adjnodes = (addextra.adjnodes) res' 
                   , tadjlist = (n, (tidnum te1)):(tadjlist te2)
                   }
-      {- debugstr = ("============================================\n" 
-                  ++ "adjoin " ++ showLite te1 ++ " to node " ++ n
-                  ++ "\nfs aux : " ++ showPairs r_up ++ " and " ++ showPairs f_down
-                  ++ "\nfs main: " ++ showPairs an_up ++ " and " ++ showPairs an_down 
-                  ++ "\nsucc: " ++ show succ1 ++ " and " ++ show succ2
-                  ++ "\n------" 
-                  ++ "\nmain adjnodes: " ++ showTagSites [an]
-                  ++ "\naux adjnodes: " ++ showTagSites (adjnodes te1)
-                  ++ "\nnew adjnodes: " ++ (if success then showTagSites (adjnodes res) else "n/a")
-                  ++ "\n------" 
-                  ++ "\nauxtree:\n" ++ (drawTree $ ttree te1) 
-                  ++ "\n ~~~~~~~~"
-                  ++ "\nbefore:\n" ++ (drawTree $ ttree te2) 
-                  ++ "\n ~~~~~~~~"
-                  ++ "\nafter:\n"  ++ (if success then (drawTree ntree) else "n/a")
-                  ++ "\n ~~~~~~~~"
-                 )  -}
   in if success then Just res else Nothing 
 \end{code}
 
@@ -597,7 +556,6 @@ generate = do
   nir     <- nullAgenda 
   curStep <- getStep
   if (nir && curStep == Auxiliar)
-     -- then trace "=================================== END" $ return []
      then return []
      else do res <- generateStep
              -- next!
@@ -628,15 +586,6 @@ generateStep' = do
   res <- if (curStep == Initial)
          then applySubstitution given
          else applyAdjunction given
-  {-
-  theChart  <- getChart
-  theAgenda <- getAgenda
-  let debugstr =  "\ngiven: " ++ (idname given) 
-               ++ " | " ++ (showLeaves given)
-               ++ "\nagenda: " ++ (showLite theAgenda)
-               ++ "\nchart: " ++ (showLite theChart)
-               ++ "\nresult: " ++ (showLite res)
-  -}
   -- determine which of the res should go in the agenda 
   -- (monadic state) and which should go in the result (res')
   res' <- classifyNew res
@@ -728,9 +677,6 @@ switchToAux = do
       filteredT = semfilter (tsem st) aux compT 
       initial = if (semfiltered $ genconfig st) 
                 then filteredT else compT 
-  {- let debugstr =  "\n====== switch! =====" 
-                   ++ "\ninit: " ++ (showLite initial)
-                   ++ "\naux: " ++ (showLite aux) -}
   -- toss the syntactically incomplete stuff in the trash
   mapM (\t -> addToTrash t TS_SynIncomplete) incompT
   put st{theAgenda = initial,

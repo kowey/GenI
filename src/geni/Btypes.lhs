@@ -36,8 +36,6 @@ where
 
 \ignore{
 \begin{code}
-import Debug.Trace -- for test stuff
-import Data.Bits
 import Data.Char (isUpper)
 import qualified Data.Map as Map 
 import Data.List (intersect, intersperse, sortBy, nub)

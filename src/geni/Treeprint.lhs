@@ -36,7 +36,6 @@ import Bfuncs (MTtree, Ttree(..), Ptype(..),
                GNode(..), GType(..), Flist,
                showSem, showPairs, showAv)
 import Graphviz (GvParam)
--- import Debug.Trace 
 \end{code}
 }
 

@@ -88,26 +88,6 @@ import Bfuncs(Pred, Sem, Flist, AvPair, showAv,
 import General(BitVector, groupByFM, isEmptyIntersect, fst3, snd3, thd3)
 \end{code}
 
-%\begin{code}
-%import Debug.Trace
-%--import Tags
-%import Btypes
-%
-%emptyaut = NFA { transitions = Map.empty,
-%                 startSt = polstart [],
-%                 finalSt = [] }
-%
-%emptyaut2 = NFA { transitions = Map.empty,
-%                  startSt = "start",
-%                  finalSt = [] }
-%
-%testaut2 = let aut1 = emptyaut2
-%               aut2 = addTrans aut1 "start" "t2" "st 2"
-%               aut3 = addTrans aut2 "start" "t3" "st 3"
-%               in aut3
-%
-%\end{code}
-%
 \section{Overview}
 \label{polarity:overview}
 

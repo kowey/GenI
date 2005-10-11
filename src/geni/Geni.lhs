@@ -98,10 +98,6 @@ import GeniParsers (parseMac, parseLex, cgmLexicon,
                     parseMorph, 
                     parseTSem, parseTSuite,
                     E(..))
-import Debug.Trace
-import Btypes (emptyLE)
---import Bfuncs (showSem,showPairs)
---showlex l = iword l ++ "\n sem: " ++ (showSem.isemantics) l ++ "\n enrich: " ++ (showPairs.ipfeat) l ++ "\n--\n" 
 
 -- Not for windows
 -- FIXME: even better would be to really figure out all this
@@ -549,7 +545,6 @@ chooseCandI tsem cand =
         where psubsem = subsumeSem tsem sem
               sem = isemantics le
       --
-  --in --trace ("\n\n" ++ (concatMap showlex cand)) $ 
   in nub $ concatMap helper cand 
 \end{code}
 
@@ -596,7 +591,6 @@ runCGMLexSelection pst =
          gramfile = macrosFile gparams
      -- select lexical items 
          lexCand = chooseLexCand lexicon tsem
-         -- lexCand = trace ("\n===============\n" ++ (concatMap showlex lexCand')) $ lexCand'
      -- run the selector module
      let idxs = [1..]
          fil  = concat $ zipWith lexEntryToFil lexCand idxs 
@@ -813,7 +807,6 @@ loadGeniLexicon pstRef config = do
        --
        putStr ((show $ length $ Map.keys lex) ++ " entries\n")
        -- combine the two lexicons
-       {- trace (concatMap (concatMap showlex) $ eltsFM lex) $ -}
        modifyIORef pstRef (\x -> x{le = lex})
 
        return ()

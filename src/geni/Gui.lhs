@@ -65,7 +65,6 @@ import Mstate (Gstats, Mstate, initGstats, initMState, runState,
                theAgenda, theAuxAgenda, theChart, theTrash,
                genstats, szchart, numcompar, geniter)
 import Polarity
--- import Debug.Trace
 \end{code}
 }
 
