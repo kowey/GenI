@@ -183,8 +183,8 @@ optionsBasic =
       "enable graphical user interface"
   , Option []    ["help"] (NoArg  HelpTok) 
       "show full list of command line switches"
-  , Option ['t'] ["trees"] (ReqArg MacrosTok "FILE") 
-      "(unanchored) tree file FILE"
+  , Option ['m'] ["macros"] (ReqArg MacrosTok "FILE") 
+      "macros file FILE (unanchored trees)"
   , Option ['l'] ["lexicon"] (ReqArg LexiconTok "FILE") 
       "lexicon file FILE"
   , Option ['s'] ["testsuite"] (ReqArg TestSuiteTok "FILE") 
@@ -252,10 +252,13 @@ optimisationCodes =
 treatArgs :: [String] -> IO Params
 treatArgs argv = do
    let header   = "Usage: geni [OPTION...]"
-       usage    = usageInfo header optionsBasic 
+       usageExample = "Example:\n" ++  
+         " geni --gui -m examples/ej/mac -l examples/ej/lexicon -s examples/ej/suite\n"
+       usage    = usageInfo header optionsBasic ++ "\n\n" ++usageExample
        usageAdv = usage 
                   ++ usageInfo "Advanced options (note: all LIST are + delimited)" optionsAdvanced 
                   ++ optimisationsUsage
+                  ++ "\n\n" ++ usageExample
    case getOpt Permute options argv of
      (o,_,[]  ) -> 
         if null o then do putStrLn usage
@@ -338,12 +341,12 @@ defineParams p (f:s) = defineParams pnext s
             LexiconTok   v -> p {lexiconFile = v} 
             TestSuiteTok v -> p {tsFile = v}
             -- advanced stuff
-            RootCategoriesTok v -> p {rootCatsParam = words v}
+            RootCategoriesTok v -> p {rootCatsParam = wordsBy '+' v}
             MorphInfoTok v  -> p {morphFile   = v}
             CmdTok "morph"   v -> p {morphCmd  = v}
             CmdTok "select"  v -> p {selectCmd = v}
             CmdTok "view"    v -> p {viewCmd = v}
-            TestCasesTok v  -> p {testCases = words v }
+            TestCasesTok v  -> p {testCases = wordsBy '+' v }
             -- 
             GrammarType v   -> p {grammarType = v} 
             IgnoreSemanticsTok v -> p { ignoreSemantics = v 
