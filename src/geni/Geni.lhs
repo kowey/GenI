@@ -453,7 +453,7 @@ combineOne lexitem e =
                          ++ pfamily e ++ showid (pidname e),
                 derivation = (0,[]),
                 ttype = ptype e,
-                ttree = setLexeme (iword lexitem) unified,
+                ttree = setLexeme [(iword lexitem)] unified,
                 substnodes = snodes,
                 adjnodes   = anodes,
                 tsemantics = substSem sem fsubst,

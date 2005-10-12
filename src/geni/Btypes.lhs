@@ -132,7 +132,7 @@ data GNode = GN{gnname :: String,
                 gup    :: Flist,
                 gdown  :: Flist,
                 ganchor  :: Bool,
-                glexeme  :: String,
+                glexeme  :: [String],
                 gtype    :: GType,
                 gaconstr :: Bool}
            deriving Eq
@@ -149,7 +149,7 @@ for various debugging or display purposes.
 emptyGNode = GN { gnname = "",
                   gup = [], gdown = [],
                   ganchor = False,
-                  glexeme = "",
+                  glexeme = [], 
                   gtype = Other,
                   gaconstr = False }
 \end{code}

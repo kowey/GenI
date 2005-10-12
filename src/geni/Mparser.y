@@ -6,22 +6,18 @@ where
 import ParserLib 
 
 import Btypes (
-               Ptype(Initial,Auxiliar,Unspecified),
+               Ptype(..),
                Ttree(..), Flist, AvPair,
-               GType(Foot, Lex, Subs, Other),
+               GType,
                GNode(..), MTtree, 
 
-               emptyLE, ILexEntry(..), Ptype(..), 
+               emptyLE, ILexEntry(..), 
 
                Sem, Pred, readGeniVal, GeniVal(..))
 
 import qualified Data.Map as Map 
 
 import Data.List (sort)
-import qualified Data.Tree 
-
-
-import System.IO.Unsafe(unsafePerformIO)
 }
 
 %name mParser    Input 
@@ -262,26 +258,22 @@ ListTree :                     {[]}
 
 Descrip :: { MpStuff }
 Descrip :
-   anchor
-     {("anchor","",nullpair)}
- | type ':' anchor  TopBotF
-     {("anchor","",$4)} 
- | type ':' lexeme str TopBotF
-     {("lexeme",$4,$5)}
- | type ':' lexeme str 
-     {("lexeme",$4,nullpair)}
- | type ':' subst TopBotF 
-     {("subst","",$4)}
- | type ':' foot TopBotF 
-     {("foot","",$4)} 
- | aconstr ':' noadj TopBotF 
-     {("aconstr","",$4)} 
- | TopBotF 
-     {("","",$1)} 
+   anchor                             {("anchor",[],nullpair)}
+ | type ':' anchor  TopBotF           {("anchor",[],$4)} 
+ | type ':' lexeme StringList TopBotF {("lexeme",$4,$5)}
+ | type ':' lexeme StringList         {("lexeme",$4,nullpair)}
+ | type ':' subst TopBotF             {("subst",[],$4)}
+ | type ':' foot TopBotF              {("foot",[],$4)} 
+ | aconstr ':' noadj TopBotF          {("aconstr",[],$4)} 
+ | TopBotF                            {("",[],$1)} 
 
 TopBotF :: { (Flist,Flist) }
 TopBotF : '[' FeatList ']' '!' '[' FeatList ']'
     {($2,$6)}
+
+StringList :: { [String] }
+StringList : str { [$1] } 
+           | str '|' StringList { $1 : $3 } 
 
 {- -----------------------------------------------------------------
    test suite and input semantics 
@@ -333,10 +325,6 @@ IDFeat :: { ([GeniVal],[AvPair])}
 IDFeat : IDList               { ($1,[]) }
        | IDList '!' FeatList  { ($1,$3) }
 
-Num :: { Int }
-Num: num     { $1 }
-   | '-' num { (-$2) }
-
 {- feature structures -}
 
 FeatList :: { {-FeatList-} [AvPair] }
@@ -353,8 +341,13 @@ FeatVal: id  {readGeniVal $1}
        | ConstList { GConst (map rejectNonGConst $1) }
 
 ConstList :: { [String] }
-ConstList : id '|' id { [$1,$3] } 
-          | id '|' ConstList { $1 : $3 } 
+ConstList : Const '|' Const { [$1,$3] } 
+          | Const '|' ConstList { $1 : $3 } 
+
+Const: id  { $1 }
+     | num { show $1 }
+     | '+' { "+" }
+     | '-' { "-" }
 
 {- semantics -}
 

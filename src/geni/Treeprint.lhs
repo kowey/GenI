@@ -34,6 +34,7 @@ import Tags (TagElem, idname, tdiagnostic,
              derivation)
 import Bfuncs (MTtree, Ttree(..), Ptype(..), 
                GNode(..), GType(..), Flist,
+               showLexeme,
                showSem, showPairs, showAv)
 import Graphviz (GvParam)
 \end{code}
@@ -165,7 +166,7 @@ toGeniHand tr =
                      Lex  -> if (ganchor n) then "type:anchor" else "type:lex" 
                      _    -> ""
       glexstr  n = if null gl then "" else "\"" ++ gl ++ "\""
-                   where gl = glexeme n
+                   where gl = showLexeme $ glexeme n
       --
       nodestr :: GNode -> String
       nodestr n = "n" ++ gnname n 

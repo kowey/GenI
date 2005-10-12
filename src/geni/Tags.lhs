@@ -57,6 +57,7 @@ import Data.Tree
 
 import Bfuncs (Ptype(Initial, Auxiliar), SemPols,
                Subst, GNode(gup, gdown, glexeme, gnname), Flist, 
+               showLexeme,
                GeniVal(..),
                Sem, Pred, emptyPred, 
                emptyGNode,
@@ -344,10 +345,11 @@ tagLeaf node =
              [ v | (a,v) <- guppy, a == "phon" ] ++
              [ v | (a,v) <- guppy, a == "cat" ] 
              -- grab the first match
-      cat  = if null cat' then gnname node else (show.head) cat'
-      name   = map toUpper cat 
+      cats  = if null cat' then [gnname node] else map show cat'
+      name  = map (map toUpper) cats
+      -- FIXME: need to handle atomic disjunction in lexemes!
       output = if (null lexeme) then name else lexeme
-  in (output, gup node)
+  in (showLexeme output, gup node)
 \end{code}
 
 

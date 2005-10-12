@@ -39,6 +39,7 @@ module Bfuncs(
 
    -- Projectors from GNode (re-exported)
    gnname, gup, gdown, ganchor, glexeme, gtype, gaconstr,
+   showLexeme,
 
    -- Functions from Tree GNode
    repSubst, repAdj, constrainAdj, 
@@ -67,7 +68,7 @@ module Bfuncs(
 -- import Debug.Trace -- for test stuff
 import QuickCheck -- needed for testing via ghci 
 import Control.Monad (liftM)
-import Data.List (intersect, sortBy, foldl')
+import Data.List (intersperse, intersect, sortBy, foldl')
 import Data.Tree
 
 import Btypes
@@ -86,7 +87,12 @@ instance Show GNode where
   show gn = 
     let cat' = [ av | av <- gup gn, fst av == "cat" ]
         cat  = if (null cat') then "" else show $ snd $ head cat'
-        lex  = if (null $ glexeme gn) then "" else glexeme gn
+        theLexeme = glexeme gn
+        -- FIXME: will have to think of nicer way - one which involves
+        -- unpacking the trees :-(
+        lex | null theLexeme        = ""
+            | 1 == length theLexeme = head theLexeme
+            | otherwise             = concat $ intersperse "|" theLexeme 
         -- 
         extra = case (gtype gn) of         
                    Subs -> " (s)"
@@ -95,6 +101,13 @@ instance Show GNode where
     in if (not (null cat || null lex))
        then cat ++ ":" ++ lex ++ extra
        else cat ++ lex ++ extra
+
+-- FIXME: will have to think of nicer way - one which involves
+-- unpacking the trees :-(
+showLexeme :: [String] -> String
+showLexeme []   = ""
+showLexeme [l]  = l
+showLexeme xs   = concat $ intersperse "|" xs 
 \end{code}
 
 \paragraph{substGNode} 
@@ -131,7 +144,7 @@ Given a string l and a Tree GNode t, returns the tree t'
 where l has been assigned to the "lexeme" node in t'
 
 \begin{code}
-setLexeme :: String -> Tree GNode -> Tree GNode
+setLexeme :: [String] -> Tree GNode -> Tree GNode
 setLexeme s t =
   let filt (Node a _) = (gtype a == Lex && ganchor a)
       fn (Node a l)   = Node a{glexeme = s} l
