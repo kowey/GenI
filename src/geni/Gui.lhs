@@ -36,6 +36,7 @@ import qualified Data.Map as Map
 import Data.IORef
 import Data.List (nub, delete, (\\))
 import System.Directory 
+import System.Exit (exitWith, ExitCode(ExitSuccess))
 import System.Process (runProcess)
 
 import Graphviz 
@@ -96,7 +97,7 @@ mainGui pstRef
        fileMen   <- menuPane [text := "&File"]
        -- loadMenIt <- menuItem fileMen [text := "&Open index file"]
        quitMenIt <- menuQuit fileMen [text := "&Quit"]
-       set quitMenIt [on command := close f]
+       set quitMenIt [on command := exitWith ExitSuccess ]
        -- create the tools menu
        toolsMen      <- menuPane [text := "&Tools"]
        gbrowserMenIt <- menuItem toolsMen [ text := "&Inspect grammar" 
@@ -139,6 +140,9 @@ We add some buttons for loading files and running the generator.
                            , on command := doGenerate f pstRef tsTextBox True ]
        genBt  <- button f [text := "  Generate  ",
                  on command := doGenerate f pstRef tsTextBox False ]
+       quitBt <- button f [ text := "Quit",
+                 on command := exitWith ExitSuccess ]
+                  
 \end{code}
 
 Let's not forget the optimisations...
@@ -211,10 +215,9 @@ Pack it all together, perform the layout operation.
                                , fill  $ widget tsTextBox ]
                            , vfill optimBox ]
                     -- ----------------------------- Generate and quit 
-                   , hfloatRight $ row 5 [ widget debugBt, widget genBt 
-                                       -- , widget quitBt 
-                                       ]
-                   ]]
+                   , row 1 [ widget quitBt 
+                          , hfloatRight $ row 5 [ widget debugBt, widget genBt ]]
+            ]]
 \end{code}
 
 Don't forget all the helper functions!
