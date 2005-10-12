@@ -92,7 +92,7 @@ mainGui pstRef
        -- Top Window
        f <- frame [text := "Geni Project", clientSize := sz 600 350]
        -- create statusbar field
-       status <- statusField   [text := "Welcome to GenI"]
+       status <- statusField   []
        -- create the file menu
        fileMen   <- menuPane [text := "&File"]
        -- loadMenIt <- menuItem fileMen [text := "&Open index file"]
@@ -136,9 +136,9 @@ We add some buttons for loading files and running the generator.
        lexiconFileLabel <- staticText f [ text := lexiconFile config ]
        tsFileLabel      <- staticText f [ text := tsFile config ]
        -- Generate and Debug 
-       debugBt <- button f [ text := "  Debug  "
+       debugBt <- button f [ text := "Debug"
                            , on command := doGenerate f pstRef tsTextBox True ]
-       genBt  <- button f [text := "  Generate  ",
+       genBt  <- button f [text := "Generate",
                  on command := doGenerate f pstRef tsTextBox False ]
        quitBt <- button f [ text := "Quit",
                  on command := close f]
