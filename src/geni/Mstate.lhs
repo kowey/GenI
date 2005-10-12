@@ -372,18 +372,25 @@ iapplySubst te1 te2 (sn:_) =
 iapplySubstNode :: TagElem -> TagElem -> (String, Flist, Flist) -> [TagElem]
 iapplySubstNode te1 te2 sn@(n, fu, fd) =
   let isInit x = (ttype x) == Initial
-      t1 = ttree te1
       t2 = ttree te2
+      -- root of t1
+      t1 = ttree te1
       r = root t1
-      tfup = gup r
-      (success, newgup, subst) = unifyFeat tfup fu
-
+      tfup   = gup r
+      tfdown = gdown r
+      -- FIXME: now that this behaves the same way as adjunction, 
+      -- maybe we could refactor?
+      (succ1, newgup,   subst1) = unifyFeat tfup fu
+      (succ2, newgdown, subst2) = unifyFeat tfdown2 fd2
+        where tfdown2 = substFlist tfdown subst1
+              fd2     = substFlist fd     subst1
+      subst = subst1 ++ subst2
       -- IMPORTANT: nt1 should be ready for replacement 
       -- (e.g, top features unified, type changed to Other) 
       -- when passed to repSubst
       nr  = r { gup   = newgup,
                 -- note that the bot features come from sn, not r!
-                gdown = substFlist fd subst,
+                gdown = newgdown,
                 gtype = Other }
       nt1 = rootUpd t1 nr 
       ntree = repSubst n nt1 t2 
@@ -402,7 +409,7 @@ iapplySubstNode te1 te2 sn@(n, fu, fd) =
                   tpolpaths  = intersectPolPaths te1 te2,
                   thighlight = [gnname nr]} 
       res = substTagElem newTe subst   
-  in if (isInit te1 && success) then [res] else []
+  in if (isInit te1 && succ1 && succ2) then [res] else []
 \end{code}
 
 % --------------------------------------------------------------------  
