@@ -97,7 +97,7 @@ mainGui pstRef
        fileMen   <- menuPane [text := "&File"]
        -- loadMenIt <- menuItem fileMen [text := "&Open index file"]
        quitMenIt <- menuQuit fileMen [text := "&Quit"]
-       set quitMenIt [on command := exitWith ExitSuccess ]
+       set quitMenIt [on command := close f ]
        -- create the tools menu
        toolsMen      <- menuPane [text := "&Tools"]
        gbrowserMenIt <- menuItem toolsMen [ text := "&Inspect grammar" 
@@ -141,7 +141,7 @@ We add some buttons for loading files and running the generator.
        genBt  <- button f [text := "  Generate  ",
                  on command := doGenerate f pstRef tsTextBox False ]
        quitBt <- button f [ text := "Quit",
-                 on command := exitWith ExitSuccess ]
+                 on command := close f]
                   
 \end{code}
 
@@ -216,8 +216,9 @@ Pack it all together, perform the layout operation.
                            , vfill optimBox ]
                     -- ----------------------------- Generate and quit 
                    , row 1 [ widget quitBt 
-                          , hfloatRight $ row 5 [ widget debugBt, widget genBt ]]
-            ]]
+                          , hfloatRight $ row 5 [ widget debugBt, widget genBt ]] ]
+            , on closing := exitWith ExitSuccess 
+            ]
 \end{code}
 
 Don't forget all the helper functions!
