@@ -210,12 +210,13 @@ relthetaToSem (rels, thetas) =
       thetaPredFn t x = (GAnon, t, [varE, varX x])
       --
       relEnrich = ("interface.index", varE) 
-      thetaEnrichFn x = ("interface.arg" ++ show x, varX x)
+      thetaEnrichFn r x = [ ("interface.arg" ++ show x, varX x)
+                          , ("interface.theta" ++ show x, GConst [r]) ]
       --
       sem :: Sem 
       sem = map relPredFn rels ++ zipWith thetaPredFn thetas indices 
       enrich :: Flist
-      enrich = relEnrich : (map thetaEnrichFn indices)
+      enrich = relEnrich : (concat $ zipWith thetaEnrichFn thetas indices)
   in -- trace (showSem sem) $ 
      (sortSem sem,enrich)
 \end{code}
