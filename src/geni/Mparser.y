@@ -338,13 +338,13 @@ FeatVal: id  {readGeniVal $1}
        | num {GConst [show $1]}
        | '+' {GConst ["+"]}
        | '-' {GConst ["-"]}
-       | ConstList { GConst (map rejectNonGConst $1) }
+       | ConstList { GConst $1 }
 
 ConstList :: { [String] }
 ConstList : Const '|' Const { [$1,$3] } 
           | Const '|' ConstList { $1 : $3 } 
 
-Const: id  { $1 }
+Const: id  { rejectNonGConst $1 }
      | num { show $1 }
      | '+' { "+" }
      | '-' { "-" }
