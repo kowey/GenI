@@ -681,9 +681,18 @@ lexEntryToFil :: ILexEntry -> Int -> String
 lexEntryToFil lex n = 
   let filters   = ifilters lex
       enrichers = ipfeat lex 
+      -- simpleShow converts a GeniVal to a String without
+      -- using any of GenI's perverse case conventions
+      -- The selectCmd is not expected to follow the same
+      -- conventions.
+      -- FIXME: shouldn't variables be indicated in some way?
+      simpleShow :: GeniVal -> String
+      simpleShow (GConst x) = concat $ intersperse " ! " x 
+      simpleShow (GVar x)   = x
+      simpleShow GAnon      = "_"
       --
-      showFil (a,v) = a ++ ":" ++ show v
-      showEnr (a,v) = a ++ "=" ++ show v
+      showFil (a,v) = a ++ ":" ++ simpleShow v
+      showEnr (a,v) = a ++ "=" ++ simpleShow v
       concatSperse x y = concat $ intersperse x y
   in show n 
     ++ " " ++ iword lex ++ " "
