@@ -34,7 +34,8 @@ import qualified Control.Monad as Monad
 import Data.Array
 import qualified Data.Map as Map
 import Data.IORef
-import Data.List (nub, delete, (\\))
+import Data.List (find, intersperse, nub, delete, (\\))
+import Data.Maybe (isJust)
 import System.Directory 
 import System.Exit (exitWith, ExitCode(ExitSuccess))
 import System.Process (runProcess)
@@ -49,16 +50,13 @@ import Geni (ProgState(..), GeniInput(..), GeniResults(..), ProgStateRef,
              combine, loadGrammar, loadLexicon, 
              loadTargetSemStr)
 import General (trim, fst3, snd3, slash, bugInGeni)
-import Bfuncs (showPred, showSem, showPairs, Sem)
+import Bfuncs (showPred, showSem, showPairs, Sem, iword, isemantics)
 import Tags (idname,mapBySem,emptyTE,tsemantics,tpolarities,thighlight, 
              TagElem, derivation)
 
-import Configuration(Params, Switch(..), 
-                     macrosFile, lexiconFile, tsFile, viewCmd,
-                     optimisations, 
-                     usetrash,
+import Configuration(Params(..), Switch(..), GrammarType(..),
                      autopol, polarised, polsig, chartsharing, 
-                     semfiltered, extrapol, footconstr, ignoreSemantics)
+                     semfiltered, extrapol, footconstr)
 import GeniParsers 
 
 import Mstate (Gstats, Mstate, initGstats, initMState, runState, 
@@ -418,15 +416,24 @@ We have a browser for the lexically selected items.  We group the lexically
 selected items by the semantics they subsume, inserting along the way some
 fake trees and labels for the semantics.
 
+The arguments \fnparam{missedSem} and \fnparam{missedLex} are used to 
+indicate to the user respectively if any bits of the input semantics
+have not been accounted for, or if there have been lexically selected
+items for which no tree has been found.
+
 \begin{code}
-candidateGui :: ProgState -> (Window a) -> [TagElem] -> Sem -> IO Layout
-candidateGui pst f xs missed = do
+candidateGui :: ProgState -> (Window a) -> [TagElem] -> Sem -> [String] -> IO Layout
+candidateGui pst f xs missedSem missedLex = do
   p  <- panel f []      
   tb <- tagBrowserGui pst p xs "lexically selected item" "candidates"
-  let warning = if null missed 
-                then ""
-                else "WARNING: no lexical selection for " ++ showSem missed
-      items = if null missed then [ fill tb ] else [ hfill (label warning) , fill tb ]
+  let warningSem = if null missedSem then ""
+                   else "WARNING: no lexical selection for " ++ showSem missedSem ++ "\n"
+      warningLex = if null missedLex then ""
+                   else "WARNING: '" ++ (concat $ intersperse ", " missedLex) 
+                        ++ "' were lexically selected, but are not anchored to"
+                        ++ " any trees\n"
+      warning = warningSem ++ warningLex
+      items = if null warning then [ fill tb ] else [ hfill (label warning) , fill tb ]
       lay   = fill $ container p $ column 5 items
   return lay
 \end{code}
@@ -629,8 +636,15 @@ debugGui pst input = do
   -- candidate selection tab
   let cand    = giCands input
       candsem = (nub $ concatMap tsemantics cand)
-      missed  = tsem \\ candsem
-  canTab <- candidateGui pst nb cand missed
+      missedSem  = tsem \\ candsem
+      --
+      lexonly   = giLex input
+      -- we assume that for a tree to correspond to a lexical item,
+      -- it must have the same semantics
+      hasTree l = isJust $ find (\t -> tsemantics t == lsem) cand
+        where lsem = isemantics l
+      missedLex = [ iword l | l <- lexonly, (not.hasTree) l ]
+  canTab <- candidateGui pst nb cand missedSem missedLex
   -- automata tab
   let config           = pa pst
       (auts, finalaut) = giAuts input 

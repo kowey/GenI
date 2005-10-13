@@ -209,8 +209,8 @@ flavoured generator, \fnref{doGeneration}.
 runGeni :: ProgStateRef -> GeniFn -> IO GeniResults 
 runGeni pstRef runFn = do 
   -- lexical selection
-  mstLex   <- readIORef pstRef
-  purecand <- runLexSelection mstLex
+  pstLex   <- readIORef pstRef
+  (purecand, lexonly) <- runLexSelection pstLex
   -- strip morphological predicates
   let (tsem,tresLex) = ts mstLex
       tsemLex        = filter (isNothing.(morphinf mstLex)) tsem
@@ -245,6 +245,7 @@ runGeni pstRef runFn = do
       fstGstats = initGstats
   -- do the generation
   let genifnInput = GI { giSem = tsem
+                       , giLex = lexonly 
                        , giCands = preautcand
                        , giAuts  = fst autstuff
                        , giTrees = combos }
@@ -305,6 +306,7 @@ interesting things with them.
 \begin{code}
 type GeniFn = ProgState -> GeniInput -> IO ([TagElem], Gstats)
 data GeniInput = GI { giSem   :: Sem
+                    , giLex   :: [ILexEntry]  -- debugger
                     , giCands :: [TagElem]
                     , giTrees :: [[TagElem]]
                     , giAuts  :: ([AutDebug], PolAut) }
@@ -317,15 +319,19 @@ data GeniInput = GI { giSem   :: Sem
 
 \paragraph{runLexSelection} \label{fn:runLexSelection} determines which
 candidates trees which will be used to generate the current target semantics.  
+In addition to the anchored candidate trees, we also return the lexical items 
+themselves.  This list of lexical items is useful for debugging a grammar; 
+it lets us know if GenI managed to lexically select something, but did not 
+succeed in anchoring it.
 
 \begin{code}
-runLexSelection :: ProgState -> IO [TagElem]
+runLexSelection :: ProgState -> IO ([TagElem], [ILexEntry])
 runLexSelection pst = 
   case (grammarType $ pa pst) of  
         CGManifesto -> runCGMLexSelection pst
         _           -> runBasicLexSelection pst
 
-runBasicLexSelection :: ProgState -> IO [TagElem]
+runBasicLexSelection :: ProgState -> IO ([TagElem], [ILexEntry])
 runBasicLexSelection pst = do
   let (tsem,_) = ts pst
       lexicon  = le pst
@@ -337,7 +343,7 @@ runBasicLexSelection pst = do
       -- attach any morphological information to the candidates
       morphfn  = morphinf pst
       cand2    = attachMorph morphfn tsem cand 
-  return $ setTidnums cand2
+  return (setTidnums cand2, lexCand)
 \end{code}
 
 \paragraph{buildAutomaton} constructs the polarity automaton from the
@@ -575,14 +581,13 @@ initiative to maintain a TAG grammar and lexicon that can be used both
 for parsing and generation.  One feauture of the CGM is that tree
 selection and anchoring are farmed out to a third party tool we call the
 the Selector.  This module handles most of the CGM-specific bits of 
-the lexical selection process via a CGM lexicon.  Note that we also have
-some bits of code in Lparser.y for parsing said lexicons.
+the lexical selection process via a CGM lexicon.  
 
 \paragraph{runCGMLexSelection} is the front end to the CGM lexical
 selection process.  
 
 \begin{code}
-runCGMLexSelection :: ProgState -> IO [TagElem]
+runCGMLexSelection :: ProgState -> IO ([TagElem], [ILexEntry])
 runCGMLexSelection pst = 
   do let (tsem,_) = ts pst
          lexicon  = le pst
@@ -611,9 +616,10 @@ runCGMLexSelection pst =
      -- attach any morphological information to the candidates
      let morphfn  = morphinf pst
          cand2    = attachMorph morphfn tsem cand 
-     return $ setTidnums cand2
-  `catch` \e -> do putStrLn (show e)
-                   return [] 
+     return (setTidnums cand2, lexCand)
+  -- FIXME: determine if we can nix this error handler
+  --`catch` \e -> do putStrLn (show e)
+  --                 return ([], []) 
 \end{code}
 
 \subsubsection{Calling the Selector}
