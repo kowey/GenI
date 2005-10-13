@@ -38,7 +38,7 @@ where
 \begin{code}
 import Data.Char (isUpper)
 import qualified Data.Map as Map 
-import Data.List (intersect, intersperse, sortBy, nub)
+import Data.List (intersperse)
 import Data.Tree
 import General (toUpperHead, toLowerHead)
 \end{code}

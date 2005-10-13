@@ -31,8 +31,8 @@ module Gui(guiGenerate) where
 import Graphics.UI.WX
 
 import qualified Control.Monad as Monad 
-import Data.Array
 import qualified Data.Map as Map
+import Data.Array
 import Data.IORef
 import Data.List (find, intersperse, nub, delete, (\\))
 import Data.Maybe (isJust)
@@ -88,7 +88,7 @@ mainGui pstRef
   = do --
        pst <- readIORef pstRef
        -- Top Window
-       f <- frame [text := "Geni Project", clientSize := sz 600 350]
+       f <- frame [text := "Geni Project"]
        -- create statusbar field
        status <- statusField   []
        -- create the file menu
@@ -182,9 +182,6 @@ Pack it all together, perform the layout operation.
 
 \begin{code}
        -- set any last minute handlers, run any last minute functions
-       -- let guiParts = (macrosFileLabel, lexiconFileLabel, tsFileLabel, tsTextBox, testCaseChoice)
-       -- set loadMenIt [ on command := loadMenuCmd pstRef f guiParts ]  
-       -- readGrammar pstRef guiParts 
        togglePolStuff
        --
        let gramsemBox = boxed "Files last loaded" $ -- can't used boxed with wxwidgets 2.6 -- bug?
@@ -215,6 +212,7 @@ Pack it all together, perform the layout operation.
                     -- ----------------------------- Generate and quit 
                    , row 1 [ widget quitBt 
                           , hfloatRight $ row 5 [ widget debugBt, widget genBt ]] ]
+            , clientSize := sz 525 325
             , on closing := exitWith ExitSuccess 
             ]
 \end{code}

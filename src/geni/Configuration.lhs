@@ -308,7 +308,6 @@ lookupOptimisation :: String -> Maybe Switch
 lookupOptimisation code = do
   triple <- find (\x -> snd3 x == code) optimisationCodes
   return (fst3 triple)
-
 \end{code}
 
 % --------------------------------------------------------------------  
