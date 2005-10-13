@@ -39,7 +39,7 @@ where
 import Data.Char (toLower)
 import qualified Data.Map as Map
 import Data.IORef (IORef, readIORef, newIORef, modifyIORef)
-import Data.List (intersperse, sort, nub, group, isPrefixOf)
+import Data.List (intersperse, sort, nub, group)
 import Data.Maybe (isNothing)
 import Data.Tree
 
@@ -58,7 +58,7 @@ import General(multiGroupByFM)
 
 import Bfuncs (Macros, MTtree, ILexEntry, Lexicon, 
                Sem, SemInput,
-               fromGConst, fromGVar, GeniVal(..),
+               fromGVar, GeniVal(..),
                GNode, GType(Subs), Flist,
                isemantics, ifamname, iword, iparams, 
                ipfeat, ifilters,
@@ -212,8 +212,8 @@ runGeni pstRef runFn = do
   pstLex   <- readIORef pstRef
   (purecand, lexonly) <- runLexSelection pstLex
   -- strip morphological predicates
-  let (tsem,tresLex) = ts mstLex
-      tsemLex        = filter (isNothing.(morphinf mstLex)) tsem
+  let (tsem,tresLex) = ts pstLex
+      tsemLex        = filter (isNothing.(morphinf pstLex)) tsem
   modifyIORef pstRef ( \x -> x{ts = (tsemLex,tresLex)} )
   pst      <- readIORef pstRef
   -- force the grammar to be read before the clock
@@ -654,8 +654,9 @@ runSelector pst gfile fil = do
      hPutStrLn toP fil
      hClose toP -- so that process gets EOF and knows it can stop
      res    <- hGetContents fromP 
-     exCode <- awaitProcess pid 
-     {- case exCode of 
+     awaitProcess pid 
+     {- exCode <- awaitProcess pid 
+       case exCode of 
        Just ExitSuccess -> return ()
        _ -> fail "There was a problem running the selector. Check your terminal." -}
      return res
