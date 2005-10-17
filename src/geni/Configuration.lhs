@@ -73,9 +73,9 @@ infinitely loop.
 data Params = Prms{
   -- external morphological generator (optional)
   morphCmd       :: String,
-  -- tree selector (needed if cgmformat)
+  -- tree selector (needed if xmgtools)
   selectCmd      :: String,
-  -- tree viewer  (needed if cgmformat)
+  -- tree viewer  (needed if xmgtools)
   viewCmd        :: String,
   --
   isGraphical    :: Bool,
@@ -148,7 +148,7 @@ command line arguments.  To start things off, here is the list of command lines
 switches that we use.  
 
 \begin{code}
-data GrammarType = GeniHand | TAGML | CGManifesto 
+data GrammarType = GeniHand | TAGML | XMGTools 
      deriving (Show, Eq)
 
 data Switch = 
@@ -195,8 +195,8 @@ optionsBasic =
     
 optionsAdvanced :: [OptDescr Switch] 
 optionsAdvanced =
-  [ Option []    ["cgmformat"] (NoArg (GrammarType CGManifesto))
-      "use Common Grammar Manifesto format for trees and lexicon"
+  [ Option []    ["xmgtools"] (NoArg (GrammarType XMGTools))
+      "use XMG format for trees and GDE format for lexicon"
   , Option []    ["extrapols"] (ReqArg ExtraPolaritiesTok "LIST")
       "preset polarities (normally, you should use rootcats instead)" 
   , Option []    ["ignoresem"]   (NoArg (IgnoreSemanticsTok True))

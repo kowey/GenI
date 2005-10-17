@@ -371,18 +371,18 @@ into more tabs?
 
 \begin{code}
   padv <- panel nb []
-  -- Common Grammar Manifesto stuff
-  cgmChk <- checkBox padv 
-    [ text := "Use Common Grammar Manifesto format"
-    , checked := (grammarType config == CGManifesto) ]
+  -- XMG tools 
+  xmgChk <- checkBox padv 
+    [ text := "Use XMG and GDE format"
+    , checked := (grammarType config == XMGTools) ]
   selectCmdTxt <- entry padv 
     [ tooltip := "Command used for tree anchoring" 
     , text := selectCmd config ]
   viewCmdTxt <- entry padv 
     [ tooltip := "Command used for XMG tree viewing"
     , text := viewCmd config ] 
-  let layCGM = fakeBoxed "Common Grammar Manifesto (CGM)" 
-                [ widget cgmChk 
+  let layXMG = fakeBoxed "XMG tools" 
+                [ widget xmgChk 
                 , row 3 [ label "select command"
                         , marginRight $ hfill $ widget selectCmdTxt ]
                 , row 3 [ label "XMG view command"
@@ -428,7 +428,7 @@ into more tabs?
                   , label "max trees", rigid $ widget maxTreesText ] ]
   -- put the whole darn thing together
   let layAdvanced = hfloatLeft $ container padv $ column 10 
-        $ [ layCGM, layPolarities, layMorph, layIgnoreSem ]
+        $ [ layXMG, layPolarities, layMorph, layIgnoreSem ]
 \end{code}
 
 When the user clicks on a Browse button, an open file dialogue should pop up.
@@ -474,7 +474,7 @@ command that makes everything ``work'':
             rootCatVal  <- get rootCatsTxt  text
             extraPolVal <- get extraPolsTxt text
             --
-            cgmVal    <- get cgmChk checked 
+            xmgVal    <- get xmgChk checked 
             selectVal <- get selectCmdTxt text 
             viewVal   <- get viewCmdTxt text 
             --
@@ -492,7 +492,7 @@ command that makes everything ``work'':
                  , rootCatsParam = words rootCatVal
                  , extrapol = parsePol extraPolVal
                  --
-                 , grammarType = if cgmVal then CGManifesto
+                 , grammarType = if xmgVal then XMGTools
                                  else GeniHand
                  , selectCmd  = selectVal 
                  , viewCmd    = viewVal
@@ -747,7 +747,7 @@ tagViewerGui pst f tip cachedir itNlab = do
     set detailsChk [ on command := onDetailsChk detailsChk ]
     set displayTraceBut 
          [ on command := onDisplayTrace 
-         , enabled    := grammarType config == CGManifesto ] 
+         , enabled    := grammarType config == XMGTools ] 
   -- pack it all in      
   let cmdBar = hfill $ row 5 
                 [ dynamic $ widget detailsChk
@@ -1303,14 +1303,14 @@ instance GraphvizShow TagElem where
 
 \subsection{XMG Metagrammar stuff}
 
-CGM trees are produced by the XMG metagrammar system
+XMG trees are produced by the XMG metagrammar system
 (\url{http://sourcesup.cru.fr/xmg/}). To debug these grammars, it is
 useful, given a TAG tree, to see what its metagrammar origins are.  We
 provide here an interface to the handy visualisation tool ViewTAG that
 just does this.
 
 \paragraph{extractDerivation} retrieves the names of all the
-CGM trees that went to building a TagElem, including the TagElem
+XMG trees that went to building a TagElem, including the TagElem
 itself.  NB: for a tree like ``love\_Tn0Vn1'', we extract just the
 Tn0Vn1 bit.
 
@@ -1335,8 +1335,8 @@ runViewTag pst idname =
      let params  = pa pst
          gramfile = macrosFile params
      -- extract the relevant bits of the treename
-     let extractCGMName n = tail $ dropWhile (/= '_') n 
-         drName = extractCGMName idname 
+     let extractXMGName n = tail $ dropWhile (/= '_') n 
+         drName = extractXMGName idname 
      -- run the viewer 
      let cmd  = viewCmd params 
          args = [gramfile, drName]

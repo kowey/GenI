@@ -61,7 +61,7 @@ We know how to convert three things
 \begin{enumerate}
 \item lexicon - a TAGML lexicon (unofficial and unused)
 \item macros  - a macros file of unanchored trees
-\item trees   - the output of a tree anchoring module (section \ref{sec:cgm_selection})
+\item trees   - the output of a tree anchoring module (section \ref{sec:xmg_selection})
 \end{enumerate}
 
 \begin{code}

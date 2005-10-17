@@ -19,7 +19,7 @@
 \label{cha:TsnlpParser}
 
 The TSNLP parser handles LORIA's in-house lexicon format for use in conjunction
-with the common grammar manifesto.  It is implemented in Parsec.  The parser is
+with the XMG tools.  It is implemented in Parsec.  The parser is
 currently unused because we are using the GDE lex format instead.
 
 Note: we use huge chunks of code from the GdeParser because they use the same

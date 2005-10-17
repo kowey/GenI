@@ -18,9 +18,8 @@
 \chapter{GDE Parser}
 \label{cha:GDEParser}
 
-This parser handles the pivot GDE format for use in conjunction with the common
-grammar manifesto.  It is implemented in Parsec.  The parser is currently
-unused because we are using the GDE lex format instead.
+This parser handles the pivot GDE format for use in conjunction with XMG tools.
+It is implemented in Parsec.  
 
 \begin{code}
 module GdeParser(gdeLexicon, gdeSem, relthetaToSem) where

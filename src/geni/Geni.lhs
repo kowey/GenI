@@ -94,7 +94,7 @@ import Polarity
 --import Predictors (PredictorMap, mapByPredictors, 
 --                   fillPredictors, optimisePredictors)
 
-import GeniParsers (parseMac, parseLex, cgmLexicon,
+import GeniParsers (parseMac, parseLex, gdeLexicon,
                     parseMorph, 
                     parseTSem, parseTSuite,
                     E(..))
@@ -328,7 +328,7 @@ succeed in anchoring it.
 runLexSelection :: ProgState -> IO ([TagElem], [ILexEntry])
 runLexSelection pst = 
   case (grammarType $ pa pst) of  
-        CGManifesto -> runCGMLexSelection pst
+        XMGTools -> runXMGLexSelection pst
         _           -> runBasicLexSelection pst
 
 runBasicLexSelection :: ProgState -> IO ([TagElem], [ILexEntry])
@@ -572,23 +572,33 @@ mapBySemKeys semfn xs =
 \end{code}
 
 % --------------------------------------------------------------------
-\subsection{CGM selection}
-\label{sec:cgm_selection}
+\subsection{XMG selection}
+\label{sec:xmg_selection}
 % --------------------------------------------------------------------
 
-The common grammar manifesto \cite{kow05CGM} (CGM) is an internal LORIA
-initiative to maintain a TAG grammar and lexicon that can be used both
-for parsing and generation.  One feauture of the CGM is that tree
-selection and anchoring are farmed out to a third party tool we call the
-the Selector.  This module handles most of the CGM-specific bits of 
-the lexical selection process via a CGM lexicon.  
+XMG is a metagrammar compiler.  GenI supports XMG grammars which obey
+the LORIA common grammar manifesto \cite{kow05CGM}.  This is an
+attempt to build a reversible TAG grammar and lexicon, that is, one
+that can be used for parsing and generation.  
 
-\paragraph{runCGMLexSelection} is the front end to the CGM lexical
+When you are using XMG stuff, three things are different:
+\begin{enumerate}
+\item The grammar format is different (.rec pickles produced by XMG)
+\item The lexicon format is different (See the Common Grammar Manifesto site) 
+\item Tree anchoring is farmed out to a third party tool we call the
+the Selector.  This module handles most of the XMG-specific bits of 
+the lexical selection process via a XMG lexicon.  
+\end{enumerate}
+
+Hopefully one day, we will be able to refactor some of the differences
+between GenI reading its own grammar and using XMG tools.
+
+\paragraph{runXMGLexSelection} is the front end to the XMG lexical
 selection process.  
 
 \begin{code}
-runCGMLexSelection :: ProgState -> IO ([TagElem], [ILexEntry])
-runCGMLexSelection pst = 
+runXMGLexSelection :: ProgState -> IO ([TagElem], [ILexEntry])
+runXMGLexSelection pst = 
   do let (tsem,_) = ts pst
          lexicon  = le pst
      -- figure out what grammar file to use
@@ -609,7 +619,7 @@ runCGMLexSelection pst =
          fixate ts = 
            case (Map.lookup id lexMap) of
              Nothing  -> fail ("no such lexical entry " ++ id)
-             Just lex -> return $ combineCGM lex ts 
+             Just lex -> return $ combineXMG lex ts 
            where id  = reverse $ tail $ dropWhile (/= 'x') $ reverse fam -- FIXME : HACK!
                  fam = tail $ pfamily ts -- FIXME: hack! 
      cand <- mapM fixate g
@@ -663,7 +673,7 @@ runSelector pst gfile fil = do
 #endif
 \end{code}
 
-\paragraph{lexEntryToFil} converts a lexical entry to a CGM filter for
+\paragraph{lexEntryToFil} converts a lexical entry to a XMG filter for
 use by the selection module.  The selection module is a third-party
 program which selects the trees from a grammar that correspond to each
 lexical item and which performs enrichement and anchoring.  The
@@ -704,13 +714,13 @@ lexEntryToFil lex n =
     ++ ")\n\n"
 \end{code}
 
-\paragraph{combineCGM} is similar to \fnref{combineOne} except that we assume
+\paragraph{combineXMG} is similar to \fnref{combineOne} except that we assume
 the tree is completely anchored and instatiated and that thus there no boring
 unification or checks to worry about.
 
 \begin{code}
-combineCGM :: ILexEntry -> MTtree -> TagElem
-combineCGM lexitem e = 
+combineXMG :: ILexEntry -> MTtree -> TagElem
+combineXMG lexitem e = 
    let tree_ = Bfuncs.tree e
        (snodes,anodes) = detectSites tree_
        sol = emptyTE {
@@ -773,7 +783,7 @@ loadGrammar pstRef =
      when (not $ null errorlst) $ fail errormsg 
      -- we don't have to read in grammars from the simple format
      case grammarType config of 
-        CGManifesto -> return ()
+        XMGTools -> return ()
         _           -> loadGeniMacros pstRef config
      -- in any case, we have to...
      loadLexicon   pstRef config 
@@ -793,8 +803,8 @@ FIXME: differentiate
 loadLexicon :: ProgStateRef -> Params -> IO ()
 loadLexicon pstRef config =
   case (grammarType config) of 
-        CGManifesto -> loadCGMLexicon  pstRef config 
-        _           -> loadGeniLexicon pstRef config 
+        XMGTools -> loadXMGLexicon  pstRef config 
+        _        -> loadGeniLexicon pstRef config 
 \end{code}
 
 \paragraph{loadGeniLexicon} Given the pointer to the monadic state pstRef and
@@ -860,20 +870,20 @@ loadGeniLexicon pstRef config = do
 %  in foldr helper lemlex items
 %\end{code}
 
-\subsubsection{Lexicon - CGM}
+\subsubsection{Lexicon - XMG}
 
-\paragraph{loadCGMLexicon} Given the pointer to the monadic state pstRef and
+\paragraph{loadXMGLexicon} Given the pointer to the monadic state pstRef and
 the parameters from a grammar index file parameters; it reads and parses
 the lexicon file using the common grammar manifesto format.  
 
 \begin{code}
-loadCGMLexicon :: ProgStateRef -> Params -> IO ()
-loadCGMLexicon pstRef config = do 
+loadXMGLexicon :: ProgStateRef -> Params -> IO ()
+loadXMGLexicon pstRef config = do 
        let lfilename = lexiconFile config
        when (null lfilename) $ fail "Please specify a lexicon!"
-       putStr $ "Loading CGManifesto Lexicon " ++ lfilename ++ "..."
+       putStr $ "Loading XMGTools Lexicon " ++ lfilename ++ "..."
        hFlush stdout
-       parsed <- parseFromFile cgmLexicon lfilename
+       parsed <- parseFromFile gdeLexicon lfilename
        case parsed of 
          Left  err     -> fail (show err)
          Right entries -> let lexicon = mapBySemKeys isemantics entries

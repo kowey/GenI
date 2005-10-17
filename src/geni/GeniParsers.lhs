@@ -19,7 +19,7 @@
 \label{cha:GeniParsers}
 
 GeniParsers parses everything that GenI knows how to read natively.  For
-now, we use Happy for most things, and Parsec for the CGM lexicons 
+now, we use Happy for most things, and Parsec for the XMG lexicons 
 (via LORIA's in-house TSNLP testing format).
 But Parsec is so full of goodness that I hope eventually to rewrite the
 other parsers currently in MParser using Parsec as well.
@@ -32,7 +32,7 @@ module GeniParsers (
   -- macros 
   parseMac,
   -- lexicons
-  parseLex, parseMorph, cgmLexicon,
+  parseLex, parseMorph, gdeLexicon,
   -- polarity stuff
   parsePol,
   -- parser error status
@@ -44,7 +44,7 @@ module GeniParsers (
 import Lex2
 import ParserLib
 import Mparser
-import GdeParser 
+import GdeParser(gdeLexicon)
 -- import TsnlpParser 
 \end{code}
 }
@@ -58,11 +58,4 @@ parseTSem   = targetSemParser.(lexer 0) --scTSem
 parseTSuite = testSuiteParser.(lexer 0) --scTSuite
 parsePol    = polParser.(lexer 0) --scPol
 parseMorph  = morphParser.(lexer 0) --scMorph
-\end{code}
-
-Common Grammar Manifesto (CGM) parsers
-
-\begin{code}
-cgmLexicon = gdeLexicon
--- cgmLexicon = tsnlpLexicon 
 \end{code}
