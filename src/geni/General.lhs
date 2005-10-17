@@ -28,13 +28,21 @@ where
 \ignore{
 \begin{code}
 import Data.Char (isSpace, toUpper, toLower)
-import Data.List (intersect, words, groupBy)
+import Data.List (intersect, groupBy)
 import Data.Tree
-import System.Directory (getCurrentDirectory, setCurrentDirectory)
-
+import System.IO (hPutStrLn, hPutStr, hFlush, stderr)
 import qualified Data.Map as Map
 \end{code}
 }
+
+\section{IO}
+
+\paragraph{stderr} PutStr and PutStrLn an stderr
+\begin{code}
+ePutStr   = hPutStr stderr
+ePutStrLn = hPutStrLn stderr
+eFlush    = hFlush stderr
+\end{code}
 
 \section{Strings}
 

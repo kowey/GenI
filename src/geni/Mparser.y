@@ -284,8 +284,8 @@ TestSuite: TestCase           { [$1] }
          | TestCase TestSuite { $1 : $2 } 
 
 TestCase :: { TpCase }
-TestCase:    SemR Sentences { ("",$1,$2) }
-        | id SemR Sentences { ($1,$2,$3) }
+TestCase:    SemR Sentences { ("",$1) }
+        | id SemR Sentences { ($1,$2) }
 
 SemR :: { (TpSem, [AvPair]) }
 SemR: Sem     { ($1,[]) }

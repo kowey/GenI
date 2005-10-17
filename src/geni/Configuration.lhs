@@ -88,7 +88,7 @@ data Params = Prms{
   rootCatsParam  :: [String],
   grammarType    :: GrammarType,
   --
-  testCases      :: [String], -- names of test cases
+  testCase       :: String, -- names of test cases
   extrapol       :: Map.Map String Int,
   batchRepeat    :: Integer,
   usetrash       :: Bool,
@@ -131,7 +131,7 @@ emptyParams = Prms {
   selectCmd      = "runXMGselector.sh",
   viewCmd        = "ViewTAG",
   isGraphical    = True,
-  testCases      = [],
+  testCase      = [],
   optimisations  = [],
   extrapol       = Map.empty,
   batchRepeat    = 1,
@@ -215,8 +215,8 @@ optionsAdvanced =
        ++ ")")
   , Option []    ["selectcmd"]  (ReqArg (CmdTok "select") "CMD") 
       "tree selecting/anchoring CMD (default: unset)"
-  , Option []    ["testcases"]   (ReqArg TestCasesTok "LIST")
-      "run test cases LIST ('+' seperated, default: unset [all])"
+  , Option []    ["testcase"]   (ReqArg TestCasesTok "String")
+      "run test case STRING"
   , Option []    ["viewcmd"]  (ReqArg (CmdTok "view") "CMD") 
       "XMG tree-view command"
 -- note: need to code optimisations string
@@ -343,7 +343,7 @@ defineParams p (f:s) = defineParams pnext s
             CmdTok "morph"   v -> p {morphCmd  = v}
             CmdTok "select"  v -> p {selectCmd = v}
             CmdTok "view"    v -> p {viewCmd = v}
-            TestCasesTok v  -> p {testCases = wordsBy '+' v }
+            TestCasesTok v  -> p {testCase = v }
             -- 
             GrammarType v   -> p {grammarType = v} 
             IgnoreSemanticsTok v -> p { ignoreSemantics = v 

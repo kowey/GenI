@@ -48,7 +48,7 @@ import Morphology (sansMorph)
 import Geni (ProgState(..), GeniInput(..), GeniResults(..), ProgStateRef,
              doGeneration, runGeni, runMorph,
              combine, loadGrammar, loadTestSuite, loadTargetSemStr)
-import General (trim, fst3, snd3, slash, bugInGeni)
+import General (trim, snd3, slash, bugInGeni)
 import Bfuncs (showPred, showSem, showPairs, Sem, iword, isemantics)
 import Tags (idname,mapBySem,emptyTE,tsemantics,tpolarities,thighlight, 
              TagElem, derivation)
@@ -271,19 +271,19 @@ readTestSuite :: (Textual a, Selecting b, Selection b, Items b String)
               => ProgStateRef -> a -> b -> IO ()
 readTestSuite pstRef tsBox tsChoice = 
   do pst <- readIORef pstRef
-     let suite = tsuite pst
-         cases = tcases pst
-         suiteCases = map fst3 suite 
+     let suite   = tsuite pst
+         theCase = tcase pst
+         suiteCases = map fst suite 
      -- we number the cases for easy identification, putting 
-     -- a star to highlight those which are in TestCases
-     let numfn n t = (if t `elem` cases then "* " else "")
+     -- a star to highlight the selected test case (if available)
+     let numfn n t = (if t == theCase then "* " else "")
                       ++ (show n) ++ ". " ++ t
          tcaseLabels = zipWith numfn [1..] suiteCases 
      -- we select the first case in cases_, if available
      let fstInCases _ [] = 0 
          fstInCases n (x:xs) = 
-           if (x `elem` cases) then n else fstInCases (n+1) xs
-         caseSel = if null cases then 0 
+           if (x == theCase) then n else fstInCases (n+1) xs
+         caseSel = if null theCase then 0 
                    else fstInCases 0 suiteCases
      ----------------------------------------------------
      -- handler for selecting a test case
@@ -295,7 +295,7 @@ readTestSuite pstRef tsBox tsChoice =
      let onTestCaseChoice = do
          csel <- get tsChoice selection
          if (boundsCheck csel suite)
-           then do let s = snd3 (suite !! csel)
+           then do let s = snd (suite !! csel)
                    set tsBox [ text :~ (\_ -> displaySemInput s) ]
            else fail ("Gui: test case selector bounds check error: " ++
                       show csel ++ " of " ++ show suite ++ "\n" ++
@@ -308,12 +308,12 @@ readTestSuite pstRef tsBox tsChoice =
 \end{code}
  
 % --------------------------------------------------------------------
-\section{configGui}
+\section{Configuration}
 % --------------------------------------------------------------------
 
-\paragraph{configGui} provides a graphical interface which aims to be a
-complete substitute for the command line switches.  In addition to the
-program state \fnparam{pstRef}, it takes a continuation \fnparam{loadFn}
+\paragraph{configGui}\label{fn:configGui} provides a graphical interface which
+aims to be a complete substitute for the command line switches.  In addition to
+the program state \fnparam{pstRef}, it takes a continuation \fnparam{loadFn}
 which tells what to do when the user closes the window.
 
 The only thing which are not provided in this GUI are a list of optimisations

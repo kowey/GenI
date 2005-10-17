@@ -26,12 +26,12 @@ module Console(consoleGenerate) where
 
 \ignore{
 \begin{code}
-import Data.List(intersperse,sort,partition)
+import Data.List(find,intersperse)
 import Control.Monad(when)
 import Data.IORef(readIORef, modifyIORef)
 
-import Bfuncs(SemInput,showSem)
-import General(fst3,snd3,thd3)
+import Bfuncs(SemInput)
+import General(ePutStrLn) 
 import Geni
 import Mstate(avgGstats, numcompar, szchart, geniter)
 import Configuration(Params, isGraphical, isBatch,
@@ -39,16 +39,14 @@ import Configuration(Params, isGraphical, isBatch,
 \end{code}
 }
 
-We support two mutually exclusive kinds of batch processing: 
-\begin{enumerate}
-\item Test suite processing.  We run the requested test cases 
-      in the suite and print a nice table in the end.
-      See \fnref{runTestSuite}.
-\item Batch testing of optimisations, that is, we assume that
-      you are working with exactly one test case.  We call
-      \fnref{runBatch} to succesively test all the possible
-      optimisiations.  
-\end{enumerate}
+We support exactly one kind of batch processing: Batch testing of
+optimisations, that is, we assume that you are working with exactly one test
+case.  We call \fnref{runBatch} to succesively test all the possible
+optimisiations.  
+
+In the past we used to process entire test suites, but now we can only 
+handle one test case at a time.  If you want do process the whole 
+test suite, you'll have to write a shell script.
 
 \begin{code}
 consoleGenerate :: ProgStateRef -> IO()
@@ -56,10 +54,10 @@ consoleGenerate pstRef = do
   pst <- readIORef pstRef
   let config = pa pst
   when (isGraphical $ pa pst) $ do
-    putStrLn "GUI not available for batch processing"
+    ePutStrLn "GUI not available for batch processing"
   --
   loadGrammar pstRef
-  putStrLn "======================================================"
+  ePutStrLn "======================================================"
   --
   let batchTestOpts = isBatch config
   if batchTestOpts 
@@ -81,8 +79,8 @@ runBatch pstRef =
          batch = map withopt $ optBatch (optimisations curPa)
                  where withopt o = curPa { optimisations = o } 
      resSet <- mapM (runBatchSample pstRef) batch
-     putStrLn ""
-     putStrLn $ showOptResults resSet
+     ePutStrLn ""
+     ePutStrLn $ showOptResults resSet
      return ()
 \end{code}
 
@@ -107,11 +105,11 @@ runBatchSample pstRef newPa = do
       optStr1   = fst optPair
       optStr2   = if (optStr1 /= "none ") then ("(" ++ snd optPair ++ ")") else ""
   --
-  putStrLn $ "------------" 
-  putStrLn $ "Optimisations: " ++ optStr1 ++ optStr2 
-  putStrLn $ "Automaton paths explored: " ++ (grAutPaths res)
-  putStrLn $ "\nRealisations: " 
-  putStrLn $ showRealisations sentences 
+  ePutStrLn $ "------------" 
+  ePutStrLn $ "Optimisations: " ++ optStr1 ++ optStr2 
+  ePutStrLn $ "Automaton paths explored: " ++ (grAutPaths res)
+  ePutStrLn $ "\nRealisations: " 
+  ePutStrLn $ showRealisations sentences 
   return res
 \end{code}
 
@@ -140,27 +138,26 @@ showOptResults grs =
 
 \section{Test suites}
 
-\paragraph{runTestSuite} runs a test suite and summarises the results
+\paragraph{runTestSuite} runs a case in the test suite.  If the user does not
+specify any test cases, we run the first one.  If the user specifies a non-existing 
+test case we raise an error.
 
 \begin{code}
 runTestSuite :: ProgStateRef -> IO () 
 runTestSuite pstRef = 
   do pst <- readIORef pstRef 
-     let mstCases  = tcases pst
+     let mstCase   = tcase pst
          mstSuite  = tsuite pst
-         matchFn y = [ x | x <- mstSuite, fst3 x ==  y ]
-         suite  = if null mstCases 
-                  then mstSuite 
-                  else concatMap matchFn mstCases
-     let (ids, slist, xlist) = unzip3 suite
-     rlist <- mapM (runTestCase pstRef) slist 
-     let rsList  = map grSentences rlist
-         pfoList = zipWith groupTestCaseResults xlist rsList
-         details = zipWith3 showTestCase ids slist pfoList 
-     -- show a summary
-     putStrLn (showTestSuiteResults $ zip3 ids pfoList rlist)
-     -- show all the details
-     mapM putStrLn details 
+         selection = find (\x -> fst x == mstCase) mstSuite
+     sem <- if null mstCase
+               then if null mstSuite 
+                       then fail "Test suite is empty."
+                       else return (snd $ head mstSuite)
+               else case selection of 
+                      Nothing -> fail ("No such test case: " ++ mstCase)
+                      Just s  -> return $ snd s
+     res <- runTestCase pstRef sem
+     mapM putStrLn (grSentences res)
      return ()
 \end{code}
 
@@ -173,73 +170,6 @@ runTestCase pstRef sem =
   do modifyIORef pstRef (\x -> x{ts = sem})
      res <- runGeni pstRef doGeneration
      return res 
-\end{code}
-
-\paragraph{groupTestCaseResults} groups the results of a test case into a three
-tuple (pass,fail,overgeneration) 
-
-\begin{code}
-type TestCaseResults = ([String],[String],[String])
-groupTestCaseResults :: [String] -> [String] -> TestCaseResults
-groupTestCaseResults expected results = 
-  let expected2     = sort expected
-      results2      = sort results
-      --
-      (pass,overgen) = partition expfn results2
-                       where expfn x = x `elem` expected2
-      fail           = filter (not.resfn) expected2 
-                       where resfn x = x `elem` results2 
-  in (pass,fail,overgen)
-\end{code}
-
-\begin{code}
-showTestCase :: String -> SemInput -> TestCaseResults -> String
-showTestCase id (sem,_) results = 
-  let (pass,fail,overgen) = results
-  in ""
-     ++ "\n================================================================="
-     ++ (if (null id) then "" else "\n" ++ id)
-     ++ "\n" ++ showSem sem 
-     ++ "\n================================================================="
-     ++ "\n" 
-     ++ (if null fail 
-        then "" 
-        else "\nfail" 
-             ++ "\n----"
-             ++ "\n" ++ showRealisations fail
-             ++ "\n")
-     ++ (if null pass 
-        then ""
-        else "\npass"
-             ++ "\n----"
-             ++ "\n" ++ showRealisations pass 
-             ++ "\n")
-     ++ (if null overgen
-        then ""
-        else "\novergeneration"
-             ++ "\n--------------"
-             ++ "\n" ++ showRealisations overgen)
-\end{code}
-
-\paragraph{showTestSuiteResults} shows a summary of the test suite run, including
-for each test case, its name, the number of passes, fails, and overgenerations and
-the generation time.
-
-\begin{code}
-showTestSuiteResults :: [(String,TestCaseResults,GeniResults)] -> String
-showTestSuiteResults items =
-  let header = [ "name             "
-               , "pass    "
-               , "fail    "
-               , "overgen "
-               , "time ms  " ]
-      display :: (String,TestCaseResults,GeniResults) -> [String]
-      display (id,pfo,r) = [ id
-                           , show $ length (fst3 pfo)
-                           , show $ length (snd3 pfo)
-                           , show $ length (thd3 pfo)
-                           , grTimeStr r ]
-  in showTable header items display 
 \end{code}
 
 \section{Generic}

@@ -162,8 +162,7 @@ buildTree ttype (fam,id) (params,feats) (pol,pred) t =
 -- -------------------------------------------------------------------
 
 type TpCase = ( String,            -- name
-                (TpSem, [AvPair]), -- sem/restrictors
-                [String])          -- sentences 
+                (TpSem, [AvPair])) -- sem/restrictors
 type TpSem  = Btypes.Sem
 -- type TpSem  = [Tree (String,String)]
 -- type TpPred = (String,String)

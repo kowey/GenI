@@ -45,7 +45,7 @@ import Data.Tree
 
 import System (ExitCode(ExitSuccess), 
                exitWith, getArgs)
-import System.IO(hPutStrLn, hClose, hGetContents, hFlush, stdout)
+import System.IO(hPutStrLn, hClose, hGetContents)
 import System.IO.Unsafe(unsafePerformIO)
 import System.Mem
 import Text.ParserCombinators.Parsec 
@@ -54,7 +54,7 @@ import Text.ParserCombinators.Parsec
 import Control.Monad (when)
 import CPUTime (getCPUTime)
 
-import General(multiGroupByFM)
+import General(multiGroupByFM, ePutStr, ePutStrLn, eFlush)
 
 import Bfuncs (Macros, MTtree, ILexEntry, Lexicon, 
                Sem, SemInput,
@@ -78,7 +78,7 @@ import Tags (Tags, TagElem, emptyTE, TagSite,
 
 import Configuration(Params, 
                      treatArgs, grammarType, tsFile,
-                     testCases, morphCmd, ignoreSemantics,
+                     testCase, morphCmd, ignoreSemantics,
                      selectCmd,
                      GrammarType(..),
                      macrosFile, lexiconFile, morphFile, rootCatsParam,
@@ -138,10 +138,10 @@ data ProgState = ST{pa     :: Params,
                     le       :: Lexicon,
                     morphinf :: MorphFn,
                     ts       :: SemInput, 
-                    -- names of test cases
-                    tcases   :: [String], 
-                    --name, sem, sentences
-                    tsuite   :: [(String,SemInput,[String])] 
+                    -- names of test case to run
+                    tcase    :: String, 
+                    --name, sem
+                    tsuite   :: [(String,SemInput)]
                }
 
 type ProgStateRef = IORef ProgState
@@ -187,7 +187,7 @@ initGeni = do
                           le = Map.empty,
                           morphinf = const Nothing,
                           ts = ([],[]),
-                          tcases = [],
+                          tcase = [],
                           tsuite = [] }
     return pstRef 
 \end{code}
@@ -422,7 +422,7 @@ combineList gram lexitem =
       result  = map (combineOne lexitem) macs
       warning = "Warning: family " ++ tn ++ " not found in Macros"
   in unsafePerformIO $ do 
-       when (null macs) $ putStrLn warning 
+       when (null macs) $ ePutStrLn warning 
        return result 
 \end{code}
 
@@ -628,7 +628,7 @@ runXMGLexSelection pst =
          cand2    = attachMorph morphfn tsem cand 
      return (setTidnums cand2, lexCand)
   -- FIXME: determine if we can nix this error handler
-  --`catch` \e -> do putStrLn (show e)
+  --`catch` \e -> do ePutStrLn (show e)
   --                 return ([], []) 
 \end{code}
 
@@ -649,7 +649,7 @@ converter in \ref{cha:xml} to convert that to geni format}.
 runSelector :: ProgState -> String -> String -> IO String 
 runSelector pst gfile fil = do
 #ifdef mingw32_BUILD_OS
-     putStr $ "Selector not available under Windows until Eric"
+     ePutStr $ "Selector not available under Windows until Eric"
               ++ " figures out all this Posix stuff.\n"
      return ""
 #else
@@ -657,8 +657,8 @@ runSelector pst gfile fil = do
      let theCmd  = selectCmd (pa pst)
          selectArgs = [gfile]
      when (null theCmd) $ fail "Please specify a tree selection command!"
-     putStr $ "Selector started.\n"
-     hFlush stdout
+     ePutStr $ "Selector started.\n"
+     eFlush
      -- (toP, fromP, _, pid) <- runInteractiveProcess selectCmd selectArgs Nothing Nothing
      (pid, fromP, toP) <- runPiped theCmd selectArgs Nothing Nothing
      hPutStrLn toP fil
@@ -817,8 +817,8 @@ loadGeniLexicon :: ProgStateRef -> Params -> IO ()
 loadGeniLexicon pstRef config = do 
        let lfilename = lexiconFile config
        when (null lfilename) $ fail "Please specify a lexicon!"
-       putStr $ "Loading Lexicon " ++ lfilename ++ "..."
-       hFlush stdout
+       ePutStr $ "Loading Lexicon " ++ lfilename ++ "..."
+       eFlush
        lf <- readFile lfilename 
        pst <- readIORef pstRef
        let params = pa pst
@@ -831,7 +831,7 @@ loadGeniLexicon pstRef config = do
                    Ok x     -> cleanup x 
                    Failed x -> error x 
        --
-       putStr ((show $ length $ Map.keys lex) ++ " entries\n")
+       ePutStr ((show $ length $ Map.keys lex) ++ " entries\n")
        -- combine the two lexicons
        modifyIORef pstRef (\x -> x{le = lex})
 
@@ -881,8 +881,8 @@ loadXMGLexicon :: ProgStateRef -> Params -> IO ()
 loadXMGLexicon pstRef config = do 
        let lfilename = lexiconFile config
        when (null lfilename) $ fail "Please specify a lexicon!"
-       putStr $ "Loading XMGTools Lexicon " ++ lfilename ++ "..."
-       hFlush stdout
+       ePutStr $ "Loading XMGTools Lexicon " ++ lfilename ++ "..."
+       eFlush
        parsed <- parseFromFile gdeLexicon lfilename
        case parsed of 
          Left  err     -> fail (show err)
@@ -902,16 +902,16 @@ loadGeniMacros :: ProgStateRef -> Params -> IO ()
 loadGeniMacros pstRef config = 
   do let filename = macrosFile config
      --
-     putStr $ "Loading Macros " ++ filename ++ "..."
-     hFlush stdout
+     ePutStr $ "Loading Macros " ++ filename ++ "..."
+     eFlush
      gf <- readFile filename
      when (null gf) $ fail "Please specify a trees file!"
      let g = case (parseMac gf) of 
                    Ok x     -> x 
                    Failed x -> fail x 
          sizeg  = length g
-     putStr $ show sizeg ++ " trees in " 
-     putStr $ (show $ length g) ++ " families\n"
+     ePutStr $ show sizeg ++ " trees in " 
+     ePutStr $ (show $ length g) ++ " families\n"
      modifyIORef pstRef (\x -> x{gr = g})
 \end{code}
 
@@ -927,14 +927,14 @@ loadMorphInfo :: ProgStateRef -> Params -> IO ()
 loadMorphInfo pstRef config = 
   do let filename = morphFile config
      when (not $ null filename ) $ do --
-        putStr $ "Loading Morphological Info " ++ filename ++ "..."
-        hFlush stdout
+        ePutStr $ "Loading Morphological Info " ++ filename ++ "..."
+        eFlush
         gf <- readFile filename
         let g = case parseMorph gf of
                   Ok x     -> x
                   Failed x -> fail x
             sizeg  = length g
-        putStr $ show sizeg ++ " entries\n" 
+        ePutStr $ show sizeg ++ " entries\n" 
         modifyIORef pstRef (\x -> x{morphinf = readMorph g})
 \end{code}
 
@@ -954,20 +954,20 @@ loadTestSuite pstRef = do
       useSem   = not $ ignoreSemantics config
   when (null filename) $ fail "Please specify a test suite!"
   when useSem $ do
-    putStr $ "Loading Test Suite " ++ filename ++ "...\n"
-    hFlush stdout
+    ePutStr $ "Loading Test Suite " ++ filename ++ "...\n"
+    eFlush
     tstr <- readFile filename
     -- helper functions for test suite stuff
-    let cleanup (id, (sm,sr), sn) = (id, newsmsr, sort sn)
+    let cleanup (id, (sm,sr)) = (id, newsmsr)
           where newsmsr = (sortSem sm, sort sr)
         updateTsuite s x = x { tsuite = map cleanup s   
-                             , tcases = testCases config}
+                             , tcase  = testCase config}
     let sem = parseTSuite tstr
     case sem of 
       Ok s     -> modifyIORef pstRef $ updateTsuite s 
       Failed s -> fail s
     -- in the end we just say we're done
-    --putStr "done\n"
+    --ePutStr "done\n"
 \end{code}
 
 \paragraph{loadTargetSemStr} Given a string with some semantics, it
@@ -978,7 +978,7 @@ ts field of the ProgState
 loadTargetSemStr :: ProgStateRef -> String -> IO ()
 loadTargetSemStr pstRef str = 
     do pst <- readIORef pstRef
-       putStr "Parsing Target Semantics..."
+       ePutStr "Parsing Target Semantics..."
        let semi = parseTSem str
            smooth (s,r) = (sortSem s, sort r)
        let params = pa pst
@@ -986,7 +986,7 @@ loadTargetSemStr pstRef str =
            else case semi of 
               Ok sr    -> modifyIORef pstRef (\x -> x{ts = smooth sr})
               Failed s -> fail s
-       putStr "done\n"
+       ePutStr "done\n"
 \end{code}
 
 % --------------------------------------------------------------------
