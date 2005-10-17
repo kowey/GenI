@@ -130,7 +130,7 @@ emptyParams = Prms {
   morphCmd       = "",
   selectCmd      = "runXMGselector.sh",
   viewCmd        = "ViewTAG",
-  isGraphical    = False,
+  isGraphical    = True,
   testCases      = [],
   optimisations  = [],
   extrapol       = Map.empty,
@@ -179,8 +179,8 @@ options = optionsBasic ++ optionsAdvanced
 
 optionsBasic :: [OptDescr Switch] 
 optionsBasic =
-  [ Option []    ["gui"] (NoArg  (GraphicalTok True)) 
-      "enable graphical user interface"
+  [ Option []    ["nogui"] (NoArg  (GraphicalTok False)) 
+      "disable graphical user interface"
   , Option []    ["help"] (NoArg  HelpTok) 
       "show full list of command line switches"
   , Option ['m'] ["macros"] (ReqArg MacrosTok "FILE") 
@@ -261,12 +261,10 @@ treatArgs argv = do
                   ++ "\n\n" ++ usageExample
    case getOpt Permute options argv of
      (o,_,[]  ) -> 
-        if null o then do putStrLn usage
-                          exitWith ExitSuccess
-           else if HelpTok `elem` o 
-                   then do putStrLn usageAdv
-                           exitWith ExitSuccess
-                   else return (defineParams emptyParams o)
+        if HelpTok `elem` o 
+             then do putStrLn usageAdv
+                     exitWith ExitSuccess
+             else return (defineParams emptyParams o)
      (_,_,errs) -> ioError (userError $ concat errs ++ usage)
 \end{code}
 

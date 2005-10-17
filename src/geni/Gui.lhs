@@ -34,7 +34,7 @@ import qualified Control.Monad as Monad
 import qualified Data.Map as Map
 import Data.Array
 import Data.IORef
-import Data.List (find, intersperse, nub, delete, (\\))
+import Data.List (isPrefixOf, find, intersperse, nub, delete, (\\))
 import Data.Maybe (isJust)
 import System.Directory 
 import System.Exit (exitWith, ExitCode(ExitSuccess))
@@ -47,8 +47,7 @@ import Tags (tagLeaves)
 import Morphology (sansMorph)
 import Geni (ProgState(..), GeniInput(..), GeniResults(..), ProgStateRef,
              doGeneration, runGeni, runMorph,
-             combine, loadGrammar, loadLexicon, 
-             loadTargetSemStr)
+             combine, loadGrammar, loadTestSuite, loadTargetSemStr)
 import General (trim, fst3, snd3, slash, bugInGeni)
 import Bfuncs (showPred, showSem, showPairs, Sem, iword, isemantics)
 import Tags (idname,mapBySem,emptyTE,tsemantics,tpolarities,thighlight, 
@@ -56,7 +55,7 @@ import Tags (idname,mapBySem,emptyTE,tsemantics,tpolarities,thighlight,
 
 import Configuration(Params(..), Switch(..), GrammarType(..),
                      autopol, polarised, polsig, chartsharing, 
-                     semfiltered, extrapol, footconstr)
+                     semfiltered, footconstr)
 import GeniParsers 
 
 import Mstate (Gstats, Mstate, initGstats, initMState, runState, 
@@ -75,7 +74,9 @@ guiGenerate pstRef = do
   pst <- readIORef pstRef
   let gramConfig = pa pst
       -- errHandler title err = errorDialog f title (show err)
-  loadGrammar pstRef -- `catch` (errHandler "Whoops!")
+  Monad.when ( (not.null.tsFile) gramConfig) $ 
+    loadTestSuite pstRef
+    -- `catch` (errHandler "Whoops!")
   start (mainGui pstRef)
 \end{code}
 
@@ -93,7 +94,7 @@ mainGui pstRef
        status <- statusField   []
        -- create the file menu
        fileMen   <- menuPane [text := "&File"]
-       -- loadMenIt <- menuItem fileMen [text := "&Open index file"]
+       loadMenIt <- menuItem fileMen [text := "&Open files..."]
        quitMenIt <- menuQuit fileMen [text := "&Quit"]
        set quitMenIt [on command := close f ]
        -- create the tools menu
@@ -107,9 +108,9 @@ mainGui pstRef
        set f [ statusBar := [status] 
              , menuBar := [fileMen, toolsMen, helpMen]
              -- put the menu event handler for an about box on the frame.
-             , on (menu aboutMeIt) := infoDialog f "About GenI" "The GenI generator" 
+             , on (menu aboutMeIt) := infoDialog f "About GenI" "The GenI generator.\nhttp://wiki.loria.fr/wiki/GenI" 
              -- event handler for the tree browser
-             , on (menu gbrowserMenIt) := treeBrowserGui pstRef  
+             , on (menu gbrowserMenIt) := do { loadGrammar pstRef; treeBrowserGui pstRef }  
              ]
 \end{code}
 
@@ -128,7 +129,6 @@ We add some buttons for loading files and running the generator.
                                          then "% --ignoresemantics set" else "" ]
        testCaseChoice <- choice f [ selection := 0 
                                   , enabled := hasSem ]
-       readTestSuite pstRef tsTextBox testCaseChoice 
        -- Box and Frame for files loaded 
        macrosFileLabel  <- staticText f [ text := macrosFile config  ]
        lexiconFileLabel <- staticText f [ text := lexiconFile config ]
@@ -182,13 +182,15 @@ Pack it all together, perform the layout operation.
 
 \begin{code}
        -- set any last minute handlers, run any last minute functions
+       let onLoad = readConfig pstRef macrosFileLabel lexiconFileLabel tsFileLabel tsTextBox testCaseChoice 
+       set loadMenIt [ on command := do configGui pstRef onLoad ]
        togglePolStuff
        --
-       let gramsemBox = boxed "Files last loaded" $ -- can't used boxed with wxwidgets 2.6 -- bug?
+       let gramsemBox = boxed "Files last loaded" $ 
                    hfill $ column 1 
-                     [ row 1 [ label "trees:", widget macrosFileLabel  ]
-                     , row 1 [ label "lexicon:", widget lexiconFileLabel ] 
-                     , row 1 [ label "test suite:", widget tsFileLabel ] 
+                     [ row 1 [ label "trees:", hfill $ widget macrosFileLabel  ]
+                     , row 1 [ label "lexicon:", hfill $ widget lexiconFileLabel ] 
+                     , row 1 [ label "test suite:", hfill $ widget tsFileLabel ] 
                      ]
            optimBox =  --boxed "Optimisations " $ -- can't used boxed with wxwidgets 2.6 -- bug?
                     column 5 [ label "Optimisations" 
@@ -235,50 +237,29 @@ toggleChk pstRef chk tok = do
   return ()
 \end{code}
 
-\paragraph{loadMenuCmd} is meant to be the handler executed when you
-select the "Open index file" menu item.  It loads the grammar and 
-updates all the relevant GUI widgets.
-
-\begin{code}
-{-
-loadMenuCmd :: (Textual b, Able c, Selecting c, Selection c, Items c String) 
-               => ProgStateRef -> Window a -> (StaticText d, b, c, c) -> IO ()
-loadMenuCmd pstRef f guiParts = 
-  do pst <- readIORef pstRef
-     let filename  = grammarFile (pa pst)
-     filetypes = [("Any file",["*","*.*"])]
-     fsel <- fileOpenDialog f False True "Choose your file..." filetypes "" filename
-     case fsel of
-       -- if the user does not select any file there are no changes
-       Nothing       -> return () 
-       Just file     -> loadMenuHelper pstRef f (trim file) guiParts
-
-loadMenuHelper pstRef f filename guiParts = 
-  do -- write the new values
-     let newPa p = p { grammarFile = filename }
-     modifyIORef pstRef (\x -> x{pa = newPa (pa x)})
-     -- load in the files
-     let (gText, tsBox, tsChoice, lexChoice) = guiParts
-     loadGrammar pstRef 
-     readGrammar pstRef gText lexChoice
-     readTestSuite pstRef tsBox tsChoice
-  `catch` (errHandler "Error loading the grammar or test suite: ")
-  where errHandler title err = errorDialog f title (show err)
--}
-\end{code}
-
 % --------------------------------------------------------------------
 \section{Loading files}
 % --------------------------------------------------------------------
 
-\paragraph{readGrammar} is used to update the graphical interface after
-calling \fnref{loadGrammar}. This used when you first start the 
-graphical interface or when you load a grammar.
+\paragraph{readConfig} is used to update the graphical interface after
+you run the \fnref{configGui}.  It is also called when you first launch
+the GUI
 
-FIXME: do we still need this bit of code? 
 \begin{code}
-readGrammar :: (Textual a) => ProgStateRef -> a -> IO ()
-readGrammar pstRef gText = return ()
+-- readConfig :: (Textual a) => ProgStateRef -> a -> IO ()
+readConfig pstRef macrosFileLabel lexiconFileLabel tsFileLabel tsBox tsChoice = 
+  do pst <- readIORef pstRef
+     let config = pa pst
+         -- errHandler title err = errorDialog f title (show err)
+     set macrosFileLabel  [ text := macrosFile config ]
+     set lexiconFileLabel [ text := lexiconFile config ]
+     set tsFileLabel      [ text := tsFile config ]
+     -- read the test suite if there is one
+     if (null.tsFile) config
+       then set tsChoice [ enabled := False, items := [] ]
+       else do loadTestSuite pstRef
+               readTestSuite pstRef tsBox tsChoice
+               set tsChoice [ enabled := True ]
 \end{code}
 
 \paragraph{readTestSuite} is used to update the graphical interface after
@@ -325,7 +306,224 @@ readTestSuite pstRef tsBox tsChoice =
                   , on select := onTestCaseChoice ]
      when (not $ null suite) onTestCaseChoice -- run this once
 \end{code}
-   
+ 
+% --------------------------------------------------------------------
+\section{configGui}
+% --------------------------------------------------------------------
+
+\paragraph{configGui} provides a graphical interface which aims to be a
+complete substitute for the command line switches.  In addition to the
+program state \fnparam{pstRef}, it takes a continuation \fnparam{loadFn}
+which tells what to do when the user closes the window.
+
+The only thing which are not provided in this GUI are a list of optimisations
+and a test case selector (which are already handled by the main interface).
+This GUI is a standalone window with two tabbed sections.  Note: one thing
+you may want to note is that we do not divide the same way between basic
+and advanced options as with the console interface.
+
+\begin{code}
+configGui ::  ProgStateRef -> IO () -> IO () 
+configGui pstRef loadFn = do 
+  pst <- readIORef pstRef
+  let config = pa pst
+  -- 
+  f  <- frame []
+  p  <- panel f []
+  nb <- notebook p []
+  let browseTxt = "Browse"
+  --
+  let fakeBoxed title lst = hstretch $ column 3 $ map hfill $ 
+        [ hrule 1 , alignRight $ label title, vspace 5 ] 
+        ++ map hfill lst
+  let shortSize = sz 10 25
+\end{code}
+
+The first tab contains only the basic options:
+
+\begin{code}
+  pbas <- panel nb []
+  -- files loaded (labels)
+  macrosFileLabel  <- staticText pbas [ text := macrosFile config  ]
+  lexiconFileLabel <- staticText pbas [ text := lexiconFile config ]
+  tsFileLabel      <- staticText pbas [ text := tsFile config ]
+  -- "Browse buttons"
+  macrosBrowseBt  <- button pbas [ text := browseTxt ]
+  lexiconBrowseBt <- button pbas [ text := browseTxt ]
+  tsBrowseBt      <- button pbas [ text := browseTxt ]
+  let layFiles = [ row 1 [ label "trees:" 
+                         , fill $ widget macrosFileLabel
+                         , widget macrosBrowseBt  ]
+                 , row 1 [ label "lexicon:"
+                         , fill $ widget lexiconFileLabel
+                         , widget lexiconBrowseBt ] 
+                 , row 1 [ label "test suite:"
+                         , fill $ widget tsFileLabel
+                         , widget tsBrowseBt ] 
+                 ] 
+    -- the layout for the basic stuff
+  let layBasic = dynamic $ container pbas $ -- boxed "Basic options" $ 
+                   hfloatLeft $ dynamic $ fill $ column 4 $ map (dynamic.hfill) $ layFiles 
+\end{code}
+
+The second tab contains more advanced options.  Maybe we should split this
+into more tabs?
+
+\begin{code}
+  padv <- panel nb []
+  -- Common Grammar Manifesto stuff
+  cgmChk <- checkBox padv 
+    [ text := "Use Common Grammar Manifesto format"
+    , checked := (grammarType config == CGManifesto) ]
+  selectCmdTxt <- entry padv 
+    [ tooltip := "Command used for tree anchoring" 
+    , text := selectCmd config ]
+  viewCmdTxt <- entry padv 
+    [ tooltip := "Command used for XMG tree viewing"
+    , text := viewCmd config ] 
+  let layCGM = fakeBoxed "Common Grammar Manifesto (CGM)" 
+                [ widget cgmChk 
+                , row 3 [ label "select command"
+                        , marginRight $ hfill $ widget selectCmdTxt ]
+                , row 3 [ label "XMG view command"
+                        , marginRight $ hfill $ widget viewCmdTxt ] ]
+  -- root categories and extra polarities
+  rootCatsTxt <- entry padv 
+    [ text := unwords $ rootCatsParam config 
+    , size := shortSize ]
+  extraPolsTxt <- entry padv 
+    [ text := showLitePm $ extrapol config 
+    , size := shortSize ]
+  let layPolarities = fakeBoxed "Polarities" [ hfill $ row 1 
+          [ label "root categories", rigid $ widget rootCatsTxt
+          , hspace 10 
+          , label "extra polarities", rigid $ widget extraPolsTxt ] ]
+  -- morphology
+  morphFileLabel    <- staticText padv [ text := morphFile config ]
+  morphFileBrowseBt <- button padv [ text := browseTxt ]
+  morphCmdTxt    <- entry padv 
+    [ tooltip := "Commmand used for morphological generation" 
+    , text    := morphCmd config ]
+  let layMorph = fakeBoxed "Morphology" 
+                   [ row 3 [ label "morph info:"
+                           , expand $ hfill $ widget morphFileLabel
+                           , widget morphFileBrowseBt ]
+                   , row 3 [ label "morph command"
+                           , (marginRight.hfill) $ widget morphCmdTxt ] ]
+  -- ignore semantics
+  ignoreSemChk <- checkBox padv 
+     [ text    := "Ignore semantics"
+     , tooltip := "Useful as a corpus generator"
+     , checked := ignoreSemantics config ]
+  let maxTreesStr = case maxTrees config of 
+        Nothing -> ""
+        Just m  -> show m
+  maxTreesText <- entry padv 
+     [ text    := maxTreesStr 
+     , tooltip := "Limit number of elementary trees in a derived tree" 
+     , size    := shortSize ]
+  let layIgnoreSem = fakeBoxed "Ignore Semantics Mode" 
+          [ row 3 [ widget ignoreSemChk 
+                  , hspace 5 
+                  , label "max trees", rigid $ widget maxTreesText ] ]
+  -- put the whole darn thing together
+  let layAdvanced = hfloatLeft $ container padv $ column 10 
+        $ [ layCGM, layPolarities, layMorph, layIgnoreSem ]
+\end{code}
+
+When the user clicks on a Browse button, an open file dialogue should pop up.
+It gets its value from the file label on its left (passed in as an argument),
+and updates said label when the user has made a selection.
+
+\begin{code}
+  -- helper functions
+  curDir <- getCurrentDirectory
+  let curDir2 = curDir ++ slash
+      trim2 p = if curDir2 `isPrefixOf` p2
+                          then drop (length curDir2) p2
+                          else p2
+                 where p2 = trim p
+  let onBrowse theLabel 
+       = do rawFilename <- get theLabel text
+            let filename = trim2 rawFilename
+                filetypes = [("Any file",["*","*.*"])]
+            fsel <- fileOpenDialog f False True
+                      "Choose your file..." filetypes "" filename
+            case fsel of
+              -- if the user does not select any file there are no changes
+              Nothing   -> return () 
+              Just file -> set theLabel [ text := trim2 file ]
+  -- end onBrowse
+  -- activate those "Browse" buttons
+  let setBrowse w l = set w [ on command := onBrowse l ]
+  setBrowse macrosBrowseBt macrosFileLabel
+  setBrowse lexiconBrowseBt lexiconFileLabel 
+  setBrowse tsBrowseBt tsFileLabel
+  setBrowse morphFileBrowseBt morphFileLabel
+\end{code}
+
+Let's not forget the layout which puts the whole configGui together and the
+command that makes everything ``work'':
+
+\begin{code}
+  let onLoad 
+       = do macrosVal <- get macrosFileLabel text
+            lexconVal <- get lexiconFileLabel text
+            tsVal     <- get tsFileLabel text
+            --
+            rootCatVal  <- get rootCatsTxt  text
+            extraPolVal <- get extraPolsTxt text
+            --
+            cgmVal    <- get cgmChk checked 
+            selectVal <- get selectCmdTxt text 
+            viewVal   <- get viewCmdTxt text 
+            --
+            morphCmdVal  <- get morphCmdTxt text
+            morphInfoVal <- get morphFileLabel text
+            --
+            ignoreVal   <- get ignoreSemChk checked 
+            maxTreesVal <- get maxTreesText text
+            --
+            let config2 = config 
+                 { macrosFile  = macrosVal
+                 , lexiconFile = lexconVal
+                 , tsFile      = tsVal
+                 -- 
+                 , rootCatsParam = words rootCatVal
+                 , extrapol = parsePol extraPolVal
+                 --
+                 , grammarType = if cgmVal then CGManifesto
+                                 else GeniHand
+                 , selectCmd  = selectVal 
+                 , viewCmd    = viewVal
+                 --
+                 , morphCmd  = morphCmdVal
+                 , morphFile = morphInfoVal
+                 --
+                 , ignoreSemantics = ignoreVal
+                 , maxTrees = if null maxTreesVal 
+                     then Nothing
+                     else Just (read maxTreesVal)
+                 }
+            modifyIORef pstRef (\x -> x { pa = config2 })
+            loadFn 
+  -- end onLoad
+    -- the button bar
+  cancelBt <- button p 
+    [ text := "Cancel", on command := close f ]
+  loadBt   <- button p 
+    [ text := "Load", on command := do { onLoad; close f } ]
+  let layButtons = hfill $ row 1 
+        [ hfloatLeft  $ widget cancelBt
+        , hfloatRight $ widget loadBt ]
+  --
+  set f [ layout := dynamic $ fill $ container p $ column 0 
+           [ fill $ tabs nb [ tab "Basic" layBasic
+                            , tab "Advanced" layAdvanced ] 
+           , hfill $ layButtons ]
+        ] 
+\end{code}
+  
 % --------------------------------------------------------------------
 \section{Results}
 \label{sec:results_gui}
@@ -337,6 +535,7 @@ generator and displays the result in a results gui (below).
 \begin{code}
 doGenerate :: Textual b => Window a -> ProgStateRef -> b -> Bool -> IO ()
 doGenerate f pstRef sembox debugger = do 
+  loadGrammar pstRef
   let handler title err = errorDialog f title (show err)
       handler1 err = handler "Error (probably the target semantics): " err 
       -- handler2 err = do handler "Error during generation:" err
@@ -509,6 +708,7 @@ of TAG feature structures.
 tagViewerGui :: ProgState -> (Window a) -> String -> String -> [(TagElem,String)] 
                -> GvIO TagElem
 tagViewerGui pst f tip cachedir itNlab = do
+  let config = pa pst
   p <- panel f []      
   let (tagelems,labels) = unzip itNlab
   gvRef <- newGvRef False labels tip
@@ -520,19 +720,20 @@ tagViewerGui pst f tip cachedir itNlab = do
   displayTraceBut <- button p [ text := "Display trace for" ]
   displayTraceCom <- choice p [ tooltip := "derivation tree" ]
   -- handlers
-  let onDisplayTrace = do gvSt <- readIORef gvRef
-                          s <- get displayTraceCom selection
-                          let tsel = gvsel gvSt
-                          Monad.when (boundsCheck tsel tagelems) $ do
-                            let tree = tagelems !! (gvsel gvSt)
-                                derv = extractDerivation tree
-                            if (boundsCheck s derv)
-                              then runViewTag pst (derv !! s)
-                              else fail $ "Gui: bounds check in onDisplayTrace\n" ++
-                                          bugInGeni
-  let onDetailsChk c = do isDetailed <- get c checked 
-                          setGvParams gvRef isDetailed 
-                          updaterFn 
+  let onDisplayTrace 
+       = do gvSt <- readIORef gvRef
+            s <- get displayTraceCom selection
+            let tsel = gvsel gvSt
+            Monad.when (boundsCheck tsel tagelems) $ do
+            let tree = tagelems !! (gvsel gvSt)
+                derv = extractDerivation tree
+            if (boundsCheck s derv)
+               then runViewTag pst (derv !! s)
+               else fail $ "Gui: bounds check in onDisplayTrace\n" ++ bugInGeni
+  let onDetailsChk c 
+       = do isDetailed <- get c checked 
+            setGvParams gvRef isDetailed 
+            updaterFn 
   let selHandler gvSt = do
       let tsel = gvsel gvSt
       Monad.when (boundsCheck tsel tagelems) $ do
@@ -544,7 +745,9 @@ tagViewerGui pst f tip cachedir itNlab = do
   Monad.when (not $ null tagelems) $ do 
     setGvHandler gvRef (Just selHandler)
     set detailsChk [ on command := onDetailsChk detailsChk ]
-    set displayTraceBut [ on command := onDisplayTrace ]
+    set displayTraceBut 
+         [ on command := onDisplayTrace 
+         , enabled    := grammarType config == CGManifesto ] 
   -- pack it all in      
   let cmdBar = hfill $ row 5 
                 [ dynamic $ widget detailsChk
@@ -685,7 +888,7 @@ debuggerTab f config tsem cachedir cands = do
                            , checked := False ]
   restartBt   <- button p [text := "Start over"]
   nextBt   <- button p [text := "Leap by..."]
-  leapVal  <- textEntry p [ text := "1", clientSize := sz 30 25 ]
+  leapVal  <- entry p [ text := "1", clientSize := sz 30 25 ]
   finishBt <- button p [text := "Continue"]
   statsTxt <- staticText p []
   -- commands
