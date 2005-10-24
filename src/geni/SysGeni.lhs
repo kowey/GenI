@@ -27,21 +27,19 @@ where
 
 \ignore{
 \begin{code}
-import Data.List(intersperse, isSuffixOf)
 import System.Exit(ExitCode)
 import System.Posix
 import System.IO(Handle, BufferMode(..), hSetBuffering)
 import System.Directory(setCurrentDirectory)
 import qualified System.Process as S
 
+import Data.List(intersperse, isSuffixOf)
 import General(slash)
 
 #ifdef __GLASGOW_HASKELL__
 import Foreign
 import Foreign.C
-import Control.Exception 	( bracket )
 import Control.Monad
-import GHC.IOBase
 #include "ghcconfig.h"
 #endif
 \end{code}
@@ -61,9 +59,6 @@ processes we want to run are in \texttt{../Resources/bin}.
 
 \begin{code}
 #ifdef darwin_TARGET_OS 
-foreign import ccall unsafe "getProgArgv"
-  getProgArgv :: Ptr CInt -> Ptr (Ptr CString) -> IO ()
-
 runInteractiveProcess cmd args x y = do
   dirname <- getProgDirName
   -- detect if we're in an .app bundle, i.e. if 
@@ -78,7 +73,8 @@ runInteractiveProcess cmd args x y = do
   let cmd2 = if appBundle `isSuffixOf` dirname 
              then resBinCmd else cmd
   S.runInteractiveProcess cmd2 args x y 
-#else -- if not on a Mac
+#else 
+-- if not on a Mac
 runInteractiveProcess = S.runInteractiveProcess
 #endif
 \end{code}
@@ -86,6 +82,9 @@ runInteractiveProcess = S.runInteractiveProcess
 \paragraph{Process helpers}
 
 \begin{code}
+foreign import ccall unsafe "getProgArgv"
+  getProgArgv :: Ptr CInt -> Ptr (Ptr CString) -> IO ()
+
 getProgDirName :: IO String
 getProgDirName = 
   alloca $ \ p_argc ->
