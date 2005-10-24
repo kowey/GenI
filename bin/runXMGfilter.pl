@@ -17,15 +17,18 @@ eval 'exec perl -w -S  $0 ${1+"$@"}'
 # ----------------------------------------------------------------------  
 # How do I use it?
 #
-# Run GenI from this directory, passing in addition to your regular
-# commands -t stub_file selectcmd=runXMGfilter.pl
+# Run GenI like so:
+#   xmgGeni --selectcmd=runXMGfilter.pl\
+#    -m somedirectory/filenameyouwant.rec\
+#    -l youlexicon.lex\
+#    -s testsuite
 #
 # Note: 
 # 1. you need to have an actual working XMG metagrammar 
 #    all this script does is produce a list XMG values
-# 2. the stub file should be in the same directory as 
-#    your XMG metagrammar... it should consist of some
-#    XMG includes 
+# 2. includes.mg - in the same directory as your grammar, you 
+#    should have all the either bits of the metagrammar as well 
+#    as a file includes.mg
 # ----------------------------------------------------------------------  
 
 use strict;
@@ -37,8 +40,11 @@ if ($#ARGV != 0) {
   exit 1;
 }
 # infer the GRAMMAR_DIR from the grammar_file
-my $STUB=$ARGV[0];
-my $GRAMMAR_DIR=dirname($STUB);
+my $DESIRED_REC=$ARGV[0];
+my $GRAMMAR_DIR=dirname($DESIRED_REC);
+
+my $DESIRED_MG=$GRAMMAR_DIR."/".basename($DESIRED_REC,".rec").".mg";
+my $STUB=$GRAMMAR_DIR."/includes.mg";
 
 # environment stuff
 my $USERNAME=`whoami`; chomp $USERNAME;
@@ -48,12 +54,8 @@ my $TMP_MG_FILE_PRESTUB="filtered-$USERNAME";
 
 my $TMP_MG_FILE_STUB="filtered-$USERNAME-$$";
 my $TMP_MG_FILE="$GRAMMAR_DIR/$TMP_MG_FILE_STUB.mg";
-my $TMP_FIL_FILE="$TMP_FILE_PREFIX-$$.fil";
-my $TMP_RES_FILE="$TMP_RES_PREFIX-$$.geni";
-
-# the latest results
-my $LATEST_MG="$GRAMMAR_DIR/filtered-latest.mg";
-my $LATEST_REC="$GRAMMAR_DIR/filtered-latest.rec";
+#my $TMP_FIL_FILE="$TMP_FILE_PREFIX-$$.fil";
+#my $TMP_RES_FILE="$TMP_RES_PREFIX-$$.geni";
 
 # delete previous results
 my @delete_me = glob "$GRAMMAR_DIR/$TMP_MG_FILE_PRESTUB* $TMP_FILE_PREFIX* $TMP_RES_PREFIX*";
@@ -62,9 +64,9 @@ unlink @delete_me;
 # have the mg source files been modified since the last 
 # grammar generated?
 my $is_mg_modified = 1;
-if (-e $LATEST_REC) {
+if (-e $DESIRED_REC) {
   $is_mg_modified = 0;
-  my $rec_mod_age = -M $LATEST_REC;
+  my $rec_mod_age = -M $DESIRED_REC;
   for my $mg_file (glob "$GRAMMAR_DIR/*.mg") {
     if (-M $mg_file < $rec_mod_age) {
       $is_mg_modified = 1;
@@ -78,29 +80,11 @@ open MG, ">$TMP_MG_FILE";
 open STUB, $STUB;
 while (<STUB>) { print MG; }
 close STUB;
-
-# print out all the values
-open FIL, ">$TMP_FIL_FILE";
-my @values = ();
-while (<STDIN>) {
-  print FIL;
-  chomp;
-  if (/family:(.*).*]/) {
-    my $family = $1;
-    push @values, "value $family\n";
-  }
-}
-# remove duplicate entries
-my %seen = ();
-my @uniq_values = grep { ! $seen{$_} ++ } @values;
-# print all values to the MG file
-foreach my $v (@uniq_values) { print MG $v; }
-close FIL;
 close MG;
 
 # is there any difference between the last metagrammar
 # generated and this one?
-my $the_diff=`diff $TMP_MG_FILE $LATEST_MG`;
+my $the_diff=`diff $TMP_MG_FILE $DESIRED_MG`;
 my $CURRENT_REC;
 
 # if either one of the mg source files has been modified
@@ -111,24 +95,20 @@ if ($is_mg_modified or $the_diff ne "") {
   my $TMP_REC="$TMP_MG_FILE_STUB.tmp.rec";
   my $the_cmd = "";
   $the_cmd .= "cd $GRAMMAR_DIR;";
-  $the_cmd .= "MetaTAG $TMP_MG_FILE_STUB.mg --chk -c $TMP_REC 1>&2;";
-  $the_cmd .= "CheckTAG $TMP_REC --chk -c $TMP_MG_FILE_STUB.rec 1>&2;";
+  $the_cmd .= "MetaTAG $TMP_MG_FILE_STUB.mg --chk -c $TMP_REC;";
+  $the_cmd .= "CheckTAG $TMP_REC --chk -c $TMP_MG_FILE_STUB.rec";
+  print STDERR $the_cmd;
   system $the_cmd;
 
   # remove the old copies of the latest mg/rec files
-  unlink $LATEST_MG if (-e $LATEST_MG);
-  unlink $LATEST_REC if (-e $LATEST_REC);
+  unlink $DESIRED_MG if (-e $DESIRED_MG);
+  unlink $DESIRED_REC if (-e $DESIRED_REC);
 
   # copy the latest results over for safe keeping
-  link "$GRAMMAR_DIR/$TMP_MG_FILE_STUB.mg",  $LATEST_MG;
-  link "$GRAMMAR_DIR/$TMP_MG_FILE_STUB.rec", $LATEST_REC;
+  link "$GRAMMAR_DIR/$TMP_MG_FILE_STUB.mg",  $DESIRED_MG;
+  link "$GRAMMAR_DIR/$TMP_MG_FILE_STUB.rec", $DESIRED_REC;
+
+  if (not -s "$GRAMMAR_DIR/$TMP_REC") {
+    die "Error compiling the metagrammar $DESIRED_MG!";
+  }
 }
-  
-
-# run the selector
-system "SelectTAG $LATEST_REC $TMP_FIL_FILE --geni -o $TMP_RES_FILE > /dev/null;";
-
-# print the results to stdout
-open SELECTED, $TMP_RES_FILE;
-while (<SELECTED>) { print };
-close SELECTED
