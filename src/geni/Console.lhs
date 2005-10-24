@@ -34,7 +34,7 @@ import Bfuncs(SemInput)
 import General(ePutStrLn) 
 import Geni
 import Mstate(avgGstats, numcompar, szchart, geniter)
-import Configuration(Params, isGraphical, isBatch,
+import Configuration(Params, isGraphical, isBatch, outputFile,
                      optimisations, batchRepeat, optBatch) 
 \end{code}
 }
@@ -146,18 +146,22 @@ test case we raise an error.
 runTestSuite :: ProgStateRef -> IO () 
 runTestSuite pstRef = 
   do pst <- readIORef pstRef 
-     let mstCase   = tcase pst
-         mstSuite  = tsuite pst
-         selection = find (\x -> fst x == mstCase) mstSuite
-     sem <- if null mstCase
-               then if null mstSuite 
+     let pstCase    = tcase pst
+         pstSuite   = tsuite pst
+         selection  = find (\x -> fst x == pstCase) pstSuite
+         pstOutfile = outputFile $ pa pst
+     sem <- if null pstCase
+               then if null pstSuite 
                        then fail "Test suite is empty."
-                       else return (snd $ head mstSuite)
+                       else return (snd $ head pstSuite)
                else case selection of 
-                      Nothing -> fail ("No such test case: " ++ mstCase)
+                      Nothing -> fail ("No such test case: " ++ pstCase)
                       Just s  -> return $ snd s
      res <- runTestCase pstRef sem
-     mapM putStrLn (grSentences res)
+     -- if no output file is set, write to stdout
+     let oPutStrLn = if (null pstOutfile) then putStrLn 
+                     else writeFile pstOutfile 
+     oPutStrLn $ unlines $ grSentences res
      return ()
 \end{code}
 

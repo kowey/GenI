@@ -92,6 +92,8 @@ data Params = Prms{
   extrapol       :: Map.Map String Int,
   batchRepeat    :: Integer,
   usetrash       :: Bool,
+  --
+  outputFile     :: String,
   -- generation sans semantics (not the usual geni mode)
   ignoreSemantics :: Bool, 
   maxTrees       :: Maybe Int -- limit on num of trees in a derived tree 
@@ -136,6 +138,7 @@ emptyParams = Prms {
   extrapol       = Map.empty,
   batchRepeat    = 1,
   usetrash       = False,
+  outputFile     = "",
   ignoreSemantics = False,
   maxTrees       = Nothing
 }
@@ -156,6 +159,7 @@ data Switch =
     TestCasesTok String | TestSuiteTok String | 
     GraphicalTok Bool   | 
     CmdTok String String | -- key / command 
+    OutputFileTok String |
     IgnoreSemanticsTok Bool | MaxTreesTok String |
     -- grammar file
     GrammarType GrammarType  | 
@@ -195,6 +199,8 @@ optionsBasic =
       "lexicon file FILE"
   , Option ['s'] ["testsuite"] (ReqArg TestSuiteTok "FILE") 
       "test suite FILE"
+  , Option ['o'] ["output"] (ReqArg OutputFileTok "FILE")
+      "output file FILE (stdout if unset)"
   , Option []    ["opts"] (ReqArg OptimisationsTok "LIST")
       "optimisations LIST (--help for details)"
   ]
@@ -337,21 +343,22 @@ defineParams :: Params -> [Switch] -> Params
 defineParams p [] = p
 defineParams p (f:s) = defineParams pnext s
   where pnext = case f of 
-            GraphicalTok v  -> p {isGraphical = v}
+            GraphicalTok v     -> p {isGraphical = v}
             OptimisationsTok v -> p {optimisations = readOpt v } 
+            OutputFileTok v    -> p {outputFile = v}
             -- grammar stuff
             MacrosTok    v -> p {macrosFile  = v}
             LexiconTok   v -> p {lexiconFile = v} 
             TestSuiteTok v -> p {tsFile = v}
             -- advanced stuff
             RootCategoriesTok v -> p {rootCatsParam = wordsBy '+' v}
-            MorphInfoTok v  -> p {morphFile   = v}
-            CmdTok "morph"   v -> p {morphCmd  = v}
-            CmdTok "select"  v -> p {selectCmd = v}
-            CmdTok "view"    v -> p {viewCmd = v}
-            TestCasesTok v  -> p {testCase = v }
+            MorphInfoTok v      -> p {morphFile   = v}
+            CmdTok "morph"    v -> p {morphCmd  = v}
+            CmdTok "select"   v -> p {selectCmd = v}
+            CmdTok "view"     v -> p {viewCmd = v}
+            TestCasesTok v      -> p {testCase = v }
             -- 
-            GrammarType v   -> p {grammarType = v} 
+            GrammarType v        -> p {grammarType = v} 
             IgnoreSemanticsTok v -> p { ignoreSemantics = v 
                                       , maxTrees = case maxTrees p of
                                           Nothing  -> if v then Just 5 else Nothing 
