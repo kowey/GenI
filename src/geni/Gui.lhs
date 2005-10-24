@@ -29,6 +29,7 @@ module Gui(guiGenerate) where
 \ignore{
 \begin{code}
 import Graphics.UI.WX
+import Graphics.UI.WXCore
 
 import qualified Control.Monad as Monad 
 import qualified Data.Map as Map
@@ -217,6 +218,11 @@ Pack it all together, perform the layout operation.
             , clientSize := sz 525 325
             , on closing := exitWith ExitSuccess 
             ]
+       -- this is to make the menubar appear on OS X (in app bundles)
+       -- don't know why we need to do this though, bug?
+       windowHide f
+       windowShow f
+       windowRaise f 
 \end{code}
 
 Don't forget all the helper functions!
@@ -1092,7 +1098,8 @@ graphvizGui f cachedir gvRef = do
             vsplit split 5 200 (widget rchoice) (widget sw) 
   set p [ on closing := closeImage dtBitmap ]
   -- bind an action to rchoice
-  let showItem = createAndOpenImage cachedir p gvRef openFn
+  let showItem = do createAndOpenImage cachedir p gvRef openFn
+                 `catch` \e -> errorDialog f "" (show e)
   ------------------------------------------------
   -- create an updater function
   ------------------------------------------------
@@ -1196,10 +1203,15 @@ if it fails.
 createAndOpenImage :: (GraphvizShow b) => 
   FilePath -> Window a -> GraphvizRef b Bool -> OpenImageFn -> IO ()
 createAndOpenImage cachedir f gvref openFn = do 
+  let errormsg g = "The file " ++ g ++ " was not created!\n"
+                   ++ "Is graphviz installed?"
   r <- createImage cachedir f gvref 
   case r of 
-    Just graphic -> openFn graphic
-    Nothing -> return ()
+    Just graphic -> do exists <- doesFileExist graphic 
+                       if exists 
+                          then openFn graphic
+                          else fail (errormsg graphic)
+    Nothing      -> return ()
 \end{code}
 
 \paragraph{createImage}
@@ -1219,9 +1231,9 @@ createImage cachedir f gvref = do
       config    = gvparams gvSt
       te = (drawables ! sel)
       b  = bounds drawables 
-      dotFile     = createDotPath cachedir (show sel)
-      graphicFile = createImagePath cachedir (show sel)
-      create = do toGraphviz config te dotFile graphicFile
+  dotFile <- createDotPath cachedir (show sel)
+  graphicFile <-  createImagePath cachedir (show sel)
+  let create = do toGraphviz config te dotFile graphicFile
                   return (Just graphicFile)
       handler err = do errorDialog f "Error calling graphviz" (show err) 
                        return Nothing
@@ -1243,10 +1255,11 @@ in it.
 \begin{code}
 initCacheDir :: String -> IO()
 initCacheDir cachesubdir = do 
-  cmainExists <- doesDirectoryExist gv_CACHEDIR
-  Monad.when (not cmainExists) $ createDirectory gv_CACHEDIR 
+  mainCacheDir <- gv_CACHEDIR
+  cmainExists  <- doesDirectoryExist mainCacheDir 
+  Monad.when (not cmainExists) $ createDirectory mainCacheDir 
   -- 
-  let cachedir = gv_CACHEDIR ++ "/" ++ cachesubdir  
+  let cachedir = mainCacheDir ++ slash ++ cachesubdir  
   cExists    <- doesDirectoryExist cachedir
   if (cExists)
     then do let notdot x = (x /= "." && x /= "..")
@@ -1274,17 +1287,20 @@ messageGui f msg = do
 \end{code}
 
 \begin{code}
-gv_CACHEDIR :: String
-gv_CACHEDIR = ".gvcache"
+gv_CACHEDIR :: IO String
+gv_CACHEDIR = do
+  home <- getHomeDirectory
+  return $ home ++ slash ++ ".gvcache"
 
--- FIXME: should use OS-independant seperator
-createImagePath :: String -> String -> String
-createImagePath subdir name = 
-  gv_CACHEDIR ++ "/" ++ subdir ++ "/" ++ name ++ ".png"
+createImagePath :: String -> String -> IO String
+createImagePath subdir name = do
+  cdir <- gv_CACHEDIR
+  return $ cdir ++ slash ++ subdir ++ slash ++ name ++ ".png"
 
-createDotPath :: String -> String -> String
-createDotPath subdir name = 
-  gv_CACHEDIR ++ "/" ++ subdir ++ "/" ++ name ++ ".dot"
+createDotPath :: String -> String -> IO String
+createDotPath subdir name = do 
+  cdir <- gv_CACHEDIR
+  return $ cdir ++ slash ++ subdir ++ slash ++ name ++ ".dot"
 \end{code}
 
 \paragraph{boundsCheck} makes sure that index s is in the bounds of list l.

@@ -166,7 +166,11 @@ data Switch =
     PolarisedTok | AutoPolTok | PolSigTok  | PredictingTok | ChartSharingTok |
     ExtraPolaritiesTok String |
     FootConstraintTok         | SemFilteredTok | OrderedAdjTok |  
-    BatchTok | RepeatTok String 
+    BatchTok | RepeatTok String | 
+    -- the WeirdTok exists strictly to please OS X when you launch
+    -- GenI in an application bundle (double-click)... for some
+    -- reason it wants to pass an argument to -p
+    WeirdTok String 
     deriving (Show,Eq)
 \end{code}
 
@@ -175,7 +179,9 @@ Note that we divide them into basic and advanced usage.
 
 \begin{code}
 options :: [OptDescr Switch]
-options = optionsBasic ++ optionsAdvanced
+options = optionsBasic ++ optionsAdvanced ++
+  -- FIXME: weird mac stuff
+  [ Option ['p']    []  (ReqArg WeirdTok "CMD") "" ]
 
 optionsBasic :: [OptDescr Switch] 
 optionsBasic =
@@ -353,6 +359,7 @@ defineParams p (f:s) = defineParams pnext s
             MaxTreesTok v        -> p {maxTrees = Just (read v)} 
             ExtraPolaritiesTok v -> p {extrapol = parsePol v} 
             RepeatTok v          -> p {batchRepeat = read v}
+            WeirdTok _           -> p
             p -> error ("Unknown configuration parameter: " ++ show p)
         -- when PolOpts and AdjOpts are in the list of optimisations
         -- then include all polarity-related optimisations and 

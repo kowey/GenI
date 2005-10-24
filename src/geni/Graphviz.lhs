@@ -37,7 +37,8 @@ where
 import Control.Monad(when)
 import System.IO(hPutStrLn, hClose)
 import System.Exit(ExitCode)
-import System.Process(waitForProcess, runInteractiveProcess)
+
+import SysGeni(waitForProcess, runInteractiveProcess)
 \end{code}
 }
 

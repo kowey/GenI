@@ -20,7 +20,7 @@ OS:=$(shell uname)
 SRC_GENI 	= ./src/geni
 GHCFLAGS        = $(LDFLAGS) -cpp -fglasgow-exts -threaded -O
 ifeq ($(OS),Darwin)
-GHCFLAGS += -framework AppKit 
+#GHCFLAGS += -framework AppKit -framework Cocoa -framework Carbon -framework IOKit 
 endif
 
 #-O
@@ -90,7 +90,7 @@ OFILE = bin/geni
 COFILE = bin/geniconvert
 
 ifeq ($(OS),Darwin)
-OS_SPECIFIC_STUFF = macosx-app $(OFILE)
+OS_SPECIFIC_STUFF = cd bin; ../etc/macstuff/macosx-app geni 
 endif
 
 

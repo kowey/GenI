@@ -27,12 +27,88 @@ where
 
 \ignore{
 \begin{code}
+import Data.List(intersperse, isSuffixOf)
 import System.Exit(ExitCode)
 import System.Posix
 import System.IO(Handle, BufferMode(..), hSetBuffering)
 import System.Directory(setCurrentDirectory)
+import qualified System.Process as S
+
+import General(slash)
+
+#ifdef __GLASGOW_HASKELL__
+import Foreign
+import Foreign.C
+import Control.Exception 	( bracket )
+import Control.Monad
+import GHC.IOBase
+#include "ghcconfig.h"
+#endif
 \end{code}
 }
+
+\section{Running a process}
+
+We mostly re-export stuff from System.Process.  
+
+\begin{code}
+waitForProcess = S.waitForProcess
+\end{code}
+
+But one thing special we need to do for Macs is to detect if we're
+running from an application bundle.  If we are, we assume that any
+processes we want to run are in \texttt{../Resources/bin}.
+
+\begin{code}
+#ifdef darwin_TARGET_OS 
+foreign import ccall unsafe "getProgArgv"
+  getProgArgv :: Ptr CInt -> Ptr (Ptr CString) -> IO ()
+
+runInteractiveProcess cmd args x y = do
+  dirname <- getProgDirName
+  -- detect if we're in an .app bundle, i.e. if 
+  -- we are running from something.app/Contents/MacOS
+  let insertSlashes p = (concat $ intersperse slash p)
+      appBundle = (insertSlashes p) ++ slash
+        where p = [ ".app", "Contents", "MacOS" ]
+      resBinCmd = dirname ++ (insertSlashes p)
+        where p = [ "..", "Resources", "bin", cmd ]
+  -- if we're in an .app bundle, we should prefix the
+  -- path with ../Resources/bin
+  let cmd2 = if appBundle `isSuffixOf` dirname 
+             then resBinCmd else cmd
+  S.runInteractiveProcess cmd2 args x y 
+#else -- if not on a Mac
+runInteractiveProcess = S.runInteractiveProcess
+#endif
+\end{code}
+
+\paragraph{Process helpers}
+
+\begin{code}
+getProgDirName :: IO String
+getProgDirName = 
+  alloca $ \ p_argc ->
+  alloca $ \ p_argv -> do
+     getProgArgv p_argc p_argv
+     argv <- peek p_argv
+     s <- peekElemOff argv 0 >>= peekCString
+     return $ dirname s
+  where
+   dirname :: String -> String
+   dirname f = reverse $ dropWhile (not.isPathSeparator) $ reverse f
+   isPathSeparator :: Char -> Bool
+   isPathSeparator '/'  = True
+#ifdef mingw32_TARGET_OS 
+   isPathSeparator '\\' = True
+#endif
+   isPathSeparator _    = False
+\end{code}
+
+\section{Old System Stuff}
+
+For some software, I cannot seem to get rid of this function. 
+\fnreflite{runInteractiveProcess} doesn't seem to do what I want.
 
 \paragraph{runPiped}
 

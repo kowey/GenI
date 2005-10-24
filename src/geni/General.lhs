@@ -149,6 +149,7 @@ bugInGeni =
 \section{Files}
 
 \begin{code}
+-- FIXME: should be OS-independant 
 slash = "/"
 \end{code}
 
