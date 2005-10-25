@@ -797,7 +797,7 @@ assignIndex i te =
 \section{Further optimisations}
 % ====================================================================
 
-\subsection{Lexical filtering}
+\subsection{Lexical filtering} \label{fn:detectRestrictors}
 
 Lexical filtering allows the user to restricte the lexical selection
 to only those items that contain a certain property, for example, the
