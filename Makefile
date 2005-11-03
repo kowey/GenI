@@ -99,12 +99,13 @@ OS_SPECIFIC_STUFF = cd bin; ../etc/macstuff/macosx-app geni
 endif
 
 
-LEXERS		= $(SRC_GENI)/Lex2.hs
-PARSERS		= $(SRC_GENI)/Mparser.hs 
+SOURCE_FILES_1 := $(wildcard $(SRC_GENI)/*.lhs)
+SOURCE_FILES_2 := $(wildcard $(SRC_GENI)/*.hs)
+SOURCE_HSPP_1 := $(patsubst %.lhs,%.hspp,$(SOURCE_FILES_1))
+SOURCE_HSPP_2 := $(SOURCE_FILES_2)
 
-PARSERS_OUT  := $(patsubst %.hs,%.o,$(PARSERS))
-SOURCE_FILES := $(wildcard $(SRC_GENI)/*.lhs)\
-		$(wildcard $(SRC_GENI)/*.hs)
+SOURCE_FILES := $(SOURCE_FILES_1) $(SOURCE_FILES_2)
+SOURCE_HSPP  := $(SOURCE_HSPP_1) $(SOURCE_HSPP_2)
 
 # Phony targets do not keep track of file modification times
 .PHONY: all nogui dep clean docs html release optimize\
