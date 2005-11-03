@@ -122,7 +122,7 @@ normal: compile
 all: compile docs tidy
 release: compile docs html tidy tarball
 
-doc:  $(MAKE_DOCS) haddock
+doc:  permissions $(MAKE_DOCS) haddock
 	cp $(MAKE_DOCS) $(DOC_DIR)
 
 docs: doc 
@@ -213,8 +213,3 @@ $(MAKE_DOCS): %.pdf: %.tex $(DOC_SRC)
 	$(LATEX) `basename $<` &&\
 	$(LATEX) `basename $<` ;\
 	$(DVIPDF)
-
-$(MAKE_HTML): %-html: %.tex
-	rm -rf $@
-	$(LATEX2HTML)  $<
-	mv `basename $< .tex` $@
