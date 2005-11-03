@@ -147,7 +147,7 @@ Each lexical entry is
       This is equivalent to the attribute-value pairs above; the only
       difference is that we don't do any parameters, and we use square
       brackets instead of parentheses.
-\\end{itemize}
+\end{itemize}
 \item Optionally: FIXME: add in extension stuff
 \end{enumerate}
 
