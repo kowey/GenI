@@ -1,10 +1,13 @@
 documentation
 -------------
-1. users manual: see http://wiki.loria.fr/wiki/GenI
-2. semi-literate source code: (pdflatex needed)
-      make doc
-      src/geni/genidoc.pdf 
-      (note: pictures turn up best in Preview.app or Acrobat Reader)
+make doc # (pdflatex and haddock are needed)
+
+1. users manual: 
+     http://wiki.loria.fr/wiki/GenI
+2. semi-literate source code: 
+     doc/genidoc.pdf 
+3. API: 
+     doc/api/index.html
 
 installing GenI
 ---------------

@@ -91,7 +91,8 @@ OFILE = bin/geni
 COFILE = bin/geniconvert
 EOFILE = bin/geniExtractCases
 
-HADDOCK_OUT = doc/api
+DOC_DIR = doc
+HADDOCK_OUT = $(DOC_DIR)/api
 
 ifeq ($(OS),Darwin)
 OS_SPECIFIC_STUFF = cd bin; ../etc/macstuff/macosx-app geni 
@@ -119,8 +120,10 @@ normal: compile
 all: compile docs tidy
 release: compile docs html tidy tarball
 
-doc:  $(MAKE_DOCS)
-docs: $(MAKE_DOCS) 
+doc:  $(MAKE_DOCS) haddock
+	cp $(MAKE_DOCS) $(DOC_DIR)
+
+docs: doc 
 html: $(MAKE_HTML)
 
 tarball:
