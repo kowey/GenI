@@ -91,18 +91,25 @@ OFILE = bin/geni
 COFILE = bin/geniconvert
 EOFILE = bin/geniExtractCases
 
+HADDOCK_OUT = doc/api
+
 ifeq ($(OS),Darwin)
 OS_SPECIFIC_STUFF = cd bin; ../etc/macstuff/macosx-app geni 
 endif
 
 
+LEXERS		= $(SRC_GENI)/Lex2.hs
+PARSERS		= $(SRC_GENI)/Mparser.hs 
+
+PARSERS_OUT  := $(patsubst %.hs,%.o,$(PARSERS))
 SOURCE_FILES := $(wildcard $(SRC_GENI)/*.lhs)\
 		$(wildcard $(SRC_GENI)/*.hs)
 
 # Phony targets do not keep track of file modification times
 .PHONY: all nogui dep clean docs html release optimize\
        	permissions install\
-	extractor
+	extractor\
+	haddock
 
 # --------------------------------------------------------------------
 # main targets 
@@ -127,6 +134,7 @@ clean: tidy
 	rm -f $(SRC_GENI)/*.{ps,pdf}
 	rm -f $(MAKE_HTML)
 	rm -rf $(OFILE) $(OFILE).app
+	rm -rf $(SOURCE_HSPP_1) $(HADDOCK_OUT)
 
 tidy:
 	rm -f $(SRC_GENI)/*.{dvi,aux,log,bbl,blg,out,toc}
@@ -186,6 +194,13 @@ endif
 # --------------------------------------------------------------------
 
 DOC_SRC=$(SRC_GENI)/*.lhs
+
+haddock: $(SOURCE_HSPP)
+	mkdir -p $(HADDOCK_OUT)
+	haddock -h $(SOURCE_HSPP) -o $(HADDOCK_OUT)
+
+$(SOURCE_HSPP_1): %.hspp: %.lhs
+	etc/lhs2haddock < $< > $@
 
 $(MAKE_DOCS): %.pdf: %.tex $(DOC_SRC)
 	cd `dirname $<` &&\
