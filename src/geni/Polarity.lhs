@@ -111,10 +111,10 @@ we return everything a tuple with (1) a list of the automota that
 were created and (2) the final automaton.  The first item is only
 neccesary for debugging; only the second is important.  
 
-Note: the extraPol argument is a finite map containing any initial
+Note: the extraPol argument is a map containing any initial
 values for polarity keys.  This is useful to impose external filters
 like ``I only want sentences'' or ``I only want expressions where 
-the object is topicalised''.
+the object is topicalised''.  
 
 \begin{code}
 type AutDebug = (String, PolAut, PolAut)

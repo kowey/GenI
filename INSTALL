@@ -2,14 +2,14 @@ Requirements
 ------------
  * ghc 6.4
  * libgmp (for ghc)
- * wxhaskell 0.9.4 (requires Unicode patch: see below)
+ * wxhaskell 0.9.4 (optional Unicode patch: see below)
  * wxWidgets 2.5 or 2.6 (for wxhaskell)
  * graphviz (for GUI) 
 
 wxWidgets and wxhaskell
 -----------------------
-For the moment, you'll need to compile wxWidgets and wxhaskell with special 
-options.  Please see
+If you want to use Unicode, you'll need to compile wxWidgets and
+wxhaskell with special options.  Please see
   http://wiki.loria.fr/wiki/GenI/Getting_GenI
 
 Building geni

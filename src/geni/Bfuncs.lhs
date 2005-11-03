@@ -534,34 +534,6 @@ toKeys :: Sem -> [String]
 toKeys l = map (\(_,prop,par) -> prop++(show (length par))) l
 \end{code}
 
-%\paragraph{instantiate} 
-%Given a predicate (name, listParams) p and the
-%semantics s of a candidate, it instantiates s in terms of p.  
-%I.e variables in s are instantiated according to p, but notice
-%that variables in s are left as is and no error is reported.  
-%Candidates should be checked for subsumeSem afterwards 
-%
-%\begin{code}
-%instCandSem :: (String, [String]) -> Sem -> Sem
-%instCandSem p [] =
-%    []
-%instCandSem p@(pn1, lp1) (h@(pn2, lp2):rl) =
-%    if ((pn1 == pn2) && (length lp1 == length lp2))
-%       then let sub = findSubstCand lp1 lp2
-%                in (substPred p sub):(instCandSem p (substSem rl sub))
-%       else h:(instCandSem p rl) -}
-%\end{code}
-%
-%\begin{code}
-%findSubstCand :: [String] -> [String] -> Subst
-%findSubstCand [] [] =
-%    []
-%findSubstCand (w1:l1) (w2:l2) =
-%    if (isVar w2) 
-%       then (w2, w1):findSubstCand l1 l2
-%       else findSubstCand l1 l2
-%\end{code}
-
 \begin{code}
 substPred :: Pred -> Subst -> Pred
 substPred p [] = p
