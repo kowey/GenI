@@ -24,71 +24,71 @@
 %% Nouns
 %% common nouns
 
-hat Cn(Entity ! agr:sg3)
-semantics:[hat(_ Entity)]
+hat Cn(?Entity ! agr:sg3)
+semantics:[hat(_ ?Entity)]
 
-man Cn(Entity ! agr:sg3)
-semantics:[man(_ Entity)]
+man Cn(?Entity ! agr:sg3)
+semantics:[man(_ ?Entity)]
 
-rabbit Cn(Entity ! agr:sg3)
-semantics:[rabbit(_ Entity)]
+rabbit Cn(?Entity ! agr:sg3)
+semantics:[rabbit(_ ?Entity)]
 
-woman Cn(Entity ! agr:sg3)
-semantics:[woman(_ Entity)]
+woman Cn(?Entity ! agr:sg3)
+semantics:[woman(_ ?Entity)]
 
 
 %% proper names
 
-mia Pn(Entity ! agr:sg3)
-semantics:[name(_ Entity mia)]
+mia Pn(?Entity ! agr:sg3)
+semantics:[name(_ ?Entity mia)]
 
-vincent Pn(Entity ! agr:sg3)
-semantics:[name(_ Entity vincent)]
+vincent Pn(?Entity ! agr:sg3)
+semantics:[name(_ ?Entity vincent)]
 
-émilie Pn(Entity ! agr:sg3)
-semantics:[name(_ Entity émilie)]
+émilie Pn(?Entity ! agr:sg3)
+semantics:[name(_ ?Entity émilie)]
 
 
 %% Verbs
 %% intransitive verbs
 
-runs vArity1(Event Agent ! agr:sg3)
-semantics:[run(Event Agent)]
+runs vArity1(?Event ?Agent ! agr:sg3)
+semantics:[run(?Event ?Agent)]
 
-sleeps vArity1(Event Agent ! agr:sg3)
-semantics:[sleep(Event Agent)]
+sleeps vArity1(?Event ?Agent ! agr:sg3)
+semantics:[sleep(?Event ?Agent)]
 
 %% transitive verbs
 
-loves vArity2(Event Agent Experiencer ! agr:sg3)
-semantics:[love(Event Agent Experiencer)]
+loves vArity2(?Event ?Agent ?Experiencer ! agr:sg3)
+semantics:[love(?Event ?Agent ?Experiencer)]
 
-removes vArity3(Event Agent Theme Loc ! agr:sg3)
-semantics:[remove(Event Agent Theme Loc)]
+removes vArity3(?Event ?Agent ?Theme ?Loc ! agr:sg3)
+semantics:[remove(?Event ?Agent ?Theme ?Loc)]
 
 
 %% Modifiers
 %% adjectives
 
-big Adj(Entity)
-semantics:[big(_ Entity)]
+big Adj(?Entity)
+semantics:[big(_ ?Entity)]
 
-tall Adj(Entity)
-semantics:[tall(_ Entity)]
+tall Adj(?Entity)
+semantics:[tall(_ ?Entity)]
 
-white Adj(Entity)
-semantics:[white(_ Entity)]
+white Adj(?Entity)
+semantics:[white(_ ?Entity)]
 
 
 %% adverbs
 
-fast Adv(Event)
-semantics:[fast(_ Event)]
+fast Adv(?Event)
+semantics:[fast(_ ?Event)]
 
 
-%% Determiners
+%% ?Determiners
 
-%a Dp(Entity ! agr:sg3)
+%a Dp(?Entity ! agr:sg3)
 
-the Dp(Entity)
-semantics:[def(Entity)]
+the Dp(?Entity)
+semantics:[def(?Entity)]

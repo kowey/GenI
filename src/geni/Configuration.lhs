@@ -38,8 +38,10 @@ import System.Console.GetOpt
 import System.Exit ( exitWith, ExitCode(..) )
 import Data.List  ( find, intersperse )
 import Data.Maybe ( catMaybes  )
+import Text.ParserCombinators.Parsec ( runParser )
+
 import General ( bugInGeni, fst3, snd3, wordsBy ) 
-import GeniParsers (parsePol)
+import GeniParsers ( geniPolarities )
 \end{code}
 }
 
@@ -209,7 +211,7 @@ optionsAdvanced :: [OptDescr Switch]
 optionsAdvanced =
   [ Option []    ["xmgtools"] (NoArg (GrammarType XMGTools))
       "use XMG format for trees and GDE format for lexicon"
-  , Option []    ["extrapols"] (ReqArg ExtraPolaritiesTok "LIST")
+  , Option []    ["extrapols"] (ReqArg ExtraPolaritiesTok "STRING")
       "preset polarities (normally, you should use rootcats instead)" 
   , Option []    ["ignoresem"]   (NoArg (IgnoreSemanticsTok True))
       "ignore all semantic information"
@@ -342,41 +344,46 @@ a singleton list of lists.
 defineParams :: Params -> [Switch] -> Params
 defineParams p [] = p
 defineParams p (f:s) = defineParams pnext s
-  where pnext = case f of 
-            GraphicalTok v     -> p {isGraphical = v}
-            OptimisationsTok v -> p {optimisations = readOpt v } 
-            OutputFileTok v    -> p {outputFile = v}
-            -- grammar stuff
-            MacrosTok    v -> p {macrosFile  = v}
-            LexiconTok   v -> p {lexiconFile = v} 
-            TestSuiteTok v -> p {tsFile = v}
-            -- advanced stuff
-            RootCategoriesTok v -> p {rootCatsParam = wordsBy '+' v}
-            MorphInfoTok v      -> p {morphFile   = v}
-            CmdTok "morph"    v -> p {morphCmd  = v}
-            CmdTok "select"   v -> p {selectCmd = v}
-            CmdTok "view"     v -> p {viewCmd = v}
-            TestCasesTok v      -> p {testCase = v }
-            -- 
-            GrammarType v        -> p {grammarType = v} 
-            IgnoreSemanticsTok v -> p { ignoreSemantics = v 
-                                      , maxTrees = case maxTrees p of
-                                          Nothing  -> if v then Just 5 else Nothing 
-                                          Just lim -> Just lim }
-            MaxTreesTok v        -> p {maxTrees = Just (read v)} 
-            ExtraPolaritiesTok v -> p {extrapol = parsePol v} 
-            RepeatTok v          -> p {batchRepeat = read v}
-            WeirdTok _           -> p
-            p -> error ("Unknown configuration parameter: " ++ show p)
-        -- when PolOpts and AdjOpts are in the list of optimisations
-        -- then include all polarity-related optimisations and 
-        -- all adjunction-related optimisations respectively
-        readOpt v = addif PolOptsTok polOpts      
-                  $ addif AdjOptsTok adjOpts 
-                  $ parseOptimisations v
-        addif t x o = if (t `elem` o) then x ++ o else o
-        polOpts     = [PolarisedTok, AutoPolTok, ChartSharingTok] 
-        adjOpts     = [SemFilteredTok, FootConstraintTok]
+  where
+    parsePol p = 
+      case (runParser geniPolarities () "" p) of
+        Left err -> error (show err)
+        Right p2 -> p2
+    pnext = case f of 
+      GraphicalTok v     -> p {isGraphical = v}
+      OptimisationsTok v -> p {optimisations = readOpt v } 
+      OutputFileTok v    -> p {outputFile = v}
+      -- grammar stuff
+      MacrosTok    v -> p {macrosFile  = v}
+      LexiconTok   v -> p {lexiconFile = v} 
+      TestSuiteTok v -> p {tsFile = v}
+      -- advanced stuff
+      RootCategoriesTok v -> p {rootCatsParam = wordsBy '+' v}
+      MorphInfoTok v      -> p {morphFile   = v}
+      CmdTok "morph"    v -> p {morphCmd  = v}
+      CmdTok "select"   v -> p {selectCmd = v}
+      CmdTok "view"     v -> p {viewCmd = v}
+      TestCasesTok v      -> p {testCase = v }
+      -- 
+      GrammarType v        -> p {grammarType = v} 
+      IgnoreSemanticsTok v -> p { ignoreSemantics = v 
+                                , maxTrees = case maxTrees p of
+                                    Nothing  -> if v then Just 5 else Nothing 
+                                    Just lim -> Just lim }
+      MaxTreesTok v        -> p {maxTrees = Just (read v)} 
+      ExtraPolaritiesTok v -> p {extrapol = parsePol v } 
+      RepeatTok v          -> p {batchRepeat = read v}
+      WeirdTok _           -> p
+      p -> error ("Unknown configuration parameter: " ++ show p)
+    -- when PolOpts and AdjOpts are in the list of optimisations
+    -- then include all polarity-related optimisations and 
+    -- all adjunction-related optimisations respectively
+    readOpt v = addif PolOptsTok polOpts      
+              $ addif AdjOptsTok adjOpts 
+              $ parseOptimisations v
+    addif t x o = if (t `elem` o) then x ++ o else o
+    polOpts     = [PolarisedTok, AutoPolTok, ChartSharingTok] 
+    adjOpts     = [SemFilteredTok, FootConstraintTok]
 \end{code}
 
 

@@ -19,96 +19,96 @@
 
 %% INITIAL TREES
 
-vArity1:IntrV(Event Agent ! agr:A) initial
-	n1[cat:s idx:Event]![]
+vArity1:IntrV(?Event ?Agent ! agr:?A) initial
+	n1[cat:s idx:?Event]![]
 	{	
-	 n2 type:subst [cat:np idx:Agent]![]
-	 n3[cat:vp idx:Event]![]
+	 n2 type:subst [cat:np idx:?Agent]![]
+	 n3[cat:vp idx:?Event]![]
 	  {
-	   n4 aconstr:noadj [cat:v idx:Event]![]
+	   n4 aconstr:noadj [cat:v idx:?Event]![]
 	   {
 	    n5 anchor
 	   }
 	  }
 	}
 
-vArity2:TrV(Event Agent Experiencer ! agr:A) initial
-	n1[cat:s idx:Event]![]
+vArity2:TrV(?Event ?Agent ?Experiencer ! agr:?A) initial
+	n1[cat:s idx:?Event]![]
 	{
-	 n2 type:subst [cat:np idx:Agent ]![]
-	 n3[cat:vp idx:Event]![]
+	 n2 type:subst [cat:np idx:?Agent ]![]
+	 n3[cat:vp idx:?Event]![]
 	  {
-	   n4[cat:v idx:Event]![]
+	   n4[cat:v idx:?Event]![]
 	   {
 	    n5 anchor
 	   }
-	   n6 type:subst [cat:np idx:Experiencer ]![]
+	   n6 type:subst [cat:np idx:?Experiencer ]![]
 	  }
 	}
 
-vArity3:TrVPP(Event Agent Theme Loc ! agr:A) initial
-	n1[cat:s idx:Event]![]
+vArity3:TrVPP(?Event ?Agent ?Theme ?Loc ! agr:?A) initial
+	n1[cat:s idx:?Event]![]
 	{
-	  n2 type:subst [cat:np idx:Agent ]![]
-	  n3[cat:vp idx:Event]![]
+	  n2 type:subst [cat:np idx:?Agent ]![]
+	  n3[cat:vp idx:?Event]![]
 	  {
-	    n4[cat:v idx:Event]![]
+	    n4[cat:v idx:?Event]![]
 	    {
 	      n5 anchor
 	    }
-	    n6 type:subst [cat:np idx:Theme ]![]
+	    n6 type:subst [cat:np idx:?Theme ]![]
 	    n7 aconstr:noadj [cat:pp]![]
             {
 	      n8[cat:p]![]
 	      {
 	        n9 type:lex "from"
 	      }
-	      n10 type:subst [cat:np idx:Loc ]![]
+	      n10 type:subst [cat:np idx:?Loc ]![]
 	    }
 	  }
 	}
 
-Dp(Entity ! agr:A) initial
-	n1[cat:np idx:Entity]![]
+Dp(?Entity ! agr:?A) initial
+	n1[cat:np idx:?Entity]![]
 	{
 	  n2[cat:det]![]
 	  {
 	    n3 anchor
 	  }
-	  n4 type:subst [cat:n idx:Entity ]![]
+	  n4 type:subst [cat:n idx:?Entity ]![]
 	}
 
-Pn(Entity ! agr:A) initial
-	n1[cat:np idx:Entity]![]
+Pn(?Entity ! agr:?A) initial
+	n1[cat:np idx:?Entity]![]
 	{
-	 n2[cat:pn idx:Entity]![]
+	 n2[cat:pn idx:?Entity]![]
 	 {
 	  n3 anchor
 	 }
 	}
 
-Cn(Entity ! agr:A) initial
-	n1[cat:n idx:Entity]![]
+Cn(?Entity ! agr:?A) initial
+	n1[cat:n idx:?Entity]![]
 	{
 	 n2 anchor
 	}
 
-%% AUXILIARY TREES
+%% ?AUXILIARY ?TREES
 
-Adj(Entity) auxiliary
-	n1[cat:n idx:Entity]![]
+Adj(?Entity) auxiliary
+	n1[cat:n idx:?Entity]![]
 	{
 	  n2[cat:adj]![]
 	  {
 	    n3 anchor
 	  }
-	  n4 type:foot [cat:n idx:Entity ]![]
+	  n4 type:foot [cat:n idx:?Entity ]![]
 	}
 
-Adv(Event) auxiliary
-	n1[cat:vp idx:Event]![]
+Adv(?Event) auxiliary
+	n1[cat:vp idx:?Event]![]
 	{
-	  n2 type:foot [cat:vp idx:Event]![]
+	  n2 type:foot [cat:vp idx:?Event]![]
 	  n3[cat:adv]![]
 	  {
 	    n4 anchor

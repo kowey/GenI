@@ -4,8 +4,6 @@ Requirements
  * libgmp (for ghc)
  * wxhaskell 0.9.4 (requires Unicode patch: see below)
  * wxWidgets 2.5 or 2.6 (for wxhaskell)
- * alex 2.0.1
- * happy 1.14 and up
  * graphviz (for GUI) 
 
 wxWidgets and wxhaskell

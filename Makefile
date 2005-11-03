@@ -96,10 +96,6 @@ OS_SPECIFIC_STUFF = cd bin; ../etc/macstuff/macosx-app geni
 endif
 
 
-LEXERS		= $(SRC_GENI)/Lex2.hs
-PARSERS		= $(SRC_GENI)/Mparser.hs 
-
-PARSERS_OUT  := $(patsubst %.hs,%.o,$(PARSERS))
 SOURCE_FILES := $(wildcard $(SRC_GENI)/*.lhs)\
 		$(wildcard $(SRC_GENI)/*.hs)
 
@@ -128,7 +124,6 @@ tarball:
 	mv $(MYDIR)_$(DATE).tar.gz $(MYDIR)
 
 clean: tidy
-	rm -f $(LEXERS) $(PARSERS)
 	rm -f $(SRC_GENI)/*.{ps,pdf}
 	rm -f $(MAKE_HTML)
 	rm -rf $(OFILE) $(OFILE).app
@@ -143,35 +138,26 @@ permissions:
 # compilation 
 # --------------------------------------------------------------------
 
-$(LEXERS): %.hs: %.x
-	alex -g $< 
-
-$(PARSERS): %.hs: %.y
-	happy -a -g -c -m `basename $@ .hs` $< 
-
 compile: permissions $(OFILE) $(EOFILE)
 
 extractor: $(EOFILE)
 
-$(OFILE) : $(LEXERS) $(PARSERS) $(SOURCE_FILES)
-	#$(GHC) -c --make $(GHCPACKAGES_GUI) $(LEXERS) $(PARSERS) 
+$(OFILE) : $(SOURCE_FILES)
 	$(GHC) -W --make $(GHCPACKAGES_GUI) $(IFILE).lhs -o $(OFILE)
 	$(OS_SPECIFIC_STUFF)
 
-$(COFILE) : $(LEXERS) $(PARSERS) $(SOURCE_FILES)
-	#$(GHC) -c --make $(GHCPACKAGES_GUI) $(LEXERS) $(PARSERS) 
+$(COFILE) : $(SOURCE_FILES)
 	$(GHC) -W --make $(GHCPACKAGES) $(CIFILE).lhs -o $(COFILE) 
 	$(OS_SPECIFIC_STUFF)
 
 $(EOFILE) : $(SOURCE_FILES)
 	$(GHC) -W --make $(GHCPACKAGES) $(EIFILE).lhs -o $(EOFILE) 
 
-nogui : $(LEXERS) $(PARSERS) permissions 
-	#$(GHC) -c --make $(GHCPACKAGES_GUI) $(LEXERS) $(PARSERS) 
+nogui : permissions 
 	$(GHC) -W --make $(GHCPACKAGES) $(DIFILE).lhs -o $(OFILE) 
 	$(OS_SPECIFIC_STUFF)
 
-debugger: $(LEXERS) $(PARSERS) permissions
+debugger: permissions
 	$(GHC_PROF) --make $(DIFILE).lhs -o debugger-$(OFILE)
 #	$(GHC) -O -prof -auto-all --make $(CIFILE).lhs -o debugger-$(COFILE)
 

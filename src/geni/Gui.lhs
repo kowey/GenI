@@ -40,6 +40,7 @@ import Data.Maybe (isJust)
 import System.Directory 
 import System.Exit (exitWith, ExitCode(ExitSuccess))
 import System.Process (runProcess)
+import Text.ParserCombinators.Parsec ( runParser )
 
 import Graphviz 
 import Treeprint(graphvizShowTagElem)
@@ -183,8 +184,9 @@ Pack it all together, perform the layout operation.
 
 \begin{code}
        -- set any last minute handlers, run any last minute functions
-       let onLoad = readConfig pstRef macrosFileLabel lexiconFileLabel tsFileLabel tsTextBox testCaseChoice 
+       let onLoad = readConfig f pstRef macrosFileLabel lexiconFileLabel tsFileLabel tsTextBox testCaseChoice 
        set loadMenIt [ on command := do configGui pstRef onLoad ]
+       onLoad
        togglePolStuff
        --
        let gramsemBox = boxed "Files last loaded" $ 
@@ -253,8 +255,9 @@ the GUI
 
 \begin{code}
 -- readConfig :: (Textual a) => ProgStateRef -> a -> IO ()
-readConfig pstRef macrosFileLabel lexiconFileLabel tsFileLabel tsBox tsChoice = 
+readConfig f pstRef macrosFileLabel lexiconFileLabel tsFileLabel tsBox tsChoice = 
   do pst <- readIORef pstRef
+     let errhandler title err = errorDialog f title (show err)
      let config = pa pst
          -- errHandler title err = errorDialog f title (show err)
      set macrosFileLabel  [ text := macrosFile config ]
@@ -266,6 +269,8 @@ readConfig pstRef macrosFileLabel lexiconFileLabel tsFileLabel tsBox tsChoice =
        else do loadTestSuite pstRef
                readTestSuite pstRef tsBox tsChoice
                set tsChoice [ enabled := True ]
+            `catch` errhandler "Error reading test suite"
+
 \end{code}
 
 \paragraph{readTestSuite} is used to update the graphical interface after
@@ -472,7 +477,11 @@ Let's not forget the layout which puts the whole configGui together and the
 command that makes everything ``work'':
 
 \begin{code}
-  let onLoad 
+  let parsePol p 
+       = case (runParser geniPolarities () "" p) of
+           Left err -> error (show err)
+           Right p2 -> p2
+      onLoad 
        = do macrosVal <- get macrosFileLabel text
             lexconVal <- get lexiconFileLabel text
             tsVal     <- get tsFileLabel text

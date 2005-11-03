@@ -16,6 +16,7 @@
 % Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 \chapter{Polarity Optimisation}
+\label{cha:Polarity}
 
 We introduce a notion of polarities as a means of pre-detecting
 incompatibilities between candidate trees for different propositions.

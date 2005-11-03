@@ -182,9 +182,9 @@ in the following manner:
 
 \begin{code}
 instance Show GeniVal where
-  show (GConst x) = concat $ intersperse " ! " $ map toLowerHead x
-  show (GVar x)   = toUpperHead x
-  show GAnon      = "_"
+  show (GConst x) = concat $ intersperse " ! " x
+  show (GVar x)   = '?':x
+  show GAnon      = "?_"
 
 -- Should figure out how to use a standard type class sometime later
 readGeniVal :: String -> GeniVal

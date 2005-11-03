@@ -6,91 +6,91 @@
 
 %% Determinants
 
-un Det(I)
-semantics:[indef(I)]
+un Det(?I)
+semantics:[indef(?I)]
 
 %% Noms communs
 
-livre nC(I)
-semantics:[book(I)]
+livre nC(?I)
+semantics:[book(?I)]
 
 %% Noms Propres
 
-marie nP(I)
-semantics:[marie(I)]
+marie nP(?I)
+semantics:[marie(?I)]
 
-claire nP(I)
-semantics:[claire(I)]
+claire nP(?I)
+semantics:[claire(?I)]
 
-olivier nP(I)
-semantics:[olivier(I)]
+olivier nP(?I)
+semantics:[olivier(?I)]
 
-pierre nP(I)
-semantics:[pierre(I)]
+pierre nP(?I)
+semantics:[pierre(?I)]
 
-jean nP(I)
-semantics:[jean(I)]
+jean nP(?I)
+semantics:[jean(?I)]
 
-paul nP(I)
-semantics:[paul(I)]
+paul nP(?I)
+semantics:[paul(?I)]
 
 %% --------------------------------------------------------------------- 
 %% Verbs 
 %% --------------------------------------------------------------------- 
 
-donner vinfn1sp2(E X Y Z)
-semantics:[give(E X Y Z)]
-donner n0vn1sp2(E X Y Z)
-semantics:[give(E X Y Z)]
-donner qu0vn1sp2(E X Y Z)
-semantics:[give(E X Y Z)]
-donner qu1vn0sp2(E X Y Z)
-semantics:[give(E X Y Z)]
-donner qu2n0vn1(E X Y Z)
-semantics:[give(E X Y Z)]
-donner rel0vn1sp2(E X Y Z)
-semantics:[give(E X Y Z)]
-donner rel1vn0sp2(E X Y Z)
-semantics:[give(E X Y Z)]
-donner rel2n0vn1(E X Y Z)
-semantics:[give(E X Y Z)]
+donner vinfn1sp2(?E ?X ?Y ?Z)
+semantics:[give(?E ?X ?Y ?Z)]
+donner n0vn1sp2(?E ?X ?Y ?Z)
+semantics:[give(?E ?X ?Y ?Z)]
+donner qu0vn1sp2(?E ?X ?Y ?Z)
+semantics:[give(?E ?X ?Y ?Z)]
+donner qu1vn0sp2(?E ?X ?Y ?Z)
+semantics:[give(?E ?X ?Y ?Z)]
+donner qu2n0vn1(?E ?X ?Y ?Z)
+semantics:[give(?E ?X ?Y ?Z)]
+donner rel0vn1sp2(?E ?X ?Y ?Z)
+semantics:[give(?E ?X ?Y ?Z)]
+donner rel1vn0sp2(?E ?X ?Y ?Z)
+semantics:[give(?E ?X ?Y ?Z)]
+donner rel2n0vn1(?E ?X ?Y ?Z)
+semantics:[give(?E ?X ?Y ?Z)]
 
-promettre n0vn1sp2(E X Y Z)
-semantics:[promise(E X Y Z)]
-promettre vinfn1sp2(E X Y Z)
-semantics:[promise(E X Y Z)]
-promettre qu0vn1sp2(E X Y Z)
-semantics:[promise(E X Y Z)]
-promettre qu1vn0sp2(E X Y Z)
-semantics:[promise(E X Y Z)]
-promettre qu2n0vn1(E X Y Z)
-semantics:[promise(E X Y Z)]
-promettre rel0vn1sp2(E X Y Z)
-semantics:[promise(E X Y Z)]
-promettre rel1vn0sp2(E X Y Z)
-semantics:[promise(E X Y Z)]
-promettre rel2n0vn1(E X Y Z)
-semantics:[promise(E X Y Z)]
-promettre n0vsp2pinf1(E X Y Z)
-semantics:[promise(E X Y Z)]
-promettre vinfsp2pinf1(E X Y Z)
-semantics:[promise(E X Y Z)]
-promettre qu0vsp2pinf1(E X Y Z)
-semantics:[promise(E X Y Z)]
-promettre qu2n0vpinf1(E X Y Z)
-semantics:[promise(E X Y Z)]
-promettre rel0vsp2pinf1(E X Y Z)
-semantics:[promise(E X Y Z)]
-promettre rel2n0vpinf1(E X Y Z)
-semantics:[promise(E X Y Z)]
+promettre n0vn1sp2(?E ?X ?Y ?Z)
+semantics:[promise(?E ?X ?Y ?Z)]
+promettre vinfn1sp2(?E ?X ?Y ?Z)
+semantics:[promise(?E ?X ?Y ?Z)]
+promettre qu0vn1sp2(?E ?X ?Y ?Z)
+semantics:[promise(?E ?X ?Y ?Z)]
+promettre qu1vn0sp2(?E ?X ?Y ?Z)
+semantics:[promise(?E ?X ?Y ?Z)]
+promettre qu2n0vn1(?E ?X ?Y ?Z)
+semantics:[promise(?E ?X ?Y ?Z)]
+promettre rel0vn1sp2(?E ?X ?Y ?Z)
+semantics:[promise(?E ?X ?Y ?Z)]
+promettre rel1vn0sp2(?E ?X ?Y ?Z)
+semantics:[promise(?E ?X ?Y ?Z)]
+promettre rel2n0vn1(?E ?X ?Y ?Z)
+semantics:[promise(?E ?X ?Y ?Z)]
+promettre n0vsp2pinf1(?E ?X ?Y ?Z)
+semantics:[promise(?E ?X ?Y ?Z)]
+promettre vinfsp2pinf1(?E ?X ?Y ?Z)
+semantics:[promise(?E ?X ?Y ?Z)]
+promettre qu0vsp2pinf1(?E ?X ?Y ?Z)
+semantics:[promise(?E ?X ?Y ?Z)]
+promettre qu2n0vpinf1(?E ?X ?Y ?Z)
+semantics:[promise(?E ?X ?Y ?Z)]
+promettre rel0vsp2pinf1(?E ?X ?Y ?Z)
+semantics:[promise(?E ?X ?Y ?Z)]
+promettre rel2n0vpinf1(?E ?X ?Y ?Z)
+semantics:[promise(?E ?X ?Y ?Z)]
 
-persuade n0vn2pinf1(E X Y Z)
-semantics:[convince(E X Y Z)]
-persuade qu0vn2pinf1(E X Y Z)
-semantics:[convince(E X Y Z)]
-persuade qu2n0vpinf1(E X Y Z)
-semantics:[convince(E X Y Z)]
-persuade rel0vn2pinf1(E X Y Z)
-semantics:[convince(E X Y Z)]
-persuade rel1n0vn2(E X Y Z)
-semantics:[convince(E X Y Z)]
+persuade n0vn2pinf1(?E ?X ?Y ?Z)
+semantics:[convince(?E ?X ?Y ?Z)]
+persuade qu0vn2pinf1(?E ?X ?Y ?Z)
+semantics:[convince(?E ?X ?Y ?Z)]
+persuade qu2n0vpinf1(?E ?X ?Y ?Z)
+semantics:[convince(?E ?X ?Y ?Z)]
+persuade rel0vn2pinf1(?E ?X ?Y ?Z)
+semantics:[convince(?E ?X ?Y ?Z)]
+persuade rel1n0vn2(?E ?X ?Y ?Z)
+semantics:[convince(?E ?X ?Y ?Z)]

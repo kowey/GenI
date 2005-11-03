@@ -16,6 +16,7 @@
 % Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 \chapter{Morphology}
+\label{cha:Morphology}
 
 This module handles mostly everything to do with morphology in Geni.
 There are two basic tasks: morphological input and output.  

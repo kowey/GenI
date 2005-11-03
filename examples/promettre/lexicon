@@ -3,68 +3,68 @@
 %% X promet Y a Z
 %% Canonique, interrogatives, relatives
 
-il pronoun(H X)
+il pronoun(?H ?X)
 semantics:[]
 
-se clitic(H X)
+se clitic(?H ?X)
 semantics:[]
 
-le clitic(H X)
+le clitic(?H ?X)
 semantics:[]
 
 %% Determinants
 
-un Det(I)
-semantics:[_:indef(I)]
+un Det(?I)
+semantics:[_:indef(?I)]
 
-le Det(I)
-semantics:[_:def(I)]
+le Det(?I)
+semantics:[_:def(?I)]
 
-quel DetQ(I)
-semantics:[_:qu(I)]
+quel DetQ(?I)
+semantics:[_:qu(?I)]
 
 %% Noms communs
 
-livre nC(I)
-semantics:[book(+I)]
+livre nC(?I)
+semantics:[book(+?I)]
 
-cadeau nC(I)
-semantics:[present(+I)]
+cadeau nC(?I)
+semantics:[present(+?I)]
 
 %% Noms Propres
 
-claire nP(I)
-semantics:[claire(+I)]
+claire nP(?I)
+semantics:[claire(+?I)]
 
-marie nP(I)
-semantics:[mary(+I)]
+marie nP(?I)
+semantics:[mary(+?I)]
 
-jean nP(I)
-semantics:[john(+I)]
+jean nP(?I)
+semantics:[john(+?I)]
 
-paul nP(I)
-semantics:[paul(+I)]
+paul nP(?I)
+semantics:[paul(+?I)]
 
 
 %% --------------------------------------------------------------------- 
 %% Verbs
 %% --------------------------------------------------------------------- 
-promettre vArity3(E X Y Z)
-semantics:[+E:promise(-X -Y -Z)]
+promettre vArity3(?E ?X ?Y ?Z)
+semantics:[+?E:promise(-?X -?Y -?Z)]
 
-promettre vArity3control(E X Y Z)
-semantics:[+E:promise( X -Y -Z)]
+promettre vArity3control(?E ?X ?Y ?Z)
+semantics:[+?E:promise( ?X -?Y -?Z)]
 
-persuader vArity3(E X Y Z)
-semantics:[+E:convince(-X -Y -Z)]
+persuader vArity3(?E ?X ?Y ?Z)
+semantics:[+?E:convince(-?X -?Y -?Z)]
 
-persuader vArity3controlObj(E X Y Z)
-semantics:[+E:convince(-X -Y  Z)]
+persuader vArity3controlObj(?E ?X ?Y ?Z)
+semantics:[+?E:convince(-?X -?Y  ?Z)]
 
-donner vArity3(E X Y Z)
-semantics:[+E:give(-X -Y -Z)]
+donner vArity3(?E ?X ?Y ?Z)
+semantics:[+?E:give(-?X -?Y -?Z)]
 
-aimer vArity2(E X Y)
-semantics:[+E:love(-X -Y)]
+aimer vArity2(?E ?X ?Y)
+semantics:[+?E:love(-?X -?Y)]
 
 

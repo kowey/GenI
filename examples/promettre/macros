@@ -10,85 +10,85 @@
 %% 10. promettant un cadeau a Marie
 %% 11. donner un livre a marie
 
-Det(I) auxiliary
-n1[cat:n idx:I det:plus qu:minus]![cat:n idx:I qu:minus]
+Det(?I) auxiliary
+n1[cat:n idx:?I det:plus qu:minus]![cat:n idx:?I qu:minus]
 {
   n2 type:anchor [cat:det]![]
-  n4 type:foot [cat:n idx:I]![cat:n idx:I det:minus]
+  n4 type:foot [cat:n idx:?I]![cat:n idx:?I det:minus]
 }
 
-clitic:cl(H X ! idx:X ) initial
-n1 type:anchor [cat:cl idx:X]![cat:cl idx:X] {}
+clitic:cl(?H ?X ! idx:?X ) initial
+n1 type:anchor [cat:cl idx:?X]![cat:cl idx:?X] {}
 
-pronoun:pn(H X ! idx:X num:Num gen:Gen pers:Pers) initial
-n1 [cat:n idx:X num:Num gen:Gen pers:Pers]![cat:n idx:X]
+pronoun:pn(?H ?X ! idx:?X num:?Num gen:?Gen pers:?Pers) initial
+n1 [cat:n idx:?X num:?Num gen:?Gen pers:?Pers]![cat:n idx:?X]
 {
-  n2 type:anchor [cat:pn num:Num gen:Gen pers:Pers]![] 
+  n2 type:anchor [cat:pn num:?Num gen:?Gen pers:?Pers]![] 
 }
 
 % Common Nouns: voyage
-nC(I!num:Num gen:Gen) initial
-n1 [cat:n num:Num gen:Gen idx:I]![cat:n num:Num gen:Gen idx:I det:minus qu:minus]
+nC(?I!num:?Num gen:?Gen) initial
+n1 [cat:n num:?Num gen:?Gen idx:?I]![cat:n num:?Num gen:?Gen idx:?I det:minus qu:minus]
 {
-  n2 type:anchor [cat:n num:Num gen:Gen]![]
+  n2 type:anchor [cat:n num:?Num gen:?Gen]![]
 }
 
 % Proper Nouns: Jean
-nP(I!pers:Pers num:Num gen:Gen) initial
-n1 type:anchor [cat:n num:Num pers:Pers gen:Gen idx:I det:plus qu:minus]![cat:n idx:I det:plus qu:minus] {}
+nP(?I!pers:?Pers num:?Num gen:?Gen) initial
+n1 type:anchor [cat:n num:?Num pers:?Pers gen:?Gen idx:?I det:plus qu:minus]![cat:n idx:?I det:plus qu:minus] {}
 
 % jean se aimer -- note: we rely on top/bottom unification
 % for this to work
-vArity2:n0v(E X Y) initial 
+vArity2:n0v(?E ?X ?Y) initial 
 n1[cat:p]![]
 {
-  n2 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:Y]
-  n5 [cat:se idx:X det:plus qu:minus]![cat:n idx:Y]
-  n3 [cat:v idx:E]![]
+  n2 type:subst [cat:n idx:?X det:plus qu:minus]![cat:n idx:?Y]
+  n5 [cat:se idx:?X det:plus qu:minus]![cat:n idx:?Y]
+  n3 [cat:v idx:?E]![]
   {
     n4 anchor
   }
 }
 
-vArity2:n0cl1v(E X Y) initial
+vArity2:n0cl1v(?E ?X ?Y) initial
 n1[cat:p]![]
 {
-  n2 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X]
-  n5 type:subst [cat:cl idx:Y det:plus qu:minus]![cat:cl idx:Y]
-  n3 [cat:v idx:E]![]
+  n2 type:subst [cat:n idx:?X det:plus qu:minus]![cat:n idx:?X]
+  n5 type:subst [cat:cl idx:?Y det:plus qu:minus]![cat:cl idx:?Y]
+  n3 [cat:v idx:?E]![]
   {
     n4 anchor
   }
 }
 
-vArity2:n0vn1(E X Y) initial
+vArity2:n0vn1(?E ?X ?Y) initial
 n1[cat:p]![]
 {
-  n2 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X]
-  n3[cat:v idx:E]![]
+  n2 type:subst [cat:n idx:?X det:plus qu:minus]![cat:n idx:?X]
+  n3[cat:v idx:?E]![]
   {
     n4 anchor
   }
-  n5 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y]
+  n5 type:subst [cat:n idx:?Y det:plus qu:minus]![cat:n idx:?Y]
 } 
 
 % aimer N (jean espere [aimer Marie])
-vArity2:vinfn1(E X Y) initial 
-n1[cat:p idx:E mode:inf sujidx:X]![cat:p]
+vArity2:vinfn1(?E ?X ?Y) initial 
+n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p]
 {
-  n2 [cat:v idx:E]![]
+  n2 [cat:v idx:?E]![]
   {
     n3 anchor
   }
-  n4 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y]
+  n4 type:subst [cat:n idx:?Y det:plus qu:minus]![cat:n idx:?Y]
 }
 
 % le aimer (jean espere [le aimer])
-cl0vinf(E X Y) initial 
-n1[cat:p idx:E mode:inf sujidx:X]![cat:p]
+cl0vinf(?E ?X ?Y) initial 
+n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p]
 {
-  n5 type:subst [cat:cl idx:Y det:plus qu:minus]![cat:n idx:Y]
-  n2 [cat:v idx:E]![]
+  n5 type:subst [cat:cl idx:?Y det:plus qu:minus]![cat:n idx:?Y]
+  n2 [cat:v idx:?E]![]
   {
     n3 anchor
   }
@@ -97,142 +97,142 @@ n1[cat:p idx:E mode:inf sujidx:X]![cat:p]
 begin initial 
 
 % infinitive: le donner un livre (je promets de le donner un livre)
-vArity3:cl2vinfn0(E X Y Z) initial 
-n1[cat:p idx:E mode:inf sujidx:X]![cat:p]
+vArity3:cl2vinfn0(?E ?X ?Y ?Z) initial 
+n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p]
 {
-  n5 type:subst [cat:cl idx:Z det:plus qu:minus]![cat:n idx:Z]
-  n2 [cat:v idx:E]![]
+  n5 type:subst [cat:cl idx:?Z det:plus qu:minus]![cat:n idx:?Z]
+  n2 [cat:v idx:?E]![]
   {
     n3 anchor
   }
-  n4 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y]
+  n4 type:subst [cat:n idx:?Y det:plus qu:minus]![cat:n idx:?Y]
 }  
 
   %1 declarative	gn promet gn sp_a
-vArity3:n0vn1sp2(E X Y Z)  
+vArity3:n0vn1sp2(?E ?X ?Y ?Z)  
 n1[cat:p]![]
 {
-  n2 type:subst [cat:n pers:Pers num:Num idx:X det:plus qu:minus]![cat:n idx:X]
-  n3[cat:v idx:E]![]
+  n2 type:subst [cat:n pers:?Pers num:?Num idx:?X det:plus qu:minus]![cat:n idx:?X]
+  n3[cat:v idx:?E]![]
   {
-    n4 type:anchor [cat:v pers:Pers num:Num]![] 
+    n4 type:anchor [cat:v pers:?Pers num:?Num]![] 
   }
-  n5 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y]
-  n6[cat:sp idx:Z det:plus]![]
+  n5 type:subst [cat:n idx:?Y det:plus qu:minus]![cat:n idx:?Y]
+  n6[cat:sp idx:?Z det:plus]![]
   { n8[cat:prep]![]
     {
       n9 type:lex "a"
     }
-    n10 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z] 
+    n10 type:subst [cat:n idx:?Z det:plus qu:minus]![cat:n idx:?Z] 
   }
 }
 
 
-  %2 infinitive	V GN SP_a
-vArity3:vinfn1sp2(E X Y Z) 
-n1[cat:p idx:E mode:inf sujidx:X]![cat:p]
+  %2 infinitive	?V GN SP_a
+vArity3:vinfn1sp2(?E ?X ?Y ?Z) 
+n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p]
 {
-  n2[cat:v idx:E]![]
+  n2[cat:v idx:?E]![]
   {
     n3 anchor
   }
-  n4 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y]
-  n5[cat:sp idx:Z det:plus]![]
+  n4 type:subst [cat:n idx:?Y det:plus qu:minus]![cat:n idx:?Y]
+  n5[cat:sp idx:?Z det:plus]![]
   { n6[cat:prep]![]
     {
       n7 type:lex "a"
     }
-    n8 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z] 
+    n8 type:subst [cat:n idx:?Z det:plus qu:minus]![cat:n idx:?Z] 
   }
 }
 
-vArity3:n0vn1inf2(E X Y Z) 
+vArity3:n0vn1inf2(?E ?X ?Y ?Z) 
 n1[cat:p]![]
 {
-  n2 type:subst [cat:n idx:X pers:Pers num:Num det:plus qu:minus]![cat:n idx:X]
-  n3[cat:v idx:E]![]
+  n2 type:subst [cat:n idx:?X pers:?Pers num:?Num det:plus qu:minus]![cat:n idx:?X]
+  n3[cat:v idx:?E]![]
   {
-    n4 type:anchor [cat:v pers:Pers num:Num]![] 
+    n4 type:anchor [cat:v pers:?Pers num:?Num]![] 
   }
-  n5[cat:sp idx:Z det:plus]![]
+  n5[cat:sp idx:?Z det:plus]![]
   { n6[cat:p]![]
     {
       n7 type:lex "a"
     }
-    n8 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z
+    n8 type:subst [cat:n idx:?Z det:plus qu:minus]![cat:n idx:?Z
     ] 
   }
-  n9 type:subst [cat:p idx:Y mode:inf]![cat:n idx:Y] 
+  n9 type:subst [cat:p idx:?Y mode:inf]![cat:n idx:?Y] 
 }
 
 end initial
 
 %8 relative objet indirect
-vArity3:rel2n0vn1(E X Y Z) auxiliary
-n0[cat:n idx:Z det:plus]![cat:n idx:Z]
+vArity3:rel2n0vn1(?E ?X ?Y ?Z) auxiliary
+n0[cat:n idx:?Z det:plus]![cat:n idx:?Z]
 {
-  n1 type:foot [cat:n idx:Z]![cat:n idx:Z]
+  n1 type:foot [cat:n idx:?Z]![cat:n idx:?Z]
   n2[cat:p]![]
   {
-    n3[cat:sp idx:Z det:plus]![]
+    n3[cat:sp idx:?Z det:plus]![]
     { n4[cat:prep]![]
       {
         n5 type:lex "a"
       }
-      n6 type:subst [cat:n idx:Z det:plus qu:plus]![cat:n idx:Z  qu:plus] 
+      n6 type:subst [cat:n idx:?Z det:plus qu:plus]![cat:n idx:?Z  qu:plus] 
     }
-    n7[cat:p idx:E]![]
+    n7[cat:p idx:?E]![]
     {
-      n8 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X  qu:minus]
-      n9[cat:v idx:E]![cat:p idx:E]
+      n8 type:subst [cat:n idx:?X det:plus qu:minus]![cat:n idx:?X  qu:minus]
+      n9[cat:v idx:?E]![cat:p idx:?E]
       {
         n10 anchor
       }
-      n11 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y]
+      n11 type:subst [cat:n idx:?Y det:plus qu:minus]![cat:n idx:?Y]
     }
   }
 }
 
 begin initial
   %9 declarative	GN V GN_a Pinf_de
-vArity3control:n0vsp2pinf1(E X Y Z) 
+vArity3control:n0vsp2pinf1(?E ?X ?Y ?Z) 
 n1[cat:p]![]
 {
-  n2 type:subst [cat:n pers:Pers num:Num idx:X det:plus qu:minus]![cat:n idx:X]
-  n3[cat:v idx:E]![]
+  n2 type:subst [cat:n pers:?Pers num:?Num idx:?X det:plus qu:minus]![cat:n idx:?X]
+  n3[cat:v idx:?E]![]
   {
-    n4 type:anchor [cat:v pers:Pers num:Num]![]
+    n4 type:anchor [cat:v pers:?Pers num:?Num]![]
   }
-  n5[cat:sp idx:Z det:plus]![]
+  n5[cat:sp idx:?Z det:plus]![]
   { n6[cat:prep]![]
     {
       n7 type:lex "a"
     }
-    n8 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z] 
+    n8 type:subst [cat:n idx:?Z det:plus qu:minus]![cat:n idx:?Z] 
   }
   n9[cat:p]![]
   {n10[cat:prep]![]
     {
       n11 type:lex "de"
     } 
-    n12 type:subst [cat:p idx:Y mode:inf sujidx:X]![cat:n idx:Y]
+    n12 type:subst [cat:p idx:?Y mode:inf sujidx:?X]![cat:n idx:?Y]
   }
 }
 
   %10 infinitive	V SP_a Inf_de
-vArity3control:vinfsp2pinf1(E X Y Z) 
-n1[cat:p idx:E mode:inf sujidx:X]![cat:p] 
+vArity3control:vinfsp2pinf1(?E ?X ?Y ?Z) 
+n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p] 
 {
-  n2[cat:v idx:E]![]
+  n2[cat:v idx:?E]![]
   {
     n3 anchor
   }
-  n4[cat:sp idx:Y det:plus]![]
+  n4[cat:sp idx:?Y det:plus]![]
   { n5[cat:prep]![]
     {
       n6 type:lex "a"
     }
-    n7 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y
+    n7 type:subst [cat:n idx:?Y det:plus qu:minus]![cat:n idx:?Y
     ] 
   }
   n8[cat:p]![]
@@ -240,26 +240,26 @@ n1[cat:p idx:E mode:inf sujidx:X]![cat:p]
     {
       n10 type:lex "de"
     } 
-    n11 type:subst [cat:p idx:Y mode:inf sujidx:X]![cat:p idx:Y]
+    n11 type:subst [cat:p idx:?Y mode:inf sujidx:?X]![cat:p idx:?Y]
 
   }
 }
 
   % kowey: promettre a marie de faire...
-vArity3control:vinfn2pinf1(E X Y Z) 
-n1[cat:p idx:E mode:inf sujidx:X]![cat:p] 
+vArity3control:vinfn2pinf1(?E ?X ?Y ?Z) 
+n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p] 
 {
-  n2[cat:v idx:E]![]
+  n2[cat:v idx:?E]![]
   {
     n3 anchor
   }
 
-  n5[cat:sp idx:Z det:plus]![]
+  n5[cat:sp idx:?Z det:plus]![]
   { n6[cat:prep]![]
     {
       n7 type:lex "a"
     }
-    n8 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z] 
+    n8 type:subst [cat:n idx:?Z det:plus qu:minus]![cat:n idx:?Z] 
   }
 
   n10[cat:p]![]
@@ -267,30 +267,30 @@ n1[cat:p idx:E mode:inf sujidx:X]![cat:p]
     {
       n12 type:lex "de"
     } 
-    n13 type:subst [cat:p idx:Y mode:inf sujidx:X]![cat:p idx:Y]
+    n13 type:subst [cat:p idx:?Y mode:inf sujidx:?X]![cat:p idx:?Y]
   }
 }
 end initial
 
 begin auxiliary
   %13 relative sujet	qui V sp_a pinf_de
-vArity3control:rel0vsp2pinf1(E X Y Z) 
-n0[cat:n idx:X det:plus]![cat:n idx:X]
+vArity3control:rel0vsp2pinf1(?E ?X ?Y ?Z) 
+n0[cat:n idx:?X det:plus]![cat:n idx:?X]
 {
-  n1 type:foot [cat:n idx:X]![cat:n idx:X]
+  n1 type:foot [cat:n idx:?X]![cat:n idx:?X]
   n2[cat:p]![]
   {
-    n3 type:subst [cat:cl idx:X det:plus qu:minus]![cat:n idx:X]
-    n4[cat:v idx:E]![]
+    n3 type:subst [cat:cl idx:?X det:plus qu:minus]![cat:n idx:?X]
+    n4[cat:v idx:?E]![]
     {
       n5 anchor
     }
-    n6[cat:sp idx:Y]![]
+    n6[cat:sp idx:?Y]![]
     { n7[cat:prep]![]
       {
         n8 type:lex "a"
       }
-      n9 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n 
+      n9 type:subst [cat:n idx:?Y det:plus qu:minus]![cat:n 
       ] 
     }
     n10[cat:p]![]
@@ -298,28 +298,28 @@ n0[cat:n idx:X det:plus]![cat:n idx:X]
       {
         n12 type:lex "de"
       } 
-      n13 type:subst [cat:p idx:Y mode:inf sujidx:X]![cat:p idx:Y]
+      n13 type:subst [cat:p idx:?Y mode:inf sujidx:?X]![cat:p idx:?Y]
     }}}
 
 
 %14 relative objet indirect	a qui GN v Pinf_de
-vArity3control:rel2n0vpinf1(E X Y Z) auxiliary
-n0[cat:n idx:Y det:plus]![cat:n idx:Y]
+vArity3control:rel2n0vpinf1(?E ?X ?Y ?Z) auxiliary
+n0[cat:n idx:?Y det:plus]![cat:n idx:?Y]
 {
-  n1 type:foot [cat:n idx:Y]![cat:n idx:Y]
+  n1 type:foot [cat:n idx:?Y]![cat:n idx:?Y]
   n2[cat:p]![]
   {
-    n3[cat:sp idx:Y det:plus]![]
+    n3[cat:sp idx:?Y det:plus]![]
     { n4[cat:prep]![]
       {
         n5 type:lex "a"
       }
-      n6 type:subst [cat:n idx:Y det:plus qu:plus]![cat:n idx:Y  qu:plus] 
+      n6 type:subst [cat:n idx:?Y det:plus qu:plus]![cat:n idx:?Y  qu:plus] 
     }
-    n7[cat:p idx:E]![]
+    n7[cat:p idx:?E]![]
     {
-      n8 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X  qu:minus]
-      n9[cat:v idx:E]![cat:p idx:E]
+      n8 type:subst [cat:n idx:?X det:plus qu:minus]![cat:n idx:?X  qu:minus]
+      n9[cat:v idx:?E]![cat:p idx:?E]
       {
         n10 anchor
       }
@@ -329,100 +329,100 @@ n0[cat:n idx:Y det:plus]![cat:n idx:Y]
       {
         n11 type:lex "de"
       } 
-      n12 type:subst [cat:p idx:Z mode:inf sujidx:X]![cat:p idx:Z]
+      n12 type:subst [cat:p idx:?Z mode:inf sujidx:?X]![cat:p idx:?Z]
     }
   }}
 
 
-vArity3control:rel0vn2pinf1(E X Y Z) 
-n0[cat:n idx:X det:plus]![cat:n idx:X]
+vArity3control:rel0vn2pinf1(?E ?X ?Y ?Z) 
+n0[cat:n idx:?X det:plus]![cat:n idx:?X]
 {
-  n1 type:foot [cat:n idx:X]![cat:n idx:X]
+  n1 type:foot [cat:n idx:?X]![cat:n idx:?X]
   n2[cat:p]![]
   {
-    n3 type:subst [cat:cl idx:X det:plus qu:minus]![cat:n idx:X]
-    n4[cat:v idx:E]![]
+    n3 type:subst [cat:cl idx:?X det:plus qu:minus]![cat:n idx:?X]
+    n4[cat:v idx:?E]![]
     {
       n5 anchor
     }
-    n6 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n 
+    n6 type:subst [cat:n idx:?Y det:plus qu:minus]![cat:n 
     ] 
     n7[cat:p]![]
     {n8[cat:prep]![]
       {
         n9 type:lex "de"
       } 
-      n10 type:subst [cat:p idx:Z mode:inf sujidx:X]![cat:p idx:Z]
+      n10 type:subst [cat:p idx:?Z mode:inf sujidx:?X]![cat:p idx:?Z]
     }}}
 
   % relative sujet
-vArity3control:rel0vn1sp2(E X Y Z) 
-n0[cat:n idx:X det:plus]![cat:n idx:X]
+vArity3control:rel0vn1sp2(?E ?X ?Y ?Z) 
+n0[cat:n idx:?X det:plus]![cat:n idx:?X]
 {
-  n1 type:foot [cat:n idx:X]![cat:n idx:X]
+  n1 type:foot [cat:n idx:?X]![cat:n idx:?X]
   n2[cat:p]![]
   {
-    n3 type:subst [cat:cl idx:X det:plus qu:minus]![cat:n idx:X]
-    n4[cat:v idx:E]![]
+    n3 type:subst [cat:cl idx:?X det:plus qu:minus]![cat:n idx:?X]
+    n4[cat:v idx:?E]![]
     {
       n5 anchor
     }
-    n6 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z]
-    n7[cat:sp idx:Y]![]
+    n6 type:subst [cat:n idx:?Z det:plus qu:minus]![cat:n idx:?Z]
+    n7[cat:sp idx:?Y]![]
     { n8[cat:p]![]
       {
         n9 type:lex "a"
       }
-      n10 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n] 
+      n10 type:subst [cat:n idx:?Y det:plus qu:minus]![cat:n] 
     }
   }
 }
 
 % relative objet
-vArity3control:rel1vn0sp2(E X Y Z) auxiliary
-n0[cat:n idx:X det:plus]![cat:n idx:X]
+vArity3control:rel1vn0sp2(?E ?X ?Y ?Z) auxiliary
+n0[cat:n idx:?X det:plus]![cat:n idx:?X]
 {
-  n1 type:foot [cat:n idx:X]![cat:n idx:X]
+  n1 type:foot [cat:n idx:?X]![cat:n idx:?X]
   n2[cat:p]![]
   {
-    n3 type:subst [cat:cl idx:X det:plus qu:minus]![cat:n idx:X]
-    n4[cat:v idx:E]![]
+    n3 type:subst [cat:cl idx:?X det:plus qu:minus]![cat:n idx:?X]
+    n4[cat:v idx:?E]![]
     {
       n5 anchor
     }
-    n6 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z]
-    n7[cat:sp idx:Y]![]
+    n6 type:subst [cat:n idx:?Z det:plus qu:minus]![cat:n idx:?Z]
+    n7[cat:sp idx:?Y]![]
     { n8[cat:p]![]
       {
         n9 type:lex "a"
       }
-      n10 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n] 
+      n10 type:subst [cat:n idx:?Y det:plus qu:minus]![cat:n] 
     }
   }
 }
 
   % relative objet indirect
-rel2vn0n1(E X Y Z) 
-n0[cat:n idx:Y det:plus]![cat:n idx:Y]
+rel2vn0n1(?E ?X ?Y ?Z) 
+n0[cat:n idx:?Y det:plus]![cat:n idx:?Y]
 {
-  n1 type:foot [cat:n idx:Y]![cat:n idx:Y]
+  n1 type:foot [cat:n idx:?Y]![cat:n idx:?Y]
   n2[cat:p]![]
   {
-    n3[cat:sp idx:Y det:plus]![]
+    n3[cat:sp idx:?Y det:plus]![]
     { n4[cat:p]![]
       {
         n5 type:lex "a"
       }
-      n6 type:subst [cat:n idx:Y det:plus qu:plus]![cat:n idx:Y  qu:plus] 
+      n6 type:subst [cat:n idx:?Y det:plus qu:plus]![cat:n idx:?Y  qu:plus] 
     }
-    n7[cat:p idx:E]![]
+    n7[cat:p idx:?E]![]
     {
-      n8 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X  qu:minus]
-      n9[cat:v idx:E]![cat:p idx:E]
+      n8 type:subst [cat:n idx:?X det:plus qu:minus]![cat:n idx:?X  qu:minus]
+      n9[cat:v idx:?E]![cat:p idx:?E]
       {
         n10 anchor
       }
-      n11 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z]
+      n11 type:subst [cat:n idx:?Z det:plus qu:minus]![cat:n idx:?Z]
     }
   }
 }
@@ -431,83 +431,83 @@ end auxiliary
 begin initial
   % kowey: for persuader instead of promettre
   % (sujidx is set differently)
-vArity3controlObj:n0vsp2pinf1b(E X Y Z) 
+vArity3controlObj:n0vsp2pinf1b(?E ?X ?Y ?Z) 
 n1[cat:p]![]
 {
-  n2 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X]
-  n3[cat:v idx:E]![]
+  n2 type:subst [cat:n idx:?X det:plus qu:minus]![cat:n idx:?X]
+  n3[cat:v idx:?E]![]
   {
     n4 anchor
   }
-  n5[cat:sp idx:Z det:plus]![]
+  n5[cat:sp idx:?Z det:plus]![]
   { n6[cat:prep]![]
     {
       n7 type:lex "a"
     }
-    n8 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z] 
+    n8 type:subst [cat:n idx:?Z det:plus qu:minus]![cat:n idx:?Z] 
   }
   n9[cat:p]![]
   {n10[cat:prep]![]
     {
       n11 type:lex "de"
     } 
-    n12 type:subst [cat:p idx:Y mode:inf sujidx:Z]![cat:n idx:Y]
+    n12 type:subst [cat:p idx:?Y mode:inf sujidx:?Z]![cat:n idx:?Y]
   }
 }
 
   %15 declarative gn0 persuade gn2 pinf_de1	n0vn2pinf1 
-vArity3controlObj:n0vn2pinf1b(E X Y Z) 
+vArity3controlObj:n0vn2pinf1b(?E ?X ?Y ?Z) 
 n1[cat:p]![]
 {
-  n2 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X]
-  n3[cat:v idx:E]![]
+  n2 type:subst [cat:n idx:?X det:plus qu:minus]![cat:n idx:?X]
+  n3[cat:v idx:?E]![]
   {
     n4 anchor
   }
-  n5 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z]
+  n5 type:subst [cat:n idx:?Z det:plus qu:minus]![cat:n idx:?Z]
   n6[cat:p]![]
   {n7[cat:prep]![]
     {
       n8 type:lex "de"
     } 
-    n9 type:subst [cat:p idx:Y mode:inf sujidx:Z]![cat:n idx:Y] 
+    n9 type:subst [cat:p idx:?Y mode:inf sujidx:?Z]![cat:n idx:?Y] 
   }
 }
 
   %15 infinitive persuader gn  pinf_de	vinfn2pinf1
-vArity3controlObj:vinfn2pinf1b(E X Y Z) 
-n1[cat:p idx:E mode:inf sujidx:X]![cat:p] 
+vArity3controlObj:vinfn2pinf1b(?E ?X ?Y ?Z) 
+n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p] 
 {
-  n2[cat:v idx:E]![]
+  n2[cat:v idx:?E]![]
   {
     n3 anchor
   }
-  n4 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z] 
+  n4 type:subst [cat:n idx:?Z det:plus qu:minus]![cat:n idx:?Z] 
   n5[cat:p]![]
   {n6[cat:prep]![]
     {
       n7 type:lex "de"
     } 
-    n8 type:subst [cat:p idx:Y mode:inf sujidx:Z]![cat:p idx:Y]
+    n8 type:subst [cat:p idx:?Y mode:inf sujidx:?Z]![cat:p idx:?Y]
   }
 }
 
   %18 rel-sjt	 n qui persuade gn  pinf_de	rel0vn2pinf1
-vArity3controlObj:n0vn1sp2(E X Y Z) 
+vArity3controlObj:n0vn1sp2(?E ?X ?Y ?Z) 
 n1[cat:p]![]
 {
-  n2 type:subst [cat:n idx:X det:plus qu:minus]![cat:n idx:X]
-  n3[cat:v idx:E]![]
+  n2 type:subst [cat:n idx:?X det:plus qu:minus]![cat:n idx:?X]
+  n3[cat:v idx:?E]![]
   {
     n4 anchor
   }
-  n5 type:subst [cat:n idx:Y det:plus qu:minus]![cat:n idx:Y]
-  n6[cat:sp idx:Z det:plus]![]
+  n5 type:subst [cat:n idx:?Y det:plus qu:minus]![cat:n idx:?Y]
+  n6[cat:sp idx:?Z det:plus]![]
   { n8[cat:p]![]
     {
       n9 type:lex "a"
     }
-    n10 type:subst [cat:n idx:Z det:plus qu:minus]![cat:n idx:Z
+    n10 type:subst [cat:n idx:?Z det:plus qu:minus]![cat:n idx:?Z
     ] 
   }
 }

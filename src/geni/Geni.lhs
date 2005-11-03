@@ -94,10 +94,9 @@ import Polarity
 --import Predictors (PredictorMap, mapByPredictors, 
 --                   fillPredictors, optimisePredictors)
 
-import GeniParsers (parseMac, parseLex, gdeLexicon,
-                    parseMorph, 
-                    parseTSem, parseTSuite,
-                    E(..))
+import GeniParsers (geniMacros, gdeLexicon,
+                    geniLexicon, geniTestSuite, geniSemanticInput, 
+                    geniMorphInfo)
 
 -- Not for windows
 -- FIXME: even better would be to really figure out all this
@@ -610,11 +609,11 @@ runXMGLexSelection pst =
      let idxs = [1..]
          fil  = concat $ zipWith lexEntryToFil lexCand idxs 
      selected <- runSelector pst gramfile fil
-     let g = case (parseMac selected) of 
-              Ok x     -> x 
-              Failed x -> error x 
-         --
-         lexMap = Map.fromList $ zip (map show idxs) lexCand
+     let parsed = runParser geniMacros () "" selected 
+         g = case parsed of Left err -> error (show err) 
+                            Right gr -> gr
+     --
+     let lexMap = Map.fromList $ zip (map show idxs) lexCand
          fixate :: MTtree -> IO TagElem 
          fixate ts = 
            case (Map.lookup id lexMap) of
@@ -819,7 +818,6 @@ loadGeniLexicon pstRef config = do
        when (null lfilename) $ fail "Please specify a lexicon!"
        ePutStr $ "Loading Lexicon " ++ lfilename ++ "..."
        eFlush
-       lf <- readFile lfilename 
        pst <- readIORef pstRef
        let params = pa pst
            --       
@@ -827,9 +825,10 @@ loadGeniLexicon pstRef config = do
            sorter l  = l { isemantics = (sortSem . getSem) l }
            cleanup   = (mapBySemKeys isemantics) . (map sorter)
            --
-           lex = case parseLex lf of 
-                   Ok x     -> cleanup x 
-                   Failed x -> error x 
+       prelex <- parseFromFile geniLexicon lfilename
+       let lex = case prelex of 
+                   Left err -> error (show err)
+                   Right x  -> cleanup x 
        --
        ePutStr ((show $ length $ Map.keys lex) ++ " entries\n")
        -- combine the two lexicons
@@ -904,15 +903,17 @@ loadGeniMacros pstRef config =
      --
      ePutStr $ "Loading Macros " ++ filename ++ "..."
      eFlush
-     gf <- readFile filename
-     when (null gf) $ fail "Please specify a trees file!"
-     let g = case (parseMac gf) of 
-                   Ok x     -> x 
-                   Failed x -> fail x 
-         sizeg  = length g
-     ePutStr $ show sizeg ++ " trees in " 
-     ePutStr $ (show $ length g) ++ " families\n"
-     modifyIORef pstRef (\x -> x{gr = g})
+     when (null filename) $ fail "Please specify a trees file!"
+     parsed <- parseFromFile geniMacros filename
+     case parsed of 
+       Left  err -> fail (show err)
+       Right g   -> setGram g
+  where
+    setGram g = 
+      do let sizeg = length g
+         ePutStr $ show sizeg ++ " trees in " 
+         ePutStr $ (show $ length g) ++ " families\n"
+         modifyIORef pstRef (\x -> x{gr = g})
 \end{code}
 
 \subsubsection{Misc}
@@ -929,10 +930,10 @@ loadMorphInfo pstRef config =
      when (not $ null filename ) $ do --
         ePutStr $ "Loading Morphological Info " ++ filename ++ "..."
         eFlush
-        gf <- readFile filename
-        let g = case parseMorph gf of
-                  Ok x     -> x
-                  Failed x -> fail x
+        parsed <- parseFromFile geniMorphInfo filename
+        let g = case parsed of 
+                  Left err -> fail (show err)
+                  Right  x -> x
             sizeg  = length g
         ePutStr $ show sizeg ++ " entries\n" 
         modifyIORef pstRef (\x -> x{morphinf = readMorph g})
@@ -956,16 +957,15 @@ loadTestSuite pstRef = do
   when useSem $ do
     ePutStr $ "Loading Test Suite " ++ filename ++ "...\n"
     eFlush
-    tstr <- readFile filename
     -- helper functions for test suite stuff
-    let cleanup (id, (sm,sr)) = (id, newsmsr)
+    let cleanup (id, (sm,sr), _) = (id, newsmsr)
           where newsmsr = (sortSem sm, sort sr)
         updateTsuite s x = x { tsuite = map cleanup s   
                              , tcase  = testCase config}
-    let sem = parseTSuite tstr
+    sem <- parseFromFile geniTestSuite filename 
     case sem of 
-      Ok s     -> modifyIORef pstRef $ updateTsuite s 
-      Failed s -> fail s
+      Left err -> fail (show err)
+      Right s  -> modifyIORef pstRef $ updateTsuite s 
     -- in the end we just say we're done
     --ePutStr "done\n"
 \end{code}
@@ -978,15 +978,15 @@ ts field of the ProgState
 loadTargetSemStr :: ProgStateRef -> String -> IO ()
 loadTargetSemStr pstRef str = 
     do pst <- readIORef pstRef
-       ePutStr "Parsing Target Semantics..."
-       let semi = parseTSem str
-           smooth (s,r) = (sortSem s, sort r)
        let params = pa pst
-       if (ignoreSemantics params) then return ()  --modifyIORef pstRef (\x -> x{ts = ([],[])})
-           else case semi of 
-              Ok sr    -> modifyIORef pstRef (\x -> x{ts = smooth sr})
-              Failed s -> fail s
-       ePutStr "done\n"
+       if (ignoreSemantics params) then return () else parseSem 
+    where
+       parseSem = do
+         let sem = runParser geniSemanticInput () "" str
+         case sem of
+           Left  err -> fail (show err)
+           Right sr  -> modifyIORef pstRef (\x -> x{ts = smooth sr})
+       smooth (s,r) = (sortSem s, sort r)
 \end{code}
 
 % --------------------------------------------------------------------
