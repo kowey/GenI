@@ -57,7 +57,7 @@ n0vn1sp2(?E ?X ?Y ?Z) initial
 
   %2 infinitive	V GN SP_a
 vinfn1sp2(?E ?X ?Y ?Z)  initial
-  n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p idx:?Y mode:_ sujidx:_]
+  n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p idx:?E mode:_ sujidx:_]
 {
   n2[cat:v idx:?E]![]
   {
