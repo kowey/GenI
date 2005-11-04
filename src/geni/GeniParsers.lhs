@@ -127,7 +127,18 @@ geniSemanticInput =
      sem <- squares geniSemantics 
      res <- option [] $ do { keyword "restrictors" ; geniFeats } 
      --
-     return (sortSem sem, res)
+     return (createHandles $ sortSem sem, res)
+  where 
+     -- set all anonymous handles to some unique value
+     -- this is to simplify checking if a result is
+     -- semantically complete
+     createHandles :: Sem -> Sem
+     createHandles = zipWith setHandle [1..] 
+     --
+     setHandle i (h, pred, params) =
+       let h2 = if h /= GAnon then h 
+                else GConst ["genihandle" ++ (show i)]
+       in (h2, pred, params) 
 \end{code}
 
 \section{Lexicon}

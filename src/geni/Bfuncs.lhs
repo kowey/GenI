@@ -68,7 +68,7 @@ module Bfuncs(
 -- import Debug.Trace -- for test stuff
 import QuickCheck -- needed for testing via ghci 
 import Control.Monad (liftM)
-import Data.List (intersperse, intersect, sortBy, foldl')
+import Data.List 
 import Data.Tree
 
 import Btypes
@@ -514,8 +514,11 @@ showSem l =
 \begin{code}
 showPred :: Pred -> String
 showPred (h, p, l) = showh ++ p ++ "(" ++ unwords (map show l) ++ ")"
-                     where hideh = h == GAnon
-                           showh = if hideh then "" else (show h) ++ ":"
+  where 
+    hideh (GConst [x]) = "genihandle" `isPrefixOf` x 
+    hideh _ = False
+    --
+    showh = if (hideh h) then "" else (show h) ++ ":"
 \end{code}
 
 \paragraph{substSem} 

@@ -840,15 +840,6 @@ debugGui pst input = do
              ] 
   p    <- panel f []
   nb   <- notebook p []
-  -- 
-  {-
-  -- create an information tab (FIXME: this is mostly a hack to hide
-  -- a GUI bug with the first debugger tab under Linux) 
-  pinfo <- panel nb []
-  let infoText = "Input Semantics: " ++ showSem tsem
-      infoLay  = fill $ container pinfo $ margin 1 $ label infoText
-      infoTab  = tab "info" infoLay
-  -}
   -- candidate selection tab
   let cand    = giCands input
       candsem = (nub $ concatMap tsemantics cand)
