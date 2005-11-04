@@ -31,7 +31,7 @@ that batch-test GenI.
 \begin{code}
 module Main (main) where
 
-import Bfuncs
+import Btypes
 import GeniParsers(geniTestSuite)
 
 import Control.Monad(when)

@@ -42,8 +42,7 @@ module GeniParsers (
 import GdeParser(gdeLexicon)
 -- import TsnlpParser 
 
-import Btypes
-import Bfuncs (sortSem)
+import Btypes 
 import Data.List (sort)
 import qualified Data.Map  as Map 
 import qualified Data.Tree as T

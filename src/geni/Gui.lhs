@@ -51,7 +51,7 @@ import Geni (ProgState(..), GeniInput(..), GeniResults(..), ProgStateRef,
              doGeneration, runGeni, runMorph,
              combine, loadGrammar, loadTestSuite, loadTargetSemStr)
 import General (trim, snd3, slash, bugInGeni)
-import Bfuncs (showPred, showSem, showPairs, Sem, iword, isemantics)
+import Btypes (showPred, showSem, showPairs, Sem, iword, isemantics)
 import Tags (idname,mapBySem,emptyTE,tsemantics,tpolarities,thighlight, 
              TagElem, derivation)
 

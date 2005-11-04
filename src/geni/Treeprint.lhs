@@ -32,7 +32,7 @@ import Data.List(delete,intersperse,nub)
 import Tags (TagElem, idname, tdiagnostic, 
              tsemantics, ttree, thighlight, tinterface, 
              derivation)
-import Bfuncs (MTtree, Ttree(..), Ptype(..), 
+import Btypes (MTtree, Ttree(..), Ptype(..), 
                GNode(..), GType(..), Flist,
                showLexeme,
                showSem, showPairs, showAv)

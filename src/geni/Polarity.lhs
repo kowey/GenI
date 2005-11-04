@@ -80,7 +80,7 @@ import Data.Maybe (isNothing)
 
 import Graphviz(GraphvizShow(..))
 import Tags(TagElem(..), TagItem(..), mapBySem, substTagElem)
-import Bfuncs(Pred, Sem, Flist, AvPair, showAv,
+import Btypes(Pred, Sem, Flist, AvPair, showAv,
               GeniVal, fromGConst,
               emptyPred, Ptype(Initial), 
               showSem, sortSem, 

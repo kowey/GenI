@@ -30,7 +30,7 @@ import Data.List(find,intersperse)
 import Control.Monad(when)
 import Data.IORef(readIORef, modifyIORef)
 
-import Bfuncs(SemInput)
+import Btypes(SemInput)
 import General(ePutStrLn) 
 import Geni
 import Mstate(avgGstats, numcompar, szchart, geniter)

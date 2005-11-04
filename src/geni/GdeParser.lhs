@@ -28,7 +28,6 @@ module GdeParser(gdeLexicon, gdeSem, relthetaToSem) where
 \ignore{
 \begin{code}
 import Btypes
-import Bfuncs (sortSem)
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Language (emptyDef)
 import Text.ParserCombinators.Parsec.Token (TokenParser, 

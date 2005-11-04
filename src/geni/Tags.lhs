@@ -55,7 +55,7 @@ import qualified Data.Map as Map
 import Data.List (intersperse)
 import Data.Tree
 
-import Bfuncs (Ptype(Initial, Auxiliar), SemPols,
+import Btypes (Ptype(Initial, Auxiliar), SemPols,
                Subst, GNode(gup, gdown, glexeme, gnname), Flist, 
                showLexeme,
                GeniVal(..),

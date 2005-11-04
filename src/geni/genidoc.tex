@@ -133,8 +133,7 @@ files.
  \item[Geni.lhs] - parses and formats data for the generator 
  \item[Mstate.lhs] - the chart generator itself (note: substitution,
  adjunction, FS unification are done here, not in Tags.lhs)
- \item[Btypes.lhs] - basic data types 
- \item[Bfuncs.lhs] - basic operations 
+ \item[Btypes.lhs] - basic data types and operations
  \item[Tags.lhs] - TAG specific data types
 \end{description}
 
@@ -149,7 +148,6 @@ modules.
 \begin{description}
  \item[Morphology.lhs] - morphology in Geni  
  \item[Polarity.lhs]   - the polarity automaton optimisation 
- \item[Predictors.lhs] - the now defunct predictors optimisation
 \end{description}
 
 \section{User Interface}
@@ -171,32 +169,9 @@ visualisation tool.
 
 \section{Input files}
 
-We have traditionally use the package \textit{Happy} to create parsers
-for our various input files.  Happy is essentially Yacc for Haskell.
-
-Note: recently, we have started migrated to \textit{Parsec}.  Only 
-the CGM lexicon is parsed with this tool, but eventually everything
-will be using it.  Parsec lets us build parsers with less code and
-hassle.
-
 \begin{description}
- \item[GenIParsers.lhs] interface to all parsers
- \item[Mparser.y] parser for macro files, lexicon files and test suite
-\end{description}
-
-We use the package \textit{Alex} to generate a lexer that is common to
-all parsers.
-
-\begin{description}
- \item[Lex2.x] code for the common lexer
- \item[ParserLib.hs] data types shared by the lexer and the parsers 
-\end{description}
-
-Also of interest are XML grammar files (processed with the HaXml toolkit
-) and the Configuration file (.genirc)
-
-\begin{description}
- \item[GrammarXml.lhs] parser for grammar (in adhoc XML format)
+ \item[GenIParsers.lhs] parsers for input files (written using the
+ Parsec library)
  \item[Configuration.lhs] inteprets result of Cparser.y
 \end{description}
 
@@ -212,7 +187,6 @@ Also of interest are XML grammar files (processed with the HaXml toolkit
 \input{Geni.lhs}       
 \input{Mstate.lhs}       
 \input{Btypes.lhs}       
-\input{Bfuncs.lhs}       
 \input{Tags.lhs}       
 
 \part{Optional}

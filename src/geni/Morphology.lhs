@@ -35,7 +35,7 @@ import qualified Data.Map as Map
 import System.IO
 import System.Process
 
-import Bfuncs
+import Btypes
 import General 
 import Tags
 \end{code}

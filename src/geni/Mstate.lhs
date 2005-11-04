@@ -77,7 +77,7 @@ import Data.Maybe (catMaybes)
 import Data.Tree 
 import Data.Bits
 
-import Bfuncs (Ptype(Initial,Auxiliar),
+import Btypes (Ptype(Initial,Auxiliar),
                Flist, 
                Sem, sortSem, Subst,
                GType(Other), GNode(..),

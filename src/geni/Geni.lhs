@@ -56,7 +56,7 @@ import CPUTime (getCPUTime)
 
 import General(multiGroupByFM, ePutStr, ePutStrLn, eFlush)
 
-import Bfuncs (Macros, MTtree, ILexEntry, Lexicon, 
+import Btypes (Macros, MTtree, ILexEntry, Lexicon, 
                Sem, SemInput,
                fromGVar, GeniVal(..),
                GNode, GType(Subs), Flist,
@@ -442,7 +442,7 @@ combineOne lexitem e =
        tpf  = pfeat e
        -- unify the parameters
        psubst = zip tp p
-       paramsUnified = substTree (Bfuncs.tree e) psubst 
+       paramsUnified = substTree (Btypes.tree e) psubst 
        -- unify the features
        pf2  = substFlist pf  psubst
        tpf2 = substFlist tpf psubst
@@ -720,7 +720,7 @@ unification or checks to worry about.
 \begin{code}
 combineXMG :: ILexEntry -> MTtree -> TagElem
 combineXMG lexitem e = 
-   let tree_ = Bfuncs.tree e
+   let tree_ = Btypes.tree e
        (snodes,anodes) = detectSites tree_
        sol = emptyTE {
                 idname = iword lexitem ++ "_" ++ pidname e,
