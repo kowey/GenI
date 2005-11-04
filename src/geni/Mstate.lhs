@@ -584,23 +584,28 @@ generateStep = do
                else generateStep' 
 
 generateStep' :: MS [TagElem] 
-generateStep' = do 
-  -- choose an item from the agenda
-  given <- selectGiven
-  -- have we triggered the switch to aux yet?
-  curStep <- getStep
-  -- do either substitution or adjunction 
-  res <- if (curStep == Initial)
-         then applySubstitution given
-         else applyAdjunction given
-  -- determine which of the res should go in the agenda 
-  -- (monadic state) and which should go in the result (res')
-  res' <- classifyNew res
-  -- put the given into the chart untouched 
-  if (curStep == Initial) 
-     then addToChart   given
-     else when ((null.adjnodes) given) $ addToTrash given TS_SemIncomplete
-  return res'
+generateStep' = 
+  do -- choose an item from the agenda
+     given <- selectGiven
+     -- have we triggered the switch to aux yet?
+     curStep <- getStep
+     -- do either substitution or adjunction 
+     res <- if (curStep == Initial)
+            then applySubstitution given
+            else applyAdjunction given
+     -- determine which of the res should go in the agenda 
+     -- (monadic state) and which should go in the result (res')
+     res' <- classifyNew res
+     -- put the given into the chart untouched 
+     if (curStep == Initial) 
+        then addToChart   given
+        else when (null $ adjnodes given) $ trashIt given 
+     return res'
+  where 
+     trashIt t = 
+       do s <- get
+          let missingSem = tsem s \\ tsemantics t
+          addToTrash t (TS_SemIncomplete missingSem)
 \end{code}
 
 \subsection{Generate helper functions}

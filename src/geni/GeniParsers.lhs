@@ -18,12 +18,8 @@
 \chapter{GeniParsers}
 \label{cha:GeniParsers}
 
-GeniParsers parses everything that GenI knows how to read natively.  For
-now, we use Happy for most things, and Parsec for the XMG lexicons 
-(via LORIA's in-house TSNLP testing format).
-
-But Parsec is so full of goodness that I hope eventually to rewrite the
-other parsers currently in MParser using Parsec as well.
+GeniParsers parses everything that GenI knows how to read natively.  
+The parsers are written using the most excellent Parsec library.
 
 \ignore{
 \begin{code}
@@ -81,14 +77,9 @@ geniTestSuite =
 
 A test case is composed of an optional test id, some semantic input
 \fnref{geniSemanticInput}, followed by any number of sentences.  
-Notes:
-\begin{itemize}
-\item Restrictors are represented as feature structures.  For more
-      details about restrictors, see \fnref{detectRestrictors}.
-\item Each sentence in the test suite may be optionally preceded by the
-      keyword 'sentence'.  We ought to eventually force the use of this
-      keyword.
-\end{itemize}
+Each sentence in the test suite may be optionally preceded by the
+keyword 'sentence'.  (We ought to eventually force the use of this
+keyword.)
 
 \begin{code}
 geniTestCase :: Parser TestCase
@@ -391,6 +382,7 @@ lexer  = makeTokenParser
          , commentEnd = "*/"
          , opLetter = oneOf ""
          , reservedOpNames = [""]
+         , identLetter = alphaNum <|> oneOf "_'-"
          })
 
 whiteSpace = P.whiteSpace lexer

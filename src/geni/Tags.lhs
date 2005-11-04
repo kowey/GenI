@@ -62,7 +62,7 @@ import Btypes (Ptype(Initial, Auxiliar), SemPols,
                Sem, Pred, emptyPred, 
                emptyGNode,
                substFlist, 
-               substTree, substSem, showPairs)
+               substTree, substSem, showPairs, showSem)
 import General (BitVector, treeLeaves, groupByFM)
 \end{code}
 }
@@ -389,15 +389,18 @@ the TagElem so that the person using a debugger can find out what went wrong.
 
 \begin{code}
 data TagStatus = TS_None              -- no error
-               | TS_SynIncomplete     -- semantically incomplete
-               | TS_SemIncomplete     -- semantically incomplete
+               | TS_SynIncomplete     -- syntactically incomplete
+               | TS_SemIncomplete Sem -- semantically incomplete
                | TS_TbUnify           -- top/bottom unification error
      deriving (Eq)
 
 instance Show TagStatus where
-  show ts = case ts of 
-              TS_None -> ""
-              TS_SynIncomplete -> "syntactically incomplete"
-              TS_SemIncomplete -> "semantically incomplete"
-              TS_TbUnify       -> "top/bot unification failure" 
+  show ts 
+    = case ts of 
+       TS_None -> ""
+       TS_SynIncomplete -> "syntactically incomplete"
+       TS_SemIncomplete sem -> 
+         "semantically incomplete - missing:  " ++
+         showSem sem
+       TS_TbUnify       -> "top/bot unification failure" 
 \end{code}
