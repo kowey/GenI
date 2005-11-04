@@ -99,8 +99,9 @@ geniTestCase =
     sentenceParser :: Parser String
     sentenceParser = 
       do optional (keyword "sentence")
-         w <- squares (sepBy1 identifier whiteSpace<?> "a sentence") 
+         w <- squares (sepBy1 geniWord whiteSpace<?> "a sentence") 
          return (unwords w)
+      where geniWord = many1 (noneOf "[]\v\f\t\r\n")
 \end{code}
 
 \section{Semantics}
