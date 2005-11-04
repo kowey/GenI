@@ -148,22 +148,46 @@ We add some buttons for loading files and running the generator.
 Let's not forget the optimisations...
 
 \begin{code}
-       polChk <- checkBox f [ text := "Polarities"
-                            , checked := polarised config ]
-       autopolChk <- checkBox f [ text := "Pol detection"
-                                , checked := autopol config ]
-       polsigChk <- checkBox f [ text := "Pol signatures"
-                               , checked := polsig config ]
-       chartsharingChk <- checkBox f [ text := "Chart sharing"
-                                     , checked := chartsharing config ]
-       semfilterChk <- checkBox f [ text := "Semantic filters"
-                                  , checked := semfiltered config ]
-       orderedadjChk <- checkBox f [ text := "Ordered adjunction"
-                                  , checked := True
-                                  , enabled := False ]
-       footconstrChk <- checkBox f [ text := "Foot constraint"
-                                   , checked := footconstr config ]
-       extrapolText <- staticText f [ text := showLitePm $ extrapol config ]
+       polChk <- checkBox f 
+          [ text := "Polarities"
+          , checked := polarised config 
+          , tooltip := "Use the polarity optimisation"
+          ]
+       autopolChk <- checkBox f 
+          [ text := "Pol detection"
+          , checked := autopol config 
+          , tooltip := "Automatically detect polarities"
+          ]
+       polsigChk <- checkBox f 
+          [ text := "Pol signatures"
+          , checked := polsig config 
+          , tooltip := "Use polarity signatures (not reccomended)"
+          ]
+       chartsharingChk <- checkBox f 
+         [ text := "Chart sharing"
+         , checked := chartsharing config 
+         , tooltip := "Enable chart sharing of polarity paths - this means that" 
+         ]
+       semfilterChk <- checkBox f 
+         [ text := "Semantic filters"
+         , checked := semfiltered config 
+         , tooltip := "Filter away semantically incomplete structures before adjunction phase"
+         ]
+       orderedadjChk <- checkBox f 
+         [ text := "Ordered adjunction"
+         , checked := True
+         , enabled := False 
+         , tooltip := "Impose a fixed order on adjunction to nodes"
+         ]
+       footconstrChk <- checkBox f 
+         [ text := "Foot constraint"
+         , checked := footconstr config 
+         , tooltip := "Don't allow adjunction twice on same node (eliminates redundant stuff only)"
+         ]
+       extrapolText <- staticText f 
+         [ text := showLitePm $ extrapol config 
+         , tooltip := "Use the following additional polarities" 
+         ]
        -- commands for the checkboxes
        let togglePolStuff = do c <- get polChk checked
                                set autopolChk      [ enabled := c ]
