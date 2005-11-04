@@ -16,22 +16,22 @@ semantics:[book(?I)]
 
 %% Noms Propres
 
-marie nP(?I)
+Marie nP(?I)
 semantics:[marie(?I)]
 
-claire nP(?I)
+Claire nP(?I)
 semantics:[claire(?I)]
 
-olivier nP(?I)
+Olivier nP(?I)
 semantics:[olivier(?I)]
 
-pierre nP(?I)
+Pierre nP(?I)
 semantics:[pierre(?I)]
 
-jean nP(?I)
+Jean nP(?I)
 semantics:[jean(?I)]
 
-paul nP(?I)
+Paul nP(?I)
 semantics:[paul(?I)]
 
 %% --------------------------------------------------------------------- 

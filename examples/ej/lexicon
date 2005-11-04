@@ -39,13 +39,13 @@ semantics:[woman(_ ?Entity)]
 
 %% proper names
 
-mia Pn(?Entity ! agr:sg3)
+Mia Pn(?Entity ! agr:sg3)
 semantics:[name(_ ?Entity mia)]
 
-vincent Pn(?Entity ! agr:sg3)
+Vincent Pn(?Entity ! agr:sg3)
 semantics:[name(_ ?Entity vincent)]
 
-émilie Pn(?Entity ! agr:sg3)
+Émilie Pn(?Entity ! agr:sg3)
 semantics:[name(_ ?Entity émilie)]
 
 

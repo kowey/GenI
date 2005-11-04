@@ -33,16 +33,16 @@ semantics:[present(+?I)]
 
 %% Noms Propres
 
-claire nP(?I)
+Claire nP(?I)
 semantics:[claire(+?I)]
 
-marie nP(?I)
+Marie nP(?I)
 semantics:[mary(+?I)]
 
-jean nP(?I)
+Jean nP(?I)
 semantics:[john(+?I)]
 
-paul nP(?I)
+Paul nP(?I)
 semantics:[paul(+?I)]
 
 
