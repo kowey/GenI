@@ -54,6 +54,8 @@ module Btypes(
    fromGConst, fromGVar,
    isVar, isAnon, testBtypes,
 
+   -- Polarities
+
    -- Tests
    prop_unify_anon, prop_unify_self, prop_unify_sym 
 ) where
@@ -95,10 +97,7 @@ data Ttree a = TT{params  :: [GeniVal],
                   pidname :: String,
                   pfeat :: Flist,
                   ptype :: Ptype,
-                  tree :: Tree a,
-                  -- optimisation stuff
-                  ptpredictors  :: [(AvPair,Int)],
-                  ptpolarities  :: Map.Map String Int
+                  tree :: Tree a
                   }
            deriving Show
 
@@ -116,9 +115,8 @@ emptyMacro = TT { params  = [],
                   pfamily = "",
                   pfeat = [],
                   ptype = Unspecified,
-                  tree  = Node emptyGNode [],
-                  ptpredictors = [],
-                  ptpolarities = Map.empty }
+                  tree  = Node emptyGNode []
+                 }
 \end{code}
 
 Auxiliary types used during the parsing of the Lexicon.  
@@ -783,6 +781,4 @@ instance Arbitrary GeniVal where
                       liftM GConst arbitrary ] 
 \end{code}
 }
-
-
 

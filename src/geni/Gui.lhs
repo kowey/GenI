@@ -56,7 +56,7 @@ import Tags (idname,mapBySem,emptyTE,tsemantics,tpolarities,thighlight,
              TagElem, derivation)
 
 import Configuration(Params(..), Switch(..), GrammarType(..),
-                     autopol, polarised, polsig, chartsharing, 
+                     polarised, polsig, chartsharing, 
                      semfiltered, footconstr)
 import GeniParsers 
 
@@ -155,7 +155,8 @@ Let's not forget the optimisations...
           ]
        autopolChk <- checkBox f 
           [ text := "Pol detection"
-          , checked := autopol config 
+          , checked := True 
+          , enabled := False
           , tooltip := "Automatically detect polarities"
           ]
        polsigChk <- checkBox f 
@@ -190,13 +191,11 @@ Let's not forget the optimisations...
          ]
        -- commands for the checkboxes
        let togglePolStuff = do c <- get polChk checked
-                               set autopolChk      [ enabled := c ]
                                set polsigChk       [ enabled := c ]
                                set chartsharingChk [ enabled := c ]
                                set extrapolText    [ enabled := c ] 
        set polChk          [on command := do togglePolStuff
                                              toggleChk pstRef polChk PolarisedTok ] 
-       set autopolChk      [on command := toggleChk pstRef autopolChk AutoPolTok ] 
        set polsigChk       [on command := toggleChk pstRef polsigChk PolSigTok] 
        -- set predictingChk   [on command := toggleChk pstRef predictingChk Predicting] 
        set chartsharingChk [on command := toggleChk pstRef chartsharingChk ChartSharingTok]

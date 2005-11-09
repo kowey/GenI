@@ -47,7 +47,6 @@ For now, these annotations are done by hand, and are based on syntactic
 criteria (substitution and root node categories) but one could envisage
 alternate criteria or an eventual means of automating the process.  
 
-~\\
 The basic idea is to use the polarity keys to determine which subsets of
 candidate trees are incompatible with each other and rule them out.  We
 construct a finite state automaton which uses polarity keys to
@@ -55,6 +54,13 @@ pre-calculate the compatibility of sets of trees.  At the end of the
 optimisation, we are left with an automaton, each path of which is a
 potentially compatible set of trees.  We then preform surface
 realisation seperately, treating each path as a set of candidate trees.
+
+\emph{Important note}: one thing that may be confusing in this chapter
+is that we refer to polarities (charges) as single integers, e.g, $-2n$.
+In reality, to account for weird stuff like atomic disjunction, we do
+not use simple integers, but polarities intervals, so more something 
+like $(-2,-2)n$!  But for the most part, the intervals are zero length,
+and you can just think of $-2n$ as shorthand for $(-2,-2)n$.
 
 \begin{code}
 module Polarity(PolAut,AutDebug,makePolAut,
@@ -86,7 +92,9 @@ import Btypes(Pred, Sem, Flist, AvPair, showAv,
               showSem, sortSem, 
               root, gup, 
               SemPols, unifyFeat, rootUpd)
-import General(BitVector, groupByFM, isEmptyIntersect, fst3, snd3, thd3)
+import General(
+    BitVector, groupByFM, isEmptyIntersect, fst3, snd3, thd3,
+    Interval, ival, (!+!), showInterval)
 \end{code}
 
 \section{Overview}
@@ -126,7 +134,7 @@ makePolAut cands tsem extraPol = let
     -- building and remembering the automata 
     build k xs = (k,aut,prune aut):xs
                  where aut   = buildPolAut k initK (thd3 $ head xs)
-                       initK = Map.findWithDefault 0 k extraPol
+                       initK = Map.findWithDefault (ival 0) k extraPol
     res = foldr build [("(seed)",seed,prune seed)] ks
     in (reverse res, thd3 $ head res)
 
@@ -259,12 +267,13 @@ consist of the trees whose semantics is subsumed by that literal.
 buildSeedAut :: SemMap -> Sem -> PolAut
 buildSeedAut cands tsem = 
   let start = polstart []
-      endst = PolSt (length tsem) [] []
-      end   = if (null tsem) then [polfake] else [endst]
-      initAut = NFA { startSt = start,
-                      finalSt = end,
-                      states  = [[start]],
-                      transitions = Map.empty }
+      hasZero (x,y) = x <= 0 && y >= 0
+      initAut = NFA 
+        { startSt = start
+        , isFinalSt = \ (PolSt ctr _ pols) -> 
+            ctr == length tsem && all hasZero pols
+        , states  = [[start]]
+        , transitions = Map.empty }
   in nubAut $ buildSeedAut' cands tsem 1 initAut
 
 -- for each literal...
@@ -326,14 +335,15 @@ automaton.  See also section \ref{sec:seed_automaton} for the seed
 automaton that you can use when there is no ``previous automaton''.
 
 \begin{code}
-buildPolAut :: String -> Int -> PolAut -> PolAut 
+buildPolAut :: String -> Interval -> PolAut -> PolAut 
 buildPolAut k initK skelAut =
   let concatPol p (PolSt pr b pol) = PolSt pr b (p:pol)
       newStart = concatPol initK $ startSt skelAut
-      initAut  = NFA { startSt = newStart,
-                    finalSt = map (concatPol 0) $ finalSt skelAut,
-                    states  = [[newStart]],
-                    transitions = Map.empty }
+      --
+      initAut  = skelAut 
+        { startSt = newStart
+        , states  = [[newStart]]
+        , transitions = Map.empty }
       -- cand' = observe "candidate map" cand 
   in nubAut $ buildPolAut' k (transitions skelAut) initAut 
 \end{code}
@@ -378,11 +388,12 @@ buildPolAutHelper fk skeleton st (aut,prev) =
       lookupTr tr   = Map.findWithDefault [] tr skelStTrans
       -- .. calculate a new state and add a transition to it
       addTS tr skel2 (a,n) = (addTrans a st tr st2, st2:n)
-                             where st2 = newSt tr skel2
+        where st2 = newSt tr skel2
+      --
       newSt t skel2 = PolSt pr2 ex2 (po2:skelPo2)
-                      where PolSt pr2 ex2 skelPo2 = skel2 
-                            po2 = po1 + (Map.findWithDefault 0 fk pol)
-                            pol = tlPolarities t   
+        where PolSt pr2 ex2 skelPo2 = skel2 
+              po2 = po1 !+! (Map.findWithDefault (ival 0) fk pol)
+              pol = tlPolarities t   
   in result 
 \end{code}
 
@@ -827,12 +838,12 @@ detectRestrictors :: Flist -> Flist -> PolMap
 detectRestrictors restrict interface =
   let matches  = intersect restrict interface
       matchStr = map showRestrictor matches
-  in Map.fromList $ zip matchStr (repeat 1)
+  in Map.fromList $ zip matchStr ((repeat.ival) 1)
 
 declareRestrictors :: Flist -> PolMap
 declareRestrictors restrict =
   let restrictStr = map showRestrictor restrict
-      minusone    = repeat (-1)
+      minusone    = (repeat.ival) (-1)
   in Map.fromList $ zip restrictStr minusone
 
 showRestrictor :: AvPair -> String
@@ -842,13 +853,28 @@ showRestrictor = ('.' :) . showAv
 \subsection{Automatic detection}
 
 Automatic detection is not an optimisation in itself, but a means to
-make grammar development with polarities more convenient.  We assign
-every tree with a -1 charge for every category for every substitution
-node it has.  Additionally, we assign every initial tree with a +1
-charge for the category of its root node.  So for example, the tree
-s(n$\downarrow$, cl$\downarrow$, v(aime), n$\downarrow$) should have the
-following polarities: s +1, cl -1, n -2 These charges are added to any
-that previously been defined in the grammar.
+make grammar development with polarities more convenient.  
+
+First the simplified explanation: we assign every tree with a $-1$ charge for
+every category for every substitution node it has.  Additionally, we assign
+every initial tree with a $+1$ charge for the category of its root node.  So
+for example, the tree s(n$\downarrow$, cl$\downarrow$, v(aime), n$\downarrow$)
+should have the following polarities: s +1, cl -1, n -2. These charges are
+added to any that previously been defined in the grammar.
+
+Now what really happens: we treat automaton polarities as intervals, not 
+as single integers!  For the most part, nothing changes from the simplified
+explanation.  Where we added a $-1$ charge before, we now add a $(-1,-1)$
+charge.  Similarly, we where added a $+1$ charge, we now add $(1,1)$.  So
+what's the point of all this?  It helps us deal with atomic disjunction.
+
+\subparagraph{Atomic disjunction} Say we encounter a substitution node 
+whose category is either cl or n.  What we do is add the polarities
+$cl (-1,0),  n (-1,0)$ which means that there are anywhere from -1 to 
+0 cl, and for n.  
+FIXME: What kind of sucks about all this though is that this slightly worsens
+the filter because it allows for both cl and n to be $-1$ (or $0$) at the same
+time.  It would be nice to have some kind of mutual exclusion working.
 
 \begin{code}
 detectPols :: [TagElem] -> [TagElem]
@@ -858,22 +884,32 @@ detectPols' :: TagElem -> TagElem
 detectPols' te =
   let rootup   = (gup.root.ttree) te
       subup    = map snd3 (substnodes te)
-      rstuff   = fnotnull $ [getcat rootup]--,getidx rootup]
-      substuff = fnotnull $ (map getcat subup) -- ++ (map getidx subup)
-      fnotnull = filter (not.null)
+      rstuff   :: [[String]]
+      rstuff   = concat [getcat rootup]--,getidx rootup]
+      substuff :: [[String]]
+      substuff = concatMap getcat subup -- ++ (map getidx subup)
       --
       getcat = getval "cat"
       -- getidx = getval "idx"
-      getval att fl = if null f then "" else attstr
-                      where f = filter (\ (a,_) -> att == a) fl 
-                            -- FIXME: deal with disjunction here
-                            attstr = att ++ ('_' : ((head.fromGConst.snd.head) f))
-      --
-      apols = zip substuff negone
-              where negone = repeat (-1)
-      ipols = zip rstuff one ++ apols
-              where one = repeat 1
-      pols  = if ttype te == Initial then ipols else apols
+      getval :: String -> Flist -> [[String]]
+      getval att fl = [ (addPrefix.fromGConst) v | (a,v) <- fl, a == att ] 
+        where addPrefix :: [String] -> [String]
+              addPrefix = map (\x -> att ++ ('_' : x))
+      -- 
+      commonPols :: [ (String,Interval) ]
+      commonPols = concatMap fn substuff 
+        where interval = (-1, 0)
+              fn []  = error "null GConst detected in detectPols':commonPols!"
+              fn [x] = [ (x, (-1,-1)) ]
+              fn amb = map (\x -> (x,interval)) amb
+      ipols :: [ (String,Interval) ]
+      ipols = commonPols ++ concatMap fn rstuff 
+        where interval = (0, 1)
+              fn []  = error "null GConst detected in detectPols':iPols!"
+              fn [x] = [ (x, (1,1)) ]
+              fn amb = map (\x -> (x,interval)) amb
+      pols :: [ (String,Interval) ]
+      pols  = if ttype te == Initial then ipols else commonPols 
       --
       oldfm = tpolarities te
   in te { tpolarities = foldr addPol oldfm pols }
@@ -1050,15 +1086,15 @@ sortSemByFreq tsem cands =
 
 \begin{code}
 type SemMap = Map.Map Pred [TagLite]
-type PolMap = Map.Map String Int
+type PolMap = Map.Map String Interval 
 \end{code}
 
 \paragraph{addToPol} adds a new polarity item to a PolMap.  If there
 already is a polarity for that item, it is summed with the new polarity.
 
 \begin{code}
-addPol :: (String,Int) -> PolMap -> PolMap
-addPol (p,c) m = Map.insertWith (+) p c m
+addPol :: (String,Interval) -> PolMap -> PolMap
+addPol (p,c) m = Map.insertWith (!+!) p c m
 \end{code}
 
 \subsection{TagLite}
@@ -1073,7 +1109,7 @@ reduction code.
 data TagLite = TELite { tlIdname      :: String
                       , tlIdnum       :: Integer
                       , tlSemantics   :: Sem
-                      , tlPolarities  :: Map.Map String Int
+                      , tlPolarities  :: Map.Map String Interval 
                       , tlSempols     :: [SemPols] }
         deriving (Show, Eq)
 
@@ -1112,7 +1148,7 @@ Note: these are NFAs without the empty-transition.
 
 \begin{code}
 data NFA st ab = NFA { startSt :: st,
-                       finalSt :: [st],
+                       isFinalSt :: st -> Bool,
                        transitions :: Map.Map st (Map.Map ab [st]),
                        -- set of states 
                        -- note: we use a list of list to group the states,
@@ -1121,7 +1157,14 @@ data NFA st ab = NFA { startSt :: st,
                      }
 \end{code}
 
-\paragraph{lookupTrans} takes an automaton, a state $st1$ and an element
+\fnlabel{finalSt} returns all the final states of an automaton
+
+\begin{code}
+finalSt :: NFA st ab -> [st]
+finalSt aut = concatMap (filter (isFinalSt aut)) (states aut)
+\end{code}
+
+\fnlabel{lookupTrans} takes an automaton, a state $st1$ and an element
 $ab$ of the alphabet; and returns the state that $st1$ transitions to
 via $a$, if possible. 
 
@@ -1166,10 +1209,10 @@ $e$ is a list of extra literals
 which are known by the state, and $p$ is a polarity.
 \item $\Sigma$ is the union of the sets of candidate trees for all
 propositions
-\item $q_0$ is the start state $(0,0)$ which does not correspond to any
+\item $q_0$ is the start state $(0,[0,0])$ which does not correspond to any
 propositions and is used strictly as a starting point.
-\item $q_n$ is the final state $(n,0)$ which corresponds to the last
-proposition, with polarity $0$.
+\item $q_n$ is the final state $(n,[x,y])$ which corresponds to the last
+proposition, with polarity $x \leq 0 \leq y$.
 \item $\delta$ is the transition function between states, which we
 define below.
 \end{enumerate}
@@ -1177,7 +1220,8 @@ define below.
 Note: 
 \begin{itemize}
 \item For convenience during automaton intersection, we actually define
-      the states as being $(i, [p])$ where $[p]$ is a list of states.  
+      the states as being $(i, [(p_x,p_y)])$ where $[(p_x,p_y)]$ is a list of
+      polarity intervals.  
 \item We use integer $i$ for each state instead of literals directly,
       because it is possible for the target semantics to contain the 
       same literal twice (at least, with the index counting mechanism
@@ -1185,7 +1229,7 @@ Note:
 \end{itemize}
 
 \begin{code}
-data PolState = PolSt Int [Pred] [Int] deriving (Eq)
+data PolState = PolSt Int [Pred] [(Int,Int)] deriving (Eq)
 type PolTrans = TagLite
 type PolAut   = NFA PolState PolTrans
 type PolTransFn = Map.Map PolState (Map.Map PolTrans [PolState])
@@ -1209,14 +1253,11 @@ We include also some fake states which are useful for general
 housekeeping during the main algortihms.
 
 \begin{code}
-fakestate :: Int -> [Int] -> PolState
+fakestate :: Int -> [Interval] -> PolState
 fakestate s pol = PolSt s [] pol --PolSt (0, s, [""]) [] pol
 -- an initial state for polarity automata
-polstart :: [Int] -> PolState
+polstart :: [Interval] -> PolState
 polstart pol = fakestate 0 pol -- fakestate "START" pol
--- a fake state is the final state of an empty automaton 
-polfake :: PolState
-polfake = fakestate 1 [] -- "FAKE-FINAL" []
 \end{code}
 
 
@@ -1284,11 +1325,7 @@ The advantage is that it displays fewer quotation marks.
 \begin{code}
 showLitePm :: PolMap -> String
 showLitePm pm = 
-  let showPair (f, pol) = charge pol ++ f 
-      charge c | c == -1   = "-"
-               | c ==  1   = "+"
-               | c  >  0   = "+" ++ (show c)
-               | otherwise = show c 
+  let showPair (f, pol) = showInterval pol ++ f 
   in concat $ intersperse " " $ map showPair $ Map.toList pm
 \end{code}
 
@@ -1331,7 +1368,7 @@ gvShowState :: String -> PolState -> String
 gvShowState stId st = " " ++ stId ++ " [ label=\"" ++ showSt st ++ "\" ];\n"
   where showSt (PolSt pr ex po) = showPr pr ++ showEx ex ++ showPo po
         showPr _ = "" -- (_,pr,_) = pr ++ "\\n"
-        showPo po = concat $ intersperse "," $ map show po
+        showPo po = concat $ intersperse "," $ map showInterval po
         showEx ex = if (null ex) then "" else (showSem ex) ++ "\\n"
 \end{code}
 

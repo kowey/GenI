@@ -23,7 +23,7 @@ The input to this module is simply \texttt{argv}.
 \begin{code}
 module Configuration 
   (Params(..), GrammarType(..), Switch(..),
-   autopol, polarised, polsig, predicting,
+   polarised, polsig, predicting,
    semfiltered, chartsharing, footconstr, 
    isBatch, emptyParams, 
    treatArgs, optBatch)
@@ -40,7 +40,7 @@ import Data.List  ( find, intersperse )
 import Data.Maybe ( catMaybes  )
 import Text.ParserCombinators.Parsec ( runParser )
 
-import General ( bugInGeni, fst3, snd3, wordsBy ) 
+import General ( bugInGeni, fst3, snd3, wordsBy, Interval ) 
 import GeniParsers ( geniPolarities )
 \end{code}
 }
@@ -91,7 +91,7 @@ data Params = Prms{
   grammarType    :: GrammarType,
   --
   testCase       :: String, -- names of test cases
-  extrapol       :: Map.Map String Int,
+  extrapol       :: Map.Map String Interval,
   batchRepeat    :: Integer,
   usetrash       :: Bool,
   --
@@ -101,7 +101,6 @@ data Params = Prms{
   maxTrees       :: Maybe Int -- limit on num of trees in a derived tree 
 } deriving (Show)
 
-autopol      :: Params -> Bool
 polarised    :: Params -> Bool
 polsig       :: Params -> Bool
 predicting   :: Params -> Bool
@@ -110,7 +109,6 @@ chartsharing :: Params -> Bool
 footconstr   :: Params -> Bool
 isBatch      :: Params -> Bool
 
-autopol      p = AutoPolTok      `elem` (optimisations p)
 polarised    p = PolarisedTok    `elem` (optimisations p)
 polsig       p = PolSigTok       `elem` (optimisations p)
 predicting   p = PredictingTok   `elem` (optimisations p)  
@@ -169,7 +167,7 @@ data Switch =
     RootCategoriesTok String | 
     -- optimisations
     OptimisationsTok String   | PolOptsTok | AdjOptsTok |
-    PolarisedTok | AutoPolTok | PolSigTok  | PredictingTok | ChartSharingTok |
+    PolarisedTok | PolSigTok  | PredictingTok | ChartSharingTok |
     ExtraPolaritiesTok String |
     FootConstraintTok         | SemFilteredTok | OrderedAdjTok |  
     BatchTok | RepeatTok String | 
@@ -250,7 +248,6 @@ optimisationCodes =
  [ (PolarisedTok   , "p",      "polarity filtering")
  , (PolOptsTok  , "pol",    "equivalent to +p+a+s+c")
  , (AdjOptsTok  , "adj",    "equivalent to +S+F")
- , (AutoPolTok     , "a",      "polarity detection")
  , (PolSigTok      , "s",      "polarity signatures")
  , (ChartSharingTok, "c",      "chart sharing")
  , (SemFilteredTok , "S",      "semantic filtering")
@@ -288,7 +285,7 @@ It shows a table of optimisation codes and their meaning.
 \begin{code}
 optimisationsUsage :: String
 optimisationsUsage = 
-  let polopts  = [PolOptsTok, PolarisedTok, AutoPolTok, PolSigTok, ChartSharingTok]
+  let polopts  = [PolOptsTok, PolarisedTok, PolSigTok, ChartSharingTok]
       adjopts  = [AdjOptsTok, SemFilteredTok, FootConstraintTok]
       unlinesTab l = concat (intersperse "\n  " l)
       getstr k = case find (\x -> k == fst3 x) optimisationCodes of 
@@ -382,7 +379,7 @@ defineParams p (f:s) = defineParams pnext s
               $ addif AdjOptsTok adjOpts 
               $ parseOptimisations v
     addif t x o = if (t `elem` o) then x ++ o else o
-    polOpts     = [PolarisedTok, AutoPolTok, ChartSharingTok] 
+    polOpts     = [PolarisedTok, ChartSharingTok] 
     adjOpts     = [SemFilteredTok, FootConstraintTok]
 \end{code}
 
@@ -402,7 +399,7 @@ optBatch enabledRaw =
                      else withopt ++ prev
                      where withopt = map (opt:) prev
       -- 
-      polBatch' = foldr use [[PolarisedTok]] [AutoPolTok,ChartSharingTok]
+      polBatch' = foldr use [[PolarisedTok]] [ChartSharingTok]
       polBatch  = if PolarisedTok `elem` enabled
                  then polBatch' 
                  else [] : polBatch'

@@ -153,6 +153,41 @@ bugInGeni =
 slash = "/"
 \end{code}
 
+\section{Intervals}
+
+We represent polarities as intervals $(x,y)$, meaning from $x$ to $y$ including
+both $x$ and $y$.
+
+\begin{code}
+type Interval = (Int,Int)
+\end{code}
+
+\fnlabel{(!+!)} adds two intervals
+
+\begin{code}
+(!+!) :: Interval -> Interval -> Interval
+(!+!) (a1,a2) (b1,b2) = (a1+b1, a2+b2)
+\end{code}
+
+\fnlabel{ival} builds a (trivial) interval from $x$ to $x$
+\begin{code}
+ival :: Int -> Interval
+ival i = (i,i)
+\end{code}
+
+Hmm... do i really feel like instantiating a datatype for this?
+
+\begin{code}
+showInterval :: Interval -> String
+showInterval (x,y) =
+ let sign 0 = ""
+     sign x = if x > 0 then "+" else "-"
+     --
+ in if (x==y) 
+    then (sign x) ++ (show x) 
+    else show (x,y)
+\end{code}
+
 \section{Other}
 
 \begin{code}

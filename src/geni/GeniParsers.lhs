@@ -38,6 +38,7 @@ module GeniParsers (
 import GdeParser(gdeLexicon)
 -- import TsnlpParser 
 
+import General ((!+!), Interval, ival)
 import Btypes 
 import Data.List (sort)
 import qualified Data.Map  as Map 
@@ -246,8 +247,7 @@ geniTreeDef ttypeP =
               , pfeat = iface 
               , ptype = ttype 
               , tree = theTree
-              , ptpolarities = Map.empty 
-              , ptpredictors = [] }
+              }
 \end{code}
 
 \subsection{Tree structure}
@@ -333,16 +333,16 @@ The polarities parser is used for parsing extra polarity input from the
 user. For more information, see chapter \ref{cha:Polarity}.
 
 \begin{code}
-geniPolarities :: Parser (Map.Map String Int)
+geniPolarities :: Parser (Map.Map String Interval)
 geniPolarities =
   do whiteSpace
      p <- many pol 
      eof
-     return (Map.fromListWith (+) p)
+     return (Map.fromListWith (!+!) p)
   where 
     pol = do p <- geniPolarity 
              i <- identifier
-             return (i,p)
+             return (i,ival p)
 \end{code}
 
 \section{Morphology}

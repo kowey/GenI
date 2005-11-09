@@ -36,7 +36,6 @@ where
 
 \ignore{
 \begin{code}
-import Data.Char (toLower)
 import qualified Data.Map as Map
 import Data.IORef (IORef, readIORef, newIORef, modifyIORef)
 import Data.List (intersperse, sort, nub, group)
@@ -54,7 +53,8 @@ import Text.ParserCombinators.Parsec
 import Control.Monad (when)
 import CPUTime (getCPUTime)
 
-import General(multiGroupByFM, ePutStr, ePutStrLn, eFlush)
+import General(multiGroupByFM, ePutStr, ePutStrLn, eFlush,
+    ival, (!+!), Interval)
 
 import Btypes (Macros, MTtree, ILexEntry, Lexicon, 
                Sem, SemInput,
@@ -67,7 +67,6 @@ import Btypes (Macros, MTtree, ILexEntry, Lexicon,
                sortSem, subsumeSem, params, 
                Subst, substSem, substFlist, substTree, substHelper,
                pidname, pfamily, pfeat, ptype, 
-               ptpolarities, 
                setLexeme, tree, unifyFeat)
 
 import Tags (Tags, TagElem, emptyTE, TagSite, 
@@ -82,7 +81,7 @@ import Configuration(Params,
                      selectCmd,
                      GrammarType(..),
                      macrosFile, lexiconFile, morphFile, rootCatsParam,
-                     autopol, polarised, polsig, chartsharing, 
+                     polarised, polsig, chartsharing, 
                      semfiltered, extrapol, footconstr)
 
 import Mstate (Gstats, numcompar, szchart, geniter, initGstats,
@@ -253,7 +252,7 @@ runGeni pstRef runFn = do
   -- statistics 
   let statsOpt =  if (null optAll) then "none " else optAll
                   where polkey   = "pol"
-                        polplus  =    (if autopol config then "A" else "")
+                        polplus  =    "A" -- always detects polarities
                                    ++ (if polsig  config then "S" else "")
                                    ++ (if isChartSharing then "C" else "")
                         --
@@ -356,11 +355,12 @@ buildAutomaton candRaw pst =
   let config   = pa pst
       (tsem,tres) = ts pst
       -- restrictors and extra polarities
-      mergePol = Map.unionWith (+)
+      mergePol = Map.unionWith (!+!)
       rootCatPref = prefixRootCat $ head $ rootCats pst
+      rcatPol :: Map.Map String Interval
       rcatPol = if (null $ rootCats pst)
                 then Map.empty
-                else Map.singleton rootCatPref (-1)
+                else Map.singleton rootCatPref (ival (-1))
       extraPol = mergePol (extrapol config) $ mergePol rest rcatPol
                  where rest = declareRestrictors tres
       detect   = detectRestrictors tres
@@ -369,11 +369,8 @@ buildAutomaton candRaw pst =
                    where p  = tpolarities t
                          r  = (detect . tinterface) t
       candRest  = map restrict candRaw 
-      -- polarity detection (if needed)
-      isAutoPol = autopol   config
-      cand = if isAutoPol 
-             then detectPols candRest
-             else candRest
+      -- polarity detection 
+      cand = detectPols candRest
       -- building the automaton
       (candLite, lookupCand) = reduceTags (polsig config) cand
       auts = makePolAut candLite tsem extraPol 
@@ -462,7 +459,6 @@ combineOne lexitem e =
                 substnodes = snodes,
                 adjnodes   = anodes,
                 tsemantics = substSem sem fsubst,
-                tpolarities = ptpolarities e,
                 tsempols    = isempols lexitem,
                 tinterface  = funif
                 -- tpredictors = combinePredictors e lexitem
@@ -658,11 +654,12 @@ runSelector pst gfile fil = do
      when (null theCmd) $ fail "Please specify a tree selection command!"
      ePutStr $ "Selector started.\n"
      eFlush
-     -- (toP, fromP, _, pid) <- runInteractiveProcess selectCmd selectArgs Nothing Nothing
+     -- (toP, fromP, _, pid) <- runInteractiveProcess theCmd selectArgs Nothing Nothing
      (pid, fromP, toP) <- runPiped theCmd selectArgs Nothing Nothing
      hPutStrLn toP fil
      hClose toP -- so that process gets EOF and knows it can stop
      res    <- hGetContents fromP 
+     -- waitForProcess pid
      awaitProcess pid 
      {- exCode <- awaitProcess pid 
        case exCode of 

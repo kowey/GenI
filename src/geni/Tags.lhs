@@ -108,7 +108,8 @@ data TagElem = TE {
                    adjnodes     :: [TagSite],
                    tsemantics   :: Sem,
                    -- optimisation stuff
-                   tpolarities  :: Map.Map String Int, -- polarity key   to charge
+                   -- (polarity key to charge interval)
+                   tpolarities  :: Map.Map String (Int,Int), 
                    tinterface   :: Flist,  -- for restrictors 
                    tsempols     :: [SemPols],
                    -- tpredictors  :: TPredictors,
