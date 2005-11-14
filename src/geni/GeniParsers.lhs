@@ -30,13 +30,9 @@ module GeniParsers (
   geniMacros,
   -- lexicons
   geniLexicon, geniMorphInfo,
-  gdeLexicon,
   -- polarities
   geniPolarities
 ) where
-
-import GdeParser(gdeLexicon)
--- import TsnlpParser 
 
 import General ((!+!), Interval, ival)
 import Btypes 
@@ -167,6 +163,8 @@ geniLexicalEntry =
   do lemma  <- identifier <?> "a lemma"
      family <- identifier <?> "a tree family"
      (params, interface) <- parens paramsParser <|> interfaceParser
+     filters <- option [] $ do keyword "filters"
+                               geniFeats
      keywordSemantics
      (sem,pols) <- squares geniLexSemantics
      --
@@ -174,6 +172,7 @@ geniLexicalEntry =
                     , ifamname = family 
                     , iparams = params
                     , ipfeat  = sort interface
+                    , ifilters = filters
                     , isemantics = sem
                     , isempols = pols }
   where 
@@ -185,6 +184,7 @@ geniLexicalEntry =
       return (params, interface)
     interfaceParser :: Parser ([GeniVal], Flist)
     interfaceParser = do
+      optional (keyword "equations")
       interface <- geniFeats
       return ([], interface) <?> "an interface"
 \end{code}

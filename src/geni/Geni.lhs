@@ -93,7 +93,7 @@ import Polarity
 --import Predictors (PredictorMap, mapByPredictors, 
 --                   fillPredictors, optimisePredictors)
 
-import GeniParsers (geniMacros, gdeLexicon,
+import GeniParsers (geniMacros, 
                     geniLexicon, geniTestSuite, geniSemanticInput, 
                     geniMorphInfo)
 
@@ -788,20 +788,7 @@ the monad.
 FIXME: differentiate
 \begin{code}
 loadLexicon :: ProgStateRef -> Params -> IO ()
-loadLexicon pstRef config =
-  case (grammarType config) of 
-        XMGTools -> loadXMGLexicon  pstRef config 
-        _        -> loadGeniLexicon pstRef config 
-\end{code}
-
-\paragraph{loadGeniLexicon} Given the pointer to the monadic state pstRef and
-the parameters from a grammar index file parameters; it reads and parses
-the lexicon file and the semantic lexicon.   These are then stored in
-the mondad.
-
-\begin{code}
-loadGeniLexicon :: ProgStateRef -> Params -> IO ()
-loadGeniLexicon pstRef config = do 
+loadLexicon pstRef config = do
        let lfilename = lexiconFile config
        when (null lfilename) $ fail "Please specify a lexicon!"
        ePutStr $ "Loading Lexicon " ++ lfilename ++ "..."
@@ -856,27 +843,6 @@ loadGeniLexicon pstRef config = do
 %                     where lems = lookupWithDefaultFM ll [] wc 
 %  in foldr helper lemlex items
 %\end{code}
-
-\subsubsection{Lexicon - XMG}
-
-\paragraph{loadXMGLexicon} Given the pointer to the monadic state pstRef and
-the parameters from a grammar index file parameters; it reads and parses
-the lexicon file using the common grammar manifesto format.  
-
-\begin{code}
-loadXMGLexicon :: ProgStateRef -> Params -> IO ()
-loadXMGLexicon pstRef config = do 
-       let lfilename = lexiconFile config
-       when (null lfilename) $ fail "Please specify a lexicon!"
-       ePutStr $ "Loading XMGTools Lexicon " ++ lfilename ++ "..."
-       eFlush
-       parsed <- parseFromFile gdeLexicon lfilename
-       case parsed of 
-         Left  err     -> fail (show err)
-         Right entries -> let lexicon = mapBySemKeys isemantics entries
-                          in  modifyIORef pstRef (\x -> x{le = lexicon})
-                          
-\end{code}
 
 \subsubsection{Macros}
 
