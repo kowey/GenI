@@ -407,7 +407,7 @@ into more tabs?
   padv <- panel nb []
   -- XMG tools 
   xmgChk <- checkBox padv 
-    [ text := "Use XMG and GDE format"
+    [ text := "Use XMG grammar and anchoring"
     , checked := (grammarType config == XMGTools) ]
   selectCmdTxt <- entry padv 
     [ tooltip := "Command used for tree anchoring" 
