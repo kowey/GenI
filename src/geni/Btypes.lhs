@@ -779,6 +779,7 @@ instance Arbitrary GeniVal where
   arbitrary = oneof [ return $ GAnon, 
                       liftM GVar arbitrary, 
                       liftM GConst arbitrary ] 
+  coarbitrary = error "no implementation of coarbitrary for GeniVal"
 \end{code}
 }
 

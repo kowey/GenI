@@ -70,7 +70,7 @@ resize :: Int -> Gen a -> Gen a
 resize n (Gen m) = Gen (\_ r -> m n r)
 
 rand :: Gen StdGen
-rand = Gen (\n r -> r)
+rand = Gen (\_ r -> r)
 
 promote :: (a -> Gen b) -> Gen (a -> b)
 promote f = Gen (\n r -> \a -> let Gen m = f a in m n r)
@@ -89,7 +89,7 @@ instance Functor Gen where
   fmap f m = m >>= return . f
 
 instance Monad Gen where
-  return a    = Gen (\n r -> a)
+  return a    = Gen (\_ _ -> a)
   Gen m >>= k =
     Gen (\n r0 -> let (r1,r2) = split r0
                       Gen m'  = k (m n r1)
@@ -104,7 +104,7 @@ elements :: [a] -> Gen a
 elements xs = (xs !!) `fmap` choose (0, length xs - 1)
 
 vector :: Arbitrary a => Int -> Gen [a]
-vector n = sequence [ arbitrary | i <- [1..n] ]
+vector n = sequence [ arbitrary | _ <- [1..n] ]
 
 oneof :: [Gen a] -> Gen a
 oneof gens = elements gens >>= id
@@ -117,6 +117,7 @@ frequency xs = choose (1, tot) >>= (`pick` xs)
   pick n ((k,x):xs)
     | n <= k    = x
     | otherwise = pick (n-k) xs
+  pick _ [] = error "in QuickCheck frequency/pick : empty list not accounted for"
 
 -- general monadic
 
@@ -236,7 +237,7 @@ forAll gen body = Prop $
 
 (==>) :: Testable a => Bool -> a -> Property
 True  ==> a = property a
-False ==> a = property ()
+False ==> _ = property ()
 
 label :: Testable a => String -> a -> Property
 label s a = Prop (add `fmap` evaluate a)
@@ -268,7 +269,7 @@ quick = Config
   { maxTest = 100
   , maxFail = 1000
   , size    = (+ 3) . (`div` 2)
-  , every   = \n args -> let s = show n in s ++ [ '\b' | _ <- s ]
+  , every   = \n _ -> let s = show n in s ++ [ '\b' | _ <- s ]
   }
          
 verbose :: Config
@@ -326,6 +327,8 @@ done mesg ntest stamps =
   display xs  = ".\n" ++ unlines (map (++ ".") xs)
 
   pairLength xss@(xs:_) = (length xss, xs)
+  pairLength []         = error "QuickCheck pairLength: [] not supported" 
+
   entry (n, xs)         = percentage n ntest
                        ++ " "
                        ++ concat (intersperse ", " xs)
