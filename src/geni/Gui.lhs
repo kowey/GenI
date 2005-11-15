@@ -17,11 +17,6 @@
 
 \chapter{Graphical User Interface} 
 
-TODO
-\begin{enumerate}
-\item Tool tips - for the optimisations at least
-\end{enumerate}
-
 \begin{code}
 module Gui(guiGenerate) where
 \end{code}
