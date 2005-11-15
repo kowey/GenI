@@ -86,7 +86,6 @@ SCRIPT_FILES = bin/runXMGselector.sh\
 IFILE = $(SRC_GENI)/Main
 CIFILE = $(SRC_GENI)/Converter
 EIFILE = $(SRC_GENI)/ExtractTestCases
-DIFILE = $(SRC_GENI)/MainNoGui
 
 OFILE = bin/geni
 COFILE = bin/geniconvert
@@ -167,7 +166,7 @@ $(EOFILE) : $(SOURCE_FILES)
 	$(GHC) -W --make $(GHCPACKAGES) $(EIFILE).lhs -o $(EOFILE) 
 
 nogui : permissions 
-	$(GHC) -W --make $(GHCPACKAGES) $(DIFILE).lhs -o $(OFILE) 
+	$(GHC) -W --make -DDISABLE_GUI $(GHCPACKAGES) $(IFILE).lhs -o $(OFILE) 
 	$(OS_SPECIFIC_STUFF)
 
 debugger: permissions

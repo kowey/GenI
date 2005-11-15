@@ -34,9 +34,12 @@ module Main (main) where
 import Data.IORef(readIORef)
 
 import Geni(initGeni, pa)
-import Gui(guiGenerate)
 import Console(consoleGenerate)
 import Configuration(isGraphical, isBatch)
+
+#ifndef DISABLE_GUI
+import Gui(guiGenerate)
+#endif
 \end{code}
 
 TODO 
@@ -56,9 +59,13 @@ main = do
   pst <- initGeni
   mst <- readIORef pst
   let headPa   = pa mst
+#ifndef DISABLE_GUI
   let notBatch  = not (isBatch headPa)
       graphical = isGraphical headPa
   if (graphical && notBatch) 
      then guiGenerate pst
      else consoleGenerate pst
+#else
+  consoleGenerate pst
+#endif
 \end{code}
