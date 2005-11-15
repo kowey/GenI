@@ -22,50 +22,75 @@ starts from.  If you're trying to figure out how GenI works, the main
 action is in Geni and Tags 
 (chapters \ref{cha:Geni} and \ref{cha:Tags}).  
 
-This module's sole job is to decide between the text/graphical 
-interface.
-
 \begin{code}
 module Main (main) where
 \end{code}
 
 \ignore{
 \begin{code}
-import Data.IORef(readIORef)
+import Data.IORef(newIORef)
+import System(getArgs)
+import qualified Data.Map as Map
 
-import Geni(initGeni, pa)
+import Geni(ProgState(..))
 import Console(consoleGenerate)
-import Configuration(isGraphical, isBatch)
+import Configuration(treatArgs, isGraphical, isBatch, Params)
 
 #ifndef DISABLE_GUI
 import Gui(guiGenerate)
+#else
+guiGenerate = consoleGenerate
 #endif
 \end{code}
-
-TODO 
-\begin{enumerate}
-\item Define what is and what is not exported from the modules.  
-      In particular in BTypes take care to export the inspection function 
-      but not the types.
-      Re-write functions in Main as needed.
-\item Change input in Lexicon and Grammar to allow more than one anchor.
-\item Keys used in Tags are specially bad for Pn, perhaps they can be improved.
-\end{enumerate}
 }
+
+In figure \ref{fig:code-outline-main} we show what happens from main: First, we
+hand control off to either the console or the graphical user interface.  These
+functions then do all the business stuff like loading files and figuring out
+what to generate.  From there, they invoke the the generation step
+\fnreflite{runGeni}.  The function runGeni takes an argument which determines
+how exactly to run the generator.  For more details, see page
+\pageref{fn:runGeni}.
+
+\begin{figure}
+\begin{center}
+\includegraphics[scale=0.25]{images/code-outline-main}
+\label{fig:code-outline-main}
+\caption{How the GenI entry point is used}
+\end{center}
+\end{figure}
 
 \begin{code}
 main :: IO ()
 main = do       
-  pst <- initGeni
-  mst <- readIORef pst
-  let headPa   = pa mst
-#ifndef DISABLE_GUI
-  let notBatch  = not (isBatch headPa)
-      graphical = isGraphical headPa
+  args     <- getArgs
+  confArgs <- treatArgs args
+  pstRef   <- newIORef (emptyProgState confArgs)
+  let notBatch  = not (isBatch confArgs)
+      graphical = isGraphical confArgs 
   if (graphical && notBatch) 
-     then guiGenerate pst
-     else consoleGenerate pst
-#else
-  consoleGenerate pst
-#endif
+     then guiGenerate pstRef
+     else consoleGenerate pstRef
 \end{code}
+
+\paragraph{emptyProgState} is the program state when you start GenI for the very first time
+
+\begin{code}
+emptyProgState :: Params -> ProgState
+emptyProgState args = 
+ ST { pa = args 
+    , gr = []
+    , le = Map.empty
+    , morphinf = const Nothing
+    , ts = ([],[])
+    , tcase = []
+    , tsuite = [] }
+\end{code}
+
+% TODO
+% Define what is and what is not exported from the modules.  
+%      In particular in BTypes take care to export the inspection function 
+%      but not the types.
+%      Re-write functions in Main as needed.
+% Change input in Lexicon and Grammar to allow more than one anchor.
+% Keys used in Tags are specially bad for Pn, perhaps they can be improved.

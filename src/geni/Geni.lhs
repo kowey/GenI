@@ -27,7 +27,7 @@ involve some messy IO performance tricks.
 \begin{code}
 module Geni (ProgState(..), ProgStateRef, GeniInput(..), GeniResults(..), 
              showRealisations, groupAndCount,
-             initGeni, runGeni, doGeneration, runMorph,
+             runGeni, doGeneration, runMorph,
              loadGrammar, loadLexicon, 
              loadTestSuite, loadTargetSemStr,
              combine, testGeni)
@@ -37,13 +37,12 @@ where
 \ignore{
 \begin{code}
 import qualified Data.Map as Map
-import Data.IORef (IORef, readIORef, newIORef, modifyIORef)
+import Data.IORef (IORef, readIORef, modifyIORef)
 import Data.List (intersperse, sort, nub, group)
 import Data.Maybe (isNothing)
 import Data.Tree
 
-import System (ExitCode(ExitSuccess), 
-               exitWith, getArgs)
+import System (ExitCode(ExitSuccess), exitWith)
 import System.IO(hPutStrLn, hClose, hGetContents)
 import System.IO.Unsafe(unsafePerformIO)
 import System.Mem
@@ -76,7 +75,7 @@ import Tags (Tags, TagElem, emptyTE, TagSite,
              setTidnums, fixateTidnums)
 
 import Configuration(Params, 
-                     treatArgs, grammarType, tsFile,
+                     grammarType, tsFile,
                      testCase, morphCmd, ignoreSemantics,
                      selectCmd,
                      GrammarType(..),
@@ -152,43 +151,8 @@ rootCats = (rootCatsParam . pa)
 \section{Entry point}
 % --------------------------------------------------------------------
 
-This module mainly exports two monadic functions: an initialisation step
-and a generation step.  In figure \ref{fig:code-outline-main} we show
-what happens at the entry point: First \fnref{initGeni} is called to
-start things off, then control is handed off to either the console or
-the graphical user interface.  These functions then invoke the
-generation step \fnref{runGeni} passing it one of \fnref{doGeneration}
-or \fnref{debugGui}.
-
-\begin{figure}
-\begin{center}
-\includegraphics[scale=0.5]{images/code-outline-main}
-\label{fig:code-outline-main}
-\caption{How the GenI entry point is used}
-\end{center}
-\end{figure}
-
-\subsection{Initialisation step}
-\label{fn:initGeni}
-
-initGeni should be called when Geni is started.  This is typically
-called from the user interface code.
-
-\begin{code}
-initGeni :: IO ProgStateRef 
-initGeni = do
-    args     <- getArgs
-    confArgs <- treatArgs args
-    -- Initialize the general state.  
-    pstRef <- newIORef ST{pa = confArgs,
-                          gr = [],
-                          le = Map.empty,
-                          morphinf = const Nothing,
-                          ts = ([],[]),
-                          tcase = [],
-                          tsuite = [] }
-    return pstRef 
-\end{code}
+This module mainly exports a single important monadic function which
+performs the generation step.
 
 \subsection{Generation step}
 
