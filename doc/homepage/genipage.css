@@ -5,14 +5,18 @@ body {
     margin-top: 5em;
 }
 
+h1 {
+  color: #fafafa;
+}
+
 a {
   text-decoration: none;
 }
 
 a:link {
-  text-color: white;
+  color: #fafafa;
 }
 
 a:visited {
-  text-color: blue;
+  color: #bbbbbb;
 }
