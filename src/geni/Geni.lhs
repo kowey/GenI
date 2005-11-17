@@ -152,12 +152,12 @@ rootCats = (rootCatsParam . pa)
 % --------------------------------------------------------------------
 
 This module mainly exports a single important monadic function which
-performs the generation step.
-
-\subsection{Generation step}
-
-In the generation step, we first perform lexical selection, set up any
-optimisations on the lexical choices, and then perform generation.
+performs generation: this consists of
+\begin{enumerate}
+\item lexical selection (page \pageref{sec:lexical_selection})
+\item optimisations
+\item generation proper (page \pageref{fn:doGeneration})
+\end{enumerate}
 
 \paragraph{runGeni} \label{fn:runGeni} performs the entire Geni pipeline
 : it does lexical selection, sets up any neccesary optimisations, runs
