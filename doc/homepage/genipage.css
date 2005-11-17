@@ -1,0 +1,18 @@
+body { 
+    background-color: gray; 
+    text-align: center;
+    font-family: sans-serif;
+    margin-top: 5em;
+}
+
+a {
+  text-decoration: none;
+}
+
+a:link {
+  text-color: white;
+}
+
+a:visited {
+  text-color: blue;
+}
