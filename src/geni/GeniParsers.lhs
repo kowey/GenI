@@ -168,7 +168,7 @@ geniLexicalEntry =
      keywordSemantics
      (sem,pols) <- squares geniLexSemantics
      --
-     return emptyLE { iword = lemma 
+     return emptyLE { iword = [lemma]
                     , ifamname = family 
                     , iparams = params
                     , ipfeat  = sort interface

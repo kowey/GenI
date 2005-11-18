@@ -65,6 +65,7 @@ import Btypes (Macros, MTtree, ILexEntry, Lexicon,
                gnname, gtype, gaconstr, gup, gdown, toKeys,
                sortSem, subsumeSem, params, 
                Subst, substSem, substFlist, substTree, substHelper,
+               showLexeme,
                pidname, pfamily, pfeat, ptype, 
                setLexeme, tree, unifyFeat)
 
@@ -291,7 +292,7 @@ runLexSelection :: ProgState -> IO ([TagElem], [ILexEntry])
 runLexSelection pst = 
   case (grammarType $ pa pst) of  
         XMGTools -> runXMGLexSelection pst
-        _           -> runBasicLexSelection pst
+        _        -> runBasicLexSelection pst
 
 runBasicLexSelection :: ProgState -> IO ([TagElem], [ILexEntry])
 runBasicLexSelection pst = do
@@ -392,7 +393,7 @@ lexical item to form a bonafide TagElem
 \begin{code}
 combineOne :: ILexEntry -> MTtree -> TagElem
 combineOne lexitem e = 
-   let wt = "(Word: "++ (iword lexitem) ++
+   let wt = "(Word: "++ (showLexeme $ iword lexitem) ++
             ", Family:" ++ (ifamname lexitem) ++ ")\n"
        -- lexitem stuff
        sem  = isemantics lexitem
@@ -415,11 +416,11 @@ combineOne lexitem e =
        -- the final result
        showid i = if null i then "" else ("-" ++ i)
        sol = emptyTE {
-                idname = iword lexitem ++ "_" 
+                idname = (head $ iword lexitem) ++ "_" 
                          ++ pfamily e ++ showid (pidname e),
                 derivation = (0,[]),
                 ttype = ptype e,
-                ttree = setLexeme [(iword lexitem)] unified,
+                ttree = setLexeme (iword lexitem) unified,
                 substnodes = snodes,
                 adjnodes   = anodes,
                 tsemantics = substSem sem fsubst,
@@ -480,9 +481,12 @@ chooseLexCand slex tsem =
       keys = myEMPTY:(toKeys tsem)   
       -- we choose candidates that match keys
       lookuplex t = Map.findWithDefault [] t slex
-      cand    = concatMap lookuplex keys
+      cand  = concatMap lookuplex keys
       -- and refine the selection... 
-  in chooseCandI tsem cand
+      cand2 = chooseCandI tsem cand
+      -- treat synonyms as a single lexical entry
+      cand3 = mergeSynonyms cand2
+  in cand3
 \end{code}
 
 With a helper function, we refine the candidate selection by
@@ -528,6 +532,21 @@ mapBySemKeys semfn xs =
   let gfn t = if (null s) then [myEMPTY] else toKeys s 
               where s = semfn t
   in multiGroupByFM gfn xs
+\end{code}
+
+\fnlabel{mergeSynonyms} is a factorisation technique that uses
+atomic disjunction to merge all synonyms into a single lexical
+entry.  Two lexical entries are considered synonyms if their
+semantics match and they point to the same tree families.
+
+\begin{code}
+mergeSynonyms :: [ILexEntry] -> [ILexEntry]
+mergeSynonyms lex =
+  let mergeFn l1 l2 = l1 { iword = (iword l1) ++ (iword l2) }
+      keyFn l = (ifamname l, isemantics l)   
+      synMap = foldr helper Map.empty lex  
+        where helper x acc = Map.insertWith mergeFn (keyFn x) x acc 
+  in Map.elems synMap
 \end{code}
 
 % --------------------------------------------------------------------
@@ -657,7 +676,7 @@ lexEntryToFil lex n =
       showEnr (a,v) = a ++ "=" ++ show v
       concatSperse x y = concat $ intersperse x y
   in show n 
-    ++ " " ++ iword lex ++ " "
+    ++ " " ++ (showLexeme $ iword lex) ++ " "
     ++ "[" 
     ++ (concatSperse ","   $ map showFil filters)
     ++ "]\n(" 
@@ -675,7 +694,7 @@ combineXMG lexitem e =
    let tree_ = Btypes.tree e
        (snodes,anodes) = detectSites tree_
        sol = emptyTE {
-                idname = iword lexitem ++ "_" ++ pidname e,
+                idname = (showLexeme $ iword lexitem) ++ "_" ++ pidname e,
                 derivation = (0,[]),
                 ttype  = ptype e,
                 ttree  = tree_,

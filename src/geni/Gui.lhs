@@ -46,7 +46,9 @@ import Geni (ProgState(..), GeniInput(..), GeniResults(..), ProgStateRef,
              doGeneration, runGeni, runMorph,
              combine, loadGrammar, loadTestSuite, loadTargetSemStr)
 import General (trim, snd3, slash, bugInGeni)
-import Btypes (showPred, showSem, showPairs, Sem, iword, isemantics)
+import Btypes 
+  (showPred, showSem, showPairs, showLexeme,
+   Sem, iword, isemantics)
 import Tags (idname,mapBySem,emptyTE,tsemantics,tpolarities,thighlight, 
              TagElem, derivation)
 
@@ -868,7 +870,7 @@ debugGui pst input = do
       -- it must have the same semantics
       hasTree l = isJust $ find (\t -> tsemantics t == lsem) cand
         where lsem = isemantics l
-      missedLex = [ iword l | l <- lexonly, (not.hasTree) l ]
+      missedLex = [ showLexeme (iword l) | l <- lexonly, (not.hasTree) l ]
   canTab <- candidateGui pst nb cand missedSem missedLex
   -- automata tab
   let config           = pa pst

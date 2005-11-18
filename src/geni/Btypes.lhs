@@ -125,18 +125,20 @@ A lexicon maps semantic predicates to lexical entries.
 \begin{code}
 type Lexicon = Map.Map String [ILexEntry]
 type SemPols  = [Int]
-data ILexEntry = ILE{iword       :: String,
-                     ifamname    :: String,
-                     iparams     :: [GeniVal],
-                     ipfeat      :: Flist,
-                     ifilters    :: Flist,
-                     iptype      :: Ptype,
-                     isemantics  :: Sem,
-                     isempols    :: [SemPols] }
-               deriving (Show, Eq)
+data ILexEntry = ILE
+    { -- normally just a singleton, useful for merging synonyms 
+      iword       :: [String]
+    , ifamname    :: String
+    , iparams     :: [GeniVal]
+    , ipfeat      :: Flist
+    , ifilters    :: Flist
+    , iptype      :: Ptype
+    , isemantics  :: Sem
+    , isempols    :: [SemPols] }
+  deriving (Show, Eq)
 
 emptyLE :: ILexEntry  
-emptyLE = ILE { iword = "",
+emptyLE = ILE { iword = [],
                 ifamname = "", 
                 iparams = [],
                 ipfeat   = [],
