@@ -524,8 +524,8 @@ GenI semantics.
 
 \begin{code}
 geniValue :: Parser GeniVal 
-geniValue =   (constants  <?> "a constant or atomic disjunction")
-          <|> ((try $ anonymous) <?> "_ or ?_")
+geniValue =   ((try $ anonymous) <?> "_ or ?_")
+          <|> (constants  <?> "a constant or atomic disjunction")
           <|> (variable   <?> "a variable")
   where 
     question = "?"
