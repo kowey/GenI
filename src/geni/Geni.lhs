@@ -55,6 +55,7 @@ import CPUTime (getCPUTime)
 import General(multiGroupByFM, ePutStr, ePutStrLn, eFlush,
     ival, (!+!), Interval)
 
+import Automaton 
 import Btypes (Macros, MTtree, ILexEntry, Lexicon, 
                Sem, SemInput,
                fromGVar, GeniVal(..),
@@ -195,7 +196,7 @@ runGeni pstRef runFn = do
       autstuff   = buildAutomaton preautcand pst
       finalaut   = (snd.fst) autstuff
       lookupCand = lookupAndTweak (snd autstuff)
-      pathsLite  = walkAutomaton finalaut 
+      pathsLite  = automatonPaths finalaut 
       paths      = map (concatMap lookupCand) pathsLite 
       combosPol  = if isPol then paths else [preautcand]
       -- chart sharing optimisation (if enabled)

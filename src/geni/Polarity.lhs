@@ -65,8 +65,7 @@ and you can just think of $-2n$ as shorthand for $(-2,-2)n$.
 \begin{code}
 module Polarity(PolAut,AutDebug,makePolAut,
                 TagLite, reduceTags, lookupAndTweak,
-                walkAutomaton, fixPronouns, 
-                detectPols, detectPolPaths, prefixRootCat,
+                fixPronouns, detectPols, detectPolPaths, prefixRootCat,
                 declareRestrictors, detectRestrictors,
                 defaultPolPaths,
                 showLite, showLitePm, showPolPaths, showPolPaths',
@@ -120,10 +119,15 @@ we return everything a tuple with (1) a list of the automota that
 were created and (2) the final automaton.  The first item is only
 neccesary for debugging; only the second is important.  
 
-Note: the extraPol argument is a map containing any initial
-values for polarity keys.  This is useful to impose external filters
-like ``I only want sentences'' or ``I only want expressions where 
-the object is topicalised''.  
+Note: 
+\begin{itemize}
+\item the \fnparam{extraPol} argument is a map containing any initial
+  values for polarity keys.  This is useful to impose external filters
+  like ``I only want sentences'' or ``I only want expressions where 
+  the object is topicalised''.  
+\item to recuperate something useful from these automaton, it might
+  be helpful to call \fnref{automatonPaths} on it.
+\end{itemize}
 
 \begin{code}
 type AutDebug = (String, PolAut, PolAut)
@@ -299,14 +303,17 @@ buildSeedAutHelper cs l i st (aut,prev) =
       (PolSt _ ex1 _) = st
       -- candidates that match the target semantics and which
       -- do not overlap the extra baggage semantics
-      tcand     = filter notInEx cs 
-      notInEx t = isEmptyIntersect ex1 (tlSemantics t)
+      tcand = [ Just t | t <- cs
+              , isEmptyIntersect ex1 (tlSemantics t) ]
       -- add the transitions out of the current state 
       addT tr (a,n) = (addTrans a st tr st2, st2:n)
-                      where ex2  = delete l (ex1 ++ tlSemantics tr)
-                            st2  = PolSt i ex2 []
+        where 
+         st2 = PolSt i ex2 []
+         ex2 = case tr of 
+                 Nothing  -> []
+                 Just tr_ -> delete l (ex1 ++ tlSemantics tr_)
   in if (l `elem` ex1) 
-     then addT emptyTL (aut,prev)
+     then addT Nothing (aut,prev)
      else foldr addT   (aut,prev) tcand 
 \end{code}
 
@@ -392,9 +399,11 @@ buildPolAutHelper fk skeleton st (aut,prev) =
         where st2 = newSt tr skel2
       --
       newSt t skel2 = PolSt pr2 ex2 (po2:skelPo2)
-        where PolSt pr2 ex2 skelPo2 = skel2 
-              po2 = po1 !+! (Map.findWithDefault (ival 0) fk pol)
-              pol = tlPolarities t   
+        where 
+         PolSt pr2 ex2 skelPo2 = skel2 
+         po2 = po1 !+! (Map.findWithDefault (ival 0) fk pol)
+         pol = case t of Nothing -> Map.empty 
+                         Just t2 -> tlPolarities t2   
   in result 
 \end{code}
 
@@ -471,42 +480,6 @@ prune' (sts:next) oldAut =
   in if (null blacklist) 
      then oldAut { states = (reverse oldSt) ++ (sts:next) }
      else prune' next newAut 
-\end{code}
-
-% ----------------------------------------------------------------------
-\subsection{Walking the automaton}
-% ----------------------------------------------------------------------
-
-In order to perform generation, we must recuperate all the possible
-paths from the automaton.  We do this by applying a simple algorithm for
-walking the automaton.  
-
-\emph{WARNING!} This function assumes the automaton does not have any
-loops (which is the case for polarity automata).  Actually if there are
-any loops, it will simply ignore them.
-
-We assume also that the automaton has already been pruned.
-
-\begin{code}
-walkAutomaton :: PolAut -> [[TagLite]]
-walkAutomaton aut = walkAutomaton' (transitions aut) (startSt aut) 
-
-walkAutomaton' :: PolTransFn -> PolState -> [[TagLite]]
-walkAutomaton' transFm st = 
-  let trans        = Map.findWithDefault Map.empty st transFm
-      lookupTr ab  = Map.findWithDefault [] ab trans
-      newTransFm   = Map.delete st transFm 
-      --   
-      cands      = Map.keys trans
-      -- recursive steps: we call walkAutomaton' for each state we 
-      -- transition to and then add the label for the current 
-      -- transition to the results
-      next  ab     = concatMap (next' ab) (lookupTr ab)
-      next' ab st2 = if (ab == emptyTL) 
-                     then n 
-                     else if (null n) then [[ab]] else map (ab :) n
-                     where n = walkAutomaton' newTransFm st2 
-  in concatMap next cands 
 \end{code}
 
 % ====================================================================
@@ -1124,13 +1097,6 @@ instance Ord TagLite where
     compare (fn t1) (fn t2)
     where fn t = (tlIdname t, tlIdnum t)
 
-emptyTL :: TagLite
-emptyTL = TELite { tlIdname = ""
-                 , tlIdnum  = -1
-                 , tlSemantics = []
-                 , tlSempols   = []
-                 , tlPolarities = Map.empty }
-
 toTagLite :: TagElem -> TagLite
 toTagLite te = TELite { tlIdname     = idname te
                       , tlIdnum      = tidnum te   
@@ -1187,7 +1153,7 @@ Note:
 data PolState = PolSt Int [Pred] [(Int,Int)] deriving (Eq)
 type PolTrans = TagLite
 type PolAut   = NFA PolState PolTrans
-type PolTransFn = Map.Map PolState (Map.Map PolTrans [PolState])
+type PolTransFn = Map.Map PolState (Map.Map (Maybe PolTrans) [PolState])
 \end{code}
 
 \begin{code}
@@ -1365,14 +1331,18 @@ gvShowTrans aut stmap idFrom st =
       drawTrans' idTo x = " " ++ idFrom ++ " -> " ++ idTo ++ 
                           " [ label=\"" ++ drawLabel x ++ "\"];\n"
       drawLabel labels = concat $ intersperse "\\n" $ labs 
-                         where lablen = length labels
-                               max    = 6 
-                               excess = "...and " ++ (show $ lablen - max) ++ " more"
-                               labstrs = map fn labels
-                               labs = if (lablen > max) 
-                                      then (take max labstrs) ++ [ excess ]
-                                      else labstrs 
-                               fn x = if (x == emptyTL) then "EMPTY" else tlIdname x
+        where 
+          lablen = length labels
+          max    = 6 
+          excess = "...and " ++ (show $ lablen - max) ++ " more"
+          --
+          labstrs = map fn labels
+          fn Nothing  = "EMPTY"
+          fn (Just x) = tlIdname x
+          --
+          labs = if (lablen > max) 
+                 then (take max labstrs) ++ [ excess ]
+                 else labstrs 
   in concatMap drawTrans $ Map.toList invFM
 \end{code}
 
