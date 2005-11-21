@@ -251,8 +251,11 @@ runGeni pstRef runFn = do
   let timediff = (fromInteger $ clockAfter - clockBefore) / 1000000000
       statsTime = (show $ timediff) 
   when (length statsTime == 0) $ exitWith ExitSuccess
+  -- sentence automaton
+  let treeLeaves   = map tagLeaves res
+      sentenceAuts = map listToSentenceAut treeLeaves 
+      uninflected  = concatMap automatonPaths sentenceAuts
   -- morphology 
-  let uninflected = map tagLeaves res
   sentences <- runMorph pstRef uninflected
   -- final results 
   return (results { grSentences = sentences,
@@ -974,7 +977,7 @@ data GeniResults = GR {
 } 
 \end{code}
 
-We provide a default means of displaying the results/u
+We provide a default means of displaying the results
 
 \begin{code}
 instance Show GeniResults where
@@ -991,6 +994,57 @@ instance Show GeniResults where
        ++ "\nGeneration time:  " ++ (grTimeStr gres) ++ " ms"
        ++ "\n\nRealisations:\n" ++ (showRealisations sentences)
 \end{code}
+
+\subsection{Sentence automata}
+
+\paragraph 
+A SentenceAut represents a set of sentences in the form of an automaton.
+The labels of the automaton are the words of the sentence.  But note! 
+``word'' in the sentence is in fact a tuple (lemma, inflectional feature
+structures).  Normally, the states are defined as integers, with the
+only requirement being that each one, naturally enough, is unique.
+
+\begin{code}
+type UninflectedDisjunction = ([String], Flist)
+type UninflectedWord  = (String, Flist)
+type SentenceAut      = NFA Int UninflectedWord 
+\end{code}
+
+\fnlabel{listToSentenceAut} converts a list of GNodes into a sentence
+automaton.  It's a actually pretty stupid conversion in fact.  We pretty
+much make a straight path through the automaton, with the only
+cleverness being that we provide a different transition for each 
+atomic disjunction.  
+
+\begin{code}
+listToSentenceAut :: [ UninflectedDisjunction ] -> SentenceAut 
+listToSentenceAut nodes = 
+  let theStart  = 0
+      theEnd = (length nodes) - 1
+      theStates = [theStart..theEnd]
+      --
+      emptyAut = NFA 
+        { startSt     = theStart 
+        , isFinalSt   = (== theEnd)
+        , states      = [theStates]
+        , transitions = Map.empty }
+      -- create a transition for each lexeme in the node to the 
+      -- next state... 
+      helper :: (Int, UninflectedDisjunction) -> SentenceAut -> SentenceAut
+      helper (current, word) aut = foldr addT aut lemmas 
+        where 
+          lemmas   = fst word
+          features = snd word
+          --
+          addT t a = addTrans a current (toTrans t) next 
+          next = current + 1
+          toTrans :: String -> Maybe UninflectedWord
+          toTrans l = Just (l, features)
+      --
+  in foldr helper emptyAut (zip theStates nodes)
+\end{code}
+
+\subsection{Displaying the results}
 
 \paragraph{groupAndCount} is a generic list-processing function.
 It converts a list of items into a list of tuples (a,b) where 

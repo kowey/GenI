@@ -57,7 +57,6 @@ import Data.Tree
 
 import Btypes (Ptype(Initial, Auxiliar), SemPols,
                Subst, GNode(gup, gdown, glexeme, gnname), Flist, 
-               showLexeme,
                GeniVal(..),
                Sem, Pred, emptyPred, 
                emptyGNode,
@@ -332,12 +331,14 @@ subsumedBy ((ch, cp, cla):cl) (th, tp,tla)
 lemmas and features.  This is meant for converting TAG trees to 
 sentences, the idea being that you'd pass the lemma and feature pairs 
 to morphological generator and get an inflected form for each word.  
+Note that because of the possibility of atomic disjunction on each
+node we return a list of lemmas for each leaf.
 
 \begin{code}
-tagLeaves :: TagElem -> [(String,Flist)]
+tagLeaves :: TagElem -> [([String],Flist)]
 tagLeaves te = map tagLeaf $ (treeLeaves.ttree) te 
 
-tagLeaf :: GNode -> (String,Flist)
+tagLeaf :: GNode -> ([String],Flist)
 tagLeaf node = 
   let lexeme = glexeme node
       guppy  = gup node
@@ -348,9 +349,8 @@ tagLeaf node =
              -- grab the first match
       cats  = if null cat' then [gnname node] else map show cat'
       name  = map (map toUpper) cats
-      -- FIXME: need to handle atomic disjunction in lexemes!
-      output = if (null lexeme) then name else lexeme
-  in (showLexeme output, gup node)
+      output =  if null lexeme then name else lexeme
+  in (output, gup node)
 \end{code}
 
 

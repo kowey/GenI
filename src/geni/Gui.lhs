@@ -702,7 +702,7 @@ realisationsGui _   f [] = messageGui f "No results found"
 realisationsGui pstRef f resultsRaw = 
   do let results = map (\t -> t {thighlight = []}) resultsRaw
      -- morphology
-     let uninflected = map tagLeaves resultsRaw 
+     let uninflected = map (squishLeaves.tagLeaves) resultsRaw 
      sentences <- runMorph pstRef uninflected
      --
      let itNlabl   = zip results sentences
@@ -986,7 +986,7 @@ showGenState res st =
                  ++ ("___DISCARDED___" : (labelFn trash)) 
                  ++ ("___RESULTS___"   : (labelFn res)) 
       labelFn trs = map fn trs 
-        where fn t = (sansMorph.tagLeaves) t ++ " (" ++ showPolPaths t ++ ")"
+        where fn t = (sansMorph.squishLeaves.tagLeaves) t ++ " (" ++ showPolPaths t ++ ")"
   in (trees,labels)
 \end{code}
 
@@ -1381,3 +1381,11 @@ runViewTag pst idname =
      return ()
 \end{code}
 
+\section{Ugly hacks!}
+  
+FIXME: hack to avoid handling the sentence automaton 
+
+\begin{code}
+squishLeaves = 
+  map ( \(lemmas, feats) -> (showLexeme lemmas, feats) )
+\end{code}
