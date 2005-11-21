@@ -383,7 +383,7 @@ lexer  = makeTokenParser
          , commentEnd = "*/"
          , opLetter = oneOf ""
          , reservedOpNames = [""]
-         , identLetter = alphaNum <|> oneOf "_'-"
+         , identLetter = alphaNum <|> oneOf "_'-."
          })
 
 whiteSpace = P.whiteSpace lexer
@@ -418,7 +418,7 @@ details about what the values look like.
 
 \begin{code}
 geniFeats :: Parser Flist
-geniFeats = option [] $ squares $ sepBy geniAttVal whiteSpace 
+geniFeats = option [] $ squares $ sepEndBy geniAttVal whiteSpace 
 
 geniAttVal :: Parser AvPair
 geniAttVal = do
@@ -529,7 +529,7 @@ geniValue =   (constants  <?> "a constant or atomic disjunction")
           <|> (variable   <?> "a variable")
   where 
     question = "?"
-    geniId = many1 (alphaNum <|> oneOf "+-") 
+    geniId = many1 (alphaNum <|> oneOf "+-_") 
     --
     constants :: Parser GeniVal 
     constants = 
