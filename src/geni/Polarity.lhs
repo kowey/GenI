@@ -84,6 +84,7 @@ import Data.List
 import Data.Maybe (isNothing)
 --import Data.Set
 
+import Automaton
 import Graphviz(GraphvizShow(..))
 import Tags(TagElem(..), TagItem(..), mapBySem, substTagElem)
 import Btypes(Pred, Sem, Flist, AvPair, showAv,
@@ -1136,52 +1137,6 @@ toTagLite te = TELite { tlIdname     = idname te
                       , tlSemantics  = tsemantics te
                       , tlPolarities = tpolarities te
                       , tlSempols    = tsempols te }
-\end{code}
-
-\subsection{NFA}
-Having not found a suitable automaton library for Haskell, we define our
-own version of NFA using Map for the transition function.  Leon P.
-Smith's Automata library requires us to know before-hand the size of our
-alphabet, which is highly unacceptable for this task.  
-
-Note: these are NFAs without the empty-transition.
-
-\begin{code}
-data NFA st ab = NFA { startSt :: st,
-                       isFinalSt :: st -> Bool,
-                       transitions :: Map.Map st (Map.Map ab [st]),
-                       -- set of states 
-                       -- note: we use a list of list to group the states,
-                       -- for the polarity automaton we group them by literal
-                       states    :: [[st]]
-                     }
-\end{code}
-
-\fnlabel{finalSt} returns all the final states of an automaton
-
-\begin{code}
-finalSt :: NFA st ab -> [st]
-finalSt aut = concatMap (filter (isFinalSt aut)) (states aut)
-\end{code}
-
-\fnlabel{lookupTrans} takes an automaton, a state $st1$ and an element
-$ab$ of the alphabet; and returns the state that $st1$ transitions to
-via $a$, if possible. 
-
-\begin{code}
-lookupTrans :: (Ord ab, Ord st) => NFA st ab -> st -> ab -> [st]
-lookupTrans aut st ab = Map.findWithDefault [] ab subT
-  where subT = Map.findWithDefault Map.empty st (transitions aut) 
-\end{code}
-
-\begin{code}
-addTrans :: (Ord ab, Ord st) => NFA st ab -> st -> ab -> st -> NFA st ab 
-addTrans aut st1 ab st2 = 
-  aut { transitions = Map.insert st1 newSubT oldT }
-  where oldSt2   = Map.findWithDefault [] ab oldSubT 
-        oldT     = transitions aut
-        oldSubT  = Map.findWithDefault Map.empty st1 oldT 
-        newSubT  = Map.insert ab (st2:oldSt2) oldSubT
 \end{code}
 
 \paragraph{nubAut} ensures that all states and transitions in the polarity automaton 
