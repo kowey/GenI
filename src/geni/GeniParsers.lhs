@@ -47,13 +47,6 @@ import qualified Text.ParserCombinators.Parsec.Token as P
 \end{code}
 }
 
-\section{Most parsers}
-
-\ignore{
-\begin{code}
-\end{code}
-}
-
 \section{Test suites}
 
 The test suite format consists of arbitrarily many test cases:
@@ -140,14 +133,25 @@ Each lexical entry is
       Either you provide :
 \begin{itemize}
 \item A list of parameters and an interface, as defined in
-      \fnref{geniParams}.   The interface is meant to be unified with
+      \fnref{geniParams}.  The interface is meant to be unified with
       the tree interface.
 \item A feature structure which is to be unifed with the tree interface.
       This is equivalent to the attribute-value pairs above; the only
       difference is that we don't do any parameters, and we use square
       brackets instead of parentheses.
+
+      Note that for XMG grammars, this feature structure can consist of
+      path equations of the form node.att:val, because they will be
+      unified with the entire tree and not just the tree interface. To
+      force something to unify with a tree interface in XMG, you should
+      supply ``interface.'' as a node name.
+
+      You may also optionally prefix this by the keyword ``equation''.
 \end{itemize}
-\item Optionally: FIXME: add in extension stuff
+\item Optionally: a set of filters.  This is to be used in conjunction
+      with XMG's SelectTAG.  Note that you must explicitly include 
+      family as an attribute, even if it's already declared in the 
+      lexical entry.
 \end{enumerate}
 
 \begin{code}
@@ -345,6 +349,18 @@ geniPolarities =
              return (i,ival p)
 \end{code}
 
+\fnlabel{geniPolarity} associates a numerical value to a polarity symbol,
+ that is, '+' or '-'.
+
+\begin{code}
+geniPolarity :: Parser Int
+geniPolarity = option 0 (plus <|> minus)
+  where 
+    plus  = do { char '+'; return  1   }
+    minus = do { char '-'; return (-1) } 
+\end{code}
+
+
 \section{Morphology}
 
 A morphological information file associates predicates with
@@ -447,9 +463,8 @@ geniParams = parens $ do
 
 \subsection{Semantics}
 
-A semantics is simply a list of literals. 
-
-A literal can take one of two forms:
+A semantics is simply a list of literals.  A literal can take one of two
+forms:
 \begin{verbatim}
   handle:predicate(arguments)
          predicate(arguments)
@@ -519,7 +534,7 @@ GenI semantics.
       variables.
 \item Atomic disjunctions are seperated with a pipe, \verb!|!.  Only
       constants may be separated by atomic disjunction
-\item Anything else is just a regular only constant
+\item Anything else is just a constant
 \end{enumerate}
 
 \begin{code}
@@ -546,16 +561,6 @@ geniValue =   ((try $ anonymous) <?> "_ or ?_")
       do optional $ symbol question 
          symbol "_"
          return GAnon
-\end{code}
-
-\subsection{Polarities}
-
-\begin{code}
-geniPolarity :: Parser Int
-geniPolarity = option 0 (plus <|> minus)
-  where 
-    plus  = do { char '+'; return  1   }
-    minus = do { char '-'; return (-1) } 
 \end{code}
 
 
