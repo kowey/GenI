@@ -251,13 +251,8 @@ runGeni pstRef runFn = do
   let timediff = (fromInteger $ clockAfter - clockBefore) / 1000000000
       statsTime = show timediff 
   when (length statsTime == 0) $ exitWith ExitSuccess
-  -- sentence automaton
-  let treeLeaves   = map tagLeaves res
-      sentenceAuts = map listToSentenceAut treeLeaves 
-      uninflected  = concatMap automatonPaths sentenceAuts
-  -- morphology 
-  sentences <- runMorph pstRef uninflected
   -- final results 
+  sentences <- finaliseResults pstRef res
   return (results { grSentences = sentences,
                     grTimeStr  = statsTime })
 \end{code}
@@ -993,6 +988,30 @@ instance Show GeniResults where
        ++ "\nComparisons made:  " ++ (show $ numcompar gstats)
        ++ "\nGeneration time:  " ++ (grTimeStr gres) ++ " ms"
        ++ "\n\nRealisations:\n" ++ (showRealisations sentences)
+\end{code}
+
+\subsection{Unpacking chart results}
+
+At the end of chart combination, we have some set of packed, raw
+results.  What we need now is to unpack these results into a 
+list of sentences and do any final modifications to them, for 
+example, running morphological generation on them.  
+
+\fnlabel{finaliseResults} converts chart results into a list of
+sentences.  There should be no need to any more post processing
+after you call this function.
+
+\begin{code}
+finaliseResults :: ProgStateRef -> [TagElem] -> IO [String]
+finaliseResults pstRef tes =
+  do -- sentence automaton
+     let treeLeaves   = map tagLeaves tes
+         sentenceAuts = map listToSentenceAut treeLeaves 
+         uninflected  = concatMap automatonPaths sentenceAuts
+     -- morphology 
+     sentences <- runMorph pstRef uninflected
+     -- final results 
+     return sentences
 \end{code}
 
 \subsection{Sentence automata}

@@ -44,7 +44,7 @@ module Mstate (
    theAgenda, theAuxAgenda, theChart, theTrash,
    initMState, 
    addToAgenda, addToChart,
-   genstats,
+   genconfig, genstats, 
 
    -- Re-export from MonadState
    evalState, runState,

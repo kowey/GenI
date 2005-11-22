@@ -41,9 +41,8 @@ import Graphviz
 import Treeprint(graphvizShowTagElem)
 
 import Tags (tagLeaves)
-import Morphology (sansMorph)
 import Geni (ProgState(..), GeniInput(..), GeniResults(..), ProgStateRef,
-             doGeneration, runGeni, runMorph,
+             doGeneration, runGeni, 
              combine, loadGrammar, loadTestSuite, loadTargetSemStr)
 import General (trim, snd3, slash, bugInGeni)
 import Btypes 
@@ -59,6 +58,7 @@ import GeniParsers
 
 import Mstate (Gstats, Mstate, initGstats, initMState, runState, 
                generate, generateStep,  
+               genconfig,
                theAgenda, theAuxAgenda, theChart, theTrash,
                genstats, szchart, numcompar, geniter)
 import Polarity
@@ -700,17 +700,27 @@ message box
 realisationsGui :: ProgStateRef -> (Window a) -> [TagElem] -> IO Layout
 realisationsGui _   f [] = messageGui f "No results found"
 realisationsGui pstRef f resultsRaw = 
-  do let results = map (\t -> t {thighlight = []}) resultsRaw
-     -- morphology
-     let uninflected = map (squishLeaves.tagLeaves) resultsRaw 
-     sentences <- runMorph pstRef uninflected
-     --
-     let itNlabl   = zip results sentences
-         tip       = "result"
+  do let tip = "result"
+         itNlabl = map (\t -> (noHighlight t, toSentence t)) resultsRaw
+            where noHighlight x = x { thighlight = [] }
      --
      pst     <- readIORef pstRef
      (lay,_) <- tagViewerGui pst f tip "derived" itNlabl
      return lay
+\end{code}
+
+\fnlabel{toSentence} almost displays a TagElem as a sentence, but only
+good enough for debugging needs.  The problem is that each leaf may be
+an atomic disjunction. Our solution is just to display each choice and
+use some delimiter to seperate them.  We also do not do any
+morphological processing.
+
+\begin{code}
+toSentence :: TagElem -> String
+toSentence = unwords . (map squishLeaf) . tagLeaves
+
+squishLeaf :: ([String], a) -> String
+squishLeaf = showLexeme.fst 
 \end{code}
 
 \subsection{TAG viewer and browser}
@@ -985,8 +995,11 @@ showGenState res st =
                  ++ ("___AUXILIARY___" : (labelFn auxiliary))
                  ++ ("___DISCARDED___" : (labelFn trash)) 
                  ++ ("___RESULTS___"   : (labelFn res)) 
-      labelFn trs = map fn trs 
-        where fn t = (sansMorph.squishLeaves.tagLeaves) t ++ " (" ++ showPolPaths t ++ ")"
+      --
+      showPaths = if (chartsharing $ genconfig st)
+                  then (\t -> " (" ++ showPolPaths t ++ ")")
+                  else const ""
+      labelFn trs = map (\t -> (toSentence t) ++ (showPaths t)) trs 
   in (trees,labels)
 \end{code}
 
@@ -1379,13 +1392,4 @@ runViewTag pst idname =
      -- run the viewer
      runProcess cmd args Nothing Nothing Nothing Nothing Nothing
      return ()
-\end{code}
-
-\section{Ugly hacks!}
-  
-FIXME: hack to avoid handling the sentence automaton 
-
-\begin{code}
-squishLeaves = 
-  map ( \(lemmas, feats) -> (showLexeme lemmas, feats) )
 \end{code}
