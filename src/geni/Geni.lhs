@@ -249,7 +249,7 @@ runGeni pstRef runFn = do
   when (length (show results) == 0) $ exitWith ExitSuccess
   clockAfter  <- getCPUTime 
   let timediff = (fromInteger $ clockAfter - clockBefore) / 1000000000
-      statsTime = (show $ timediff) 
+      statsTime = show timediff 
   when (length statsTime == 0) $ exitWith ExitSuccess
   -- sentence automaton
   let treeLeaves   = map tagLeaves res
