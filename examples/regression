@@ -1,13 +1,13 @@
-GENI_FLAGS=--nogui
+GENI_FLAGS="--nogui" 
 
 bin/geni ${GENI_FLAGS} -m examples/ej/mac -l examples/ej/lexicon -s examples/ej/suite
-bin/geni ${GENI_FLAGS} -m examples/chatnoir/mac -l examples/chatnoir/lexicon -s examples/chatnoir/sem
+bin/geni ${GENI_FLAGS} -m examples/chatnoir/mac -l examples/chatnoir/lexicon -s examples/chatnoir/sem --rootcats=p
 
-DEMO_FLAGS="-m examples/demo/demomac -l examples/demo/demolex -s examples/demo/suite"
+DEMO_FLAGS="-m examples/demo/demomac -l examples/demo/demolex -s examples/demo/suite --rootcats=p"
 bin/geni ${GENI_FLAGS} ${DEMO_FLAGS} 
 bin/geni ${GENI_FLAGS} ${DEMO_FLAGS} --testcase=promettre_donner
 
-PROMETTRE_FLAGS="-m examples/promettre/macros -l examples/promettre/lexicon -s examples/promettre/testsuite"
+PROMETTRE_FLAGS="-m examples/promettre/macros -l examples/promettre/lexicon -s examples/promettre/testsuite --rootcats=p"
 bin/geni ${GENI_FLAGS} ${PROMETTRE_FLAGS}
 
 #Grammar   = examples/demo/index

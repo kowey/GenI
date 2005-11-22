@@ -45,6 +45,9 @@ semantics:[name(_ ?Entity mia)]
 Vincent Pn(?Entity ! agr:sg3)
 semantics:[name(_ ?Entity vincent)]
 
+Vinny Pn(?Entity ! agr:sg3)
+semantics:[name(_ ?Entity vincent)]
+
 Émilie Pn(?Entity ! agr:sg3)
 semantics:[name(_ ?Entity émilie)]
 
@@ -53,6 +56,9 @@ semantics:[name(_ ?Entity émilie)]
 %% intransitive verbs
 
 runs vArity1(?Event ?Agent ! agr:sg3)
+semantics:[run(?Event ?Agent)]
+
+gallops vArity1(?Event ?Agent ! agr:sg3)
 semantics:[run(?Event ?Agent)]
 
 sleeps vArity1(?Event ?Agent ! agr:sg3)
