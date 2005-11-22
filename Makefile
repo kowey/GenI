@@ -35,7 +35,7 @@ GHC_PROF	= $(GHC) -prof -auto-all -hisuf p_hi -osuf p_o
 SOFTWARE        = Geni 
 SOFTVERS        = $(SOFTWARE)-$(VERSION)
 
-TO_INSTALL=geni xmgGeni runXMGselector.sh runXMGfilter.pl
+TO_INSTALL=geni xmgGeni runXMGselector runXMGfilter
 
 # You should replace the value of this variable with your project
 # directory name.  The default assumption is that the project name
@@ -73,8 +73,8 @@ BIBTEX=$(BIBTEX_CMD)
 # source stuff 
 # --------------------------------------------------------------------
 
-SCRIPT_FILES = bin/runXMGselector.sh\
-	       bin/runXMGfilter.pl\
+SCRIPT_FILES = bin/runXMGselector\
+	       bin/runXMGfilter\
 	       etc/lhs2haddock\
 	       etc/stupidmorph.pl\
 	       etc/tommorph.pl\
