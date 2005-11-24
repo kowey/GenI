@@ -33,7 +33,7 @@ import Data.IORef(readIORef, modifyIORef)
 import Btypes(SemInput)
 import General(ePutStrLn) 
 import Geni
-import Mstate(avgGstats, numcompar, szchart, geniter)
+import Builder(avgGstats, numcompar, szchart, geniter)
 import Configuration(Params, isGraphical, isBatch, outputFile,
                      optimisations, batchRepeat, optBatch) 
 \end{code}

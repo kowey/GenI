@@ -30,24 +30,19 @@ TODO:
 \end{enumerate}
 
 \begin{code}
-module Mstate (
+module SimpleBuilder (
    -- Types
    Agenda, AuxAgenda, Chart, Mstate, MS, Gstats,
 
-   -- From Gstats,
-   szchart, numcompar, geniter, initGstats, addGstats, avgGstats,
-
    -- From Mstate
+   simpleBuilder,
    theAgenda, theAuxAgenda, theChart, theTrash,
    initMState, 
    addToAgenda, addToChart,
    genconfig, genstats, 
 
-   -- Re-export from MonadState
-   evalState, runState,
-
    -- Generation
-   generate, generateStep,
+   generateStep,
   
    -- Make your own generator!   
    iapplySubstNode, nullAgenda, getSem, selectGiven,
@@ -59,15 +54,9 @@ where
 
 \ignore{
 \begin{code}
-import Control.Monad (ap, 
-              when, 
-              foldM)
+import Control.Monad (when, foldM)
 
-import Control.Monad.State (State, 
-                   evalState, 
-                   runState,
-                   get, 
-                   put)
+import Control.Monad.State (State, get, put)
 
 import Data.List (intersect, partition, delete, sort, nub, (\\))
 import Data.Maybe (catMaybes)
@@ -85,6 +74,8 @@ import Btypes (Ptype(Initial,Auxiliar),
                constrainAdj, 
                root, foot, 
                substTree, substGNode, substFlist, unifyFeat)
+import Builder (Gstats)
+import qualified Builder as B
 
 import Tags (TagElem, TagSite, TagDerivation,  TagStatus(..),
              idname, tidnum,
@@ -125,41 +116,6 @@ iaddtoTrash :: Trash -> TagElem -> Trash
 iaddtoTrash t te = te:t
 \end{code}
 
-\subsection{Generator statistics}
-
-These numbers allow us to keep track of how well the generator is doing.
-
-\begin{code}
-data Gstats = Gstats {
-  szchart   :: Int,
-  numcompar :: Int,
-  geniter   :: Int
-} deriving Show
-
-
-initGstats :: Gstats 
-initGstats = Gstats {
-  szchart   = 0, 
-  numcompar = 0,
-  geniter   = 0
-}
-
-addGstats :: Gstats -> Gstats -> Gstats
-addGstats a b = Gstats {
-    szchart   = (szchart a) + (szchart b),
-    numcompar = (numcompar a) + (numcompar b),
-    geniter   = (geniter a) + (geniter b)
-  }
-
-avgGstats :: [Gstats] -> Gstats
-avgGstats lst = 
- s { szchart   = (szchart s) `div` len,
-     numcompar = (numcompar s) `div` len,
-     geniter   = (geniter s) `div` len }
- where s = foldr addGstats initGstats lst
-       len = length lst
-\end{code}
-
 \subsection{Mstate}
 
 Note the theTrash is not actually essential to the operation of the
@@ -172,7 +128,7 @@ mode.
 
 \begin{code}
 data Mstate = S{theAgenda    :: Agenda, 
-                theAuxAgenda     :: AuxAgenda,
+                theAuxAgenda :: AuxAgenda,
                 theChart     :: Chart,
                 theTrash   :: Trash,
                 tsem       :: Sem,
@@ -186,21 +142,27 @@ data Mstate = S{theAgenda    :: Agenda,
 \paragraph{initMState} Creates an initial Mstate.  
 
 \begin{code}
-initMState ::  [TagElem] -> [TagElem] -> Sem -> Params -> Mstate
-initMState cands chart ts config = 
+initMState ::  Sem -> [TagElem] -> Params -> Mstate
+initMState ts cands config = 
   let (a,i) = partition isPureAux cands 
-      c = chart
-  in S{theAgenda  = i, 
-       theAuxAgenda   = a,
-       theChart   = c,
-       theTrash = [],
+  in S{theAgenda     = i, 
+       theAuxAgenda  = a,
+       theChart      = [],
+       theTrash      = [],
        tsem     = ts,
        step     = Initial,
        gencounter = toInteger $ length cands,
        genconfig  = config,
-       genstats   = initGstats}
+       genstats   = B.initGstats}
 
 type MS = State Mstate
+
+simpleBuilder = B.Builder 
+  { B.init     = initMState 
+  , B.step     = generateStep
+  , B.finished = \s -> (null.theAgenda) s && (step s == Auxiliar)
+  , B.stats    = genstats 
+  , B.setStats = \t s -> s { genstats = t } }
 \end{code}
 
 \subsubsection{Mstate updaters}
@@ -238,26 +200,9 @@ addToTrash te err = do
   when ((usetrash.genconfig) s) $
     put s { theTrash = (iaddtoTrash (theTrash s) te2) }
 
-incrGeniter :: Int -> MS ()
-incrGeniter n = do
-  s <- get
-  let oldstats = genstats s 
-      newstats = oldstats { geniter = (geniter oldstats) + n }
-  put s { genstats = newstats }
-
-incrSzchart :: Int -> MS ()
-incrSzchart n = do
-  s <- get
-  let oldstats = genstats s 
-      newstats = oldstats { szchart = (szchart oldstats) + n }
-  put s { genstats = newstats }
-
-incrNumcompar :: Int -> MS ()
-incrNumcompar n = do
-  s <- get
-  let oldstats = genstats s 
-      newstats = oldstats { numcompar = (numcompar oldstats) + n }
-  put s { genstats = newstats }
+incrGeniter = B.incrGeniter simpleBuilder
+incrSzchart = B.incrSzchart simpleBuilder
+incrNumcompar = B.incrNumcompar simpleBuilder
 \end{code}
 
 \subsubsection{Mstate accessors}
@@ -555,16 +500,6 @@ iapplyAdjNode fconstr te1 te2 an@(n, an_up, an_down) =
 \end{itemize}
 
 \begin{code}
-generate :: MS [TagElem]
-generate = do 
-  nir     <- nullAgenda 
-  curStep <- getStep
-  if (nir && curStep == Auxiliar)
-     then return []
-     else do res <- generateStep
-             -- next!
-             return (res ++) `ap` generate
-
 generateStep :: MS [TagElem]
 generateStep = do
   nir     <- nullAgenda

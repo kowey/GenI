@@ -50,6 +50,8 @@ import Text.ParserCombinators.Parsec
 -- import System.Process 
 
 import Control.Monad (when)
+import Control.Monad.State (runState)
+
 import CPUTime (getCPUTime)
 
 import General(multiGroupByFM, ePutStr, ePutStrLn, eFlush,
@@ -85,18 +87,14 @@ import Configuration(Params,
                      polarised, polsig, chartsharing, 
                      semfiltered, extrapol, footconstr)
 
-import Mstate (Gstats, numcompar, szchart, geniter, initGstats,
-               addGstats, initMState, runState, genstats,
-               generate)
-
-import Morphology
-import Polarity
---import Predictors (PredictorMap, mapByPredictors, 
---                   fillPredictors, optimisePredictors)
+import qualified Builder as B
 
 import GeniParsers (geniMacros, 
                     geniLexicon, geniTestSuite, geniSemanticInput, 
                     geniMorphInfo)
+import Morphology
+import Polarity
+import SimpleBuilder (simpleBuilder)
 
 -- Not for windows
 -- FIXME: even better would be to really figure out all this
@@ -206,7 +204,7 @@ runGeni pstRef runFn = do
                     else map defaultPolPaths combosPol 
       -- 
       combos = map (fixateTidnums.setTidnums) combosChart
-      fstGstats = initGstats
+      fstGstats = B.initGstats
   -- do the generation
   let genifnInput = GI { giSem = tsem
                        , giLex = lexonly 
@@ -214,7 +212,7 @@ runGeni pstRef runFn = do
                        , giAuts  = fst autstuff
                        , giTrees = combos }
   (res, gstats') <- runFn pst genifnInput 
-  let gstats = addGstats fstGstats gstats'
+  let gstats = B.addGstats fstGstats gstats'
   -- statistics 
   let statsOpt =  if (null optAll) then "none " else optAll
                   where polkey   = "pol"
@@ -266,6 +264,7 @@ intermediary stuff, but the debugger tries to display or do other
 interesting things with them.
 
 \begin{code}
+type Gstats = B.Gstats
 type GeniFn = ProgState -> GeniInput -> IO ([TagElem], Gstats)
 data GeniInput = GI { giSem   :: Sem
                     , giLex   :: [ILexEntry]  -- debugger
@@ -944,12 +943,16 @@ doGeneration' config input =
   let tsem   = giSem   input
       combos = giTrees input
       -- do the generation
-      genfn c = (res, genstats st) 
-                where ist = initMState c [] tsem config
-                      (res,st) = runState generate ist
+      genfn c = (res, stats st) 
+        where ist = initBuilder tsem c config
+              (res,st) = runState run ist
       res' = map genfn combos
-      addres (r,s) (r2,s2) = (r ++ r2, addGstats s s2)
-  in foldr addres ([],initGstats) res'
+      addres (r,s) (r2,s2) = (r ++ r2, B.addGstats s s2)
+  in foldr addres ([], B.initGstats) res'
+
+stats = B.stats simpleBuilder 
+initBuilder = B.init simpleBuilder
+run   = B.run   simpleBuilder
 \end{code}
 
 \subsection{Returning results}
@@ -983,9 +986,9 @@ instance Show GeniResults where
     in    "Optimisations: " ++ fst gopts ++ snd gopts ++ "\n"
        ++ "\nAutomaton paths explored: " ++ (grAutPaths  gres)
        ++ "\nEst. lexical ambiguity:   " ++ (grAmbiguity gres)
-       ++ "\nTotal agenda size: " ++ (show $ geniter gstats) 
-       ++ "\nTotal chart size:  " ++ (show $ szchart gstats) 
-       ++ "\nComparisons made:  " ++ (show $ numcompar gstats)
+       ++ "\nTotal agenda size: " ++ (show $ B.geniter gstats) 
+       ++ "\nTotal chart size:  " ++ (show $ B.szchart gstats) 
+       ++ "\nComparisons made:  " ++ (show $ B.numcompar gstats)
        ++ "\nGeneration time:  " ++ (grTimeStr gres) ++ " ms"
        ++ "\n\nRealisations:\n" ++ (showRealisations sentences)
 \end{code}

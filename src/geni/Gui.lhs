@@ -28,6 +28,8 @@ import Graphics.UI.WXCore
 
 import qualified Control.Monad as Monad 
 import qualified Data.Map as Map
+
+import Control.Monad.State (runState)
 import Data.Array
 import Data.IORef
 import Data.List (isPrefixOf, find, intersperse, nub, delete, (\\))
@@ -56,12 +58,10 @@ import Configuration(Params(..), Switch(..), GrammarType(..),
                      semfiltered, footconstr)
 import GeniParsers 
 
-import Mstate (Gstats, Mstate, initGstats, initMState, runState, 
-               generate, generateStep,  
-               genconfig,
-               theAgenda, theAuxAgenda, theChart, theTrash,
-               genstats, szchart, numcompar, geniter)
+import qualified Builder as B
 import Polarity
+import SimpleBuilder 
+  (simpleBuilder, Mstate, genconfig, theAgenda, theAuxAgenda, theChart, theTrash)
 \end{code}
 }
 
@@ -860,7 +860,7 @@ user the agenda, chart and results at various stages in the generation
 process.  
 
 \begin{code}
-debugGui :: ProgState -> GeniInput -> IO ([TagElem], Gstats)
+debugGui :: ProgState -> GeniInput -> IO ([TagElem], B.Gstats)
 debugGui pst input = do
   let tsem = giSem input
   --
@@ -903,7 +903,7 @@ debugGui pst input = do
           [ tabs nb (basicTabs ++ genTabs) ]
         , clientSize := sz 700 600      
         ]
-  return ([], initGstats)
+  return ([], B.initGstats)
 \end{code}
 
 The generation could conceivably be broken into multiple generation
@@ -912,8 +912,13 @@ tasks, so we create a separate tab for each task.
 \begin{code}
 debuggerTab :: (Window a) -> Params -> Sem -> String -> [TagElem] -> IO Layout 
 debuggerTab f config tsem cachedir cands = do
-  let initRes = []
-      initSt  = initMState cands [] tsem (config {usetrash=True})
+  let initBuilder = B.init  simpleBuilder
+      nextStep    = B.step  simpleBuilder
+      runBuilder  = B.run   simpleBuilder
+      genstats    = B.stats simpleBuilder
+      --
+      initRes = []
+      initSt  = initBuilder tsem cands (config {usetrash=True})
   let (items,labels) = showGenState initRes initSt 
   -- widgets
   p <- panel f []      
@@ -929,14 +934,14 @@ debuggerTab f config tsem cachedir cands = do
   statsTxt <- staticText p []
   -- commands
   let updateStatsTxt gs = set statsTxt [ text :~ (\_ -> txtStats gs) ]
-      txtStats   gs =  "itr " ++ (show $ geniter gs) ++ " " 
-                    ++ "chart sz: " ++ (show $ szchart gs) 
-                    ++ "\ncomparisons: " ++ (show $ numcompar gs)
+      txtStats   gs =  "itr " ++ (show $ B.geniter gs) ++ " " 
+                    ++ "chart sz: " ++ (show $ B.szchart gs) 
+                    ++ "\ncomparisons: " ++ (show $ B.numcompar gs)
   let onDetailsChk = do isDetailed <- get detailsChk checked 
                         setGvParams gvRef isDetailed
                         updaterFn
   let genStep _ (r2,s2) = (r2 ++ r3,s3)
-                          where (r3,s3) = runState generateStep s2
+        where (r3,s3) = runState nextStep s2
   let showNext r s = do leapTxt <- get leapVal text
                         let leapInt = read leapTxt
                             (r2,s2) = foldr genStep (r,s) [1..leapInt]
@@ -946,14 +951,14 @@ debuggerTab f config tsem cachedir cands = do
                         updateStatsTxt (genstats s2)
                         set nextBt [ on command :~ (\_ -> showNext r2 s2) ]
   let showLast = do -- redo generation from scratch
-                    let (r,s) = runState generate initSt 
+                    let (r,s) = runState runBuilder initSt 
                     setGvDrawables2 gvRef (showGenState r s)
                     updaterFn
                     updateStatsTxt (genstats s)
   let showReset = do let res = initRes 
                          st  = initSt 
                      set nextBt   [ on command  := showNext res st ]
-                     updateStatsTxt initGstats
+                     updateStatsTxt (B.initGstats)
                      setGvDrawables2 gvRef (showGenState res st)
                      setGvSel gvRef 1
                      updaterFn
