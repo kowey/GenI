@@ -73,6 +73,8 @@ infinitely loop.
 
 \begin{code}
 data Params = Prms{
+  -- which generation engine to use 
+  builderType    :: BuilderType,
   -- external morphological generator (optional)
   morphCmd       :: String,
   -- tree selector (needed if xmgtools)
@@ -123,6 +125,7 @@ isBatch      p = BatchTok          `elem` (optimisations p)
 \begin{code}
 emptyParams :: Params
 emptyParams = Prms {
+  builderType = SimpleBuilder,
   macrosFile  = "",
   lexiconFile = "",
   tsFile      = "",
@@ -152,6 +155,9 @@ switches that we use.
 
 \begin{code}
 data GrammarType = GeniHand | TAGML | XMGTools 
+     deriving (Show, Eq)
+
+data BuilderType = SimpleBuilder 
      deriving (Show, Eq)
 
 data Switch = 

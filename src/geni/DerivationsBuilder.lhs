@@ -31,18 +31,20 @@ where
 
 \ignore{
 \begin{code}
-import Control.Monad (ap, when, foldM)
+import Control.Monad 
+  (guard, filterM)
 
 import Control.Monad.State 
-  (State, evalState, runState, get, put)
-import Data.List (intersect, partition, delete, sort, nub, (\\))
-import Data.Maybe (catMaybes)
+  (State, get, put)
+import Data.List (intersect, partition, (\\))
+import Data.Maybe (catMaybes, isJust, mapMaybe)
 import Data.Tree 
 import Data.Bits
 
 import Btypes 
   (Ptype(Initial,Auxiliar),
    Flist, 
+   Replacable(..),
    Sem, sortSem, Subst,
    GType(Other), GNode(..),
    rootUpd,
@@ -51,21 +53,19 @@ import Btypes
    repSubst,
    constrainAdj, 
    root, foot, 
-   substTree, substGNode, substFlist, unifyFeat)
+   unifyFeat)
 
-import Tags (TagElem, TagSite, TagDerivation,  TagStatus(..),
-             idname, tidnum,
-             derivation,
-             ttree, ttype, tsemantics, thighlight, tdiagnostic,
-             tpolpaths,
-             substTagElem, 
-             adjnodes,
-             substnodes,
-             tadjlist
-            )
+import qualified Builder as B
+import Tags 
+  (TagElem, TagSite, TagDerivation,  TagStatus(..),
+   idname, tidnum,
+   derivation,
+   ttree, ttype, tsemantics, thighlight, tdiagnostic,
+   tpolpaths,
+   adjnodes, substnodes, tadjlist)
 import Configuration (Params, semfiltered, footconstr,
                       usetrash, maxTrees)
-import General (BitVector, fst3, mapTree)
+import General (BitVector, fst3, snd3, thd3, mapTree)
 \end{code}
 }
 
@@ -73,15 +73,117 @@ import General (BitVector, fst3, mapTree)
 \section{Key types}
 % --------------------------------------------------------------------  
 
+\subsection{BuilderState}
+
+Note the theTrash is not actually essential to the operation of the
+generator; it is for pratical debugging of grammars.  Instead of
+trees dissapearing off the face of the debugger; they go into the
+trash where the user can inspect them and try to figure out why they
+went wrong.  To keep the generator from exploding we also keep an
+option not to use the trash, so that it is only enabled in debugger
+mode.
+
+\begin{code}
+data BuilderStatus = S
+    { theAgenda    :: Agenda
+    , theAuxAgenda :: AuxAgenda
+    , theChart     :: Chart
+    , theTrash   :: Trash
+    , tsem       :: Sem
+    , theStep    :: Ptype
+    , gencounter :: Integer
+    , genconfig  :: Params
+    , genstats   :: B.Gstats } 
+  deriving Show
+
+type BState = State BuilderStatus 
+
+derivationsBuilder = B.Builder 
+  { B.init = initBuilder
+  , B.step = generateStep
+  , B.finished = finished -- should add check that step is aux
+  , B.stats    = genstats 
+  , B.setStats = \t s -> s { genstats = t } }
+
+type Agenda = [ChartItem]
+type AuxAgenda  = [ChartItem]
+type Chart  = [ChartItem] 
+type Trash = [ChartItem]
+\end{code}
+
+\end{code}
+
+\paragraph{initBuilderState} Creates an initial Builder.  
+
+\begin{code}
+initBuilder :: Sem -> [TagElem] -> Params -> BuilderStatus 
+initBuilder ts cands config = 
+  let items = zipWith toChartItem [0..] cands
+      (a,i) = partition closedAux items
+  in S { theAgenda  = i
+       , theAuxAgenda = a
+       , theChart = []
+       , theTrash = []
+       , tsem     = ts
+       , theStep  = Initial
+       , gencounter = toInteger (length cands)
+       , genconfig  = config
+       , genstats   = B.initGstats}
+\end{code}
+
+\subsubsection{BuilderState updaters}
+
+\begin{code}
+addToAgenda :: ChartItem -> BState ()
+addToAgenda te = do 
+  s <- get
+  put s{ theAgenda = te : (theAgenda s) }
+     
+updateAgenda :: Agenda -> BState ()
+updateAgenda a = do 
+  s <- get  
+  put s{ theAgenda = a }
+
+addToAuxAgenda :: ChartItem -> BState ()
+addToAuxAgenda te = do 
+  s <- get
+  put s{ theAuxAgenda = te : (theAuxAgenda s) }
+ 
+addToChart :: ChartItem -> BState ()
+addToChart te = do 
+  s <- get  
+  put s { theChart = te : (theChart s) }
+  incrSzchart 1
+
+addToTrash :: ChartItem -> TagStatus -> BState ()
+addToTrash te err = do 
+  return ()
+{-
+  s <- get
+  let te2 = te { tdiagnostic = err }
+  when ((usetrash.genconfig) s) $
+    put s { theTrash = te2 : (theTrash s) }
+  -}
+
+incrSzchart = B.incrSzchart derivationsBuilder
+incrGeniter = B.incrGeniter derivationsBuilder
+incrNumcompar = B.incrNumcompar derivationsBuilder
+\end{code}
+
+\subsection{Chart items}
+
 A chart item has two parts.
 
 The things which define an equivalence class are a tuple 
-$\tuple{root, foot, snodes}$ where
+$\tuple{root, foot, snodes, paths, semantics}$ where
 \begin{enumerate}
 \item $root$ - is the root node associated with the chart 
 \item $foot$ - is the foot node of the item - if this is not being used
                during the adjunction phase, it will be ignored
 \item $snodes$ - open substitution nodes
+\item $paths$  - the polarity automaton paths that the item
+                 belongs to
+\item $semantics$ - the semantics associated with this item
 \end{enumerate}
 
 Additionally, a chart item has an
@@ -98,175 +200,34 @@ Additionally, a chart item has an
 data ChartItem = ChartItem 
   { ciRootNode   :: TagSite 
   , ciFootNode   :: Maybe TagSite 
-  , ciSubstnodes :: [ TagSites ]
+  , ciSubstnodes :: [TagSite]
+  --
+  , ciPolpaths   :: BitVector
+  , ciSemantics  :: Sem
   --
   , ciId         :: ChartId 
-  , ciOperations :: [ ChartOperation ] 
-  }
+  , ciOperations :: [ChartOperation] 
+  } deriving Show
+
+type ChartId = Integer
 \end{code}
 
-A chart item is associated with some equivalence class equivalence class
-
-A node in both chart and agenda items is defined as a pair of feature
-structures corresponding to the top and bottom features of a TAG
-node.
-
-\begin{code}
-type TAGNode = (Flist, Flist)
-\end{code}
+A chart item may come from  
+\begin{enumerate}
+\item some elementary tree (these items are "atomic") 
+\item a substitution between two items: the first item is the one
+      being substituted; the second one is the one receiving 
+      substitution
+\item an adjunction between two items: the first one is an auxiliary
+      tree; the second is some node in an aux tree
+\end{enumerate}
 
 \begin{code}
 data ChartOperation = 
-    Subst ChartId (ChartId, String)
+    ElemTree String
+  | Subst ChartId (ChartId, String)
   | Adj   ChartId (ChartId, String)
-  | ElemTree String
-\end{code}
-
-\begin{code}
-type ChartId = Int
-
-type Agenda = [ChartItem]
-type AuxAgenda  = [ChartItem]
-type Chart  = [ChartItem] 
-type Trash = [ChartItem]
-\end{code}
-
-\subsection{BuilderState}
-
-Note the theTrash is not actually essential to the operation of the
-generator; it is for pratical debugging of grammars.  Instead of
-trees dissapearing off the face of the debugger; they go into the
-trash where the user can inspect them and try to figure out why they
-went wrong.  To keep the generator from exploding we also keep an
-option not to use the trash, so that it is only enabled in debugger
-mode.
-
-\begin{code}
-data Builder = S
-    { theAgenda    :: Agenda
-    , theAuxAgenda :: AuxAgenda
-    , theChart     :: Chart
-    , theTrash   :: Trash
-    , tsem       :: Sem
-    , step       :: Ptype
-    , chartIdCounter :: Integer
-    , gencounter :: Integer
-    , genconfig  :: Params
-    , genstats   :: Gstats } 
-  deriving Show
-
-type BState = State BuilderStatus 
-\end{code}
-
-\paragraph{initBuilderState} Creates an initial Builder.  
-
-\begin{code}
-initBuilder :: [TagElem] -> Sem -> Params -> Builder
-initBuilder cands ts config = 
-  let (a,i) = partition isPureAux (map toChartItem cands)
-  in S { theAgenda  = i
-       , theAuxAgenda = a
-       , theChart = []
-       , theTrash = []
-       , tsem     = ts
-       , step     = Initial
-       , chartIdCounter = 0  
-       , gencounter = toInteger (length cands)
-       , genconfig  = config
-       , genstats   = initGstats}
-
-\end{code}
-
-\subsubsection{BuilderState updaters}
-
-\begin{code}
-addToAgenda :: ChartItem -> BState ()
-addToAgenda te = do 
-  s <- get
-  put s{theAgenda = te : (theAgenda s)}
-     
-updateAgenda :: Agenda -> BState ()
-updateAgenda a = do 
-  s <- get  
-  put s{theAgenda = a}
-
-addToAuxAgenda :: ChartItem -> BState ()
-addToAuxAgenda te = do 
-  s <- get
-  -- each new tree gets a unique id... this makes comparisons faster 
-  let counter = (gencounter s) + 1
-      te2 = te { tidnum = counter }
-  put s{ gencounter = counter
-       , theAuxAgenda = te2 : (theAuxAgenda s)}
- 
-addToChart :: ChartItem -> BState ()
-addToChart te = do 
-  s <- get  
-  put s { theChart = (te : (theChart s) }
-  incrSzchart 1
-
-addToTrash :: ChartItem -> TagStatus -> BState ()
-addToTrash te err = do 
-  s <- get
-  let te2 = te { tdiagnostic = err }
-  when ((usetrash.genconfig) s) $
-    put s { theTrash = te2 : (iaddtoTrash (theTrash s) }
-
-incrGeniter :: Int -> BState ()
-incrGeniter n = do
-  s <- get
-  let oldstats = genstats s 
-      newstats = oldstats { geniter = (geniter oldstats) + n }
-  put s { genstats = newstats }
-
-incrSzchart :: Int -> BState ()
-incrSzchart n = do
-  s <- get
-  let oldstats = genstats s 
-      newstats = oldstats { szchart = (szchart oldstats) + n }
-  put s { genstats = newstats }
-
-incrNumcompar :: Int -> BState ()
-incrNumcompar n = do
-  s <- get
-  let oldstats = genstats s 
-      newstats = oldstats { numcompar = (numcompar oldstats) + n }
-  put s { genstats = newstats }
-\end{code}
-
-\subsubsection{BuilderState accessors}
-
-We retrieve the BuilderState from the State monad and then retrieve a field from it.
-
-\begin{code}
-getAgenda :: BState Agenda
-getAgenda = do 
-  s <- get
-  return (theAgenda s)
-
-getChart :: BState Chart
-getChart = do 
-  s <- get
-  return (theChart s)
-
-getStep :: BState Ptype
-getStep = do 
-  s <- get
-  return (step s)
-
-getSem :: BState Sem
-getSem = do 
-  s <- get
-  return (tsem s)
-\end{code}
-
-These functions let us find out if the Agenda or the AuxAgenda are null.
-
-\begin{code}
-nullAgenda :: BState Bool
-nullAgenda = do 
-  s <- get  
-  return (null $ theAgenda s)
+  deriving (Show)
 \end{code}
 
 % --------------------------------------------------------------------  
@@ -285,124 +246,82 @@ nullAgenda = do
 \end{itemize}
 
 \begin{code}
-generate :: BState [ChartItem]
-generate = do 
-  nir <- nullAgenda 
-  if nir
-     then return []
-     else do res  <- generateStep
-             next <- generate
-             return (res ++ next)
-
 generateStep :: BState [ChartItem]
-generateStep = do
-  nir     <- nullAgenda
-  -- this check may seem redundant with generate, but it's needed 
-  -- to protect against a user who calls generateStep on a finished
-  -- state
-  if (nir && curStep == Auxiliar) 
-    then return []
-    else do incrGeniter 1
-            generateStep' 
+generateStep = 
+ do st  <- get
+    nir <- nullAgenda
+    -- this check may seem redundant with generate, but it's needed 
+    -- to protect against a user who calls generateStep on a finished
+    -- state
+    if finished st then return [] else generateStep2 
 
-generateStep' :: BState [ChartItem] 
-generateStep' = 
-  do -- choose an item from the agenda
+generateStep2 :: BState [ChartItem] 
+generateStep2 = 
+  do incrGeniter 1
+     -- choose an item from the agenda
      given <- selectGiven
      -- have we triggered the switch to aux yet?
-     curStep <- getStep
-     -- do either substitution or adjunction 
-     res <- applySubstitution given
-     -- determine which of the res should go in the agenda 
-     -- (monadic state) and which should go in the result (res')
-     res' <- dispatchNew res
+     -- curStep <- getStep
+     -- make sure the item is not equivalent to something in chart 
+     unique <- checkIfUnique given 
+     -- if the given already exists, do nothing
+     -- otherwise, perform either substitution or adjunction
+     let performOperation 
+           | not unique         = return []
+           | otherwise          = applySubstitution given
+           -- | curStep == Initial = applySubstitution given
+           -- | otherwise          = return []
+     -- put any new results where they belong
+     -- (agenda, aux agenda, results list, etc) 
+     res <- performOperation >>= dispatchNew 
      -- put the given into the chart untouched 
+     addToChart given
+{-
      if (curStep == Initial) 
-        then addToChart   given
+        then addToChart given
         else when (null $ adjnodes given) $ trashIt given 
-     return res'
+          -}
+     return res
   where 
      trashIt t = 
+       return ()
+{-
        do s <- get
-          let missingSem = tsem s \\ tsemantics t
+          let missingSem = tsem s \\ ciSemantics t
           addToTrash t (TS_SemIncomplete missingSem)
+-}
 \end{code}
 
 \subsection{Generate helper functions}
+
+\fnlabel{finished} tells us if it is time to stop generation
+
+\begin{code}
+finished :: BuilderStatus -> Bool
+finished = null.theAgenda -- should add check that step is aux
+
+nullAgenda :: BState Bool
+nullAgenda = do 
+  s <- get  
+  return (null $ theAgenda s)
+\end{code}
 
 \paragraph{selectGiven} Arbitrarily selects and removes an element from
 the agenda and returns it.
 
 \begin{code}
 selectGiven :: BState ChartItem
-selectGiven = do 
-  s <- get
-  a <- theAgenda s
-  put ( s { theAgenda = tail a } )
-  return (head a)
+selectGiven = 
+ do s <- get
+    let a = theAgenda s
+    put ( s { theAgenda = tail a } )
+    return (head a)
 \end{code}
 
-
-% --------------------------------------------------------------------  
-\section{Substitution}
-\label{sec:substitution}
-% --------------------------------------------------------------------  
-
-\paragraph{applySubstitution} returns the list of possible substitutions
-between an agenda $aItem$ and the chart.
-
-\begin{code}
-applySubstitution :: ChartItem -> BState [AgendaItem]
-applySubstitution agendaItem =  
-  do chartItems <- lookupChart agendaItem 
-     let trySubst = tryOperation iapplySubst
-         -- active completion
-         resA = mapMaybe (\c -> trySubst agendaItem c) chartItems 
-         -- passive completion
-         resP = mapMaybe (\c -> trySubst c agendaItem) chartItems
-     incrNumcompar (length chartItems) 
-     return (resA ++ resP)
-\end{code}
-
-\paragraph{iapplySubst} determines if adjunction is possible between a
-chart item and an agenda item.  If so, it returns a new agenda item.
-If not, it returns Nothing.  
-
-\begin{code}
-iapplySubst :: ChartId -> ChartItem -> TagNode -> ChartItem -> Maybe ChartItem 
-iapplySubst newId activeItem passiveItem = 
-  do -- get the first open substitution node in the active item
-     -- (if available)
-     let split []     = Nothing 
-         split (x:xs) = Just (x, xs)
-     (aNode, aRest) <- split (ciSubstnodes activeItem)
-     -- nodes to compare
-     let pTopBot = (snd3 pRoot, thd3 pRoot)
-           where pRoot = ciRootNode passiveItem     
-         aTopBot = (snd3 aNode, thd3 aNode) 
-         aLocation = fst3 aNode
-         --
-     unfResults <- unifyTagNodes aTopBot pTopBot 
-     let subst = thd3 unfResults
-         newItem = activeItem
-           { ciId         = newId 
-           , ciSubstnodes = substFlist aRest subst 
-           , ciOperation  = Subst passiveItem (activeItem, aLocation) }
-     return newItem 
-\end{code}
-
-% --------------------------------------------------------------------  
-\section{Adjunction}
-\label{sec:adjunction}
-\label{sec:ordered_adjunction}
-\label{sec:foot_constraint}
-% ---------------------------------------------------------------  
-
-\paragraph{dispatchNew} 
-
-Given a list of ChartItem, for each tree: 
+\paragraph{dispatchNew} assigns new items to the right data structure
+following these critieria:
 \begin{enumerate}
-\item if the tree is both syntactically complete (no more subst nodes) and
+\item if the item is both syntactically complete (no more subst nodes) and
       semantically complete (matches target semantics), it is a result, so
       unify the top and bottom feature structures of each node.  If that
       succeeds, return it, otherwise discard it completely.
@@ -416,31 +335,36 @@ Given a list of ChartItem, for each tree:
 \begin{code}
 dispatchNew :: [ChartItem] -> BState [ChartItem]
 dispatchNew l = 
-  do -- merge any items which are already equivalent to something to the chart
-     l2 <- filterM checkIfUnique l
-     -- first we seperate the results from the non results
-     inputSem <- getSem
-     let isResult  x = 
-           (ttype x /= Auxiliar) && (null $ substnodes x) 
-           && (inputSem == treeSem) && (null $ adjnodes x)
-             where treeSem = (sortSem $ tsemantics x)
-         partitionRes = liftM (partition isResult)
-     (res, notRes) <- partitionRes l2
+  do -- first we seperate the results from the non results
+     st <- get
+     let inputSem = tsem st
+         synComplete x = 
+           (not (aux x)) && closed x
+           -- don't forget about null adjnodes
+         semComplete x = inputSem == treeSem 
+           where treeSem = sortSem (ciSemantics x)
+         isResult x = 
+           synComplete x && semComplete x 
+     let (res, notRes) = partition isResult l
      -- -------------------------------------------------- 
      -- the non results
      -- -------------------------------------------------- 
      -- now... throw out any trees which are over the num trees limit 
      -- (this only applies in IgnoreSemantics mode) 
      state <- get
+{-
      let numTreesLimit = (maxTrees.genconfig) state
-         numTrees  x = length (snd $ derivation x)
+         numTrees  x = length $ snd $ derivation x
          overLimit x = case numTreesLimit of
                          Nothing  -> False
                          Just lim -> numTrees x > lim
-     notRes2 <- filterM (liftM overLimit) notRes
+-}
+     let notRes2 = notRes
      -- put any pure auxiliary trees on the auxiliary agenda
      let dispatchAux x = 
-           when (isPureAux x) $ do { addToAuxAgenda x; return False }
+           if closedAux x 
+              then do { addToAuxAgenda x; return False }
+              else return True
      notRes3 <- filterM dispatchAux notRes2
      -- put any other trees on the agenda
      mapM addToAgenda notRes3
@@ -448,6 +372,8 @@ dispatchNew l =
      -- the results
      -- -------------------------------------------------- 
      -- we perform top/bottom unification on any results
+     return res
+{-
      let tbUnify x =
           case (tbUnifyTree x) of
             Left n  -> do let x2 = x { thighlight = [n] }
@@ -455,35 +381,65 @@ dispatchNew l =
                           return False 
             Right _ -> return True 
      filterM tbUnify res
+-}
 \end{code}
 
-\paragraph{switchToAux} When all substitutions has been done, tags with
-substitution nodes still open are deleted, then the auxiliars tags are put in
-Chart and the (initial) tags in the repository are moved into the Agenda. The
-step is then changed to Auxiliary
+% --------------------------------------------------------------------  
+\section{Substitution}
+\label{sec:substitution}
+% --------------------------------------------------------------------  
+
+\paragraph{applySubstitution} returns the list of possible substitutions
+between an agenda $aItem$ and the chart.
 
 \begin{code}
-switchToAux :: BState ()
-switchToAux = do
-  st <- get
-  let chart = theChart st
-      -- You might be wondering why we ignore the auxiliary trees in the 
-      -- chart; this is because all the syntactically complete auxiliary
-      -- trees have already been filtered away by calls to dispatchNew
-      initialT = filter (\x -> ttype x == Initial) chart
-      (compT, incompT) = partition (null.substnodes) initialT
-      aux   = theAuxAgenda st
-      --
-      filteredT = semfilter (tsem st) aux compT 
-      initial = if (semfiltered $ genconfig st) 
-                then filteredT else compT 
-  -- toss the syntactically incomplete stuff in the trash
-  mapM (\t -> addToTrash t TS_SynIncomplete) incompT
-  put st{theAgenda = initial,
-         theAuxAgenda = [], 
-         theChart = aux,
-         step = Auxiliar}
+applySubstitution :: ChartItem -> BState [ChartItem]
+applySubstitution agendaItem =  
+  do chartItems <- lookupChart agendaItem 
+     let trySubst = tryOperation iapplySubst
+     -- active completion
+     resA <- mapM (\c -> trySubst agendaItem c) chartItems 
+     -- passive completion
+     resP <- mapM (\c -> trySubst c agendaItem) chartItems
+     incrNumcompar (length chartItems) 
+     return (concat $ resA ++ resP)
 \end{code}
+
+\paragraph{iapplySubst} determines if adjunction is possible between a
+chart item and an agenda item.  If so, it returns a new agenda item.
+If not, it returns Nothing.  
+
+\begin{code}
+iapplySubst :: ChartId -> ChartItem -> ChartItem -> Maybe ChartItem 
+iapplySubst newId activeItem passiveItem = 
+  do -- reject immediately any passive items that are still open
+     guard (closed passiveItem)
+     -- get the first open substitution node in the active item
+     -- (if available)
+     let split []     = Nothing 
+         split (x:xs) = Just (x, xs)
+     (aNode, aRest) <- split (ciSubstnodes activeItem)
+     -- nodes to compare
+     let pRoot     = ciRootNode passiveItem     
+         aLocation = fst3 aNode
+         --
+     unfResults <- unifyTagSites aNode pRoot 
+     let subst = thd3 unfResults
+         oldOps = ciOperations activeItem
+         newOp  = Subst (ciId passiveItem) (ciId activeItem, aLocation) 
+         newItem = activeItem
+           { ciId         = newId 
+           , ciSubstnodes = replace subst aRest 
+           , ciOperations = newOp : oldOps } 
+     return newItem 
+\end{code}
+
+% --------------------------------------------------------------------  
+\section{Adjunction}
+\label{sec:adjunction}
+\label{sec:ordered_adjunction}
+\label{sec:foot_constraint}
+% ---------------------------------------------------------------  
 
 % --------------------------------------------------------------------  
 \section{Chart manipulation}
@@ -497,17 +453,17 @@ return false.  If it is true, we merge it with any items it
 is equivalent to.
 
 \begin{code}
-checkIfUnique ChartItem -> Bstate Bool
+checkIfUnique :: ChartItem -> BState Bool
 checkIfUnique cand = 
   do s <- get
      let chart = theChart s
          helper o =  
-           let isEq = o `equivalent` cand)
+           let isEq = o `equivalent` cand
            in  (isEq, if isEq then mergeItems o cand else o)
          (isEq, newChart) = unzip $ map helper chart
      --
-     if any isEq
-        then do put ( s {chart = newChart} )
+     if (or isEq)
+        then do put ( s {theChart = newChart} )
                 return False 
         else return True 
 \end{code}
@@ -520,7 +476,9 @@ equivalent :: ChartItem -> ChartItem -> Bool
 equivalent c1 c2 =
   stuff c1 == stuff c2
   where 
-    stuff x = (ciRootNode x, ciFootNode x, ciSubstnodes x)
+    stuff x = 
+     ( ciRootNode x, ciFootNode x, ciSubstnodes x
+     , ciSemantics x, ciPolpaths x )
 \end{code}
 
 \fnlabel{mergeItems} combines two chart items into one, with the
@@ -546,16 +504,17 @@ The current implementation searches for items which
 \end{itemize}
 
 \begin{code}
-lookupChart :: AgendaItem -> BState [ChartItem]
+lookupChart :: ChartItem -> BState [ChartItem]
 lookupChart given = do
-  chart <- getChart
-  let gpaths = tpolpaths given
-      gsem   = tsemantics given
+  s <- get
+  let chart  = theChart s
+      -- gpaths = tpolpaths given
+      gsem   = ciSemantics given
   return [ t | t <- chart
              -- should be on the same polarity path (chart sharing)
              -- , (tpolpaths t) .&. gpaths /= 0 
              -- semantics should not be overlapping
-             (null $ intersect (tsemantics t) gsem)
+             , (null $ intersect (ciSemantics t) gsem)
          ] 
 \end{code}
 
@@ -571,10 +530,10 @@ results of both unifications and a list of substitutions to
 propagate.  Otherwise we return Nothing.
 
 \begin{code}
-unifyTagNodes :: TagNode -> TagNode -> Maybe (TagNode, TagNode, Subst)
-unifyTagNodes (t1, b1) (t2, b2) =
+unifyTagSites :: TagSite -> TagSite -> Maybe (Flist, Flist, Subst)
+unifyTagSites (_, t1, b1) (_, t2, b2) =
   let (succ1, newTop, subst1)  = unifyFeat t1 t2
-      (succ2, newBot, subst2)  = unifyFeat (substFlist b1 subst1) (substFlist b1 subst1)
+      (succ2, newBot, subst2)  = unifyFeat (replace subst1 b1) (replace subst1 b1)
   in if succ1 && succ2  
      then Just (newTop, newBot, subst1 ++ subst2)
      else Nothing
@@ -587,56 +546,57 @@ we increment the chart items counter.
 
 \begin{code}
 type OperationFn = (ChartId -> ChartItem -> ChartItem -> Maybe ChartItem) 
-tryOperation :: OperationFn -> ChartItem -> ChartItem -> BState (Maybe ChartItem)
+tryOperation :: OperationFn -> ChartItem -> ChartItem -> BState [ChartItem]
 tryOperation fn a p =
   do s <- get
-     let counter = chartIdCounter s
+     let counter = gencounter s
          res  = fn counter a p
-         newS = s { chartIdCounter = counter + 1 }
-     when (isJust res) $
-       do put newS 
- return res
+         newS = s { gencounter = counter + 1 }
+     case res of 
+       Just r  -> do put newS
+                     return [r]
+       Nothing -> return []
 \end{code}
 
-\paragraph{isPureAux} returns True if a tree is an auxiliary tree with
-no substitution nodes
+\subsection{Manipulating chart items}
+
+\fnlabel{toChartItem} returns a chart item that refers to a TAG elementary
+tree.  You'll need to supply an id for the item, though
 
 \begin{code}
-isPureAux :: ChartItem -> Bool 
-isPureAux x = ((ttype x) == Auxiliar && (null $ substnodes x))
+toChartItem :: Integer -> TagElem -> ChartItem
+toChartItem id te = ChartItem 
+  { ciRootNode   = (toSite.root.ttree) te
+  , ciSubstnodes = substnodes te
+  , ciFootNode   = Nothing 
+  -- if (ttype te == Auxiliar) 
+  -- then Just $ foot $ ttree te else Nothing
+  , ciId = id
+  , ciOperations = [ ElemTree (idname te) ] 
+  } 
+  where 
+    toSite :: GNode -> TagSite
+    toSite x = (gnname x, gup x, gdown x)
 \end{code}
 
-\subsection{Generator statistics}
-
-These numbers allow us to keep track of how well the generator is doing.
-
+\fnlabel{closed} returns true if the chart item has no open substitution
+nodes
 \begin{code}
-data Gstats = Gstats {
-  szchart   :: Int,
-  numcompar :: Int,
-  geniter   :: Int
-} deriving Show
-
-
-initGstats :: Gstats 
-initGstats = Gstats {
-  szchart   = 0, 
-  numcompar = 0,
-  geniter   = 0
-}
-
-addGstats :: Gstats -> Gstats -> Gstats
-addGstats a b = Gstats {
-    szchart   = (szchart a) + (szchart b),
-    numcompar = (numcompar a) + (numcompar b),
-    geniter   = (geniter a) + (geniter b)
-  }
-
-avgGstats :: [Gstats] -> Gstats
-avgGstats lst = 
- s { szchart   = (szchart s) `div` len,
-     numcompar = (numcompar s) `div` len,
-     geniter   = (geniter s) `div` len }
- where s = foldr addGstats initGstats lst
-       len = length lst
+closed :: ChartItem -> Bool
+closed = null.ciSubstnodes
 \end{code}
+
+\fnlabel{aux} returns true if the chart item is an auxiliary tree
+\begin{code}
+aux :: ChartItem -> Bool
+aux = isJust.ciFootNode
+\end{code}
+
+\fnlabel{closedAux} returns true if both \fnreflite{closed} and
+\fnreflite{aux} return true
+\begin{code}
+closedAux :: ChartItem -> Bool 
+closedAux x = (aux x) && (closed x)
+\end{code}
+
+

@@ -36,7 +36,6 @@ where
 import Control.Monad.State
 
 import Btypes (Sem)
-import Configuration (Params)
 import Tags (TagElem)
 \end{code}
 }
@@ -48,8 +47,8 @@ All backends provide the same essential functionality:
 \end{enumerate}
 
 \begin{code}
-data Builder st it = Builder
-  { init     :: Sem -> [TagElem] -> Params -> st
+data Builder st it pa = Builder
+  { init     :: Sem -> [TagElem] -> pa -> st
   , step     :: State st [it] 
   , finished :: st -> Bool
   , stats    :: st -> Gstats
@@ -62,7 +61,7 @@ data Builder st it = Builder
 condition has been reached.  It returns the results from each step.
 
 \begin{code}
-run :: Builder st it -> (State st [it])
+run :: Builder st it pa -> (State st [it])
 run b = 
  do s <- get
     if (finished b) s
@@ -107,22 +106,22 @@ avgGstats lst =
  where s = foldr addGstats initGstats lst
        len = length lst
 
-modifyStats :: Builder st it -> (Gstats -> Gstats) -> State st ()
+modifyStats :: Builder st it pa -> (Gstats -> Gstats) -> State st ()
 modifyStats b fn =
  do s <- get
     let oldstats = stats b s
         newstats = fn oldstats
     put (setStats b newstats s)
 
-incrGeniter :: Builder st it -> Int -> State st ()
+incrGeniter :: Builder st it pa -> Int -> State st ()
 incrGeniter b n = 
   modifyStats b (\s -> s { geniter = (geniter s) + n } )
     
-incrSzchart :: Builder st it -> Int -> State st ()
+incrSzchart :: Builder st it pa -> Int -> State st ()
 incrSzchart b n = do
   modifyStats b (\s -> s { szchart = (szchart s) + n } )
 
-incrNumcompar :: Builder st it -> Int -> State st ()
+incrNumcompar :: Builder st it pa -> Int -> State st ()
 incrNumcompar b n = do
   modifyStats b (\s -> s { numcompar = (numcompar s) + n })
 \end{code}

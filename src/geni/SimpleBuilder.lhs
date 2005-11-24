@@ -65,6 +65,7 @@ import Data.Bits
 
 import Btypes (Ptype(Initial,Auxiliar),
                Flist, 
+               Replacable(..),
                Sem, sortSem, Subst,
                GType(Other), GNode(..),
                rootUpd,
@@ -73,7 +74,7 @@ import Btypes (Ptype(Initial,Auxiliar),
                repSubst,
                constrainAdj, 
                root, foot, 
-               substTree, substGNode, substFlist, unifyFeat)
+               unifyFeat)
 import Builder (Gstats)
 import qualified Builder as B
 
@@ -82,7 +83,6 @@ import Tags (TagElem, TagSite, TagDerivation,  TagStatus(..),
              derivation,
              ttree, ttype, tsemantics, thighlight, tdiagnostic,
              tpolpaths,
-             substTagElem, 
              adjnodes,
              substnodes,
              tadjlist
@@ -324,8 +324,8 @@ iapplySubstNode te1 te2 sn@(n, fu, fd) =
       -- maybe we could refactor?
       (succ1, newgup,   subst1) = unifyFeat tfup fu
       (succ2, newgdown, subst2) = unifyFeat tfdown2 fd2
-        where tfdown2 = substFlist tfdown subst1
-              fd2     = substFlist fd     subst1
+        where tfdown2 = replace subst1 tfdown 
+              fd2     = replace subst1 fd
       subst = subst1 ++ subst2
       -- IMPORTANT: nt1 should be ready for replacement 
       -- (e.g, top features unified, type changed to Other) 
@@ -350,7 +350,7 @@ iapplySubstNode te1 te2 sn@(n, fu, fd) =
                   -- tpredictors = sumPredictors (tpredictors te1) (tpredictors te2),
                   tpolpaths  = intersectPolPaths te1 te2,
                   thighlight = [gnname nr]} 
-      res = substTagElem newTe subst   
+      res = replace subst newTe 
   in if (isInit te1 && succ1 && succ2) then [res] else []
 \end{code}
 
@@ -432,9 +432,9 @@ iapplyAdjNode fconstr te1 te2 an@(n, an_up, an_down) =
       r_up   = gup r    -- top features of the root of the auxiliar tree
       f_down = gdown f  -- bottom features of the foot of the auxiliar tree
       (succ1, anr_up',  subst1)  = unifyFeat r_up an_up 
-      (succ2, anf_down, subst2)  = unifyFeat (substFlist f_down subst1) (substFlist an_down subst1)
+      (succ2, anf_down, subst2)  = unifyFeat (replace subst1 f_down) (replace subst1 an_down)
       -- don't forget to propagate the substitution set from the down stuff
-      anr_up = substFlist anr_up' subst2
+      anr_up = replace subst2 anr_up' 
       -- combined substitution list and success condition
       subst   = subst1++subst2
       repeatadj = elem (n, (tidnum te1)) (tadjlist te2)
@@ -470,7 +470,7 @@ iapplyAdjNode fconstr te1 te2 an@(n, an_up, an_down) =
                    tpolpaths = intersectPolPaths te1 te2,
                    thighlight = map gnname [anr, anf] 
                  }
-      res' = substTagElem nte2 subst 
+      res' = replace subst nte2 
       -- 4) add the new adjunction nodes 
       --    this has to come after 3 so that we don't repeat the subst
       addextra a = if fconstr then a2 else (ncopy anf) : a2
@@ -699,8 +699,8 @@ tbUnifyTree te =
       -- 
       fixSite :: Subst -> TagSite -> TagSite 
       fixSite sb (n, u, d) = (n, u3, [])
-        where u2 = substFlist sb u 
-              d2 = substFlist sb d
+        where u2 = replace sb u
+              d2 = replace sb d
               (_,u3,_) = unifyFeat u2 d2
       --
       fixTe :: Subst -> Tree GNode -> TagElem
@@ -753,11 +753,11 @@ tbUnifyNode gnRaw st =
   case st of 
     Right (pending, whole) ->
       let -- apply pending substitutions
-          gn = substGNode gnRaw pending
+          gn = replace pending gnRaw 
           -- check top/bottom unification on this node
           (succ, _, sb) = unifyFeat (gup gn) (gdown gn)
           pending2 = pending ++ sb
-          whole2   = substTree whole sb
+          whole2   = replace sb whole
       in if succ 
          then -- apply any new substutions to the whole tree
               Right (pending2, whole2)
