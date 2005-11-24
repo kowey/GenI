@@ -1,0 +1,8 @@
+a one []
+semantics: [a()]
+
+b two []
+semantics: [b()]
+
+c three []
+semantics: [c()]

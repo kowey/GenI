@@ -1,0 +1,14 @@
+one() initial
+r [cat:a]![] {
+ a anchor 
+ s type:subst  [ cat:b ]![]
+}
+
+two() initial
+r [cat:b]![] {
+  a anchor
+  s type:subst [ cat:c ]![]
+}
+
+three() initial
+r anchor [cat:c]![] 
