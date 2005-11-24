@@ -81,6 +81,7 @@ SCRIPT_FILES = bin/runXMGselector\
 	       etc/quickcheck.py\
 	       etc/perf-latest.sh\
 	       etc/perf-save.sh\
+	       etc/macstuff/macosx-app\
 
 
 IFILE = $(SRC_GENI)/Main
