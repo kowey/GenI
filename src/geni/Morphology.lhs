@@ -108,10 +108,10 @@ attachMorphHelper mfs te =
                where fn a = (ganchor a && gtype a == Lex)
       (succ, unf, subst) = unifyFeat mfs (gup anchor) 
       -- perform substTagElem
-      te2 = substTagElem te subst
+      te2 = replace subst te 
       tt2 = ttree te2
       -- replace the anchor with the unification results
-      newgdown = substFlist (gdown anchor) subst
+      newgdown = replace subst (gdown anchor) 
       te3 = te2 { ttree = setAnchor newa tt2 }
             where newa = anchor { gup   = unf,
                                   gdown = newgdown }

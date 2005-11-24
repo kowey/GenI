@@ -41,7 +41,7 @@ module Tags(
    addToTags, tagLeaves,
 
    -- Functions from TagElem
-   substTagElem, setTidnums, fixateTidnums,
+   setTidnums, fixateTidnums,
 
    -- General functions
    mapBySem, drawTagTrees, subsumedBy, showTagSites,
@@ -56,12 +56,12 @@ import Data.List (intersperse)
 import Data.Tree
 
 import Btypes (Ptype(Initial, Auxiliar), SemPols,
-               Subst, GNode(gup, gdown, glexeme, gnname), Flist, 
+               GNode(gup, gdown, glexeme, gnname), Flist, 
                GeniVal(..),
+               Replacable(..),
                Sem, Pred, emptyPred, 
                emptyGNode,
-               substFlist, 
-               substTree, substSem, showPairs, showSem)
+               showPairs, showSem)
 import General (BitVector, treeLeaves, groupByFM)
 \end{code}
 }
@@ -146,6 +146,17 @@ instance Ord TagElem where
          (Auxiliar, Auxiliar) -> compareId 
          _                    -> error "TagElem compare not exhaustively defined"
     where compareId  = compare (tidnum t1) (tidnum t2)
+
+instance Replacable TagElem where
+  replace s te =
+    te { substnodes = replace s (substnodes te)
+       , adjnodes   = replace s (adjnodes te)
+       , tinterface = replace s (tinterface te)
+       , ttree      = replace s (ttree te)
+       , tsemantics = replace s (tsemantics te) }
+
+instance Replacable TagSite where
+  replace s (n, fu, fd) = (n, replace s fu, replace s fd)
 \end{code}
 
 \begin{code}
@@ -245,27 +256,6 @@ instance TagItem TagElem where
   tgIdNum  = tidnum
   tgSemantics = tsemantics
 \end{code}
-
-% ----------------------------------------------------------------------
-\section{TAG operations}
-% ----------------------------------------------------------------------
-
-\paragraph{substTag} given a TagElem and a substitution, applies the
-substitution through all the TagElem. Note that this \emph{is not} the
-TAG substitution operation, but a helper function for variable
-unification, with an unfortunately coincidental name.
-
-\begin{code}
-substTagElem :: TagElem -> Subst -> TagElem
-substTagElem te l =
-    let substNodes sn = map (\ (n, fu, fd) -> (n, substFlist fu l, substFlist fd l)) sn
-        in te{substnodes = substNodes (substnodes te),
-              adjnodes   = substNodes (adjnodes te),
-              tinterface = substFlist (tinterface te) l,
-              ttree      = substTree (ttree te) l,
-              tsemantics = substSem (tsemantics te) l}
-\end{code}
-
 
 % ----------------------------------------------------------------------
 \section{Map by sem}

@@ -59,15 +59,15 @@ import General(multiGroupByFM, ePutStr, ePutStrLn, eFlush,
 
 import Automaton 
 import Btypes (Macros, MTtree, ILexEntry, Lexicon, 
-               Sem, SemInput,
-               fromGVar, GeniVal(..),
+               Replacable(..),
+               Sem, SemInput, 
+               fromGVar, 
                GNode, GType(Subs), Flist,
                isemantics, ifamname, iword, iparams, 
                ipfeat, ifilters,
                isempols, 
                gnname, gtype, gaconstr, gup, gdown, toKeys,
                sortSem, subsumeSem, params, 
-               Subst, substSem, substFlist, substTree, substHelper,
                showLexeme,
                pidname, pfamily, pfeat, ptype, 
                setLexeme, tree, unifyFeat)
@@ -94,6 +94,8 @@ import GeniParsers (geniMacros,
                     geniMorphInfo)
 import Morphology
 import Polarity
+
+import DerivationsBuilder 
 import SimpleBuilder (simpleBuilder)
 
 -- Not for windows
@@ -168,7 +170,7 @@ as with \fnref{debugGui}, but for the most part, you want the vanilla
 flavoured generator, \fnref{doGeneration}.
 
 \begin{code}
-runGeni :: ProgStateRef -> GeniFn -> IO GeniResults 
+runGeni :: ProgStateRef -> GeniFn TagElem -> IO GeniResults 
 runGeni pstRef runFn = do 
   -- lexical selection
   pstLex   <- readIORef pstRef
@@ -265,7 +267,7 @@ interesting things with them.
 
 \begin{code}
 type Gstats = B.Gstats
-type GeniFn = ProgState -> GeniInput -> IO ([TagElem], Gstats)
+type GeniFn a = ProgState -> GeniInput -> IO ([a], Gstats)
 data GeniInput = GI { giSem   :: Sem
                     , giLex   :: [ILexEntry]  -- debugger
                     , giCands :: [TagElem]
@@ -402,12 +404,12 @@ combineOne lexitem e =
        tpf  = pfeat e
        -- unify the parameters
        psubst = zip tp p
-       paramsUnified = substTree (Btypes.tree e) psubst 
+       paramsUnified = replace psubst (Btypes.tree e)
        -- unify the features
-       pf2  = substFlist pf  psubst
-       tpf2 = substFlist tpf psubst
+       pf2  = replace psubst pf  
+       tpf2 = replace psubst tpf 
        (fsucc, funif, fsubst) = unifyFeat pf2 tpf2
-       featsUnified = substTree paramsUnified fsubst 
+       featsUnified = replace fsubst paramsUnified 
        -- detect subst and adj nodes
        unified = featsUnified
        (snodes,anodes) = detectSites unified 
@@ -421,7 +423,7 @@ combineOne lexitem e =
                 ttree = setLexeme (iword lexitem) unified,
                 substnodes = snodes,
                 adjnodes   = anodes,
-                tsemantics = substSem sem fsubst,
+                tsemantics = replace fsubst sem,
                 tsempols    = isempols lexitem,
                 tinterface  = funif
                 -- tpredictors = combinePredictors e lexitem
@@ -495,20 +497,12 @@ the duplicates.
 \begin{code}
 chooseCandI :: Sem -> [ILexEntry] -> [ILexEntry]
 chooseCandI tsem cand =
-  let substLex i (sem,sub) = 
-        i { isemantics = sem 
-          , ipfeat     = substFlist (ipfeat i)   sub  
-          , iparams    = substPar  (iparams i)   sub
-          }
-      --
-      substPar :: [GeniVal] -> Subst -> [GeniVal]
-      substPar par sub = map (\p -> substOne p sub) par
-      substOne :: GeniVal -> Subst -> GeniVal
-      substOne p sub = foldl (flip substHelper) p sub
+  let replaceLex i (sem,sub) = 
+        (replace sub i) { isemantics = sem }
       --
       helper :: ILexEntry -> [ILexEntry]
       helper le = if (null sem) then [le] 
-                  else map (substLex le) psubsem 
+                  else map (replaceLex le) psubsem 
         where psubsem = subsumeSem tsem sem
               sem = isemantics le
       --
@@ -934,13 +928,18 @@ is to be compatible with the debugger GUI.  There could be some code
 simplifications in order.
 
 \begin{code}
-doGeneration :: GeniFn 
+doGeneration :: GeniFn TagElem 
 doGeneration pst input = do
   return (doGeneration' (pa pst) input) 
 
 doGeneration' :: Params -> GeniInput -> ([TagElem], Gstats)
 doGeneration' config input = 
-  let tsem   = giSem   input
+  let theBuilder = simpleBuilder 
+      stats = B.stats theBuilder
+      initBuilder = B.init theBuilder
+      run = B.run theBuilder
+      --
+      tsem   = giSem   input
       combos = giTrees input
       -- do the generation
       genfn c = (res, stats st) 
@@ -949,10 +948,6 @@ doGeneration' config input =
       res' = map genfn combos
       addres (r,s) (r2,s2) = (r ++ r2, B.addGstats s s2)
   in foldr addres ([], B.initGstats) res'
-
-stats = B.stats simpleBuilder 
-initBuilder = B.init simpleBuilder
-run   = B.run   simpleBuilder
 \end{code}
 
 \subsection{Returning results}

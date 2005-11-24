@@ -85,9 +85,10 @@ import Data.Maybe (isNothing)
 
 import Automaton
 import Graphviz(GraphvizShow(..))
-import Tags(TagElem(..), TagItem(..), mapBySem, substTagElem)
+import Tags(TagElem(..), TagItem(..), mapBySem)
 import Btypes(Pred, Sem, Flist, AvPair, showAv,
               GeniVal, fromGConst,
+              Replacable(..),
               emptyPred, Ptype(Initial), 
               showSem, sortSem, 
               root, gup, 
@@ -774,7 +775,7 @@ assignIndex i te =
       newr = oldr { gup = newgup }
       newt = rootUpd oldt newr
       --
-      newTe = substTagElem (te { ttree = newt }) subst
+      newTe = replace subst (te { ttree = newt }) 
   in if success then newTe else te
 \end{code}
 

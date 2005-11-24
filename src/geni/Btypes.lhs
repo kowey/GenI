@@ -39,18 +39,19 @@ module Btypes(
 
    -- Functions from Tree GNode
    repSubst, repAdj, constrainAdj, 
-   renameTree, substTree, substGNode,
+   renameTree, 
    root, rootUpd, foot, setLexeme,
 
    -- Functions from Sem
-   toKeys, subsumeSem, sortSem, substSem, showSem, showPred,
+   toKeys, subsumeSem, sortSem, showSem, showPred,
    emptyPred,
 
    -- Functions from Flist
-   substFlist, sortFlist, unifyFeat, substHelper,
+   sortFlist, unifyFeat, 
    showPairs, showAv,
 
    -- Other functions
+   Replacable(..),
    fromGConst, fromGVar,
    isVar, isAnon, testBtypes,
 
@@ -137,6 +138,11 @@ data ILexEntry = ILE
     , isempols    :: [SemPols] }
   deriving (Show, Eq)
 
+instance Replacable ILexEntry where
+  replace s i = 
+    i { ipfeat  = replace s (ipfeat i)
+      , iparams = replace s (iparams i) }
+
 emptyLE :: ILexEntry  
 emptyLE = ILE { iword = [],
                 ifamname = "", 
@@ -216,19 +222,28 @@ showLexeme [l]  = l
 showLexeme xs   = concat $ intersperse "|" xs 
 \end{code}
 
-\fnlabel{substGNode} 
-Given a GNode and a substitution, it applies the
- substitution to GNode
+A Replacement on a GNode consists of replacements on its top and bottom
+feature structures
+
 \begin{code}
-substGNode :: GNode -> Subst -> GNode
-substGNode gn l =
-    gn{gup = substFlist (gup gn) l,
-       gdown = substFlist (gdown gn) l}
+instance Replacable GNode where
+  replaceOne s gn =
+    gn { gup = replaceOne s (gup gn) 
+       , gdown = replaceOne s (gdown gn) }
+  replace s gn =
+    gn { gup = replace s (gup gn) 
+       , gdown = replace s (gdown gn) }
 \end{code}
 
 % ----------------------------------------------------------------------
 \section{Tree manipulation}
 % ----------------------------------------------------------------------
+
+\begin{code}
+instance (Replacable a) => Replacable (Tree a) where
+  replaceOne s t = mapTree (replaceOne s) t
+  replace s t    = mapTree (replace s) t
+\end{code}
 
 Projector and Update function for Tree
 
@@ -259,15 +274,6 @@ setLexeme s t =
   in (head.fst) $ listRepNode fn filt [t]
 \end{code}
 
-\fnlabel{substTree} 
-Given a tree GNode and a substitution, applies the 
-substitution to the tree.
-
-\begin{code}
-substTree :: Tree GNode -> Subst -> Tree GNode
-substTree t s = mapTree (\n -> substGNode n s) t
-\end{code}
-
 \fnlabel{renameTree} 
 Given a Char c and a tree, renames nodes in 
 the tree by prefixing c.
@@ -276,6 +282,7 @@ the tree by prefixing c.
 renameTree :: Char -> Tree GNode -> Tree GNode
 renameTree c = mapTree (\a -> a{gnname = c:(gnname a)}) 
 \end{code}
+
 
 \subsection{Substitution}
 
@@ -383,17 +390,47 @@ fromGVar (GVar x) = x
 fromGVar x = error ("fromGVar on " ++ show x)
 \end{code}
 
-\fnlabel{substFlist} 
-Given an Flist and a substitution, applies the substitution to the Flist.
+\subsection{Replacable}
+\label{sec:replacable}
+\label{sec:replacements}
+
+The idea of replacing one variable value with another is something that
+appears all over the place in GenI.  So we try to smooth out its use by
+making a type class out of it.
 
 \begin{code}
-substFlist :: Flist -> Subst -> Flist
-substFlist fl sl = foldl' helper fl sl
-  where -- note: written sans map for performance reasons
-        helper :: Flist -> (String,GeniVal) -> Flist
-        helper [] _ = []
-        helper ((f,v):xs) (s1, s2) = (f, v2) : helper xs (s1,s2) 
-          where v2 = substHelper (s1,s2) v 
+class Replacable a where
+  replace :: Subst -> a -> a 
+
+  replaceOne :: (String,GeniVal) -> a -> a
+  replaceOne s = replace [s]
+\end{code}
+
+GeniVal is probably the simplest thing you would one to apply a
+substitution on
+
+\begin{code}
+instance Replacable GeniVal where
+  replace sl v = foldl' (flip replaceOne) v sl
+  replaceOne (s1,s2) v = if (v == GVar s1) then s2 else v
+\end{code}
+
+Substitution on list consists of performing substitution on 
+each item.  Each item, is independent of the other, 
+of course.
+
+\begin{code}
+instance (Replacable a => Replacable [a]) where
+  replace s    = map (replace s) 
+  replaceOne s = map (replaceOne s)
+\end{code}
+
+Substitution on an attribute/value pairs consists of ignoring
+the attribute and performing substitution on the value.
+
+\begin{code}
+instance (Replacable a => Replacable (String, a)) where
+  replace s (a,v) = (a, replace s v)
 \end{code}
 
 \fnlabel{sortFlist} sorts Flists according with its feature
@@ -429,6 +466,13 @@ showSem l =
     "[" ++ (unwords $ map showPred l) ++ "]"
 \end{code}
 
+A replacement on a predicate is just a replacement on its parameters
+
+\begin{code}
+instance Replacable Pred where 
+  replace s (h, n, lp) = (replace s h, n, replace s lp) 
+\end{code}
+
 \begin{code}
 showPred :: Pred -> String
 showPred (h, p, l) = showh ++ p ++ "(" ++ unwords (map show l) ++ ")"
@@ -439,40 +483,12 @@ showPred (h, p, l) = showh ++ p ++ "(" ++ unwords (map show l) ++ ")"
     showh = if (hideh h) then "" else (show h) ++ ":"
 \end{code}
 
-\fnlabel{substSem} 
-Given a Sem and a substitution, applies the substitution
-  to Sem
-\begin{code}
-substSem :: Sem -> Subst -> Sem
-substSem s l = map (\p -> substPred p l) s
-\end{code}
-
 \fnlabel{toKeys} 
 Given a Semantics, returns the string with the proper keys
 (propsymbol+arity) to access the agenda
 \begin{code}
 toKeys :: Sem -> [String] 
 toKeys l = map (\(_,prop,par) -> prop++(show (length par))) l
-\end{code}
-
-\begin{code}
-substPred :: Pred -> Subst -> Pred
-substPred p [] = p
-substPred (h, n, lp) (s:l) = substPred (subst h, n, map subst lp) l
-  where subst = substHelper s 
--- substVals :: [GeniVal] -> Subst -> [GeniVal] 
--- substVals gl sl = foldl' helper gl sl
---   where helper :: [GeniVal] -> (String,GeniVal) -> [GeniVal] 
---         helper lst s = map (substHelper s) lst
-\end{code}
-
-\fnlabel{substHelper} applies a single substitution on a single value.  
-Note that the value is disjunctive, which is which it is represented as
-\verb![GeniVal]! instead of just GeniVal.
-
-\begin{code}
-substHelper :: (String,GeniVal) -> GeniVal -> GeniVal
-substHelper (s1,s2) v = if (v == GVar s1) then s2 else v
 \end{code}
 
 \subsection{Semantic subsumption} 
@@ -519,8 +535,8 @@ subsumeSemHelper acc tsem (hd:tl) =
       -- next adds a result from predication subsumption to
       -- the accumulators and goes to the next recursive step
       next (p,s) = subsumeSemHelper acc2 tsem2 tl2
-         where tl2   = substSem tl s
-               tsem2 = substSem tsem s
+         where tl2   = replace s tl 
+               tsem2 = replace s tsem 
                acc2  = (toPred p : accSem, accSub ++ s) 
   in concatMap next pRes
 \end{code}
@@ -726,8 +742,7 @@ unify (h1:t1) (h2:t2) =
       --
       withrep (GVar h1) x2 = do
         let s = (h1,x2)
-            subfn l = map (substHelper s) l
-        (res,subst) <- unify (subfn t1) (subfn t2)
+        (res,subst) <- unify (replaceOne s t1) (replaceOne s t2)
         return (x2:res, s:subst) 
       withrep _ _ = error ("unification error\n" ++ bugInGeni)
       sansrep x2 = do
