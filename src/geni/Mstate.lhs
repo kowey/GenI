@@ -27,9 +27,6 @@ TODO:
   empty list of substitution nodes are generated
 \item in the list of adjnodes, some pairs feature:Var where Var is not instantiates
   are generated
-\item To eliminate redundant generations enforce that substitution
-      tree should have an empty list of substitution nodes when applying 
-      Substitution 
 \end{enumerate}
 
 \begin{code}
