@@ -75,6 +75,7 @@ BIBTEX=$(BIBTEX_CMD)
 
 SCRIPT_FILES = bin/runXMGselector\
 	       bin/runXMGfilter\
+	       bin/xmgGeni\
 	       etc/lhs2haddock\
 	       etc/stupidmorph.pl\
 	       etc/tommorph.pl\
