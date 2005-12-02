@@ -28,7 +28,7 @@ where
 \ignore{
 \begin{code}
 import Data.Char (isSpace, toUpper, toLower)
-import Data.List (intersect, groupBy)
+import Data.List (intersect, groupBy, group, sort, intersperse)
 import Data.Tree
 import System.IO (hPutStrLn, hPutStr, hFlush, stderr)
 import qualified Data.Map as Map
@@ -37,7 +37,7 @@ import qualified Data.Map as Map
 
 \section{IO}
 
-\paragraph{stderr} PutStr and PutStrLn an stderr
+\fnlabel{stderr} PutStr and PutStrLn an stderr
 \begin{code}
 ePutStr   = hPutStr stderr
 ePutStrLn = hPutStrLn stderr
@@ -54,7 +54,7 @@ trim :: String -> String
 trim = reverse . (dropWhile isSpace) . reverse . (dropWhile isSpace) 
 \end{code}
 
-\paragraph{toUpperHead and toLowerHead} make the first character of a
+\fnlabel{toUpperHead and toLowerHead} make the first character of a
 string upper and lower case, respectively.  
 
 \begin{code}
@@ -77,6 +77,8 @@ thd3 :: (a,b,c) -> c
 thd3 (_,_,x) = x
 \end{code}
 
+\section{Lists}
+
 A generic version of the Data.List.words
 
 \begin{code}
@@ -84,9 +86,55 @@ wordsBy :: (Eq a) => a -> [a] -> [[a]]
 wordsBy c = groupBy (\x y -> x /= c && y /= c) 
 \end{code}
 
+\fnlabel{isEmptyIntersect} is true if the intersection of two lists is
+empty.
+
+\begin{code}
+isEmptyIntersect :: (Eq a) => [a] -> [a] -> Bool
+isEmptyIntersect a b = null $ intersect a b
+\end{code}
+
+\fnlabel{groupByFM} serves the same function as Data.List.groupBy.  It
+groups together items by some property they have in common. The
+difference is that the property is used as a key to a Map that you
+can lookup.  \texttt{fn} extracts the property from the item.
+
+\begin{code}
+groupByFM :: (Ord b) => (a -> b) -> [a] -> (Map.Map b [a])
+groupByFM fn list = 
+  let addfn  x acc key = Map.insertWith (++) key [x] acc 
+      helper x acc     = addfn x acc (fn x)
+  in foldr helper Map.empty list 
+\end{code}
+
+\fnlabel{multiGroupByFM} is the same as groupByFM, except that we
+assume an item can appear in multiple groups.  \texttt{fn} extracts the
+property from the item, and returns multiple results in the form of a
+list.
+
+\begin{code}
+multiGroupByFM :: (Ord b) => (a -> [b]) -> [a] -> (Map.Map b [a])
+multiGroupByFM fn list = 
+  let addfn  x key acc = Map.insertWith (++) key [x] acc
+      helper x acc     = foldr (addfn x) acc (fn x)
+  in foldr helper Map.empty list 
+\end{code}
+
+\fnlabel{groupAndCount} is a generic list-processing function.
+It converts a list of items into a list of tuples (a,b) where 
+a is an item in the list and b is the number of times a in occurs 
+in the list.
+
+\begin{code}
+groupAndCount :: (Eq a, Ord a) => [a] -> [(a, Int)]
+groupAndCount xs = 
+  map (\x -> (head x, length x)) grouped
+  where grouped = (group.sort) xs
+\end{code}
+
 \section{Trees}
 
-\paragraph{mapTree} is like map, except on Trees.  This has to be
+\fnlabel{mapTree} is like map, except on Trees.  This has to be
 tucked away somewhere (i.e. i must be reinventing the wheel)!
 
 \begin{code}
@@ -95,7 +143,7 @@ mapTree fn (Node a []) = (Node (fn a) [])
 mapTree fn (Node a l)  = (Node (fn a) (map (mapTree fn) l))
 \end{code}
 
-\paragraph{filterTree} is like filter, except on Trees.  Filter 
+\fnlabel{filterTree} is like filter, except on Trees.  Filter 
 might not be a good name, though, because we return a list of 
 nodes, not a tree.
 
@@ -108,7 +156,7 @@ filterTree fn (Node a l)  =
   where next = concatMap (filterTree fn) l
 \end{code}
 
-\paragraph{treeLeaves} returns the leaf nodes of a Tree.
+\fnlabel{treeLeaves} returns the leaf nodes of a Tree.
 
 \begin{code}
 treeLeaves :: Tree a -> [a]
@@ -116,7 +164,7 @@ treeLeaves (Node n []) = [n]
 treeLeaves (Node _ l ) = concatMap treeLeaves l
 \end{code}
 
-\paragraph{listRepNode} is a generic tree-walking/editing function.  It
+\fnlabel{listRepNode} is a generic tree-walking/editing function.  It
 takes a replacement function, a filtering function and a tree.  It
 returns the tree, except that the first node for which the filtering
 function returns True is transformed with the replacement function.
@@ -137,7 +185,7 @@ listRepNode fn filt ((n@(Node a l1)):l2) =
 
 \section{Errors}
 
-\paragraph{bugInGeni} is the standard stuff to display there is an error
+\fnlabel{bugInGeni} is the standard stuff to display there is an error
 in GenI which is very likely NOT the user's fault.
 
 \begin{code}
@@ -194,38 +242,33 @@ showInterval (x,y) =
 type BitVector = Integer
 \end{code}
 
-\paragraph{isEmptyIntersect} is true if the intersection of two lists is
-empty.
+\paragraph{showTable} pretty-prints an ASCII table from a list of items.
+More precisely, it builds this from 
+\begin{enumerate}
+\item \fnparam{header} a list of headers, 
+\item \fnparam{items}  a list of items and
+\item \fnparam{displayfn} which converts the items to list of pretty-printed strings.
+\end{enumerate}
+Each item corresponds to a row.  The list returned by \fnparam{displayfn} ought
+to be the same length as \fnparam{header}, since each item in the list
+corresponds to a column.  Note that this function tries to make the table
+pretty by padding each column to be same length as the header 
+(so to adjust the size of columns, just pad the header with spaces).
 
 \begin{code}
-isEmptyIntersect :: (Eq a) => [a] -> [a] -> Bool
-isEmptyIntersect a b = null $ intersect a b
+showTable :: [String] -> [a] -> (a -> [String]) -> String
+showTable header items displayfn = 
+  let showIt l = concat $ intersperse " | " $ l
+      showLine = concat $ intersperse "-+-" $ map linestr header
+      resStr r = zipWith pad (displayfn r) header
+      -- a list of "-" with the same length as l 
+      linestr str2 = map (const '-') str2
+      -- pad str to be as long as str2
+      pad str str2 = if (diff > 0) then padding ++ str else str
+                     where padding = map (const ' ') [1..diff]
+                           diff = (length str2) - (length str)   
+      --
+      headerStr = showIt header ++ "\n" ++ showLine ++ "\n" 
+      bodyStr   = concat $ intersperse "\n" $ map (showIt.resStr) items 
+  in headerStr ++ bodyStr
 \end{code}
-
-\paragraph{groupByFM} serves the same function as Data.List.groupBy.  It
-groups together items by some property they have in common. The
-difference is that the property is used as a key to a Map that you
-can lookup.  \texttt{fn} extracts the property from the item.
-
-\begin{code}
-groupByFM :: (Ord b) => (a -> b) -> [a] -> (Map.Map b [a])
-groupByFM fn list = 
-  let addfn  x acc key = Map.insertWith (++) key [x] acc 
-      helper x acc     = addfn x acc (fn x)
-  in foldr helper Map.empty list 
-\end{code}
-
-\paragraph{multiGroupByFM} is the same as groupByFM, except that we
-assume an item can appear in multiple groups.  \texttt{fn} extracts the
-property from the item, and returns multiple results in the form of a
-list.
-
-\begin{code}
-multiGroupByFM :: (Ord b) => (a -> [b]) -> [a] -> (Map.Map b [a])
-multiGroupByFM fn list = 
-  let addfn  x key acc = Map.insertWith (++) key [x] acc
-      helper x acc     = foldr (addfn x) acc (fn x)
-  in foldr helper Map.empty list 
-\end{code}
-
-

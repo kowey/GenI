@@ -18,16 +18,10 @@
 \chapter{SimpleBuilder}
 \label{cha:SimpleBuilder}
 
-SimpleBuilder implements the GenI chart generation algorithm and related
-operations like TAG substitution, adjunction. 
-
-TODO:
-\begin{enumerate}
-\item For some reason, trees with incomplete semantics (eg, mia loves )but with an 
-  empty list of substitution nodes are generated
-\item in the list of adjnodes, some pairs feature:Var where Var is not instantiates
-  are generated
-\end{enumerate}
+A SimpleBuilder is a Builder which constructs derived trees using a
+simple agenda control mechanism and two-phase realisation (substitution
+before adjunction).  There is no packing strategy whatsoever; each chart
+item is a derived tree.
 
 \begin{code}
 module SimpleBuilder (
@@ -41,16 +35,10 @@ module SimpleBuilder (
    addToAgenda, addToChart,
    genconfig, genstats, 
 
-   -- Generation
-   generateStep,
-  
-   -- Make your own generator!   
-   iapplySubstNode, nullAgenda, getSem, selectGiven,
-   incrNumcompar, incrSzchart, incrGeniter, 
-   renameTagElem, getChart, lookupChart,
-   getAgenda)
+   getChart, getAgenda)
 where
 \end{code}
+
 
 \ignore{
 \begin{code}
@@ -93,14 +81,12 @@ import Tags (TagElem, TagSite, TagDerivation,  TagStatus(..),
              tagLeaves
             )
 import Configuration 
-import General (BitVector, fst3, mapTree)
+import General (BitVector, fst3, mapTree, groupAndCount)
 import Polarity
 \end{code}
 }
 
-% --------------------------------------------------------------------  
-\section{Main stuff}
-% --------------------------------------------------------------------  
+Here is our implementation of Builder.
 
 \begin{code}
 simpleBuilder = B.Builder 
@@ -114,10 +100,14 @@ simpleBuilder = B.Builder
   , B.unpack   = unpackResults.theResults }
 \end{code}
 
-\fnlabel{run} runs a simple surface realisation process from the
-lexical selection step.  If the polarity automaton optimisation 
-is enabled, it first constructs the polarity automaton and uses
-that to guide the surface realisation process.
+% --------------------------------------------------------------------  
+\section{Main stuff}
+% --------------------------------------------------------------------  
+
+\fnlabel{run} performs surface realisation from an input semantics and a
+lexical selection.  If the polarity automaton optimisation is enabled,
+it first constructs the polarity automaton and uses that to guide the
+surface realisation process.
 
 There's an unfortunate source of complexity here : one way to do
 generation is to treat polarity automaton path as a seperate 
@@ -146,8 +136,8 @@ run input config =
   in foldr mergeSt nullSt finalStates 
 \end{code}
 
-\fnlabel{setup} is one of the substeps of run (so unless you are
-doing something fancy, you probably don't need it)
+\fnlabel{setup} is one of the substeps of run (so unless you are a
+graphical debugger, you probably don't need to invoke it yourself)
 
 \begin{code}
 setup input config = 
@@ -1000,4 +990,44 @@ addToDerivation op tc tp =
       --
       newnode = (op, addcp $ idname tc, idname tp) 
   in (newcp, newnode:(hp++newhc) )
+\end{code}
+
+\section{FIXME or delete me}
+
+\subsection{Returning results}
+
+We provide a data structure to be used by verboseGeni for returning the results
+(grDerived) along with the intermediary steps and some useful statistics.  
+
+\begin{code}
+data GeniResults a = GR {
+  -- optimisations and extra polarities
+  grOptStr   :: (String,String),
+  -- some numbers (in string form)
+  grStats     :: B.Gstats,
+  grAutPaths  :: String,
+  grAmbiguity :: String,
+  grTimeStr   :: String,
+  -- the final results
+  grDerived   :: [a],
+  grSentences :: [String]
+} 
+\end{code}
+
+We provide a default means of displaying the results
+
+\begin{code}
+instance Show (GeniResults a) where
+  show gres = 
+    let gstats = grStats gres 
+        gopts  = grOptStr gres
+        sentences = grSentences gres
+    in    "Optimisations: " ++ fst gopts ++ snd gopts ++ "\n"
+       ++ "\nAutomaton paths explored: " ++ (grAutPaths  gres)
+       ++ "\nEst. lexical ambiguity:   " ++ (grAmbiguity gres)
+       ++ "\nTotal agenda size: " ++ (show $ B.geniter gstats) 
+       ++ "\nTotal chart size:  " ++ (show $ B.szchart gstats) 
+       ++ "\nComparisons made:  " ++ (show $ B.numcompar gstats)
+       ++ "\nGeneration time:  " ++ (grTimeStr gres) ++ " ms"
+       -- ++ "\n\nRealisations:\n" ++ (showRealisations sentences)
 \end{code}

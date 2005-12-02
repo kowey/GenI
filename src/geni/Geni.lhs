@@ -25,7 +25,7 @@ module also does lexical selection and anchoring because these processes might
 involve some messy IO performance tricks.
 
 \begin{code}
-module Geni (ProgState(..), ProgStateRef, GeniResults(..), 
+module Geni (ProgState(..), ProgStateRef, 
              showRealisations, groupAndCount,
              runGeni, runMorph,
              loadGrammar, loadLexicon, 
@@ -38,7 +38,7 @@ where
 \begin{code}
 import qualified Data.Map as Map
 import Data.IORef (IORef, readIORef, modifyIORef)
-import Data.List (intersperse, sort, nub, group)
+import Data.List (intersperse, sort, nub)
 import Data.Tree
 
 import System.IO(hPutStrLn, hClose, hGetContents)
@@ -47,7 +47,7 @@ import Text.ParserCombinators.Parsec
 -- import System.Process 
 
 import Control.Monad (when)
-import General(multiGroupByFM, ePutStr, ePutStrLn, eFlush)
+import General(groupAndCount, multiGroupByFM, ePutStr, ePutStrLn, eFlush)
 
 import Btypes (Macros, MTtree, ILexEntry, Lexicon, 
                Replacable(..),
@@ -69,14 +69,11 @@ import Tags (Tags, TagElem, emptyTE, TagSite,
              tinterface, tpolarities, substnodes, adjnodes, 
              setTidnums) 
 
-import Configuration(Params, 
-                     grammarType, tsFile,
-                     testCase, morphCmd, ignoreSemantics,
-                     selectCmd,
-                     GrammarType(..),
-                     macrosFile, lexiconFile, morphFile,
-                     polarised, polsig, chartsharing, 
-                     semfiltered, extrapol, footconstr)
+import Configuration
+  ( Params
+  , grammarType, testCase, morphCmd, ignoreSemantics, selectCmd,
+  , GrammarType(..),
+  , tsFile, macrosFile, lexiconFile, morphFile)
 
 import qualified Builder as B
 
@@ -84,7 +81,6 @@ import GeniParsers (geniMacros,
                     geniLexicon, geniTestSuite, geniSemanticInput, 
                     geniMorphInfo)
 import Morphology
-import Polarity
 
 -- import DerivationsBuilder 
 -- import SimpleBuilder (simpleBuilder)
@@ -136,7 +132,168 @@ type ProgStateRef = IORef ProgState
 \end{code}
 
 % --------------------------------------------------------------------
-\section{Entry point}
+\section{Interface}
+\subsection{Loading and parsing}
+% --------------------------------------------------------------------
+
+\fnlabel{loadGrammar} Given the pointer to the monadic state pstRef it reads
+and parses everything it needs to get going, that is, the macros file, 
+lexicon file and test suite.
+
+\begin{code}
+loadGrammar :: ProgStateRef -> IO() 
+loadGrammar pstRef =
+  do pst <- readIORef pstRef
+     --
+     let config    = pa pst
+         gfilename = macrosFile config 
+         lfilename = lexiconFile config 
+         sfilename = tsFile config
+     -- display 
+     let errorlst  = filter (not.null) $ map errfn src 
+           where errfn (err,msg) = if err then msg else ""
+                 src = [ (null gfilename, "a tree file")
+                       , (null lfilename, "a lexicon file") 
+                       , (null sfilename, "a test suite") ]
+         errormsg = "Please specify: " ++ (concat $ intersperse ", " errorlst)
+     when (not $ null errorlst) $ fail errormsg 
+     -- we don't have to read in grammars from the simple format
+     case grammarType config of 
+        XMGTools -> return ()
+        _           -> loadGeniMacros pstRef config
+     -- in any case, we have to...
+     loadLexicon   pstRef config 
+     loadMorphInfo pstRef config 
+     loadTestSuite pstRef 
+\end{code}
+
+\fnlabel{loadLexicon} Given the pointer to the monadic state pstRef and
+the parameters from a grammar index file parameters; it reads and parses
+the lexicon file.   
+
+\begin{code}
+loadLexicon :: ProgStateRef -> Params -> IO ()
+loadLexicon pstRef config = do
+       let lfilename = lexiconFile config
+       when (null lfilename) $ fail "Please specify a lexicon!"
+       ePutStr $ "Loading Lexicon " ++ lfilename ++ "..."
+       eFlush
+       pst <- readIORef pstRef
+       let params = pa pst
+           --       
+           getSem l  = if (ignoreSemantics params) then [] else isemantics l 
+           sorter l  = l { isemantics = (sortSem . getSem) l }
+           cleanup   = (mapBySemKeys isemantics) . (map sorter)
+           --
+       prelex <- parseFromFile geniLexicon lfilename
+       let lex = case prelex of 
+                   Left err -> error (show err)
+                   Right x  -> cleanup x 
+       --
+       ePutStr ((show $ length $ Map.keys lex) ++ " entries\n")
+       -- combine the two lexicons
+       modifyIORef pstRef (\x -> x{le = lex})
+
+       return ()
+\end{code}
+
+\fnlabel{loadGeniMacros} Given the pointer to the monadic state pstRef and
+the parameters from a grammar index file parameters; it reads and parses
+macros file.  The macros are stored as a hashing function in the monad.
+
+\begin{code}
+loadGeniMacros :: ProgStateRef -> Params -> IO ()
+loadGeniMacros pstRef config = 
+  do let filename = macrosFile config
+     --
+     ePutStr $ "Loading Macros " ++ filename ++ "..."
+     eFlush
+     when (null filename) $ fail "Please specify a trees file!"
+     parsed <- parseFromFile geniMacros filename
+     case parsed of 
+       Left  err -> fail (show err)
+       Right g   -> setGram g
+  where
+    setGram g = 
+      do let sizeg = length g
+         ePutStr $ show sizeg ++ " trees in " 
+         ePutStr $ (show $ length g) ++ " families\n"
+         modifyIORef pstRef (\x -> x{gr = g})
+\end{code}
+
+\fnlabel{loadMorphInfo} Given the pointer to the monadic state pstRef and
+the parameters from a grammar index file parameters; it reads and parses
+the morphological information file, if available.  The results are stored
+as a lookup function in the monad.
+
+\begin{code}
+loadMorphInfo :: ProgStateRef -> Params -> IO ()
+loadMorphInfo pstRef config = 
+  do let filename = morphFile config
+     when (not $ null filename ) $ do --
+        ePutStr $ "Loading Morphological Info " ++ filename ++ "..."
+        eFlush
+        parsed <- parseFromFile geniMorphInfo filename
+        let g = case parsed of 
+                  Left err -> fail (show err)
+                  Right  x -> x
+            sizeg  = length g
+        ePutStr $ show sizeg ++ " entries\n" 
+        modifyIORef pstRef (\x -> x{morphinf = readMorph g})
+\end{code}
+
+\subsubsection{Target semantics}
+
+\fnlabel{loadTestSuite} 
+given a pointer pstRef to the general state st, it access the parameters and the
+name of the file for the target semantics from params.  It parses the file as a
+test suite, and assigns it to the tsuite field of st.
+
+\begin{code}
+loadTestSuite :: ProgStateRef -> IO ()
+loadTestSuite pstRef = do
+  pst <- readIORef pstRef
+  let config   = pa pst
+      filename = (tsFile.pa) pst
+      useSem   = not $ ignoreSemantics config
+  when (null filename) $ fail "Please specify a test suite!"
+  when useSem $ do
+    ePutStr $ "Loading Test Suite " ++ filename ++ "...\n"
+    eFlush
+    -- helper functions for test suite stuff
+    let cleanup (id, (sm,sr), _) = (id, newsmsr)
+          where newsmsr = (sortSem sm, sort sr)
+        updateTsuite s x = x { tsuite = map cleanup s   
+                             , tcase  = testCase config}
+    sem <- parseFromFile geniTestSuite filename 
+    case sem of 
+      Left err -> fail (show err)
+      Right s  -> modifyIORef pstRef $ updateTsuite s 
+    -- in the end we just say we're done
+    --ePutStr "done\n"
+\end{code}
+
+\fnlabel{loadTargetSemStr} Given a string with some semantics, it
+parses the string and assigns the assigns the target semantics to the 
+ts field of the ProgState 
+
+\begin{code}
+loadTargetSemStr :: ProgStateRef -> String -> IO ()
+loadTargetSemStr pstRef str = 
+    do pst <- readIORef pstRef
+       let params = pa pst
+       if (ignoreSemantics params) then return () else parseSem 
+    where
+       parseSem = do
+         let sem = runParser geniSemanticInput () "" str
+         case sem of
+           Left  err -> fail (show err)
+           Right sr  -> modifyIORef pstRef (\x -> x{ts = smooth sr})
+       smooth (s,r) = (sortSem s, sort r)
+\end{code}
+
+% --------------------------------------------------------------------
+\subsection{Surface realisation - entry point}
 % --------------------------------------------------------------------
 
 \fnlabel{runGeni} is what you call if the only thing you want to do is run the
@@ -151,12 +308,14 @@ parsed your input semantics, and performs the following four steps:
 \item It finalises the results (morphological generation)
 \end{enumerate}
 
+It returns a list of sentences as a well as the final builder state.  This 
+final state is useful for displaying debug information.
+
 \begin{code}
-runGeni :: ProgStateRef -> B.Builder st it Params -> IO (GeniResults TagElem)
+runGeni :: ProgStateRef -> B.Builder st it Params -> IO ([String], st)
 runGeni pstRef builder = 
   do let run    = B.run builder
          unpack = B.unpack builder
-         stats  = B.stats builder
      -- step 1
      initStuff <- initGeni pstRef
      --
@@ -168,21 +327,12 @@ runGeni pstRef builder =
          uninflected = unpack finalSt
      -- step 4
      sentences <- finaliseResults pstRef uninflected 
-     -- summarise results
-     let results = 
-          GR { grDerived   = [] 
-             , grSentences = sentences 
-             , grOptStr    = (optStr, epStr)
-             , grAutPaths  = "FIXME" 
-             , grTimeStr   = "FIXME"
-             , grAmbiguity = "FIXME" 
-             , grStats     = stats finalSt }
-           where optStr = describeOpts config
-                 epStr  = showLitePm (extrapol config)
-     return results
+     return (sentences, finalSt)
 \end{code}
 
-\subsection{Sub steps used by the entry point}
+% --------------------------------------------------------------------
+\subsection{Surface realisation - sub steps}
+% --------------------------------------------------------------------
 
 Below are the initial and final steps of \fnreflite{runGeni}.  These functions
 are seperated out so that they may be individually called from the graphical
@@ -217,6 +367,52 @@ morphological generator, but there could conceivably be more involved.
 finaliseResults :: ProgStateRef -> [B.UninflectedSentence] -> IO [String]
 finaliseResults = runMorph 
 \end{code}
+
+% --------------------------------------------------------------------
+\subsection{Displaying results}
+% --------------------------------------------------------------------
+
+\paragraph{showRealisations} shows the sentences produced by the
+generator in a relatively compact form 
+
+\begin{code}
+showRealisations :: [String] -> String
+showRealisations sentences =
+  let sentencesGrouped = map (\ (s,c) -> s ++ count c) g
+                         where g = groupAndCount sentences 
+      count c = if (c > 1) 
+                then " (" ++ show c ++ " instances)"
+                else ""
+  in if null sentences
+     then "(none)"
+     else concat $ intersperse "\n" $ sentencesGrouped
+\end{code}
+
+%\paragraph{describeOpts} concisely describes the optimisations used
+%by GenI in a short string.  Each optimisation is described as a one
+%to three letter code:
+%
+%\begin{code}
+%describeOpts :: Params -> String
+%describeOpts config =
+%  let polkey = "pol"
+%      polplus  = ""
+%       ++ "A" -- always detects polarities
+%       ++ (if polsig  config then "S" else "")
+%       ++ (if chartsharing config then "C" else "")
+%      --
+%      adjkey = "adj"
+%      adjplus  = ""   
+%       ++ (if semfiltered config then "S" else "")
+%       ++ "O" -- always uses ordered adjunction
+%       ++ (if footconstr  config then "F" else "")
+%      --
+%      optPol = if polarised config then polkey ++ polStuff else ""
+%        where polStuff = if null polplus then "" else ":" ++ polplus
+%      optAdj = if null adjplus then "" else " " ++ adjkey ++ ":" ++ adjplus
+%      optAll = optPol ++ optAdj
+% in if null optAll then "none" else optAll
+%\end{code}
 
 % --------------------------------------------------------------------
 \section{Lexical selection}
@@ -614,239 +810,8 @@ combineXMG lexitem e =
 \end{code}
 
 % --------------------------------------------------------------------
-\section{Loading and parsing}
+\section{Morphology} 
 % --------------------------------------------------------------------
-
-\subsection{Grammars}
-
-\fnlabel{loadGrammar} Given the pointer to the monadic state pstRef it reads
-and parses everything it needs to get going, that is, the macros file, 
-lexicon file and test suite.
-
-\begin{code}
-loadGrammar :: ProgStateRef -> IO() 
-loadGrammar pstRef =
-  do pst <- readIORef pstRef
-     --
-     let config    = pa pst
-         gfilename = macrosFile config 
-         lfilename = lexiconFile config 
-         sfilename = tsFile config
-     -- display 
-     let errorlst  = filter (not.null) $ map errfn src 
-           where errfn (err,msg) = if err then msg else ""
-                 src = [ (null gfilename, "a tree file")
-                       , (null lfilename, "a lexicon file") 
-                       , (null sfilename, "a test suite") ]
-         errormsg = "Please specify: " ++ (concat $ intersperse ", " errorlst)
-     when (not $ null errorlst) $ fail errormsg 
-     -- we don't have to read in grammars from the simple format
-     case grammarType config of 
-        XMGTools -> return ()
-        _           -> loadGeniMacros pstRef config
-     -- in any case, we have to...
-     loadLexicon   pstRef config 
-     loadMorphInfo pstRef config 
-     loadTestSuite pstRef 
-\end{code}
-
-\fnlabel{loadLexicon} Given the pointer to the monadic state pstRef and
-the parameters from a grammar index file parameters; it reads and parses
-the lexicon file.   
-
-\begin{code}
-loadLexicon :: ProgStateRef -> Params -> IO ()
-loadLexicon pstRef config = do
-       let lfilename = lexiconFile config
-       when (null lfilename) $ fail "Please specify a lexicon!"
-       ePutStr $ "Loading Lexicon " ++ lfilename ++ "..."
-       eFlush
-       pst <- readIORef pstRef
-       let params = pa pst
-           --       
-           getSem l  = if (ignoreSemantics params) then [] else isemantics l 
-           sorter l  = l { isemantics = (sortSem . getSem) l }
-           cleanup   = (mapBySemKeys isemantics) . (map sorter)
-           --
-       prelex <- parseFromFile geniLexicon lfilename
-       let lex = case prelex of 
-                   Left err -> error (show err)
-                   Right x  -> cleanup x 
-       --
-       ePutStr ((show $ length $ Map.keys lex) ++ " entries\n")
-       -- combine the two lexicons
-       modifyIORef pstRef (\x -> x{le = lex})
-
-       return ()
-\end{code}
-
-\fnlabel{loadGeniMacros} Given the pointer to the monadic state pstRef and
-the parameters from a grammar index file parameters; it reads and parses
-macros file.  The macros are stored as a hashing function in the monad.
-
-\begin{code}
-loadGeniMacros :: ProgStateRef -> Params -> IO ()
-loadGeniMacros pstRef config = 
-  do let filename = macrosFile config
-     --
-     ePutStr $ "Loading Macros " ++ filename ++ "..."
-     eFlush
-     when (null filename) $ fail "Please specify a trees file!"
-     parsed <- parseFromFile geniMacros filename
-     case parsed of 
-       Left  err -> fail (show err)
-       Right g   -> setGram g
-  where
-    setGram g = 
-      do let sizeg = length g
-         ePutStr $ show sizeg ++ " trees in " 
-         ePutStr $ (show $ length g) ++ " families\n"
-         modifyIORef pstRef (\x -> x{gr = g})
-\end{code}
-
-\fnlabel{loadMorphInfo} Given the pointer to the monadic state pstRef and
-the parameters from a grammar index file parameters; it reads and parses
-the morphological information file, if available.  The results are stored
-as a lookup function in the monad.
-
-\begin{code}
-loadMorphInfo :: ProgStateRef -> Params -> IO ()
-loadMorphInfo pstRef config = 
-  do let filename = morphFile config
-     when (not $ null filename ) $ do --
-        ePutStr $ "Loading Morphological Info " ++ filename ++ "..."
-        eFlush
-        parsed <- parseFromFile geniMorphInfo filename
-        let g = case parsed of 
-                  Left err -> fail (show err)
-                  Right  x -> x
-            sizeg  = length g
-        ePutStr $ show sizeg ++ " entries\n" 
-        modifyIORef pstRef (\x -> x{morphinf = readMorph g})
-\end{code}
-
-\subsection{Target semantics}
-
-\fnlabel{loadTestSuite} 
-given a pointer pstRef to the general state st, it access the parameters and the
-name of the file for the target semantics from params.  It parses the file as a
-test suite, and assigns it to the tsuite field of st.
-
-\begin{code}
-loadTestSuite :: ProgStateRef -> IO ()
-loadTestSuite pstRef = do
-  pst <- readIORef pstRef
-  let config   = pa pst
-      filename = (tsFile.pa) pst
-      useSem   = not $ ignoreSemantics config
-  when (null filename) $ fail "Please specify a test suite!"
-  when useSem $ do
-    ePutStr $ "Loading Test Suite " ++ filename ++ "...\n"
-    eFlush
-    -- helper functions for test suite stuff
-    let cleanup (id, (sm,sr), _) = (id, newsmsr)
-          where newsmsr = (sortSem sm, sort sr)
-        updateTsuite s x = x { tsuite = map cleanup s   
-                             , tcase  = testCase config}
-    sem <- parseFromFile geniTestSuite filename 
-    case sem of 
-      Left err -> fail (show err)
-      Right s  -> modifyIORef pstRef $ updateTsuite s 
-    -- in the end we just say we're done
-    --ePutStr "done\n"
-\end{code}
-
-\fnlabel{loadTargetSemStr} Given a string with some semantics, it
-parses the string and assigns the assigns the target semantics to the 
-ts field of the ProgState 
-
-\begin{code}
-loadTargetSemStr :: ProgStateRef -> String -> IO ()
-loadTargetSemStr pstRef str = 
-    do pst <- readIORef pstRef
-       let params = pa pst
-       if (ignoreSemantics params) then return () else parseSem 
-    where
-       parseSem = do
-         let sem = runParser geniSemanticInput () "" str
-         case sem of
-           Left  err -> fail (show err)
-           Right sr  -> modifyIORef pstRef (\x -> x{ts = smooth sr})
-       smooth (s,r) = (sortSem s, sort r)
-\end{code}
-
-% --------------------------------------------------------------------
-\section{Generation step} 
-\label{fn:doGeneration}
-% --------------------------------------------------------------------
-
-\subsection{Returning results}
-
-We provide a data structure to be used by verboseGeni for returning the results
-(grDerived) along with the intermediary steps and some useful statistics.  
-
-\begin{code}
-data GeniResults a = GR {
-  -- optimisations and extra polarities
-  grOptStr   :: (String,String),
-  -- some numbers (in string form)
-  grStats     :: B.Gstats,
-  grAutPaths  :: String,
-  grAmbiguity :: String,
-  grTimeStr   :: String,
-  -- the final results
-  grDerived   :: [a],
-  grSentences :: [String]
-} 
-\end{code}
-
-We provide a default means of displaying the results
-
-\begin{code}
-instance Show (GeniResults a) where
-  show gres = 
-    let gstats = grStats gres 
-        gopts  = grOptStr gres
-        sentences = grSentences gres
-    in    "Optimisations: " ++ fst gopts ++ snd gopts ++ "\n"
-       ++ "\nAutomaton paths explored: " ++ (grAutPaths  gres)
-       ++ "\nEst. lexical ambiguity:   " ++ (grAmbiguity gres)
-       ++ "\nTotal agenda size: " ++ (show $ B.geniter gstats) 
-       ++ "\nTotal chart size:  " ++ (show $ B.szchart gstats) 
-       ++ "\nComparisons made:  " ++ (show $ B.numcompar gstats)
-       ++ "\nGeneration time:  " ++ (grTimeStr gres) ++ " ms"
-       ++ "\n\nRealisations:\n" ++ (showRealisations sentences)
-\end{code}
-
-\subsection{Displaying the results}
-
-\paragraph{groupAndCount} is a generic list-processing function.
-It converts a list of items into a list of tuples (a,b) where 
-a is an item in the list and b is the number of times a in occurs 
-in the list.
-
-\begin{code}
-groupAndCount :: (Eq a, Ord a) => [a] -> [(a, Int)]
-groupAndCount xs = 
-  map (\x -> (head x, length x)) grouped
-  where grouped = (group.sort) xs
-\end{code}
-
-\paragraph{showRealisations} shows the sentences produced by the
-generator in a relatively compact form 
-
-\begin{code}
-showRealisations :: [String] -> String
-showRealisations sentences =
-  let sentencesGrouped = map (\ (s,c) -> s ++ count c) g
-                         where g = groupAndCount sentences 
-      count c = if (c > 1) 
-                then " (" ++ show c ++ " instances)"
-                else ""
-  in if (null sentences)
-     then "(none)"
-     else concat $ intersperse "\n" $ sentencesGrouped
-\end{code}
 
 \paragraph{runMorph} inflects a list of sentences if a morphlogical generator
 has been specified.  If not, it returns the sentences as lemmas.
@@ -859,34 +824,6 @@ runMorph pstRef sentences =
      if null mcmd
         then return (map sansMorph sentences)
         else inflectSentences mcmd sentences 
-\end{code}
-
-\section{Miscellaneous helper code}
-
-\paragraph{describeOpts} concisely describes the optimisations used
-by GenI in a short string.  Each optimisation is described as a one
-to three letter code:
-
-\begin{code}
-describeOpts :: Params -> String
-describeOpts config =
-  let polkey = "pol"
-      polplus  = ""
-       ++ "A" -- always detects polarities
-       ++ (if polsig  config then "S" else "")
-       ++ (if chartsharing config then "C" else "")
-      --
-      adjkey = "adj"
-      adjplus  = ""   
-       ++ (if semfiltered config then "S" else "")
-       ++ "O" -- always uses ordered adjunction
-       ++ (if footconstr  config then "F" else "")
-      --
-      optPol = if polarised config then polkey ++ polStuff else ""
-        where polStuff = if null polplus then "" else ":" ++ polplus
-      optAdj = if null adjplus then "" else " " ++ adjkey ++ ":" ++ adjplus
-      optAll = optPol ++ optAdj
- in if null optAll then "none" else optAll
 \end{code}
 
 
