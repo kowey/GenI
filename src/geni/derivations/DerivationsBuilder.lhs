@@ -32,7 +32,7 @@ where
 \ignore{
 \begin{code}
 import Control.Monad 
-  (guard, filterM)
+  (guard, unless, filterM)
 
 import Control.Monad.State 
   (State, get, put)
@@ -100,7 +100,7 @@ type BState = State BuilderStatus
 derivationsBuilder = B.Builder 
   { B.init = initBuilder
   , B.step = generateStep
-  , B.stepAll = B.run
+  , B.stepAll  = B.defaultStepAll derivationsBuilder 
   , B.finished = finished -- should add check that step is aux
   , B.stats    = genstats 
   , B.setStats = \t s -> s { genstats = t }
@@ -112,20 +112,20 @@ type Chart  = [ChartItem]
 type Trash = [ChartItem]
 \end{code}
 
-\end{code}
-
-\paragraph{initBuilderState} Creates an initial Builder.  
+\paragraph{initBuilder} Creates an initial Builder.  
 
 \begin{code}
-initBuilder :: SemInput -> [TagElem] -> Params -> BuilderStatus 
-initBuilder (ts,_) cands config = 
-  let items = zipWith toChartItem [0..] cands
+initBuilder :: B.Input -> Params -> BuilderStatus 
+initBuilder input config = 
+  let seminput = B.inSemInput input
+      cands = B.inCands input
+      items = zipWith toChartItem [0..] cands
       (a,i) = partition closedAux items
   in S { theAgenda  = i
        , theAuxAgenda = a
        , theChart = []
        , theTrash = []
-       , tsem     = ts
+       , tsem     = fst seminput
        , theStep  = Initial
        , gencounter = toInteger (length cands)
        , genconfig  = config
@@ -247,16 +247,16 @@ data ChartOperation =
 \end{itemize}
 
 \begin{code}
-generateStep :: BState [ChartItem]
+generateStep :: BState () 
 generateStep = 
  do st  <- get
     nir <- nullAgenda
     -- this check may seem redundant with generate, but it's needed 
     -- to protect against a user who calls generateStep on a finished
     -- state
-    if finished st then return [] else generateStep2 
+    unless (finished st) generateStep2 
 
-generateStep2 :: BState [ChartItem] 
+generateStep2 :: BState () 
 generateStep2 = 
   do incrGeniter 1
      -- choose an item from the agenda
@@ -276,7 +276,7 @@ generateStep2 =
 -}
      -- put any new results where they belong
      -- (agenda, aux agenda, results list, etc) 
-     res <- performOperation >>= dispatchNew 
+     performOperation >>= dispatchNew 
      -- put the given into the chart untouched 
      addToChart given
 {-
@@ -284,7 +284,7 @@ generateStep2 =
         then addToChart given
         else when (null $ adjnodes given) $ trashIt given 
           -}
-     return res
+     return ()
   where 
      trashIt t = 
        return ()
@@ -336,7 +336,7 @@ following these critieria:
 \end{enumerate}
 
 \begin{code}
-dispatchNew :: [ChartItem] -> BState [ChartItem]
+dispatchNew :: [ChartItem] -> BState () 
 dispatchNew l = 
   do -- first we seperate the results from the non results
      st <- get
@@ -375,7 +375,7 @@ dispatchNew l =
      -- the results
      -- -------------------------------------------------- 
      -- we perform top/bottom unification on any results
-     return res
+     return () 
 {-
      let tbUnify x =
           case (tbUnifyTree x) of

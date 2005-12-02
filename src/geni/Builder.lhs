@@ -67,6 +67,12 @@ data Builder st it pa = Builder
   , unpack   :: st -> [UninflectedSentence] }
 \end{code}
 
+\begin{code}
+data BuilderGui = BuilderGui
+  { generateGui :: IO ()
+  , debugGui    :: IO () }
+\end{code}
+
 To simplify interaction with the backend, we provide a single data
 structure which represents all the inputs a backend could take.
 

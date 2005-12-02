@@ -26,12 +26,12 @@ item is a derived tree.
 \begin{code}
 module SimpleBuilder (
    -- Types
-   Agenda, AuxAgenda, Chart, Mstate, MS, Gstats,
+   Agenda, AuxAgenda, Chart, SimpleStatus, MS, Gstats,
 
-   -- From Mstate
-   simpleBuilder,
-   theAgenda, theAuxAgenda, theChart, theTrash,
-   initMState, 
+   -- From SimpleStatus
+   simpleBuilder, setup,
+   theAgenda, theAuxAgenda, theChart, theTrash, theResults,
+   initSimpleBuilder, 
    addToAgenda, addToChart,
    genconfig, genstats, 
 
@@ -81,7 +81,7 @@ import Tags (TagElem, TagSite, TagDerivation,  TagStatus(..),
              tagLeaves
             )
 import Configuration 
-import General (BitVector, fst3, mapTree, groupAndCount)
+import General (BitVector, fst3, mapTree)
 import Polarity
 \end{code}
 }
@@ -90,7 +90,7 @@ Here is our implementation of Builder.
 
 \begin{code}
 simpleBuilder = B.Builder 
-  { B.init     = initMState 
+  { B.init     = initSimpleBuilder 
   , B.step     = generateStep
   , B.stepAll  = B.defaultStepAll simpleBuilder
   , B.run      = run 
@@ -187,7 +187,7 @@ iaddtoTrash :: Trash -> TagElem -> Trash
 iaddtoTrash t te = te:t
 \end{code}
 
-\subsection{Mstate}
+\subsection{SimpleStatus}
 
 Note the theTrash is not actually essential to the operation of the
 generator; it is for pratical debugging of grammars.  Instead of
@@ -198,7 +198,7 @@ option not to use the trash, so that it is only enabled in debugger
 mode.
 
 \begin{code}
-data Mstate = S
+data SimpleStatus = S
   { theAgenda    :: Agenda 
   , theAuxAgenda :: AuxAgenda
   , theChart     :: Chart
@@ -213,11 +213,11 @@ data Mstate = S
   deriving Show
 \end{code}
 
-\paragraph{initMState} Creates an initial Mstate.  
+\paragraph{initSimpleBuilder} Creates an initial SimpleStatus.  
 
 \begin{code}
-initMState ::  B.Input -> Params -> Mstate
-initMState input config = 
+initSimpleBuilder ::  B.Input -> Params -> SimpleStatus
+initSimpleBuilder input config = 
   let cands = B.inCands input
       ts    = fst $ B.inSemInput input
       (a,i) = partition closedAux cands 
@@ -232,10 +232,10 @@ initMState input config =
        genconfig  = config,
        genstats   = B.initGstats}
 
-type MS = State Mstate
+type MS = State SimpleStatus
 \end{code}
 
-\subsubsection{Mstate updaters}
+\subsubsection{SimpleStatus updaters}
 
 \begin{code}
 addToAgenda :: TagElem -> MS ()
@@ -280,9 +280,9 @@ incrSzchart = B.incrSzchart simpleBuilder
 incrNumcompar = B.incrNumcompar simpleBuilder
 \end{code}
 
-\subsubsection{Mstate accessors}
+\subsubsection{SimpleStatus accessors}
 
-We retrieve the Mstate from the State monad and then retrieve a field from it.
+We retrieve the SimpleStatus from the State monad and then retrieve a field from it.
 
 \begin{code}
 getAgenda :: MS Agenda
@@ -304,11 +304,6 @@ getStep :: MS Ptype
 getStep = do 
   s <- get
   return (step s)
-
-getSem :: MS Sem
-getSem = do 
-  s <- get
-  return (tsem s)
 \end{code}
 
 These functions let us find out if the Agenda or the AuxAgenda are null.
@@ -994,40 +989,40 @@ addToDerivation op tc tp =
 
 \section{FIXME or delete me}
 
-\subsection{Returning results}
-
-We provide a data structure to be used by verboseGeni for returning the results
-(grDerived) along with the intermediary steps and some useful statistics.  
-
-\begin{code}
-data GeniResults a = GR {
-  -- optimisations and extra polarities
-  grOptStr   :: (String,String),
-  -- some numbers (in string form)
-  grStats     :: B.Gstats,
-  grAutPaths  :: String,
-  grAmbiguity :: String,
-  grTimeStr   :: String,
-  -- the final results
-  grDerived   :: [a],
-  grSentences :: [String]
-} 
-\end{code}
-
-We provide a default means of displaying the results
-
-\begin{code}
-instance Show (GeniResults a) where
-  show gres = 
-    let gstats = grStats gres 
-        gopts  = grOptStr gres
-        sentences = grSentences gres
-    in    "Optimisations: " ++ fst gopts ++ snd gopts ++ "\n"
-       ++ "\nAutomaton paths explored: " ++ (grAutPaths  gres)
-       ++ "\nEst. lexical ambiguity:   " ++ (grAmbiguity gres)
-       ++ "\nTotal agenda size: " ++ (show $ B.geniter gstats) 
-       ++ "\nTotal chart size:  " ++ (show $ B.szchart gstats) 
-       ++ "\nComparisons made:  " ++ (show $ B.numcompar gstats)
-       ++ "\nGeneration time:  " ++ (grTimeStr gres) ++ " ms"
-       -- ++ "\n\nRealisations:\n" ++ (showRealisations sentences)
-\end{code}
+%\subsection{Returning results}
+%
+%We provide a data structure to be used by verboseGeni for returning the results
+%(grDerived) along with the intermediary steps and some useful statistics.  
+%
+%\begin{code}
+%data GeniResults a = GR {
+%  -- optimisations and extra polarities
+%  grOptStr   :: (String,String),
+%  -- some numbers (in string form)
+%  grStats     :: B.Gstats,
+%  grAutPaths  :: String,
+%  grAmbiguity :: String,
+%  grTimeStr   :: String,
+%  -- the final results
+%  grDerived   :: [a],
+%  grSentences :: [String]
+%} 
+%\end{code}
+%
+%We provide a default means of displaying the results
+%
+%\begin{code}
+%instance Show (GeniResults a) where
+%  show gres = 
+%    let gstats = grStats gres 
+%        gopts  = grOptStr gres
+%        sentences = grSentences gres
+%    in    "Optimisations: " ++ fst gopts ++ snd gopts ++ "\n"
+%       ++ "\nAutomaton paths explored: " ++ (grAutPaths  gres)
+%       ++ "\nEst. lexical ambiguity:   " ++ (grAmbiguity gres)
+%       ++ "\nTotal agenda size: " ++ (show $ B.geniter gstats) 
+%       ++ "\nTotal chart size:  " ++ (show $ B.szchart gstats) 
+%       ++ "\nComparisons made:  " ++ (show $ B.numcompar gstats)
+%       ++ "\nGeneration time:  " ++ (grTimeStr gres) ++ " ms"
+%       -- ++ "\n\nRealisations:\n" ++ (showRealisations sentences)
+%\end{code}

@@ -27,7 +27,7 @@ involve some messy IO performance tricks.
 \begin{code}
 module Geni (ProgState(..), ProgStateRef, 
              showRealisations, groupAndCount,
-             runGeni, runMorph,
+             initGeni, runGeni, 
              loadGrammar, loadLexicon, 
              loadTestSuite, loadTargetSemStr,
              combine, testGeni)

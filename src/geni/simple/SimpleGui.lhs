@@ -18,7 +18,7 @@
 \chapter{Graphical User Interface} 
 
 \begin{code}
-module SimpleGui(guiGenerate) where
+module SimpleGui where
 \end{code}
 
 \ignore{
@@ -27,42 +27,33 @@ import Graphics.UI.WX
 import Graphics.UI.WXCore
 
 import qualified Control.Monad as Monad 
-import qualified Data.Map as Map
 
 import Control.Monad.State (runState)
-import Data.Array
 import Data.IORef
-import Data.List (isPrefixOf, find, intersperse, nub, delete, (\\))
+import Data.List (find, nub, (\\))
 import Data.Maybe (isJust)
-import System.Directory 
-import System.Exit (exitWith, ExitCode(ExitSuccess))
 import System.Process (runProcess)
-import Text.ParserCombinators.Parsec ( runParser )
 
-import Graphviz 
-import Treeprint(graphvizShowTagElem)
-
-import Tags (tagLeaves)
-import Geni (ProgState(..), GeniInput(..), GeniResults(..), ProgStateRef,
-             doGeneration, runGeni, 
-             combine, loadGrammar, loadTestSuite, loadTargetSemStr)
-import General (trim, snd3, slash, bugInGeni)
+import Geni 
+  ( ProgState(..), ProgStateRef
+  , initGeni, runGeni
+  , showRealisations
+  , loadGrammar, loadTargetSemStr)
+import General (snd3)
 import Btypes 
-  (showPred, showSem, showPairs, showLexeme,
-   Sem, iword, isemantics)
-import Tags (idname,mapBySem,emptyTE,tsemantics,tpolarities,thighlight, 
+  (showLexeme,
+   iword, isemantics)
+import Tags (idname,emptyTE,tsemantics,thighlight, 
              TagElem, derivation)
 
-import Configuration(Params(..), Switch(..), GrammarType(..),
-                     polarised, polsig, chartsharing, 
-                     semfiltered, footconstr)
-import GeniParsers 
-import Gui
+import Configuration ( Params(..), polarised, chartsharing )
+import GuiHelper
 
 import qualified Builder as B
 import Polarity
 import SimpleBuilder 
-  (simpleBuilder, Mstate, genconfig, theAgenda, theAuxAgenda, theChart, theTrash)
+  ( simpleBuilder, setup, SimpleStatus, genconfig 
+  , theResults, theAgenda, theAuxAgenda, theChart, theTrash)
 \end{code}
 }
 
@@ -85,11 +76,11 @@ doGenerate f pstRef sembox debugger = do
                         --grFinalAut = emptyaut, grDerived  = [], grStats    = ""}
   sem <- get sembox text
   let dodebug = do loadTargetSemStr pstRef sem
-                   runGeni pstRef debugGui 
+                   debugGui pstRef 
                    return ()
       dogen = do loadTargetSemStr pstRef sem
-                 res <- runGeni pstRef doGeneration 
-                 resultsGui pstRef res 
+                 res <- runGeni pstRef simpleBuilder 
+                 resultsGui pstRef res
   -- FIXME: it would be nice to distinguish between generation and ts
   -- parsing errors
   (if debugger then dodebug else dogen) `catch` handler1
@@ -100,30 +91,29 @@ consists of various tabs for intermediary results in lexical
 selection, derived trees, derivation trees and generation statistics.
 
 \begin{code}
-resultsGui :: ProgStateRef -> GeniResults -> IO () 
-resultsGui pstRef res = do
-  -- results window
-  f <- frame [ text := "Results" 
-             , fullRepaintOnResize := False 
-             , layout := stretch $ label "Generating..."
-             , clientSize := sz 300 300 
-             ] 
-  p    <- panel f []
-  nb   <- notebook p []
-  -- realisations tab
-  resTab <- realisationsGui pstRef nb (grDerived res)
-  -- statistics tab
-  statTab <- statsGui nb (show res)
-  -- pack it all together 
-  set f [ layout := container p $ column 0 [ tabs nb 
-        -- we put the realisations tab last because of what
-        -- seems to be buggy behaviour wrt to wxhaskell 
-        -- or wxWidgets 2.4 and the splitter
-               [ tab "summary"       statTab
-               , tab "realisations"  resTab ] ]
-        , clientSize := sz 700 600 
-        ] 
-  return ()
+resultsGui :: ProgStateRef -> ([String], SimpleStatus) -> IO () 
+resultsGui pstRef (sentences, st) = 
+ do -- results window
+    f <- frame [ text := "Results" 
+               , fullRepaintOnResize := False 
+               , layout := stretch $ label "Generating..."
+               , clientSize := sz 300 300 
+               ] 
+    p    <- panel f []
+    nb   <- notebook p []
+    -- realisations tab
+    resTab <- realisationsGui pstRef nb (theResults st)
+    -- statistics tab
+    statTab <- statsGui nb (showRealisations sentences)
+    -- pack it all together 
+    set f [ layout := container p $ column 0 [ tabs nb 
+          -- we put the realisations tab last because of what
+          -- seems to be buggy behaviour wrt to wxhaskell 
+          -- or wxWidgets 2.4 and the splitter
+                 [ tab "summary"       statTab
+                 , tab "realisations"  resTab ] ]
+          , clientSize := sz 700 600 ] 
+    return ()
 \end{code}
 
 \paragraph{statsGui} displays the generation statistics and provides a
@@ -149,55 +139,6 @@ statsGui f msg =
            Just file -> writeFile file msg
 \end{code}
 
-\subsection{Lexically selected items}
-
-We have a browser for the lexically selected items.  We group the lexically
-selected items by the semantics they subsume, inserting along the way some
-fake trees and labels for the semantics.
-
-The arguments \fnparam{missedSem} and \fnparam{missedLex} are used to 
-indicate to the user respectively if any bits of the input semantics
-have not been accounted for, or if there have been lexically selected
-items for which no tree has been found.
-
-\begin{code}
-candidateGui :: ProgState -> (Window a) -> [TagElem] -> Sem -> [String] -> IO Layout
-candidateGui pst f xs missedSem missedLex = do
-  p  <- panel f []      
-  tb <- tagBrowserGui pst p xs "lexically selected item" "candidates"
-  let warningSem = if null missedSem then ""
-                   else "WARNING: no lexical selection for " ++ showSem missedSem ++ "\n"
-      warningLex = if null missedLex then ""
-                   else "WARNING: '" ++ (concat $ intersperse ", " missedLex) 
-                        ++ "' were lexically selected, but are not anchored to"
-                        ++ " any trees\n"
-      warning = warningSem ++ warningLex
-      items = if null warning then [ fill tb ] else [ hfill (label warning) , fill tb ]
-      lay   = fill $ container p $ column 5 items
-  return lay
-\end{code}
-      
-\subsection{Polarity Automata}
-
-A browser to see the automata constructed during the polarity optimisation
-step.
-
-\begin{code}
-polarityGui :: (Window a) -> [(String,PolAut,PolAut)] -> PolAut -> IO Layout
-polarityGui   f xs final = do
-  let numsts a = " : " ++ (show n) ++ " states" 
-                 where n = foldr (+) 0 $ map length $ states a 
-      aut2  (_ , a1, a2) = [ a1, a2 ]
-      autLabel (fv,a1,_) = [ fv ++ numsts a1, fv ++ " pruned" ]
-      autlist = map toGvPolAut $ (concatMap aut2 xs) ++ [ final ] 
-      labels  = (concatMap autLabel xs) ++ [ "final" ++ numsts final ]
-      --
-  gvRef   <- newGvRef False labels "automata"
-  setGvDrawables gvRef autlist
-  (lay,_) <- graphvizGui f "polarity" gvRef 
-  return lay
-\end{code}
-      
 \subsection{Derived Trees}
 
 Browser for derived/derivation trees, except if there are no results, we show a
@@ -216,146 +157,6 @@ realisationsGui pstRef f resultsRaw =
      return lay
 \end{code}
 
-\fnlabel{toSentence} almost displays a TagElem as a sentence, but only
-good enough for debugging needs.  The problem is that each leaf may be
-an atomic disjunction. Our solution is just to display each choice and
-use some delimiter to seperate them.  We also do not do any
-morphological processing.
-
-\begin{code}
-toSentence :: TagElem -> String
-toSentence = unwords . (map squishLeaf) . tagLeaves
-
-squishLeaf :: ([String], a) -> String
-squishLeaf = showLexeme.fst 
-\end{code}
-
-\subsection{TAG viewer and browser}
-
-A TAG browser is a TAG viewer (see below) that groups trees by 
-their semantics.
-
-\begin{code}
-tagBrowserGui :: ProgState -> (Window a) -> [TagElem] -> String -> String -> IO Layout
-tagBrowserGui pst f xs tip cachedir = do 
-  let semmap   = mapBySem xs
-      sem      = Map.keys semmap
-      --
-      lookupTr k = Map.findWithDefault [] k semmap
-      treesfor k = emptyTE : (lookupTr k)
-      labsfor  k = ("___" ++ showPred k ++ "___") : (map fn $ lookupTr k)
-                   where fn t = idname t 
-      --
-      trees    = concatMap treesfor sem
-      labels   = concatMap labsfor  sem
-      itNlabl  = zip trees labels
-  (lay,_) <- tagViewerGui pst f tip cachedir itNlabl
-  return lay
-\end{code}
-      
-A TAG viewer is a graphvizGui that lets the user toggle the display
-of TAG feature structures.
-
-\begin{code}
-tagViewerGui :: ProgState -> (Window a) -> String -> String -> [(TagElem,String)] 
-               -> GvIO TagElem
-tagViewerGui pst f tip cachedir itNlab = do
-  let config = pa pst
-  p <- panel f []      
-  let (tagelems,labels) = unzip itNlab
-  gvRef <- newGvRef False labels tip
-  setGvDrawables gvRef tagelems 
-  (lay,updaterFn) <- graphvizGui p cachedir gvRef 
-  -- widgets
-  detailsChk <- checkBox p [ text := "Show features"
-                           , checked := False ]
-  displayTraceBut <- button p [ text := "Display trace for" ]
-  displayTraceCom <- choice p [ tooltip := "derivation tree" ]
-  -- handlers
-  let onDisplayTrace 
-       = do gvSt <- readIORef gvRef
-            s <- get displayTraceCom selection
-            let tsel = gvsel gvSt
-            Monad.when (boundsCheck tsel tagelems) $ do
-            let tree = tagelems !! (gvsel gvSt)
-                derv = extractDerivation tree
-            if (boundsCheck s derv)
-               then runViewTag pst (derv !! s)
-               else fail $ "Gui: bounds check in onDisplayTrace\n" ++ bugInGeni
-  let onDetailsChk c 
-       = do isDetailed <- get c checked 
-            setGvParams gvRef isDetailed 
-            updaterFn 
-  let selHandler gvSt = do
-      let tsel = gvsel gvSt
-      Monad.when (boundsCheck tsel tagelems) $ do
-        let selected = tagelems !! tsel 
-            subtrees = extractDerivation selected
-        set displayTraceCom [ items :~ (\_ -> subtrees)
-                            , selection :~ (\_ -> 0) ]
-  --
-  Monad.when (not $ null tagelems) $ do 
-    setGvHandler gvRef (Just selHandler)
-    set detailsChk [ on command := onDetailsChk detailsChk ]
-    set displayTraceBut 
-         [ on command := onDisplayTrace 
-         , enabled    := grammarType config == XMGTools ] 
-  -- pack it all in      
-  let cmdBar = hfill $ row 5 
-                [ dynamic $ widget detailsChk
-                , dynamic $ widget displayTraceBut
-                , dynamic $ widget displayTraceCom 
-                ]
-      lay2   = fill $ container p $ column 5 [ lay, cmdBar ] 
-  return (lay2,updaterFn)
-\end{code}
-
-% --------------------------------------------------------------------
-\section{Tree browser}
-\label{sec:treebrowser_gui}
-% --------------------------------------------------------------------
-
-This is a very simple semantically-separated browser for all the
-trees in the grammar.  Note that we can't just reuse candidateGui's
-code because we label and sort the trees differently.  Here we 
-ignore the arguments in tree semantics, and we display the tree
-polarities in its label.
-
-\begin{code}
-treeBrowserGui :: ProgStateRef -> IO () 
-treeBrowserGui pstRef = do
-  pst <- readIORef pstRef
-  -- ALL THE TREES in the grammar... muahahaha!
-  let semmap = combine (gr pst) (le pst)
-  -- browser window
-  f <- frame [ text := "Tree Browser" 
-             , fullRepaintOnResize := False 
-             ] 
-  -- the heavy GUI artillery
-  let sem      = Map.keys semmap
-      --
-      lookupTr k = Map.findWithDefault [] k semmap
-      treesfor k = emptyTE : (lookupTr k)
-      labsfor  k = ("___" ++ k ++ "___") : (map fn $ lookupTr k)
-                   where fn    t = idname t ++ polfn (tpolarities t)
-                         polfn p = if Map.null p 
-                                   then "" 
-                                   else " (" ++ showLitePm p ++ ")"
-      --
-      trees    = concatMap treesfor sem
-      itNlabl  = zip trees (concatMap labsfor sem)
-  (browser,_) <- tagViewerGui pst f "tree browser" "grambrowser" itNlabl
-  -- the button panel
-  let count = length trees - length sem
-  quitBt <- button f [ text := "Close", on command := close f ]
-  -- pack it all together 
-  set f [ layout := column 5 [ browser, 
-                       row 5 [ label ("number of trees: " ++ show count)
-                             , hfloatRight $ widget quitBt ] ]
-        , clientSize := sz 700 600 ]
-  return ()
-\end{code}
-
 % --------------------------------------------------------------------
 \section{Debugger}
 \label{sec:debugger_gui}
@@ -367,130 +168,135 @@ user the agenda, chart and results at various stages in the generation
 process.  
 
 \begin{code}
-debugGui :: ProgState -> GeniInput -> IO ([TagElem], B.Gstats)
-debugGui pst input = do
-  let tsem = giSem input
-  --
-  f <- frame [ text := "Geni Debugger" 
-             , fullRepaintOnResize := False 
-             , clientSize := sz 300 300 
-             ] 
-  p    <- panel f []
-  nb   <- notebook p []
-  -- candidate selection tab
-  let cand    = giCands input
-      candsem = (nub $ concatMap tsemantics cand)
-      missedSem  = tsem \\ candsem
-      --
-      lexonly   = giLex input
-      -- we assume that for a tree to correspond to a lexical item,
-      -- it must have the same semantics
-      hasTree l = isJust $ find (\t -> tsemantics t == lsem) cand
-        where lsem = isemantics l
-      missedLex = [ showLexeme (iword l) | l <- lexonly, (not.hasTree) l ]
-  canTab <- candidateGui pst nb cand missedSem missedLex
-  -- automata tab
-  let config           = pa pst
-      (auts, finalaut) = giAuts input 
-  autTab <- if polarised config 
-            then polarityGui nb auts finalaut
-            else messageGui nb "polarities disabled"
-  -- basic tabs 
-  let basicTabs = tab "lexical selection" canTab :
-                  (if polarised config then [tab "automata" autTab] else [])
-  -- start the generator for each path
-  let combos = giTrees input
-      tabLabels = map (\x -> "session " ++ show x) [1..] 
-      createTab (cd,xs) = debuggerTab nb config tsem cd xs
-  debugTabs <- mapM createTab $ zip tabLabels combos
-  let genTabs = map fn $ zip tabLabels debugTabs
-                where fn (l,t) = tab l t
-  --
-  set f [ layout := container p $ column 0 
-          [ tabs nb (basicTabs ++ genTabs) ]
-        , clientSize := sz 700 600      
-        ]
-  return ([], B.initGstats)
+debugGui :: ProgStateRef -> IO ()
+debugGui pstRef = 
+ do pst <- readIORef pstRef
+    let config = pa pst
+    --
+    f <- frame [ text := "Geni Debugger" 
+               , fullRepaintOnResize := False 
+               , clientSize := sz 300 300 ] 
+    p    <- panel f []
+    nb   <- notebook p []
+    -- generation step 1
+    initStuff <- initGeni pstRef
+    let (tsem,_)   = B.inSemInput initStuff
+        cand       = B.inCands initStuff 
+        lexonly    = B.inLex initStuff 
+    -- candidate selection tab
+    let missedSem  = tsem \\ (nub $ concatMap tsemantics cand)
+        -- we assume that for a tree to correspond to a lexical item,
+        -- it must have the same semantics
+        hasTree l = isJust $ find (\t -> tsemantics t == lsem) cand
+          where lsem = isemantics l
+        missedLex = [ showLexeme (iword l) | l <- lexonly, (not.hasTree) l ]
+    canTab <- candidateGui pst nb cand missedSem missedLex
+    -- generation step 2.A (run polarity stuff)
+    let (combos, autstuff) = setup initStuff config
+    -- automata tab
+    let (auts, finalaut) = autstuff
+    autTab <- if polarised config 
+              then polarityGui nb auts finalaut
+              else messageGui nb "polarities disabled"
+    -- basic tabs 
+    let basicTabs = tab "lexical selection" canTab :
+                    (if polarised config then [tab "automata" autTab] else [])
+    -- generation step 2.B (start the generator for each path)
+    let tabLabels = map (\x -> "session " ++ show x) [1..] 
+        createTab (cd,xs)  = debuggerTab nb config initStuff2 cd  
+          where initStuff2 = initStuff { B.inCands = xs }
+    debugTabs <- mapM createTab $ zip tabLabels combos
+    let genTabs = map fn $ zip tabLabels debugTabs
+                  where fn (l,t) = tab l t
+    --
+    set f [ layout := container p $ column 0 [ tabs nb (basicTabs ++ genTabs) ]
+          , clientSize := sz 700 600 ]
+    return ()
 \end{code}
-
+  
 The generation could conceivably be broken into multiple generation
 tasks, so we create a separate tab for each task.
 
 \begin{code}
-debuggerTab :: (Window a) -> Params -> Sem -> String -> [TagElem] -> IO Layout 
-debuggerTab f config tsem cachedir cands = do
-  let initBuilder = B.init  simpleBuilder
-      nextStep    = B.step  simpleBuilder
-      runBuilder  = B.run   simpleBuilder
-      genstats    = B.stats simpleBuilder
-      --
-      initRes = []
-      initSt  = initBuilder tsem cands (config {usetrash=True})
-  let (items,labels) = showGenState initRes initSt 
-  -- widgets
-  p <- panel f []      
-  gvRef <- newGvRef False labels "debugger session" 
-  setGvDrawables gvRef items 
-  (lay,updaterFn) <- graphvizGui p cachedir gvRef 
-  detailsChk <- checkBox p [ text := "Show features"
-                           , checked := False ]
-  restartBt   <- button p [text := "Start over"]
-  nextBt   <- button p [text := "Leap by..."]
-  leapVal  <- entry p [ text := "1", clientSize := sz 30 25 ]
-  finishBt <- button p [text := "Continue"]
-  statsTxt <- staticText p []
-  -- commands
-  let updateStatsTxt gs = set statsTxt [ text :~ (\_ -> txtStats gs) ]
-      txtStats   gs =  "itr " ++ (show $ B.geniter gs) ++ " " 
-                    ++ "chart sz: " ++ (show $ B.szchart gs) 
-                    ++ "\ncomparisons: " ++ (show $ B.numcompar gs)
-  let onDetailsChk = do isDetailed <- get detailsChk checked 
-                        setGvParams gvRef isDetailed
-                        updaterFn
-  let genStep _ (r2,s2) = (r2 ++ r3,s3)
-        where (r3,s3) = runState nextStep s2
-  let showNext r s = do leapTxt <- get leapVal text
-                        let leapInt = read leapTxt
-                            (r2,s2) = foldr genStep (r,s) [1..leapInt]
-                        setGvDrawables2 gvRef (showGenState r2 s2)
-                        setGvSel gvRef 1
-                        updaterFn
-                        updateStatsTxt (genstats s2)
-                        set nextBt [ on command :~ (\_ -> showNext r2 s2) ]
-  let showLast = do -- redo generation from scratch
-                    let (r,s) = runState runBuilder initSt 
-                    setGvDrawables2 gvRef (showGenState r s)
-                    updaterFn
-                    updateStatsTxt (genstats s)
-  let showReset = do let res = initRes 
-                         st  = initSt 
-                     set nextBt   [ on command  := showNext res st ]
-                     updateStatsTxt (B.initGstats)
-                     setGvDrawables2 gvRef (showGenState res st)
-                     setGvSel gvRef 1
-                     updaterFn
-  -- handlers
-  set detailsChk [ on command := onDetailsChk ] 
-  set finishBt [ on command := showLast ]
-  set restartBt [ on command := showReset ]
-  showReset
-  -- pack it all in      
-  let cmdBar = hfloatRight $ row 5 [ dynamic $ widget detailsChk
-                 , widget restartBt
-                 , widget nextBt 
-                 , widget leapVal, label " step(s)"
-                 , widget finishBt 
-                 ]
-      lay2   = fill $ container p $ column 5 [ lay, row 5 
-                 [ hfill $ widget statsTxt, cmdBar ] ] 
-  return lay2 
+debuggerTab :: (Window a) -> Params -> B.Input -> String -> IO Layout 
+debuggerTab f config input cachedir = 
+ do let initBuilder = B.init  simpleBuilder
+        nextStep    = B.step  simpleBuilder
+        manySteps   = B.stepAll simpleBuilder
+        genstats    = B.stats simpleBuilder
+        --
+    let initRes = []
+        initSt  = initBuilder input (config {usetrash=True})
+        (items,labels) = showGenState initRes initSt 
+    -- widgets
+    p <- panel f []      
+    gvRef <- newGvRef False labels "debugger session" 
+    setGvDrawables gvRef items 
+    (lay,updaterFn) <- graphvizGui p cachedir gvRef 
+    detailsChk <- checkBox p [ text := "Show features"
+                             , checked := False ]
+    restartBt   <- button p [text := "Start over"]
+    nextBt   <- button p [text := "Leap by..."]
+    leapVal  <- entry p [ text := "1", clientSize := sz 30 25 ]
+    finishBt <- button p [text := "Continue"]
+    statsTxt <- staticText p []
+    -- commands
+    let updateStatsTxt gs = set statsTxt [ text :~ (\_ -> txtStats gs) ]
+        txtStats   gs =  "itr " ++ (show $ B.geniter gs) ++ " " 
+                      ++ "chart sz: " ++ (show $ B.szchart gs) 
+                      ++ "\ncomparisons: " ++ (show $ B.numcompar gs)
+    let onDetailsChk = 
+          do isDetailed <- get detailsChk checked 
+             setGvParams gvRef isDetailed
+             updaterFn
+    let genStep _ st = snd $ runState nextStep st
+    let showNext s = 
+          do leapTxt <- get leapVal text
+             let leapInt = read leapTxt
+                 s2 = foldr genStep s [1..leapInt]
+                 r2 = theResults s2
+             setGvDrawables2 gvRef (showGenState r2 s2)
+             setGvSel gvRef 1
+             updaterFn
+             updateStatsTxt (genstats s2)
+             set nextBt [ on command :~ (\_ -> showNext s2) ]
+    let showLast = 
+          do -- redo generation from scratch
+             let s = snd $ runState manySteps initSt 
+                 r = theResults s
+             setGvDrawables2 gvRef (showGenState r s)
+             updaterFn
+             updateStatsTxt (genstats s)
+    let showReset = 
+          do let res = initRes 
+                 st  = initSt 
+             set nextBt   [ on command  := showNext st ]
+             updateStatsTxt (B.initGstats)
+             setGvDrawables2 gvRef (showGenState res st)
+             setGvSel gvRef 1
+             updaterFn
+    -- handlers
+    set detailsChk [ on command := onDetailsChk ] 
+    set finishBt [ on command := showLast ]
+    set restartBt [ on command := showReset ]
+    showReset
+    -- pack it all in      
+    let cmdBar = hfloatRight $ row 5 [ dynamic $ widget detailsChk
+                   , widget restartBt
+                   , widget nextBt 
+                   , widget leapVal, label " step(s)"
+                   , widget finishBt 
+                   ]
+        lay2   = fill $ container p $ column 5 [ lay, row 5 
+                   [ hfill $ widget statsTxt, cmdBar ] ] 
+    return lay2 
 \end{code}
 
 \paragraph{showGenState} converts the generator state into a list
 of trees and labels the way graphvizGui likes it.
 
 \begin{code}
-showGenState :: [TagElem] -> Mstate -> ([TagElem],[String])
+showGenState :: [TagElem] -> SimpleStatus -> ([TagElem],[String])
 showGenState res st = 
   let agenda    = theAgenda st
       auxiliary = theAuxAgenda st

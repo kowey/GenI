@@ -26,18 +26,15 @@ module Console(consoleGenerate) where
 
 \ignore{
 \begin{code}
-import Data.List(find,intersperse)
+import Data.List(find)
 import Control.Monad(when)
 import Data.IORef(readIORef, modifyIORef)
 
-import Btypes(SemInput)
 import General(ePutStrLn) 
 import Geni
-import Builder(avgGstats, numcompar, szchart, geniter)
-import Configuration(Params, isGraphical, isBatch, outputFile,
-                     optimisations, batchRepeat, optBatch) 
+import Configuration(Params, isGraphical, outputFile)
+import DerivationsBuilder
 import SimpleBuilder
-import Tags (TagElem)
 \end{code}
 }
 
@@ -54,9 +51,8 @@ test suite, you'll have to write a shell script.
 consoleGenerate :: ProgStateRef -> IO()
 consoleGenerate pstRef = do 
   pst <- readIORef pstRef
-  let config = pa pst
   when (isGraphical $ pa pst) $ do
-    ePutStrLn "GUI not available for batch processing"
+    ePutStrLn "GUI not available"
   --
   loadGrammar pstRef
   ePutStrLn "======================================================"

@@ -119,8 +119,7 @@ SOURCE_HSPP  := $(SOURCE_HSPP_1) $(SOURCE_HSPP_2)
 # main targets 
 # --------------------------------------------------------------------
 
-normal: nogui
-# compile
+normal: compile
 all: compile docs tidy
 release: compile docs html tidy tarball
 

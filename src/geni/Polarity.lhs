@@ -71,7 +71,7 @@ module Polarity(PolAut,AutDebug,
                 declareRestrictors, detectRestrictors,
                 defaultPolPaths,
                 showLite, showLitePm, showPolPaths, showPolPaths',
-                toGvPolAut, calculateTreeCombos,
+                calculateTreeCombos,
                 NFA(states),
                 )
 where
@@ -1290,18 +1290,10 @@ showLitePm pm =
 
 \subsection{Drawing automata}
 
-It would  be nice eventually to say something like
-instance GraphvizShow PolAut directly.
-
 \begin{code}
-newtype GvPolAut = GvPolAut PolAut 
-
-toGvPolAut :: PolAut -> GvPolAut
-toGvPolAut aut   = GvPolAut aut
-
-instance GraphvizShow GvPolAut where
+instance GraphvizShow PolAut where
   -- we want a directed graph (arrows)
-  graphvizShow _ (GvPolAut aut) = 
+  graphvizShow _ aut = 
      "digraph aut {\n" 
      ++ "rankdir=LR\n" 
      ++ "ranksep = 0.02\n"
