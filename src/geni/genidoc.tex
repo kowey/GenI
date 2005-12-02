@@ -131,7 +131,8 @@ files.
 \begin{description}
  \item[Main.lhs] - determines which user interface to run 
  \item[Geni.lhs] - parses and formats data for the generator 
- \item[Mstate.lhs] - the chart generator itself (note: substitution,
+ \item[Builder.lhs] - a chart generator   
+ \item[SimpleBuilder.lhs] - the chart generator itself (note: substitution,
  adjunction, FS unification are done here, not in Tags.lhs)
  \item[Btypes.lhs] - basic data types and operations
  \item[Tags.lhs] - TAG specific data types
@@ -186,10 +187,14 @@ visualisation tool.
 \part{Core files}
 
 \input{Geni.lhs}       
-\input{Mstate.lhs}       
+\input{Builder.lhs}       
 \input{Btypes.lhs}       
 \input{Tags.lhs}       
 \input{Automaton.lhs}       
+
+\part{SimpleBuilder}
+
+\input{simple/SimpleBuilder.lhs}       
 
 \part{Optional}
 

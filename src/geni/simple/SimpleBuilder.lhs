@@ -15,10 +15,10 @@
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-\chapter{Mstate}
-\label{cha:Mstate}
+\chapter{SimpleBuilder}
+\label{cha:SimpleBuilder}
 
-Mstate implements the GenI chart generation algorithm and related
+SimpleBuilder implements the GenI chart generation algorithm and related
 operations like TAG substitution, adjunction. 
 
 TODO:
@@ -54,44 +54,125 @@ where
 
 \ignore{
 \begin{code}
-import Control.Monad (when, foldM)
+import Control.Monad (when, filterM)
 
-import Control.Monad.State (State, get, put)
+import Control.Monad.State (State, get, put, runState)
 
 import Data.List (intersect, partition, delete, sort, nub, (\\))
 import Data.Maybe (catMaybes)
 import Data.Tree 
 import Data.Bits
+import qualified Data.Map as Map 
 
-import Btypes (Ptype(Initial,Auxiliar),
-               Flist, 
-               Replacable(..),
-               Sem, sortSem, Subst,
-               GType(Other), GNode(..),
-               rootUpd,
-               repAdj,
-               renameTree,
-               repSubst,
-               constrainAdj, 
-               root, foot, 
-               unifyFeat)
-import Builder (Gstats)
+import Automaton ( automatonPaths, NFA(..), addTrans )
+import Btypes 
+  ( Ptype(Initial,Auxiliar),
+  , Flist 
+  , Replacable(..)
+  , Sem, sortSem, Subst
+  , GType(Other), GNode(..)
+  , rootUpd
+  , repAdj
+  , renameTree
+  , repSubst
+  , constrainAdj
+  , root, foot
+  , unifyFeat)
+import Builder (Gstats, UninflectedWord, UninflectedSentence)
 import qualified Builder as B
 
 import Tags (TagElem, TagSite, TagDerivation,  TagStatus(..),
              idname, tidnum,
              derivation,
+             fixateTidnums, setTidnums,
              ttree, ttype, tsemantics, thighlight, tdiagnostic,
              tpolpaths,
              adjnodes,
              substnodes,
-             tadjlist
+             tadjlist,
+             tagLeaves
             )
-import Configuration (Params, semfiltered, footconstr,
-                      usetrash, maxTrees)
+import Configuration 
 import General (BitVector, fst3, mapTree)
+import Polarity
 \end{code}
 }
+
+% --------------------------------------------------------------------  
+\section{Main stuff}
+% --------------------------------------------------------------------  
+
+\begin{code}
+simpleBuilder = B.Builder 
+  { B.init     = initMState 
+  , B.step     = generateStep
+  , B.stepAll  = B.defaultStepAll simpleBuilder
+  , B.run      = run 
+  , B.finished = \s -> (null.theAgenda) s && (step s == Auxiliar)
+  , B.stats    = genstats 
+  , B.setStats = \t s -> s { genstats = t } 
+  , B.unpack   = unpackResults.theResults }
+\end{code}
+
+\fnlabel{run} runs a simple surface realisation process from the
+lexical selection step.  If the polarity automaton optimisation 
+is enabled, it first constructs the polarity automaton and uses
+that to guide the surface realisation process.
+
+There's an unfortunate source of complexity here : one way to do
+generation is to treat polarity automaton path as a seperate 
+generation task.  We do this by mapping the surface realiser 
+across each path and then merging the final states back into one.
+
+You should be careful if you want to translate this to a builder
+that uses a packing strategy; you should take care to rename the
+chart edges accordingly.
+
+\begin{code}
+run input config = 
+  let stepAll = B.stepAll simpleBuilder
+      init    = B.init simpleBuilder
+      -- combos = polarity automaton paths 
+      combos  = fst (setup input config)
+      --
+      nullSt = init input config
+      finalStates = map (snd.generate.initSt) combos
+        where generate = runState stepAll 
+              initSt c = init (input { B.inCands = c }) config
+      -- WARNING: will not work with packing!
+      mergeSt st1 st2 = 
+        st1 { genstats   = B.addGstats (genstats st1) (genstats st2)
+            , theResults = (theResults st1) ++ (theResults st2) }
+  in foldr mergeSt nullSt finalStates 
+\end{code}
+
+\fnlabel{setup} is one of the substeps of run (so unless you are
+doing something fancy, you probably don't need it)
+
+\begin{code}
+setup input config = 
+ let cand     = B.inCands input
+     seminput = B.inSemInput input 
+     --
+     extraPol = extrapol config
+     rootCats = rootCatsParam config
+     -- do any optimisations
+     isPol      = polarised config
+     -- polarity optimisation (if enabled)
+     autstuff = buildAutomaton seminput cand rootCats extraPol
+     finalaut = (snd.fst) autstuff
+     paths    = map toTagElem (automatonPaths finalaut)
+       where toTagElem = concatMap (lookupAndTweak $ snd autstuff)
+     combosPol  = if isPol then paths else [cand]
+     -- chart sharing optimisation (if enabled)
+     isChartSharing = chartsharing config
+     combosChart = if isChartSharing 
+                    then [ detectPolPaths combosPol ] 
+                    else map defaultPolPaths combosPol 
+     -- 
+     combos = map (fixateTidnums.setTidnums) combosChart
+  in (combos, fst autstuff)
+\end{code}
 
 % --------------------------------------------------------------------  
 \section{Types}
@@ -127,28 +208,34 @@ option not to use the trash, so that it is only enabled in debugger
 mode.
 
 \begin{code}
-data Mstate = S{theAgenda    :: Agenda, 
-                theAuxAgenda :: AuxAgenda,
-                theChart     :: Chart,
-                theTrash   :: Trash,
-                tsem       :: Sem,
-                step       :: Ptype,
-                gencounter :: Integer,
-                genconfig  :: Params,
-                genstats   :: Gstats}
-      deriving Show
+data Mstate = S
+  { theAgenda    :: Agenda 
+  , theAuxAgenda :: AuxAgenda
+  , theChart     :: Chart
+  , theTrash   :: Trash
+  , theResults :: [TagElem]
+  , tsem       :: Sem
+  , step       :: Ptype
+  , gencounter :: Integer
+  , genconfig  :: Params
+  , genstats   :: Gstats
+  }
+  deriving Show
 \end{code}
 
 \paragraph{initMState} Creates an initial Mstate.  
 
 \begin{code}
-initMState ::  Sem -> [TagElem] -> Params -> Mstate
-initMState ts cands config = 
-  let (a,i) = partition isPureAux cands 
+initMState ::  B.Input -> Params -> Mstate
+initMState input config = 
+  let cands = B.inCands input
+      ts    = fst $ B.inSemInput input
+      (a,i) = partition closedAux cands 
   in S{theAgenda     = i, 
        theAuxAgenda  = a,
        theChart      = [],
        theTrash      = [],
+       theResults    = [],
        tsem     = ts,
        step     = Initial,
        gencounter = toInteger $ length cands,
@@ -156,13 +243,6 @@ initMState ts cands config =
        genstats   = B.initGstats}
 
 type MS = State Mstate
-
-simpleBuilder = B.Builder 
-  { B.init     = initMState 
-  , B.step     = generateStep
-  , B.finished = \s -> (null.theAgenda) s && (step s == Auxiliar)
-  , B.stats    = genstats 
-  , B.setStats = \t s -> s { genstats = t } }
 \end{code}
 
 \subsubsection{Mstate updaters}
@@ -199,6 +279,11 @@ addToTrash te err = do
   let te2 = te { tdiagnostic = err }
   when ((usetrash.genconfig) s) $
     put s { theTrash = (iaddtoTrash (theTrash s) te2) }
+
+addToResults :: TagElem -> MS ()
+addToResults te = do
+  s <- get
+  put s { theResults = te : (theResults s) }
 
 incrGeniter = B.incrGeniter simpleBuilder
 incrSzchart = B.incrSzchart simpleBuilder
@@ -485,7 +570,7 @@ iapplyAdjNode fconstr te1 te2 an@(n, an_up, an_down) =
 \end{code}
 
 % --------------------------------------------------------------------  
-\section{Generate}
+\section{Generate step}
 % --------------------------------------------------------------------  
 
 \begin{itemize}
@@ -500,7 +585,7 @@ iapplyAdjNode fconstr te1 te2 an@(n, an_up, an_down) =
 \end{itemize}
 
 \begin{code}
-generateStep :: MS [TagElem]
+generateStep :: MS () 
 generateStep = do
   nir     <- nullAgenda
   curStep <- getStep
@@ -508,14 +593,14 @@ generateStep = do
   -- to protect against a user who calls generateStep on a finished
   -- state
   if (nir && curStep == Auxiliar) 
-    then return []
+    then return () 
     else do incrGeniter 1
             -- this triggers exactly once in the whole process
             if nir 
-               then do { switchToAux; return [] } 
+               then switchToAux
                else generateStep' 
 
-generateStep' :: MS [TagElem] 
+generateStep' :: MS () 
 generateStep' = 
   do -- choose an item from the agenda
      given <- selectGiven
@@ -527,12 +612,11 @@ generateStep' =
             else applyAdjunction given
      -- determine which of the res should go in the agenda 
      -- (monadic state) and which should go in the result (res')
-     res' <- classifyNew res
+     dispatchNew res
      -- put the given into the chart untouched 
      if (curStep == Initial) 
-        then addToChart   given
+        then addToChart given
         else when (null $ adjnodes given) $ trashIt given 
-     return res'
   where 
      trashIt t = 
        do s <- get
@@ -553,9 +637,7 @@ selectGiven = do
   return (head a)
 \end{code}
 
-\paragraph{classifyNew} 
-
-Given a list of TagElem, for each tree: 
+\fnlabel{dispatchNew} Given a list of TagElem, for each tree: 
 \begin{enumerate}
 \item if the tree is both syntactically complete (no more subst nodes) and
       semantically complete (matches target semantics), it is a result, so
@@ -569,37 +651,54 @@ Given a list of TagElem, for each tree:
 \end{enumerate}
 
 \begin{code}
-classifyNew :: [TagElem] -> MS [TagElem]
-classifyNew [] =
-  return []
-classifyNew l = do 
-  inputSem <- getSem
-  state    <- get
-  let numTreesLimit = (maxTrees.genconfig) state
-      numTrees  x = length (snd $ derivation x)
-      overLimit x = case numTreesLimit of
-                      Nothing  -> False
-                      Just lim -> numTrees x > lim
-      isResult  x = (ttype x /= Auxiliar) && (null $ substnodes x) 
-                    && (inputSem == treeSem) && (null $ adjnodes x)
-                    where treeSem = (sortSem $ tsemantics x)
-      tbUnify x ls = case (tbUnifyTree x) of
-                       Left n  -> do let x2  = x { thighlight = [n] }
-                                     addToTrash x2 TS_TbUnify 
-                                     return ls
-                       Right x2 -> return (x2:ls)
-      
-
-      classify ls x 
-        | isResult  x = tbUnify x ls
-        | overLimit x = return ls -- discard
-        | isPureAux x = do addToAuxAgenda x
-                           return ls
-        | otherwise   = do addToAgenda x
-                           return ls
-  -- return list of completed trees (as defined above in comments)
-  foldM classify [] l
+dispatchNew :: [TagElem] -> MS () 
+dispatchNew l = 
+  do -- first we seperate the results from the non results
+     st <- get
+     let inputSem = tsem st
+         synComplete x = 
+           (not (aux x)) && closed x
+           -- don't forget about null adjnodes
+         semComplete x = inputSem == treeSem 
+           where treeSem = sortSem (tsemantics x)
+         isResult x = 
+           synComplete x && semComplete x 
+     let (res, notRes) = partition isResult l
+     -- -------------------------------------------------- 
+     -- the non results
+     -- -------------------------------------------------- 
+     -- now... throw out any trees which are over the num trees limit 
+     -- (this only applies in IgnoreSemantics mode) 
+     state <- get
+     let numTreesLimit = (maxTrees.genconfig) state
+         numTrees  x = length $ snd $ derivation x
+         overLimit x = case numTreesLimit of
+                         Nothing  -> False
+                         Just lim -> numTrees x > lim
+     let notRes2 = filter (not.overLimit) notRes
+     -- put any pure auxiliary trees on the auxiliary agenda
+     let dispatchAux x = 
+           if closedAux x 
+              then do { addToAuxAgenda x; return False }
+              else return True
+     notRes3 <- filterM dispatchAux notRes2
+     -- put any other trees on the agenda
+     mapM addToAgenda notRes3
+     -- -------------------------------------------------- 
+     -- the results
+     -- -------------------------------------------------- 
+     -- we perform top/bottom unification on any results
+     let tbUnify x =
+          case (tbUnifyTree x) of
+            Left n  -> do let x2 = x { thighlight = [n] }
+                          addToTrash x2 TS_TbUnify 
+                          return False 
+            Right _ -> return True 
+     res2 <- filterM tbUnify res
+     mapM addToResults res2
+     return ()
 \end{code}
+
 
 \paragraph{switchToAux} When all substitutions has been done, tags with
 substitution nodes still open are deleted, then the auxiliars tags are put in
@@ -768,6 +867,72 @@ tbUnifyNode gnRaw st =
 \end{code}
 
 % --------------------------------------------------------------------  
+\section{Unpack results}
+% --------------------------------------------------------------------  
+
+Unpacking the results consists of converting each result into a sentence 
+automaton (to take care of atomic disjunction) and reading the paths of
+each automaton.
+
+\begin{code}
+unpackResults :: [TagElem] ->  [UninflectedSentence]
+unpackResults tes =
+  -- sentence automaton
+  let treeLeaves   = map tagLeaves tes
+      sentenceAuts = map listToSentenceAut treeLeaves 
+      uninflected  = concatMap automatonPaths sentenceAuts
+  in uninflected
+\end{code}
+
+\subsection{Sentence automata}
+
+\paragraph 
+A SentenceAut represents a set of sentences in the form of an automaton.
+The labels of the automaton are the words of the sentence.  But note! 
+``word'' in the sentence is in fact a tuple (lemma, inflectional feature
+structures).  Normally, the states are defined as integers, with the
+only requirement being that each one, naturally enough, is unique.
+
+\begin{code}
+type UninflectedDisjunction = ([String], Flist)
+type SentenceAut      = NFA Int UninflectedWord 
+\end{code}
+
+\fnlabel{listToSentenceAut} converts a list of GNodes into a sentence
+automaton.  It's a actually pretty stupid conversion in fact.  We pretty
+much make a straight path through the automaton, with the only
+cleverness being that we provide a different transition for each 
+atomic disjunction.  
+
+\begin{code}
+listToSentenceAut :: [ UninflectedDisjunction ] -> SentenceAut 
+listToSentenceAut nodes = 
+  let theStart  = 0
+      theEnd = (length nodes) - 1
+      theStates = [theStart..theEnd]
+      --
+      emptyAut = NFA 
+        { startSt     = theStart 
+        , isFinalSt   = (== theEnd)
+        , states      = [theStates]
+        , transitions = Map.empty }
+      -- create a transition for each lexeme in the node to the 
+      -- next state... 
+      helper :: (Int, UninflectedDisjunction) -> SentenceAut -> SentenceAut
+      helper (current, word) aut = foldr addT aut lemmas 
+        where 
+          lemmas   = fst word
+          features = snd word
+          --
+          addT t a = addTrans a current (toTrans t) next 
+          next = current + 1
+          toTrans :: String -> Maybe UninflectedWord
+          toTrans l = Just (l, features)
+      --
+  in foldr helper emptyAut (zip theStates nodes)
+\end{code}
+
+% --------------------------------------------------------------------  
 \section{Miscellaneous}
 % --------------------------------------------------------------------  
 
@@ -787,12 +952,24 @@ renameTagElem c te =
         ttree = t}
 \end{code}
 
-\paragraph{isPureAux} returns True if a tree is an auxiliary tree with
-no substitution nodes
-
+\fnlabel{closed} returns true if the chart item has no open substitution
+nodes
 \begin{code}
-isPureAux :: TagElem -> Bool 
-isPureAux x = ((ttype x) == Auxiliar && (null $ substnodes x))
+closed :: TagElem -> Bool
+closed = null.substnodes
+\end{code}
+
+\fnlabel{aux} returns true if the chart item is an auxiliary tree
+\begin{code}
+aux :: TagElem -> Bool
+aux t = (ttype t == Auxiliar)
+\end{code}
+
+\fnlabel{closedAux} returns true if both \fnreflite{closed} and
+\fnreflite{aux} return true
+\begin{code}
+closedAux :: TagElem -> Bool 
+closedAux x = (aux x) && (closed x)
 \end{code}
 
 \subsection{Derivation trees}

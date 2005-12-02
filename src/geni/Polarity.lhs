@@ -63,7 +63,9 @@ like $(-2,-2)n$!  But for the most part, the intervals are zero length,
 and you can just think of $-2n$ as shorthand for $(-2,-2)n$.
 
 \begin{code}
-module Polarity(PolAut,AutDebug,makePolAut,
+module Polarity(PolAut,AutDebug,
+                buildAutomaton,
+                makePolAut,
                 TagLite, reduceTags, lookupAndTweak,
                 fixPronouns, detectPols, detectPolPaths, prefixRootCat,
                 declareRestrictors, detectRestrictors,
@@ -86,7 +88,7 @@ import Data.Maybe (isNothing)
 import Automaton
 import Graphviz(GraphvizShow(..))
 import Tags(TagElem(..), TagItem(..), mapBySem)
-import Btypes(Pred, Sem, Flist, AvPair, showAv,
+import Btypes(Pred, SemInput, Sem, Flist, AvPair, showAv,
               GeniVal, fromGConst,
               Replacable(..),
               emptyPred, Ptype(Initial), 
@@ -98,7 +100,80 @@ import General(
     Interval, ival, (!+!), showInterval)
 \end{code}
 
-\section{Overview}
+\section{Interface}
+
+\paragraph{buildAutomaton} constructs a polarity automaton from the
+surface realiser's input: input semantics, lexical selection, 
+extra polarities and restrictors.  For debugging purposes, it 
+returns all the intermediate automata produced by the construction
+algorithm.
+
+\begin{code}
+buildAutomaton :: SemInput -> [TagElem] -> [String] -> PolMap ->  
+  (PolResult, TagLite -> [TagElem])
+
+type PolResult = ([AutDebug], PolAut)
+type AutDebug  = (String, PolAut, PolAut)
+
+buildAutomaton (tsem,tres) candRaw rootCats extrapol  =
+  let -- root catogories, restrictors, and external polarities
+      rootCatPref = prefixRootCat (head rootCats)
+      rcatPol :: Map.Map String Interval
+      rcatPol = if null rootCats then Map.empty
+                else Map.singleton rootCatPref (ival (-1))
+      allExtraPols = Map.unionsWith (!+!) [ extrapol, inputRest, rcatPol ]
+      -- restrictors on candidate trees
+      detect      = detectRestrictors tres
+      restrict t = t { tpolarities = Map.unionWith (!+!) p r
+                     } --, tinterface  = [] }
+                   where p  = tpolarities t
+                         r  = (detect . tinterface) t
+      candRest  = map restrict candRaw 
+      inputRest = declareRestrictors tres
+      -- polarity detection 
+      cand = detectPols candRest
+      -- building the automaton
+      (candLite, lookupCand) = reduceTags False cand
+      auts = makePolAut candLite tsem allExtraPols 
+  in (auts, lookupCand)
+\end{code}
+
+\paragraph{lookupAndTweak} is the flipside to reduceTags.  You don't
+want to directly call the conversion function returned by reduceTags,
+because the some cases, the polarity code might be able to usefully
+modify your lexical selection.  This function will call the 
+conversion function for you and then perform any neccesary
+modifications.
+
+\begin{code}
+lookupAndTweak :: (TagLite -> [TagElem]) -> TagLite -> [TagElem]
+lookupAndTweak lookupfn tl = 
+  let cands  = lookupfn tl
+      --
+      getIndex [x] = if isExtraCol x then Just (fst3 x) else Nothing
+      getIndex _   = Nothing 
+  in case (getIndex $ tlSemantics tl) of
+       Nothing -> cands
+       Just i  -> map (assignIndex i) cands
+\end{code}
+
+\paragraph{reduceTags}
+We provide two ways to do the TagLite reduction: If \texttt{polsig} is False,
+we just perform a direct one-on-one mapping.  If it is True, we use the
+polarity signatures optimisation in section \ref{sec:polarity_signatures}.  In
+both cases, we return a conversion function that maps the returned TagLites to
+their original TagElems.
+
+\begin{code}
+reduceTags :: Bool -> [TagElem] -> ([TagLite], TagLite -> [TagElem])
+reduceTags polsig tes =
+  let tls          = map toTagLite tes 
+      fromTagLite  = listArray (1,length tes) tes 
+      lookupfn t   = [ fromTagLite ! (fromInteger $ tlIdnum t) ]
+  in if polsig then mapByPolsig tes else (tls, lookupfn)
+\end{code}
+
+\section{The automaton itself - outline}
 \label{polarity:overview}
 
 We start with the controller function (the general architecture) and
@@ -131,8 +206,6 @@ Note:
 \end{itemize}
 
 \begin{code}
-type AutDebug = (String, PolAut, PolAut)
-
 makePolAut :: [TagLite] -> Sem -> PolMap -> ([AutDebug], PolAut)
 makePolAut cands tsem extraPol = let
     (ks',seed) = makePolAutHelper cands tsem extraPol 
@@ -159,42 +232,6 @@ makePolAutHelper candsRaw tsemRaw extraPol =
       seed = buildSeedAut smap  sortedsem
   in (ks, seed)
 \end{code}
-
-\paragraph{reduceTags}
-We provide two ways to do the TagLite reduction: If \texttt{polsig} is False,
-we just perform a direct one-on-one mapping.  If it is True, we use the
-polarity signatures optimisation in section \ref{sec:polarity_signatures}.  In
-both cases, we return a conversion function that maps the returned TagLites to
-their original TagElems.
-
-\begin{code}
-reduceTags :: Bool -> [TagElem] -> ([TagLite], TagLite -> [TagElem])
-reduceTags polsig tes =
-  let tls          = map toTagLite tes 
-      fromTagLite  = listArray (1,length tes) tes 
-      lookupfn t   = [ fromTagLite ! (fromInteger $ tlIdnum t) ]
-  in if polsig then mapByPolsig tes else (tls, lookupfn)
-\end{code}
-
-\paragraph{lookupAndTweak} is the flipside to reduceTags.  You don't
-want to directly call the conversion function returned by reduceTags,
-because the some cases, the polarity code might be able to usefully
-modify your lexical selection.  This function will call the 
-conversion function for you and then perform any neccesary
-modifications.
-
-\begin{code}
-lookupAndTweak :: (TagLite -> [TagElem]) -> TagLite -> [TagElem]
-lookupAndTweak lookupfn tl = 
-  let cands  = lookupfn tl
-      --
-      getIndex [x] = if isExtraCol x then Just (fst3 x) else Nothing
-      getIndex _   = Nothing 
-  in case (getIndex $ tlSemantics tl) of
-       Nothing -> cands
-       Just i  -> map (assignIndex i) cands
-\end{code}
-
 
 % ====================================================================
 \section{Polarity automaton}

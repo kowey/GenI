@@ -578,7 +578,7 @@ doGenerate f pstRef sembox debugger = do
                         --grFinalAut = emptyaut, grDerived  = [], grStats    = ""}
   sem <- get sembox text
   let dodebug = do loadTargetSemStr pstRef sem
-                   runGeni pstRef debugGui 
+                   debugGui pstRef
                    return ()
       dogen = do loadTargetSemStr pstRef sem
                  res <- runGeni pstRef doGeneration 
@@ -860,9 +860,9 @@ user the agenda, chart and results at various stages in the generation
 process.  
 
 \begin{code}
-debugGui :: ProgState -> GeniInput -> IO ([TagElem], B.Gstats)
-debugGui pst input = do
-  let tsem = giSem input
+debugGui :: ProgStateRef -> GeniInput -> IO ([TagElem], B.Gstats)
+debugGui pstRef = do
+  pst <- readIORef pstRef
   --
   f <- frame [ text := "Geni Debugger" 
              , fullRepaintOnResize := False 
@@ -870,9 +870,12 @@ debugGui pst input = do
              ] 
   p    <- panel f []
   nb   <- notebook p []
+  -- run the setup stuff
+  let config = pa pst
+      (seminput2, cand, lexonly) = initGeni pstRef
+      builderInput = setup seminput2 cand config 
   -- candidate selection tab
-  let cand    = giCands input
-      candsem = (nub $ concatMap tsemantics cand)
+  let candsem = (nub $ concatMap tsemantics cand)
       missedSem  = tsem \\ candsem
       --
       lexonly   = giLex input

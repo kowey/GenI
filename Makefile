@@ -24,7 +24,7 @@ ifeq ($(OS),Darwin)
 endif
 
 #-O
-GHCINCLUDE      = -i$(SRC_GENI)
+GHCINCLUDE      = -i$(SRC_GENI) -i$(SRC_GENI)/simple -i$(SRC_GENI)/derivations
 #:$(HXMLDIR)/hparser:$(HXMLDIR)/hdom
 GHCPACKAGES     = 
 #-package HaXml

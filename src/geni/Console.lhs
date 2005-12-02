@@ -36,6 +36,8 @@ import Geni
 import Builder(avgGstats, numcompar, szchart, geniter)
 import Configuration(Params, isGraphical, isBatch, outputFile,
                      optimisations, batchRepeat, optBatch) 
+import SimpleBuilder
+import Tags (TagElem)
 \end{code}
 }
 
@@ -92,11 +94,11 @@ being displayed to the user; and to summarise everything in a fancy
 table.
 
 \begin{code}
-runBatchSample :: ProgStateRef -> Params -> IO GeniResults
+runBatchSample :: ProgStateRef -> Params -> IO (GeniResults TagElem)
 runBatchSample pstRef newPa = do 
   modifyIORef pstRef (\x -> x{pa = newPa})
   let numIter = batchRepeat newPa
-  resSet <- mapM (\_ -> runGeni pstRef doGeneration) [1..numIter]
+  resSet <- mapM (\_ -> runGeni pstRef simpleBuilder) [1..numIter]
   --
   let avgStats  = avgGstats $ map grStats resSet
       res       = (head resSet) { grStats = avgStats } 
@@ -118,7 +120,7 @@ single table.  The intention is for each item in the list to be the
 result of a different optimisation on the same grammar/semantics
 
 \begin{code}
-showOptResults :: [GeniResults] -> String
+showOptResults :: [GeniResults TagElem] -> String
 showOptResults grs = 
   let header   = [ "      optimisations" 
                  , "rslts"
@@ -169,10 +171,10 @@ runTestSuite pstRef =
 the results.
 
 \begin{code}
-runTestCase :: ProgStateRef -> SemInput -> IO GeniResults
+runTestCase :: ProgStateRef -> SemInput -> IO (GeniResults TagElem)
 runTestCase pstRef sem = 
   do modifyIORef pstRef (\x -> x{ts = sem})
-     res <- runGeni pstRef doGeneration
+     res <- runGeni pstRef simpleBuilder
      return res 
 \end{code}
 

@@ -25,9 +25,9 @@ module also does lexical selection and anchoring because these processes might
 involve some messy IO performance tricks.
 
 \begin{code}
-module Geni (ProgState(..), ProgStateRef, GeniInput(..), GeniResults(..), 
+module Geni (ProgState(..), ProgStateRef, GeniResults(..), 
              showRealisations, groupAndCount,
-             runGeni, doGeneration, runMorph,
+             runGeni, runMorph,
              loadGrammar, loadLexicon, 
              loadTestSuite, loadTargetSemStr,
              combine, testGeni)
@@ -39,25 +39,16 @@ where
 import qualified Data.Map as Map
 import Data.IORef (IORef, readIORef, modifyIORef)
 import Data.List (intersperse, sort, nub, group)
-import Data.Maybe (isNothing)
 import Data.Tree
 
-import System (ExitCode(ExitSuccess), exitWith)
 import System.IO(hPutStrLn, hClose, hGetContents)
 import System.IO.Unsafe(unsafePerformIO)
-import System.Mem
 import Text.ParserCombinators.Parsec 
 -- import System.Process 
 
 import Control.Monad (when)
-import Control.Monad.State (runState)
+import General(multiGroupByFM, ePutStr, ePutStrLn, eFlush)
 
-import CPUTime (getCPUTime)
-
-import General(multiGroupByFM, ePutStr, ePutStrLn, eFlush,
-    ival, (!+!), Interval)
-
-import Automaton 
 import Btypes (Macros, MTtree, ILexEntry, Lexicon, 
                Replacable(..),
                Sem, SemInput, 
@@ -73,17 +64,17 @@ import Btypes (Macros, MTtree, ILexEntry, Lexicon,
                setLexeme, tree, unifyFeat)
 
 import Tags (Tags, TagElem, emptyTE, TagSite, 
-             idname, tagLeaves,
+             idname, 
              derivation, ttype, tsemantics, ttree, tsempols,
              tinterface, tpolarities, substnodes, adjnodes, 
-             setTidnums, fixateTidnums)
+             setTidnums) 
 
 import Configuration(Params, 
                      grammarType, tsFile,
                      testCase, morphCmd, ignoreSemantics,
                      selectCmd,
                      GrammarType(..),
-                     macrosFile, lexiconFile, morphFile, rootCatsParam,
+                     macrosFile, lexiconFile, morphFile,
                      polarised, polsig, chartsharing, 
                      semfiltered, extrapol, footconstr)
 
@@ -95,8 +86,8 @@ import GeniParsers (geniMacros,
 import Morphology
 import Polarity
 
-import DerivationsBuilder 
-import SimpleBuilder (simpleBuilder)
+-- import DerivationsBuilder 
+-- import SimpleBuilder (simpleBuilder)
 
 -- Not for windows
 -- FIXME: even better would be to really figure out all this
@@ -128,8 +119,6 @@ Data types for keeping track of the program state.
 \item 
 \end{description}
 
-Note: if tags is non-empty, we can ignore gr and le
-
 \begin{code}
 data ProgState = ST{pa     :: Params,
                     --
@@ -144,135 +133,89 @@ data ProgState = ST{pa     :: Params,
                }
 
 type ProgStateRef = IORef ProgState
-
-rootCats :: ProgState -> [String]
-rootCats = (rootCatsParam . pa)
 \end{code}
 
 % --------------------------------------------------------------------
 \section{Entry point}
 % --------------------------------------------------------------------
 
-This module mainly exports a single important monadic function which
-performs generation: this consists of
+\fnlabel{runGeni} is what you call if the only thing you want to do is run the
+surface realiser.  It assumes that you have already loaded in your grammar and
+parsed your input semantics, and performs the following four steps:
+
 \begin{enumerate}
-\item lexical selection (page \pageref{sec:lexical_selection})
-\item optimisations
-\item generation proper (page \pageref{fn:doGeneration})
+\item It initialises the realiser (lexical selection, among other things),
+      via \fnref{initGeni}
+\item It runs the builder (the surface realisation engine proper)
+\item It unpacks the builder results 
+\item It finalises the results (morphological generation)
 \end{enumerate}
 
-\paragraph{runGeni} \label{fn:runGeni} performs the entire Geni pipeline
-: it does lexical selection, sets up any neccesary optimisations, runs
-the generator proper, and returns the results with basic timing info.
-We specify a \fnparam{runFn} argument, an IO monadic function which runs
-the generator proper. This is used to run the generator with a debugger
-as with \fnref{debugGui}, but for the most part, you want the vanilla
-flavoured generator, \fnref{doGeneration}.
-
 \begin{code}
-runGeni :: ProgStateRef -> GeniFn TagElem -> IO GeniResults 
-runGeni pstRef runFn = do 
-  -- lexical selection
-  pstLex   <- readIORef pstRef
-  (purecand, lexonly) <- runLexSelection pstLex
-  -- strip morphological predicates
-  let (tsem,tresLex) = ts pstLex
-      tsemLex        = filter (isNothing.(morphinf pstLex)) tsem
-  modifyIORef pstRef ( \x -> x{ts = (tsemLex,tresLex)} )
-  pst      <- readIORef pstRef
-  -- force the grammar to be read before the clock
-  when (-1 == (length.show.le) pst) $ exitWith ExitSuccess
-  when (-1 == (length.show.gr) pst) $ exitWith ExitSuccess
-  performGC
-  -- -- force lexical selection to be run before clock
-  -- when (-1 == (length.show) purecand) $ exitWith ExitSuccess
-  clockBefore <- getCPUTime 
-  -- do any optimisations
-  let config   = pa pst
-      extraPol    = extrapol config  
-      isPol       = polarised config
-  let -- polarity optimisation (if enabled)
-      preautcand = purecand
-      autstuff   = buildAutomaton preautcand pst
-      finalaut   = (snd.fst) autstuff
-      lookupCand = lookupAndTweak (snd autstuff)
-      pathsLite  = automatonPaths finalaut 
-      paths      = map (concatMap lookupCand) pathsLite 
-      combosPol  = if isPol then paths else [preautcand]
-      -- chart sharing optimisation (if enabled)
-      isChartSharing = chartsharing config
-      combosChart = if isChartSharing 
-                    then [ detectPolPaths combosPol ] 
-                    else map defaultPolPaths combosPol 
-      -- 
-      combos = map (fixateTidnums.setTidnums) combosChart
-      fstGstats = B.initGstats
-  -- do the generation
-  let genifnInput = GI { giSem = tsem
-                       , giLex = lexonly 
-                       , giCands = preautcand
-                       , giAuts  = fst autstuff
-                       , giTrees = combos }
-  (res, gstats') <- runFn pst genifnInput 
-  let gstats = B.addGstats fstGstats gstats'
-  -- statistics 
-  let statsOpt =  if (null optAll) then "none " else optAll
-                  where polkey   = "pol"
-                        polplus  =    "A" -- always detects polarities
-                                   ++ (if polsig  config then "S" else "")
-                                   ++ (if isChartSharing then "C" else "")
-                        --
-                        adjplus  =    (if semfiltered config then "S" else "")
-                                   ++ "O" -- always uses ordered adjunction
-                                   ++ (if footconstr  config then "F" else "")
-                        --
-                        optAll   = optPol ++ optAdj
-                        optPol   = if isPol     
-                                   then (if null polplus then polkey else polkey ++ ":" ++ polplus) 
-                                   else "" 
-                        optAdj   = if null adjplus then "" else " adj:" ++ adjplus
-      statsAut     = if isPol then show $ length combosPol else ""
-      ambiguityStr = show $ calculateTreeCombos preautcand 
-  -- pack up the results
-  let results = GR { -- grCand     = preautcand,
-                     -- grAuts = auts,
-                     -- grCombos   = combos,
-                     grDerived  = res, 
-                     grSentences = [],
-                     grOptStr   = (statsOpt, showLitePm extraPol),
-                     grAutPaths = statsAut,
-                     grTimeStr  = "",
-                     grAmbiguity = ambiguityStr,
-                     grStats    = gstats }
-  -- note: we have to do something with the results to force evaluation
-  -- of the generator (for timing)
-  when (length (show results) == 0) $ exitWith ExitSuccess
-  clockAfter  <- getCPUTime 
-  let timediff = (fromInteger $ clockAfter - clockBefore) / 1000000000
-      statsTime = show timediff 
-  when (length statsTime == 0) $ exitWith ExitSuccess
-  -- final results 
-  sentences <- finaliseResults pstRef res
-  return (results { grSentences = sentences,
-                    grTimeStr  = statsTime })
+runGeni :: ProgStateRef -> B.Builder st it Params -> IO (GeniResults TagElem)
+runGeni pstRef builder = 
+  do let run    = B.run builder
+         unpack = B.unpack builder
+         stats  = B.stats builder
+     -- step 1
+     initStuff <- initGeni pstRef
+     --
+     pst <- readIORef pstRef
+     let config  = pa pst
+         -- step 2 
+         finalSt = run initStuff config
+         -- step 3
+         uninflected = unpack finalSt
+     -- step 4
+     sentences <- finaliseResults pstRef uninflected 
+     -- summarise results
+     let results = 
+          GR { grDerived   = [] 
+             , grSentences = sentences 
+             , grOptStr    = (optStr, epStr)
+             , grAutPaths  = "FIXME" 
+             , grTimeStr   = "FIXME"
+             , grAmbiguity = "FIXME" 
+             , grStats     = stats finalSt }
+           where optStr = describeOpts config
+                 epStr  = showLitePm (extrapol config)
+     return results
 \end{code}
 
-\paragraph{GeniFn and GeniInput} define the type for \fnparam{runFn}
-argument in \fnreflite{runGeni}.  This function should take as input
-not only the input semantics, but all the intermediary results from
-\fnreflite{runGeni}, that is, the lexical selection, automata, etc.
-The vanilla generator \fnref{doGeneration} ignores most of this  
-intermediary stuff, but the debugger tries to display or do other 
-interesting things with them.
+\subsection{Sub steps used by the entry point}
+
+Below are the initial and final steps of \fnreflite{runGeni}.  These functions
+are seperated out so that they may be individually called from the graphical
+debugger.  The middle steps (running and unpacking the builder) depend on your
+builder implementation.
+
+\fnlabel{initGeni} performs lexical selection and strips the input semantics of
+any morpohological literals
 
 \begin{code}
-type Gstats = B.Gstats
-type GeniFn a = ProgState -> GeniInput -> IO ([a], Gstats)
-data GeniInput = GI { giSem   :: Sem
-                    , giLex   :: [ILexEntry]  -- debugger
-                    , giCands :: [TagElem]
-                    , giTrees :: [[TagElem]]
-                    , giAuts  :: ([AutDebug], PolAut) }
+initGeni :: ProgStateRef -> IO (B.Input)
+initGeni pstRef = 
+ do -- lexical selection
+    pstLex   <- readIORef pstRef
+    (cand, lexonly) <- runLexSelection pstLex
+    -- strip morphological predicates
+    let (tsem,tres) = ts pstLex
+        tsem2       = stripMorphSem (morphinf pstLex) tsem
+    --
+    let initStuff = B.Input 
+          { B.inSemInput = (tsem2, tres)
+          , B.inLex   = lexonly 
+          , B.inCands = cand
+          }
+    return initStuff 
+\end{code}
+
+\fnlabel{finaliseResults} for the moment consists only of running the
+morphological generator, but there could conceivably be more involved.
+
+\begin{code}
+finaliseResults :: ProgStateRef -> [B.UninflectedSentence] -> IO [String]
+finaliseResults = runMorph 
 \end{code}
 
 % --------------------------------------------------------------------
@@ -307,39 +250,6 @@ runBasicLexSelection pst = do
       morphfn  = morphinf pst
       cand2    = attachMorph morphfn tsem cand 
   return (setTidnums cand2, lexCand)
-\end{code}
-
-\paragraph{buildAutomaton} constructs the polarity automaton from the
-lexical selection.
-
-\begin{code}
-buildAutomaton :: [TagElem] -> ProgState -> (PolResult, TagLite -> [TagElem])
-type PolResult = ([(String, PolAut, PolAut)], PolAut)
-
-buildAutomaton candRaw pst =
-  let config   = pa pst
-      (tsem,tres) = ts pst
-      -- restrictors and extra polarities
-      mergePol = Map.unionWith (!+!)
-      rootCatPref = prefixRootCat $ head $ rootCats pst
-      rcatPol :: Map.Map String Interval
-      rcatPol = if (null $ rootCats pst)
-                then Map.empty
-                else Map.singleton rootCatPref (ival (-1))
-      extraPol = mergePol (extrapol config) $ mergePol rest rcatPol
-                 where rest = declareRestrictors tres
-      detect   = detectRestrictors tres
-      restrict t = t { tpolarities = mergePol p r
-                     } --, tinterface  = [] }
-                   where p  = tpolarities t
-                         r  = (detect . tinterface) t
-      candRest  = map restrict candRaw 
-      -- polarity detection 
-      cand = detectPols candRest
-      -- building the automaton
-      (candLite, lookupCand) = reduceTags (polsig config) cand
-      auts = makePolAut candLite tsem extraPol 
-  in (auts, lookupCand)
 \end{code}
 
 % --------------------------------------------------------------------
@@ -709,22 +619,9 @@ combineXMG lexitem e =
 
 \subsection{Grammars}
 
-Grammars consist of the following:
-\begin{enumerate}
-\item index file - which tells where the other files
-      in the grammar are (relative to the grammar)
-\item semantic lexicon file - semantics $\rightarrow$ lemma
-\item lexicon file - lemma $\rightarrow$ families
-\item macros file  - unlexicalised trees
-\end{enumerate}
-
-The generator reads these into memory and combines them into a grammar
-(page \pageref{sec:combine_macros}).
-
-\paragraph{loadGrammar} \label{fn:loadGrammar} Given the pointer to the
-monadic state pstRef it reads and parses the grammar file index; and
-from this information, it reads the rest of the grammar (macros,
-lexicon, etc).  The Macros and the Lexicon 
+\fnlabel{loadGrammar} Given the pointer to the monadic state pstRef it reads
+and parses everything it needs to get going, that is, the macros file, 
+lexicon file and test suite.
 
 \begin{code}
 loadGrammar :: ProgStateRef -> IO() 
@@ -753,14 +650,10 @@ loadGrammar pstRef =
      loadTestSuite pstRef 
 \end{code}
 
-\subsubsection{Lexicon}
-
-\paragraph{loadLexicon} Given the pointer to the monadic state pstRef and
+\fnlabel{loadLexicon} Given the pointer to the monadic state pstRef and
 the parameters from a grammar index file parameters; it reads and parses
-the lexicon file and the semantic lexicon.   These are then stored in
-the monad.
+the lexicon file.   
 
-FIXME: differentiate
 \begin{code}
 loadLexicon :: ProgStateRef -> Params -> IO ()
 loadLexicon pstRef config = do
@@ -787,41 +680,7 @@ loadLexicon pstRef config = do
        return ()
 \end{code}
 
-%\paragraph{setPrecedence} takes two lists of precedence directives
-%(FIXME: explained where?) and a lemma lexicon.  It returns the lemma
-%lexicon modified so that each item is assigned a precedence according to
-%its membership in the list of precedence directives.  The first list of
-%directives are items with tight precedence; the second list are those
-%with loose precedence.  In both lists, items closest to the front have
-%tightest precedence.  Items which are not in either the tight or loose
-%precedence list have default precedence.
-%
-%\begin{code}
-%
-%
-%setPrecedence :: [[WordCat]] -> [[WordCat]] 
-%                 -> LemmaLexicon -> LemmaLexicon
-%setPrecedence tight loose lemlex =
-%  let start  = 0 - (length tight)
-%      tightp = zip [start..(-1)] tight
-%      loosep = zip [0..] loose
-%      --
-%      tightlex = foldr setPrecedence' lemlex   tightp
-%  in foldr setPrecedence' tightlex loosep
-%
-%setPrecedence' :: (Int,[WordCat]) -> LemmaLexicon -> LemmaLexicon
-%setPrecedence' (pr,items) lemlex =
-%  let setpr li     = li {iprecedence = pr}
-%      --
-%      helper :: WordCat -> LemmaLexicon -> LemmaLexicon
-%      helper wc ll = addToFM ll wc (map setpr lems)
-%                     where lems = lookupWithDefaultFM ll [] wc 
-%  in foldr helper lemlex items
-%\end{code}
-
-\subsubsection{Macros}
-
-\paragraph{loadGeniMacros} Given the pointer to the monadic state pstRef and
+\fnlabel{loadGeniMacros} Given the pointer to the monadic state pstRef and
 the parameters from a grammar index file parameters; it reads and parses
 macros file.  The macros are stored as a hashing function in the monad.
 
@@ -845,9 +704,7 @@ loadGeniMacros pstRef config =
          modifyIORef pstRef (\x -> x{gr = g})
 \end{code}
 
-\subsubsection{Misc}
-
-\paragraph{loadMorphInfo} Given the pointer to the monadic state pstRef and
+\fnlabel{loadMorphInfo} Given the pointer to the monadic state pstRef and
 the parameters from a grammar index file parameters; it reads and parses
 the morphological information file, if available.  The results are stored
 as a lookup function in the monad.
@@ -870,7 +727,7 @@ loadMorphInfo pstRef config =
 
 \subsection{Target semantics}
 
-\paragraph{loadTestSuite} \label{fn:loadTestSuite} 
+\fnlabel{loadTestSuite} 
 given a pointer pstRef to the general state st, it access the parameters and the
 name of the file for the target semantics from params.  It parses the file as a
 test suite, and assigns it to the tsuite field of st.
@@ -899,7 +756,7 @@ loadTestSuite pstRef = do
     --ePutStr "done\n"
 \end{code}
 
-\paragraph{loadTargetSemStr} Given a string with some semantics, it
+\fnlabel{loadTargetSemStr} Given a string with some semantics, it
 parses the string and assigns the assigns the target semantics to the 
 ts field of the ProgState 
 
@@ -923,49 +780,22 @@ loadTargetSemStr pstRef str =
 \label{fn:doGeneration}
 % --------------------------------------------------------------------
 
-Actually running the generator...  Note: the only reason this is monadic
-is to be compatible with the debugger GUI.  There could be some code
-simplifications in order.
-
-\begin{code}
-doGeneration :: GeniFn TagElem 
-doGeneration pst input = do
-  return (doGeneration' (pa pst) input) 
-
-doGeneration' :: Params -> GeniInput -> ([TagElem], Gstats)
-doGeneration' config input = 
-  let theBuilder = simpleBuilder 
-      stats = B.stats theBuilder
-      initBuilder = B.init theBuilder
-      run = B.run theBuilder
-      --
-      tsem   = giSem   input
-      combos = giTrees input
-      -- do the generation
-      genfn c = (res, stats st) 
-        where ist = initBuilder tsem c config
-              (res,st) = runState run ist
-      res' = map genfn combos
-      addres (r,s) (r2,s2) = (r ++ r2, B.addGstats s s2)
-  in foldr addres ([], B.initGstats) res'
-\end{code}
-
 \subsection{Returning results}
 
 We provide a data structure to be used by verboseGeni for returning the results
 (grDerived) along with the intermediary steps and some useful statistics.  
 
 \begin{code}
-data GeniResults = GR {
+data GeniResults a = GR {
   -- optimisations and extra polarities
   grOptStr   :: (String,String),
   -- some numbers (in string form)
-  grStats     :: Gstats,
+  grStats     :: B.Gstats,
   grAutPaths  :: String,
   grAmbiguity :: String,
   grTimeStr   :: String,
   -- the final results
-  grDerived   :: [TagElem],
+  grDerived   :: [a],
   grSentences :: [String]
 } 
 \end{code}
@@ -973,7 +803,7 @@ data GeniResults = GR {
 We provide a default means of displaying the results
 
 \begin{code}
-instance Show GeniResults where
+instance Show (GeniResults a) where
   show gres = 
     let gstats = grStats gres 
         gopts  = grOptStr gres
@@ -986,79 +816,6 @@ instance Show GeniResults where
        ++ "\nComparisons made:  " ++ (show $ B.numcompar gstats)
        ++ "\nGeneration time:  " ++ (grTimeStr gres) ++ " ms"
        ++ "\n\nRealisations:\n" ++ (showRealisations sentences)
-\end{code}
-
-\subsection{Unpacking chart results}
-
-At the end of chart combination, we have some set of packed, raw
-results.  What we need now is to unpack these results into a 
-list of sentences and do any final modifications to them, for 
-example, running morphological generation on them.  
-
-\fnlabel{finaliseResults} converts chart results into a list of
-sentences.  There should be no need to any more post processing
-after you call this function.
-
-\begin{code}
-finaliseResults :: ProgStateRef -> [TagElem] -> IO [String]
-finaliseResults pstRef tes =
-  do -- sentence automaton
-     let treeLeaves   = map tagLeaves tes
-         sentenceAuts = map listToSentenceAut treeLeaves 
-         uninflected  = concatMap automatonPaths sentenceAuts
-     -- morphology 
-     sentences <- runMorph pstRef uninflected
-     -- final results 
-     return sentences
-\end{code}
-
-\subsection{Sentence automata}
-
-\paragraph 
-A SentenceAut represents a set of sentences in the form of an automaton.
-The labels of the automaton are the words of the sentence.  But note! 
-``word'' in the sentence is in fact a tuple (lemma, inflectional feature
-structures).  Normally, the states are defined as integers, with the
-only requirement being that each one, naturally enough, is unique.
-
-\begin{code}
-type UninflectedDisjunction = ([String], Flist)
-type UninflectedWord  = (String, Flist)
-type SentenceAut      = NFA Int UninflectedWord 
-\end{code}
-
-\fnlabel{listToSentenceAut} converts a list of GNodes into a sentence
-automaton.  It's a actually pretty stupid conversion in fact.  We pretty
-much make a straight path through the automaton, with the only
-cleverness being that we provide a different transition for each 
-atomic disjunction.  
-
-\begin{code}
-listToSentenceAut :: [ UninflectedDisjunction ] -> SentenceAut 
-listToSentenceAut nodes = 
-  let theStart  = 0
-      theEnd = (length nodes) - 1
-      theStates = [theStart..theEnd]
-      --
-      emptyAut = NFA 
-        { startSt     = theStart 
-        , isFinalSt   = (== theEnd)
-        , states      = [theStates]
-        , transitions = Map.empty }
-      -- create a transition for each lexeme in the node to the 
-      -- next state... 
-      helper :: (Int, UninflectedDisjunction) -> SentenceAut -> SentenceAut
-      helper (current, word) aut = foldr addT aut lemmas 
-        where 
-          lemmas   = fst word
-          features = snd word
-          --
-          addT t a = addTrans a current (toTrans t) next 
-          next = current + 1
-          toTrans :: String -> Maybe UninflectedWord
-          toTrans l = Just (l, features)
-      --
-  in foldr helper emptyAut (zip theStates nodes)
 \end{code}
 
 \subsection{Displaying the results}
@@ -1103,3 +860,33 @@ runMorph pstRef sentences =
         then return (map sansMorph sentences)
         else inflectSentences mcmd sentences 
 \end{code}
+
+\section{Miscellaneous helper code}
+
+\paragraph{describeOpts} concisely describes the optimisations used
+by GenI in a short string.  Each optimisation is described as a one
+to three letter code:
+
+\begin{code}
+describeOpts :: Params -> String
+describeOpts config =
+  let polkey = "pol"
+      polplus  = ""
+       ++ "A" -- always detects polarities
+       ++ (if polsig  config then "S" else "")
+       ++ (if chartsharing config then "C" else "")
+      --
+      adjkey = "adj"
+      adjplus  = ""   
+       ++ (if semfiltered config then "S" else "")
+       ++ "O" -- always uses ordered adjunction
+       ++ (if footconstr  config then "F" else "")
+      --
+      optPol = if polarised config then polkey ++ polStuff else ""
+        where polStuff = if null polplus then "" else ":" ++ polplus
+      optAdj = if null adjplus then "" else " " ++ adjkey ++ ":" ++ adjplus
+      optAll = optPol ++ optAdj
+ in if null optAll then "none" else optAll
+\end{code}
+
+

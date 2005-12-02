@@ -29,6 +29,7 @@ module Morphology where
 
 \ignore{
 \begin{code}
+import Data.Maybe (isNothing)
 import Data.List (intersperse)
 import Data.Tree
 import qualified Data.Map as Map
@@ -60,6 +61,18 @@ readMorph :: [(String,[AvPair])] -> MorphFn
 readMorph minfo pred = Map.lookup key fm
   where fm = Map.fromList minfo
         key = snd3 pred 
+\end{code}
+
+\fnlabel{stripMorphSem} filters away from an input semantics any
+literals whose realisation is strictly morphological.  The first
+argument tells us helps identify the morphological literals --
+it associates literals with morphological stuff; if it returns
+Nothing, then it is non-morphological 
+
+\begin{code}
+stripMorphSem :: MorphFn -> Sem -> Sem
+stripMorphSem morphfn tsem = 
+  [ l | l <- tsem, (isNothing.morphfn) l ]
 \end{code}
 
 \paragraph{attachMorph} does the bulk of the morphological input. We use

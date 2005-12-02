@@ -35,40 +35,70 @@ where
 \begin{code}
 import Control.Monad.State
 
-import Btypes (Sem)
+import Btypes (ILexEntry, SemInput, Flist)
 import Tags (TagElem)
 \end{code}
 }
 
 All backends provide the same essential functionality:
-\begin{enumerate}
-\item Something to initialise the machine from a set o
-\item 
-\end{enumerate}
+\begin{description}
+\item [run]       calls init and stepAll and potentially wraps it with some
+                  other functionality.  
+\item [init]      initialise the machine from the semantics and lexical selection 
+\item [step]      run a realisation step
+\item [stepAll]   run all realisations steps until completion
+\item [finished]  determine if realisation is finished
+\item [stats]     extract various statistics from it
+\item [setStats]  set the statistical information 
+\item [unpack]    unpack chart results into a list of sentences
+\end{description}
 
 \begin{code}
 data Builder st it pa = Builder
-  { init     :: Sem -> [TagElem] -> pa -> st
-  , step     :: State st [it] 
+  { init     :: Input -> pa -> st
+  --
+  , step     :: State st ()
+  , stepAll  :: State st ()
+  , run      :: Input -> pa -> st 
+  --
   , finished :: st -> Bool
   , stats    :: st -> Gstats
-  , setStats :: Gstats -> st -> st }
+  , setStats :: Gstats -> st -> st 
+  , unpack   :: st -> [UninflectedSentence] }
+\end{code}
+
+To simplify interaction with the backend, we provide a single data
+structure which represents all the inputs a backend could take.
+
+\begin{code}
+data Input = 
+  Input { inSemInput :: SemInput
+        , inLex      :: [ILexEntry]  -- debugger
+        , inCands    :: [TagElem] }
 \end{code}
 
 \section{Using builders}
 
-\fnlabel{run} recursively steps through the builder until its stopping
-condition has been reached.  It returns the results from each step.
+\fnlabel{defaultStepAll} provides a default implementation for
+Builder's \fnlabel{stepAll} function.
 
 \begin{code}
-run :: Builder st it pa -> (State st [it])
-run b = 
+defaultStepAll :: Builder st it pa -> (State st ())
+defaultStepAll b = 
  do s <- get
-    if (finished b) s
-       then return []
-       else do res  <- (step b)
-               next <- (run b)
-               return (res ++ next)
+    unless (finished b s) $ 
+      do step b
+         defaultStepAll b
+\end{code}
+
+\section{Uninflected words and sentences}
+
+Each word of an uninflected sentence consists of a lemma and some
+feature structures.
+
+\begin{code}
+type UninflectedWord  = (String, Flist)
+type UninflectedSentence = [ UninflectedWord ] 
 \end{code}
 
 \section{Statistics}

@@ -37,8 +37,7 @@ import Control.Monad
 import Control.Monad.State 
   (State, get, put)
 import Data.List (intersect, partition, (\\))
-import Data.Maybe (catMaybes, isJust, mapMaybe)
-import Data.Tree 
+import Data.Maybe (isJust)
 import Data.Bits
 
 import Btypes 
@@ -101,9 +100,11 @@ type BState = State BuilderStatus
 derivationsBuilder = B.Builder 
   { B.init = initBuilder
   , B.step = generateStep
+  , B.stepAll = B.run
   , B.finished = finished -- should add check that step is aux
   , B.stats    = genstats 
-  , B.setStats = \t s -> s { genstats = t } }
+  , B.setStats = \t s -> s { genstats = t }
+  }
 
 type Agenda = [ChartItem]
 type AuxAgenda  = [ChartItem]
@@ -116,8 +117,8 @@ type Trash = [ChartItem]
 \paragraph{initBuilderState} Creates an initial Builder.  
 
 \begin{code}
-initBuilder :: Sem -> [TagElem] -> Params -> BuilderStatus 
-initBuilder ts cands config = 
+initBuilder :: SemInput -> [TagElem] -> Params -> BuilderStatus 
+initBuilder (ts,_) cands config = 
   let items = zipWith toChartItem [0..] cands
       (a,i) = partition closedAux items
   in S { theAgenda  = i
@@ -269,8 +270,10 @@ generateStep2 =
      let performOperation 
            | not unique         = return []
            | otherwise          = applySubstitution given
-           -- | curStep == Initial = applySubstitution given
-           -- | otherwise          = return []
+{-
+           | curStep == Initial = applySubstitution given
+           | otherwise          = return []
+-}
      -- put any new results where they belong
      -- (agenda, aux agenda, results list, etc) 
      res <- performOperation >>= dispatchNew 
@@ -533,7 +536,7 @@ propagate.  Otherwise we return Nothing.
 unifyTagSites :: TagSite -> TagSite -> Maybe (Flist, Flist, Subst)
 unifyTagSites (_, t1, b1) (_, t2, b2) =
   let (succ1, newTop, subst1)  = unifyFeat t1 t2
-      (succ2, newBot, subst2)  = unifyFeat (replace subst1 b1) (replace subst1 b1)
+      (succ2, newBot, subst2)  = unifyFeat (replace subst1 b1) (replace subst1 b2)
   in if succ1 && succ2  
      then Just (newTop, newBot, subst1 ++ subst2)
      else Nothing
@@ -569,6 +572,8 @@ toChartItem id te = ChartItem
   { ciRootNode   = (toSite.root.ttree) te
   , ciSubstnodes = substnodes te
   , ciFootNode   = Nothing 
+  , ciSemantics  = tsemantics te
+  , ciPolpaths   = tpolpaths te
   -- if (ttype te == Auxiliar) 
   -- then Just $ foot $ ttree te else Nothing
   , ciId = id
