@@ -11,7 +11,12 @@
 # configuration 
 # --------------------------------------------------------------------
 
-include config/config.mk
+# include this file if configure had been run
+# see the $(config_file) target to make it complain
+config_file:=config/config.mk
+ifneq '$(wildcard $(config_file))' ''
+include $(config_file) 
+endif
 
 # i know, i know, i should be using autotools... 
 # but *whine* it's so hard!
@@ -146,8 +151,14 @@ tidy:
 	rm -f $(SRC_GENI)/*.{dvi,aux,log,bbl,blg,out,toc}
 	rm -f $(SRC_GENI)/*.{p_hi,p_o,hi,o}
 
-permissions:
+permissions: $(config_file)
 	chmod u+x $(SCRIPT_FILES)
+
+$(config_file):
+	chmod u+x configure
+	@echo >&2 "Please run ./configure to setup the build system."
+	@exit 1
+
 # --------------------------------------------------------------------
 # compilation 
 # --------------------------------------------------------------------
