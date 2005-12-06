@@ -15,17 +15,16 @@
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-\chapter{Derivations builder}
-\label{cha:DerivationsBuilder}
+\chapter{Cky builder}
+\label{cha:CkyBuilder}
 
-GenI current has two backends, Mstate (chapter \ref{cha:Mstate}) and 
-this module.  This backend does not attempt to build derived trees
-until the very end.  Instead, we build a derivation tree which can
-then be read to extract the sentences.  We do, however, use an agenda
-and chart control mechanism like Mstate, just with different items.
+GenI current has two backends, SimpleBuilder (chapter \ref{cha:SimpleBuilder})
+and this module.  This backend does not attempt to build derived trees until
+the very end.  Instead, we build a derivation tree using the CKY algorithm for
+TAGs.  
 
 \begin{code}
-module DerivationsBuilder
+module CkyBuilder
 where
 \end{code}
 
@@ -97,10 +96,10 @@ data BuilderStatus = S
 
 type BState = State BuilderStatus 
 
-derivationsBuilder = B.Builder 
+ckyBuilder = B.Builder 
   { B.init = initBuilder
   , B.step = generateStep
-  , B.stepAll  = B.defaultStepAll derivationsBuilder 
+  , B.stepAll  = B.defaultStepAll ckyBuilder 
   , B.finished = finished -- should add check that step is aux
   , B.stats    = genstats 
   , B.setStats = \t s -> s { genstats = t }
@@ -166,9 +165,9 @@ addToTrash te err = do
     put s { theTrash = te2 : (theTrash s) }
   -}
 
-incrSzchart = B.incrSzchart derivationsBuilder
-incrGeniter = B.incrGeniter derivationsBuilder
-incrNumcompar = B.incrNumcompar derivationsBuilder
+incrSzchart = B.incrSzchart ckyBuilder
+incrGeniter = B.incrGeniter ckyBuilder
+incrNumcompar = B.incrNumcompar ckyBuilder
 \end{code}
 
 \subsection{Chart items}
@@ -376,15 +375,6 @@ dispatchNew l =
      -- -------------------------------------------------- 
      -- we perform top/bottom unification on any results
      return () 
-{-
-     let tbUnify x =
-          case (tbUnifyTree x) of
-            Left n  -> do let x2 = x { thighlight = [n] }
-                          addToTrash x2 TS_TbUnify 
-                          return False 
-            Right _ -> return True 
-     filterM tbUnify res
--}
 \end{code}
 
 % --------------------------------------------------------------------  

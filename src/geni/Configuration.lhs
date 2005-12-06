@@ -22,11 +22,11 @@ The input to this module is simply \texttt{argv}.
 
 \begin{code}
 module Configuration 
-  (Params(..), GrammarType(..), Switch(..),
-   polarised, polsig, predicting,
-   semfiltered, chartsharing, footconstr, 
-   isBatch, emptyParams, 
-   treatArgs, optBatch)
+  ( Params(..), GrammarType(..), BuilderType(..), Switch(..)
+  , polarised, polsig, predicting
+  , semfiltered, chartsharing, footconstr
+  , isBatch, emptyParams
+  , treatArgs, optBatch)
 where
 \end{code}
 
@@ -157,7 +157,7 @@ switches that we use.
 data GrammarType = GeniHand | TAGML | XMGTools 
      deriving (Show, Eq)
 
-data BuilderType = SimpleBuilder 
+data BuilderType = SimpleBuilder | CkyBuilder
      deriving (Show, Eq)
 
 data Switch = 
@@ -167,6 +167,7 @@ data Switch =
     CmdTok String String | -- key / command 
     OutputFileTok String |
     IgnoreSemanticsTok Bool | MaxTreesTok String |
+    BuilderTok String |
     -- grammar file
     GrammarType GrammarType  | 
     MacrosTok String         | LexiconTok String | MorphInfoTok String | 
@@ -213,7 +214,9 @@ optionsBasic =
     
 optionsAdvanced :: [OptDescr Switch] 
 optionsAdvanced =
-  [ Option []    ["xmgtools"] (NoArg (GrammarType XMGTools))
+  [ Option ['b'] ["builder"]  (ReqArg BuilderTok "BUILDER")
+      "use as realisation engine one of: simple cky" 
+  , Option []    ["xmgtools"] (NoArg (GrammarType XMGTools))
       "use XMG format for trees and GDE format for lexicon"
   , Option []    ["extrapols"] (ReqArg ExtraPolaritiesTok "STRING")
       "preset polarities (normally, you should use rootcats instead)" 
@@ -360,6 +363,10 @@ defineParams p (f:s) = defineParams pnext s
       MacrosTok    v -> p {macrosFile  = v}
       LexiconTok   v -> p {lexiconFile = v} 
       TestSuiteTok v -> p {tsFile = v}
+      -- builders
+      BuilderTok "cky"    -> p { builderType = CkyBuilder }
+      BuilderTok "simple" -> p { builderType = SimpleBuilder }
+      BuilderTok v        -> error ("unknown builder: " ++ v)
       -- advanced stuff
       RootCategoriesTok v -> p {rootCatsParam = wordsBy '+' v}
       MorphInfoTok v      -> p {morphFile   = v}

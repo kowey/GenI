@@ -82,7 +82,7 @@ import GeniParsers (geniMacros,
                     geniMorphInfo)
 import Morphology
 
--- import DerivationsBuilder 
+-- import CkyBuilder 
 -- import SimpleBuilder (simpleBuilder)
 
 -- Not for windows

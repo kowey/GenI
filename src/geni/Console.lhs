@@ -21,7 +21,7 @@ This module handles the console user interface, batch processing, and test
 suites.  
 
 \begin{code}
-module Console(consoleGenerate) where
+module Console(consoleGeni) where
 \end{code}
 
 \ignore{
@@ -32,8 +32,12 @@ import Data.IORef(readIORef, modifyIORef)
 
 import General(ePutStrLn) 
 import Geni
-import Configuration(Params, isGraphical, outputFile)
-import DerivationsBuilder
+import Configuration
+  ( Params, isGraphical, outputFile
+  , builderType
+  , BuilderType(CkyBuilder, SimpleBuilder) )
+import qualified Builder as B
+import CkyBuilder
 import SimpleBuilder
 \end{code}
 }
@@ -48,8 +52,8 @@ handle one test case at a time.  If you want do process the whole
 test suite, you'll have to write a shell script.
 
 \begin{code}
-consoleGenerate :: ProgStateRef -> IO()
-consoleGenerate pstRef = do 
+consoleGeni :: ProgStateRef -> IO()
+consoleGeni pstRef = do 
   pst <- readIORef pstRef
   when (isGraphical $ pa pst) $ do
     ePutStrLn "GUI not available"
@@ -157,10 +161,17 @@ runTestCase pstRef =
                       Just s  -> return $ snd s
      --
      modifyIORef pstRef (\x -> x{ts = sem})
-     (sentences, _) <- runGeni pstRef simpleBuilder
+     let config = pa pst
+     sentences <- case builderType config of
+       SimpleBuilder -> helper simpleBuilder 
+       CkyBuilder    -> helper ckyBuilder 
      -- if no output file is set, write to stdout
      let oPutStrLn = if (null pstOutfile) then putStrLn 
                      else writeFile pstOutfile 
      oPutStrLn (unlines sentences)
-     return ()
+  where 
+    helper :: B.Builder st it Params -> IO [String] 
+    helper builder =
+     do (sentences, _) <- runGeni pstRef builder        
+        return sentences
 \end{code}
