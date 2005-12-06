@@ -33,13 +33,13 @@ import System(getArgs)
 import qualified Data.Map as Map
 
 import Geni(ProgState(..))
-import Console(consoleGenerate)
+import Console(consoleGeni)
 import Configuration(treatArgs, isGraphical, isBatch, Params)
 
 #ifndef DISABLE_GUI
-import Gui(guiGenerate)
+import Gui(guiGeni)
 #else
-guiGenerate = consoleGenerate
+guiGeni = consoleGeni
 #endif
 \end{code}
 }
@@ -48,10 +48,10 @@ In figure \ref{fig:code-outline-main} we show what happens from main: First, we
 hand control off to either the console or the graphical user interface.  These
 functions then do all the business stuff like loading files and figuring out
 what to generate.  From there, they invoke the the generation step
-\fnreflite{runGeni}.  The function runGeni takes an argument which determines
-how exactly to run the generator.  For more details, see page
-\pageref{fn:runGeni}.
-
+\fnref{runGeni} which does surface realisation from A-Z.  Alternately, the
+graphical interface could invoke \fnref{debugGui} which also does surface
+realisation from A-Z but allows you to intervene, inspect and stop at each
+step.
 \begin{figure}
 \begin{center}
 \includegraphics[scale=0.25]{images/code-outline-main}
@@ -69,8 +69,8 @@ main = do
   let notBatch  = not (isBatch confArgs)
       graphical = isGraphical confArgs 
   if (graphical && notBatch) 
-     then guiGenerate pstRef
-     else consoleGenerate pstRef
+     then guiGeni pstRef
+     else consoleGeni pstRef
 \end{code}
 
 \paragraph{emptyProgState} is the program state when you start GenI for the very first time
