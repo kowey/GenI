@@ -37,8 +37,7 @@ import System.Process (runProcess)
 import Geni 
   ( ProgState(..), ProgStateRef
   , initGeni, runGeni
-  , showRealisations
-  , loadGrammar, loadTargetSemStr)
+  , showRealisations )
 import General (snd3)
 import Btypes 
   (showLexeme,
@@ -49,7 +48,8 @@ import Tags (idname,emptyTE,tsemantics,thighlight,
 import Configuration ( Params(..), polarised, chartsharing )
 import GuiHelper
 
-import qualified Builder as B
+import qualified Builder    as B
+import qualified BuilderGui as BG 
 import Polarity
 import SimpleBuilder 
   ( simpleBuilder, setup, SimpleStatus, genconfig 
@@ -58,33 +58,24 @@ import SimpleBuilder
 }
 
 % --------------------------------------------------------------------
+\section{Interface}
+% --------------------------------------------------------------------
+
+\begin{code}
+simpleGui = BG.BuilderGui {
+      BG.generateGui = generateGui 
+    , BG.debugGui = debugGui }
+
+generateGui :: ProgStateRef -> IO ()
+generateGui pstRef = 
+  do res <- runGeni pstRef simpleBuilder 
+     resultsGui pstRef res
+\end{code}
+
+% --------------------------------------------------------------------
 \section{Results}
 \label{sec:results_gui}
 % --------------------------------------------------------------------
-
-\paragraph{doGenerate} parses the target semantics, then calls the
-generator and displays the result in a results gui (below).
-
-\begin{code}
-doGenerate :: Textual b => Window a -> ProgStateRef -> b -> Bool -> IO ()
-doGenerate f pstRef sembox debugger = do 
-  loadGrammar pstRef
-  let handler title err = errorDialog f title (show err)
-      handler1 err = handler "Error (probably the target semantics): " err 
-      -- handler2 err = do handler "Error during generation:" err
-                        --return GR { grCand = [], grAuts = [], grCombos = [], 
-                        --grFinalAut = emptyaut, grDerived  = [], grStats    = ""}
-  sem <- get sembox text
-  let dodebug = do loadTargetSemStr pstRef sem
-                   debugGui pstRef 
-                   return ()
-      dogen = do loadTargetSemStr pstRef sem
-                 res <- runGeni pstRef simpleBuilder 
-                 resultsGui pstRef res
-  -- FIXME: it would be nice to distinguish between generation and ts
-  -- parsing errors
-  (if debugger then dodebug else dogen) `catch` handler1
-\end{code}
 
 \paragraph{resultsGui} displays generation result in a window.  The window
 consists of various tabs for intermediary results in lexical

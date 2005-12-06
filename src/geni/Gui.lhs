@@ -18,7 +18,7 @@
 \chapter{Graphical User Interface} 
 
 \begin{code}
-module Gui(guiGenerate) where
+module Gui(guiGeni) where
 \end{code}
 
 \ignore{
@@ -35,17 +35,19 @@ import System.Directory
 import System.Exit (exitWith, ExitCode(ExitSuccess))
 import Text.ParserCombinators.Parsec ( runParser )
 
+import qualified BuilderGui as BG
 import Geni 
   ( ProgState(..), ProgStateRef, combine
-  , loadGrammar, loadTestSuite)
+  , loadGrammar, loadTestSuite, loadTargetSemStr)
 import General (trim, slash, bugInGeni)
 import Btypes (showSem, showPairs)
 import Tags (idname,emptyTE,tpolarities,
              TagElem)
 
-import Configuration(Params(..), Switch(..), GrammarType(..),
-                     polarised, polsig, chartsharing, 
-                     semfiltered, footconstr)
+import Configuration
+  ( Params(..), Switch(..), GrammarType(..)
+  , BuilderType(SimpleBuilder, CkyBuilder)
+  , polarised, polsig, chartsharing, semfiltered, footconstr )
 import GeniParsers 
 import GuiHelper
 
@@ -57,8 +59,8 @@ import SimpleGui
 \section{Main Gui}
 
 \begin{code}
-guiGenerate :: ProgStateRef -> IO() 
-guiGenerate pstRef = do
+guiGeni :: ProgStateRef -> IO() 
+guiGeni pstRef = do
   pst <- readIORef pstRef
   let gramConfig = pa pst
       -- errHandler title err = errorDialog f title (show err)
@@ -122,11 +124,10 @@ We add some buttons for loading files and running the generator.
        lexiconFileLabel <- staticText f [ text := lexiconFile config ]
        tsFileLabel      <- staticText f [ text := tsFile config ]
        -- Generate and Debug 
-       debugBt <- button f [ text := "Debug"
-                           , on command := doGenerate f pstRef tsTextBox True ]
-       genBt  <- button f [text := "Generate",
-                 on command := doGenerate f pstRef tsTextBox False ]
-       quitBt <- button f [ text := "Quit",
+       let genfn = doGenerate f pstRef tsTextBox
+       debugBt <- button f [ text := "Debug"  , on command := genfn True ]
+       genBt  <- button f  [text := "Generate", on command := genfn False ] 
+       quitBt <- button f  [ text := "Quit",
                  on command := close f]
                   
 \end{code}
@@ -547,7 +548,39 @@ command that makes everything ``work'':
            , hfill $ layButtons ]
         ] 
 \end{code}
-  
+ 
+% --------------------------------------------------------------------
+\section{Running the generator}
+% --------------------------------------------------------------------
+
+\paragraph{doGenerate} parses the target semantics, then calls the
+generator and displays the result in a results gui (below).
+
+\begin{code}
+doGenerate :: Textual b => Window a -> ProgStateRef -> b -> Bool -> IO ()
+doGenerate f pstRef sembox debugger = 
+ do loadGrammar pstRef
+    sem <- get sembox text
+    loadTargetSemStr pstRef sem
+    --
+    pst <- readIORef pstRef
+    let config = pa pst
+        builderGui = case builderType config of 
+          SimpleBuilder -> simpleGui
+          CkyBuilder    -> simpleGui
+        generateGui = BG.generateGui builderGui
+        debugGui    = BG.debugGui builderGui
+    --
+    do (if debugger then debugGui pstRef else generateGui pstRef) 
+    `catch` handler "Error during realisation"
+  -- FIXME: it would be nice to distinguish between generation and ts
+  -- parsing errors
+ `catch` (handler "Error parsing the input semantics")
+ where
+   handler title err = errorDialog f title (show err)
+\end{code}
+
+ 
 % --------------------------------------------------------------------
 \section{Tree browser}
 \label{sec:treebrowser_gui}
