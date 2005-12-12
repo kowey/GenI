@@ -1,6 +1,4 @@
-: # *-*-perl-*-*
-eval 'exec perl -w -S  $0 ${1+"$@"}' 
-  if 0;  # if running under some shell
+#!/usr/bin/env perl
 
 # ----------------------------------------------------------------------  
 # What's this?
@@ -10,10 +8,6 @@ eval 'exec perl -w -S  $0 ${1+"$@"}'
 # metagrammar valuations list.  The purpose of this script is help
 # the grammar hacker avoid recompiling the entire XMG metagrammar
 # everytime she makes an edit.  Only the relevant subset is compiled.
-#
-# It tries to be reasonably clever by only compiling the metagrammar
-# if there have been any modifications.
-#
 # ----------------------------------------------------------------------  
 # How do I use it?
 #
@@ -24,11 +18,10 @@ eval 'exec perl -w -S  $0 ${1+"$@"}'
 #    -s testsuite
 #
 # Note: 
-# 1. you need to have an actual working XMG metagrammar 
+# 1. we assume that your grammar has the same name as your
+#    .rec file, but with an .mg extension
+# 2. you need to have an actual working XMG metagrammar 
 #    all this script does is produce a list XMG values
-# 2. includes.mg - in the same directory as your grammar, you 
-#    should have all the either bits of the metagrammar as well 
-#    as a file includes.mg
 # ----------------------------------------------------------------------  
 
 use strict;
@@ -36,79 +29,97 @@ use File::Basename;
 
 # command line arguments
 if ($#ARGV != 0) {
-  printf STDERR "usage: runXMGfilter.pl grammar_file\n";
+  printf STDERR "usage: runXMGfilter grammar_file\n";
   exit 1;
 }
 # infer the GRAMMAR_DIR from the grammar_file
-my $DESIRED_REC=$ARGV[0];
-my $GRAMMAR_DIR=dirname($DESIRED_REC);
+my $INPUT_REC=$ARGV[0];
+my $GRAMMAR_DIR=dirname($INPUT_REC);
 
-my $DESIRED_MG=$GRAMMAR_DIR."/".basename($DESIRED_REC,".rec").".mg";
-my $STUB=$GRAMMAR_DIR."/includes.mg";
+my $INPUT_MG_BASE=basename($INPUT_REC,".rec").".mg";
+my $INPUT_MG=$GRAMMAR_DIR."/".$INPUT_MG_BASE;
 
-# environment stuff
-my $USERNAME=`whoami`; chomp $USERNAME;
-my $TMP_FILE_PREFIX="/tmp/geni_to_sel-$USERNAME";
-my $TMP_RES_PREFIX="/tmp/geni_from_sel-$USERNAME";
-my $TMP_MG_FILE_PRESTUB="filtered-$USERNAME";
+my $TMP_FILTERED_FILE=$GRAMMAR_DIR."/tmp-filtered-".$INPUT_MG_BASE;
+my $OLD_FILTERED_FILE=$GRAMMAR_DIR."/filtered-".$INPUT_MG_BASE;
 
-my $TMP_MG_FILE_STUB="filtered-$USERNAME-$$";
-my $TMP_MG_FILE="$GRAMMAR_DIR/$TMP_MG_FILE_STUB.mg";
-#my $TMP_FIL_FILE="$TMP_FILE_PREFIX-$$.fil";
-#my $TMP_RES_FILE="$TMP_RES_PREFIX-$$.geni";
-
-# delete previous results
-my @delete_me = glob "$GRAMMAR_DIR/$TMP_MG_FILE_PRESTUB* $TMP_FILE_PREFIX* $TMP_RES_PREFIX*";
-unlink @delete_me;
-
-# have the mg source files been modified since the last 
-# grammar generated?
-my $is_mg_modified = 1;
-if (-e $DESIRED_REC) {
-  $is_mg_modified = 0;
-  my $rec_mod_age = -M $DESIRED_REC;
-  for my $mg_file (glob "$GRAMMAR_DIR/*.mg") {
-    if (-M $mg_file < $rec_mod_age) {
-      $is_mg_modified = 1;
-      last;
-    }
-  }
-}
+# ----------------------------------------------------------------------
+# creating the tmp .mg
+# ----------------------------------------------------------------------
 
 # print out the stub contents
-open MG, ">$TMP_MG_FILE";
-open STUB, $STUB;
-while (<STUB>) { print MG; }
-close STUB;
-close MG;
-
-# is there any difference between the last metagrammar
-# generated and this one?
-my $the_diff=`diff $TMP_MG_FILE $DESIRED_MG`;
-my $CURRENT_REC;
-
-# if either one of the mg source files has been modified
-# or we are using a different set of values, recompile 
-# the metagrammar
-if ($is_mg_modified or $the_diff ne "") {
-  # generate the grammar and perform XMG selection
-  my $TMP_REC="$TMP_MG_FILE_STUB.tmp.rec";
-  my $the_cmd = "";
-  $the_cmd .= "cd $GRAMMAR_DIR;";
-  $the_cmd .= "MetaTAG $TMP_MG_FILE_STUB.mg --chk -c $TMP_REC;";
-  $the_cmd .= "CheckTAG $TMP_REC --chk -c $TMP_MG_FILE_STUB.rec";
-  print STDERR $the_cmd;
-  system $the_cmd;
-
-  # remove the old copies of the latest mg/rec files
-  unlink $DESIRED_MG if (-e $DESIRED_MG);
-  unlink $DESIRED_REC if (-e $DESIRED_REC);
-
-  # copy the latest results over for safe keeping
-  link "$GRAMMAR_DIR/$TMP_MG_FILE_STUB.mg",  $DESIRED_MG;
-  link "$GRAMMAR_DIR/$TMP_MG_FILE_STUB.rec", $DESIRED_REC;
-
-  if (not -s "$GRAMMAR_DIR/$TMP_REC") {
-    die "Error compiling the metagrammar $DESIRED_MG!";
+open OUTPUT_MG, ">$TMP_FILTERED_FILE";
+open INPUT_MG, $INPUT_MG;
+while (<INPUT_MG>) { 
+  my $line = $_;
+  if (/^include (.*?)\s*$/) {
+    my $included  = $GRAMMAR_DIR."/".$1;
+    my $has_value = 0;
+    # first: does the file have values?
+    open TMP, $included;
+    while (<TMP>) { 
+      if (/(^value)/) {
+        $has_value = 1;
+        last;
+      }
+    }
+    close TMP;
+    # second: if it does, cat it, but comment out the values
+    if ($has_value) {
+      open TMP, $included;
+      while (<TMP>) { 
+        s/^(value)/%$1/;
+        print OUTPUT_MG;
+      }
+      close TMP;
+    } else {
+      printf OUTPUT_MG $line;
+    }
+  } else {
+    # print any other line you see
+    print OUTPUT_MG; 
   }
 }
+close INPUT_MG;
+# detect the values
+my @values = ();
+while (<STDIN>) {
+  print FIL;
+  chomp;
+  if (/family:([[:alpha:][:digit:]-_]*)/) {
+    my $family = $1;
+    push @values, "value $family\n";
+  }
+}
+# remove duplicate entries
+my %seen = ();
+my @uniq_values = grep { ! $seen{$_} ++ } @values;
+# print out the values
+foreach my $v (@uniq_values) { print OUTPUT_MG $v; }
+close OUTPUT_MG;
+
+# ----------------------------------------------------------------------
+# finalising the results
+# ----------------------------------------------------------------------
+
+# if the tmp file is any different from the old one, delete the old one
+if (-e $OLD_FILTERED_FILE) {
+  my $the_diff=`diff $OLD_FILTERED_FILE $TMP_FILTERED_FILE`;
+  unlink $OLD_FILTERED_FILE if ($the_diff ne "");
+}
+
+# if the old file (still) exists, remove the new file because it's identical
+# otherwise, rename the tmp file to make it official
+if (-e $OLD_FILTERED_FILE) {
+  printf STDERR "the tmp file is identical; tossing\n";
+  unlink $TMP_FILTERED_FILE;
+} else {
+  printf STDERR "the tmp file is new; renaming\n";
+  rename $TMP_FILTERED_FILE, $OLD_FILTERED_FILE;
+} 
+
+# print some non-results for GenI
+printf "%% runXMGfilter never returns results\n";
+printf "%% see $TMP_FILTERED_FILE\n";
+
+# *-*-perl-*-*
+# vim: syntax=perl
