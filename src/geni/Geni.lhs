@@ -696,8 +696,7 @@ runXMGLexSelection pst =
            case (Map.lookup id lexMap) of
              Nothing  -> fail ("no such lexical entry " ++ id)
              Just lex -> return $ combineXMG lex ts 
-           where id  = reverse $ tail $ dropWhile (/= 'x') $ reverse fam -- FIXME : HACK!
-                 fam = tail $ pfamily ts -- FIXME: hack! 
+           where id = takeWhile (/= 'x') $ tail $ pfamily ts --FIXME: hack!
      cand <- mapM fixate g
      -- attach any morphological information to the candidates
      let morphfn  = morphinf pst
