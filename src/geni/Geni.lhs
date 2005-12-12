@@ -591,7 +591,7 @@ chooseLexCand slex tsem =
       -- and refine the selection... 
       cand2 = chooseCandI tsem cand
       -- treat synonyms as a single lexical entry
-      cand3 = mergeSynonyms cand2
+      cand3 = cand2
   in cand3
 \end{code}
 
