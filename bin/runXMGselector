@@ -16,7 +16,7 @@ rm ${TMP_FILE_PREFIX}* ${TMP_RES_PREFIX}*
 cat > ${TMP_FIL_FILE}
 
 # run the selector
-SelectTAG ${GRAMMAR_FILE} ${TMP_FIL_FILE} --geni -o ${TMP_RES_FILE}
+SelectTAG ${GRAMMAR_FILE} ${TMP_FIL_FILE} --geni -o ${TMP_RES_FILE} > /dev/null
 CMDEXIT=$?
 
 #if [ -r ${TMP_RES_FILE} ]; then
