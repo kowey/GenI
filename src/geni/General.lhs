@@ -149,11 +149,7 @@ nodes, not a tree.
 
 \begin{code}
 filterTree :: (a->Bool) -> Tree a -> [a]
-filterTree fn (Node a []) = 
-  if fn a then [a] else []
-filterTree fn (Node a l)  = 
-  if fn a then a:next else next
-  where next = concatMap (filterTree fn) l
+filterTree fn = (filter fn) . flatten
 \end{code}
 
 \fnlabel{treeLeaves} returns the leaf nodes of a Tree.
