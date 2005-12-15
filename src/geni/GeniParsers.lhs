@@ -108,7 +108,7 @@ geniSemanticInput =
      sem <- squares geniSemantics 
      res <- option [] $ do { keyword "restrictors" ; geniFeats } 
      --
-     return (createHandles $ sortSem sem, res)
+     return (createHandles sem, res)
   where 
      -- set all anonymous handles to some unique value
      -- this is to simplify checking if a result is
@@ -244,10 +244,12 @@ geniTreeDef ttypeP =
      (params,iface)   <- geniParams 
      ttype    <- ttypeP
      theTree  <- geniTree
+     sem <- option [] $ try $ do { keywordSemantics; squares geniSemantics }
      --
      return TT{ params = params 
               , pfamily = family
               , pidname = id
+              , psemantics = sem
               , pfeat = iface 
               , ptype = ttype 
               , tree = theTree
@@ -296,7 +298,7 @@ geniNode =
      nodeType  <- option "" (do { typeIs; typeParser }
                              <|> try (symbol "anchor"))
      lex    <- if nodeType == lexType 
-                  then (sepBy stringLiteral (symbol "|") <?> "some lexemes") 
+                  then (sepBy (stringLiteral<|>identifier) (symbol "|") <?> "some lexemes") 
                   else return [] 
      constr <- if null nodeType 
                   then adjConstraintParser 
@@ -475,7 +477,9 @@ equivalent to providing an anonymous one.
 
 \begin{code}
 geniSemantics :: Parser Sem
-geniSemantics = many (geniLiteral <?> "a literal")
+geniSemantics = 
+  do sem <- many (geniLiteral <?> "a literal")
+     return (sortSem sem)
 
 geniLiteral :: Parser Pred
 geniLiteral =  
@@ -499,8 +503,7 @@ polarities, we can start using a regular semantics again.
 geniLexSemantics :: Parser (Sem, [[Int]])
 geniLexSemantics = 
   do litpols <- many (geniLexLiteral <?> "a literal")
-     let (sem, pols) = unzip litpols
-     return (sortSem sem, pols)
+     return $ unzip litpols
 
 geniLexLiteral :: Parser (Pred, [Int])
 geniLexLiteral =  

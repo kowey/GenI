@@ -47,7 +47,7 @@ import Text.ParserCombinators.Parsec
 -- import System.Process 
 
 import Control.Monad (when)
-import General(groupAndCount, multiGroupByFM, ePutStr, ePutStrLn, eFlush)
+import General(filterTree, groupAndCount, multiGroupByFM, ePutStr, ePutStrLn, eFlush)
 
 import Btypes (Macros, MTtree, ILexEntry, Lexicon, 
                Replacable(..),
@@ -58,9 +58,10 @@ import Btypes (Macros, MTtree, ILexEntry, Lexicon,
                ipfeat, ifilters,
                isempols, 
                gnname, gtype, gaconstr, gup, gdown, toKeys,
+               glexeme, 
                sortSem, subsumeSem, params, 
                showLexeme,
-               pidname, pfamily, pfeat, ptype, 
+               pidname, pfamily, pfeat, ptype, psemantics,
                setLexeme, tree, unifyFeat)
 
 import Tags (Tags, TagElem, emptyTE, TagSite, 
@@ -429,47 +430,113 @@ succeed in anchoring it.
 \begin{code}
 runLexSelection :: ProgState -> IO ([TagElem], [ILexEntry])
 runLexSelection pst = 
-  case (grammarType $ pa pst) of  
-        XMGTools -> runXMGLexSelection pst
-        _        -> runBasicLexSelection pst
+ do -- select lexical items first 
+    let (tsem,_) = ts pst
+        lexicon  = le pst
+        lexCand   = chooseLexCand lexicon tsem
+    -- then anchor these lexical items to trees
+    let combineWithGr = combineList (gr pst)
+    cand <- case (grammarType $ pa pst) of  
+              XMGTools -> runXMGAnchoring pst lexCand
+              _        -> return (concatMap combineWithGr lexCand)
+    -- attach any morphological information to the candidates
+    let morphfn  = morphinf pst
+        cand2    = attachMorph morphfn tsem cand 
+    -- assign ids to each candidate
+    let cand3 =  setTidnums cand2
+    return (cand3, lexCand)
+\end{code}
 
-runBasicLexSelection :: ProgState -> IO ([TagElem], [ILexEntry])
-runBasicLexSelection pst = do
-  let (tsem,_) = ts pst
-      lexicon  = le pst
-      -- select lexical items first 
-      lexCand   = chooseLexCand lexicon tsem
-      -- then anchor these lexical items to trees
-      combiner = combineList (gr pst) 
-      cand     = concatMap combiner lexCand
-      -- attach any morphological information to the candidates
-      morphfn  = morphinf pst
-      cand2    = attachMorph morphfn tsem cand 
-  return (setTidnums cand2, lexCand)
+\paragraph{chooseLexCand} selects and returns the set of entries from
+the lexicon whose semantics subsumes the input semantics. 
+
+\begin{code}
+chooseLexCand :: Lexicon -> Sem -> [ILexEntry]
+chooseLexCand slex tsem = 
+  let -- the initial "MYEMPTY" takes care of items with empty semantics
+      keys = myEMPTY:(toKeys tsem)   
+      -- we choose candidates that match keys
+      lookuplex t = Map.findWithDefault [] t slex
+      cand  = concatMap lookuplex keys
+      -- and refine the selection... 
+      cand2 = chooseCandI tsem cand
+      -- treat synonyms as a single lexical entry
+      cand3 = mergeSynonyms cand2
+  in cand3
+\end{code}
+
+With a helper function, we refine the candidate selection by
+instatiating the semantics, at the same time filtering those which
+do not stay within the target semantics, and finally eliminating 
+the duplicates.
+
+\begin{code}
+chooseCandI :: Sem -> [ILexEntry] -> [ILexEntry]
+chooseCandI tsem cand =
+  let replaceLex i (sem,sub) = 
+        (replace sub i) { isemantics = sem }
+      --
+      helper :: ILexEntry -> [ILexEntry]
+      helper le = if (null sem) then [le] 
+                  else map (replaceLex le) psubsem 
+        where psubsem = subsumeSem tsem sem
+              sem = isemantics le
+      --
+  in nub $ concatMap helper cand 
+\end{code}
+
+\paragraph{mapBySemKeys} organises items by their semantic key.  A
+semantic key is a semantic literal boiled down to predicate plus arity
+(see section \ref{btypes_semantics}).  Given \texttt{xs} a list of items
+and \texttt{fn} a function which retrieves the item's semantics, we
+return a Map from semantic key to a list of items with that key.
+An item may have multiple keys.
+
+This is used to organise the lexicon by its semantics.
+
+\begin{code}
+mapBySemKeys :: (a -> Sem) -> [a] -> Map.Map String [a]
+mapBySemKeys semfn xs = 
+  let gfn t = if (null s) then [myEMPTY] else toKeys s 
+              where s = semfn t
+  in multiGroupByFM gfn xs
+\end{code}
+
+\fnlabel{mergeSynonyms} is a factorisation technique that uses
+atomic disjunction to merge all synonyms into a single lexical
+entry.  Two lexical entries are considered synonyms if their
+semantics match and they point to the same tree families.
+
+\begin{code}
+mergeSynonyms :: [ILexEntry] -> [ILexEntry]
+mergeSynonyms lex =
+  let mergeFn l1 l2 = l1 { iword = (iword l1) ++ (iword l2) }
+      keyFn l = (ifamname l, isemantics l)   
+      synMap = foldr helper Map.empty lex  
+        where helper x acc = Map.insertWith mergeFn (keyFn x) x acc 
+  in Map.elems synMap
 \end{code}
 
 % --------------------------------------------------------------------
-\subsection{Basic selection}
-\subsubsection{Combine}
+\subsection{Basic anchoring}
 \label{sec:combine_macros}
 % --------------------------------------------------------------------
 
-combine: Given 
-- the Macros and 
-- a list of ILexEntry (read from the Lexicon.in file) 
+\fnlabel{combine}: Given 
+\begin{itemize}
+\item the Macros 
+\item a list of ILexEntry (read from the Lexicon.in file) 
+\end{itemize}
 
-it creates the Tags repository combining lexical entries and
+It creates the Tags repository combining lexical entries and
 un-anchored trees from the grammar. It also unifies the parameters
 used to specialize un-anchored trees and propagates additional features
 given in the ILexEntry. 
 
-\begin{code}
-combine :: Macros -> Lexicon -> Tags
-\end{code}
-
 We start by collecting all the features and parameters we want to combine.
 
 \begin{code}
+combine :: Macros -> Lexicon -> Tags
 combine gram lexicon =
   let helper li = map (combineOne li) macs 
        where tn   = ifamname li
@@ -574,81 +641,7 @@ detectSites (Node a lt) =
 \end{code}
 
 % --------------------------------------------------------------------
-\subsubsection{The selection process}
-% --------------------------------------------------------------------
-
-\paragraph{chooseLexCand} selects and returns the set of entries from
-the lexicon whose semantics subsumes the input semantics. 
-
-\begin{code}
-chooseLexCand :: Lexicon -> Sem -> [ILexEntry]
-chooseLexCand slex tsem = 
-  let -- the initial "MYEMPTY" takes care of items with empty semantics
-      keys = myEMPTY:(toKeys tsem)   
-      -- we choose candidates that match keys
-      lookuplex t = Map.findWithDefault [] t slex
-      cand  = concatMap lookuplex keys
-      -- and refine the selection... 
-      cand2 = chooseCandI tsem cand
-      -- treat synonyms as a single lexical entry
-      cand3 = cand2
-  in cand3
-\end{code}
-
-With a helper function, we refine the candidate selection by
-instatiating the semantics, at the same time filtering those which
-do not stay within the target semantics, and finally eliminating 
-the duplicates.
-
-\begin{code}
-chooseCandI :: Sem -> [ILexEntry] -> [ILexEntry]
-chooseCandI tsem cand =
-  let replaceLex i (sem,sub) = 
-        (replace sub i) { isemantics = sem }
-      --
-      helper :: ILexEntry -> [ILexEntry]
-      helper le = if (null sem) then [le] 
-                  else map (replaceLex le) psubsem 
-        where psubsem = subsumeSem tsem sem
-              sem = isemantics le
-      --
-  in nub $ concatMap helper cand 
-\end{code}
-
-\paragraph{mapBySemKeys} organises items by their semantic key.  A
-semantic key is a semantic literal boiled down to predicate plus arity
-(see section \ref{btypes_semantics}).  Given \texttt{xs} a list of items
-and \texttt{fn} a function which retrieves the item's semantics, we
-return a Map from semantic key to a list of items with that key.
-An item may have multiple keys.
-
-This is used to organise the lexicon by its semantics.
-
-\begin{code}
-mapBySemKeys :: (a -> Sem) -> [a] -> Map.Map String [a]
-mapBySemKeys semfn xs = 
-  let gfn t = if (null s) then [myEMPTY] else toKeys s 
-              where s = semfn t
-  in multiGroupByFM gfn xs
-\end{code}
-
-\fnlabel{mergeSynonyms} is a factorisation technique that uses
-atomic disjunction to merge all synonyms into a single lexical
-entry.  Two lexical entries are considered synonyms if their
-semantics match and they point to the same tree families.
-
-\begin{code}
-mergeSynonyms :: [ILexEntry] -> [ILexEntry]
-mergeSynonyms lex =
-  let mergeFn l1 l2 = l1 { iword = (iword l1) ++ (iword l2) }
-      keyFn l = (ifamname l, isemantics l)   
-      synMap = foldr helper Map.empty lex  
-        where helper x acc = Map.insertWith mergeFn (keyFn x) x acc 
-  in Map.elems synMap
-\end{code}
-
-% --------------------------------------------------------------------
-\subsection{XMG selection}
+\subsection{XMG anchoring}
 \label{sec:xmg_selection}
 % --------------------------------------------------------------------
 
@@ -666,42 +659,20 @@ the Selector.  This module handles most of the XMG-specific bits of
 the lexical selection process via a XMG lexicon.  
 \end{enumerate}
 
-Hopefully one day, we will be able to refactor some of the differences
-between GenI reading its own grammar and using XMG tools.
-
-\paragraph{runXMGLexSelection} is the front end to the XMG lexical
-selection process.  
+\paragraph{runXMGAnchoring} is the front end to XMG tree anchoring.
 
 \begin{code}
-runXMGLexSelection :: ProgState -> IO ([TagElem], [ILexEntry])
-runXMGLexSelection pst = 
-  do let (tsem,_) = ts pst
-         lexicon  = le pst
-     -- figure out what grammar file to use
-     let gparams  = pa pst
+runXMGAnchoring :: ProgState -> [ILexEntry] -> IO [TagElem]
+runXMGAnchoring pst lexCand = 
+  do let gparams  = pa pst
          gramfile = macrosFile gparams
-     -- select lexical items 
-         lexCand = chooseLexCand lexicon tsem
      -- run the selector module
-     let idxs = [1..]
-         fil  = concat $ zipWith lexEntryToFil lexCand idxs 
+     let fil  = concat $ zipWith lexEntryToFil lexCand [1..]
      selected <- runSelector pst gramfile fil
      let parsed = runParser geniMacros () "" selected 
-         g = case parsed of Left err -> error (show err) 
-                            Right gr -> gr
-     --
-     let lexMap = Map.fromList $ zip (map show idxs) lexCand
-         fixate :: MTtree -> IO TagElem 
-         fixate ts = 
-           case (Map.lookup id lexMap) of
-             Nothing  -> fail ("no such lexical entry " ++ id)
-             Just lex -> return $ combineXMG lex ts 
-           where id = takeWhile (/= 'x') $ tail $ pfamily ts --FIXME: hack!
-     cand <- mapM fixate g
-     -- attach any morphological information to the candidates
-     let morphfn  = morphinf pst
-         cand2    = attachMorph morphfn tsem cand 
-     return (setTidnums cand2, lexCand)
+     case parsed of 
+       Left err -> fail (show err) 
+       Right gr -> return (map fixateXMG gr)
   -- FIXME: determine if we can nix this error handler
   --`catch` \e -> do ePutStrLn (show e)
   --                 return ([], []) 
@@ -781,31 +752,29 @@ lexEntryToFil lex n =
     ++ ")\n\n"
 \end{code}
 
-\paragraph{combineXMG} is similar to \fnref{combineOne} except that we assume
+\paragraph{fixateXMG} is similar to \fnref{combineOne} except that we assume
 the tree is completely anchored and instatiated and that thus there no boring
 unification or checks to worry about.
 
 \begin{code}
-combineXMG :: ILexEntry -> MTtree -> TagElem
-combineXMG lexitem e = 
-   let tree_ = Btypes.tree e
-       (snodes,anodes) = detectSites tree_
-       sol = emptyTE {
-                idname = (showLexeme $ iword lexitem) ++ "_" ++ pidname e,
-                derivation = (0,[]),
-                ttype  = ptype e,
-                ttree  = tree_,
-                substnodes = snodes,
-                adjnodes   = anodes,
-                -- FIXME: we completely ignore semantic info from the tree
-                -- this allows us to handle multi-literal semantics
-                tsemantics = isemantics lexitem,
-                tpolarities = Map.empty,
-                tsempols    = isempols lexitem,
-                tinterface  = pfeat e
-                -- tpredictors = combinePredictors e lexitem
-               }        
-   in sol 
+fixateXMG :: MTtree -> TagElem
+fixateXMG e = 
+  let tree_   = Btypes.tree e
+      (snodes,anodes) = detectSites tree_
+      -- for display purposes, get the list of lexemes in the tree
+      lexemes = map (head.glexeme) $ filterTree (not.null.glexeme) tree_ 
+      lexstr  = concat $ intersperse "_" $ lexemes
+      --
+  in emptyTE { idname = lexstr ++ "-" ++ pidname e 
+             , derivation = (0,[])
+             , ttype  = ptype e
+             , ttree  = tree_
+             , substnodes = snodes
+             , adjnodes   = anodes
+             , tsemantics = psemantics e
+             , tpolarities = Map.empty
+             , tsempols    = [] -- isempols lexitem
+             , tinterface  = pfeat e }
 \end{code}
 
 % --------------------------------------------------------------------

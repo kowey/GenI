@@ -93,14 +93,16 @@ type Macros = [MTtree]
 \end{code}
 
 \begin{code}
-data Ttree a = TT{params  :: [GeniVal],
-                  pfamily :: String,
-                  pidname :: String,
-                  pfeat :: Flist,
-                  ptype :: Ptype,
-                  tree :: Tree a
-                  }
-           deriving Show
+data Ttree a = TT
+  { params  :: [GeniVal]
+  , pfamily :: String
+  , pidname :: String
+  , pfeat :: Flist
+  , ptype :: Ptype
+  -- optional this semantics is only used during XMG selection
+  , psemantics :: Sem
+  , tree :: Tree a } 
+  deriving Show
 
 data Ptype = Initial | Auxiliar | Unspecified   
              deriving (Show, Eq)
@@ -115,6 +117,7 @@ emptyMacro = TT { params  = [],
                   pidname = "", 
                   pfamily = "",
                   pfeat = [],
+                  psemantics = [],
                   ptype = Unspecified,
                   tree  = Node emptyGNode []
                  }
