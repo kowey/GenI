@@ -36,17 +36,21 @@ where
 
 \ignore{
 \begin{code}
-import qualified Data.Map as Map
+import Control.Concurrent       (forkIO)
+import qualified Control.Exception
+import Control.Monad (when)
+
 import Data.IORef (IORef, readIORef, modifyIORef)
 import Data.List (intersperse, sort, nub)
+import qualified Data.Map as Map
 import Data.Tree
 
-import System.IO(hPutStrLn, hClose, hGetContents)
-import System.IO.Unsafe(unsafePerformIO)
+import System.Exit ( ExitCode(ExitSuccess, ExitFailure) )
+import System.IO (hPutStr, hClose, hGetContents)
+import System.IO.Unsafe (unsafePerformIO)
 import Text.ParserCombinators.Parsec 
 -- import System.Process 
 
-import Control.Monad (when)
 import General(filterTree, groupAndCount, multiGroupByFM, ePutStr, ePutStrLn, eFlush)
 
 import Btypes (Macros, MTtree, ILexEntry, Lexicon, 
@@ -702,21 +706,31 @@ runSelector pst gfile fil = do
       -- run the selector
      let theCmd  = selectCmd (pa pst)
          selectArgs = [gfile]
+         input = fil
      when (null theCmd) $ fail "Please specify a tree selection command!"
      ePutStr $ "Selector started.\n"
      eFlush
-     -- (toP, fromP, _, pid) <- runInteractiveProcess theCmd selectArgs Nothing Nothing
-     (pid, fromP, toP) <- runPiped theCmd selectArgs Nothing Nothing
-     hPutStrLn toP fil
+     (toP, fromP, errP, pid) <- runInteractiveProcess theCmd selectArgs Nothing Nothing
+     hPutStr toP input 
      hClose toP -- so that process gets EOF and knows it can stop
-     res    <- hGetContents fromP 
-     -- waitForProcess pid
-     awaitProcess pid 
-     {- exCode <- awaitProcess pid 
-       case exCode of 
-       Just ExitSuccess -> return ()
-       _ -> fail "There was a problem running the selector. Check your terminal." -}
-     return res
+     output <- hGetContents fromP 
+     -- strangely enough, doing an hGetContents of errP is essential if you 
+     -- want the process to come back
+     errput <- hGetContents errP 
+     -- SimonM sez:
+     -- ... avoids blocking the main thread, but ensures that all the
+     -- data gets pulled as it becomes available. you have to force the
+     -- output strings before waiting for the process to terminate.
+     forkIO (Control.Exception.evaluate (length output) >> return ())
+     forkIO (Control.Exception.evaluate (length errput) >> return ())
+     -- And now we wait. We must wait after we read, unsurprisingly.
+     -- blocks without -threaded, you're warned.
+     -- and maybe the process has already completed..
+     exCode <- Control.Exception.catch (waitForProcess pid) (\_ -> return ExitSuccess)
+     ePutStr errput
+     case exCode of 
+       ExitSuccess -> return output 
+       ExitFailure n -> fail $ "There was a problem running the selector - exited with code " ++ (show n) ++ "\nCheck your terminal." 
 #endif
 \end{code}
 
