@@ -17,8 +17,10 @@
 
 \chapter{SysGeni}
 
-The SysGeni module handles everything which is related to interaction with the
-operating system.
+The SysGeni module mainly exists for running GenI as an application bundle
+under MacOS X.  We mostly re-export stuff from System.Process, but if we 
+are in a MacOS X application bundle, then we add \verb!../Resources/bin!
+to the path for all the random crap that we ship with with GenI.
 
 \begin{code}
 module SysGeni 
@@ -27,10 +29,6 @@ where
 
 \ignore{
 \begin{code}
-import System.Exit(ExitCode)
-import System.Posix
-import System.IO(Handle, BufferMode(..), hSetBuffering)
-import System.Directory(setCurrentDirectory)
 import qualified System.Process as S
 
 import Data.List(intersperse, isSuffixOf)
@@ -46,8 +44,6 @@ import Control.Monad
 }
 
 \section{Running a process}
-
-We mostly re-export stuff from System.Process.  
 
 \begin{code}
 waitForProcess = S.waitForProcess
@@ -102,61 +98,5 @@ getProgDirName =
    isPathSeparator '\\' = True
 #endif
    isPathSeparator _    = False
-\end{code}
-
-\section{Old System Stuff}
-
-For some software, I cannot seem to get rid of this function. 
-\fnreflite{runInteractiveProcess} doesn't seem to do what I want.
-
-\paragraph{runPiped}
-
-To run a command, we implement a simple function to fork the process and make a
-system call to the command in the child process.  Note, I stole this function
-from DaVinci.hs by Sven Panne.  Also, there is a much simpler
-\texttt{runProcess} function in the Posix package, but it doesn't return a pid
-for us to wait on.
-
-\begin{code}
-runPiped :: FilePath                        -- Command
-         -> [String]                        -- Arguments
-         -> Maybe [(String, String)]        -- Environment
-         -> Maybe FilePath                  -- Working directory    
-         -> IO (ProcessID, Handle, Handle)  -- (pid, fromChild, toChild)
-\end{code}
-
-\begin{code}
-runPiped path args env dir = do
-   (rd1, wd1) <- createPipe
-   (rd2, wd2) <- createPipe
-   let childWork = do maybe (return ()) setCurrentDirectory dir
-                      dupTo rd1 stdInput 
-                      dupTo wd2 stdOutput 
-                      mapM_ closeFd [rd1, wd1, rd2, wd2]
-                      executeFile path True args env
-                      ioError (userError "runPiped")
-
-       parentWork pid = do -- parent
-                           mapM_ closeFd [rd1, wd2]
-                           fromChild <- fdToHandle rd2
-                           toChild   <- fdToHandle wd1
-                           hSetBuffering fromChild LineBuffering
-                           hSetBuffering toChild   LineBuffering
-                           return (pid, fromChild, toChild)
-   do pid <- forkProcess childWork
-      parentWork pid 
-\end{code} 
-
-Waits for a process to finish.  I don't really understand all this process
-stuff, but i suspect this is blocking.
-
-\begin{code}
-awaitProcess :: ProcessID -> IO (Maybe ExitCode)
-awaitProcess pid = do 
-      s <- getProcessStatus False True pid 
-      let ret = case s of 
-                  Nothing -> Nothing
-                  Just s2 -> case s2 of Exited c -> Just c; _ -> Nothing
-      return ret 
 \end{code}
 
