@@ -221,16 +221,21 @@ initSimpleBuilder input config =
   let cands = B.inCands input
       ts    = fst $ B.inSemInput input
       (a,i) = partition closedAux cands 
-  in S{theAgenda     = i, 
-       theAuxAgenda  = a,
-       theChart      = [],
-       theTrash      = [],
-       theResults    = [],
-       tsem     = ts,
-       step     = Initial,
-       gencounter = toInteger $ length cands,
-       genconfig  = config,
-       genstats   = B.initGstats}
+      --
+      nullSemCands = [ idname t | t <- cands, (null.tsemantics) t ] 
+      nullSemErr   = "Can't generate. The following trees have a null semantics: " ++ (unwords nullSemCands)
+  in if (null nullSemCands || ignoreSemantics config)
+        then S{ theAgenda    = i
+              , theAuxAgenda = a
+              , theChart     = []
+              , theTrash     = []
+              , theResults   = []
+              , tsem     = ts
+              , step     = Initial
+              , gencounter = toInteger $ length cands
+              , genconfig  = config
+              , genstats   = B.initGstats}
+        else error nullSemErr
 
 type MS = State SimpleStatus
 \end{code}
