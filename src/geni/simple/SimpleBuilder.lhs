@@ -160,7 +160,7 @@ setup input config =
                     then [ detectPolPaths combosPol ] 
                     else map defaultPolPaths combosPol 
      -- 
-     combos = map (fixateTidnums.setTidnums) combosChart
+     combos = map (map fixateTidnums.setTidnums) combosChart
   in (combos, fst autstuff)
 \end{code}
 

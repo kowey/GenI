@@ -52,6 +52,7 @@ module Tags(
 \begin{code}
 import Data.Char(toUpper)
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 import Data.List (intersperse)
 import Data.Tree
 
@@ -203,39 +204,54 @@ setTidnums xs = zipWith (\c i -> c {tidnum = i}) xs [1..]
 proper, when you have assigned a unique id to each TagElem 
 (see setTidnums above).  It appends the tree id to each variable in each
 selected tree, so as to avoid nasty collisions during unification.  
-It's sorta like how you do $\alpha$-reduction in $\lambda$ calculus; see
+It's sorta like how you do $\alpha$-conversion in $\lambda$ calculus; see
 section \ref{sec:fs_unification} for details.
 
 \begin{code}
-fixateTidnums :: [TagElem] -> [TagElem]
-fixateTidnums = 
-  map (\x -> appendToVars (fn x) x) 
-  where fn x =  "-" ++ (show $ tidnum x) 
+fixateTidnums :: TagElem -> TagElem
+fixateTidnums te = 
+  let vars   = Set.elems $ collect te Set.empty
+      --
+      suffix = "-" ++ (show $ tidnum te)
+      convert v = GVar (v ++ suffix)
+      --
+      subst = map (\v -> (v, convert v)) vars 
+  in replace subst te
 \end{code}
 
-\subparagraph{appendToVars} is a helper function to fixateIdnums.  Given
-a TagElem and a suffix, it appends the suffix to all the variables that
-occur in it. 
+A Collectable is something which can return its variables as a set.
+This notion is probably not very useful outside the context of
+alpha-conversion task.  
 
 \begin{code}
-appendToVars :: String -> TagElem -> TagElem
-appendToVars suf te = 
-  let appfn (f,v) = (f,v2)
-        where v2 = case v of 
-                     GVar orig -> GVar (orig ++ suf)
-                     orig      -> orig
-      nodefn a = a { gup = map appfn (gup a),
-                     gdown = map appfn (gdown a) }
-      treefn (Node a l) = Node (nodefn a) (map treefn l)
-      --
-      sitefn (n, fu, fd) = (n, map appfn fu, map appfn fd)
-      --
-  in te { ttree = treefn (ttree te),
-          tinterface = map appfn (tinterface te),
-          substnodes = map sitefn (substnodes te),
-          adjnodes   = map sitefn (adjnodes te)}
-\end{code}
+class Collectable a where
+  collect :: a -> Set.Set String -> Set.Set String
 
+instance (Collectable a => Collectable [a]) where
+  collect l s = foldr collect s l
+
+instance (Collectable a => Collectable (Tree a)) where
+  collect = collect.flatten
+
+-- Pred is what I had in mind here 
+instance ((Collectable a, Collectable b, Collectable c) 
+           => Collectable (a,b,c)) where
+  collect (a,b,c) = collect a . collect b . collect c 
+
+instance Collectable GeniVal where
+  collect (GVar v) s = Set.insert v s
+  collect _ s = s
+
+instance Collectable (String,GeniVal) where
+  collect (_,b) = collect b
+
+instance Collectable GNode where
+  collect n = (collect $ gdown n) . (collect $ gup n)
+
+instance Collectable TagElem where
+  collect t = (collect $ tinterface t) . (collect $ ttree t) 
+            . (collect $ tsemantics t)
+\end{code}
 
 % ----------------------------------------------------------------------
 \section{TAG Item}
