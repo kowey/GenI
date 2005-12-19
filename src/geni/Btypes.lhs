@@ -456,11 +456,11 @@ showAv (y,z) = y ++ ":" ++ show z
 
 \begin{code}
 -- handle, predicate, parameters
-type Pred = (GeniVal, String, [GeniVal])
+type Pred = (GeniVal, GeniVal, [GeniVal])
 type Sem = [Pred]
 type SemInput = (Sem,Flist)
 type Subst = [(String, GeniVal)]
-emptyPred = (GAnon,"",[])
+emptyPred = (GAnon,GAnon,[])
 \end{code}
 
 \begin{code}
@@ -473,12 +473,12 @@ A replacement on a predicate is just a replacement on its parameters
 
 \begin{code}
 instance Replacable Pred where 
-  replace s (h, n, lp) = (replace s h, n, replace s lp) 
+  replace s (h, n, lp) = (replace s h, replace s n, replace s lp) 
 \end{code}
 
 \begin{code}
 showPred :: Pred -> String
-showPred (h, p, l) = showh ++ p ++ "(" ++ unwords (map show l) ++ ")"
+showPred (h, p, l) = showh ++ show p ++ "(" ++ unwords (map show l) ++ ")"
   where 
     hideh (GConst [x]) = "genihandle" `isPrefixOf` x 
     hideh _ = False
@@ -491,7 +491,7 @@ Given a Semantics, returns the string with the proper keys
 (propsymbol+arity) to access the agenda
 \begin{code}
 toKeys :: Sem -> [String] 
-toKeys l = map (\(_,prop,par) -> prop++(show (length par))) l
+toKeys l = map (\(_,prop,par) -> show prop ++ (show $ length par)) l
 \end{code}
 
 \subsection{Semantic subsumption} 

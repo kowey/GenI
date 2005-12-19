@@ -89,7 +89,7 @@ import Automaton
 import Graphviz(GraphvizShow(..))
 import Tags(TagElem(..), TagItem(..), mapBySem)
 import Btypes(Pred, SemInput, Sem, Flist, AvPair, showAv,
-              GeniVal, fromGConst,
+              GeniVal(GAnon), fromGConst,
               Replacable(..),
               emptyPred, Ptype(Initial), 
               showSem, sortSem, 
@@ -702,7 +702,7 @@ smallest charge for each of its semantic indices.
   let getpols :: TagLite -> [ (PredLite,SemPols) ]
       getpols x = zip (map fn $ tlSemantics x) (tlSempols x)
         where fn :: Pred -> PredLite
-              fn s = (snd3 s, fst3 s : thd3 s)
+              fn s = (show $ snd3 s, fst3 s : thd3 s)
       sempols :: [ (PredLite,SemPols) ]
       sempols = concatMap getpols cands
       usagefn :: (PredLite,SemPols) -> SemWeightMap -> SemWeightMap 
@@ -767,7 +767,7 @@ counting mechanism uses to represent extra columns.
 
 \begin{code}
 indexPred :: GeniVal -> Pred
-indexPred x = (x, "", [])
+indexPred x = (x, GAnon, [])
 \end{code}
 
 \paragraph{isExtraCol} returns True if the given literal was introduced
@@ -775,8 +775,8 @@ by the index counting mechanism
 
 \begin{code}
 isExtraCol :: Pred -> Bool
-isExtraCol (_,"",[]) = True
-isExtraCol _         = False
+isExtraCol (_,GAnon,[]) = True
+isExtraCol _            = False
 \end{code}
 
 \paragraph{assignIndex} is a useful way to restrict the behaviour of

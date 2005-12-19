@@ -484,7 +484,7 @@ geniSemantics =
 geniLiteral :: Parser Pred
 geniLiteral =  
   do handle    <- option GAnon handleParser <?> "a handle"
-     predicate <- identifier <?> "a predicate"
+     predicate <- geniValue <?> "a predicate"
      params    <- parens (many geniValue) <?> "some parameters"
      --
      return (handle, predicate, params)
@@ -508,7 +508,7 @@ geniLexSemantics =
 geniLexLiteral :: Parser (Pred, [Int])
 geniLexLiteral =  
   do (handle, hpol) <- option (GAnon,0) (handleParser <?> "a handle")      
-     predicate  <- identifier <?> "a predicate"
+     predicate  <- geniValue <?> "a predicate"
      paramsPols <- parens (many geniPolValue) <?> "some parameters"
      --
      let (params, pols) = unzip paramsPols
