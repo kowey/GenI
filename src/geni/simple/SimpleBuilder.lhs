@@ -51,6 +51,7 @@ import Data.Maybe (catMaybes)
 import Data.Tree 
 import Data.Bits
 import qualified Data.Map as Map 
+import qualified Data.Set as Set
 
 import Automaton ( automatonPaths, NFA(..), addTrans )
 import Btypes 
@@ -70,6 +71,7 @@ import Builder (Gstats, UninflectedWord, UninflectedSentence)
 import qualified Builder as B
 
 import Tags (TagElem, TagSite, TagDerivation,  TagStatus(..),
+             collect,
              idname, tidnum,
              derivation,
              fixateTidnums, setTidnums,
@@ -222,9 +224,14 @@ initSimpleBuilder input config =
       ts    = fst $ B.inSemInput input
       (a,i) = partition closedAux cands 
       --
-      nullSemCands = [ idname t | t <- cands, (null.tsemantics) t ] 
-      nullSemErr   = "Can't generate. The following trees have a null semantics: " ++ (unwords nullSemCands)
-  in if (null nullSemCands || ignoreSemantics config)
+      nullSemCands   = [ idname t | t <- cands, (null.tsemantics) t ] 
+      unInstSemCands = [ idname t | t <- cands, not $ Set.null $ collect (tsemantics t) Set.empty ]
+      nullSemErr     = "The following trees have a null semantics: " ++ (unwords nullSemCands)
+      unInstSemErr   = "The following trees have an uninstantiated semantics: " ++ (unwords unInstSemCands)
+      semanticsErr   = (if null nullSemCands then "" else nullSemErr ++ "\n") ++ 
+                       (if null unInstSemCands then "" else unInstSemErr) 
+      --
+  in if (null semanticsErr || ignoreSemantics config)
         then S{ theAgenda    = i
               , theAuxAgenda = a
               , theChart     = []
@@ -235,7 +242,7 @@ initSimpleBuilder input config =
               , gencounter = toInteger $ length cands
               , genconfig  = config
               , genstats   = B.initGstats}
-        else error nullSemErr
+        else error semanticsErr 
 
 type MS = State SimpleStatus
 \end{code}

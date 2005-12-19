@@ -45,6 +45,7 @@ module Tags(
 
    -- General functions
    mapBySem, drawTagTrees, subsumedBy, showTagSites,
+   collect,
 ) where
 \end{code}
 
