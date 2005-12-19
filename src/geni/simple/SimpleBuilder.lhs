@@ -125,10 +125,10 @@ run input config =
       -- combos = polarity automaton paths 
       combos  = fst (setup input config)
       --
-      nullSt = init input config
+      nullSt = initSt [] 
       finalStates = map (snd.generate.initSt) combos
         where generate = runState stepAll 
-              initSt c = init (input { B.inCands = c }) config
+      initSt c = init (input { B.inCands = c }) config
       -- WARNING: will not work with packing!
       mergeSt st1 st2 = 
         st1 { genstats   = B.addGstats (genstats st1) (genstats st2)
