@@ -49,74 +49,74 @@ import Btypes
 \end{code}
 }
 
-% ======================================================================
-\section{Lexicon}
-% ======================================================================
-
-A lexicon associates some lemma with a tree family.
-FIXME: For the moment, we do not handle coanchors!  We actually
-drop a good deal of the information that is the lexicon.
-
-\begin{code}
-parseXmlLexicon :: String -> [ILexEntry]
-parseXmlLexicon g = 
-  -- extract a CElem out of the String
-  let (Document _ _ ele) = xmlParse "" g 
-      c = CElem ele
-      -- processing phase
-      lexF = tag "tagml" /> tag "lexicalizationLib" 
-             /> tag "lexicalization"
-      lex  = lexF c
-  in map parseLex lex
-\end{code}
-
-Lexical entries can be really fancy.  Each lexical entry looks 
-a little like this:
-
-\begin{verbatim}
-<lexicalization>
-      <tree>
-        <fs>
-          <f name="family">
-            <sym value="commonnoun"/></f></fs></tree>
-      <anchor noderef="anchor">
-        <lemmaref name="agneau" cat="n"/></anchor></lexicalization>
-\end{verbatim}
-
-From the above piece of XML, we would extract the following
-information: family = commonnoun, anchor = agneau
-
-\begin{code}
-parseLex :: Content -> ILexEntry
-parseLex l = 
-  let -- getting the family name 
-      lFeatsF = keep /> tag "tree" /> featStructF /> featF
-      feats   = map parseFeature (lFeatsF l)
-      famFeats = filter (\ (a,_) -> a == "family") feats
-      fam = if null famFeats 
-            then "UNKWNOWN" 
-            else (snd.head) famFeats
-      -- getting the lemma 
-      lemmarefF = keep /> tag "anchor" /> tag "lemmaref"
-      catF   = attributed "cat" lemmarefF
-      cat    = toLowerHead $ concatMap fst (catF l) -- should only be one element 
-      lemmaF = attributed "name" lemmarefF
-      lemma  = toLowerHead $ concatMap fst (lemmaF l) -- should only be one element 
-      -- creating a lexical entry: note that we leave the
-      -- semantics empty; this will have to be read from 
-      -- another file
-  in ILE{ iword = lemma
-        , icategory = cat
-        , ifamname = fam
-        , iparams = []
-        , ipfeat = []
-        , ifilters = []
-        , iptype = Unspecified
-        , isemantics = []
-        , isempols = []
-        , icontrol = ""
-  }
-\end{code}
+%% ======================================================================
+%\section{Lexicon}
+%% ======================================================================
+%
+%A lexicon associates some lemma with a tree family.
+%FIXME: For the moment, we do not handle coanchors!  We actually
+%drop a good deal of the information that is the lexicon.
+%
+%\begin{code}
+%parseXmlLexicon :: String -> [ILexEntry]
+%parseXmlLexicon g = 
+%  -- extract a CElem out of the String
+%  let (Document _ _ ele) = xmlParse "" g 
+%      c = CElem ele
+%      -- processing phase
+%      lexF = tag "tagml" /> tag "lexicalizationLib" 
+%             /> tag "lexicalization"
+%      lex  = lexF c
+%  in map parseLex lex
+%\end{code}
+%
+%Lexical entries can be really fancy.  Each lexical entry looks 
+%a little like this:
+%
+%\begin{verbatim}
+%<lexicalization>
+%      <tree>
+%        <fs>
+%          <f name="family">
+%            <sym value="commonnoun"/></f></fs></tree>
+%      <anchor noderef="anchor">
+%        <lemmaref name="agneau" cat="n"/></anchor></lexicalization>
+%\end{verbatim}
+%
+%From the above piece of XML, we would extract the following
+%information: family = commonnoun, anchor = agneau
+%
+%\begin{code}
+%parseLex :: Content -> ILexEntry
+%parseLex l = 
+%  let -- getting the family name 
+%      lFeatsF = keep /> tag "tree" /> featStructF /> featF
+%      feats   = map parseFeature (lFeatsF l)
+%      famFeats = filter (\ (a,_) -> a == "family") feats
+%      fam = if null famFeats 
+%            then "UNKWNOWN" 
+%            else (snd.head) famFeats
+%      -- getting the lemma 
+%      lemmarefF = keep /> tag "anchor" /> tag "lemmaref"
+%      catF   = attributed "cat" lemmarefF
+%      cat    = concatMap fst (catF l) -- should only be one element 
+%      lemmaF = attributed "name" lemmarefF
+%      lemma  = concatMap fst (lemmaF l) -- should only be one element 
+%      -- creating a lexical entry: note that we leave the
+%      -- semantics empty; this will have to be read from 
+%      -- another file
+%  in ILE{ iword = lemma
+%        , icategory = cat
+%        , ifamname = fam
+%        , iparams = []
+%        , ipfeat = []
+%        , ifilters = []
+%        , iptype = Unspecified
+%        , isemantics = []
+%        , isempols = []
+%        , icontrol = ""
+%  }
+%\end{code}
 
 
 % ======================================================================
@@ -141,40 +141,12 @@ in essentially the same manner : we return a list of trees.
 parseXmlGrammar :: String -> Macros
 parseXmlGrammar g = 
   -- extract a CElem out of the String
-  let (Document _ _ ele) = xmlParse "" g 
+  let (Document _ _ ele []) = xmlParse "" g 
       c = CElem ele
       -- processing phase
       entriesF = tag "grammar" /> tag "entry"
       entries  = entriesF c
   in map parseEntry entries 
-\end{code}
-
-\paragraph{parseXmlTrees} handles the subgrammar organisation of macros.
-Since the output here comes from a third party anchoring mechanism, the
-trees are assumed to be complete, with a semantics and all.
-
-\begin{code}
-parseXmlTrees :: String -> [(MTree,Sem)]
-parseXmlTrees g = 
-  -- extract a CElem out of the String
-  let (Document _ _ ele) = xmlParse "" g 
-      c = CElem ele
-      -- processing phase
-      subgramF = tag "grammar" /> tag "subgrammar"
-      subgrams = subgramF c 
-      --
-  in concatMap parseSubGrammar subgrams 
-
--- returns subgrammar id and the associated trees
-parseSubGrammar :: Content -> [(MTree,Sem)]
-parseSubGrammar g = 
-  let entriesF = keep /> tag "entry"
-      entries  = entriesF g 
-      --
-      idF = attributed "id" keep
-      id  = concatMap fst (idF g) -- should only be one element 
-      setid (t,s) = (t { pfamily = id }, s)
-  in map (setid.parseEntryAndSem) entries 
 \end{code}
 
 \paragraph{parseEntryAndSem and parseEntry} do the job of parsing
@@ -204,15 +176,10 @@ parseEntry e =
       famNameF = keep /> tag "family" /> txt 
       famName  = unwrap (famNameF e) -- should only be one element 
       -- build the tree 
-      t = t2 { ptpolarities = if null trc 
-                              then Map.empty 
-                              else parseTrace (head trc) 
-             -- there should only be one interface though
-             , pfamily = famName
+      t = t2 { pfamily = famName
              , pidname = name
              , params  = fst pf 
-             , pfeat   = snd pf
-             }
+             , pfeat   = snd pf }
           where t2 = if null syn 
                      then emptyMacro 
                      else parseTree (head syn)
@@ -334,22 +301,10 @@ parseNode n = do
                 glexeme = lex,
                 gtype   = ntype,
                 gaconstr = aconstr }
-      {-
-      -- add to the list of substitution and adjunction nodes as needed
-      snodes' = tiSubstnodes st
-      anodes' = tiAdjnodes st
-      site   = (name, gup gn, gdown gn)
-      snodes = if (ntype == Subs) then (site:snodes') else snodes' 
-      anodes = if aconstr then anodes' else (site:anodes')
-      -}
   -- update the monadic state
   let st2 = st { tiNum = (tiNum st) + 1,
                  -- tiLex = if ntype == Lex then lex else (tiLex st),
                  tiHasFoot = (tiHasFoot st) || (ntype == Foot) }
-                 {- ,
-                 tiAdjnodes = anodes,
-                 tiSubstnodes = snodes }
-                 -}
   put st2
   -- recursion to the kids  
   let kidsF  = keep /> tag "node"
@@ -373,7 +328,7 @@ parseLiteral :: Content -> Pred
 parseLiteral lit =
   let labelF    = children `o` (keep /> tag "label")
       predF     = children `o` (keep /> tag "predicate")
-      label     = (toUpperHead . concatParseSym . labelF) lit
+      label     = (concatParseSym . labelF) lit
       predicate = (concatParseSym . predF) lit
       concatParseSym = concatMap parseSym -- assumes a singleton list
       -- arguments
@@ -423,34 +378,6 @@ parseInterface int =
 \end{code}
 
 % ----------------------------------------------------------------------
-\subsection{Trace}
-% ----------------------------------------------------------------------
-
-Normally the trace is meant to keep a record of the classes that are 
-used to build a grammatical tree.  We hijack the trace to encode extra
-information, namely polarities for optimisation.  Each class is 
-associated with a list of polarities; the polarities of a tree is the
-concatenation of all polarities of all its classes.  The list is written
-as an underscore-delimeted suffix to the class name, for instance,
-\verb$subjCan_+np_+vp$, meaning that class subjCan has polarities
-\verb$[+np,+vp]$.  There should be no underscores in the class name.
-
-\begin{code}
-parseTrace :: Content -> Map String Int
-parseTrace tr = 
-  let classF  = keep /> tag "class" /> keep
-      classes = map (unwrap.txt) $ classF tr
-      --
-      isDelim  = (== '_')
-      words_ []  = []
-      words_ l   = a : (if null b then [] else (words_ $ drop 1 b))
-                   where (a,b) = break isDelim l
-      --
-      dropName = (drop 1) . words_
-  in (polParser.lexer) $ unwords $ concatMap dropName classes 
-\end{code}
-
-% ----------------------------------------------------------------------
 \section{XML Content to Haskell}
 % ----------------------------------------------------------------------
 
@@ -486,10 +413,6 @@ the XML.
 </f>
 \end{verbatim}
 
-Note: GenI does \emph{not} handle atomic disjunctions, so we simply
-treat them as variable values by ignoring the sym tags and extracting
-the variable name from the coref 
-(Yannick Parmetier says that atomic disjunctions always have one).
 Disjunctions look like this in the XML:
 
 \begin{verbatim}
@@ -510,30 +433,24 @@ parseFeature f =
       disjF = attributed "coref" (keep /> tag "vAlt")
       -- converting the value to GenI format
       readAttr fn = concatMap fst (fn f)
-      disjStr     = (toUpperHead . drop 1 . readAttr) disjF
+      -- FIXME: need to handle disjunction properly
+      disjStr     = (drop 1 . readAttr) disjF
       -- deciding what type of feature we have
-      val      = if null disjStr 
-                 then concatMap parseSym (symF f) -- singleton list 
-                 else disjStr
+      val = if null disjStr 
+            then concatMap parseSym (symF f) -- singleton list 
+            else disjStr
   in (feat, val)
 \end{code}
 
 \paragraph{parseSym} converts sym tags into GenI constants or variables.
-GenI currently relies on a convention where upper-case is for variables
-and lower for constants\footnote{naturally we assume the metagrammar
-output is case-insensitive}.  
 
 \begin{enumerate}
 \item constants are of the form \verb$<sym value="foo"/>$.  
-      We lower-case the first letter.
 \item variables are of the form \verb$<sym varname="@Bar"/>$.
-      We strip off the initial @ and upper-case the first letter of.
 \end{enumerate}
 
-Note: the tagname does not neccesarily have to be sym.
-
 \begin{code}
-parseSym :: Content -> String 
+parseSym :: Content -> GeniVal 
 parseSym s =
   let -- parsing the value
       varF     = varAttrF keep 
@@ -541,12 +458,8 @@ parseSym s =
       constF   = attributed "value" keep 
       -- converting the value to GenI format
       readAttr fn = concatMap fst (fn s)
-      varStr   = (toUpperHead . drop 1 . readAttr) varF 
-      constStr = (toLowerHead . readAttr) constF
+      varStr   = (drop 1 . readAttr) varF 
+      constStr = readAttr constF
   in  -- deciding what type of feature we have
-      if null varStr then constStr else varStr
+      if null varStr then GConst [constStr] else GVar varStr
 \end{code}
-
-%\paragraph{ditchAccents} is a stupid hack to strip off the accents
-%of a string because WxWidgets (or something else) chokes whilst
-%trying to display them in Linux.

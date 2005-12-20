@@ -86,12 +86,12 @@ SCRIPT_FILES = bin/runXMGselector\
 	       etc/macstuff/macosx-app\
 
 
-IFILE = $(SRC)/MainGeni
+IFILE = $(SRC_GENI)/Main
 CIFILE = $(SRC_GENI)/Converter
-EIFILE = $(SRC)/ExtractTestCases
+EIFILE = $(SRC_GENI)/ExtractTestCases
 
+CONVERTER := bin/geniconvert
 OFILE = bin/geni
-DOFILE = bin/debugger-geni
 COFILE = bin/geniconvert
 EOFILE = bin/geniExtractCases
 
@@ -169,14 +169,15 @@ tags:
 
 compile: permissions $(OFILE) $(EOFILE)
 
+converter: $(CONVERTER) 
 extractor: $(EOFILE)
 
 $(OFILE) : $(SOURCE_FILES)
 	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES_GUI) $(IFILE).lhs -o $(OFILE)
 	$(OS_SPECIFIC_STUFF)
 
-$(COFILE) : $(CIFILE).lhs $(SOURCE_FILES)
-	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES) $< -o $@
+$(COFILE) : $(SOURCE_FILES)
+	$(GHC) -W --make $(GHCPACKAGES) $(CIFILE).lhs -o $(COFILE) 
 	$(OS_SPECIFIC_STUFF)
 
 $(EOFILE) : $(EIFILE).lhs $(SOURCE_FILES)
