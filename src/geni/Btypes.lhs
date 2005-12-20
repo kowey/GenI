@@ -51,7 +51,8 @@ module Btypes(
    showPairs, showAv,
 
    -- Other functions
-   Replacable(..),
+   Replacable(..), Collectable(..), Idable(..),
+   alphaConvert,
    fromGConst, fromGVar,
    isVar, isAnon, testBtypes,
 
@@ -65,10 +66,11 @@ module Btypes(
 \ignore{
 \begin{code}
 -- import Debug.Trace -- for test stuff
-import QuickCheck -- needed for testing via ghci 
+import QuickCheck hiding (collect) -- needed for testing via ghci 
 import Control.Monad (liftM)
 import Data.List
 import qualified Data.Map as Map
+import qualified Data.Set as Set 
 import Data.Tree
 
 import General(mapTree, filterTree, listRepNode, snd3, bugInGeni)
@@ -393,6 +395,41 @@ fromGVar (GVar x) = x
 fromGVar x = error ("fromGVar on " ++ show x)
 \end{code}
 
+\subsection{Collectable}
+
+A Collectable is something which can return its variables as a set.
+By variables, what I most had in mind was the GVar values in a 
+GeniVal.  This notion is probably not very useful outside the context of
+alpha-conversion task, but it seems general enough that I'll keep it
+around for a good bit, until either some use for it creeps up, or I find
+a more general notion that I can transform this into.  
+
+\begin{code}
+class Collectable a where
+  collect :: a -> Set.Set String -> Set.Set String
+
+instance (Collectable a => Collectable [a]) where
+  collect l s = foldr collect s l
+
+instance (Collectable a => Collectable (Tree a)) where
+  collect = collect.flatten
+
+-- Pred is what I had in mind here 
+instance ((Collectable a, Collectable b, Collectable c) 
+           => Collectable (a,b,c)) where
+  collect (a,b,c) = collect a . collect b . collect c 
+
+instance Collectable GeniVal where
+  collect (GVar v) s = Set.insert v s
+  collect _ s = s
+
+instance Collectable (String,GeniVal) where
+  collect (_,b) = collect b
+
+instance Collectable GNode where
+  collect n = (collect $ gdown n) . (collect $ gup n)
+\end{code}
+
 \subsection{Replacable}
 \label{sec:replacable}
 \label{sec:replacements}
@@ -436,6 +473,35 @@ instance (Replacable a => Replacable (String, a)) where
   replace s (a,v) = (a, replace s v)
 \end{code}
 
+\subsection{Idable}
+
+An Idable is something that can be mapped to a unique id.  
+You might consider using this to implement Ord, but I won't.
+Note that the only use I have for this so far (20 dec 2005)
+is in alpha-conversion.
+
+\begin{code}
+class Idable a where
+  idOf :: a -> Integer
+\end{code}
+
+\subsection{Other feature and variable stuff}
+
+Our approach to $\alpha$-conversion works by appending a unique suffix
+to all variables in an object.  See section \ref{sec:fs_unification} for
+why we want this.
+
+\begin{code}
+alphaConvert :: (Collectable a, Replacable a, Idable a) => a -> a
+alphaConvert x =
+  let vars   = Set.elems $ collect x Set.empty
+      suffix = "-" ++ (show $ idOf x)
+      convert v = GVar (v ++ suffix)
+      --
+      subst = map (\v -> (v, convert v)) vars 
+  in replace subst x 
+\end{code}
+
 \fnlabel{sortFlist} sorts Flists according with its feature
 
 \begin{code}
@@ -446,6 +512,7 @@ sortFlist fl = sortBy (\(f1,_) (f2, _) -> compare f1 f2) fl
 \begin{code}
 showPairs :: Flist -> String
 showPairs l = unwords $ map showAv l
+
 showAv (y,z) = y ++ ":" ++ show z 
 \end{code}
 

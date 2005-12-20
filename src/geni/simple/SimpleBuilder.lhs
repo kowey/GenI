@@ -57,7 +57,7 @@ import Automaton ( automatonPaths, NFA(..), addTrans )
 import Btypes 
   ( Ptype(Initial,Auxiliar),
   , Flist 
-  , Replacable(..)
+  , Replacable(..), alphaConvert
   , Sem, sortSem, Subst
   , GType(Other), GNode(..)
   , rootUpd
@@ -74,7 +74,7 @@ import Tags (TagElem, TagSite, TagDerivation,  TagStatus(..),
              collect,
              idname, tidnum,
              derivation,
-             fixateTidnums, setTidnums,
+             setTidnums,
              ttree, ttype, tsemantics, thighlight, tdiagnostic,
              tpolpaths,
              adjnodes,
@@ -162,7 +162,7 @@ setup input config =
                     then [ detectPolPaths combosPol ] 
                     else map defaultPolPaths combosPol 
      -- 
-     combos = map (map fixateTidnums.setTidnums) combosChart
+     combos = map (map alphaConvert.setTidnums) combosChart
   in (combos, fst autstuff)
 \end{code}
 

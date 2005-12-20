@@ -41,7 +41,7 @@ module Tags(
    addToTags, tagLeaves,
 
    -- Functions from TagElem
-   setTidnums, fixateTidnums,
+   setTidnums, 
 
    -- General functions
    mapBySem, drawTagTrees, subsumedBy, showTagSites,
@@ -53,14 +53,12 @@ module Tags(
 \begin{code}
 import Data.Char(toUpper)
 import qualified Data.Map as Map
-import qualified Data.Set as Set
 import Data.List (intersperse)
 import Data.Tree
 
 import Btypes (Ptype(Initial, Auxiliar), SemPols,
-               GNode(gup, gdown, glexeme, gnname), Flist, 
-               GeniVal(..),
-               Replacable(..),
+               GNode(gup, glexeme, gnname), Flist, 
+               Replacable(..), Collectable(..), Idable(..),
                Sem, Pred, emptyPred, 
                emptyGNode,
                showPairs, showSem)
@@ -159,6 +157,13 @@ instance Replacable TagElem where
 
 instance Replacable TagSite where
   replace s (n, fu, fd) = (n, replace s fu, replace s fd)
+
+instance Collectable TagElem where
+  collect t = (collect $ tinterface t) . (collect $ ttree t) 
+            . (collect $ tsemantics t)
+
+instance Idable TagElem where
+  idOf = tidnum
 \end{code}
 
 \begin{code}
@@ -199,59 +204,6 @@ that is, an integer between 1 and the size of the list.
 \begin{code}
 setTidnums :: [TagElem] -> [TagElem]
 setTidnums xs = zipWith (\c i -> c {tidnum = i}) xs [1..]
-\end{code}
-
-\paragraph{fixateTidnums} should be called right before generation
-proper, when you have assigned a unique id to each TagElem 
-(see setTidnums above).  It appends the tree id to each variable in each
-selected tree, so as to avoid nasty collisions during unification.  
-It's sorta like how you do $\alpha$-conversion in $\lambda$ calculus; see
-section \ref{sec:fs_unification} for details.
-
-\begin{code}
-fixateTidnums :: TagElem -> TagElem
-fixateTidnums te = 
-  let vars   = Set.elems $ collect te Set.empty
-      --
-      suffix = "-" ++ (show $ tidnum te)
-      convert v = GVar (v ++ suffix)
-      --
-      subst = map (\v -> (v, convert v)) vars 
-  in replace subst te
-\end{code}
-
-A Collectable is something which can return its variables as a set.
-This notion is probably not very useful outside the context of
-alpha-conversion task.  
-
-\begin{code}
-class Collectable a where
-  collect :: a -> Set.Set String -> Set.Set String
-
-instance (Collectable a => Collectable [a]) where
-  collect l s = foldr collect s l
-
-instance (Collectable a => Collectable (Tree a)) where
-  collect = collect.flatten
-
--- Pred is what I had in mind here 
-instance ((Collectable a, Collectable b, Collectable c) 
-           => Collectable (a,b,c)) where
-  collect (a,b,c) = collect a . collect b . collect c 
-
-instance Collectable GeniVal where
-  collect (GVar v) s = Set.insert v s
-  collect _ s = s
-
-instance Collectable (String,GeniVal) where
-  collect (_,b) = collect b
-
-instance Collectable GNode where
-  collect n = (collect $ gdown n) . (collect $ gup n)
-
-instance Collectable TagElem where
-  collect t = (collect $ tinterface t) . (collect $ ttree t) 
-            . (collect $ tsemantics t)
 \end{code}
 
 % ----------------------------------------------------------------------

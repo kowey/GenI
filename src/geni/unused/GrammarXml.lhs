@@ -39,13 +39,12 @@ import Text.XML.HaXml.Types
 import Text.XML.HaXml.Combinators
 import Text.XML.HaXml.Parse
 
-import Btypes(AvPair, Flist, ILexEntry(..), 
-              GType(Subs,Foot,Lex,Other),
-              GNode(..), Macros, Ttree(..),
-              emptyGNode, emptyMacro,
-              Ptype(..), Pred, Sem)
-import Mparser(polParser)
-import Lex2(lexer)
+import Btypes
+  ( AvPair, Flist, ILexEntry(..)
+  , GType(Subs,Foot,Lex,Other)
+  , GNode(..), Macros, Ttree(..)
+  , GeniVal(GConst, GVar)
+  , emptyGNode, emptyMacro, Ptype(..), Pred, Sem)
 -- import Tags(emptyTE,TagElem(..),Tags,TagSite,addToTags)
 \end{code}
 }
