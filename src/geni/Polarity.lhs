@@ -73,6 +73,9 @@ module Polarity(PolAut,AutDebug,
                 showLite, showLitePm, showPolPaths, showPolPaths',
                 calculateTreeCombos,
                 NFA(states),
+
+                -- re-exported from Automaton
+                automatonPaths
                 )
 where
 \end{code}
