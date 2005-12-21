@@ -1,7 +1,7 @@
 
-# there should be exactly one way to produce the answer here
-# (as opposed to two) - the idea is that GenI enforces the
-# condition that only trees with empty subst nodes list may
-# subst up
+% there should be exactly one way to produce the answer here
+% (as opposed to two) - the idea is that GenI enforces the
+% condition that only trees with empty subst nodes list may
+% subst up
 abc
 semantics:[a() b() c()]
