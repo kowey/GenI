@@ -31,39 +31,39 @@ where
 \ignore{
 \begin{code}
 import Control.Monad 
-  (unless, when, foldM)
+  (unless, foldM)
 
 import Control.Monad.State 
-  (State, get, put, liftM, runState )
-import Data.List (intersect) 
-import Data.Maybe (isJust, catMaybes)
+  (State, get, put, liftM, runState, execState )
+import Data.List ( delete, intersect, intersperse )
+import qualified Data.Map as Map
+import Data.Maybe (catMaybes)
 import Data.Tree (Tree(Node))
 
 import Btypes 
   ( alphaConvert
-  , Ptype(Initial), Flist
+  , Flist
   , Replacable(..), Sem, Subst
-  , GNode(..)
+  , GNode(..), GType(Subs, Other)
   , root, foot
   , unifyFeat )
 
 import qualified Builder as B
 
 import Configuration 
-  ( extrapol, rootCatsParam, polarised, chartsharing )
-import General ( treeLeaves )
+  ( extrapol, rootCatsParam, polarised)
+import General ( choices, treeLeaves )
 import Polarity 
   ( automatonPaths, buildAutomaton, detectPolPaths, lookupAndTweak  )
 
 import Tags 
   (TagElem, TagSite, TagStatus(..),
-   idname, tidnum,
-   derivation,
-   ttree, ttype, tsemantics, thighlight, tdiagnostic,
+   idname, 
+   ttree, tsemantics, 
    tpolpaths,
-   adjnodes, substnodes, setTidnums )
-import Configuration (Params, footconstr, usetrash)
-import General (BitVector, thd3, mapTree)
+   setTidnums )
+import Configuration (Params)
+import General (BitVector)
 
 import Debug.Trace
 \end{code}
@@ -89,7 +89,6 @@ data BuilderStatus = S
     , theChart     :: Chart
     , theTrash   :: Trash
     , tsem       :: Sem
-    , theStep    :: Ptype
     , gencounter :: Integer
     , genconfig  :: Params
     , genstats   :: B.Gstats 
@@ -134,10 +133,10 @@ run input config =
   let stepAll = B.stepAll ckyBuilder 
       init    = B.init ckyBuilder 
       -- combos = polarity automaton paths 
-      combos  = fst (setup input config)
+      cands   = fst (setup input config)
+      input2  = input { B.inCands = cands }
       --
-      generate = runState stepAll 
-  in snd $ runState stepAll $ init input config
+  in snd $ runState stepAll $ init input2 config
 \end{code}
 
 \fnlabel{setup} is one of the substeps of run (so unless you are a
@@ -159,7 +158,6 @@ setup input config =
        where toTagElem = concatMap (lookupAndTweak $ snd autstuff)
      combosPol  = if isPol then paths else [cand]
      -- chart sharing optimisation (if enabled)
-     isChartSharing = chartsharing config
      candsWithPaths = detectPolPaths combosPol 
      -- 
      cands = map alphaConvert $ setTidnums $ candsWithPaths 
@@ -173,32 +171,41 @@ setup input config =
 initBuilder :: B.Input -> Params -> BuilderStatus 
 initBuilder input config = 
   let seminput = B.inSemInput input
-      cands = B.inCands input
-  in trace (show cands) $ S 
+      cands = concatMap initTree $ B.inCands input
+      initS = S 
        { theAgenda  = [] 
        , theChart = []
        , theTrash = []
        , theResults = []
-       , theRules = concatMap treeToRules cands
+       , theRules = map fst ckyRules 
        , tsem     = fst seminput
-       , theStep  = Initial
        , gencounter = toInteger (length cands)
        , genconfig  = config
        , genstats   = B.initGstats}
+  in execState (mapM dispatchNew cands) initS
+  
+initTree :: TagElem -> [ChartItem]
+initTree te = 
+  let createItem n = (nodeToItem te n) { ciRouting = decompose te }
+  in  map createItem $ treeLeaves $ ttree te
 
-treeToRules :: TagElem -> [CKY_InferenceRule]
-treeToRules te = 
-  let iRules = map (initRule te) $ treeLeaves $ ttree te
-      kRules = decompose te
-  in iRules ++ kRules
+-- | explode a TagElem tree into a bottom-up routing map 
+decompose :: TagElem -> RoutingMap 
+decompose te =  helper True (ttree te) Map.empty where
+  tname = idname te
+  --
+  helper :: Bool -> Tree GNode -> RoutingMap -> RoutingMap
+  helper isRoot (Node _ []) smap = smap 
+  helper isRoot (Node p kidNodes) smap = 
+    let kids     = [ gnname x | (Node x _) <- kidNodes ] 
+        addKid k = Map.insert (tname, k) (delete k kids, p, isRoot)
+        smap2    = foldr addKid smap kids
+    in -- recurse to add routing info for child nodes 
+       foldr (helper False) smap2 kidNodes
 
--- | decompose a TagElem into the inference rules used for bottom-up derivation on it
-decompose :: TagElem -> [CKY_InferenceRule]
-decompose te =  helper (ttree te) where
-   helper (Node n [])   = []
-   helper (Node n kidNodes) = 
-     let kids = map (\ (Node x _) -> x) kidNodes
-     in  (kidsToParentRule te n kids) : concatMap helper kidNodes
+-- from (tree name, node name) to a list of its sisters, its parent, and
+-- whether or not the parent is a root
+type RoutingMap = Map.Map (String, String) ([String], GNode, Bool)
 \end{code}
 
 \subsubsection{BuilderState updaters}
@@ -225,7 +232,7 @@ addToChart te = do
   put s { theChart = te : (theChart s) }
 
 addToTrash :: ChartItem -> TagStatus -> BState ()
-addToTrash te err = do 
+addToTrash _ _ = do 
   return ()
 \end{code}
 
@@ -248,6 +255,11 @@ data ChartItem = ChartItem
   , ciSemantics  :: Sem
   --
   , ciId         :: ChartId 
+  , ciRoot       :: Bool 
+  -- names of the sisters of this node in its tree
+  , ciRouting    :: RoutingMap 
+  -- variable replacements to accumulate
+  , ciSubsts     :: Subst 
   } deriving Show
 
 type ChartId = Integer
@@ -259,38 +271,85 @@ type ChartId = Integer
 % FIXME: diagram and comment
 
 \begin{code}
-ckyShow name source = name ++ " (" ++ source ++ ")"
+ckyRules = 
+ [ (kidsToParentRule, "kidsToParents")
+ , (substRule       , "subst") 
+ , (nonAdjunctionRule, "nonAdj") ]
+
+ckyShow name item chart = 
+  let showChart = show $ length chart
+      pad s n = s ++ (take (n - length s) $ repeat ' ')
+  in concat $ intersperse "\t" [pad name 15, showChart, ciSourceTree item, show $ ciNode item ]
+
+showItems items = show $ map ciNode items
 
 nodeToItem :: TagElem -> GNode -> ChartItem 
 nodeToItem te node = ChartItem 
-  { ciNode       = node 
+  { ciNode       = node
+  , ciRoot       = gnname node == (gnname.root.ttree) te
   , ciSourceTree = idname te
   , ciPolpaths   = tpolpaths te
   , ciSemantics  = tsemantics te 
-  , ciId         = -1 } -- id unset
+  , ciId         = -1 -- id unset
+  , ciRouting    = Map.empty 
+  , ciSubsts     = [] }
 
--- | initialisation rule for subst node
-initRule :: TagElem -> GNode -> CKY_InferenceRule
-initRule te node = Rule 
-  { showRule = ckyShow "init" (idname te) ++ " " ++ show node
-  , retrieve = \_ -> Just [] -- always suceeds
-  , infer    = \_ -> [nodeToItem te node] }
+-- | CKY non adjunction rule - creates items in which
+-- we do not apply any adjunction
+nonAdjunctionRule :: CKY_InferenceRule
+nonAdjunctionRule item _ =
+  let node  = ciNode item
+      node2 = node { gaconstr = True }
+  in if gtype node /= Other || gaconstr node then Nothing
+     else Just [ item { ciNode = node2 } ]
 
--- | CKY inference rule 
-kidsToParentRule :: TagElem -> GNode -> [GNode] -> CKY_InferenceRule
-kidsToParentRule te parent kids = Rule 
-  { showRule = showFn
-  , retrieve = retrieveFn
-  , infer    = \_ -> [nodeToItem te parent] } 
-  where 
-    source = idname te
-    showFn = ckyShow "kidsToParents" source ++ " p: " ++ show parent ++ " k: " ++ show kids 
-    retrieveFn chart = 
-      let isMatch n c =  
-            (gaconstr.ciNode) c && ciSourceTree c == source &&
-            (gnname.ciNode) c == gnname n
-          hasMatch n = any (isMatch n) chart
-      in  if all hasMatch kids then Just [] else Nothing
+-- | CKY parent rule
+-- FIXME: need to think about unification and multiple matches
+-- something about most general unifier - do we really need a 
+-- mgu mechanism in compare?
+kidsToParentRule :: CKY_InferenceRule
+kidsToParentRule item chart = 
+ do (s,p,r)  <- Map.lookup (source, gnname node) (ciRouting item) 
+    sMatches <- trace (" relevant chart: " ++ showItems relChart) $ 
+                trace (" routing info: " ++ show (s,p,r)) $ 
+                choices $ map matches s
+    -- FIXME: need to do unification
+    let pItem = item { ciNode = p, ciRoot = r } 
+    trace (" matches: " ++ (show $ map showItems sMatches)) Just $ map (const pItem) sMatches
+ where
+   node    = ciNode item
+   source  = ciSourceTree item  
+   --
+   relevant c = 
+     let cNode = ciNode c
+     in  ciSourceTree c == source && 
+         gtype cNode /= Subs && gaconstr cNode 
+   relChart = filter relevant chart
+   --
+   matches sis = [ c | c <- relChart, (gnname.ciNode) c == sis ]
+
+-- | CKY subst rules
+substRule :: CKY_InferenceRule
+substRule item chart = 
+ if null res then Nothing else Just res
+ where
+  res  = catMaybes resVariants
+  --
+  resVariants
+   | (gtype node == Subs) = trace " subst variant" $ map (\r -> unifyWith item r) roots
+   | ciRoot item          = trace " root variant"  $ map (\s -> unifyWith s item) subs 
+   | otherwise            = [] 
+  node = ciNode item
+  --
+  roots = [ r | r <- chart, ciRoot r && (gaconstr.ciNode) r ]
+  subs  = [ s | s <- chart, (gtype.ciNode) s == Subs ]
+  --
+  unifyWith sItem rItem = 
+    let rNode = ciNode rItem
+        newNode u d = rNode { gnname = gnname node, gup = u, gdown = d }
+    in case unifyGNodes node (ciNode rItem) of
+       Nothing                -> Nothing
+       Just (up, down, subst) -> Just $ sItem { ciNode = newNode up down }
 \end{code}
 
 % --------------------------------------------------------------------  
@@ -321,35 +380,36 @@ generateStep2 :: BState ()
 generateStep2 = 
   do st <- get
      -- incrGeniter 1
-     -- try the permanent inference rules
-     
-     -- try the disposable inference rules
+     agendaItem <- selectAgendaItem
+     -- try the inference rules
      let chart = theChart st
-         results = map (\r -> applyInferenceRule r chart) (theRules st) 
-     -- remove all the rules that suceeded
-     put $ st { theRules = [ i | (i,r) <- zip inferenceRules results, isJust r ] }
+         apply (rule, name) = 
+           trace (ckyShow name agendaItem chart) $ 
+           rule agendaItem chart
+         results = map apply ckyRules 
+         showRes (_,name) res = 
+           case res of 
+           Nothing -> ""
+           Just _  -> "\n" ++ (ckyShow ("<- " ++ name) agendaItem chart)
      -- put all newly generated items into the right pigeon-holes
-     mapM dispatchNew (concat $ catMaybes results)
+     trace (concat $ zipWith showRes ckyRules results) $ mapM dispatchNew (concat $ catMaybes results)
+     -- 
+     addToChart agendaItem
      return ()
+
+selectAgendaItem :: BState ChartItem 
+selectAgendaItem = do 
+  a <- query theAgenda 
+  updateAgenda (tail a)
+  return (head a)
 \end{code}
 
 \begin{code}
-data InferenceRule a = Rule 
-  { showRule :: String
-  , retrieve :: [a] -> Maybe [a] -- chart to list of candidates
-  , infer    :: [a] -> [a] }
-
-instance Show (InferenceRule a) where 
-  show r = "inf rule " ++ showRule r
-
-inferenceRules = [] -- kidsToParentRule, substitutionRule ]
-
-applyInferenceRule :: InferenceRule a -> [a] -> Maybe [a]
-applyInferenceRule r chart = 
-  trace ("applying " ++ show r) $ (infer r) `liftM` retrieve r chart 
-
-
+type InferenceRule a = a -> [a] -> Maybe [a] 
 type CKY_InferenceRule = InferenceRule ChartItem
+
+instance Show CKY_InferenceRule where
+  show _ = "cky inference rule"
 \end{code}
 
 \subsection{Generate helper functions}
@@ -358,7 +418,7 @@ type CKY_InferenceRule = InferenceRule ChartItem
 
 \begin{code}
 finished :: BuilderStatus -> Bool
-finished = (null.theRules) -- should add check that step is aux
+finished = (null.theAgenda) -- should add check that step is aux
 
 query :: (BuilderStatus -> a) -> BState a
 query fn = fn `liftM` get 
@@ -381,11 +441,16 @@ following these critieria:
 \begin{code}
 dispatchNew :: ChartItem -> BState () 
 dispatchNew item = 
-  do let filts = [ removeRedundant, removeResults ]
+  do let filts = [ removeRedundant, removeResults, dispatchToAgenda ]
      -- keep trying dispatch filters until one of them suceeds
-     foldM (\prev f -> if prev then return True else f item) True filts
+     foldM (\prev f -> if prev then return True else f item) False filts
      return ()
-  -- >>= addToAgenda 
+
+dispatchToAgenda :: ChartItem -> BState Bool
+dispatchToAgenda item =
+   trace (ckyShow "-> agenda" item []) $
+   do addToAgenda item
+      return True
 
 -- merges non-new items with the chart; assigns a unique id to new items
 removeRedundant :: ChartItem -> BState Bool 
@@ -398,14 +463,15 @@ removeRedundant item =
          (isEq, newChart) = unzip $ map mergeEquivItems chart
      --
      if or isEq
-        then do put ( st {theChart = newChart} )
+        then trace (ckyShow "-> merge" item []) $
+             do put ( st {theChart = newChart} )
                 return True 
         else do setId item
                 return False 
 
 -- puts result items into the results list
 removeResults :: ChartItem -> BState Bool 
-removeResults item = return True --FIXME: to implement
+removeResults _ = return False --FIXME: to implement
 {-
   do st <- get
      let inputSem = tsem st
@@ -420,7 +486,7 @@ removeResults item = return True --FIXME: to implement
 -}
 
 -- FIXME: to implement
-removeTbFailures item = return True 
+removeTbFailures _ = return False
 \end{code}
 
 %% --------------------------------------------------------------------  
@@ -489,11 +555,11 @@ Note that this is not the same thing as equality!
 
 \begin{code}
 equivalent :: ChartItem -> ChartItem -> Bool
-equivalent c1 c2 =
+equivalent _ _ = False {-
   stuff c1 == stuff c2
   where 
     stuff x = 
-     ( ciNode x, ciSemantics x, ciPolpaths x )
+     ( ciNode x, ciSemantics x, ciPolpaths x ) -}
 \end{code}
 
 \fnlabel{mergeItems} combines two chart items into one, with the
@@ -503,7 +569,7 @@ into information from the first ``master'' item.
 
 \begin{code}
 mergeItems :: ChartItem -> ChartItem -> ChartItem
-mergeItems master slave = master  --FIXME: to implement
+mergeItems master _ = master  --FIXME: to implement
 \end{code}
 
 \subsection{Lookup}
@@ -545,12 +611,22 @@ propagate.  Otherwise we return Nothing.
 
 \begin{code}
 unifyTagSites :: TagSite -> TagSite -> Maybe (Flist, Flist, Subst)
-unifyTagSites (_, t1, b1) (_, t2, b2) =
+unifyTagSites (_, t1, b1) (_, t2, b2) = unifyPair (t1,b1) (t2,b2)
+
+unifyGNodes :: GNode -> GNode -> Maybe (Flist, Flist, Subst)
+unifyGNodes g1 g2 =
+  unifyPair (gupdown g1) (gupdown g2) 
+  where gupdown n = (gup n, gdown n)
+
+unifyPair :: (Flist, Flist) -> (Flist, Flist) -> Maybe (Flist, Flist, Subst)
+unifyPair (t1, b1) (t2, b2) =
   let (succ1, newTop, subst1)  = unifyFeat t1 t2
       (succ2, newBot, subst2)  = unifyFeat (replace subst1 b1) (replace subst1 b2)
   in if succ1 && succ2  
      then Just (newTop, newBot, subst1 ++ subst2)
      else Nothing
+
+
 \end{code}
 
 \begin{code}

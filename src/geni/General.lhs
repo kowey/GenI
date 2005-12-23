@@ -132,6 +132,22 @@ groupAndCount xs =
   where grouped = (group.sort) xs
 \end{code}
 
+\fnlabel{choices} given a list of lists, returns all lists such that one item
+from each sublist is chosen.  If there are empty sublists, this returns
+Nothing
+
+\begin{code}
+choices :: [[a]] -> Maybe [[a]]
+choices []     = Just []
+choices ([]:_) = Nothing
+choices (h:t)  = 
+  do next <- choices t
+     let attachH n = map (:n) h
+     return $ case next of 
+              []    -> attachH []
+              next2 -> concatMap attachH next2 
+\end{code}
+
 \section{Trees}
 
 \fnlabel{mapTree} is like map, except on Trees.  This has to be
