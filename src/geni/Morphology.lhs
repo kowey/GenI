@@ -119,18 +119,16 @@ attachMorphHelper mfs te =
       tt     = ttree te 
       anchor = head $ filterTree fn tt
                where fn a = (ganchor a && gtype a == Lex)
-      (succ, unf, subst) = unifyFeat mfs (gup anchor) 
-      -- perform substTagElem
-      te2 = replace subst te 
-      tt2 = ttree te2
-      -- replace the anchor with the unification results
-      newgdown = replace subst (gdown anchor) 
-      te3 = te2 { ttree = setAnchor newa tt2 }
-            where newa = anchor { gup   = unf,
-                                  gdown = newgdown }
-  in if succ 
-     then te3
-     else error ("Morphological unification failure on " ++ idname te)
+  in case unifyFeat mfs (gup anchor) of
+     Nothing -> error ("Morphological unification failure on " ++ idname te)
+     Just (unf,subst) ->
+      let -- perform replacements
+          te2 = replace subst te 
+          tt2 = ttree te2
+          -- replace the anchor with the unification results
+          newgdown = replace subst (gdown anchor) 
+          newa = anchor { gup = unf, gdown = newgdown }
+      in te2 { ttree = setAnchor newa tt2 }
 
 setAnchor :: GNode -> Tree GNode -> Tree GNode
 setAnchor n t =

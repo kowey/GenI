@@ -581,18 +581,36 @@ combineOne lexitem e =
        tpf  = pfeat e
        -- unify the parameters
        psubst = zip tp p
-       paramsUnified = replace psubst (Btypes.tree e)
+       paramsUnified | (length p) /= (length tp) = wterror "Wrong number of parameters."
+                     | otherwise = replace psubst (Btypes.tree e)
        -- unify the features
        pf2  = replace psubst pf  
        tpf2 = replace psubst tpf 
-       (fsucc, funif, fsubst) = unifyFeat pf2 tpf2
+       (funif, fsubst) = 
+         -- if fs unification fails for any reason (probably a bug)
+         case unifyFeat pf2 tpf2 of
+         Nothing -> wterror "Feature unification failed."
+         Just x  -> x
        featsUnified = replace fsubst paramsUnified 
        -- detect subst and adj nodes
        unified = featsUnified
        (snodes,anodes) = detectSites unified 
        -- the final result
        showid i = if null i then "" else ("-" ++ i)
-       sol = emptyTE {
+        -- if the parameters are of different length
+{-
+  This check prevents us from using large families of trees with
+  very different interfaces
+
+         -- if the lex item features are not a subset of the tree features
+         | intersect fpf ftpf /= fpf = error $
+             "Lex entry " ++ iword lexitem 
+             ++ "'s features are not a subset of"
+             ++ " tree's features: "  
+             ++ "\nlex:  " ++ show fpf  
+             ++ "\ntree: " ++ show ftpf
+-}
+       result = emptyTE {
                 idname = (head $ iword lexitem) ++ "_" 
                          ++ pfamily e ++ showid (pidname e),
                 derivation = (0,[]),
@@ -607,25 +625,6 @@ combineOne lexitem e =
                }        
        -- well... with error checking
        wterror s = error (s ++ " " ++ wt)
-       result 
-         -- if the parameters are of different length
-         | (length p) /= (length tp) = wterror "Wrong number of parameters."
-{-
-  This check prevents us from using large families of trees with
-  very different interfaces
-
-         -- if the lex item features are not a subset of the tree features
-         | intersect fpf ftpf /= fpf = error $
-             "Lex entry " ++ iword lexitem 
-             ++ "'s features are not a subset of"
-             ++ " tree's features: "  
-             ++ "\nlex:  " ++ show fpf  
-             ++ "\ntree: " ++ show ftpf
--}
-         -- if fs unification fails for any reason (probably a bug)
-         | not fsucc = wterror "Feature unification failed."
-         -- success! 
-         | otherwise = sol
    in result
 \end{code}
 

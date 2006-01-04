@@ -201,6 +201,10 @@ listRepNode fn filt ((n@(Node a l1)):l2) =
 in GenI which is very likely NOT the user's fault.
 
 \begin{code}
+geniBug :: String -> a
+geniBug s = error $ "Bug in GenI!\n" ++ s ++
+                    "\nPlease file a report on http://wiki.loria.fr/wiki/GenI/Complaints" 
+
 bugInGeni = 
  "Bug in GenI." ++ 
  "Please file a report on http://wiki.loria.fr/wiki/GenI/Complaints" 

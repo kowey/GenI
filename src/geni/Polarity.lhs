@@ -811,12 +811,10 @@ assignIndex i te =
       oldr  = root oldt
       tfup  = gup oldr
       --
-      (success, newgup, subst) = unifyFeat tfup idxfs 
-      newr = oldr { gup = newgup }
-      newt = rootUpd oldt newr
-      --
-      newTe = replace subst (te { ttree = newt }) 
-  in if success then newTe else te
+  in case unifyFeat tfup idxfs of
+     Nothing          -> te
+     Just (gup2, sub) -> replace sub $ te { ttree = newt }
+       where newt = rootUpd oldt $ oldr { gup = gup2 }
 \end{code}
 
 

@@ -42,7 +42,7 @@ where
 
 \ignore{
 \begin{code}
-import Control.Monad (when, filterM)
+import Control.Monad (when, guard, filterM)
 
 import Control.Monad.State (State, get, put, runState)
 
@@ -66,7 +66,7 @@ import Btypes
   , repSubst
   , constrainAdj
   , root, foot
-  , unifyFeat)
+  , unifyFeat, unifyFeat2)
 import Builder (Gstats, UninflectedWord, UninflectedSentence)
 import qualified Builder as B
 
@@ -404,8 +404,8 @@ iapplySubstNode te1 te2 sn@(n, fu, fd) =
       tfdown = gdown r
       -- FIXME: now that this behaves the same way as adjunction, 
       -- maybe we could refactor?
-      (succ1, newgup,   subst1) = unifyFeat tfup fu
-      (succ2, newgdown, subst2) = unifyFeat tfdown2 fd2
+      (succ1, newgup,   subst1) = unifyFeat2 tfup fu
+      (succ2, newgdown, subst2) = unifyFeat2 tfdown2 fd2
         where tfdown2 = replace subst1 tfdown 
               fd2     = replace subst1 fd
       subst = subst1 ++ subst2
@@ -506,21 +506,22 @@ if the foot node constraint is disabled}.
 
 \begin{code}
 iapplyAdjNode :: Bool -> TagElem -> TagElem -> (String, Flist, Flist) -> Maybe TagElem
-iapplyAdjNode fconstr te1 te2 an@(n, an_up, an_down) =
+iapplyAdjNode fconstr te1 te2 an@(n, an_up, an_down) = do
+  -- block repeated adjunctions of the same TagElem (for ignore semantics mode)
+  guard $ not $ elem (n, (tidnum te1)) (tadjlist te2)
+  -- let's go!
   let t1 = ttree te1
       t2 = ttree te2
       r = root t1
       f = foot t1
       r_up   = gup r    -- top features of the root of the auxiliar tree
       f_down = gdown f  -- bottom features of the foot of the auxiliar tree
-      (succ1, anr_up',  subst1)  = unifyFeat r_up an_up 
-      (succ2, anf_down, subst2)  = unifyFeat (replace subst1 f_down) (replace subst1 an_down)
-      -- don't forget to propagate the substitution set from the down stuff
+  (anr_up',  subst1) <- unifyFeat r_up an_up 
+  (anf_down, subst2) <- unifyFeat (replace subst1 f_down) (replace subst1 an_down)
+  let -- don't forget to propagate the substitution set from the down stuff
       anr_up = replace subst2 anr_up' 
       -- combined substitution list and success condition
       subst   = subst1++subst2
-      repeatadj = elem (n, (tidnum te1)) (tadjlist te2)
-      success = succ1 && succ2 && not repeatadj
 
       -- the adjoined tree
       -- ----------------- 
@@ -558,12 +559,10 @@ iapplyAdjNode fconstr te1 te2 an@(n, an_up, an_down) =
       addextra a = if fconstr then a2 else (ncopy anf) : a2
                    where a2 = (ncopy anr) : a
 
-      -- the final result  
-      -- ----------------
-      res  = res' { adjnodes = (addextra.adjnodes) res' 
-                  , tadjlist = (n, (tidnum te1)):(tadjlist te2)
-                  }
-  in if success then Just res else Nothing 
+  -- the final result  
+  -- ----------------
+  return $ res' { adjnodes = (addextra.adjnodes) res' 
+                , tadjlist = (n, (tidnum te1)):(tadjlist te2) }
 \end{code}
 
 % --------------------------------------------------------------------  
@@ -791,13 +790,13 @@ tbUnifyTree te =
       --
       fixNode :: GNode -> GNode
       fixNode gn = gn { gup = u, gdown = [] }
-                   where (_,u,_) = unifyFeat (gup gn) (gdown gn)
+                   where (_,u,_) = unifyFeat2 (gup gn) (gdown gn)
       -- 
       fixSite :: Subst -> TagSite -> TagSite 
       fixSite sb (n, u, d) = (n, u3, [])
         where u2 = replace sb u
               d2 = replace sb d
-              (_,u3,_) = unifyFeat u2 d2
+              (_,u3,_) = unifyFeat2 u2 d2
       --
       fixTe :: Subst -> Tree GNode -> TagElem
       fixTe sb tt2 = te { ttree      = mapTree fixNode tt2
@@ -845,22 +844,18 @@ simplify this over-complicated code unless you know what you're doing.
 
 \begin{code}
 tbUnifyNode :: GNode -> TbEither -> TbEither 
-tbUnifyNode gnRaw st = 
-  case st of 
-    Right (pending, whole) ->
-      let -- apply pending substitutions
-          gn = replace pending gnRaw 
-          -- check top/bottom unification on this node
-          (succ, _, sb) = unifyFeat (gup gn) (gdown gn)
-          pending2 = pending ++ sb
-          whole2   = replace sb whole
-      in if succ 
-         then -- apply any new substutions to the whole tree
-              Right (pending2, whole2)
-         else -- stop all future iterations
-              Left (gnname gn)
-    -- don't bother   
-    Left n -> Left n  
+tbUnifyNode gnRaw (Right (pending,whole)) = 
+  let -- apply pending substitutions
+      gn = replace pending gnRaw 
+  -- check top/bottom unification on this node
+  in case unifyFeat (gup gn) (gdown gn) of
+     -- stop all future iterations
+     Nothing -> Left (gnname gn)
+     -- apply any new substutions to the whole tree
+     Just (_,sb) -> Right (pending ++ sb, replace sb whole)
+
+-- if earlier we had a failure, don't even bother 
+tbUnifyNode _ (Left n) = Left n
 \end{code}
 
 % --------------------------------------------------------------------  

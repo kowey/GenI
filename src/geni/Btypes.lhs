@@ -47,7 +47,7 @@ module Btypes(
    emptyPred,
 
    -- Functions from Flist
-   sortFlist, unifyFeat, 
+   sortFlist, unifyFeat, unifyFeat2,
    showPairs, showAv,
 
    -- Other functions
@@ -69,6 +69,7 @@ module Btypes(
 import QuickCheck hiding (collect) -- needed for testing via ghci 
 import Control.Monad (liftM)
 import Data.List
+import Data.Maybe (maybe)
 import qualified Data.Map as Map
 import qualified Data.Set as Set 
 import Data.Tree
@@ -651,11 +652,10 @@ testBtypes = False --testSubstFlist
 \label{sec:fs_unification}
 % --------------------------------------------------------------------  
 
-Feature structure unification takes two feature lists as input and
-returns a tuple:
+Feature structure unification takes two feature lists as input.  If it
+fails, it returns Nothing.  Otherwise, it returns a tuple with:
 
 \begin{enumerate}
-\item true if unification is possible
 \item a unified feature structure list
 \item a list of variable replacements that will need to be propagated
       across other feature structures with the same variables
@@ -712,12 +712,17 @@ unification. It makes the following assumptions:
 \end{itemize}
 
 \begin{code}
-unifyFeat :: Flist -> Flist -> (Bool, Flist, Subst)
+unifyFeat :: Flist -> Flist -> Maybe (Flist, Subst)
 unifyFeat f1 f2 = 
-  let (att, val1, val2) = alignFeat f1 f2
-  in  case unify val1 val2 of
-        Nothing -> (False, [], [])
-        Just (res, subst) -> (True, zip att res, subst)
+  do let (att, val1, val2) = alignFeat f1 f2
+     (res, subst) <- unify val1 val2 
+     return (zip att res, subst)
+
+-- does the same thing but returning True/False on success or failure
+unifyFeat2 :: Flist -> Flist -> (Bool, Flist, Subst)
+unifyFeat2 a b = maybe failure success $ unifyFeat a b
+  where failure       = (False, [], [])
+        success (f,s) = (True, f, s)
 \end{code}
 
 \fnlabel{alignFeat}
