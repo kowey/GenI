@@ -74,19 +74,11 @@ keyword.)
 \begin{code}
 geniTestCase :: Parser TestCase
 geniTestCase =
-  do name <- option "" (notSemantics <?> "a test case name")
+  do name <- option "" (identifier <?> "a test case name")
      (sem,res)   <- geniSemanticInput
      sentences   <- option [] (many sentenceParser)
      return (name, (sem,res), sentences)
   where
-    -- parses any identifier BESIDES 'semantics'
-    -- ALTERNATELY: we could just make another lexer which
-    -- treats 'semantics' as a reserved word, whilst still 
-    -- using the regular geni lexer for sentences
-    notSemantics :: Parser String
-    notSemantics = 
-      try $ do { symbol "semantics" ; pzero } <|> identifier
-    sentenceParser :: Parser String
     sentenceParser = 
       do optional (keyword "sentence")
          w <- squares (sepBy1 geniWord whiteSpace<?> "a sentence") 
@@ -401,6 +393,7 @@ lexer  = makeTokenParser
          , commentEnd = "*/"
          , opLetter = oneOf ""
          , reservedOpNames = [""]
+         , reservedNames = ["semantics"]
          , identLetter = alphaNum <|> oneOf "_'-."
          })
 
