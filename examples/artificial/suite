@@ -1,3 +1,8 @@
+sub
+semantics:[a() b() c()]
+
+adj
+semantics:[a() xb() xg()]
 
 % there should be exactly one way to produce the answer here
 % (as opposed to two) - the idea is that GenI enforces the
@@ -5,3 +10,5 @@
 % subst up
 abc
 semantics:[a() b() c()]
+
+

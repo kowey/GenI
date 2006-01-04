@@ -1,14 +1,29 @@
-one() initial
-r [cat:a]![] {
- a anchor 
- s type:subst  [ cat:b ]![]
+yi1() initial
+Mother [cat:a tb:?T]![tb:?B] {
+ Left  anchor 
+ Right type:subst  [ cat:b ]![]
 }
 
-two() initial
-r [cat:b]![] {
-  a anchor
-  s type:subst [ cat:c ]![]
+er2() initial
+Mother [cat:b]![] {
+  Left anchor
+  Right type:subst [ cat:c ]![]
 }
 
-three() initial
-r anchor [cat:c]![] 
+san3() initial
+Mother anchor [cat:c]![] 
+
+si4-bad() auxiliary
+Mother [cat:a]![tb:foo] {
+  Left anchor 
+  Foot type:foot [cat:a]![tb:bar]
+}
+
+si4-good() auxiliary
+Mother [cat:a tb:ping]![] {
+  Left anchor 
+  Foot type:foot [cat:a]![tb:ping]
+}
+
+
+

@@ -1,8 +1,14 @@
-a one []
+_a yi1 []
 semantics: [a()]
 
-b two []
+_b er2 []
 semantics: [b()]
 
-c three []
+_c san3 []
 semantics: [c()]
+
+_xb si4-bad []
+semantics: [xb()]
+
+_xg si4-good []
+semantics: [xg()]
