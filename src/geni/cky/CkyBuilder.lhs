@@ -35,7 +35,7 @@ import Control.Monad
 
 import Control.Monad.State 
   (State, get, put, liftM, runState, execState )
-import Data.Bits ( (.&.), (.|.), shiftL )
+import Data.Bits ( (.&.), (.|.), bit )
 import Data.List ( delete, intersperse )
 import qualified Data.Map as Map
 import Data.Maybe (catMaybes, mapMaybe)
@@ -66,7 +66,7 @@ import Tags
    tpolpaths, ttype,
    setTidnums )
 import Configuration (Params)
-import General (BitVector, geniBug)
+import General (BitVector, showBitVector, geniBug)
 
 import Debug.Trace
 \end{code}
@@ -203,7 +203,7 @@ type SemBitMap = Map.Map Pred BitVector
 defineSemanticBits :: Sem -> SemBitMap
 defineSemanticBits sem = Map.fromList $ zip sem bits
   where 
-   bits = map (shiftL 1) [0..] -- 0001, 0010, 0100...
+   bits = map bit [0..] -- 0001, 0010, 0100...
 
 semToBitVector :: SemBitMap -> Sem -> BitVector
 semToBitVector bmap sem = foldr (.|.) 0 $ map lookup sem 
@@ -294,8 +294,10 @@ ciSubs  i = (gtype.ciNode) i == Subs
 ciAdjDone   = gaconstr.ciNode
 ciAux   i = (ttype.ciSourceTree) i == Auxiliar
 
-combineSem :: BitVector -> BitVector -> BitVector
-combineSem = (.|.)
+combineVectors :: ChartItem -> ChartItem -> ChartItem 
+combineVectors a b = 
+  b { ciSemantics = (ciSemantics a) .|. (ciSemantics b)
+    , ciPolpaths  = (ciPolpaths  a) .&. (ciPolpaths  b) }
 \end{code}
 
 \begin{code}
@@ -304,11 +306,12 @@ combineSem = (.|.)
 % FIXME: diagram and comment
 
 \begin{code}
-ckyRules = 
+ckyRules =
  [ (kidsToParentRule, "kidsToP")
  , (substRule       , "subst") 
  , (nonAdjunctionRule, "nonAdj") 
- , (passiveAdjunctionPredictRule, "passiveAdjRule") ]
+ , (activeAdjunctionRule, "activeAdjRule") 
+ , (passiveAdjunctionRule, "passiveAdjRule") ] 
 
 ckyShow name item chart = 
   let showChart = show $ length chart
@@ -316,9 +319,13 @@ ckyShow name item chart =
   in concat $ intersperse "\t" $
        [ pad name 10, showChart
        , pad (idname $ ciSourceTree item) 10
+       , pad (showItemSem item) 5 
        , show $ ciNode item ]
 
-showItems items = show $ map ciNode items
+showItems = unlines . (map showItem)
+showItem i = (idname.ciSourceTree) i ++ " " ++ show (ciNode i) ++ " " ++  (showItemSem i)
+
+showItemSem = (showBitVector 3) . ciSemantics
 
 nodeToItem :: TagElem -> GNode -> ChartItem 
 nodeToItem te node = ChartItem 
@@ -345,19 +352,20 @@ nonAdjunctionRule item _ =
 -- mgu mechanism in compare?
 kidsToParentRule item chart = 
  do (s,p,r)  <- Map.lookup (gnname node) (ciRouting item) 
-    sMatches <- trace (" relevant chart: " ++ showItems relChart) $ 
-                trace (" routing info: " ++ show (s,p,r)) $ 
+    sMatches <- -- trace (" relevant chart: " ++ showItems relChart) $ 
+                -- trace (" routing info: " ++ show (s,p,r)) $ 
                 choices $ map matches s
     -- FIXME: need to do unification
-    let combine kids = item 
-          { ciNode = p
-          , ciSemantics = foldr combineSem 0 $ map ciSemantics kids
-          , ciAdjPoint  = mergePoints possibleAdjPoints }
-         where possibleAdjPoints = mapMaybe ciAdjPoint kids
-               mergePoints []  = Nothing
-               mergePoints [x] = Just x
-               mergePoints _   = error "multiple adjunction points in kidsToParentRule?!"
-    trace (" matches: " ++ (show $ map showItems sMatches)) Just $ map combine sMatches
+    let combine kids = foldr combineVectors newItem kids
+         where 
+          newItem = item { ciNode = p
+                         , ciAdjPoint = mergePoints possibleAdjPoints }
+          possibleAdjPoints = mapMaybe ciAdjPoint kids
+          mergePoints []  = Nothing
+          mergePoints [x] = Just x
+          mergePoints _   = error "multiple adjunction points in kidsToParentRule?!"
+    --trace (" matches: " ++ (show $ map showItems sMatches)) $ 
+    Just $ map combine sMatches
  where
    node    = ciNode item
    source  = (idname.ciSourceTree) item  
@@ -381,57 +389,65 @@ pop (x:_) = Just x
 substRule item chart = listAsMaybe resVariants
  where
   resVariants
-   | ciSubs item = trace " subst variant" $ mapMaybe (\r -> unifyForSubst item r) roots
-   | ciRoot item = trace " root variant"  $ mapMaybe (\s -> unifyForSubst s item) subs 
+   | ciSubs item = -- trace " subst variant" $ 
+                   mapMaybe (\r -> attemptSubst item r) roots
+   | ciRoot item = -- trace " root variant"  $ 
+                   mapMaybe (\s -> attemptSubst s item) subs 
    | otherwise   = [] 
   --
   roots = [ r | r <- chart, compatible item r && ciRoot r && (gaconstr.ciNode) r ]
   subs  = [ s | s <- chart, ciSubs s ]
 
 -- | unification for substitution
-unifyForSubst :: ChartItem -> ChartItem -> Maybe ChartItem
-unifyForSubst sItem rItem | ciSubs sItem = 
+attemptSubst :: ChartItem -> ChartItem -> Maybe ChartItem
+attemptSubst sItem rItem | ciSubs sItem = 
  do let rNode = ciNode rItem
         sNode = ciNode sItem
         newNode u d = rNode { gnname = gnname sNode, gup = u, gdown = d }
     (up, down, subst) <- unifyGNodes sNode (ciNode rItem) 
-    return $ sItem { ciNode    = newNode up down 
-                   , ciSubsts  = ciSubsts sItem ++ subst 
-                   , ciSemantics = (ciSemantics sItem) `combineSem` (ciSemantics rItem) }
-unifyForSubst _ _ = error "unifyForSubst called on non-subst node"
+    return $ combineVectors rItem $
+      sItem { ciNode    = newNode up down 
+            , ciSubsts  = ciSubsts sItem ++ subst }
+attemptSubst _ _ = error "attemptSubst called on non-subst node"
  
 -- | CKY adjunction rule: note - we need this split into two rules because
 -- both variants could fire at the same time, for example, the passive variant
 -- to adjoin into the root of an auxiliary tree, and the active variant because
 -- it is an aux tree itself and it wants to adjoin somewhere
-passiveAdjunctionPredictRule item chart | ciRoot item && ciAux item =
- listAsMaybe $ mapMaybe (\p -> unifyForAdjunction p item) sites 
+activeAdjunctionRule item chart | ciRoot item && ciAux item =
+ listAsMaybe $ mapMaybe (\p -> attemptAdjunction p item) sites 
  where
   sites = [ p | p <- chart, compatible item p && 
-                            (gtype.ciNode) p == Other && (not.gaconstr.ciNode) p ]
+                (gtype.ciNode) p == Other && (not.gaconstr.ciNode) p ]
 
-passiveAdjunctionPredictRule _ _ = Nothing -- if not applicable
+activeAdjunctionRule _ _ = Nothing -- if not applicable
 
+-- | CKY adjunction rule: we're just a regular node, minding our own business
+-- looking for an auxiliary tree to adjoin into us
+passiveAdjunctionRule item chart =
+ listAsMaybe $ mapMaybe (attemptAdjunction item) auxItems
+ where
+  auxItems = [ a | a <- chart, compatible item a && ciAux a && ciRoot a ]
 
-unifyForAdjunction :: ChartItem -> ChartItem -> Maybe ChartItem
-unifyForAdjunction pItem aItem | ciRoot aItem && ciAux aItem =
- trace ("try adjoining " ++ (idname $ ciSourceTree aItem) ++ " into " ++ (idname $ ciSourceTree pItem)) $
+attemptAdjunction :: ChartItem -> ChartItem -> Maybe ChartItem
+attemptAdjunction pItem aItem | ciRoot aItem && ciAux aItem =
+ -- trace ("try adjoining " ++ (showItem aItem) ++ " into " ++ (showItem pItem)) $
  do let aRoot = ciNode aItem
         aFoot = (foot.ttree.ciSourceTree) aItem-- could be pre-computed?
         pNode = ciNode pItem
         newNode u d = pNode { gaconstr = False, gup = u, gdown = d }
     (newTop, newBot, subst) <- unifyPair (gup pNode, gdown pNode) 
                                          (gup aRoot, gdown aFoot)
-    return $ pItem { ciNode      = newNode newTop newBot
-                   , ciSubsts    = subst 
-                   , ciSemantics = (ciSemantics pItem) `combineSem` (ciSemantics aItem)
-    } 
-unifyForAdjunction _ _ = error "unifyForAdjunction called on non-aux or non-root node"
+    return $ combineVectors aItem $ 
+      pItem { ciNode      = newNode newTop newBot
+            , ciSubsts    = subst }
+attemptAdjunction _ _ = error "attemptAdjunction called on non-aux or non-root node"
 
 -- return True if the chart items may be combined with each other; for now, this
 -- consists of a semantic check
 compatible :: ChartItem -> ChartItem -> Bool
-compatible a b = ( (ciSemantics a) .&. (ciSemantics b) ) == 0
+compatible a b =    ( (ciSemantics a) .&. (ciSemantics b) ) == 0
+                 && ( (ciPolpaths  a) .|. (ciPolpaths  b) ) /= 0
 \end{code}
 
 % --------------------------------------------------------------------  
@@ -466,7 +482,7 @@ generateStep2 =
      -- try the inference rules
      let chart = theChart st
          apply (rule, name) = 
-           trace (ckyShow name agendaItem chart) $ 
+           -- trace (ckyShow name agendaItem chart) $ 
            rule agendaItem chart
          results = map apply ckyRules 
          showRes (_,name) res = 
