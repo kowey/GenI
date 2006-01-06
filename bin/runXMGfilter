@@ -28,8 +28,8 @@ use strict;
 use File::Basename;
 
 # command line arguments
-if ($#ARGV != 0) {
-  printf STDERR "usage: runXMGfilter grammar_file\n";
+if ($#ARGV > 1) {
+  printf STDERR "usage: runXMGfilter grammar_file [output_file]\n";
   exit 1;
 }
 # infer the GRAMMAR_DIR from the grammar_file
@@ -41,6 +41,10 @@ my $INPUT_MG=$GRAMMAR_DIR."/".$INPUT_MG_BASE;
 
 my $TMP_FILTERED_FILE=$GRAMMAR_DIR."/tmp-filtered-".$INPUT_MG_BASE;
 my $OLD_FILTERED_FILE=$GRAMMAR_DIR."/filtered-".$INPUT_MG_BASE;
+# if the user supplied an output file name, use that instead 
+if ($#ARGV eq 1) {
+  $OLD_FILTERED_FILE=$ARGV[1];
+}
 
 # ----------------------------------------------------------------------
 # creating the tmp .mg
