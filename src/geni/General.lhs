@@ -27,6 +27,7 @@ where
 
 \ignore{
 \begin{code}
+import Data.Bits (shiftR, (.&.))
 import Data.Char (isSpace, toUpper, toLower)
 import Data.List (intersect, groupBy, group, sort, intersperse)
 import Data.Tree
@@ -256,6 +257,11 @@ showInterval (x,y) =
 
 \begin{code}
 type BitVector = Integer
+
+-- | displays a bit vector, using a minimum number of bits
+showBitVector :: Int -> BitVector -> String
+showBitVector min 0 = take min $ repeat '0'
+showBitVector min x = showBitVector (min - 1) (shiftR x 1) ++ (show $ x .&. 1) 
 \end{code}
 
 \paragraph{showTable} pretty-prints an ASCII table from a list of items.
