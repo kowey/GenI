@@ -36,7 +36,6 @@ import Btypes (MTtree, Ttree(..), Ptype(..),
                GNode(..), GType(..), Flist,
                showLexeme,
                showSem, showPairs, showAv)
-import Graphviz (GvParam)
 \end{code}
 }
 
@@ -48,7 +47,7 @@ import Graphviz (GvParam)
 \textit{dot} format.
 
 \begin{code}
-graphvizShowTagElem :: GvParam -> TagElem -> String
+graphvizShowTagElem :: Bool -> TagElem -> String
 graphvizShowTagElem sf te =
      -- we want a directed graph (but without arrows)
      "digraph " ++ (dehyphen $ idname te) ++ " {\n" 
@@ -84,7 +83,7 @@ them distinct.  Note : We use the letter `x' as seperator because
 graphviz will choke on `.' or `-', even underscore.
 
 \begin{code}
-graphvizShow' :: GvParam-> [String] -> Tree GNode -> String -> String
+graphvizShow' :: Bool -> [String] -> Tree GNode -> String -> String
 graphvizShow' sf hl (Node node l) label =
    let showFn   = if sf then showGNodeAll else show 
        shapeStr = if sf then "shape = record, " else ""

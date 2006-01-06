@@ -101,7 +101,7 @@ polarityGui   f xs final = do
       autlist = (concatMap aut2 xs) ++ [ final ] 
       labels  = (concatMap autLabel xs) ++ [ "final" ++ numsts final ]
       --
-  gvRef   <- newGvRef False labels "automata"
+  gvRef   <- newGvRef () labels "automata"
   setGvDrawables gvRef autlist
   (lay,_) <- graphvizGui f "polarity" gvRef 
   return lay
@@ -314,8 +314,8 @@ Returns: a function for updating the GUI
 %\end{code}
 
 \begin{code}
-graphvizGui :: (GraphvizShow d) => 
-  (Window a) -> String -> GraphvizRef d Bool -> GvIO d
+graphvizGui :: (GraphvizShow f d) => 
+  (Window a) -> String -> GraphvizRef d f -> GvIO d
 type GvIO d = IO (Layout, IO ())
 graphvizGui f cachedir gvRef = do
   initGvSt <- readIORef gvRef
@@ -433,8 +433,8 @@ does nothing at all; the creation function will display an error message
 if it fails.
 
 \begin{code}
-createAndOpenImage :: (GraphvizShow b) => 
-  FilePath -> Window a -> GraphvizRef b Bool -> OpenImageFn -> IO ()
+createAndOpenImage :: (GraphvizShow f b) => 
+  FilePath -> Window a -> GraphvizRef b f -> OpenImageFn -> IO ()
 createAndOpenImage cachedir f gvref openFn = do 
   let errormsg g = "The file " ++ g ++ " was not created!\n"
                    ++ "Is graphviz installed?"
@@ -454,8 +454,8 @@ array of trees.  Returns Just filename if the index is valid or Nothing
 otherwise 
 
 \begin{code}
-createImage :: (GraphvizShow b) => 
-  FilePath -> Window a -> GraphvizRef b Bool -> IO (Maybe FilePath) 
+createImage :: (GraphvizShow f b) => 
+  FilePath -> Window a -> GraphvizRef b f -> IO (Maybe FilePath) 
 createImage cachedir f gvref = do
   gvSt <- readIORef gvref
   -- putStrLn $ "creating image via graphviz"
@@ -546,7 +546,7 @@ boundsCheck s l = s >= 0 && s < length l
 \end{code}
 
 \begin{code}
-instance GraphvizShow TagElem where
+instance GraphvizShow Bool TagElem where
   graphvizShow = graphvizShowTagElem
 \end{code}
 

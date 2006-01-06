@@ -1292,7 +1292,7 @@ showLitePm pm =
 \subsection{Drawing automata}
 
 \begin{code}
-instance GraphvizShow PolAut where
+instance GraphvizShow () PolAut where
   -- we want a directed graph (arrows)
   graphvizShow _ aut = 
      "digraph aut {\n" 

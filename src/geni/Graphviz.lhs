@@ -53,14 +53,9 @@ should implement this class.  Note the first argument to graphvizShow is
 so that you can parameterise your show function 
 (i.e. pass in flags to change the way you show particular object)
 
-FIXME: ideally the flag would be of parameterisable type... but it 
-       seems i'll have to enable glasgow-exts to get classes that
-       let me do that.  
-
 \begin{code}
-type GvParam = Bool
-class GraphvizShow a where
-  graphvizShow :: GvParam -> a -> String
+class GraphvizShow flag b where
+  graphvizShow :: flag -> b -> String
 \end{code}
 
 The conversion process and graphviz invocation itself is in the sections
@@ -69,7 +64,7 @@ dot output to a file.  You can pass in the empty string if you don't
 want this.
 
 \begin{code}
-toGraphviz :: (GraphvizShow a) => GvParam -> a -> String -> String -> IO ExitCode 
+toGraphviz :: (GraphvizShow f a) => f -> a -> String -> String -> IO ExitCode 
 toGraphviz p x dotFile outputFile = do
    graphviz (graphvizShow p x) dotFile outputFile
 \end{code}
