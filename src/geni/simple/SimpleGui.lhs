@@ -197,8 +197,7 @@ debugGui pstRef =
         createTab (cd,xs)  = debuggerTab nb config initStuff2 cd  
           where initStuff2 = initStuff { B.inCands = xs }
     debugTabs <- mapM createTab $ zip tabLabels combos
-    let genTabs = map fn $ zip tabLabels debugTabs
-                  where fn (l,t) = tab l t
+    let genTabs = zipWith tab tabLabels debugTabs
     --
     set f [ layout := container p $ column 0 [ tabs nb (basicTabs ++ genTabs) ]
           , clientSize := sz 700 600 ]
