@@ -1,3 +1,10 @@
+% note: the alphabetical names are meaningless - they are just
+% chinese numbers (which is why i follow them by the equivalent 
+% arabic numerals)
+%
+% why do i name them this way? dunno... figured they'd be easier
+% to see or something
+
 yi1() initial
 Mother [cat:a tb:?T]![tb:?B] {
  Left  anchor 
@@ -10,8 +17,8 @@ Mother [cat:b]![] {
   Right type:subst [ cat:c ]![]
 }
 
-san3() initial
-Mother anchor [cat:c]![] 
+term(?C ?X) initial
+Mother anchor [cat:?C foo:?X]![] 
 
 si4-bad() auxiliary
 Mother [cat:a]![tb:foo] {
@@ -25,5 +32,19 @@ Mother [cat:a tb:ping]![] {
   Foot type:foot [cat:a]![tb:ping]
 }
 
+% meant to receive substitution from san3 
+% if it works - ?A should be set to bar
+wu5 () initial
+Mother [cat:a foo:?A]![] {
+  Left anchor
+  Right type:subst [cat:t1 foo:?A]![]
+}
 
-
+% unification + subst should work, but this should NOT propagate up! 
+% this should NOT propagate up
+wu5-bad () initial
+Mother [cat:a foo:?A]![] {
+  Anch anchor
+  Left  type:subst [cat:t1 foo:?A]![]
+  Right type:subst [cat:t2 foo:?A]![]
+}

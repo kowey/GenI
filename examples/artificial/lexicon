@@ -1,14 +1,24 @@
-_a yi1 []
+_a yi1 () 
 semantics: [a()]
 
-_b er2 []
+_b er2 () 
 semantics: [b()]
 
-_c san3 []
-semantics: [c()]
+_t1 term (t1 bar1)
+semantics: [t1()]
 
-_xb si4-bad []
+_t2 term (t2 bar2) 
+semantics: [t2()]
+
+_xb si4-bad () 
 semantics: [xb()]
 
-_xg si4-good []
+_xg si4-good () 
 semantics: [xg()]
+
+_d wu5 () 
+semantics: [d()]
+
+_d_b wu5-bad()
+semantics: [db()]
+
