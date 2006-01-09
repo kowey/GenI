@@ -357,19 +357,19 @@ nonAdjunctionRule item _ =
      else Just [ item { ciNode = node2 } ]
 
 -- | CKY parent rule
--- FIXME: need to think about unification and multiple matches
--- something about most general unifier - do we really need a 
+-- FIXME: something about most general unifier - do we really need a 
 -- mgu mechanism in compare?
 kidsToParentRule item chart = 
  do (s,p,r)  <- Map.lookup (gnname node) (ciRouting item) 
     sMatches <- -- trace (" relevant chart: " ++ showItems relChart) $ 
                 -- trace (" routing info: " ++ show (s,p,r)) $ 
                 choices $ map matches s
-    -- FIXME: need to do unification
     let combine kids = foldr combineVectors newItem kids
          where 
-          newItem = item { ciNode = p
+          newItem = item { ciNode     = replace newSubsts p
+                         , ciSubsts   = newSubsts
                          , ciAdjPoint = mergePoints possibleAdjPoints }
+          newSubsts = concatMap ciSubsts (item:kids)
           possibleAdjPoints = mapMaybe ciAdjPoint kids
           mergePoints []  = Nothing
           mergePoints [x] = Just x
