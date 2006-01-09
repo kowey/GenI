@@ -38,14 +38,16 @@ import Control.Monad.State
 import Data.Bits ( (.&.), (.|.), bit )
 import Data.List ( delete, intersperse )
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 import Data.Maybe (catMaybes, mapMaybe)
 import Data.Tree 
 
 import Btypes 
-  ( alphaConvert
+  ( alphaConvert, unify, collect
   , Flist
   , Replacable(..), Pred, Sem, Subst
   , GNode(..), GType(Subs, Foot, Other)
+  , GeniVal(GVar),
   , Ptype(Auxiliar)
   , root, foot
   , showPred
@@ -191,9 +193,11 @@ initBuilder input config =
 initTree :: SemBitMap -> TagElem -> [ChartItem]
 initTree bmap te = 
   let semVector    = semToBitVector bmap (tsemantics te)
-      createItem n = (nodeToItem te n) { ciSemantics = semVector
-                                       , ciSemBitMap = bmap
-                                       , ciRouting = decompose te }
+      createItem n = (nodeToItem te n) 
+       { ciSemantics = semVector
+       , ciSemBitMap = bmap
+       , ciRouting   = decompose te 
+       , ciVariables = (map GVar) $ Set.toList $ collect te Set.empty }
   in  map createItem $ treeLeaves $ ttree te
 
 type SemBitMap = Map.Map Pred BitVector
@@ -275,6 +279,7 @@ addToTrash _ _ = do
       Bar'', not ``do Foo, then Bar''.
 \end{enumerate}
 
+-- TODO: decide if we want this to be an instant of Replacable 
 \begin{code}
 data ChartItem = ChartItem 
   { ciNode       :: GNode
@@ -289,6 +294,9 @@ data ChartItem = ChartItem
   , ciRouting    :: RoutingMap 
   -- variable replacements to accumulate
   , ciSubsts     :: Subst 
+  -- a list of genivals which were variables when the node was
+  -- first initialised
+  , ciVariables  :: [GeniVal]
   -- we keep a SemBitMap strictly to help display the semantics
   , ciSemBitMap  :: SemBitMap
   } deriving Show
@@ -307,6 +315,13 @@ combineVectors a b =
   b { ciSemantics = (ciSemantics a) .|. (ciSemantics b)
     , ciPolpaths  = (ciPolpaths  a) .&. (ciPolpaths  b) 
     , ciSemBitMap =  ciSemBitMap a }
+
+combineWith :: GNode -> Subst -> ChartItem -> ChartItem -> ChartItem
+combineWith node subst other x =
+  combineVectors other $ 
+  x { ciNode      = node 
+    , ciSubsts    = (ciSubsts x) ++ subst
+    , ciVariables = replace subst (ciVariables x) }
 \end{code}
 
 \begin{code}
@@ -315,6 +330,7 @@ combineVectors a b =
 % FIXME: diagram and comment
 
 \begin{code}
+ckyRules :: [ (CKY_InferenceRule, String) ]
 ckyRules =
  [ (kidsToParentRule, "kidsToP")
  , (substRule       , "subst") 
@@ -344,12 +360,14 @@ nodeToItem te node = ChartItem
   , ciSemantics  = 0  -- to be set 
   , ciId         = -1 -- to be set 
   , ciRouting    = Map.empty -- to be set
+  , ciVariables  = [] -- to be set
   , ciAdjPoint   = Nothing
   , ciSubsts     = [] 
   , ciSemBitMap  = Map.empty }
 
 -- | CKY non adjunction rule - creates items in which
 -- we do not apply any adjunction
+-- this rule also doubles as top
 nonAdjunctionRule item _ =
   let node  = ciNode item
       node2 = node { gaconstr = True }
@@ -364,18 +382,26 @@ kidsToParentRule item chart =
     sMatches <- -- trace (" relevant chart: " ++ showItems relChart) $ 
                 -- trace (" routing info: " ++ show (s,p,r)) $ 
                 choices $ map matches s
-    let combine kids = foldr combineVectors newItem kids
-         where 
-          newItem = item { ciNode     = replace newSubsts p
-                         , ciSubsts   = newSubsts
-                         , ciAdjPoint = mergePoints possibleAdjPoints }
-          newSubsts = concatMap ciSubsts (item:kids)
-          possibleAdjPoints = mapMaybe ciAdjPoint kids
-          mergePoints []  = Nothing
-          mergePoints [x] = Just x
-          mergePoints _   = error "multiple adjunction points in kidsToParentRule?!"
-    --trace (" matches: " ++ (show $ map showItems sMatches)) $ 
-    Just $ map combine sMatches
+    --
+    let mergePoints kids = 
+          case mapMaybe ciAdjPoint kids of
+          []  -> Nothing
+          [x] -> Just x
+          _   -> error "multiple adjunction points in kidsToParentRule?!"
+    let combine kids = do
+          let unifyOnly (x, _) y = unify x y
+          newVars <- foldM unifyOnly (ciVariables item,[]) $ 
+                     map ciVariables kids  
+          let newSubsts = concatMap ciSubsts (item:kids)
+              newItem   = item 
+               { ciNode      = replace newSubsts p 
+               , ciSubsts    = newSubsts
+               , ciAdjPoint  = mergePoints kids 
+               , ciVariables = fst newVars }
+          return $ foldr combineVectors newItem kids
+              --trace (" matches: " ++ (show $ map showItems sMatches)) $ 
+    --
+    listAsMaybe $ mapMaybe combine sMatches
  where
    node    = ciNode item
    source  = (idname.ciSourceTree) item  
@@ -413,11 +439,10 @@ attemptSubst :: ChartItem -> ChartItem -> Maybe ChartItem
 attemptSubst sItem rItem | ciSubs sItem = 
  do let rNode = ciNode rItem
         sNode = ciNode sItem
-        newNode u d = rNode { gnname = gnname sNode, gup = u, gdown = d }
     (up, down, subst) <- unifyGNodes sNode (ciNode rItem) 
-    return $ combineVectors rItem $
-      sItem { ciNode    = newNode up down 
-            , ciSubsts  = ciSubsts sItem ++ subst }
+    let newNode = rNode { gnname = gnname sNode
+                        , gup = up, gdown = down }  
+    return $ combineWith newNode subst rItem sItem
 attemptSubst _ _ = error "attemptSubst called on non-subst node"
  
 -- | CKY adjunction rule: note - we need this split into two rules because
@@ -445,12 +470,10 @@ attemptAdjunction pItem aItem | ciRoot aItem && ciAux aItem =
  do let aRoot = ciNode aItem
         aFoot = (foot.ttree.ciSourceTree) aItem-- could be pre-computed?
         pNode = ciNode pItem
-        newNode u d = pNode { gaconstr = False, gup = u, gdown = d }
     (newTop, newBot, subst) <- unifyPair (gup pNode, gdown pNode) 
                                          (gup aRoot, gdown aFoot)
-    return $ combineVectors aItem $ 
-      pItem { ciNode      = newNode newTop newBot
-            , ciSubsts    = subst }
+    let newNode = pNode { gaconstr = False, gup = newTop, gdown = newBot }
+    return $ combineWith newNode subst aItem pItem
 attemptAdjunction _ _ = error "attemptAdjunction called on non-aux or non-root node"
 
 -- return True if the chart items may be combined with each other; for now, this

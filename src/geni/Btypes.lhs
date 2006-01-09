@@ -47,7 +47,7 @@ module Btypes(
    emptyPred,
 
    -- Functions from Flist
-   sortFlist, unifyFeat, unifyFeat2,
+   sortFlist, unify, unifyFeat, unifyFeat2,
    showPairs, showAv,
 
    -- Other functions
