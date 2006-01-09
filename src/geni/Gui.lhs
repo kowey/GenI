@@ -53,6 +53,7 @@ import GuiHelper
 
 import Polarity
 import SimpleGui
+import CkyGui
 \end{code}
 }
 
@@ -567,7 +568,7 @@ doGenerate f pstRef sembox debugger =
     let config = pa pst
         builderGui = case builderType config of 
           SimpleBuilder -> simpleGui
-          CkyBuilder    -> simpleGui
+          CkyBuilder    -> ckyGui 
         generateGui = BG.generateGui builderGui
         debugGui    = BG.debugGui builderGui
     --

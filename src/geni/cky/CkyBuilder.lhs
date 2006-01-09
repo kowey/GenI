@@ -39,7 +39,7 @@ import Data.Bits ( (.&.), (.|.), bit )
 import Data.List ( delete, intersperse )
 import qualified Data.Map as Map
 import Data.Maybe (catMaybes, mapMaybe)
-import Data.Tree (Tree(Node))
+import Data.Tree 
 
 import Btypes 
   ( alphaConvert
@@ -192,6 +192,7 @@ initTree :: SemBitMap -> TagElem -> [ChartItem]
 initTree bmap te = 
   let semVector    = semToBitVector bmap (tsemantics te)
       createItem n = (nodeToItem te n) { ciSemantics = semVector
+                                       , ciSemBitMap = bmap
                                        , ciRouting = decompose te }
   in  map createItem $ treeLeaves $ ttree te
 
@@ -211,6 +212,11 @@ semToBitVector bmap sem = foldr (.|.) 0 $ map lookup sem
          case Map.lookup p bmap of 
          Nothing -> geniBug $ "predicate " ++ showPred p ++ " not found in semanticBit map"
          Just b  -> b
+
+bitVectorToSem :: SemBitMap -> BitVector -> Sem
+bitVectorToSem bmap vector = 
+  mapMaybe tryKey $ Map.toList bmap
+  where tryKey (p,k) = if (k .&. vector == k) then Just p else Nothing
 
 -- | explode a TagElem tree into a bottom-up routing map 
 decompose :: TagElem -> RoutingMap 
@@ -283,6 +289,8 @@ data ChartItem = ChartItem
   , ciRouting    :: RoutingMap 
   -- variable replacements to accumulate
   , ciSubsts     :: Subst 
+  -- we keep a SemBitMap strictly to help display the semantics
+  , ciSemBitMap  :: SemBitMap
   } deriving Show
 
 type ChartId = Integer
@@ -297,7 +305,8 @@ ciAux   i = (ttype.ciSourceTree) i == Auxiliar
 combineVectors :: ChartItem -> ChartItem -> ChartItem 
 combineVectors a b = 
   b { ciSemantics = (ciSemantics a) .|. (ciSemantics b)
-    , ciPolpaths  = (ciPolpaths  a) .&. (ciPolpaths  b) }
+    , ciPolpaths  = (ciPolpaths  a) .&. (ciPolpaths  b) 
+    , ciSemBitMap =  ciSemBitMap a }
 \end{code}
 
 \begin{code}
@@ -336,7 +345,8 @@ nodeToItem te node = ChartItem
   , ciId         = -1 -- to be set 
   , ciRouting    = Map.empty -- to be set
   , ciAdjPoint   = Nothing
-  , ciSubsts     = [] }
+  , ciSubsts     = [] 
+  , ciSemBitMap  = Map.empty }
 
 -- | CKY non adjunction rule - creates items in which
 -- we do not apply any adjunction
