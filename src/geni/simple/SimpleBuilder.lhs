@@ -70,7 +70,7 @@ import Btypes
 import Builder (Gstats, UninflectedWord, UninflectedSentence)
 import qualified Builder as B
 
-import Tags (TagElem, TagSite, TagDerivation,  TagStatus(..),
+import Tags (TagElem, TagSite, TagDerivation,  
              collect,
              idname, tidnum,
              derivation,
@@ -80,7 +80,8 @@ import Tags (TagElem, TagSite, TagDerivation,  TagStatus(..),
              adjnodes,
              substnodes,
              tadjlist,
-             tagLeaves
+             tagLeaves,
+             ts_synIncomplete, ts_semIncomplete, ts_tbUnificationFailure,
             )
 import Configuration 
 import General (BitVector, fst3, mapTree)
@@ -275,10 +276,10 @@ addToChart te = do
   put s { theChart = (iaddToChart (theChart s) te) }
   incrSzchart 1
 
-addToTrash :: TagElem -> TagStatus -> MS ()
+addToTrash :: TagElem -> String -> MS ()
 addToTrash te err = do 
   s <- get
-  let te2 = te { tdiagnostic = err }
+  let te2 = te { tdiagnostic = err:(tdiagnostic te) }
   when ((usetrash.genconfig) s) $
     put s { theTrash = (iaddtoTrash (theTrash s) te2) }
 
@@ -617,7 +618,7 @@ generateStep' =
      trashIt t = 
        do s <- get
           let missingSem = tsem s \\ tsemantics t
-          addToTrash t (TS_SemIncomplete missingSem)
+          addToTrash t (ts_semIncomplete missingSem)
 \end{code}
 
 \subsection{Generate helper functions}
@@ -687,7 +688,7 @@ dispatchNew l =
      let tbUnify x =
           case (tbUnifyTree x) of
             Left n  -> do let x2 = x { thighlight = [n] }
-                          addToTrash x2 TS_TbUnify 
+                          addToTrash x2 ts_tbUnificationFailure 
                           return False 
             Right _ -> return True 
      res2 <- filterM tbUnify res
@@ -717,7 +718,7 @@ switchToAux = do
       initial = if (semfiltered $ genconfig st) 
                 then filteredT else compT 
   -- toss the syntactically incomplete stuff in the trash
-  mapM (\t -> addToTrash t TS_SynIncomplete) incompT
+  mapM (\t -> addToTrash t ts_synIncomplete) incompT
   put st{theAgenda = initial,
          theAuxAgenda = [], 
          theChart = aux,

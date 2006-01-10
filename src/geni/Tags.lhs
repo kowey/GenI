@@ -26,8 +26,9 @@ and \ref{sec:adjunction} instead.
 \begin{code}
 module Tags(
    -- Main Datatypes
-   Tags, TagElem(TE), TagItem(..), TagSite, TagStatus(..), 
+   Tags, TagElem(TE), TagItem(..), TagSite, 
    TagDerivation, emptyTE,
+   ts_synIncomplete, ts_semIncomplete, ts_tbUnificationFailure,
 
    -- Projection Functions
    idname, tidnum, derivation, ttype, ttree, 
@@ -116,7 +117,7 @@ data TagElem = TE {
                    tprecedence  :: Int,
                    -- display stuff,
                    thighlight   :: [String],  -- nodes to highlight 
-                   tdiagnostic  :: TagStatus, -- why this tree was discarded 
+                   tdiagnostic  :: [String], -- why this tree was discarded 
                    -- for generation sans semantics 
                    tadjlist :: [(String,Integer)] -- (node name, auxiliary tree id)
                 }
@@ -182,7 +183,7 @@ emptyTE = TE { idname = "",
                tpolpaths   = 0,
                tinterface  = [],
                --
-               tdiagnostic = TS_None,
+               tdiagnostic = [],
                thighlight  = [],
                -- for generation sans semantics 
                tadjlist = []
@@ -348,19 +349,10 @@ Whenever GenI decides to discard a tree, it sets the tdiagnostic field of
 the TagElem so that the person using a debugger can find out what went wrong.
 
 \begin{code}
-data TagStatus = TS_None              -- no error
-               | TS_SynIncomplete     -- syntactically incomplete
-               | TS_SemIncomplete Sem -- semantically incomplete
-               | TS_TbUnify           -- top/bottom unification error
-     deriving (Eq)
+ts_synIncomplete :: String
+ts_synIncomplete = "syntactically incomplete"
+ts_tbUnificationFailure = "top/bot unification failure"
 
-instance Show TagStatus where
-  show ts 
-    = case ts of 
-       TS_None -> ""
-       TS_SynIncomplete -> "syntactically incomplete"
-       TS_SemIncomplete sem -> 
-         "semantically incomplete - missing:  " ++
-         showSem sem
-       TS_TbUnify       -> "top/bot unification failure" 
+ts_semIncomplete :: [Pred] -> String
+ts_semIncomplete sem = "semantically incomplete - missing:  " ++ showSem sem
 \end{code}

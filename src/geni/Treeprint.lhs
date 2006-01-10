@@ -68,7 +68,7 @@ graphvizShowTagElem sf te =
    where treename = "name: " ++ (idname te)
          semlist  = "semantics: " ++ (showSem $ tsemantics te)
          tdiag = if null s then "" else "\\n" ++ s 
-           where s = show (tdiagnostic te)
+           where s = concat $ intersperse "\\n" (tdiagnostic te)
          label    = treename ++ "\\n" ++ semlist ++ tdiag
 \end{code}
 
