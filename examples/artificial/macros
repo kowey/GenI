@@ -1,9 +1,14 @@
-% note: the alphabetical names are meaningless - they are just
+% trivial example of the kid to parent rule
+k2p-trivial() initial 
+Mother [cat:a]![] { Anchor anchor }
+
+% note: the alphabetical names below are meaningless - they are just
 % chinese numbers (which is why i follow them by the equivalent 
 % arabic numerals)
 %
 % why do i name them this way? dunno... figured they'd be easier
 % to see or something
+
 
 yi1() initial
 Mother [cat:a tb:?T]![tb:?B] {
@@ -21,7 +26,7 @@ term(?C ?X) initial
 Mother anchor [cat:?C foo:?X]![] 
 
 si4-bad() auxiliary
-Mother [cat:a]![tb:foo] {
+Mother [cat:a tb:foo]![] {
   Left anchor 
   Foot type:foot [cat:a]![tb:bar]
 }
@@ -40,6 +45,10 @@ Mother [cat:a foo:?A]![] {
   Right type:subst [cat:t1 foo:?A]![]
 }
 
+% a simple tb unification which ought to work
+liu6-good () initial 
+Mother [cat:a]![cat:a] { Anchor anchor }
+
 % unification + subst should work, but this should NOT propagate up! 
 % this should NOT propagate up
 wu5-bad () initial
@@ -48,3 +57,20 @@ Mother [cat:a foo:?A]![] {
   Left  type:subst [cat:t1 foo:?A]![]
   Right type:subst [cat:t2 foo:?A]![]
 }
+
+
+
+% top-bot unification failure (simple)
+liu6-bad1 () initial 
+Mother [cat:a]![cat:b] { Anch anchor }
+
+% top-bot unification (complex)
+liu6-bad2 () initial 
+Mother [cat:a tb:?X]![tb:?Y] {
+  Anch anchor
+  Left  type:subst [cat:t1 foo:?X]![]
+  Right type:subst [cat:t2 foo:?Y]![]
+}
+
+
+

@@ -22,3 +22,9 @@ semantics: [d()]
 _d_b wu5-bad()
 semantics: [db()]
 
+_e    liu6-good () semantics:[eg()]
+_e_b1 liu6-bad1 () semantics:[eb1()]
+_e_b2 liu6-bad2 () semantics:[eb2()]
+
+whatever k2p-trivial () semantics:[k2p()]
+

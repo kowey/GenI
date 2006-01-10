@@ -1,20 +1,20 @@
-sub
-semantics:[a() b() t1()]
-
-adj
-semantics:[a() xb() xg()]
-
 % there should be exactly one way to produce the answer here
 % (as opposed to two) - the idea is that GenI enforces the
 % condition that only trees with empty subst nodes list may
 % subst up
-abc
-semantics:[a() b() t1()]
+abc semantics:[a() b() t1()]
+sub semantics:[a() b() t1()]
+adj semantics:[a() xg()]
+ 
+% kidsToParents rule
+k2p         semantics:[t1() d()]
+k2p_trivial semantics:[k2p()]
 
-k2p
-semantics:[t1() d()]
+% things which should not work!
+k2p_conflict semantics:[t1() t2() db()]
+adj_failure  semantics:[a() xb()] % top/bot conflict
 
-k2p_conflict
-semantics:[t1() t2() db()]
-
+tb_success   semantics:[eg()]
+tb_failure1  semantics:[eb1()]
+tb_failure2  semantics:[eb2() t1() t2()]
 
