@@ -54,7 +54,9 @@ import GuiHelper
 
 import Polarity
 import Tags 
-  ( idname, emptyTE, tsemantics, thighlight, ttree, TagElem, derivation)
+  ( idname, emptyTE 
+  , tdiagnostic, tsemantics, thighlight, ttree
+  , TagElem, derivation)
 \end{code}
 }
 
@@ -237,8 +239,9 @@ instance GraphvizShow Bool ChartItem where
        --
        updateTagElem te = te 
         { ttree = (updateTree.ttree) te
-        , tsemantics = bitVectorToSem (ciSemBitMap ci) (ciSemantics ci) 
-        , thighlight = [gnname node] }
+        , tsemantics  = bitVectorToSem (ciSemBitMap ci) (ciSemantics ci) 
+        , tdiagnostic = ciDiagnostic ci
+        , thighlight  = [gnname node] }
    in graphvizShow f $ updateTagElem $ ciSourceTree ci
 
 instance (GraphvizShow f b) => GraphvizShow f (Maybe b) where

@@ -62,11 +62,12 @@ import Polarity
   ( automatonPaths, buildAutomaton, detectPolPaths, lookupAndTweak  )
 
 import Tags 
-  (TagElem, TagSite, TagStatus(..),
+  (TagElem, TagSite, 
    idname, 
    ttree, tsemantics, 
    tpolpaths, ttype,
-   setTidnums )
+   setTidnums,
+   ts_tbUnificationFailure)
 import Configuration (Params)
 import General (BitVector, showBitVector, geniBug)
 
@@ -197,7 +198,7 @@ initTree bmap te =
        { ciSemantics = semVector
        , ciSemBitMap = bmap
        , ciRouting   = decompose te 
-       , ciVariables = (map GVar) $ Set.toList $ collect te Set.empty }
+       , ciVariables = map GVar $ Set.toList $ collect te Set.empty }
   in  map createItem $ treeLeaves $ ttree te
 
 type SemBitMap = Map.Map Pred BitVector
@@ -264,9 +265,11 @@ addToChart te = do
   s <- get  
   put s { theChart = te : (theChart s) }
 
-addToTrash :: ChartItem -> TagStatus -> BState ()
-addToTrash _ _ = do 
-  return ()
+addToTrash :: ChartItem -> String -> BState ()
+addToTrash item err = do 
+  s <- get
+  let item2 = item { ciDiagnostic = err:(ciDiagnostic item) }
+  put s { theTrash = item2 : (theTrash s) }
 \end{code}
 
 \subsection{Chart items}
@@ -283,7 +286,9 @@ addToTrash _ _ = do
 \begin{code}
 data ChartItem = ChartItem 
   { ciNode       :: GNode
-  , ciSourceTree :: TagElem 
+  -- things which should never change
+  , ciSourceTree    :: TagElem 
+  , ciOrigVariables :: [GeniVal]
   --
   , ciPolpaths   :: BitVector
   , ciSemantics  :: BitVector
@@ -299,6 +304,8 @@ data ChartItem = ChartItem
   , ciVariables  :: [GeniVal]
   -- we keep a SemBitMap strictly to help display the semantics
   , ciSemBitMap  :: SemBitMap
+  -- if there are things wrong with this item, what?
+  , ciDiagnostic :: [String]
   } deriving Show
 
 type ChartId = Integer
@@ -360,10 +367,12 @@ nodeToItem te node = ChartItem
   , ciSemantics  = 0  -- to be set 
   , ciId         = -1 -- to be set 
   , ciRouting    = Map.empty -- to be set
-  , ciVariables  = [] -- to be set
+  , ciOrigVariables = [] -- to be set
+  , ciVariables     = [] -- to be set
   , ciAdjPoint   = Nothing
   , ciSubsts     = [] 
-  , ciSemBitMap  = Map.empty }
+  , ciSemBitMap  = Map.empty 
+  , ciDiagnostic = [] }
 
 -- | CKY non adjunction rule - creates items in which
 -- we do not apply any adjunction
@@ -379,12 +388,8 @@ nonAdjunctionRule item _ =
 -- mgu mechanism in compare?
 kidsToParentRule item chart = 
  do (s,p,r)  <- Map.lookup (gnname node) (ciRouting item) 
-    sMatches <- -- trace (" relevant chart: " ++ showItems relChart) $ 
-                -- trace (" routing info: " ++ show (s,p,r)) $ 
-                choices $ map matches s
-    --
     let mergePoints kids = 
-          case mapMaybe ciAdjPoint kids of
+         case mapMaybe ciAdjPoint (item:kids) of
           []  -> Nothing
           [x] -> Just x
           _   -> error "multiple adjunction points in kidsToParentRule?!"
@@ -393,15 +398,20 @@ kidsToParentRule item chart =
           newVars <- foldM unifyOnly (ciVariables item,[]) $ 
                      map ciVariables kids  
           let newSubsts = concatMap ciSubsts (item:kids)
-              newItem   = item 
+              newItem = item 
                { ciNode      = replace newSubsts p 
-               , ciSubsts    = newSubsts
+               , ciSubsts    = newSubsts 
                , ciAdjPoint  = mergePoints kids 
                , ciVariables = fst newVars }
           return $ foldr combineVectors newItem kids
-              --trace (" matches: " ++ (show $ map showItems sMatches)) $ 
+    --trace (" matches: " ++ (show $ map showItems sMatches)) $ 
     --
-    listAsMaybe $ mapMaybe combine sMatches
+    sMatches <- -- trace (" relevant chart: " ++ showItems relChart) $ 
+                     -- trace (" routing info: " ++ show (s,p,r)) $ 
+                  choices $ map matches s
+    if null s   
+       then combine [] >>= (\x -> return [x])
+       else listAsMaybe $ mapMaybe combine sMatches
  where
    node    = ciNode item
    source  = (idname.ciSourceTree) item  
@@ -571,20 +581,22 @@ following these critieria:
 
 \begin{code}
 dispatchNew :: ChartItem -> BState () 
-dispatchNew item = 
-  do let filts = [ removeRedundant, removeResults, dispatchToAgenda ]
-     -- keep trying dispatch filters until one of them suceeds
-     foldM (\prev f -> if prev then return True else f item) False filts
-     return ()
+dispatchNew itemRaw = 
+ do case tbUnify itemRaw of
+     Nothing   -> addToTrash itemRaw ts_tbUnificationFailure 
+     Just item ->
+      do let filts = [ removeRedundant, removeResults, dispatchToAgenda ]
+         -- keep trying dispatch filters until one of them suceeds
+         foldM (\prev f -> if prev then return True else f item) False filts
+         return ()
 
-dispatchToAgenda :: ChartItem -> BState Bool
+dispatchToAgenda, removeRedundant, removeResults :: ChartItem -> BState Bool
 dispatchToAgenda item =
    trace (ckyShow "-> agenda" item []) $
    do addToAgenda item
       return True
 
 -- merges non-new items with the chart; assigns a unique id to new items
-removeRedundant :: ChartItem -> BState Bool 
 removeRedundant item = 
   do st <- get
      let chart = theChart st
@@ -601,7 +613,6 @@ removeRedundant item =
                 return False 
 
 -- puts result items into the results list
-removeResults :: ChartItem -> BState Bool 
 removeResults _ = return False --FIXME: to implement
 {-
   do st <- get
@@ -616,21 +627,27 @@ removeResults _ = return False --FIXME: to implement
         else item 
 -}
 
--- FIXME: to implement
-removeTbFailures _ = return False
+tbUnify :: ChartItem -> Maybe ChartItem
+-- things for which tb unification is not relevant
+tbUnify item | ciFoot item = return item
+tbUnify item | (not.gaconstr.ciNode) item = return item
+-- ok, here, we should do tb unification
+tbUnify item = tbUnifyHelper item
+
+tbUnifyHelper :: ChartItem -> Maybe ChartItem
+tbUnifyHelper item =
+ do let node = ciNode item
+    (newTop, sub1) <- unifyFeat (gup node) (gdown node) 
+    -- it's not enough if t/b unification succeeds by itself
+    -- we also have to check that these unifications propagate alright
+    let origVars = ciOrigVariables item
+        treeVars = ciVariables item
+        nodeVars = replace sub1 origVars
+    (newVars, sub2) <- unify treeVars nodeVars
+    return $ item 
+      { ciNode = node { gup = newTop, gdown = [] }
+      , ciVariables = newVars }
 \end{code}
-
-%% --------------------------------------------------------------------  
-%\section{Substitution}
-%\label{sec:substitution}
-%% --------------------------------------------------------------------  
-
-% --------------------------------------------------------------------  
-\section{Adjunction}
-\label{sec:adjunction}
-\label{sec:ordered_adjunction}
-\label{sec:foot_constraint}
-% ---------------------------------------------------------------  
 
 % --------------------------------------------------------------------  
 \section{Chart manipulation}
