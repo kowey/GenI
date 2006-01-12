@@ -89,7 +89,7 @@ import Data.Maybe (isNothing)
 --import Data.Set
 
 import Automaton
-import Graphviz(GraphvizShow(..))
+import Graphviz(GraphvizShow(..), gvUnlines, gvNewline, gvNode, gvEdge)
 import Tags(TagElem(..), TagItem(..), mapBySem)
 import Btypes(Pred, SemInput, Sem, Flist, AvPair, showAv,
               GeniVal(GAnon), fromGConst,
@@ -1294,34 +1294,39 @@ showLitePm pm =
 \begin{code}
 instance GraphvizShow () PolAut where
   -- we want a directed graph (arrows)
-  graphvizShow _ aut = 
+  graphvizShow f aut = 
      "digraph aut {\n" 
      ++ "rankdir=LR\n" 
      ++ "ranksep = 0.02\n"
      ++ "pack=1\n"
      ++ "edge [ fontsize=10 ]\n"
      ++ "node [ fontsize=10 ]\n"
-     -- ++ "rotate=90\n" -- *sniff* graphviz can rotate, but it's unreadable
-     ++ gvShowFinal aut stmap 
-     -- any other state should be an ellipse
-     ++ "node [ shape = ellipse, peripheries = 1 ]\n" 
-     -- draw the states and transitions 
-     ++ concat [ concat $ zipWith gvShowState ids st 
-               , concat $ zipWith (gvShowTrans aut stmap) ids st ]
+     ++ graphvizShowAsSubgraph f "aut" aut
      ++ "}" 
-     where st    = (concat.states) aut
-           ids   = map (\x -> "n" ++ show x) [0..]
-           -- map which permits us to assign an id to a state
-           stmap = Map.fromList $ zip st ids
+
+  --
+  -- FIXME: should make use of prefix, no?
+  graphvizShowAsSubgraph _ prefix aut = 
+   let st  = (concat.states) aut
+       ids = map (\x -> prefix ++ show x) [0..]
+       -- map which permits us to assign an id to a state
+       stmap = Map.fromList $ zip st ids
+   in --
+      gvShowFinal aut stmap 
+      -- any other state should be an ellipse
+      ++ "node [ shape = ellipse, peripheries = 1 ]\n"
+      -- draw the states and transitions 
+      ++ (concat $ zipWith gvShowState ids st) 
+      ++ (concat $ zipWith (gvShowTrans aut stmap) ids st )
 \end{code}
 
 \begin{code}
 gvShowState :: String -> PolState -> String
-gvShowState stId st = " " ++ stId ++ " [ label=\"" ++ showSt st ++ "\" ];\n"
+gvShowState stId st = gvNode stId (showSt st) []
   where showSt (PolSt pr ex po) = showPr pr ++ showEx ex ++ showPo po
-        showPr _ = "" -- (_,pr,_) = pr ++ "\\n"
+        showPr _ = "" -- (_,pr,_) = pr ++ gvNewline 
         showPo po = concat $ intersperse "," $ map showInterval po
-        showEx ex = if (null ex) then "" else (showSem ex) ++ "\\n"
+        showEx ex = if null ex then "" else showSem ex ++ gvNewline 
 \end{code}
 
 Specify that the final states are drawn with a double circle
@@ -1359,9 +1364,8 @@ gvShowTrans aut stmap idFrom st =
                              Just idTo -> drawTrans' idTo x
                            where showSem (PolSt i _ _) = show i 
                                  --showSem (PolSt (_,pred,_) _ _) = pred 
-      drawTrans' idTo x = " " ++ idFrom ++ " -> " ++ idTo ++ 
-                          " [ label=\"" ++ drawLabel x ++ "\"];\n"
-      drawLabel labels = concat $ intersperse "\\n" $ labs 
+      drawTrans' idTo x = gvEdge idFrom idTo (drawLabel x) []
+      drawLabel labels  = gvUnlines labs 
         where 
           lablen = length labels
           max    = 6 
@@ -1371,8 +1375,8 @@ gvShowTrans aut stmap idFrom st =
           fn Nothing  = "EMPTY"
           fn (Just x) = tlIdname x
           --
-          labs = if (lablen > max) 
-                 then (take max labstrs) ++ [ excess ]
+          labs = if lablen > max 
+                 then take max labstrs ++ [ excess ]
                  else labstrs 
   in concatMap drawTrans $ Map.toList invFM
 \end{code}

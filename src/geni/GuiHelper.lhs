@@ -39,7 +39,7 @@ import System.Directory
 import System.Process (runProcess)
 
 import Graphviz 
-import Treeprint(graphvizShowTagElem)
+import Treeprint() -- only import the GraphvizShow instances
 
 import Tags (tagLeaves)
 import Geni 
@@ -543,11 +543,6 @@ this.
 
 \begin{code}
 boundsCheck s l = s >= 0 && s < length l
-\end{code}
-
-\begin{code}
-instance GraphvizShow Bool TagElem where
-  graphvizShow = graphvizShowTagElem
 \end{code}
 
 \subsection{XMG Metagrammar stuff}

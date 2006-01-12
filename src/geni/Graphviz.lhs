@@ -35,6 +35,7 @@ where
 \ignore{
 \begin{code}
 import Control.Monad(when)
+import Data.List(intersperse)
 import System.IO(hPutStrLn, hClose)
 import System.Exit(ExitCode)
 
@@ -55,7 +56,22 @@ so that you can parameterise your show function
 
 \begin{code}
 class GraphvizShow flag b where
-  graphvizShow :: flag -> b -> String
+  graphvizShow            :: flag -> b -> String
+  -- flag -> prefix -> item -> gv output
+  graphvizShowAsSubgraph  :: flag -> String -> b -> String 
+  graphvizLabel           :: flag -> b -> String
+ 
+  --- default implementations 
+  graphvizShow f b  = "graph {\n" ++ graphvizShowAsSubgraph f "n" b ++ "}" 
+  graphvizLabel _ _ = ""
+
+data GvGraphType = GvGraph | GvDiGraph
+instance Show GvGraphType where
+  show GvGraph   = "graph"
+  show GvDiGraph = "digraph"
+
+class GraphvizShowNode flag b where
+  graphvizShowNode :: flag -> String -> b -> String
 \end{code}
 
 The conversion process and graphviz invocation itself is in the sections
@@ -67,6 +83,45 @@ want this.
 toGraphviz :: (GraphvizShow f a) => f -> a -> String -> String -> IO ExitCode 
 toGraphviz p x dotFile outputFile = do
    graphviz (graphvizShow p x) dotFile outputFile
+\end{code}
+
+\subsection{Useful helper functions}
+
+\begin{code}
+gvNewline :: String
+gvNewline  = "\\n"
+
+gvUnlines :: [String] -> String
+gvUnlines = concat . (intersperse gvNewline)
+
+-- | The Graphviz string for a node.  Note that we make absolutely no
+-- effort to escape any characters for you; so if you need to protect
+-- anything from graphviz, you're on your own
+gvNode :: String                 -- ^ the node name
+            -> String            -- ^ the label (may be empty)
+            -> [(String,String)] -- ^ any other parameters
+            -> String
+gvNode name label params =  
+  " " ++ name ++ " " ++ (gvLabelAndParams label params) ++ "\n"
+
+-- | The Graphviz string for a connection between two nodes.  
+-- Same disclaimer as 'gvNode' applies.
+gvEdge :: String  -- ^ the 'from' node
+            -> String  -- ^ the 'to' node
+            -> String  -- ^ the label (may be empty)
+            -> [(String,String)] -- ^ any other parameters 
+            -> String
+gvEdge from to label params = 
+  " " ++ from ++ " -> " ++ to ++ (gvLabelAndParams label params) ++ "\n"
+
+gvLabelAndParams :: String -> [(String,String)] -> String
+gvLabelAndParams l p = 
+  gvParams $ if null l then p else ("label", l) : p
+
+gvParams :: [(String,String)] -> String
+gvParams [] = ""
+gvParams p  = "[ " ++ (concat $ intersperse ", " $ map showPair p) ++ " ]"
+  where showPair (a,v) = a ++ "=\"" ++ v ++ "\""
 \end{code}
 
 \section{Invocation}

@@ -27,8 +27,9 @@ where
 \ignore{
 \begin{code}
 import Data.Tree
-import Data.List(delete,intersperse,nub)
+import Data.List(intersperse,nub)
 
+import General (mapTree)
 import Tags (TagElem, idname, tdiagnostic, 
              tsemantics, ttree, thighlight, tinterface, 
              derivation)
@@ -36,6 +37,14 @@ import Btypes (MTtree, Ttree(..), Ptype(..),
                GNode(..), GType(..), Flist,
                showLexeme,
                showSem, showPairs, showAv)
+
+import Graphviz 
+  ( gvUnlines, gvNewline
+  , GraphvizShow(graphvizShow, graphvizShowAsSubgraph, graphvizLabel)
+  , GraphvizShowNode(graphvizShowNode)
+  , GvGraphType(GvDiGraph)
+  , gvNode, gvEdge 
+  )
 \end{code}
 }
 
@@ -43,95 +52,81 @@ import Btypes (MTtree, Ttree(..), Ptype(..),
 \section{For GraphViz}
 % ----------------------------------------------------------------------
 
-\paragraph{graphVizShowTagElem} converts a TAG tree into Graphviz's
-\textit{dot} format.
-
 \begin{code}
-graphvizShowTagElem :: Bool -> TagElem -> String
-graphvizShowTagElem sf te =
-     -- we want a directed graph (but without arrows)
-     "digraph " ++ (dehyphen $ idname te) ++ " {\n" 
-     ++ " fontsize = 10\n"
-     ++ " ranksep = \"0.3\"\n"
-     ++ " node [ fontsize=10 ]\n"
-     ++ " edge [ arrowhead = none ];\n"
+instance GraphvizShow Bool TagElem where
+ graphvizShow sf te =
+  let (gtype, params) = graphvizParams sf te
+      treeName = dehyphen $ idname te
+  in (show gtype) ++ " " ++ treeName ++ " {\n" 
+     ++ (unlines params)
      -- we display the tree semantics as the graph label
-     ++ " label = \"" ++ label ++ "\";\n" 
-     -- derived tree nodes' labels are their feature structures 
-     ++ " node [ shape = plaintext ];\n" 
-     ++ (graphvizShowInterface sf (tinterface te))
-     ++ (graphvizShow' sf (thighlight te) (ttree te) "DerivedTree0") 
+     ++ " label = \"" ++ (graphvizLabel sf te) ++ "\";\n" 
+     -- first the interface 
+     ++ (graphvizShowInterface sf $ tinterface te)
+     -- then the tree itself
+     ++ graphvizShowAsSubgraph sf treeName te 
      -- derivation tree is displayed without any decoration
      ++ (graphvizShowDerivation $ snd $ derivation te)
      --
      ++ "}\n" 
-   where treename = "name: " ++ (idname te)
-         semlist  = "semantics: " ++ (showSem $ tsemantics te)
-         tdiag = if null s then "" else "\\n" ++ s 
-           where s = concat $ intersperse "\\n" (tdiagnostic te)
-         label    = treename ++ "\\n" ++ semlist ++ tdiag
+ 
+ graphvizShowAsSubgraph sf prefix te =
+  gvShowTree sf (prefix ++ "DerivedTree0") $ mapTree info $ ttree te
+   where 
+   info    n = (n, mcolour n)
+   mcolour n = if gnname n `elem` thighlight te 
+               then Just "red" else Nothing
+
+ graphvizLabel _ te =
+  let treename   = "name: " ++ (idname te)
+      semlist    = "semantics: " ++ (showSem $ tsemantics te)
+  in gvUnlines $ treename : semlist : (tdiagnostic te)
 \end{code}
 
-\paragraph{graphvizShow'} invokes a helper function which walks the actual
-tree, converts the nodes and connects parent nodes to child nodes in the 
-output representation.
-
-The label argument is the name of the parent node.  This is used to
-build node names for Graphviz.  We use simple Gorn addresses 
-(e.g. n0x2x3 means 3rd child of the 2nd child of the root) to keep
-them distinct.  Note : We use the letter `x' as seperator because 
-graphviz will choke on `.' or `-', even underscore.
+Helper functions for the TagElem GraphvizShow instance 
 
 \begin{code}
-graphvizShow' :: Bool -> [String] -> Tree GNode -> String -> String
-graphvizShow' sf hl (Node node l) label =
-   let showFn   = if sf then showGNodeAll else show 
-       shapeStr = if sf then "shape = record, " else ""
-       -- highlight any specially marked nodes
-       (hlStr, hl2) = if (n `elem` hl)
-                      then ("color = red, fontcolor = red, ", delete n hl)
-                      else ("", hl)
-                      where n = gnname node 
-       shownode = " " ++ label ++ " [ " ++ hlStr ++ shapeStr 
-                  ++ "label = \"" ++ showFn node ++ "\"];\n"       
-       kidname index = (label ++ "x" ++ (show index))
-       -- we show the kid and the fact that the node is connected
-       -- to the kid
-       showkid (index,kid) = (graphvizShow' sf hl2 kid (kidname index)) ++
-                             " " ++ label ++ " -> " ++ (kidname index) ++ ";\n"
-       -- now let's run this thing!
-   in shownode ++ (concatMap showkid $ zip [0..] l)
-\end{code}
+-- not sure if this is something i want to put into the typeclass or not
+graphvizParams :: Bool -> TagElem -> (GvGraphType, [String])
+graphvizParams _ _ = 
+  let params = [ "fontsize = 10", "ranksep = 0.3"
+               , "node [fontsize=10]"
+               , "edge [arrowhead=none]" ]
+  in (GvDiGraph, params) 
 
-\paragraph{showGNodeAll} shows everything you would want to know about a
-gnode, probably more than you want to know
-
-\begin{code}
-showGNodeAll gn = 
-  let showFs l = (concat $ intersperse "\\n" $ map showAv l)
-      sgup = if (null $ gup gn) 
-             then "" 
-             else showFs (gup gn) 
-      sgdown = if (null $ gdown gn)
-               then ""
-               else "|" ++ showFs (gdown gn) 
-      label  = show gn
-  in "{" ++ label ++ "|" ++ sgup ++ sgdown ++ "}"-- (show gn ++ "\n" ++)
-\end{code}
-
-\paragraph{graphvizShowInterface} displays the contents of a TagElem's
-interface.  This is only used for debugging.
-
-\begin{code}
+-- | shows the contents of the TAG tree's interface
+-- Used for debugging grammars when surface realisaiton goes wrong.
 graphvizShowInterface :: Bool -> Flist -> String
 graphvizShowInterface sf iface 
   | sf == False = ""
   | null iface  = ""
   | otherwise =
-      let showFs = concat $ intersperse "\\n" $ map showAv iface 
-          str    = " interface [ shape = record, " 
-                   ++ "label = \"{ interface | " ++ showFs ++ "}\"];\n"       
-      in str
+      let showFs   = gvUnlines $ map showAv iface 
+          theLabel = "{ interface | " ++ showFs ++ "})"
+      in gvNode "interface" theLabel [ ("shape", "record") ]
+\end{code}
+
+
+\section{GNode - GraphvizShow}
+
+\begin{code}
+instance GraphvizShowNode (Bool) (GNode, Maybe String) where
+ -- compact -> (node, mcolour) -> String 
+ graphvizShowNode compact prefix (gn, mcolour) =
+   let -- attributes 
+       colorParams = case mcolour of
+                     Nothing -> [] 
+                     Just c  -> [("color", c), ("fontcolor", c)]
+       shapeParams = 
+         ("shape", if compact then "record" else "plaintext")
+       -- content 
+       body = if compact then  show gn 
+              else    "{" ++ show gn 
+                   ++ "|" ++ (showFs $ gup gn) 
+                   ++ (if (null $ gdown gn) then "" else "|" ++ (showFs $ gdown gn)) 
+                   ++ "}"
+        where showFs = gvUnlines . (map showAv) 
+   in gvNode prefix body (shapeParams : colorParams)
 \end{code}
 
 % ----------------------------------------------------------------------
@@ -216,17 +211,16 @@ graphvizShowDerivation deriv =
      else " node [ shape = plaintext ];\n" 
           ++ (concatMap showHistNode histNodes) 
           ++ (concatMap graphvizShowDerivation' deriv)
-  where showHistNode n  = gvDerivationLab n 
-                        ++ " [label=\"" ++ (dropTillDot n) ++ "\"];\n"
+  where showHistNode n  = gvNode (gvDerivationLab n) (lastSegmentOf n) []
+        lastSegmentOf   = reverse . takeWhile (/= '.') . reverse 
         histNodes       = reverse $ nub $ concatMap (\ (_,c,p) -> [c,p]) deriv
 \end{code}
 
 \begin{code}
 graphvizShowDerivation' :: (Char, String, String) -> String
 graphvizShowDerivation' (substadj, child, parent) = 
-  (gvDerivationLab parent) ++ " -> " ++ (gvDerivationLab child) ++         
-  (if (substadj == 'a') then " [style=dashed]" else "") ++
-  ";\n"
+  gvEdge (gvDerivationLab parent) (gvDerivationLab child) "" params
+  where params = if substadj == 'a' then [("style","dashed")] else []
 \end{code}
 
 We have a couple of functions to help massage our data into Graphviz input 
@@ -241,15 +235,35 @@ dehyphen :: String -> String
 dehyphen = filter (/= '-')
 
 newlineToSlashN :: Char -> String
-newlineToSlashN x = if ('\n' == x) then "\\n" else [x] 
+newlineToSlashN '\n' = gvNewline
+newlineToSlashN x = [x]
 
 dot2x :: Char -> Char 
-dot2x c = if ('.' == c) then 'x' else c 
-
-dropTillDot :: String -> String
-dropTillDot l = f [] l 
-  where f acc []     = reverse acc
-        f acc (x:xs) = if (x == '.') then f [] xs else f (x:acc) xs
+dot2x '.' = 'x'
+dot2x c   = c
 \end{code}   
 
+\pagagraph{gvShowTree} displays a tree in graphviz format.  Note that
+we could make this an instance of GraphvizShow, but I'm not too sure
+about the wisdom of such a move.  
 
+Maybe if we had some really super-sophisticated types in Haskell, where
+we can define this as the default instance which could be overrided by
+something more specific, that would be cool.
+
+The prefix argument is interpreted as the name of the top node.  Node
+names below are basically Gorn addresses (e.g. n0x2x3 means 3rd child of
+the 2nd child of the root) to keep them distinct.  Note : We use the
+letter `x' as seperator because graphviz will choke on `.' or `-', even
+underscore.
+
+\begin{code}
+gvShowTree :: (GraphvizShowNode f n) => f -> String -> (Tree n) -> String
+gvShowTree f prefix (Node node l) =
+   let showNode = graphvizShowNode f prefix 
+       showKid index kid = 
+         gvShowTree f kidname kid ++ " " 
+         ++ (gvEdge prefix kidname "" [])
+         where kidname = prefix ++ "x" ++ (show index)
+   in showNode node ++ "\n" ++ (concat $ zipWith showKid [0..] l)
+\end{code}
