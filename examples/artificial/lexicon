@@ -16,6 +16,9 @@ semantics: [xb()]
 _xg si4-good () 
 semantics: [xg()]
 
+_xg2 si4-good () 
+semantics: [xg2()]
+
 _d wu5 () 
 semantics: [d()]
 

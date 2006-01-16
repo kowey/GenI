@@ -3,9 +3,12 @@
 % condition that only trees with empty subst nodes list may
 % subst up
 abc semantics:[a() b() t1()]
-sub semantics:[a() b() t1()]
+sub semantics:[b() t1()]
+
+% adjunction 
 adj semantics:[a() xg()]
- 
+adj_multi semantics:[a() xg() xg2()]
+
 % kidsToParents rule
 k2p         semantics:[t1() d()]
 k2p_trivial semantics:[k2p()]

@@ -19,7 +19,7 @@ Mother [cat:a tb:?T]![tb:?B] {
 er2() initial
 Mother [cat:b]![] {
   Left anchor
-  Right type:subst [ cat:c ]![]
+  Right type:subst [ cat:t1 ]![]
 }
 
 term(?C ?X) initial
