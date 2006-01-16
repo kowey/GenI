@@ -868,7 +868,7 @@ automaton (to take care of atomic disjunction) and reading the paths of
 each automaton.
 
 \begin{code}
-unpackResults :: [TagElem] ->  [UninflectedSentence]
+unpackResults :: [TagElem] ->  [B.UninflectedSentence]
 unpackResults tes =
   -- sentence automaton
   let treeLeaves   = map tagLeaves tes
@@ -879,18 +879,6 @@ unpackResults tes =
 
 \subsection{Sentence automata}
 
-\paragraph 
-A SentenceAut represents a set of sentences in the form of an automaton.
-The labels of the automaton are the words of the sentence.  But note! 
-``word'' in the sentence is in fact a tuple (lemma, inflectional feature
-structures).  Normally, the states are defined as integers, with the
-only requirement being that each one, naturally enough, is unique.
-
-\begin{code}
-type UninflectedDisjunction = ([String], Flist)
-type SentenceAut      = NFA Int UninflectedWord 
-\end{code}
-
 \fnlabel{listToSentenceAut} converts a list of GNodes into a sentence
 automaton.  It's a actually pretty stupid conversion in fact.  We pretty
 much make a straight path through the automaton, with the only
@@ -898,7 +886,7 @@ cleverness being that we provide a different transition for each
 atomic disjunction.  
 
 \begin{code}
-listToSentenceAut :: [ UninflectedDisjunction ] -> SentenceAut 
+listToSentenceAut :: [ B.UninflectedDisjunction ] -> B.SentenceAut 
 listToSentenceAut nodes = 
   let theStart  = 0
       theEnd = (length nodes) - 1
@@ -911,7 +899,7 @@ listToSentenceAut nodes =
         , transitions = Map.empty }
       -- create a transition for each lexeme in the node to the 
       -- next state... 
-      helper :: (Int, UninflectedDisjunction) -> SentenceAut -> SentenceAut
+      helper :: (Int, B.UninflectedDisjunction) -> B.SentenceAut -> B.SentenceAut
       helper (current, word) aut = foldr addT aut lemmas 
         where 
           lemmas   = fst word

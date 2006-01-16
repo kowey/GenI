@@ -35,8 +35,9 @@ where
 \begin{code}
 import Control.Monad.State
 
-import Btypes (ILexEntry, SemInput, Flist)
-import Tags (TagElem)
+import Automaton (NFA)
+import Btypes    (ILexEntry, SemInput, Flist)
+import Tags      (TagElem)
 \end{code}
 }
 
@@ -102,9 +103,18 @@ defaultStepAll b =
 Each word of an uninflected sentence consists of a lemma and some
 feature structures.
 
+\paragraph 
+A SentenceAut represents a set of sentences in the form of an automaton.
+The labels of the automaton are the words of the sentence.  But note! 
+``word'' in the sentence is in fact a tuple (lemma, inflectional feature
+structures).  Normally, the states are defined as integers, with the
+only requirement being that each one, naturally enough, is unique.
+
 \begin{code}
-type UninflectedWord  = (String, Flist)
-type UninflectedSentence = [ UninflectedWord ] 
+type UninflectedWord        = (String, Flist)
+type UninflectedSentence    = [ UninflectedWord ] 
+type UninflectedDisjunction = ([String], Flist)
+type SentenceAut            = NFA Int UninflectedWord 
 \end{code}
 
 \section{Statistics}
