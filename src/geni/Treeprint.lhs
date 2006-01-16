@@ -40,9 +40,8 @@ import Btypes (MTtree, Ttree(..), Ptype(..),
 
 import Graphviz 
   ( gvUnlines, gvNewline
-  , GraphvizShow(graphvizShow, graphvizShowAsSubgraph, graphvizLabel)
+  , GraphvizShow(graphvizShowAsSubgraph, graphvizLabel, graphvizParams)
   , GraphvizShowNode(graphvizShowNode)
-  , GvGraphType(GvDiGraph)
   , gvNode, gvEdge 
   )
 \end{code}
@@ -54,46 +53,33 @@ import Graphviz
 
 \begin{code}
 instance GraphvizShow Bool TagElem where
- graphvizShow sf te =
-  let (gtype, params) = graphvizParams sf te
-      treeName = dehyphen $ idname te
-  in (show gtype) ++ " " ++ treeName ++ " {\n" 
-     ++ (unlines params)
-     -- we display the tree semantics as the graph label
-     ++ " label = \"" ++ (graphvizLabel sf te) ++ "\";\n" 
-     -- first the interface 
-     ++ (graphvizShowInterface sf $ tinterface te)
-     -- then the tree itself
-     ++ graphvizShowAsSubgraph sf treeName te 
-     -- derivation tree is displayed without any decoration
-     ++ (graphvizShowDerivation $ snd $ derivation te)
-     --
-     ++ "}\n" 
- 
  graphvizShowAsSubgraph sf prefix te =
-  gvShowTree sf (prefix ++ "DerivedTree0") $ mapTree info $ ttree te
-   where 
-   info    n = (n, mcolour n)
-   mcolour n = if gnname n `elem` thighlight te 
-               then Just "red" else Nothing
+  let isHiglight n = gnname n `elem` thighlight te
+      info n | isHiglight n = (n, Just "red")
+             | otherwise    = (n, Nothing)
+  in  -- first the interface 
+      (graphvizShowInterface sf $ tinterface te)
+      -- then the tree itself
+      ++ (gvShowTree sf (prefix ++ "DerivedTree0") $
+          mapTree info $ ttree te)
+      -- derivation tree is displayed without any decoration
+      ++ (graphvizShowDerivation $ snd $ derivation te)
 
  graphvizLabel _ te =
+  -- we display the tree semantics as the graph label
   let treename   = "name: " ++ (idname te)
       semlist    = "semantics: " ++ (showSem $ tsemantics te)
   in gvUnlines $ treename : semlist : (tdiagnostic te)
+ 
+ graphvizParams _ _ = 
+  [ "fontsize = 10", "ranksep = 0.3"
+  , "node [fontsize=10]"
+  , "edge [fontsize=10 arrowhead=none]" ]
 \end{code}
 
 Helper functions for the TagElem GraphvizShow instance 
 
 \begin{code}
--- not sure if this is something i want to put into the typeclass or not
-graphvizParams :: Bool -> TagElem -> (GvGraphType, [String])
-graphvizParams _ _ = 
-  let params = [ "fontsize = 10", "ranksep = 0.3"
-               , "node [fontsize=10]"
-               , "edge [arrowhead=none]" ]
-  in (GvDiGraph, params) 
-
 -- | shows the contents of the TAG tree's interface
 -- Used for debugging grammars when surface realisaiton goes wrong.
 graphvizShowInterface :: Bool -> Flist -> String
@@ -106,21 +92,20 @@ graphvizShowInterface sf iface
       in gvNode "interface" theLabel [ ("shape", "record") ]
 \end{code}
 
-
 \section{GNode - GraphvizShow}
 
 \begin{code}
 instance GraphvizShowNode (Bool) (GNode, Maybe String) where
  -- compact -> (node, mcolour) -> String 
- graphvizShowNode compact prefix (gn, mcolour) =
+ graphvizShowNode detailed prefix (gn, mcolour) =
    let -- attributes 
        colorParams = case mcolour of
                      Nothing -> [] 
                      Just c  -> [("color", c), ("fontcolor", c)]
        shapeParams = 
-         ("shape", if compact then "record" else "plaintext")
+         ("shape", if detailed then "record" else "plaintext")
        -- content 
-       body = if compact then  show gn 
+       body = if not detailed then  show gn 
               else    "{" ++ show gn 
                    ++ "|" ++ (showFs $ gup gn) 
                    ++ (if (null $ gdown gn) then "" else "|" ++ (showFs $ gdown gn)) 
@@ -259,10 +244,14 @@ underscore.
 
 \begin{code}
 gvShowTree :: (GraphvizShowNode f n) => f -> String -> (Tree n) -> String
-gvShowTree f prefix (Node node l) =
+gvShowTree f prefix t = 
+  "edge [ arrowhead = none ]\n" ++ gvShowTreeHelper f prefix t  
+
+gvShowTreeHelper :: (GraphvizShowNode f n) => f -> String -> (Tree n) -> String
+gvShowTreeHelper f prefix (Node node l) = 
    let showNode = graphvizShowNode f prefix 
        showKid index kid = 
-         gvShowTree f kidname kid ++ " " 
+         gvShowTreeHelper f kidname kid ++ " " 
          ++ (gvEdge prefix kidname "" [])
          where kidname = prefix ++ "x" ++ (show index)
    in showNode node ++ "\n" ++ (concat $ zipWith showKid [0..] l)

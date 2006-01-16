@@ -36,7 +36,7 @@ import Control.Monad
 import Control.Monad.State 
   (State, get, put, liftM, runState, execState )
 import Data.Bits ( (.&.), (.|.), bit )
-import Data.List ( delete, intersperse )
+import Data.List ( delete, intersperse, span, (\\) )
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Maybe (catMaybes, mapMaybe)
