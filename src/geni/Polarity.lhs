@@ -1305,7 +1305,6 @@ instance GraphvizShow () PolAut where
      ++ "}" 
 
   --
-  -- FIXME: should make use of prefix, no?
   graphvizShowAsSubgraph _ prefix aut = 
    let st  = (concat.states) aut
        ids = map (\x -> prefix ++ show x) [0..]
