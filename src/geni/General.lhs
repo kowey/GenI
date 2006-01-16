@@ -133,16 +133,16 @@ groupAndCount xs =
   where grouped = (group.sort) xs
 \end{code}
 
-\fnlabel{choices} given a list of lists, returns all lists such that one item
+\fnlabel{combinations} given a list of lists, returns all lists such that one item
 from each sublist is chosen.  If there are empty sublists, this returns
 Nothing
 
 \begin{code}
-choices :: [[a]] -> Maybe [[a]]
-choices []     = Just []
-choices ([]:_) = Nothing
-choices (h:t)  = 
-  do next <- choices t
+combinations :: [[a]] -> Maybe [[a]]
+combinations []     = Just []
+combinations ([]:_) = Nothing
+combinations (h:t)  = 
+  do next <- combinations t
      let attachH n = map (:n) h
      return $ case next of 
               []    -> attachH []

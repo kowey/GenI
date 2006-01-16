@@ -57,7 +57,7 @@ import qualified Builder as B
 
 import Configuration 
   ( extrapol, rootCatsParam, polarised)
-import General ( choices, treeLeaves )
+import General ( combinations, treeLeaves )
 import Polarity 
   ( automatonPaths, buildAutomaton, detectPolPaths, lookupAndTweak  )
 
@@ -408,7 +408,7 @@ kidsToParentRule item chart =
     --
     sMatches <- -- trace (" relevant chart: " ++ showItems relChart) $ 
                      -- trace (" routing info: " ++ show (s,p,r)) $ 
-                  choices $ map matches s
+                  combinations $ map matches s
     if null s   
        then combine [] >>= (\x -> return [x])
        else listAsMaybe $ mapMaybe combine sMatches
