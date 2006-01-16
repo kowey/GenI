@@ -52,7 +52,9 @@ into graphics files.
 The idea is that data structures which can be visualised with GraphViz
 should implement this class.  Note the first argument to graphvizShow is
 so that you can parameterise your show function 
-(i.e. pass in flags to change the way you show particular object)
+(i.e. pass in flags to change the way you show particular object).
+Note that by default, all graphs are treated as directed graphs.  You
+can hide this by turning off edge arrows.
 
 \begin{code}
 class GraphvizShow flag b where
@@ -60,15 +62,18 @@ class GraphvizShow flag b where
   -- flag -> prefix -> item -> gv output
   graphvizShowAsSubgraph  :: flag -> String -> b -> String 
   graphvizLabel           :: flag -> b -> String
- 
-  --- default implementations 
-  graphvizShow f b  = "graph {\n" ++ graphvizShowAsSubgraph f "n" b ++ "}" 
-  graphvizLabel _ _ = ""
+  graphvizParams          :: flag -> b -> [String] 
 
-data GvGraphType = GvGraph | GvDiGraph
-instance Show GvGraphType where
-  show GvGraph   = "graph"
-  show GvDiGraph = "digraph"
+  --- default implementations 
+  graphvizShow f b  = 
+    let l = graphvizLabel f b
+    in "digraph {\n" 
+       ++ (unlines $ graphvizParams f b)
+       ++ graphvizShowAsSubgraph f "_" b ++ "\n"
+       ++ (if null l then "" else " label = \"" ++ l ++ "\";\n")
+       ++ "}"
+  graphvizLabel _ _ = ""
+  graphvizParams _ _ = []
 
 class GraphvizShowNode flag b where
   graphvizShowNode :: flag -> String -> b -> String
@@ -93,6 +98,9 @@ gvNewline  = "\\n"
 
 gvUnlines :: [String] -> String
 gvUnlines = concat . (intersperse gvNewline)
+
+gvSubgraph :: String -> String
+gvSubgraph g = "subgraph {\n" ++ g ++ "}\n"
 
 -- | The Graphviz string for a node.  Note that we make absolutely no
 -- effort to escape any characters for you; so if you need to protect
@@ -122,6 +130,17 @@ gvParams :: [(String,String)] -> String
 gvParams [] = ""
 gvParams p  = "[ " ++ (concat $ intersperse ", " $ map showPair p) ++ " ]"
   where showPair (a,v) = a ++ "=\"" ++ v ++ "\""
+\end{code}
+
+\subsection{Some instances}
+
+\begin{code}
+instance (GraphvizShow f b) => GraphvizShow f (Maybe b) where
+  graphvizShowAsSubgraph _ _ Nothing  = ""
+  graphvizShowAsSubgraph f p (Just b) = graphvizShowAsSubgraph f p b 
+
+  graphvizLabel _ Nothing  = ""
+  graphvizLabel f (Just b) = graphvizLabel f b
 \end{code}
 
 \section{Invocation}
