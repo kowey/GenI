@@ -39,7 +39,7 @@ import Data.Bits ( (.&.), (.|.), bit )
 import Data.List ( delete, intersperse, span, (\\) )
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import Data.Maybe (catMaybes, mapMaybe)
+import Data.Maybe (catMaybes, isNothing, mapMaybe)
 import Data.Tree 
 
 import Btypes 
@@ -53,14 +53,15 @@ import Btypes
   , showPred
   , unifyFeat )
 
+import Automaton
+  ( NFA(NFA, transitions, states), isFinalSt, finalSt, startSt, addTrans )
 import qualified Builder as B
-
 import Configuration 
-  ( extrapol, rootCatsParam, polarised)
-import General ( combinations, treeLeaves )
+  ( extrapol, rootCatsParam, polarised, Params )
+import General 
+  ( combinations, treeLeaves, BitVector, showBitVector, geniBug )
 import Polarity 
   ( automatonPaths, buildAutomaton, detectPolPaths, lookupAndTweak  )
-
 import Tags 
   (TagElem, TagSite, 
    idname, 
@@ -68,8 +69,6 @@ import Tags
    tpolpaths, ttype,
    setTidnums,
    ts_tbUnificationFailure)
-import Configuration (Params)
-import General (BitVector, showBitVector, geniBug)
 
 import Debug.Trace
 \end{code}
@@ -99,8 +98,9 @@ data BuilderStatus = S
     , genconfig  :: Params
     , genstats   :: B.Gstats 
     , theRules   :: [CKY_InferenceRule] 
-    , theResults :: [ChartItem] } 
-  deriving Show
+    , theResults :: [ChartItem] 
+    , genAutCounter :: Integer -- allocation of node numbers
+    } 
 
 type BState = State BuilderStatus 
 
@@ -186,7 +186,8 @@ initBuilder input config =
        , theResults = []
        , theRules = map fst ckyRules 
        , tsem     = sem 
-       , gencounter = toInteger (length cands)
+       , gencounter    = toInteger (length cands)
+       , genAutCounter = 0
        , genconfig  = config
        , genstats   = B.initGstats}
   in execState (mapM dispatchNew cands) initS
@@ -231,15 +232,17 @@ decompose te =  helper True (ttree te) Map.empty
   helper _ (Node _ []) smap = smap 
   helper isRoot (Node p kidNodes) smap = 
     let kids     = [ gnname x | (Node x _) <- kidNodes ] 
-        addKid k = Map.insert k (delete k kids, p, isRoot)
+        addKid k = Map.insert k (left, right, p)
+          where (left, right') = span (/= k) kids
+                right = if null right' then [] else tail right'
         smap2    = foldr addKid smap kids
     in -- recurse to add routing info for child nodes 
        foldr (helper False) smap2 kidNodes
 
 -- basically, an inverted tree
--- from node name to a list of its sisters, its parent, and
--- whether or not the parent is a root
-type RoutingMap = Map.Map String ([String], GNode, Bool)
+-- from node name to a list of its sisters on the left, 
+-- a list of its sisters on the right, its parent
+type RoutingMap = Map.Map String ([String], [String], GNode)
 \end{code}
 
 \subsubsection{BuilderState updaters}
@@ -298,15 +301,18 @@ data ChartItem = ChartItem
   -- names of the sisters of this node in its tree
   , ciRouting    :: RoutingMap 
   -- variable replacements to accumulate
-  , ciSubsts     :: Subst 
+  , ciSubsts     :: Subst -- do we actually need this if we have ciVariables? 
   -- a list of genivals which were variables when the node was
   -- first initialised
   , ciVariables  :: [GeniVal]
   -- we keep a SemBitMap strictly to help display the semantics
   , ciSemBitMap  :: SemBitMap
+  -- the sentence automaton which corresponds to this item
+  , ciAut_beforeHole :: SentenceAut
+  , ciAut_afterHole  :: SentenceAut
   -- if there are things wrong with this item, what?
   , ciDiagnostic :: [String]
-  } deriving Show
+  } 
 
 type ChartId = Integer
 
@@ -328,7 +334,9 @@ combineWith node subst other x =
   combineVectors other $ 
   x { ciNode      = node 
     , ciSubsts    = (ciSubsts x) ++ subst
-    , ciVariables = replace subst (ciVariables x) }
+    , ciVariables = replace subst (ciVariables x) 
+    , ciAut_beforeHole = ciAut_beforeHole other
+    , ciAut_afterHole  = ciAut_afterHole  other }
 \end{code}
 
 \begin{code}
@@ -355,7 +363,9 @@ ckyShow name item chart =
        , show $ ciNode item ]
 
 showItems = unlines . (map showItem)
-showItem i = (idname.ciSourceTree) i ++ " " ++ show (ciNode i) ++ " " ++  (showItemSem i)
+showItem i = (idname.ciSourceTree) i ++ " " ++ show (ciNode i) ++ " " ++  (showItemSem i) 
+             -- FIXME: yeck! automata stuff
+             ++ " " ++ (show $ states $ ciAut_beforeHole i)
 
 showItemSem = (showBitVector 3) . ciSemantics
 
@@ -372,8 +382,24 @@ leafToItem te node = ChartItem
   , ciAdjPoint   = Nothing
   , ciSubsts     = [] 
   , ciSemBitMap  = Map.empty 
-  , ciDiagnostic = [] }
+  , ciAut_beforeHole = if ganchor node then lexAut else emptySentenceAut 
+  , ciAut_afterHole  = emptySentenceAut 
+  , ciDiagnostic   = [] }
+  where 
+   -- add a transition from f -> t via label l
+   addTransFor l a = addTrans a "f" (Just l) "t"
+   -- add a transition for each word in the disjunction
+   lexAut  = foldr addTransFor lexAut' (glexeme node)
+   lexAut' = addState "t" $ addState "f" $ 
+             emptySentenceAut { startSt = "f", isFinalSt = (== "t") }
 
+-- | for now we hard code this -- FIXME - refactor this later
+-- for now we code this using strings - we'll have to make the
+-- automaton Replacable to account for uninflected words though
+-- grumble...
+type UninflectedWord        = String
+type UninflectedSentence    = [ UninflectedWord ] 
+type UninflectedDisjunction = [ String ] 
 -- | CKY non adjunction rule - creates items in which
 -- we do not apply any adjunction
 -- this rule also doubles as top
@@ -387,12 +413,24 @@ nonAdjunctionRule item _ =
 -- FIXME: something about most general unifier - do we really need a 
 -- mgu mechanism in compare?
 kidsToParentRule item chart = 
- do (s,p,r)  <- Map.lookup (gnname node) (ciRouting item) 
+ do (leftS,rightS,p)  <- Map.lookup (gnname node) (ciRouting item) 
     let mergePoints kids = 
          case mapMaybe ciAdjPoint (item:kids) of
           []  -> Nothing
           [x] -> Just x
           _   -> error "multiple adjunction points in kidsToParentRule?!"
+    let combineAuts kids =
+          if null aft 
+          then trace "sans foot" $
+               ( concatAut $ map ciAut_beforeHole bef 
+               , emptySentenceAut)
+          else trace "with foot" $
+               ( concatAut $ map ciAut_beforeHole $ bef ++ [theFoot]
+               , concatAut $ map ciAut_afterHole  $ theFoot : aft )
+          where theFoot = head aft
+                concatAut auts = trace ("concatting: " ++ (show $ map states auts)) $ 
+                                 foldr joinAutomata emptySentenceAut auts
+                (bef, aft) = span (not.ciFoot) kids
     let combine kids = do
           let unifyOnly (x, _) y = unify x y
           newVars <- foldM unifyOnly (ciVariables item,[]) $ 
@@ -402,16 +440,21 @@ kidsToParentRule item chart =
                { ciNode      = replace newSubsts p 
                , ciSubsts    = newSubsts 
                , ciAdjPoint  = mergePoints kids 
-               , ciVariables = fst newVars }
+               , ciVariables = fst newVars 
+               , ciAut_beforeHole = (fst.combineAuts) kids
+               , ciAut_afterHole  = (snd.combineAuts) kids
+               }
           return $ foldr combineVectors newItem kids
-    --trace (" matches: " ++ (show $ map showItems sMatches)) $ 
     --
-    sMatches <- -- trace (" relevant chart: " ++ showItems relChart) $ 
-                     -- trace (" routing info: " ++ show (s,p,r)) $ 
-                  combinations $ map matches s
-    if null s   
-       then combine [] >>= (\x -> return [x])
-       else listAsMaybe $ mapMaybe combine sMatches
+    let leftMatches  = map matches leftS
+        rightMatches = map matches rightS
+        allMatches = leftMatches ++ ([item] : rightMatches)
+    --  trace (" relevant chart: (" ++ (show $ length relChart) ++ ") " ++ showItems relChart) $ 
+    --                      -- trace (" routing info: " ++ show (s,p,r)) $ 
+    --                      map matches s
+    -- 
+    --trace (" matches: (" ++ (show $ length sMatches) ++ ") " ++ (concat $ intersperse "-\n" $ map showItems sMatches)) $
+    combinations allMatches >>= listAsMaybe . mapMaybe combine 
  where
    node    = ciNode item
    source  = (idname.ciSourceTree) item  
@@ -420,6 +463,7 @@ kidsToParentRule item chart =
      (idname.ciSourceTree) c == source && (not $ ciSubs c) && ciAdjDone c
    relChart = filter relevant chart
    --
+   matches :: String -> [ChartItem]
    matches sis = [ c | c <- relChart, (gnname.ciNode) c == sis ]
 
 -- note: not the same as Data.Maybe.listToMaybe !
@@ -582,8 +626,10 @@ dispatchNew itemRaw =
      Nothing   -> addToTrash itemRaw ts_tbUnificationFailure 
      Just item ->
       do let filts = [ removeRedundant, removeResults, dispatchToAgenda ]
+             tryFilter True f = return True
+             tryFilter _    f = f item
          -- keep trying dispatch filters until one of them suceeds
-         foldM (\prev f -> if prev then return True else f item) False filts
+         foldM tryFilter False filts
          return ()
 
 dispatchToAgenda, removeRedundant, removeResults :: ChartItem -> BState Bool
@@ -639,6 +685,7 @@ tbUnify item =
     (newVars, sub2) <- unify treeVars nodeVars
     return $ item 
       { ciNode = node { gup = newTop, gdown = [] }
+      , ciSubsts = ciSubsts item ++ sub2
       , ciVariables = newVars }
 \end{code}
 
@@ -653,11 +700,8 @@ Note that this is not the same thing as equality!
 
 \begin{code}
 equivalent :: ChartItem -> ChartItem -> Bool
-equivalent _ _ = False {-
-  stuff c1 == stuff c2
-  where 
-    stuff x = 
-     ( ciNode x, ciSemantics x, ciPolpaths x ) -}
+equivalent _ _ = False -- stuff c1 == stuff c2
+  where stuff x = ( ciNode x, ciSemantics x, ciPolpaths x ) 
 \end{code}
 
 \fnlabel{mergeItems} combines two chart items into one, with the
@@ -668,6 +712,63 @@ into information from the first ``master'' item.
 \begin{code}
 mergeItems :: ChartItem -> ChartItem -> ChartItem
 mergeItems master _ = master  --FIXME: to implement
+\end{code}
+
+% --------------------------------------------------------------------  
+\section{Automaton stuff}
+% --------------------------------------------------------------------  
+
+\begin{code}
+type SentenceAut            = NFA String UninflectedWord 
+
+emptySentenceAut :: SentenceAut
+emptySentenceAut = 
+  NFA { startSt     = "" 
+      , isFinalSt   = const False 
+      , transitions = Map.empty
+      , states      = [[]] }
+
+-- | add a state to the automaton
+-- There's a bit of kludginess because of list of list representation
+-- of automaton states; the list of list thing is only for polarity
+-- automata; they make no difference for other automata
+addState :: (Ord ab, Ord st) => st -> NFA st ab -> NFA st ab 
+addState st aut | (null.states) aut = aut { states = [[st]] }
+addState st aut = 
+ let (oldH:oldT) = states aut
+ in  aut { states = (st:oldH) : oldT }
+
+joinAutomata :: SentenceAut -> SentenceAut -> SentenceAut
+joinAutomata rawAut1 rawAut2 | states rawAut1 == states emptySentenceAut = rawAut2
+joinAutomata rawAut1 rawAut2 | states rawAut2 == states emptySentenceAut = rawAut1
+joinAutomata rawAut1 rawAut2 =
+ trace ( "aut1: " ++ (show $ states rawAut1) ) $
+ trace ( "aut2: " ++ (show $ states rawAut2) ) $
+ let aut1 = renameStates 'L' rawAut1
+     aut2 = renameStates 'R' rawAut2 
+     -- replace all transitions to aut1's final st by 
+     -- transitions to aut2's start state
+     t1 = transitions aut1
+     t2 = transitions aut2
+     maybeBridge s = if (isFinalSt aut1) s then startSt aut2 else s
+     newT1 = Map.map (Map.map $ map maybeBridge) t1
+     newStates1 = map (\\ (finalSt aut1)) $ states aut1 
+     --
+ in  aut1 { states      = [ concat $ newStates1 ++ states aut2 ]
+          , transitions = Map.union newT1 t2 
+          , isFinalSt   = isFinalSt aut2 }
+
+renameStates :: Char -> SentenceAut -> SentenceAut
+renameStates prefix aut =
+ let -- prefix a state
+     addP_s = (prefix :) 
+     -- prefix a single transition
+     addP_t (k,e) = (addP_s k, Map.map (map addP_s) e) 
+ in aut { startSt     = addP_s (startSt aut)
+        , states      = map (map addP_s) $ states aut 
+        , transitions = Map.fromList $ map addP_t $ 
+                        Map.toList   $ transitions aut 
+        , isFinalSt   = isFinalSt aut . tail }
 \end{code}
 
 % --------------------------------------------------------------------  

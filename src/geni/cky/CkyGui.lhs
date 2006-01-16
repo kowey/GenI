@@ -31,9 +31,11 @@ import qualified Control.Monad as Monad
 import Control.Monad.State (runState)
 import Data.IORef
 import Data.List (find, nub, (\\))
-import Data.Maybe (isJust)
+import qualified Data.Map as Map 
+import Data.Maybe (isJust, catMaybes)
 import Data.Tree 
 
+import Automaton ( NFA(states, transitions), lookupTrans )
 import qualified Builder    as B
 import qualified BuilderGui as BG 
 import Btypes (gnname, showLexeme, iword, isemantics)
@@ -41,7 +43,8 @@ import Btypes (gnname, showLexeme, iword, isemantics)
 import CkyBuilder 
   ( ckyBuilder, setup, BuilderStatus, ChartItem(..), genconfig 
   , bitVectorToSem
-  , theResults, theAgenda, theChart, theTrash)
+  , theResults, theAgenda, theChart, theTrash
+  , SentenceAut)
 import Configuration ( Params(..), polarised, chartsharing )
 
 import Geni 
@@ -49,7 +52,7 @@ import Geni
   , initGeni, runGeni
   , showRealisations )
 import General ( snd3, listRepNode )
-import Graphviz ( GraphvizShow(graphvizShow) )
+import Graphviz ( GraphvizShow(..), gvNode, gvEdge, gvSubgraph, gvUnlines )
 import GuiHelper
 
 import Polarity
@@ -230,21 +233,70 @@ showGenState st =
 
 \begin{code}
 instance GraphvizShow Bool ChartItem where
-  graphvizShow f ci = 
-   let node = ciNode ci
-       --
-       updateTree t = (head.fst) $ listRepNode replaceFn filtFn [t]
-        where filtFn (Node a _)    = (gnname a == gnname node)
-              replaceFn (Node _ k) = Node node k
-       --
-       updateTagElem te = te 
-        { ttree = (updateTree.ttree) te
-        , tsemantics  = bitVectorToSem (ciSemBitMap ci) (ciSemantics ci) 
-        , tdiagnostic = ciDiagnostic ci
-        , thighlight  = [gnname node] }
-   in graphvizShow f $ updateTagElem $ ciSourceTree ci
+  graphvizLabel  f = graphvizLabel  f . toTagElem 
+  graphvizShowAsSubgraph f prefix ci = 
+   let gvTree = graphvizShowAsSubgraph f  (prefix ++ "tree")  $ toTagElem ci
+       gvAut1 = graphvizShowAsSubgraph () (prefix ++ "aut1")  $ ciAut_beforeHole ci
+       -- FIXME: maybe it would be nice to connect these two automaton using a specially
+       -- marked label - we could simulate this by joining the two automata and naming
+       -- the bridge specially
+       gvAut2 = graphvizShowAsSubgraph () (prefix ++ "aut2")  $ ciAut_afterHole ci
+   -- FIXME: will have to make this configurable, maybe, show aut, show tree? radio button?
+   in    (unlines $ graphvizParams f $ ciSourceTree ci)
+      ++ gvSubgraph gvTree
+      ++ (unlines $ graphvizParams () $ ciAut_beforeHole ci)
+      ++ gvSubgraph gvAut1 ++ gvSubgraph gvAut2
+      ++ (unlines $ graphvizParams f  $ ciSourceTree ci)
 
-instance (GraphvizShow f b) => GraphvizShow f (Maybe b) where
-  graphvizShow _ Nothing  = "digraph nothing {}"
-  graphvizShow f (Just b) = graphvizShow f b 
+toTagElem :: ChartItem -> TagElem
+toTagElem ci =
+ let node = ciNode ci
+     te   = ciSourceTree ci
+     --
+     updateTree t = (head.fst) $ listRepNode replaceFn filtFn [t]
+      where filtFn (Node a _)    = (gnname a == gnname node)
+            replaceFn (Node _ k) = Node node k
+     --
+ in te { ttree = (updateTree.ttree) te
+       , tsemantics  = bitVectorToSem (ciSemBitMap ci) (ciSemantics ci) 
+       , tdiagnostic = ciDiagnostic ci
+       , thighlight  = [gnname node] }
+
+-- FIXME: this is largely copy-and-pasted from Polarity.lhs 
+-- it should be refactored later
+instance GraphvizShow () SentenceAut where
+  graphvizShowAsSubgraph f prefix aut =
+   let st  = (concat.states) aut
+       ids = map (\x -> prefix ++ show x) [0..]
+       -- map which permits us to assign an id to a state
+       stmap = Map.fromList $ zip st ids
+   in --
+      -- any state should be an ellipse
+      "node [ shape = ellipse, peripheries = 1 ]\n"
+      -- draw the states and transitions 
+      ++ (concat $ zipWith gvShowState ids st) 
+      ++ (concat $ zipWith (gvShowTrans aut stmap) ids st )
+
+type SentenceAutState = String
+
+gvShowState :: String -> SentenceAutState -> String
+gvShowState stId st = gvNode stId st []
+
+gvShowTrans :: SentenceAut -> Map.Map SentenceAutState String
+               -> String -> SentenceAutState -> String 
+gvShowTrans aut stmap idFrom st = 
+  let -- outgoing transition labels from st
+      alpha = Map.keys $ Map.findWithDefault Map.empty st (transitions aut) 
+      -- associate each st2 with a list of labels that transition to it
+      inverter x fm = foldr fn fm (lookupTrans aut st x)
+                      where fn    s f   = Map.insert s (xlist s f x) f
+                            xlist s f x = x:(Map.findWithDefault [] s f)
+      invFM = foldr inverter Map.empty alpha
+      -- returns the graphviz dot command to draw a labeled transition
+      drawTrans (stTo,x) = case Map.lookup stTo stmap of
+                             Nothing   -> drawTrans' ("id_error_" ++ stTo) x 
+                             Just idTo -> drawTrans' idTo x
+      drawTrans' idTo x = gvEdge idFrom idTo (drawLabel x) []
+      drawLabel labels  = gvUnlines $ catMaybes labels 
+  in concatMap drawTrans $ Map.toList invFM
 \end{code}
