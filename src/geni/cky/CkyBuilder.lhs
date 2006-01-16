@@ -194,7 +194,7 @@ initBuilder input config =
 initTree :: SemBitMap -> TagElem -> [ChartItem]
 initTree bmap te = 
   let semVector    = semToBitVector bmap (tsemantics te)
-      createItem n = (nodeToItem te n) 
+      createItem n = (leafToItem te n) 
        { ciSemantics = semVector
        , ciSemBitMap = bmap
        , ciRouting   = decompose te 
@@ -342,8 +342,8 @@ ckyRules =
  [ (kidsToParentRule, "kidsToP")
  , (substRule       , "subst") 
  , (nonAdjunctionRule, "nonAdj") 
- , (activeAdjunctionRule, "activeAdjRule") 
- , (passiveAdjunctionRule, "passiveAdjRule") ] 
+ , (activeAdjunctionRule, "actAdjRule") 
+ , (passiveAdjunctionRule, "psvAdjRule") ] 
 
 ckyShow name item chart = 
   let showChart = show $ length chart
@@ -359,8 +359,8 @@ showItem i = (idname.ciSourceTree) i ++ " " ++ show (ciNode i) ++ " " ++  (showI
 
 showItemSem = (showBitVector 3) . ciSemantics
 
-nodeToItem :: TagElem -> GNode -> ChartItem 
-nodeToItem te node = ChartItem 
+leafToItem :: TagElem -> GNode -> ChartItem 
+leafToItem te node = ChartItem 
   { ciNode       = node
   , ciSourceTree = te
   , ciPolpaths   = tpolpaths te
@@ -426,10 +426,6 @@ kidsToParentRule item chart =
 listAsMaybe :: [a] -> Maybe [a]
 listAsMaybe [] = Nothing
 listAsMaybe l  = Just l
-
-push = (:)
-pop []    = Nothing
-pop (x:_) = Just x
 
 -- | CKY subst rules
 substRule item chart = listAsMaybe resVariants
@@ -632,10 +628,7 @@ tbUnify :: ChartItem -> Maybe ChartItem
 tbUnify item | ciFoot item = return item
 tbUnify item | (not.gaconstr.ciNode) item = return item
 -- ok, here, we should do tb unification
-tbUnify item = tbUnifyHelper item
-
-tbUnifyHelper :: ChartItem -> Maybe ChartItem
-tbUnifyHelper item =
+tbUnify item = 
  do let node = ciNode item
     (newTop, sub1) <- unifyFeat (gup node) (gdown node) 
     -- it's not enough if t/b unification succeeds by itself
