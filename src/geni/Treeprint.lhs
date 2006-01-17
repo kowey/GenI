@@ -99,11 +99,17 @@ instance GraphvizShowNode (Bool) (GNode, Maybe String) where
  -- compact -> (node, mcolour) -> String 
  graphvizShowNode detailed prefix (gn, mcolour) =
    let -- attributes 
+       filledParam         = ("style", "filled")
+       fillcolorParam      = ("fillcolor", "lemonchiffon")
+       shapeRecordParam    = ("shape", "record")
+       shapePlaintextParam = ("shape", "plaintext")
+       --
        colorParams = case mcolour of
                      Nothing -> [] 
-                     Just c  -> [("color", c), ("fontcolor", c)]
-       shapeParams = 
-         ("shape", if detailed then "record" else "plaintext")
+                     Just c  -> [ ("fontcolor", c) ]
+       shapeParams = if detailed 
+                     then [ shapeRecordParam, filledParam, fillcolorParam ]
+                     else [ shapePlaintextParam ]
        -- content 
        body = if not detailed then  show gn 
               else    "{" ++ show gn 
@@ -111,7 +117,7 @@ instance GraphvizShowNode (Bool) (GNode, Maybe String) where
                    ++ (if (null $ gdown gn) then "" else "|" ++ (showFs $ gdown gn)) 
                    ++ "}"
         where showFs = gvUnlines . (map showAv) 
-   in gvNode prefix body (shapeParams : colorParams)
+   in gvNode prefix body (shapeParams ++ colorParams)
 \end{code}
 
 % ----------------------------------------------------------------------
