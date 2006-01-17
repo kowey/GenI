@@ -32,7 +32,6 @@ import Control.Monad.State (runState)
 import Data.IORef
 import Data.List (find, nub, (\\))
 import Data.Maybe (isJust)
-import System.Process (runProcess)
 
 import Geni 
   ( ProgState(..), ProgStateRef
@@ -43,7 +42,7 @@ import Btypes
   (showLexeme,
    iword, isemantics)
 import Tags (idname,emptyTE,tsemantics,thighlight, 
-             TagElem, derivation)
+             TagElem)
 
 import Configuration ( Params(..), polarised, chartsharing )
 import GuiHelper
@@ -309,48 +308,4 @@ showGenState res st =
                   else const ""
       labelFn trs = map (\t -> (toSentence t) ++ (showPaths t)) trs 
   in (trees,labels)
-\end{code}
-
-\subsection{XMG Metagrammar stuff}
-
-XMG trees are produced by the XMG metagrammar system
-(\url{http://sourcesup.cru.fr/xmg/}). To debug these grammars, it is
-useful, given a TAG tree, to see what its metagrammar origins are.  We
-provide here an interface to the handy visualisation tool ViewTAG that
-just does this.
-
-\paragraph{extractDerivation} retrieves the names of all the
-XMG trees that went to building a TagElem, including the TagElem
-itself.  NB: for a tree like ``love\_Tn0Vn1'', we extract just the
-Tn0Vn1 bit.
-
-\begin{code}
-extractDerivation :: TagElem -> [String]
-extractDerivation te = 
-  let -- strips all gorn addressing stuff
-      stripGorn n = if dot `elem` n then stripGorn stripped else n
-        where stripped =  (tail $ dropWhile (/= dot) n)
-              dot = '.'
-      deriv  = map (stripGorn.snd3) $ snd $ derivation te
-  in  nub (idname te : deriv)
-\end{code}
-
-\paragraph{runViewTag} runs Yannick Parmentier's ViewTAG module, which
-displays trees produced by the XMG metagrammar system.  
-
-\begin{code}
-runViewTag :: ProgState -> String -> IO ()
-runViewTag pst idname =  
-  do -- figure out what grammar file to use
-     let params  = pa pst
-         gramfile = macrosFile params
-     -- extract the relevant bits of the treename
-     let extractXMGName n = tail $ dropWhile (/= '_') n 
-         drName = extractXMGName idname 
-     -- run the viewer 
-     let cmd  = viewCmd params 
-         args = [gramfile, drName]
-     -- run the viewer
-     runProcess cmd args Nothing Nothing Nothing Nothing Nothing
-     return ()
 \end{code}
