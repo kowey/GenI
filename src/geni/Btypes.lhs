@@ -208,9 +208,9 @@ instance Show GNode where
         lex  = showLexeme $ glexeme gn
         -- 
         extra = case (gtype gn) of         
-                   Subs -> " (s)"
+                   Subs -> " !"
                    Foot -> " *"
-                   _    -> if (gaconstr gn)  then " (na)"   else ""
+                   _    -> if (gaconstr gn)  then " #"   else ""
     in if (not (null cat || null lex))
        then cat ++ ":" ++ lex ++ extra
        else cat ++ lex ++ extra

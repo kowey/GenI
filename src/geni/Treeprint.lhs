@@ -118,9 +118,9 @@ instance GraphvizShowNode (Bool) (GNode, Maybe String) where
               then cat ++ ":" ++ lex 
               else cat ++ lex 
        extra = case (gtype gn) of         
-               Subs -> "s"
+               Subs -> "!"
                Foot -> "*"
-               _    -> if (gaconstr gn) then "na"   else ""
+               _    -> if (gaconstr gn) then "#"   else ""
        summary = if null extra then stub 
                  else "{" ++ stub ++ "|" ++ extra ++ "}"
        --
