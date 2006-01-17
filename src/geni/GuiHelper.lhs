@@ -49,7 +49,7 @@ import Btypes
   ( showPred, showSem, showLexeme
   , Sem)
 import Tags 
-  ( idname, mapBySem, emptyTE, TagElem, derivation)
+  ( idname, ttreename, mapBySem, emptyTE, TagElem, derivation)
 
 import Configuration(Params(..), GrammarType(..))
 
@@ -566,7 +566,7 @@ extractDerivation te =
         where stripped =  (tail $ dropWhile (/= dot) n)
               dot = '.'
       deriv  = map (stripGorn.snd3) $ snd $ derivation te
-  in  nub (idname te : deriv)
+  in  nub (ttreename te : deriv)
 \end{code}
 
 \paragraph{runViewTag} runs Yannick Parmentier's ViewTAG module, which
@@ -574,13 +574,10 @@ displays trees produced by the XMG metagrammar system.
 
 \begin{code}
 runViewTag :: ProgState -> String -> IO ()
-runViewTag pst idname =  
+runViewTag pst drName =  
   do -- figure out what grammar file to use
      let params  = pa pst
          gramfile = macrosFile params
-     -- extract the relevant bits of the treename
-     let extractXMGName n = tail $ dropWhile (/= '_') n 
-         drName = extractXMGName idname 
      -- run the viewer 
      let cmd  = viewCmd params 
          args = [gramfile, drName]

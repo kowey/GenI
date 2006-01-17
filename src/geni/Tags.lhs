@@ -26,17 +26,9 @@ and \ref{sec:adjunction} instead.
 \begin{code}
 module Tags(
    -- Main Datatypes
-   Tags, TagElem(TE), TagItem(..), TagSite, 
+   Tags, TagElem(..), TagItem(..), TagSite, 
    TagDerivation, emptyTE,
    ts_synIncomplete, ts_semIncomplete, ts_tbUnificationFailure,
-
-   -- Projection Functions
-   idname, tidnum, derivation, ttype, ttree, 
-   substnodes, adjnodes, 
-   tsemantics, 
-   tinterface, tpolarities, tpolpaths, tsempols,
-   thighlight,
-   tadjlist, tdiagnostic,
 
    -- Functions from Tags
    addToTags, tagLeaves,
@@ -100,6 +92,7 @@ combining macros with lexicon (see section \ref{sec:combine_macros}).
 type TagSite = (String, Flist, Flist)
 data TagElem = TE {
                    idname       :: String,
+                   ttreename    :: String,
                    tidnum       :: Integer,
                    derivation   :: TagDerivation,
                    ttype        :: Ptype,
@@ -170,6 +163,7 @@ instance Idable TagElem where
 \begin{code}
 emptyTE :: TagElem
 emptyTE = TE { idname = "",
+               ttreename = "",
                tidnum = -1,
                ttype  = Initial,
                ttree  = Node emptyGNode [],

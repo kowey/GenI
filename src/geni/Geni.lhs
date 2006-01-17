@@ -69,7 +69,7 @@ import Btypes (Macros, MTtree, ILexEntry, Lexicon,
                setLexeme, tree, unifyFeat)
 
 import Tags (Tags, TagElem, emptyTE, TagSite, 
-             idname, 
+             idname, ttreename,
              derivation, ttype, tsemantics, ttree, tsempols,
              tinterface, tpolarities, substnodes, adjnodes, 
              setTidnums) 
@@ -613,6 +613,7 @@ combineOne lexitem e =
        result = emptyTE {
                 idname = (head $ iword lexitem) ++ "_" 
                          ++ pfamily e ++ showid (pidname e),
+                ttreename = pfamily e,
                 derivation = (0,[]),
                 ttype = ptype e,
                 ttree = setLexeme (iword lexitem) unified,
@@ -776,9 +777,9 @@ fixateXMG e =
       (snodes,anodes) = detectSites tree_
       -- for display purposes, get the list of lexemes in the tree
       lexemes = map (head.glexeme) $ filterTree (not.null.glexeme) tree_ 
-      lexstr  = concat $ intersperse "_" $ lexemes
-      --
-  in emptyTE { idname = lexstr ++ "-" ++ pidname e 
+      lexstr  = concat $ intersperse "-" $ lexemes
+  in emptyTE { idname = lexstr ++ "_" ++ pidname e 
+             , ttreename = pidname e
              , derivation = (0,[])
              , ttype  = ptype e
              , ttree  = tree_
