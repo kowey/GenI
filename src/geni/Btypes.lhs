@@ -205,12 +205,7 @@ instance Show GNode where
   show gn = 
     let cat' = [ av | av <- gup gn, fst av == "cat" ]
         cat  = if (null cat') then "" else show $ snd $ head cat'
-        theLexeme = glexeme gn
-        -- FIXME: will have to think of nicer way - one which involves
-        -- unpacking the trees :-(
-        lex | null theLexeme        = ""
-            | 1 == length theLexeme = head theLexeme
-            | otherwise             = concat $ intersperse "|" theLexeme 
+        lex  = showLexeme $ glexeme gn
         -- 
         extra = case (gtype gn) of         
                    Subs -> " (s)"
