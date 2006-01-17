@@ -88,7 +88,7 @@ graphvizShowInterface sf iface
   | null iface  = ""
   | otherwise =
       let showFs   = gvUnlines $ map showAv iface 
-          theLabel = "{ interface | " ++ showFs ++ "})"
+          theLabel = "{ interface | " ++ showFs ++ "}"
       in gvNode "interface" theLabel [ ("shape", "record") ]
 \end{code}
 
