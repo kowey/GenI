@@ -53,7 +53,9 @@ import Geni
   , showRealisations )
 import General ( snd3, listRepNode )
 import Graphviz ( GraphvizShow(..), gvNode, gvEdge, gvSubgraph, gvUnlines )
-import GuiHelper
+import GuiHelper 
+  ( candidateGui, graphvizGui, messageGui, polarityGui, toSentence
+  , newGvRef, setGvDrawables, setGvDrawables2, setGvParams, setGvSel ) 
 
 import Polarity
 import Tags 
@@ -224,7 +226,7 @@ showGenState st =
                   {- if (polarised $ genconfig st)
                      then (\t -> " (" ++ showPolPaths t ++ ")")
                      else const "" -}
-      labelFn i =  (idname $ ciSourceTree i) ++ " " ++ (gnname $ ciNode i) 
+      labelFn i = (toSentence $ ciSourceTree i) ++ " " ++ (gnname $ ciNode i) 
                 ++ (showPaths i) 
   in unzip $ agenda ++ chart ++ results ++ trash 
 \end{code}
@@ -236,15 +238,15 @@ instance GraphvizShow Bool ChartItem where
   graphvizLabel  f = graphvizLabel  f . toTagElem 
   graphvizShowAsSubgraph f prefix ci = 
    let gvTree = graphvizShowAsSubgraph f  (prefix ++ "tree")  $ toTagElem ci
-       gvAut1 = graphvizShowAsSubgraph () (prefix ++ "aut1")  $ ciAut_beforeHole ci
+       gvAut1 = graphvizShowAsSubgraph () (prefix ++ "aut1")  $ ciAut_befHole ci
        -- FIXME: maybe it would be nice to connect these two automaton using a specially
        -- marked label - we could simulate this by joining the two automata and naming
        -- the bridge specially
-       gvAut2 = graphvizShowAsSubgraph () (prefix ++ "aut2")  $ ciAut_afterHole ci
+       gvAut2 = graphvizShowAsSubgraph () (prefix ++ "aut2")  $ ciAut_aftHole ci
    -- FIXME: will have to make this configurable, maybe, show aut, show tree? radio button?
    in    (unlines $ graphvizParams f $ ciSourceTree ci)
       ++ gvSubgraph gvTree
-      ++ (unlines $ graphvizParams () $ ciAut_beforeHole ci)
+      ++ (unlines $ graphvizParams () $ ciAut_befHole ci)
       ++ gvSubgraph gvAut1 ++ gvSubgraph gvAut2
       ++ (unlines $ graphvizParams f  $ ciSourceTree ci)
 

@@ -93,7 +93,7 @@ data BuilderStatus = S
     { theAgenda    :: Agenda
     , theChart     :: Chart
     , theTrash   :: Trash
-    , tsem       :: Sem
+    , tsemVector :: BitVector -- the semantics in bit vector form
     , gencounter :: Integer
     , genconfig  :: Params
     , genstats   :: B.Gstats 
@@ -185,7 +185,7 @@ initBuilder input config =
        , theTrash = []
        , theResults = []
        , theRules = map fst ckyRules 
-       , tsem     = sem 
+       , tsemVector    = semToBitVector bmap sem
        , gencounter    = toInteger (length cands)
        , genAutCounter = 0
        , genconfig  = config
@@ -195,12 +195,46 @@ initBuilder input config =
 initTree :: SemBitMap -> TagElem -> [ChartItem]
 initTree bmap te = 
   let semVector    = semToBitVector bmap (tsemantics te)
-      createItem n = (leafToItem te n) 
+      createItem l n = (leafToItem l te n)
        { ciSemantics = semVector
        , ciSemBitMap = bmap
        , ciRouting   = decompose te 
        , ciVariables = map GVar $ Set.toList $ collect te Set.empty }
-  in  map createItem $ treeLeaves $ ttree te
+      --
+      (left,right) = span (\n -> gtype n /= Foot) $ treeLeaves $ ttree te
+  in map (createItem True) left  ++ map (createItem False) right
+
+leafToItem :: Bool     
+           -- ^ is it on the left of the foot node? (yes if there is none)
+           -> TagElem  
+           -- ^ what tree does it belong to
+           -> GNode 
+           -- ^ the leaf to convert
+           -> ChartItem 
+leafToItem left te node = ChartItem 
+  { ciNode       = node
+  , ciComplete   = False -- (not $ gtype ==  
+  , ciSourceTree = te
+  , ciPolpaths   = tpolpaths te
+  , ciSemantics  = 0  -- to be set 
+  , ciId         = -1 -- to be set 
+  , ciRouting    = Map.empty -- to be set
+  , ciOrigVariables = [] -- to be set
+  , ciVariables     = [] -- to be set
+  , ciAdjPoint   = Nothing
+  , ciSubsts     = [] 
+  , ciSemBitMap  = Map.empty 
+  , ciAut_befHole = if left then theAutomaton else emptySentenceAut
+  , ciAut_aftHole  = if left then emptySentenceAut else theAutomaton
+  , ciDiagnostic   = [] }
+  where 
+   theAutomaton = if isLexeme node then lexAut else emptySentenceAut 
+   -- add a transition from f -> t via label l
+   addTransFor l a = addTrans a "f" (Just l) "t"
+   -- add a transition for each word in the disjunction
+   lexAut  = foldr addTransFor lexAut' (glexeme node)
+   lexAut' = addState "t" $ addState "f" $ 
+             emptySentenceAut { startSt = "f", isFinalSt = (== "t") }
 
 type SemBitMap = Map.Map Pred BitVector
 
@@ -289,6 +323,8 @@ addToTrash item err = do
 \begin{code}
 data ChartItem = ChartItem 
   { ciNode       :: GNode
+  -- if there is really nothing more than needs to be done to this node
+  , ciComplete   :: Bool
   -- things which should never change
   , ciSourceTree    :: TagElem 
   , ciOrigVariables :: [GeniVal]
@@ -308,20 +344,22 @@ data ChartItem = ChartItem
   -- we keep a SemBitMap strictly to help display the semantics
   , ciSemBitMap  :: SemBitMap
   -- the sentence automaton which corresponds to this item
-  , ciAut_beforeHole :: SentenceAut
-  , ciAut_afterHole  :: SentenceAut
+  , ciAut_befHole :: SentenceAut
+  , ciAut_aftHole  :: SentenceAut
   -- if there are things wrong with this item, what?
   , ciDiagnostic :: [String]
   } 
 
 type ChartId = Integer
 
-ciRoot, ciFoot, ciSubs, ciAdjDone, ciAux :: ChartItem -> Bool
+ciRoot, ciFoot, ciSubs, ciAdjDone, ciAux, ciInit :: ChartItem -> Bool
 ciRoot  i = (gnname.ciNode) i == (gnname.root.ttree.ciSourceTree) i
 ciFoot  i = (gtype.ciNode) i == Foot
 ciSubs  i = (gtype.ciNode) i == Subs
 ciAdjDone   = gaconstr.ciNode
 ciAux   i = (ttype.ciSourceTree) i == Auxiliar
+ciInit = not.ciAux
+
 
 combineVectors :: ChartItem -> ChartItem -> ChartItem 
 combineVectors a b = 
@@ -335,8 +373,8 @@ combineWith node subst other x =
   x { ciNode      = node 
     , ciSubsts    = (ciSubsts x) ++ subst
     , ciVariables = replace subst (ciVariables x) 
-    , ciAut_beforeHole = ciAut_beforeHole other
-    , ciAut_afterHole  = ciAut_afterHole  other }
+    , ciAut_befHole = ciAut_befHole other
+    , ciAut_aftHole  = ciAut_aftHole  other }
 \end{code}
 
 \begin{code}
@@ -365,33 +403,12 @@ ckyShow name item chart =
 showItems = unlines . (map showItem)
 showItem i = (idname.ciSourceTree) i ++ " " ++ show (ciNode i) ++ " " ++  (showItemSem i) 
              -- FIXME: yeck! automata stuff
-             ++ " " ++ (show $ states $ ciAut_beforeHole i)
+             ++ " " ++ (show $ states $ ciAut_befHole i)
 
 showItemSem = (showBitVector 3) . ciSemantics
 
-leafToItem :: TagElem -> GNode -> ChartItem 
-leafToItem te node = ChartItem 
-  { ciNode       = node
-  , ciSourceTree = te
-  , ciPolpaths   = tpolpaths te
-  , ciSemantics  = 0  -- to be set 
-  , ciId         = -1 -- to be set 
-  , ciRouting    = Map.empty -- to be set
-  , ciOrigVariables = [] -- to be set
-  , ciVariables     = [] -- to be set
-  , ciAdjPoint   = Nothing
-  , ciSubsts     = [] 
-  , ciSemBitMap  = Map.empty 
-  , ciAut_beforeHole = if ganchor node then lexAut else emptySentenceAut 
-  , ciAut_afterHole  = emptySentenceAut 
-  , ciDiagnostic   = [] }
-  where 
-   -- add a transition from f -> t via label l
-   addTransFor l a = addTrans a "f" (Just l) "t"
-   -- add a transition for each word in the disjunction
-   lexAut  = foldr addTransFor lexAut' (glexeme node)
-   lexAut' = addState "t" $ addState "f" $ 
-             emptySentenceAut { startSt = "f", isFinalSt = (== "t") }
+isLexeme :: GNode -> Bool
+isLexeme = not.null.glexeme
 
 -- | for now we hard code this -- FIXME - refactor this later
 -- for now we code this using strings - we'll have to make the
@@ -410,8 +427,6 @@ nonAdjunctionRule item _ =
      else Just [ item { ciNode = node2 } ]
 
 -- | CKY parent rule
--- FIXME: something about most general unifier - do we really need a 
--- mgu mechanism in compare?
 kidsToParentRule item chart = 
  do (leftS,rightS,p)  <- Map.lookup (gnname node) (ciRouting item) 
     let mergePoints kids = 
@@ -422,11 +437,11 @@ kidsToParentRule item chart =
     let combineAuts kids =
           if null aft 
           then trace "sans foot" $
-               ( concatAut $ map ciAut_beforeHole bef 
+               ( concatAut $ map ciAut_befHole bef 
                , emptySentenceAut)
           else trace "with foot" $
-               ( concatAut $ map ciAut_beforeHole $ bef ++ [theFoot]
-               , concatAut $ map ciAut_afterHole  $ theFoot : aft )
+               ( concatAut $ map ciAut_befHole $ bef ++ [theFoot]
+               , concatAut $ map ciAut_aftHole  $ theFoot : aft )
           where theFoot = head aft
                 concatAut auts = trace ("concatting: " ++ (show $ map states auts)) $ 
                                  foldr joinAutomata emptySentenceAut auts
@@ -441,8 +456,8 @@ kidsToParentRule item chart =
                , ciSubsts    = newSubsts 
                , ciAdjPoint  = mergePoints kids 
                , ciVariables = fst newVars 
-               , ciAut_beforeHole = (fst.combineAuts) kids
-               , ciAut_afterHole  = (snd.combineAuts) kids
+               , ciAut_befHole = (fst.combineAuts) kids
+               , ciAut_aftHole  = (snd.combineAuts) kids
                }
           return $ foldr combineVectors newItem kids
     --
@@ -477,11 +492,11 @@ substRule item chart = listAsMaybe resVariants
   resVariants
    | ciSubs item = -- trace " subst variant" $ 
                    mapMaybe (\r -> attemptSubst item r) roots
-   | ciRoot item = -- trace " root variant"  $ 
+   | ciRoot item && ciInit item = -- trace " root variant"  $ 
                    mapMaybe (\s -> attemptSubst s item) subs 
    | otherwise   = [] 
   --
-  roots = [ r | r <- chart, compatible item r && ciRoot r && (gaconstr.ciNode) r ]
+  roots = [ r | r <- chart, compatible item r && ciRoot r && (gaconstr.ciNode) r && ciInit r ]
   subs  = [ s | s <- chart, ciSubs s ]
 
 -- | unification for substitution
@@ -523,7 +538,12 @@ attemptAdjunction pItem aItem | ciRoot aItem && ciAux aItem =
     (newTop, newBot, subst) <- unifyPair (gup pNode, gdown pNode) 
                                          (gup aRoot, gdown aFoot)
     let newNode = pNode { gaconstr = False, gup = newTop, gdown = newBot }
-    return $ combineWith newNode subst aItem pItem
+        newItem = combineWith newNode subst aItem pItem
+        --
+        newAut_beforeHole = joinAutomata (ciAut_befHole aItem) (ciAut_befHole pItem)
+        newAut_afterHole  = joinAutomata (ciAut_aftHole pItem)  (ciAut_aftHole  aItem)
+    return $ newItem { ciAut_befHole = newAut_beforeHole
+                     , ciAut_aftHole  = newAut_afterHole }
 attemptAdjunction _ _ = error "attemptAdjunction called on non-aux or non-root node"
 
 -- return True if the chart items may be combined with each other; for now, this
@@ -625,21 +645,21 @@ dispatchNew itemRaw =
  do case tbUnify itemRaw of
      Nothing   -> addToTrash itemRaw ts_tbUnificationFailure 
      Just item ->
-      do let filts = [ removeRedundant, removeResults, dispatchToAgenda ]
+      do let filts = [ dispatchRedundant, dispatchResults, dispatchToAgenda ]
              tryFilter True f = return True
              tryFilter _    f = f item
          -- keep trying dispatch filters until one of them suceeds
          foldM tryFilter False filts
          return ()
 
-dispatchToAgenda, removeRedundant, removeResults :: ChartItem -> BState Bool
+dispatchToAgenda, dispatchRedundant, dispatchResults :: ChartItem -> BState Bool
 dispatchToAgenda item =
    trace (ckyShow "-> agenda" item []) $
    do addToAgenda item
       return True
 
--- merges non-new items with the chart; assigns a unique id to new items
-removeRedundant item = 
+-- | merges non-new items with the chart; assigns a unique id to new items
+dispatchRedundant item = 
   do st <- get
      let chart = theChart st
          mergeEquivItems o =  
@@ -654,20 +674,22 @@ removeRedundant item =
         else do setId item
                 return False 
 
--- puts result items into the results list
-removeResults _ = return False --FIXME: to implement
-{-
-  do st <- get
-     let inputSem = tsem st
-         synComplete x = (not (aux x)) && closed x
-         -- FIXME don't forget about null adjnodes
-         semComplete x = inputSem == treeSem 
-           where treeSem = sortSem (ciSemantics x)
-     if synComplete item && semComplete item  
-        then removeTbFailures >>= do addToResults item
-                                     mzero
-        else item 
--}
+-- | puts result items into the results list
+dispatchResults item = 
+ do st <- get
+    let synComplete = ciInit item && ciRoot item 
+        semComplete = tsemVector st == ciSemantics item 
+        -- join the two automata together - no more holes!
+        itemJoined  = item { ciAut_befHole = joinAutomata bef aft
+                           , ciAut_aftHole = emptySentenceAut }
+         where bef = ciAut_befHole item
+               aft = ciAut_aftHole item
+        --
+    trace (ckyShow "?? result" item [] ++ (showBitVector 3 $ tsemVector st)) $ 
+     if (synComplete && semComplete ) 
+       then trace ("isResult" ++ showItem item) $ 
+            addToResults itemJoined >> return True
+       else return False
 
 tbUnify :: ChartItem -> Maybe ChartItem
 -- things for which tb unification is not relevant
@@ -700,7 +722,7 @@ Note that this is not the same thing as equality!
 
 \begin{code}
 equivalent :: ChartItem -> ChartItem -> Bool
-equivalent _ _ = False -- stuff c1 == stuff c2
+equivalent c1 c2 = stuff c1 == stuff c2
   where stuff x = ( ciNode x, ciSemantics x, ciPolpaths x ) 
 \end{code}
 
@@ -742,8 +764,6 @@ joinAutomata :: SentenceAut -> SentenceAut -> SentenceAut
 joinAutomata rawAut1 rawAut2 | states rawAut1 == states emptySentenceAut = rawAut2
 joinAutomata rawAut1 rawAut2 | states rawAut2 == states emptySentenceAut = rawAut1
 joinAutomata rawAut1 rawAut2 =
- trace ( "aut1: " ++ (show $ states rawAut1) ) $
- trace ( "aut2: " ++ (show $ states rawAut2) ) $
  let aut1 = renameStates 'L' rawAut1
      aut2 = renameStates 'R' rawAut2 
      -- replace all transitions to aut1's final st by 
@@ -806,30 +826,3 @@ setId item =
      put $ s { gencounter = counter + 1 }
      return $ item { ciId = counter }
 \end{code}
-
-\subsection{Manipulating chart items}
-
-\begin{code}
-\end{code}
-
-%\fnlabel{closed} returns true if the chart item has no open substitution
-%nodes
-%\begin{code}
-%closed :: ChartItem -> Bool
-%closed = null.ciSubstnodes
-%\end{code}
-%
-%\fnlabel{aux} returns true if the chart item is an auxiliary tree
-%\begin{code}
-%aux :: ChartItem -> Bool
-%aux = isJust.ciFootNode
-%\end{code}
-%
-%\fnlabel{closedAux} returns true if both \fnreflite{closed} and
-%\fnreflite{aux} return true
-%\begin{code}
-%closedAux :: ChartItem -> Bool 
-%closedAux x = (aux x) && (closed x)
-%\end{code}
-
-
