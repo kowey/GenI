@@ -36,10 +36,10 @@ import Control.Monad
 import Control.Monad.State 
   (State, get, put, liftM, runState, execState )
 import Data.Bits ( (.&.), (.|.), bit )
-import Data.List ( delete, intersperse, span, (\\) )
+import Data.List ( intersperse, span, (\\) )
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import Data.Maybe (catMaybes, isNothing, mapMaybe)
+import Data.Maybe (catMaybes, mapMaybe)
 import Data.Tree 
 
 import Btypes 
@@ -260,18 +260,18 @@ bitVectorToSem bmap vector =
 
 -- | explode a TagElem tree into a bottom-up routing map 
 decompose :: TagElem -> RoutingMap 
-decompose te =  helper True (ttree te) Map.empty 
+decompose te = helper (ttree te) Map.empty 
   where
-  helper :: Bool -> Tree GNode -> RoutingMap -> RoutingMap
-  helper _ (Node _ []) smap = smap 
-  helper isRoot (Node p kidNodes) smap = 
+  helper :: Tree GNode -> RoutingMap -> RoutingMap
+  helper (Node _ []) smap = smap 
+  helper (Node p kidNodes) smap = 
     let kids     = [ gnname x | (Node x _) <- kidNodes ] 
         addKid k = Map.insert k (left, right, p)
           where (left, right') = span (/= k) kids
                 right = if null right' then [] else tail right'
         smap2    = foldr addKid smap kids
     in -- recurse to add routing info for child nodes 
-       foldr (helper False) smap2 kidNodes
+       foldr helper smap2 kidNodes
 
 -- basically, an inverted tree
 -- from node name to a list of its sisters on the left, 
@@ -436,15 +436,12 @@ kidsToParentRule item chart =
           _   -> error "multiple adjunction points in kidsToParentRule?!"
     let combineAuts kids =
           if null aft 
-          then trace "sans foot" $
-               ( concatAut $ map ciAut_befHole bef 
+          then ( concatAut $ map ciAut_befHole bef 
                , emptySentenceAut)
-          else trace "with foot" $
-               ( concatAut $ map ciAut_befHole $ bef ++ [theFoot]
+          else ( concatAut $ map ciAut_befHole $ bef ++ [theFoot]
                , concatAut $ map ciAut_aftHole  $ theFoot : aft )
           where theFoot = head aft
-                concatAut auts = trace ("concatting: " ++ (show $ map states auts)) $ 
-                                 foldr joinAutomata emptySentenceAut auts
+                concatAut auts = foldr joinAutomata emptySentenceAut auts
                 (bef, aft) = span (not.ciFoot) kids
     let combine kids = do
           let unifyOnly (x, _) y = unify x y
@@ -464,11 +461,9 @@ kidsToParentRule item chart =
     let leftMatches  = map matches leftS
         rightMatches = map matches rightS
         allMatches = leftMatches ++ ([item] : rightMatches)
-    --  trace (" relevant chart: (" ++ (show $ length relChart) ++ ") " ++ showItems relChart) $ 
-    --                      -- trace (" routing info: " ++ show (s,p,r)) $ 
-    --                      map matches s
-    -- 
-    --trace (" matches: (" ++ (show $ length sMatches) ++ ") " ++ (concat $ intersperse "-\n" $ map showItems sMatches)) $
+    -- trace (" relevant chart: (" ++ (show $ length relChart) ++ ") " ++ showItems relChart) $ 
+    -- trace (" routing info: " ++ show (s,p,r)) $ 
+    -- trace (" matches: (" ++ (show $ length allMatches) ++ ") " ++ (concat $ intersperse "-\n" $ map showItems allMatches)) $
     combinations allMatches >>= listAsMaybe . mapMaybe combine 
  where
    node    = ciNode item
@@ -584,7 +579,7 @@ generateStep2 =
      agendaItem <- selectAgendaItem
      -- try the inference rules
      let chart = theChart st
-         apply (rule, name) = 
+         apply (rule, _) = 
            -- trace (ckyShow name agendaItem chart) $ 
            rule agendaItem chart
          results = map apply ckyRules 
@@ -646,7 +641,7 @@ dispatchNew itemRaw =
      Nothing   -> addToTrash itemRaw ts_tbUnificationFailure 
      Just item ->
       do let filts = [ dispatchRedundant, dispatchResults, dispatchToAgenda ]
-             tryFilter True f = return True
+             tryFilter True _ = return True
              tryFilter _    f = f item
          -- keep trying dispatch filters until one of them suceeds
          foldM tryFilter False filts
