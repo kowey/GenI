@@ -145,29 +145,41 @@ debuggerTab f config input cachedir =
         manySteps   = B.stepAll ckyBuilder
         genstats    = B.stats ckyBuilder
         --
-    let initSt  = initBuilder input (config {usetrash=True})
+    let initSt  = initBuilder input config 
         (items,labels) = showGenState initSt 
-    -- widgets
     p <- panel f []      
+    -- ---------------------------------------------------------
+    -- item viewer: select and display an item
+    -- ---------------------------------------------------------
     gvRef <- newGvRef False labels "debugger session" 
     setGvDrawables gvRef items 
-    (lay,updaterFn) <- graphvizGui p cachedir gvRef 
-    detailsChk <- checkBox p [ text := "Show features"
-                             , checked := False ]
-    restartBt   <- button p [text := "Start over"]
-    nextBt   <- button p [text := "Leap by..."]
-    leapVal  <- entry p [ text := "1", clientSize := sz 30 25 ]
-    finishBt <- button p [text := "Continue"]
-    statsTxt <- staticText p []
-    -- commands
+    (layItemViewer,updaterFn) <- graphvizGui p cachedir gvRef 
+    -- ----------------------------------------------------------
+    -- item bar: controls for how an individual item is displayed
+    -- ----------------------------------------------------------
+    ib <- panel p []
+    detailsChk <- checkBox ib [ text := "Show features"
+                              , checked := False ]
+    let onDetailsChk = 
+         do isDetailed <- get detailsChk checked 
+            setGvParams gvRef isDetailed
+            updaterFn
+    set detailsChk [ on command := onDetailsChk ] 
+    let layItemBar = hfloatCentre $ container ib $ row 5 [ dynamic $ widget detailsChk ]
+    -- ------------------------------------------- 
+    -- dashboard: controls for the debugger itself 
+    -- ------------------------------------------- 
+    db <- panel p []
+    restartBt <- button db [text := "Start over"]
+    nextBt    <- button db [text := "Leap by..."]
+    leapVal   <- entry  db [ text := "1", clientSize := sz 30 25 ]
+    finishBt  <- button db [text := "Continue"]
+    statsTxt  <- staticText db []
+    -- dashboard commands
     let updateStatsTxt gs = set statsTxt [ text :~ (\_ -> txtStats gs) ]
         txtStats   gs =  "itr " ++ (show $ B.geniter gs) ++ " " 
                       ++ "chart sz: " ++ (show $ B.szchart gs) 
                       ++ "\ncomparisons: " ++ (show $ B.numcompar gs)
-    let onDetailsChk = 
-          do isDetailed <- get detailsChk checked 
-             setGvParams gvRef isDetailed
-             updaterFn
     let genStep _ st = snd $ runState nextStep st
     let showNext s = 
           do leapTxt <- get leapVal text
@@ -191,21 +203,20 @@ debuggerTab f config input cachedir =
              setGvDrawables2 gvRef (showGenState st)
              setGvSel gvRef 1
              updaterFn
-    -- handlers
-    set detailsChk [ on command := onDetailsChk ] 
-    set finishBt [ on command := showLast ]
+    -- dashboard handlers
+    set finishBt  [ on command := showLast ]
     set restartBt [ on command := showReset ]
     showReset
-    -- pack it all in      
-    let cmdBar = hfloatRight $ row 5 [ dynamic $ widget detailsChk
-                   , widget restartBt
-                   , widget nextBt 
-                   , widget leapVal, label " step(s)"
-                   , widget finishBt 
-                   ]
-        lay2   = fill $ container p $ column 5 [ lay, row 5 
-                   [ hfill $ widget statsTxt, cmdBar ] ] 
-    return lay2 
+    -- dashboard layout  
+    let layCmdBar = hfill $ container db $ row 5
+                     [ widget statsTxt, hfloatRight $ row 5 
+                       [ widget restartBt, widget nextBt 
+                       , widget leapVal, label " step(s)"
+                       , widget finishBt ] ]
+    -- ------------------------------------------- 
+    -- overall layout
+    -- ------------------------------------------- 
+    return $ fill $ container p $ column 5 [ layItemViewer, layItemBar, hfill (vrule 1), layCmdBar ] 
 \end{code}
 
 \paragraph{showGenState} converts the generator state into a list
