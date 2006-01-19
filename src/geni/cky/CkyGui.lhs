@@ -44,7 +44,7 @@ import CkyBuilder
   ( ckyBuilder, setup, BuilderStatus, ChartItem(..), genconfig 
   , bitVectorToSem
   , theResults, theAgenda, theChart, theTrash
-  , SentenceAut)
+  )
 import Configuration ( Params(..), polarised, chartsharing )
 
 import Geni 
@@ -266,7 +266,7 @@ toTagElem ci =
 
 -- FIXME: this is largely copy-and-pasted from Polarity.lhs 
 -- it should be refactored later
-instance GraphvizShow () SentenceAut where
+instance GraphvizShow () B.SentenceAut where
   graphvizShowAsSubgraph f prefix aut =
    let st  = (concat.states) aut
        ids = map (\x -> prefix ++ show x) [0..]
@@ -279,12 +279,12 @@ instance GraphvizShow () SentenceAut where
       ++ (concat $ zipWith gvShowState ids st) 
       ++ (concat $ zipWith (gvShowTrans aut stmap) ids st )
 
-type SentenceAutState = String
+type SentenceAutState = Int 
 
 gvShowState :: String -> SentenceAutState -> String
-gvShowState stId st = gvNode stId st []
+gvShowState stId st = gvNode stId (show st) []
 
-gvShowTrans :: SentenceAut -> Map.Map SentenceAutState String
+gvShowTrans :: B.SentenceAut -> Map.Map SentenceAutState String
                -> String -> SentenceAutState -> String 
 gvShowTrans aut stmap idFrom st = 
   let -- outgoing transition labels from st
@@ -296,9 +296,9 @@ gvShowTrans aut stmap idFrom st =
       invFM = foldr inverter Map.empty alpha
       -- returns the graphviz dot command to draw a labeled transition
       drawTrans (stTo,x) = case Map.lookup stTo stmap of
-                             Nothing   -> drawTrans' ("id_error_" ++ stTo) x 
+                             Nothing   -> drawTrans' ("id_error_" ++ (show stTo)) x 
                              Just idTo -> drawTrans' idTo x
       drawTrans' idTo x = gvEdge idFrom idTo (drawLabel x) []
-      drawLabel labels  = gvUnlines $ catMaybes labels 
+      drawLabel labels  = gvUnlines $ map fst $ catMaybes labels 
   in concatMap drawTrans $ Map.toList invFM
 \end{code}

@@ -54,8 +54,9 @@ import Btypes
   , unifyFeat )
 
 import Automaton
-  ( NFA(NFA, transitions, states), isFinalSt, finalSt, startSt, addTrans )
+  ( NFA(NFA, transitions, states), isFinalSt, finalSt, finalStList, startSt, addTrans )
 import qualified Builder as B
+import Builder ( SentenceAut )
 import Configuration 
   ( extrapol, rootCatsParam, polarised, Params )
 import General 
@@ -111,7 +112,7 @@ ckyBuilder = B.Builder
   , B.finished = finished -- should add check that step is aux
   , B.stats    = genstats 
   , B.setStats = \t s -> s { genstats = t }
-  , B.unpack   = \s -> [[ (show $ length $ theResults s, []) ]] 
+  , B.unpack   = \s -> concatMap (automatonPaths.ciAut_befHole) $ theResults s
   , B.run = run
   }
 
@@ -230,11 +231,12 @@ leafToItem left te node = ChartItem
   where 
    theAutomaton = if isLexeme node then lexAut else emptySentenceAut 
    -- add a transition from f -> t via label l
-   addTransFor l a = addTrans a "f" (Just l) "t"
+   addTransFor l a = addTrans a 0 (Just (l,[])) 1 
+   -- FIXME: note that you'll have to add features later! and make
+   -- sure that they are correctly propagated
    -- add a transition for each word in the disjunction
    lexAut  = foldr addTransFor lexAut' (glexeme node)
-   lexAut' = addState "t" $ addState "f" $ 
-             emptySentenceAut { startSt = "f", isFinalSt = (== "t") }
+   lexAut' = emptySentenceAut { startSt = 0, finalStList = [1], states = [[0,1]] }
 
 type SemBitMap = Map.Map Pred BitVector
 
@@ -410,13 +412,6 @@ showItemSem = (showBitVector 3) . ciSemantics
 isLexeme :: GNode -> Bool
 isLexeme = not.null.glexeme
 
--- | for now we hard code this -- FIXME - refactor this later
--- for now we code this using strings - we'll have to make the
--- automaton Replacable to account for uninflected words though
--- grumble...
-type UninflectedWord        = String
-type UninflectedSentence    = [ UninflectedWord ] 
-type UninflectedDisjunction = [ String ] 
 -- | CKY non adjunction rule - creates items in which
 -- we do not apply any adjunction
 -- this rule also doubles as top
@@ -736,54 +731,47 @@ mergeItems master _ = master  --FIXME: to implement
 % --------------------------------------------------------------------  
 
 \begin{code}
-type SentenceAut            = NFA String UninflectedWord 
-
 emptySentenceAut :: SentenceAut
 emptySentenceAut = 
-  NFA { startSt     = "" 
-      , isFinalSt   = const False 
+  NFA { startSt     = (-1) 
+      , isFinalSt   = Nothing
+      , finalStList = []
       , transitions = Map.empty
       , states      = [[]] }
-
--- | add a state to the automaton
--- There's a bit of kludginess because of list of list representation
--- of automaton states; the list of list thing is only for polarity
--- automata; they make no difference for other automata
-addState :: (Ord ab, Ord st) => st -> NFA st ab -> NFA st ab 
-addState st aut | (null.states) aut = aut { states = [[st]] }
-addState st aut = 
- let (oldH:oldT) = states aut
- in  aut { states = (st:oldH) : oldT }
 
 joinAutomata :: SentenceAut -> SentenceAut -> SentenceAut
 joinAutomata rawAut1 rawAut2 | states rawAut1 == states emptySentenceAut = rawAut2
 joinAutomata rawAut1 rawAut2 | states rawAut2 == states emptySentenceAut = rawAut1
-joinAutomata rawAut1 rawAut2 =
- let aut1 = renameStates 'L' rawAut1
-     aut2 = renameStates 'R' rawAut2 
+joinAutomata rawAut1 rawAut2 | states rawAut2 == states emptySentenceAut = rawAut1
+joinAutomata aut1 rawAut2 =
+ let -- rename all the states in aut2 so that they don't overlap
+     aut1Max = foldr max (-1) $ concat $ states aut1 
+     aut2 = incrStates (1 + aut1Max) rawAut2 
      -- replace all transitions to aut1's final st by 
      -- transitions to aut2's start state
-     t1 = transitions aut1
+     aut1Final = finalSt aut1 
+     t1 = transitions aut1 
      t2 = transitions aut2
-     maybeBridge s = if (isFinalSt aut1) s then startSt aut2 else s
+     maybeBridge s = if s `elem` aut1Final then startSt aut2 else s
      newT1 = Map.map (Map.map $ map maybeBridge) t1
-     newStates1 = map (\\ (finalSt aut1)) $ states aut1 
+     newStates1 = map (\\ aut1Final) $ states aut1 
      --
  in  aut1 { states      = [ concat $ newStates1 ++ states aut2 ]
           , transitions = Map.union newT1 t2 
-          , isFinalSt   = isFinalSt aut2 }
+          , isFinalSt   = isFinalSt aut2
+          , finalStList = finalStList aut2 }
 
-renameStates :: Char -> SentenceAut -> SentenceAut
-renameStates prefix aut =
- let -- prefix a state
-     addP_s = (prefix :) 
-     -- prefix a single transition
+incrStates :: Int -> SentenceAut -> SentenceAut
+incrStates prefix aut =
+ let -- increment a state
+     addP_s = (prefix +)
+     -- increment all the states involved in a transition
      addP_t (k,e) = (addP_s k, Map.map (map addP_s) e) 
  in aut { startSt     = addP_s (startSt aut)
         , states      = map (map addP_s) $ states aut 
         , transitions = Map.fromList $ map addP_t $ 
                         Map.toList   $ transitions aut 
-        , isFinalSt   = isFinalSt aut . tail }
+        , finalStList = map addP_s $ finalStList aut }
 \end{code}
 
 % --------------------------------------------------------------------  

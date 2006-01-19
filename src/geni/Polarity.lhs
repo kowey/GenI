@@ -314,10 +314,12 @@ buildSeedAut :: SemMap -> Sem -> PolAut
 buildSeedAut cands tsem = 
   let start = polstart []
       hasZero (x,y) = x <= 0 && y >= 0
+      isFinal (PolSt c _ pols) = 
+        c == length tsem && all hasZero pols
       initAut = NFA 
         { startSt = start
-        , isFinalSt = \ (PolSt ctr _ pols) -> 
-            ctr == length tsem && all hasZero pols
+        , isFinalSt = Just isFinal
+        , finalStList = []
         , states  = [[start]]
         , transitions = Map.empty }
   in nubAut $ buildSeedAut' cands tsem 1 initAut

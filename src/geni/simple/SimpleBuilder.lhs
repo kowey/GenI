@@ -894,7 +894,8 @@ listToSentenceAut nodes =
       --
       emptyAut = NFA 
         { startSt     = theStart 
-        , isFinalSt   = (== theEnd)
+        , isFinalSt   = Nothing
+        , finalStList = [theEnd]
         , states      = [theStates]
         , transitions = Map.empty }
       -- create a transition for each lexeme in the node to the 

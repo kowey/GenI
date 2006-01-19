@@ -37,11 +37,10 @@ import Geni
   ( ProgState(..), ProgStateRef
   , initGeni, runGeni
   , showRealisations )
-import General (snd3)
 import Btypes 
   (showLexeme,
    iword, isemantics)
-import Tags (idname,emptyTE,tsemantics,thighlight, 
+import Tags (emptyTE,tsemantics,thighlight, 
              TagElem)
 
 import Configuration ( Params(..), polarised, chartsharing )

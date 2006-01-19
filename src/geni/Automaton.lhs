@@ -48,9 +48,14 @@ without worrying about how it's implemented.
 \end{enumerate}
 
 \begin{code}
+-- | Note: there are two ways to define the final states.
+-- 1. you may define them as a list of states in finalStList
+-- 2. you may define them via the isFinalSt function
+-- The state list is ignored if you define 'isFinalSt'
 data NFA st ab = NFA 
-  { startSt :: st
-  , isFinalSt :: st -> Bool
+  { startSt     :: st
+  , isFinalSt   :: Maybe (st -> Bool)
+  , finalStList :: [st]
   -- 
   , transitions :: Map.Map st (Map.Map (Maybe ab) [st])
   -- see chapter comments about list of list 
@@ -66,7 +71,10 @@ data NFA st ab = NFA
 
 \begin{code}
 finalSt :: NFA st ab -> [st]
-finalSt aut = concatMap (filter (isFinalSt aut)) (states aut)
+finalSt aut =
+  case isFinalSt aut of
+  Nothing -> finalStList aut
+  Just fn -> concatMap (filter fn) (states aut)
 \end{code}
 
 \fnlabel{lookupTrans} takes an automaton, a state \fnparam{st1} and an
