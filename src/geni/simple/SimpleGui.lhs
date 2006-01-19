@@ -139,7 +139,7 @@ realisationsGui _   f [] = messageGui f "No results found"
 realisationsGui pstRef f resultsRaw = 
   do let tip = "result"
          itNlabl = map (\t -> (noHighlight t, toSentence t)) resultsRaw
-            where noHighlight x = x { thighlight = [] }
+            where noHighlight x = Just $ x { thighlight = [] }
      --
      pst     <- readIORef pstRef
      (lay,_) <- tagViewerGui pst f tip "derived" itNlabl

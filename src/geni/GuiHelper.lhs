@@ -44,12 +44,12 @@ import Treeprint() -- only import the GraphvizShow instances
 import Tags (tagLeaves)
 import Geni 
   ( ProgState(..) ) 
-import General (snd3, slash, bugInGeni)
+import General (snd3, slash, geniBug)
 import Btypes 
   ( showPred, showSem, showLexeme
   , Sem)
 import Tags 
-  ( idname, ttreename, mapBySem, emptyTE, TagElem, derivation)
+  ( idname, ttreename, mapBySem, TagElem, derivation)
 
 import Configuration(Params(..), GrammarType(..))
 
@@ -135,7 +135,7 @@ tagBrowserGui pst f xs tip cachedir = do
       sem      = Map.keys semmap
       --
       lookupTr k = Map.findWithDefault [] k semmap
-      treesfor k = emptyTE : (lookupTr k)
+      treesfor k = Nothing : (map Just $ lookupTr k)
       labsfor  k = ("___" ++ showPred k ++ "___") : (map fn $ lookupTr k)
                    where fn t = idname t 
       --
@@ -150,8 +150,8 @@ A TAG viewer is a graphvizGui that lets the user toggle the display
 of TAG feature structures.
 
 \begin{code}
-tagViewerGui :: ProgState -> (Window a) -> String -> String -> [(TagElem,String)] 
-               -> GvIO TagElem
+tagViewerGui :: ProgState -> (Window a) -> String -> String -> [(Maybe TagElem,String)] 
+               -> GvIO (Maybe TagElem)
 tagViewerGui pst f tip cachedir itNlab = do
   let config = pa pst
   p <- panel f []      
@@ -171,10 +171,12 @@ tagViewerGui pst f tip cachedir itNlab = do
             let tsel = gvsel gvSt
             Monad.when (boundsCheck tsel tagelems) $ do
             let tree = tagelems !! (gvsel gvSt)
-                derv = extractDerivation tree
-            if (boundsCheck s derv)
-               then runViewTag pst (derv !! s)
-               else fail $ "Gui: bounds check in onDisplayTrace\n" ++ bugInGeni
+            case tree of 
+             Nothing -> set displayTraceCom [ enabled := False ]
+             Just t  -> let derv = extractDerivation t in
+                        if boundsCheck s derv 
+                           then runViewTag pst (derv !! s)
+                           else geniBug $ "Gui: bounds check in onDisplayTrace" 
   let onDetailsChk c 
        = do isDetailed <- get c checked 
             setGvParams gvRef isDetailed 
@@ -183,9 +185,10 @@ tagViewerGui pst f tip cachedir itNlab = do
       let tsel = gvsel gvSt
       Monad.when (boundsCheck tsel tagelems) $ do
         let selected = tagelems !! tsel 
-            subtrees = extractDerivation selected
-        set displayTraceCom [ items :~ (\_ -> subtrees)
-                            , selection :~ (\_ -> 0) ]
+        case selected of 
+         Nothing -> set displayTraceCom [ enabled := False ]
+         Just s  -> set displayTraceCom 
+                     [ enabled := True, items := extractDerivation s, selection := 0 ]
   --
   Monad.when (not $ null tagelems) $ do 
     setGvHandler gvRef (Just selHandler)

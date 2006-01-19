@@ -41,8 +41,7 @@ import Geni
   , loadGrammar, loadTestSuite, loadTargetSemStr)
 import General (trim, slash, bugInGeni)
 import Btypes (showSem, showPairs)
-import Tags (idname,emptyTE,tpolarities,
-             TagElem)
+import Tags (idname, tpolarities, TagElem)
 
 import Configuration
   ( Params(..), Switch(..), GrammarType(..)
@@ -607,7 +606,7 @@ treeBrowserGui pstRef = do
   let sem      = Map.keys semmap
       --
       lookupTr k = Map.findWithDefault [] k semmap
-      treesfor k = emptyTE : (lookupTr k)
+      treesfor k = Nothing : (map Just $ lookupTr k)
       labsfor  k = ("___" ++ k ++ "___") : (map fn $ lookupTr k)
                    where fn    t = idname t ++ polfn (tpolarities t)
                          polfn p = if Map.null p 
