@@ -141,6 +141,9 @@ instance (GraphvizShow f b) => GraphvizShow f (Maybe b) where
 
   graphvizLabel _ Nothing  = ""
   graphvizLabel f (Just b) = graphvizLabel f b
+
+  graphvizParams _ Nothing = [] 
+  graphvizParams f (Just b) = graphvizParams f b
 \end{code}
 
 \section{Invocation}
