@@ -106,7 +106,7 @@ OS_SPECIFIC_STUFF = cd bin; ../etc/macstuff/macosx-app geni
 endif
 
 
-SOURCE_FILES_1 := $(wildcard $(SRC_GENI)/*.lhs $(SRC_GENI)/simple/*.lhs $(SRC_GENI)/cky/*.lhs)
+SOURCE_FILES_1 := $(wildcard $(SRC_GENI)/*.lhs $(SRC_GENI/*.hs) $(SRC_GENI)/simple/*.lhs $(SRC_GENI)/cky/*.lhs)
 SOURCE_FILES_2 := $(wildcard $(SRC_GENI)/*.hs)
 SOURCE_HSPP_1 := $(patsubst %.lhs,%.hspp,$(SOURCE_FILES_1))
 SOURCE_HSPP_2 := $(SOURCE_FILES_2)
