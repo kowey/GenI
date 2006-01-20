@@ -134,69 +134,6 @@ instance GraphvizShowNode (Bool) (GNode, Maybe String) where
 \end{code}
 
 % ----------------------------------------------------------------------
-\section{GeniHand}
-% ----------------------------------------------------------------------
-
-To make large grammars faster to load, we include a mechanism for
-writing a TagElem to the GeniHand format.  The idea is to take a massive
-XML grammar, parse it to a set of TagElems and then write these back in
-the lighter syntax.  It's not that XML is inherently less efficient to
-parse than the handwritten syntax, just that writing an efficient parser
-for XML based format is more annoying, so I stuck with HaXml to make my
-life easy.  It would be useful eventually to see if I could just use
-some kind of SAX based method.
-
-\begin{code}
-toGeniHand :: MTtree -> String
-toGeniHand tr = 
-  let showid t = dashtobar fam ++ (if null id then "" else ":" ++ id)
-        where fam = pfamily t
-              id  = pidname t
-      --
-      ptypestr t = case t of 
-                     Initial  -> "initial" 
-                     Auxiliar -> "auxiliary" 
-                     _        -> ""
-      --
-      gtypestr n = case (gtype n) of 
-                     Subs -> "type:subst"
-                     Foot -> "type:foot"
-                     Lex  -> if (ganchor n) then "type:anchor" else "type:lex" 
-                     _    -> ""
-      glexstr  n = if null gl then "" else "\"" ++ gl ++ "\""
-                   where gl = showLexeme $ glexeme n
-      --
-      nodestr :: GNode -> String
-      nodestr n = "n" ++ gnname n 
-                  ++ " " ++ gtypestr n ++ " " ++ glexstr n ++ " "
-                  ++ "[" ++ showflist (gup n) ++ "]!"
-                  ++ "[" ++ showflist (gdown n) ++ "]"
-      --
-      treestr :: Int -> Tree GNode -> String
-      treestr i (Node a []) = spaces i ++ nodestr a ++  
-                              (if (i == 0) then "{}" else "") ++ "\n"
-      treestr i (Node a l)  = spaces i ++ nodestr a ++ "{\n"
-                              ++ concatMap nextfn l ++ spaces i ++ "}\n"
-                              where nextfn = treestr (i+1)
-      -- misc helpers
-      spaces :: Int -> String 
-      spaces i = take i $ repeat ' '
-      -- helpers to account for shortcomings in genihand lexer 
-      dashtobar :: String -> String 
-      dashtobar s = map (\c -> if ('-' == c) then '_' else c) s
-      substf (a,v) = case (a,v) of _ -> (dashtobar a, v)
-      --
-      showflist  = showPairs . (map substf)
-      showparams = concat $ intersperse " " $ map show (params tr)
-      --
-  in showid tr 
-     ++ " ("  ++ showparams 
-     ++ " ! " ++ showflist (pfeat tr) ++ ")"
-     ++ " " ++ (ptypestr.ptype) tr 
-     ++ "\n" ++ ((treestr 0).tree) tr ++ "\n"
-\end{code}
-
-% ----------------------------------------------------------------------
 \section{Derivation tree}
 % ----------------------------------------------------------------------
 
@@ -274,4 +211,67 @@ gvShowTreeHelper f prefix (Node node l) =
          ++ (gvEdge prefix kidname "" [])
          where kidname = prefix ++ "x" ++ (show index)
    in showNode node ++ "\n" ++ (concat $ zipWith showKid [0..] l)
+\end{code}
+
+% ----------------------------------------------------------------------
+\section{GeniHand}
+% ----------------------------------------------------------------------
+
+To make large grammars faster to load, we include a mechanism for
+writing a TagElem to the GeniHand format.  The idea is to take a massive
+XML grammar, parse it to a set of TagElems and then write these back in
+the lighter syntax.  It's not that XML is inherently less efficient to
+parse than the handwritten syntax, just that writing an efficient parser
+for XML based format is more annoying, so I stuck with HaXml to make my
+life easy.  It would be useful eventually to see if I could just use
+some kind of SAX based method.
+
+\begin{code}
+toGeniHand :: MTtree -> String
+toGeniHand tr = 
+  let showid t = dashtobar fam ++ (if null id then "" else ":" ++ id)
+        where fam = pfamily t
+              id  = pidname t
+      --
+      ptypestr t = case t of 
+                     Initial  -> "initial" 
+                     Auxiliar -> "auxiliary" 
+                     _        -> ""
+      --
+      gtypestr n = case (gtype n) of 
+                     Subs -> "type:subst"
+                     Foot -> "type:foot"
+                     Lex  -> if (ganchor n) then "type:anchor" else "type:lex" 
+                     _    -> ""
+      glexstr  n = if null gl then "" else "\"" ++ gl ++ "\""
+                   where gl = showLexeme $ glexeme n
+      --
+      nodestr :: GNode -> String
+      nodestr n = "n" ++ gnname n 
+                  ++ " " ++ gtypestr n ++ " " ++ glexstr n ++ " "
+                  ++ "[" ++ showflist (gup n) ++ "]!"
+                  ++ "[" ++ showflist (gdown n) ++ "]"
+      --
+      treestr :: Int -> Tree GNode -> String
+      treestr i (Node a []) = spaces i ++ nodestr a ++  
+                              (if (i == 0) then "{}" else "") ++ "\n"
+      treestr i (Node a l)  = spaces i ++ nodestr a ++ "{\n"
+                              ++ concatMap nextfn l ++ spaces i ++ "}\n"
+                              where nextfn = treestr (i+1)
+      -- misc helpers
+      spaces :: Int -> String 
+      spaces i = take i $ repeat ' '
+      -- helpers to account for shortcomings in genihand lexer 
+      dashtobar :: String -> String 
+      dashtobar s = map (\c -> if ('-' == c) then '_' else c) s
+      substf (a,v) = case (a,v) of _ -> (dashtobar a, v)
+      --
+      showflist  = showPairs . (map substf)
+      showparams = concat $ intersperse " " $ map show (params tr)
+      --
+  in showid tr 
+     ++ " ("  ++ showparams 
+     ++ " ! " ++ showflist (pfeat tr) ++ ")"
+     ++ " " ++ (ptypestr.ptype) tr 
+     ++ "\n" ++ ((treestr 0).tree) tr ++ "\n"
 \end{code}
