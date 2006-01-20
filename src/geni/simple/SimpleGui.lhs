@@ -28,7 +28,6 @@ import Graphics.UI.WXCore
 
 import qualified Control.Monad as Monad 
 
-import Control.Monad.State (runState)
 import Data.IORef
 import Data.List (find, nub, (\\))
 import Data.Maybe (isJust)
@@ -40,8 +39,7 @@ import Geni
 import Btypes 
   (showLexeme,
    iword, isemantics)
-import Tags (emptyTE,tsemantics,thighlight, 
-             TagElem)
+import Tags (tsemantics,thighlight, TagElem)
 
 import Configuration ( Params(..), polarised, chartsharing )
 import GuiHelper
@@ -192,7 +190,7 @@ debugGui pstRef =
                     (if polarised config then [tab "automata" autTab] else [])
     -- generation step 2.B (start the generator for each path)
     let tabLabels = map (\x -> "session " ++ show x) [1..] 
-        createTab (cd,xs)  = debuggerTab nb config initStuff2 cd  
+        createTab (cd,xs)  = simpleDebuggerTab nb config initStuff2 cd  
           where initStuff2 = initStuff { B.inCands = xs }
     debugTabs <- mapM createTab $ zip tabLabels combos
     let genTabs = zipWith tab tabLabels debugTabs
@@ -206,105 +204,34 @@ The generation could conceivably be broken into multiple generation
 tasks, so we create a separate tab for each task.
 
 \begin{code}
-debuggerTab :: (Window a) -> Params -> B.Input -> String -> IO Layout 
-debuggerTab f config input cachedir = 
- do let initBuilder = B.init  simpleBuilder
-        nextStep    = B.step  simpleBuilder
-        manySteps   = B.stepAll simpleBuilder
-        genstats    = B.stats simpleBuilder
-        --
-    let initRes = []
-        initSt  = initBuilder input (config {usetrash=True})
-        (items,labels) = showGenState initRes initSt 
-    -- widgets
-    p <- panel f []      
-    gvRef <- newGvRef False labels "debugger session" 
-    setGvDrawables gvRef items 
-    (lay,updaterFn) <- graphvizGui p cachedir gvRef 
-    detailsChk <- checkBox p [ text := "Show features"
-                             , checked := False ]
-    restartBt   <- button p [text := "Start over"]
-    nextBt   <- button p [text := "Leap by..."]
-    leapVal  <- entry p [ text := "1", clientSize := sz 30 25 ]
-    finishBt <- button p [text := "Continue"]
-    statsTxt <- staticText p []
-    -- commands
-    let updateStatsTxt gs = set statsTxt [ text :~ (\_ -> txtStats gs) ]
-        txtStats   gs =  "itr " ++ (show $ B.geniter gs) ++ " " 
-                      ++ "chart sz: " ++ (show $ B.szchart gs) 
-                      ++ "\ncomparisons: " ++ (show $ B.numcompar gs)
+simpleDebuggerTab :: (Window a) -> Params -> B.Input -> String -> IO Layout 
+simpleDebuggerTab = debuggerPanel simpleBuilder False stToGraphviz simpleItemBar
+ 
+stToGraphviz :: SimpleStatus -> ([Maybe TagElem], [String])
+stToGraphviz st = 
+  let agenda    = section "AGENDA"    $ theAgenda    st
+      auxAgenda = section "AUXILIARY" $ theAuxAgenda st
+      trash     = section "TRASH"     $ theTrash     st
+      chart     = section "CHART"     $ theChart     st
+      results   = section "RESULTS"   $ theResults   st
+      --
+      section n i = hd : (map tlFn i)
+        where hd = (Nothing, "___" ++ n ++ "___")
+              tlFn x = (Just x, toSentence x ++ (showPaths x))
+      showPaths t = if (chartsharing $ genconfig st)
+                    then " (" ++ showPolPaths t ++ ")"
+                    else ""
+  in unzip $ agenda ++ auxAgenda ++ chart ++ trash ++ results 
+
+simpleItemBar :: DebuggerItemBar Bool TagElem 
+simpleItemBar f gvRef updaterFn =
+ do ib <- panel f []
+    detailsChk <- checkBox ib [ text := "Show features"
+                              , checked := False ]
     let onDetailsChk = 
-          do isDetailed <- get detailsChk checked 
-             setGvParams gvRef isDetailed
-             updaterFn
-    let genStep _ st = snd $ runState nextStep st
-    let showNext s = 
-          do leapTxt <- get leapVal text
-             let leapInt = read leapTxt
-                 s2 = foldr genStep s [1..leapInt]
-                 r2 = theResults s2
-             setGvDrawables2 gvRef (showGenState r2 s2)
-             setGvSel gvRef 1
-             updaterFn
-             updateStatsTxt (genstats s2)
-             set nextBt [ on command :~ (\_ -> showNext s2) ]
-    let showLast = 
-          do -- redo generation from scratch
-             let s = snd $ runState manySteps initSt 
-                 r = theResults s
-             setGvDrawables2 gvRef (showGenState r s)
-             updaterFn
-             updateStatsTxt (genstats s)
-    let showReset = 
-          do let res = initRes 
-                 st  = initSt 
-             set nextBt   [ on command  := showNext st ]
-             updateStatsTxt (B.initGstats)
-             setGvDrawables2 gvRef (showGenState res st)
-             setGvSel gvRef 1
-             updaterFn
-    -- handlers
+         do isDetailed <- get detailsChk checked 
+            setGvParams gvRef isDetailed
+            updaterFn
     set detailsChk [ on command := onDetailsChk ] 
-    set finishBt [ on command := showLast ]
-    set restartBt [ on command := showReset ]
-    showReset
-    -- pack it all in      
-    let cmdBar = hfloatRight $ row 5 [ dynamic $ widget detailsChk
-                   , widget restartBt
-                   , widget nextBt 
-                   , widget leapVal, label " step(s)"
-                   , widget finishBt 
-                   ]
-        lay2   = fill $ container p $ column 5 [ lay, row 5 
-                   [ hfill $ widget statsTxt, cmdBar ] ] 
-    return lay2 
-\end{code}
-
-\paragraph{showGenState} converts the generator state into a list
-of trees and labels the way graphvizGui likes it.
-
-\begin{code}
-showGenState :: [TagElem] -> SimpleStatus -> ([TagElem],[String])
-showGenState res st = 
-  let agenda    = theAgenda st
-      auxiliary = theAuxAgenda st
-      trash     = theTrash st
-      chart     = theChart  st
-      --
-      trees     =  (emptyTE:agenda) 
-                 ++ (emptyTE:chart) 
-                 ++ (emptyTE:auxiliary) 
-                 ++ (emptyTE:trash) 
-                 ++ (emptyTE:res) 
-      labels     =  ("___AGENDA___"    : (labelFn agenda))
-                 ++ ("___CHART___"     : (labelFn chart))
-                 ++ ("___AUXILIARY___" : (labelFn auxiliary))
-                 ++ ("___DISCARDED___" : (labelFn trash)) 
-                 ++ ("___RESULTS___"   : (labelFn res)) 
-      --
-      showPaths = if (chartsharing $ genconfig st)
-                  then (\t -> " (" ++ showPolPaths t ++ ")")
-                  else const ""
-      labelFn trs = map (\t -> (toSentence t) ++ (showPaths t)) trs 
-  in (trees,labels)
+    return $ hfloatCentre $ container ib $ row 5 [ dynamic $ widget detailsChk ]
 \end{code}
