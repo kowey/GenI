@@ -30,6 +30,7 @@ import Graphics.UI.WX
 import Graphics.UI.WXCore
 
 import qualified Control.Monad as Monad 
+import Control.Monad.State ( runState ) 
 import qualified Data.Map as Map
 
 import Data.Array
@@ -54,6 +55,7 @@ import Tags
 import Configuration(Params(..), GrammarType(..))
 
 import Automaton (states)
+import qualified Builder as B
 import Polarity (PolAut)
 \end{code}
 }
@@ -204,6 +206,136 @@ tagViewerGui pst f tip cachedir itNlab = do
                 ]
       lay2   = fill $ container p $ column 5 [ lay, cmdBar ] 
   return (lay2,updaterFn)
+\end{code}
+
+% --------------------------------------------------------------------
+\section{Graphical debugger}
+% --------------------------------------------------------------------
+
+All GenI builders can make use of an interactive graphical debugger.  In
+this section, we provide some helper code to build such a debugger.  The
+function \fnreflite{debuggerTab} fills the parent window with the
+standard components of a graphical debugger:
+\begin{itemize}
+\item An item viewer which allows the user to select one of the items
+      in the builder state.
+\item An item bar which provides some options on how to view the 
+      currently selected item, for example, if you want to display the
+      features or not.  
+\item A dashboard which lets the user do things like ``go ahead 6
+      steps''.
+\end{itemize}
+
+The bad news is that it'll take some work to use this helper function.
+You'll need to write at two functions, one for the item bar and the
+other to convert the generator state into items and labels the way
+\fnref{graphvizGui} likes them.  You'll also need to provide an initial
+value for the GraphvizShow
+
+\begin{code}
+type DebuggerItemBar flg itm 
+      =  (Panel ())            -- ^ parent panel
+      -> GraphvizRef (Maybe itm) flg   
+      -- ^ gv ref to use
+      -> IO ()                 -- ^ updaterFn
+      -> IO Layout 
+
+-- | A generic graphical debugger tab for GenI; provides the ability to step
+--   through any GenI Builder one step at a time (with the possibility to leap
+--   so that you don't get too bored).
+-- 
+--   Besides the Builder, there are two functions you need to pass in make this
+--   work: 
+--   1. a 'stateToGv' which converts the builder state into a list of items
+--      and labels the way 'graphvizGui' likes it
+--   2. an 'item bar' function which lets you control what bits you display
+--      of a selected item (for example, if you want a detailed view or not)
+--      the debugger should return a layout
+debuggerPanel :: (GraphvizShow flg itm) 
+  => B.Builder st itm Params -- ^ builder to use
+  -> flg -- ^ initial value for the flag argument in GraphvizShow
+  -> (st -> ([Maybe itm], [String])) 
+     -- ^ function to convert a Builder state into lists of items
+     --   and their labels, the way graphvizGui likes it
+  -> (DebuggerItemBar flg itm)
+     -- ^ 'itemBar' function returning a control panel configuring
+     --   how you want the currently selected item in the debugger
+     --   to be displayed
+  -> (Window a) -- ^ parent window
+  -> Params     -- ^ geni params
+  -> B.Input    -- ^ builder input
+  -> String     -- ^ graphviz cache directory
+  -> IO Layout 
+debuggerPanel builder gvInitial stateToGv itemBar f config input cachedir = 
+ do let initBuilder = B.init  builder 
+        nextStep    = B.step  builder 
+        manySteps   = B.stepAll builder 
+        genstats    = B.stats builder
+        --
+    let initSt  = initBuilder input config 
+        (items,labels) = stateToGv initSt 
+    p <- panel f []      
+    -- ---------------------------------------------------------
+    -- item viewer: select and display an item
+    -- ---------------------------------------------------------
+    gvRef <- newGvRef gvInitial labels "debugger session" 
+    setGvDrawables gvRef items 
+    (layItemViewer,updaterFn) <- graphvizGui p cachedir gvRef 
+    -- ----------------------------------------------------------
+    -- item bar: controls for how an individual item is displayed
+    -- ----------------------------------------------------------
+    layItemBar <- itemBar p gvRef updaterFn
+    -- ------------------------------------------- 
+    -- dashboard: controls for the debugger itself 
+    -- ------------------------------------------- 
+    db <- panel p []
+    restartBt <- button db [text := "Start over"]
+    nextBt    <- button db [text := "Leap by..."]
+    leapVal   <- entry  db [ text := "1", clientSize := sz 30 25 ]
+    finishBt  <- button db [text := "Continue"]
+    statsTxt  <- staticText db []
+    -- dashboard commands
+    let updateStatsTxt gs = set statsTxt [ text :~ (\_ -> txtStats gs) ]
+        txtStats   gs =  "itr " ++ (show $ B.geniter gs) ++ " " 
+                      ++ "chart sz: " ++ (show $ B.szchart gs) 
+                      ++ "\ncomparisons: " ++ (show $ B.numcompar gs)
+    let genStep _ st = snd $ runState nextStep st
+    let showNext s = 
+          do leapTxt <- get leapVal text
+             let leapInt = read leapTxt
+                 s2 = foldr genStep s [1..leapInt]
+             setGvDrawables2 gvRef (stateToGv s2)
+             setGvSel gvRef 1
+             updaterFn
+             updateStatsTxt (genstats s2)
+             set nextBt [ on command :~ (\_ -> showNext s2) ]
+    let showLast = 
+          do -- redo generation from scratch
+             let s = snd $ runState manySteps initSt 
+             setGvDrawables2 gvRef (stateToGv s)
+             updaterFn
+             updateStatsTxt (genstats s)
+    let showReset = 
+          do let st  = initSt 
+             set nextBt   [ on command  := showNext st ]
+             updateStatsTxt (B.initGstats)
+             setGvDrawables2 gvRef (stateToGv st)
+             setGvSel gvRef 1
+             updaterFn
+    -- dashboard handlers
+    set finishBt  [ on command := showLast ]
+    set restartBt [ on command := showReset ]
+    showReset
+    -- dashboard layout  
+    let layCmdBar = hfill $ container db $ row 5
+                     [ widget statsTxt, hfloatRight $ row 5 
+                       [ widget restartBt, widget nextBt 
+                       , widget leapVal, label " step(s)"
+                       , widget finishBt ] ]
+    -- ------------------------------------------- 
+    -- overall layout
+    -- ------------------------------------------- 
+    return $ fill $ container p $ column 5 [ layItemViewer, layItemBar, hfill (vrule 1), layCmdBar ] 
 \end{code}
 
 % --------------------------------------------------------------------

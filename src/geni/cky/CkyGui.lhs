@@ -28,7 +28,6 @@ import Graphics.UI.WXCore
 
 import qualified Control.Monad as Monad 
 
-import Control.Monad.State (runState)
 import Data.IORef
 import Data.List (find, nub, (\\))
 import qualified Data.Map as Map 
@@ -41,21 +40,21 @@ import qualified BuilderGui as BG
 import Btypes (gnname, showLexeme, iword, isemantics)
 
 import CkyBuilder 
-  ( ckyBuilder, setup, BuilderStatus, ChartItem(..), genconfig 
+  ( ckyBuilder, setup, BuilderStatus, ChartItem(..),
   , bitVectorToSem
   , theResults, theAgenda, theChart, theTrash
   )
-import Configuration ( Params(..), polarised, chartsharing )
+import Configuration ( Params(..), polarised )
 
 import Geni 
   ( ProgState(..), ProgStateRef
-  , initGeni, runGeni
-  , showRealisations )
-import General ( snd3, listRepNode )
+  , initGeni )
+import General ( listRepNode )
 import Graphviz ( GraphvizShow(..), gvNode, gvEdge, gvSubgraph, gvUnlines )
 import GuiHelper 
-  ( candidateGui, graphvizGui, messageGui, polarityGui, toSentence
-  , newGvRef, setGvDrawables, setGvDrawables2, setGvParams, setGvSel ) 
+  ( candidateGui, messageGui, polarityGui, toSentence
+  , debuggerPanel, DebuggerItemBar
+  , setGvParams) 
 
 import Polarity
 import Tags 
@@ -126,7 +125,7 @@ debugGui pstRef =
     let basicTabs = tab "lexical selection" canTab :
                     (if polarised config then [tab "automata" autTab] else [])
     -- generation step 2.B (start the generator for each path)
-    debugTab <- debuggerTab nb config (initStuff { B.inCands = combos }) "cky"
+    debugTab <- ckyDebuggerTab nb config (initStuff { B.inCands = combos }) "cky"
     let genTabs = [ tab "session" debugTab ]
     --
     set f [ layout := container p $ column 0 [ tabs nb (basicTabs ++ genTabs) ]
@@ -138,26 +137,12 @@ The generation could conceivably be broken into multiple generation
 tasks, so we create a separate tab for each task.
 
 \begin{code}
-debuggerTab :: (Window a) -> Params -> B.Input -> String -> IO Layout 
-debuggerTab f config input cachedir = 
- do let initBuilder = B.init  ckyBuilder
-        nextStep    = B.step  ckyBuilder
-        manySteps   = B.stepAll ckyBuilder
-        genstats    = B.stats ckyBuilder
-        --
-    let initSt  = initBuilder input config 
-        (items,labels) = showGenState initSt 
-    p <- panel f []      
-    -- ---------------------------------------------------------
-    -- item viewer: select and display an item
-    -- ---------------------------------------------------------
-    gvRef <- newGvRef False labels "debugger session" 
-    setGvDrawables gvRef items 
-    (layItemViewer,updaterFn) <- graphvizGui p cachedir gvRef 
-    -- ----------------------------------------------------------
-    -- item bar: controls for how an individual item is displayed
-    -- ----------------------------------------------------------
-    ib <- panel p []
+ckyDebuggerTab :: (Window a) -> Params -> B.Input -> String -> IO Layout 
+ckyDebuggerTab = debuggerPanel ckyBuilder False showGenState ckyItemBar
+
+ckyItemBar :: DebuggerItemBar Bool ChartItem
+ckyItemBar f gvRef updaterFn =
+ do ib <- panel f []
     detailsChk <- checkBox ib [ text := "Show features"
                               , checked := False ]
     let onDetailsChk = 
@@ -165,58 +150,7 @@ debuggerTab f config input cachedir =
             setGvParams gvRef isDetailed
             updaterFn
     set detailsChk [ on command := onDetailsChk ] 
-    let layItemBar = hfloatCentre $ container ib $ row 5 [ dynamic $ widget detailsChk ]
-    -- ------------------------------------------- 
-    -- dashboard: controls for the debugger itself 
-    -- ------------------------------------------- 
-    db <- panel p []
-    restartBt <- button db [text := "Start over"]
-    nextBt    <- button db [text := "Leap by..."]
-    leapVal   <- entry  db [ text := "1", clientSize := sz 30 25 ]
-    finishBt  <- button db [text := "Continue"]
-    statsTxt  <- staticText db []
-    -- dashboard commands
-    let updateStatsTxt gs = set statsTxt [ text :~ (\_ -> txtStats gs) ]
-        txtStats   gs =  "itr " ++ (show $ B.geniter gs) ++ " " 
-                      ++ "chart sz: " ++ (show $ B.szchart gs) 
-                      ++ "\ncomparisons: " ++ (show $ B.numcompar gs)
-    let genStep _ st = snd $ runState nextStep st
-    let showNext s = 
-          do leapTxt <- get leapVal text
-             let leapInt = read leapTxt
-                 s2 = foldr genStep s [1..leapInt]
-             setGvDrawables2 gvRef (showGenState s2)
-             setGvSel gvRef 1
-             updaterFn
-             updateStatsTxt (genstats s2)
-             set nextBt [ on command :~ (\_ -> showNext s2) ]
-    let showLast = 
-          do -- redo generation from scratch
-             let s = snd $ runState manySteps initSt 
-             setGvDrawables2 gvRef (showGenState s)
-             updaterFn
-             updateStatsTxt (genstats s)
-    let showReset = 
-          do let st  = initSt 
-             set nextBt   [ on command  := showNext st ]
-             updateStatsTxt (B.initGstats)
-             setGvDrawables2 gvRef (showGenState st)
-             setGvSel gvRef 1
-             updaterFn
-    -- dashboard handlers
-    set finishBt  [ on command := showLast ]
-    set restartBt [ on command := showReset ]
-    showReset
-    -- dashboard layout  
-    let layCmdBar = hfill $ container db $ row 5
-                     [ widget statsTxt, hfloatRight $ row 5 
-                       [ widget restartBt, widget nextBt 
-                       , widget leapVal, label " step(s)"
-                       , widget finishBt ] ]
-    -- ------------------------------------------- 
-    -- overall layout
-    -- ------------------------------------------- 
-    return $ fill $ container p $ column 5 [ layItemViewer, layItemBar, hfill (vrule 1), layCmdBar ] 
+    return $ hfloatCentre $ container ib $ row 5 [ dynamic $ widget detailsChk ]
 \end{code}
 
 \paragraph{showGenState} converts the generator state into a list
