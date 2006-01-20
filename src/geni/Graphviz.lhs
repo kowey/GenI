@@ -36,6 +36,7 @@ where
 \begin{code}
 import Control.Monad(when)
 import Data.List(intersperse)
+import Data.Tree
 import System.IO(hPutStrLn, hClose)
 import System.Exit(ExitCode)
 
@@ -145,6 +146,42 @@ instance (GraphvizShow f b) => GraphvizShow f (Maybe b) where
   graphvizParams _ Nothing = [] 
   graphvizParams f (Just b) = graphvizParams f b
 \end{code}
+
+\fnlabel{gvShowTree} displays a tree in graphviz format.  Note that
+we could make this an instance of GraphvizShow, but I'm not too sure
+about the wisdom of such a move.  
+
+Maybe if we had some really super-sophisticated types in Haskell, where
+we can define this as the default instance which could be overrided by
+something more specific, that would be cool.
+
+The prefix argument is interpreted as the name of the top node.  Node
+names below are basically Gorn addresses (e.g. n0x2x3 means 3rd child of
+the 2nd child of the root) to keep them distinct.  Note : We use the
+letter `x' as seperator because graphviz will choke on `.' or `-', even
+underscore.
+
+\begin{code}
+gvShowTree :: 
+  (GraphvizShowNode f n) => 
+     (n->[(String,String)]) -- ^ function to convert a node to a list of graphviz parameters for the edge 
+  -> f                      -- ^ GraphvizShow flag
+  -> String                 -- ^ node prefix
+  -> (Tree n)               -- ^ the tree
+  -> String
+gvShowTree edgeFn f prefix t = 
+  "edge [ arrowhead = none ]\n" ++ gvShowTreeHelper edgeFn f prefix t  
+
+gvShowTreeHelper :: (GraphvizShowNode f n) => (n->[(String,String)]) -> f -> String -> (Tree n) -> String
+gvShowTreeHelper edgeFn f prefix (Node node l) = 
+   let showNode = graphvizShowNode f prefix 
+       showKid index kid = 
+         gvShowTreeHelper edgeFn f kidname kid ++ " " 
+         ++ (gvEdge prefix kidname "" (edgeFn node))
+         where kidname = prefix ++ "x" ++ (show index)
+   in showNode node ++ "\n" ++ (concat $ zipWith showKid [0..] l)
+\end{code}
+
 
 \section{Invocation}
 

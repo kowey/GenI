@@ -42,7 +42,7 @@ import Graphviz
   ( gvUnlines, gvNewline
   , GraphvizShow(graphvizShowAsSubgraph, graphvizLabel, graphvizParams)
   , GraphvizShowNode(graphvizShowNode)
-  , gvNode, gvEdge 
+  , gvNode, gvEdge, gvShowTree 
   )
 \end{code}
 }
@@ -60,7 +60,7 @@ instance GraphvizShow Bool TagElem where
   in  -- first the interface 
       (graphvizShowInterface sf $ tinterface te)
       -- then the tree itself
-      ++ (gvShowTree sf (prefix ++ "DerivedTree0") $
+      ++ (gvShowTree (\_->[]) sf (prefix ++ "DerivedTree0") $
           mapTree info $ ttree te)
       -- derivation tree is displayed without any decoration
       ++ (graphvizShowDerivation $ snd $ derivation te)
@@ -183,35 +183,6 @@ dot2x :: Char -> Char
 dot2x '.' = 'x'
 dot2x c   = c
 \end{code}   
-
-\pagagraph{gvShowTree} displays a tree in graphviz format.  Note that
-we could make this an instance of GraphvizShow, but I'm not too sure
-about the wisdom of such a move.  
-
-Maybe if we had some really super-sophisticated types in Haskell, where
-we can define this as the default instance which could be overrided by
-something more specific, that would be cool.
-
-The prefix argument is interpreted as the name of the top node.  Node
-names below are basically Gorn addresses (e.g. n0x2x3 means 3rd child of
-the 2nd child of the root) to keep them distinct.  Note : We use the
-letter `x' as seperator because graphviz will choke on `.' or `-', even
-underscore.
-
-\begin{code}
-gvShowTree :: (GraphvizShowNode f n) => f -> String -> (Tree n) -> String
-gvShowTree f prefix t = 
-  "edge [ arrowhead = none ]\n" ++ gvShowTreeHelper f prefix t  
-
-gvShowTreeHelper :: (GraphvizShowNode f n) => f -> String -> (Tree n) -> String
-gvShowTreeHelper f prefix (Node node l) = 
-   let showNode = graphvizShowNode f prefix 
-       showKid index kid = 
-         gvShowTreeHelper f kidname kid ++ " " 
-         ++ (gvEdge prefix kidname "" [])
-         where kidname = prefix ++ "x" ++ (show index)
-   in showNode node ++ "\n" ++ (concat $ zipWith showKid [0..] l)
-\end{code}
 
 % ----------------------------------------------------------------------
 \section{GeniHand}
