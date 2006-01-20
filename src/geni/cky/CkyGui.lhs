@@ -58,9 +58,7 @@ import GuiHelper
 
 import Polarity
 import Tags 
-  ( idname, emptyTE 
-  , tdiagnostic, tsemantics, thighlight, ttree
-  , TagElem, derivation)
+  ( tdiagnostic, tsemantics, thighlight, ttree, TagElem )
 \end{code}
 }
 
@@ -138,8 +136,25 @@ tasks, so we create a separate tab for each task.
 
 \begin{code}
 ckyDebuggerTab :: (Window a) -> Params -> B.Input -> String -> IO Layout 
-ckyDebuggerTab = debuggerPanel ckyBuilder False showGenState ckyItemBar
-
+ckyDebuggerTab = debuggerPanel ckyBuilder False stateToGv ckyItemBar
+ where 
+  stateToGv st = 
+   let agenda  = section "AGENDA"  $ theAgenda  st
+       trash   = section "TRASH"   $ theTrash   st
+       chart   = section "CHART"   $ theChart   st
+       results = section "RESULTS" $ theResults st
+       --
+       section n i = hd : (map tlFn i)
+         where hd = (Nothing, "___" ++ n ++ "___")
+               tlFn x = (Just x, labelFn x)
+       showPaths = const ""
+                   {- if (polarised $ genconfig st)
+                      then (\t -> " (" ++ showPolPaths t ++ ")")
+                      else const "" -}
+       labelFn i = (toSentence $ ciSourceTree i) ++ " " ++ (gnname $ ciNode i) 
+                 ++ (showPaths i) 
+   in unzip $ agenda ++ chart ++ results ++ trash 
+ 
 ckyItemBar :: DebuggerItemBar Bool ChartItem
 ckyItemBar f gvRef updaterFn =
  do ib <- panel f []
@@ -151,29 +166,6 @@ ckyItemBar f gvRef updaterFn =
             updaterFn
     set detailsChk [ on command := onDetailsChk ] 
     return $ hfloatCentre $ container ib $ row 5 [ dynamic $ widget detailsChk ]
-\end{code}
-
-\paragraph{showGenState} converts the generator state into a list
-of trees and labels the way graphvizGui likes it.
-
-\begin{code}
-showGenState :: BuilderStatus -> ([Maybe ChartItem],[String])
-showGenState st = 
-  let agenda  = section "AGENDA"  $ theAgenda  st
-      trash   = section "TRASH"   $ theTrash   st
-      chart   = section "CHART"   $ theChart   st
-      results = section "RESULTS" $ theResults st
-      --
-      section n i = hd : (map tlFn i)
-        where hd = (Nothing, "___" ++ n ++ "___")
-              tlFn x = (Just x, labelFn x)
-      showPaths = const ""
-                  {- if (polarised $ genconfig st)
-                     then (\t -> " (" ++ showPolPaths t ++ ")")
-                     else const "" -}
-      labelFn i = (toSentence $ ciSourceTree i) ++ " " ++ (gnname $ ciNode i) 
-                ++ (showPaths i) 
-  in unzip $ agenda ++ chart ++ results ++ trash 
 \end{code}
 
 \section{Helper code}
