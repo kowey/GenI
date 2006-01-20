@@ -226,11 +226,7 @@ standard components of a graphical debugger:
       steps''.
 \end{itemize}
 
-The bad news is that it'll take some work to use this helper function.
-You'll need to write at two functions, one for the item bar and the
-other to convert the generator state into items and labels the way
-\fnref{graphvizGui} likes them.  You'll also need to provide an initial
-value for the GraphvizShow
+See the API for more details.
 
 \begin{code}
 type DebuggerItemBar flg itm 
@@ -240,9 +236,7 @@ type DebuggerItemBar flg itm
       -> IO ()                 -- ^ updaterFn
       -> IO Layout 
 
--- | A generic graphical debugger tab for GenI; provides the ability to step
---   through any GenI Builder one step at a time (with the possibility to leap
---   so that you don't get too bored).
+-- | A generic graphical debugger widget for GenI
 -- 
 --   Besides the Builder, there are two functions you need to pass in make this
 --   work: 
