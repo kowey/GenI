@@ -47,9 +47,13 @@ import SysGeni(waitForProcess, runInteractiveProcess)
 -}
 class GraphvizShow flag b where
   graphvizShow            :: flag -> b -> String
-  -- | flag -> prefix -> item -> gv output
-  graphvizShowAsSubgraph  :: flag -> String -> b -> String 
-  graphvizLabel           :: flag -> b -> String
+  graphvizShowAsSubgraph  :: flag   -- ^ flag
+                          -> String -- ^ prefix
+                          -> b      -- ^ item
+                          -> String -- ^ gv output 
+  graphvizLabel           :: flag   -- ^ flag
+                          -> b      -- ^ item
+                          -> String -- ^ gv output
   graphvizParams          :: flag -> b -> [String] 
 
   graphvizShow f b  = 
@@ -63,7 +67,10 @@ class GraphvizShow flag b where
   graphvizParams _ _ = []
 
 class GraphvizShowNode flag b where
-  graphvizShowNode :: flag -> String -> b -> String
+  graphvizShowNode :: flag   -- ^ flag 
+                   -> String -- ^ prefix 
+                   -> b      -- ^ item 
+                   -> String -- ^ gv output
 
 -- | Note: the 'dotFile' argument allows you to save the intermediary
 -- dot output to a file.  You can pass in the empty string if you don't
