@@ -1323,7 +1323,9 @@ instance GraphvizShow () PolAut where
 
 \begin{code}
 gvShowState :: String -> PolState -> String
-gvShowState stId st = gvNode stId (showSt st) []
+gvShowState stId st = 
+  -- note that we pass the label param explicitly to allow for null label
+  gvNode stId "" [ ("label", showSt st) ] 
   where showSt (PolSt pr ex po) = showPr pr ++ showEx ex ++ showPo po
         showPr _ = "" -- (_,pr,_) = pr ++ gvNewline 
         showPo po = concat $ intersperse "," $ map showInterval po
