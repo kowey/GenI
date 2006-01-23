@@ -351,7 +351,7 @@ buildSeedAutHelper cs l i st (aut,prev) =
       -- add the transitions out of the current state 
       addT tr (a,n) = (addTrans a st tr st2, st2:n)
         where 
-         st2 = PolSt i (delete l ex1 ++ ex2) []
+         st2 = PolSt i (delete l $ ex1 ++ ex2) []
          ex2 = case tr of 
                Nothing  -> [] 
                Just tr_ -> tlSemantics tr_
