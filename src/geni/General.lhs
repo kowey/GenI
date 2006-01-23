@@ -245,8 +245,7 @@ Hmm... do i really feel like instantiating a datatype for this?
 \begin{code}
 showInterval :: Interval -> String
 showInterval (x,y) =
- let sign 0 = ""
-     sign x = if x > 0 then "+" else "-"
+ let sign x = if x > 0 then "+" else ""
      --
  in if (x==y) 
     then (sign x) ++ (show x) 
