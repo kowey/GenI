@@ -647,24 +647,39 @@ following these critieria:
 
 \begin{code}
 dispatchNew :: ChartItem -> BState () 
-dispatchNew itemRaw = 
- do case tbUnify itemRaw of
-     Nothing   -> addToTrash itemRaw ts_tbUnificationFailure 
-     Just item ->
-      do let filts = [ dispatchRedundant, dispatchResults, dispatchToAgenda ]
-             tryFilter True _ = return True
-             tryFilter _    f = f item
-         -- keep trying dispatch filters until one of them suceeds
-         foldM tryFilter False filts
-         return ()
+dispatchNew item = 
+ do let tryFilter Nothing _        = return Nothing
+        tryFilter (Just newItem) f = f newItem
+    -- keep trying dispatch filters until one of them suceeds
+    foldM tryFilter (Just item) [ dispatchTbFailure
+                                , dispatchRedundant
+                                , dispatchResults
+                                , dispatchToAgenda ]
+    return ()
 
-dispatchToAgenda, dispatchRedundant, dispatchResults :: ChartItem -> BState Bool
+-- A dispatch filter makes a somewhat counter-intuitive use of
+-- Maybe: 
+-- 
+--  If the filter succesfully dispatches the object; we're no
+--  longer interested in its result, so we happily return 
+--  Nothing.
+-- 
+--  If the filter does not dispatch the item, then maybe the
+--  item needs to be modified, so it returns Just newItem
+--  Of course, if no modifications are neccesary, then it
+--  just returns the same item
+dispatchToAgenda, dispatchRedundant, dispatchResults, dispatchTbFailure :: ChartItem -> BState (Maybe ChartItem)
+
+-- | Trivial dispatch filter: always put the item on the agenda and return 
+--   Nothing
 dispatchToAgenda item =
    trace (ckyShow "-> agenda" item []) $
    do addToAgenda item
-      return True
+      return Nothing
 
--- | merges non-new items with the chart; assigns a unique id to new items
+-- | If the item is equivalent to another, merge it with the equivalent
+--   item and return Nothing.
+--   If the item is indeed unique, return (Just $ setId item)
 dispatchRedundant item = 
   do st <- get
      let chart = theChart st
@@ -676,11 +691,11 @@ dispatchRedundant item =
      if or isEq
         then trace (ckyShow "-> merge" item []) $
              do put ( st {theChart = newChart} )
-                return True 
-        else do setId item
-                return False 
+                return Nothing 
+        else do Just `liftM` setId item
 
--- | puts result items into the results list
+-- | If it is a result, put the item in the results list.
+--   Otherwise, return (Just unmodified) 
 dispatchResults item = 
  do st <- get
     let synComplete = ciInit item && ciRoot item 
@@ -694,8 +709,19 @@ dispatchResults item =
     trace (ckyShow "?? result" item [] ++ (showBitVector 3 $ tsemVector st)) $ 
      if (synComplete && semComplete ) 
        then trace ("isResult" ++ showItem item) $ 
-            addToResults itemJoined >> return True
-       else return False
+            addToResults itemJoined >> return Nothing 
+       else return $ Just item
+
+-- | This filter requires another inversion in thinking.  It suceeds
+--   if tb unification fails by dispatching to the trash and returning
+--   Nothing.  If tb unification suceeds, it returns (Just newItem),
+--   where newItem has its top and bottom nodes unified.
+dispatchTbFailure itemRaw =
+ case tbUnify itemRaw of
+  Nothing -> 
+    do addToTrash itemRaw ts_tbUnificationFailure 
+       return Nothing
+  Just item -> return $ Just item
 
 tbUnify :: ChartItem -> Maybe ChartItem
 -- things for which tb unification is not relevant
