@@ -40,8 +40,9 @@ import qualified BuilderGui as BG
 import Btypes (gnname, showLexeme, iword, isemantics)
 
 import CkyBuilder 
-  ( ckyBuilder, setup, BuilderStatus, ChartItem(..),
-  , bitVectorToSem
+  ( ckyBuilder, setup, BuilderStatus, ChartItem(..), ChartId 
+  , bitVectorToSem, findId,
+  , extractDerivations
   , theResults, theAgenda, theChart, theTrash
   )
 import Configuration ( Params(..), polarised )
@@ -50,7 +51,9 @@ import Geni
   ( ProgState(..), ProgStateRef
   , initGeni )
 import General ( listRepNode )
-import Graphviz ( GraphvizShow(..), gvNode, gvEdge, gvSubgraph, gvUnlines )
+import Graphviz 
+  ( GraphvizShow(..), gvNode, gvEdge, gvSubgraph, gvUnlines, gvShowTree 
+  , GraphvizShowNode(..) )
 import GuiHelper 
   ( candidateGui, messageGui, polarityGui, toSentence
   , debuggerPanel, DebuggerItemBar
@@ -58,7 +61,7 @@ import GuiHelper
 
 import Polarity
 import Tags 
-  ( tdiagnostic, tsemantics, thighlight, ttree, TagElem )
+  ( idname, tdiagnostic, tsemantics, thighlight, ttree, TagElem )
 \end{code}
 }
 
@@ -146,16 +149,17 @@ ckyDebuggerTab = debuggerPanel ckyBuilder False stateToGv ckyItemBar
        --
        section n i = hd : (map tlFn i)
          where hd = (Nothing, "___" ++ n ++ "___")
-               tlFn x = (Just x, labelFn x)
+               tlFn x = (Just (st,x), labelFn x)
        showPaths = const ""
                    {- if (polarised $ genconfig st)
                       then (\t -> " (" ++ showPolPaths t ++ ")")
                       else const "" -}
-       labelFn i = (toSentence $ ciSourceTree i) ++ " " ++ (gnname $ ciNode i) 
+       labelFn i = (show $ ciId i) ++ " " 
+                 ++ (toSentence $ ciSourceTree i) ++ " " ++ (gnname $ ciNode i) 
                  ++ (showPaths i) 
    in unzip $ agenda ++ chart ++ results ++ trash 
  
-ckyItemBar :: DebuggerItemBar Bool ChartItem
+ckyItemBar :: DebuggerItemBar Bool (BuilderStatus, ChartItem)
 ckyItemBar f gvRef updaterFn =
  do ib <- panel f []
     detailsChk <- checkBox ib [ text := "Show features"
@@ -171,6 +175,43 @@ ckyItemBar f gvRef updaterFn =
 \section{Helper code}
 
 \begin{code}
+instance GraphvizShow Bool (BuilderStatus, ChartItem) where
+  graphvizLabel  f (s,c) = graphvizLabel f c
+  graphvizParams f (s,c) = graphvizParams f c
+  graphvizShowAsSubgraph f p (s,c) = 
+   let color x = ("color", x)
+       label x = ("label", x)
+       style x = ("style", x)
+       arrowtail x = ("arrowtail", x)
+       --
+       substColor = color "blue"
+       adjColor   = color "red"
+       --
+       edgeParams (_ ,"no-adj") = [ label "na" ]
+       edgeParams (_, "kids"  ) = [ label "k" ]
+       edgeParams (_, "init"  ) = [ label "i" ]
+       edgeParams (_, "subst" ) = [ style "bold",         substColor, arrowtail "normal" ]
+       edgeParams (_, "adj"   ) = [ style "bold, dashed", adjColor  , arrowtail "normal" ]
+       edgeParams (_, "subst-finish") = [ substColor ]
+       edgeParams (_, "adj-finish")   = [ adjColor, style "dashed" ]
+       edgeParams (_, k) = [ ("label", "UNKNOWN: " ++ k) ]
+       --
+       derivations = extractDerivations s c
+       showTree i t = gvSubgraph $ gvShowTree edgeParams s (p ++ "t" ++ (show i)) t
+   in  graphvizShowAsSubgraph f p c 
+       ++ "\n// ------------------- derivations --------------------------\n"
+       ++ "node [ shape = plaintext, peripheries = 0 ]\n"
+       ++ (concat $ zipWith showTree [1..] derivations)
+
+instance GraphvizShowNode BuilderStatus (ChartId, String) where
+  graphvizShowNode st prefix ci = 
+   let theId = fst ci
+       txt = case findId st theId of
+             Nothing   -> ("???" ++ (show theId))
+             Just item -> (show theId) ++ " " ++ (show.ciNode) item 
+                          ++ " (" ++ ((idname.ciSourceTree) item) ++ ")"
+   in gvNode prefix txt []
+
 instance GraphvizShow Bool ChartItem where
   graphvizLabel  f = graphvizLabel  f . toTagElem 
   graphvizShowAsSubgraph f prefix ci = 
@@ -182,9 +223,13 @@ instance GraphvizShow Bool ChartItem where
        gvAut2 = graphvizShowAsSubgraph () (prefix ++ "aut2")  $ ciAut_aftHole ci
    -- FIXME: will have to make this configurable, maybe, show aut, show tree? radio button?
    in    (unlines $ graphvizParams f $ ciSourceTree ci)
+      ++ "\n// ------------------- elementary tree --------------------------\n"
       ++ gvSubgraph gvTree
       ++ (unlines $ graphvizParams () $ ciAut_befHole ci)
-      ++ gvSubgraph gvAut1 ++ gvSubgraph gvAut2
+      ++ "\n// ------------------- pre-hole automaton ------------------------\n"
+      ++ gvSubgraph gvAut1 
+      ++ "\n// ------------------- post-hole automaton -----------------------\n"
+      ++ gvSubgraph gvAut2
       ++ (unlines $ graphvizParams f  $ ciSourceTree ci)
 
 toTagElem :: ChartItem -> TagElem

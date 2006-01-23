@@ -36,7 +36,7 @@ import Control.Monad
 import Control.Monad.State 
   (State, get, put, liftM, runState, execState )
 import Data.Bits ( (.&.), (.|.), bit )
-import Data.List ( intersperse, span, (\\) )
+import Data.List ( find, intersperse, span, (\\) )
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Maybe (catMaybes, mapMaybe)
@@ -187,7 +187,7 @@ initBuilder input config =
        , theResults = []
        , theRules = map fst ckyRules 
        , tsemVector    = semToBitVector bmap sem
-       , gencounter    = toInteger (length cands)
+       , gencounter    = 0 
        , genAutCounter = 0
        , genconfig  = config
        , genstats   = B.initGstats}
@@ -227,7 +227,8 @@ leafToItem left te node = ChartItem
   , ciSemBitMap  = Map.empty 
   , ciAut_befHole = if left then theAutomaton else emptySentenceAut
   , ciAut_aftHole  = if left then emptySentenceAut else theAutomaton
-  , ciDiagnostic   = [] }
+  , ciDiagnostic   = [] 
+  , ciDerivation   = [ InitOp ] }
   where 
    theAutomaton = if isLexeme node then lexAut else emptySentenceAut 
    -- add a transition from f -> t via label l
@@ -350,7 +351,18 @@ data ChartItem = ChartItem
   , ciAut_aftHole  :: SentenceAut
   -- if there are things wrong with this item, what?
   , ciDiagnostic :: [String]
+  -- what is the set of the ways you can produce this item?
+  , ciDerivation :: [ ChartOperation ]
   } 
+
+-- | note that the order is always active item, followed by passive item
+data ChartOperation = SubstOp    ChartId  ChartId 
+                    | AdjOp      ChartId  ChartId
+                    | NullAdjOp  ChartId
+                    | KidsToParentOp [ChartId]
+                    | InitOp
+                    
+type ChartOperationConstructor = ChartId -> ChartId -> ChartOperation 
 
 type ChartId = Integer
 
@@ -369,14 +381,16 @@ combineVectors a b =
     , ciPolpaths  = (ciPolpaths  a) .&. (ciPolpaths  b) 
     , ciSemBitMap =  ciSemBitMap a }
 
-combineWith :: GNode -> Subst -> ChartItem -> ChartItem -> ChartItem
-combineWith node subst other x =
-  combineVectors other $ 
-  x { ciNode      = node 
-    , ciSubsts    = (ciSubsts x) ++ subst
-    , ciVariables = replace subst (ciVariables x) 
-    , ciAut_befHole = ciAut_befHole other
-    , ciAut_aftHole  = ciAut_aftHole  other }
+combineWith :: ChartOperationConstructor -- ^ how did we get the new item?
+            -> GNode -> Subst -> ChartItem -> ChartItem -> ChartItem
+combineWith operation node subst active passive =
+  combineVectors active $
+  passive { ciNode      = node
+          , ciSubsts    = (ciSubsts passive) ++ subst
+          , ciVariables = replace subst (ciVariables passive)
+          , ciAut_befHole  = ciAut_befHole active
+          , ciAut_aftHole  = ciAut_aftHole active 
+          , ciDerivation   = [ operation (ciId active) (ciId passive) ] }
 \end{code}
 
 \begin{code}
@@ -419,7 +433,8 @@ nonAdjunctionRule item _ =
   let node  = ciNode item
       node2 = node { gaconstr = True }
   in if gtype node /= Other || ciAdjDone item then Nothing
-     else Just [ item { ciNode = node2 } ]
+     else Just [ item { ciNode = node2
+                      , ciDerivation = [ NullAdjOp $ ciId item ] } ]
 
 -- | CKY parent rule
 kidsToParentRule item chart = 
@@ -450,6 +465,7 @@ kidsToParentRule item chart =
                , ciVariables = fst newVars 
                , ciAut_befHole = (fst.combineAuts) kids
                , ciAut_aftHole  = (snd.combineAuts) kids
+               , ciDerivation   = [ KidsToParentOp $ map ciId kids ]
                }
           return $ foldr combineVectors newItem kids
     --
@@ -496,8 +512,8 @@ attemptSubst sItem rItem | ciSubs sItem =
         sNode = ciNode sItem
     (up, down, subst) <- unifyGNodes sNode (ciNode rItem) 
     let newNode = rNode { gnname = gnname sNode
-                        , gup = up, gdown = down }  
-    return $ combineWith newNode subst rItem sItem
+                        , gup = up, gdown = down }
+    return $ combineWith SubstOp newNode subst rItem sItem
 attemptSubst _ _ = error "attemptSubst called on non-subst node"
  
 -- | CKY adjunction rule: note - we need this split into two rules because
@@ -528,7 +544,7 @@ attemptAdjunction pItem aItem | ciRoot aItem && ciAux aItem =
     (newTop, newBot, subst) <- unifyPair (gup pNode, gdown pNode) 
                                          (gup aRoot, gdown aFoot)
     let newNode = pNode { gaconstr = False, gup = newTop, gdown = newBot }
-        newItem = combineWith newNode subst aItem pItem
+        newItem = combineWith AdjOp newNode subst aItem pItem
         --
         newAut_beforeHole = joinAutomata (ciAut_befHole aItem) (ciAut_befHole pItem)
         newAut_afterHole  = joinAutomata (ciAut_aftHole pItem)  (ciAut_aftHole  aItem)
@@ -723,7 +739,9 @@ into information from the first ``master'' item.
 
 \begin{code}
 mergeItems :: ChartItem -> ChartItem -> ChartItem
-mergeItems master _ = master  --FIXME: to implement
+--FIXME: to implement
+mergeItems master slave = 
+ master { ciDerivation = ciDerivation master ++ (ciDerivation slave) }
 \end{code}
 
 % --------------------------------------------------------------------  
@@ -808,4 +826,40 @@ setId item =
      let counter = gencounter s 
      put $ s { gencounter = counter + 1 }
      return $ item { ciId = counter }
+
+-- | Returns all the derivation trees for this item: note that this is
+-- not a TAG derivation tree but a history of inference rule applications
+-- in tree form
+-- This is written using a list monad to capture the fact that a node 
+-- can have more than one derivation (because of merging)
+extractDerivations :: BuilderStatus -> ChartItem -> [ Tree (ChartId, String) ]
+extractDerivations st item =
+ do chartOp <- ciDerivation item
+    case chartOp of 
+     KidsToParentOp kids -> 
+       do kidTrees <- mapM treeFor kids 
+          createNode "kids" kidTrees
+     SubstOp act psv ->
+       do actTree <- treeFor act
+          let psvTree = Node (psv, "subst") [ actTree ]
+          createNode "subst-finish" [psvTree]
+     AdjOp act psv ->
+       do actTree <- treeFor act
+          let psvTree = Node (psv, "adj") [ actTree ]
+          createNode "adj-finish"  [psvTree]
+     NullAdjOp psv ->
+       do psvTree <- treeFor psv
+          createNode "no-adj" [psvTree]
+     InitOp -> createNode "init" []
+ where 
+   createNode op kids = 
+     return $ Node (ciId item, op) kids
+   treeFor id =
+     case findId st id of
+       Nothing -> geniBug $ "derivation for item " ++ (show $ ciId item) 
+                         ++ "points to non-existent item " ++ (show id)
+       Just x  -> extractDerivations st x
+
+findId :: BuilderStatus -> ChartId -> Maybe ChartItem
+findId st i = find (\x -> ciId x == i) $ theChart st ++ (theAgenda st) ++ (theResults st) ++ (theTrash st)
 \end{code}
