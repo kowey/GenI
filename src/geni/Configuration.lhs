@@ -40,7 +40,7 @@ import Data.List  ( find, intersperse )
 import Data.Maybe ( catMaybes  )
 import Text.ParserCombinators.Parsec ( runParser )
 
-import General ( bugInGeni, fst3, snd3, wordsBy, Interval ) 
+import General ( geniBug, fst3, snd3, wordsBy, Interval ) 
 import GeniParsers ( geniPolarities )
 \end{code}
 }
@@ -299,7 +299,7 @@ optimisationsUsage =
       unlinesTab l = concat (intersperse "\n  " l)
       getstr k = case find (\x -> k == fst3 x) optimisationCodes of 
                    Just (_, code, desc) -> code ++ " - " ++ desc
-                   Nothing -> error ("code" ++ show k ++ "not found in optimisationsUsage\n" ++ bugInGeni)
+                   Nothing -> geniBug $ "code" ++ show k ++ "not found in optimisationsUsage"
   in "\n" 
      ++ "List of optimisations.\n"
      ++ "(ex: --opt=+f+s for foot constraints and semantic filters)\n"

@@ -39,7 +39,7 @@ import qualified BuilderGui as BG
 import Geni 
   ( ProgState(..), ProgStateRef, combine
   , loadGrammar, loadTestSuite, loadTargetSemStr)
-import General (trim, slash, bugInGeni)
+import General (geniBug, trim, slash)
 import Btypes (showSem, showPairs)
 import Tags (idname, tpolarities, TagElem)
 
@@ -318,9 +318,8 @@ readTestSuite pstRef tsBox tsChoice =
          if (boundsCheck csel suite)
            then do let s = snd (suite !! csel)
                    set tsBox [ text :~ (\_ -> displaySemInput s) ]
-           else fail ("Gui: test case selector bounds check error: " ++
-                      show csel ++ " of " ++ show suite ++ "\n" ++
-                      bugInGeni)
+           else geniBug $ "Gui: test case selector bounds check error: " ++
+                          show csel ++ " of " ++ show suite ++ "\n" 
      ----------------------------------------------------
      set tsChoice [ items := tcaseLabels 
                   , selection := caseSel

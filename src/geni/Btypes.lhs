@@ -74,7 +74,7 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set 
 import Data.Tree
 
-import General(mapTree, filterTree, listRepNode, snd3, bugInGeni)
+import General(mapTree, filterTree, listRepNode, snd3, geniBug)
 --instance Show (IO()) where
 --  show _ = ""
 \end{code}
@@ -814,7 +814,7 @@ unify (h1:t1) (h2:t2) =
         let s = (h1,x2)
         (res,subst) <- unify (replaceOne s t1) (replaceOne s t2)
         return (x2:res, s:subst) 
-      withrep _ _ = error ("unification error\n" ++ bugInGeni)
+      withrep _ _ = geniBug "unification error" 
       sansrep x2 = do
         (res,subst) <- unify t1 t2 
         return (x2:res, subst)
