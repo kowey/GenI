@@ -85,6 +85,11 @@ A generic version of the Data.List.words
 \begin{code}
 wordsBy :: (Eq a) => a -> [a] -> [[a]]
 wordsBy c = groupBy (\x y -> x /= c && y /= c) 
+
+-- | Makes sure that index s is in the bounds of list l.  
+--   Surely there must be some more intelligent way to deal with this.
+boundsCheck :: Int -> [a] -> Bool
+boundsCheck s l = s >= 0 && s < length l
 \end{code}
 
 \fnlabel{isEmptyIntersect} is true if the intersection of two lists is

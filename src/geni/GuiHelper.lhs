@@ -45,7 +45,7 @@ import Treeprint() -- only import the GraphvizShow instances
 import Tags (tagLeaves)
 import Geni 
   ( ProgState(..) ) 
-import General (snd3, slash, geniBug)
+import General (boundsCheck, snd3, slash, geniBug)
 import Btypes 
   ( showPred, showSem, showLexeme
   , Sem)
@@ -663,15 +663,6 @@ createDotPath :: String -> String -> IO String
 createDotPath subdir name = do 
   cdir <- gv_CACHEDIR
   return $ cdir ++ slash ++ subdir ++ slash ++ name ++ ".dot"
-\end{code}
-
-\paragraph{boundsCheck} makes sure that index s is in the bounds of list l.
-This is useful for the various blocks of code that manipulate wxhaskell
-selections.  Surely there must be some more intelligent way to deal with
-this.
-
-\begin{code}
-boundsCheck s l = s >= 0 && s < length l
 \end{code}
 
 \subsection{XMG Metagrammar stuff}

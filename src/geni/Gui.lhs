@@ -39,7 +39,7 @@ import qualified BuilderGui as BG
 import Geni 
   ( ProgState(..), ProgStateRef, combine
   , loadGrammar, loadTestSuite, loadTargetSemStr)
-import General (geniBug, trim, slash)
+import General (boundsCheck, geniBug, trim, slash)
 import Btypes (showSem, showPairs)
 import Tags (idname, tpolarities, TagElem)
 
