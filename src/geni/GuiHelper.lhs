@@ -193,7 +193,7 @@ tagViewerGui pst f tip cachedir itNlab = do
                      [ enabled := True, items := extractDerivation s, selection := 0 ]
   --
   Monad.when (not $ null tagelems) $ do 
-    setGvHandler gvRef (Just selHandler)
+    addGvHandler gvRef selHandler
     set detailsChk [ on command := onDetailsChk detailsChk ]
     set displayTraceBut 
          [ on command := onDisplayTrace 
@@ -403,12 +403,21 @@ setGvDrawables2 gvref (it,lb) =
      modifyIORef gvref fn 
      setGvDrawables gvref it
 
-setGvHandler gvref h =
+setGvHandler gvref mh =
   do gvSt <- readIORef gvref
-     modifyIORef gvref (\x -> x { gvhandler = h })
-     case h of 
+     modifyIORef gvref (\x -> x { gvhandler = mh })
+     case mh of 
        Nothing -> return ()
        Just fn -> fn gvSt
+
+-- | add a selection handler - if there already is a handler
+--   this handler will be called before the new one
+addGvHandler gvref h =
+  do gvSt <- readIORef gvref
+     let newH = case gvhandler gvSt of 
+                Nothing   -> Just h
+                Just oldH -> Just (oldH >> h)
+     setGvHandler gvref newH
 \end{code}
 
 \paragraph{graphvizGui} returns a layout (wxhaskell container) and a
