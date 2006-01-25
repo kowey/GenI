@@ -233,18 +233,20 @@ type DebuggerItemBar flg itm
       =  (Panel ())            -- ^ parent panel
       -> GraphvizRef (Maybe itm) flg   
       -- ^ gv ref to use
-      -> IO ()                 -- ^ updaterFn
-      -> IO Layout 
+      -> GvUpdater -- ^ updaterFn
+      -> IO Layout
 
 -- | A generic graphical debugger widget for GenI
 -- 
 --   Besides the Builder, there are two functions you need to pass in make this
 --   work: 
---   1. a 'stateToGv' which converts the builder state into a list of items
---      and labels the way 'graphvizGui' likes it
---   2. an 'item bar' function which lets you control what bits you display
---      of a selected item (for example, if you want a detailed view or not)
---      the debugger should return a layout
+--
+--      1. a 'stateToGv' which converts the builder state into a list of items
+--         and labels the way 'graphvizGui' likes it
+--
+--      2. an 'item bar' function which lets you control what bits you display
+--         of a selected item (for example, if you want a detailed view or not)
+--         the item bar should return a layout 
 debuggerPanel :: (GraphvizShow flg itm) 
   => B.Builder st itm Params -- ^ builder to use
   -> flg -- ^ initial value for the flag argument in GraphvizShow
@@ -393,6 +395,10 @@ setGvParams gvref c  =
                     gvorders = GvoParams : (gvorders x) }
      modifyIORef gvref fn 
 
+modifyGvParams gvref fn  =
+  do gvSt <- readIORef gvref
+     setGvParams gvref (fn $ gvparams gvSt)
+
 setGvDrawables gvref it =
   do let fn x = x { gvitems = array (0, length it) (zip [0..] it),
                     gvorders = GvoItems : (gvorders x) }
@@ -434,27 +440,16 @@ Arguments:
 \item gvRef - see above
 \end{enumerate}
 
-Returns: a function for updating the GUI 
-(args for the updater function are itNlab and the index you want to select or
- -1 to keep the same selection)
-
-%\begin{code}
-%graphvizGui :: (GraphvizShow d) => 
-%  (Window a) -> String -> GraphvizRef d Bool -> GvIO d
-%type GvIO d = IO (Layout, IO ())
-%graphvizGui f cachedir gvRef = do
-%  initGvSt <- readIORef gvRef
-%  rchoice  <- singleListBox f 
-%              [items := gvlabels initGvSt,
-%               tooltip := gvtip initGvSt]
-%  let lay = fill $ widget rchoice
-%  return (lay, return () )  
-%\end{code}
+Returns: a function for updating the GUI.  FIXME: it's not entirely clear
+what the updater function is for; note that it's not the same as the 
+handler function!
 
 \begin{code}
 graphvizGui :: (GraphvizShow f d) => 
   (Window a) -> String -> GraphvizRef d f -> GvIO d
-type GvIO d = IO (Layout, IO ())
+type GvIO d    = IO (Layout, GvUpdater)
+type GvUpdater = IO ()
+
 graphvizGui f cachedir gvRef = do
   initGvSt <- readIORef gvRef
   -- widgets

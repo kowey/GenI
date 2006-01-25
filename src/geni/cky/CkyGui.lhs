@@ -23,11 +23,13 @@ module CkyGui where
 
 \ignore{
 \begin{code}
-import Graphics.UI.WX
-import Graphics.UI.WXCore
+import Graphics.UI.WX hiding (when)
+import Graphics.UI.WXCore hiding (when)
 
 import qualified Control.Monad as Monad 
+import Control.Monad (liftM)
 
+import Data.Array ((!))
 import Data.IORef
 import Data.List (find, nub, (\\))
 import qualified Data.Map as Map 
@@ -50,14 +52,15 @@ import Configuration ( Params(..), polarised )
 import Geni 
   ( ProgState(..), ProgStateRef
   , initGeni )
-import General ( listRepNode )
+import General ( boundsCheck, listRepNode, geniBug )
 import Graphviz 
   ( GraphvizShow(..), gvNode, gvEdge, gvSubgraph, gvUnlines, gvShowTree 
   , GraphvizShowNode(..) )
 import GuiHelper 
   ( candidateGui, messageGui, polarityGui, toSentence
   , debuggerPanel, DebuggerItemBar
-  , setGvParams) 
+  , addGvHandler, modifyGvParams, 
+  , GraphvizGuiSt(gvitems, gvsel) )
 
 import Polarity
 import Tags 
@@ -138,8 +141,23 @@ The generation could conceivably be broken into multiple generation
 tasks, so we create a separate tab for each task.
 
 \begin{code}
+data CkyDebugParams = 
+ CkyDebugParams { debugShowFeats       :: Bool 
+                , debugWhichDerivation :: Int }
+
+initCkyDebugParams = 
+ CkyDebugParams { debugShowFeats       = False
+                , debugWhichDerivation = 0 }
+
+-- would be nice if Haskell sugared this kind of stuff for us
+setDebugShowFeats :: Bool -> CkyDebugParams -> CkyDebugParams
+setDebugShowFeats b x = x { debugShowFeats = b }
+
+setDebugWhichDerivation :: Int -> CkyDebugParams -> CkyDebugParams
+setDebugWhichDerivation w x = x { debugWhichDerivation = w }
+
 ckyDebuggerTab :: (Window a) -> Params -> B.Input -> String -> IO Layout 
-ckyDebuggerTab = debuggerPanel ckyBuilder False stateToGv ckyItemBar
+ckyDebuggerTab = debuggerPanel ckyBuilder initCkyDebugParams stateToGv ckyItemBar
  where 
   stateToGv st = 
    let agenda  = section "AGENDA"  $ theAgenda  st
@@ -158,24 +176,53 @@ ckyDebuggerTab = debuggerPanel ckyBuilder False stateToGv ckyItemBar
                  ++ (toSentence $ ciSourceTree i) ++ " " ++ (gnname $ ciNode i) 
                  ++ (showPaths i) 
    in unzip $ agenda ++ chart ++ results ++ trash 
- 
-ckyItemBar :: DebuggerItemBar Bool (BuilderStatus, ChartItem)
+
+ckyItemBar :: DebuggerItemBar CkyDebugParams (BuilderStatus, ChartItem)
 ckyItemBar f gvRef updaterFn =
  do ib <- panel f []
+    -- select derivation
+    derTxt    <- staticText ib []
+    derChoice <- choice ib [ tooltip := "Select a derivation" ]
+    let onDerChoice =
+         do sel <- get derChoice selection
+            modifyGvParams gvRef (setDebugWhichDerivation sel)
+            updaterFn
+    set derChoice [ on select := onDerChoice ]
+    -- show features
     detailsChk <- checkBox ib [ text := "Show features"
                               , checked := False ]
     let onDetailsChk = 
          do isDetailed <- get detailsChk checked 
-            setGvParams gvRef isDetailed
+            modifyGvParams gvRef (setDebugShowFeats isDetailed)
             updaterFn
     set detailsChk [ on command := onDetailsChk ] 
-    return $ hfloatCentre $ container ib $ row 5 [ dynamic $ widget detailsChk ]
+    -- add a handler for when an item is selected: 
+    -- update the list of derivations to choose from
+    let updateDerTxt t = set derTxt [ text := "deriviations (" ++ t ++ ")" ]
+        handler gvSt = 
+         do case (gvitems gvSt ! gvsel gvSt) of 
+             Nothing    -> 
+               do set derChoice [ enabled := False, items := [] ]
+                  updateDerTxt "n/a"
+             Just (s,c) -> 
+               do let derivations = extractDerivations s c 
+                      dervLabels  = zipWith (\n _ -> show n) [1..] derivations 
+                  set derChoice [ enabled := True, items := dervLabels, selection := 0 ]
+                  onDerChoice
+                  updateDerTxt $ show $ length derivations
+    addGvHandler gvRef handler
+    -- call the handler to react to the first selection
+    handler `liftM` readIORef gvRef
+    --
+    return $ hfloatCentre $ container ib $ row 5 
+                [ widget detailsChk 
+                , hspace 5, widget derTxt,  rigid $ widget derChoice ] 
 \end{code}
 
 \section{Helper code}
 
 \begin{code}
-instance GraphvizShow Bool (BuilderStatus, ChartItem) where
+instance GraphvizShow CkyDebugParams (BuilderStatus, ChartItem) where
   graphvizLabel  f (s,c) = graphvizLabel f c
   graphvizParams f (s,c) = graphvizParams f c
   graphvizShowAsSubgraph f p (s,c) = 
@@ -196,12 +243,18 @@ instance GraphvizShow Bool (BuilderStatus, ChartItem) where
        edgeParams (_, "adj-finish")   = [ adjColor, style "dashed" ]
        edgeParams (_, k) = [ ("label", "UNKNOWN: " ++ k) ]
        --
+       whichDer    = debugWhichDerivation f
        derivations = extractDerivations s c
        showTree i t = gvSubgraph $ gvShowTree edgeParams s (p ++ "t" ++ (show i)) t
+       gvDerv = if boundsCheck whichDer derivations
+                then showTree whichDer (derivations !! whichDer)
+                else geniBug $ "Bounds check failed on derivations selector:\n"
+                               ++ "Asked to visualise: " ++ (show whichDer) ++ "\n"
+                               ++ "Bounds: 0 to " ++ (show $ length derivations - 1)
    in  graphvizShowAsSubgraph f p c 
        ++ "\n// ------------------- derivations --------------------------\n"
        ++ "node [ shape = plaintext, peripheries = 0 ]\n"
-       ++ (concat $ zipWith showTree [1..] derivations)
+       ++ gvDerv
 
 instance GraphvizShowNode BuilderStatus (ChartId, String) where
   graphvizShowNode st prefix ci = 
@@ -212,17 +265,20 @@ instance GraphvizShowNode BuilderStatus (ChartId, String) where
                           ++ " (" ++ ((idname.ciSourceTree) item) ++ ")"
    in gvNode prefix txt []
 
-instance GraphvizShow Bool ChartItem where
-  graphvizLabel  f = graphvizLabel  f . toTagElem 
+instance GraphvizShow CkyDebugParams ChartItem where
+  graphvizLabel  f = graphvizLabel (debugShowFeats f) . toTagElem 
   graphvizShowAsSubgraph f prefix ci = 
-   let gvTree = graphvizShowAsSubgraph f  (prefix ++ "tree")  $ toTagElem ci
+   let showFeats  = debugShowFeats f
+       treeParams = unlines $ graphvizParams showFeats $ ciSourceTree ci
+       --
+       gvTree = graphvizShowAsSubgraph showFeats (prefix ++ "tree")  $ toTagElem ci
        gvAut1 = graphvizShowAsSubgraph () (prefix ++ "aut1")  $ ciAut_befHole ci
        -- FIXME: maybe it would be nice to connect these two automaton using a specially
        -- marked label - we could simulate this by joining the two automata and naming
        -- the bridge specially
        gvAut2 = graphvizShowAsSubgraph () (prefix ++ "aut2")  $ ciAut_aftHole ci
    -- FIXME: will have to make this configurable, maybe, show aut, show tree? radio button?
-   in    (unlines $ graphvizParams f $ ciSourceTree ci)
+   in treeParams   
       ++ "\n// ------------------- elementary tree --------------------------\n"
       ++ gvSubgraph gvTree
       ++ (unlines $ graphvizParams () $ ciAut_befHole ci)
@@ -230,7 +286,7 @@ instance GraphvizShow Bool ChartItem where
       ++ gvSubgraph gvAut1 
       ++ "\n// ------------------- post-hole automaton -----------------------\n"
       ++ gvSubgraph gvAut2
-      ++ (unlines $ graphvizParams f  $ ciSourceTree ci)
+      ++ treeParams 
 
 toTagElem :: ChartItem -> TagElem
 toTagElem ci =
