@@ -6,8 +6,9 @@ abc semantics:[a() b() t1()]
 sub semantics:[b() t1()]
 
 % adjunction 
-adj semantics:[a() xg()]
-adj_multi semantics:[a() xg() xg2()]
+adj semantics:[t1() xg()]
+adj_nepas semantics:[t1() xnepas()]
+adj_multi semantics:[t1() xg() xg2()]
 
 % kidsToParents rule
 k2p         semantics:[t1() d()]

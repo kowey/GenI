@@ -25,17 +25,26 @@ Mother [cat:b]![] {
 term(?C ?X) initial
 Mother anchor [cat:?C foo:?X]![] 
 
-si4-bad() auxiliary
-Mother [cat:a tb:foo]![] {
+aux-bad() auxiliary
+Mother [cat:t1 tb:foo]![] {
   Left anchor 
-  Foot type:foot [cat:a]![tb:bar]
+  Foot type:foot [cat:t1]![tb:bar]
 }
 
-si4-good() auxiliary
-Mother [cat:a tb:ping]![] {
+aux-good() auxiliary
+Mother [cat:t1 tb:ping]![] {
   Left anchor 
-  Foot type:foot [cat:a]![tb:ping]
+  Foot type:foot [cat:t1]![tb:ping]
 }
+
+aux-nepas () auxiliary
+Mother [cat:t1 tb:ping]![] {
+  Left anchor
+  Foot type:foot [cat:t1]![tb:ping]
+  Right type:lex "pas"
+}
+
+
 
 % meant to receive substitution from san3 
 % if it works - ?A should be set to bar
@@ -71,6 +80,5 @@ Mother [cat:a tb:?X]![tb:?Y] {
   Left  type:subst [cat:t1 foo:?X]![]
   Right type:subst [cat:t2 foo:?Y]![]
 }
-
 
 

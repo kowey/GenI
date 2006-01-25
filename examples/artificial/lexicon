@@ -10,13 +10,16 @@ semantics: [t1()]
 _t2 term (t2 bar2) 
 semantics: [t2()]
 
-_xb si4-bad () 
+_xb aux-bad () 
 semantics: [xb()]
 
-_xg si4-good () 
+_xg aux-good () 
 semantics: [xg()]
 
-_xg2 si4-good () 
+ne aux-nepas () 
+semantics: [xnepas()]
+
+_xg2 aux-good () 
 semantics: [xg2()]
 
 _d wu5 () 
