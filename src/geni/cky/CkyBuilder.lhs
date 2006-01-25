@@ -591,15 +591,11 @@ generateStep2 =
      -- try the inference rules
      let chart = theChart st
          apply (rule, _) = 
-           -- trace (ckyShow name agendaItem chart) $ 
            rule agendaItem chart
          results = map apply ckyRules 
-         showRes (_,name) res = 
-           case res of 
-           Nothing -> ""
-           Just _  -> "\n" ++ (ckyShow ("<- " ++ name) agendaItem chart)
      -- put all newly generated items into the right pigeon-holes
-     trace (concat $ zipWith showRes ckyRules results) $ mapM dispatchNew (concat $ catMaybes results)
+     -- trace (concat $ zipWith showRes ckyRules results) $ 
+     mapM dispatchNew (concat $ catMaybes results)
      -- 
      addToChart agendaItem
      return ()
@@ -673,7 +669,6 @@ dispatchToAgenda, dispatchRedundant, dispatchResults, dispatchTbFailure :: Chart
 -- | Trivial dispatch filter: always put the item on the agenda and return 
 --   Nothing
 dispatchToAgenda item =
-   trace (ckyShow "-> agenda" item []) $
    do addToAgenda item
       return Nothing
 
@@ -706,8 +701,7 @@ dispatchResults item =
          where bef = ciAut_befHole item
                aft = ciAut_aftHole item
         --
-    trace (ckyShow "?? result" item [] ++ (showBitVector 3 $ tsemVector st)) $ 
-     if (synComplete && semComplete ) 
+    if (synComplete && semComplete ) 
        then trace ("isResult" ++ showItem item) $ 
             addToResults itemJoined >> return Nothing 
        else return $ Just item
@@ -744,10 +738,8 @@ tbUnify item =
 \end{code}
 
 % --------------------------------------------------------------------  
-\section{Chart manipulation}
+\section{Equivalence classes}
 % --------------------------------------------------------------------  
-
-\subsection{Equivalence}
 
 \fnlabel{equivalent} returns true if two chart items are equivalent.
 Note that this is not the same thing as equality!  
@@ -844,6 +836,8 @@ unifyPair (t1, b1) (t2, b2) =
     (newBot, subst2) <- unifyFeat (replace subst1 b1) (replace subst1 b2)
     return (newTop, newBot, subst1 ++ subst2)
 \end{code}
+
+\subsection{ChartItem}
 
 \begin{code}
 setId :: ChartItem -> BState ChartItem 
