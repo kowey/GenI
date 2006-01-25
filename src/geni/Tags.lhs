@@ -29,6 +29,7 @@ module Tags(
    Tags, TagElem(..), TagItem(..), TagSite, 
    TagDerivation, emptyTE,
    ts_synIncomplete, ts_semIncomplete, ts_tbUnificationFailure,
+   ts_noRootCategory, ts_wrongRootCategory,
 
    -- Functions from Tags
    addToTags, tagLeaves,
@@ -343,9 +344,13 @@ Whenever GenI decides to discard a tree, it sets the tdiagnostic field of
 the TagElem so that the person using a debugger can find out what went wrong.
 
 \begin{code}
-ts_synIncomplete :: String
+ts_synIncomplete, ts_tbUnificationFailure, ts_noRootCategory :: String
 ts_synIncomplete = "syntactically incomplete"
 ts_tbUnificationFailure = "top/bot unification failure"
+ts_noRootCategory = "root category unset?!"
+
+ts_wrongRootCategory :: [String] -> [String] -> String
+ts_wrongRootCategory c cats = "wrong root category(ies): " ++ (show c) ++ " should be:" ++ (show cats)
 
 ts_semIncomplete :: [Pred] -> String
 ts_semIncomplete sem = "semantically incomplete - missing:  " ++ showSem sem

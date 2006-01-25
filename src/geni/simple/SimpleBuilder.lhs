@@ -59,7 +59,8 @@ import Btypes
   , Flist 
   , Replacable(..), alphaConvert
   , Sem, sortSem, Subst
-  , GType(Other), GNode(..)
+  , GType(Other), GNode(..), gCategory
+  , GeniVal(GConst)
   , rootUpd
   , repAdj
   , renameTree
@@ -82,6 +83,7 @@ import Tags (TagElem, TagSite, TagDerivation,
              tadjlist,
              tagLeaves,
              ts_synIncomplete, ts_semIncomplete, ts_tbUnificationFailure,
+             ts_noRootCategory, ts_wrongRootCategory,
             )
 import Configuration 
 import General (BitVector, fst3, mapTree)
@@ -666,7 +668,8 @@ dispatchNew l =
      -- now... throw out any trees which are over the num trees limit 
      -- (this only applies in IgnoreSemantics mode) 
      state <- get
-     let numTreesLimit = (maxTrees.genconfig) state
+     let config = genconfig state 
+     let numTreesLimit = maxTrees config
          numTrees  x = length $ snd $ derivation x
          overLimit x = case numTreesLimit of
                          Nothing  -> False
@@ -691,7 +694,18 @@ dispatchNew l =
                           return False 
             Right _ -> return True 
      res2 <- filterM tbUnify res
-     mapM addToResults res2
+     let rootCats = rootCatsParam config
+         rootCatCheck x = 
+           case (gCategory.root.ttree) x of
+           Just (GConst c) -> 
+             if null $ intersect c rootCats
+             then do addToTrash x (ts_wrongRootCategory c rootCats)
+                     return False
+             else return True
+           _ -> do addToTrash x ts_noRootCategory 
+                   return False
+     res3 <- filterM rootCatCheck res2
+     mapM addToResults res3
      return ()
 \end{code}
 
