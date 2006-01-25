@@ -367,7 +367,7 @@ data GraphvizGuiSt a b =
                -- tooltip for the selection box
                gvtip     :: String, 
                -- handler function to call when the selection is
-               -- updated
+               -- updated (note: before displaying the object)
                gvhandler :: Maybe (GraphvizGuiSt a b -> IO ()),
                gvsel     :: Int,
                gvorders  :: [GraphvizOrder] }
@@ -487,12 +487,13 @@ graphvizGui f cachedir gvRef = do
         sel  <- get rchoice selection
         -- note: do not use setGvSel (infinite loop)
         modifyIORef gvRef (\x -> x { gvsel = sel })
-        updaterFn
-        gvSt <- readIORef gvRef
         -- call the handler if there is one 
+        gvSt <- readIORef gvRef
         case (gvhandler gvSt) of 
           Nothing -> return ()
           Just h  -> h gvSt
+        -- now do the update
+        updaterFn
   ------------------------------------------------
   set rchoice [ on select := selectAndShow ]
   -- call the updater function for the first time
