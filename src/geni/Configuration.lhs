@@ -95,7 +95,6 @@ data Params = Prms{
   testCase       :: String, -- names of test cases
   extrapol       :: Map.Map String Interval,
   batchRepeat    :: Integer,
-  usetrash       :: Bool,
   --
   outputFile     :: String,
   -- generation sans semantics (not the usual geni mode)
@@ -140,7 +139,6 @@ emptyParams = Prms {
   optimisations  = [],
   extrapol       = Map.empty,
   batchRepeat    = 1,
-  usetrash       = False,
   outputFile     = "",
   ignoreSemantics = False,
   maxTrees       = Nothing

@@ -280,8 +280,7 @@ addToTrash :: TagElem -> String -> MS ()
 addToTrash te err = do 
   s <- get
   let te2 = te { tdiagnostic = err:(tdiagnostic te) }
-  when ((usetrash.genconfig) s) $
-    put s { theTrash = (iaddtoTrash (theTrash s) te2) }
+  put s { theTrash = (iaddtoTrash (theTrash s) te2) }
 
 addToResults :: TagElem -> MS ()
 addToResults te = do
