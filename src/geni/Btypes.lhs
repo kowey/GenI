@@ -33,9 +33,9 @@ module Btypes(
    Lexicon, ILexEntry(..), Macros, Sem, SemInput, Subst,
    emptyLE, emptyGNode, emptyMacro, 
 
-   -- Projectors from GNode (re-exported)
+   -- GNode stuff 
    gnname, gup, gdown, ganchor, glexeme, gtype, gaconstr,
-   showLexeme,
+   gCategory, showLexeme,
 
    -- Functions from Tree GNode
    repSubst, repAdj, constrainAdj, 
@@ -196,6 +196,21 @@ emptyGNode = GN { gnname = "",
                   gaconstr = False }
 \end{code}
 
+A TAG node may have a category.  In the core GenI algorithm, there is nothing
+which distinguishes the category from any other attributes.  But for some 
+other uses, such as checking if it is a result or for display purposes, we
+do treat this attribute differently.  We take here the convention that the
+category of a node is associated to the attribute ``cat''.  
+\begin{code}
+-- | Return the value of the "cat" attribute, if available
+gCategory :: GNode -> Maybe GeniVal 
+gCategory gn =
+  case [ v | (a,v) <- gup gn, a == "cat" ] of
+  []  -> Nothing
+  [c] -> Just c
+  _   -> geniBug $ "Impossible case: node with more than one category"
+\end{code}
+
 \paragraph{show (GNode)} the default show for GNode tries to
 be very compact; it only shows the value for cat attribute 
 and any flags which are marked on that node.
@@ -203,8 +218,9 @@ and any flags which are marked on that node.
 \begin{code}
 instance Show GNode where
   show gn = 
-    let cat' = [ av | av <- gup gn, fst av == "cat" ]
-        cat  = if (null cat') then "" else show $ snd $ head cat'
+    let cat  = case gCategory gn of
+               Nothing -> []
+               Just c  -> show c
         lex  = showLexeme $ glexeme gn
         -- 
         extra = case (gtype gn) of         
