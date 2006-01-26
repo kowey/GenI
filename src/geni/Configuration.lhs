@@ -204,6 +204,10 @@ optionsBasic =
       "lexicon file FILE"
   , Option ['s'] ["testsuite"] (ReqArg TestSuiteTok "FILE") 
       "test suite FILE"
+  , Option []    ["rootcats"] (ReqArg RootCategoriesTok "LIST")
+      ("root categories LIST (for polarities, default:" 
+       ++ (concat $ intersperse "+" $ rootCatsParam emptyParams) 
+       ++ ")")
   , Option ['o'] ["output"] (ReqArg OutputFileTok "FILE")
       "output file FILE (stdout if unset)"
   , Option []    ["opts"] (ReqArg OptimisationsTok "LIST")
@@ -228,10 +232,6 @@ optionsAdvanced =
       "morphological post-processor CMD (default: unset)"
   , Option []    ["repeat"]   (ReqArg RepeatTok "INT")
       "perform INT trials during batch testing"
-  , Option []    ["rootcats"] (ReqArg RootCategoriesTok "LIST")
-      ("root categories LIST (for polarities, default:" 
-       ++ (concat $ intersperse "+" $ rootCatsParam emptyParams) 
-       ++ ")")
   , Option []    ["selectcmd"]  (ReqArg (CmdTok "select") "CMD") 
       "tree selecting/anchoring CMD (default: unset)"
   , Option []    ["testcase"]   (ReqArg TestCasesTok "String")
