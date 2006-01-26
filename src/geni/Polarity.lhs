@@ -202,38 +202,31 @@ Note:
 \begin{itemize}
 \item the \fnparam{extraPol} argument is a map containing any initial
   values for polarity keys.  This is useful to impose external filters
-  like ``I only want sentences'' or ``I only want expressions where 
-  the object is topicalised''.  
+  like ``I only want expressions where the object is topicalised''.  
 \item to recuperate something useful from these automaton, it might
   be helpful to call \fnref{automatonPaths} on it.
 \end{itemize}
 
 \begin{code}
 makePolAut :: [TagLite] -> Sem -> PolMap -> ([AutDebug], PolAut)
-makePolAut cands tsem extraPol = let
-    (ks',seed) = makePolAutHelper cands tsem extraPol 
-    ks = sortBy (flip compare) ks'
-    -- building and remembering the automata 
-    build k xs = (k,aut,prune aut):xs
-                 where aut   = buildPolAut k initK (thd3 $ head xs)
-                       initK = Map.findWithDefault (ival 0) k extraPol
-    res = foldr build [("(seed)",seed,prune seed)] ks
-    in (reverse res, thd3 $ head res)
-
-makePolAutHelper :: [TagLite] -> Sem -> PolMap -> ([String],PolAut)
-makePolAutHelper candsRaw tsemRaw extraPol =
-  let -- polarity items 
-      ksCands = concatMap ((Map.keys).tlPolarities) cands
-      ksExtra = Map.keys extraPol
-      ks      = nub $ ksCands ++ ksExtra
-      -- perform index counting
-      (tsem, cands) = fixPronouns (tsemRaw,candsRaw)
-      -- sorted semantics (for more efficient construction)
-      sortedsem = sortSemByFreq tsem cands 
-      -- the seed automaton
-      smap = buildColumns cands sortedsem 
-      seed = buildSeedAut smap  sortedsem
-  in (ks, seed)
+makePolAut candsRaw tsemRaw extraPol = 
+ let -- polarity items 
+     ksCands = concatMap ((Map.keys).tlPolarities) cands
+     ksExtra = Map.keys extraPol
+     ks      = sortBy (flip compare) $ nub $ ksCands ++ ksExtra
+     -- perform index counting
+     (tsem, cands) = fixPronouns (tsemRaw,candsRaw)
+     -- sorted semantics (for more efficient construction)
+     sortedsem = sortSemByFreq tsem cands 
+     -- the seed automaton
+     smap = buildColumns cands sortedsem 
+     seed = buildSeedAut smap  sortedsem
+     -- building and remembering the automata 
+     build k xs = (k,aut,prune aut):xs
+       where aut   = buildPolAut k initK (thd3 $ head xs)
+             initK = Map.findWithDefault (ival 0) k extraPol
+     res = foldr build [("(seed)",seed,prune seed)] ks
+ in (reverse res, thd3 $ head res)
 \end{code}
 
 % ====================================================================
@@ -1191,7 +1184,10 @@ Note:
 \end{itemize}
 
 \begin{code}
-data PolState = PolSt Int [Pred] [(Int,Int)] deriving (Eq)
+data PolState = PolSt Int [Pred] [(Int,Int)]     
+                -- ^ position in the input semantics, extra semantics, 
+                --   polarity interval
+     deriving (Eq)
 type PolTrans = TagLite
 type PolAut   = NFA PolState PolTrans
 type PolTransFn = Map.Map PolState (Map.Map (Maybe PolTrans) [PolState])
