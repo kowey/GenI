@@ -357,6 +357,7 @@ configGui pstRef loadFn = do
         [ hrule 1 , alignRight $ label title, vspace 5 ] 
         ++ map hfill lst
   let shortSize = sz 10 25
+  let longSize  = sz 20 25
 \end{code}
 
 The first tab contains only the basic options:
@@ -371,6 +372,10 @@ The first tab contains only the basic options:
   macrosBrowseBt  <- button pbas [ text := browseTxt ]
   lexiconBrowseBt <- button pbas [ text := browseTxt ]
   tsBrowseBt      <- button pbas [ text := browseTxt ]
+  -- root category 
+  rootCatsTxt <- entry pbas
+    [ text := unwords $ rootCatsParam config 
+    , size := longSize ]
   let layFiles = [ row 1 [ label "trees:" 
                          , fill $ widget macrosFileLabel
                          , widget macrosBrowseBt  ]
@@ -379,7 +384,12 @@ The first tab contains only the basic options:
                          , widget lexiconBrowseBt ] 
                  , row 1 [ label "test suite:"
                          , fill $ widget tsFileLabel
-                         , widget tsBrowseBt ] 
+                         , widget tsBrowseBt ]
+                 , hspace 5
+                 , hfill $ vrule 1
+                 , row 3 [ label "root categories (space delimited)"
+                         , hglue
+                         , rigid $ widget rootCatsTxt ]  
                  ] 
     -- the layout for the basic stuff
   let layBasic = dynamic $ container pbas $ -- boxed "Basic options" $ 
@@ -407,17 +417,12 @@ into more tabs?
                         , marginRight $ hfill $ widget selectCmdTxt ]
                 , row 3 [ label "XMG view command"
                         , marginRight $ hfill $ widget viewCmdTxt ] ]
-  -- root categories and extra polarities
-  rootCatsTxt <- entry padv 
-    [ text := unwords $ rootCatsParam config 
-    , size := shortSize ]
+  -- polarities
   extraPolsTxt <- entry padv 
     [ text := showLitePm $ extrapol config 
     , size := shortSize ]
   let layPolarities = fakeBoxed "Polarities" [ hfill $ row 1 
-          [ label "root categories", rigid $ widget rootCatsTxt
-          , hspace 10 
-          , label "extra polarities", rigid $ widget extraPolsTxt ] ]
+          [ label "extra polarities", rigid $ widget extraPolsTxt ] ]
   -- morphology
   morphFileLabel    <- staticText padv [ text := morphFile config ]
   morphFileBrowseBt <- button padv [ text := browseTxt ]
