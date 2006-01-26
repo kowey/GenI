@@ -120,10 +120,14 @@ type AutDebug  = (String, PolAut, PolAut)
 
 buildAutomaton (tsem,tres) candRaw rootCats extrapol  =
   let -- root catogories, restrictors, and external polarities
-      rootCatPref = prefixRootCat (head rootCats)
       rcatPol :: Map.Map String Interval
-      rcatPol = if null rootCats then Map.empty
-                else Map.singleton rootCatPref (ival (-1))
+      rcatPol = 
+        case rootCats of
+        []  -> Map.empty
+        [r] -> Map.singleton (prefixRootCat r) (ival (-1))
+        -- if there is more than one root category, we use
+        -- polarity intervals (which may be a bit less effective)
+        rs  -> Map.fromList $ map (\r -> (prefixRootCat r, (-1,0))) rs
       allExtraPols = Map.unionsWith (!+!) [ extrapol, inputRest, rcatPol ]
       -- restrictors on candidate trees
       detect      = detectRestrictors tres
