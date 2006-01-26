@@ -84,7 +84,7 @@ mainGui pstRef
        status <- statusField   []
        -- create the file menu
        fileMen   <- menuPane [text := "&File"]
-       loadMenIt <- menuItem fileMen [text := "&Open files..."]
+       loadMenIt <- menuItem fileMen [text := "&Open files or configure GenI"]
        quitMenIt <- menuQuit fileMen [text := "&Quit"]
        set quitMenIt [on command := close f ]
        -- create the tools menu
