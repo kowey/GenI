@@ -376,7 +376,7 @@ possible substitutions between it and the elements in Chart
 
 \begin{code}
 applySubstitution :: TagElem -> MS ([TagElem])
-applySubstitution te =  
+applySubstitution te =  {-# SCC "applySubstitution" #-}
   do gr <- lookupChart te
      let -- tesem = tsemantics te
          -- we rename tags to do a proper substitution
@@ -396,13 +396,13 @@ substitution nodes in t2 it returns ONE possible substitution (the head node)
 \begin{code}
 iapplySubst :: TagElem -> TagElem -> [(String, Flist, Flist)] -> [TagElem]
 iapplySubst _ _ []      = []
-iapplySubst te1 te2 (sn:_) = 
+iapplySubst te1 te2 (sn:_) = {-# SCC "applySubstitution" #-}
   if not (null (substnodes te1))
   then []
   else iapplySubstNode te1 te2 sn
 
 iapplySubstNode :: TagElem -> TagElem -> (String, Flist, Flist) -> [TagElem]
-iapplySubstNode te1 te2 sn@(n, fu, fd) =
+iapplySubstNode te1 te2 sn@(n, fu, fd) = {-# SCC "applySubstitution" #-}
   let isInit x = (ttype x) == Initial
       t2 = ttree te2
       -- root of t1
@@ -459,7 +459,7 @@ Note: as of 13 april 2005 - only uses ordered adjunction as described in
 \cite{kow04a}
 \begin{code}
 applyAdjunction :: TagElem -> MS ([TagElem])
-applyAdjunction te = do
+applyAdjunction te = {-# SCC "applyAdjunction" #-} do
    gr <- lookupChart te
    st <- get
    let -- we rename tags to do a proper adjunction
@@ -656,7 +656,7 @@ selectGiven = do
 
 \begin{code}
 dispatchNew :: [TagElem] -> MS () 
-dispatchNew l = 
+dispatchNew l = {-# SCC "dispatchNew" #-}
   do -- first we seperate the results from the non results
      st <- get
      let inputSem = tsem st
@@ -802,7 +802,7 @@ bottom unification to fail.
 \begin{code}
 type TbEither = Either String (Subst, Tree GNode)
 tbUnifyTree :: TagElem -> Either String TagElem
-tbUnifyTree te =
+tbUnifyTree te = {-# SCC "tbUnifyTree" #-}
   let tryUnification :: Tree GNode -> TbEither 
       tryUnification t = foldr tbUnifyNode start flat 
         where start = Right ([], t)
@@ -889,6 +889,7 @@ each automaton.
 \begin{code}
 unpackResults :: [TagElem] ->  [B.UninflectedSentence]
 unpackResults tes =
+  {- #SCC "unpackResults" -}
   -- sentence automaton
   let treeLeaves   = map tagLeaves tes
       sentenceAuts = map listToSentenceAut treeLeaves 

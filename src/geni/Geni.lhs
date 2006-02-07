@@ -433,7 +433,7 @@ succeed in anchoring it.
 
 \begin{code}
 runLexSelection :: ProgState -> IO ([TagElem], [ILexEntry])
-runLexSelection pst = 
+runLexSelection pst = {- #SCC "runLexSelection" -}
  do -- select lexical items first 
     let (tsem,_) = ts pst
         lexicon  = le pst

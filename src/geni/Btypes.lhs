@@ -455,7 +455,7 @@ class Replacable a where
   replace :: Subst -> a -> a 
 
   replaceOne :: (String,GeniVal) -> a -> a
-  replaceOne s = replace [s]
+  replaceOne s = {-# SCC "replace" #-} replace [s]
 \end{code}
 
 GeniVal is probably the simplest thing you would one to apply a
@@ -463,8 +463,8 @@ substitution on
 
 \begin{code}
 instance Replacable GeniVal where
-  replace sl v = foldl' (flip replaceOne) v sl
-  replaceOne (s1,s2) v = if (v == GVar s1) then s2 else v
+  replace sl v = {-# SCC "replace" #-} foldl' (flip replaceOne) v sl
+  replaceOne (s1,s2) v = {-# SCC "replace" #-} if (v == GVar s1) then s2 else v
 \end{code}
 
 Substitution on list consists of performing substitution on 
@@ -473,8 +473,8 @@ of course.
 
 \begin{code}
 instance (Replacable a => Replacable [a]) where
-  replace s    = map (replace s) 
-  replaceOne s = map (replaceOne s)
+  replace s    = {-# SCC "replace" #-} map (replace s)
+  replaceOne s = {-# SCC "replace" #-} map (replaceOne s)
 \end{code}
 
 Substitution on an attribute/value pairs consists of ignoring
@@ -482,7 +482,7 @@ the attribute and performing substitution on the value.
 
 \begin{code}
 instance (Replacable a => Replacable (String, a)) where
-  replace s (a,v) = (a, replace s v)
+  replace s (a,v) = {-# SCC "replace" #-} (a, replace s v)
 \end{code}
 
 \subsection{Idable}
@@ -505,7 +505,7 @@ why we want this.
 
 \begin{code}
 alphaConvert :: (Collectable a, Replacable a, Idable a) => a -> a
-alphaConvert x =
+alphaConvert x = {-# SCC "alphaConvert" #-}
   let vars   = Set.elems $ collect x Set.empty
       suffix = "-" ++ (show $ idOf x)
       convert v = GVar (v ++ suffix)
@@ -725,6 +725,7 @@ unification. It makes the following assumptions:
 \begin{code}
 unifyFeat :: Flist -> Flist -> Maybe (Flist, Subst)
 unifyFeat f1 f2 = 
+  {-# SCC "unification" #-}
   do let (att, val1, val2) = alignFeat f1 f2
      (res, subst) <- unify val1 val2 
      return (zip att res, subst)
@@ -817,6 +818,7 @@ unify [] l2 = Just (l2, [])
 unify l1 [] = Just (l1, [])
 
 unify (h1:t1) (h2:t2) =
+  {-# SCC "unification" #-}
   let sect = intersect (fromGConst h1) (fromGConst h2)
       unifyval
         | (isAnon h1) = sansrep    h2
