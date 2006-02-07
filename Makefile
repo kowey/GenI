@@ -1,43 +1,41 @@
 #-o vim: set noexpandtab:
 
 # Useful commands
-# - make         compiles your project 
-# - make doc     compiles your documentation 
+# - make         compiles your project
+# - make doc     compiles your documentation
 # - make tidy    removes all intermediary tex files (like *.aux)
 # - make clean   removes all compiled files (like *.pdf, *.aux)
 # - make release creates a tarball that you can give to others
 
 # --------------------------------------------------------------------
-# configuration 
+# configuration
 # --------------------------------------------------------------------
 
 # include this file if configure had been run
 # see the $(config_file) target to make it complain
 config_file:=config/config.mk
 ifneq '$(wildcard $(config_file))' ''
-include $(config_file) 
+include $(config_file)
 endif
 
-# i know, i know, i should be using autotools... 
+# i know, i know, i should be using autotools...
 # but *whine* it's so hard!
 OS:=$(shell uname)
 
 SRC_GENI 	= ./src/geni
-GHCFLAGS        = $(LDFLAGS) -cpp -fglasgow-exts -threaded -O
-ifeq ($(OS),Darwin)
-#GHCFLAGS += -framework AppKit -framework Cocoa -framework Carbon -framework IOKit 
-endif
 
+GHC             = ghc
 #-O
 GHCINCLUDE      = -i$(SRC_GENI) -i$(SRC_GENI)/simple -i$(SRC_GENI)/cky
 #:$(HXMLDIR)/hparser:$(HXMLDIR)/hdom
-GHCPACKAGES     = 
+GHCPACKAGES     =
 #-package HaXml
-GHCPACKAGES_GUI = -package wx $(GHCPACKAGES) 
-GHC             = ghc $(GHCFLAGS) $(GHCINCLUDE)
-GHC_PROF	= $(GHC) -prof -auto-all -hisuf p_hi -osuf p_o 
+GHCPACKAGES_GUI = -package wx $(GHCPACKAGES)
 
-SOFTWARE        = Geni 
+GHCFLAGS        = $(LDFLAGS) -W -cpp -fglasgow-exts -threaded -O $(GHCINCLUDE)
+GHCFLAGS_PROF   = $(GHCFLAGS) -prof -hisuf p_hi -osuf p_o -DDISABLE_GUI
+
+SOFTWARE        = Geni
 SOFTVERS        = $(SOFTWARE)-$(VERSION)
 
 TO_INSTALL=geni xmgGeni runXMGselector runXMGfilter
@@ -52,30 +50,30 @@ DATE:=$(shell date +%Y-%m-%d)
 #   MAKE_DOCS=foo/bar.pdf foo/other.pdf baz/filename.pdf
 # If you are making slides instead of documents, you should
 # uncomment and modify the MAKE_SLIDES variable.
-MAKE_DOCS = src/geni/genidoc.pdf 
+MAKE_DOCS = src/geni/genidoc.pdf
 
 # -- Latex or Pdflatex? (pdflatex by default) --
-# If you use latex instead of pdflatex, you should change the line 
+# If you use latex instead of pdflatex, you should change the line
 # below as well as uncommenting DVIPDF
 LATEX=pdflatex
 # LATEX=latex
 
 # -- dvipdf --     (currently off because we use pdflatex)
 # If you use latex instead of pdflatex, you should uncomment
-# DVIPDF 
+# DVIPDF
 DVIPDF_CMD=dvips `basename $< .tex`.dvi -o `basename $< .tex`.ps;\
 	ps2pdf `basename $< .tex`.ps
 #DVIPDF=$(DVIPDF_CMD)
 
 # -- bibtex --     (currently on)
-# If you use BibTeX you should uncomment 
+# If you use BibTeX you should uncomment
 BIBTEX_CMD=$(LATEX) `basename $<` &&\
 	   bibtex `basename $< .tex`;
 BIBTEX=$(BIBTEX_CMD)
 
 
 # --------------------------------------------------------------------
-# source stuff 
+# source stuff
 # --------------------------------------------------------------------
 
 SCRIPT_FILES = bin/runXMGselector\
@@ -102,7 +100,7 @@ DOC_DIR = doc
 HADDOCK_OUT = $(DOC_DIR)/api
 
 ifeq ($(OS),Darwin)
-OS_SPECIFIC_STUFF = cd bin; ../etc/macstuff/macosx-app geni 
+OS_SPECIFIC_STUFF = cd bin; ../etc/macstuff/macosx-app geni
 endif
 
 
@@ -121,7 +119,7 @@ SOURCE_HSPP  := $(SOURCE_HSPP_1) $(SOURCE_HSPP_2)
 	haddock
 
 # --------------------------------------------------------------------
-# main targets 
+# main targets
 # --------------------------------------------------------------------
 
 normal: compile
@@ -131,7 +129,7 @@ release: compile docs html tidy tarball
 doc:  permissions $(MAKE_DOCS) haddock
 	cp $(MAKE_DOCS) $(DOC_DIR)
 
-docs: doc 
+docs: doc
 html: $(MAKE_HTML)
 
 tarball:
@@ -160,7 +158,7 @@ $(config_file):
 	@exit 1
 
 # --------------------------------------------------------------------
-# compilation 
+# compilation
 # --------------------------------------------------------------------
 
 compile: permissions $(OFILE) $(EOFILE)
@@ -168,26 +166,27 @@ compile: permissions $(OFILE) $(EOFILE)
 extractor: $(EOFILE)
 
 $(OFILE) : $(SOURCE_FILES)
-	$(GHC) -W --make $(GHCPACKAGES_GUI) $(IFILE).lhs -o $(OFILE)
+	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES_GUI) $(IFILE).lhs -o $(OFILE)
 	$(OS_SPECIFIC_STUFF)
 
-$(COFILE) : $(SOURCE_FILES)
-	$(GHC) -W --make $(GHCPACKAGES) $(CIFILE).lhs -o $(COFILE) 
+$(COFILE) : $(CIFILE).lhs $(SOURCE_FILES)
+	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES) $< -o $@
 	$(OS_SPECIFIC_STUFF)
 
-$(EOFILE) : $(SOURCE_FILES)
-	$(GHC) -W --make $(GHCPACKAGES) $(EIFILE).lhs -o $(EOFILE) 
+$(EOFILE) : $(EIFILE).lhs $(SOURCE_FILES)
+	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES) $< -o $@
 
-nogui : permissions 
-	$(GHC) -W --make -DDISABLE_GUI $(GHCPACKAGES) $(IFILE).lhs -o $(OFILE) 
+nogui : permissions
+	$(GHC) $(GHCFLAGS) --make -DDISABLE_GUI $(GHCPACKAGES) $(IFILE).lhs -o $(OFILE)
 	$(OS_SPECIFIC_STUFF)
 
-debugger: permissions
-	$(GHC_PROF) --make $(DIFILE).lhs -o debugger-$(OFILE)
-#	$(GHC) -O -prof -auto-all --make $(CIFILE).lhs -o debugger-$(COFILE)
+debugger: bin/debugger-geni
+
+bin/debugger-geni: $(SRC_GENI)/Main.lhs permissions
+	$(GHC) $(GHCFLAGS_PROF) $(GHCPACKAGES) --make $< -o $@
 
 # --------------------------------------------------------------------
-# installing 
+# installing
 # --------------------------------------------------------------------
 
 # FIXME handling of macosx stuff very ugly?
@@ -203,11 +202,11 @@ uninstall:
 	$(foreach file,$(TO_INSTALL), $(RM) $(BINDIR)/$(file) &&)\
 	:
 ifeq ($(OS),Darwin)
-	$(RM) -R $(BINDIR)/geni.app 
+	$(RM) -R $(BINDIR)/geni.app
 endif
 
 # --------------------------------------------------------------------
-# documentation 
+# documentation
 # --------------------------------------------------------------------
 
 DOC_SRC=$(SRC_GENI)/*.lhs
