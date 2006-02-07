@@ -50,6 +50,7 @@ import Polarity
 import SimpleBuilder 
   ( simpleBuilder, setup, SimpleStatus, genconfig 
   , theResults, theAgenda, theAuxAgenda, theChart, theTrash)
+import Statistics ( Statistics, showFinalStats )
 \end{code}
 }
 
@@ -78,8 +79,8 @@ consists of various tabs for intermediary results in lexical
 selection, derived trees, derivation trees and generation statistics.
 
 \begin{code}
-resultsGui :: ProgStateRef -> ([String], SimpleStatus) -> IO () 
-resultsGui pstRef (sentences, st) = 
+resultsGui :: ProgStateRef -> ([String], Statistics, SimpleStatus) -> IO ()
+resultsGui pstRef (sentences, stats, st) =
  do -- results window
     f <- frame [ text := "Results" 
                , fullRepaintOnResize := False 
@@ -91,7 +92,7 @@ resultsGui pstRef (sentences, st) =
     -- realisations tab
     resTab <- realisationsGui pstRef nb (theResults st)
     -- statistics tab
-    statTab <- statsGui nb (showRealisations sentences)
+    statTab <- statsGui nb (showRealisations sentences) stats
     -- pack it all together 
     set f [ layout := container p $ column 0 [ tabs nb 
           -- we put the realisations tab last because of what
@@ -107,16 +108,20 @@ resultsGui pstRef (sentences, st) =
 handy button for saving results to a text file.
 
 \begin{code}
-statsGui :: (Window a) -> String -> IO Layout 
-statsGui f msg = 
+statsGui :: (Window a) -> String -> Statistics -> IO Layout
+statsGui f msg stats =
   do p <- panel f []
-     -- sw <- scrolledWindow p [scrollRate := sz 10 10 ]
      t  <- textCtrl p [ text := msg, enabled := False ]
+     statsTxt <- staticText p [ text := showFinalStats stats ]
+     --
      saveBt <- button p [ text := "Save to file" 
                         , on command := saveCmd ]
-     return (fill $ container p $ column 1 $ 
-              [ fill $ widget t,
-                hfloatRight $ widget saveBt ] )
+     return $ fill $ container p $ column 1 $
+              [ hfill $ label "Performance data"
+              , hfill $ widget statsTxt
+              , hfill $ label "Realisations"
+              , fill  $ widget t
+              , hfloatRight $ widget saveBt ]
   where
     saveCmd = 
       do let filetypes = [("Any file",["*","*.*"])]

@@ -33,12 +33,13 @@ import Data.IORef(readIORef, modifyIORef)
 import General(ePutStrLn) 
 import Geni
 import Configuration
-  ( Params, isGraphical, outputFile
+  ( Params, isGraphical, outputFile, statsFile, metricsParam
   , builderType
   , BuilderType(CkyBuilder, SimpleBuilder) )
 import qualified Builder as B
 import CkyBuilder
 import SimpleBuilder
+import Statistics ( showFinalStats, Statistics )
 \end{code}
 }
 
@@ -162,16 +163,21 @@ runTestCase pstRef =
      --
      modifyIORef pstRef (\x -> x{ts = sem})
      let config = pa pst
-     sentences <- case builderType config of
-       SimpleBuilder -> helper simpleBuilder 
-       CkyBuilder    -> helper ckyBuilder 
+     (sentences, stats) <- case builderType config of
+                            SimpleBuilder -> helper simpleBuilder
+                            CkyBuilder    -> helper ckyBuilder
      -- if no output file is set, write to stdout
      let oPutStrLn = if (null pstOutfile) then putStrLn 
                      else writeFile pstOutfile 
      oPutStrLn (unlines sentences)
-  where 
-    helper :: B.Builder st it Params -> IO [String] 
+     -- print out statistical data (if available)
+     let sFile      = statsFile config
+         soPutStrLn = if (null sFile) then putStrLn else writeFile sFile
+     when (not $ null $ metricsParam config) $
+       do soPutStrLn $ "begin stats\n" ++ showFinalStats stats ++ "end"
+  where
+    helper :: B.Builder st it Params -> IO ([String], Statistics)
     helper builder =
-     do (sentences, _) <- runGeni pstRef builder        
-        return sentences
+      do (sentences, stats, _) <- runGeni pstRef builder
+         return (sentences, stats)
 \end{code}

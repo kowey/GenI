@@ -97,6 +97,9 @@ data Params = Prms{
   batchRepeat    :: Integer,
   --
   outputFile     :: String,
+  -- statistical metricts
+  metricsParam   :: [String],
+  statsFile      :: FilePath,
   -- generation sans semantics (not the usual geni mode)
   ignoreSemantics :: Bool, 
   maxTrees       :: Maybe Int -- limit on num of trees in a derived tree 
@@ -140,6 +143,8 @@ emptyParams = Prms {
   extrapol       = Map.empty,
   batchRepeat    = 1,
   outputFile     = "",
+  metricsParam   = [],
+  statsFile      = "",
   ignoreSemantics = False,
   maxTrees       = Nothing
 }
@@ -164,6 +169,7 @@ data Switch =
     GraphicalTok Bool   | 
     CmdTok String String | -- key / command 
     OutputFileTok String |
+    MetricsTok (Maybe String) | StatsFileTok String |
     IgnoreSemanticsTok Bool | MaxTreesTok String |
     BuilderTok String |
     -- grammar file
@@ -217,7 +223,11 @@ optionsBasic =
 optionsAdvanced :: [OptDescr Switch] 
 optionsAdvanced =
   [ Option ['b'] ["builder"]  (ReqArg BuilderTok "BUILDER")
-      "use as realisation engine one of: simple cky" 
+      "use as realisation engine one of: simple cky"
+  , Option []    ["metrics"] (OptArg MetricsTok "LIST")
+      "keep track of performance metrics: (default: iterations comparisons chart_size)"
+  , Option []    ["statsfile"] (ReqArg StatsFileTok "FILE")
+      "write performance data to file FILE (stdout if unset)"
   , Option []    ["xmgtools"] (NoArg (GrammarType XMGTools))
       "use XMG format for trees and GDE format for lexicon"
   , Option []    ["extrapols"] (ReqArg ExtraPolaritiesTok "STRING")
@@ -372,7 +382,11 @@ defineParams p (f:s) = defineParams pnext s
       CmdTok "select"   v -> p {selectCmd = v}
       CmdTok "view"     v -> p {viewCmd = v}
       TestCasesTok v      -> p {testCase = v }
-      -- 
+      -- performance profiling
+      MetricsTok Nothing  -> p { metricsParam = ["default"] }
+      MetricsTok (Just v) -> p { metricsParam = words v }
+      StatsFileTok v      -> p { statsFile    = v }
+      --
       GrammarType v        -> p {grammarType = v} 
       IgnoreSemanticsTok v -> p { ignoreSemantics = v 
                                 , maxTrees = case maxTrees p of

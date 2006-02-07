@@ -34,13 +34,17 @@ where
 \ignore{
 \begin{code}
 import Control.Monad.State
+import Data.Maybe ( mapMaybe, isNothing )
 
 import Automaton (NFA)
+import Configuration ( Params(metricsParam) )
 import General (geniBug)
 import Btypes    (ILexEntry, SemInput, Flist)
-import Statistics (Statistics, incrIntMetric, Metric, updateMetrics,
+import Statistics (Statistics, incrIntMetric,
+                   Metric(IntMetric), updateMetrics,
                    mergeMetrics, addIntMetrics,
                    queryMetrics, queryIntMetric,
+                   addMetric, emptyStats,
                    )
 import Tags      (TagElem)
 \end{code}
@@ -85,7 +89,6 @@ data Input =
   Input { inSemInput :: SemInput
         , inLex      :: [ILexEntry]  -- debugger
         , inCands    :: [TagElem]
-        , inMetrics  :: [Metric] -- which statistical metrics we should use
         }
 \end{code}
 
@@ -152,6 +155,34 @@ queryCounter key s =
   _   -> geniBug $ "More than one instance of the metric: " ++ key
 \end{code}
 
+\subsection{Command line configuration}
+
+\begin{code}
+initStats :: Params -> Statistics
+initStats pa =
+ let identifyMs :: [String] -> ([Metric],[String])
+     identifyMs ["default"] = identifyMs defaultMetricNames
+     identifyMs ms =
+      (mapMaybe namedMetric ms, [ m | m <- ms, (isNothing.namedMetric) m ])
+     --
+     (metrics, unknown) = identifyMs $ metricsParam pa
+ in if null unknown
+    then execState (mapM addMetric metrics) emptyStats
+    else error $ "Unknown metrics: " ++ (show unknown)
+
+namedMetric :: String -> Maybe Metric
+namedMetric n | n `elem` knownIntMetricNames = Just $ IntMetric n 0
+namedMetric _ = Nothing
+
+-- Note that the strings here are command-line strings, not metric names!
+defaultMetricNames :: [ String ]
+defaultMetricNames = [ num_iterations, chart_size, num_comparisons ]
+
+-- Unlike the defaultMetrics above, the names below are metric key names.
+knownIntMetricNames :: [ String ]
+knownIntMetricNames = defaultMetricNames
+\end{code}
+
 \subsection{Common counters}
 
 These numbers allow us to keep track of how efficient our generator is
@@ -161,6 +192,6 @@ and where we are in the process (how many steps we've taken, etc)
 num_iterations, chart_size, num_comparisons :: String
 
 num_iterations  = "iterations"
-chart_size      = "chart size"
+chart_size      = "chart_size"
 num_comparisons = "comparisons"
 \end{code}

@@ -44,7 +44,7 @@ where
 \begin{code}
 import Control.Monad (when, guard, filterM)
 
-import Control.Monad.State (State, get, put, runState, execState, execStateT)
+import Control.Monad.State (State, get, put, runState, execStateT)
 
 import Data.List (intersect, partition, delete, sort, nub, (\\))
 import Data.Maybe (catMaybes)
@@ -91,9 +91,7 @@ import Tags (TagElem, TagSite, TagDerivation,
 import Configuration 
 import General (BitVector, fst3, mapTree)
 import Polarity
-import Statistics 
-  ( Statistics, emptyStats, addMetric,
-  ) 
+import Statistics (Statistics)
 \end{code}
 }
 
@@ -232,7 +230,6 @@ initSimpleBuilder input config =
   let cands = B.inCands input
       ts    = fst $ B.inSemInput input
       (a,i) = partition closedAux cands 
-      metrics = B.inMetrics input
       --
       nullSemCands   = [ idname t | t <- cands, (null.tsemantics) t ] 
       unInstSemCands = [ idname t | t <- cands, not $ Set.null $ collect (tsemantics t) Set.empty ]
@@ -250,10 +247,9 @@ initSimpleBuilder input config =
                , step     = Initial
                , gencounter = toInteger $ length cands
                , genconfig  = config }
-      initStats = execState (mapM addMetric metrics) emptyStats
       --
   in if (null semanticsErr || ignoreSemantics config)
-        then (initS, initStats)
+        then (initS, B.initStats config)
         else error semanticsErr 
 
 type MS a = B.BuilderState SimpleStatus a

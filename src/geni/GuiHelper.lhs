@@ -58,7 +58,6 @@ import Automaton (states)
 import qualified Builder as B
 import Builder (queryCounter, num_iterations, chart_size, num_comparisons)
 import Polarity (PolAut)
-import Statistics (Metric(IntMetric))
 \end{code}
 }
 
@@ -269,12 +268,8 @@ debuggerPanel builder gvInitial stateToGv itemBar f config input cachedir =
         nextStep    = B.step  builder 
         allSteps    = B.stepAll builder 
         --
-    let (initS, initStats) = initBuilder input2 config
-        input2  = input { B.inMetrics = metrics }
-        metrics = [ IntMetric num_iterations 0
-                  , IntMetric num_comparisons 0
-                  , IntMetric chart_size 0 ]
-        --
+    let (initS, initStats) = initBuilder input config2
+        config2 = config { metricsParam = B.defaultMetricNames }
         (items,labels) = stateToGv initS 
     p <- panel f []      
     -- ---------------------------------------------------------

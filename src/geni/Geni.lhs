@@ -68,6 +68,7 @@ import Btypes (Macros, MTtree, ILexEntry, Lexicon,
                pidname, pfamily, pfeat, ptype, psemantics,
                setLexeme, tree, unifyFeat)
 
+import Statistics (Statistics)
 import Tags (Tags, TagElem, emptyTE, TagSite, 
              idname, ttreename,
              derivation, ttype, tsemantics, ttree, tsempols,
@@ -313,11 +314,11 @@ parsed your input semantics, and performs the following four steps:
 \item It finalises the results (morphological generation)
 \end{enumerate}
 
-It returns a list of sentences as a well as the final builder state.  This 
-final state is useful for displaying debug information.
+It returns a list of sentences, a set of Statistics, and the generator state.
+The generator state is mostly useful for debugging via the graphical interface.
 
 \begin{code}
-runGeni :: ProgStateRef -> B.Builder st it Params -> IO ([String], st)
+runGeni :: ProgStateRef -> B.Builder st it Params -> IO ([String], Statistics, st)
 runGeni pstRef builder = 
   do let run    = B.run builder
          unpack = B.unpack builder
@@ -327,12 +328,12 @@ runGeni pstRef builder =
      pst <- readIORef pstRef
      let config  = pa pst
          -- step 2 
-         finalSt = fst $ run initStuff config
+         (finalSt, stats) = run initStuff config
          -- step 3
          uninflected = unpack finalSt
      -- step 4
      sentences <- finaliseResults pstRef uninflected 
-     return (sentences, finalSt)
+     return (sentences, stats, finalSt)
 \end{code}
 
 % --------------------------------------------------------------------
@@ -361,7 +362,6 @@ initGeni pstRef =
           { B.inSemInput = (tsem2, tres)
           , B.inLex   = lexonly 
           , B.inCands = cand
-          , B.inMetrics = []
           }
     return initStuff 
 \end{code}

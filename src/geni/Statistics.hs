@@ -33,6 +33,7 @@ module Statistics(Statistics, StatisticsState, StatisticsStateIO,
     emptyStats,
 
     printOutAllMetrics, printOutAllMetrics', printOutInspectionMetrics,
+    showFinalStats,
 
     initialStatisticsStateFor,
     addMetric, addInspectionMetric, setPrintOutInterval,
@@ -140,6 +141,9 @@ printOutList ms = unless ( null ms ) $ do
                           putStr $ concat $ intersperse separator $ map show ms
                           putStr separator
                           putStr "end\n"
+
+showFinalStats :: Statistics -> String
+showFinalStats stats = unlines $ map show $ metrics stats
 
 --------------------------------------------
 -- Metrics
