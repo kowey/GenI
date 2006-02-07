@@ -40,7 +40,7 @@ import Data.List  ( find, intersperse )
 import Data.Maybe ( catMaybes  )
 import Text.ParserCombinators.Parsec ( runParser )
 
-import General ( geniBug, fst3, snd3, wordsBy, Interval ) 
+import General ( geniBug, fst3, snd3, Interval )
 import GeniParsers ( geniPolarities )
 \end{code}
 }
@@ -205,13 +205,13 @@ optionsBasic =
   , Option ['s'] ["testsuite"] (ReqArg TestSuiteTok "FILE") 
       "test suite FILE"
   , Option []    ["rootcats"] (ReqArg RootCategoriesTok "LIST")
-      ("root categories LIST (for polarities, default:" 
-       ++ (concat $ intersperse "+" $ rootCatsParam emptyParams) 
+      ("root categories 'LIST' (for polarities, default:"
+       ++ (unwords $ rootCatsParam emptyParams)
        ++ ")")
   , Option ['o'] ["output"] (ReqArg OutputFileTok "FILE")
       "output file FILE (stdout if unset)"
   , Option []    ["opts"] (ReqArg OptimisationsTok "LIST")
-      "optimisations LIST (--help for details)"
+      "optimisations 'LIST' (--help for details)"
   ]
     
 optionsAdvanced :: [OptDescr Switch] 
@@ -253,8 +253,8 @@ concise form what optimisations she used.
 optimisationCodes :: [(Switch,String,String)]
 optimisationCodes = 
  [ (PolarisedTok   , "p",      "polarity filtering")
- , (PolOptsTok  , "pol",    "equivalent to +p+a+s+c")
- , (AdjOptsTok  , "adj",    "equivalent to +S+F")
+ , (PolOptsTok  , "pol",    "equivalent to 'p a c'")
+ , (AdjOptsTok  , "adj",    "equivalent to 'S F'")
  , (PolSigTok      , "s",      "polarity signatures")
  , (ChartSharingTok, "c",      "chart sharing")
  , (SemFilteredTok , "S",      "semantic filtering")
@@ -274,7 +274,7 @@ treatArgs argv = do
          " geni --gui -m examples/ej/mac -l examples/ej/lexicon -s examples/ej/suite\n"
        usage    = usageInfo header optionsBasic ++ "\n\n" ++usageExample
        usageAdv = usage 
-                  ++ usageInfo "Advanced options (note: all LIST are + delimited)" optionsAdvanced 
+                  ++ usageInfo "Advanced options (note: all LIST are space delimited)" optionsAdvanced
                   ++ optimisationsUsage
                   ++ "\n\n" ++ usageExample
    case getOpt Permute options argv of
@@ -300,7 +300,7 @@ optimisationsUsage =
                    Nothing -> geniBug $ "code" ++ show k ++ "not found in optimisationsUsage"
   in "\n" 
      ++ "List of optimisations.\n"
-     ++ "(ex: --opt=+f+s for foot constraints and semantic filters)\n"
+     ++ "(ex: --opt='f s' for foot constraints and semantic filters)\n"
      ++ "\n"
      ++ "Polarity optimisations:\n"
      ++ "  " ++ unlinesTab (map getstr polopts) ++ "\n\n"
@@ -317,7 +317,7 @@ recognise.
 \begin{code}
 parseOptimisations :: String -> [Switch] 
 parseOptimisations str = 
-  let codes = wordsBy '+' str 
+  let codes = words str
   in  catMaybes (map lookupOptimisation codes)
 
 lookupOptimisation :: String -> Maybe Switch
@@ -366,7 +366,7 @@ defineParams p (f:s) = defineParams pnext s
       BuilderTok "simple" -> p { builderType = SimpleBuilder }
       BuilderTok v        -> error ("unknown builder: " ++ v)
       -- advanced stuff
-      RootCategoriesTok v -> p {rootCatsParam = wordsBy '+' v}
+      RootCategoriesTok v -> p {rootCatsParam = words v}
       MorphInfoTok v      -> p {morphFile   = v}
       CmdTok "morph"    v -> p {morphCmd  = v}
       CmdTok "select"   v -> p {selectCmd = v}
