@@ -44,7 +44,7 @@ where
 \begin{code}
 import Control.Monad (when, guard, filterM)
 
-import Control.Monad.State (State, get, put, runState)
+import Control.Monad.State (State, get, put, runState, execStateT)
 
 import Data.List (intersect, partition, delete, sort, nub, (\\))
 import Data.Maybe (catMaybes)
@@ -88,6 +88,7 @@ import Tags (TagElem, TagSite, TagDerivation,
 import Configuration 
 import General (BitVector, fst3, mapTree)
 import Polarity
+import Statistics (Statistics, emptyStats) 
 \end{code}
 }
 
@@ -130,15 +131,19 @@ run input config =
       -- combos = polarity automaton paths 
       combos  = fst (setup input config)
       --
-      nullSt = initSt [] 
-      finalStates = map (snd.generate.initSt) combos
-        where generate = runState stepAll 
-      initSt c = init (input { B.inCands = c }) config
+      (nullSt,_)  = subInit [] 
+      --
+      (finalStates, _) = unzip $ map generate combos
+        where generate c = 
+               let (iSt, iStats) = subInit c
+               in  runState (execStateT stepAll iSt) iStats
+      subInit c = init (input { B.inCands = c }) config
       -- WARNING: will not work with packing!
       mergeSt st1 st2 = 
         st1 { genstats   = B.addGstats (genstats st1) (genstats st2)
             , theResults = (theResults st1) ++ (theResults st2) }
-  in foldr mergeSt nullSt finalStates 
+  -- FIXME: will have to update the stats later)
+  in (foldr mergeSt nullSt finalStates, emptyStats)
 \end{code}
 
 \fnlabel{setup} is one of the substeps of run (so unless you are a
@@ -221,7 +226,7 @@ data SimpleStatus = S
 \paragraph{initSimpleBuilder} Creates an initial SimpleStatus.  
 
 \begin{code}
-initSimpleBuilder ::  B.Input -> Params -> SimpleStatus
+initSimpleBuilder ::  B.Input -> Params -> (SimpleStatus, Statistics)
 initSimpleBuilder input config = 
   let cands = B.inCands input
       ts    = fst $ B.inSemInput input
@@ -234,20 +239,21 @@ initSimpleBuilder input config =
       semanticsErr   = (if null nullSemCands then "" else nullSemErr ++ "\n") ++ 
                        (if null unInstSemCands then "" else unInstSemErr) 
       --
+      initS = S{ theAgenda    = i
+               , theAuxAgenda = a
+               , theChart     = []
+               , theTrash     = []
+               , theResults   = []
+               , tsem     = ts
+               , step     = Initial
+               , gencounter = toInteger $ length cands
+               , genconfig  = config
+               , genstats   = B.initGstats}
   in if (null semanticsErr || ignoreSemantics config)
-        then S{ theAgenda    = i
-              , theAuxAgenda = a
-              , theChart     = []
-              , theTrash     = []
-              , theResults   = []
-              , tsem     = ts
-              , step     = Initial
-              , gencounter = toInteger $ length cands
-              , genconfig  = config
-              , genstats   = B.initGstats}
+        then (initS, emptyStats)
         else error semanticsErr 
 
-type MS = State SimpleStatus
+type MS a = B.BuilderState SimpleStatus a
 \end{code}
 
 \subsubsection{SimpleStatus updaters}

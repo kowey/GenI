@@ -34,7 +34,7 @@ import Control.Monad
   (unless, foldM)
 
 import Control.Monad.State 
-  (State, get, put, liftM, runState, execState )
+  (State, get, put, liftM, runState, execStateT )
 import Data.Bits ( (.&.), (.|.), bit )
 import Data.List ( find, intersperse, span, (\\) )
 import qualified Data.Map as Map
@@ -63,6 +63,7 @@ import General
   ( combinations, treeLeaves, BitVector, showBitVector, geniBug )
 import Polarity 
   ( automatonPaths, buildAutomaton, detectPolPaths, lookupAndTweak  )
+import Statistics ( emptyStats, Statistics )
 import Tags 
   (TagElem, TagSite, 
    idname, 
@@ -103,7 +104,7 @@ data BuilderStatus = S
     , genAutCounter :: Integer -- allocation of node numbers
     } 
 
-type BState = State BuilderStatus 
+type BState a = B.BuilderState BuilderStatus a
 
 ckyBuilder = B.Builder 
   { B.init = initBuilder
@@ -143,7 +144,8 @@ run input config =
       cands   = fst (setup input config)
       input2  = input { B.inCands = cands }
       --
-  in snd $ runState stepAll $ init input2 config
+      (iSt, iStats) = init input2 config
+  in runState (execStateT stepAll iSt) iStats 
 \end{code}
 
 \fnlabel{setup} is one of the substeps of run (so unless you are a
@@ -175,7 +177,7 @@ setup input config =
 \paragraph{initBuilder} Creates an initial Builder.  
 
 \begin{code}
-initBuilder :: B.Input -> Params -> BuilderStatus 
+initBuilder :: B.Input -> Params -> (BuilderStatus, Statistics)
 initBuilder input config = 
   let (sem, _) = B.inSemInput input
       bmap  = defineSemanticBits sem
@@ -191,7 +193,7 @@ initBuilder input config =
        , genAutCounter = 0
        , genconfig  = config
        , genstats   = B.initGstats}
-  in execState (mapM dispatchNew cands) initS
+  in runState (execStateT (mapM dispatchNew cands) initS) emptyStats
   
 initTree :: SemBitMap -> TagElem -> [ChartItem]
 initTree bmap te = 

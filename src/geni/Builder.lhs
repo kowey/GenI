@@ -37,6 +37,7 @@ import Control.Monad.State
 
 import Automaton (NFA)
 import Btypes    (ILexEntry, SemInput, Flist)
+import Statistics (Statistics)
 import Tags      (TagElem)
 \end{code}
 }
@@ -56,11 +57,11 @@ All backends provide the same essential functionality:
 
 \begin{code}
 data Builder st it pa = Builder
-  { init     :: Input -> pa -> st
+  { init     :: Input -> pa -> (st, Statistics)
   --
-  , step     :: State st ()
-  , stepAll  :: State st ()
-  , run      :: Input -> pa -> st 
+  , step     :: BuilderState st ()
+  , stepAll  :: BuilderState st ()
+  , run      :: Input -> pa -> (st, Statistics)
   --
   , finished :: st -> Bool
   , stats    :: st -> Gstats
@@ -90,7 +91,7 @@ data Input =
 Builder's \fnlabel{stepAll} function.
 
 \begin{code}
-defaultStepAll :: Builder st it pa -> (State st ())
+defaultStepAll :: Builder st it pa -> BuilderState st ()
 defaultStepAll b = 
  do s <- get
     unless (finished b s) $ 
@@ -115,6 +116,16 @@ type UninflectedWord        = (String, Flist)
 type UninflectedSentence    = [ UninflectedWord ] 
 type UninflectedDisjunction = ([String], Flist)
 type SentenceAut            = NFA Int UninflectedWord 
+\end{code}
+
+\section{BuilderState}
+
+To cleanly seperate the tracking of statistics from the core functionality of a
+builder, we use a State transformer to thread a Statistics state monad inside of
+our main monad.
+
+\begin{code}
+type BuilderState s a = StateT s (State Statistics) a
 \end{code}
 
 \section{Statistics}
@@ -152,22 +163,22 @@ avgGstats lst =
  where s = foldr addGstats initGstats lst
        len = length lst
 
-modifyStats :: Builder st it pa -> (Gstats -> Gstats) -> State st ()
+modifyStats :: Builder st it pa -> (Gstats -> Gstats) -> BuilderState st ()
 modifyStats b fn =
  do s <- get
     let oldstats = stats b s
         newstats = fn oldstats
     put (setStats b newstats s)
 
-incrGeniter :: Builder st it pa -> Int -> State st ()
-incrGeniter b n = 
+incrGeniter :: Builder st it pa -> Int -> BuilderState st ()
+incrGeniter b n =
   modifyStats b (\s -> s { geniter = (geniter s) + n } )
-    
-incrSzchart :: Builder st it pa -> Int -> State st ()
+
+incrSzchart :: Builder st it pa -> Int -> BuilderState st ()
 incrSzchart b n = do
   modifyStats b (\s -> s { szchart = (szchart s) + n } )
 
-incrNumcompar :: Builder st it pa -> Int -> State st ()
+incrNumcompar :: Builder st it pa -> Int -> BuilderState st ()
 incrNumcompar b n = do
   modifyStats b (\s -> s { numcompar = (numcompar s) + n })
 \end{code}

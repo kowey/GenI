@@ -327,7 +327,7 @@ runGeni pstRef builder =
      pst <- readIORef pstRef
      let config  = pa pst
          -- step 2 
-         finalSt = run initStuff config
+         finalSt = fst $ run initStuff config
          -- step 3
          uninflected = unpack finalSt
      -- step 4

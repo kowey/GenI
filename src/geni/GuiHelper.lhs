@@ -30,7 +30,7 @@ import Graphics.UI.WX
 import Graphics.UI.WXCore
 
 import qualified Control.Monad as Monad 
-import Control.Monad.State ( runState ) 
+import Control.Monad.State ( execStateT, runState ) 
 import qualified Data.Map as Map
 
 import Data.Array
@@ -269,7 +269,7 @@ debuggerPanel builder gvInitial stateToGv itemBar f config input cachedir =
         genstats    = B.stats builder
         --
     let initSt  = initBuilder input config 
-        (items,labels) = stateToGv initSt 
+        (items,labels) = stateToGv $ fst initSt 
     p <- panel f []      
     -- ---------------------------------------------------------
     -- item viewer: select and display an item
@@ -295,27 +295,27 @@ debuggerPanel builder gvInitial stateToGv itemBar f config input cachedir =
         txtStats   gs =  "itr " ++ (show $ B.geniter gs) ++ " " 
                       ++ "chart sz: " ++ (show $ B.szchart gs) 
                       ++ "\ncomparisons: " ++ (show $ B.numcompar gs)
-    let genStep _ st = snd $ runState nextStep st
+    let genStep _ (st,stats) = runState (execStateT nextStep st) stats
     let showNext s = 
           do leapTxt <- get leapVal text
              let leapInt = read leapTxt
                  s2 = foldr genStep s [1..leapInt]
-             setGvDrawables2 gvRef (stateToGv s2)
+             setGvDrawables2 gvRef (stateToGv $ fst s2)
              setGvSel gvRef 1
              updaterFn
-             updateStatsTxt (genstats s2)
+             updateStatsTxt (genstats $ fst s2)
              set nextBt [ on command :~ (\_ -> showNext s2) ]
     let showLast = 
           do -- redo generation from scratch
-             let s = snd $ runState manySteps initSt 
-             setGvDrawables2 gvRef (stateToGv s)
+             let (iS, iStats) = initSt
+             let s = runState (execStateT manySteps iS) iStats 
+             setGvDrawables2 gvRef (stateToGv $ fst s)
              updaterFn
-             updateStatsTxt (genstats s)
+             updateStatsTxt (genstats $ fst s)
     let showReset = 
-          do let st  = initSt 
-             set nextBt   [ on command  := showNext st ]
+          do set nextBt   [ on command  := showNext initSt ]
              updateStatsTxt (B.initGstats)
-             setGvDrawables2 gvRef (stateToGv st)
+             setGvDrawables2 gvRef (stateToGv $ fst initSt)
              setGvSel gvRef 1
              updaterFn
     -- dashboard handlers
