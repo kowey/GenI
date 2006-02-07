@@ -223,8 +223,8 @@ ckyItemBar f gvRef updaterFn =
 
 \begin{code}
 instance GraphvizShow CkyDebugParams (BuilderStatus, ChartItem) where
-  graphvizLabel  f (s,c) = graphvizLabel f c
-  graphvizParams f (s,c) = graphvizParams f c
+  graphvizLabel  f (_,c) = graphvizLabel f c
+  graphvizParams f (_,c) = graphvizParams f c
   graphvizShowAsSubgraph f p (s,c) = 
    let color x = ("color", x)
        label x = ("label", x)
@@ -305,7 +305,7 @@ toTagElem ci =
 -- FIXME: this is largely copy-and-pasted from Polarity.lhs 
 -- it should be refactored later
 instance GraphvizShow () B.SentenceAut where
-  graphvizShowAsSubgraph f prefix aut =
+  graphvizShowAsSubgraph _ prefix aut =
    let st  = (concat.states) aut
        ids = map (\x -> prefix ++ show x) [0..]
        -- map which permits us to assign an id to a state
