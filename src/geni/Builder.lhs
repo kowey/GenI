@@ -84,7 +84,9 @@ structure which represents all the inputs a backend could take.
 data Input = 
   Input { inSemInput :: SemInput
         , inLex      :: [ILexEntry]  -- debugger
-        , inCands    :: [TagElem] }
+        , inCands    :: [TagElem]
+        , inMetrics  :: [Metric] -- which statistical metrics we should use
+        }
 \end{code}
 
 \section{Using builders}

@@ -30,7 +30,7 @@ import Graphics.UI.WX
 import Graphics.UI.WXCore
 
 import qualified Control.Monad as Monad 
-import Control.Monad.State ( execStateT, runState, execState ) 
+import Control.Monad.State ( execStateT, runState )
 import qualified Data.Map as Map
 
 import Data.Array
@@ -58,7 +58,7 @@ import Automaton (states)
 import qualified Builder as B
 import Builder (queryCounter, num_iterations, chart_size, num_comparisons)
 import Polarity (PolAut)
-import Statistics (addMetric, Metric(IntMetric))
+import Statistics (Metric(IntMetric))
 \end{code}
 }
 
@@ -269,11 +269,11 @@ debuggerPanel builder gvInitial stateToGv itemBar f config input cachedir =
         nextStep    = B.step  builder 
         allSteps    = B.stepAll builder 
         --
-    let (initS, initStats') = initBuilder input config 
-        metrics = [ IntMetric num_iterations 0 
+    let (initS, initStats) = initBuilder input2 config
+        input2  = input { B.inMetrics = metrics }
+        metrics = [ IntMetric num_iterations 0
                   , IntMetric num_comparisons 0
                   , IntMetric chart_size 0 ]
-        initStats = execState (mapM addMetric metrics) initStats'
         --
         (items,labels) = stateToGv initS 
     p <- panel f []      

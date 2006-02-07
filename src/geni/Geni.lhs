@@ -361,6 +361,7 @@ initGeni pstRef =
           { B.inSemInput = (tsem2, tres)
           , B.inLex   = lexonly 
           , B.inCands = cand
+          , B.inMetrics = []
           }
     return initStuff 
 \end{code}
