@@ -30,7 +30,7 @@ import Graphics.UI.WX
 import Graphics.UI.WXCore
 
 import qualified Control.Monad as Monad 
-import Control.Monad.State ( execStateT, runState ) 
+import Control.Monad.State ( execStateT, runState, execState ) 
 import qualified Data.Map as Map
 
 import Data.Array
@@ -56,7 +56,9 @@ import Configuration(Params(..), GrammarType(..))
 
 import Automaton (states)
 import qualified Builder as B
+import Builder (queryCounter, num_iterations, chart_size, num_comparisons)
 import Polarity (PolAut)
+import Statistics (addMetric, Metric(IntMetric))
 \end{code}
 }
 
@@ -265,11 +267,15 @@ debuggerPanel :: (GraphvizShow flg itm)
 debuggerPanel builder gvInitial stateToGv itemBar f config input cachedir = 
  do let initBuilder = B.init  builder 
         nextStep    = B.step  builder 
-        manySteps   = B.stepAll builder 
-        genstats    = B.stats builder
+        allSteps    = B.stepAll builder 
         --
-    let initSt  = initBuilder input config 
-        (items,labels) = stateToGv $ fst initSt 
+    let (initS, initStats') = initBuilder input config 
+        metrics = [ IntMetric num_iterations 0 
+                  , IntMetric num_comparisons 0
+                  , IntMetric chart_size 0 ]
+        initStats = execState (mapM addMetric metrics) initStats'
+        --
+        (items,labels) = stateToGv initS 
     p <- panel f []      
     -- ---------------------------------------------------------
     -- item viewer: select and display an item
@@ -292,30 +298,29 @@ debuggerPanel builder gvInitial stateToGv itemBar f config input cachedir =
     statsTxt  <- staticText db []
     -- dashboard commands
     let updateStatsTxt gs = set statsTxt [ text :~ (\_ -> txtStats gs) ]
-        txtStats   gs =  "itr " ++ (show $ B.geniter gs) ++ " " 
-                      ++ "chart sz: " ++ (show $ B.szchart gs) 
-                      ++ "\ncomparisons: " ++ (show $ B.numcompar gs)
+        txtStats   gs =  "itr " ++ (show $ queryCounter num_iterations gs) ++ " " 
+                      ++ "chart sz: " ++ (show $ queryCounter chart_size gs) 
+                      ++ "\ncomparisons: " ++ (show $ queryCounter num_comparisons gs)
     let genStep _ (st,stats) = runState (execStateT nextStep st) stats
-    let showNext s = 
+    let showNext s_stats = 
           do leapTxt <- get leapVal text
              let leapInt = read leapTxt
-                 s2 = foldr genStep s [1..leapInt]
-             setGvDrawables2 gvRef (stateToGv $ fst s2)
+                 (s2,stats2) = foldr genStep s_stats [1..leapInt]
+             setGvDrawables2 gvRef (stateToGv s2)
              setGvSel gvRef 1
              updaterFn
-             updateStatsTxt (genstats $ fst s2)
-             set nextBt [ on command :~ (\_ -> showNext s2) ]
+             updateStatsTxt stats2
+             set nextBt [ on command :~ (\_ -> showNext (s2,stats2) ) ]
     let showLast = 
           do -- redo generation from scratch
-             let (iS, iStats) = initSt
-             let s = runState (execStateT manySteps iS) iStats 
-             setGvDrawables2 gvRef (stateToGv $ fst s)
+             let (s2, stats2) = runState (execStateT allSteps initS) initStats 
+             setGvDrawables2 gvRef (stateToGv s2)
              updaterFn
-             updateStatsTxt (genstats $ fst s)
+             updateStatsTxt stats2
     let showReset = 
-          do set nextBt   [ on command  := showNext initSt ]
-             updateStatsTxt (B.initGstats)
-             setGvDrawables2 gvRef (stateToGv $ fst initSt)
+          do set nextBt   [ on command  := showNext (initS, initStats) ]
+             updateStatsTxt initStats 
+             setGvDrawables2 gvRef (stateToGv initS)
              setGvSel gvRef 1
              updaterFn
     -- dashboard handlers

@@ -36,12 +36,14 @@ module Statistics(Statistics, StatisticsState, StatisticsStateIO,
 
     initialStatisticsStateFor,
     addMetric, addInspectionMetric, setPrintOutInterval,
+    mergeMetrics,
 
-    Metric,
-
+    Metric(IntMetric),  queryMetrics, updateMetrics,
+    incrIntMetric, queryIntMetric, addIntMetrics,
 ) where
 
 import Control.Monad.State
+import Data.Maybe (mapMaybe)
 import Data.List (intersperse)
 
 -------------------------------------------
@@ -59,6 +61,14 @@ type StatisticsStateIO a = forall m. (MonadState Statistics m, MonadIO m) => m a
 updateMetrics :: (Metric -> Metric) -> Statistics -> Statistics
 updateMetrics f stat = stat{metrics           = map f (metrics stat),
                             inspectionMetrics = map f (inspectionMetrics stat)}
+
+queryMetrics :: (Metric -> Maybe a) -> Statistics -> [a]
+queryMetrics f stat =  (mapMaybe f (metrics stat)) 
+                    ++ (mapMaybe f (inspectionMetrics stat))
+
+mergeMetrics :: (Metric -> Metric -> Metric) -> Statistics -> Statistics -> Statistics
+mergeMetrics f s1 s2 = s1 { metrics           = zipWith f (metrics s1) (metrics s2)
+                          , inspectionMetrics = zipWith f (inspectionMetrics s1) (inspectionMetrics s2)}
 
 updateStep :: Statistics -> Statistics
 updateStep s@(Stat _ [] _     _)         = s
@@ -142,6 +152,14 @@ instance Show Metric where
 incrIntMetric :: String -> Int -> Metric -> Metric
 incrIntMetric key i (IntMetric s c) | s == key = IntMetric s (c+i)
 incrIntMetric _ _ m = m
+
+queryIntMetric :: String -> Metric -> Maybe Int
+queryIntMetric key (IntMetric s c) | s == key = Just c
+queryIntMetric _ _ = Nothing
+
+addIntMetrics :: Metric -> Metric -> Metric
+addIntMetrics (IntMetric s1 c1) (IntMetric s2 c2) | s1 == s2 = IntMetric s1 (c1 + c2)
+addIntMetrics s1 _ = s1
 
 ratio :: Int -> Int -> Float
 ratio x y = (fromIntegral x) / (fromIntegral y)

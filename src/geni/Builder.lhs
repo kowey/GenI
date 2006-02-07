@@ -36,8 +36,12 @@ where
 import Control.Monad.State
 
 import Automaton (NFA)
+import General (geniBug)
 import Btypes    (ILexEntry, SemInput, Flist)
-import Statistics (Statistics)
+import Statistics (Statistics, incrIntMetric, Metric, updateMetrics,
+                   mergeMetrics, addIntMetrics,
+                   queryMetrics, queryIntMetric,
+                   )
 import Tags      (TagElem)
 \end{code}
 }
@@ -64,8 +68,6 @@ data Builder st it pa = Builder
   , run      :: Input -> pa -> (st, Statistics)
   --
   , finished :: st -> Bool
-  , stats    :: st -> Gstats
-  , setStats :: Gstats -> st -> st 
   , unpack   :: st -> [UninflectedSentence] }
 \end{code}
 
@@ -130,55 +132,33 @@ type BuilderState s a = StateT s (State Statistics) a
 
 \section{Statistics}
 
+\begin{code}
+addCounters :: Statistics -> Statistics -> Statistics
+addCounters = mergeMetrics addIntMetrics
+
+modifyStats :: (Metric -> Metric) -> BuilderState st ()
+modifyStats fn = lift $ modify $ updateMetrics fn
+
+incrCounter :: String -> Int -> BuilderState st ()
+incrCounter key n = modifyStats (incrIntMetric key n)
+
+queryCounter :: String -> Statistics -> Int
+queryCounter key s =
+  case queryMetrics (queryIntMetric key) s of
+  []  -> geniBug $ "No instances of the metric: " ++ key
+  [c] -> c
+  _   -> geniBug $ "More than one instance of the metric: " ++ key
+\end{code}
+
+\subsection{Common counters}
+
 These numbers allow us to keep track of how efficient our generator is
 and where we are in the process (how many steps we've taken, etc)
 
 \begin{code}
-data Gstats = Gstats {
-  szchart   :: Int,
-  numcompar :: Int,
-  geniter   :: Int
-} deriving Show
+num_iterations, chart_size, num_comparisons :: String
 
-
-initGstats :: Gstats 
-initGstats = Gstats {
-  szchart   = 0, 
-  numcompar = 0,
-  geniter   = 0
-}
-
-addGstats :: Gstats -> Gstats -> Gstats
-addGstats a b = Gstats {
-    szchart   = (szchart a) + (szchart b),
-    numcompar = (numcompar a) + (numcompar b),
-    geniter   = (geniter a) + (geniter b)
-  }
-
-avgGstats :: [Gstats] -> Gstats
-avgGstats lst = 
- s { szchart   = (szchart s) `div` len,
-     numcompar = (numcompar s) `div` len,
-     geniter   = (geniter s) `div` len }
- where s = foldr addGstats initGstats lst
-       len = length lst
-
-modifyStats :: Builder st it pa -> (Gstats -> Gstats) -> BuilderState st ()
-modifyStats b fn =
- do s <- get
-    let oldstats = stats b s
-        newstats = fn oldstats
-    put (setStats b newstats s)
-
-incrGeniter :: Builder st it pa -> Int -> BuilderState st ()
-incrGeniter b n =
-  modifyStats b (\s -> s { geniter = (geniter s) + n } )
-
-incrSzchart :: Builder st it pa -> Int -> BuilderState st ()
-incrSzchart b n = do
-  modifyStats b (\s -> s { szchart = (szchart s) + n } )
-
-incrNumcompar :: Builder st it pa -> Int -> BuilderState st ()
-incrNumcompar b n = do
-  modifyStats b (\s -> s { numcompar = (numcompar s) + n })
+num_iterations  = "iterations"
+chart_size      = "chart size"
+num_comparisons = "comparisons"
 \end{code}

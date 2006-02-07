@@ -98,7 +98,6 @@ data BuilderStatus = S
     , tsemVector :: BitVector -- the semantics in bit vector form
     , gencounter :: Integer
     , genconfig  :: Params
-    , genstats   :: B.Gstats 
     , theRules   :: [CKY_InferenceRule] 
     , theResults :: [ChartItem] 
     , genAutCounter :: Integer -- allocation of node numbers
@@ -111,8 +110,6 @@ ckyBuilder = B.Builder
   , B.step = generateStep
   , B.stepAll  = B.defaultStepAll ckyBuilder 
   , B.finished = finished -- should add check that step is aux
-  , B.stats    = genstats 
-  , B.setStats = \t s -> s { genstats = t }
   , B.unpack   = \s -> concatMap (automatonPaths.ciAut_befHole) $ theResults s
   , B.run = run
   }
@@ -191,8 +188,7 @@ initBuilder input config =
        , tsemVector    = semToBitVector bmap sem
        , gencounter    = 0 
        , genAutCounter = 0
-       , genconfig  = config
-       , genstats   = B.initGstats}
+       , genconfig  = config }
   in runState (execStateT (mapM dispatchNew cands) initS) emptyStats
   
 initTree :: SemBitMap -> TagElem -> [ChartItem]

@@ -26,14 +26,14 @@ item is a derived tree.
 \begin{code}
 module SimpleBuilder (
    -- Types
-   Agenda, AuxAgenda, Chart, SimpleStatus, MS, Gstats,
+   Agenda, AuxAgenda, Chart, SimpleStatus, MS,
 
    -- From SimpleStatus
    simpleBuilder, setup,
    theAgenda, theAuxAgenda, theChart, theTrash, theResults,
    initSimpleBuilder, 
    addToAgenda, addToChart,
-   genconfig, genstats, 
+   genconfig,
 
    getChart, getAgenda)
 where
@@ -68,7 +68,10 @@ import Btypes
   , constrainAdj
   , root, foot
   , unifyFeat, unifyFeat2)
-import Builder (Gstats, UninflectedWord, UninflectedSentence)
+import Builder (UninflectedWord, UninflectedSentence, 
+    incrCounter, num_iterations, num_comparisons, chart_size,
+    addCounters,
+    )
 import qualified Builder as B
 
 import Tags (TagElem, TagSite, TagDerivation,  
@@ -88,7 +91,9 @@ import Tags (TagElem, TagSite, TagDerivation,
 import Configuration 
 import General (BitVector, fst3, mapTree)
 import Polarity
-import Statistics (Statistics, emptyStats) 
+import Statistics 
+  ( Statistics, emptyStats,
+  ) 
 \end{code}
 }
 
@@ -101,8 +106,6 @@ simpleBuilder = B.Builder
   , B.stepAll  = B.defaultStepAll simpleBuilder
   , B.run      = run 
   , B.finished = \s -> (null.theAgenda) s && (step s == Auxiliar)
-  , B.stats    = genstats 
-  , B.setStats = \t s -> s { genstats = t } 
   , B.unpack   = unpackResults.theResults }
 \end{code}
 
@@ -131,19 +134,18 @@ run input config =
       -- combos = polarity automaton paths 
       combos  = fst (setup input config)
       --
-      (nullSt,_)  = subInit [] 
+      (nullS, nullStats)  = subInit [] 
       --
-      (finalStates, _) = unzip $ map generate combos
+      (finalS, finalStats) = unzip $ map generate combos
         where generate c = 
-               let (iSt, iStats) = subInit c
-               in  runState (execStateT stepAll iSt) iStats
+               let (iS, iStats) = subInit c
+               in  runState (execStateT stepAll iS) iStats
       subInit c = init (input { B.inCands = c }) config
       -- WARNING: will not work with packing!
       mergeSt st1 st2 = 
-        st1 { genstats   = B.addGstats (genstats st1) (genstats st2)
-            , theResults = (theResults st1) ++ (theResults st2) }
+        st1 { theResults = (theResults st1) ++ (theResults st2) }
   -- FIXME: will have to update the stats later)
-  in (foldr mergeSt nullSt finalStates, emptyStats)
+  in (foldr mergeSt nullS finalS , foldr addCounters nullStats finalStats)
 \end{code}
 
 \fnlabel{setup} is one of the substeps of run (so unless you are a
@@ -218,7 +220,6 @@ data SimpleStatus = S
   , step       :: Ptype
   , gencounter :: Integer
   , genconfig  :: Params
-  , genstats   :: Gstats
   }
   deriving Show
 \end{code}
@@ -247,8 +248,7 @@ initSimpleBuilder input config =
                , tsem     = ts
                , step     = Initial
                , gencounter = toInteger $ length cands
-               , genconfig  = config
-               , genstats   = B.initGstats}
+               , genconfig  = config }
   in if (null semanticsErr || ignoreSemantics config)
         then (initS, emptyStats)
         else error semanticsErr 
@@ -282,7 +282,7 @@ addToChart :: TagElem -> MS ()
 addToChart te = do 
   s <- get  
   put s { theChart = (iaddToChart (theChart s) te) }
-  incrSzchart 1
+  incrCounter chart_size 1
 
 addToTrash :: TagElem -> String -> MS ()
 addToTrash te err = do 
@@ -294,10 +294,6 @@ addToResults :: TagElem -> MS ()
 addToResults te = do
   s <- get
   put s { theResults = te : (theResults s) }
-
-incrGeniter = B.incrGeniter simpleBuilder
-incrSzchart = B.incrSzchart simpleBuilder
-incrNumcompar = B.incrNumcompar simpleBuilder
 \end{code}
 
 \subsubsection{SimpleStatus accessors}
@@ -384,7 +380,7 @@ applySubstitution te =  {-# SCC "applySubstitution" #-}
          rgr' = map (renameTagElem 'B') gr
          res = ((concatMap (\x -> iapplySubst rte x (substnodes   x)) rgr') ++
                 (concatMap (\x -> iapplySubst x rte (substnodes rte)) rgr'))
-     incrNumcompar (2 * (length gr)) 
+     incrCounter num_comparisons (2 * (length gr))
      return res
 \end{code}
 
@@ -484,7 +480,7 @@ applyAdjunction te = {-# SCC "applyAdjunction" #-} do
                           fn x = iapplyAdjNode isFootC x rte (head ranodes)
        --
        count   = (length gr) 
-   incrNumcompar count 
+   incrCounter num_comparisons count 
    return res
 \end{code}
 
@@ -598,7 +594,7 @@ generateStep = do
   -- state
   if (nir && curStep == Auxiliar) 
     then return () 
-    else do incrGeniter 1
+    else do incrCounter num_iterations 1
             -- this triggers exactly once in the whole process
             if nir 
                then switchToAux
