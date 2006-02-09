@@ -34,7 +34,6 @@ where
 \ignore{
 \begin{code}
 import Control.Monad.State
-import Data.Maybe ( mapMaybe, isNothing )
 
 import Automaton (NFA)
 import Configuration ( Params(metricsParam) )
@@ -160,27 +159,19 @@ queryCounter key s =
 \begin{code}
 initStats :: Params -> Statistics
 initStats pa =
- let identifyMs :: [String] -> ([Metric],[String])
+ let identifyMs :: [String] -> [Metric]
      identifyMs ["default"] = identifyMs defaultMetricNames
-     identifyMs ms =
-      (mapMaybe namedMetric ms, [ m | m <- ms, (isNothing.namedMetric) m ])
-     --
-     (metrics, unknown) = identifyMs $ metricsParam pa
- in if null unknown
-    then execState (mapM addMetric metrics) emptyStats
-    else error $ "Unknown metrics: " ++ (show unknown)
+     identifyMs ms = map namedMetric ms
+     metrics = identifyMs $ metricsParam pa
+ in execState (mapM addMetric metrics) emptyStats
 
-namedMetric :: String -> Maybe Metric
-namedMetric n | n `elem` knownIntMetricNames = Just $ IntMetric n 0
-namedMetric _ = Nothing
+namedMetric :: String -> Metric
+-- the default case is that it's an int metric
+namedMetric n = IntMetric n 0
 
 -- Note that the strings here are command-line strings, not metric names!
 defaultMetricNames :: [ String ]
 defaultMetricNames = [ num_iterations, chart_size, num_comparisons ]
-
--- Unlike the defaultMetrics above, the names below are metric key names.
-knownIntMetricNames :: [ String ]
-knownIntMetricNames = defaultMetricNames
 \end{code}
 
 \subsection{Common counters}
