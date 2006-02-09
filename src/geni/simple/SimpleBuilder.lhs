@@ -42,7 +42,7 @@ where
 
 \ignore{
 \begin{code}
-import Control.Monad (when, guard, filterM)
+import Control.Monad (when, guard, filterM, liftM)
 
 import Control.Monad.State (State, get, put, runState, execStateT)
 
@@ -377,8 +377,9 @@ applySubstitution te =  {-# SCC "applySubstitution" #-}
          -- we rename tags to do a proper substitution
          rte = renameTagElem 'A' te
          rgr' = map (renameTagElem 'B') gr
-         res = ((concatMap (\x -> iapplySubst rte x (substnodes   x)) rgr') ++
-                (concatMap (\x -> iapplySubst x rte (substnodes rte)) rgr'))
+     active  <- mapM (\x -> iapplySubst rte x (substnodes   x)) rgr'
+     passive <- mapM (\x -> iapplySubst x rte (substnodes rte)) rgr'
+     let res = concat $ active ++ passive
      incrCounter num_comparisons (2 * (length gr))
      return res
 \end{code}
@@ -389,14 +390,14 @@ substitution nodes in t2 it returns ONE possible substitution (the head node)
   we force substitution in order.
 
 \begin{code}
-iapplySubst :: TagElem -> TagElem -> [(String, Flist, Flist)] -> [TagElem]
-iapplySubst _ _ []      = []
+iapplySubst :: TagElem -> TagElem -> [(String, Flist, Flist)] -> MS [TagElem]
+iapplySubst _ _ []      = return []
 iapplySubst te1 te2 (sn:_) = {-# SCC "applySubstitution" #-}
   if not (null (substnodes te1))
-  then []
+  then return []
   else iapplySubstNode te1 te2 sn
 
-iapplySubstNode :: TagElem -> TagElem -> (String, Flist, Flist) -> [TagElem]
+iapplySubstNode :: TagElem -> TagElem -> (String, Flist, Flist) -> MS [TagElem]
 iapplySubstNode te1 te2 sn@(n, fu, fd) = {-# SCC "applySubstitution" #-}
   let isInit x = (ttype x) == Initial
       t2 = ttree te2
@@ -435,8 +436,11 @@ iapplySubstNode te1 te2 sn@(n, fu, fd) = {-# SCC "applySubstitution" #-}
                   -- tpredictors = sumPredictors (tpredictors te1) (tpredictors te2),
                   tpolpaths  = intersectPolPaths te1 te2,
                   thighlight = [gnname nr]} 
-      res = replace subst newTe 
-  in if (isInit te1 && succ1 && succ2) then [res] else []
+      res = replace subst newTe
+  in if (isInit te1 && succ1 && succ2)
+     then do incrCounter "substitutions" 1
+             return [res]
+     else return []
 \end{code}
 
 % --------------------------------------------------------------------  
@@ -469,16 +473,20 @@ applyAdjunction te = {-# SCC "applyAdjunction" #-} do
        isFootC = (footconstr.genconfig) st
        -- te2 is to account for the case where we simply don't do
        -- adjunction on that particular node
-       res = if (null ranodes) then [] else te2:applied
-                    where gn    = fst3 ahead
-                          ntree = constrainAdj gn (ttree te)
-                          te2   = te {adjnodes = atail, 
-                                      ttree = ntree,
-                                      thighlight = [gn]}
-                          applied = catMaybes $ map fn rgr'
-                          fn x = iapplyAdjNode isFootC x rte (head ranodes)
-       --
-       count   = (length gr) 
+   res <- if null ranodes then return []
+             else let gn    = fst3 ahead
+                      ntree = constrainAdj gn (ttree te)
+                      te2   = te { adjnodes = atail
+                                 , ttree = ntree
+                                 , thighlight = [gn]}
+                      tryAdj x = case iapplyAdjNode isFootC x rte (head ranodes) of
+                                  Nothing -> return Nothing
+                                  Just x  -> do incrCounter "adjunctions" 1
+                                                return $ Just x
+                  in do attempts <- catMaybes `liftM` mapM tryAdj rgr'
+                        return (te2:attempts)
+   --
+   let count   = (length gr)
    incrCounter num_comparisons count 
    return res
 \end{code}
