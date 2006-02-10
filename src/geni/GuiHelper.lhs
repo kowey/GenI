@@ -292,10 +292,13 @@ debuggerPanel builder gvInitial stateToGv itemBar f config input cachedir =
     finishBt  <- button db [text := "Continue"]
     statsTxt  <- staticText db []
     -- dashboard commands
-    let updateStatsTxt gs = set statsTxt [ text :~ (\_ -> txtStats gs) ]
-        txtStats   gs =  "itr " ++ (show $ queryCounter num_iterations gs) ++ " " 
-                      ++ "chart sz: " ++ (show $ queryCounter chart_size gs) 
-                      ++ "\ncomparisons: " ++ (show $ queryCounter num_comparisons gs)
+    let showQuery c gs = case queryCounter c gs of
+                         Nothing -> "???"
+                         Just c  -> show c
+        updateStatsTxt gs = set statsTxt [ text :~ (\_ -> txtStats gs) ]
+        txtStats   gs =  "itr " ++ (showQuery num_iterations gs) ++ " "
+                      ++ "chart sz: " ++ (showQuery chart_size gs)
+                      ++ "\ncomparisons: " ++ (showQuery num_comparisons gs)
     let genStep _ (st,stats) = runState (execStateT nextStep st) stats
     let showNext s_stats = 
           do leapTxt <- get leapVal text

@@ -146,11 +146,11 @@ modifyStats fn = lift $ modify $ updateMetrics fn
 incrCounter :: String -> Int -> BuilderState st ()
 incrCounter key n = modifyStats (incrIntMetric key n)
 
-queryCounter :: String -> Statistics -> Int
+queryCounter :: String -> Statistics -> Maybe Int
 queryCounter key s =
   case queryMetrics (queryIntMetric key) s of
-  []  -> geniBug $ "No instances of the metric: " ++ key
-  [c] -> c
+  []  -> Nothing
+  [c] -> Just c
   _   -> geniBug $ "More than one instance of the metric: " ++ key
 \end{code}
 
