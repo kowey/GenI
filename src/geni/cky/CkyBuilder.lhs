@@ -435,8 +435,8 @@ nonAdjunctionRule item _ =
                       , ciDerivation = [ NullAdjOp $ ciId item ] } ]
 
 -- | CKY parent rule
-kidsToParentRule item chart = 
- do (leftS,rightS,p)  <- Map.lookup (gnname node) (ciRouting item) 
+kidsToParentRule item chart | relevant item =
+ do (leftS,rightS,p)  <- Map.lookup (gnname node) (ciRouting item)
     let mergePoints kids = 
          case mapMaybe ciAdjPoint (item:kids) of
           []  -> Nothing
@@ -484,6 +484,7 @@ kidsToParentRule item chart =
    --
    matches :: String -> [ChartItem]
    matches sis = [ c | c <- relChart, (gnname.ciNode) c == sis ]
+kidsToParentRule _ _ = Nothing -- if this rule is not applicable to the item at hand
 
 -- note: not the same as Data.Maybe.listToMaybe !
 listAsMaybe :: [a] -> Maybe [a]
@@ -519,19 +520,15 @@ attemptSubst _ _ = error "attemptSubst called on non-subst node"
 -- to adjoin into the root of an auxiliary tree, and the active variant because
 -- it is an aux tree itself and it wants to adjoin somewhere
 activeAdjunctionRule item chart | ciRoot item && ciAux item =
- listAsMaybe $ mapMaybe (\p -> attemptAdjunction p item) sites 
- where
-  sites = [ p | p <- chart, compatible item p && 
-                (gtype.ciNode) p == Other && (not.gaconstr.ciNode) p ]
-
+ listAsMaybe $ mapMaybe (\p -> attemptAdjunction p item)
+               [ p | p <- chart, compatibleForAdjunction item p ]
 activeAdjunctionRule _ _ = Nothing -- if not applicable
 
 -- | CKY adjunction rule: we're just a regular node, minding our own business
 -- looking for an auxiliary tree to adjoin into us
 passiveAdjunctionRule item chart =
- listAsMaybe $ mapMaybe (attemptAdjunction item) auxItems
- where
-  auxItems = [ a | a <- chart, compatible item a && ciAux a && ciRoot a ]
+ listAsMaybe $ mapMaybe (attemptAdjunction item)
+               [ a | a <- chart, compatibleForAdjunction a item ]
 
 attemptAdjunction :: ChartItem -> ChartItem -> Maybe ChartItem
 attemptAdjunction pItem aItem | ciRoot aItem && ciAux aItem =
@@ -550,7 +547,17 @@ attemptAdjunction pItem aItem | ciRoot aItem && ciAux aItem =
                      , ciAut_aftHole  = newAut_afterHole }
 attemptAdjunction _ _ = error "attemptAdjunction called on non-aux or non-root node"
 
--- return True if the chart items may be combined with each other; for now, this
+-- | return True if the first item may be adjoined into the second
+--   as long as unification and all the nasty details work out
+compatibleForAdjunction :: ChartItem -- ^ active item
+                        -> ChartItem -- ^ passive item
+                        -> Bool
+compatibleForAdjunction a p =
+  ciAux a && ciRoot a && ciAdjDone a
+  && (gtype.ciNode) p == Other && (not.ciAdjDone) p
+  && compatible a p
+
+-- | return True if the chart items may be combined with each other; for now, this
 -- consists of a semantic check
 compatible :: ChartItem -> ChartItem -> Bool
 compatible a b =    ( (ciSemantics a) .&. (ciSemantics b) ) == 0
