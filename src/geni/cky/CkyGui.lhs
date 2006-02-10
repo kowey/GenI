@@ -31,21 +31,24 @@ import Control.Monad (liftM)
 
 import Data.Array ((!))
 import Data.IORef
-import Data.List (find, nub, (\\))
+import Data.List (find, intersperse, nub, (\\))
 import qualified Data.Map as Map 
-import Data.Maybe (isJust, catMaybes)
+import Data.Maybe (listToMaybe, isJust, catMaybes)
 import Data.Tree 
 
-import Automaton ( NFA(states, transitions), lookupTrans )
+import Automaton
+ ( NFA(states, transitions, startSt, finalStList)
+ , lookupTrans, addTrans )
 import qualified Builder    as B
 import qualified BuilderGui as BG 
-import Btypes (gnname, showLexeme, iword, isemantics)
+import Btypes (GNode, gnname, showLexeme, iword, isemantics)
 
 import CkyBuilder 
   ( ckyBuilder, setup, BuilderStatus, ChartItem(..), ChartId 
   , bitVectorToSem, findId,
   , extractDerivations
   , theResults, theAgenda, theChart, theTrash
+  , emptySentenceAut, joinAutomata
   )
 import Configuration ( Params(..), polarised )
 
@@ -172,10 +175,23 @@ ckyDebuggerTab = debuggerPanel ckyBuilder initCkyDebugParams stateToGv ckyItemBa
                    {- if (polarised $ genconfig st)
                       then (\t -> " (" ++ showPolPaths t ++ ")")
                       else const "" -}
-       labelFn i = (show $ ciId i) ++ " " 
-                 ++ (toSentence $ ciSourceTree i) ++ " " ++ (gnname $ ciNode i) 
-                 ++ (showPaths i) 
-   in unzip $ agenda ++ chart ++ results ++ trash 
+       gorn i = case gornAddressStr (ttree $ ciSourceTree i) (ciNode i) of
+                Nothing -> geniBug "A chart item claims to have a node which is not in its tree"
+                Just x  -> x
+       -- try displaying as an automaton, or if all else fails, the tree sentence
+       fancyToSentence ci =
+        let mergedAut = joinAutomataUsingHole (ciAut_befHole ci) (ciAut_aftHole ci)
+            boringSentence = toSentence $ ciSourceTree ci
+        in  case automatonPaths mergedAut of
+            []    -> boringSentence
+            (h:_) -> unwords $ map fst $ h
+       labelFn i = unwords [ show $ ciId i
+                           , "g" ++ (gorn i) ++ ""
+                           , fancyToSentence i
+                           , "/" ++ (idname $ ciSourceTree i)
+                           , showPaths i
+                           ]
+   in unzip $ agenda ++ chart ++ results ++ trash
 
 ckyItemBar :: DebuggerItemBar CkyDebugParams (BuilderStatus, ChartItem)
 ckyItemBar f gvRef updaterFn =
@@ -222,6 +238,18 @@ ckyItemBar f gvRef updaterFn =
 \section{Helper code}
 
 \begin{code}
+
+gornAddressStr :: Tree GNode -> GNode -> Maybe String
+gornAddressStr t target =
+  (concat . (intersperse ".") . (map show)) `liftM` gornAddress t target
+
+gornAddress :: Tree GNode -> GNode -> Maybe [Int]
+gornAddress t target = reverse `liftM` helper [] t
+ where
+ helper current (Node x _)  | (gnname x == gnname target) = Just current
+ helper current (Node _ l)  = listToMaybe $ catMaybes $
+                              zipWith (\c t -> helper (c:current) t) [1..] l
+
 instance GraphvizShow CkyDebugParams (BuilderStatus, ChartItem) where
   graphvizLabel  f (_,c) = graphvizLabel f c
   graphvizParams f (_,c) = graphvizParams f c
@@ -272,20 +300,15 @@ instance GraphvizShow CkyDebugParams ChartItem where
        treeParams = unlines $ graphvizParams showFeats $ ciSourceTree ci
        --
        gvTree = graphvizShowAsSubgraph showFeats (prefix ++ "tree")  $ toTagElem ci
-       gvAut1 = graphvizShowAsSubgraph () (prefix ++ "aut1")  $ ciAut_befHole ci
-       -- FIXME: maybe it would be nice to connect these two automaton using a specially
-       -- marked label - we could simulate this by joining the two automata and naming
-       -- the bridge specially
-       gvAut2 = graphvizShowAsSubgraph () (prefix ++ "aut2")  $ ciAut_aftHole ci
+       joinedAut = joinAutomataUsingHole (ciAut_befHole ci) (ciAut_aftHole ci)
+       gvAut     = graphvizShowAsSubgraph () (prefix ++ "aut1")  joinedAut
    -- FIXME: will have to make this configurable, maybe, show aut, show tree? radio button?
    in treeParams   
       ++ "\n// ------------------- elementary tree --------------------------\n"
       ++ gvSubgraph gvTree
       ++ (unlines $ graphvizParams () $ ciAut_befHole ci)
-      ++ "\n// ------------------- pre-hole automaton ------------------------\n"
-      ++ gvSubgraph gvAut1 
-      ++ "\n// ------------------- post-hole automaton -----------------------\n"
-      ++ gvSubgraph gvAut2
+      ++ "\n// ------------------- automata (joined) ------------------------\n"
+      ++ gvSubgraph gvAut
       ++ treeParams 
 
 toTagElem :: ChartItem -> TagElem
@@ -339,4 +362,12 @@ gvShowTrans aut stmap idFrom st =
       drawTrans' idTo x = gvEdge idFrom idTo (drawLabel x) []
       drawLabel labels  = gvUnlines $ map fst $ catMaybes labels 
   in concatMap drawTrans $ Map.toList invFM
+
+-- | join two automata, inserting a ".." transition between them
+joinAutomataUsingHole :: B.SentenceAut -> B.SentenceAut -> B.SentenceAut
+joinAutomataUsingHole aut1 aut2 | (states aut2 == states emptySentenceAut) = aut1
+joinAutomataUsingHole aut1 aut2 =
+ joinAutomata aut1 $ joinAutomata holeAut aut2
+ where holeAut = addTrans empty 0 (Just ("..",[])) 1
+       empty   = emptySentenceAut { startSt = 0, finalStList = [1], states = [[0,1]] }
 \end{code}
