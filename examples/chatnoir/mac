@@ -114,7 +114,9 @@ n1[cat:p]![]
     [cat:n idx:?Y det:?_ qu:plus ]
     n3[cat:p idx:?E]![]
     {
-      n4[cat:v idx:?E]![cat:p idx:?E]
+      % FIXME: EYK - the bottom node was cat:p, i set it to cat:v
+      % to validate
+      n4[cat:v idx:?E]![cat:v idx:?E]
       {
         n5 anchor
       }

@@ -7,4 +7,13 @@ semantics : [ chase(e1 a b)
 	      mouse(b)
 	     ]
 
+chat_lite
+semantics : [ chase(e1 a b)
+	      cat(a)
+	      def(a)
+	      def(b)
+	      mouse(b)
+	     ]
+
+
 
