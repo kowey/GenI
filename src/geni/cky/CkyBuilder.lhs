@@ -536,9 +536,9 @@ attemptAdjunction pItem aItem | ciRoot aItem && ciAux aItem =
  do let aRoot = ciNode aItem
         aFoot = (foot.ttree.ciSourceTree) aItem-- could be pre-computed?
         pNode = ciNode pItem
-    (newTop, newBot, subst) <- unifyPair (gup pNode, gdown pNode) 
-                                         (gup aRoot, gdown aFoot)
-    let newNode = pNode { gaconstr = False, gup = newTop, gdown = newBot }
+    (newTop, _ , subst) <- unifyPair (gup pNode, gdown pNode)
+                                     (gup aRoot, gdown aFoot)
+    let newNode = pNode { gaconstr = False, gup = newTop, gdown = [] }
         newItem = combineWith AdjOp newNode subst aItem pItem
         --
         newAut_beforeHole = joinAutomata (ciAut_befHole aItem) (ciAut_befHole pItem)
