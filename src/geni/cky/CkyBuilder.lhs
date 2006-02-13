@@ -757,7 +757,7 @@ Note that this is not the same thing as equality!
 \begin{code}
 equivalent :: ChartItem -> ChartItem -> Bool
 equivalent c1 c2 = stuff c1 == stuff c2
-  where stuff x = ( ciNode x, ciSemantics x, ciPolpaths x ) 
+  where stuff x = ( ciNode x, ciSourceTree x, ciSemantics x, ciPolpaths x )
 \end{code}
 
 \fnlabel{mergeItems} combines two chart items into one, with the
