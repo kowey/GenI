@@ -66,7 +66,7 @@ import Polarity
 import Statistics ( Statistics )
 import Tags 
   (TagElem, TagSite, 
-   idname, 
+   idname, tidnum,
    ttree, tsemantics, 
    tpolpaths, ttype,
    setTidnums,
@@ -476,11 +476,11 @@ kidsToParentRule item chart | relevant item =
     -- trace (" matches: (" ++ (show $ length allMatches) ++ ") " ++ (concat $ intersperse "-\n" $ map showItems allMatches)) $
     combinations allMatches >>= listAsMaybe . mapMaybe combine 
  where
-   node    = ciNode item
-   source  = (idname.ciSourceTree) item  
+   node     = ciNode item
+   sourceOf = tidnum.ciSourceTree
    --
    relevant c = 
-     (idname.ciSourceTree) c == source && (not $ ciSubs c) && ciAdjDone c
+     (sourceOf c == sourceOf item) && (not $ ciSubs c) && ciAdjDone c
    relChart = filter relevant chart
    --
    matches :: String -> [ChartItem]
