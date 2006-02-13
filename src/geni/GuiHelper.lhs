@@ -44,7 +44,7 @@ import Treeprint() -- only import the GraphvizShow instances
 
 import Tags (tagLeaves)
 import Geni 
-  ( ProgState(..) ) 
+  ( ProgState(..), showRealisations )
 import General (boundsCheck, snd3, slash, geniBug)
 import Btypes 
   ( showPred, showSem, showLexeme
@@ -56,8 +56,10 @@ import Configuration(Params(..), GrammarType(..))
 
 import Automaton (states)
 import qualified Builder as B
-import Builder (queryCounter, num_iterations, chart_size, num_comparisons)
+import Builder (queryCounter, num_iterations, chart_size,
+    num_comparisons)
 import Polarity (PolAut)
+import Statistics (Statistics, showFinalStats)
 \end{code}
 }
 
@@ -110,6 +112,35 @@ polarityGui   f xs final = do
   return lay
 \end{code}
       
+\paragraph{statsGui} displays the generation statistics and provides a
+handy button for saving results to a text file.
+
+\begin{code}
+statsGui :: (Window a) -> [String] -> Statistics -> IO Layout
+statsGui f sentences stats =
+  do let msg = showRealisations sentences
+     --
+     p <- panel f []
+     t  <- textCtrl p [ text := msg, enabled := False ]
+     statsTxt <- staticText p [ text := showFinalStats stats ]
+     --
+     saveBt <- button p [ text := "Save to file"
+                        , on command := saveCmd msg ]
+     return $ fill $ container p $ column 1 $
+              [ hfill $ label "Performance data"
+              , hfill $ widget statsTxt
+              , hfill $ label "Realisations"
+              , fill  $ widget t
+              , hfloatRight $ widget saveBt ]
+  where
+    saveCmd msg =
+      do let filetypes = [("Any file",["*","*.*"])]
+         fsel <- fileSaveDialog f False True "Save to" filetypes "" ""
+         case fsel of
+           Nothing   -> return ()
+           Just file -> writeFile file msg
+\end{code}
+
 \subsection{Derived Trees}
 
 \fnlabel{toSentence} almost displays a TagElem as a sentence, but only

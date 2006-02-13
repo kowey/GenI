@@ -34,8 +34,7 @@ import Data.Maybe (isJust)
 
 import Geni 
   ( ProgState(..), ProgStateRef
-  , initGeni, runGeni
-  , showRealisations )
+  , initGeni, runGeni )
 import Btypes 
   (showLexeme,
    iword, isemantics)
@@ -50,7 +49,7 @@ import Polarity
 import SimpleBuilder 
   ( simpleBuilder, setup, SimpleStatus, genconfig 
   , theResults, theAgenda, theAuxAgenda, theChart, theTrash)
-import Statistics ( Statistics, showFinalStats )
+import Statistics (Statistics)
 \end{code}
 }
 
@@ -92,7 +91,7 @@ resultsGui pstRef (sentences, stats, st) =
     -- realisations tab
     resTab <- realisationsGui pstRef nb (theResults st)
     -- statistics tab
-    statTab <- statsGui nb (showRealisations sentences) stats
+    statTab <- statsGui nb sentences stats
     -- pack it all together 
     set f [ layout := container p $ column 0 [ tabs nb 
           -- we put the realisations tab last because of what
@@ -102,33 +101,6 @@ resultsGui pstRef (sentences, stats, st) =
                  , tab "realisations"  resTab ] ]
           , clientSize := sz 700 600 ] 
     return ()
-\end{code}
-
-\paragraph{statsGui} displays the generation statistics and provides a
-handy button for saving results to a text file.
-
-\begin{code}
-statsGui :: (Window a) -> String -> Statistics -> IO Layout
-statsGui f msg stats =
-  do p <- panel f []
-     t  <- textCtrl p [ text := msg, enabled := False ]
-     statsTxt <- staticText p [ text := showFinalStats stats ]
-     --
-     saveBt <- button p [ text := "Save to file" 
-                        , on command := saveCmd ]
-     return $ fill $ container p $ column 1 $
-              [ hfill $ label "Performance data"
-              , hfill $ widget statsTxt
-              , hfill $ label "Realisations"
-              , fill  $ widget t
-              , hfloatRight $ widget saveBt ]
-  where
-    saveCmd = 
-      do let filetypes = [("Any file",["*","*.*"])]
-         fsel <- fileSaveDialog f False True "Save to" filetypes "" "" 
-         case fsel of
-           Nothing   -> return () 
-           Just file -> writeFile file msg
 \end{code}
 
 \subsection{Derived Trees}

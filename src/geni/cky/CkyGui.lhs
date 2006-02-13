@@ -54,7 +54,7 @@ import Configuration ( Params(..), polarised )
 
 import Geni 
   ( ProgState(..), ProgStateRef
-  , initGeni )
+  , initGeni, runGeni )
 import General ( boundsCheck, listRepNode, geniBug )
 import Graphviz 
   ( GraphvizShow(..), gvNode, gvEdge, gvSubgraph, gvUnlines, gvShowTree 
@@ -63,9 +63,12 @@ import GuiHelper
   ( candidateGui, messageGui, polarityGui, toSentence
   , debuggerPanel, DebuggerItemBar
   , addGvHandler, modifyGvParams, 
-  , GraphvizGuiSt(gvitems, gvsel) )
+  , GraphvizGuiSt(gvitems, gvsel)
+  , statsGui, graphvizGui, newGvRef, setGvDrawables,
+  )
 
 import Polarity
+import Statistics (Statistics)
 import Tags 
   ( idname, tdiagnostic, tsemantics, thighlight, ttree, TagElem )
 \end{code}
@@ -81,10 +84,55 @@ ckyGui = BG.BuilderGui {
     , BG.debugGui = debugGui }
 
 generateGui :: ProgStateRef -> IO ()
-generateGui _ = 
- do f <- frame []
-    messageGui f "FIXME: Not implemented yet! Use Debug instead"
+generateGui pstRef =
+  runGeni pstRef ckyBuilder >>= resultsGui pstRef
+\end{code}
+
+% --------------------------------------------------------------------
+\section{Results}
+\label{sec:cky_results_gui}
+% --------------------------------------------------------------------
+
+The results gui displays two kinds of information: a detailed results
+browser showing the chart items that are classified as results, and a
+summary showing the list of sentences and some statistical stuff.
+
+\begin{code}
+resultsGui :: ProgStateRef -> ([String], Statistics, BuilderStatus) -> IO ()
+resultsGui pstRef (sentences, stats, st) =
+ do -- results window
+    f <- frame [ text := "Results"
+               , fullRepaintOnResize := False
+               , layout := stretch $ label "Generating..."
+               , clientSize := sz 300 300
+               ]
+    p    <- panel f []
+    nb   <- notebook p []
+    -- realisations tab
+    resTab <- realisationsGui pstRef nb (theResults st)
+    -- statistics tab
+    statTab <- statsGui nb sentences stats
+    -- pack it all together
+    set f [ layout := container p $ column 0 [ tabs nb
+          -- we put the realisations tab last because of what
+          -- seems to be buggy behaviour wrt to wxhaskell
+          -- or wxWidgets 2.4 and the splitter
+                 [ tab "summary"       statTab
+                 , tab "realisations"  resTab ] ]
+          , clientSize := sz 700 600 ]
     return ()
+
+-- | Browser for the results (if there are any)
+realisationsGui :: ProgStateRef -> (Window a) -> [ChartItem] -> IO Layout
+realisationsGui _ f [] = messageGui f "No results found"
+realisationsGui _ f resultsRaw =
+  do let tip = "result"
+         results = map Just resultsRaw
+         labels  = map (toSentence.ciSourceTree) resultsRaw
+     gvRef <- newGvRef initCkyDebugParams labels tip
+     setGvDrawables gvRef results
+     (lay,_) <- graphvizGui f "cky-results" gvRef
+     return lay
 \end{code}
 
 % --------------------------------------------------------------------
@@ -92,6 +140,7 @@ generateGui _ =
 \label{sec:debugger_gui}
 \label{fn:debugGui}
 % --------------------------------------------------------------------
+
 
 This creates an iteractive version of the generator that shows the
 user the agenda, chart and results at various stages in the generation
