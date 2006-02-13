@@ -45,6 +45,7 @@ import Btypes (GNode, gnname, showLexeme, iword, isemantics)
 
 import CkyBuilder 
   ( ckyBuilder, setup, CkyStatus, ChartItem(..), ChartId 
+  , ciRoot, ciAdjDone
   , bitVectorToSem, findId,
   , extractDerivations
   , theResults, theAgenda, theChart, theTrash
@@ -227,6 +228,7 @@ ckyDebuggerTab = debuggerPanel ckyBuilder initCkyDebugParams stateToGv ckyItemBa
        gorn i = case gornAddressStr (ttree $ ciSourceTree i) (ciNode i) of
                 Nothing -> geniBug "A chart item claims to have a node which is not in its tree"
                 Just x  -> x
+       isComplete i = ciRoot i && ciAdjDone i
        -- try displaying as an automaton, or if all else fails, the tree sentence
        fancyToSentence ci =
         let mergedAut = joinAutomataUsingHole (ciAut_befHole ci) (ciAut_aftHole ci)
@@ -234,8 +236,8 @@ ckyDebuggerTab = debuggerPanel ckyBuilder initCkyDebugParams stateToGv ckyItemBa
         in  case automatonPaths mergedAut of
             []    -> boringSentence
             (h:_) -> unwords $ map fst $ h
-       labelFn i = unwords [ show $ ciId i
-                           , "g" ++ (gorn i) ++ ""
+       labelFn i = unwords [ if isComplete i then ">" ++ (show $ ciId i)
+                             else (show $ ciId i) ++ " g" ++ (gorn i)
                            , fancyToSentence i
                            , "/" ++ (idname $ ciSourceTree i)
                            , showPaths i
