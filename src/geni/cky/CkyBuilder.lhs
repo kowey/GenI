@@ -56,14 +56,14 @@ import Btypes
 import Automaton
   ( NFA(NFA, transitions, states), isFinalSt, finalSt, finalStList, startSt, addTrans )
 import qualified Builder as B
-import Builder ( SentenceAut )
+import Builder ( SentenceAut, incrCounter, num_iterations, chart_size )
 import Configuration 
   ( extrapol, rootCatsParam, polarised, Params )
 import General 
   ( combinations, treeLeaves, BitVector, showBitVector, geniBug )
 import Polarity 
   ( automatonPaths, buildAutomaton, detectPolPaths, lookupAndTweak  )
-import Statistics ( emptyStats, Statistics )
+import Statistics ( Statistics )
 import Tags 
   (TagElem, TagSite, 
    idname, 
@@ -189,7 +189,7 @@ initBuilder input config =
        , gencounter    = 0 
        , genAutCounter = 0
        , genconfig  = config }
-  in runState (execStateT (mapM dispatchNew cands) initS) emptyStats
+  in runState (execStateT (mapM dispatchNew cands) initS) (B.initStats config)
   
 initTree :: SemBitMap -> TagElem -> [ChartItem]
 initTree bmap te = 
@@ -302,6 +302,7 @@ addToChart :: ChartItem -> BState ()
 addToChart te = do 
   s <- get  
   put s { theChart = te : (theChart s) }
+  incrCounter chart_size 1
 
 addToTrash :: ChartItem -> String -> BState ()
 addToTrash item err = do 
@@ -606,6 +607,7 @@ generateStep2 =
      mapM dispatchNew (concat $ catMaybes results)
      -- 
      addToChart agendaItem
+     incrCounter num_iterations 1
      return ()
 
 selectAgendaItem :: BState ChartItem 
