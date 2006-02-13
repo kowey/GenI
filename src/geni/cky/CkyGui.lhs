@@ -44,7 +44,7 @@ import qualified BuilderGui as BG
 import Btypes (GNode, gnname, showLexeme, iword, isemantics)
 
 import CkyBuilder 
-  ( ckyBuilder, setup, BuilderStatus, ChartItem(..), ChartId 
+  ( ckyBuilder, setup, CkyStatus, ChartItem(..), ChartId 
   , bitVectorToSem, findId,
   , extractDerivations
   , theResults, theAgenda, theChart, theTrash
@@ -98,7 +98,7 @@ browser showing the chart items that are classified as results, and a
 summary showing the list of sentences and some statistical stuff.
 
 \begin{code}
-resultsGui :: ProgStateRef -> ([String], Statistics, BuilderStatus) -> IO ()
+resultsGui :: ProgStateRef -> ([String], Statistics, CkyStatus) -> IO ()
 resultsGui pstRef (sentences, stats, st) =
  do -- results window
     f <- frame [ text := "Results"
@@ -242,7 +242,7 @@ ckyDebuggerTab = debuggerPanel ckyBuilder initCkyDebugParams stateToGv ckyItemBa
                            ]
    in unzip $ agenda ++ chart ++ results ++ trash
 
-ckyItemBar :: DebuggerItemBar CkyDebugParams (BuilderStatus, ChartItem)
+ckyItemBar :: DebuggerItemBar CkyDebugParams (CkyStatus, ChartItem)
 ckyItemBar f gvRef updaterFn =
  do ib <- panel f []
     -- select derivation
@@ -299,7 +299,7 @@ gornAddress t target = reverse `liftM` helper [] t
  helper current (Node _ l)  = listToMaybe $ catMaybes $
                               zipWith (\c t -> helper (c:current) t) [1..] l
 
-instance GraphvizShow CkyDebugParams (BuilderStatus, ChartItem) where
+instance GraphvizShow CkyDebugParams (CkyStatus, ChartItem) where
   graphvizLabel  f (_,c) = graphvizLabel f c
   graphvizParams f (_,c) = graphvizParams f c
   graphvizShowAsSubgraph f p (s,c) = 
@@ -333,7 +333,7 @@ instance GraphvizShow CkyDebugParams (BuilderStatus, ChartItem) where
        ++ "node [ shape = plaintext, peripheries = 0 ]\n"
        ++ gvDerv
 
-instance GraphvizShowNode BuilderStatus (ChartId, String) where
+instance GraphvizShowNode CkyStatus (ChartId, String) where
   graphvizShowNode st prefix ci = 
    let theId = fst ci
        txt = case findId st theId of

@@ -91,7 +91,7 @@ option not to use the trash, so that it is only enabled in debugger
 mode.
 
 \begin{code}
-data BuilderStatus = S
+data CkyStatus = S
     { theAgenda    :: Agenda
     , theChart     :: Chart
     , theTrash   :: Trash
@@ -103,7 +103,7 @@ data BuilderStatus = S
     , genAutCounter :: Integer -- allocation of node numbers
     } 
 
-type BState a = B.BuilderState BuilderStatus a
+type BState a = B.BuilderState CkyStatus a
 
 ckyBuilder = B.Builder 
   { B.init = initBuilder
@@ -174,7 +174,7 @@ setup input config =
 \paragraph{initBuilder} Creates an initial Builder.  
 
 \begin{code}
-initBuilder :: B.Input -> Params -> (BuilderStatus, Statistics)
+initBuilder :: B.Input -> Params -> (CkyStatus, Statistics)
 initBuilder input config = 
   let (sem, _) = B.inSemInput input
       bmap  = defineSemanticBits sem
@@ -625,10 +625,10 @@ instance Show CKY_InferenceRule where
 \fnlabel{finished} tells us if it is time to stop generation
 
 \begin{code}
-finished :: BuilderStatus -> Bool
+finished :: CkyStatus -> Bool
 finished = (null.theAgenda) -- should add check that step is aux
 
-query :: (BuilderStatus -> a) -> BState a
+query :: (CkyStatus -> a) -> BState a
 query fn = fn `liftM` get 
 \end{code}
 
@@ -857,7 +857,7 @@ setId item =
 -- in tree form
 -- This is written using a list monad to capture the fact that a node 
 -- can have more than one derivation (because of merging)
-extractDerivations :: BuilderStatus -> ChartItem -> [ Tree (ChartId, String) ]
+extractDerivations :: CkyStatus -> ChartItem -> [ Tree (ChartId, String) ]
 extractDerivations st item =
  do chartOp <- ciDerivation item
     case chartOp of 
@@ -885,6 +885,6 @@ extractDerivations st item =
                          ++ "points to non-existent item " ++ (show id)
        Just x  -> extractDerivations st x
 
-findId :: BuilderStatus -> ChartId -> Maybe ChartItem
+findId :: CkyStatus -> ChartId -> Maybe ChartItem
 findId st i = find (\x -> ciId x == i) $ theChart st ++ (theAgenda st) ++ (theResults st) ++ (theTrash st)
 \end{code}
