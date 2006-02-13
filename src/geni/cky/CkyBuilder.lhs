@@ -703,7 +703,7 @@ dispatchRedundant item =
 --   Otherwise, return (Just unmodified) 
 dispatchResults item = 
  do st <- get
-    let synComplete = ciInit item && ciRoot item 
+    let synComplete = ciInit item && ciRoot item && ciAdjDone item
         semComplete = tsemVector st == ciSemantics item 
         -- join the two automata together - no more holes!
         itemJoined  = item { ciAut_befHole = joinAutomata bef aft
