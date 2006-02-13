@@ -236,12 +236,15 @@ ckyDebuggerTab = debuggerPanel ckyBuilder initCkyDebugParams stateToGv ckyItemBa
         in  case automatonPaths mergedAut of
             []    -> boringSentence
             (h:_) -> unwords $ map fst $ h
-       labelFn i = unwords [ if isComplete i then ">" ++ (show $ ciId i)
-                             else (show $ ciId i) ++ " g" ++ (gorn i)
+       labelFn i = unwords [ spineStr ++ completeStr ++ idStr ++ gornStr
                            , fancyToSentence i
                            , "/" ++ (idname $ ciSourceTree i)
                            , showPaths i
                            ]
+         where idStr       = show $ ciId i
+               spineStr    = if ciSpine i    then "|" else ""
+               completeStr = if isComplete i then ">" else ""
+               gornStr     = if isComplete i then "" else " g" ++ (gorn i)
    in unzip $ agenda ++ chart ++ results ++ trash
 
 ckyItemBar :: DebuggerItemBar CkyDebugParams (CkyStatus, ChartItem)

@@ -223,6 +223,7 @@ leafToItem left te node = ChartItem
   , ciAdjPoint   = Nothing
   , ciSubsts     = [] 
   , ciSemBitMap  = Map.empty 
+  , ciSpine      = gtype node == Foot
   , ciAut_befHole = if left then theAutomaton else emptySentenceAut
   , ciAut_aftHole  = if left then emptySentenceAut else theAutomaton
   , ciDiagnostic   = [] 
@@ -347,7 +348,8 @@ data ChartItem = ChartItem
   , ciSemBitMap  :: SemBitMap
   -- the sentence automaton which corresponds to this item
   , ciAut_befHole :: SentenceAut
-  , ciAut_aftHole  :: SentenceAut
+  , ciAut_aftHole :: SentenceAut
+  , ciSpine       :: Bool
   -- if there are things wrong with this item, what?
   , ciDiagnostic :: [String]
   -- what is the set of the ways you can produce this item?
@@ -444,14 +446,15 @@ kidsToParentRule item chart | relevant item =
           [x] -> Just x
           _   -> error "multiple adjunction points in kidsToParentRule?!"
     let combineAuts kids =
-          if null aft 
-          then ( concatAut $ map ciAut_befHole bef 
-               , emptySentenceAut)
-          else ( concatAut $ map ciAut_befHole $ bef ++ [theFoot]
-               , concatAut $ map ciAut_aftHole  $ theFoot : aft )
-          where theFoot = head aft
-                concatAut auts = foldr joinAutomata emptySentenceAut auts
-                (bef, aft) = span (not.ciFoot) kids
+         if null aft
+         then -- we're not on the spine (one of these should always be empty)
+              ( concatAut $ map ciAut_befHole bef
+              , concatAut $ map ciAut_aftHole bef )
+         else -- we are on the spine
+              ( concatAut $ map ciAut_befHole bef
+              , concatAut $ map ciAut_aftHole aft )
+         where concatAut auts = foldr joinAutomata emptySentenceAut auts
+               (bef, aft) = span (not.ciSpine) kids
     let combine kids = do
           let unifyOnly (x, _) y = unify x y
           newVars <- foldM unifyOnly (ciVariables item,[]) $ 
@@ -464,6 +467,7 @@ kidsToParentRule item chart | relevant item =
                , ciVariables = fst newVars 
                , ciAut_befHole = (fst.combineAuts) kids
                , ciAut_aftHole  = (snd.combineAuts) kids
+               , ciSpine        = any ciSpine kids
                , ciDerivation   = [ KidsToParentOp $ map ciId kids ]
                }
           return $ foldr combineVectors newItem kids
@@ -536,9 +540,15 @@ attemptAdjunction pItem aItem | ciRoot aItem && ciAux aItem =
         newItem = combineWith AdjOp newNode subst aItem pItem
         --
         newAut_beforeHole = joinAutomata (ciAut_befHole aItem) (ciAut_befHole pItem)
-        newAut_afterHole  = joinAutomata (ciAut_aftHole pItem)  (ciAut_aftHole  aItem)
-    return $ newItem { ciAut_befHole = newAut_beforeHole
-                     , ciAut_aftHole  = newAut_afterHole }
+        newAut_afterHole  = joinAutomata (ciAut_aftHole pItem) (ciAut_aftHole aItem)
+        --
+        newItem2 =
+          if ciAux pItem
+          then newItem { ciAut_befHole = newAut_beforeHole
+                       , ciAut_aftHole = newAut_afterHole }
+          else newItem { ciAut_befHole = joinAutomata newAut_beforeHole newAut_afterHole
+                       , ciAut_aftHole = emptySentenceAut }
+    return newItem2
 attemptAdjunction _ _ = error "attemptAdjunction called on non-aux or non-root node"
 
 -- | return True if the first item may be substituted into the second
@@ -785,10 +795,12 @@ emptySentenceAut =
       , transitions = Map.empty
       , states      = [[]] }
 
+isEmptySentenceAut :: SentenceAut -> Bool
+isEmptySentenceAut a = states a == states emptySentenceAut
+
 joinAutomata :: SentenceAut -> SentenceAut -> SentenceAut
-joinAutomata rawAut1 rawAut2 | states rawAut1 == states emptySentenceAut = rawAut2
-joinAutomata rawAut1 rawAut2 | states rawAut2 == states emptySentenceAut = rawAut1
-joinAutomata rawAut1 rawAut2 | states rawAut2 == states emptySentenceAut = rawAut1
+joinAutomata rawAut1 rawAut2 | isEmptySentenceAut rawAut1 = rawAut2
+joinAutomata rawAut1 rawAut2 | isEmptySentenceAut rawAut2 = rawAut1
 joinAutomata aut1 rawAut2 =
  let -- rename all the states in aut2 so that they don't overlap
      aut1Max = foldr max (-1) $ concat $ states aut1 
