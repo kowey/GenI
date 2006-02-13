@@ -547,7 +547,7 @@ compatibleForSubstitution :: ChartItem -- ^ active item
                           -> ChartItem -- ^ passive item
                           -> Bool
 compatibleForSubstitution a p =
-  ciRoot a && (gaconstr.ciNode) a && ciInit a
+  ciRoot a && ciAdjDone a && ciInit a
   && ciSubs p
   && compatible a p
 
@@ -730,7 +730,7 @@ dispatchTbFailure itemRaw =
 tbUnify :: ChartItem -> Maybe ChartItem
 -- things for which tb unification is not relevant
 tbUnify item | ciFoot item = return item
-tbUnify item | (not.gaconstr.ciNode) item = return item
+tbUnify item | (not.ciAdjDone) item = return item
 -- ok, here, we should do tb unification
 tbUnify item = 
  do let node = ciNode item
