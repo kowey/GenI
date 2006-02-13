@@ -492,17 +492,10 @@ listAsMaybe [] = Nothing
 listAsMaybe l  = Just l
 
 -- | CKY subst rules
-substRule item chart = listAsMaybe resVariants
- where
-  resVariants
-   | ciSubs item = -- trace " subst variant" $ 
-                   mapMaybe (\r -> attemptSubst item r) roots
-   | ciRoot item && ciInit item = -- trace " root variant"  $ 
-                   mapMaybe (\s -> attemptSubst s item) subs 
-   | otherwise   = [] 
-  --
-  roots = [ r | r <- chart, compatible item r && ciRoot r && (gaconstr.ciNode) r && ciInit r ]
-  subs  = [ s | s <- chart, ciSubs s ]
+substRule item chart = listAsMaybe $ catMaybes $ 
+  if ciSubs item
+  then [ attemptSubst item r | r <- chart, compatibleForSubstitution r item ]
+  else [ attemptSubst s item | s <- chart, compatibleForSubstitution item s ]
 
 -- | unification for substitution
 attemptSubst :: ChartItem -> ChartItem -> Maybe ChartItem
@@ -546,6 +539,16 @@ attemptAdjunction pItem aItem | ciRoot aItem && ciAux aItem =
     return $ newItem { ciAut_befHole = newAut_beforeHole
                      , ciAut_aftHole  = newAut_afterHole }
 attemptAdjunction _ _ = error "attemptAdjunction called on non-aux or non-root node"
+
+-- | return True if the first item may be substituted into the second
+--   as long as unification and all the nasty details work out
+compatibleForSubstitution :: ChartItem -- ^ active item
+                          -> ChartItem -- ^ passive item
+                          -> Bool
+compatibleForSubstitution a p =
+  ciRoot a && (gaconstr.ciNode) a && ciInit a
+  && ciSubs p
+  && compatible a p
 
 -- | return True if the first item may be adjoined into the second
 --   as long as unification and all the nasty details work out
