@@ -21,28 +21,40 @@
 GenI current has two backends, SimpleBuilder (chapter \ref{cha:SimpleBuilder})
 and this module.  This backend does not attempt to build derived trees until
 the very end.  Instead, we build a derivation tree using the CKY algorithm for
-TAGs.  
+TAGs.
 
 \begin{code}
 module CkyBuilder
+ ( -- builder
+   ckyBuilder,
+   CkyStatus(..), setup,
+   -- chart item
+   ChartItem(..), ChartId,
+   ciAdjDone, ciRoot,
+   extractDerivations,
+   --
+   mJoinAutomata, mAutomatonPaths, emptySentenceAut,
+   --
+   bitVectorToSem, findId,
+ )
 where
 \end{code}
 
 \ignore{
 \begin{code}
-import Control.Monad 
+import Control.Monad
   (unless, foldM)
 
-import Control.Monad.State 
+import Control.Monad.State
   (State, get, put, liftM, runState, execStateT )
 import Data.Bits ( (.&.), (.|.), bit )
-import Data.List ( delete, find, intersperse, span, (\\) )
+import Data.List ( delete, find, span, (\\) )
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Maybe (catMaybes, mapMaybe)
-import Data.Tree 
+import Data.Tree
 
-import Btypes 
+import Btypes
   ( alphaConvert, unify, collect
   , Flist
   , Replacable(..), Pred, Sem, Subst
@@ -57,28 +69,58 @@ import Automaton
   ( NFA(NFA, transitions, states), isFinalSt, finalSt, finalStList, startSt, addTrans )
 import qualified Builder as B
 import Builder ( SentenceAut, incrCounter, num_iterations, chart_size )
-import Configuration 
+import Configuration
   ( extrapol, rootCatsParam, polarised, Params )
-import General 
-  ( combinations, treeLeaves, BitVector, showBitVector, geniBug )
-import Polarity 
+import General
+  ( combinations, treeLeaves, BitVector, geniBug )
+import Polarity
   ( automatonPaths, buildAutomaton, detectPolPaths, lookupAndTweak  )
 import Statistics ( Statistics )
-import Tags 
-  (TagElem, TagSite, 
-   idname, tidnum,
-   ttree, tsemantics, 
-   tpolpaths, ttype,
-   setTidnums,
-   ts_tbUnificationFailure)
-
-import Debug.Trace
+import Tags
+  ( TagElem, tidnum, ttree, tsemantics, tpolpaths, ttype,
+    setTidnums, ts_tbUnificationFailure
+  )
 \end{code}
+
+-- -- Debugging stuff
+-- import Data.List ( intersperse )
+-- import Debug.Trace
+-- import General ( showBitVector )
+-- import Tag ( idname )
+--
+-- ckyShow name item chart =
+--   let showChart = show $ length chart
+--       pad s n = s ++ (take (n - length s) $ repeat ' ')
+--   in concat $ intersperse "\t" $
+--        [ pad name 10, showChart
+--        , pad (idname $ ciSourceTree item) 10
+--        , pad (showItemSem item) 5
+--        , show $ ciNode item ]
+--
+-- -- showItems = unlines . (map showItem)
+-- showItem i = (idname.ciSourceTree) i ++ " " ++ show (ciNode i) ++ " " ++  (showItemSem i)
+--              -- FIXME: yeck! automata stuff
+--              ++ " " ++ (unwords $ map show $ mAutomatonPaths $ ciAutL i)
+--
+-- showItemSem = (showBitVector 3) . ciSemantics
 }
 
-% --------------------------------------------------------------------  
+Implementing the Builder interface:
+
+\begin{code}
+ckyBuilder = B.Builder
+  { B.init = initBuilder
+  , B.step = generateStep
+  , B.stepAll  = B.defaultStepAll ckyBuilder
+  , B.finished = finished -- should add check that step is aux
+  , B.unpack   = \s -> concatMap (mAutomatonPaths.ciAutL) $ theResults s
+  , B.run = run
+  }
+\end{code}
+
+% --------------------------------------------------------------------
 \section{Key types}
-% --------------------------------------------------------------------  
+% --------------------------------------------------------------------
 
 \subsection{BuilderState}
 
@@ -91,6 +133,8 @@ option not to use the trash, so that it is only enabled in debugger
 mode.
 
 \begin{code}
+type CkyState a = B.BuilderState CkyStatus a
+
 data CkyStatus = S
     { theAgenda    :: Agenda
     , theChart     :: Chart
@@ -98,218 +142,42 @@ data CkyStatus = S
     , tsemVector :: BitVector -- the semantics in bit vector form
     , gencounter :: Integer
     , genconfig  :: Params
-    , theRules   :: [CKY_InferenceRule] 
-    , theResults :: [ChartItem] 
+    , theRules   :: [CKY_InferenceRule]
+    , theResults :: [ChartItem]
     , genAutCounter :: Integer -- allocation of node numbers
-    } 
-
-type BState a = B.BuilderState CkyStatus a
-
-ckyBuilder = B.Builder 
-  { B.init = initBuilder
-  , B.step = generateStep
-  , B.stepAll  = B.defaultStepAll ckyBuilder 
-  , B.finished = finished -- should add check that step is aux
-  , B.unpack   = \s -> concatMap (mAutomatonPaths.ciAutL) $ theResults s
-  , B.run = run
-  }
+    }
 
 type Agenda = [ChartItem]
-type Chart  = [ChartItem] 
+type Chart  = [ChartItem]
 type Trash = [ChartItem]
 \end{code}
 
-\fnlabel{run} performs surface realisation from an input semantics and a
-lexical selection.  If the polarity automaton optimisation is enabled,
-it first constructs the polarity automaton and uses that to guide the
-surface realisation process.
-
-There's an unfortunate source of complexity here : one way to do
-generation is to treat polarity automaton path as a seperate 
-generation task.  We do this by mapping the surface realiser 
-across each path and then merging the final states back into one.
-
-You should be careful if you want to translate this to a builder
-that uses a packing strategy; you should take care to rename the
-chart edges accordingly.
+\subsubsection{CkyState updaters}
 
 \begin{code}
-run input config = 
-  let stepAll = B.stepAll ckyBuilder 
-      init    = B.init ckyBuilder 
-      -- combos = polarity automaton paths 
-      cands   = fst (setup input config)
-      input2  = input { B.inCands = cands }
-      --
-      (iSt, iStats) = init input2 config
-  in runState (execStateT stepAll iSt) iStats 
-\end{code}
-
-\fnlabel{setup} is one of the substeps of run (so unless you are a
-graphical debugger, you probably don't need to invoke it yourself)
-
-\begin{code}
-setup input config = 
- let cand     = B.inCands input
-     seminput = B.inSemInput input 
-     --
-     extraPol = extrapol config
-     rootCats = rootCatsParam config
-     -- do any optimisations
-     isPol      = polarised config
-     -- polarity optimisation (if enabled)
-     autstuff = buildAutomaton seminput cand rootCats extraPol
-     finalaut = (snd.fst) autstuff
-     paths    = map toTagElem (automatonPaths finalaut)
-       where toTagElem = concatMap (lookupAndTweak $ snd autstuff)
-     combosPol  = if isPol then paths else [cand]
-     -- chart sharing optimisation (if enabled)
-     candsWithPaths = detectPolPaths combosPol 
-     -- 
-     cands = map alphaConvert $ setTidnums $ candsWithPaths 
-  in (cands, fst autstuff)
-\end{code}
-
-
-\paragraph{initBuilder} Creates an initial Builder.  
-
-\begin{code}
-initBuilder :: B.Input -> Params -> (CkyStatus, Statistics)
-initBuilder input config = 
-  let (sem, _) = B.inSemInput input
-      bmap  = defineSemanticBits sem
-      cands = concatMap (initTree bmap) $ B.inCands input
-      initS = S 
-       { theAgenda  = [] 
-       , theChart = []
-       , theTrash = []
-       , theResults = []
-       , theRules = map fst ckyRules 
-       , tsemVector    = semToBitVector bmap sem
-       , gencounter    = 0 
-       , genAutCounter = 0
-       , genconfig  = config }
-  in runState (execStateT (mapM dispatchNew cands) initS) (B.initStats config)
-  
-initTree :: SemBitMap -> TagElem -> [ChartItem]
-initTree bmap te = 
-  let semVector    = semToBitVector bmap (tsemantics te)
-      createItem l n = (leafToItem l te n)
-       { ciSemantics = semVector
-       , ciSemBitMap = bmap
-       , ciRouting   = decompose te 
-       , ciVariables = map GVar $ Set.toList $ collect te Set.empty }
-      --
-      (left,right) = span (\n -> gtype n /= Foot) $ treeLeaves $ ttree te
-  in map (createItem True) left  ++ map (createItem False) right
-
-leafToItem :: Bool     
-           -- ^ is it on the left of the foot node? (yes if there is none)
-           -> TagElem  
-           -- ^ what tree does it belong to
-           -> GNode 
-           -- ^ the leaf to convert
-           -> ChartItem 
-leafToItem left te node = ChartItem 
-  { ciNode       = node
-  , ciComplete   = False -- (not $ gtype ==  
-  , ciSourceTree = te
-  , ciPolpaths   = tpolpaths te
-  , ciSemantics  = 0  -- to be set 
-  , ciId         = -1 -- to be set 
-  , ciRouting    = Map.empty -- to be set
-  , ciOrigVariables = [] -- to be set
-  , ciVariables     = [] -- to be set
-  , ciAdjPoint   = Nothing
-  , ciSubsts     = [] 
-  , ciSemBitMap  = Map.empty 
-  , ciTreeSide   = spineSide
-  , ciAutL  = if left then theAutomaton else Nothing
-  , ciAutR  = if left then Nothing else theAutomaton
-  , ciDiagnostic   = [] 
-  , ciDerivation   = [ InitOp ] }
-  where 
-   spineSide | left                = LeftSide
-             | gtype node == Foot  = OnTheSpine
-             | otherwise           = RightSide
-   theAutomaton = if isLexeme node then Just lexAut else Nothing
-   -- add a transition from f -> t via label l
-   addTransFor l a = addTrans a 0 (Just (l,[])) 1 
-   -- FIXME: note that you'll have to add features later! and make
-   -- sure that they are correctly propagated
-   -- add a transition for each word in the disjunction
-   lexAut  = foldr addTransFor lexAut' (glexeme node)
-   lexAut' = emptySentenceAut { startSt = 0, finalStList = [1], states = [[0,1]] }
-
-type SemBitMap = Map.Map Pred BitVector
-
--- | assign a bit vector value to each literal in the semantics
--- the resulting map can then be used to construct a bit vector
--- representation of the semantics
-defineSemanticBits :: Sem -> SemBitMap
-defineSemanticBits sem = Map.fromList $ zip sem bits
-  where 
-   bits = map bit [0..] -- 0001, 0010, 0100...
-
-semToBitVector :: SemBitMap -> Sem -> BitVector
-semToBitVector bmap sem = foldr (.|.) 0 $ map lookup sem 
-  where lookup p = 
-         case Map.lookup p bmap of 
-         Nothing -> geniBug $ "predicate " ++ showPred p ++ " not found in semanticBit map"
-         Just b  -> b
-
-bitVectorToSem :: SemBitMap -> BitVector -> Sem
-bitVectorToSem bmap vector = 
-  mapMaybe tryKey $ Map.toList bmap
-  where tryKey (p,k) = if (k .&. vector == k) then Just p else Nothing
-
--- | explode a TagElem tree into a bottom-up routing map 
-decompose :: TagElem -> RoutingMap 
-decompose te = helper (ttree te) Map.empty 
-  where
-  helper :: Tree GNode -> RoutingMap -> RoutingMap
-  helper (Node _ []) smap = smap 
-  helper (Node p kidNodes) smap = 
-    let kids     = [ gnname x | (Node x _) <- kidNodes ] 
-        addKid k = Map.insert k (left, right, p)
-          where (left, right') = span (/= k) kids
-                right = if null right' then [] else tail right'
-        smap2    = foldr addKid smap kids
-    in -- recurse to add routing info for child nodes 
-       foldr helper smap2 kidNodes
-
--- basically, an inverted tree
--- from node name to a list of its sisters on the left, 
--- a list of its sisters on the right, its parent
-type RoutingMap = Map.Map String ([String], [String], GNode)
-\end{code}
-
-\subsubsection{BuilderState updaters}
-
-\begin{code}
-addToAgenda :: ChartItem -> BState ()
-addToAgenda te = do 
+addToAgenda :: ChartItem -> CkyState ()
+addToAgenda te = do
   s <- get
   put s{ theAgenda = te : (theAgenda s) }
 
-addToResults :: ChartItem -> BState ()
-addToResults te = do 
+addToResults :: ChartItem -> CkyState ()
+addToResults te = do
   s <- get
   put s{ theResults = te : (theResults s) }
-     
-updateAgenda :: Agenda -> BState ()
-updateAgenda a = do 
-  s <- get  
+
+updateAgenda :: Agenda -> CkyState ()
+updateAgenda a = do
+  s <- get
   put s{ theAgenda = a }
 
-addToChart :: ChartItem -> BState ()
-addToChart te = do 
-  s <- get  
+addToChart :: ChartItem -> CkyState ()
+addToChart te = do
+  s <- get
   put s { theChart = te : (theChart s) }
   incrCounter chart_size 1
 
-addToTrash :: ChartItem -> String -> BState ()
-addToTrash item err = do 
+addToTrash :: ChartItem -> String -> CkyState ()
+addToTrash item err = do
   s <- get
   let item2 = item { ciDiagnostic = err:(ciDiagnostic item) }
   put s { theTrash = item2 : (theTrash s) }
@@ -317,33 +185,25 @@ addToTrash item err = do
 
 \subsection{Chart items}
 
-\begin{enumerate}
-\item $id$   - a unique identifier for this item
-\item $operations$ - a list of operations that may be used to
-      to construct this item.  Note that this list is a disjunction,
-      not a sequence.  It is meant to be interpreted as ``either do Foo or
-      Bar'', not ``do Foo, then Bar''.
-\end{enumerate}
-
--- TODO: decide if we want this to be an instant of Replacable 
+-- TODO: decide if we want this to be an instant of Replacable
 \begin{code}
-data ChartItem = ChartItem 
+data ChartItem = ChartItem
   { ciNode       :: GNode
   -- if there is really nothing more than needs to be done to this node
   , ciComplete   :: Bool
   -- things which should never change
-  , ciSourceTree    :: TagElem 
+  , ciSourceTree    :: TagElem
   , ciOrigVariables :: [GeniVal]
   --
   , ciPolpaths   :: BitVector
   , ciSemantics  :: BitVector
   , ciAdjPoint   :: Maybe ChartId
-  --
-  , ciId         :: ChartId 
+  -- | unique identifier for this item
+  , ciId         :: ChartId
   -- names of the sisters of this node in its tree
-  , ciRouting    :: RoutingMap 
+  , ciRouting    :: RoutingMap
   -- variable replacements to accumulate
-  , ciSubsts     :: Subst -- do we actually need this if we have ciVariables? 
+  , ciSubsts     :: Subst -- do we actually need this if we have ciVariables?
   -- a list of genivals which were variables when the node was
   -- first initialised
   , ciVariables  :: [GeniVal]
@@ -357,19 +217,18 @@ data ChartItem = ChartItem
   , ciDiagnostic :: [String]
   -- what is the set of the ways you can produce this item?
   , ciDerivation :: [ ChartOperation ]
-  } 
+  }
 
+type ChartId = Integer
 
 -- | note that the order is always active item, followed by passive item
-data ChartOperation = SubstOp    ChartId  ChartId 
+data ChartOperation = SubstOp    ChartId  ChartId
                     | AdjOp      ChartId  ChartId
                     | NullAdjOp  ChartId
                     | KidsToParentOp [ChartId]
                     | InitOp
-                    
-type ChartOperationConstructor = ChartId -> ChartId -> ChartOperation 
 
-type ChartId = Integer
+type ChartOperationConstructor = ChartId -> ChartId -> ChartOperation
 
 ciRoot, ciFoot, ciSubs, ciAdjDone, ciAux, ciInit :: ChartItem -> Bool
 ciRoot  i = (gnname.ciNode) i == (gnname.root.ttree.ciSourceTree) i
@@ -386,24 +245,199 @@ ciLeftSide, ciRightSide, ciOnTheSpine :: ChartItem -> Bool
 ciLeftSide   i = ciTreeSide i == LeftSide
 ciRightSide  i = ciTreeSide i == RightSide
 ciOnTheSpine i = ciTreeSide i == OnTheSpine
-
-combineVectors :: ChartItem -> ChartItem -> ChartItem 
-combineVectors a b = 
-  b { ciSemantics = (ciSemantics a) .|. (ciSemantics b)
-    , ciPolpaths  = (ciPolpaths  a) .&. (ciPolpaths  b) 
-    , ciSemBitMap =  ciSemBitMap a }
-
-combineWith :: ChartOperationConstructor -- ^ how did we get the new item?
-            -> GNode -> Subst -> ChartItem -> ChartItem -> ChartItem
-combineWith operation node subst active passive =
-  combineVectors active $
-  passive { ciNode      = node
-          , ciSubsts    = (ciSubsts passive) ++ subst
-          , ciVariables = replace subst (ciVariables passive)
-          , ciDerivation   = [ operation (ciId active) (ciId passive) ] }
 \end{code}
 
+
+\subsection{Implementing the Builder interface}
+
+\fnlabel{run} performs surface realisation from an input semantics and a
+lexical selection.  If the polarity automaton optimisation is enabled,
+it first constructs the polarity automaton and uses that to guide the
+surface realisation process.
+
+There's an unfortunate source of complexity here : one way to do
+generation is to treat polarity automaton path as a seperate
+generation task.  We do this by mapping the surface realiser
+across each path and then merging the final states back into one.
+
+You should be careful if you want to translate this to a builder
+that uses a packing strategy; you should take care to rename the
+chart edges accordingly.
+
 \begin{code}
+run input config =
+  let stepAll = B.stepAll ckyBuilder
+      init    = B.init ckyBuilder
+      -- combos = polarity automaton paths
+      cands   = fst (setup input config)
+      input2  = input { B.inCands = cands }
+      --
+      (iSt, iStats) = init input2 config
+  in runState (execStateT stepAll iSt) iStats
+\end{code}
+
+\fnlabel{setup} is one of the substeps of run (so unless you are a
+graphical debugger, you probably don't need to invoke it yourself)
+
+\begin{code}
+setup input config =
+ let cand     = B.inCands input
+     seminput = B.inSemInput input
+     --
+     extraPol = extrapol config
+     rootCats = rootCatsParam config
+     -- do any optimisations
+     isPol      = polarised config
+     -- polarity optimisation (if enabled)
+     autstuff = buildAutomaton seminput cand rootCats extraPol
+     finalaut = (snd.fst) autstuff
+     paths    = map toTagElem (automatonPaths finalaut)
+       where toTagElem = concatMap (lookupAndTweak $ snd autstuff)
+     combosPol  = if isPol then paths else [cand]
+     -- chart sharing optimisation (if enabled)
+     candsWithPaths = detectPolPaths combosPol
+     --
+     cands = map alphaConvert $ setTidnums $ candsWithPaths
+  in (cands, fst autstuff)
+\end{code}
+
+% --------------------------------------------------------------------
+\section{Initialisation}
+% --------------------------------------------------------------------
+
+\paragraph{initBuilder} Creates an initial Builder.
+
+\begin{code}
+initBuilder :: B.Input -> Params -> (CkyStatus, Statistics)
+initBuilder input config =
+  let (sem, _) = B.inSemInput input
+      bmap  = defineSemanticBits sem
+      cands = concatMap (initTree bmap) $ B.inCands input
+      initS = S
+       { theAgenda  = []
+       , theChart = []
+       , theTrash = []
+       , theResults = []
+       , theRules = map fst ckyRules
+       , tsemVector    = semToBitVector bmap sem
+       , gencounter    = 0
+       , genAutCounter = 0
+       , genconfig  = config }
+  in runState (execStateT (mapM dispatchNew cands) initS) (B.initStats config)
+
+initTree :: SemBitMap -> TagElem -> [ChartItem]
+initTree bmap te =
+  let semVector    = semToBitVector bmap (tsemantics te)
+      createItem l n = (leafToItem l te n)
+       { ciSemantics = semVector
+       , ciSemBitMap = bmap
+       , ciRouting   = decompose te
+       , ciVariables = map GVar $ Set.toList $ collect te Set.empty }
+      --
+      (left,right) = span (\n -> gtype n /= Foot) $ treeLeaves $ ttree te
+  in map (createItem True) left  ++ map (createItem False) right
+
+leafToItem :: Bool
+           -- ^ is it on the left of the foot node? (yes if there is none)
+           -> TagElem
+           -- ^ what tree does it belong to
+           -> GNode
+           -- ^ the leaf to convert
+           -> ChartItem
+leafToItem left te node = ChartItem
+  { ciNode       = node
+  , ciComplete   = False -- (not $ gtype ==
+  , ciSourceTree = te
+  , ciPolpaths   = tpolpaths te
+  , ciSemantics  = 0  -- to be set
+  , ciId         = -1 -- to be set
+  , ciRouting    = Map.empty -- to be set
+  , ciOrigVariables = [] -- to be set
+  , ciVariables     = [] -- to be set
+  , ciAdjPoint   = Nothing
+  , ciSubsts     = []
+  , ciSemBitMap  = Map.empty
+  , ciTreeSide   = spineSide
+  , ciAutL  = if left then theAutomaton else Nothing
+  , ciAutR  = if left then Nothing else theAutomaton
+  , ciDiagnostic   = []
+  , ciDerivation   = [ InitOp ] }
+  where
+   spineSide | left                = LeftSide
+             | gtype node == Foot  = OnTheSpine
+             | otherwise           = RightSide
+   theAutomaton = if isLexeme node then Just lexAut else Nothing
+   -- add a transition from f -> t via label l
+   addTransFor l a = addTrans a 0 (Just (l,[])) 1
+   -- FIXME: note that you'll have to add features later! and make
+   -- sure that they are correctly propagated
+   -- add a transition for each word in the disjunction
+   lexAut  = foldr addTransFor lexAut' (glexeme node)
+   lexAut' = emptySentenceAut { startSt = 0, finalStList = [1], states = [[0,1]] }
+
+type SemBitMap = Map.Map Pred BitVector
+
+-- | assign a bit vector value to each literal in the semantics
+-- the resulting map can then be used to construct a bit vector
+-- representation of the semantics
+defineSemanticBits :: Sem -> SemBitMap
+defineSemanticBits sem = Map.fromList $ zip sem bits
+  where
+   bits = map bit [0..] -- 0001, 0010, 0100...
+
+semToBitVector :: SemBitMap -> Sem -> BitVector
+semToBitVector bmap sem = foldr (.|.) 0 $ map lookup sem
+  where lookup p =
+         case Map.lookup p bmap of
+         Nothing -> geniBug $ "predicate " ++ showPred p ++ " not found in semanticBit map"
+         Just b  -> b
+
+bitVectorToSem :: SemBitMap -> BitVector -> Sem
+bitVectorToSem bmap vector =
+  mapMaybe tryKey $ Map.toList bmap
+  where tryKey (p,k) = if (k .&. vector == k) then Just p else Nothing
+
+-- | explode a TagElem tree into a bottom-up routing map
+decompose :: TagElem -> RoutingMap
+decompose te = helper (ttree te) Map.empty
+  where
+  helper :: Tree GNode -> RoutingMap -> RoutingMap
+  helper (Node _ []) smap = smap
+  helper (Node p kidNodes) smap =
+    let kids     = [ gnname x | (Node x _) <- kidNodes ]
+        addKid k = Map.insert k (left, right, p)
+          where (left, right') = span (/= k) kids
+                right = if null right' then [] else tail right'
+        smap2    = foldr addKid smap kids
+    in -- recurse to add routing info for child nodes
+       foldr helper smap2 kidNodes
+
+-- basically, an inverted tree
+-- from node name to a list of its sisters on the left,
+-- a list of its sisters on the right, its parent
+type RoutingMap = Map.Map String ([String], [String], GNode)
+\end{code}
+
+% --------------------------------------------------------------------
+\section{CKY Rules}
+% --------------------------------------------------------------------
+
+Our surface realiser is defined by a set of inference rules.  Since we are
+using an agenda-based algorithm, we define our inference rules to take two
+arguments: the agenda item and the entire chart.  It is up to the inference
+rule to filter the chart for the items which can combine with the agenda item.
+
+Inference rules may return \verb!Nothing! to indicate failure -- for example,
+the rule does not apply to the current agenda item -- or \verb!Just! with a
+list of new items.  Of course, the list could also be empty, but that doesn't
+neccesarily mean that the rule failed to apply.
+
+\begin{code}
+type InferenceRule a = a -> [a] -> Maybe [a]
+type CKY_InferenceRule = InferenceRule ChartItem
+
+instance Show CKY_InferenceRule where
+  show _ = "cky inference rule"
 \end{code}
 
 % FIXME: diagram and comment
@@ -412,29 +446,10 @@ combineWith operation node subst active passive =
 ckyRules :: [ (CKY_InferenceRule, String) ]
 ckyRules =
  [ (kidsToParentRule, "kidsToP")
- , (substRule       , "subst") 
- , (nonAdjunctionRule, "nonAdj") 
- , (activeAdjunctionRule, "actAdjRule") 
- , (passiveAdjunctionRule, "psvAdjRule") ] 
-
-ckyShow name item chart = 
-  let showChart = show $ length chart
-      pad s n = s ++ (take (n - length s) $ repeat ' ')
-  in concat $ intersperse "\t" $
-       [ pad name 10, showChart
-       , pad (idname $ ciSourceTree item) 10
-       , pad (showItemSem item) 5 
-       , show $ ciNode item ]
-
-showItems = unlines . (map showItem)
-showItem i = (idname.ciSourceTree) i ++ " " ++ show (ciNode i) ++ " " ++  (showItemSem i) 
-             -- FIXME: yeck! automata stuff
-             ++ " " ++ (unwords $ map show $ mAutomatonPaths $ ciAutL i)
-
-showItemSem = (showBitVector 3) . ciSemantics
-
-isLexeme :: GNode -> Bool
-isLexeme = not.null.glexeme
+ , (substRule       , "subst")
+ , (nonAdjunctionRule, "nonAdj")
+ , (activeAdjunctionRule, "actAdjRule")
+ , (passiveAdjunctionRule, "psvAdjRule") ]
 
 -- | CKY non adjunction rule - creates items in which
 -- we do not apply any adjunction
@@ -449,7 +464,7 @@ nonAdjunctionRule item _ =
 -- | CKY parent rule
 kidsToParentRule item chart | relevant item =
  do (leftS,rightS,p)  <- Map.lookup (gnname node) (ciRouting item)
-    let mergePoints kids = 
+    let mergePoints kids =
          case mapMaybe ciAdjPoint (item:kids) of
           []  -> Nothing
           [x] -> Just x
@@ -466,18 +481,18 @@ kidsToParentRule item chart | relevant item =
                (bef, aft) = span (not.ciOnTheSpine) kids
     let combine kids = do
           let unifyOnly (x, _) y = unify x y
-          newVars <- foldM unifyOnly (ciVariables item,[]) $ 
-                     map ciVariables kids  
+          newVars <- foldM unifyOnly (ciVariables item,[]) $
+                     map ciVariables kids
           let newSubsts = concatMap ciSubsts (item:kids)
               newSide | all ciLeftSide   kids = LeftSide
                       | all ciRightSide  kids = RightSide
                       | any ciOnTheSpine kids = OnTheSpine
                       | otherwise = geniBug $ "kidsToParentRule: Weird situtation involving tree sides"
-              newItem = item 
-               { ciNode      = replace newSubsts p 
-               , ciSubsts    = newSubsts 
-               , ciAdjPoint  = mergePoints kids 
-               , ciVariables = fst newVars 
+              newItem = item
+               { ciNode      = replace newSubsts p
+               , ciSubsts    = newSubsts
+               , ciAdjPoint  = mergePoints kids
+               , ciVariables = fst newVars
                , ciAutL = (fst.combineAuts) kids
                , ciAutR  = (snd.combineAuts) kids
                , ciTreeSide     = newSide
@@ -488,39 +503,43 @@ kidsToParentRule item chart | relevant item =
     let leftMatches  = map matches leftS
         rightMatches = map matches rightS
         allMatches = leftMatches ++ ([item] : rightMatches)
-    -- trace (" relevant chart: (" ++ (show $ length relChart) ++ ") " ++ showItems relChart) $ 
-    -- trace (" routing info: " ++ show (s,p,r)) $ 
+    -- trace (" relevant chart: (" ++ (show $ length relChart) ++ ") " ++ showItems relChart) $
+    -- trace (" routing info: " ++ show (s,p,r)) $
     -- trace (" matches: (" ++ (show $ length allMatches) ++ ") " ++ (concat $ intersperse "-\n" $ map showItems allMatches)) $
-    combinations allMatches >>= listAsMaybe . mapMaybe combine 
+    combinations allMatches >>= listAsMaybe . mapMaybe combine
  where
    node     = ciNode item
    sourceOf = tidnum.ciSourceTree
    --
-   relevant c = 
+   relevant c =
      (sourceOf c == sourceOf item) && (not $ ciSubs c) && ciAdjDone c
    relChart = filter relevant chart
    --
    matches :: String -> [ChartItem]
    matches sis = [ c | c <- relChart, (gnname.ciNode) c == sis ]
 kidsToParentRule _ _ = Nothing -- if this rule is not applicable to the item at hand
+\end{code}
 
--- note: not the same as Data.Maybe.listToMaybe !
-listAsMaybe :: [a] -> Maybe [a]
-listAsMaybe [] = Nothing
-listAsMaybe l  = Just l
+\subsection{Substitution}
 
+The substitution rule has two variants: either the agenda item is active,
+meaning it is a root node and is trying to subsitute into something; or it
+is passive, meaning that is a substitution node waiting to receive
+substitution on something.
+
+\begin{code}
 -- | CKY subst rules
-substRule item chart = listAsMaybe $ catMaybes $ 
+substRule item chart = listAsMaybe $ catMaybes $
   if ciSubs item
   then [ attemptSubst item r | r <- chart, compatibleForSubstitution r item ]
   else [ attemptSubst s item | s <- chart, compatibleForSubstitution item s ]
 
 -- | unification for substitution
 attemptSubst :: ChartItem -> ChartItem -> Maybe ChartItem
-attemptSubst sItem rItem | ciSubs sItem = 
+attemptSubst sItem rItem | ciSubs sItem =
  do let rNode = ciNode rItem
         sNode = ciNode sItem
-    (up, down, subst) <- unifyGNodes sNode (ciNode rItem) 
+    (up, down, subst) <- unifyGNodes sNode (ciNode rItem)
     let newNode = rNode { gnname = gnname sNode
                         , gup = up, gdown = down }
         newItem  = combineWith SubstOp newNode subst rItem sItem
@@ -531,7 +550,30 @@ attemptSubst sItem rItem | ciSubs sItem =
       RightSide  -> newItem { ciAutR = rItemAut }
       OnTheSpine -> geniBug $ "Tried to substitute on the spine!"
 attemptSubst _ _ = error "attemptSubst called on non-subst node"
- 
+
+-- | return True if the first item may be substituted into the second
+--   as long as unification and all the nasty details work out
+compatibleForSubstitution :: ChartItem -- ^ active item
+                          -> ChartItem -- ^ passive item
+                          -> Bool
+compatibleForSubstitution a p =
+  ciRoot a && ciAdjDone a && ciInit a
+  && ciSubs p
+  && compatible a p
+\end{code}
+
+\subsection{Adjunction}
+
+As with substitution, the adjunction rule has two variants: either the agenda
+item is active, meaning it is the root node of an auxliary tree is trying
+to adjoin into something; or it is passive, meaning it is a node which is
+waiting to receive adjunction.
+
+Note that unlike the substitution rule, we have to split these two variants
+into two actual rules.  This is because we also want auxiliary tree nodes
+to be able to receive adjunction and not just perform it!
+
+\begin{code}
 -- | CKY adjunction rule: note - we need this split into two rules because
 -- both variants could fire at the same time, for example, the passive variant
 -- to adjoin into the root of an auxiliary tree, and the active variant because
@@ -569,16 +611,6 @@ attemptAdjunction pItem aItem | ciRoot aItem && ciAux aItem =
       OnTheSpine -> newItem { ciAutL = newAutL, ciAutR = newAutR }
 attemptAdjunction _ _ = error "attemptAdjunction called on non-aux or non-root node"
 
--- | return True if the first item may be substituted into the second
---   as long as unification and all the nasty details work out
-compatibleForSubstitution :: ChartItem -- ^ active item
-                          -> ChartItem -- ^ passive item
-                          -> Bool
-compatibleForSubstitution a p =
-  ciRoot a && ciAdjDone a && ciInit a
-  && ciSubs p
-  && compatible a p
-
 -- | return True if the first item may be adjoined into the second
 --   as long as unification and all the nasty details work out
 compatibleForAdjunction :: ChartItem -- ^ active item
@@ -588,6 +620,13 @@ compatibleForAdjunction a p =
   ciAux a && ciRoot a && ciAdjDone a
   && (gtype.ciNode) p == Other && (not.ciAdjDone) p
   && compatible a p
+\end{code}
+
+\subsection{Helpers for inference rules}
+
+\begin{code}
+isLexeme :: GNode -> Bool
+isLexeme = not.null.glexeme
 
 -- | return True if the chart items may be combined with each other; for now, this
 -- consists of a semantic check
@@ -596,61 +635,110 @@ compatible a b =    ( (ciSemantics a) .&. (ciSemantics b) ) == 0
                  && ( (ciPolpaths  a) .|. (ciPolpaths  b) ) /= 0
 \end{code}
 
-% --------------------------------------------------------------------  
+To factorise the construction of new items, we provide two functions for combining
+two chart items.  \fnreflite{combineVectors} merely combines the easy stuff (the
+semantic bit maps and the polarity paths).  \fnreflite{combineWith} does the
+heavier stuff like the list of open variables and the derivation for the new item.
+The reason we expose \fnreflite{combineVectors} as a separate function is because
+the \fnreflite{kidsToParentsRule} needs it.
+
+\begin{code}
+combineVectors :: ChartItem -> ChartItem -> ChartItem
+combineVectors a b =
+  b { ciSemantics = (ciSemantics a) .|. (ciSemantics b)
+    , ciPolpaths  = (ciPolpaths  a) .&. (ciPolpaths  b)
+    , ciSemBitMap =  ciSemBitMap a }
+
+combineWith :: ChartOperationConstructor -- ^ how did we get the new item?
+            -> GNode -> Subst -> ChartItem -> ChartItem -> ChartItem
+combineWith operation node subst active passive =
+  combineVectors active $
+  passive { ciNode      = node
+          , ciSubsts    = (ciSubsts passive) ++ subst
+          , ciVariables = replace subst (ciVariables passive)
+          , ciDerivation   = [ operation (ciId active) (ciId passive) ] }
+\end{code}
+
+\label{fn:listAsMaybe}
+Officially, we make a distinction between an inference rule
+which returns \verb!Nothing! and \verb!Just []!, but for most of the rules,
+when we notice that we are about to return \verb!Just []!, we simply return
+\verb!Nothing!  instead.  (FIXME: are there exceptions to this?)
+
+\begin{code}
+-- note: not the same as Data.Maybe.listToMaybe !
+listAsMaybe :: [a] -> Maybe [a]
+listAsMaybe [] = Nothing
+listAsMaybe l  = Just l
+\end{code}
+
+\paragraph{unifyTagNodes} performs feature structure unification
+on TAG nodes.  First we try unification on the top node.  We
+propagate any results from that unification and proceed to trying
+unification on the bottom nodes.  If succesful, we return the
+results of both unifications and a list of substitutions to
+propagate.  Otherwise we return Nothing.
+
+\begin{code}
+unifyGNodes :: GNode -> GNode -> Maybe (Flist, Flist, Subst)
+unifyGNodes g1 g2 =
+  unifyPair (gupdown g1) (gupdown g2)
+  where gupdown n = (gup n, gdown n)
+
+unifyPair :: (Flist, Flist) -> (Flist, Flist) -> Maybe (Flist, Flist, Subst)
+unifyPair (t1, b1) (t2, b2) =
+ do (newTop, subst1) <- unifyFeat t1 t2
+    (newBot, subst2) <- unifyFeat (replace subst1 b1) (replace subst1 b2)
+    return (newTop, newBot, subst1 ++ subst2)
+\end{code}
+
+% --------------------------------------------------------------------
 \section{Generate}
-% --------------------------------------------------------------------  
+% --------------------------------------------------------------------
 
 \begin{itemize}
 \item If both Agenda and AuxAgenda are empty then there is nothing to do,
-  otherwise, if Agenda is empty then we switch to the application of the 
-  Adjunction rule. 
-\item After the rule is applied we classify solutions into those that are complete 
-  and cover the semantics and those that don't.  The first ones are returned 
-  and added to the result, while the others are sent back to Agenda.  
+  otherwise, if Agenda is empty then we switch to the application of the
+  Adjunction rule.
+\item After the rule is applied we classify solutions into those that are complete
+  and cover the semantics and those that don't.  The first ones are returned
+  and added to the result, while the others are sent back to Agenda.
 \item Notice that if we are applying the Substitution rule then given is added
-  to Chart, otherwise it is deleted. 
+  to Chart, otherwise it is deleted.
 \end{itemize}
 
 \begin{code}
-generateStep :: BState () 
-generateStep = 
- do -- this check may seem redundant with generate, but it's needed 
+generateStep :: CkyState ()
+generateStep =
+ do -- this check may seem redundant with generate, but it's needed
     -- to protect against a user who calls generateStep on a finished
     -- state
     isFinished <- query finished
-    unless (isFinished) generateStep2 
+    unless (isFinished) generateStep2
 
-generateStep2 :: BState () 
-generateStep2 = 
+generateStep2 :: CkyState ()
+generateStep2 =
   do st <- get
      -- incrGeniter 1
      agendaItem <- selectAgendaItem
      -- try the inference rules
      let chart = theChart st
-         apply (rule, _) = 
+         apply (rule, _) =
            rule agendaItem chart
-         results = map apply ckyRules 
+         results = map apply ckyRules
      -- put all newly generated items into the right pigeon-holes
-     -- trace (concat $ zipWith showRes ckyRules results) $ 
+     -- trace (concat $ zipWith showRes ckyRules results) $
      mapM dispatchNew (concat $ catMaybes results)
-     -- 
+     --
      addToChart agendaItem
      incrCounter num_iterations 1
      return ()
 
-selectAgendaItem :: BState ChartItem 
-selectAgendaItem = do 
-  a <- query theAgenda 
+selectAgendaItem :: CkyState ChartItem
+selectAgendaItem = do
+  a <- query theAgenda
   updateAgenda (tail a)
   return (head a)
-\end{code}
-
-\begin{code}
-type InferenceRule a = a -> [a] -> Maybe [a] 
-type CKY_InferenceRule = InferenceRule ChartItem
-
-instance Show CKY_InferenceRule where
-  show _ = "cky inference rule"
 \end{code}
 
 \subsection{Generate helper functions}
@@ -661,8 +749,8 @@ instance Show CKY_InferenceRule where
 finished :: CkyStatus -> Bool
 finished = (null.theAgenda) -- should add check that step is aux
 
-query :: (CkyStatus -> a) -> BState a
-query fn = fn `liftM` get 
+query :: (CkyStatus -> a) -> CkyState a
+query fn = fn `liftM` get
 \end{code}
 
 \paragraph{dispatchNew} assigns a new item to the right data structure
@@ -673,15 +761,15 @@ following these critieria:
       unify the top and bottom feature structures of each node.  If that
       succeeds, return it, otherwise discard it completely.
 \item if the number of subtrees exceeds the numTreesLimit, discard
-\item if it is only syntactically complete and it is an auxiliary tree, 
-      then we don't need to do any more substitutions with it, so set it 
+\item if it is only syntactically complete and it is an auxiliary tree,
+      then we don't need to do any more substitutions with it, so set it
       aside on the auxiliary agenda (AuxAgenda)
 \item otherwise, put it on the regular agenda (Agenda)
 \end{enumerate}
 
 \begin{code}
-dispatchNew :: ChartItem -> BState () 
-dispatchNew item = 
+dispatchNew :: ChartItem -> CkyState ()
+dispatchNew item =
  do let tryFilter Nothing _        = return Nothing
         tryFilter (Just newItem) f = f newItem
     -- keep trying dispatch filters until one of them suceeds
@@ -692,19 +780,19 @@ dispatchNew item =
     return ()
 
 -- A dispatch filter makes a somewhat counter-intuitive use of
--- Maybe: 
--- 
+-- Maybe:
+--
 --  If the filter succesfully dispatches the object; we're no
---  longer interested in its result, so we happily return 
+--  longer interested in its result, so we happily return
 --  Nothing.
--- 
+--
 --  If the filter does not dispatch the item, then maybe the
 --  item needs to be modified, so it returns Just newItem
 --  Of course, if no modifications are neccesary, then it
 --  just returns the same item
-dispatchToAgenda, dispatchRedundant, dispatchResults, dispatchTbFailure :: ChartItem -> BState (Maybe ChartItem)
+dispatchToAgenda, dispatchRedundant, dispatchResults, dispatchTbFailure :: ChartItem -> CkyState (Maybe ChartItem)
 
--- | Trivial dispatch filter: always put the item on the agenda and return 
+-- | Trivial dispatch filter: always put the item on the agenda and return
 --   Nothing
 dispatchToAgenda item =
    do addToAgenda item
@@ -713,29 +801,29 @@ dispatchToAgenda item =
 -- | If the item is equivalent to another, merge it with the equivalent
 --   item and return Nothing.
 --   If the item is indeed unique, return (Just $ setId item)
-dispatchRedundant item = 
+dispatchRedundant item =
   do st <- get
      let chart = theChart st
-         mergeEquivItems o =  
-           let isEq = o `equivalent` item 
+         mergeEquivItems o =
+           let isEq = o `equivalent` item
            in  (isEq, if isEq then mergeItems o item else o)
          (isEq, newChart) = unzip $ map mergeEquivItems chart
      --
      if or isEq
-        then trace (ckyShow "-> merge" item []) $
+        then -- trace (ckyShow "-> merge" item []) $
              do put ( st {theChart = newChart} )
-                return Nothing 
+                return Nothing
         else do Just `liftM` setId item
 
 -- | If it is a result, put the item in the results list.
---   Otherwise, return (Just unmodified) 
-dispatchResults item = 
+--   Otherwise, return (Just unmodified)
+dispatchResults item =
  do st <- get
     let synComplete = ciInit item && ciRoot item && ciAdjDone item
-        semComplete = tsemVector st == ciSemantics item 
+        semComplete = tsemVector st == ciSemantics item
         --
-    if (synComplete && semComplete ) 
-       then trace ("isResult" ++ showItem item) $ 
+    if (synComplete && semComplete )
+       then -- trace ("isResult " ++ showItem item) $
             addToResults item >> return Nothing
        else return $ Just item
 
@@ -745,8 +833,8 @@ dispatchResults item =
 --   where newItem has its top and bottom nodes unified.
 dispatchTbFailure itemRaw =
  case tbUnify itemRaw of
-  Nothing -> 
-    do addToTrash itemRaw ts_tbUnificationFailure 
+  Nothing ->
+    do addToTrash itemRaw ts_tbUnificationFailure
        return Nothing
   Just item -> return $ Just item
 
@@ -755,27 +843,27 @@ tbUnify :: ChartItem -> Maybe ChartItem
 tbUnify item | ciFoot item = return item
 tbUnify item | (not.ciAdjDone) item = return item
 -- ok, here, we should do tb unification
-tbUnify item = 
+tbUnify item =
  do let node = ciNode item
-    (newTop, sub1) <- unifyFeat (gup node) (gdown node) 
+    (newTop, sub1) <- unifyFeat (gup node) (gdown node)
     -- it's not enough if t/b unification succeeds by itself
     -- we also have to check that these unifications propagate alright
     let origVars = ciOrigVariables item
         treeVars = ciVariables item
         nodeVars = replace sub1 origVars
     (newVars, sub2) <- unify treeVars nodeVars
-    return $ item 
+    return $ item
       { ciNode = node { gup = newTop, gdown = [] }
       , ciSubsts = ciSubsts item ++ sub2
       , ciVariables = newVars }
 \end{code}
 
-% --------------------------------------------------------------------  
+% --------------------------------------------------------------------
 \section{Equivalence classes}
-% --------------------------------------------------------------------  
+% --------------------------------------------------------------------
 
 \fnlabel{equivalent} returns true if two chart items are equivalent.
-Note that this is not the same thing as equality!  
+Note that this is not the same thing as equality!
 
 \begin{code}
 equivalent :: ChartItem -> ChartItem -> Bool
@@ -797,14 +885,14 @@ mergeItems master slave =
         }
 \end{code}
 
-% --------------------------------------------------------------------  
+% --------------------------------------------------------------------
 \section{Automaton stuff}
-% --------------------------------------------------------------------  
+% --------------------------------------------------------------------
 
 \begin{code}
 emptySentenceAut :: SentenceAut
-emptySentenceAut = 
-  NFA { startSt     = (-1) 
+emptySentenceAut =
+  NFA { startSt     = (-1)
       , isFinalSt   = Nothing
       , finalStList = []
       , transitions = Map.empty
@@ -865,19 +953,19 @@ mJoinAutomata (Just aut1) (Just aut2) = Just $ joinAutomata aut1 aut2
 -- first automaton into the initial state of the second automaton.
 joinAutomata aut1 rawAut2 =
  let -- rename all the states in aut2 so that they don't overlap
-     aut1Max = foldr max (-1) $ concat $ states aut1 
-     aut2 = incrStates (1 + aut1Max) rawAut2 
-     -- replace all transitions to aut1's final st by 
+     aut1Max = foldr max (-1) $ concat $ states aut1
+     aut2 = incrStates (1 + aut1Max) rawAut2
+     -- replace all transitions to aut1's final st by
      -- transitions to aut2's start state
-     aut1Final = finalSt aut1 
-     t1 = transitions aut1 
+     aut1Final = finalSt aut1
+     t1 = transitions aut1
      t2 = transitions aut2
      maybeBridge s = if s `elem` aut1Final then startSt aut2 else s
      newT1 = Map.map (Map.map $ map maybeBridge) t1
-     newStates1 = map (\\ aut1Final) $ states aut1 
+     newStates1 = map (\\ aut1Final) $ states aut1
      --
  in  aut1 { states      = [ concat $ newStates1 ++ states aut2 ]
-          , transitions = Map.union newT1 t2 
+          , transitions = Map.union newT1 t2
           , isFinalSt   = isFinalSt aut2
           , finalStList = finalStList aut2 }
 
@@ -886,11 +974,11 @@ incrStates prefix aut =
  let -- increment a state
      addP_s = (prefix +)
      -- increment all the states involved in a transition
-     addP_t (k,e) = (addP_s k, Map.map (map addP_s) e) 
+     addP_t (k,e) = (addP_s k, Map.map (map addP_s) e)
  in aut { startSt     = addP_s (startSt aut)
-        , states      = map (map addP_s) $ states aut 
-        , transitions = Map.fromList $ map addP_t $ 
-                        Map.toList   $ transitions aut 
+        , states      = map (map addP_s) $ states aut
+        , transitions = Map.fromList $ map addP_t $
+                        Map.toList   $ transitions aut
         , finalStList = map addP_s $ finalStList aut }
 
 mAutomatonPaths :: (Ord st, Ord ab) => Maybe (NFA st ab) -> [[ab]]
@@ -898,54 +986,31 @@ mAutomatonPaths Nothing  = []
 mAutomatonPaths (Just x) = automatonPaths x
 \end{code}
 
-% --------------------------------------------------------------------  
+% --------------------------------------------------------------------
 \section{Helper functions}
-% --------------------------------------------------------------------  
-
-\paragraph{unifyTagNodes} performs feature structure unification 
-on TAG nodes.  First we try unification on the top node.  We
-propagate any results from that unification and proceed to trying
-unification on the bottom nodes.  If succesful, we return the 
-results of both unifications and a list of substitutions to
-propagate.  Otherwise we return Nothing.
-
-\begin{code}
-unifyTagSites :: TagSite -> TagSite -> Maybe (Flist, Flist, Subst)
-unifyTagSites (_, t1, b1) (_, t2, b2) = unifyPair (t1,b1) (t2,b2)
-
-unifyGNodes :: GNode -> GNode -> Maybe (Flist, Flist, Subst)
-unifyGNodes g1 g2 =
-  unifyPair (gupdown g1) (gupdown g2) 
-  where gupdown n = (gup n, gdown n)
-
-unifyPair :: (Flist, Flist) -> (Flist, Flist) -> Maybe (Flist, Flist, Subst)
-unifyPair (t1, b1) (t2, b2) = 
- do (newTop, subst1) <- unifyFeat t1 t2
-    (newBot, subst2) <- unifyFeat (replace subst1 b1) (replace subst1 b2)
-    return (newTop, newBot, subst1 ++ subst2)
-\end{code}
+% --------------------------------------------------------------------
 
 \subsection{ChartItem}
 
 \begin{code}
-setId :: ChartItem -> BState ChartItem 
+setId :: ChartItem -> CkyState ChartItem
 setId item =
   do s <- get
-     let counter = gencounter s 
+     let counter = gencounter s
      put $ s { gencounter = counter + 1 }
      return $ item { ciId = counter }
 
 -- | Returns all the derivation trees for this item: note that this is
 -- not a TAG derivation tree but a history of inference rule applications
 -- in tree form
--- This is written using a list monad to capture the fact that a node 
+-- This is written using a list monad to capture the fact that a node
 -- can have more than one derivation (because of merging)
 extractDerivations :: CkyStatus -> ChartItem -> [ Tree (ChartId, String) ]
 extractDerivations st item =
  do chartOp <- ciDerivation item
-    case chartOp of 
-     KidsToParentOp kids -> 
-       do kidTrees <- mapM treeFor kids 
+    case chartOp of
+     KidsToParentOp kids ->
+       do kidTrees <- mapM treeFor kids
           createNode "kids" kidTrees
      SubstOp act psv ->
        do actTree <- treeFor act
@@ -959,12 +1024,12 @@ extractDerivations st item =
        do psvTree <- treeFor psv
           createNode "no-adj" [psvTree]
      InitOp -> createNode "init" []
- where 
-   createNode op kids = 
+ where
+   createNode op kids =
      return $ Node (ciId item, op) kids
    treeFor id =
      case findId st id of
-       Nothing -> geniBug $ "derivation for item " ++ (show $ ciId item) 
+       Nothing -> geniBug $ "derivation for item " ++ (show $ ciId item)
                          ++ "points to non-existent item " ++ (show id)
        Just x  -> extractDerivations st x
 
