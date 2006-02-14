@@ -36,7 +36,7 @@ import Control.Monad
 import Control.Monad.State 
   (State, get, put, liftM, runState, execStateT )
 import Data.Bits ( (.&.), (.|.), bit )
-import Data.List ( find, intersperse, span, (\\) )
+import Data.List ( delete, find, intersperse, span, (\\) )
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Maybe (catMaybes, mapMaybe)
@@ -790,9 +790,11 @@ into information from the first ``master'' item.
 
 \begin{code}
 mergeItems :: ChartItem -> ChartItem -> ChartItem
---FIXME: to implement
-mergeItems master slave = 
- master { ciDerivation = ciDerivation master ++ (ciDerivation slave) }
+mergeItems master slave =
+ master { ciDerivation = ciDerivation master ++ (ciDerivation slave)
+        , ciAutL = mUnionAutomata (ciAutL master) (ciAutL slave)
+        , ciAutR = mUnionAutomata (ciAutR master) (ciAutR slave)
+        }
 \end{code}
 
 % --------------------------------------------------------------------  
@@ -807,15 +809,60 @@ emptySentenceAut =
       , finalStList = []
       , transitions = Map.empty
       , states      = [[]] }
+\end{code}
 
-isEmptySentenceAut :: SentenceAut -> Bool
-isEmptySentenceAut a = states a == states emptySentenceAut
+Note: you might be tempted to move this code to the generic Automaton library.
+In order to do this, you will have to introduce a geniric notion of
+state-renaming to the library.  I didn't want to bother with any of that.
 
+\begin{code}
+mUnionAutomata :: Maybe SentenceAut -> Maybe SentenceAut -> Maybe SentenceAut
+mUnionAutomata Nothing mAut2 = mAut2
+mUnionAutomata mAut1 Nothing = mAut1
+mUnionAutomata (Just aut1) (Just aut2) = Just $ unionAutomata aut1 aut2
+
+-- | Merge two sentence automata together.  This essentially calculates the
+-- union of the two automata and "pinches" their final states together.
+-- FIXME: could be much more sophisticated and produce smaller automata!
+unionAutomata :: SentenceAut -> SentenceAut -> SentenceAut
+unionAutomata aut1 rawAut2 =
+ let -- rename all the states in aut2 so that they don't overlap
+     aut1Max = foldr max (-1) $ concat $ states aut1
+     aut2 = incrStates (1 + aut1Max) rawAut2
+     -- make the start state of the new automaton also transition
+     -- everything that the from the start state of aut2 transitions to
+     t1 = transitions aut1
+     t2 = transitions aut2
+     aut2Start = startSt aut2
+     addAut2Trans = Map.unionWith (++) $ Map.findWithDefault Map.empty aut2Start t2
+     newT1 = Map.adjust addAut2Trans (startSt aut1) t1
+     newT2 = Map.delete aut2Start t2
+ in  aut1 { states      = [ delete aut2Start $ concat $ states aut1 ++ states aut2 ]
+          , transitions = Map.union newT1 newT2
+          , isFinalSt   = do -- in the Maybe Monad
+                             f1 <- isFinalSt aut1
+                             f2 <- isFinalSt aut2
+                             return $ \s -> f1 s || f2 s
+          , finalStList = finalStList aut1 ++ finalStList aut2 }
+\end{code}
+
+It's important not to confuse \fnreflite{joinAutomata} with
+\fnreflite{unionAutomata}.  Joining automata is basically concatenation,
+putting the second automaton after the first one.  One detail, though, is
+the merging of the final state of the first automaton with the initial
+state of the second.
+
+Interestingly, their implementations have a lot in common.  FIXME:
+it might be worth refactoring the two.
+
+\begin{code}
 mJoinAutomata :: Maybe SentenceAut -> Maybe SentenceAut -> Maybe SentenceAut
 mJoinAutomata Nothing mAut2 = mAut2
 mJoinAutomata mAut1 Nothing = mAut1
 mJoinAutomata (Just aut1) (Just aut2) = Just $ joinAutomata aut1 aut2
 
+-- | Concatenate two sentence automata.  This merges the final state of the
+-- first automaton into the initial state of the second automaton.
 joinAutomata aut1 rawAut2 =
  let -- rename all the states in aut2 so that they don't overlap
      aut1Max = foldr max (-1) $ concat $ states aut1 
