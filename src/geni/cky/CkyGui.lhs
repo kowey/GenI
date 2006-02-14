@@ -386,9 +386,12 @@ instance GraphvizShow () B.SentenceAut where
        ids = map (\x -> prefix ++ show x) [0..]
        -- map which permits us to assign an id to a state
        stmap = Map.fromList $ zip st ids
-   in --
-      -- any state should be an ellipse
-      "node [ shape = ellipse, peripheries = 1 ]\n"
+       lookupFinal x = Map.findWithDefault "error_final" x stmap
+   in -- final states should be a double-edged ellispse
+      "node [ peripheries = 2 ]; "
+      ++ (unlines $ map lookupFinal $ finalStList aut)
+      -- any other state should be an ellipse
+      ++ "node [ shape = ellipse, peripheries = 1 ]\n"
       -- draw the states and transitions 
       ++ (concat $ zipWith gvShowState ids st) 
       ++ (concat $ zipWith (gvShowTrans aut stmap) ids st )
@@ -415,7 +418,9 @@ gvShowTrans aut stmap idFrom st =
       drawTrans' idTo x = gvEdge idFrom idTo (drawLabel x) []
       drawLabel labels  = gvUnlines $ map fst $ catMaybes labels 
   in concatMap drawTrans $ Map.toList invFM
+\end{code}
 
+\begin{code}
 -- | join two automata, inserting a ".." transition between them
 mJoinAutomataUsingHole :: Maybe B.SentenceAut -> Maybe B.SentenceAut -> Maybe B.SentenceAut
 mJoinAutomataUsingHole aut1 Nothing = aut1
