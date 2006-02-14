@@ -18,6 +18,7 @@ my $in_hcomment=0;
 while (<STDIN>) {
   s/^%.*//;
   s/^#.*//;
+  s/{- #SCC .*-}//;
   s/\\((sub)*section){(.*)}/$3/;
  
   if (s/\\(paragraph|fnlabel){(.*)}/| '$2'/) {
