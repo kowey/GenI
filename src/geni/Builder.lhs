@@ -18,21 +18,30 @@
 \chapter{Builder}
 \label{cha:Builder}
 
-This module provides an interface to the various back-ends that GenI 
-provides.  
+The heavy lifting of GenI, the whole chart/agenda mechanism, can be
+implemented in many ways.  To make it easier to write different
+algorithms for GenI and compare them, we provide a single interface
+for what we call Builders.
 
-Part of the problem is this conflict between wanting to make black
-boxes out of stuff and wanting to be able to inspect it with the
-graphical interface.  So this stuff isn't really worked out very
-well yet.
+This interface is then used called by the Geni module and by the
+graphical interface.  Note that each builder has its own graphical
+interface and that we do a similar thing in the graphical interface
+code to make it possible to use these GUIs.  Maybe a little dose of
+UML might help.  See figure \ref{fig:builderUml}.
 
-\begin{code}
-module Builder 
-where
-\end{code}
+\begin{figure}
+\begin{center}
+\includegraphics[scale=0.5]{images/builderUml.pdf}
+\label{fig:builderUml}
+\caption{Essentially what the Builder interface provides}
+\end{center}
+\end{figure}
 
 \ignore{
 \begin{code}
+module Builder 
+where
+
 import Control.Monad.State
 
 import Automaton (NFA)
@@ -48,6 +57,8 @@ import Statistics (Statistics, incrIntMetric,
 import Tags      (TagElem)
 \end{code}
 }
+
+\section{The interface}
 
 All backends provide the same essential functionality:
 \begin{description}
