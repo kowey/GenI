@@ -110,7 +110,7 @@ ckyBuilder = B.Builder
   , B.step = generateStep
   , B.stepAll  = B.defaultStepAll ckyBuilder 
   , B.finished = finished -- should add check that step is aux
-  , B.unpack   = \s -> concatMap (automatonPaths.ciAut_befHole) $ theResults s
+  , B.unpack   = \s -> concatMap (mAutomatonPaths.ciAutL) $ theResults s
   , B.run = run
   }
 
@@ -223,13 +223,16 @@ leafToItem left te node = ChartItem
   , ciAdjPoint   = Nothing
   , ciSubsts     = [] 
   , ciSemBitMap  = Map.empty 
-  , ciSpine      = gtype node == Foot
-  , ciAut_befHole = if left then theAutomaton else emptySentenceAut
-  , ciAut_aftHole  = if left then emptySentenceAut else theAutomaton
+  , ciTreeSide   = spineSide
+  , ciAutL  = if left then theAutomaton else Nothing
+  , ciAutR  = if left then Nothing else theAutomaton
   , ciDiagnostic   = [] 
   , ciDerivation   = [ InitOp ] }
   where 
-   theAutomaton = if isLexeme node then lexAut else emptySentenceAut 
+   spineSide | left                = LeftSide
+             | gtype node == Foot  = OnTheSpine
+             | otherwise           = RightSide
+   theAutomaton = if isLexeme node then Just lexAut else Nothing
    -- add a transition from f -> t via label l
    addTransFor l a = addTrans a 0 (Just (l,[])) 1 
    -- FIXME: note that you'll have to add features later! and make
@@ -347,14 +350,15 @@ data ChartItem = ChartItem
   -- we keep a SemBitMap strictly to help display the semantics
   , ciSemBitMap  :: SemBitMap
   -- the sentence automaton which corresponds to this item
-  , ciAut_befHole :: SentenceAut
-  , ciAut_aftHole :: SentenceAut
-  , ciSpine       :: Bool
+  , ciAutL :: Maybe SentenceAut
+  , ciAutR :: Maybe SentenceAut
+  , ciTreeSide       :: TreeSide
   -- if there are things wrong with this item, what?
   , ciDiagnostic :: [String]
   -- what is the set of the ways you can produce this item?
   , ciDerivation :: [ ChartOperation ]
   } 
+
 
 -- | note that the order is always active item, followed by passive item
 data ChartOperation = SubstOp    ChartId  ChartId 
@@ -375,6 +379,13 @@ ciAdjDone   = gaconstr.ciNode
 ciAux   i = (ttype.ciSourceTree) i == Auxiliar
 ciInit = not.ciAux
 
+data TreeSide = LeftSide | RightSide | OnTheSpine
+ deriving (Eq)
+
+ciLeftSide, ciRightSide, ciOnTheSpine :: ChartItem -> Bool
+ciLeftSide   i = ciTreeSide i == LeftSide
+ciRightSide  i = ciTreeSide i == RightSide
+ciOnTheSpine i = ciTreeSide i == OnTheSpine
 
 combineVectors :: ChartItem -> ChartItem -> ChartItem 
 combineVectors a b = 
@@ -389,8 +400,6 @@ combineWith operation node subst active passive =
   passive { ciNode      = node
           , ciSubsts    = (ciSubsts passive) ++ subst
           , ciVariables = replace subst (ciVariables passive)
-          , ciAut_befHole  = ciAut_befHole active
-          , ciAut_aftHole  = ciAut_aftHole active 
           , ciDerivation   = [ operation (ciId active) (ciId passive) ] }
 \end{code}
 
@@ -420,7 +429,7 @@ ckyShow name item chart =
 showItems = unlines . (map showItem)
 showItem i = (idname.ciSourceTree) i ++ " " ++ show (ciNode i) ++ " " ++  (showItemSem i) 
              -- FIXME: yeck! automata stuff
-             ++ " " ++ (show $ states $ ciAut_befHole i)
+             ++ " " ++ (unwords $ map show $ mAutomatonPaths $ ciAutL i)
 
 showItemSem = (showBitVector 3) . ciSemantics
 
@@ -448,26 +457,30 @@ kidsToParentRule item chart | relevant item =
     let combineAuts kids =
          if null aft
          then -- we're not on the spine (one of these should always be empty)
-              ( concatAut $ map ciAut_befHole bef
-              , concatAut $ map ciAut_aftHole bef )
+              ( concatAut $ map ciAutL bef
+              , concatAut $ map ciAutR bef )
          else -- we are on the spine
-              ( concatAut $ map ciAut_befHole bef
-              , concatAut $ map ciAut_aftHole aft )
-         where concatAut auts = foldr joinAutomata emptySentenceAut auts
-               (bef, aft) = span (not.ciSpine) kids
+              ( concatAut $ map ciAutL bef
+              , concatAut $ map ciAutR aft )
+         where concatAut auts = foldr mJoinAutomata Nothing auts
+               (bef, aft) = span (not.ciOnTheSpine) kids
     let combine kids = do
           let unifyOnly (x, _) y = unify x y
           newVars <- foldM unifyOnly (ciVariables item,[]) $ 
                      map ciVariables kids  
           let newSubsts = concatMap ciSubsts (item:kids)
+              newSide | all ciLeftSide   kids = LeftSide
+                      | all ciRightSide  kids = RightSide
+                      | any ciOnTheSpine kids = OnTheSpine
+                      | otherwise = geniBug $ "kidsToParentRule: Weird situtation involving tree sides"
               newItem = item 
                { ciNode      = replace newSubsts p 
                , ciSubsts    = newSubsts 
                , ciAdjPoint  = mergePoints kids 
                , ciVariables = fst newVars 
-               , ciAut_befHole = (fst.combineAuts) kids
-               , ciAut_aftHole  = (snd.combineAuts) kids
-               , ciSpine        = any ciSpine kids
+               , ciAutL = (fst.combineAuts) kids
+               , ciAutR  = (snd.combineAuts) kids
+               , ciTreeSide     = newSide
                , ciDerivation   = [ KidsToParentOp $ map ciId kids ]
                }
           return $ foldr combineVectors newItem kids
@@ -510,7 +523,13 @@ attemptSubst sItem rItem | ciSubs sItem =
     (up, down, subst) <- unifyGNodes sNode (ciNode rItem) 
     let newNode = rNode { gnname = gnname sNode
                         , gup = up, gdown = down }
-    return $ combineWith SubstOp newNode subst rItem sItem
+        newItem  = combineWith SubstOp newNode subst rItem sItem
+        rItemAut = ciAutL rItem
+    return $
+      case ciTreeSide sItem of
+      LeftSide   -> newItem { ciAutL = rItemAut }
+      RightSide  -> newItem { ciAutR = rItemAut }
+      OnTheSpine -> geniBug $ "Tried to substitute on the spine!"
 attemptSubst _ _ = error "attemptSubst called on non-subst node"
  
 -- | CKY adjunction rule: note - we need this split into two rules because
@@ -539,16 +558,15 @@ attemptAdjunction pItem aItem | ciRoot aItem && ciAux aItem =
     let newNode = pNode { gaconstr = False, gup = newTop, gdown = [] }
         newItem = combineWith AdjOp newNode subst aItem pItem
         --
-        newAut_beforeHole = joinAutomata (ciAut_befHole aItem) (ciAut_befHole pItem)
-        newAut_afterHole  = joinAutomata (ciAut_aftHole pItem) (ciAut_aftHole aItem)
+        newAutL = mJoinAutomata (ciAutL aItem) (ciAutL pItem)
+        newAutR = mJoinAutomata (ciAutR pItem) (ciAutR aItem)
+        newAutJoined = mJoinAutomata newAutL newAutR
         --
-        newItem2 =
-          if ciAux pItem
-          then newItem { ciAut_befHole = newAut_beforeHole
-                       , ciAut_aftHole = newAut_afterHole }
-          else newItem { ciAut_befHole = joinAutomata newAut_beforeHole newAut_afterHole
-                       , ciAut_aftHole = emptySentenceAut }
-    return newItem2
+    return $
+      case ciTreeSide pItem of
+      LeftSide   -> newItem { ciAutL = newAutJoined }
+      RightSide  -> newItem { ciAutR = newAutJoined }
+      OnTheSpine -> newItem { ciAutL = newAutL, ciAutR = newAutR }
 attemptAdjunction _ _ = error "attemptAdjunction called on non-aux or non-root node"
 
 -- | return True if the first item may be substituted into the second
@@ -715,15 +733,10 @@ dispatchResults item =
  do st <- get
     let synComplete = ciInit item && ciRoot item && ciAdjDone item
         semComplete = tsemVector st == ciSemantics item 
-        -- join the two automata together - no more holes!
-        itemJoined  = item { ciAut_befHole = joinAutomata bef aft
-                           , ciAut_aftHole = emptySentenceAut }
-         where bef = ciAut_befHole item
-               aft = ciAut_aftHole item
         --
     if (synComplete && semComplete ) 
        then trace ("isResult" ++ showItem item) $ 
-            addToResults itemJoined >> return Nothing 
+            addToResults item >> return Nothing
        else return $ Just item
 
 -- | This filter requires another inversion in thinking.  It suceeds
@@ -798,9 +811,11 @@ emptySentenceAut =
 isEmptySentenceAut :: SentenceAut -> Bool
 isEmptySentenceAut a = states a == states emptySentenceAut
 
-joinAutomata :: SentenceAut -> SentenceAut -> SentenceAut
-joinAutomata rawAut1 rawAut2 | isEmptySentenceAut rawAut1 = rawAut2
-joinAutomata rawAut1 rawAut2 | isEmptySentenceAut rawAut2 = rawAut1
+mJoinAutomata :: Maybe SentenceAut -> Maybe SentenceAut -> Maybe SentenceAut
+mJoinAutomata Nothing mAut2 = mAut2
+mJoinAutomata mAut1 Nothing = mAut1
+mJoinAutomata (Just aut1) (Just aut2) = Just $ joinAutomata aut1 aut2
+
 joinAutomata aut1 rawAut2 =
  let -- rename all the states in aut2 so that they don't overlap
      aut1Max = foldr max (-1) $ concat $ states aut1 
@@ -830,6 +845,10 @@ incrStates prefix aut =
         , transitions = Map.fromList $ map addP_t $ 
                         Map.toList   $ transitions aut 
         , finalStList = map addP_s $ finalStList aut }
+
+mAutomatonPaths :: (Ord st, Ord ab) => Maybe (NFA st ab) -> [[ab]]
+mAutomatonPaths Nothing  = []
+mAutomatonPaths (Just x) = automatonPaths x
 \end{code}
 
 % --------------------------------------------------------------------  

@@ -49,7 +49,7 @@ import CkyBuilder
   , bitVectorToSem, findId,
   , extractDerivations
   , theResults, theAgenda, theChart, theTrash
-  , emptySentenceAut, joinAutomata
+  , emptySentenceAut, mJoinAutomata, mAutomatonPaths
   )
 import Configuration ( Params(..), polarised )
 
@@ -231,18 +231,17 @@ ckyDebuggerTab = debuggerPanel ckyBuilder initCkyDebugParams stateToGv ckyItemBa
        isComplete i = ciRoot i && ciAdjDone i
        -- try displaying as an automaton, or if all else fails, the tree sentence
        fancyToSentence ci =
-        let mergedAut = joinAutomataUsingHole (ciAut_befHole ci) (ciAut_aftHole ci)
+        let mergedAut = mJoinAutomataUsingHole (ciAutL ci) (ciAutR ci)
             boringSentence = toSentence $ ciSourceTree ci
-        in  case automatonPaths mergedAut of
+        in  case mAutomatonPaths mergedAut of
             []    -> boringSentence
             (h:_) -> unwords $ map fst $ h
-       labelFn i = unwords [ spineStr ++ completeStr ++ idStr ++ gornStr
+       labelFn i = unwords [ completeStr ++ idStr ++ gornStr
                            , fancyToSentence i
                            , "/" ++ (idname $ ciSourceTree i)
                            , showPaths i
                            ]
          where idStr       = show $ ciId i
-               spineStr    = if ciSpine i    then "|" else ""
                completeStr = if isComplete i then ">" else ""
                gornStr     = if isComplete i then "" else " g" ++ (gorn i)
    in unzip $ agenda ++ chart ++ results ++ trash
@@ -354,13 +353,13 @@ instance GraphvizShow CkyDebugParams ChartItem where
        treeParams = unlines $ graphvizParams showFeats $ ciSourceTree ci
        --
        gvTree = graphvizShowAsSubgraph showFeats (prefix ++ "tree")  $ toTagElem ci
-       joinedAut = joinAutomataUsingHole (ciAut_befHole ci) (ciAut_aftHole ci)
+       joinedAut = mJoinAutomataUsingHole (ciAutL ci) (ciAutR ci)
        gvAut     = graphvizShowAsSubgraph () (prefix ++ "aut1")  joinedAut
    -- FIXME: will have to make this configurable, maybe, show aut, show tree? radio button?
    in treeParams   
       ++ "\n// ------------------- elementary tree --------------------------\n"
       ++ gvSubgraph gvTree
-      ++ (unlines $ graphvizParams () $ ciAut_befHole ci)
+      ++ (unlines $ graphvizParams () $ ciAutL ci)
       ++ "\n// ------------------- automata (joined) ------------------------\n"
       ++ gvSubgraph gvAut
       ++ treeParams 
@@ -418,10 +417,10 @@ gvShowTrans aut stmap idFrom st =
   in concatMap drawTrans $ Map.toList invFM
 
 -- | join two automata, inserting a ".." transition between them
-joinAutomataUsingHole :: B.SentenceAut -> B.SentenceAut -> B.SentenceAut
-joinAutomataUsingHole aut1 aut2 | (states aut2 == states emptySentenceAut) = aut1
-joinAutomataUsingHole aut1 aut2 =
- joinAutomata aut1 $ joinAutomata holeAut aut2
+mJoinAutomataUsingHole :: Maybe B.SentenceAut -> Maybe B.SentenceAut -> Maybe B.SentenceAut
+mJoinAutomataUsingHole aut1 Nothing = aut1
+mJoinAutomataUsingHole aut1 aut2 =
+ mJoinAutomata aut1 $ mJoinAutomata (Just holeAut) aut2
  where holeAut = addTrans empty 0 (Just ("..",[])) 1
        empty   = emptySentenceAut { startSt = 0, finalStList = [1], states = [[0,1]] }
 \end{code}
