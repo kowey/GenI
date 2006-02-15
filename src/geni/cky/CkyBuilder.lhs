@@ -81,7 +81,6 @@ import Tags
   ( TagElem, tidnum, ttree, tsemantics, tpolpaths, ttype,
     setTidnums, ts_tbUnificationFailure
   )
-\end{code}
 
 -- -- Debugging stuff
 -- import Data.List ( intersperse )
@@ -104,6 +103,7 @@ import Tags
 --              ++ " " ++ (unwords $ map show $ mAutomatonPaths $ ciAutL i)
 --
 -- showItemSem = (showBitVector 3) . ciSemantics
+\end{code}
 }
 
 \section{Implementing the Builder interface}
@@ -114,7 +114,7 @@ ckyBuilder = B.Builder
   , B.step = generateStep
   , B.stepAll  = B.defaultStepAll ckyBuilder
   , B.finished = null.theAgenda
-  , B.unpack   = \s -> concatMap (mAutomatonPaths.ciAutL) $ theResults s
+  , B.unpack   = \s -> concatMap (unpackItem s) $ theResults s
   , B.run = run
   }
 \end{code}
@@ -273,6 +273,7 @@ data ChartOperation = SubstOp    ChartId  ChartId
                     | NullAdjOp  ChartId
                     | KidsToParentOp [ChartId]
                     | InitOp
+ deriving Show -- for debugging
 
 type ChartOperationConstructor = ChartId -> ChartId -> ChartOperation
 
@@ -871,46 +872,51 @@ mergeItems master slave =
 % --------------------------------------------------------------------
 
 \begin{code}
--- | Returns all the derivation trees for this item: note that this is
--- not a TAG derivation tree but a history of inference rule applications
--- in tree form
--- This is written using a list monad to capture the fact that a node
--- can have more than one derivation (because of merging)
-extractDerivations :: CkyStatus -> ChartItem -> [ Tree (ChartId, String) ]
-extractDerivations st item =
- do chartOp <- ciDerivation item
-    case chartOp of
-     KidsToParentOp kids ->
-       do kidTrees <- mapM treeFor kids
-          createNode "kids" kidTrees
-     SubstOp act psv ->
-       do actTree <- treeFor act
-          let psvTree = Node (psv, "subst") [ actTree ]
-          createNode "subst-finish" [psvTree]
-     AdjOp act psv ->
-       do actTree <- treeFor act
-          let psvTree = Node (psv, "adj") [ actTree ]
-          createNode "adj-finish"  [psvTree]
-     NullAdjOp psv ->
-       do psvTree <- treeFor psv
-          createNode "no-adj" [psvTree]
-     InitOp -> createNode "init" []
- where
-   createNode op kids =
-     return $ Node (ciId item, op) kids
-   treeFor id =
-     case findId st id of
-       Nothing -> geniBug $ "derivation for item " ++ (show $ ciId item)
-                         ++ "points to non-existent item " ++ (show id)
-       Just x  -> extractDerivations st x
+unpackItem :: CkyStatus -> ChartItem -> [B.UninflectedSentence]
+unpackItem st it =
+  mAutomatonPaths $ uncurry mJoinAutomata $ unpackItemHelper st it
 
-findId :: CkyStatus -> ChartId -> Maybe ChartItem
-findId st i = find (\x -> ciId x == i) $ theChart st ++ (theAgenda st) ++ (theResults st) ++ (theTrash st)
+type SentenceAutPairMaybe = (Maybe SentenceAut, Maybe SentenceAut)
+
+unpackItemHelper :: CkyStatus -> ChartItem
+                 -- left and right automata
+                 -> SentenceAutPairMaybe
+unpackItemHelper st item =
+ case map aut derivations of
+      []     -> (Nothing, Nothing)
+      (a:as) -> foldr pairUnion a as
+ where
+  pairUnion (l1,r1) (l2,r2) = (mUnionAutomata l1 l2, mUnionAutomata r1 r2)
+  derivations = ciDerivation item
+  retrieve = findIdOrBug st
+  -- these are fleshed out in the paragraphs below
+  aut (KidsToParentOp k) = unpackKidsToParentOp st $ map retrieve k
+  aut (NullAdjOp p)      = unpackNullAdjOp      st $ retrieve p
+  aut (SubstOp a p)      = unpackSubstOp st (retrieve a) (retrieve p)
+  aut (AdjOp a p)        = unpackAdjOp   st (retrieve a) (retrieve p)
+  aut InitOp             = unpackInitOp  st item
 \end{code}
 
-\subsection{Automaton stuff}
+\paragraph{Leaf nodes}
 
 \begin{code}
+unpackInitOp :: CkyStatus -> ChartItem -> SentenceAutPairMaybe
+unpackInitOp _ item =
+  let node = ciNode item
+      -- we have to add a transition for each choice in the lexical
+      -- atomic disjunction
+      lexAut = foldr (\l a -> addTrans a 0 (via l) 1) iAut (glexeme node)
+      via l = Just (l, gup node)
+      iAut = emptySentenceAut { startSt = 0
+                              , finalStList = [1]
+                              , states = [[0,1]]}
+  in if isLexeme node
+     then case ciTreeSide item of
+          LeftSide   -> (Just lexAut, Nothing)
+          RightSide  -> (Nothing, Just lexAut)
+          OnTheSpine -> (Nothing, Nothing)
+     else (Nothing, Nothing)
+
 emptySentenceAut :: SentenceAut
 emptySentenceAut =
   NFA { startSt     = (-1)
@@ -919,6 +925,86 @@ emptySentenceAut =
       , transitions = Map.empty
       , states      = [[]] }
 \end{code}
+
+\paragraph{Null adjunction} is a trivial case; we just propagate the automaton upwards.
+
+\begin{code}
+unpackNullAdjOp :: CkyStatus -> ChartItem -> SentenceAutPairMaybe
+unpackNullAdjOp st psv = unpackItemHelper st psv
+\end{code}
+
+\paragraph{Substitution} would be as simple as null adjunction, were it
+not for auxiliary trees.  When dealing with an auxiliary tree, we need
+to be careful which side of the spine we substitute into.  For those of
+you not so familiar with TAG, the spine is the path from root node to
+the foot node of an auxiliary tree.
+
+If we're on the left side of the spine, we propagate into the left
+automaton.  Likewise, we propagate into the right autamaton if we're on
+the right side of the spine.  If we're trying to substitute \emph{into}
+the spine, we're in trouble.
+
+\begin{code}
+unpackSubstOp :: CkyStatus -> ChartItem -> ChartItem -> SentenceAutPairMaybe
+unpackSubstOp st act psv =
+  case ciTreeSide psv of
+    LeftSide   -> (actAut, Nothing)
+    RightSide  -> (Nothing, actAut)
+    OnTheSpine -> geniBug $ "Tried to substitute on the spine!"
+  where actAut = fst $ unpackItemHelper st act 
+\end{code}
+
+\paragraph{Adjunction} involves joining the left sides of both items
+together as well as the right side.  This is probably best explained
+with a picture:
+
+FIXME: insert figure
+
+\begin{code}
+unpackAdjOp :: CkyStatus -> ChartItem -> ChartItem -> SentenceAutPairMaybe
+unpackAdjOp st act psv =
+  let (actL, actR) = unpackItemHelper st act
+      (psvL, psvR) = unpackItemHelper st psv
+      newAutL = mJoinAutomata actL psvL
+      newAutR = mJoinAutomata psvR actR
+      newAut  = mJoinAutomata newAutL newAutR
+ in case ciTreeSide psv of
+      LeftSide   -> (newAut,  Nothing)
+      RightSide  -> (Nothing, newAut)
+      OnTheSpine -> (newAutL, newAutR)
+\end{code}
+
+\paragraph{The kids to parents rule} is complicated because of auxiliary
+trees.  As usual, there are three cases:
+
+\begin{itemize}
+\item On the left of the spine: we concatenate all the left
+      automata of the kids
+\item On the right of the spine: we concatenate all the right
+      automata of the kids
+\item On the spine itself: we concatenate all the left automata
+      of the stuff on the left of the spine and propagate that
+      as our left side.  Similarly, we concatenate all the right
+      automata of the stuff on the right of the spine and send
+      that up the right side.
+\end{itemize}
+
+\begin{code}
+unpackKidsToParentOp :: CkyStatus -> [ChartItem] -> SentenceAutPairMaybe
+unpackKidsToParentOp st kids =
+  let (bef, aft) = span (not.ciOnTheSpine) kids
+      (befL, befR) = unzip $ map (unpackItemHelper st) bef
+      (_   , aftR) = unzip $ map (unpackItemHelper st) aft
+      concatAut auts = foldr mJoinAutomata Nothing auts
+  in if null aft
+     -- two cases in one! (we expect one of these to be Nothing)
+     -- we're either on the left or the right of the spine
+     then ( concatAut befL, concatAut befR )
+     -- we are on the spine
+     else ( concatAut befL, concatAut aftR )
+\end{code}
+
+\subsection{Core automaton stuff}
 
 Note: you might be tempted to move this code to the generic Automaton library.
 In order to do this, you will have to introduce a geniric notion of
@@ -1005,4 +1091,68 @@ incrStates prefix aut =
 mAutomatonPaths :: (Ord st, Ord ab) => Maybe (NFA st ab) -> [[ab]]
 mAutomatonPaths Nothing  = []
 mAutomatonPaths (Just x) = automatonPaths x
+\end{code}
+
+\subsection{Item history}
+
+We don't ever really need to calculate the derivation tree for an item.
+Don't get me wrong, we certainly calculate something which looks a lot
+like a derivation tree and contains more or less the same stuff, but not
+a derivation tree per se.
+
+On the otherhand, debugging the generator is \emph{much} easier if you
+can get a graphical representation for an item.  This is like a
+derivation tree with way too much detail.  We calculate a tree-like
+representation of the history of inference rule applications for this
+item.
+
+Note that because of equivalence classes, an item can be seen as having
+more than one derivation.  We abstract around this fact simply by
+implementing the function with a \verb!List! monad.
+
+\begin{code}
+-- | Returns all the derivations trees for this item: note that this is
+-- not a TAG derivation tree but a history of inference rule applications
+-- in tree form
+extractDerivations :: CkyStatus -> ChartItem -> [ Tree (ChartId, String) ]
+extractDerivations st item =
+ do chartOp <- ciDerivation item
+    case chartOp of
+     KidsToParentOp kids ->
+       do kidTrees <- mapM treeFor kids
+          createNode "kids" kidTrees
+     SubstOp act psv ->
+       do actTree <- treeFor act
+          let psvTree = Node (psv, "subst") [ actTree ]
+          createNode "subst-finish" [psvTree]
+     AdjOp act psv ->
+       do actTree <- treeFor act
+          let psvTree = Node (psv, "adj") [ actTree ]
+          createNode "adj-finish"  [psvTree]
+     NullAdjOp psv ->
+       do psvTree <- treeFor psv
+          createNode "no-adj" [psvTree]
+     InitOp -> createNode "init" []
+ where
+   createNode op kids =
+     return $ Node (ciId item, op) kids
+   treeFor id =
+     case findId st id of
+       Nothing -> geniBug $ "derivation for item " ++ (show $ ciId item)
+                         ++ "points to non-existent item " ++ (show id)
+       Just x  -> extractDerivations st x
+\end{code}
+
+\subsection{Helpers for unpacking}
+
+\begin{code}
+findId :: CkyStatus -> ChartId -> Maybe ChartItem
+findId st i = find (\x -> ciId x == i) $ theChart st ++ (theAgenda st) ++ (theResults st) ++ (theTrash st)
+
+-- | The same as 'findId' but calls 'geniBug' if not found
+findIdOrBug :: CkyStatus -> ChartId -> ChartItem
+findIdOrBug st id =
+ case findId st id of
+   Nothing -> geniBug $ "Cannot find item in chart with id " ++ (show id)
+   Just x  -> x
 \end{code}
