@@ -403,16 +403,13 @@ decompose te = helper (ttree te) Map.empty
 \section{Generate}
 % --------------------------------------------------------------------
 
-\begin{itemize}
-\item If both Agenda and AuxAgenda are empty then there is nothing to do,
-  otherwise, if Agenda is empty then we switch to the application of the
-  Adjunction rule.
-\item After the rule is applied we classify solutions into those that are complete
-  and cover the semantics and those that don't.  The first ones are returned
-  and added to the result, while the others are sent back to Agenda.
-\item Notice that if we are applying the Substitution rule then given is added
-  to Chart, otherwise it is deleted.
-\end{itemize}
+Each iteration of the surface realisation step involves picking an item
+off the agenda, applying all the relevant inference rules to it, and
+dispatching the results.  Lather, rinse, repeat.  At some point we just
+run out of things on the agenda and stop.
+
+Well, ok, there are ways that this thing could loop infinitely: for
+example, having null semantic lexical items would be a very bad thing.
 
 \begin{code}
 generateStep :: CkyState ()
