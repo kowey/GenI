@@ -1,3 +1,4 @@
+le_mechant_chat_noir_chasser_le_souris
 semantics : [ chase(e1 a b)
 	      cat(a)
 	      black(a)
@@ -6,14 +7,30 @@ semantics : [ chase(e1 a b)
 	      def(b)
 	      mouse(b)
 	     ]
+[ le mechant chat noir chasser le souris ]
 
-chat_lite
+le_chat_noir_chasser_le_souris
+semantics : [ chase(e1 a b)
+	      cat(a)
+	      def(a)
+              black(a)
+	      def(b)
+	      mouse(b)
+	     ]
+[ le chat noir chasser le souris ]
+
+le_chat_chasser_le_souris
 semantics : [ chase(e1 a b)
 	      cat(a)
 	      def(a)
 	      def(b)
 	      mouse(b)
 	     ]
+[ le chat chasser le souris ]
 
-
-
+le_chat_noir
+semantics : [ cat(a)
+	      def(a)
+	      black(a)
+	     ]
+[ le chat noir ]
