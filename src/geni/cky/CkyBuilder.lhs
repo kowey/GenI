@@ -1000,12 +1000,9 @@ unionAutomata aut1 rawAut2 =
 
 It's important not to confuse \fnreflite{joinAutomata} with
 \fnreflite{unionAutomata}.  Joining automata is basically concatenation,
-putting the second automaton after the first one.  One detail, though, is
-the merging of the final state of the first automaton with the initial
-state of the second.
-
-Interestingly, their implementations have a lot in common.  FIXME:
-it might be worth refactoring the two.
+putting the second automaton after the first one.
+Interestingly, their implementations have a lot in common.
+FIXME: it might be worth refactoring the two.
 
 \begin{code}
 mJoinAutomata :: Maybe SentenceAut -> Maybe SentenceAut -> Maybe SentenceAut
