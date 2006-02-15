@@ -49,7 +49,8 @@ import CkyBuilder
   , bitVectorToSem, findId,
   , extractDerivations
   , theResults, theAgenda, theChart, theTrash
-  , emptySentenceAut, mJoinAutomata, mAutomatonPaths
+  , emptySentenceAut, mJoinAutomata, mAutomatonPaths,
+  , unpackItemToAuts,
   )
 import Configuration ( Params(..), polarised )
 
@@ -231,7 +232,7 @@ ckyDebuggerTab = debuggerPanel ckyBuilder initCkyDebugParams stateToGv ckyItemBa
        isComplete i = ciRoot i && ciAdjDone i
        -- try displaying as an automaton, or if all else fails, the tree sentence
        fancyToSentence ci =
-        let mergedAut = mJoinAutomataUsingHole (ciAutL ci) (ciAutR ci)
+        let mergedAut = uncurry mJoinAutomataUsingHole $ unpackItemToAuts st ci
             boringSentence = toSentence $ ciSourceTree ci
         in  case mAutomatonPaths mergedAut of
             []    -> boringSentence
@@ -332,10 +333,20 @@ instance GraphvizShow CkyDebugParams (CkyStatus, ChartItem) where
                 else geniBug $ "Bounds check failed on derivations selector:\n"
                                ++ "Asked to visualise: " ++ (show whichDer) ++ "\n"
                                ++ "Bounds: 0 to " ++ (show $ length derivations - 1)
-   in  graphvizShowAsSubgraph f p c 
-       ++ "\n// ------------------- derivations --------------------------\n"
-       ++ "node [ shape = plaintext, peripheries = 0 ]\n"
-       ++ gvDerv
+       --
+       joinedAut = uncurry mJoinAutomataUsingHole $ unpackItemToAuts s c
+       gvAut     = graphvizShowAsSubgraph () (p ++ "aut")  joinedAut
+       --
+       showFeats  = debugShowFeats f
+       treeParams = unlines $ graphvizParams showFeats $ ciSourceTree c
+   -- FIXME: will have to make this configurable, maybe, show aut, show tree? radio button?
+   in    "\n// ------------------- elementary tree --------------------------\n"
+      ++ treeParams ++ graphvizShowAsSubgraph f p c
+      ++ "\n// ------------------- automata (joined) ------------------------\n"
+      ++ gvSubgraph gvAut
+      ++ "\n// ------------------- derivations --------------------------\n"
+      ++ treeParams ++ "node [ shape = plaintext, peripheries = 0 ]\n"
+      ++ gvDerv
 
 instance GraphvizShowNode CkyStatus (ChartId, String) where
   graphvizShowNode st prefix ci = 
@@ -350,19 +361,7 @@ instance GraphvizShow CkyDebugParams ChartItem where
   graphvizLabel  f = graphvizLabel (debugShowFeats f) . toTagElem 
   graphvizShowAsSubgraph f prefix ci = 
    let showFeats  = debugShowFeats f
-       treeParams = unlines $ graphvizParams showFeats $ ciSourceTree ci
-       --
-       gvTree = graphvizShowAsSubgraph showFeats (prefix ++ "tree")  $ toTagElem ci
-       joinedAut = mJoinAutomataUsingHole (ciAutL ci) (ciAutR ci)
-       gvAut     = graphvizShowAsSubgraph () (prefix ++ "aut1")  joinedAut
-   -- FIXME: will have to make this configurable, maybe, show aut, show tree? radio button?
-   in treeParams   
-      ++ "\n// ------------------- elementary tree --------------------------\n"
-      ++ gvSubgraph gvTree
-      ++ (unlines $ graphvizParams () $ ciAutL ci)
-      ++ "\n// ------------------- automata (joined) ------------------------\n"
-      ++ gvSubgraph gvAut
-      ++ treeParams 
+   in  graphvizShowAsSubgraph showFeats (prefix ++ "tree")  $ toTagElem ci
 
 toTagElem :: ChartItem -> TagElem
 toTagElem ci =

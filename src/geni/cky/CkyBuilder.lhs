@@ -33,8 +33,8 @@ module CkyBuilder
    ChartItem(..), ChartId,
    ciAdjDone, ciRoot,
    extractDerivations,
-   --
-   mJoinAutomata, mAutomatonPaths, emptySentenceAut,
+   -- automaton stuff (for the graphical debugger)
+   mJoinAutomata, mAutomatonPaths, emptySentenceAut, unpackItemToAuts,
    --
    bitVectorToSem, findId,
  )
@@ -99,8 +99,6 @@ import Tags
 --
 -- -- showItems = unlines . (map showItem)
 -- showItem i = (idname.ciSourceTree) i ++ " " ++ show (ciNode i) ++ " " ++  (showItemSem i)
---              -- FIXME: yeck! automata stuff
---              ++ " " ++ (unwords $ map show $ mAutomatonPaths $ ciAutL i)
 --
 -- showItemSem = (showBitVector 3) . ciSemantics
 \end{code}
@@ -255,9 +253,7 @@ data ChartItem = ChartItem
   , ciVariables  :: [GeniVal]
   -- we keep a SemBitMap strictly to help display the semantics
   , ciSemBitMap  :: SemBitMap
-  -- the sentence automaton which corresponds to this item
-  , ciAutL :: Maybe SentenceAut
-  , ciAutR :: Maybe SentenceAut
+  -- what side of the spine are we on? (left if initial tree: no spine)
   , ciTreeSide       :: TreeSide
   -- if there are things wrong with this item, what?
   , ciDiagnostic :: [String]
@@ -360,22 +356,12 @@ leafToItem left te node = ChartItem
   , ciSubsts     = []
   , ciSemBitMap  = Map.empty
   , ciTreeSide   = spineSide
-  , ciAutL  = if left then theAutomaton else Nothing
-  , ciAutR  = if left then Nothing else theAutomaton
   , ciDiagnostic   = []
   , ciDerivation   = [ InitOp ] }
   where
    spineSide | left                = LeftSide
              | gtype node == Foot  = OnTheSpine
              | otherwise           = RightSide
-   theAutomaton = if isLexeme node then Just lexAut else Nothing
-   -- add a transition from f -> t via label l
-   addTransFor l a = addTrans a 0 (Just (l,[])) 1
-   -- FIXME: note that you'll have to add features later! and make
-   -- sure that they are correctly propagated
-   -- add a transition for each word in the disjunction
-   lexAut  = foldr addTransFor lexAut' (glexeme node)
-   lexAut' = emptySentenceAut { startSt = 0, finalStList = [1], states = [[0,1]] }
 
 -- | assign a bit vector value to each literal in the semantics
 -- the resulting map can then be used to construct a bit vector
@@ -516,16 +502,6 @@ kidsToParentRule item chart | relevant item =
           []  -> Nothing
           [x] -> Just x
           _   -> error "multiple adjunction points in kidsToParentRule?!"
-    let combineAuts kids =
-         if null aft
-         then -- we're not on the spine (one of these should always be empty)
-              ( concatAut $ map ciAutL bef
-              , concatAut $ map ciAutR bef )
-         else -- we are on the spine
-              ( concatAut $ map ciAutL bef
-              , concatAut $ map ciAutR aft )
-         where concatAut auts = foldr mJoinAutomata Nothing auts
-               (bef, aft) = span (not.ciOnTheSpine) kids
     let combine kids = do
           let unifyOnly (x, _) y = unify x y
           newVars <- foldM unifyOnly (ciVariables item,[]) $
@@ -540,8 +516,6 @@ kidsToParentRule item chart | relevant item =
                , ciSubsts    = newSubsts
                , ciAdjPoint  = mergePoints kids
                , ciVariables = fst newVars
-               , ciAutL = (fst.combineAuts) kids
-               , ciAutR  = (snd.combineAuts) kids
                , ciTreeSide     = newSide
                , ciDerivation   = [ KidsToParentOp $ map ciId kids ]
                }
@@ -590,12 +564,7 @@ attemptSubst sItem rItem | ciSubs sItem =
     let newNode = rNode { gnname = gnname sNode
                         , gup = up, gdown = down }
         newItem  = combineWith SubstOp newNode subst rItem sItem
-        rItemAut = ciAutL rItem
-    return $
-      case ciTreeSide sItem of
-      LeftSide   -> newItem { ciAutL = rItemAut }
-      RightSide  -> newItem { ciAutR = rItemAut }
-      OnTheSpine -> geniBug $ "Tried to substitute on the spine!"
+    return newItem
 attemptSubst _ _ = error "attemptSubst called on non-subst node"
 
 -- | return True if the first item may be substituted into the second
@@ -646,16 +615,7 @@ attemptAdjunction pItem aItem | ciRoot aItem && ciAux aItem =
                                      (gup aRoot, gdown aFoot)
     let newNode = pNode { gaconstr = False, gup = newTop, gdown = [] }
         newItem = combineWith AdjOp newNode subst aItem pItem
-        --
-        newAutL = mJoinAutomata (ciAutL aItem) (ciAutL pItem)
-        newAutR = mJoinAutomata (ciAutR pItem) (ciAutR aItem)
-        newAutJoined = mJoinAutomata newAutL newAutR
-        --
-    return $
-      case ciTreeSide pItem of
-      LeftSide   -> newItem { ciAutL = newAutJoined }
-      RightSide  -> newItem { ciAutR = newAutJoined }
-      OnTheSpine -> newItem { ciAutL = newAutL, ciAutR = newAutR }
+    return newItem
 attemptAdjunction _ _ = error "attemptAdjunction called on non-aux or non-root node"
 
 -- | return True if the first item may be adjoined into the second
@@ -861,10 +821,7 @@ into information from the first ``master'' item.
 \begin{code}
 mergeItems :: ChartItem -> ChartItem -> ChartItem
 mergeItems master slave =
- master { ciDerivation = ciDerivation master ++ (ciDerivation slave)
-        , ciAutL = mUnionAutomata (ciAutL master) (ciAutL slave)
-        , ciAutR = mUnionAutomata (ciAutR master) (ciAutR slave)
-        }
+ master { ciDerivation = ciDerivation master ++ (ciDerivation slave) }
 \end{code}
 
 % --------------------------------------------------------------------
@@ -874,14 +831,14 @@ mergeItems master slave =
 \begin{code}
 unpackItem :: CkyStatus -> ChartItem -> [B.UninflectedSentence]
 unpackItem st it =
-  mAutomatonPaths $ uncurry mJoinAutomata $ unpackItemHelper st it
+  mAutomatonPaths $ uncurry mJoinAutomata $ unpackItemToAuts st it
 
 type SentenceAutPairMaybe = (Maybe SentenceAut, Maybe SentenceAut)
 
-unpackItemHelper :: CkyStatus -> ChartItem
+unpackItemToAuts :: CkyStatus -> ChartItem
                  -- left and right automata
                  -> SentenceAutPairMaybe
-unpackItemHelper st item =
+unpackItemToAuts st item =
  case map aut derivations of
       []     -> (Nothing, Nothing)
       (a:as) -> foldr pairUnion a as
@@ -930,7 +887,7 @@ emptySentenceAut =
 
 \begin{code}
 unpackNullAdjOp :: CkyStatus -> ChartItem -> SentenceAutPairMaybe
-unpackNullAdjOp st psv = unpackItemHelper st psv
+unpackNullAdjOp st psv = unpackItemToAuts st psv
 \end{code}
 
 \paragraph{Substitution} would be as simple as null adjunction, were it
@@ -951,7 +908,7 @@ unpackSubstOp st act psv =
     LeftSide   -> (actAut, Nothing)
     RightSide  -> (Nothing, actAut)
     OnTheSpine -> geniBug $ "Tried to substitute on the spine!"
-  where actAut = fst $ unpackItemHelper st act 
+  where actAut = fst $ unpackItemToAuts st act
 \end{code}
 
 \paragraph{Adjunction} involves joining the left sides of both items
@@ -963,8 +920,8 @@ FIXME: insert figure
 \begin{code}
 unpackAdjOp :: CkyStatus -> ChartItem -> ChartItem -> SentenceAutPairMaybe
 unpackAdjOp st act psv =
-  let (actL, actR) = unpackItemHelper st act
-      (psvL, psvR) = unpackItemHelper st psv
+  let (actL, actR) = unpackItemToAuts st act
+      (psvL, psvR) = unpackItemToAuts st psv
       newAutL = mJoinAutomata actL psvL
       newAutR = mJoinAutomata psvR actR
       newAut  = mJoinAutomata newAutL newAutR
@@ -993,8 +950,8 @@ trees.  As usual, there are three cases:
 unpackKidsToParentOp :: CkyStatus -> [ChartItem] -> SentenceAutPairMaybe
 unpackKidsToParentOp st kids =
   let (bef, aft) = span (not.ciOnTheSpine) kids
-      (befL, befR) = unzip $ map (unpackItemHelper st) bef
-      (_   , aftR) = unzip $ map (unpackItemHelper st) aft
+      (befL, befR) = unzip $ map (unpackItemToAuts st) bef
+      (_   , aftR) = unzip $ map (unpackItemToAuts st) aft
       concatAut auts = foldr mJoinAutomata Nothing auts
   in if null aft
      -- two cases in one! (we expect one of these to be Nothing)
