@@ -18,10 +18,11 @@
 \chapter{Cky builder}
 \label{cha:CkyBuilder}
 
-GenI current has two backends, SimpleBuilder (chapter \ref{cha:SimpleBuilder})
-and this module.  This backend does not attempt to build derived trees until
-the very end.  Instead, we build a derivation tree using the CKY algorithm for
-TAGs.
+GenI currently has two backends, SimpleBuilder (chapter
+\ref{cha:SimpleBuilder}) and this module.  This backend does not attempt
+to build derived trees at all.  We construct packed derivation trees
+using the CKY algorithm for TAGs, and at the very end, we unpack the
+results directly into an automaton.  No derived trees here!
 
 \begin{code}
 module CkyBuilder
@@ -105,32 +106,73 @@ import Tags
 -- showItemSem = (showBitVector 3) . ciSemantics
 }
 
-Implementing the Builder interface:
+\section{Implementing the Builder interface}
 
 \begin{code}
 ckyBuilder = B.Builder
   { B.init = initBuilder
   , B.step = generateStep
   , B.stepAll  = B.defaultStepAll ckyBuilder
-  , B.finished = finished -- should add check that step is aux
+  , B.finished = null.theAgenda
   , B.unpack   = \s -> concatMap (mAutomatonPaths.ciAutL) $ theResults s
   , B.run = run
   }
 \end{code}
 
+We break the run function down into two layers.  \fnreflite{run} is the
+outer layer, and this is what we provide via the Builder interface.
+\fnreflite{setup} is the inner layer, and the reason we separate it out
+is so that we the graphical debugger can call it.  Note that
+\fnref{initBuilder} and \fnreflite{setup} are two different things.  The
+latter must be called after the former.  You should really just think of
+\fnreflite{setup} as being the first step of running.
+
+\begin{code}
+-- | Performs surface realisation from an input semantics and a lexical selection.
+run input config =
+  let stepAll = B.stepAll ckyBuilder
+      init    = B.init ckyBuilder
+      -- combos = polarity automaton paths
+      cands   = fst (setup input config)
+      input2  = input { B.inCands = cands }
+      --
+      (iSt, iStats) = init input2 config
+  in runState (execStateT stepAll iSt) iStats
+
+-- | The first half of the run function...
+setup input config =
+ let cand     = B.inCands input
+     seminput = B.inSemInput input
+     --
+     extraPol = extrapol config
+     rootCats = rootCatsParam config
+     -- do any optimisations
+     isPol      = polarised config
+     -- polarity optimisation (if enabled)
+     autstuff = buildAutomaton seminput cand rootCats extraPol
+     finalaut = (snd.fst) autstuff
+     paths    = map toTagElem (automatonPaths finalaut)
+       where toTagElem = concatMap (lookupAndTweak $ snd autstuff)
+     combosPol  = if isPol then paths else [cand]
+     -- chart sharing optimisation (if enabled)
+     candsWithPaths = detectPolPaths combosPol
+     --
+     cands = map alphaConvert $ setTidnums $ candsWithPaths
+  in (cands, fst autstuff)
+\end{code}
+
+The rest of the builder interface is implemented below.  I just
+wanted to put the front-end functions up on top.
+
 % --------------------------------------------------------------------
 \section{Key types}
 % --------------------------------------------------------------------
 
-\subsection{BuilderState}
+\subsection{CkyState and CkyStatus}
 
-Note the theTrash is not actually essential to the operation of the
-generator; it is for pratical debugging of grammars.  Instead of
-trees dissapearing off the face of the debugger; they go into the
-trash where the user can inspect them and try to figure out why they
-went wrong.  To keep the generator from exploding we also keep an
-option not to use the trash, so that it is only enabled in debugger
-mode.
+This terminology might be a bit confusing: \verb!CkyState! is just a
+\verb!BuilderState! monad parameterised over \verb!CkyStatus!.  So,
+status contains the actual data and state handles all the monadic stuff.
 
 \begin{code}
 type CkyState a = B.BuilderState CkyStatus a
@@ -151,6 +193,12 @@ type Agenda = [ChartItem]
 type Chart  = [ChartItem]
 type Trash = [ChartItem]
 \end{code}
+
+Note the theTrash is not actually essential to the operation of the
+generator; it is for pratical debugging of grammars.  Instead of
+trees dissapearing off the face of the debugger; they go into the
+trash where the user can inspect them and try to figure out why they
+went wrong.
 
 \subsubsection{CkyState getters and setters}
 
@@ -252,70 +300,9 @@ type SemBitMap = Map.Map Pred BitVector
 type RoutingMap = Map.Map String ([String], [String], GNode)
 \end{code}
 
-\subsection{Implementing the Builder interface}
-
-\fnlabel{run} performs surface realisation from an input semantics and a
-lexical selection.  If the polarity automaton optimisation is enabled,
-it first constructs the polarity automaton and uses that to guide the
-surface realisation process.
-
-There's an unfortunate source of complexity here : one way to do
-generation is to treat polarity automaton path as a seperate
-generation task.  We do this by mapping the surface realiser
-across each path and then merging the final states back into one.
-
-You should be careful if you want to translate this to a builder
-that uses a packing strategy; you should take care to rename the
-chart edges accordingly.
-
-\begin{code}
-run input config =
-  let stepAll = B.stepAll ckyBuilder
-      init    = B.init ckyBuilder
-      -- combos = polarity automaton paths
-      cands   = fst (setup input config)
-      input2  = input { B.inCands = cands }
-      --
-      (iSt, iStats) = init input2 config
-  in runState (execStateT stepAll iSt) iStats
-\end{code}
-
-\subsection{Substeps}
-
-You probably don't want to run these unless you are a graphical debugger
-that needs to step through the surface realisation process one step at a
-time.
-
-\begin{code}
-setup input config =
- let cand     = B.inCands input
-     seminput = B.inSemInput input
-     --
-     extraPol = extrapol config
-     rootCats = rootCatsParam config
-     -- do any optimisations
-     isPol      = polarised config
-     -- polarity optimisation (if enabled)
-     autstuff = buildAutomaton seminput cand rootCats extraPol
-     finalaut = (snd.fst) autstuff
-     paths    = map toTagElem (automatonPaths finalaut)
-       where toTagElem = concatMap (lookupAndTweak $ snd autstuff)
-     combosPol  = if isPol then paths else [cand]
-     -- chart sharing optimisation (if enabled)
-     candsWithPaths = detectPolPaths combosPol
-     --
-     cands = map alphaConvert $ setTidnums $ candsWithPaths
-  in (cands, fst autstuff)
-
-finished :: CkyStatus -> Bool
-finished = null.theAgenda
-\end{code}
-
 % --------------------------------------------------------------------
 \section{Initialisation}
 % --------------------------------------------------------------------
-
-\paragraph{initBuilder} Creates an initial Builder.
 
 \begin{code}
 initBuilder :: B.Input -> Params -> (CkyStatus, Statistics)
@@ -334,7 +321,11 @@ initBuilder input config =
        , genAutCounter = 0
        , genconfig  = config }
   in runState (execStateT (mapM dispatchNew cands) initS) (B.initStats config)
+\end{code}
 
+\subsection{Initialising a chart item}
+
+\begin{code}
 initTree :: SemBitMap -> TagElem -> [ChartItem]
 initTree bmap te =
   let semVector    = semToBitVector bmap (tsemantics te)
@@ -419,6 +410,58 @@ decompose te = helper (ttree te) Map.empty
         smap2    = foldr addKid smap kids
     in -- recurse to add routing info for child nodes
        foldr helper smap2 kidNodes
+\end{code}
+
+% --------------------------------------------------------------------
+\section{Generate}
+% --------------------------------------------------------------------
+
+\begin{itemize}
+\item If both Agenda and AuxAgenda are empty then there is nothing to do,
+  otherwise, if Agenda is empty then we switch to the application of the
+  Adjunction rule.
+\item After the rule is applied we classify solutions into those that are complete
+  and cover the semantics and those that don't.  The first ones are returned
+  and added to the result, while the others are sent back to Agenda.
+\item Notice that if we are applying the Substitution rule then given is added
+  to Chart, otherwise it is deleted.
+\end{itemize}
+
+\begin{code}
+generateStep :: CkyState ()
+generateStep =
+ do -- this check may seem redundant with generate, but it's needed
+    -- to protect against a user who calls generateStep on a finished
+    -- state
+    isFinished <- query finished
+    unless (isFinished) generateStep2
+
+generateStep2 :: CkyState ()
+generateStep2 =
+  do st <- get
+     -- incrGeniter 1
+     agendaItem <- selectAgendaItem
+     -- try the inference rules
+     let chart = theChart st
+         apply (rule, _) =
+           rule agendaItem chart
+         results = map apply ckyRules
+     -- put all newly generated items into the right pigeon-holes
+     -- trace (concat $ zipWith showRes ckyRules results) $
+     mapM dispatchNew (concat $ catMaybes results)
+     --
+     addToChart agendaItem
+     incrCounter num_iterations 1
+     return ()
+
+selectAgendaItem :: CkyState ChartItem
+selectAgendaItem = do
+  a <- query theAgenda
+  updateAgenda (tail a)
+  return (head a)
+
+finished :: CkyStatus -> Bool
+finished = null.theAgenda
 \end{code}
 
 % --------------------------------------------------------------------
@@ -696,69 +739,22 @@ unifyPair (t1, b1) (t2, b2) =
 \end{code}
 
 % --------------------------------------------------------------------
-\section{Generate}
+\section{Dispatching new chart items}
 % --------------------------------------------------------------------
 
-\begin{itemize}
-\item If both Agenda and AuxAgenda are empty then there is nothing to do,
-  otherwise, if Agenda is empty then we switch to the application of the
-  Adjunction rule.
-\item After the rule is applied we classify solutions into those that are complete
-  and cover the semantics and those that don't.  The first ones are returned
-  and added to the result, while the others are sent back to Agenda.
-\item Notice that if we are applying the Substitution rule then given is added
-  to Chart, otherwise it is deleted.
-\end{itemize}
+Dispatching consists of assigning a chart item to the right part of the
+chart (agenda, trash, results list, etc).  This is implemented as a
+series of filters which can either fail or succeed.
 
-\begin{code}
-generateStep :: CkyState ()
-generateStep =
- do -- this check may seem redundant with generate, but it's needed
-    -- to protect against a user who calls generateStep on a finished
-    -- state
-    isFinished <- query finished
-    unless (isFinished) generateStep2
-
-generateStep2 :: CkyState ()
-generateStep2 =
-  do st <- get
-     -- incrGeniter 1
-     agendaItem <- selectAgendaItem
-     -- try the inference rules
-     let chart = theChart st
-         apply (rule, _) =
-           rule agendaItem chart
-         results = map apply ckyRules
-     -- put all newly generated items into the right pigeon-holes
-     -- trace (concat $ zipWith showRes ckyRules results) $
-     mapM dispatchNew (concat $ catMaybes results)
-     --
-     addToChart agendaItem
-     incrCounter num_iterations 1
-     return ()
-
-selectAgendaItem :: CkyState ChartItem
-selectAgendaItem = do
-  a <- query theAgenda
-  updateAgenda (tail a)
-  return (head a)
-\end{code}
-
-\subsection{Dispatching}
-
-\paragraph{dispatchNew} assigns a new item to the right data structure
-following these critieria:
-\begin{enumerate}
-\item if the item is both syntactically complete (no more subst nodes) and
-      semantically complete (matches target semantics), it is a result, so
-      unify the top and bottom feature structures of each node.  If that
-      succeeds, return it, otherwise discard it completely.
-\item if the number of subtrees exceeds the numTreesLimit, discard
-\item if it is only syntactically complete and it is an auxiliary tree,
-      then we don't need to do any more substitutions with it, so set it
-      aside on the auxiliary agenda (AuxAgenda)
-\item otherwise, put it on the regular agenda (Agenda)
-\end{enumerate}
+Counter-intuitively, success is defined as returning \verb!Nothing!.
+Failure is defined as return \verb!Just!, because if a filter fails, it
+has the right to modify the item for the next filter.  For example, the
+top and bottom unification filter succeeds if it \emph{cannot} unify
+the top and bottom features of a node.  It suceeds by putting the item
+into the trash and returning Nothing.  If it \emph{can} perform top and
+bottom unification, we want to return the item where the top and bottom
+nodes are unified.  Failure is success, war is peace, freedom is
+slavery, erase is backspace.
 
 \begin{code}
 dispatchNew :: ChartItem -> CkyState ()
@@ -772,17 +768,6 @@ dispatchNew item =
                                 , dispatchToAgenda ]
     return ()
 
--- A dispatch filter makes a somewhat counter-intuitive use of
--- Maybe:
---
---  If the filter succesfully dispatches the object; we're no
---  longer interested in its result, so we happily return
---  Nothing.
---
---  If the filter does not dispatch the item, then maybe the
---  item needs to be modified, so it returns Just newItem
---  Of course, if no modifications are neccesary, then it
---  just returns the same item
 dispatchToAgenda, dispatchRedundant, dispatchResults, dispatchTbFailure :: ChartItem -> CkyState (Maybe ChartItem)
 
 -- | Trivial dispatch filter: always put the item on the agenda and return
@@ -855,7 +840,7 @@ tbUnify item =
 \end{code}
 
 % --------------------------------------------------------------------
-\section{Equivalence classes}
+\subsection{Equivalence classes}
 % --------------------------------------------------------------------
 
 \fnlabel{equivalent} returns true if two chart items are equivalent.
