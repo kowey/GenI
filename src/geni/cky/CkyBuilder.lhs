@@ -46,7 +46,7 @@ import Control.Monad
   (unless, foldM)
 
 import Control.Monad.State
-  (State, get, put, liftM, runState, execStateT )
+  (State, get, put, modify, liftM, runState, execStateT )
 import Data.Bits ( (.&.), (.|.), bit )
 import Data.List ( delete, find, span, (\\) )
 import qualified Data.Map as Map
@@ -152,35 +152,33 @@ type Chart  = [ChartItem]
 type Trash = [ChartItem]
 \end{code}
 
-\subsubsection{CkyState updaters}
+\subsubsection{CkyState getters and setters}
 
 \begin{code}
+query :: (CkyStatus -> a) -> CkyState a
+query fn = fn `liftM` get
+
 addToAgenda :: ChartItem -> CkyState ()
 addToAgenda te = do
-  s <- get
-  put s{ theAgenda = te : (theAgenda s) }
+  modify $ \s -> s{ theAgenda = te : (theAgenda s) }
 
 addToResults :: ChartItem -> CkyState ()
 addToResults te = do
-  s <- get
-  put s{ theResults = te : (theResults s) }
+  modify $ \s -> s{ theResults = te : (theResults s) }
 
 updateAgenda :: Agenda -> CkyState ()
 updateAgenda a = do
-  s <- get
-  put s{ theAgenda = a }
+  modify $ \s -> s{ theAgenda = a }
 
 addToChart :: ChartItem -> CkyState ()
 addToChart te = do
-  s <- get
-  put s { theChart = te : (theChart s) }
+  modify $ \s -> s { theChart = te : (theChart s) }
   incrCounter chart_size 1
 
 addToTrash :: ChartItem -> String -> CkyState ()
 addToTrash item err = do
-  s <- get
   let item2 = item { ciDiagnostic = err:(ciDiagnostic item) }
-  put s { theTrash = item2 : (theTrash s) }
+  modify $ \s -> s { theTrash = item2 : (theTrash s) }
 \end{code}
 
 \subsection{Chart items}
@@ -245,8 +243,14 @@ ciLeftSide, ciRightSide, ciOnTheSpine :: ChartItem -> Bool
 ciLeftSide   i = ciTreeSide i == LeftSide
 ciRightSide  i = ciTreeSide i == RightSide
 ciOnTheSpine i = ciTreeSide i == OnTheSpine
-\end{code}
 
+type SemBitMap = Map.Map Pred BitVector
+
+-- basically, an inverted tree
+-- from node name to a list of its sisters on the left,
+-- a list of its sisters on the right, its parent
+type RoutingMap = Map.Map String ([String], [String], GNode)
+\end{code}
 
 \subsection{Implementing the Builder interface}
 
@@ -276,8 +280,11 @@ run input config =
   in runState (execStateT stepAll iSt) iStats
 \end{code}
 
-\fnlabel{setup} is one of the substeps of run (so unless you are a
-graphical debugger, you probably don't need to invoke it yourself)
+\subsection{Substeps}
+
+You probably don't want to run these unless you are a graphical debugger
+that needs to step through the surface realisation process one step at a
+time.
 
 \begin{code}
 setup input config =
@@ -299,6 +306,9 @@ setup input config =
      --
      cands = map alphaConvert $ setTidnums $ candsWithPaths
   in (cands, fst autstuff)
+
+finished :: CkyStatus -> Bool
+finished = null.theAgenda
 \end{code}
 
 % --------------------------------------------------------------------
@@ -375,8 +385,6 @@ leafToItem left te node = ChartItem
    lexAut  = foldr addTransFor lexAut' (glexeme node)
    lexAut' = emptySentenceAut { startSt = 0, finalStList = [1], states = [[0,1]] }
 
-type SemBitMap = Map.Map Pred BitVector
-
 -- | assign a bit vector value to each literal in the semantics
 -- the resulting map can then be used to construct a bit vector
 -- representation of the semantics
@@ -411,11 +419,6 @@ decompose te = helper (ttree te) Map.empty
         smap2    = foldr addKid smap kids
     in -- recurse to add routing info for child nodes
        foldr helper smap2 kidNodes
-
--- basically, an inverted tree
--- from node name to a list of its sisters on the left,
--- a list of its sisters on the right, its parent
-type RoutingMap = Map.Map String ([String], [String], GNode)
 \end{code}
 
 % --------------------------------------------------------------------
@@ -741,17 +744,7 @@ selectAgendaItem = do
   return (head a)
 \end{code}
 
-\subsection{Generate helper functions}
-
-\fnlabel{finished} tells us if it is time to stop generation
-
-\begin{code}
-finished :: CkyStatus -> Bool
-finished = (null.theAgenda) -- should add check that step is aux
-
-query :: (CkyStatus -> a) -> CkyState a
-query fn = fn `liftM` get
-\end{code}
+\subsection{Dispatching}
 
 \paragraph{dispatchNew} assigns a new item to the right data structure
 following these critieria:
@@ -813,7 +806,10 @@ dispatchRedundant item =
         then -- trace (ckyShow "-> merge" item []) $
              do put ( st {theChart = newChart} )
                 return Nothing
-        else do Just `liftM` setId item
+        else do s <- get
+                let counter = gencounter s
+                put $ s { gencounter = counter + 1 }
+                return $ Just $ item { ciId = counter }
 
 -- | If it is a result, put the item in the results list.
 --   Otherwise, return (Just unmodified)
@@ -886,8 +882,48 @@ mergeItems master slave =
 \end{code}
 
 % --------------------------------------------------------------------
-\section{Automaton stuff}
+\section{Unpacking the chart}
 % --------------------------------------------------------------------
+
+\begin{code}
+-- | Returns all the derivation trees for this item: note that this is
+-- not a TAG derivation tree but a history of inference rule applications
+-- in tree form
+-- This is written using a list monad to capture the fact that a node
+-- can have more than one derivation (because of merging)
+extractDerivations :: CkyStatus -> ChartItem -> [ Tree (ChartId, String) ]
+extractDerivations st item =
+ do chartOp <- ciDerivation item
+    case chartOp of
+     KidsToParentOp kids ->
+       do kidTrees <- mapM treeFor kids
+          createNode "kids" kidTrees
+     SubstOp act psv ->
+       do actTree <- treeFor act
+          let psvTree = Node (psv, "subst") [ actTree ]
+          createNode "subst-finish" [psvTree]
+     AdjOp act psv ->
+       do actTree <- treeFor act
+          let psvTree = Node (psv, "adj") [ actTree ]
+          createNode "adj-finish"  [psvTree]
+     NullAdjOp psv ->
+       do psvTree <- treeFor psv
+          createNode "no-adj" [psvTree]
+     InitOp -> createNode "init" []
+ where
+   createNode op kids =
+     return $ Node (ciId item, op) kids
+   treeFor id =
+     case findId st id of
+       Nothing -> geniBug $ "derivation for item " ++ (show $ ciId item)
+                         ++ "points to non-existent item " ++ (show id)
+       Just x  -> extractDerivations st x
+
+findId :: CkyStatus -> ChartId -> Maybe ChartItem
+findId st i = find (\x -> ciId x == i) $ theChart st ++ (theAgenda st) ++ (theResults st) ++ (theTrash st)
+\end{code}
+
+\subsection{Automaton stuff}
 
 \begin{code}
 emptySentenceAut :: SentenceAut
@@ -984,55 +1020,4 @@ incrStates prefix aut =
 mAutomatonPaths :: (Ord st, Ord ab) => Maybe (NFA st ab) -> [[ab]]
 mAutomatonPaths Nothing  = []
 mAutomatonPaths (Just x) = automatonPaths x
-\end{code}
-
-% --------------------------------------------------------------------
-\section{Helper functions}
-% --------------------------------------------------------------------
-
-\subsection{ChartItem}
-
-\begin{code}
-setId :: ChartItem -> CkyState ChartItem
-setId item =
-  do s <- get
-     let counter = gencounter s
-     put $ s { gencounter = counter + 1 }
-     return $ item { ciId = counter }
-
--- | Returns all the derivation trees for this item: note that this is
--- not a TAG derivation tree but a history of inference rule applications
--- in tree form
--- This is written using a list monad to capture the fact that a node
--- can have more than one derivation (because of merging)
-extractDerivations :: CkyStatus -> ChartItem -> [ Tree (ChartId, String) ]
-extractDerivations st item =
- do chartOp <- ciDerivation item
-    case chartOp of
-     KidsToParentOp kids ->
-       do kidTrees <- mapM treeFor kids
-          createNode "kids" kidTrees
-     SubstOp act psv ->
-       do actTree <- treeFor act
-          let psvTree = Node (psv, "subst") [ actTree ]
-          createNode "subst-finish" [psvTree]
-     AdjOp act psv ->
-       do actTree <- treeFor act
-          let psvTree = Node (psv, "adj") [ actTree ]
-          createNode "adj-finish"  [psvTree]
-     NullAdjOp psv ->
-       do psvTree <- treeFor psv
-          createNode "no-adj" [psvTree]
-     InitOp -> createNode "init" []
- where
-   createNode op kids =
-     return $ Node (ciId item, op) kids
-   treeFor id =
-     case findId st id of
-       Nothing -> geniBug $ "derivation for item " ++ (show $ ciId item)
-                         ++ "points to non-existent item " ++ (show id)
-       Just x  -> extractDerivations st x
-
-findId :: CkyStatus -> ChartId -> Maybe ChartItem
-findId st i = find (\x -> ciId x == i) $ theChart st ++ (theAgenda st) ++ (theResults st) ++ (theTrash st)
 \end{code}
