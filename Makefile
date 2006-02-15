@@ -209,7 +209,7 @@ endif
 # documentation
 # --------------------------------------------------------------------
 
-DOC_SRC=$(SRC_GENI)/*.lhs
+DOC_SRC=$(SOURCE_FILES)
 
 haddock: $(SOURCE_HSPP)
 	mkdir -p $(HADDOCK_OUT)
