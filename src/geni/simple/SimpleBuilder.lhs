@@ -230,14 +230,6 @@ initSimpleBuilder input config =
   let cands = B.inCands input
       ts    = fst $ B.inSemInput input
       (a,i) = partition closedAux cands 
-      --
-      nullSemCands   = [ idname t | t <- cands, (null.tsemantics) t ] 
-      unInstSemCands = [ idname t | t <- cands, not $ Set.null $ collect (tsemantics t) Set.empty ]
-      nullSemErr     = "The following trees have a null semantics: " ++ (unwords nullSemCands)
-      unInstSemErr   = "The following trees have an uninstantiated semantics: " ++ (unwords unInstSemCands)
-      semanticsErr   = (if null nullSemCands then "" else nullSemErr ++ "\n") ++ 
-                       (if null unInstSemCands then "" else unInstSemErr) 
-      --
       initS = S{ theAgenda    = i
                , theAuxAgenda = a
                , theChart     = []
@@ -248,9 +240,8 @@ initSimpleBuilder input config =
                , gencounter = toInteger $ length cands
                , genconfig  = config }
       --
-  in if (null semanticsErr || ignoreSemantics config)
-        then (initS, B.initStats config)
-        else error semanticsErr 
+  in B.unlessEmptySem input config $
+     (initS, B.initStats config)
 
 type MS a = B.BuilderState SimpleStatus a
 \end{code}

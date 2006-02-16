@@ -43,18 +43,19 @@ module Builder
 where
 
 import Control.Monad.State
+import qualified Data.Set as Set
 
 import Automaton (NFA)
-import Configuration ( Params(metricsParam) )
+import Configuration ( Params(metricsParam, ignoreSemantics) )
 import General (geniBug)
-import Btypes    (ILexEntry, SemInput, Flist)
+import Btypes    (ILexEntry, SemInput, Flist, Collectable(collect) )
 import Statistics (Statistics, incrIntMetric,
                    Metric(IntMetric), updateMetrics,
                    mergeMetrics, addIntMetrics,
                    queryMetrics, queryIntMetric,
                    addMetric, emptyStats,
                    )
-import Tags      (TagElem)
+import Tags      ( TagElem(idname,tsemantics) )
 \end{code}
 }
 
@@ -145,7 +146,28 @@ our main monad.
 type BuilderState s a = StateT s (State Statistics) a
 \end{code}
 
-\section{Statistics}
+\section{Initialisation}
+
+We provide a few helper functions keep our builders somewhat factorised.
+
+\begin{code}
+-- | Equivalent to 'id' unless the input contains an empty or uninstatiated
+--   semantics
+unlessEmptySem :: Input -> Params -> a -> a
+unlessEmptySem input config =
+ let cands = inCands input
+     nullSemCands   = [ idname t | t <- cands, (null.tsemantics) t ]
+     unInstSemCands = [ idname t | t <- cands, not $ Set.null $ collect (tsemantics t) Set.empty ]
+     nullSemErr     = "The following trees have a null semantics: " ++ (unwords nullSemCands)
+     unInstSemErr   = "The following trees have an uninstantiated semantics: " ++ (unwords unInstSemCands)
+     semanticsErr   = (if null nullSemCands then "" else nullSemErr ++ "\n") ++
+                      (if null unInstSemCands then "" else unInstSemErr)
+  in if (null semanticsErr || ignoreSemantics config)
+     then id
+     else error semanticsErr
+\end{code}
+
+\subsection{Statistics}
 
 \begin{code}
 addCounters :: Statistics -> Statistics -> Statistics
@@ -197,3 +219,6 @@ num_iterations  = "iterations"
 chart_size      = "chart_size"
 num_comparisons = "comparisons"
 \end{code}
+
+
+

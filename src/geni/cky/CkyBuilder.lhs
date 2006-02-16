@@ -317,7 +317,8 @@ initBuilder input config =
        , gencounter    = 0
        , genAutCounter = 0
        , genconfig  = config }
-  in runState (execStateT (mapM dispatchNew cands) initS) (B.initStats config)
+  in B.unlessEmptySem input config $
+     runState (execStateT (mapM dispatchNew cands) initS) (B.initStats config)
 \end{code}
 
 \subsection{Initialising a chart item}
