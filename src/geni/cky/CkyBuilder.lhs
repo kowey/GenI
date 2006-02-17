@@ -504,7 +504,7 @@ kidsToParentRule item chart | relevant item =
    sourceOf = tidnum.ciSourceTree
    --
    relevant c =
-     (sourceOf c == sourceOf item) && (not $ ciSubs c) && ciAdjDone c
+     (sourceOf c == sourceOf item) && (not $ ciSubs c) && ciAdjDone c && (compatible c item)
    relChart = filter relevant chart
    --
    matches :: String -> [ChartItem]
