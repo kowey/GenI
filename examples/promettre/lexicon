@@ -45,6 +45,14 @@ semantics:[john(+?I)]
 Paul nP(?I)
 semantics:[paul(+?I)]
 
+Pierre nP(?I)
+semantics:[peter(+?I)]
+
+Olivier nP(?I)
+semantics:[oliver(+?I)]
+
+
+
 
 %% --------------------------------------------------------------------- 
 %% Verbs
