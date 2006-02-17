@@ -10,6 +10,8 @@
 %% 10. promettant un cadeau a Marie
 %% 11. donner un livre a marie
 
+% FIXME: eric the non-linguist set all cat:p nodes with unspecified mode to FIXME
+
 Det(?I) auxiliary
 n1[cat:n idx:?I det:plus qu:minus]![cat:n idx:?I qu:minus]
 {
@@ -37,10 +39,12 @@ n1 [cat:n num:?Num gen:?Gen idx:?I]![cat:n num:?Num gen:?Gen idx:?I det:minus qu
 nP(?I!pers:?Pers num:?Num gen:?Gen) initial
 n1 type:anchor [cat:n num:?Num pers:?Pers gen:?Gen idx:?I det:plus qu:minus]![cat:n idx:?I det:plus qu:minus] {}
 
+
+
 % jean se aimer -- note: we rely on top/bottom unification
 % for this to work
 vArity2:n0v(?E ?X ?Y) initial 
-n1[cat:p]![]
+n1[cat:p mode:FIXME]![]
 {
   n2 type:subst [cat:n idx:?X det:plus qu:minus]![cat:n idx:?Y]
   n5 [cat:se idx:?X det:plus qu:minus]![cat:se idx:?Y]
@@ -51,7 +55,7 @@ n1[cat:p]![]
 }
 
 vArity2:n0cl1v(?E ?X ?Y) initial
-n1[cat:p]![]
+n1[cat:p mode:FIXME]![]
 {
   n2 type:subst [cat:n idx:?X det:plus qu:minus]![cat:n idx:?X]
   n5 type:subst [cat:cl idx:?Y det:plus qu:minus]![cat:cl idx:?Y]
@@ -62,7 +66,7 @@ n1[cat:p]![]
 }
 
 vArity2:n0vn1(?E ?X ?Y) initial
-n1[cat:p]![]
+n1[cat:p mode:FIXME]![]
 {
   n2 type:subst [cat:n idx:?X det:plus qu:minus]![cat:n idx:?X]
   n3[cat:v idx:?E]![]
@@ -110,7 +114,7 @@ n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p]
 
   %1 declarative	gn promet gn sp_a
 vArity3:n0vn1sp2(?E ?X ?Y ?Z)  
-n1[cat:p]![]
+n1[cat:p mode:FIXME]![]
 {
   n2 type:subst [cat:n pers:?Pers num:?Num idx:?X det:plus qu:minus]![cat:n idx:?X]
   n3[cat:v idx:?E]![]
@@ -147,7 +151,7 @@ n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p]
 }
 
 vArity3:n0vn1inf2(?E ?X ?Y ?Z) 
-n1[cat:p]![]
+n1[cat:p mode:FIXME]![]
 {
   n2 type:subst [cat:n idx:?X pers:?Pers num:?Num det:plus qu:minus]![cat:n idx:?X]
   n3[cat:v idx:?E]![]
@@ -196,7 +200,7 @@ n0[cat:n idx:?Z det:plus]![cat:n idx:?Z]
 begin initial
   %9 declarative	GN V GN_a Pinf_de
 vArity3control:n0vsp2pinf1(?E ?X ?Y ?Z) 
-n1[cat:p]![]
+n1[cat:p mode:FIXME]![]
 {
   n2 type:subst [cat:n pers:?Pers num:?Num idx:?X det:plus qu:minus]![cat:n idx:?X]
   n3[cat:v idx:?E]![]
@@ -432,7 +436,7 @@ begin initial
   % kowey: for persuader instead of promettre
   % (sujidx is set differently)
 vArity3controlObj:n0vsp2pinf1b(?E ?X ?Y ?Z) 
-n1[cat:p]![]
+n1[cat:p mode:FIXME]![]
 {
   n2 type:subst [cat:n idx:?X det:plus qu:minus]![cat:n idx:?X]
   n3[cat:v idx:?E]![]
@@ -457,7 +461,7 @@ n1[cat:p]![]
 
   %15 declarative gn0 persuade gn2 pinf_de1	n0vn2pinf1 
 vArity3controlObj:n0vn2pinf1b(?E ?X ?Y ?Z) 
-n1[cat:p]![]
+n1[cat:p mode:FIXME]![]
 {
   n2 type:subst [cat:n idx:?X det:plus qu:minus]![cat:n idx:?X]
   n3[cat:v idx:?E]![]
@@ -494,7 +498,7 @@ n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p]
 
   %18 rel-sjt	 n qui persuade gn  pinf_de	rel0vn2pinf1
 vArity3controlObj:n0vn1sp2(?E ?X ?Y ?Z) 
-n1[cat:p]![]
+n1[cat:p mode:FIXME]![]
 {
   n2 type:subst [cat:n idx:?X det:plus qu:minus]![cat:n idx:?X]
   n3[cat:v idx:?E]![]
