@@ -43,7 +43,7 @@ vArity2:n0v(?E ?X ?Y) initial
 n1[cat:p]![]
 {
   n2 type:subst [cat:n idx:?X det:plus qu:minus]![cat:n idx:?Y]
-  n5 [cat:se idx:?X det:plus qu:minus]![cat:n idx:?Y]
+  n5 [cat:se idx:?X det:plus qu:minus]![cat:se idx:?Y]
   n3 [cat:v idx:?E]![]
   {
     n4 anchor
@@ -87,7 +87,7 @@ n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p]
 cl0vinf(?E ?X ?Y) initial 
 n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p]
 {
-  n5 type:subst [cat:cl idx:?Y det:plus qu:minus]![cat:n idx:?Y]
+  n5 type:subst [cat:cl idx:?Y det:plus qu:minus]![cat:cl idx:?Y]
   n2 [cat:v idx:?E]![]
   {
     n3 anchor
@@ -100,7 +100,7 @@ begin initial
 vArity3:cl2vinfn0(?E ?X ?Y ?Z) initial 
 n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p]
 {
-  n5 type:subst [cat:cl idx:?Z det:plus qu:minus]![cat:n idx:?Z]
+  n5 type:subst [cat:cl idx:?Z det:plus qu:minus]![cat:cl idx:?Z]
   n2 [cat:v idx:?E]![]
   {
     n3 anchor
@@ -162,7 +162,7 @@ n1[cat:p]![]
     n8 type:subst [cat:n idx:?Z det:plus qu:minus]![cat:n idx:?Z
     ] 
   }
-  n9 type:subst [cat:p idx:?Y mode:inf]![cat:n idx:?Y] 
+  n9 type:subst [cat:p idx:?Y mode:inf]![cat:p idx:?Y] 
 }
 
 end initial
@@ -215,7 +215,7 @@ n1[cat:p]![]
     {
       n11 type:lex "de"
     } 
-    n12 type:subst [cat:p idx:?Y mode:inf sujidx:?X]![cat:n idx:?Y]
+    n12 type:subst [cat:p idx:?Y mode:inf sujidx:?X]![cat:p idx:?Y]
   }
 }
 
@@ -280,7 +280,7 @@ n0[cat:n idx:?X det:plus]![cat:n idx:?X]
   n1 type:foot [cat:n idx:?X]![cat:n idx:?X]
   n2[cat:p]![]
   {
-    n3 type:subst [cat:cl idx:?X det:plus qu:minus]![cat:n idx:?X]
+    n3 type:subst [cat:cl idx:?X det:plus qu:minus]![cat:cl idx:?X]
     n4[cat:v idx:?E]![]
     {
       n5 anchor
@@ -385,7 +385,7 @@ n0[cat:n idx:?X det:plus]![cat:n idx:?X]
   n1 type:foot [cat:n idx:?X]![cat:n idx:?X]
   n2[cat:p]![]
   {
-    n3 type:subst [cat:cl idx:?X det:plus qu:minus]![cat:n idx:?X]
+    n3 type:subst [cat:cl idx:?X det:plus qu:minus]![cat:cl idx:?X]
     n4[cat:v idx:?E]![]
     {
       n5 anchor
@@ -451,7 +451,7 @@ n1[cat:p]![]
     {
       n11 type:lex "de"
     } 
-    n12 type:subst [cat:p idx:?Y mode:inf sujidx:?Z]![cat:n idx:?Y]
+    n12 type:subst [cat:p idx:?Y mode:inf sujidx:?Z]![cat:p idx:?Y]
   }
 }
 
@@ -470,7 +470,7 @@ n1[cat:p]![]
     {
       n8 type:lex "de"
     } 
-    n9 type:subst [cat:p idx:?Y mode:inf sujidx:?Z]![cat:n idx:?Y] 
+    n9 type:subst [cat:p idx:?Y mode:inf sujidx:?Z]![cat:p idx:?Y] 
   }
 }
 
