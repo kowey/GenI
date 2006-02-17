@@ -29,7 +29,7 @@ module SimpleBuilder (
    Agenda, AuxAgenda, Chart, SimpleStatus, MS,
 
    -- From SimpleStatus
-   simpleBuilder, setup,
+   simpleBuilder,
    theAgenda, theAuxAgenda, theChart, theTrash, theResults,
    initSimpleBuilder, 
    addToAgenda, addToChart,
@@ -51,13 +51,12 @@ import Data.Maybe (catMaybes)
 import Data.Tree 
 import Data.Bits
 import qualified Data.Map as Map 
-import qualified Data.Set as Set
 
 import Automaton ( automatonPaths, NFA(..), addTrans )
 import Btypes 
   ( Ptype(Initial,Auxiliar),
   , Flist 
-  , Replacable(..), alphaConvert
+  , Replacable(..),
   , Sem, sortSem, Subst
   , GType(Other), GNode(..), gCategory
   , GeniVal(GConst)
@@ -75,10 +74,8 @@ import Builder (UninflectedWord, UninflectedSentence,
 import qualified Builder as B
 
 import Tags (TagElem, TagSite, TagDerivation,  
-             collect,
              idname, tidnum,
              derivation,
-             setTidnums,
              ttree, ttype, tsemantics, thighlight, tdiagnostic,
              tpolpaths,
              adjnodes,
@@ -130,7 +127,7 @@ run input config =
   let stepAll = B.stepAll simpleBuilder
       init    = B.init simpleBuilder
       -- combos = polarity automaton paths 
-      combos  = fst (setup input config)
+      (combos,_,input2) = (B.preInit input config)
       --
       (nullS, nullStats)  = subInit [] 
       --
@@ -138,40 +135,12 @@ run input config =
         where generate c = 
                let (iS, iStats) = subInit c
                in  runState (execStateT stepAll iS) iStats
-      subInit c = init (input { B.inCands = c }) config
+      subInit c = init (input2 { B.inCands = c }) config
       -- WARNING: will not work with packing!
       mergeSt st1 st2 = 
         st1 { theResults = (theResults st1) ++ (theResults st2) }
   -- FIXME: will have to update the stats later)
   in (foldr mergeSt nullS finalS , foldr addCounters nullStats finalStats)
-\end{code}
-
-\fnlabel{setup} is one of the substeps of run (so unless you are a
-graphical debugger, you probably don't need to invoke it yourself)
-
-\begin{code}
-setup input config = 
- let cand     = B.inCands input
-     seminput = B.inSemInput input 
-     --
-     extraPol = extrapol config
-     rootCats = rootCatsParam config
-     -- do any optimisations
-     isPol      = polarised config
-     -- polarity optimisation (if enabled)
-     autstuff = buildAutomaton seminput cand rootCats extraPol
-     finalaut = (snd.fst) autstuff
-     paths    = map toTagElem (automatonPaths finalaut)
-       where toTagElem = concatMap (lookupAndTweak $ snd autstuff)
-     combosPol  = if isPol then paths else [cand]
-     -- chart sharing optimisation (if enabled)
-     isChartSharing = chartsharing config
-     combosChart = if isChartSharing 
-                    then [ detectPolPaths combosPol ] 
-                    else map defaultPolPaths combosPol 
-     -- 
-     combos = map (map alphaConvert.setTidnums) combosChart
-  in (combos, fst autstuff)
 \end{code}
 
 % --------------------------------------------------------------------  

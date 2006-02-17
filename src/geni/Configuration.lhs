@@ -25,8 +25,10 @@ module Configuration
   ( Params(..), GrammarType(..), BuilderType(..), Switch(..)
   , polarised, polsig, predicting
   , semfiltered, chartsharing, footconstr
-  , isBatch, emptyParams
-  , treatArgs, optBatch)
+  , isBatch, emptyParams,
+  , setChartsharing,
+  , treatArgs, optBatch,
+  )
 where
 \end{code}
 
@@ -36,7 +38,7 @@ import qualified Data.Map as Map
 
 import System.Console.GetOpt
 import System.Exit ( exitWith, ExitCode(..) )
-import Data.List  ( find, intersperse )
+import Data.List  ( delete, find, intersperse )
 import Data.Maybe ( catMaybes  )
 import Text.ParserCombinators.Parsec ( runParser )
 
@@ -120,6 +122,12 @@ semfiltered  p = SemFilteredTok  `elem` (optimisations p)
 chartsharing p = ChartSharingTok `elem` (optimisations p)
 footconstr   p = FootConstraintTok `elem` (optimisations p)
 isBatch      p = BatchTok          `elem` (optimisations p)
+
+setChartsharing :: Bool -> Params -> Params
+setChartsharing c p =
+  let opts  = delete ChartSharingTok $ optimisations p
+      opts2 = if c then (ChartSharingTok:opts) else opts
+  in p { optimisations = opts2 }
 \end{code}
 
 \paragraph{defaultParams} returns the default parameters configuration

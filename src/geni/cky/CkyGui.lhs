@@ -26,6 +26,7 @@ module CkyGui where
 import Graphics.UI.WX hiding (when)
 import Graphics.UI.WXCore hiding (when)
 
+import Control.Exception (assert)
 import qualified Control.Monad as Monad 
 import Control.Monad (liftM)
 
@@ -44,7 +45,7 @@ import qualified BuilderGui as BG
 import Btypes (GNode, gnname, showLexeme, iword, isemantics)
 
 import CkyBuilder 
-  ( ckyBuilder, setup, CkyStatus, ChartItem(..), ChartId 
+  ( ckyBuilder, CkyStatus, ChartItem(..), ChartId
   , ciRoot, ciAdjDone
   , bitVectorToSem, findId,
   , extractDerivations
@@ -173,9 +174,10 @@ debugGui pstRef =
         missedLex = [ showLexeme (iword l) | l <- lexonly, (not.hasTree) l ]
     canTab <- candidateGui pst nb cand missedSem missedLex
     -- generation step 2.A (run polarity stuff)
-    let (combos, autstuff) = setup initStuff config
+    let (combos, autstuff, _) = B.preInit initStuff config
+        cands = assert (length combos == 1) $ head combos
     -- automata tab
-    let (auts, finalaut) = autstuff
+    let (auts, finalaut, _) = autstuff
     autTab <- if polarised config 
               then polarityGui nb auts finalaut
               else messageGui nb "polarities disabled"
@@ -183,7 +185,7 @@ debugGui pstRef =
     let basicTabs = tab "lexical selection" canTab :
                     (if polarised config then [tab "automata" autTab] else [])
     -- generation step 2.B (start the generator for each path)
-    debugTab <- ckyDebuggerTab nb config (initStuff { B.inCands = combos }) "cky"
+    debugTab <- ckyDebuggerTab nb config (initStuff { B.inCands = cands }) "cky"
     let genTabs = [ tab "session" debugTab ]
     --
     set f [ layout := container p $ column 0 [ tabs nb (basicTabs ++ genTabs) ]

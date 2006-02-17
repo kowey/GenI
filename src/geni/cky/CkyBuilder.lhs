@@ -28,7 +28,7 @@ results directly into an automaton.  No derived trees here!
 module CkyBuilder
  ( -- builder
    ckyBuilder,
-   CkyStatus(..), setup,
+   CkyStatus(..),
    -- chart item
    ChartItem(..), ChartId,
    ciAdjDone, ciRoot,
@@ -43,6 +43,8 @@ where
 
 \ignore{
 \begin{code}
+
+import Control.Exception ( assert )
 import Control.Monad
   (unless, foldM)
 
@@ -56,7 +58,7 @@ import Data.Maybe (catMaybes, mapMaybe)
 import Data.Tree
 
 import Btypes
-  ( alphaConvert, unify, collect
+  ( unify, collect
   , Flist
   , Replacable(..), Pred, Sem, Subst
   , GNode(..), GType(Subs, Foot, Other)
@@ -70,16 +72,15 @@ import Automaton
   ( NFA(NFA, transitions, states), isFinalSt, finalSt, finalStList, startSt, addTrans )
 import qualified Builder as B
 import Builder ( SentenceAut, incrCounter, num_iterations, chart_size )
-import Configuration
-  ( extrapol, rootCatsParam, polarised, Params )
+import Configuration ( Params, setChartsharing )
 import General
   ( combinations, treeLeaves, BitVector, geniBug )
 import Polarity
-  ( automatonPaths, buildAutomaton, detectPolPaths, lookupAndTweak  )
+  ( automatonPaths )
 import Statistics ( Statistics )
 import Tags
   ( TagElem, tidnum, ttree, tsemantics, tpolpaths, ttype,
-    setTidnums, ts_tbUnificationFailure
+    ts_tbUnificationFailure
   )
 
 -- -- Debugging stuff
@@ -115,48 +116,20 @@ ckyBuilder = B.Builder
   , B.unpack   = \s -> concatMap (unpackItem s) $ theResults s
   , B.run = run
   }
-\end{code}
 
-We break the run function down into two layers.  \fnreflite{run} is the
-outer layer, and this is what we provide via the Builder interface.
-\fnreflite{setup} is the inner layer, and the reason we separate it out
-is so that we the graphical debugger can call it.  Note that
-\fnref{initBuilder} and \fnreflite{setup} are two different things.  The
-latter must be called after the former.  You should really just think of
-\fnreflite{setup} as being the first step of running.
-
-\begin{code}
 -- | Performs surface realisation from an input semantics and a lexical selection.
 run input config =
   let stepAll = B.stepAll ckyBuilder
       init    = B.init ckyBuilder
-      -- combos = polarity automaton paths
-      cands   = fst (setup input config)
-      input2  = input { B.inCands = cands }
-      --
-      (iSt, iStats) = init input2 config
+      -- 1 run the setup stuff
+      -- (force chart sharing!) FIXME: this needs to be looked into
+      (combos, _, input2) = B.preInit input $
+                            setChartsharing True config
+      -- 2 call the init stuff
+      cands = assert (length combos == 1) $ head combos
+      (iSt, iStats) = init (input2 { B.inCands = cands }) config
+      -- 3 step thorugh the whole thing
   in runState (execStateT stepAll iSt) iStats
-
--- | The first half of the run function...
-setup input config =
- let cand     = B.inCands input
-     seminput = B.inSemInput input
-     --
-     extraPol = extrapol config
-     rootCats = rootCatsParam config
-     -- do any optimisations
-     isPol      = polarised config
-     -- polarity optimisation (if enabled)
-     autstuff = buildAutomaton seminput cand rootCats extraPol
-     finalaut = (snd.fst) autstuff
-     paths    = map toTagElem (automatonPaths finalaut)
-       where toTagElem = concatMap (lookupAndTweak $ snd autstuff)
-     combosPol  = if isPol then paths else [cand]
-     -- chart sharing optimisation (if enabled)
-     candsWithPaths = detectPolPaths combosPol
-     --
-     cands = map alphaConvert $ setTidnums $ candsWithPaths
-  in (cands, fst autstuff)
 \end{code}
 
 The rest of the builder interface is implemented below.  I just

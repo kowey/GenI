@@ -63,10 +63,9 @@ like $(-2,-2)n$!  But for the most part, the intervals are zero length,
 and you can just think of $-2n$ as shorthand for $(-2,-2)n$.
 
 \begin{code}
-module Polarity(PolAut,AutDebug,
+module Polarity(PolAut, AutDebug, PolResult,
                 buildAutomaton,
                 makePolAut,
-                TagLite, reduceTags, lookupAndTweak,
                 fixPronouns, detectPols, detectPolPaths, prefixRootCat,
                 declareRestrictors, detectRestrictors,
                 defaultPolPaths,
@@ -81,7 +80,6 @@ where
 \end{code}
 
 \begin{code}
-import Data.Array (listArray, (!)) 
 import Data.Bits
 import qualified Data.Map as Map
 import Data.List
@@ -99,7 +97,7 @@ import Btypes(Pred, SemInput, Sem, Flist, AvPair, showAv,
               root, gup, 
               SemPols, unifyFeat, rootUpd)
 import General(
-    BitVector, groupByFM, isEmptyIntersect, fst3, snd3, thd3,
+    BitVector, isEmptyIntersect, fst3, snd3, thd3,
     Interval, ival, (!+!), showInterval)
 \end{code}
 
@@ -113,9 +111,9 @@ algorithm.
 
 \begin{code}
 buildAutomaton :: SemInput -> [TagElem] -> [String] -> PolMap ->  
-  (PolResult, TagLite -> [TagElem])
+  PolResult
 
-type PolResult = ([AutDebug], PolAut)
+type PolResult = ([AutDebug], PolAut, Sem)
 type AutDebug  = (String, PolAut, PolAut)
 
 buildAutomaton (tsem,tres) candRaw rootCats extrapol  =
@@ -140,44 +138,7 @@ buildAutomaton (tsem,tres) candRaw rootCats extrapol  =
       -- polarity detection 
       cand = detectPols candRest
       -- building the automaton
-      (candLite, lookupCand) = reduceTags False cand
-      auts = makePolAut candLite tsem allExtraPols 
-  in (auts, lookupCand)
-\end{code}
-
-\paragraph{lookupAndTweak} is the flipside to reduceTags.  You don't
-want to directly call the conversion function returned by reduceTags,
-because the some cases, the polarity code might be able to usefully
-modify your lexical selection.  This function will call the 
-conversion function for you and then perform any neccesary
-modifications.
-
-\begin{code}
-lookupAndTweak :: (TagLite -> [TagElem]) -> TagLite -> [TagElem]
-lookupAndTweak lookupfn tl = 
-  let cands  = lookupfn tl
-      --
-      getIndex [x] = if isExtraCol x then Just (fst3 x) else Nothing
-      getIndex _   = Nothing 
-  in case (getIndex $ tlSemantics tl) of
-       Nothing -> cands
-       Just i  -> map (assignIndex i) cands
-\end{code}
-
-\paragraph{reduceTags}
-We provide two ways to do the TagLite reduction: If \texttt{polsig} is False,
-we just perform a direct one-on-one mapping.  If it is True, we use the
-polarity signatures optimisation in section \ref{sec:polarity_signatures}.  In
-both cases, we return a conversion function that maps the returned TagLites to
-their original TagElems.
-
-\begin{code}
-reduceTags :: Bool -> [TagElem] -> ([TagLite], TagLite -> [TagElem])
-reduceTags polsig tes =
-  let tls          = map toTagLite tes 
-      fromTagLite  = listArray (1,length tes) tes 
-      lookupfn t   = [ fromTagLite ! (fromInteger $ tlIdnum t) ]
-  in if polsig then mapByPolsig tes else (tls, lookupfn)
+  in makePolAut cand tsem allExtraPols
 \end{code}
 
 \section{The automaton itself - outline}
@@ -199,8 +160,9 @@ The above process can be thought of as a more efficient way of
 constructing an automaton for each polarity key, minimising said
 automaton, and then taking their intersection.  In any case, 
 we return everything a tuple with (1) a list of the automota that
-were created and (2) the final automaton.  The first item is only
-neccesary for debugging; only the second is important.  
+were created (2) the final automaton (3) a possibly modified
+input semantics.  The first item is only neccesary for debugging; only
+the last two are important.
 
 Note: 
 \begin{itemize}
@@ -212,10 +174,10 @@ Note:
 \end{itemize}
 
 \begin{code}
-makePolAut :: [TagLite] -> Sem -> PolMap -> ([AutDebug], PolAut)
-makePolAut candsRaw tsemRaw extraPol = 
- let -- polarity items 
-     ksCands = concatMap ((Map.keys).tlPolarities) cands
+makePolAut :: [TagElem] -> Sem -> PolMap -> PolResult
+makePolAut candsRaw tsemRaw extraPol =
+ let -- polarity items
+     ksCands = concatMap ((Map.keys).tpolarities) cands
      ksExtra = Map.keys extraPol
      ks      = sortBy (flip compare) $ nub $ ksCands ++ ksExtra
      -- perform index counting
@@ -230,7 +192,7 @@ makePolAut candsRaw tsemRaw extraPol =
        where aut   = buildPolAut k initK (thd3 $ head xs)
              initK = Map.findWithDefault (ival 0) k extraPol
      res = foldr build [("(seed)",seed,prune seed)] ks
- in (reverse res, thd3 $ head res)
+ in (reverse res, thd3 $ head res, tsem)
 \end{code}
 
 % ====================================================================
@@ -337,21 +299,21 @@ buildSeedAut' cands (l:ls) i aut =
   in buildSeedAut' cands ls (i+1) (newAut { states = next })
 
 -- for each candidate corresponding to literal l...
-buildSeedAutHelper :: [TagLite] -> Pred -> Int -> PolState -> (PolAut,[PolState]) -> (PolAut,[PolState]) 
+buildSeedAutHelper :: [TagElem] -> Pred -> Int -> PolState -> (PolAut,[PolState]) -> (PolAut,[PolState])
 buildSeedAutHelper cs l i st (aut,prev) =
   let -- get the extra semantics from the last state
       (PolSt _ ex1 _) = st
       -- candidates that match the target semantics and which
       -- do not overlap the extra baggage semantics
       tcand = [ Just t | t <- cs
-              , isEmptyIntersect ex1 (tlSemantics t) ]
+              , isEmptyIntersect ex1 (tsemantics t) ]
       -- add the transitions out of the current state 
       addT tr (a,n) = (addTrans a st tr st2, st2:n)
         where 
          st2 = PolSt i (delete l $ ex1 ++ ex2) []
          ex2 = case tr of 
                Nothing  -> [] 
-               Just tr_ -> tlSemantics tr_
+               Just tr_ -> tsemantics tr_
   in if (l `elem` ex1) 
      then addT Nothing (aut,prev)
      else foldr addT   (aut,prev) tcand 
@@ -443,7 +405,7 @@ buildPolAutHelper fk skeleton st (aut,prev) =
          PolSt pr2 ex2 skelPo2 = skel2 
          po2 = po1 !+! (Map.findWithDefault (ival 0) fk pol)
          pol = case t of Nothing -> Map.empty 
-                         Just t2 -> tlPolarities t2   
+                         Just t2 -> tpolarities t2
   in result 
 \end{code}
 
@@ -693,7 +655,7 @@ selection in which pronouns are properly accounted for.
 \begin{code}
 type PredLite = (String,[GeniVal]) -- handle is head of arg list 
 type SemWeightMap = Map.Map PredLite SemPols
-fixPronouns :: (Sem,[TagLite]) -> (Sem,[TagLite])
+fixPronouns :: (Sem,[TagElem]) -> (Sem,[TagElem])
 fixPronouns (tsem,cands) = 
 \end{code}
 
@@ -701,8 +663,8 @@ First, for each literal in the input semantics, we establish the
 smallest charge for each of its semantic indices.
 
 \begin{code}
-  let getpols :: TagLite -> [ (PredLite,SemPols) ]
-      getpols x = zip (map fn $ tlSemantics x) (tlSempols x)
+  let getpols :: TagElem -> [ (PredLite,SemPols) ]
+      getpols x = zip (map fn $ tsemantics x) (tsempols x)
         where fn :: Pred -> PredLite
               fn s = (show $ snd3 s, fst3 s : thd3 s)
       sempols :: [ (PredLite,SemPols) ]
@@ -736,10 +698,10 @@ for every negative charge.
       extraSem = map indexPred indices
       tsem2    = sortSem (tsem ++ extraSem)
       -- zero-literal semantic items to realise the extra columns 
-      zlit = filter (null.tlSemantics) cands    
+      zlit = filter (null.tsemantics) cands
       cands2 = (cands \\ zlit) ++ (concatMap fn indices)
         where fn i = map (tweak i) zlit
-              tweak i x = x { tlSemantics = [indexPred i] }
+              tweak i x = assignIndex i $ x { tsemantics = [indexPred i] }
 \end{code}
 
 Fourth, and finally, we deal with the problem of lexical items
@@ -756,9 +718,9 @@ excess pronouns in their extra literal semantics (see page
       compare (lit,c1) = concat $ zipWith3 comparefn idxs c1 c2
         where idxs = snd lit
               c2   = Map.findWithDefault [] lit usagemap
-      addextra :: TagLite -> TagLite
-      addextra c = c { tlSemantics = sortSem (sem ++ extra) } 
-        where sem   = tlSemantics c
+      addextra :: TagElem -> TagElem
+      addextra c = c { tsemantics = sortSem (sem ++ extra) }
+        where sem   = tsemantics c
               extra = map indexPred $ concatMap compare (getpols c)
       cands3 = map addextra cands2
   in (tsem2, cands3)
@@ -997,6 +959,7 @@ showPolPaths' bv counter =
         next = showPolPaths' (shiftR bv 1) (counter + 1)
 \end{code}
 
+\ignore{
 \subsection{Polarity signatures}
 \label{sec:polarity_signatures}
 
@@ -1014,26 +977,23 @@ The following function takes a list of trees, and returns a tuple with a list
 of signatures, and a function to map these back to trees.
 
 \begin{code}
-mapByPolsig :: [TagElem] -> ([TagLite], TagLite -> [TagElem])
+{-
+mapByPolsig :: [TagElem] -> [TagElem]
 mapByPolsig tes = 
   let sigmap   = groupByFM gfn tes
       gfn t    = (showSem $ tsemantics t) ++ " " ++
                  (showLitePm $ tpolarities t) ++
                  (show $ tsempols t)
       -- creating a representative "tree" for each polarity signature
-      createTl key id = TELite { tlIdname    = key, 
-                                 tlIdnum     = id,
-                                 tlSemantics = tsemantics rep,
-                                 tlSempols   = tsempols rep,
-                                 tlPolarities = tpolarities rep}
+      createTl key id = rep { idname = key,
+                              tidnum = id }
                         where rep = case (Map.lookup key sigmap) of
                                       Just (x:_) -> x
                                       _          -> error "mapByPolSig error" 
-      taglites = zipWith createTl (Map.keys sigmap) [0..]
-      -- creating a lookup function
-      lookupfn t = Map.findWithDefault [] (tlIdname t) sigmap
-  in (taglites, lookupfn)
+  in zipWith createTl (Map.keys sigmap) [0..]
+-}
 \end{code}
+}
 
 \subsection{Semantic sorting}
 
@@ -1075,11 +1035,11 @@ Note: we have to take care to count each literal for each lexical
 entry's semantics or else the multi-literal semantic code will choke.
 
 \begin{code}
-sortSemByFreq :: Sem -> [TagLite] -> Sem
+sortSemByFreq :: Sem -> [TagElem] -> Sem
 sortSemByFreq tsem cands = 
   let counts = map lenfn tsem 
       lenfn l = length $ filter fn cands 
-                where fn x = l `elem` (tlSemantics x)
+                where fn x = l `elem` (tsemantics x)
       -- note: we introduce an extra hack to push
       -- index-counted extra columns to the end; just for UI reasons
       sortfn a b 
@@ -1097,7 +1057,7 @@ sortSemByFreq tsem cands =
 % ----------------------------------------------------------------------
 
 \begin{code}
-type SemMap = Map.Map Pred [TagLite]
+type SemMap = Map.Map Pred [TagElem]
 type PolMap = Map.Map String Interval 
 \end{code}
 
@@ -1107,40 +1067,6 @@ already is a polarity for that item, it is summed with the new polarity.
 \begin{code}
 addPol :: (String,Interval) -> PolMap -> PolMap
 addPol (p,c) m = Map.insertWith (!+!) p c m
-\end{code}
-
-\subsection{TagLite}
-
-To avoid passing around entire TagElems during the construction
-of polarity automata, we reduce the candidates to the lighter-
-weight TagLite structure that contains just the information needed
-to build automata.  See section \ref{polarity:overview} for the
-reduction code.
-
-\begin{code}
-data TagLite = TELite { tlIdname      :: String
-                      , tlIdnum       :: Integer
-                      , tlSemantics   :: Sem
-                      , tlPolarities  :: Map.Map String Interval 
-                      , tlSempols     :: [SemPols] }
-        deriving (Show, Eq)
-
-instance TagItem TagLite where
-  tgIdName    = tlIdname
-  tgIdNum     = tlIdnum
-  tgSemantics = tlSemantics
-
-instance Ord TagLite where
-  compare t1 t2 = 
-    compare (fn t1) (fn t2)
-    where fn t = (tlIdname t, tlIdnum t)
-
-toTagLite :: TagElem -> TagLite
-toTagLite te = TELite { tlIdname     = idname te
-                      , tlIdnum      = tidnum te   
-                      , tlSemantics  = tsemantics te
-                      , tlPolarities = tpolarities te
-                      , tlSempols    = tsempols te }
 \end{code}
 
 \paragraph{nubAut} ensures that all states and transitions in the polarity automaton 
@@ -1192,7 +1118,7 @@ data PolState = PolSt Int [Pred] [(Int,Int)]
                 -- ^ position in the input semantics, extra semantics, 
                 --   polarity interval
      deriving (Eq)
-type PolTrans = TagLite
+type PolTrans = TagElem
 type PolAut   = NFA PolState PolTrans
 type PolTransFn = Map.Map PolState (Map.Map (Maybe PolTrans) [PolState])
 \end{code}
@@ -1264,8 +1190,6 @@ instance ShowLite Char where showLite = show
 \begin{code}
 instance ShowLite TagElem where
   showLite = idname 
-instance ShowLite TagLite where
-  showLite = tlIdname
 \end{code}
 
 \paragraph{showLiteSm} can be used to display a SemMap in human readable text.
@@ -1277,7 +1201,7 @@ showLiteSm sm =
   concatMap showPair $ toList sm 
   where showPair  (pr, cs) = showPred pr ++ "\t: " ++ showPair' cs ++ "\n"
         showPair' [] = ""
-        showPair' (te:cs) = tlIdname te ++ "[" ++ showLitePm (tlPolarities te) ++ "]"
+        showPair' (te:cs) = tlIdname te ++ "[" ++ showLitePm (tpolarities te) ++ "]"
                                         ++ " " ++ showPair' cs 
 -}
 \end{code}
@@ -1376,7 +1300,7 @@ gvShowTrans aut stmap idFrom st =
           --
           labstrs = map fn labels
           fn Nothing  = "EMPTY"
-          fn (Just x) = tlIdname x
+          fn (Just x) = idname x
           --
           labs = if lablen > max 
                  then take max labstrs ++ [ excess ]

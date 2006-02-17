@@ -45,17 +45,22 @@ where
 import Control.Monad.State
 import qualified Data.Set as Set
 
-import Automaton (NFA)
-import Configuration ( Params(metricsParam, ignoreSemantics) )
+import Automaton (NFA, automatonPaths)
+import Configuration
+  ( Params(metricsParam, ignoreSemantics, rootCatsParam), extrapol,
+    polarised, chartsharing )
 import General (geniBug)
-import Btypes    (ILexEntry, SemInput, Flist, Collectable(collect) )
+import Btypes    (ILexEntry, SemInput, Flist, Collectable(collect),
+    alphaConvert )
+import Polarity  (PolResult, buildAutomaton, detectPolPaths,
+    defaultPolPaths )
 import Statistics (Statistics, incrIntMetric,
                    Metric(IntMetric), updateMetrics,
                    mergeMetrics, addIntMetrics,
                    queryMetrics, queryIntMetric,
                    addMetric, emptyStats,
                    )
-import Tags      ( TagElem(idname,tsemantics) )
+import Tags ( TagElem(idname,tsemantics), setTidnums )
 \end{code}
 }
 
@@ -86,12 +91,6 @@ data Builder st it pa = Builder
   , unpack   :: st -> [UninflectedSentence] }
 \end{code}
 
-\begin{code}
-data BuilderGui = BuilderGui
-  { generateGui :: IO ()
-  , debugGui    :: IO () }
-\end{code}
-
 To simplify interaction with the backend, we provide a single data
 structure which represents all the inputs a backend could take.
 
@@ -101,20 +100,6 @@ data Input =
         , inLex      :: [ILexEntry]  -- debugger
         , inCands    :: [TagElem]
         }
-\end{code}
-
-\section{Using builders}
-
-\fnlabel{defaultStepAll} provides a default implementation for
-Builder's \fnlabel{stepAll} function.
-
-\begin{code}
-defaultStepAll :: Builder st it pa -> BuilderState st ()
-defaultStepAll b = 
- do s <- get
-    unless (finished b s) $ 
-      do step b
-         defaultStepAll b
 \end{code}
 
 \section{Uninflected words and sentences}
@@ -146,9 +131,42 @@ our main monad.
 type BuilderState s a = StateT s (State Statistics) a
 \end{code}
 
-\section{Initialisation}
+\section{Helper functions for Builders}
 
-We provide a few helper functions keep our builders somewhat factorised.
+There's a few things that need to be run before even initialising the builder.
+One of these is running some of the optimisations (namely the polarity stuff),
+which is made complicated by the fact that they are optional.  Another of these
+to assign each of the trees with a unique ID.  Note that this has to be done
+after the polarity optimisation because this optimisation may introduce new
+items into the lexical selection.  Finally, we must also make sure we perform
+alpha conversion so that unification does not do the wrong thing when two trees
+have the same variables.
+
+\begin{code}
+preInit :: Input -> Params -> ([[TagElem]], PolResult , Input)
+preInit input config =
+ let cand     = inCands input
+     seminput = inSemInput input
+     --
+     extraPol = extrapol config
+     rootCats = rootCatsParam config
+     -- do any optimisations
+     isPol      = polarised config
+     -- polarity optimisation (if enabled)
+     autstuff = buildAutomaton seminput cand rootCats extraPol
+     (_, aut, sem2) = autstuff
+     combosPol = if isPol then automatonPaths aut else [cand]
+     -- chart sharing optimisation (if enabled)
+     isChartSharing = chartsharing config
+     combosChart =
+       if isChartSharing then [ detectPolPaths combosPol ]
+       else map defaultPolPaths combosPol
+     --
+     combos = map (map alphaConvert.setTidnums) combosChart
+     input2 = input { inSemInput = (sem2, snd seminput) }
+     -- note: autstuff is only useful for the graphical debugger
+  in (combos, autstuff, input2)
+\end{code}
 
 \begin{code}
 -- | Equivalent to 'id' unless the input contains an empty or uninstatiated
@@ -165,6 +183,16 @@ unlessEmptySem input config =
   in if (null semanticsErr || ignoreSemantics config)
      then id
      else error semanticsErr
+\end{code}
+
+\begin{code}
+ -- | Default implementation for the 'stepAll' function in 'Builder'
+defaultStepAll :: Builder st it pa -> BuilderState st ()
+defaultStepAll b =
+ do s <- get
+    unless (finished b s) $
+      do step b
+         defaultStepAll b
 \end{code}
 
 \subsection{Statistics}

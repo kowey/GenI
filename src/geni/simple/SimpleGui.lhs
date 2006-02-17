@@ -47,7 +47,7 @@ import qualified Builder    as B
 import qualified BuilderGui as BG 
 import Polarity
 import SimpleBuilder 
-  ( simpleBuilder, setup, SimpleStatus, genconfig 
+  ( simpleBuilder, SimpleStatus, genconfig
   , theResults, theAgenda, theAuxAgenda, theChart, theTrash)
 import Statistics (Statistics)
 \end{code}
@@ -156,9 +156,9 @@ debugGui pstRef =
         missedLex = [ showLexeme (iword l) | l <- lexonly, (not.hasTree) l ]
     canTab <- candidateGui pst nb cand missedSem missedLex
     -- generation step 2.A (run polarity stuff)
-    let (combos, autstuff) = setup initStuff config
+    let (combos, autstuff, _) = B.preInit initStuff config
     -- automata tab
-    let (auts, finalaut) = autstuff
+    let (auts, finalaut, _) = autstuff
     autTab <- if polarised config 
               then polarityGui nb auts finalaut
               else messageGui nb "polarities disabled"
