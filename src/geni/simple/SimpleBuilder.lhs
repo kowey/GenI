@@ -33,9 +33,7 @@ module SimpleBuilder (
    theAgenda, theAuxAgenda, theChart, theTrash, theResults,
    initSimpleBuilder, 
    addToAgenda, addToChart,
-   genconfig,
-
-   getChart, getAgenda)
+   genconfig)
 where
 \end{code}
 
@@ -44,7 +42,7 @@ where
 \begin{code}
 import Control.Monad (when, guard, filterM, liftM)
 
-import Control.Monad.State (State, get, put, runState, execStateT)
+import Control.Monad.State (State, get, put, runState, execStateT, gets)
 
 import Data.List (intersect, partition, delete, sort, nub, (\\))
 import Data.Maybe (catMaybes)
@@ -255,41 +253,6 @@ addToResults te = do
   put s { theResults = te : (theResults s) }
 \end{code}
 
-\subsubsection{SimpleStatus accessors}
-
-We retrieve the SimpleStatus from the State monad and then retrieve a field from it.
-
-\begin{code}
-getAgenda :: MS Agenda
-getAgenda = do 
-  s <- get
-  return (theAgenda s)
-
-getChart :: MS Chart
-getChart = do 
-  s <- get
-  return (theChart s)
-
--- getAuxAgenda :: MS AuxAgenda
--- getAuxAgenda = do 
---   s <- get
---   return (theAuxAgenda s)
- 
-getStep :: MS Ptype
-getStep = do 
-  s <- get
-  return (step s)
-\end{code}
-
-These functions let us find out if the Agenda or the AuxAgenda are null.
-
-\begin{code}
-nullAgenda :: MS Bool
-nullAgenda = do 
-  s <- get  
-  return (null (theAgenda s))
-\end{code}
-
 \paragraph{lookupChart} retrieves a list of trees from the chart which 
 could be combined with the given agenda tree.
 \label{fn:lookupChart}
@@ -303,7 +266,7 @@ The current implementation searches for trees which
 \begin{code}
 lookupChart :: TagElem -> MS [TagElem]
 lookupChart given = do
-  chart <- getChart
+  chart <- gets theChart
   let gpaths = tpolpaths given
       gsem   = tsemantics given
   return [ t | t <- chart
@@ -554,8 +517,8 @@ iapplyAdjNode fconstr te1 te2 an@(n, an_up, an_down) = do
 \begin{code}
 generateStep :: MS () 
 generateStep = do
-  nir     <- nullAgenda
-  curStep <- getStep
+  nir     <- gets (null.theAgenda)
+  curStep <- gets step
   -- this check may seem redundant with generate, but it's needed 
   -- to protect against a user who calls generateStep on a finished
   -- state
@@ -572,7 +535,7 @@ generateStep' =
   do -- choose an item from the agenda
      given <- selectGiven
      -- have we triggered the switch to aux yet?
-     curStep <- getStep
+     curStep <- gets step
      -- do either substitution or adjunction 
      res <- if (curStep == Initial)
             then applySubstitution given
@@ -599,7 +562,7 @@ the Initial and returns it.
 \begin{code}
 selectGiven :: MS TagElem
 selectGiven = do 
-  a <- getAgenda
+  a <- gets theAgenda
   updateAgenda (tail a)
   return (head a)
 \end{code}
