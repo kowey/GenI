@@ -45,7 +45,7 @@ import qualified BuilderGui as BG
 import Btypes (GNode, gnname, showLexeme, iword, isemantics)
 
 import CkyBuilder 
-  ( ckyBuilder, CkyStatus, ChartItem(..), ChartId
+  ( ckyBuilder, CkyStatus, CkyItem(..), ChartId
   , ciRoot, ciAdjDone
   , bitVectorToSem, findId,
   , extractDerivations
@@ -126,7 +126,7 @@ resultsGui pstRef (sentences, stats, st) =
     return ()
 
 -- | Browser for the results (if there are any)
-realisationsGui :: ProgStateRef -> (Window a) -> [ChartItem] -> IO Layout
+realisationsGui :: ProgStateRef -> (Window a) -> [CkyItem] -> IO Layout
 realisationsGui _ f [] = messageGui f "No results found"
 realisationsGui _ f resultsRaw =
   do let tip = "result"
@@ -249,7 +249,7 @@ ckyDebuggerTab = debuggerPanel ckyBuilder initCkyDebugParams stateToGv ckyItemBa
                gornStr     = if isComplete i then "" else " g" ++ (gorn i)
    in unzip $ agenda ++ chart ++ results ++ trash
 
-ckyItemBar :: DebuggerItemBar CkyDebugParams (CkyStatus, ChartItem)
+ckyItemBar :: DebuggerItemBar CkyDebugParams (CkyStatus, CkyItem)
 ckyItemBar f gvRef updaterFn =
  do ib <- panel f []
     -- select derivation
@@ -306,7 +306,7 @@ gornAddress t target = reverse `liftM` helper [] t
  helper current (Node _ l)  = listToMaybe $ catMaybes $
                               zipWith (\c t -> helper (c:current) t) [1..] l
 
-instance GraphvizShow CkyDebugParams (CkyStatus, ChartItem) where
+instance GraphvizShow CkyDebugParams (CkyStatus, CkyItem) where
   graphvizLabel  f (_,c) = graphvizLabel f c
   graphvizParams f (_,c) = graphvizParams f c
   graphvizShowAsSubgraph f p (s,c) = 
@@ -359,13 +359,13 @@ instance GraphvizShowNode CkyStatus (ChartId, String) where
                           ++ " (" ++ ((idname.ciSourceTree) item) ++ ")"
    in gvNode prefix txt []
 
-instance GraphvizShow CkyDebugParams ChartItem where
+instance GraphvizShow CkyDebugParams CkyItem where
   graphvizLabel  f = graphvizLabel (debugShowFeats f) . toTagElem 
   graphvizShowAsSubgraph f prefix ci = 
    let showFeats  = debugShowFeats f
    in  graphvizShowAsSubgraph showFeats (prefix ++ "tree")  $ toTagElem ci
 
-toTagElem :: ChartItem -> TagElem
+toTagElem :: CkyItem -> TagElem
 toTagElem ci =
  let node = ciNode ci
      te   = ciSourceTree ci

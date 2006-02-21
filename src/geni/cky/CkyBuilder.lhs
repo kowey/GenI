@@ -30,7 +30,7 @@ module CkyBuilder
    ckyBuilder,
    CkyStatus(..),
    -- chart item
-   ChartItem(..), ChartId,
+   CkyItem(..), ChartId,
    ciAdjDone, ciRoot,
    extractDerivations,
    -- automaton stuff (for the graphical debugger)
@@ -156,13 +156,13 @@ data CkyStatus = S
     , gencounter :: Integer
     , genconfig  :: Params
     , theRules   :: [CKY_InferenceRule]
-    , theResults :: [ChartItem]
+    , theResults :: [CkyItem]
     , genAutCounter :: Integer -- allocation of node numbers
     }
 
-type Agenda = [ChartItem]
-type Chart  = [ChartItem]
-type Trash = [ChartItem]
+type Agenda = [CkyItem]
+type Chart  = [CkyItem]
+type Trash = [CkyItem]
 \end{code}
 
 Note the theTrash is not actually essential to the operation of the
@@ -174,11 +174,11 @@ went wrong.
 \subsubsection{CkyState getters and setters}
 
 \begin{code}
-addToAgenda :: ChartItem -> CkyState ()
+addToAgenda :: CkyItem -> CkyState ()
 addToAgenda te = do
   modify $ \s -> s{ theAgenda = te : (theAgenda s) }
 
-addToResults :: ChartItem -> CkyState ()
+addToResults :: CkyItem -> CkyState ()
 addToResults te = do
   modify $ \s -> s{ theResults = te : (theResults s) }
 
@@ -186,12 +186,12 @@ updateAgenda :: Agenda -> CkyState ()
 updateAgenda a = do
   modify $ \s -> s{ theAgenda = a }
 
-addToChart :: ChartItem -> CkyState ()
+addToChart :: CkyItem -> CkyState ()
 addToChart te = do
   modify $ \s -> s { theChart = te : (theChart s) }
   incrCounter chart_size 1
 
-addToTrash :: ChartItem -> String -> CkyState ()
+addToTrash :: CkyItem -> String -> CkyState ()
 addToTrash item err = do
   let item2 = item { ciDiagnostic = err:(ciDiagnostic item) }
   modify $ \s -> s { theTrash = item2 : (theTrash s) }
@@ -201,7 +201,7 @@ addToTrash item err = do
 
 -- TODO: decide if we want this to be an instant of Replacable
 \begin{code}
-data ChartItem = ChartItem
+data CkyItem = CkyItem
   { ciNode       :: GNode
   -- if there is really nothing more than needs to be done to this node
   , ciComplete   :: Bool
@@ -243,7 +243,7 @@ data ChartOperation = SubstOp    ChartId  ChartId
 
 type ChartOperationConstructor = ChartId -> ChartId -> ChartOperation
 
-ciRoot, ciFoot, ciSubs, ciAdjDone, ciAux, ciInit :: ChartItem -> Bool
+ciRoot, ciFoot, ciSubs, ciAdjDone, ciAux, ciInit :: CkyItem -> Bool
 ciRoot  i = (gnname.ciNode) i == (gnname.root.ttree.ciSourceTree) i
 ciFoot  i = (gtype.ciNode) i == Foot
 ciSubs  i = (gtype.ciNode) i == Subs
@@ -254,7 +254,7 @@ ciInit = not.ciAux
 data TreeSide = LeftSide | RightSide | OnTheSpine
  deriving (Eq)
 
-ciLeftSide, ciRightSide, ciOnTheSpine :: ChartItem -> Bool
+ciLeftSide, ciRightSide, ciOnTheSpine :: CkyItem -> Bool
 ciLeftSide   i = ciTreeSide i == LeftSide
 ciRightSide  i = ciTreeSide i == RightSide
 ciOnTheSpine i = ciTreeSide i == OnTheSpine
@@ -294,7 +294,7 @@ initBuilder input config =
 \subsection{Initialising a chart item}
 
 \begin{code}
-initTree :: SemBitMap -> TagElem -> [ChartItem]
+initTree :: SemBitMap -> TagElem -> [CkyItem]
 initTree bmap te =
   let semVector    = semToBitVector bmap (tsemantics te)
       createItem l n = (leafToItem l te n)
@@ -312,8 +312,8 @@ leafToItem :: Bool
            -- ^ what tree does it belong to
            -> GNode
            -- ^ the leaf to convert
-           -> ChartItem
-leafToItem left te node = ChartItem
+           -> CkyItem
+leafToItem left te node = CkyItem
   { ciNode       = node
   , ciComplete   = False -- (not $ gtype ==
   , ciSourceTree = te
@@ -409,7 +409,7 @@ generateStep2 =
      incrCounter num_iterations 1
      return ()
 
-selectAgendaItem :: CkyState ChartItem
+selectAgendaItem :: CkyState CkyItem
 selectAgendaItem = do
   a <- gets theAgenda
   updateAgenda (tail a)
@@ -435,7 +435,7 @@ neccesarily mean that the rule failed to apply.
 
 \begin{code}
 type InferenceRule a = a -> [a] -> Maybe [a]
-type CKY_InferenceRule = InferenceRule ChartItem
+type CKY_InferenceRule = InferenceRule CkyItem
 
 instance Show CKY_InferenceRule where
   show _ = "cky inference rule"
@@ -504,7 +504,7 @@ kidsToParentRule item chart | relevant item =
      (sourceOf c == sourceOf item) && (not $ ciSubs c) && ciAdjDone c && (compatible c item)
    relChart = filter relevant chart
    --
-   matches :: String -> [ChartItem]
+   matches :: String -> [CkyItem]
    matches sis = [ c | c <- relChart, (gnname.ciNode) c == sis ]
 kidsToParentRule _ _ = Nothing -- if this rule is not applicable to the item at hand
 \end{code}
@@ -524,7 +524,7 @@ substRule item chart = listAsMaybe $ catMaybes $
   else [ attemptSubst s item | s <- chart, compatibleForSubstitution item s ]
 
 -- | unification for substitution
-attemptSubst :: ChartItem -> ChartItem -> Maybe ChartItem
+attemptSubst :: CkyItem -> CkyItem -> Maybe CkyItem
 attemptSubst sItem rItem | ciSubs sItem =
  do let rNode = ciNode rItem
         sNode = ciNode sItem
@@ -537,8 +537,8 @@ attemptSubst _ _ = error "attemptSubst called on non-subst node"
 
 -- | return True if the first item may be substituted into the second
 --   as long as unification and all the nasty details work out
-compatibleForSubstitution :: ChartItem -- ^ active item
-                          -> ChartItem -- ^ passive item
+compatibleForSubstitution :: CkyItem -- ^ active item
+                          -> CkyItem -- ^ passive item
                           -> Bool
 compatibleForSubstitution a p =
   ciRoot a && ciAdjDone a && ciInit a
@@ -573,7 +573,7 @@ passiveAdjunctionRule item chart =
  listAsMaybe $ mapMaybe (attemptAdjunction item)
                [ a | a <- chart, compatibleForAdjunction a item ]
 
-attemptAdjunction :: ChartItem -> ChartItem -> Maybe ChartItem
+attemptAdjunction :: CkyItem -> CkyItem -> Maybe CkyItem
 attemptAdjunction pItem aItem | ciRoot aItem && ciAux aItem =
  -- trace ("try adjoining " ++ (showItem aItem) ++ " into " ++ (showItem pItem)) $
  do let aRoot = ciNode aItem
@@ -588,8 +588,8 @@ attemptAdjunction _ _ = error "attemptAdjunction called on non-aux or non-root n
 
 -- | return True if the first item may be adjoined into the second
 --   as long as unification and all the nasty details work out
-compatibleForAdjunction :: ChartItem -- ^ active item
-                        -> ChartItem -- ^ passive item
+compatibleForAdjunction :: CkyItem -- ^ active item
+                        -> CkyItem -- ^ passive item
                         -> Bool
 compatibleForAdjunction a p =
   ciAux a && ciRoot a && ciAdjDone a
@@ -605,7 +605,7 @@ isLexeme = not.null.glexeme
 
 -- | return True if the chart items may be combined with each other; for now, this
 -- consists of a semantic check
-compatible :: ChartItem -> ChartItem -> Bool
+compatible :: CkyItem -> CkyItem -> Bool
 compatible a b =    ( (ciSemantics a) .&. (ciSemantics b) ) == 0
                  && ( (ciPolpaths  a) .|. (ciPolpaths  b) ) /= 0
 \end{code}
@@ -618,14 +618,14 @@ The reason we expose \fnreflite{combineVectors} as a separate function is becaus
 the \fnreflite{kidsToParentsRule} needs it.
 
 \begin{code}
-combineVectors :: ChartItem -> ChartItem -> ChartItem
+combineVectors :: CkyItem -> CkyItem -> CkyItem
 combineVectors a b =
   b { ciSemantics = (ciSemantics a) .|. (ciSemantics b)
     , ciPolpaths  = (ciPolpaths  a) .&. (ciPolpaths  b)
     , ciSemBitMap =  ciSemBitMap a }
 
 combineWith :: ChartOperationConstructor -- ^ how did we get the new item?
-            -> GNode -> Subst -> ChartItem -> ChartItem -> ChartItem
+            -> GNode -> Subst -> CkyItem -> CkyItem -> CkyItem
 combineWith operation node subst active passive =
   combineVectors active $
   passive { ciNode      = node
@@ -686,7 +686,7 @@ nodes are unified.  Failure is success, war is peace, freedom is
 slavery, erase is backspace.
 
 \begin{code}
-dispatchNew :: ChartItem -> CkyState ()
+dispatchNew :: CkyItem -> CkyState ()
 dispatchNew item =
  do let tryFilter Nothing _        = return Nothing
         tryFilter (Just newItem) f = f newItem
@@ -697,7 +697,7 @@ dispatchNew item =
                                 , dispatchToAgenda ]
     return ()
 
-dispatchToAgenda, dispatchRedundant, dispatchResults, dispatchTbFailure :: ChartItem -> CkyState (Maybe ChartItem)
+dispatchToAgenda, dispatchRedundant, dispatchResults, dispatchTbFailure :: CkyItem -> CkyState (Maybe CkyItem)
 
 -- | Trivial dispatch filter: always put the item on the agenda and return
 --   Nothing
@@ -748,7 +748,7 @@ dispatchTbFailure itemRaw =
        return Nothing
   Just item -> return $ Just item
 
-tbUnify :: ChartItem -> Maybe ChartItem
+tbUnify :: CkyItem -> Maybe CkyItem
 -- things for which tb unification is not relevant
 tbUnify item | ciFoot item = return item
 tbUnify item | (not.ciAdjDone) item = return item
@@ -776,7 +776,7 @@ tbUnify item =
 Note that this is not the same thing as equality!
 
 \begin{code}
-equivalent :: ChartItem -> ChartItem -> Bool
+equivalent :: CkyItem -> CkyItem -> Bool
 equivalent c1 c2 = stuff c1 == stuff c2
   where stuff x = ( ciNode x, ciSourceTree x, ciSemantics x, ciPolpaths x )
 \end{code}
@@ -787,7 +787,7 @@ equivalent.  Information from the second ``slave'' item is merged
 into information from the first ``master'' item.
 
 \begin{code}
-mergeItems :: ChartItem -> ChartItem -> ChartItem
+mergeItems :: CkyItem -> CkyItem -> CkyItem
 mergeItems master slave =
  master { ciDerivation = ciDerivation master ++ (ciDerivation slave) }
 \end{code}
@@ -797,13 +797,13 @@ mergeItems master slave =
 % --------------------------------------------------------------------
 
 \begin{code}
-unpackItem :: CkyStatus -> ChartItem -> [B.UninflectedSentence]
+unpackItem :: CkyStatus -> CkyItem -> [B.UninflectedSentence]
 unpackItem st it =
   mAutomatonPaths $ uncurry mJoinAutomata $ unpackItemToAuts st it
 
 type SentenceAutPairMaybe = (Maybe SentenceAut, Maybe SentenceAut)
 
-unpackItemToAuts :: CkyStatus -> ChartItem
+unpackItemToAuts :: CkyStatus -> CkyItem
                  -- left and right automata
                  -> SentenceAutPairMaybe
 unpackItemToAuts st item =
@@ -825,7 +825,7 @@ unpackItemToAuts st item =
 \paragraph{Leaf nodes}
 
 \begin{code}
-unpackInitOp :: CkyStatus -> ChartItem -> SentenceAutPairMaybe
+unpackInitOp :: CkyStatus -> CkyItem -> SentenceAutPairMaybe
 unpackInitOp _ item =
   let node = ciNode item
       -- we have to add a transition for each choice in the lexical
@@ -854,7 +854,7 @@ emptySentenceAut =
 \paragraph{Null adjunction} is a trivial case; we just propagate the automaton upwards.
 
 \begin{code}
-unpackNullAdjOp :: CkyStatus -> ChartItem -> SentenceAutPairMaybe
+unpackNullAdjOp :: CkyStatus -> CkyItem -> SentenceAutPairMaybe
 unpackNullAdjOp st psv = unpackItemToAuts st psv
 \end{code}
 
@@ -870,7 +870,7 @@ the right side of the spine.  If we're trying to substitute \emph{into}
 the spine, we're in trouble.
 
 \begin{code}
-unpackSubstOp :: CkyStatus -> ChartItem -> ChartItem -> SentenceAutPairMaybe
+unpackSubstOp :: CkyStatus -> CkyItem -> CkyItem -> SentenceAutPairMaybe
 unpackSubstOp st act psv =
   case ciTreeSide psv of
     LeftSide   -> (actAut, Nothing)
@@ -886,7 +886,7 @@ with a picture:
 FIXME: insert figure
 
 \begin{code}
-unpackAdjOp :: CkyStatus -> ChartItem -> ChartItem -> SentenceAutPairMaybe
+unpackAdjOp :: CkyStatus -> CkyItem -> CkyItem -> SentenceAutPairMaybe
 unpackAdjOp st act psv =
   let (actL, actR) = unpackItemToAuts st act
       (psvL, psvR) = unpackItemToAuts st psv
@@ -915,7 +915,7 @@ trees.  As usual, there are three cases:
 \end{itemize}
 
 \begin{code}
-unpackKidsToParentOp :: CkyStatus -> [ChartItem] -> SentenceAutPairMaybe
+unpackKidsToParentOp :: CkyStatus -> [CkyItem] -> SentenceAutPairMaybe
 unpackKidsToParentOp st kids =
   let (bef, aft) = span (not.ciOnTheSpine) kids
       (befL, befR) = unzip $ map (unpackItemToAuts st) bef
@@ -1036,7 +1036,7 @@ implementing the function with a \verb!List! monad.
 -- | Returns all the derivations trees for this item: note that this is
 -- not a TAG derivation tree but a history of inference rule applications
 -- in tree form
-extractDerivations :: CkyStatus -> ChartItem -> [ Tree (ChartId, String) ]
+extractDerivations :: CkyStatus -> CkyItem -> [ Tree (ChartId, String) ]
 extractDerivations st item =
  do chartOp <- ciDerivation item
     case chartOp of
@@ -1068,11 +1068,11 @@ extractDerivations st item =
 \subsection{Helpers for unpacking}
 
 \begin{code}
-findId :: CkyStatus -> ChartId -> Maybe ChartItem
+findId :: CkyStatus -> ChartId -> Maybe CkyItem
 findId st i = find (\x -> ciId x == i) $ theChart st ++ (theAgenda st) ++ (theResults st) ++ (theTrash st)
 
 -- | The same as 'findId' but calls 'geniBug' if not found
-findIdOrBug :: CkyStatus -> ChartId -> ChartItem
+findIdOrBug :: CkyStatus -> ChartId -> CkyItem
 findIdOrBug st id =
  case findId st id of
    Nothing -> geniBug $ "Cannot find item in chart with id " ++ (show id)
