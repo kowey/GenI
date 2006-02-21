@@ -906,7 +906,7 @@ single generation task, but annotate each tree with set of the
 automata paths it appears on.  We then allow trees on the
 same paths to be compared only if they are on the same path.
 Note: chart sharing involves some mucking around with the generation
-engine (see page \pageref{fn:lookupGenRep})
+engine (see page \pageref{fn:Builder:preInit})
 
 \paragraph{detectPolPaths} Given a list of paths 
 (i.e. a list of list of trees), we return a list of trees such that each

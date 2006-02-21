@@ -49,9 +49,10 @@ hand control off to either the console or the graphical user interface.  These
 functions then do all the business stuff like loading files and figuring out
 what to generate.  From there, they invoke the the generation step
 \fnref{runGeni} which does surface realisation from A-Z.  Alternately, the
-graphical interface could invoke \fnref{debugGui} which also does surface
+graphical interface could invoke a graphical debugger which also does surface
 realisation from A-Z but allows you to intervene, inspect and stop at each
 step.
+
 \begin{figure}
 \begin{center}
 \includegraphics[scale=0.25]{images/code-outline-main}

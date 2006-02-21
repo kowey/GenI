@@ -132,6 +132,7 @@ type BuilderState s a = StateT s (State Statistics) a
 \end{code}
 
 \section{Helper functions for Builders}
+\label{fn:Builder:preInit}
 
 There's a few things that need to be run before even initialising the builder.
 One of these is running some of the optimisations (namely the polarity stuff),

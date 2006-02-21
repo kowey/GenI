@@ -140,10 +140,9 @@ realisationsGui _ f resultsRaw =
 
 % --------------------------------------------------------------------
 \section{Debugger}
-\label{sec:debugger_gui}
-\label{fn:debugGui}
+\label{sec:cky_debugger_gui}
+\label{fn:ckyDebugGui}
 % --------------------------------------------------------------------
-
 
 This creates an iteractive version of the generator that shows the
 user the agenda, chart and results at various stages in the generation

@@ -45,8 +45,7 @@ import Statistics ( showFinalStats, Statistics )
 
 We support exactly one kind of batch processing: Batch testing of
 optimisations, that is, we assume that you are working with exactly one test
-case.  We call \fnref{runBatch} to succesively test all the possible
-optimisiations.  
+case.
 
 In the past we used to process entire test suites, but now we can only 
 handle one test case at a time.  If you want do process the whole 

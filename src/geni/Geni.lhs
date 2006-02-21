@@ -692,9 +692,7 @@ It returns a list of anchored trees.
 
 The selector is expected to read cgm filter stuff 
 (see \cite{kow05CGM} and lexEntryToFil below) and output 
-a set of geni formatted trees\footnote{What actually happens
-is that it outputs a set of XML trees; and we use the XML
-converter in \ref{cha:xml} to convert that to geni format}.
+a set of geni formatted trees.
 
 \begin{code}
 runSelector :: ProgState -> String -> String -> IO String 
