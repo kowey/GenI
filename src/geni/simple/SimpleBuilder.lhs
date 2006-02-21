@@ -31,7 +31,7 @@ module SimpleBuilder (
    -- From SimpleStatus
    simpleBuilder,
    theAgenda, theAuxAgenda, theChart, theTrash, theResults,
-   initSimpleBuilder, 
+   initSimpleBuilder,
    addToAgenda, addToChart,
    genconfig)
 where
@@ -47,14 +47,14 @@ import Control.Monad.State
 
 import Data.List (intersect, partition, delete, sort, nub, (\\))
 import Data.Maybe (catMaybes)
-import Data.Tree 
+import Data.Tree
 import Data.Bits
-import qualified Data.Map as Map 
+import qualified Data.Map as Map
 
 import Automaton ( automatonPaths, NFA(..), addTrans )
-import Btypes 
+import Btypes
   ( Ptype(Initial,Auxiliar),
-  , Flist 
+  , Flist
   , Replacable(..),
   , Sem, sortSem, Subst
   , GType(Other), GNode(..), gCategory
@@ -66,13 +66,13 @@ import Btypes
   , constrainAdj
   , root, foot
   , unifyFeat, unifyFeat2)
-import Builder (UninflectedWord, UninflectedSentence, 
+import Builder (UninflectedWord, UninflectedSentence,
     incrCounter, num_iterations, num_comparisons, chart_size,
     addCounters,
     )
 import qualified Builder as B
 
-import Tags (TagElem, TagSite, TagDerivation,  
+import Tags (TagElem, TagSite, TagDerivation,
              idname, tidnum,
              derivation,
              ttree, ttype, tsemantics, thighlight, tdiagnostic,
@@ -84,7 +84,7 @@ import Tags (TagElem, TagSite, TagDerivation,
              ts_synIncomplete, ts_semIncomplete, ts_tbUnificationFailure,
              ts_noRootCategory, ts_wrongRootCategory,
             )
-import Configuration 
+import Configuration
 import General (BitVector, fst3, mapTree)
 import Polarity
 import Statistics (Statistics)
@@ -98,11 +98,11 @@ import Statistics (Statistics)
 Here is our implementation of Builder.
 
 \begin{code}
-simpleBuilder = B.Builder 
-  { B.init     = initSimpleBuilder 
+simpleBuilder = B.Builder
+  { B.init     = initSimpleBuilder
   , B.step     = generateStep
   , B.stepAll  = B.defaultStepAll simpleBuilder
-  , B.run      = run 
+  , B.run      = run
   , B.finished = \s -> (null.theAgenda) s && (step s == Auxiliar)
   , B.unpack   = unpackResults.theResults }
 \end{code}
@@ -113,8 +113,8 @@ it first constructs the polarity automaton and uses that to guide the
 surface realisation process.
 
 There's an unfortunate source of complexity here : one way to do
-generation is to treat polarity automaton path as a seperate 
-generation task.  We do this by mapping the surface realiser 
+generation is to treat polarity automaton path as a seperate
+generation task.  We do this by mapping the surface realiser
 across each path and then merging the final states back into one.
 
 You should be careful if you want to translate this to a builder
@@ -122,41 +122,41 @@ that uses a packing strategy; you should take care to rename the
 chart edges accordingly.
 
 \begin{code}
-run input config = 
+run input config =
   let stepAll = B.stepAll simpleBuilder
       init    = B.init simpleBuilder
-      -- combos = polarity automaton paths 
+      -- combos = polarity automaton paths
       (combos,_,input2) = (B.preInit input config)
       --
-      (nullS, nullStats)  = subInit [] 
+      (nullS, nullStats)  = subInit []
       --
       (finalS, finalStats) = unzip $ map generate combos
-        where generate c = 
+        where generate c =
                let (iS, iStats) = subInit c
                in  runState (execStateT stepAll iS) iStats
       subInit c = init (input2 { B.inCands = c }) config
       -- WARNING: will not work with packing!
-      mergeSt st1 st2 = 
+      mergeSt st1 st2 =
         st1 { theResults = (theResults st1) ++ (theResults st2) }
   -- FIXME: will have to update the stats later)
   in (foldr mergeSt nullS finalS , foldr addCounters nullStats finalStats)
 \end{code}
 
-% --------------------------------------------------------------------  
+% --------------------------------------------------------------------
 \section{Key types}
-% --------------------------------------------------------------------  
+% --------------------------------------------------------------------
 
 \begin{code}
 type Agenda = [TagElem]
 type AuxAgenda  = [TagElem]
-type Chart  = [TagElem] 
+type Chart  = [TagElem]
 type Trash = [TagElem]
 \end{code}
 
 \subsection{SimpleState and SimpleStatus}
 
 The \fnreflite{SimpleState} is a state monad where the state being
-thread through is a \fnref{SimpleStatus}.  The two are named
+thread through is a \fnreflite{SimpleStatus}.  The two are named
 deliberately alike to indicate their close relationship.
 
 To prevent confusion, we ought to keep a somewhat consistent naming
@@ -174,7 +174,7 @@ went wrong.
 type SimpleState a = B.BuilderState SimpleStatus a
 
 data SimpleStatus = S
-  { theAgenda    :: Agenda 
+  { theAgenda    :: Agenda
   , theAuxAgenda :: AuxAgenda
   , theChart     :: Chart
   , theTrash   :: Trash
@@ -188,10 +188,10 @@ data SimpleStatus = S
 
 -- | Creates an initial SimpleStatus.
 initSimpleBuilder ::  B.Input -> Params -> (SimpleStatus, Statistics)
-initSimpleBuilder input config = 
+initSimpleBuilder input config =
   let cands = B.inCands input
       ts    = fst $ B.inSemInput input
-      (a,i) = partition closedAux cands 
+      (a,i) = partition closedAux cands
       initS = S{ theAgenda    = i
                , theAuxAgenda = a
                , theChart     = []
@@ -210,29 +210,29 @@ initSimpleBuilder input config =
 
 \begin{code}
 addToAgenda :: TagElem -> SimpleState ()
-addToAgenda te = do 
+addToAgenda te = do
   modify $ \s -> s{theAgenda = te:(theAgenda s) }
-     
+
 updateAgenda :: Agenda -> SimpleState ()
-updateAgenda a = do 
+updateAgenda a = do
   modify $ \s -> s{theAgenda = a}
 
 addToAuxAgenda :: TagElem -> SimpleState ()
-addToAuxAgenda te = do 
+addToAuxAgenda te = do
   s <- get
-  -- each new tree gets a unique id... this makes comparisons faster 
+  -- each new tree gets a unique id... this makes comparisons faster
   let counter = (gencounter s) + 1
       te2 = te { tidnum = counter }
   put s{gencounter = counter,
         theAuxAgenda = te2:(theAuxAgenda s) }
- 
+
 addToChart :: TagElem -> SimpleState ()
-addToChart te = do 
+addToChart te = do
   modify $ \s -> s { theChart = te:(theChart s) }
   incrCounter chart_size 1
 
 addToTrash :: TagElem -> String -> SimpleState ()
-addToTrash te err = do 
+addToTrash te err = do
   let te2 = te { tdiagnostic = err:(tdiagnostic te) }
   modify $ \s -> s { theTrash = te2 : (theTrash s) }
 
@@ -241,44 +241,171 @@ addToResults te = do
   modify $ \s -> s { theResults = te : (theResults s) }
 \end{code}
 
-\paragraph{lookupChart} retrieves a list of trees from the chart which 
-could be combined with the given agenda tree.
-\label{fn:lookupChart}
+\subsection{SimpleItem}
 
-The current implementation searches for trees which 
+\begin{code}
+-- | True if the chart item has no open substitution nodes
+closed :: TagElem -> Bool
+closed = null.substnodes
+
+-- | True if the chart item is an auxiliary tree
+aux :: TagElem -> Bool
+aux t = (ttype t == Auxiliar)
+
+-- | True if both 'closed' and 'aux' are True
+closedAux :: TagElem -> Bool
+closedAux x = (aux x) && (closed x)
+\end{code}
+
+% --------------------------------------------------------------------
+\section{Generate}
+% --------------------------------------------------------------------
+
+\paragraph{GenerateStep} is the main loop of the surface realiser.  This
+is a standard chart-and-agenda mechanism, where each iteration consists
+of picking an item off the agenda and combining it with elements from
+the chart.  One slightly complicated detail: we maintain two seperate
+agendas and process them sequentially, one loop after the other.  See
+\fnref{switchToAux} for details.
+
 \begin{itemize}
-\item do not have overlapping semantics with the given
-\item are on the some of the same polarity automaton paths as the given.
+\item If both Agenda and AuxAgenda are empty then there is nothing to do,
+  otherwise, if Agenda is empty then we switch to the application of the
+  Adjunction rule.
+\item After the rule is applied we classify solutions into those that are complete
+  and cover the semantics and those that don't.  The first ones are returned
+  and added to the result, while the others are sent back to Agenda.
+\item Notice that if we are applying the Substitution rule then the
+  current agenda item is added to the chart, otherwise it is deleted.
 \end{itemize}
 
 \begin{code}
-lookupChart :: TagElem -> SimpleState [TagElem]
-lookupChart given = do
-  chart <- gets theChart
-  let gpaths = tpolpaths given
-      gsem   = tsemantics given
-  return [ t | t <- chart
-             -- should be on the same polarity path (chart sharing)
-             , (tpolpaths t) .&. gpaths /= 0 
-             -- semantics should not be overlapping
-             && (null $ intersect (tsemantics t) gsem)
-         ] 
+generateStep :: SimpleState ()
+generateStep = do
+  nir     <- gets (null.theAgenda)
+  curStep <- gets step
+  -- this check may seem redundant with generate, but it's needed
+  -- to protect against a user who calls generateStep on a finished
+  -- state
+  if (nir && curStep == Auxiliar)
+    then return ()
+    else do incrCounter num_iterations 1
+            -- this triggers exactly once in the whole process
+            if nir
+               then switchToAux
+               else generateStep'
+
+generateStep' :: SimpleState ()
+generateStep' =
+  do -- choose an item from the agenda
+     given <- selectGiven
+     -- have we triggered the switch to aux yet?
+     curStep <- gets step
+     -- do either substitution or adjunction
+     res <- if (curStep == Initial)
+            then applySubstitution given
+            else applyAdjunction given
+     -- determine which of the res should go in the agenda
+     -- (monadic state) and which should go in the result (res')
+     dispatchNew res
+     -- put the given into the chart untouched
+     if (curStep == Initial)
+        then addToChart given
+        else when (null $ adjnodes given) $ trashIt given
+  where
+     trashIt t =
+       do s <- get
+          let missingSem = tsem s \\ tsemantics t
+          addToTrash t (ts_semIncomplete missingSem)
+
+-- | Arbitrarily selects and removes an element from the agenda and
+--   returns it.
+selectGiven :: SimpleState TagElem
+selectGiven = do
+  a <- gets theAgenda
+  updateAgenda (tail a)
+  return (head a)
 \end{code}
 
-\paragraph{intersectPolPaths} calculates the intersection of two trees'
-polarity paths
+\subsection{Switching phases}
+
+\fnlabel{switchToAux} When all substitutions has been done, tags with
+substitution nodes still open are deleted, then the auxiliars tags are put in
+Chart and the (initial) tags in the repository are moved into the Agenda. The
+step is then changed to Auxiliary
+
 \begin{code}
-intersectPolPaths :: TagElem -> TagElem -> BitVector
-intersectPolPaths te1 te2 = (tpolpaths te1) .&. (tpolpaths te2) 
+switchToAux :: SimpleState ()
+switchToAux = do
+  st <- get
+  let chart = theChart st
+      -- You might be wondering why we ignore the auxiliary trees in the
+      -- chart; this is because all the syntactically complete auxiliary
+      -- trees have already been filtered away by calls to classifyNew
+      initialT = filter (\x -> ttype x == Initial) chart
+      (compT, incompT) = partition (null.substnodes) initialT
+      aux   = theAuxAgenda st
+      --
+      filteredT = semfilter (tsem st) aux compT
+      initial = if (semfiltered $ genconfig st)
+                then filteredT else compT
+  -- toss the syntactically incomplete stuff in the trash
+  mapM (\t -> addToTrash t ts_synIncomplete) incompT
+  put st{theAgenda = initial,
+         theAuxAgenda = [],
+         theChart = aux,
+         step = Auxiliar}
 \end{code}
 
-% --------------------------------------------------------------------  
-\section{Substitution}
+\subsubsection{SemFilter Optimisation}
+\label{sec:semfilter}
+
+The purpose of the semantic filter optimisation is to take full
+advantage of Carroll's delayed adjunction.  Consider the semantics
+\semexpr{def(m), poor(m), brokenhearted(m), man(m), def(w), woman(w),
+beautiful(w), heartless(w), rejects(w,m)}.  At the switchToAux step, we
+are left with the initial trees \natlang{man}, \natlang{woman}, \natlang{the
+  woman rejects the man}.
+
+It would be nice to filter out the structures \natlang{man} and \natlang{woman}
+since we know that they are not going to be semantically complete even with
+adjunction.  More precisely, on the switch to adjunction, we do the following:
+
+\begin{itemize}
+\item Take the union of the semantics of all auxiliary trees; which
+      we call $\phi^*$
+\item Delete any initial tree with semantics $\phi^s$ such that
+      $\phi^s \cup \phi^*$ is not the target semantics
+\end{itemize}
+
+In other words, we delete all initial trees that cannot produce a semantically
+complete result even with the help of auxiliary trees.
+
+\begin{code}
+semfilter :: Sem -> [TagElem] -> [TagElem] -> [TagElem]
+semfilter inputsem aux initial =
+  let auxsem     = sortSem $ nub $ concatMap tsemantics aux
+      missingsem = sortSem $ inputsem     \\ auxsem
+      restsem x  = sortSem $ (tsemantics x \\ auxsem)
+      goodsem x  = (restsem x == missingsem)
+  in filter goodsem initial
+\end{code}
+
+% --------------------------------------------------------------------
+\section{Operations}
+% --------------------------------------------------------------------
+
+We implement the two TAG operations, substitution and adjunction, below.
+These are the only two operations we have, because we're working with a
+very simple builder that constructs derived trees.
+
+% --------------------------------------------------------------------
+\subsection{Substitution}
 \label{sec:substitution}
-% --------------------------------------------------------------------  
+% --------------------------------------------------------------------
 
 \paragraph{applySubstitution} Given a TagElem it returns the list of all
-possible substitutions between it and the elements in Chart 
+possible substitutions between it and the elements in Chart
 
 \begin{code}
 applySubstitution :: TagElem -> SimpleState ([TagElem])
@@ -317,26 +444,26 @@ iapplySubstNode te1 te2 sn@(n, fu, fd) = {-# SCC "applySubstitution" #-}
       r = root t1
       tfup   = gup r
       tfdown = gdown r
-      -- FIXME: now that this behaves the same way as adjunction, 
+      -- FIXME: now that this behaves the same way as adjunction,
       -- maybe we could refactor?
       (succ1, newgup,   subst1) = unifyFeat2 tfup fu
       (succ2, newgdown, subst2) = unifyFeat2 tfdown2 fd2
-        where tfdown2 = replace subst1 tfdown 
+        where tfdown2 = replace subst1 tfdown
               fd2     = replace subst1 fd
       subst = subst1 ++ subst2
-      -- IMPORTANT: nt1 should be ready for replacement 
-      -- (e.g, top features unified, type changed to Other) 
+      -- IMPORTANT: nt1 should be ready for replacement
+      -- (e.g, top features unified, type changed to Other)
       -- when passed to repSubst
       nr  = r { gup   = newgup,
                 -- note that the bot features come from sn, not r!
                 gdown = newgdown,
                 gtype = Other }
-      nt1 = rootUpd t1 nr 
-      ntree = repSubst n nt1 t2 
+      nt1 = rootUpd t1 nr
+      ntree = repSubst n nt1 t2
 
       --
       ncopy x = (gnname x, gup x, gdown x)
-      adj1  = (ncopy nr) : (delete (ncopy r) $ adjnodes te1) 
+      adj1  = (ncopy nr) : (delete (ncopy r) $ adjnodes te1)
       adj2  = adjnodes te2
       newadjnodes   = sort $ nub $ adj1 ++ adj2
       newTe = te2{derivation = addToDerivation 's' te1 te2,
@@ -346,7 +473,7 @@ iapplySubstNode te1 te2 sn@(n, fu, fd) = {-# SCC "applySubstitution" #-}
                   tsemantics = sortSem (tsemantics te1 ++ tsemantics te2),
                   -- tpredictors = sumPredictors (tpredictors te1) (tpredictors te2),
                   tpolpaths  = intersectPolPaths te1 te2,
-                  thighlight = [gnname nr]} 
+                  thighlight = [gnname nr]}
       res = replace subst newTe
   in if (isInit te1 && succ1 && succ2)
      then do incrCounter "substitutions" 1
@@ -354,15 +481,15 @@ iapplySubstNode te1 te2 sn@(n, fu, fd) = {-# SCC "applySubstitution" #-}
      else return []
 \end{code}
 
-% --------------------------------------------------------------------  
-\section{Adjunction}
+% --------------------------------------------------------------------
+\subsection{Adjunction}
 \label{sec:adjunction}
 \label{sec:ordered_adjunction}
 \label{sec:foot_constraint}
-% ---------------------------------------------------------------  
+% ---------------------------------------------------------------
 
-\paragraph{applyAdjunction} Given a TagElem, it returns the list of all 
-possible adjunctions between it and the elements in Chart.  
+\paragraph{applyAdjunction} Given a TagElem, it returns the list of all
+possible adjunctions between it and the elements in Chart.
 The Chart contains Auxiliars, while TagElem is an Initial
 
 Note: as of 13 april 2005 - only uses ordered adjunction as described in
@@ -398,16 +525,16 @@ applyAdjunction te = {-# SCC "applyAdjunction" #-} do
                         return (te2:attempts)
    --
    let count   = (length gr)
-   incrCounter num_comparisons count 
+   incrCounter num_comparisons count
    return res
 \end{code}
 
 The main work for adjunction is done in the helper function below
 (see also figure \ref{fig:adjunction}).
 Auxiliary tree \texttt{te1} has a root node \texttt{r} and a foot
-node \texttt{f}. Main tree \texttt{te2} has an adjunction site \texttt{an}.  
+node \texttt{f}. Main tree \texttt{te2} has an adjunction site \texttt{an}.
 The resulting tree \texttt{res} is a result of splicing \texttt{te1} into
-\texttt{te2}.  We replace \texttt{s} with the nodes \texttt{anr} and 
+\texttt{te2}.  We replace \texttt{s} with the nodes \texttt{anr} and
 \texttt{anf} (which are the results of unifying \texttt{an} with \texttt{r}
              and \texttt{f} respectively).
 
@@ -438,16 +565,16 @@ iapplyAdjNode fconstr te1 te2 an@(n, an_up, an_down) = do
       f = foot t1
       r_up   = gup r    -- top features of the root of the auxiliar tree
       f_down = gdown f  -- bottom features of the foot of the auxiliar tree
-  (anr_up',  subst1) <- unifyFeat r_up an_up 
+  (anr_up',  subst1) <- unifyFeat r_up an_up
   (anf_down, subst2) <- unifyFeat (replace subst1 f_down) (replace subst1 an_down)
   let -- don't forget to propagate the substitution set from the down stuff
-      anr_up = replace subst2 anr_up' 
+      anr_up = replace subst2 anr_up'
       -- combined substitution list and success condition
       subst   = subst1++subst2
 
       -- the adjoined tree
-      -- ----------------- 
-      -- the result of unifying the t1 root and the t2 an 
+      -- -----------------
+      -- the result of unifying the t1 root and the t2 an
       anr = r { gnname = n, -- jackie
                 gup = anr_up,
                 gtype = Other }
@@ -458,436 +585,80 @@ iapplyAdjNode fconstr te1 te2 an@(n, an_up, an_down) = do
       -- calculation of the adjoined tree
       nt1 = rootUpd t1 anr
       ntree = repAdj anf n nt1 t2
-      
+
       -- the new adjunction nodes
       -- ------------------------
       ncopy x = (gnname x, gup x, gdown x)
-      -- 1) delete the adjunction site and the aux root node 
+      -- 1) delete the adjunction site and the aux root node
       auxlite = delete (ncopy r) $ adjnodes te1
       telite  = delete an $ adjnodes te2
-      -- 2) union the remaining adjunction nodes 
-      newadjnodes' = auxlite ++ telite 
-      -- 3) apply the substitutions 
+      -- 2) union the remaining adjunction nodes
+      newadjnodes' = auxlite ++ telite
+      -- 3) apply the substitutions
       nte2 = te2 { derivation = addToDerivation 'a' te1 te2,
                    ttree = ntree,
-                   adjnodes = newadjnodes', 
+                   adjnodes = newadjnodes',
                    tsemantics = sortSem (tsemantics te1 ++ tsemantics te2),
                    tpolpaths = intersectPolPaths te1 te2,
-                   thighlight = map gnname [anr, anf] 
+                   thighlight = map gnname [anr, anf]
                  }
-      res' = replace subst nte2 
-      -- 4) add the new adjunction nodes 
+      res' = replace subst nte2
+      -- 4) add the new adjunction nodes
       --    this has to come after 3 so that we don't repeat the subst
       addextra a = if fconstr then a2 else (ncopy anf) : a2
                    where a2 = (ncopy anr) : a
 
-  -- the final result  
+  -- the final result
   -- ----------------
-  return $ res' { adjnodes = (addextra.adjnodes) res' 
+  return $ res' { adjnodes = (addextra.adjnodes) res'
                 , tadjlist = (n, (tidnum te1)):(tadjlist te2) }
 \end{code}
 
-% --------------------------------------------------------------------  
-\section{Generate step}
-% --------------------------------------------------------------------  
-
-\begin{itemize}
-\item If both Agenda and AuxAgenda are empty then there is nothing to do,
-  otherwise, if Agenda is empty then we switch to the application of the 
-  Adjunction rule. 
-\item After the rule is applied we classify solutions into those that are complete 
-  and cover the semantics and those that don't.  The first ones are returned 
-  and added to the result, while the others are sent back to Agenda.  
-\item Notice that if we are applying the Substitution rule then given is added
-  to Chart, otherwise it is deleted. 
-\end{itemize}
+% --------------------------------------------------------------------
+\subsection{Helper functions for operations}
+% --------------------------------------------------------------------
 
 \begin{code}
-generateStep :: SimpleState () 
-generateStep = do
-  nir     <- gets (null.theAgenda)
-  curStep <- gets step
-  -- this check may seem redundant with generate, but it's needed 
-  -- to protect against a user who calls generateStep on a finished
-  -- state
-  if (nir && curStep == Auxiliar) 
-    then return () 
-    else do incrCounter num_iterations 1
-            -- this triggers exactly once in the whole process
-            if nir 
-               then switchToAux
-               else generateStep' 
+-- | Retrieves a list of trees from the chart which could be combined with the given agenda tree.
+-- The current implementation searches for trees which
+--  * do not have overlapping semantics with the given
+--  * are on the some of the same polarity automaton paths as the
+--    current agenda item
+lookupChart :: TagElem -> SimpleState [TagElem]
+lookupChart given = do
+  chart <- gets theChart
+  let gpaths = tpolpaths given
+      gsem   = tsemantics given
+  return [ t | t <- chart
+             -- should be on the same polarity path (chart sharing)
+             , (tpolpaths t) .&. gpaths /= 0
+             -- semantics should not be overlapping
+             && (null $ intersect (tsemantics t) gsem)
+         ]
 
-generateStep' :: SimpleState () 
-generateStep' = 
-  do -- choose an item from the agenda
-     given <- selectGiven
-     -- have we triggered the switch to aux yet?
-     curStep <- gets step
-     -- do either substitution or adjunction 
-     res <- if (curStep == Initial)
-            then applySubstitution given
-            else applyAdjunction given
-     -- determine which of the res should go in the agenda 
-     -- (monadic state) and which should go in the result (res')
-     dispatchNew res
-     -- put the given into the chart untouched 
-     if (curStep == Initial) 
-        then addToChart given
-        else when (null $ adjnodes given) $ trashIt given 
-  where 
-     trashIt t = 
-       do s <- get
-          let missingSem = tsem s \\ tsemantics t
-          addToTrash t (ts_semIncomplete missingSem)
-\end{code}
+-- | Calculates the intersection of two trees' polarity paths
+intersectPolPaths :: TagElem -> TagElem -> BitVector
+intersectPolPaths te1 te2 = (tpolpaths te1) .&. (tpolpaths te2)
 
-\subsection{Generate helper functions}
-
-\paragraph{selectGiven} Arbitrarily selects and removes an element from
-the Initial and returns it.
-
-\begin{code}
-selectGiven :: SimpleState TagElem
-selectGiven = do 
-  a <- gets theAgenda
-  updateAgenda (tail a)
-  return (head a)
-\end{code}
-
-\fnlabel{dispatchNew} Given a list of TagElem, for each tree: 
-\begin{enumerate}
-\item if the tree is both syntactically complete (no more subst nodes) and
-      semantically complete (matches target semantics), it is a result, so
-      unify the top and bottom feature structures of each node.  If that
-      succeeds, return it, otherwise discard it completely.
-\item if the number of subtrees exceeds the numTreesLimit, discard
-\item if it is only syntactically complete and it is an auxiliary tree, 
-      then we don't need to do any more substitutions with it, so set it 
-      aside on the auxiliary agenda (AuxAgenda)
-\item otherwise, put it on the regular agenda (Agenda)
-\end{enumerate}
-
-\begin{code}
-dispatchNew :: [TagElem] -> SimpleState () 
-dispatchNew l = {-# SCC "dispatchNew" #-}
-  do -- first we seperate the results from the non results
-     st <- get
-     let inputSem = tsem st
-         synComplete x = 
-           (not (aux x)) && closed x
-           -- don't forget about null adjnodes
-         semComplete x = inputSem == treeSem 
-           where treeSem = sortSem (tsemantics x)
-         isResult x = 
-           synComplete x && semComplete x 
-     let (res, notRes) = partition isResult l
-     -- -------------------------------------------------- 
-     -- the non results
-     -- -------------------------------------------------- 
-     -- now... throw out any trees which are over the num trees limit 
-     -- (this only applies in IgnoreSemantics mode) 
-     state <- get
-     let config = genconfig state 
-     let numTreesLimit = maxTrees config
-         numTrees  x = length $ snd $ derivation x
-         overLimit x = case numTreesLimit of
-                         Nothing  -> False
-                         Just lim -> numTrees x > lim
-     let notRes2 = filter (not.overLimit) notRes
-     -- put any pure auxiliary trees on the auxiliary agenda
-     let dispatchAux x = 
-           if closedAux x 
-              then do { addToAuxAgenda x; return False }
-              else return True
-     notRes3 <- filterM dispatchAux notRes2
-     -- put any other trees on the agenda
-     mapM addToAgenda notRes3
-     -- -------------------------------------------------- 
-     -- the results
-     -- -------------------------------------------------- 
-     -- we perform top/bottom unification on any results
-     let tbUnify x =
-          case (tbUnifyTree x) of
-            Left n  -> do let x2 = x { thighlight = [n] }
-                          addToTrash x2 ts_tbUnificationFailure 
-                          return False 
-            Right _ -> return True 
-     res2 <- filterM tbUnify res
-     let rootCats = rootCatsParam config
-         rootCatCheck x = 
-           case (gCategory.root.ttree) x of
-           Just (GConst c) -> 
-             if null $ intersect c rootCats
-             then do addToTrash x (ts_wrongRootCategory c rootCats)
-                     return False
-             else return True
-           _ -> do addToTrash x ts_noRootCategory 
-                   return False
-     res3 <- filterM rootCatCheck res2
-     mapM addToResults res3
-     return ()
-\end{code}
-
-
-\paragraph{switchToAux} When all substitutions has been done, tags with
-substitution nodes still open are deleted, then the auxiliars tags are put in
-Chart and the (initial) tags in the repository are moved into the Agenda. The
-step is then changed to Auxiliary
-
-\begin{code}
-switchToAux :: SimpleState ()
-switchToAux = do
-  st <- get
-  let chart = theChart st
-      -- You might be wondering why we ignore the auxiliary trees in the 
-      -- chart; this is because all the syntactically complete auxiliary
-      -- trees have already been filtered away by calls to classifyNew
-      initialT = filter (\x -> ttype x == Initial) chart
-      (compT, incompT) = partition (null.substnodes) initialT
-      aux   = theAuxAgenda st
-      --
-      filteredT = semfilter (tsem st) aux compT 
-      initial = if (semfiltered $ genconfig st) 
-                then filteredT else compT 
-  -- toss the syntactically incomplete stuff in the trash
-  mapM (\t -> addToTrash t ts_synIncomplete) incompT
-  put st{theAgenda = initial,
-         theAuxAgenda = [], 
-         theChart = aux,
-         step = Auxiliar}
-\end{code}
-
-% --------------------------------------------------------------------  
-\section{SemFilter Optimisation}
-\label{sec:semfilter}
-% --------------------------------------------------------------------  
-
-This implements the semantic filter optimisation.  The idea is to take full
-advantage of Carroll's delayed adjunction.  Consider the semantics
-\semexpr{def(m), poor(m), brokenhearted(m), man(m), def(w), woman(w),
-beautiful(w), heartless(w), rejects(w,m)}.  At the switchToAux step, we 
-are left with the initial trees \natlang{man}, \natlang{woman}, \natlang{the
-  woman rejects the man}.  
-
-It would be nice to filter out the structures \natlang{man} and \natlang{woman}
-since we know that they are not going to be semantically complete even with
-adjunction.  More precisely, on the switch to adjunction, we do the following:
-
-\begin{itemize}
-\item Take the union of the semantics of all auxiliary trees; which 
-      we call $\phi^*$
-\item Delete any initial tree with semantics $\phi^s$ such that
-      $\phi^s \cup \phi^*$ is not the target semantics
-\end{itemize}
-
-In other words, we delete all initial trees that cannot produce a semantically
-complete result even with the help of auxiliary trees.  
-
-\begin{code}
-semfilter :: Sem -> [TagElem] -> [TagElem] -> [TagElem] 
-semfilter inputsem aux initial = 
-  let auxsem     = sortSem $ nub $ concatMap tsemantics aux
-      missingsem = sortSem $ inputsem     \\ auxsem
-      restsem x  = sortSem $ (tsemantics x \\ auxsem)
-      goodsem x  = (restsem x == missingsem)
-  in filter goodsem initial
-\end{code}
-
-% --------------------------------------------------------------------  
-\section{Top and bottom unification}
-% --------------------------------------------------------------------  
-
-\paragraph{tbUnifyTree} unifies the top and bottom feature structures
-of each node on each tree. If succesful we return the tree, otherwise we
-return a string indicating the name of the offending node.  This is is the
-final step in generation of a result.
-
-We do unification in twe steps: the first time is to check if
-unification is possible and to determine/apply variable substitutions
-throughout the entire tree.  The first time we do unification, we
-discard the results.  The second time we do unification is to get the
-result and only that; we do not do any more success checks or
-substitutions.  
-
-Note: this does not detect if there are multiple nodes which cause top and
-bottom unification to fail.
-
-\begin{code}
-type TbEither = Either String (Subst, Tree GNode)
-tbUnifyTree :: TagElem -> Either String TagElem
-tbUnifyTree te = {-# SCC "tbUnifyTree" #-}
-  let tryUnification :: Tree GNode -> TbEither 
-      tryUnification t = foldr tbUnifyNode start flat 
-        where start = Right ([], t)
-              flat  = flatten t
-      --
-      fixNode :: GNode -> GNode
-      fixNode gn = gn { gup = u, gdown = [] }
-                   where (_,u,_) = unifyFeat2 (gup gn) (gdown gn)
-      -- 
-      fixSite :: Subst -> TagSite -> TagSite 
-      fixSite sb (n, u, d) = (n, u3, [])
-        where u2 = replace sb u
-              d2 = replace sb d
-              (_,u3,_) = unifyFeat2 u2 d2
-      --
-      fixTe :: Subst -> Tree GNode -> TagElem
-      fixTe sb tt2 = te { ttree      = mapTree fixNode tt2
-                        , adjnodes   = map (fixSite sb) (adjnodes te)
-                        , substnodes = map (fixSite sb) (substnodes te)}
-  in case (tryUnification $ ttree te) of 
-       Left  n        -> Left  n  
-       Right (sb,tt2) -> Right (fixTe sb tt2)
-\end{code}
-
-Our helper function corresponds to the first unification step.  It is
-meant to be called from a fold.  The node argument represents the
-current node being explored.  The Maybe argument holds a list of 
-pending substitutions and a copy of the entire tree.
-
-There are three things going on in here:
-
-\begin{enumerate}
-\item check if unification is possible - first we apply the pending
-      substitutions on the node and then we check if unification
-      of the top and bottom feature structures of that node 
-      succeeds
-\item keep track of the substitutions that need to be performed -
-      any new substitutions that result from unification are 
-      added to the pending list
-\item propagate new substitutions throughout the tree - this is
-      why we keep a copy of the tree; note that we \emph{have}
-      to keep the entire tree around because variable substitutions
-      must be back-propagated to nodes we had visited in the past.
-\end{enumerate}
-
-You might also think it redundant to apply substitutions both to the
-entire tree and the current node; but we have to because the node is
-only a copy of the tree data and not a reference to it.  This is why 
-we keep a list of pending substitutions instead of simply returning
-the corrected tree.  
-
-Note that we wrap the second argument in a Maybe; this is used to
-indicate that if unification suceeds or fails.  We also use it to
-prevent the function from doing any work if a unification failure
-from a previous call has already occured. 
-
-Getting this right was a big pain in the butt, so don't go trying to
-simplify this over-complicated code unless you know what you're doing.
-
-\begin{code}
-tbUnifyNode :: GNode -> TbEither -> TbEither 
-tbUnifyNode gnRaw (Right (pending,whole)) = 
-  let -- apply pending substitutions
-      gn = replace pending gnRaw 
-  -- check top/bottom unification on this node
-  in case unifyFeat (gup gn) (gdown gn) of
-     -- stop all future iterations
-     Nothing -> Left (gnname gn)
-     -- apply any new substutions to the whole tree
-     Just (_,sb) -> Right (pending ++ sb, replace sb whole)
-
--- if earlier we had a failure, don't even bother 
-tbUnifyNode _ (Left n) = Left n
-\end{code}
-
-% --------------------------------------------------------------------  
-\section{Unpack results}
-% --------------------------------------------------------------------  
-
-Unpacking the results consists of converting each result into a sentence 
-automaton (to take care of atomic disjunction) and reading the paths of
-each automaton.
-
-\begin{code}
-unpackResults :: [TagElem] ->  [B.UninflectedSentence]
-unpackResults tes =
-  {- #SCC "unpackResults" -}
-  -- sentence automaton
-  let treeLeaves   = map tagLeaves tes
-      sentenceAuts = map listToSentenceAut treeLeaves 
-      uninflected  = concatMap automatonPaths sentenceAuts
-  in uninflected
-\end{code}
-
-\subsection{Sentence automata}
-
-\fnlabel{listToSentenceAut} converts a list of GNodes into a sentence
-automaton.  It's a actually pretty stupid conversion in fact.  We pretty
-much make a straight path through the automaton, with the only
-cleverness being that we provide a different transition for each 
-atomic disjunction.  
-
-\begin{code}
-listToSentenceAut :: [ B.UninflectedDisjunction ] -> B.SentenceAut 
-listToSentenceAut nodes = 
-  let theStart  = 0
-      theEnd = (length nodes) - 1
-      theStates = [theStart..theEnd]
-      --
-      emptyAut = NFA 
-        { startSt     = theStart 
-        , isFinalSt   = Nothing
-        , finalStList = [theEnd]
-        , states      = [theStates]
-        , transitions = Map.empty }
-      -- create a transition for each lexeme in the node to the 
-      -- next state... 
-      helper :: (Int, B.UninflectedDisjunction) -> B.SentenceAut -> B.SentenceAut
-      helper (current, word) aut = foldr addT aut lemmas 
-        where 
-          lemmas   = fst word
-          features = snd word
-          --
-          addT t a = addTrans a current (toTrans t) next 
-          next = current + 1
-          toTrans :: String -> Maybe UninflectedWord
-          toTrans l = Just (l, features)
-      --
-  in foldr helper emptyAut (zip theStates nodes)
-\end{code}
-
-% --------------------------------------------------------------------  
-\section{Miscellaneous}
-% --------------------------------------------------------------------  
-
-\paragraph{renameTagElem} Given a Char c and a TagElem te, renames nodes in
-substnodes, adjnodes and the tree in te by prefixing c. 
-
-\begin{code}
+-- | Given a 'Char' c and a 'TagElem' te, renames nodes in
+-- substnodes, adjnodes and the tree in te by prefixing c.
 renameTagElem :: Char -> TagElem -> TagElem
-renameTagElem c te = 
+renameTagElem c te =
   let sn = map (\(n, fu, fd) -> (c:n, fu, fd)) (substnodes te)
       an = map (\(n, fu, fd) -> (c:n, fu, fd)) (adjnodes te)
       al = map (\(n, tid) -> (c:n, tid)) (tadjlist te)
       t = renameTree c (ttree te)
-  in te{substnodes = sn, 
+  in te{substnodes = sn,
         adjnodes = an,
         tadjlist = al,
         ttree = t}
 \end{code}
 
-
-\begin{code}
--- | True if the chart item has no open substitution nodes
-closed :: TagElem -> Bool
-closed = null.substnodes
-
--- | True if the chart item is an auxiliary tree
-aux :: TagElem -> Bool
-aux t = (ttype t == Auxiliar)
-
--- | True if both 'closed' and 'aux' are True
-closedAux :: TagElem -> Bool 
-closedAux x = (aux x) && (closed x)
-\end{code}
-
-\subsection{Derivation trees}
+\subsubsection{Derivation trees}
 
 The basic problem of derivation trees is that you have to account for
 the same tree being used in two seperate places; these two uses must
-be treated as different trees, or else you'll get all sorts of 
+be treated as different trees, or else you'll get all sorts of
 unpredicted behaviour like your drawing software displaying multiple
 edges or loops in the derivation tree.  We approach this problem by
 prepending a Gorn address to each node in the derivation history.
@@ -909,6 +680,238 @@ addToDerivation op tc tp =
       addcp x = (show newcp) ++ "." ++ x
       newhc   = map (\ (o,c,p) -> (o, addcp c, addcp p)) hc
       --
-      newnode = (op, addcp $ idname tc, idname tp) 
+      newnode = (op, addcp $ idname tc, idname tp)
   in (newcp, newnode:(hp++newhc) )
+\end{code}
+
+% --------------------------------------------------------------------
+\section{Dispatching new results}
+% ---------------------------------------------------------------
+
+\fnlabel{dispatchNew} Given a list of TagElem, for each tree:
+\begin{enumerate}
+\item if the tree is both syntactically complete (no more subst nodes) and
+      semantically complete (matches target semantics), it is a result, so
+      unify the top and bottom feature structures of each node.  If that
+      succeeds, return it, otherwise discard it completely.
+\item if the number of subtrees exceeds the numTreesLimit, discard
+\item if it is only syntactically complete and it is an auxiliary tree,
+      then we don't need to do any more substitutions with it, so set it
+      aside on the auxiliary agenda (AuxAgenda)
+\item otherwise, put it on the regular agenda (Agenda)
+\end{enumerate}
+
+\begin{code}
+dispatchNew :: [TagElem] -> SimpleState ()
+dispatchNew l = {-# SCC "dispatchNew" #-}
+  do -- first we seperate the results from the non results
+     st <- get
+     let inputSem = tsem st
+         synComplete x =
+           (not (aux x)) && closed x
+           -- don't forget about null adjnodes
+         semComplete x = inputSem == treeSem
+           where treeSem = sortSem (tsemantics x)
+         isResult x =
+           synComplete x && semComplete x
+     let (res, notRes) = partition isResult l
+     -- --------------------------------------------------
+     -- the non results
+     -- --------------------------------------------------
+     -- now... throw out any trees which are over the num trees limit
+     -- (this only applies in IgnoreSemantics mode)
+     state <- get
+     let config = genconfig state
+     let numTreesLimit = maxTrees config
+         numTrees  x = length $ snd $ derivation x
+         overLimit x = case numTreesLimit of
+                         Nothing  -> False
+                         Just lim -> numTrees x > lim
+     let notRes2 = filter (not.overLimit) notRes
+     -- put any pure auxiliary trees on the auxiliary agenda
+     let dispatchAux x =
+           if closedAux x
+              then do { addToAuxAgenda x; return False }
+              else return True
+     notRes3 <- filterM dispatchAux notRes2
+     -- put any other trees on the agenda
+     mapM addToAgenda notRes3
+     -- --------------------------------------------------
+     -- the results
+     -- --------------------------------------------------
+     -- we perform top/bottom unification on any results
+     let tbUnify x =
+          case (tbUnifyTree x) of
+            Left n  -> do let x2 = x { thighlight = [n] }
+                          addToTrash x2 ts_tbUnificationFailure
+                          return False
+            Right _ -> return True
+     res2 <- filterM tbUnify res
+     let rootCats = rootCatsParam config
+         rootCatCheck x =
+           case (gCategory.root.ttree) x of
+           Just (GConst c) ->
+             if null $ intersect c rootCats
+             then do addToTrash x (ts_wrongRootCategory c rootCats)
+                     return False
+             else return True
+           _ -> do addToTrash x ts_noRootCategory
+                   return False
+     res3 <- filterM rootCatCheck res2
+     mapM addToResults res3
+     return ()
+\end{code}
+
+% --------------------------------------------------------------------
+\subsection{Top and bottom unification}
+% --------------------------------------------------------------------
+
+\paragraph{tbUnifyTree} unifies the top and bottom feature structures
+of each node on each tree. If succesful we return the tree, otherwise we
+return a string indicating the name of the offending node.  This is is the
+final step in generation of a result.
+
+We do unification in twe steps: the first time is to check if
+unification is possible and to determine/apply variable substitutions
+throughout the entire tree.  The first time we do unification, we
+discard the results.  The second time we do unification is to get the
+result and only that; we do not do any more success checks or
+substitutions.
+
+Note: this does not detect if there are multiple nodes which cause top and
+bottom unification to fail.
+
+\begin{code}
+type TbEither = Either String (Subst, Tree GNode)
+tbUnifyTree :: TagElem -> Either String TagElem
+tbUnifyTree te = {-# SCC "tbUnifyTree" #-}
+  let tryUnification :: Tree GNode -> TbEither
+      tryUnification t = foldr tbUnifyNode start flat
+        where start = Right ([], t)
+              flat  = flatten t
+      --
+      fixNode :: GNode -> GNode
+      fixNode gn = gn { gup = u, gdown = [] }
+                   where (_,u,_) = unifyFeat2 (gup gn) (gdown gn)
+      --
+      fixSite :: Subst -> TagSite -> TagSite
+      fixSite sb (n, u, d) = (n, u3, [])
+        where u2 = replace sb u
+              d2 = replace sb d
+              (_,u3,_) = unifyFeat2 u2 d2
+      --
+      fixTe :: Subst -> Tree GNode -> TagElem
+      fixTe sb tt2 = te { ttree      = mapTree fixNode tt2
+                        , adjnodes   = map (fixSite sb) (adjnodes te)
+                        , substnodes = map (fixSite sb) (substnodes te)}
+  in case (tryUnification $ ttree te) of
+       Left  n        -> Left  n
+       Right (sb,tt2) -> Right (fixTe sb tt2)
+\end{code}
+
+Our helper function corresponds to the first unification step.  It is
+meant to be called from a fold.  The node argument represents the
+current node being explored.  The Maybe argument holds a list of
+pending substitutions and a copy of the entire tree.
+
+There are three things going on in here:
+
+\begin{enumerate}
+\item check if unification is possible - first we apply the pending
+      substitutions on the node and then we check if unification
+      of the top and bottom feature structures of that node
+      succeeds
+\item keep track of the substitutions that need to be performed -
+      any new substitutions that result from unification are
+      added to the pending list
+\item propagate new substitutions throughout the tree - this is
+      why we keep a copy of the tree; note that we \emph{have}
+      to keep the entire tree around because variable substitutions
+      must be back-propagated to nodes we had visited in the past.
+\end{enumerate}
+
+You might also think it redundant to apply substitutions both to the
+entire tree and the current node; but we have to because the node is
+only a copy of the tree data and not a reference to it.  This is why
+we keep a list of pending substitutions instead of simply returning
+the corrected tree.
+
+Note that we wrap the second argument in a Maybe; this is used to
+indicate that if unification suceeds or fails.  We also use it to
+prevent the function from doing any work if a unification failure
+from a previous call has already occured.
+
+Getting this right was a big pain in the butt, so don't go trying to
+simplify this over-complicated code unless you know what you're doing.
+
+\begin{code}
+tbUnifyNode :: GNode -> TbEither -> TbEither
+tbUnifyNode gnRaw (Right (pending,whole)) =
+  let -- apply pending substitutions
+      gn = replace pending gnRaw
+  -- check top/bottom unification on this node
+  in case unifyFeat (gup gn) (gdown gn) of
+     -- stop all future iterations
+     Nothing -> Left (gnname gn)
+     -- apply any new substutions to the whole tree
+     Just (_,sb) -> Right (pending ++ sb, replace sb whole)
+
+-- if earlier we had a failure, don't even bother
+tbUnifyNode _ (Left n) = Left n
+\end{code}
+
+% --------------------------------------------------------------------
+\section{Unpacking the results}
+% --------------------------------------------------------------------
+
+Unpacking the results consists of converting each result into a sentence
+automaton (to take care of atomic disjunction) and reading the paths of
+each automaton.
+
+\begin{code}
+unpackResults :: [TagElem] ->  [B.UninflectedSentence]
+unpackResults tes =
+  {- #SCC "unpackResults" -}
+  -- sentence automaton
+  let treeLeaves   = map tagLeaves tes
+      sentenceAuts = map listToSentenceAut treeLeaves
+      uninflected  = concatMap automatonPaths sentenceAuts
+  in uninflected
+\end{code}
+
+\subsection{Sentence automata}
+
+\fnlabel{listToSentenceAut} converts a list of GNodes into a sentence
+automaton.  It's a actually pretty stupid conversion in fact.  We pretty
+much make a straight path through the automaton, with the only
+cleverness being that we provide a different transition for each
+atomic disjunction.
+
+\begin{code}
+listToSentenceAut :: [ B.UninflectedDisjunction ] -> B.SentenceAut
+listToSentenceAut nodes =
+  let theStart  = 0
+      theEnd = (length nodes) - 1
+      theStates = [theStart..theEnd]
+      --
+      emptyAut = NFA
+        { startSt     = theStart
+        , isFinalSt   = Nothing
+        , finalStList = [theEnd]
+        , states      = [theStates]
+        , transitions = Map.empty }
+      -- create a transition for each lexeme in the node to the
+      -- next state...
+      helper :: (Int, B.UninflectedDisjunction) -> B.SentenceAut -> B.SentenceAut
+      helper (current, word) aut = foldr addT aut lemmas
+        where
+          lemmas   = fst word
+          features = snd word
+          --
+          addT t a = addTrans a current (toTrans t) next
+          next = current + 1
+          toTrans :: String -> Maybe UninflectedWord
+          toTrans l = Just (l, features)
+      --
+  in foldr helper emptyAut (zip theStates nodes)
 \end{code}

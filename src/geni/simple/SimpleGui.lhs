@@ -123,8 +123,8 @@ realisationsGui pstRef f resultsRaw =
 
 % --------------------------------------------------------------------
 \section{Debugger}
-\label{sec:debugger_gui}
-\label{fn:debugGui}
+\label{sec:simple_debugger_gui}
+\label{fn:simpleDebugGui}
 % --------------------------------------------------------------------
 
 This creates an iteractive version of the generator that shows the
