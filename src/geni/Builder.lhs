@@ -186,7 +186,7 @@ unlessEmptySem input config =
 \end{code}
 
 \begin{code}
- -- | Default implementation for the 'stepAll' function in 'Builder'
+-- | Default implementation for the 'stepAll' function in 'Builder'
 defaultStepAll :: Builder st it pa -> BuilderState st ()
 defaultStepAll b =
  do s <- get

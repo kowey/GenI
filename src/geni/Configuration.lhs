@@ -25,9 +25,9 @@ module Configuration
   ( Params(..), GrammarType(..), BuilderType(..), Switch(..)
   , polarised, polsig, predicting
   , semfiltered, chartsharing, footconstr
-  , isBatch, emptyParams,
-  , setChartsharing,
-  , treatArgs, optBatch,
+  , isBatch, emptyParams
+  , setChartsharing
+  , treatArgs, optBatch
   )
 where
 \end{code}
