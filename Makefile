@@ -65,12 +65,6 @@ DVIPDF_CMD=dvips `basename $< .tex`.dvi -o `basename $< .tex`.ps;\
 	ps2pdf `basename $< .tex`.ps
 #DVIPDF=$(DVIPDF_CMD)
 
-# -- bibtex --     (currently on)
-# If you use BibTeX you should uncomment
-BIBTEX_CMD=$(LATEX) `basename $<` &&\
-	   bibtex `basename $< .tex`;
-BIBTEX=$(BIBTEX_CMD)
-
 
 # --------------------------------------------------------------------
 # source stuff
@@ -219,8 +213,7 @@ $(SOURCE_HSPP_1): %.hspp: %.lhs
 	etc/lhs2haddock < $< > $@
 
 $(MAKE_DOCS): %.pdf: %.tex $(DOC_SRC)
-	cd `dirname $<` &&\
-	$(BIBTEX)\
-	$(LATEX) `basename $<` &&\
-	$(LATEX) `basename $<` ;\
+	cd $(<D) &&\
+	$(LATEX) $(<F) && bibtex $(<F:.tex=) &&\
+       	$(LATEX) $(<F) && $(LATEX) $(<F)\
 	$(DVIPDF)
