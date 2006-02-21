@@ -49,7 +49,7 @@ import Control.Monad
   (unless, foldM)
 
 import Control.Monad.State
-  (State, get, put, modify, liftM, runState, execStateT )
+  (State, gets, get, put, modify, runState, execStateT )
 import Data.Bits ( (.&.), (.|.), bit )
 import Data.List ( delete, find, span, (\\) )
 import qualified Data.Map as Map
@@ -174,9 +174,6 @@ went wrong.
 \subsubsection{CkyState getters and setters}
 
 \begin{code}
-query :: (CkyStatus -> a) -> CkyState a
-query fn = fn `liftM` get
-
 addToAgenda :: ChartItem -> CkyState ()
 addToAgenda te = do
   modify $ \s -> s{ theAgenda = te : (theAgenda s) }
@@ -391,7 +388,7 @@ generateStep =
  do -- this check may seem redundant with generate, but it's needed
     -- to protect against a user who calls generateStep on a finished
     -- state
-    isFinished <- query finished
+    isFinished <- gets finished
     unless (isFinished) generateStep2
 
 generateStep2 :: CkyState ()
@@ -414,7 +411,7 @@ generateStep2 =
 
 selectAgendaItem :: CkyState ChartItem
 selectAgendaItem = do
-  a <- query theAgenda
+  a <- gets theAgenda
   updateAgenda (tail a)
   return (head a)
 

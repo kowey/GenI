@@ -26,7 +26,7 @@ item is a derived tree.
 \begin{code}
 module SimpleBuilder (
    -- Types
-   Agenda, AuxAgenda, Chart, SimpleStatus, MS,
+   Agenda, AuxAgenda, Chart, SimpleStatus, SimpleState,
 
    -- From SimpleStatus
    simpleBuilder,
@@ -42,7 +42,8 @@ where
 \begin{code}
 import Control.Monad (when, guard, filterM, liftM)
 
-import Control.Monad.State (State, get, put, runState, execStateT, gets)
+import Control.Monad.State
+  (State, get, put, modify, runState, execStateT, gets)
 
 import Data.List (intersect, partition, delete, sort, nub, (\\))
 import Data.Maybe (catMaybes)
@@ -90,6 +91,10 @@ import Statistics (Statistics)
 \end{code}
 }
 
+% --------------------------------------------------------------------
+\section{The Builder interface}
+% --------------------------------------------------------------------
+
 Here is our implementation of Builder.
 
 \begin{code}
@@ -101,10 +106,6 @@ simpleBuilder = B.Builder
   , B.finished = \s -> (null.theAgenda) s && (step s == Auxiliar)
   , B.unpack   = unpackResults.theResults }
 \end{code}
-
-% --------------------------------------------------------------------  
-\section{Main stuff}
-% --------------------------------------------------------------------  
 
 \fnlabel{run} performs surface realisation from an input semantics and a
 lexical selection.  If the polarity automaton optimisation is enabled,
@@ -142,7 +143,7 @@ run input config =
 \end{code}
 
 % --------------------------------------------------------------------  
-\section{Types}
+\section{Key types}
 % --------------------------------------------------------------------  
 
 \begin{code}
@@ -150,31 +151,28 @@ type Agenda = [TagElem]
 type AuxAgenda  = [TagElem]
 type Chart  = [TagElem] 
 type Trash = [TagElem]
-
-iaddToAgenda :: Agenda -> TagElem -> Agenda
-iaddToAgenda a te = te:a
-
-iaddToAuxAgenda :: AuxAgenda -> TagElem -> AuxAgenda 
-iaddToAuxAgenda a te = te:a
-
-iaddToChart :: Chart -> TagElem -> Chart
-iaddToChart c te = te:c
-
-iaddtoTrash :: Trash -> TagElem -> Trash 
-iaddtoTrash t te = te:t
 \end{code}
 
-\subsection{SimpleStatus}
+\subsection{SimpleState and SimpleStatus}
+
+The \fnreflite{SimpleState} is a state monad where the state being
+thread through is a \fnref{SimpleStatus}.  The two are named
+deliberately alike to indicate their close relationship.
+
+To prevent confusion, we ought to keep a somewhat consistent naming
+scheme across the builders: FooState for the state monad, FooStatus for
+the state monad's ``contents'', and FooItem for the chart items
+manipulated.
 
 Note the theTrash is not actually essential to the operation of the
 generator; it is for pratical debugging of grammars.  Instead of
 trees dissapearing off the face of the debugger; they go into the
 trash where the user can inspect them and try to figure out why they
-went wrong.  To keep the generator from exploding we also keep an
-option not to use the trash, so that it is only enabled in debugger
-mode.
+went wrong.
 
 \begin{code}
+type SimpleState a = B.BuilderState SimpleStatus a
+
 data SimpleStatus = S
   { theAgenda    :: Agenda 
   , theAuxAgenda :: AuxAgenda
@@ -187,11 +185,8 @@ data SimpleStatus = S
   , genconfig  :: Params
   }
   deriving Show
-\end{code}
 
-\paragraph{initSimpleBuilder} Creates an initial SimpleStatus.  
-
-\begin{code}
+-- | Creates an initial SimpleStatus.
 initSimpleBuilder ::  B.Input -> Params -> (SimpleStatus, Statistics)
 initSimpleBuilder input config = 
   let cands = B.inCands input
@@ -209,48 +204,41 @@ initSimpleBuilder input config =
       --
   in B.unlessEmptySem input config $
      (initS, B.initStats config)
-
-type MS a = B.BuilderState SimpleStatus a
 \end{code}
 
 \subsubsection{SimpleStatus updaters}
 
 \begin{code}
-addToAgenda :: TagElem -> MS ()
+addToAgenda :: TagElem -> SimpleState ()
 addToAgenda te = do 
-  s <- get
-  put s{theAgenda = (iaddToAgenda (theAgenda s) te)}
+  modify $ \s -> s{theAgenda = te:(theAgenda s) }
      
-updateAgenda :: Agenda -> MS ()
+updateAgenda :: Agenda -> SimpleState ()
 updateAgenda a = do 
-  s <- get  
-  put s{theAgenda = a}
+  modify $ \s -> s{theAgenda = a}
 
-addToAuxAgenda :: TagElem -> MS ()
+addToAuxAgenda :: TagElem -> SimpleState ()
 addToAuxAgenda te = do 
   s <- get
   -- each new tree gets a unique id... this makes comparisons faster 
   let counter = (gencounter s) + 1
       te2 = te { tidnum = counter }
   put s{gencounter = counter,
-        theAuxAgenda = iaddToAuxAgenda (theAuxAgenda s) te2}
+        theAuxAgenda = te2:(theAuxAgenda s) }
  
-addToChart :: TagElem -> MS ()
+addToChart :: TagElem -> SimpleState ()
 addToChart te = do 
-  s <- get  
-  put s { theChart = (iaddToChart (theChart s) te) }
+  modify $ \s -> s { theChart = te:(theChart s) }
   incrCounter chart_size 1
 
-addToTrash :: TagElem -> String -> MS ()
+addToTrash :: TagElem -> String -> SimpleState ()
 addToTrash te err = do 
-  s <- get
   let te2 = te { tdiagnostic = err:(tdiagnostic te) }
-  put s { theTrash = (iaddtoTrash (theTrash s) te2) }
+  modify $ \s -> s { theTrash = te2 : (theTrash s) }
 
-addToResults :: TagElem -> MS ()
+addToResults :: TagElem -> SimpleState ()
 addToResults te = do
-  s <- get
-  put s { theResults = te : (theResults s) }
+  modify $ \s -> s { theResults = te : (theResults s) }
 \end{code}
 
 \paragraph{lookupChart} retrieves a list of trees from the chart which 
@@ -264,7 +252,7 @@ The current implementation searches for trees which
 \end{itemize}
 
 \begin{code}
-lookupChart :: TagElem -> MS [TagElem]
+lookupChart :: TagElem -> SimpleState [TagElem]
 lookupChart given = do
   chart <- gets theChart
   let gpaths = tpolpaths given
@@ -293,7 +281,7 @@ intersectPolPaths te1 te2 = (tpolpaths te1) .&. (tpolpaths te2)
 possible substitutions between it and the elements in Chart 
 
 \begin{code}
-applySubstitution :: TagElem -> MS ([TagElem])
+applySubstitution :: TagElem -> SimpleState ([TagElem])
 applySubstitution te =  {-# SCC "applySubstitution" #-}
   do gr <- lookupChart te
      let -- tesem = tsemantics te
@@ -313,14 +301,14 @@ substitution nodes in t2 it returns ONE possible substitution (the head node)
   we force substitution in order.
 
 \begin{code}
-iapplySubst :: TagElem -> TagElem -> [(String, Flist, Flist)] -> MS [TagElem]
+iapplySubst :: TagElem -> TagElem -> [(String, Flist, Flist)] -> SimpleState [TagElem]
 iapplySubst _ _ []      = return []
 iapplySubst te1 te2 (sn:_) = {-# SCC "applySubstitution" #-}
   if not (null (substnodes te1))
   then return []
   else iapplySubstNode te1 te2 sn
 
-iapplySubstNode :: TagElem -> TagElem -> (String, Flist, Flist) -> MS [TagElem]
+iapplySubstNode :: TagElem -> TagElem -> (String, Flist, Flist) -> SimpleState [TagElem]
 iapplySubstNode te1 te2 sn@(n, fu, fd) = {-# SCC "applySubstitution" #-}
   let isInit x = (ttype x) == Initial
       t2 = ttree te2
@@ -380,7 +368,7 @@ The Chart contains Auxiliars, while TagElem is an Initial
 Note: as of 13 april 2005 - only uses ordered adjunction as described in
 \cite{kow04a}
 \begin{code}
-applyAdjunction :: TagElem -> MS ([TagElem])
+applyAdjunction :: TagElem -> SimpleState ([TagElem])
 applyAdjunction te = {-# SCC "applyAdjunction" #-} do
    gr <- lookupChart te
    st <- get
@@ -515,7 +503,7 @@ iapplyAdjNode fconstr te1 te2 an@(n, an_up, an_down) = do
 \end{itemize}
 
 \begin{code}
-generateStep :: MS () 
+generateStep :: SimpleState () 
 generateStep = do
   nir     <- gets (null.theAgenda)
   curStep <- gets step
@@ -530,7 +518,7 @@ generateStep = do
                then switchToAux
                else generateStep' 
 
-generateStep' :: MS () 
+generateStep' :: SimpleState () 
 generateStep' = 
   do -- choose an item from the agenda
      given <- selectGiven
@@ -560,7 +548,7 @@ generateStep' =
 the Initial and returns it.
 
 \begin{code}
-selectGiven :: MS TagElem
+selectGiven :: SimpleState TagElem
 selectGiven = do 
   a <- gets theAgenda
   updateAgenda (tail a)
@@ -581,7 +569,7 @@ selectGiven = do
 \end{enumerate}
 
 \begin{code}
-dispatchNew :: [TagElem] -> MS () 
+dispatchNew :: [TagElem] -> SimpleState () 
 dispatchNew l = {-# SCC "dispatchNew" #-}
   do -- first we seperate the results from the non results
      st <- get
@@ -648,7 +636,7 @@ Chart and the (initial) tags in the repository are moved into the Agenda. The
 step is then changed to Auxiliary
 
 \begin{code}
-switchToAux :: MS ()
+switchToAux :: SimpleState ()
 switchToAux = do
   st <- get
   let chart = theChart st
@@ -880,22 +868,17 @@ renameTagElem c te =
         ttree = t}
 \end{code}
 
-\fnlabel{closed} returns true if the chart item has no open substitution
-nodes
+
 \begin{code}
+-- | True if the chart item has no open substitution nodes
 closed :: TagElem -> Bool
 closed = null.substnodes
-\end{code}
 
-\fnlabel{aux} returns true if the chart item is an auxiliary tree
-\begin{code}
+-- | True if the chart item is an auxiliary tree
 aux :: TagElem -> Bool
 aux t = (ttype t == Auxiliar)
-\end{code}
 
-\fnlabel{closedAux} returns true if both \fnreflite{closed} and
-\fnreflite{aux} return true
-\begin{code}
+-- | True if both 'closed' and 'aux' are True
 closedAux :: TagElem -> Bool 
 closedAux x = (aux x) && (closed x)
 \end{code}
