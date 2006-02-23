@@ -649,7 +649,7 @@ of a pronoun, and does not need one in its lexical combination.
 \label{fig:polarity_automaton_zerolit_promise}
 \end{figure}
 
-paragraph{fixPronouns} returns a modified input semantics and lexical
+\paragraph{fixPronouns} returns a modified input semantics and lexical
 selection in which pronouns are properly accounted for.
 
 \begin{code}
