@@ -56,7 +56,7 @@ import Btypes (Ptype(Initial, Auxiliar), SemPols,
                Sem, Pred, emptyPred, 
                emptyGNode,
                showPairs, showSem)
-import General (BitVector, treeLeaves, groupByFM)
+import General (treeLeaves, groupByFM)
 \end{code}
 }
 
@@ -95,7 +95,6 @@ data TagElem = TE {
                    idname       :: String,
                    ttreename    :: String,
                    tidnum       :: Integer,
-                   derivation   :: TagDerivation,
                    ttype        :: Ptype,
                    ttree        :: Tree GNode,
                    substnodes   :: [TagSite],
@@ -105,15 +104,7 @@ data TagElem = TE {
                    -- (polarity key to charge interval)
                    tpolarities  :: Map.Map String (Int,Int), 
                    tinterface   :: Flist,  -- for restrictors 
-                   tsempols     :: [SemPols],
-                   -- tpredictors  :: TPredictors,
-                   tpolpaths    :: BitVector,
-                   tprecedence  :: Int,
-                   -- display stuff,
-                   thighlight   :: [String],  -- nodes to highlight 
-                   tdiagnostic  :: [String], -- why this tree was discarded 
-                   -- for generation sans semantics 
-                   tadjlist :: [(String,Integer)] -- (node name, auxiliary tree id)
+                   tsempols     :: [SemPols]
                 }
              deriving (Show, Eq)
 \end{code}
@@ -168,20 +159,11 @@ emptyTE = TE { idname = "",
                tidnum = -1,
                ttype  = Initial,
                ttree  = Node emptyGNode [],
-               derivation = (0,[]),
                substnodes = [], adjnodes   = [],
                tsemantics = [], 
                tpolarities = Map.empty,
                tsempols    = [],
-               tprecedence = 0, -- FIXME: you sure?
-               -- tpredictors = Map.empty,
-               tpolpaths   = 0,
-               tinterface  = [],
-               --
-               tdiagnostic = [],
-               thighlight  = [],
-               -- for generation sans semantics 
-               tadjlist = []
+               tinterface  = []
              }
 \end{code}
 

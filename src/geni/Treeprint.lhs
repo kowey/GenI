@@ -30,10 +30,10 @@ import Data.Tree
 import Data.List(intersperse,nub)
 
 import General (mapTree)
-import Tags (TagElem, idname, tdiagnostic, 
-             tsemantics, ttree, thighlight, tinterface, 
-             derivation)
-import Btypes (MTtree, Ttree(..), Ptype(..), 
+import Tags (TagElem, idname,
+             tsemantics, ttree, tinterface,
+            )
+import Btypes (MTtree, Ttree(..), Ptype(..),
                GNode(..), GType(..), Flist,
                showLexeme,
                showSem, showPairs, showAv)
@@ -52,24 +52,30 @@ import Graphviz
 % ----------------------------------------------------------------------
 
 \begin{code}
+type GvHighlighter a = a -> (a, Maybe String)
+
+nullHighlighter :: GvHighlighter GNode
+nullHighlighter a = (a,Nothing)
+
 instance GraphvizShow Bool TagElem where
- graphvizShowAsSubgraph sf prefix te =
-  let isHiglight n = gnname n `elem` thighlight te
-      info n | isHiglight n = (n, Just "red")
-             | otherwise    = (n, Nothing)
-  in  -- first the interface 
-      (graphvizShowInterface sf $ tinterface te)
-      -- then the tree itself
-      ++ (gvShowTree (\_->[]) sf (prefix ++ "DerivedTree0") $
-          mapTree info $ ttree te)
-      -- derivation tree is displayed without any decoration
-      ++ (graphvizShowDerivation $ snd $ derivation te)
+ graphvizShowAsSubgraph sf = graphvizShowAsSubgraph (sf, nullHighlighter)
+ graphvizLabel  sf = graphvizLabel (sf, nullHighlighter )
+ graphvizParams sf = graphvizParams (sf, nullHighlighter)
+
+
+instance GraphvizShow (Bool, GvHighlighter GNode) TagElem where
+ graphvizShowAsSubgraph (sf,hfn) prefix te =
+  -- the interface
+  (graphvizShowInterface sf $ tinterface te)
+  -- then the tree itself
+  ++ (gvShowTree (\_->[]) sf (prefix ++ "DerivedTree0") $
+     mapTree hfn $ ttree te)
 
  graphvizLabel _ te =
   -- we display the tree semantics as the graph label
   let treename   = "name: " ++ (idname te)
       semlist    = "semantics: " ++ (showSem $ tsemantics te)
-  in gvUnlines $ treename : semlist : (tdiagnostic te)
+  in gvUnlines [ treename, semlist ]
  
  graphvizParams _ _ = 
   [ "fontsize = 10", "ranksep = 0.3"

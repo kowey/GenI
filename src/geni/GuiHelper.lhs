@@ -35,22 +35,22 @@ import qualified Data.Map as Map
 
 import Data.Array
 import Data.IORef
-import Data.List (intersperse, nub)
+import Data.List (intersperse)
 import System.Directory 
 import System.Process (runProcess)
 
 import Graphviz 
 import Treeprint() -- only import the GraphvizShow instances
 
-import Tags (tagLeaves)
+import Tags (TagItem(tgIdName), tagLeaves)
 import Geni 
   ( ProgState(..), showRealisations )
-import General (boundsCheck, snd3, slash, geniBug)
+import General (boundsCheck, slash, geniBug)
 import Btypes 
   ( showPred, showSem, showLexeme
   , Sem)
 import Tags 
-  ( idname, ttreename, mapBySem, TagElem, derivation)
+  ( idname, mapBySem, TagElem )
 
 import Configuration(Params(..), GrammarType(..))
 
@@ -141,7 +141,21 @@ statsGui f sentences stats =
            Just file -> writeFile file msg
 \end{code}
 
-\subsection{Derived Trees}
+\subsection{TAG trees}
+
+Our graphical interfaces have to display a great variety of items.  To
+keep things nicely factorised, we define some type classes to describe
+the things that these items may have in common.
+
+\begin{code}
+-- | Any data structure which has corresponds to a TAG tree and which
+--   has some notion of derivation
+class XMGDerivation a where
+  getSourceTrees :: a -> [String]
+
+instance XMGDerivation TagElem where
+  getSourceTrees te = [idname te]
+\end{code}
 
 \fnlabel{toSentence} almost displays a TagElem as a sentence, but only
 good enough for debugging needs.  The problem is that each leaf may be
@@ -163,20 +177,17 @@ A TAG browser is a TAG viewer (see below) that groups trees by
 their semantics.
 
 \begin{code}
-tagBrowserGui :: ProgState -> (Window a) -> [TagElem] -> String -> String -> IO Layout
-tagBrowserGui pst f xs tip cachedir = do 
+tagBrowserGui :: (GraphvizShow Bool t, TagItem t, XMGDerivation t)
+              => ProgState -> (Window a) -> [t] -> String -> String -> IO Layout
+tagBrowserGui pst f xs tip cachedir = do
   let semmap   = mapBySem xs
       sem      = Map.keys semmap
       --
       lookupTr k = Map.findWithDefault [] k semmap
-      treesfor k = Nothing : (map Just $ lookupTr k)
-      labsfor  k = ("___" ++ showPred k ++ "___") : (map fn $ lookupTr k)
-                   where fn t = idname t 
+      section  k = (Nothing, header) : (map (\t -> (Just t, tgIdName t)) $ lookupTr k)
+       where header = "___" ++ showPred k ++ "___"
       --
-      trees    = concatMap treesfor sem
-      labels   = concatMap labsfor  sem
-      itNlabl  = zip trees labels
-  (lay,_) <- tagViewerGui pst f tip cachedir itNlabl
+  (lay,_) <- tagViewerGui pst f tip cachedir (concatMap section sem)
   return lay
 \end{code}
       
@@ -184,8 +195,9 @@ A TAG viewer is a graphvizGui that lets the user toggle the display
 of TAG feature structures.
 
 \begin{code}
-tagViewerGui :: ProgState -> (Window a) -> String -> String -> [(Maybe TagElem,String)] 
-               -> GvIO (Maybe TagElem)
+tagViewerGui :: (GraphvizShow Bool t, TagItem t, XMGDerivation t)
+             => ProgState -> (Window a) -> String -> String -> [(Maybe t,String)]
+             -> GvIO (Maybe t)
 tagViewerGui pst f tip cachedir itNlab = do
   let config = pa pst
   p <- panel f []      
@@ -207,7 +219,7 @@ tagViewerGui pst f tip cachedir itNlab = do
             let tree = tagelems !! (gvsel gvSt)
             case tree of 
              Nothing -> set displayTraceCom [ enabled := False ]
-             Just t  -> let derv = extractDerivation t in
+             Just t  -> let derv = getSourceTrees t in
                         if boundsCheck s derv 
                            then runViewTag pst (derv !! s)
                            else geniBug $ "Gui: bounds check in onDisplayTrace" 
@@ -222,7 +234,7 @@ tagViewerGui pst f tip cachedir itNlab = do
         case selected of 
          Nothing -> set displayTraceCom [ enabled := False ]
          Just s  -> set displayTraceCom 
-                     [ enabled := True, items := extractDerivation s, selection := 0 ]
+                     [ enabled := True, items := getSourceTrees s, selection := 0 ]
   --
   Monad.when (not $ null tagelems) $ do 
     addGvHandler gvRef selHandler
@@ -711,22 +723,6 @@ XMG trees are produced by the XMG metagrammar system
 useful, given a TAG tree, to see what its metagrammar origins are.  We
 provide here an interface to the handy visualisation tool ViewTAG that
 just does this.
-
-\paragraph{extractDerivation} retrieves the names of all the
-XMG trees that went to building a TagElem, including the TagElem
-itself.  NB: for a tree like ``love\_Tn0Vn1'', we extract just the
-Tn0Vn1 bit.
-
-\begin{code}
-extractDerivation :: TagElem -> [String]
-extractDerivation te = 
-  let -- strips all gorn addressing stuff
-      stripGorn n = if dot `elem` n then stripGorn stripped else n
-        where stripped =  (tail $ dropWhile (/= dot) n)
-              dot = '.'
-      deriv  = map (stripGorn.snd3) $ snd $ derivation te
-  in  nub (ttreename te : deriv)
-\end{code}
 
 \paragraph{runViewTag} runs Yannick Parmentier's ViewTAG module, which
 displays trees produced by the XMG metagrammar system.  

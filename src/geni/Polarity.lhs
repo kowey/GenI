@@ -913,12 +913,11 @@ engine (see page \pageref{fn:Builder:preInit})
 tree is annotated with the paths it belongs to.
 
 \begin{code}
-detectPolPaths :: [[TagElem]] -> [TagElem] 
+detectPolPaths :: [[TagElem]] -> [(TagElem,BitVector)]
 detectPolPaths paths = 
   let pathFM     = detectPolPaths' Map.empty 0 paths
       lookupTr k = Map.findWithDefault 0 k pathFM
-      setPath k  = k {tpolpaths = lookupTr k}
-  in map setPath $ Map.keys pathFM
+  in map (\k -> (k, lookupTr k)) $ Map.keys pathFM
 
 type PolPathMap = Map.Map TagElem BitVector
 detectPolPaths' :: PolPathMap -> Int -> [[TagElem]] -> PolPathMap  
@@ -930,25 +929,18 @@ detectPolPaths' accFM counter (path:ps) =
       fn f (t:ts) = fn (Map.insertWith (.|.) t currentBits f) ts 
       newFM       = fn accFM path
   in detectPolPaths' newFM (counter+1) ps
-\end{code}
 
-\paragraph{defaultPolPaths} sets the polarity paths for every tree in
-the list to be 1.  This is neccesary if you want to use the generator
-with the chart sharing optimisation
-
-\begin{code}
-defaultPolPaths :: [TagElem] -> [TagElem]
-defaultPolPaths = map fn 
-                  where fn t = t { tpolpaths = 1 } 
+defaultPolPaths :: TagElem -> (TagElem, BitVector)
+defaultPolPaths t = (t,1)
 \end{code}
 
 \paragraph{showPolPaths} displays the list of polarity automaton paths
 that the tree is on
 
 \begin{code}
-showPolPaths :: TagElem -> String  
-showPolPaths te = 
-  let pathlist = showPolPaths' (tpolpaths te) 1 
+showPolPaths :: BitVector -> String
+showPolPaths paths =
+  let pathlist = showPolPaths' paths 1
   in concat $ intersperse ", " $ map show pathlist
 
 showPolPaths' :: BitVector -> Int -> [Int] 

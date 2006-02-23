@@ -60,7 +60,8 @@ import Geni
   , initGeni, runGeni )
 import General ( boundsCheck, listRepNode, geniBug )
 import Graphviz 
-  ( GraphvizShow(..), gvNode, gvEdge, gvSubgraph, gvUnlines, gvShowTree 
+  ( GraphvizShow(..), gvNode, gvEdge, gvSubgraph, gvUnlines, gvShowTree
+  , gvNewline
   , GraphvizShowNode(..) )
 import GuiHelper 
   ( candidateGui, messageGui, polarityGui, toSentence
@@ -73,7 +74,7 @@ import GuiHelper
 import Polarity
 import Statistics (Statistics)
 import Tags 
-  ( idname, tdiagnostic, tsemantics, thighlight, ttree, TagElem )
+  ( idname, tsemantics, ttree, TagElem )
 \end{code}
 }
 
@@ -162,7 +163,7 @@ debugGui pstRef =
     -- generation step 1
     initStuff <- initGeni pstRef
     let (tsem,_)   = B.inSemInput initStuff
-        cand       = B.inCands initStuff 
+        (cand,_)   = unzip $ B.inCands initStuff
         lexonly    = B.inLex initStuff 
     -- candidate selection tab
     let missedSem  = tsem \\ (nub $ concatMap tsemantics cand)
@@ -174,7 +175,7 @@ debugGui pstRef =
     canTab <- candidateGui pst nb cand missedSem missedLex
     -- generation step 2.A (run polarity stuff)
     let (combos, autstuff, _) = B.preInit initStuff config
-        cands = assert (length combos == 1) $ head combos
+        cands2PP = assert (length combos == 1) $ head combos
     -- automata tab
     let (auts, finalaut, _) = autstuff
     autTab <- if polarised config 
@@ -184,7 +185,7 @@ debugGui pstRef =
     let basicTabs = tab "lexical selection" canTab :
                     (if polarised config then [tab "automata" autTab] else [])
     -- generation step 2.B (start the generator for each path)
-    debugTab <- ckyDebuggerTab nb config (initStuff { B.inCands = cands }) "cky"
+    debugTab <- ckyDebuggerTab nb config (initStuff { B.inCands = cands2PP }) "cky"
     let genTabs = [ tab "session" debugTab ]
     --
     set f [ layout := container p $ column 0 [ tabs nb (basicTabs ++ genTabs) ]
@@ -359,10 +360,18 @@ instance GraphvizShowNode CkyStatus (ChartId, String) where
    in gvNode prefix txt []
 
 instance GraphvizShow CkyDebugParams CkyItem where
-  graphvizLabel  f = graphvizLabel (debugShowFeats f) . toTagElem 
+  graphvizLabel  f ci =
+    graphvizLabel (debugShowFeats f, nullHlter) (toTagElem ci) ++
+    gvNewline ++ (gvUnlines $ ciDiagnostic ci)
+
   graphvizShowAsSubgraph f prefix ci = 
-   let showFeats  = debugShowFeats f
-   in  graphvizShowAsSubgraph showFeats (prefix ++ "tree")  $ toTagElem ci
+   let showFeats = debugShowFeats f
+       hlter n = (n, if (gnname n) == (gnname $ ciNode ci)
+                     then Just "red" else Nothing)
+   in  graphvizShowAsSubgraph (showFeats,hlter) (prefix ++ "tree")  $ toTagElem ci
+
+nullHlter :: GNode -> (GNode, Maybe String)
+nullHlter a = (a,Nothing)
 
 toTagElem :: CkyItem -> TagElem
 toTagElem ci =
@@ -374,9 +383,7 @@ toTagElem ci =
             replaceFn (Node _ k) = Node node k
      --
  in te { ttree = (updateTree.ttree) te
-       , tsemantics  = bitVectorToSem (ciSemBitMap ci) (ciSemantics ci) 
-       , tdiagnostic = ciDiagnostic ci
-       , thighlight  = [gnname node] }
+       , tsemantics  = bitVectorToSem (ciSemBitMap ci) (ciSemantics ci) }
 
 -- FIXME: this is largely copy-and-pasted from Polarity.lhs 
 -- it should be refactored later

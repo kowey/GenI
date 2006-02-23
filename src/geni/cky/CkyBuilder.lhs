@@ -50,7 +50,7 @@ import Control.Monad
 
 import Control.Monad.State
   (State, gets, get, put, modify, runState, execStateT )
-import Data.Bits ( (.&.), (.|.), bit )
+import Data.Bits ( (.&.), (.|.) )
 import Data.List ( delete, find, span, (\\) )
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -60,18 +60,20 @@ import Data.Tree
 import Btypes
   ( unify, collect
   , Flist
-  , Replacable(..), Pred, Sem, Subst
+  , Replacable(..), Subst
   , GNode(..), GType(Subs, Foot, Other)
   , GeniVal(GVar),
   , Ptype(Auxiliar)
   , root, foot
-  , showPred
   , unifyFeat )
 
 import Automaton
   ( NFA(NFA, transitions, states), isFinalSt, finalSt, finalStList, startSt, addTrans )
 import qualified Builder as B
-import Builder ( SentenceAut, incrCounter, num_iterations, chart_size )
+import Builder
+  ( SentenceAut, incrCounter, num_iterations, chart_size,
+    SemBitMap, semToBitVector, bitVectorToSem, defineSemanticBits,
+  )
 import Configuration ( Params, setChartsharing )
 import General
   ( combinations, treeLeaves, BitVector, geniBug )
@@ -79,7 +81,7 @@ import Polarity
   ( automatonPaths )
 import Statistics ( Statistics )
 import Tags
-  ( TagElem, tidnum, ttree, tsemantics, tpolpaths, ttype,
+  ( TagElem, tidnum, ttree, tsemantics, ttype,
     ts_tbUnificationFailure
   )
 
@@ -259,7 +261,6 @@ ciLeftSide   i = ciTreeSide i == LeftSide
 ciRightSide  i = ciTreeSide i == RightSide
 ciOnTheSpine i = ciTreeSide i == OnTheSpine
 
-type SemBitMap = Map.Map Pred BitVector
 
 -- basically, an inverted tree
 -- from node name to a list of its sisters on the left,
@@ -294,10 +295,10 @@ initBuilder input config =
 \subsection{Initialising a chart item}
 
 \begin{code}
-initTree :: SemBitMap -> TagElem -> [CkyItem]
-initTree bmap te =
+initTree :: SemBitMap -> (TagElem,BitVector) -> [CkyItem]
+initTree bmap tepp@(te,_) =
   let semVector    = semToBitVector bmap (tsemantics te)
-      createItem l n = (leafToItem l te n)
+      createItem l n = (leafToItem l tepp n)
        { ciSemantics = semVector
        , ciSemBitMap = bmap
        , ciRouting   = decompose te
@@ -308,16 +309,16 @@ initTree bmap te =
 
 leafToItem :: Bool
            -- ^ is it on the left of the foot node? (yes if there is none)
-           -> TagElem
+           -> (TagElem, BitVector)
            -- ^ what tree does it belong to
            -> GNode
            -- ^ the leaf to convert
            -> CkyItem
-leafToItem left te node = CkyItem
+leafToItem left (te,pp) node = CkyItem
   { ciNode       = node
   , ciComplete   = False -- (not $ gtype ==
   , ciSourceTree = te
-  , ciPolpaths   = tpolpaths te
+  , ciPolpaths   = pp
   , ciSemantics  = 0  -- to be set
   , ciId         = -1 -- to be set
   , ciRouting    = Map.empty -- to be set
@@ -333,26 +334,6 @@ leafToItem left te node = CkyItem
    spineSide | left                = LeftSide
              | gtype node == Foot  = OnTheSpine
              | otherwise           = RightSide
-
--- | assign a bit vector value to each literal in the semantics
--- the resulting map can then be used to construct a bit vector
--- representation of the semantics
-defineSemanticBits :: Sem -> SemBitMap
-defineSemanticBits sem = Map.fromList $ zip sem bits
-  where
-   bits = map bit [0..] -- 0001, 0010, 0100...
-
-semToBitVector :: SemBitMap -> Sem -> BitVector
-semToBitVector bmap sem = foldr (.|.) 0 $ map lookup sem
-  where lookup p =
-         case Map.lookup p bmap of
-         Nothing -> geniBug $ "predicate " ++ showPred p ++ " not found in semanticBit map"
-         Just b  -> b
-
-bitVectorToSem :: SemBitMap -> BitVector -> Sem
-bitVectorToSem bmap vector =
-  mapMaybe tryKey $ Map.toList bmap
-  where tryKey (p,k) = if (k .&. vector == k) then Just p else Nothing
 
 -- | explode a TagElem tree into a bottom-up routing map
 decompose :: TagElem -> RoutingMap

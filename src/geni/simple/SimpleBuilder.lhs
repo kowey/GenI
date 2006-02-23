@@ -26,7 +26,7 @@ item is a derived tree.
 \begin{code}
 module SimpleBuilder (
    -- Types
-   Agenda, AuxAgenda, Chart, SimpleStatus, SimpleState,
+   Agenda, AuxAgenda, Chart, SimpleStatus, SimpleState, SimpleItem(..),
 
    -- From SimpleStatus
    simpleBuilder,
@@ -40,12 +40,13 @@ where
 
 \ignore{
 \begin{code}
+import Control.Exception (assert)
 import Control.Monad (when, guard, filterM, liftM)
 
 import Control.Monad.State
   (State, get, put, modify, runState, execStateT, gets)
 
-import Data.List (intersect, partition, delete, sort, nub, (\\))
+import Data.List (intersect, partition, delete, sort, nub)
 import Data.Maybe (catMaybes)
 import Data.Tree
 import Data.Bits
@@ -55,31 +56,28 @@ import Automaton ( automatonPaths, NFA(..), addTrans )
 import Btypes
   ( Ptype(Initial,Auxiliar),
   , Flist
-  , Replacable(..),
-  , Sem, sortSem, Subst
+  , Replacable(..), Subst
+  , sortSem
   , GType(Other), GNode(..), gCategory
   , GeniVal(GConst)
-  , rootUpd
-  , repAdj
+  , rootUpd, root, foot
+  , repAdj, repSubst
   , renameTree
-  , repSubst
   , constrainAdj
-  , root, foot
-  , unifyFeat, unifyFeat2)
+  , unifyFeat, unifyFeat2
+  )
 import Builder (UninflectedWord, UninflectedSentence,
     incrCounter, num_iterations, num_comparisons, chart_size,
     addCounters,
+    SemBitMap, defineSemanticBits, semToBitVector, bitVectorToSem,
     )
 import qualified Builder as B
 
 import Tags (TagElem, TagSite, TagDerivation,
              idname, tidnum,
-             derivation,
-             ttree, ttype, tsemantics, thighlight, tdiagnostic,
-             tpolpaths,
+             ttree, ttype, tsemantics,
              adjnodes,
              substnodes,
-             tadjlist,
              tagLeaves,
              ts_synIncomplete, ts_semIncomplete, ts_tbUnificationFailure,
              ts_noRootCategory, ts_wrongRootCategory,
@@ -134,7 +132,7 @@ run input config =
         where generate c =
                let (iS, iStats) = subInit c
                in  runState (execStateT stepAll iS) iStats
-      subInit c = init (input2 { B.inCands = c }) config
+      subInit cp = init (input2 { B.inCands = cp }) config
       -- WARNING: will not work with packing!
       mergeSt st1 st2 =
         st1 { theResults = (theResults st1) ++ (theResults st2) }
@@ -147,10 +145,10 @@ run input config =
 % --------------------------------------------------------------------
 
 \begin{code}
-type Agenda = [TagElem]
-type AuxAgenda  = [TagElem]
-type Chart  = [TagElem]
-type Trash = [TagElem]
+type Agenda = [SimpleItem]
+type AuxAgenda  = [SimpleItem]
+type Chart  = [SimpleItem]
+type Trash = [SimpleItem]
 \end{code}
 
 \subsection{SimpleState and SimpleStatus}
@@ -178,38 +176,21 @@ data SimpleStatus = S
   , theAuxAgenda :: AuxAgenda
   , theChart     :: Chart
   , theTrash   :: Trash
-  , theResults :: [TagElem]
-  , tsem       :: Sem
+  , theResults :: [SimpleItem]
+  , tsem       :: BitVector
   , step       :: Ptype
   , gencounter :: Integer
   , genconfig  :: Params
+  -- we keep a SemBitMap strictly to help display the semantics
+  , semBitMap  :: SemBitMap
   }
   deriving Show
-
--- | Creates an initial SimpleStatus.
-initSimpleBuilder ::  B.Input -> Params -> (SimpleStatus, Statistics)
-initSimpleBuilder input config =
-  let cands = B.inCands input
-      ts    = fst $ B.inSemInput input
-      (a,i) = partition closedAux cands
-      initS = S{ theAgenda    = i
-               , theAuxAgenda = a
-               , theChart     = []
-               , theTrash     = []
-               , theResults   = []
-               , tsem     = ts
-               , step     = Initial
-               , gencounter = toInteger $ length cands
-               , genconfig  = config }
-      --
-  in B.unlessEmptySem input config $
-     (initS, B.initStats config)
 \end{code}
 
 \subsubsection{SimpleStatus updaters}
 
 \begin{code}
-addToAgenda :: TagElem -> SimpleState ()
+addToAgenda :: SimpleItem -> SimpleState ()
 addToAgenda te = do
   modify $ \s -> s{theAgenda = te:(theAgenda s) }
 
@@ -217,26 +198,26 @@ updateAgenda :: Agenda -> SimpleState ()
 updateAgenda a = do
   modify $ \s -> s{theAgenda = a}
 
-addToAuxAgenda :: TagElem -> SimpleState ()
+addToAuxAgenda :: SimpleItem -> SimpleState ()
 addToAuxAgenda te = do
   s <- get
   -- each new tree gets a unique id... this makes comparisons faster
   let counter = (gencounter s) + 1
-      te2 = te { tidnum = counter }
+      te2 = te { siId = counter }
   put s{gencounter = counter,
         theAuxAgenda = te2:(theAuxAgenda s) }
 
-addToChart :: TagElem -> SimpleState ()
+addToChart :: SimpleItem -> SimpleState ()
 addToChart te = do
   modify $ \s -> s { theChart = te:(theChart s) }
   incrCounter chart_size 1
 
-addToTrash :: TagElem -> String -> SimpleState ()
+addToTrash :: SimpleItem -> String -> SimpleState ()
 addToTrash te err = do
-  let te2 = te { tdiagnostic = err:(tdiagnostic te) }
+  let te2 = te { siDiagnostic = err:(siDiagnostic te) }
   modify $ \s -> s { theTrash = te2 : (theTrash s) }
 
-addToResults :: TagElem -> SimpleState ()
+addToResults :: SimpleItem -> SimpleState ()
 addToResults te = do
   modify $ \s -> s { theResults = te : (theResults s) }
 \end{code}
@@ -244,17 +225,87 @@ addToResults te = do
 \subsection{SimpleItem}
 
 \begin{code}
+data SimpleItem = SimpleItem
+ { siTagElem   :: TagElem
+ , siId        :: ChartId
+ --
+ , siSemantics :: BitVector
+ , siPolpaths  :: BitVector
+ -- if there are things wrong with this item, what?
+ , siDiagnostic :: [String]
+ -- how was this item produced?
+ , siDerivation :: TagDerivation
+ -- nodes to highlight
+ , siHighlight  :: [String]
+ -- for generation sans semantics
+ , siAdjlist :: [(String,Integer)] -- (node name, auxiliary tree id)
+ } deriving Show
+
+type ChartId = Integer
+
+instance Replacable SimpleItem where
+  replace s i = i { siTagElem = replace s (siTagElem i) }
+\end{code}
+
+\begin{code}
 -- | True if the chart item has no open substitution nodes
-closed :: TagElem -> Bool
-closed = null.substnodes
+closed :: SimpleItem -> Bool
+closed = null.substnodes.siTagElem
 
 -- | True if the chart item is an auxiliary tree
-aux :: TagElem -> Bool
-aux t = (ttype t == Auxiliar)
+aux :: SimpleItem -> Bool
+aux t = ((ttype.siTagElem) t == Auxiliar)
 
 -- | True if both 'closed' and 'aux' are True
-closedAux :: TagElem -> Bool
+closedAux :: SimpleItem -> Bool
 closedAux x = (aux x) && (closed x)
+
+siSubstnodes = substnodes.siTagElem
+siInitial = not.aux
+\end{code}
+
+% --------------------------------------------------------------------
+\section{Initialisation}
+% --------------------------------------------------------------------
+
+\begin{code}
+-- | Creates an initial SimpleStatus.
+initSimpleBuilder ::  B.Input -> Params -> (SimpleStatus, Statistics)
+initSimpleBuilder input config =
+  let cands   = map (initSimpleItem bmap) $ B.inCands input
+      (sem,_) = B.inSemInput input
+      bmap    = defineSemanticBits sem
+      --
+      (a,i) = partition closedAux cands
+      initS = S{ theAgenda    = i
+               , theAuxAgenda = a
+               , theChart     = []
+               , theTrash     = []
+               , theResults   = []
+               , semBitMap = bmap
+               , tsem      = semToBitVector bmap sem
+               , step     = Initial
+               , gencounter = toInteger $ length cands
+               , genconfig  = config }
+      --
+  in B.unlessEmptySem input config $
+     (initS, B.initStats config)
+
+
+initSimpleItem :: SemBitMap -> (TagElem, BitVector) -> SimpleItem
+initSimpleItem bmap (te,pp) = SimpleItem
+ { siId        = tidnum te
+ , siTagElem   = te
+ , siSemantics = semToBitVector bmap (tsemantics te)
+ , siPolpaths  = pp
+ , siDiagnostic = []
+ -- how was this item produced?
+ , siDerivation = (0, [])
+ -- nodes to highlight
+ , siHighlight  = []
+ -- for generation sans semantics
+ , siAdjlist = []
+ }
 \end{code}
 
 % --------------------------------------------------------------------
@@ -311,16 +362,17 @@ generateStep' =
      -- put the given into the chart untouched
      if (curStep == Initial)
         then addToChart given
-        else when (null $ adjnodes given) $ trashIt given
+        else when (null.adjnodes.siTagElem $ given) $ trashIt given
   where
-     trashIt t =
+     trashIt item =
        do s <- get
-          let missingSem = tsem s \\ tsemantics t
-          addToTrash t (ts_semIncomplete missingSem)
+          let bmap = semBitMap s
+              missingSem = bitVectorToSem bmap $ tsem s `xor` siSemantics item
+          addToTrash item (ts_semIncomplete missingSem)
 
 -- | Arbitrarily selects and removes an element from the agenda and
 --   returns it.
-selectGiven :: SimpleState TagElem
+selectGiven :: SimpleState SimpleItem
 selectGiven = do
   a <- gets theAgenda
   updateAgenda (tail a)
@@ -342,18 +394,18 @@ switchToAux = do
       -- You might be wondering why we ignore the auxiliary trees in the
       -- chart; this is because all the syntactically complete auxiliary
       -- trees have already been filtered away by calls to classifyNew
-      initialT = filter (\x -> ttype x == Initial) chart
-      (compT, incompT) = partition (null.substnodes) initialT
-      aux   = theAuxAgenda st
+      initialT  = filter (not.aux) chart
+      (compT, incompT) = partition (null.siSubstnodes) initialT
+      auxAgenda = theAuxAgenda st
       --
-      filteredT = semfilter (tsem st) aux compT
+      filteredT = semfilter (tsem st) auxAgenda compT
       initial = if (semfiltered $ genconfig st)
                 then filteredT else compT
   -- toss the syntactically incomplete stuff in the trash
   mapM (\t -> addToTrash t ts_synIncomplete) incompT
   put st{theAgenda = initial,
          theAuxAgenda = [],
-         theChart = aux,
+         theChart = auxAgenda,
          step = Auxiliar}
 \end{code}
 
@@ -382,13 +434,16 @@ In other words, we delete all initial trees that cannot produce a semantically
 complete result even with the help of auxiliary trees.
 
 \begin{code}
-semfilter :: Sem -> [TagElem] -> [TagElem] -> [TagElem]
+semfilter :: BitVector -> [SimpleItem] -> [SimpleItem] -> [SimpleItem]
 semfilter inputsem aux initial =
-  let auxsem     = sortSem $ nub $ concatMap tsemantics aux
-      missingsem = sortSem $ inputsem     \\ auxsem
-      restsem x  = sortSem $ (tsemantics x \\ auxsem)
-      goodsem x  = (restsem x == missingsem)
-  in filter goodsem initial
+  let auxsem = foldr (.|.) 0 $ map siSemantics aux
+      -- lite, here, means sans auxiliary semantics
+      inputsemLite      = inputsem `xor` auxsem
+      siSemanticsLite x = siSemantics x .&. inputsemLite
+      -- note that we can't just compare against siSemantics because
+      -- that would exclude trees that have stuff in the aux semantics
+      -- which would be overzealous
+  in filter (\x -> siSemanticsLite x == inputsemLite) initial
 \end{code}
 
 % --------------------------------------------------------------------
@@ -404,40 +459,42 @@ very simple builder that constructs derived trees.
 \label{sec:substitution}
 % --------------------------------------------------------------------
 
-\paragraph{applySubstitution} Given a TagElem it returns the list of all
+\paragraph{applySubstitution} Given a SimpleItem it returns the list of all
 possible substitutions between it and the elements in Chart
 
 \begin{code}
-applySubstitution :: TagElem -> SimpleState ([TagElem])
-applySubstitution te =  {-# SCC "applySubstitution" #-}
-  do gr <- lookupChart te
+applySubstitution :: SimpleItem -> SimpleState ([SimpleItem])
+applySubstitution item =  {-# SCC "applySubstitution" #-}
+  do gr <- lookupChart item
      let -- tesem = tsemantics te
          -- we rename tags to do a proper substitution
-         rte = renameTagElem 'A' te
-         rgr' = map (renameTagElem 'B') gr
-     active  <- mapM (\x -> iapplySubst rte x (substnodes   x)) rgr'
-     passive <- mapM (\x -> iapplySubst x rte (substnodes rte)) rgr'
+         rItem = renameSimpleItem 'A' item
+         rgr'  = map (renameSimpleItem 'B') gr
+     active  <- mapM (\x -> iapplySubst rItem x (siSubstnodes     x)) rgr'
+     passive <- mapM (\x -> iapplySubst x rItem (siSubstnodes rItem)) rgr'
      let res = concat $ active ++ passive
      incrCounter num_comparisons (2 * (length gr))
      return res
 \end{code}
 
-\paragraph{iapplySubst} Given two TagElem t1 t2 (with no overlaping names) and the list of
+\paragraph{iapplySubst} Given two SimpleItem t1 t2 (with no overlaping names) and the list of
 substitution nodes in t2 it returns ONE possible substitution (the head node)
   of the first in the second.  As all substitutions nodes should be substituted
   we force substitution in order.
 
 \begin{code}
-iapplySubst :: TagElem -> TagElem -> [(String, Flist, Flist)] -> SimpleState [TagElem]
+iapplySubst :: SimpleItem -> SimpleItem -> [(String, Flist, Flist)] -> SimpleState [SimpleItem]
 iapplySubst _ _ []      = return []
-iapplySubst te1 te2 (sn:_) = {-# SCC "applySubstitution" #-}
-  if not (null (substnodes te1))
+iapplySubst item1 item2 (sn:_) = {-# SCC "applySubstitution" #-}
+  if not (null (siSubstnodes item1))
   then return []
-  else iapplySubstNode te1 te2 sn
+  else iapplySubstNode item1 item2 sn
 
-iapplySubstNode :: TagElem -> TagElem -> (String, Flist, Flist) -> SimpleState [TagElem]
-iapplySubstNode te1 te2 sn@(n, fu, fd) = {-# SCC "applySubstitution" #-}
-  let isInit x = (ttype x) == Initial
+iapplySubstNode :: SimpleItem -> SimpleItem -> (String, Flist, Flist) -> SimpleState [SimpleItem]
+iapplySubstNode item1 item2 sn@(n, fu, fd) = {-# SCC "applySubstitution" #-}
+  let te1 = siTagElem item1
+      te2 = siTagElem item2
+      --
       t2 = ttree te2
       -- root of t1
       t1 = ttree te1
@@ -466,16 +523,13 @@ iapplySubstNode te1 te2 sn@(n, fu, fd) = {-# SCC "applySubstitution" #-}
       adj1  = (ncopy nr) : (delete (ncopy r) $ adjnodes te1)
       adj2  = adjnodes te2
       newadjnodes   = sort $ nub $ adj1 ++ adj2
-      newTe = te2{derivation = addToDerivation 's' te1 te2,
-                  ttree = ntree,
+      newTe = te2{ttree = ntree,
                   substnodes = (delete sn (substnodes te2))++ (substnodes te1),
-                  adjnodes =   newadjnodes,
-                  tsemantics = sortSem (tsemantics te1 ++ tsemantics te2),
-                  -- tpredictors = sumPredictors (tpredictors te1) (tpredictors te2),
-                  tpolpaths  = intersectPolPaths te1 te2,
-                  thighlight = [gnname nr]}
-      res = replace subst newTe
-  in if (isInit te1 && succ1 && succ2)
+                  adjnodes =   newadjnodes}
+      res = replace subst $ combineSimpleItems 's' item1 $
+            item2 { siTagElem   = newTe
+                  , siHighlight = [gnname nr] }
+  in if (siInitial item1 && succ1 && succ2)
      then do incrCounter "substitutions" 1
              return [res]
      else return []
@@ -488,45 +542,49 @@ iapplySubstNode te1 te2 sn@(n, fu, fd) = {-# SCC "applySubstitution" #-}
 \label{sec:foot_constraint}
 % ---------------------------------------------------------------
 
-\paragraph{applyAdjunction} Given a TagElem, it returns the list of all
+\paragraph{applyAdjunction} Given a SimpleItem, it returns the list of all
 possible adjunctions between it and the elements in Chart.
-The Chart contains Auxiliars, while TagElem is an Initial
+The Chart contains Auxiliars, while SimpleItem is an Initial
 
 Note: as of 13 april 2005 - only uses ordered adjunction as described in
 \cite{kow04a}
 \begin{code}
-applyAdjunction :: TagElem -> SimpleState ([TagElem])
-applyAdjunction te = {-# SCC "applyAdjunction" #-} do
-   gr <- lookupChart te
+applyAdjunction :: SimpleItem -> SimpleState ([SimpleItem])
+applyAdjunction item = {-# SCC "applyAdjunction" #-} do
+   gr <- lookupChart item
    st <- get
    let -- we rename tags to do a proper adjunction
-       rte  = renameTagElem 'A' te
-       rgr' = map (renameTagElem 'B') gr
+       rItem = renameSimpleItem 'A' item
+       rgr'  = map (renameSimpleItem 'B') gr
        --
-       anodes  = adjnodes te
-       ahead   = head anodes
-       atail   = tail anodes
+       rte     = siTagElem rItem
        ranodes = adjnodes rte
        -- check if the foot constraint optimisation is enabled
        isFootC = (footconstr.genconfig) st
        -- te2 is to account for the case where we simply don't do
        -- adjunction on that particular node
    res <- if null ranodes then return []
-             else let gn    = fst3 ahead
-                      ntree = constrainAdj gn (ttree te)
-                      te2   = te { adjnodes = atail
-                                 , ttree = ntree
-                                 , thighlight = [gn]}
-                      tryAdj x = case iapplyAdjNode isFootC x rte (head ranodes) of
+             else let tryAdj x = case iapplyAdjNode isFootC x rItem (head ranodes) of
                                   Nothing -> return Nothing
                                   Just x  -> do incrCounter "adjunctions" 1
                                                 return $ Just x
                   in do attempts <- catMaybes `liftM` mapM tryAdj rgr'
-                        return (te2:attempts)
+                        return (sansAdjunction item : attempts)
    --
    let count   = (length gr)
    incrCounter num_comparisons count
    return res
+
+-- | Ignore the next adjunction node
+sansAdjunction :: SimpleItem -> SimpleItem
+sansAdjunction item =
+ let te = siTagElem item
+     (ahead:atail) = assert ((not.null.adjnodes) te) $ adjnodes te
+     gn    = fst3 ahead
+     ntree = constrainAdj gn (ttree te)
+     te2   = te { adjnodes = atail, ttree = ntree }
+ in item { siTagElem = te2
+         , siHighlight = [gn] }
 \end{code}
 
 The main work for adjunction is done in the helper function below
@@ -554,12 +612,14 @@ with \texttt{anr} and \texttt{anf}\footnote{\texttt{anf} is only added
 if the foot node constraint is disabled}.
 
 \begin{code}
-iapplyAdjNode :: Bool -> TagElem -> TagElem -> (String, Flist, Flist) -> Maybe TagElem
-iapplyAdjNode fconstr te1 te2 an@(n, an_up, an_down) = do
-  -- block repeated adjunctions of the same TagElem (for ignore semantics mode)
-  guard $ not $ elem (n, (tidnum te1)) (tadjlist te2)
+iapplyAdjNode :: Bool -> SimpleItem -> SimpleItem -> (String, Flist, Flist) -> Maybe SimpleItem
+iapplyAdjNode fconstr item1 item2 an@(n, an_up, an_down) = do
+  -- block repeated adjunctions of the same SimpleItem (for ignore semantics mode)
+  guard $ not $ (n, siId item1) `elem` (siAdjlist item2)
   -- let's go!
-  let t1 = ttree te1
+  let te1 = siTagElem item1
+      te2 = siTagElem item2
+      t1 = ttree te1
       t2 = ttree te2
       r = root t1
       f = foot t1
@@ -595,23 +655,22 @@ iapplyAdjNode fconstr te1 te2 an@(n, an_up, an_down) = do
       -- 2) union the remaining adjunction nodes
       newadjnodes' = auxlite ++ telite
       -- 3) apply the substitutions
-      nte2 = te2 { derivation = addToDerivation 'a' te1 te2,
-                   ttree = ntree,
-                   adjnodes = newadjnodes',
-                   tsemantics = sortSem (tsemantics te1 ++ tsemantics te2),
-                   tpolpaths = intersectPolPaths te1 te2,
-                   thighlight = map gnname [anr, anf]
-                 }
-      res' = replace subst nte2
+      nte2 = te2 { ttree = ntree, adjnodes = newadjnodes' }
+      res' = replace subst $ combineSimpleItems 'a' item1 $ item2
+               { siTagElem = nte2
+               , siHighlight = map gnname [anr, anf]
+               , siAdjlist = (n, (tidnum te1)):(siAdjlist item2)
+               }
       -- 4) add the new adjunction nodes
       --    this has to come after 3 so that we don't repeat the subst
       addextra a = if fconstr then a2 else (ncopy anf) : a2
                    where a2 = (ncopy anr) : a
-
   -- the final result
   -- ----------------
-  return $ res' { adjnodes = (addextra.adjnodes) res'
-                , tadjlist = (n, (tidnum te1)):(tadjlist te2) }
+  let res = res' { siTagElem = t2 }
+            where t2 = t { adjnodes = (addextra.adjnodes) t }
+                  t  = siTagElem res'
+  return res
 \end{code}
 
 % --------------------------------------------------------------------
@@ -624,21 +683,37 @@ iapplyAdjNode fconstr te1 te2 an@(n, an_up, an_down) = do
 --  * do not have overlapping semantics with the given
 --  * are on the some of the same polarity automaton paths as the
 --    current agenda item
-lookupChart :: TagElem -> SimpleState [TagElem]
+lookupChart :: SimpleItem -> SimpleState [SimpleItem]
 lookupChart given = do
   chart <- gets theChart
-  let gpaths = tpolpaths given
-      gsem   = tsemantics given
-  return [ t | t <- chart
+  let gpaths = siPolpaths given
+      gsem   = siSemantics given
+  return [ i | i <- chart
              -- should be on the same polarity path (chart sharing)
-             , (tpolpaths t) .&. gpaths /= 0
+             , (siPolpaths i) .&. gpaths /= 0
              -- semantics should not be overlapping
-             && (null $ intersect (tsemantics t) gsem)
+             && (siSemantics i .&. gsem ) == 0
          ]
 
--- | Calculates the intersection of two trees' polarity paths
-intersectPolPaths :: TagElem -> TagElem -> BitVector
-intersectPolPaths te1 te2 = (tpolpaths te1) .&. (tpolpaths te2)
+-- | Helper function for when chart operations succeed.
+combineSimpleItems :: Char -> SimpleItem -> SimpleItem -> SimpleItem
+combineSimpleItems d item1 item2 =
+  item2 { siSemantics = (siSemantics item1) .|. (siSemantics item2)
+        , siPolpaths  = (siPolpaths  item1) .&. (siPolpaths  item2)
+        , siDerivation = addToDerivation d item1 item2
+        -- only used for graphical debugging!
+        , siTagElem = te2 { tsemantics = combineSem (tsemantics te1) (tsemantics te2) }
+  }
+  where te1 = siTagElem item1
+        te2 = siTagElem item2
+        combineSem s1 s2 = sortSem (s1 ++ s2)
+
+-- | Just a wrapper to 'renameTagElem'
+renameSimpleItem :: Char -> SimpleItem -> SimpleItem
+renameSimpleItem c item =
+ let al = map (\(n, tid) -> (c:n, tid)) (siAdjlist item)
+ in item { siTagElem = renameTagElem c $ siTagElem item
+         , siAdjlist = al }
 
 -- | Given a 'Char' c and a 'TagElem' te, renames nodes in
 -- substnodes, adjnodes and the tree in te by prefixing c.
@@ -646,11 +721,9 @@ renameTagElem :: Char -> TagElem -> TagElem
 renameTagElem c te =
   let sn = map (\(n, fu, fd) -> (c:n, fu, fd)) (substnodes te)
       an = map (\(n, fu, fd) -> (c:n, fu, fd)) (adjnodes te)
-      al = map (\(n, tid) -> (c:n, tid)) (tadjlist te)
       t = renameTree c (ttree te)
   in te{substnodes = sn,
         adjnodes = an,
-        tadjlist = al,
         ttree = t}
 \end{code}
 
@@ -671,16 +744,17 @@ the result of prepending $c_p$ + 1 to every item of $h_c$. The counter $c$ is
 used (uniquely?) in the Gorn address.
 
 \begin{code}
-addToDerivation :: Char -> TagElem -> TagElem -> TagDerivation
+addToDerivation :: Char -> SimpleItem -> SimpleItem -> TagDerivation
 addToDerivation op tc tp =
-  let (cp,hp) = derivation tp
-      (_ ,hc) = derivation tc
+  let (cp,hp)  = siDerivation tp
+      (_ ,hc)  = siDerivation tc
+      siIdname = idname.siTagElem
       --
       newcp   = cp + 1
       addcp x = (show newcp) ++ "." ++ x
       newhc   = map (\ (o,c,p) -> (o, addcp c, addcp p)) hc
       --
-      newnode = (op, addcp $ idname tc, idname tp)
+      newnode = (op, (addcp.siIdname) tc, siIdname tp)
   in (newcp, newnode:(hp++newhc) )
 \end{code}
 
@@ -688,7 +762,7 @@ addToDerivation op tc tp =
 \section{Dispatching new results}
 % ---------------------------------------------------------------
 
-\fnlabel{dispatchNew} Given a list of TagElem, for each tree:
+\fnlabel{dispatchNew} Given a list of SimpleItem, for each tree:
 \begin{enumerate}
 \item if the tree is both syntactically complete (no more subst nodes) and
       semantically complete (matches target semantics), it is a result, so
@@ -702,16 +776,14 @@ addToDerivation op tc tp =
 \end{enumerate}
 
 \begin{code}
-dispatchNew :: [TagElem] -> SimpleState ()
+dispatchNew :: [SimpleItem] -> SimpleState ()
 dispatchNew l = {-# SCC "dispatchNew" #-}
   do -- first we seperate the results from the non results
      st <- get
-     let inputSem = tsem st
-         synComplete x =
+     let synComplete x =
            (not (aux x)) && closed x
            -- don't forget about null adjnodes
-         semComplete x = inputSem == treeSem
-           where treeSem = sortSem (tsemantics x)
+         semComplete x = (tsem st) == (siSemantics x)
          isResult x =
            synComplete x && semComplete x
      let (res, notRes) = partition isResult l
@@ -723,7 +795,7 @@ dispatchNew l = {-# SCC "dispatchNew" #-}
      state <- get
      let config = genconfig state
      let numTreesLimit = maxTrees config
-         numTrees  x = length $ snd $ derivation x
+         numTrees  x = length $ snd $ siDerivation x
          overLimit x = case numTreesLimit of
                          Nothing  -> False
                          Just lim -> numTrees x > lim
@@ -742,14 +814,14 @@ dispatchNew l = {-# SCC "dispatchNew" #-}
      -- we perform top/bottom unification on any results
      let tbUnify x =
           case (tbUnifyTree x) of
-            Left n  -> do let x2 = x { thighlight = [n] }
+            Left n  -> do let x2 = x { siHighlight = [n] }
                           addToTrash x2 ts_tbUnificationFailure
                           return False
             Right _ -> return True
      res2 <- filterM tbUnify res
      let rootCats = rootCatsParam config
          rootCatCheck x =
-           case (gCategory.root.ttree) x of
+           case (gCategory.root.ttree.siTagElem) x of
            Just (GConst c) ->
              if null $ intersect c rootCats
              then do addToTrash x (ts_wrongRootCategory c rootCats)
@@ -783,9 +855,11 @@ bottom unification to fail.
 
 \begin{code}
 type TbEither = Either String (Subst, Tree GNode)
-tbUnifyTree :: TagElem -> Either String TagElem
-tbUnifyTree te = {-# SCC "tbUnifyTree" #-}
-  let tryUnification :: Tree GNode -> TbEither
+tbUnifyTree :: SimpleItem -> Either String SimpleItem
+tbUnifyTree item = {-# SCC "tbUnifyTree" #-}
+  let te = siTagElem item
+      --
+      tryUnification :: Tree GNode -> TbEither
       tryUnification t = foldr tbUnifyNode start flat
         where start = Right ([], t)
               flat  = flatten t
@@ -800,13 +874,15 @@ tbUnifyTree te = {-# SCC "tbUnifyTree" #-}
               d2 = replace sb d
               (_,u3,_) = unifyFeat2 u2 d2
       --
-      fixTe :: Subst -> Tree GNode -> TagElem
-      fixTe sb tt2 = te { ttree      = mapTree fixNode tt2
-                        , adjnodes   = map (fixSite sb) (adjnodes te)
-                        , substnodes = map (fixSite sb) (substnodes te)}
-  in case (tryUnification $ ttree te) of
+      fixItem :: Subst -> Tree GNode -> SimpleItem
+      fixItem sb tt2 = item { siTagElem =
+        te { ttree      = mapTree fixNode tt2
+           , adjnodes   = map (fixSite sb) (adjnodes te)
+           , substnodes = map (fixSite sb) (substnodes te)}
+      }
+  in case (tryUnification $ (ttree.siTagElem) item) of
        Left  n        -> Left  n
-       Right (sb,tt2) -> Right (fixTe sb tt2)
+       Right (sb,tt2) -> Right (fixItem sb tt2)
 \end{code}
 
 Our helper function corresponds to the first unification step.  It is
@@ -869,11 +945,11 @@ automaton (to take care of atomic disjunction) and reading the paths of
 each automaton.
 
 \begin{code}
-unpackResults :: [TagElem] ->  [B.UninflectedSentence]
+unpackResults :: [SimpleItem] ->  [B.UninflectedSentence]
 unpackResults tes =
   {- #SCC "unpackResults" -}
   -- sentence automaton
-  let treeLeaves   = map tagLeaves tes
+  let treeLeaves   = map (tagLeaves.siTagElem) tes
       sentenceAuts = map listToSentenceAut treeLeaves
       uninflected  = concatMap automatonPaths sentenceAuts
   in uninflected

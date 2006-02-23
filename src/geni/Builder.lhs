@@ -43,15 +43,21 @@ module Builder
 where
 
 import Control.Monad.State
+import Data.Bits ( (.&.), (.|.), bit )
+import qualified Data.Map as Map
+import Data.Maybe ( mapMaybe )
 import qualified Data.Set as Set
 
 import Automaton (NFA, automatonPaths)
 import Configuration
   ( Params(metricsParam, ignoreSemantics, rootCatsParam), extrapol,
     polarised, chartsharing )
-import General (geniBug)
-import Btypes    (ILexEntry, SemInput, Flist, Collectable(collect),
-    alphaConvert )
+import General (geniBug, BitVector)
+import Btypes
+  ( ILexEntry, SemInput, Sem, Pred, showPred,
+    Flist,
+    Collectable(collect), alphaConvert,
+  )
 import Polarity  (PolResult, buildAutomaton, detectPolPaths,
     defaultPolPaths )
 import Statistics (Statistics, incrIntMetric,
@@ -97,8 +103,8 @@ structure which represents all the inputs a backend could take.
 \begin{code}
 data Input = 
   Input { inSemInput :: SemInput
-        , inLex      :: [ILexEntry]  -- debugger
-        , inCands    :: [TagElem]
+        , inLex      :: [ILexEntry] -- ^ for the debugger
+        , inCands    :: [(TagElem, BitVector)]   -- ^ tag tree
         }
 \end{code}
 
@@ -132,6 +138,8 @@ type BuilderState s a = StateT s (State Statistics) a
 \end{code}
 
 \section{Helper functions for Builders}
+
+\subsection{Initialisation}
 \label{fn:Builder:preInit}
 
 There's a few things that need to be run before even initialising the builder.
@@ -144,9 +152,9 @@ alpha conversion so that unification does not do the wrong thing when two trees
 have the same variables.
 
 \begin{code}
-preInit :: Input -> Params -> ([[TagElem]], PolResult , Input)
+preInit :: Input -> Params -> ([[(TagElem,BitVector)]], PolResult , Input)
 preInit input config =
- let cand     = inCands input
+ let (cand,_) = unzip $ inCands input
      seminput = inSemInput input
      --
      extraPol = extrapol config
@@ -160,10 +168,12 @@ preInit input config =
      -- chart sharing optimisation (if enabled)
      isChartSharing = chartsharing config
      combosChart =
-       if isChartSharing then [ detectPolPaths combosPol ]
-       else map defaultPolPaths combosPol
+       if isChartSharing then [detectPolPaths combosPol]
+       else map (map defaultPolPaths) combosPol
      --
-     combos = map (map alphaConvert.setTidnums) combosChart
+     fixate g = zip (map alphaConvert $ setTidnums trees) polPath
+                where (trees, polPath) = unzip g
+     combos = map fixate combosChart
      input2 = input { inSemInput = (sem2, snd seminput) }
      -- note: autstuff is only useful for the graphical debugger
   in (combos, autstuff, input2)
@@ -174,7 +184,7 @@ preInit input config =
 --   semantics
 unlessEmptySem :: Input -> Params -> a -> a
 unlessEmptySem input config =
- let cands = inCands input
+ let (cands,_) = unzip $ inCands input
      nullSemCands   = [ idname t | t <- cands, (null.tsemantics) t ]
      unInstSemCands = [ idname t | t <- cands, not $ Set.null $ collect (tsemantics t) Set.empty ]
      nullSemErr     = "The following trees have a null semantics: " ++ (unwords nullSemCands)
@@ -185,6 +195,34 @@ unlessEmptySem input config =
      then id
      else error semanticsErr
 \end{code}
+
+\subsection{Semantics and bit vectors}
+
+\begin{code}
+type SemBitMap = Map.Map Pred BitVector
+
+-- | assign a bit vector value to each literal in the semantics
+-- the resulting map can then be used to construct a bit vector
+-- representation of the semantics
+defineSemanticBits :: Sem -> SemBitMap
+defineSemanticBits sem = Map.fromList $ zip sem bits
+  where
+   bits = map bit [0..] -- 0001, 0010, 0100...
+
+semToBitVector :: SemBitMap -> Sem -> BitVector
+semToBitVector bmap sem = foldr (.|.) 0 $ map lookup sem
+  where lookup p =
+         case Map.lookup p bmap of
+         Nothing -> geniBug $ "predicate " ++ showPred p ++ " not found in semanticBit map"
+         Just b  -> b
+
+bitVectorToSem :: SemBitMap -> BitVector -> Sem
+bitVectorToSem bmap vector =
+  mapMaybe tryKey $ Map.toList bmap
+  where tryKey (p,k) = if (k .&. vector == k) then Just p else Nothing
+\end{code}
+
+\subsection{Generate step}
 
 \begin{code}
 -- | Default implementation for the 'stepAll' function in 'Builder'

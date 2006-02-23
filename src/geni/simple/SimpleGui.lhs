@@ -36,18 +36,27 @@ import Geni
   ( ProgState(..), ProgStateRef
   , initGeni, runGeni )
 import Btypes 
-  (showLexeme,
+  (showLexeme, GNode(gnname),
    iword, isemantics)
-import Tags (tsemantics,thighlight, TagElem)
+import Tags (tsemantics, TagElem(idname), TagItem(..))
 
 import Configuration ( Params(..), polarised, chartsharing )
+import General ( snd3 )
+import Graphviz ( GraphvizShow(..), gvNewline, gvUnlines )
 import GuiHelper
+  ( toSentence,
+    statsGui, messageGui, tagViewerGui, candidateGui, polarityGui,
+    debuggerPanel, DebuggerItemBar, setGvParams,
+    XMGDerivation(getSourceTrees),
+  )
+import Tags ( ttreename )
+import Treeprint ( graphvizShowDerivation )
 
 import qualified Builder    as B
 import qualified BuilderGui as BG 
 import Polarity
 import SimpleBuilder 
-  ( simpleBuilder, SimpleStatus, genconfig
+  ( simpleBuilder, SimpleStatus, SimpleItem(..), genconfig
   , theResults, theAgenda, theAuxAgenda, theChart, theTrash)
 import Statistics (Statistics)
 \end{code}
@@ -109,14 +118,14 @@ Browser for derived/derivation trees, except if there are no results, we show a
 message box
 
 \begin{code}
-realisationsGui :: ProgStateRef -> (Window a) -> [TagElem] -> IO Layout
+realisationsGui :: ProgStateRef -> (Window a) -> [SimpleItem] -> IO Layout
 realisationsGui _   f [] = messageGui f "No results found"
 realisationsGui pstRef f resultsRaw = 
   do let tip = "result"
-         itNlabl = map (\t -> (noHighlight t, toSentence t)) resultsRaw
-            where noHighlight x = Just $ x { thighlight = [] }
+         itNlabl = map (\t -> (Just t, siToSentence t)) resultsRaw
      --
      pst     <- readIORef pstRef
+     -- FIXME: have to show the semantics again
      (lay,_) <- tagViewerGui pst f tip "derived" itNlabl
      return lay
 \end{code}
@@ -145,7 +154,7 @@ debugGui pstRef =
     -- generation step 1
     initStuff <- initGeni pstRef
     let (tsem,_)   = B.inSemInput initStuff
-        cand       = B.inCands initStuff 
+        (cand,_)   = unzip $ B.inCands initStuff
         lexonly    = B.inLex initStuff 
     -- candidate selection tab
     let missedSem  = tsem \\ (nub $ concatMap tsemantics cand)
@@ -184,7 +193,7 @@ tasks, so we create a separate tab for each task.
 simpleDebuggerTab :: (Window a) -> Params -> B.Input -> String -> IO Layout 
 simpleDebuggerTab = debuggerPanel simpleBuilder False stToGraphviz simpleItemBar
  
-stToGraphviz :: SimpleStatus -> ([Maybe TagElem], [String])
+stToGraphviz :: SimpleStatus -> ([Maybe SimpleItem], [String])
 stToGraphviz st = 
   let agenda    = section "AGENDA"    $ theAgenda    st
       auxAgenda = section "AUXILIARY" $ theAuxAgenda st
@@ -194,13 +203,13 @@ stToGraphviz st =
       --
       section n i = hd : (map tlFn i)
         where hd = (Nothing, "___" ++ n ++ "___")
-              tlFn x = (Just x, toSentence x ++ (showPaths x))
+              tlFn x = (Just x, (siToSentence x) ++ (showPaths $ siPolpaths x))
       showPaths t = if (chartsharing $ genconfig st)
                     then " (" ++ showPolPaths t ++ ")"
                     else ""
   in unzip $ agenda ++ auxAgenda ++ chart ++ trash ++ results 
 
-simpleItemBar :: DebuggerItemBar Bool TagElem 
+simpleItemBar :: DebuggerItemBar Bool SimpleItem
 simpleItemBar f gvRef updaterFn =
  do ib <- panel f []
     detailsChk <- checkBox ib [ text := "Show features"
@@ -211,4 +220,47 @@ simpleItemBar f gvRef updaterFn =
             updaterFn
     set detailsChk [ on command := onDetailsChk ] 
     return $ hfloatCentre $ container ib $ row 5 [ dynamic $ widget detailsChk ]
+\end{code}
+
+% --------------------------------------------------------------------
+\section{Miscellaneous}
+% -------------------------------------------------------------------
+
+\begin{code}
+instance TagItem SimpleItem where
+ tgIdName    = idname.siTagElem
+ tgIdNum     = siId
+ tgSemantics = tsemantics.siTagElem
+
+instance XMGDerivation SimpleItem where
+ -- Note: this is XMG-related stuff
+ getSourceTrees item =
+  let -- strips all gorn addressing stuff
+      stripGorn n = if dot `elem` n then stripGorn stripped else n
+        where stripped = (tail $ dropWhile (/= dot) n)
+              dot = '.'
+      deriv  = map (stripGorn.snd3) $ snd $ siDerivation item
+  in  nub ((ttreename.siTagElem) item : deriv)
+\end{code}
+
+\begin{code}
+instance GraphvizShow Bool SimpleItem where
+  graphvizLabel  f c =
+    graphvizLabel f (siTagElem c) ++ gvNewline ++ (gvUnlines $ siDiagnostic c)
+
+  graphvizParams f c = graphvizParams f (siTagElem c)
+  graphvizShowAsSubgraph f p item =
+   let isHiglight n = gnname n `elem` siHighlight item
+       info n | isHiglight n = (n, Just "red")
+              | otherwise    = (n, Nothing)
+   in    "\n// ------------------- elementary tree --------------------------\n"
+      ++ graphvizShowAsSubgraph (f, info) (p ++ "TagElem") (siTagElem item)
+      ++ "\n// ------------------- derivation tree --------------------------\n"
+      -- derivation tree is displayed without any decoration
+      ++ (graphvizShowDerivation $ snd $ siDerivation item)
+\end{code}
+
+\begin{code}
+siToSentence :: SimpleItem -> String
+siToSentence = toSentence.siTagElem
 \end{code}
