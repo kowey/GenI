@@ -114,9 +114,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 \chapter{Overview}
 
+\begin{figure}[h]
 \begin{center}
 \includegraphics[scale=0.5]{images/genidep}
+\caption{Transitive reduction of module dependencies}
 \end{center}
+\end{figure}
 
 This document contains the source code to the GenI generator 
 partly adapted to a literate programming style.  
@@ -134,6 +137,7 @@ files.
  \item[Builder.lhs] - a chart generator   
  \item[SimpleBuilder.lhs] - the chart generator itself (note: substitution,
  adjunction, FS unification are done here, not in Tags.lhs)
+ \item[CkyBuilder.lhs] - CKY version of the chart generator
  \item[Btypes.lhs] - basic data types and operations
  \item[Tags.lhs] - TAG specific data types
  \item[Automaton.lhs] - NFA  
