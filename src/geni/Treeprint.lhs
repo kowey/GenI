@@ -34,10 +34,10 @@ import Tags
  ( TagElem, idname,
    tsemantics, ttree, tinterface, ttype, ttreename,
  )
-import Btypes (GeniVal, Ptype(..),
+import Btypes (GeniVal(GConst), AvPair, Ptype(..),
                GNode(..), GType(..), Flist,
                showLexeme,
-               Sem, showSem, showPairs, showAv)
+               Pred, showSem, showAv)
 
 import Graphviz 
   ( gvUnlines, gvNewline
@@ -214,19 +214,20 @@ Unfortunately, HaXml seems to have some kind of space leak.
 class GeniHandShow a where
   toGeniHand :: a -> String
 
-instance GeniHandShow Sem where
- toGeniHand = showSem
-
-instance GeniHandShow Flist where
- toGeniHand = showPairs
-
 instance GeniHandShow Ptype where
  toGeniHand Initial  = "initial"
  toGeniHand Auxiliar = "auxiliary"
  toGeniHand _        = ""
 
-instance GeniHandShow [GeniVal] where
- toGeniHand = unwords . (map show)
+instance GeniHandShow AvPair where
+ toGeniHand (a,v) = a ++ ":" ++ toGeniHand v
+
+instance GeniHandShow GeniVal where
+ toGeniHand (GConst xs) = concat $ intersperse "|" xs
+ toGeniHand x = show  x
+
+instance GeniHandShow Pred where
+ toGeniHand (h, p, l) = (toGeniHand h) ++ ":" ++ (toGeniHand p) ++ "(" ++ unwords (map toGeniHand l) ++ ")"
 
 instance GeniHandShow GNode where
  toGeniHand n =
@@ -237,10 +238,11 @@ instance GeniHandShow GNode where
                      _    -> ""
       glexstr  n = if null gl then "" else "\"" ++ gl ++ "\""
                    where gl = showLexeme $ glexeme n
-  in "n" ++ gnname n
-         ++ " " ++ gtypestr n ++ " " ++ glexstr n ++ " "
-         ++ (squares.toGeniHand $ gup n) ++ "!"
-         ++ (squares.toGeniHand $ gdown n)
+      tbFeats n = (toGeniHand $ gup n) ++ "!" ++ (toGeniHand $ gdown n)
+  in "n" ++ (unwords $ filter (not.null) $ [ gnname n, gtypestr n, glexstr n, tbFeats n ])
+
+instance (GeniHandShow a) => GeniHandShow [a] where
+ toGeniHand = squares . unwords . (map toGeniHand)
 
 instance (GeniHandShow a) => GeniHandShow (Tree a) where
  toGeniHand t =
@@ -249,8 +251,7 @@ instance (GeniHandShow a) => GeniHandShow (Tree a) where
         case (l,i) of
         ([], 0) -> "{}"
         ([], _) -> ""
-        (l,  i) -> "{\n" ++ concatMap next l
-                         ++ spaces i ++ "}\n"
+        (l,  i) -> "{\n" ++ (unlines $ map next l) ++ spaces i ++ "}"
         where next = treestr (i+1)
       --
       spaces i = take i $ repeat ' '
@@ -258,11 +259,12 @@ instance (GeniHandShow a) => GeniHandShow (Tree a) where
 
 instance GeniHandShow TagElem where
  toGeniHand te =
-  ttreename te
-  ++ " "  ++ (squares.toGeniHand.tinterface $ te)
+  "\n% ------------------------- " ++ idname te
+  ++ "\n" ++ (ttreename te) ++ ":" ++ (idname te)
+  ++ " "  ++ (toGeniHand.tinterface $ te)
   ++ " "  ++ (toGeniHand.ttype $ te)
   ++ "\n" ++ (toGeniHand.ttree $ te)
-  ++ "\n" ++ "semantics:" ++ (squares.toGeniHand.tsemantics $ te)
+  ++ "\n" ++ "semantics:" ++ (toGeniHand.tsemantics $ te)
   ++ "\n"
 
 squares s = "[" ++ s ++ "]"
