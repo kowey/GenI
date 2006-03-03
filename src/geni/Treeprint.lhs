@@ -30,13 +30,14 @@ import Data.Tree
 import Data.List(intersperse,nub)
 
 import General (mapTree)
-import Tags (TagElem, idname,
-             tsemantics, ttree, tinterface,
-            )
-import Btypes (MTtree, Ttree(..), Ptype(..),
+import Tags
+ ( TagElem, idname,
+   tsemantics, ttree, tinterface, ttype, ttreename,
+ )
+import Btypes (GeniVal, Ptype(..),
                GNode(..), GType(..), Flist,
                showLexeme,
-               showSem, showPairs, showAv)
+               Sem, showSem, showPairs, showAv)
 
 import Graphviz 
   ( gvUnlines, gvNewline
@@ -194,61 +195,75 @@ dot2x c   = c
 \section{GeniHand}
 % ----------------------------------------------------------------------
 
-To make large grammars faster to load, we include a mechanism for
-writing a TagElem to the GeniHand format.  The idea is to take a massive
-XML grammar, parse it to a set of TagElems and then write these back in
-the lighter syntax.  It's not that XML is inherently less efficient to
-parse than the handwritten syntax, just that writing an efficient parser
-for XML based format is more annoying, so I stuck with HaXml to make my
-life easy.  It would be useful eventually to see if I could just use
-some kind of SAX based method.
+We need to be able to dump some of GenI's data structures into a simple
+text format we call GeniHand.
+
+There are at leaste two uses for this, one is that it allows us to
+interrupt the debugging process, dump everything to file, muck around
+with the trees and then pick up where we left off.
+
+The other use is to make large grammars faster to load.  We don't actually do
+this anymore, mind you, but it's nice to have the option.  The idea is to take
+a massive XML grammar, parse it to a set of TagElems and then write these back
+in the lighter syntax.  It's not that XML is inherently less efficient to parse
+than the handwritten syntax, just that writing an efficient parser for XML
+based format is more annoying, so I stuck with HaXml to make my life easy.
+Unfortunately, HaXml seems to have some kind of space leak.
 
 \begin{code}
-toGeniHand :: MTtree -> String
-toGeniHand tr = 
-  let showid t = dashtobar fam ++ (if null id then "" else ":" ++ id)
-        where fam = pfamily t
-              id  = pidname t
-      --
-      ptypestr t = case t of 
-                     Initial  -> "initial" 
-                     Auxiliar -> "auxiliary" 
-                     _        -> ""
-      --
-      gtypestr n = case (gtype n) of 
+class GeniHandShow a where
+  toGeniHand :: a -> String
+
+instance GeniHandShow Sem where
+ toGeniHand = showSem
+
+instance GeniHandShow Flist where
+ toGeniHand = showPairs
+
+instance GeniHandShow Ptype where
+ toGeniHand Initial  = "initial"
+ toGeniHand Auxiliar = "auxiliary"
+ toGeniHand _        = ""
+
+instance GeniHandShow [GeniVal] where
+ toGeniHand = unwords . (map show)
+
+instance GeniHandShow GNode where
+ toGeniHand n =
+  let gtypestr n = case (gtype n) of
                      Subs -> "type:subst"
                      Foot -> "type:foot"
-                     Lex  -> if (ganchor n) then "type:anchor" else "type:lex" 
+                     Lex  -> if (ganchor n) then "type:anchor" else "type:lex"
                      _    -> ""
       glexstr  n = if null gl then "" else "\"" ++ gl ++ "\""
                    where gl = showLexeme $ glexeme n
+  in "n" ++ gnname n
+         ++ " " ++ gtypestr n ++ " " ++ glexstr n ++ " "
+         ++ (squares.toGeniHand $ gup n) ++ "!"
+         ++ (squares.toGeniHand $ gdown n)
+
+instance (GeniHandShow a) => GeniHandShow (Tree a) where
+ toGeniHand t =
+  let treestr i (Node a l) =
+        spaces i ++ toGeniHand a ++
+        case (l,i) of
+        ([], 0) -> "{}"
+        ([], _) -> ""
+        (l,  i) -> "{\n" ++ concatMap next l
+                         ++ spaces i ++ "}\n"
+        where next = treestr (i+1)
       --
-      nodestr :: GNode -> String
-      nodestr n = "n" ++ gnname n 
-                  ++ " " ++ gtypestr n ++ " " ++ glexstr n ++ " "
-                  ++ "[" ++ showflist (gup n) ++ "]!"
-                  ++ "[" ++ showflist (gdown n) ++ "]"
-      --
-      treestr :: Int -> Tree GNode -> String
-      treestr i (Node a []) = spaces i ++ nodestr a ++  
-                              (if (i == 0) then "{}" else "") ++ "\n"
-      treestr i (Node a l)  = spaces i ++ nodestr a ++ "{\n"
-                              ++ concatMap nextfn l ++ spaces i ++ "}\n"
-                              where nextfn = treestr (i+1)
-      -- misc helpers
-      spaces :: Int -> String 
       spaces i = take i $ repeat ' '
-      -- helpers to account for shortcomings in genihand lexer 
-      dashtobar :: String -> String 
-      dashtobar s = map (\c -> if ('-' == c) then '_' else c) s
-      substf (a,v) = case (a,v) of _ -> (dashtobar a, v)
-      --
-      showflist  = showPairs . (map substf)
-      showparams = concat $ intersperse " " $ map show (params tr)
-      --
-  in showid tr 
-     ++ " ("  ++ showparams 
-     ++ " ! " ++ showflist (pfeat tr) ++ ")"
-     ++ " " ++ (ptypestr.ptype) tr 
-     ++ "\n" ++ ((treestr 0).tree) tr ++ "\n"
+  in treestr 0 t
+
+instance GeniHandShow TagElem where
+ toGeniHand te =
+  ttreename te
+  ++ " "  ++ (squares.toGeniHand.tinterface $ te)
+  ++ " "  ++ (toGeniHand.ttype $ te)
+  ++ "\n" ++ (toGeniHand.ttree $ te)
+  ++ "\n" ++ "semantics:" ++ (squares.toGeniHand.tsemantics $ te)
+  ++ "\n"
+
+squares s = "[" ++ s ++ "]"
 \end{code}
