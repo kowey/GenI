@@ -36,13 +36,15 @@ import Data.List (find, intersperse, nub, (\\))
 import qualified Data.Map as Map 
 import Data.Maybe (listToMaybe, isJust, catMaybes)
 import Data.Tree 
+import Text.ParserCombinators.Parsec (parseFromFile)
 
 import Automaton
  ( NFA(states, transitions, startSt, finalStList)
  , lookupTrans, addTrans )
 import qualified Builder    as B
 import qualified BuilderGui as BG 
-import Btypes (GNode, gnname, showLexeme, iword, isemantics)
+import Btypes
+  ( GNode, gnname, showLexeme, iword, isemantics, Sem )
 
 import CkyBuilder 
   ( ckyBuilder, CkyStatus, CkyItem(..), ChartId
@@ -58,23 +60,26 @@ import Configuration ( Params(..), polarised )
 import Geni 
   ( ProgState(..), ProgStateRef
   , initGeni, runGeni )
-import General ( boundsCheck, listRepNode, geniBug )
+import General ( boundsCheck, listRepNode, geniBug, fst3 )
+import GeniParsers ( geniTagElems )
 import Graphviz 
   ( GraphvizShow(..), gvNode, gvEdge, gvSubgraph, gvUnlines, gvShowTree
   , gvNewline
   , GraphvizShowNode(..) )
 import GuiHelper 
-  ( candidateGui, messageGui, polarityGui, toSentence
+  ( candidateGui, sectionsBySem, messageGui, polarityGui, toSentence
   , debuggerPanel, DebuggerItemBar
   , addGvHandler, modifyGvParams, 
-  , GraphvizGuiSt(gvitems, gvsel)
-  , statsGui, graphvizGui, newGvRef, setGvDrawables,
+  , GraphvizGuiSt(gvitems, gvsel), GvIO
+  , maybeSaveAsFile
+  , statsGui, graphvizGui, newGvRef, setGvDrawables, setGvDrawables2,
   )
 
 import Polarity
 import Statistics (Statistics)
 import Tags 
   ( idname, tsemantics, ttree, TagElem )
+import Treeprint ( toGeniHand )
 \end{code}
 }
 
@@ -113,7 +118,7 @@ resultsGui pstRef (sentences, stats, st) =
     p    <- panel f []
     nb   <- notebook p []
     -- realisations tab
-    resTab <- realisationsGui pstRef nb (theResults st)
+    (resTab,_,_) <- realisationsGui pstRef nb (theResults st)
     -- statistics tab
     statTab <- statsGui nb sentences stats
     -- pack it all together
@@ -127,16 +132,19 @@ resultsGui pstRef (sentences, stats, st) =
     return ()
 
 -- | Browser for the results (if there are any)
-realisationsGui :: ProgStateRef -> (Window a) -> [CkyItem] -> IO Layout
-realisationsGui _ f [] = messageGui f "No results found"
+realisationsGui :: ProgStateRef -> (Window a) -> [CkyItem]
+                -> GvIO CkyDebugParams (Maybe CkyItem)
+realisationsGui _ f [] =
+  do m <- messageGui f "No results found"
+     gvRef <- newGvRef initCkyDebugParams [] ""
+     return (m, gvRef, return ())
 realisationsGui _ f resultsRaw =
   do let tip = "result"
          results = map Just resultsRaw
          labels  = map (toSentence.ciSourceTree) resultsRaw
      gvRef <- newGvRef initCkyDebugParams labels tip
      setGvDrawables gvRef results
-     (lay,_) <- graphvizGui f "cky-results" gvRef
-     return lay
+     graphvizGui f "cky-results" gvRef
 \end{code}
 
 % --------------------------------------------------------------------
@@ -165,6 +173,26 @@ debugGui pstRef =
     let (tsem,_)   = B.inSemInput initStuff
         (cand,_)   = unzip $ B.inCands initStuff
         lexonly    = B.inLex initStuff 
+    -- continuation for candidate selection tab
+    let step2 newCands =
+         do -- generation step 2.A (run polarity stuff)
+            let newInitStuff = initStuff { B.inCands = map (\x -> (x, -1)) newCands } 
+                (combos, autstuff, _) = B.preInit newInitStuff config
+                cands2PP = assert (length combos == 1) $ head combos
+            -- automata tab
+            let (auts, finalaut, _) = autstuff
+            autPnl <- if polarised config
+                      then fst3 `liftM` polarityGui nb auts finalaut
+                      else messageGui nb "polarities disabled"
+            -- generation step 2.B (start the generator for each path)
+            debugPnl <- ckyDebuggerTab nb config (initStuff { B.inCands = cands2PP }) "cky"
+            let autTab   = tab "automata" autPnl
+                debugTab = tab "session" debugPnl
+                genTabs  = if polarised config then [ debugTab ] else [ autTab, debugTab ]
+            --
+            set f [ layout := container p $ tabs nb genTabs
+                  , clientSize := sz 700 600 ]
+            return ()
     -- candidate selection tab
     let missedSem  = tsem \\ (nub $ concatMap tsemantics cand)
         -- we assume that for a tree to correspond to a lexical item,
@@ -172,29 +200,59 @@ debugGui pstRef =
         hasTree l = isJust $ find (\t -> tsemantics t == lsem) cand
           where lsem = isemantics l
         missedLex = [ showLexeme (iword l) | l <- lexonly, (not.hasTree) l ]
-    canTab <- candidateGui pst nb cand missedSem missedLex
-    -- generation step 2.A (run polarity stuff)
-    let (combos, autstuff, _) = B.preInit initStuff config
-        cands2PP = assert (length combos == 1) $ head combos
-    -- automata tab
-    let (auts, finalaut, _) = autstuff
-    autTab <- if polarised config 
-              then polarityGui nb auts finalaut
-              else messageGui nb "polarities disabled"
+    (canPnl,_,_) <- ckyCandidateGui pst nb cand missedSem missedLex step2
     -- basic tabs 
-    let basicTabs = tab "lexical selection" canTab :
-                    (if polarised config then [tab "automata" autTab] else [])
-    -- generation step 2.B (start the generator for each path)
-    debugTab <- ckyDebuggerTab nb config (initStuff { B.inCands = cands2PP }) "cky"
-    let genTabs = [ tab "session" debugTab ]
+    let basicTabs = [ tab "lexical selection" canPnl ]
     --
-    set f [ layout := container p $ column 0 [ tabs nb (basicTabs ++ genTabs) ]
+    set f [ layout := container p $ tabs nb basicTabs
           , clientSize := sz 700 600 ]
     return ()
 \end{code}
   
 The generation could conceivably be broken into multiple generation
 tasks, so we create a separate tab for each task.
+
+FIXME: when we've made this more sophisticated, we should refactor so that simple
+can have access to the same functionality
+
+\begin{code}
+ckyCandidateGui :: ProgState -> (Window a) -> [TagElem] -> Sem -> [String] -> ([TagElem] -> IO ())
+                -> GvIO Bool (Maybe TagElem)
+ckyCandidateGui pst f xs missedSem missedLex job = do
+  p <- panel f []
+  candV <- varCreate xs
+  (tb, ref, updater) <- candidateGui pst p xs missedSem missedLex
+  -- supplementary button bar
+  let saveCmd =
+       do c <- varGet candV
+          let cStr = unwords $ map toGeniHand c
+          maybeSaveAsFile f cStr
+      loadCmd =
+       do let filetypes = [("Any file",["*","*.*"])]
+          fsel <- fileOpenDialog f False True "Choose your file..." filetypes "" ""
+          case fsel of
+           Nothing   -> return ()
+           Just file ->
+             do parsed <- parseFromFile geniTagElems file
+                case parsed of
+                 Left err -> errorDialog f "" (show err)
+                 Right c  -> do varSet candV c
+                                setGvDrawables2 ref (unzip $ sectionsBySem c)
+                                updater
+  --
+  saveBt <- button p [ text := "Save to file", on command := saveCmd ]
+  loadBt <- button p [ text := "Load from file", on command := loadCmd ]
+  nextBt <- button p [ text := "Continue" ]
+  let disableW w = set w [ enabled := False ]
+  set nextBt [ on command := do mapM disableW [ saveBt, loadBt, nextBt ]
+                                job xs ]
+  --
+  let lay = fill $ container p $ column 5
+            [ fill tb, hfill (vrule 1)
+            , row 0 [ row 5 [ widget saveBt, widget loadBt ]
+                    , hfloatRight $ widget nextBt ] ]
+  return (lay, ref, updater)
+\end{code}
 
 \begin{code}
 data CkyDebugParams = 

@@ -75,10 +75,12 @@ have not been accounted for, or if there have been lexically selected
 items for which no tree has been found.
 
 \begin{code}
-candidateGui :: ProgState -> (Window a) -> [TagElem] -> Sem -> [String] -> IO Layout
+candidateGui :: ProgState -> (Window a) -> [TagElem] -> Sem -> [String]
+             -> GvIO Bool (Maybe TagElem)
 candidateGui pst f xs missedSem missedLex = do
   p  <- panel f []      
-  tb <- tagBrowserGui pst p xs "lexically selected item" "candidates"
+  (tb,ref,updater) <- tagViewerGui pst p "lexically selected item" "candidates"
+                      $ sectionsBySem xs
   let warningSem = if null missedSem then ""
                    else "WARNING: no lexical selection for " ++ showSem missedSem ++ "\n"
       warningLex = if null missedLex then ""
@@ -88,7 +90,17 @@ candidateGui pst f xs missedSem missedLex = do
       warning = warningSem ++ warningLex
       items = if null warning then [ fill tb ] else [ hfill (label warning) , fill tb ]
       lay   = fill $ container p $ column 5 items
-  return lay
+  return (lay, ref, updater)
+
+sectionsBySem :: (TagItem t) => [t] -> [ (Maybe t, String) ]
+sectionsBySem ts =
+ let semmap   = mapBySem ts
+     sem      = Map.keys semmap
+     --
+     lookupTr k = Map.findWithDefault [] k semmap
+     section  k = (Nothing, header) : (map (\t -> (Just t, tgIdName t)) $ lookupTr k)
+                  where header = "___" ++ showPred k ++ "___"
+ in concatMap section sem
 \end{code}
       
 \subsection{Polarity Automata}
@@ -97,7 +109,8 @@ A browser to see the automata constructed during the polarity optimisation
 step.
 
 \begin{code}
-polarityGui :: (Window a) -> [(String,PolAut,PolAut)] -> PolAut -> IO Layout
+polarityGui :: (Window a) -> [(String,PolAut,PolAut)] -> PolAut
+            -> GvIO () PolAut
 polarityGui   f xs final = do
   let numsts a = " : " ++ (show n) ++ " states" 
                  where n = foldr (+) 0 $ map length $ states a 
@@ -108,8 +121,7 @@ polarityGui   f xs final = do
       --
   gvRef   <- newGvRef () labels "automata"
   setGvDrawables gvRef autlist
-  (lay,_) <- graphvizGui f "polarity" gvRef 
-  return lay
+  graphvizGui f "polarity" gvRef
 \end{code}
       
 \paragraph{statsGui} displays the generation statistics and provides a
@@ -125,20 +137,13 @@ statsGui f sentences stats =
      statsTxt <- staticText p [ text := showFinalStats stats ]
      --
      saveBt <- button p [ text := "Save to file"
-                        , on command := saveCmd msg ]
+                        , on command := maybeSaveAsFile f msg ]
      return $ fill $ container p $ column 1 $
               [ hfill $ label "Performance data"
               , hfill $ widget statsTxt
               , hfill $ label "Realisations"
               , fill  $ widget t
               , hfloatRight $ widget saveBt ]
-  where
-    saveCmd msg =
-      do let filetypes = [("Any file",["*","*.*"])]
-         fsel <- fileSaveDialog f False True "Save to" filetypes "" ""
-         case fsel of
-           Nothing   -> return ()
-           Just file -> writeFile file msg
 \end{code}
 
 \subsection{TAG trees}
@@ -171,40 +176,22 @@ squishLeaf :: ([String], a) -> String
 squishLeaf = showLexeme.fst 
 \end{code}
 
-\subsection{TAG viewer and browser}
+\subsection{TAG viewer}
 
-A TAG browser is a TAG viewer (see below) that groups trees by 
-their semantics.
-
-\begin{code}
-tagBrowserGui :: (GraphvizShow Bool t, TagItem t, XMGDerivation t)
-              => ProgState -> (Window a) -> [t] -> String -> String -> IO Layout
-tagBrowserGui pst f xs tip cachedir = do
-  let semmap   = mapBySem xs
-      sem      = Map.keys semmap
-      --
-      lookupTr k = Map.findWithDefault [] k semmap
-      section  k = (Nothing, header) : (map (\t -> (Just t, tgIdName t)) $ lookupTr k)
-       where header = "___" ++ showPred k ++ "___"
-      --
-  (lay,_) <- tagViewerGui pst f tip cachedir (concatMap section sem)
-  return lay
-\end{code}
-      
 A TAG viewer is a graphvizGui that lets the user toggle the display
 of TAG feature structures.
 
 \begin{code}
 tagViewerGui :: (GraphvizShow Bool t, TagItem t, XMGDerivation t)
              => ProgState -> (Window a) -> String -> String -> [(Maybe t,String)]
-             -> GvIO (Maybe t)
+             -> GvIO Bool (Maybe t)
 tagViewerGui pst f tip cachedir itNlab = do
   let config = pa pst
   p <- panel f []      
   let (tagelems,labels) = unzip itNlab
   gvRef <- newGvRef False labels tip
   setGvDrawables gvRef tagelems 
-  (lay,updaterFn) <- graphvizGui p cachedir gvRef 
+  (lay,ref,updaterFn) <- graphvizGui p cachedir gvRef
   -- widgets
   detailsChk <- checkBox p [ text := "Show features"
                            , checked := False ]
@@ -249,7 +236,7 @@ tagViewerGui pst f tip cachedir itNlab = do
                 , dynamic $ widget displayTraceCom 
                 ]
       lay2   = fill $ container p $ column 5 [ lay, cmdBar ] 
-  return (lay2,updaterFn)
+  return (lay2,ref,updaterFn)
 \end{code}
 
 % --------------------------------------------------------------------
@@ -320,7 +307,7 @@ debuggerPanel builder gvInitial stateToGv itemBar f config input cachedir =
     -- ---------------------------------------------------------
     gvRef <- newGvRef gvInitial labels "debugger session" 
     setGvDrawables gvRef items 
-    (layItemViewer,updaterFn) <- graphvizGui p cachedir gvRef 
+    (layItemViewer,_,updaterFn) <- graphvizGui p cachedir gvRef
     -- ----------------------------------------------------------
     -- item bar: controls for how an individual item is displayed
     -- ----------------------------------------------------------
@@ -492,8 +479,8 @@ handler function!
 
 \begin{code}
 graphvizGui :: (GraphvizShow f d) => 
-  (Window a) -> String -> GraphvizRef d f -> GvIO d
-type GvIO d    = IO (Layout, GvUpdater)
+  (Window a) -> String -> GraphvizRef d f -> GvIO f d
+type GvIO f d  = IO (Layout, GraphvizRef d f, GvUpdater)
 type GvUpdater = IO ()
 
 graphvizGui f cachedir gvRef = do
@@ -549,8 +536,11 @@ graphvizGui f cachedir gvRef = do
   -- call the updater function for the first time
   -- setGvSel gvRef 1
   updaterFn 
-  -- return a layout and the updater function 
-  return (lay, updaterFn)
+  -- return the layout, the gvRef, and an updater function
+  -- The gvRef is to make it easier for users to muck around with the
+  -- state of the gui.  Here, it's trivial, but when people combine guis
+  -- together, it might be easier to keep track of when returned
+  return (lay, gvRef, updaterFn)
 \end{code}
 
 \subsection{Scroll bitmap}
@@ -688,9 +678,18 @@ initCacheDir cachesubdir = do
 \section{Miscellaneous}
 \label{sec:gui_misc}
 
-A message panel for use by the Results gui panels \ref{sec:results_gui}.
-
 \begin{code}
+-- | Save the given string to a file, if the user selets one via the file save
+--   dialog. Otherwise, don't do anything.
+maybeSaveAsFile :: (Window a) -> String -> IO ()
+maybeSaveAsFile f msg =
+ do let filetypes = [("Any file",["*","*.*"])]
+    fsel <- fileSaveDialog f False True "Save to" filetypes "" ""
+    case fsel of
+      Nothing   -> return ()
+      Just file -> writeFile file msg
+
+-- | A message panel for use by the Results gui panels.
 messageGui :: (Window a) -> String -> IO Layout 
 messageGui f msg = do 
   p <- panel f []

@@ -619,7 +619,7 @@ treeBrowserGui pstRef = do
       --
       trees    = concatMap treesfor sem
       itNlabl  = zip trees (concatMap labsfor sem)
-  (browser,_) <- tagViewerGui pst f "tree browser" "grambrowser" itNlabl
+  (browser,_,_) <- tagViewerGui pst f "tree browser" "grambrowser" itNlabl
   -- the button panel
   let count = length trees - length sem
   quitBt <- button f [ text := "Close", on command := close f ]

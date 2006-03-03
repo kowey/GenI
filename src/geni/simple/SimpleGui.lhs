@@ -26,7 +26,7 @@ module SimpleGui where
 import Graphics.UI.WX
 import Graphics.UI.WXCore
 
-import qualified Control.Monad as Monad 
+import Control.Monad (liftM)
 
 import Data.IORef
 import Data.List (find, nub, (\\))
@@ -41,12 +41,12 @@ import Btypes
 import Tags (tsemantics, TagElem(idname), TagItem(..))
 
 import Configuration ( Params(..), polarised, chartsharing )
-import General ( snd3 )
+import General ( fst3, snd3 )
 import Graphviz ( GraphvizShow(..), gvNewline, gvUnlines )
 import GuiHelper
   ( toSentence,
     statsGui, messageGui, tagViewerGui, candidateGui, polarityGui,
-    debuggerPanel, DebuggerItemBar, setGvParams,
+    debuggerPanel, DebuggerItemBar, setGvParams, GvIO, newGvRef,
     XMGDerivation(getSourceTrees),
   )
 import Tags ( ttreename )
@@ -98,7 +98,7 @@ resultsGui pstRef (sentences, stats, st) =
     p    <- panel f []
     nb   <- notebook p []
     -- realisations tab
-    resTab <- realisationsGui pstRef nb (theResults st)
+    (resTab,_,_) <- realisationsGui pstRef nb (theResults st)
     -- statistics tab
     statTab <- statsGui nb sentences stats
     -- pack it all together 
@@ -118,16 +118,19 @@ Browser for derived/derivation trees, except if there are no results, we show a
 message box
 
 \begin{code}
-realisationsGui :: ProgStateRef -> (Window a) -> [SimpleItem] -> IO Layout
-realisationsGui _   f [] = messageGui f "No results found"
-realisationsGui pstRef f resultsRaw = 
+realisationsGui :: ProgStateRef -> (Window a) -> [SimpleItem]
+                -> GvIO Bool (Maybe SimpleItem)
+realisationsGui _   f [] =
+  do m <- messageGui f "No results found"
+     g <- newGvRef False [] ""
+     return (m, g, return ())
+realisationsGui pstRef f resultsRaw =
   do let tip = "result"
          itNlabl = map (\t -> (Just t, siToSentence t)) resultsRaw
      --
      pst     <- readIORef pstRef
      -- FIXME: have to show the semantics again
-     (lay,_) <- tagViewerGui pst f tip "derived" itNlabl
-     return lay
+     tagViewerGui pst f tip "derived" itNlabl
 \end{code}
 
 % --------------------------------------------------------------------
@@ -163,13 +166,13 @@ debugGui pstRef =
         hasTree l = isJust $ find (\t -> tsemantics t == lsem) cand
           where lsem = isemantics l
         missedLex = [ showLexeme (iword l) | l <- lexonly, (not.hasTree) l ]
-    canTab <- candidateGui pst nb cand missedSem missedLex
+    (canTab,_,_) <- candidateGui pst nb cand missedSem missedLex
     -- generation step 2.A (run polarity stuff)
     let (combos, autstuff, _) = B.preInit initStuff config
     -- automata tab
     let (auts, finalaut, _) = autstuff
     autTab <- if polarised config 
-              then polarityGui nb auts finalaut
+              then fst3 `liftM` polarityGui nb auts finalaut
               else messageGui nb "polarities disabled"
     -- basic tabs 
     let basicTabs = tab "lexical selection" canTab :
