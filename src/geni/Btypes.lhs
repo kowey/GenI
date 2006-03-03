@@ -102,8 +102,6 @@ data Ttree a = TT
   , pidname :: String
   , pfeat :: Flist
   , ptype :: Ptype
-  -- optional this semantics is only used during XMG selection
-  , psemantics :: Sem
   , tree :: Tree a } 
   deriving Show
 
@@ -120,7 +118,6 @@ emptyMacro = TT { params  = [],
                   pidname = "", 
                   pfamily = "",
                   pfeat = [],
-                  psemantics = [],
                   ptype = Unspecified,
                   tree  = Node emptyGNode []
                  }

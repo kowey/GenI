@@ -65,14 +65,14 @@ import Btypes (Macros, MTtree, ILexEntry, Lexicon,
                glexeme, 
                sortSem, subsumeSem, params, 
                showLexeme,
-               pidname, pfamily, pfeat, ptype, psemantics,
+               pidname, pfamily, pfeat, ptype,
                setLexeme, tree, unifyFeat)
 
 import Statistics (Statistics)
 import Tags (Tags, TagElem, emptyTE, TagSite, 
              idname, ttreename,
              ttype, tsemantics, ttree, tsempols,
-             tinterface, tpolarities, substnodes, adjnodes, 
+             tinterface, substnodes, adjnodes,
              setTidnums) 
 
 import Configuration
@@ -83,7 +83,7 @@ import Configuration
 
 import qualified Builder as B
 
-import GeniParsers (geniMacros, 
+import GeniParsers (geniMacros, geniTagElems,
                     geniLexicon, geniTestSuite, geniSemanticInput, 
                     geniMorphInfo)
 import Morphology
@@ -673,7 +673,7 @@ runXMGAnchoring pst lexCand =
      -- run the selector module
      let fil  = concat $ zipWith lexEntryToFil lexCand [1..]
      selected <- runSelector pst gramfile fil
-     let parsed = runParser geniMacros () "" selected 
+     let parsed = runParser geniTagElems () "" selected
      case parsed of 
        Left err -> fail (show err) 
        Right gr -> return (map fixateXMG gr)
@@ -764,28 +764,22 @@ lexEntryToFil lex n =
     ++ ")\n\n"
 \end{code}
 
-\paragraph{fixateXMG} is similar to \fnref{combineOne} except that we assume
-the tree is completely anchored and instatiated and that thus there no boring
+\paragraph{fixateXMG} is similar to \fnref{combineOne} except that we are
+working with fully anchored and instantiated TagElems.  There is no boring
 unification or checks to worry about.
 
 \begin{code}
-fixateXMG :: MTtree -> TagElem
+fixateXMG :: TagElem -> TagElem
 fixateXMG e = 
-  let tree_   = Btypes.tree e
+  let tree_   = ttree e
       (snodes,anodes) = detectSites tree_
       -- for display purposes, get the list of lexemes in the tree
       lexemes = map (head.glexeme) $ filterTree (not.null.glexeme) tree_ 
       lexstr  = concat $ intersperse "-" $ lexemes
-  in emptyTE { idname = lexstr ++ "_" ++ pidname e 
-             , ttreename = pidname e
-             , ttype  = ptype e
-             , ttree  = tree_
-             , substnodes = snodes
-             , adjnodes   = anodes
-             , tsemantics = psemantics e
-             , tpolarities = Map.empty
-             , tsempols    = [] -- isempols lexitem
-             , tinterface  = pfeat e }
+      origIdname = idname e
+  in e { idname = lexstr ++ "_" ++ origIdname
+       , substnodes = snodes
+       , adjnodes   = anodes }
 \end{code}
 
 % --------------------------------------------------------------------

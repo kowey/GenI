@@ -31,11 +31,15 @@ module GeniParsers (
   -- lexicons
   geniLexicon, geniMorphInfo,
   -- polarities
-  geniPolarities
+  geniPolarities,
+  -- TagElem,
+  geniTagElems,
 ) where
 
 import General ((!+!), Interval, ival)
 import Btypes 
+import Tags (TagElem(..), emptyTE)
+import Control.Monad (liftM)
 import Data.List (sort)
 import qualified Data.Map  as Map 
 import qualified Data.Tree as T
@@ -187,6 +191,8 @@ geniLexicalEntry =
 
 \section{Trees}
 
+\subsection{Macros}
+
 A macro library is basically a list of trees.
 
 Trees may be defined individually or in anonymous groups.  Definining a
@@ -214,8 +220,9 @@ geniTreeGroup =
          t <- sepEndBy (try $ geniTreeDef $ option gtype key) whiteSpace
          symbol "end"  ; key 
          return t
-    initType = try $ do { symbol "initial"  ; return Initial  }
-    auxType  = try $ do { symbol "auxiliary"; return Auxiliar }
+
+initType = try $ do { symbol "initial"  ; return Initial  }
+auxType  = try $ do { symbol "auxiliary"; return Auxiliar }
 \end{code}
 
 \subsection{Tree definitions}
@@ -236,12 +243,10 @@ geniTreeDef ttypeP =
      (params,iface)   <- geniParams 
      ttype    <- ttypeP
      theTree  <- geniTree
-     sem <- option [] $ try $ do { keywordSemantics; squares geniSemantics }
      --
      return TT{ params = params 
               , pfamily = family
               , pidname = id
-              , psemantics = sem
               , pfeat = iface 
               , ptype = ttype 
               , tree = theTree
@@ -323,6 +328,41 @@ geniNode =
          whiteSpace; symbol "!"
          bot <- geniFeats <?> "bot features"
          return (top,bot)
+\end{code}
+
+\subsection{TagElem}
+
+For debugging purposes, it is often useful to be able to read TagElem's
+directly.  Note that this shares a lot of code with the macros above.
+Hopefully, it is reasonably refactored.
+
+FIXME: note that this is very rudimentary; we do not set id numbers,
+parse polarities, or detect the subst and anodes.  You'll have to call
+some of our helper functions if you want that functionality.
+
+\begin{code}
+geniTagElems :: Parser [TagElem]
+geniTagElems =
+ do whiteSpace
+    tt <- sepBy geniTagElem whiteSpace
+    eof
+    return tt
+
+geniTagElem :: Parser TagElem
+geniTagElem =
+ do family   <- identifier
+    id       <- option "" $ do { colon; identifier }
+    iface    <- (snd `liftM` geniParams) <|> geniFeats
+    theType  <- initType <|> auxType
+    theTree  <- geniTree
+    sem      <- do { keywordSemantics; squares geniSemantics }
+    --
+    return $ emptyTE { idname = id
+                     , ttreename = family
+                     , tinterface = iface
+                     , ttype  = theType
+                     , ttree = theTree
+                     , tsemantics = sem }
 \end{code}
 
 \section{Polarities}
