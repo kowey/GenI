@@ -245,7 +245,7 @@ ckyCandidateGui pst f xs missedSem missedLex job = do
   nextBt <- button p [ text := "Continue" ]
   let disableW w = set w [ enabled := False ]
   set nextBt [ on command := do mapM disableW [ saveBt, loadBt, nextBt ]
-                                job xs ]
+                                varGet candV >>= job ]
   --
   let lay = fill $ container p $ column 5
             [ fill tb, hfill (vrule 1)
