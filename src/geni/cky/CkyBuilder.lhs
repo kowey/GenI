@@ -214,6 +214,8 @@ data CkyItem = CkyItem
   , ciPolpaths   :: BitVector
   , ciSemantics  :: BitVector
   , ciAdjPoint   :: Maybe ChartId
+  -- | the semantics of the item when it was first initialised
+  , ciInitialSem :: BitVector
   -- | unique identifier for this item
   , ciId         :: ChartId
   -- names of the sisters of this node in its tree
@@ -299,7 +301,8 @@ initTree :: SemBitMap -> (TagElem,BitVector) -> [CkyItem]
 initTree bmap tepp@(te,_) =
   let semVector    = semToBitVector bmap (tsemantics te)
       createItem l n = (leafToItem l tepp n)
-       { ciSemantics = semVector
+       { ciSemantics  = semVector
+       , ciInitialSem = semVector
        , ciSemBitMap = bmap
        , ciRouting   = decompose te
        , ciVariables = map GVar $ Set.toList $ collect te Set.empty }
@@ -320,6 +323,7 @@ leafToItem left (te,pp) node = CkyItem
   , ciSourceTree = te
   , ciPolpaths   = pp
   , ciSemantics  = 0  -- to be set
+  , ciInitialSem = 0  -- to be set
   , ciId         = -1 -- to be set
   , ciRouting    = Map.empty -- to be set
   , ciOrigVariables = [] -- to be set
@@ -444,7 +448,7 @@ nonAdjunctionRule item _ =
                       , ciDerivation = [ NullAdjOp $ ciId item ] } ]
 
 -- | CKY parent rule
-kidsToParentRule item chart | relevant item =
+kidsToParentRule item chart | ready item =
  do (leftS,rightS,p)  <- Map.lookup (gnname node) (ciRouting item)
     let mergePoints kids =
          case mapMaybe ciAdjPoint (item:kids) of
@@ -481,8 +485,10 @@ kidsToParentRule item chart | relevant item =
    node     = ciNode item
    sourceOf = tidnum.ciSourceTree
    --
-   relevant c =
-     (sourceOf c == sourceOf item) && (not $ ciSubs c) && ciAdjDone c && (compatible c item)
+   ready c    = (not $ ciSubs c) && ciAdjDone c
+   relevant c = (sourceOf c == sourceOf item) && ready c
+                -- make sure the semantics only overlap in the initial parts
+                && (ciSemantics c) .&. (ciSemantics item) == (ciInitialSem item)
    relChart = filter relevant chart
    --
    matches :: String -> [CkyItem]
