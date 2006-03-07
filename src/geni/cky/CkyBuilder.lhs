@@ -74,7 +74,7 @@ import Builder
   ( SentenceAut, incrCounter, num_iterations, chart_size,
     SemBitMap, semToBitVector, bitVectorToSem, defineSemanticBits,
   )
-import Configuration ( Params, setChartsharing )
+import Configuration ( Params, setChartsharing, orderedsubs )
 import General
   ( combinations, treeLeaves, BitVector, geniBug )
 import Polarity
@@ -204,8 +204,6 @@ addToTrash item err = do
 \begin{code}
 data CkyItem = CkyItem
   { ciNode       :: GNode
-  -- if there is really nothing more than needs to be done to this node
-  , ciComplete   :: Bool
   -- things which should never change
   , ciSourceTree    :: TagElem
   , ciOrigVariables :: [GeniVal]
@@ -219,6 +217,8 @@ data CkyItem = CkyItem
   , ciId         :: ChartId
   -- names of the sisters of this node in its tree
   , ciRouting    :: RoutingMap
+  -- used by the next leaf rule (if active)
+  , ciPayload    :: [CkyItem]
   -- variable replacements to accumulate
   , ciSubsts     :: Subst -- do we actually need this if we have ciVariables?
   -- a list of genivals which were variables when the node was
@@ -251,6 +251,7 @@ ciRoot  i = (gnname.ciNode) i == (gnname.root.ttree.ciSourceTree) i
 ciFoot  i = (gtype.ciNode) i == Foot
 ciSubs  i = (gtype.ciNode) i == Subs
 ciAdjDone   = gaconstr.ciNode
+ciComplete i = (not.ciSubs $ i) && ciAdjDone i
 ciAux   i = (ttype.ciSourceTree) i == Auxiliar
 ciInit = not.ciAux
 
@@ -278,13 +279,14 @@ initBuilder :: B.Input -> Params -> (CkyStatus, Statistics)
 initBuilder input config =
   let (sem, _) = B.inSemInput input
       bmap  = defineSemanticBits sem
-      cands = concatMap (initTree bmap) $ B.inCands input
+      hasOs = orderedsubs config
+      cands = concatMap (initTree hasOs bmap) $ B.inCands input
       initS = S
        { theAgenda  = []
        , theChart = []
        , theTrash = []
        , theResults = []
-       , theRules = map fst ckyRules
+       , theRules = map fst (if hasOs then ckyRules2 else ckyRules)
        , tsemVector    = semToBitVector bmap sem
        , gencounter    = 0
        , genAutCounter = 0
@@ -294,10 +296,11 @@ initBuilder input config =
 \end{code}
 
 \subsection{Initialising a chart item}
+\label{fn:cky:initTree}
 
 \begin{code}
-initTree :: SemBitMap -> (TagElem,BitVector) -> [CkyItem]
-initTree bmap tepp@(te,_) =
+initTree :: Bool -> SemBitMap -> (TagElem,BitVector) -> [CkyItem]
+initTree ordered bmap tepp@(te,_) =
   let semVector    = semToBitVector bmap (tsemantics te)
       createItem l n = (leafToItem l tepp n)
        { ciSemantics  = semVector
@@ -307,7 +310,10 @@ initTree bmap tepp@(te,_) =
        , ciVariables = map GVar $ Set.toList $ collect te Set.empty }
       --
       (left,right) = span (\n -> gtype n /= Foot) $ treeLeaves $ ttree te
-  in map (createItem True) left  ++ map (createItem False) right
+      items = map (createItem True) left  ++ map (createItem False) right
+  in if ordered
+     then foldr (\i p -> [i { ciPayload = p }]) [] items
+     else items
 
 leafToItem :: Bool
            -- ^ is it on the left of the foot node? (yes if there is none)
@@ -318,7 +324,6 @@ leafToItem :: Bool
            -> CkyItem
 leafToItem left (te,pp) node = CkyItem
   { ciNode       = node
-  , ciComplete   = False -- (not $ gtype ==
   , ciSourceTree = te
   , ciPolpaths   = pp
   , ciSemantics  = 0  -- to be set
@@ -327,6 +332,7 @@ leafToItem left (te,pp) node = CkyItem
   , ciRouting    = Map.empty -- to be set
   , ciOrigVariables = [] -- to be set
   , ciVariables     = [] -- to be set
+  , ciPayload       = [] -- to be set
   , ciAdjPoint   = Nothing
   , ciSubsts     = []
   , ciSemBitMap  = Map.empty
@@ -382,9 +388,8 @@ generateStep2 =
      agendaItem <- selectAgendaItem
      -- try the inference rules
      let chart = theChart st
-         apply (rule, _) =
-           rule agendaItem chart
-         results = map apply ckyRules
+         apply rule = rule agendaItem chart
+         results = map apply (theRules st)
      -- put all newly generated items into the right pigeon-holes
      -- trace (concat $ zipWith showRes ckyRules results) $
      mapM dispatchNew (concat $ catMaybes results)
@@ -428,13 +433,15 @@ instance Show CKY_InferenceRule where
 % FIXME: diagram and comment
 
 \begin{code}
-ckyRules :: [ (CKY_InferenceRule, String) ]
+ckyRules, ckyRules2 :: [ (CKY_InferenceRule, String) ]
 ckyRules =
  [ (kidsToParentRule, "kidsToP")
  , (substRule       , "subst")
  , (nonAdjunctionRule, "nonAdj")
  , (activeAdjunctionRule, "actAdjRule")
  , (passiveAdjunctionRule, "psvAdjRule") ]
+
+ckyRules2 = (nextLeafRule, "nextLeaf") : ckyRules
 
 -- | CKY non adjunction rule - creates items in which
 -- we do not apply any adjunction
@@ -447,7 +454,7 @@ nonAdjunctionRule item _ =
                       , ciDerivation = [ NullAdjOp $ ciId item ] } ]
 
 -- | CKY parent rule
-kidsToParentRule item chart | ready item =
+kidsToParentRule item chart | ciComplete item =
  do (leftS,rightS,p)  <- Map.lookup (gnname node) (ciRouting item)
     let mergePoints kids =
          case mapMaybe ciAdjPoint (item:kids) of
@@ -470,6 +477,7 @@ kidsToParentRule item chart | ready item =
                , ciVariables = fst newVars
                , ciTreeSide     = newSide
                , ciDerivation   = [ KidsToParentOp $ map ciId kids ]
+               , ciPayload      = []
                }
           return $ foldr combineVectors newItem kids
     --
@@ -484,8 +492,7 @@ kidsToParentRule item chart | ready item =
    node     = ciNode item
    sourceOf = tidnum.ciSourceTree
    --
-   ready c    = (not $ ciSubs c) && ciAdjDone c
-   relevant c = (sourceOf c == sourceOf item) && ready c
+   relevant c = (sourceOf c == sourceOf item) && ciComplete c
                 -- make sure the semantics only overlap in the initial parts
                 && (ciSemantics c) .&. (ciSemantics item) == (ciInitialSem item)
    relChart = filter relevant chart
@@ -494,6 +501,34 @@ kidsToParentRule item chart | ready item =
    matches sis = [ c | c <- relChart, (gnname.ciNode) c == sis ]
 kidsToParentRule _ _ = Nothing -- if this rule is not applicable to the item at hand
 \end{code}
+
+\subsection{Next leaf rule (optional)}
+
+The next leaf rule is not in the CKY per se.  It is sort of inspired
+from the Earley algorithm and what we use in SimpleBuilder.  The idea is
+that we to perform substitutions in a fixed order so that we avoid
+generating a lot of useless chart items that aren't going to be used in
+a final result anyway.
+
+We implement this in two places.  In the initialisation phase, (page
+\pageref{fn:cky:initTree}), we avoid placing all the leaf items onto the
+agenda.  Instead, we make each leaf node point to the next leaf, as
+with a singly linked list, and put the head of that list on the agenda.
+The second part of this is implemented below as an inference rule which
+takes only complete items (i.e. items for which there is no need to
+perform substitution) and releases their payload.
+
+\begin{code}
+nextLeafRule item _ | ciComplete item = listAsMaybe $ ciPayload item
+nextLeafRule _ _ = Nothing
+\end{code}
+
+Note that in order for this to work, we also had to introduce a
+restriction into chart item merging (page \pageref{sec:cky:merging})
+that no two items may merge if they are not complete in the same sense
+as this inference rule.  Otherwise, we'd have to think find a way to
+make sure that payloads get released correctly (which might not be as
+hard as I first thought).
 
 \subsection{Substitution}
 
@@ -527,7 +562,7 @@ compatibleForSubstitution :: CkyItem -- ^ active item
                           -> CkyItem -- ^ passive item
                           -> Bool
 compatibleForSubstitution a p =
-  ciRoot a && ciAdjDone a && ciInit a
+  ciRoot a && ciComplete a && ciInit a
   && ciSubs p
   && compatible a p
 \end{code}
@@ -756,6 +791,7 @@ tbUnify item =
 
 % --------------------------------------------------------------------
 \subsection{Equivalence classes}
+\label{sec:cky:merging}
 % --------------------------------------------------------------------
 
 \fnlabel{canMerge} returns true if two chart items are allowed to merge.
@@ -764,9 +800,8 @@ would complicate things like the right sister rule.
 
 \begin{code}
 canMerge :: CkyItem -> CkyItem -> Bool
-canMerge c1 c2 = ready c1 && ready c2 && stuff c1 == stuff c2
-  where ready x = (not.ciSubs) x && ciAdjDone x
-        stuff x = ( ciNode x, ciSourceTree x, ciSemantics x, ciPolpaths x )
+canMerge c1 c2 = ciComplete c1 && ciComplete c2 && stuff c1 == stuff c2
+  where stuff x = ( ciNode x, ciSourceTree x, ciSemantics x, ciPolpaths x )
 \end{code}
 
 \fnlabel{mergeItems} combines two chart items into one, with the

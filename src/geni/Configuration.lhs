@@ -25,6 +25,7 @@ module Configuration
   ( Params(..), GrammarType(..), BuilderType(..), Switch(..)
   , polarised, polsig, predicting
   , semfiltered, chartsharing, footconstr
+  , orderedsubs
   , isBatch, emptyParams
   , setChartsharing
   , treatArgs, optBatch
@@ -121,6 +122,7 @@ predicting   p = PredictingTok   `elem` (optimisations p)
 semfiltered  p = SemFilteredTok  `elem` (optimisations p)
 chartsharing p = ChartSharingTok `elem` (optimisations p)
 footconstr   p = FootConstraintTok `elem` (optimisations p)
+orderedsubs  p = OrderedSubTok     `elem` (optimisations p)
 isBatch      p = BatchTok          `elem` (optimisations p)
 
 setChartsharing :: Bool -> Params -> Params
@@ -189,6 +191,7 @@ data Switch =
     PolarisedTok | PolSigTok  | PredictingTok | ChartSharingTok |
     ExtraPolaritiesTok String |
     FootConstraintTok         | SemFilteredTok | OrderedAdjTok |  
+    OrderedSubTok {- cky only -} |
     BatchTok | RepeatTok String | 
     -- the WeirdTok exists strictly to please OS X when you launch
     -- GenI in an application bundle (double-click)... for some
@@ -271,12 +274,13 @@ concise form what optimisations she used.
 optimisationCodes :: [(Switch,String,String)]
 optimisationCodes = 
  [ (PolarisedTok   , "p",      "polarity filtering")
- , (PolOptsTok  , "pol",    "equivalent to 'p a c'")
+ , (PolOptsTok  , "pol",    "equivalent to 'p Oa c'")
  , (AdjOptsTok  , "adj",    "equivalent to 'S F'")
  , (PolSigTok      , "s",      "polarity signatures")
  , (ChartSharingTok, "c",      "chart sharing")
  , (SemFilteredTok , "S",      "semantic filtering")
- , (OrderedAdjTok  , "O",      "ordered adjunction (by node)")
+ , (OrderedAdjTok  , "Oa",      "ordered adjunction (by node)")
+ , (OrderedSubTok  , "Os",      "ordered substitution (cky only)")
  , (FootConstraintTok,    "F", "foot constraints")
  , (BatchTok,          "batch", "batch processing") ]
 \end{code}
