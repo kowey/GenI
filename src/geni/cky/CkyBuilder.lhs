@@ -691,14 +691,14 @@ dispatchToAgenda item =
    do addToAgenda item
       return Nothing
 
--- | If the item is equivalent to another, merge it with the equivalent
+-- | If the item can merge with another, merge it with the equivalent
 --   item and return Nothing.
 --   If the item is indeed unique, return (Just $ setId item)
 dispatchRedundant item =
   do st <- get
      let chart = theChart st
          mergeEquivItems o =
-           let isEq = o `equivalent` item
+           let isEq = canMerge o item
            in  (isEq, if isEq then mergeItems o item else o)
          (isEq, newChart) = unzip $ map mergeEquivItems chart
      --
@@ -758,18 +758,20 @@ tbUnify item =
 \subsection{Equivalence classes}
 % --------------------------------------------------------------------
 
-\fnlabel{equivalent} returns true if two chart items are equivalent.
-Note that this is not the same thing as equality!
+\fnlabel{canMerge} returns true if two chart items are allowed to merge.
+We do not allow items to merge when they are not "complete", because that
+would complicate things like the right sister rule.
 
 \begin{code}
-equivalent :: CkyItem -> CkyItem -> Bool
-equivalent c1 c2 = stuff c1 == stuff c2
-  where stuff x = ( ciNode x, ciSourceTree x, ciSemantics x, ciPolpaths x )
+canMerge :: CkyItem -> CkyItem -> Bool
+canMerge c1 c2 = ready c1 && ready c2 && stuff c1 == stuff c2
+  where ready x = (not.ciSubs) x && ciAdjDone x
+        stuff x = ( ciNode x, ciSourceTree x, ciSemantics x, ciPolpaths x )
 \end{code}
 
 \fnlabel{mergeItems} combines two chart items into one, with the
-assumption being that you have already determined that they are
-equivalent.  Information from the second ``slave'' item is merged
+assumption being that you have already determined that they can be
+merged.  Information from the second ``slave'' item is merged
 into information from the first ``master'' item.
 
 \begin{code}
