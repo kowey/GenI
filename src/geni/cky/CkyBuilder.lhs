@@ -89,7 +89,7 @@ import Tags
 -- import Data.List ( intersperse )
 -- import Debug.Trace
 -- import General ( showBitVector )
--- import Tag ( idname )
+-- import Tags ( idname )
 --
 -- ckyShow name item chart =
 --   let showChart = show $ length chart
@@ -100,10 +100,9 @@ import Tags
 --        , pad (showItemSem item) 5
 --        , show $ ciNode item ]
 --
--- -- showItems = unlines . (map showItem)
+-- showItems = unlines . (map showItem)
 -- showItem i = (idname.ciSourceTree) i ++ " " ++ show (ciNode i) ++ " " ++  (showItemSem i)
---
--- showItemSem = (showBitVector 3) . ciSemantics
+-- showItemSem = (showBitVector 5) . ciSemantics
 \end{code}
 }
 
