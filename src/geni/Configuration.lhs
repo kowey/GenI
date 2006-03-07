@@ -373,7 +373,7 @@ defineParams p (f:s) = defineParams pnext s
         Right p2 -> p2
     pnext = case f of 
       GraphicalTok v     -> p {isGraphical = v}
-      OptimisationsTok v -> p {optimisations = readOpt v } 
+      OptimisationsTok v -> p {optimisations = readOpt v ++ (optimisations p)}
       OutputFileTok v    -> p {outputFile = v}
       -- grammar stuff
       MacrosTok    v -> p {macrosFile  = v}
