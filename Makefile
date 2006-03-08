@@ -110,7 +110,7 @@ SOURCE_HSPP  := $(SOURCE_HSPP_1) $(SOURCE_HSPP_2)
 .PHONY: all nogui dep clean docs html release optimize\
        	permissions install\
 	extractor\
-	haddock
+	tags haddock
 
 # --------------------------------------------------------------------
 # main targets
@@ -150,6 +150,11 @@ $(config_file):
 	chmod u+x configure
 	@echo >&2 "Please run ./configure to setup the build system."
 	@exit 1
+
+tags:
+	hasktags -c $(SOURCE_FILES)
+	sort $@ > $@.tmp
+	mv $@.tmp $@
 
 # --------------------------------------------------------------------
 # compilation
