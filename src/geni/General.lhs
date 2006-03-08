@@ -27,6 +27,7 @@ where
 
 \ignore{
 \begin{code}
+import Control.Monad (liftM2)
 import Data.Bits (shiftR, (.&.))
 import Data.Char (isSpace, toUpper, toLower)
 import Data.List (intersect, groupBy, group, sort, intersperse)
@@ -138,20 +139,12 @@ groupAndCount xs =
   where grouped = (group.sort) xs
 \end{code}
 
-\fnlabel{combinations} given a list of lists, returns all lists such that one item
-from each sublist is chosen.  If there are empty sublists, this returns
-Nothing
-
 \begin{code}
-combinations :: [[a]] -> Maybe [[a]]
-combinations []     = Just []
-combinations ([]:_) = Nothing
-combinations (h:t)  = 
-  do next <- combinations t
-     let attachH n = map (:n) h
-     return $ case next of 
-              []    -> attachH []
-              next2 -> concatMap attachH next2 
+-- Given a list of lists, return all lists such that one item from each sublist is chosen.
+-- If returns the empty list if there are any empty sublists.
+combinations :: [[a]] -> [[a]]
+combinations []     = [[]]
+combinations (hs:t) = liftM2 (:) hs (combinations t)
 \end{code}
 
 \section{Trees}

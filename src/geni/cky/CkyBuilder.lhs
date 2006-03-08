@@ -54,7 +54,7 @@ import Data.Bits ( (.&.), (.|.) )
 import Data.List ( delete, find, span, (\\) )
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-import Data.Maybe (catMaybes, mapMaybe)
+import Data.Maybe (catMaybes, mapMaybe, maybeToList)
 import Data.Tree
 
 import Btypes
@@ -396,7 +396,7 @@ generateStep2 =
                    then ciPayload agendaItem else []
      -- put all newly generated items into the right pigeon-holes
      -- trace (concat $ zipWith showRes ckyRules results) $
-     mapM dispatchNew $ payload ++ (concat $ catMaybes results)
+     mapM dispatchNew $ payload ++ (concat results)
      addToChart agendaItem
      incrCounter num_iterations 1
      return ()
@@ -419,14 +419,10 @@ Our surface realiser is defined by a set of inference rules.  Since we are
 using an agenda-based algorithm, we define our inference rules to take two
 arguments: the agenda item and the entire chart.  It is up to the inference
 rule to filter the chart for the items which can combine with the agenda item.
-
-Inference rules may return \verb!Nothing! to indicate failure -- for example,
-the rule does not apply to the current agenda item -- or \verb!Just! with a
-list of new items.  Of course, the list could also be empty, but that doesn't
-neccesarily mean that the rule failed to apply.
+If a rule is not applicable, it should simply return the empty list.
 
 \begin{code}
-type InferenceRule a = a -> [a] -> Maybe [a]
+type InferenceRule a = a -> [a] -> [a]
 type CKY_InferenceRule = InferenceRule CkyItem
 
 instance Show CKY_InferenceRule where
@@ -450,10 +446,10 @@ ckyRules =
 nonAdjunctionRule item _ =
   let node  = ciNode item
       node2 = node { gaconstr = True }
-  in if gtype node /= Other || ciAdjDone item then Nothing
-     else Just [ item { ciNode = node2
-                      , ciPayload = []
-                      , ciDerivation = [ NullAdjOp $ ciId item ] } ]
+  in if gtype node /= Other || ciAdjDone item then []
+     else [ item { ciNode = node2
+                 , ciPayload = []
+                 , ciDerivation = [ NullAdjOp $ ciId item ] } ]
 
 -- | CKY parent rule
 kidsToParentRule item chart | ciComplete item =
@@ -463,8 +459,8 @@ kidsToParentRule item chart | ciComplete item =
           []  -> Nothing
           [x] -> Just x
           _   -> error "multiple adjunction points in kidsToParentRule?!"
-    let combine kids = do
-          let unifyOnly (x, _) y = unify x y
+        combine p kids = do
+          let unifyOnly (x, _) y = maybeToList $ unify x y
           newVars <- foldM unifyOnly (ciVariables item,[]) $
                      map ciVariables kids
           let newSubsts = concatMap ciSubsts (item:kids)
@@ -482,14 +478,13 @@ kidsToParentRule item chart | ciComplete item =
                , ciPayload      = []
                }
           return $ foldr combineVectors newItem kids
-    --
     let leftMatches  = map matches leftS
         rightMatches = map matches rightS
         allMatches = leftMatches ++ ([item] : rightMatches)
     -- trace (" relevant chart: (" ++ (show $ length relChart) ++ ") " ++ showItems relChart) $
     -- trace (" routing info: " ++ show (s,p,r)) $
     -- trace (" matches: (" ++ (show $ length allMatches) ++ ") " ++ (concat $ intersperse "-\n" $ map showItems allMatches)) $
-    combinations allMatches >>= listAsMaybe . mapMaybe combine
+    combinations allMatches >>= combine p
  where
    node     = ciNode item
    sourceOf = tidnum.ciSourceTree
@@ -501,7 +496,7 @@ kidsToParentRule item chart | ciComplete item =
    --
    matches :: String -> [CkyItem]
    matches sis = [ c | c <- relChart, (gnname.ciNode) c == sis ]
-kidsToParentRule _ _ = Nothing -- if this rule is not applicable to the item at hand
+kidsToParentRule _ _ = [] -- if this rule is not applicable to the item at hand
 \end{code}
 
 \subsection{Substitution}
@@ -513,7 +508,7 @@ substitution on something.
 
 \begin{code}
 -- | CKY subst rules
-substRule item chart = listAsMaybe $ catMaybes $
+substRule item chart = catMaybes $
   if ciSubs item
   then [ attemptSubst item r | r <- chart, compatibleForSubstitution r item ]
   else [ attemptSubst s item | s <- chart, compatibleForSubstitution item s ]
@@ -558,15 +553,15 @@ to be able to receive adjunction and not just perform it!
 -- to adjoin into the root of an auxiliary tree, and the active variant because
 -- it is an aux tree itself and it wants to adjoin somewhere
 activeAdjunctionRule item chart | ciRoot item && ciAux item =
- listAsMaybe $ mapMaybe (\p -> attemptAdjunction p item)
-               [ p | p <- chart, compatibleForAdjunction item p ]
-activeAdjunctionRule _ _ = Nothing -- if not applicable
+ mapMaybe (\p -> attemptAdjunction p item)
+   [ p | p <- chart, compatibleForAdjunction item p ]
+activeAdjunctionRule _ _ = [] -- if not applicable
 
 -- | CKY adjunction rule: we're just a regular node, minding our own business
 -- looking for an auxiliary tree to adjoin into us
 passiveAdjunctionRule item chart =
- listAsMaybe $ mapMaybe (attemptAdjunction item)
-               [ a | a <- chart, compatibleForAdjunction a item ]
+ mapMaybe (attemptAdjunction item)
+   [ a | a <- chart, compatibleForAdjunction a item ]
 
 attemptAdjunction :: CkyItem -> CkyItem -> Maybe CkyItem
 attemptAdjunction pItem aItem | ciRoot aItem && ciAux aItem =
@@ -628,19 +623,6 @@ combineWith operation node subst active passive =
           , ciPayload      = []
           , ciVariables = replace subst (ciVariables passive)
           , ciDerivation   = [ operation (ciId active) (ciId passive) ] }
-\end{code}
-
-\label{fn:listAsMaybe}
-Officially, we make a distinction between an inference rule
-which returns \verb!Nothing! and \verb!Just []!, but for most of the rules,
-when we notice that we are about to return \verb!Just []!, we simply return
-\verb!Nothing!  instead.  (FIXME: are there exceptions to this?)
-
-\begin{code}
--- note: not the same as Data.Maybe.listToMaybe !
-listAsMaybe :: [a] -> Maybe [a]
-listAsMaybe [] = Nothing
-listAsMaybe l  = Just l
 \end{code}
 
 \paragraph{unifyTagNodes} performs feature structure unification
