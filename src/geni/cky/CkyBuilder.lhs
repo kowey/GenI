@@ -286,7 +286,7 @@ initBuilder input config =
        , theChart = []
        , theTrash = []
        , theResults = []
-       , theRules = map fst (if hasOs then ckyRules2 else ckyRules)
+       , theRules = map fst ckyRules
        , tsemVector    = semToBitVector bmap sem
        , gencounter    = 0
        , genAutCounter = 0
@@ -390,10 +390,13 @@ generateStep2 =
      let chart = theChart st
          apply rule = rule agendaItem chart
          results = map apply (theRules st)
+         -- see comments below about ordered substitution
+         releasePayload = not (null results) || ciComplete agendaItem
+         payload = if releasePayload && (orderedsubs $ genconfig st)
+                   then ciPayload agendaItem else []
      -- put all newly generated items into the right pigeon-holes
      -- trace (concat $ zipWith showRes ckyRules results) $
-     mapM dispatchNew (concat $ catMaybes results)
-     --
+     mapM dispatchNew $ payload ++ (concat $ catMaybes results)
      addToChart agendaItem
      incrCounter num_iterations 1
      return ()
@@ -433,15 +436,13 @@ instance Show CKY_InferenceRule where
 % FIXME: diagram and comment
 
 \begin{code}
-ckyRules, ckyRules2 :: [ (CKY_InferenceRule, String) ]
+ckyRules :: [ (CKY_InferenceRule, String) ]
 ckyRules =
  [ (kidsToParentRule, "kidsToP")
  , (substRule       , "subst")
  , (nonAdjunctionRule, "nonAdj")
  , (activeAdjunctionRule, "actAdjRule")
  , (passiveAdjunctionRule, "psvAdjRule") ]
-
-ckyRules2 = (nextLeafRule, "nextLeaf") : ckyRules
 
 -- | CKY non adjunction rule - creates items in which
 -- we do not apply any adjunction
@@ -451,6 +452,7 @@ nonAdjunctionRule item _ =
       node2 = node { gaconstr = True }
   in if gtype node /= Other || ciAdjDone item then Nothing
      else Just [ item { ciNode = node2
+                      , ciPayload = []
                       , ciDerivation = [ NullAdjOp $ ciId item ] } ]
 
 -- | CKY parent rule
@@ -501,34 +503,6 @@ kidsToParentRule item chart | ciComplete item =
    matches sis = [ c | c <- relChart, (gnname.ciNode) c == sis ]
 kidsToParentRule _ _ = Nothing -- if this rule is not applicable to the item at hand
 \end{code}
-
-\subsection{Next leaf rule (optional)}
-
-The next leaf rule is not in the CKY per se.  It is sort of inspired
-from the Earley algorithm and what we use in SimpleBuilder.  The idea is
-that we to perform substitutions in a fixed order so that we avoid
-generating a lot of useless chart items that aren't going to be used in
-a final result anyway.
-
-We implement this in two places.  In the initialisation phase, (page
-\pageref{fn:cky:initTree}), we avoid placing all the leaf items onto the
-agenda.  Instead, we make each leaf node point to the next leaf, as
-with a singly linked list, and put the head of that list on the agenda.
-The second part of this is implemented below as an inference rule which
-takes only complete items (i.e. items for which there is no need to
-perform substitution) and releases their payload.
-
-\begin{code}
-nextLeafRule item _ | ciComplete item = listAsMaybe $ ciPayload item
-nextLeafRule _ _ = Nothing
-\end{code}
-
-Note that in order for this to work, we also had to introduce a
-restriction into chart item merging (page \pageref{sec:cky:merging})
-that no two items may merge if they are not complete in the same sense
-as this inference rule.  Otherwise, we'd have to think find a way to
-make sure that payloads get released correctly (which might not be as
-hard as I first thought).
 
 \subsection{Substitution}
 
@@ -651,6 +625,7 @@ combineWith operation node subst active passive =
   combineVectors active $
   passive { ciNode      = node
           , ciSubsts    = (ciSubsts passive) ++ subst
+          , ciPayload      = []
           , ciVariables = replace subst (ciVariables passive)
           , ciDerivation   = [ operation (ciId active) (ciId passive) ] }
 \end{code}
@@ -1101,3 +1076,28 @@ findIdOrBug st id =
    Nothing -> geniBug $ "Cannot find item in chart with id " ++ (show id)
    Just x  -> x
 \end{code}
+
+\section{Optimisations}
+
+\paragraph{Ordered substitution}
+
+The idea is that we to perform substitutions in a fixed order so that we avoid
+generating a lot of useless chart items that aren't going to be used in a final
+result anyway.
+
+We implement this in two places.  In the initialisation phase, (page
+\pageref{fn:cky:initTree}), we avoid placing all the leaf items onto the
+agenda.  Instead, we make each leaf node point to the next leaf, as
+with a singly linked list, and put the head of that list on the agenda.
+The second part of this is implemented below as an inference rule which
+takes only complete items (i.e. items for which there is no need to
+perform substitution) and releases their payload.
+
+Note that in order for this to work, we also had to introduce a
+restriction into chart item merging (page \pageref{sec:cky:merging})
+that no two items may merge if they are not complete in the same sense
+as this inference rule.  Otherwise, we'd have to think find a way to
+make sure that payloads get released correctly (which might not be as
+hard as I first thought).
+
+
