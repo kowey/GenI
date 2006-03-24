@@ -117,14 +117,14 @@ instance GraphvizShowNode (Bool) (GNode, Maybe String) where
        shapeParams = if detailed 
                      then [ shapeRecordParam, filledParam, fillcolorParam ]
                      else [ shapePlaintextParam ]
-       -- content 
-       cat  = if null c then "" else (show.snd.head) c
-              where c = [ av | av <- gup gn, fst av == "cat" ]
+       -- content
+       getVal attr = if null r then "" else (show.snd.head) r
+         where r = [ av | av <- gup gn, fst av == attr ]
+       cat = getVal "cat"
+       idx = getVal "idx"
        lex  = concat $ intersperse "!" $ glexeme gn
-       stub = if (not (null cat || null lex))
-              then cat ++ ":" ++ lex 
-              else cat ++ lex 
-       extra = case (gtype gn) of         
+       stub = concat $ intersperse ":" $ filter (not.null) [ cat, idx, lex ]
+       extra = case (gtype gn) of
                Subs -> "!"
                Foot -> "*"
                _    -> if (gaconstr gn) then "#"   else ""

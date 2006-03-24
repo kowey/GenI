@@ -214,19 +214,23 @@ and any flags which are marked on that node.
 
 \begin{code}
 instance Show GNode where
-  show gn = 
-    let cat  = case gCategory gn of
+  show gn =
+    let getVal attr = if null r then "" else (show.snd.head) r
+         where r = [ av | av <- gup gn, fst av == attr ]
+        --
+        cat  = case gCategory gn of
                Nothing -> []
                Just c  -> show c
+        idx  = getVal "idx"
         lex  = showLexeme $ glexeme gn
-        -- 
-        extra = case (gtype gn) of         
+        --
+        stub = concat $ intersperse ":" $
+               filter (not.null) [ cat, idx, lex ]
+        extra = case (gtype gn) of
                    Subs -> " !"
                    Foot -> " *"
                    _    -> if (gaconstr gn)  then " #"   else ""
-    in if (not (null cat || null lex))
-       then cat ++ ":" ++ lex ++ extra
-       else cat ++ lex ++ extra
+    in stub ++ extra
 
 -- FIXME: will have to think of nicer way - one which involves
 -- unpacking the trees :-(
