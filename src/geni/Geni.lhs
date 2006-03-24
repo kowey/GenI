@@ -447,9 +447,18 @@ runLexSelection pst = {- #SCC "runLexSelection" -}
     -- attach any morphological information to the candidates
     let morphfn  = morphinf pst
         cand2    = attachMorph morphfn tsem cand 
+    -- filter out candidates which have a semantics that does not
+    -- subsume the input semantics
+    --
+    -- this is for XMG tools, actually, because the metagrammar
+    -- could very well INTRODUCE literals into the semantics
+    -- that weren't associated with the lexical entry
+    let subsetSem t = all (`elem` tsem) $ tsemantics t
+        cand3 = filter subsetSem cand2
+    -- FIXME: should we tell the user that we are doing this?
     -- assign ids to each candidate
-    let cand3 =  setTidnums cand2
-    return (cand3, lexCand)
+    let cand4 = setTidnums cand3
+    return (cand4, lexCand)
 \end{code}
 
 \paragraph{chooseLexCand} selects and returns the set of entries from
