@@ -792,11 +792,13 @@ to only those items that contain a certain property, for example, the
 realising an item as a cleft.
 
 The idea is that the user provides an input like
-\verb$restrictors:[cleft:j]$ which means that the lexical selection
-must include exactly one tree with the property cleft:j in its
-interface.  This mechanism works as pre-processing step after
-lexical selection and before polarity automaton construction, in
-conjuction with the ExtraPolarities mechanism.  What we do is
+\verb$restrictors:[cleft:j]$ \footnote{This is completely unrelated to
+Shieber's notion of feature structure restriction \cite{shieber85}}
+which means that the lexical selection must include exactly one tree
+with the property cleft:j in its interface.  This mechanism works as
+pre-processing step after lexical selection and before polarity
+automaton construction, in conjuction with the ExtraPolarities
+mechanism.  What we do is
 
 \begin{enumerate}
 \item Preprocess the lexically selected trees; any tree which has a
@@ -805,9 +807,9 @@ conjuction with the ExtraPolarities mechanism.  What we do is
 \item Add all the restrictions as negative extra polarities (-cleft:j)
 \end{enumerate}
 
-Note: we assume the restrictors and interface are sorted; also, we prefix
-the restrictor polarities with a ``.'' because they are likely to be very
-powerful filters and we would like them to be used first
+Note: we assume the restrictors and interface are sorted; also, we
+prefix the restrictor polarities with a ``.'' because they are likely to
+be very powerful filters and we would like them to be used first.
 
 \begin{code}
 detectRestrictors :: Flist -> Flist -> PolMap 
@@ -829,7 +831,7 @@ showRestrictor = ('.' :) . showAv
 \subsection{Automatic detection}
 
 Automatic detection is not an optimisation in itself, but a means to
-make grammar development with polarities more convenient.  
+make grammar development with polarities more convenient.
 
 \paragraph{Which attributes should we use?} Our detection process looks for
 attributes which are defined on \emph{all} subst and root nodes of the
