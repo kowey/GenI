@@ -66,7 +66,9 @@ and you can just think of $-2n$ as shorthand for $(-2,-2)n$.
 module Polarity(PolAut, AutDebug, PolResult,
                 buildAutomaton,
                 makePolAut,
-                fixPronouns, detectPols, detectPolPaths, prefixRootCat,
+                fixPronouns,
+                detectPolFeatures, detectPols, detectPolPaths,
+                prefixRootCat,
                 declareRestrictors, detectRestrictors,
                 defaultPolPaths,
                 showLite, showLitePm, showPolPaths, showPolPaths',
@@ -829,6 +831,23 @@ showRestrictor = ('.' :) . showAv
 Automatic detection is not an optimisation in itself, but a means to
 make grammar development with polarities more convenient.  
 
+\paragraph{Which attributes should we use?} Our detection process looks for
+attributes which are defined on \emph{all} subst and root nodes of the
+lexically selected items.  Note that this should typically give you the
+\verb!cat! and \verb!idx! polarities.
+
+\begin{code}
+detectPolFeatures :: [TagElem] -> [String]
+detectPolFeatures tes =
+  let nodes :: TagElem -> [Flist]
+      nodes t = (gup.root.ttree $ t) : (map snd3 $ substnodes t)
+      attrs :: Flist -> [String]
+      attrs = map fst
+      theAttributes = map attrs $ map (concat.nodes) $ tes
+  in if null tes then [] else foldr1 intersect theAttributes
+\end{code}
+
+\paragraph{The polarity values}
 First the simplified explanation: we assign every tree with a $-1$ charge for
 every category for every substitution node it has.  Additionally, we assign
 every initial tree with a $+1$ charge for the category of its root node.  So
@@ -888,6 +907,7 @@ detectPols' te =
       oldfm = tpolarities te
   in te { tpolarities = foldr addPol oldfm pols }
 \end{code}
+
 
 \paragraph{prefixRootCat} converts a category like ``s'' into an negative
 polarity like ``cat\_s''.  This is to offset the extra polarity that comes from
