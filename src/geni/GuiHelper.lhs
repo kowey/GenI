@@ -58,7 +58,7 @@ import Automaton (states)
 import qualified Builder as B
 import Builder (queryCounter, num_iterations, chart_size,
     num_comparisons)
-import Polarity (PolAut)
+import Polarity (PolAut, detectPolFeatures)
 import Statistics (Statistics, showFinalStats)
 \end{code}
 }
@@ -82,12 +82,13 @@ candidateGui pst f xs missedSem missedLex = do
   (tb,ref,updater) <- tagViewerGui pst p "lexically selected item" "candidates"
                       $ sectionsBySem xs
   let warningSem = if null missedSem then ""
-                   else "WARNING: no lexical selection for " ++ showSem missedSem ++ "\n"
+                   else "WARNING: no lexical selection for " ++ showSem missedSem
       warningLex = if null missedLex then ""
-                   else "WARNING: '" ++ (concat $ intersperse ", " missedLex) 
+                   else "WARNING: '" ++ (concat $ intersperse ", " missedLex)
                         ++ "' were lexically selected, but are not anchored to"
-                        ++ " any trees\n"
-      warning = warningSem ++ warningLex
+                        ++ " any trees"
+      polFeats = "Polarity attributes detected: " ++ (unwords.detectPolFeatures) xs
+      warning = unlines $ filter (not.null) [ warningSem, warningLex, polFeats ]
       items = if null warning then [ fill tb ] else [ hfill (label warning) , fill tb ]
       lay   = fill $ container p $ column 5 items
   return (lay, ref, updater)
