@@ -170,7 +170,7 @@ switches that we use.
 data GrammarType = GeniHand | TAGML | XMGTools 
      deriving (Show, Eq)
 
-data BuilderType = SimpleBuilder | CkyBuilder
+data BuilderType = NullBuilder | SimpleBuilder | CkyBuilder
      deriving (Show, Eq)
 
 data Switch = 
@@ -384,6 +384,7 @@ defineParams p (f:s) = defineParams pnext s
       LexiconTok   v -> p {lexiconFile = v} 
       TestSuiteTok v -> p {tsFile = v}
       -- builders
+      BuilderTok "null"   -> p { builderType = NullBuilder }
       BuilderTok "cky"    -> p { builderType = CkyBuilder }
       BuilderTok "simple" -> p { builderType = SimpleBuilder }
       BuilderTok v        -> error ("unknown builder: " ++ v)

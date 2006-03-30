@@ -45,7 +45,7 @@ import Tags (idname, tpolarities, TagElem)
 
 import Configuration
   ( Params(..), Switch(..), GrammarType(..)
-  , BuilderType(SimpleBuilder, CkyBuilder)
+  , BuilderType(NullBuilder, SimpleBuilder, CkyBuilder)
   , polarised, polsig, chartsharing, semfiltered, footconstr )
 import GeniParsers 
 import GuiHelper
@@ -570,6 +570,7 @@ doGenerate f pstRef sembox debugger =
     pst <- readIORef pstRef
     let config = pa pst
         builderGui = case builderType config of 
+          NullBuilder   -> error "No gui available for NullBuilder"
           SimpleBuilder -> simpleGui
           CkyBuilder    -> ckyGui 
         generateGui = BG.generateGui builderGui

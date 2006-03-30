@@ -47,6 +47,7 @@ import Data.Bits ( (.&.), (.|.), bit )
 import qualified Data.Map as Map
 import Data.Maybe ( mapMaybe )
 import qualified Data.Set as Set
+import Data.Tree ( flatten )
 
 import Automaton (NFA, automatonPaths)
 import Configuration
@@ -55,7 +56,7 @@ import Configuration
 import General (geniBug, BitVector)
 import Btypes
   ( ILexEntry, SemInput, Sem, Pred, showPred,
-    Flist,
+    Flist, gtype, GType(Subs, Foot),
     Collectable(collect), alphaConvert,
   )
 import Polarity  (PolResult, buildAutomaton, detectPolPaths,
@@ -66,7 +67,7 @@ import Statistics (Statistics, incrIntMetric,
                    queryMetrics, queryIntMetric,
                    addMetric, emptyStats,
                    )
-import Tags ( TagElem(idname,tsemantics), setTidnums )
+import Tags ( TagElem(idname,tsemantics,ttree), setTidnums )
 \end{code}
 }
 
@@ -285,7 +286,41 @@ num_iterations, chart_size, num_comparisons :: String
 num_iterations  = "iterations"
 chart_size      = "chart_size"
 num_comparisons = "comparisons"
+
+lex_subst_nodes, lex_foot_nodes, lex_nodes :: String
+lex_subst_nodes = "lex_subst_nodes"
+lex_foot_nodes  = "lex_foot_nodes"
+lex_nodes       = "lex_nodes"
 \end{code}
 
+\section{The null builder}
+
+For the purposes of tracking certain statistics without interfering with the
+lazy evaluation of the real builders.  For example, one we would like to be
+able to do is count the number of substitution and foot nodes in the lexical
+selection.  Doing so would in a real builder might cause it to walk entire
+trees for ptoentially no good reason.
+
+\begin{code}
+nullBuilder = Builder
+  { Builder.init = \_ _ -> ((), emptyStats)
+  , step         = return ()
+  , stepAll      = return ()
+  , run          = initNullBuilder
+  , finished     = \_ -> True
+  , unpack       = return [] }
+
+type NullState a = BuilderState () a
+
+initNullBuilder ::  Input -> Params -> ((), Statistics)
+initNullBuilder input config =
+  let nodes = concatMap (flatten.ttree.fst) $ inCands input
+      snodes  = [ n | n <- nodes, gtype n == Subs  ]
+      anodes  = [ n | n <- nodes, gtype n == Foot  ]
+      countUp = do incrCounter lex_subst_nodes  $ length snodes
+                   incrCounter lex_foot_nodes   $ length anodes
+                   incrCounter lex_nodes $ length nodes
+  in runState (execStateT countUp ()) (initStats config)
+\end{code}
 
 
