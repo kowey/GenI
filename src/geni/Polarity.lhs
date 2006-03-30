@@ -92,11 +92,11 @@ import Automaton
 import Graphviz(GraphvizShow(..), gvUnlines, gvNewline, gvNode, gvEdge)
 import Tags(TagElem(..), TagItem(..), mapBySem)
 import Btypes(Pred, SemInput, Sem, Flist, AvPair, showAv,
-              GeniVal(GAnon), fromGConst,
+              GeniVal(GAnon), fromGConst, isConst,
               Replacable(..),
               emptyPred, Ptype(Initial), 
               showSem, sortSem, 
-              root, gup, 
+              root, gup, gdown,
               SemPols, unifyFeat, rootUpd)
 import General(
     BitVector, isEmptyIntersect, fst3, snd3, thd3,
@@ -839,11 +839,15 @@ lexically selected items.  Note that this should typically give you the
 \begin{code}
 detectPolFeatures :: [TagElem] -> [String]
 detectPolFeatures tes =
-  let nodes :: TagElem -> [Flist]
-      nodes t = (gup.root.ttree $ t) : (map snd3 $ substnodes t)
+  let -- only initial trees need be counted; in aux trees, the
+      -- root node is implicitly canceled by the foot node
+      rfeats, sfeats :: [Flist]
+      rfeats = map (gdown.root.ttree) $ filter (\t -> ttype t == Initial) tes
+      sfeats = map ((concatMap snd3).substnodes) $ filter (not.null.substnodes) tes
+      --
       attrs :: Flist -> [String]
-      attrs = map fst
-      theAttributes = map attrs $ map (concat.nodes) $ tes
+      attrs avs = [ a | (a,v) <- avs, isConst v ]
+      theAttributes = map attrs $ rfeats ++ sfeats
   in if null tes then [] else foldr1 intersect theAttributes
 \end{code}
 
@@ -875,26 +879,31 @@ detectPols = map detectPols'
 
 detectPols' :: TagElem -> TagElem
 detectPols' te =
-  let rootup   = (gup.root.ttree) te
+  let feats = [ "cat" ] --, "idx" ]
+      rootdown  = (gdown.root.ttree) te
       subup    = map snd3 (substnodes te)
       rstuff   :: [[String]]
-      rstuff   = concat [getcat rootup]--,getidx rootup]
+      rstuff   = concatMap (\v -> getval v rootdown) feats
       substuff :: [[String]]
-      substuff = concatMap getcat subup -- ++ (map getidx subup)
+      substuff = concatMap (\v -> concatMap (getval v) subup) feats
       --
-      getcat = getval "cat"
-      -- getidx = getval "idx"
       getval :: String -> Flist -> [[String]]
-      getval att fl = [ (addPrefix.fromGConst) v | (a,v) <- fl, a == att ] 
-        where addPrefix :: [String] -> [String]
+      getval att fl =
+        if all isConst values
+        then map (addPrefix.fromGConst) values
+        else error ("Not all values for feature " ++ att ++
+                    " are instantiated for polarity automata.")
+        where values = [ v | (a,v) <- fl, a == att ]
+              addPrefix :: [String] -> [String]
               addPrefix = map (\x -> att ++ ('_' : x))
-      -- 
+      -- substs nodes only
       commonPols :: [ (String,Interval) ]
       commonPols = concatMap fn substuff 
         where interval = (-1, 0)
               fn []  = error "null GConst detected in detectPols':commonPols!"
               fn [x] = [ (x, (-1,-1)) ]
               fn amb = map (\x -> (x,interval)) amb
+      -- substs and roots
       ipols :: [ (String,Interval) ]
       ipols = commonPols ++ concatMap fn rstuff 
         where interval = (0, 1)

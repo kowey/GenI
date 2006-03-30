@@ -54,7 +54,7 @@ module Btypes(
    Replacable(..), Collectable(..), Idable(..),
    alphaConvert,
    fromGConst, fromGVar,
-   isVar, isAnon, testBtypes,
+   isConst, isVar, isAnon, testBtypes,
 
    -- Polarities
 
@@ -775,6 +775,10 @@ We throw in some simple predicates for accessing the GeniVal
 cases.
 
 \begin{code}
+isConst :: GeniVal -> Bool
+isConst (GConst _) = True
+isConst _ = False
+
 isVar :: GeniVal -> Bool
 isVar (GVar _) = True
 isVar _        = False
