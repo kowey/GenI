@@ -67,7 +67,7 @@ module Polarity(PolAut, AutDebug, PolResult,
                 buildAutomaton,
                 makePolAut,
                 fixPronouns,
-                detectPolFeatures, detectPols, detectPolPaths,
+                detectSansIdx, detectPolFeatures, detectPols, detectPolPaths,
                 prefixRootCat,
                 declareRestrictors, detectRestrictors,
                 defaultPolPaths,
@@ -849,6 +849,21 @@ detectPolFeatures tes =
       attrs avs = [ a | (a,v) <- avs, isConst v ]
       theAttributes = map attrs $ rfeats ++ sfeats
   in if null tes then [] else foldr1 intersect theAttributes
+
+-- FIXME: temporary HACKY code - delete me as soon as possible (written
+-- 2006-03-30
+--
+-- only initial trees need be counted; in aux trees, the
+-- root node is implicitly canceled by the foot node
+detectSansIdx :: [TagElem] -> [TagElem]
+detectSansIdx =
+  let rfeats t = (gdown.root.ttree) t
+      sfeats t = ((map snd3).substnodes) t
+      feats  t | ttype t == Initial = concat $ (rfeats t) : (sfeats t)
+      feats  t = concat $ sfeats t
+      attrs avs = [ a | (a,v) <- avs, isConst v ]
+      hasIdx t = "idx" `elem` (attrs.feats $ t) || (ttype t /= Initial && (null $ substnodes t))
+  in filter (not.hasIdx)
 \end{code}
 
 \paragraph{The polarity values}
