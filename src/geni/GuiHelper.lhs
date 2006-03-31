@@ -45,7 +45,7 @@ import Treeprint() -- only import the GraphvizShow instances
 import Tags (TagItem(tgIdName), tagLeaves)
 import Geni 
   ( ProgState(..), showRealisations )
-import General (boundsCheck, slash, geniBug, ePutStrLn)
+import General (boundsCheck, slash, geniBug, tail_)
 import Btypes 
   ( showPred, showSem, showLexeme
   , Sem)
@@ -100,7 +100,6 @@ candidateGui pst f xs missedSem missedLex = do
       warning = unlines $ filter (not.null) [ warningSem, warningLex, polFeats, treesSansIdx ]
       items = if null warning then [ fill tb ] else [ hfill (label warning) , fill tb ]
       lay   = fill $ container p $ column 5 items
-  ePutStrLn $ unlines treesSansIdx_ 
   return (lay, ref, updater)
 
 sectionsBySem :: (TagItem t) => [t] -> [ (Maybe t, String) ]
@@ -217,9 +216,10 @@ tagViewerGui pst f tip cachedir itNlab = do
             let tree = tagelems !! (gvsel gvSt)
             case tree of 
              Nothing -> set displayTraceCom [ enabled := False ]
-             Just t  -> let derv = getSourceTrees t in
-                        if boundsCheck s derv 
-                           then runViewTag pst (derv !! s)
+             Just t  -> let derv = getSourceTrees t
+                            fmtName = tail_ . (dropWhile (/= '_')) in
+                        if boundsCheck s derv
+                           then runViewTag pst (fmtName (derv !! s))
                            else geniBug $ "Gui: bounds check in onDisplayTrace" 
   let onDetailsChk c 
        = do isDetailed <- get c checked 
