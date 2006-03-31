@@ -761,8 +761,8 @@ lexEntryToFil lex n =
   let filters   = ifilters lex
       enrichers = ipfeat lex 
       --
-      showFil (a,v) = a ++ ":" ++ show v
-      showEnr (a,v) = a ++ "=" ++ show v
+      showFil (a,v) = a ++ ":" ++ xmgShow v
+      showEnr (a,v) = a ++ "=" ++ xmgShow v
       concatSperse x y = concat $ intersperse x y
   in show n 
     ++ " " ++ (showLexeme $ iword lex) ++ " "
@@ -771,6 +771,11 @@ lexEntryToFil lex n =
     ++ "]\n(" 
     ++ (concatSperse ",\n" $ map showEnr enrichers)
     ++ ")\n\n"
+
+xmgShow :: GeniVal -> String
+xmgShow (GConst []) = "" 
+xmgShow (GConst x)  = head x
+xmgShow x  =  show x
 \end{code}
 
 \paragraph{fixateXMG} is similar to \fnref{combineOne} except that we are
