@@ -390,7 +390,7 @@ in the following manner:
 
 \begin{code}
 instance Show GeniVal where
-  show (GConst x) = concat $ intersperse " ! " x
+  show (GConst x) = concat $ intersperse "|" x
   show (GVar x)   = '?':x
   show GAnon      = "?_"
 \end{code}
