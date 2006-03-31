@@ -39,14 +39,14 @@ import SysGeni(waitForProcess, runInteractiveProcess)
 
 {- |
      Data structures which can be visualised with GraphViz should
-     implement this class.  Note the first argument to graphvizShow is
+     implement this class.  Note the first argument to graphvizShowGraph is
      so that you can parameterise your show function (i.e. pass in
      flags to change the way you show particular object).  Note
      that by default, all graphs are treated as directed graphs.  You
      can hide this by turning off edge arrows.
 -}
 class GraphvizShow flag b where
-  graphvizShow            :: flag -> b -> String
+  graphvizShowGraph       :: flag -> b -> String
   graphvizShowAsSubgraph  :: flag   -- ^ flag
                           -> String -- ^ prefix
                           -> b      -- ^ item
@@ -56,7 +56,7 @@ class GraphvizShow flag b where
                           -> String -- ^ gv output
   graphvizParams          :: flag -> b -> [String] 
 
-  graphvizShow f b  = 
+  graphvizShowGraph f b  = 
     let l = graphvizLabel f b
     in "digraph {\n" 
        ++ (unlines $ graphvizParams f b)
@@ -72,6 +72,13 @@ class GraphvizShowNode flag b where
                    -> b      -- ^ item 
                    -> String -- ^ gv output
 
+-- | Things which are meant to be displayed within some other graph
+--   as (part) of a node label
+class GraphvizShowString flag b where
+  graphvizShow :: flag   -- ^ flag
+               -> b      -- ^ item
+               -> String -- ^ gv output
+
 -- | Note: the 'dotFile' argument allows you to save the intermediary
 -- dot output to a file.  You can pass in the empty string if you don't
 toGraphviz :: (GraphvizShow f a) => f 
@@ -79,7 +86,7 @@ toGraphviz :: (GraphvizShow f a) => f
                                  -> String -- ^ the 'dotFile'
                                  -> String -> IO ExitCode 
 toGraphviz p x dotFile outputFile = do
-   graphviz (graphvizShow p x) dotFile outputFile
+   graphviz (graphvizShowGraph p x) dotFile outputFile
 
 -- ---------------------------------------------------------------------
 -- useful utility functions

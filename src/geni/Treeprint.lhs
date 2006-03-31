@@ -36,6 +36,7 @@ import Tags
  )
 import Btypes (GeniVal(GConst), AvPair, Ptype(..),
                GNode(..), GType(..), Flist,
+               isConst,
                showLexeme,
                Pred, showSem, showAv)
 
@@ -43,6 +44,7 @@ import Graphviz
   ( gvUnlines, gvNewline
   , GraphvizShow(graphvizShowAsSubgraph, graphvizLabel, graphvizParams)
   , GraphvizShowNode(graphvizShowNode)
+  , GraphvizShowString(graphvizShow)
   , gvNode, gvEdge, gvShowTree 
   )
 \end{code}
@@ -118,26 +120,73 @@ instance GraphvizShowNode (Bool) (GNode, Maybe String) where
                      then [ shapeRecordParam, filledParam, fillcolorParam ]
                      else [ shapePlaintextParam ]
        -- content
-       getVal attr = if null r then "" else (show.snd.head) r
-         where r = [ av | av <- gup gn, fst av == attr ]
-       cat = getVal "cat"
-       idx = getVal "idx"
-       lex  = concat $ intersperse "!" $ glexeme gn
-       stub = concat $ intersperse ":" $ filter (not.null) [ cat, idx, lex ]
-       extra = case (gtype gn) of
-               Subs -> "!"
-               Foot -> "*"
-               _    -> if (gaconstr gn) then "#"   else ""
-       summary = if null extra then stub 
+       stub  = showGnStub gn
+       extra = showGnDecorations gn
+       summary = if null extra then stub
                  else "{" ++ stub ++ "|" ++ extra ++ "}"
        --
-       body = if not detailed then show gn 
+       body = if not detailed then graphvizShow_ gn
               else    "{" ++ summary
-                   ++ "|" ++ (showFs $ gup gn) 
-                   ++ (if (null $ gdown gn) then "" else "|" ++ (showFs $ gdown gn)) 
+                   ++ (barAnd.showFs $ gup gn)
+                   ++ (maybeShow (barAnd.showFs) $ gdown gn)
                    ++ "}"
-        where showFs = gvUnlines . (map showAv) 
+        where barAnd x = "|" ++ x
+              showFs = gvUnlines . (map graphvizShow_)
    in gvNode prefix body (shapeParams ++ colorParams)
+\end{code}
+
+\begin{code}
+instance GraphvizShowString () GNode where
+  graphvizShow () gn =
+    let stub  = showGnStub gn
+        extra = showGnDecorations gn
+    in stub ++ (maybeShow_ " " extra)
+
+instance GraphvizShowString () AvPair where
+  graphvizShow () (a,v) = a ++ ":" ++ (graphvizShow_ v)
+
+instance GraphvizShowString () GeniVal where
+  graphvizShow () (GConst x) = concat $ intersperse " ! " x
+  graphvizShow () x = show x
+
+showGnDecorations gn =
+  case gtype gn of
+  Subs -> "!"
+  Foot -> "*"
+  _    -> if (gaconstr gn) then "#"   else ""
+
+showGnStub :: GNode -> String
+showGnStub gn =
+ let cat = case getGnVal gup "cat" gn of
+           Nothing -> ""
+           Just v  -> graphvizShow_ v
+     --
+     getIdx f =
+       case getGnVal f "idx" gn of
+       Nothing -> ""
+       Just v  -> if isConst v then graphvizShow_ v else ""
+     idxT = getIdx gup
+     idxB = getIdx gdown
+     idx  = idxT ++ (maybeShow_ "." idxB)
+     --
+     lex  = concat $ intersperse "!" $ glexeme gn
+ in concat $ intersperse ":" $ filter (not.null) [ cat, idx, lex ]
+
+getGnVal :: (GNode -> Flist) -> String -> GNode -> Maybe GeniVal
+getGnVal getFeat attr gn =
+  case [ av | av <- getFeat gn, fst av == attr ] of
+  []     -> Nothing
+  (av:_) -> Just (snd av)
+
+-- | Apply fn to s if s is not null
+maybeShow :: ([a] -> String) -> [a] -> String
+maybeShow fn s = if null s then "" else fn s
+-- | Prefix a string if it is not null
+maybeShow_ :: String -> String -> String
+maybeShow_ prefix s = maybeShow (prefix++) s
+
+graphvizShow_ :: (GraphvizShowString () a) => a -> String
+graphvizShow_ = graphvizShow ()
 \end{code}
 
 % ----------------------------------------------------------------------

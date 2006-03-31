@@ -1258,7 +1258,7 @@ showLitePm pm =
 \begin{code}
 instance GraphvizShow () PolAut where
   -- we want a directed graph (arrows)
-  graphvizShow f aut = 
+  graphvizShowGraph f aut = 
      "digraph aut {\n" 
      ++ "rankdir=LR\n" 
      ++ "ranksep = 0.02\n"
