@@ -56,7 +56,7 @@ import General(filterTree, groupAndCount, multiGroupByFM, ePutStr, ePutStrLn, eF
 import Btypes (Macros, MTtree, ILexEntry, Lexicon, 
                Replacable(..),
                Sem, SemInput, 
-               fromGVar, 
+               GeniVal(GConst), fromGVar,
                GNode, GType(Subs), Flist,
                isemantics, ifamname, iword, iparams, 
                ipfeat, ifilters,
