@@ -38,7 +38,7 @@ GHCFLAGS_PROF   = $(GHCFLAGS) -prof -hisuf p_hi -osuf p_o -DDISABLE_GUI
 SOFTWARE        = Geni
 SOFTVERS        = $(SOFTWARE)-$(VERSION)
 
-TO_INSTALL=geni xmgGeni runXMGselector runXMGfilter
+TO_INSTALL=$(patsubst %, bin/%, geni xmgGeni runXMGselector runXMGfilter)
 
 # You should replace the value of this variable with your project
 # directory name.  The default assumption is that the project name
@@ -190,15 +190,15 @@ bin/debugger-geni: $(SRC_GENI)/Main.lhs permissions
 
 # FIXME handling of macosx stuff very ugly?
 
-install:	
-	$(foreach file,$(TO_INSTALL), $(INSTALL) bin/$(file) $(BINDIR) &&)\
+install: $(TO_INSTALL)
+	$(foreach file,$^, $(INSTALL) $(file) $(BINDIR) &&)\
 	:
 ifeq ($(OS),Darwin)
 	$(CP) -R bin/geni.app $(BINDIR)
 endif
 
 uninstall:
-	$(foreach file,$(TO_INSTALL), $(RM) $(BINDIR)/$(file) &&)\
+	$(foreach file,$(patsubst bin/%, %, $(TO_INSTALL)), $(RM) $(BINDIR)/$(file) &&)\
 	:
 ifeq ($(OS),Darwin)
 	$(RM) -R $(BINDIR)/geni.app
