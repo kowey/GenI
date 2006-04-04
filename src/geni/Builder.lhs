@@ -286,11 +286,6 @@ num_iterations, chart_size, num_comparisons :: String
 num_iterations  = "iterations"
 chart_size      = "chart_size"
 num_comparisons = "comparisons"
-
-lex_subst_nodes, lex_foot_nodes, lex_nodes :: String
-lex_subst_nodes = "lex_subst_nodes"
-lex_foot_nodes  = "lex_foot_nodes"
-lex_nodes       = "lex_nodes"
 \end{code}
 
 \section{The null builder}
@@ -314,12 +309,16 @@ type NullState a = BuilderState () a
 
 initNullBuilder ::  Input -> Params -> ((), Statistics)
 initNullBuilder input config =
-  let nodes = concatMap (flatten.ttree.fst) $ inCands input
+  let tsem  = fst $ inSemInput input
+      cands = map fst $ inCands input
+      nodes = concatMap (flatten.ttree) cands
       snodes  = [ n | n <- nodes, gtype n == Subs  ]
       anodes  = [ n | n <- nodes, gtype n == Foot  ]
-      countUp = do incrCounter lex_subst_nodes  $ length snodes
-                   incrCounter lex_foot_nodes   $ length anodes
-                   incrCounter lex_nodes $ length nodes
+      countUp = do incrCounter "lex_subst_nodes" $ length snodes
+                   incrCounter "lex_foot_nodes"  $ length anodes
+                   incrCounter "lex_nodes"     $ length nodes
+                   incrCounter "lex_selection" $ length cands
+                   incrCounter "sem_literals"  $ length tsem
   in runState (execStateT countUp ()) (initStats config)
 \end{code}
 
