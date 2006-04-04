@@ -215,17 +215,12 @@ and any flags which are marked on that node.
 \begin{code}
 instance Show GNode where
   show gn =
-    let getVal attr = if null r then "" else (show.snd.head) r
-         where r = [ av | av <- gup gn, fst av == attr ]
-        --
-        cat  = case gCategory gn of
+    let cat  = case gCategory gn of
                Nothing -> []
                Just c  -> show c
-        idx  = getVal "idx"
         lex  = showLexeme $ glexeme gn
         --
-        stub = concat $ intersperse ":" $
-               filter (not.null) [ cat, idx, lex ]
+        stub = concat $ intersperse ":" $ filter (not.null) [ cat, lex ]
         extra = case (gtype gn) of
                    Subs -> " !"
                    Foot -> " *"
