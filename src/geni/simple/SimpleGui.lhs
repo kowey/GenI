@@ -168,7 +168,7 @@ debugGui pstRef =
         missedLex = [ showLexeme (iword l) | l <- lexonly, (not.hasTree) l ]
     (canTab,_,_) <- candidateGui pst nb cand missedSem missedLex
     -- generation step 2.A (run polarity stuff)
-    let (combos, autstuff, _) = B.preInit initStuff config
+    let (combos, autstuff, input2) = B.preInit initStuff config
     -- automata tab
     let (auts, finalaut, _) = autstuff
     autTab <- if polarised config 
@@ -180,7 +180,7 @@ debugGui pstRef =
     -- generation step 2.B (start the generator for each path)
     let tabLabels = map (\x -> "session " ++ show x) [1..] 
         createTab (cd,xs)  = simpleDebuggerTab nb config initStuff2 cd  
-          where initStuff2 = initStuff { B.inCands = xs }
+          where initStuff2 = input2 { B.inCands = xs }
     debugTabs <- mapM createTab $ zip tabLabels combos
     let genTabs = zipWith tab tabLabels debugTabs
     --
