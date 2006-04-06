@@ -896,11 +896,18 @@ detectPols = map detectPols'
 
 detectPols' :: TagElem -> TagElem
 detectPols' te =
-  let feats = [ "cat" ] --, "idx" ]
+  let cat_  = "cat"
+      otherFeats = [] --, "idx" ]
+      feats = cat_ : otherFeats
+      --
       rootdown  = (gdown.root.ttree) te
+      rootup    = (gup.root.ttree) te
       subup    = map snd3 (substnodes te)
       rstuff   :: [[String]]
-      rstuff   = concatMap (\v -> getval v rootdown) feats
+      rstuff   = getval cat_ rootup -- cat is special, see below
+                 ++ (concatMap (\v -> getval v rootdown) otherFeats)
+      -- re:above, cat it is considered global to the whole tree
+      -- to be robust, we grab it from the top feature
       substuff :: [[String]]
       substuff = concatMap (\v -> concatMap (getval v) subup) feats
       --
