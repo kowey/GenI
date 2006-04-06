@@ -87,7 +87,7 @@ import GeniParsers (geniMacros, geniTagElems,
                     geniLexicon, geniTestSuite, geniSemanticInput, 
                     geniMorphInfo)
 import Morphology
-
+import Polarity (detectSansIdx)
 -- import CkyBuilder 
 -- import SimpleBuilder (simpleBuilder)
 

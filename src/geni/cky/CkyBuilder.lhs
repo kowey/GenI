@@ -51,7 +51,7 @@ import Control.Monad
 import Control.Monad.State
   (State, gets, get, put, modify, runState, execStateT )
 import Data.Bits ( (.&.), (.|.) )
-import Data.List ( delete, find, span, (\\) )
+import Data.List ( delete, find, span, (\\), intersect, union )
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Maybe (catMaybes, mapMaybe, maybeToList)
@@ -73,16 +73,18 @@ import qualified Builder as B
 import Builder
   ( SentenceAut, incrCounter, num_iterations, chart_size,
     SemBitMap, semToBitVector, bitVectorToSem, defineSemanticBits,
+    semToIafMap, IafAble(..),  IafMap, fromUniConst, getIdx,
+    recalculateAccesibility, iafBadSem, ts_iafFailure
   )
-import Configuration ( Params, setChartsharing, orderedsubs )
+import Configuration ( Params, setChartsharing, orderedsubs, isIaf )
 import General
-  ( combinations, treeLeaves, BitVector, geniBug )
+  ( combinations, treeLeaves, BitVector, geniBug, fst3, snd3 )
 import Polarity
   ( automatonPaths )
 import Statistics ( Statistics )
 import Tags
   ( TagElem, tidnum, ttree, tsemantics, ttype,
-    ts_tbUnificationFailure
+    ts_tbUnificationFailure, TagSite, substnodes
   )
 
 -- -- Debugging stuff
@@ -154,9 +156,11 @@ data CkyStatus = S
     , theChart     :: Chart
     , theTrash   :: Trash
     , tsemVector :: BitVector -- the semantics in bit vector form
+    , theIafMap  :: IafMap -- for index accessibility filtering
     , gencounter :: Integer
     , genconfig  :: Params
     , theRules   :: [CKY_InferenceRule]
+    , theDispatcher :: CkyItem -> CkyState ()
     , theResults :: [CkyItem]
     , genAutCounter :: Integer -- allocation of node numbers
     }
@@ -232,6 +236,10 @@ data CkyItem = CkyItem
   , ciDiagnostic :: [String]
   -- what is the set of the ways you can produce this item?
   , ciDerivation :: [ ChartOperation ]
+  -- what indices are accesible/inaccesible from this item?
+  , ciAccesible    :: [ String ] -- it's acc/inacc/undetermined
+  , ciInaccessible :: [ String ] -- that's why you want both
+  , ciSubstnodes   :: [ TagSite ] -- only used for iaf
   }
 
 type ChartId = Integer
@@ -281,6 +289,10 @@ initBuilder input config =
       bmap  = defineSemanticBits sem
       hasOs = orderedsubs config
       cands = concatMap (initTree hasOs bmap) $ B.inCands input
+      filts = if isIaf config
+              then dispatchIafFailure : ckyDispatchFilters
+              else ckyDispatchFilters
+      dispatchFn = dispatchNew filts
       initS = S
        { theAgenda  = []
        , theChart = []
@@ -288,11 +300,13 @@ initBuilder input config =
        , theResults = []
        , theRules = map fst ckyRules
        , tsemVector    = semToBitVector bmap sem
+       , theIafMap = semToIafMap sem
+       , theDispatcher = dispatchFn
        , gencounter    = 0
        , genAutCounter = 0
        , genconfig  = config }
   in B.unlessEmptySem input config $
-     runState (execStateT (mapM dispatchNew cands) initS) (B.initStats config)
+     runState (execStateT (mapM dispatchFn cands) initS) (B.initStats config)
 \end{code}
 
 \subsection{Initialising a chart item}
@@ -302,12 +316,14 @@ initBuilder input config =
 initTree :: Bool -> SemBitMap -> (TagElem,BitVector) -> [CkyItem]
 initTree ordered bmap tepp@(te,_) =
   let semVector    = semToBitVector bmap (tsemantics te)
-      createItem l n = (leafToItem l tepp n)
+      createItem l n = item
        { ciSemantics  = semVector
        , ciInitialSem = semVector
        , ciSemBitMap = bmap
        , ciRouting   = decompose te
-       , ciVariables = map GVar $ Set.toList $ collect te Set.empty }
+       , ciVariables = map GVar $ Set.toList $ collect te Set.empty
+       , ciAccesible = iafNewAcc item
+       } where item = leafToItem l tepp n
       --
       (left,right) = span (\n -> gtype n /= Foot) $ treeLeaves $ ttree te
       items = map (createItem True) left  ++ map (createItem False) right
@@ -338,6 +354,9 @@ leafToItem left (te,pp) node = CkyItem
   , ciSemBitMap  = Map.empty
   , ciTreeSide   = spineSide
   , ciDiagnostic   = []
+  , ciAccesible    = [] -- to be set
+  , ciInaccessible = []
+  , ciSubstnodes   = substnodes te
   , ciDerivation   = [ InitOp ] }
   where
    spineSide | left                = LeftSide
@@ -396,7 +415,8 @@ generateStep2 =
                    then ciPayload agendaItem else []
      -- put all newly generated items into the right pigeon-holes
      -- trace (concat $ zipWith showRes ckyRules results) $
-     mapM dispatchNew $ payload ++ (concat results)
+     let dispatcher = theDispatcher st
+     mapM dispatcher $ payload ++ (concat results)
      addToChart agendaItem
      incrCounter num_iterations 1
      return ()
@@ -476,6 +496,10 @@ parentRule item chart | ciComplete item =
                , ciTreeSide     = newSide
                , ciDerivation   = [ KidsToParentOp $ map ciId kids ]
                , ciPayload      = []
+               , ciSubstnodes   = foldr intersect (ciSubstnodes item) $ map ciSubstnodes kids
+               -- does union make sense?
+               , ciAccesible    = foldr union (ciAccesible item) $ map ciAccesible kids
+               , ciInaccessible = foldr union (ciInaccessible item) $ map ciInaccessible kids
                }
           return $ foldr combineVectors newItem kids
     let leftMatches  = map matches leftS
@@ -521,8 +545,8 @@ attemptSubst sItem rItem | ciSubs sItem =
     (up, down, subst) <- unifyGNodes sNode (ciNode rItem)
     let newNode = rNode { gnname = gnname sNode
                         , gup = up, gdown = down }
-        newItem  = combineWith SubstOp newNode subst rItem sItem
-    return newItem
+        newItem  = combineWithSubst newNode subst rItem sItem
+    return $ newItem
 attemptSubst _ _ = error "attemptSubst called on non-subst node"
 
 -- | return True if the first item may be substituted into the second
@@ -614,6 +638,14 @@ combineVectors a b =
     , ciPolpaths  = (ciPolpaths  a) .&. (ciPolpaths  b)
     , ciSemBitMap =  ciSemBitMap a }
 
+combineWithSubst :: GNode -> Subst -> CkyItem -> CkyItem -> CkyItem
+combineWithSubst node subst a p =
+  newPassive { ciAccesible    = (ciAccesible a) `union` (ciAccesible p)
+             , ciInaccessible = (ciInaccessible a) `union` (ciInaccessible p)
+             , ciSubstnodes = newCiSubstnodes }
+  where newCiSubstnodes = filter (\x -> fst3 x /= gnname node) $ ciSubstnodes p
+        newPassive = combineWith SubstOp node subst a p
+
 combineWith :: ChartOperationConstructor -- ^ how did we get the new item?
             -> GNode -> Subst -> CkyItem -> CkyItem -> CkyItem
 combineWith operation node subst active passive =
@@ -664,18 +696,24 @@ nodes are unified.  Failure is success, war is peace, freedom is
 slavery, erase is backspace.
 
 \begin{code}
-dispatchNew :: CkyItem -> CkyState ()
-dispatchNew item =
+type DispatchFilter s a = a -> s (Maybe a)
+type CKY_DispatchFilter = DispatchFilter CkyState CkyItem
+
+ckyDispatchFilters :: [CKY_DispatchFilter]
+ckyDispatchFilters = [ dispatchTbFailure
+                     , dispatchRedundant
+                     , dispatchResults
+                     , dispatchToAgenda ]
+
+dispatchNew :: (Monad s) => [DispatchFilter s a] -> a -> s ()
+dispatchNew filts item =
  do let tryFilter Nothing _        = return Nothing
         tryFilter (Just newItem) f = f newItem
     -- keep trying dispatch filters until one of them suceeds
-    foldM tryFilter (Just item) [ dispatchTbFailure
-                                , dispatchRedundant
-                                , dispatchResults
-                                , dispatchToAgenda ]
+    foldM tryFilter (Just item) filts
     return ()
 
-dispatchToAgenda, dispatchRedundant, dispatchResults, dispatchTbFailure :: CkyItem -> CkyState (Maybe CkyItem)
+dispatchToAgenda, dispatchRedundant, dispatchResults, dispatchTbFailure :: CKY_DispatchFilter
 
 -- | Trivial dispatch filter: always put the item on the agenda and return
 --   Nothing
@@ -770,6 +808,31 @@ into information from the first ``master'' item.
 mergeItems :: CkyItem -> CkyItem -> CkyItem
 mergeItems master slave =
  master { ciDerivation = ciDerivation master ++ (ciDerivation slave) }
+\end{code}
+
+\begin{code}
+instance IafAble CkyItem where
+  iafAcc   = ciAccesible
+  iafInacc = ciInaccessible
+  iafSetAcc   a i = i { ciAccesible = a }
+  iafSetInacc a i | ciRoot i = i { ciInaccessible = a }
+  iafSetInacc _ i = i
+  iafNewAcc i =
+    concatMap fromUniConst $ replace (ciSubsts i) $
+      concatMap (getIdx.snd3) (ciSubstnodes i)
+
+dispatchIafFailure :: CkyItem -> CkyState (Maybe CkyItem)
+dispatchIafFailure itemRaw =
+ do s <- get
+    let bmap = ciSemBitMap item
+        item = recalculateAccesibility itemRaw
+        badSem = iafBadSem (theIafMap s) bmap (tsemVector s) ciSemantics item
+    if badSem == 0
+      then -- can't dispatch, but that's good!
+           -- (note that we return the item with its iaf criteria updated)
+           return $ Just item
+      else do addToTrash item (ts_iafFailure $ bitVectorToSem bmap badSem)
+              return Nothing
 \end{code}
 
 % --------------------------------------------------------------------

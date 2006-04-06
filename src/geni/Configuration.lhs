@@ -25,7 +25,7 @@ module Configuration
   ( Params(..), GrammarType(..), BuilderType(..), Switch(..)
   , polarised, polsig, predicting
   , semfiltered, chartsharing, footconstr
-  , orderedsubs
+  , orderedsubs, isIaf
   , isBatch, emptyParams
   , setChartsharing
   , treatArgs, optBatch
@@ -116,14 +116,17 @@ chartsharing :: Params -> Bool
 footconstr   :: Params -> Bool
 isBatch      :: Params -> Bool
 
-polarised    p = PolarisedTok    `elem` (optimisations p)
-polsig       p = PolSigTok       `elem` (optimisations p)
-predicting   p = PredictingTok   `elem` (optimisations p)  
-semfiltered  p = SemFilteredTok  `elem` (optimisations p)
-chartsharing p = ChartSharingTok `elem` (optimisations p)
-footconstr   p = FootConstraintTok `elem` (optimisations p)
-orderedsubs  p = OrderedSubTok     `elem` (optimisations p)
-isBatch      p = BatchTok          `elem` (optimisations p)
+hasOpt o p = o `elem` (optimisations p)
+
+polarised    = hasOpt PolarisedTok
+isIaf        = hasOpt IafTok
+polsig       = hasOpt PolSigTok
+predicting   = hasOpt PredictingTok
+semfiltered  = hasOpt SemFilteredTok
+chartsharing = hasOpt ChartSharingTok
+footconstr   = hasOpt FootConstraintTok
+orderedsubs  = hasOpt OrderedSubTok
+isBatch      = hasOpt BatchTok
 
 setChartsharing :: Bool -> Params -> Params
 setChartsharing c p =
@@ -192,6 +195,7 @@ data Switch =
     ExtraPolaritiesTok String |
     FootConstraintTok         | SemFilteredTok | OrderedAdjTok |  
     OrderedSubTok {- cky only -} |
+    IafTok {- one phase only! -} |
     BatchTok | RepeatTok String | 
     -- the WeirdTok exists strictly to please OS X when you launch
     -- GenI in an application bundle (double-click)... for some
@@ -282,6 +286,7 @@ optimisationCodes =
  , (OrderedAdjTok  , "Oa",      "ordered adjunction (by node)")
  , (OrderedSubTok  , "Os",      "ordered substitution (cky only)")
  , (FootConstraintTok,    "F", "foot constraints")
+ , (IafTok, "i", "index accesibility filtering (one-phase only)")
  , (BatchTok,          "batch", "batch processing") ]
 \end{code}
 

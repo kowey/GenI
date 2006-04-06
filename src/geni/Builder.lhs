@@ -43,7 +43,8 @@ module Builder
 where
 
 import Control.Monad.State
-import Data.Bits ( (.&.), (.|.), bit )
+import Data.Bits ( (.&.), (.|.), bit, xor )
+import Data.List ( (\\) )
 import qualified Data.Map as Map
 import Data.Maybe ( mapMaybe )
 import qualified Data.Set as Set
@@ -53,11 +54,12 @@ import Automaton (NFA, automatonPaths)
 import Configuration
   ( Params(metricsParam, ignoreSemantics, rootCatsParam), extrapol,
     polarised, chartsharing )
-import General (geniBug, BitVector)
+import General (geniBug, BitVector, multiGroupByFM)
 import Btypes
-  ( ILexEntry, SemInput, Sem, Pred, showPred,
+  ( ILexEntry, SemInput, Sem, Pred, showPred, showSem,
     Flist, gtype, GType(Subs, Foot),
     Collectable(collect), alphaConvert,
+    GeniVal(GConst)
   )
 import Polarity  (PolResult, buildAutomaton, detectPolPaths,
     defaultPolPaths )
@@ -221,6 +223,79 @@ bitVectorToSem :: SemBitMap -> BitVector -> Sem
 bitVectorToSem bmap vector =
   mapMaybe tryKey $ Map.toList bmap
   where tryKey (p,k) = if (k .&. vector == k) then Just p else Nothing
+\end{code}
+
+\subsection{Index accesibility filtering}
+\label{sec:iaf}
+
+Index accesibility filtering was described in \cite{carroll05her}.  This
+is my attempt to adapt it to TAG.  This filter works as a form of delayed
+substitution, basically the exact opposite of delayed adjunction.
+
+This might be wrong, but we say that an index is originally accesible if
+it is the root node's idx attribute (no atomic disjunction; atomic
+disjunction is as good as a variable as far I'm concerned)
+
+FIXME: more about this later.
+FIXME: are we sure we got the atomic disjunctions right?
+
+\begin{code}
+type IafMap = Map.Map String Sem
+
+-- | Return the literals of the semantics (in bit vector form)
+--   whose accesibility depends on the given index
+dependentSem :: IafMap -> String -> Sem
+dependentSem iafMap x = Map.findWithDefault [] x iafMap
+
+-- | Return the handle and arguments of a literal
+literalArgs :: Pred -> [GeniVal]
+literalArgs (h,_,args) = h:args
+
+semToIafMap :: Sem -> IafMap
+semToIafMap sem =
+  multiGroupByFM (concatMap fromUniConst . literalArgs) sem
+
+-- | Like 'fromGConst' but only for the non-disjoint ones: meant to be used as Maybe or List
+fromUniConst :: (Monad m) => GeniVal -> m String
+fromUniConst (GConst [x]) = return x
+fromUniConst _ = fail "not a unique constant" -- we don't actually expect this failure msg to be used
+
+getIdx :: Flist -> [GeniVal]
+getIdx fs = [ v | (a,v) <- fs, a == "idx" ]
+
+ts_iafFailure :: [Pred] -> String
+ts_iafFailure sem = "index accesibility failure - blocked:  " ++ showSem sem
+
+-- | Calculate the new set of accessibility/inaccesible indices, returning a
+--   a tuple of accesible / inaccesible indices
+recalculateAccesibility :: (IafAble a) => a -> a
+recalculateAccesibility i =
+  let oldAcc = iafAcc i
+      newAcc = iafNewAcc i
+      oldInacc = iafInacc i
+      newInacc = oldInacc ++ (oldAcc \\ newAcc)
+  in iafSetInacc newInacc $ iafSetAcc newAcc i
+
+-- | Return, in bitvector form, the portion of a semantics that is inaccesible
+--   from an item
+iafBadSem :: (IafAble a) => IafMap -> SemBitMap
+          -> BitVector -- ^ the input semantics
+          -> (a -> BitVector) -- ^ the semantics of the item
+          -> a -> BitVector
+iafBadSem iafMap bmap sem semfn i =
+  let -- the semantics we can't reach
+      inaccessible = foldr (.|.) 0 $ map (semToBitVector bmap . dependentSem iafMap) $ iafInacc i
+      -- the semantics we still _need_ to be able to reach
+      remaining = sem `xor` (semfn i)
+      -- where we're in trouble
+  in inaccessible .&. remaining
+
+class IafAble a where
+  iafAcc      :: a -> [String]
+  iafInacc    :: a -> [String]
+  iafSetAcc   :: [String] -> a -> a
+  iafSetInacc :: [String] -> a -> a
+  iafNewAcc   :: a -> [String]
 \end{code}
 
 \subsection{Generate step}
