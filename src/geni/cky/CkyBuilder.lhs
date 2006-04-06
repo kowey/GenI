@@ -434,7 +434,7 @@ instance Show CKY_InferenceRule where
 \begin{code}
 ckyRules :: [ (CKY_InferenceRule, String) ]
 ckyRules =
- [ (kidsToParentRule, "kidsToP")
+ [ (parentRule, "parent")
  , (substRule       , "subst")
  , (nonAdjunctionRule, "nonAdj")
  , (activeAdjunctionRule, "actAdjRule")
@@ -452,13 +452,13 @@ nonAdjunctionRule item _ =
                  , ciDerivation = [ NullAdjOp $ ciId item ] } ]
 
 -- | CKY parent rule
-kidsToParentRule item chart | ciComplete item =
+parentRule item chart | ciComplete item =
  do (leftS,rightS,p)  <- Map.lookup (gnname node) (ciRouting item)
     let mergePoints kids =
          case mapMaybe ciAdjPoint (item:kids) of
           []  -> Nothing
           [x] -> Just x
-          _   -> error "multiple adjunction points in kidsToParentRule?!"
+          _   -> error "multiple adjunction points in parentRule?!"
         combine p kids = do
           let unifyOnly (x, _) y = maybeToList $ unify x y
           newVars <- foldM unifyOnly (ciVariables item,[]) $
@@ -467,7 +467,7 @@ kidsToParentRule item chart | ciComplete item =
               newSide | all ciLeftSide   kids = LeftSide
                       | all ciRightSide  kids = RightSide
                       | any ciOnTheSpine kids = OnTheSpine
-                      | otherwise = geniBug $ "kidsToParentRule: Weird situtation involving tree sides"
+                      | otherwise = geniBug $ "parentRule: Weird situtation involving tree sides"
               newItem = item
                { ciNode      = replace newSubsts p
                , ciSubsts    = newSubsts
@@ -496,7 +496,7 @@ kidsToParentRule item chart | ciComplete item =
    --
    matches :: String -> [CkyItem]
    matches sis = [ c | c <- relChart, (gnname.ciNode) c == sis ]
-kidsToParentRule _ _ = [] -- if this rule is not applicable to the item at hand
+parentRule _ _ = [] -- if this rule is not applicable to the item at hand
 \end{code}
 
 \subsection{Substitution}
