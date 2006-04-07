@@ -188,7 +188,7 @@ debugGui pstRef =
             debugPnl <- ckyDebuggerTab nb config (input2 { B.inCands = cands2PP }) "cky"
             let autTab   = tab "automata" autPnl
                 debugTab = tab "session" debugPnl
-                genTabs  = if polarised config then [ debugTab ] else [ autTab, debugTab ]
+                genTabs  = if polarised config then [ autTab, debugTab ] else [ debugTab ]
             --
             set f [ layout := container p $ tabs nb genTabs
                   , clientSize := sz 700 600 ]
