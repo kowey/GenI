@@ -1104,7 +1104,7 @@ findIdOrBug st id =
 
 \section{Optimisations}
 
-\paragraph{Ordered substitution}
+\paragraph{Ordered substitution (Earley-style derivation)}
 
 The idea is that we to perform substitutions in a fixed order so that we avoid
 generating a lot of useless chart items that aren't going to be used in a final
