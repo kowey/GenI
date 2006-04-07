@@ -1,9 +1,9 @@
 GENI_CMD=bin/geni
-GENI_FLAGS="${GENI_FLAGS} --nogui --opts=F"
+GENI_FLAGS="$* --opts=F"
 
 do_geni() {
-  echo "${GENI_CMD} $*"
-  ${GENI_CMD} $*
+  echo "${GENI_CMD} $* --nogui"
+  ${GENI_CMD} $* --nogui
 }
 
 do_geni ${GENI_FLAGS} -m examples/ej/mac -l examples/ej/lexicon -s examples/ej/suite
