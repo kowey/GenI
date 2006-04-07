@@ -73,6 +73,7 @@ import qualified Builder as B
 import Builder
   ( SentenceAut, incrCounter, num_iterations, chart_size,
     SemBitMap, semToBitVector, bitVectorToSem, defineSemanticBits,
+    dispatchNew, DispatchFilter,
     semToIafMap, IafAble(..),  IafMap, fromUniConst, getIdx,
     recalculateAccesibility, iafBadSem, ts_iafFailure
   )
@@ -289,9 +290,10 @@ initBuilder input config =
       bmap  = defineSemanticBits sem
       hasOs = orderedsubs config
       cands = concatMap (initTree hasOs bmap) $ B.inCands input
-      filts = if isIaf config
-              then dispatchIafFailure : ckyDispatchFilters
-              else ckyDispatchFilters
+      filts = ckyDispatchFilters ++
+              if isIaf config
+              then [dispatchIafFailure, dispatchToAgenda]
+              else [dispatchToAgenda]
       dispatchFn = dispatchNew filts
       initS = S
        { theAgenda  = []
@@ -681,37 +683,15 @@ unifyPair (t1, b1) (t2, b2) =
 \section{Dispatching new chart items}
 % --------------------------------------------------------------------
 
-Dispatching consists of assigning a chart item to the right part of the
-chart (agenda, trash, results list, etc).  This is implemented as a
-series of filters which can either fail or succeed.
-
-Counter-intuitively, success is defined as returning \verb!Nothing!.
-Failure is defined as return \verb!Just!, because if a filter fails, it
-has the right to modify the item for the next filter.  For example, the
-top and bottom unification filter succeeds if it \emph{cannot} unify
-the top and bottom features of a node.  It suceeds by putting the item
-into the trash and returning Nothing.  If it \emph{can} perform top and
-bottom unification, we want to return the item where the top and bottom
-nodes are unified.  Failure is success, war is peace, freedom is
-slavery, erase is backspace.
+We use the generic dispatch mechanism described in section \ref{sec:dispatch}.
 
 \begin{code}
-type DispatchFilter s a = a -> s (Maybe a)
 type CKY_DispatchFilter = DispatchFilter CkyState CkyItem
 
 ckyDispatchFilters :: [CKY_DispatchFilter]
 ckyDispatchFilters = [ dispatchTbFailure
-                     , dispatchRedundant
-                     , dispatchResults
-                     , dispatchToAgenda ]
-
-dispatchNew :: (Monad s) => [DispatchFilter s a] -> a -> s ()
-dispatchNew filts item =
- do let tryFilter Nothing _        = return Nothing
-        tryFilter (Just newItem) f = f newItem
-    -- keep trying dispatch filters until one of them suceeds
-    foldM tryFilter (Just item) filts
-    return ()
+                      , dispatchRedundant
+                      , dispatchResults ]
 
 dispatchToAgenda, dispatchRedundant, dispatchResults, dispatchTbFailure :: CKY_DispatchFilter
 

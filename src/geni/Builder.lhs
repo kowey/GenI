@@ -310,6 +310,34 @@ defaultStepAll b =
          defaultStepAll b
 \end{code}
 
+\subsection{Dispatching new chart items}
+\label{sec:dispatching}
+
+Dispatching consists of assigning a chart item to the right part of the
+chart (agenda, trash, results list, etc).  This is implemented as a
+series of filters which can either fail or succeed.
+
+Counter-intuitively, success is defined as returning \verb!Nothing!.
+Failure is defined as return \verb!Just!, because if a filter fails, it
+has the right to modify the item for the next filter.  For example, the
+top and bottom unification filter succeeds if it \emph{cannot} unify
+the top and bottom features of a node.  It suceeds by putting the item
+into the trash and returning Nothing.  If it \emph{can} perform top and
+bottom unification, we want to return the item where the top and bottom
+nodes are unified.  Failure is success, war is peace, freedom is
+slavery, erase is backspace.
+
+\begin{code}
+type DispatchFilter s a = a -> s (Maybe a)
+dispatchNew :: (Monad s) => [DispatchFilter s a] -> a -> s ()
+dispatchNew filts item =
+ do let tryFilter Nothing _        = return Nothing
+        tryFilter (Just newItem) f = f newItem
+    -- keep trying dispatch filters until one of them suceeds
+    foldM tryFilter (Just item) filts
+    return ()
+\end{code}
+
 \subsection{Statistics}
 
 \begin{code}
