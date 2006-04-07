@@ -242,7 +242,7 @@ ckyCandidateGui pst f xs missedSem missedLex job = do
   --
   saveBt <- button p [ text := "Save to file", on command := saveCmd ]
   loadBt <- button p [ text := "Load from file", on command := loadCmd ]
-  nextBt <- button p [ text := "Continue" ]
+  nextBt <- button p [ text := "Begin" ]
   let disableW w = set w [ enabled := False ]
   set nextBt [ on command := do mapM disableW [ saveBt, loadBt, nextBt ]
                                 varGet candV >>= job ]
@@ -257,15 +257,21 @@ ckyCandidateGui pst f xs missedSem missedLex job = do
 \begin{code}
 data CkyDebugParams = 
  CkyDebugParams { debugShowFeats       :: Bool 
+                , debugShowFullDerv    :: Bool
+                , debugShowSourceTree  :: Bool
                 , debugWhichDerivation :: Int }
 
 initCkyDebugParams = 
  CkyDebugParams { debugShowFeats       = False
+                , debugShowFullDerv    = False
+                , debugShowSourceTree  = False
                 , debugWhichDerivation = 0 }
 
 -- would be nice if Haskell sugared this kind of stuff for us
-setDebugShowFeats :: Bool -> CkyDebugParams -> CkyDebugParams
+setDebugShowFeats, setDebugShowFullDerv :: Bool -> CkyDebugParams -> CkyDebugParams
 setDebugShowFeats b x = x { debugShowFeats = b }
+setDebugShowFullDerv b x = x { debugShowFullDerv = b }
+setDebugShowSourceTree b x = x { debugShowSourceTree = b }
 
 setDebugWhichDerivation :: Int -> CkyDebugParams -> CkyDebugParams
 setDebugWhichDerivation w x = x { debugWhichDerivation = w }
@@ -319,13 +325,19 @@ ckyItemBar f gvRef updaterFn =
             updaterFn
     set derChoice [ on select := onDerChoice ]
     -- show features
-    detailsChk <- checkBox ib [ text := "Show features"
+    detailsChk <- checkBox ib [ text := "features (src)"
                               , checked := False ]
-    let onDetailsChk = 
-         do isDetailed <- get detailsChk checked 
-            modifyGvParams gvRef (setDebugShowFeats isDetailed)
-            updaterFn
-    set detailsChk [ on command := onDetailsChk ] 
+    fullDervChk <- checkBox ib [ text := "full derivation"
+                               , checked := False ]
+    srcTreeChk <- checkBox ib [ text := "src tree"
+                                     , checked := False ]
+    let setChkBoxUpdater box setter =
+         set box [ on command := do isChecked <- get box checked
+                                    modifyGvParams gvRef $ setter isChecked
+                                    updaterFn ]
+    setChkBoxUpdater detailsChk setDebugShowFeats
+    setChkBoxUpdater fullDervChk setDebugShowFullDerv
+    setChkBoxUpdater srcTreeChk setDebugShowSourceTree
     -- add a handler for when an item is selected: 
     -- update the list of derivations to choose from
     let updateDerTxt t = set derTxt [ text := "deriviations (" ++ t ++ ")" ]
@@ -345,7 +357,7 @@ ckyItemBar f gvRef updaterFn =
     handler `liftM` readIORef gvRef
     --
     return $ hfloatCentre $ container ib $ row 5 
-                [ widget detailsChk 
+                [ label "Show...", widget fullDervChk, widget srcTreeChk, widget detailsChk
                 , hspace 5, widget derTxt,  rigid $ widget derChoice ] 
 \end{code}
 
@@ -364,6 +376,17 @@ gornAddress t target = reverse `liftM` helper [] t
  helper current (Node _ l)  = listToMaybe $ catMaybes $
                               zipWith (\c t -> helper (c:current) t) [1..] l
 
+-- | Remove na and subst/adj completion links
+thinDerivationTree :: Tree (ChartId, String) -> Tree (ChartId, String)
+thinDerivationTree =
+ let thinlst = ["no-adj", "subst-finish", "adj-finish" ]
+     helper n@(Node _ []) = n
+     -- this is made complicated for fancy highlighting to work
+     helper (Node (id,op) [k]) | op `elem` thinlst = (Node (id,op2) $ map helper k2)
+       where (Node (_,op2) k2) = k
+     helper (Node x kids) = (Node x $ map helper kids)
+ in  helper
+
 instance GraphvizShow CkyDebugParams (CkyStatus, CkyItem) where
   graphvizLabel  f (_,c) = graphvizLabel f c
   graphvizParams f (_,c) = graphvizParams f c
@@ -377,7 +400,7 @@ instance GraphvizShow CkyDebugParams (CkyStatus, CkyItem) where
        adjColor   = color "red"
        --
        edgeParams (_ ,"no-adj") = [ label "na" ]
-       edgeParams (_, "kids"  ) = [ label "k" ]
+       edgeParams (_, "kids"  ) = []
        edgeParams (_, "init"  ) = [ label "i" ]
        edgeParams (_, "subst" ) = [ style "bold",         substColor, arrowtail "normal" ]
        edgeParams (_, "adj"   ) = [ style "bold, dashed", adjColor  , arrowtail "normal" ]
@@ -386,10 +409,14 @@ instance GraphvizShow CkyDebugParams (CkyStatus, CkyItem) where
        edgeParams (_, k) = [ ("label", "UNKNOWN: " ++ k) ]
        --
        whichDer    = debugWhichDerivation f
+       showFullDer = debugShowFullDerv f
+       showSrcTree = debugShowSourceTree f
        derivations = extractDerivations s c
-       showTree i t = gvSubgraph $ gvShowTree edgeParams s (p ++ "t" ++ (show i)) t
+       showTree i t = gvSubgraph $ gvShowTree edgeParams (s,showFullDer, [ciId c]) prfx t
+                      where prfx = p ++ "t" ++ (show i)
        gvDerv = if boundsCheck whichDer derivations
-                then showTree whichDer (derivations !! whichDer)
+                then let t = derivations !! whichDer
+                     in showTree whichDer $ if showFullDer then t else thinDerivationTree t
                 else geniBug $ "Bounds check failed on derivations selector:\n"
                                ++ "Asked to visualise: " ++ (show whichDer) ++ "\n"
                                ++ "Bounds: 0 to " ++ (show $ length derivations - 1)
@@ -400,22 +427,26 @@ instance GraphvizShow CkyDebugParams (CkyStatus, CkyItem) where
        showFeats  = debugShowFeats f
        treeParams = unlines $ graphvizParams showFeats $ ciSourceTree c
    -- FIXME: will have to make this configurable, maybe, show aut, show tree? radio button?
-   in    "\n// ------------------- elementary tree --------------------------\n"
-      ++ treeParams ++ graphvizShowAsSubgraph f p c
-      ++ "\n// ------------------- automata (joined) ------------------------\n"
-      ++ gvSubgraph gvAut
-      ++ "\n// ------------------- derivations --------------------------\n"
+   in    "\n// ------------------- derivations --------------------------\n"
       ++ treeParams ++ "node [ shape = plaintext, peripheries = 0 ]\n"
       ++ gvDerv
+      ++ "\n// ------------------- automata (joined) ------------------------\n"
+      ++ gvSubgraph gvAut
+      ++ if showSrcTree
+         then ("\n// ------------------- elementary tree --------------------------\n"
+               ++ treeParams ++ graphvizShowAsSubgraph f p c)
+         else ""
 
-instance GraphvizShowNode CkyStatus (ChartId, String) where
-  graphvizShowNode st prefix ci = 
-   let theId = fst ci
+instance GraphvizShowNode (CkyStatus,Bool,[ChartId]) (ChartId, String) where
+  graphvizShowNode (st,showFullDerv,highlight) prefix (theId,_) =
+   let idStr = show theId
+       treename i = " (" ++ ((idname.ciSourceTree) i) ++ ")"
        txt = case findId st theId of
-             Nothing   -> ("???" ++ (show theId))
-             Just item -> (show theId) ++ " " ++ (show.ciNode) item 
-                          ++ " (" ++ ((idname.ciSourceTree) item) ++ ")"
-   in gvNode prefix txt []
+             Nothing   -> ("???" ++ idStr)
+             Just item -> idStr ++ " " ++ (show.ciNode) item
+                          ++ (if showFullDerv then treename item else "")
+       custom = if theId `elem` highlight then [ ("fontcolor","red") ] else []
+   in gvNode prefix txt custom
 
 instance GraphvizShow CkyDebugParams CkyItem where
   graphvizLabel  f ci =
@@ -453,7 +484,7 @@ instance GraphvizShow () B.SentenceAut where
        stmap = Map.fromList $ zip st ids
        lookupFinal x = Map.findWithDefault "error_final" x stmap
    in -- final states should be a double-edged ellispse
-      "node [ peripheries = 2 ]; "
+      "node [ shape = ellipse, peripheries = 2 ]; "
       ++ (unlines $ map lookupFinal $ finalStList aut)
       -- any other state should be an ellipse
       ++ "node [ shape = ellipse, peripheries = 1 ]\n"
