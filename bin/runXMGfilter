@@ -94,6 +94,7 @@ while (<STDIN>) {
     push @values, "value $family\n";
   }
 }
+print OUTPUT_MG "\n";
 # remove duplicate entries
 my %seen = ();
 my @uniq_values = grep { ! $seen{$_} ++ } @values;
