@@ -45,6 +45,7 @@ import Data.List (intersperse, sort, nub)
 import qualified Data.Map as Map
 import Data.Tree
 
+import System.CPUTime (getCPUTime, cpuTimePrecision)
 import System.Exit ( ExitCode(ExitSuccess, ExitFailure) )
 import System.IO (hPutStr, hClose, hGetContents)
 import System.IO.Unsafe (unsafePerformIO)
@@ -681,11 +682,18 @@ runXMGAnchoring pst lexCand =
          gramfile = macrosFile gparams
      -- run the selector module
      let fil  = concat $ zipWith lexEntryToFil lexCand [1..]
-     selected <- runSelector pst gramfile fil
+     startTime <- getCPUTime
+     selected <- startTime `seq` runSelector pst gramfile fil
+     endSelectTime <- (length selected) `seq` getCPUTime
+     ePutStrLn $ "selecting_time_ms " ++ (showTime $ endSelectTime - startTime)
      let parsed = runParser geniTagElems () "" selected
      case parsed of 
        Left err -> fail (show err) 
-       Right gr -> return (map fixateXMG gr)
+       Right gr -> do endAnchorTime <- (length gr) `seq` getCPUTime
+                      ePutStrLn $ "parsing_selected_time_ms " ++ (showTime $ endAnchorTime - startTime)
+                      return (map fixateXMG gr)
+  where showTime t = (show $ milliTime t) ++ ".0" -- tack on a .0 for gtester
+        milliTime t = (cpuTimePrecision * (t `div` cpuTimePrecision)) `div` (10^9)
   -- FIXME: determine if we can nix this error handler
   --`catch` \e -> do ePutStrLn (show e)
   --                 return ([], []) 
