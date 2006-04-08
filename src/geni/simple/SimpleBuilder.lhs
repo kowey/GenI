@@ -552,19 +552,16 @@ Note: as of 13 april 2005 - only uses ordered adjunction as described in
 applyAdjunction :: SimpleItem -> SimpleState ([SimpleItem])
 applyAdjunction item = {-# SCC "applyAdjunction" #-} do
    gr <- lookupChart item
-   st <- get
    let -- we rename tags to do a proper adjunction
        rItem = renameSimpleItem 'A' item
        rgr'  = map (renameSimpleItem 'B') gr
        --
        rte     = siTagElem rItem
        ranodes = adjnodes rte
-       -- check if the foot constraint optimisation is enabled
-       isFootC = (footconstr.genconfig) st
        -- te2 is to account for the case where we simply don't do
        -- adjunction on that particular node
    res <- if null ranodes then return []
-             else let tryAdj x = case iapplyAdjNode isFootC x rItem (head ranodes) of
+             else let tryAdj x = case iapplyAdjNode x rItem (head ranodes) of
                                   Nothing -> return Nothing
                                   Just x  -> do incrCounter "adjunctions" 1
                                                 return $ Just x
@@ -612,8 +609,8 @@ with \texttt{anr} and \texttt{anf}\footnote{\texttt{anf} is only added
 if the foot node constraint is disabled}.
 
 \begin{code}
-iapplyAdjNode :: Bool -> SimpleItem -> SimpleItem -> (String, Flist, Flist) -> Maybe SimpleItem
-iapplyAdjNode fconstr item1 item2 an@(n, an_up, an_down) = do
+iapplyAdjNode :: SimpleItem -> SimpleItem -> (String, Flist, Flist) -> Maybe SimpleItem
+iapplyAdjNode item1 item2 an@(n, an_up, an_down) = do
   -- block repeated adjunctions of the same SimpleItem (for ignore semantics mode)
   guard $ not $ (n, siId item1) `elem` (siAdjlist item2)
   -- let's go!
@@ -641,7 +638,7 @@ iapplyAdjNode fconstr item1 item2 an@(n, an_up, an_down) = do
       -- the result of unifying the t1 foot and the t2 an
       anf = f { gdown = anf_down,
                 gtype = Other,
-                gaconstr = fconstr }
+                gaconstr = True }
       -- calculation of the adjoined tree
       nt1 = rootUpd t1 anr
       ntree = repAdj anf n nt1 t2
@@ -663,8 +660,7 @@ iapplyAdjNode fconstr item1 item2 an@(n, an_up, an_down) = do
                }
       -- 4) add the new adjunction nodes
       --    this has to come after 3 so that we don't repeat the subst
-      addextra a = if fconstr then a2 else (ncopy anf) : a2
-                   where a2 = (ncopy anr) : a
+      addextra a = (ncopy anr) : a
   -- the final result
   -- ----------------
   let res = res' { siTagElem = t2 }
