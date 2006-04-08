@@ -127,13 +127,13 @@ run input config =
       init    = B.init ckyBuilder
       -- 1 run the setup stuff
       -- (force chart sharing!) FIXME: this needs to be looked into
-      (combos, _, input2) = B.preInit input $
+      (combos, polcount , _, input2) = B.preInit input $
                             setChartsharing True config
       -- 2 call the init stuff
       cands = assert (length combos == 1) $ head combos
       (iSt, iStats) = init (input2 { B.inCands = cands }) config
       -- 3 step thorugh the whole thing
-  in runState (execStateT stepAll iSt) iStats
+  in runState (execStateT stepAll iSt) (B.setPolStats polcount iStats)
 \end{code}
 
 The rest of the builder interface is implemented below.  I just

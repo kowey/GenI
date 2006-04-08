@@ -155,7 +155,7 @@ alpha conversion so that unification does not do the wrong thing when two trees
 have the same variables.
 
 \begin{code}
-preInit :: Input -> Params -> ([[(TagElem,BitVector)]], PolResult , Input)
+preInit :: Input -> Params -> ([[(TagElem,BitVector)]], (Int,Int), PolResult , Input)
 preInit input config =
  let (cand,_) = unzip $ inCands input
      seminput = inSemInput input
@@ -179,7 +179,11 @@ preInit input config =
      combos = map fixate combosChart
      input2 = input { inSemInput = (sem2, snd seminput) }
      -- note: autstuff is only useful for the graphical debugger
-  in (combos, autstuff, input2)
+  in (combos, (length combos, length combosPol), autstuff, input2)
+
+setPolStats (exploredPaths, totalPaths) stats =
+  updateMetrics (incrIntMetric "pol_explored" exploredPaths) $
+  updateMetrics (incrIntMetric "pol_total" totalPaths) stats
 \end{code}
 
 \begin{code}

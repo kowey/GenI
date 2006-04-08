@@ -124,7 +124,7 @@ run input config =
   let stepAll = B.stepAll simpleBuilder
       init    = B.init simpleBuilder
       -- combos = polarity automaton paths
-      (combos,_,input2) = (B.preInit input config)
+      (combos,polcount,_,input2) = (B.preInit input config)
       --
       (nullS, nullStats)  = subInit []
       --
@@ -137,7 +137,7 @@ run input config =
       mergeSt st1 st2 =
         st1 { theResults = (theResults st1) ++ (theResults st2) }
   -- FIXME: will have to update the stats later)
-  in (foldr mergeSt nullS finalS , foldr addCounters nullStats finalStats)
+  in (foldr mergeSt nullS finalS , foldr addCounters (B.setPolStats polcount nullStats) finalStats)
 \end{code}
 
 % --------------------------------------------------------------------

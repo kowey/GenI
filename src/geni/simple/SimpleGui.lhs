@@ -168,7 +168,7 @@ debugGui pstRef =
         missedLex = [ showLexeme (iword l) | l <- lexonly, (not.hasTree) l ]
     (canTab,_,_) <- candidateGui pst nb cand missedSem missedLex
     -- generation step 2.A (run polarity stuff)
-    let (combos, autstuff, input2) = B.preInit initStuff config
+    let (combos, _, autstuff, input2) = B.preInit initStuff config
     -- automata tab
     let (auts, finalaut, _) = autstuff
     autTab <- if polarised config 

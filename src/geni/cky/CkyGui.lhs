@@ -177,7 +177,7 @@ debugGui pstRef =
     let step2 newCands =
          do -- generation step 2.A (run polarity stuff)
             let newInitStuff = initStuff { B.inCands = map (\x -> (x, -1)) newCands } 
-                (combos, autstuff, input2) = B.preInit newInitStuff config
+                (combos, _, autstuff, input2) = B.preInit newInitStuff config
                 cands2PP = assert (length combos == 1) $ head combos
             -- automata tab
             let (auts, finalaut, _) = autstuff
