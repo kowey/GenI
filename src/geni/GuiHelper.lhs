@@ -38,13 +38,15 @@ import Data.IORef
 import Data.List (intersperse)
 import System.Directory 
 import System.Process (runProcess)
+import Text.ParserCombinators.Parsec (parseFromFile)
 
 import Graphviz 
-import Treeprint() -- only import the GraphvizShow instances
+import Treeprint(toGeniHand)
 
 import Tags (TagItem(tgIdName), tagLeaves)
 import Geni 
   ( ProgState(..), showRealisations )
+import GeniParsers ( geniTagElems )
 import General (boundsCheck, slash, geniBug, tail_)
 import Btypes 
   ( showPred, showSem, showLexeme
@@ -252,11 +254,66 @@ tagViewerGui pst f tip cachedir itNlab = do
 
 % --------------------------------------------------------------------
 \section{Graphical debugger}
+\label{sec:debugger_helpers}
 % --------------------------------------------------------------------
 
 All GenI builders can make use of an interactive graphical debugger.  In
-this section, we provide some helper code to build such a debugger.  The
-function \fnreflite{debuggerTab} fills the parent window with the
+this section, we provide some helper code to build such a debugger.  
+
+\paragraph{pauseOnLexGui} sometimes it is useful for the user to see the
+lexical selection only and either dump it to file or read replace it by
+the contents of some other file.  We provide an optional wrapper around
+\fnref{candidateGui} which adds this extra functionality.  The wrapper
+also includes a "Begin" button which runs your continuation on the new
+lexical selection.
+
+\begin{code}
+pauseOnLexGui :: ProgState -> (Window a) -> [TagElem] -> Sem -> [String]
+              -> ([TagElem] -> IO ()) -- ^ continuation
+              -> GvIO Bool (Maybe TagElem)
+pauseOnLexGui pst f xs missedSem missedLex job = do
+  p <- panel f []
+  candV <- varCreate xs
+  (tb, ref, updater) <- candidateGui pst p xs missedSem missedLex
+  -- supplementary button bar
+  let saveCmd =
+       do c <- varGet candV
+          let cStr = unlines $ map toGeniHand c
+          maybeSaveAsFile f cStr
+      loadCmd =
+       do let filetypes = [("Any file",["*","*.*"])]
+          fsel <- fileOpenDialog f False True "Choose your file..." filetypes "" ""
+          case fsel of
+           Nothing   -> return ()
+           Just file ->
+             do parsed <- parseFromFile geniTagElems file
+                case parsed of
+                 Left err -> errorDialog f "" (show err)
+                 Right c  -> do varSet candV c
+                                setGvDrawables2 ref (unzip $ sectionsBySem c)
+                                updater
+  --
+  saveBt <- button p [ text := "Save to file", on command := saveCmd ]
+  loadBt <- button p [ text := "Load from file", on command := loadCmd ]
+  nextBt <- button p [ text := "Begin" ]
+  let disableW w = set w [ enabled := False ]
+  set nextBt [ on command := do mapM disableW [ saveBt, loadBt, nextBt ]
+                                varGet candV >>= job ]
+  --
+  let lay = fill $ container p $ column 5
+            [ fill tb, hfill (vrule 1)
+            , row 0 [ row 5 [ widget saveBt, widget loadBt ]
+                    , hfloatRight $ widget nextBt ] ]
+  return (lay, ref, updater)
+\end{code}
+
+\paragraph{debuggerTab} is potentially the most useful part of the
+debugger.  It shows you the contents of chart, agenda and other
+such structures used during the actual surface realisation process.
+This may be a bit complicated to use because there is lots of extra
+stuff you need to pass in order to parameterise the whole deal.
+
+The function \fnreflite{debuggerTab} fills the parent window with the
 standard components of a graphical debugger:
 \begin{itemize}
 \item An item viewer which allows the user to select one of the items

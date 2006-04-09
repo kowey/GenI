@@ -19,11 +19,15 @@
 module BuilderGui 
 where
 
+import Graphics.UI.WXCore
+
+import qualified Builder as B
 import Geni (ProgStateRef)
+import Configuration (Params)
 \end{code}
 
 \begin{code}
 data BuilderGui = BuilderGui
   { generateGui :: ProgStateRef -> IO ()
-  , debugGui    :: ProgStateRef -> IO () }
+  , debuggerPnl :: forall a . (Window a) -> Params -> B.Input -> String -> IO Layout }
 \end{code}

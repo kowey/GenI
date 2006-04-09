@@ -26,26 +26,21 @@ module SimpleGui where
 import Graphics.UI.WX
 import Graphics.UI.WXCore
 
-import Control.Monad (liftM)
-
 import Data.IORef
-import Data.List (find, nub, (\\))
-import Data.Maybe (isJust)
+import Data.List (nub)
 
 import Geni 
-  ( ProgState(..), ProgStateRef
-  , initGeni, runGeni )
+  ( ProgStateRef, runGeni )
 import Btypes 
-  (showLexeme, GNode(gnname),
-   iword, isemantics)
+  (GNode(gnname))
 import Tags (tsemantics, TagElem(idname), TagItem(..))
 
-import Configuration ( Params(..), polarised, chartsharing )
-import General ( fst3, snd3 )
+import Configuration ( Params(..), chartsharing )
+import General ( snd3 )
 import Graphviz ( GraphvizShow(..), gvNewline, gvUnlines )
 import GuiHelper
   ( toSentence,
-    statsGui, messageGui, tagViewerGui, candidateGui, polarityGui,
+    statsGui, messageGui, tagViewerGui,
     debuggerPanel, DebuggerItemBar, setGvParams, GvIO, newGvRef,
     XMGDerivation(getSourceTrees),
   )
@@ -69,7 +64,7 @@ import Statistics (Statistics)
 \begin{code}
 simpleGui = BG.BuilderGui {
       BG.generateGui = generateGui 
-    , BG.debugGui = debugGui }
+    , BG.debuggerPnl = simpleDebuggerTab }
 
 generateGui :: ProgStateRef -> IO ()
 generateGui pstRef = 
@@ -138,54 +133,6 @@ realisationsGui pstRef f resultsRaw =
 \label{sec:simple_debugger_gui}
 \label{fn:simpleDebugGui}
 % --------------------------------------------------------------------
-
-This creates an iteractive version of the generator that shows the
-user the agenda, chart and results at various stages in the generation
-process.  
-
-\begin{code}
-debugGui :: ProgStateRef -> IO ()
-debugGui pstRef = 
- do pst <- readIORef pstRef
-    let config = pa pst
-    --
-    f <- frame [ text := "Geni Debugger" 
-               , fullRepaintOnResize := False 
-               , clientSize := sz 300 300 ] 
-    p    <- panel f []
-    nb   <- notebook p []
-    -- generation step 1
-    initStuff <- initGeni pstRef
-    let (tsem,_)   = B.inSemInput initStuff
-        (cand,_)   = unzip $ B.inCands initStuff
-        lexonly    = B.inLex initStuff 
-    -- candidate selection tab
-    let missedSem  = tsem \\ (nub $ concatMap tsemantics cand)
-        -- we assume that for a tree to correspond to a lexical item,
-        -- it must have the same semantics
-        hasTree l = isJust $ find (\t -> tsemantics t == lsem) cand
-          where lsem = isemantics l
-        missedLex = [ showLexeme (iword l) | l <- lexonly, (not.hasTree) l ]
-    (canPnl,_,_) <- candidateGui pst nb cand missedSem missedLex
-    -- generation step 2.A (run polarity stuff)
-    let (input2, _, autstuff) = B.preInit initStuff config
-    -- automata tab
-    let (auts, finalaut, _) = autstuff
-    autPnl <- fst3 `liftM` polarityGui nb auts finalaut
-    -- generation step 2.B (start the generator)
-    debugPnl <- simpleDebuggerTab nb config input2 "simple" 
-    let lexTab = tab "lexical selection" canPnl
-        autTab = tab "automata" autPnl
-        debugTab = tab "session" debugPnl
-        genTabs = if polarised config then [ autTab, debugTab ] else [ debugTab ]
-    --
-    set f [ layout := container p $ column 0 [ tabs nb (lexTab : genTabs) ]
-          , clientSize := sz 700 600 ]
-    return ()
-\end{code}
-  
-The generation could conceivably be broken into multiple generation
-tasks, so we create a separate tab for each task.
 
 \begin{code}
 simpleDebuggerTab :: (Window a) -> Params -> B.Input -> String -> IO Layout 

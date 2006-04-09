@@ -31,11 +31,10 @@ import Control.Monad (liftM)
 
 import Data.Array ((!), elems)
 import Data.IORef
-import Data.List (find, intersperse, nub, (\\), findIndex, sort)
+import Data.List (intersperse, findIndex, sort)
 import qualified Data.Map as Map 
-import Data.Maybe (listToMaybe, isJust, catMaybes)
+import Data.Maybe (listToMaybe, catMaybes)
 import Data.Tree 
-import Text.ParserCombinators.Parsec (parseFromFile)
 
 import Automaton
  ( NFA(states, transitions, startSt, finalStList)
@@ -43,7 +42,7 @@ import Automaton
 import qualified Builder    as B
 import qualified BuilderGui as BG 
 import Btypes
-  ( GNode, gnname, showLexeme, iword, isemantics, Sem )
+  ( GNode, gnname )
 
 import CkyBuilder 
   ( ckyBuilder, CkyStatus, CkyItem(..), ChartId
@@ -54,31 +53,27 @@ import CkyBuilder
   , emptySentenceAut, mJoinAutomata, mAutomatonPaths,
   , unpackItemToAuts,
   )
-import Configuration ( Params(..), polarised )
+import Configuration ( Params(..) )
 
 import Geni 
-  ( ProgState(..), ProgStateRef
-  , initGeni, runGeni )
-import General ( boundsCheck, geniBug, fst3 )
-import GeniParsers ( geniTagElems )
+  ( ProgStateRef, runGeni )
+import General ( boundsCheck, geniBug )
 import Graphviz 
   ( GraphvizShow(..), gvNode, gvEdge, gvSubgraph, gvUnlines, gvShowTree
   , gvNewline
   , GraphvizShowNode(..) )
 import GuiHelper 
-  ( candidateGui, sectionsBySem, messageGui, polarityGui, toSentence
+  ( messageGui, toSentence
   , debuggerPanel, DebuggerItemBar
   , addGvHandler, modifyGvParams, 
   , GraphvizGuiSt(gvitems, gvsel, gvparams), GvIO, setGvSel,
-  , maybeSaveAsFile
-  , statsGui, graphvizGui, newGvRef, setGvDrawables, setGvDrawables2,
+  , statsGui, graphvizGui, newGvRef, setGvDrawables,
   )
 
 import Polarity
 import Statistics (Statistics)
 import Tags 
   ( idname, tsemantics, ttree, TagElem )
-import Treeprint ( toGeniHand )
 \end{code}
 }
 
@@ -89,7 +84,7 @@ import Treeprint ( toGeniHand )
 \begin{code}
 ckyGui = BG.BuilderGui {
       BG.generateGui = generateGui 
-    , BG.debugGui = debugGui }
+    , BG.debuggerPnl = ckyDebuggerTab }
 
 generateGui :: ProgStateRef -> IO ()
 generateGui pstRef =
@@ -144,112 +139,6 @@ realisationsGui _ f resultsRaw =
      gvRef <- newGvRef initCkyDebugParams labels tip
      setGvDrawables gvRef results
      graphvizGui f "cky-results" gvRef
-\end{code}
-
-% --------------------------------------------------------------------
-\section{Debugger}
-\label{sec:cky_debugger_gui}
-\label{fn:ckyDebugGui}
-% --------------------------------------------------------------------
-
-This creates an iteractive version of the generator that shows the
-user the agenda, chart and results at various stages in the generation
-process.  
-
-\begin{code}
-debugGui :: ProgStateRef -> IO ()
-debugGui pstRef = 
- do pst <- readIORef pstRef
-    let config = pa pst
-    --
-    f <- frame [ text := "GenI Debugger - CKY edition" 
-               , fullRepaintOnResize := False 
-               , clientSize := sz 300 300 ] 
-    p    <- panel f []
-    nb   <- notebook p []
-    -- generation step 1
-    initStuff <- initGeni pstRef
-    let (tsem,_)   = B.inSemInput initStuff
-        (cand,_)   = unzip $ B.inCands initStuff
-        lexonly    = B.inLex initStuff 
-    -- continuation for candidate selection tab
-    let step2 newCands =
-         do -- generation step 2.A (run polarity stuff)
-            let newInitStuff = initStuff { B.inCands = map (\x -> (x, -1)) newCands } 
-                (input2, _, autstuff) = B.preInit newInitStuff config
-            -- automata tab
-            let (auts, finalaut, _) = autstuff
-            autPnl <- if polarised config
-                      then fst3 `liftM` polarityGui nb auts finalaut
-                      else messageGui nb "polarities disabled"
-            -- generation step 2.B (start the generator for each path)
-            debugPnl <- ckyDebuggerTab nb config input2 "cky"
-            let autTab   = tab "automata" autPnl
-                debugTab = tab "session" debugPnl
-                genTabs  = if polarised config then [ autTab, debugTab ] else [ debugTab ]
-            --
-            set f [ layout := container p $ tabs nb genTabs
-                  , clientSize := sz 700 600 ]
-            return ()
-    -- candidate selection tab
-    let missedSem  = tsem \\ (nub $ concatMap tsemantics cand)
-        -- we assume that for a tree to correspond to a lexical item,
-        -- it must have the same semantics
-        hasTree l = isJust $ find (\t -> tsemantics t == lsem) cand
-          where lsem = isemantics l
-        missedLex = [ showLexeme (iword l) | l <- lexonly, (not.hasTree) l ]
-    (canPnl,_,_) <- ckyCandidateGui pst nb cand missedSem missedLex step2
-    -- basic tabs 
-    let basicTabs = [ tab "lexical selection" canPnl ]
-    --
-    set f [ layout := container p $ tabs nb basicTabs
-          , clientSize := sz 700 600 ]
-    return ()
-\end{code}
-  
-The generation could conceivably be broken into multiple generation
-tasks, so we create a separate tab for each task.
-
-FIXME: when we've made this more sophisticated, we should refactor so that simple
-can have access to the same functionality
-
-\begin{code}
-ckyCandidateGui :: ProgState -> (Window a) -> [TagElem] -> Sem -> [String] -> ([TagElem] -> IO ())
-                -> GvIO Bool (Maybe TagElem)
-ckyCandidateGui pst f xs missedSem missedLex job = do
-  p <- panel f []
-  candV <- varCreate xs
-  (tb, ref, updater) <- candidateGui pst p xs missedSem missedLex
-  -- supplementary button bar
-  let saveCmd =
-       do c <- varGet candV
-          let cStr = unlines $ map toGeniHand c
-          maybeSaveAsFile f cStr
-      loadCmd =
-       do let filetypes = [("Any file",["*","*.*"])]
-          fsel <- fileOpenDialog f False True "Choose your file..." filetypes "" ""
-          case fsel of
-           Nothing   -> return ()
-           Just file ->
-             do parsed <- parseFromFile geniTagElems file
-                case parsed of
-                 Left err -> errorDialog f "" (show err)
-                 Right c  -> do varSet candV c
-                                setGvDrawables2 ref (unzip $ sectionsBySem c)
-                                updater
-  --
-  saveBt <- button p [ text := "Save to file", on command := saveCmd ]
-  loadBt <- button p [ text := "Load from file", on command := loadCmd ]
-  nextBt <- button p [ text := "Begin" ]
-  let disableW w = set w [ enabled := False ]
-  set nextBt [ on command := do mapM disableW [ saveBt, loadBt, nextBt ]
-                                varGet candV >>= job ]
-  --
-  let lay = fill $ container p $ column 5
-            [ fill tb, hfill (vrule 1)
-            , row 0 [ row 5 [ widget saveBt, widget loadBt ]
-                    , hfloatRight $ widget nextBt ] ]
-  return (lay, ref, updater)
 \end{code}
 
 \begin{code}

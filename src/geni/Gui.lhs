@@ -30,18 +30,20 @@ import qualified Control.Monad as Monad
 import qualified Data.Map as Map
 
 import Data.IORef
-import Data.List (isPrefixOf, nub, delete)
+import Data.List (isPrefixOf, nub, delete, (\\), find)
+import Data.Maybe (isJust)
 import System.Directory 
 import System.Exit (exitWith, ExitCode(ExitSuccess))
 import Text.ParserCombinators.Parsec ( runParser )
 
+import qualified Builder as B
 import qualified BuilderGui as BG
 import Geni 
-  ( ProgState(..), ProgStateRef, combine
+  ( ProgState(..), ProgStateRef, combine, initGeni
   , loadGrammar, loadTestSuite, loadTargetSemStr)
-import General (boundsCheck, geniBug, trim, slash)
-import Btypes (showSem, showPairs)
-import Tags (idname, tpolarities, TagElem)
+import General (boundsCheck, geniBug, trim, slash, fst3)
+import Btypes (showSem, showPairs, ILexEntry(isemantics, iword), showLexeme)
+import Tags (idname, tpolarities, tsemantics, TagElem)
 
 import Configuration
   ( Params(..), Switch(..), GrammarType(..)
@@ -574,9 +576,8 @@ doGenerate f pstRef sembox debugger =
           SimpleBuilder -> simpleGui
           CkyBuilder    -> ckyGui 
         generateGui = BG.generateGui builderGui
-        debugGui    = BG.debugGui builderGui
     --
-    do (if debugger then debugGui pstRef else generateGui pstRef) 
+    do (if debugger then debugGui builderGui pstRef else generateGui pstRef)
     `catch` handler "Error during realisation"
   -- FIXME: it would be nice to distinguish between generation and ts
   -- parsing errors
@@ -584,6 +585,67 @@ doGenerate f pstRef sembox debugger =
  where
    handler title err = errorDialog f title (show err)
 \end{code}
+
+\paragraph{debuggerGui} All GenI builders can make use of an interactive
+graphical debugger.  We provide here a universal debugging interface,
+which makes use of some parameterisable bits as defined in the BuilderGui
+module.  This window shows a seperate tab for each surface realisation
+task (lexical selection, filtering, building).  We also rely heavily on
+helper code defined in \ref{sec:debugger_helpers}.
+
+\begin{code}
+debugGui :: BG.BuilderGui -> ProgStateRef -> IO ()
+debugGui builderGui pstRef =
+ do pst <- readIORef pstRef
+    let config = pa pst
+    let btype = case builderType config of
+                NullBuilder   -> geniBug $ "No graphical mode for the null builder!"
+                CkyBuilder    -> "cky"
+                SimpleBuilder -> "simple"
+    --
+    f <- frame [ text := "GenI Debugger - " ++ btype ++ " edition"
+               , fullRepaintOnResize := False
+               , clientSize := sz 300 300 ]
+    p    <- panel f []
+    nb   <- notebook p []
+    -- generation step 1
+    initStuff <- initGeni pstRef
+    let (tsem,_)   = B.inSemInput initStuff
+        (cand,_)   = unzip $ B.inCands initStuff
+        lexonly    = B.inLex initStuff
+    -- continuation for candidate selection tab
+    let step2 newCands =
+         do -- generation step 2.A (run polarity stuff)
+            let newInitStuff = initStuff { B.inCands = map (\x -> (x, -1)) newCands }
+                (input2, _, autstuff) = B.preInit newInitStuff config
+            -- automata tab
+            let (auts, finalaut, _) = autstuff
+            autPnl <- fst3 `Monad.liftM` polarityGui nb auts finalaut
+            -- generation step 2.B (start the generator for each path)
+            debugPnl <- BG.debuggerPnl builderGui nb config input2 btype
+            let autTab   = tab "automata" autPnl
+                debugTab = tab (btype ++ "-session") debugPnl
+                genTabs  = if polarised config then [ autTab, debugTab ] else [ debugTab ]
+            --
+            set f [ layout := container p $ tabs nb genTabs
+                  , clientSize := sz 700 600 ]
+            return ()
+    -- candidate selection tab
+    let missedSem  = tsem \\ (nub $ concatMap tsemantics cand)
+        -- we assume that for a tree to correspond to a lexical item,
+        -- it must have the same semantics
+        hasTree l = isJust $ find (\t -> tsemantics t == lsem) cand
+          where lsem = isemantics l
+        missedLex = [ showLexeme (iword l) | l <- lexonly, (not.hasTree) l ]
+    (canPnl,_,_) <- pauseOnLexGui pst nb cand missedSem missedLex step2
+    -- basic tabs
+    let basicTabs = [ tab "lexical selection" canPnl ]
+    --
+    set f [ layout := container p $ tabs nb basicTabs
+          , clientSize := sz 700 600 ]
+    return ()
+\end{code}
+
 
  
 % --------------------------------------------------------------------
