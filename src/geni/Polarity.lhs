@@ -85,6 +85,7 @@ import Data.Bits
 import qualified Data.Map as Map
 import Data.List
 import Data.Maybe (isNothing)
+import Data.Tree (flatten)
 --import Data.Set
 
 import Automaton
@@ -95,7 +96,7 @@ import Btypes(Pred, SemInput, Sem, Flist, AvPair, showAv,
               Replacable(..),
               emptyPred, Ptype(Initial), 
               showSem, sortSem, 
-              root, gup, gdown,
+              root, gup, gdown, gtype, GType(Subs),
               SemPols, unifyFeat, rootUpd)
 import General(
     BitVector, isEmptyIntersect, fst3, snd3, thd3,
@@ -901,7 +902,7 @@ detectPols' te =
       --
       rootdown  = (gdown.root.ttree) te
       rootup    = (gup.root.ttree) te
-      subup    = map snd3 (substnodes te)
+      subup     = [ gup gn | gn <- (flatten.ttree) te, gtype gn == Subs ]
       rstuff   :: [[String]]
       rstuff   = getval cat_ rootup -- cat is special, see below
                  ++ (concatMap (\v -> getval v rootdown) otherFeats)
