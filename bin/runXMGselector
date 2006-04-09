@@ -3,8 +3,11 @@
 GRAMMAR_FILE=${1}
 USERNAME=`whoami`
 
-TMP_FILE_PREFIX="/tmp/geni_to_sel-"${USERNAME}
-TMP_RES_PREFIX="/tmp/geni_from_sel-"${USERNAME}
+if [ x${GENI_TMP} == x ]; then
+  GENI_TMP=/tmp
+fi
+TMP_FILE_PREFIX="${GENI_TMP}/geni_to_sel-"${USERNAME}
+TMP_RES_PREFIX="${GENI_TMP}/geni_from_sel-"${USERNAME}
 
 TMP_FIL_FILE="${TMP_FILE_PREFIX}-$$.fil"
 TMP_RES_FILE="${TMP_RES_PREFIX}-$$.geni"
