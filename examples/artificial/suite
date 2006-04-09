@@ -14,6 +14,9 @@ adj_multi semantics:[t1() xg() xg2()]
 k2p         semantics:[t1() d()]
 k2p_trivial semantics:[k2p()]
 
+% this should still work
+iaf_killer_good semantics:[t1(x) t2(x) iaf(x)]
+
 % things which should not work!
 k2p_conflict semantics:[t1() t2() db()]
 adj_failure  semantics:[a() xb()] % top/bot conflict

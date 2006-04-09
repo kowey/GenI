@@ -81,4 +81,13 @@ Mother [cat:a tb:?X]![tb:?Y] {
   Right type:subst [cat:t2 foo:?Y]![]
 }
 
+% this should still be passed
+iaf-killer-good (?X) initial
+Mother [cat:a]![cat:a] {
+  Anch anchor
+  Left  type:subst [cat:t1 idx:?X]![]
+  Right type:subst [cat:t2 idx:?X]![]
+}
+
+
 

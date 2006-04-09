@@ -7,8 +7,14 @@ semantics: [b()]
 _t1 term (t1 bar1)
 semantics: [t1()]
 
-_t2 term (t2 bar2) 
+_t2bar2 term (t2 bar2)
 semantics: [t2()]
+
+_t1 term (t1 ?X)
+semantics: [t1(?X)]
+
+_t2 term (t2 ?X)
+semantics: [t2(?X)]
 
 _xb aux-bad () 
 semantics: [xb()]
@@ -33,4 +39,5 @@ _e_b1 liu6-bad1 () semantics:[eb1()]
 _e_b2 liu6-bad2 () semantics:[eb2()]
 
 whatever k2p-trivial () semantics:[k2p()]
+iaf-g iaf-killer-good (?X) semantics:[iaf(?X)]
 
