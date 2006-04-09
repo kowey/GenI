@@ -279,8 +279,8 @@ fromUniConst _ = fail "not a unique constant" -- we don't actually expect this f
 getIdx :: Flist -> [GeniVal]
 getIdx fs = [ v | (a,v) <- fs, a == "idx" ]
 
-ts_iafFailure :: [Pred] -> String
-ts_iafFailure sem = "index accesibility failure - blocked:  " ++ showSem sem
+ts_iafFailure :: [String] -> [Pred] -> String
+ts_iafFailure is sem = "index accesibility failure -" ++ (unwords is) ++ "- blocked: " ++ showSem sem
 
 -- | Calculate the new set of accessibility/inaccesible indices, returning a
 --   a tuple of accesible / inaccesible indices

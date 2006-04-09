@@ -791,11 +791,12 @@ dispatchIafFailure itemRaw =
     let bmap = ciSemBitMap item
         item = recalculateAccesibility itemRaw
         badSem = iafBadSem (theIafMap s) bmap (tsemVector s) ciSemantics item
+        inAcc = iafInacc item
     if badSem == 0
       then -- can't dispatch, but that's good!
            -- (note that we return the item with its iaf criteria updated)
            return $ Just item
-      else do addToTrash item (ts_iafFailure $ bitVectorToSem bmap badSem)
+      else do addToTrash item (ts_iafFailure inAcc $ bitVectorToSem bmap badSem)
               return Nothing
 \end{code}
 
