@@ -29,9 +29,9 @@ import Graphics.UI.WXCore hiding (when)
 import qualified Control.Monad as Monad 
 import Control.Monad (liftM)
 
-import Data.Array ((!))
+import Data.Array ((!), elems)
 import Data.IORef
-import Data.List (find, intersperse, nub, (\\))
+import Data.List (find, intersperse, nub, (\\), findIndex, sort)
 import qualified Data.Map as Map 
 import Data.Maybe (listToMaybe, isJust, catMaybes)
 import Data.Tree 
@@ -59,7 +59,7 @@ import Configuration ( Params(..), polarised )
 import Geni 
   ( ProgState(..), ProgStateRef
   , initGeni, runGeni )
-import General ( boundsCheck, listRepNode, geniBug, fst3 )
+import General ( boundsCheck, geniBug, fst3 )
 import GeniParsers ( geniTagElems )
 import Graphviz 
   ( GraphvizShow(..), gvNode, gvEdge, gvSubgraph, gvUnlines, gvShowTree
@@ -69,7 +69,7 @@ import GuiHelper
   ( candidateGui, sectionsBySem, messageGui, polarityGui, toSentence
   , debuggerPanel, DebuggerItemBar
   , addGvHandler, modifyGvParams, 
-  , GraphvizGuiSt(gvitems, gvsel), GvIO
+  , GraphvizGuiSt(gvitems, gvsel, gvparams), GvIO, setGvSel,
   , maybeSaveAsFile
   , statsGui, graphvizGui, newGvRef, setGvDrawables, setGvDrawables2,
   )
@@ -317,18 +317,41 @@ ckyItemBar f gvRef updaterFn =
     -- select derivation
     derTxt    <- staticText ib []
     derChoice <- choice ib [ tooltip := "Select a derivation" ]
+    jumpBtn <- button ib [ text := "Inspect" ]
+    jumpChoice <- choice ib [ tooltip := "Jump to item." ]
     let onDerChoice =
          do sel <- get derChoice selection
             modifyGvParams gvRef (setDebugWhichDerivation sel)
-            updaterFn
+            gvSt <- readIORef gvRef
+            -- update the list of jump choices
+            case (gvitems gvSt ! gvsel gvSt) of
+             Just (s,c) -> do
+               let t = selectedDerivation (gvparams gvSt) s c
+                   nodes = map show $ sort $ derivationNodes t
+               set jumpChoice [ items := nodes, selection := 0 ]
+               updaterFn
+             Nothing    -> return ()
     set derChoice [ on select := onDerChoice ]
+    set jumpBtn [ on command := do
+      gvSt <- readIORef gvRef
+      jmpSel  <- get jumpChoice selection
+      jmpItms <- get jumpChoice items
+      let items = gvitems gvSt
+          jmpTo = (read $ jmpItms !! jmpSel)
+          isJmpTo Nothing  = False
+          isJmpTo (Just (_,x)) = ciId x == jmpTo
+      case findIndex isJmpTo (elems items) of
+        Nothing -> geniBug $ "Was asked to see node " ++ (show jmpTo) ++ ", which is not in the list"
+        Just x  -> setGvSel gvRef x
+      onDerChoice
+      updaterFn ]
     -- show features
-    detailsChk <- checkBox ib [ text := "features (src)"
-                              , checked := False ]
+    detailsChk <- checkBox ib [ text := "features"
+                              , enabled := False, checked := False ]
     fullDervChk <- checkBox ib [ text := "full derivation"
                                , checked := False ]
     srcTreeChk <- checkBox ib [ text := "src tree"
-                                     , checked := False ]
+                              , checked := False ]
     let setChkBoxUpdater box setter =
          set box [ on command := do isChecked <- get box checked
                                     modifyGvParams gvRef $ setter isChecked
@@ -336,9 +359,14 @@ ckyItemBar f gvRef updaterFn =
     setChkBoxUpdater detailsChk setDebugShowFeats
     setChkBoxUpdater fullDervChk setDebugShowFullDerv
     setChkBoxUpdater srcTreeChk setDebugShowSourceTree
+    -- make detailsChk conditioned on srcTreeChk
+    set srcTreeChk [ on command :~ \x -> x >> do
+                      isChecked <- get srcTreeChk checked
+                      set detailsChk [ enabled := isChecked ]
+                   ]
     -- add a handler for when an item is selected: 
     -- update the list of derivations to choose from
-    let updateDerTxt t = set derTxt [ text := "deriviations (" ++ t ++ ")" ]
+    let updateDerTxt t = set derTxt [ text := "Deriviations (" ++ t ++ ")" ]
         handler gvSt = 
          do case (gvitems gvSt ! gvsel gvSt) of 
              Nothing    -> 
@@ -354,9 +382,12 @@ ckyItemBar f gvRef updaterFn =
     -- call the handler to react to the first selection
     handler `liftM` readIORef gvRef
     --
-    return $ hfloatCentre $ container ib $ row 5 
-                [ label "Show...", widget fullDervChk, widget srcTreeChk, widget detailsChk
-                , hspace 5, widget derTxt,  rigid $ widget derChoice ] 
+    return $ hfloatCentre $ container ib $ column 0 $
+             [ row 5
+                [ label "Show...", widget fullDervChk, widget srcTreeChk, widget detailsChk ]
+             , row 5
+                [ widget derTxt, widget derChoice
+                , hspace 5, label "Node", widget jumpChoice, widget jumpBtn ]  ]
 \end{code}
 
 \section{Helper code}
@@ -373,6 +404,20 @@ gornAddress t target = reverse `liftM` helper [] t
  helper current (Node x _)  | (gnname x == gnname target) = Just current
  helper current (Node _ l)  = listToMaybe $ catMaybes $
                               zipWith (\c t -> helper (c:current) t) [1..] l
+
+
+selectedDerivation :: CkyDebugParams -> CkyStatus -> CkyItem -> Tree (ChartId, String)
+selectedDerivation f s c =
+ let derivations = extractDerivations s c
+     whichDer    = debugWhichDerivation f
+ in if boundsCheck whichDer derivations
+       then derivations !! whichDer
+       else geniBug $ "Bounds check failed on derivations selector:\n"
+                      ++ "Selected derivation: " ++ (show whichDer) ++ "\n"
+                      ++ "Bounds: 0 to " ++ (show $ length derivations - 1)
+
+derivationNodes :: Tree (ChartId, String) -> [ChartId]
+derivationNodes = (map fst).flatten
 
 -- | Remove na and subst/adj completion links
 thinDerivationTree :: Tree (ChartId, String) -> Tree (ChartId, String)
@@ -409,15 +454,10 @@ instance GraphvizShow CkyDebugParams (CkyStatus, CkyItem) where
        whichDer    = debugWhichDerivation f
        showFullDer = debugShowFullDerv f
        showSrcTree = debugShowSourceTree f
-       derivations = extractDerivations s c
        showTree i t = gvSubgraph $ gvShowTree edgeParams (s,showFullDer, [ciId c]) prfx t
                       where prfx = p ++ "t" ++ (show i)
-       gvDerv = if boundsCheck whichDer derivations
-                then let t = derivations !! whichDer
-                     in showTree whichDer $ if showFullDer then t else thinDerivationTree t
-                else geniBug $ "Bounds check failed on derivations selector:\n"
-                               ++ "Asked to visualise: " ++ (show whichDer) ++ "\n"
-                               ++ "Bounds: 0 to " ++ (show $ length derivations - 1)
+       gvDerv = showTree whichDer $ if showFullDer then t else thinDerivationTree t
+                where t = selectedDerivation f s c
        --
        joinedAut = uncurry mJoinAutomataUsingHole $ unpackItemToAuts s c
        gvAut     = graphvizShowAsSubgraph () (p ++ "aut")  joinedAut
@@ -462,15 +502,9 @@ nullHlter a = (a,Nothing)
 
 toTagElem :: CkyItem -> TagElem
 toTagElem ci =
- let node = ciNode ci
-     te   = ciSourceTree ci
-     --
-     updateTree t = (head.fst) $ listRepNode replaceFn filtFn [t]
-      where filtFn (Node a _)    = (gnname a == gnname node)
-            replaceFn (Node _ k) = Node node k
-     --
- in te { ttree = (updateTree.ttree) te
-       , tsemantics  = bitVectorToSem (ciSemBitMap ci) (ciSemantics ci) }
+ te { ttree = ttree te
+    , tsemantics  = bitVectorToSem (ciSemBitMap ci) (ciSemantics ci) }
+ where te = ciSourceTree ci
 
 -- FIXME: this is largely copy-and-pasted from Polarity.lhs 
 -- it should be refactored later
