@@ -45,7 +45,7 @@ import Btypes
   ( GNode, gnname )
 
 import CkyBuilder 
-  ( ckyBuilder, CkyStatus, CkyItem(..), ChartId
+  ( ckyBuilder, earleyBuilder, CkyStatus, CkyItem(..), ChartId
   , ciRoot, ciAdjDone
   , bitVectorToSem, findId,
   , extractDerivations
@@ -83,12 +83,15 @@ import Tags
 
 \begin{code}
 ckyGui = BG.BuilderGui {
-      BG.generateGui = generateGui 
+      BG.generateGui = generateGui False
     , BG.debuggerPnl = ckyDebuggerTab }
 
-generateGui :: ProgStateRef -> IO ()
-generateGui pstRef =
-  runGeni pstRef ckyBuilder >>= resultsGui pstRef
+earleyGui = ckyGui { BG.generateGui = generateGui True }
+
+generateGui :: Bool -> ProgStateRef -> IO ()
+generateGui isEarley pstRef =
+  runGeni pstRef builder >>= resultsGui pstRef
+  where builder = if isEarley then earleyBuilder else ckyBuilder
 \end{code}
 
 % --------------------------------------------------------------------

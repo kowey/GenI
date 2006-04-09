@@ -18,16 +18,17 @@
 \chapter{Cky builder}
 \label{cha:CkyBuilder}
 
-GenI currently has two backends, SimpleBuilder (chapter
-\ref{cha:SimpleBuilder}) and this module.  This backend does not attempt
-to build derived trees at all.  We construct packed derivation trees
-using the CKY algorithm for TAGs, and at the very end, we unpack the
-results directly into an automaton.  No derived trees here!
+GenI currently has three backends, SimpleBuilder (chapter
+\ref{cha:SimpleBuilder}) the CKY and Earley which are both in this
+module.  This backend does not attempt to build derived trees at all.
+We construct packed derivation trees using the CKY/Earley algorithm for
+TAGs, and at the very end, we unpack the results directly into an
+automaton.  No derived trees here!
 
 \begin{code}
 module CkyBuilder
  ( -- builder
-   ckyBuilder,
+   ckyBuilder, earleyBuilder,
    CkyStatus(..),
    -- chart item
    CkyItem(..), ChartId,
@@ -76,7 +77,7 @@ import Builder
     semToIafMap, IafAble(..),  IafMap, fromUniConst, getIdx,
     recalculateAccesibility, iafBadSem, ts_iafFailure
   )
-import Configuration ( Params, orderedsubs, isIaf )
+import Configuration ( Params, isIaf )
 import General
   ( combinations, treeLeaves, BitVector, geniBug, fst3, snd3 )
 import Polarity
@@ -112,12 +113,16 @@ import Tags
 
 \begin{code}
 ckyBuilder = B.Builder
-  { B.init = initBuilder
-  , B.step = generateStep
+  { B.init = initBuilder False
+  , B.step = generateStep False
   , B.stepAll  = B.defaultStepAll ckyBuilder
   , B.finished = null.theAgenda
   , B.unpack   = \s -> concatMap (unpackItem s) $ theResults s
   }
+
+earleyBuilder = ckyBuilder {
+    B.init = initBuilder True
+  , B.step = generateStep True }
 \end{code}
 
 The rest of the builder interface is implemented below.  I just
@@ -268,12 +273,11 @@ type RoutingMap = Map.Map String ([String], [String], GNode)
 % --------------------------------------------------------------------
 
 \begin{code}
-initBuilder :: B.Input -> Params -> (CkyStatus, Statistics)
-initBuilder input config =
+initBuilder :: Bool -> B.Input -> Params -> (CkyStatus, Statistics)
+initBuilder isEarley input config =
   let (sem, _) = B.inSemInput input
       bmap  = defineSemanticBits sem
-      hasOs = orderedsubs config
-      cands = concatMap (initTree hasOs bmap) $ B.inCands input
+      cands = concatMap (initTree isEarley bmap) $ B.inCands input
       filts = ckyDispatchFilters ++
               if isIaf config
               then [dispatchIafFailure, dispatchToAgenda]
@@ -378,16 +382,16 @@ Well, ok, there are ways that this thing could loop infinitely: for
 example, having null semantic lexical items would be a very bad thing.
 
 \begin{code}
-generateStep :: CkyState ()
-generateStep =
+generateStep :: Bool -> CkyState ()
+generateStep isEarley =
  do -- this check may seem redundant with generate, but it's needed
     -- to protect against a user who calls generateStep on a finished
     -- state
     isFinished <- gets finished
-    unless (isFinished) generateStep2
+    unless (isFinished) (generateStep2 isEarley)
 
-generateStep2 :: CkyState ()
-generateStep2 =
+generateStep2 :: Bool -> CkyState ()
+generateStep2 isEarley =
   do st <- get
      -- incrGeniter 1
      agendaItem <- selectAgendaItem
@@ -397,7 +401,7 @@ generateStep2 =
          results = map apply (theRules st)
          -- see comments below about ordered substitution
          releasePayload = not (null results) || ciComplete agendaItem
-         payload = if releasePayload && (orderedsubs $ genconfig st)
+         payload = if releasePayload && isEarley
                    then ciPayload agendaItem else []
      -- put all newly generated items into the right pigeon-holes
      -- trace (concat $ zipWith showRes ckyRules results) $
@@ -779,8 +783,7 @@ instance IafAble CkyItem where
   iafAcc   = ciAccesible
   iafInacc = ciInaccessible
   iafSetAcc   a i = i { ciAccesible = a }
-  iafSetInacc a i | ciRoot i = i { ciInaccessible = a }
-  iafSetInacc _ i = i
+  iafSetInacc a i = i { ciInaccessible = a }
   iafNewAcc i =
     concatMap fromUniConst $ replace (ciSubsts i) $
       concatMap (getIdx.snd3) (ciSubstnodes i)
@@ -1089,7 +1092,7 @@ findIdOrBug st id =
 
 \section{Optimisations}
 
-\paragraph{Ordered substitution (Earley-style derivation)}
+\paragraph{Earley-style derivation}
 
 The idea is that we to perform substitutions in a fixed order so that we avoid
 generating a lot of useless chart items that aren't going to be used in a final

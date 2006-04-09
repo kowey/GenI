@@ -47,7 +47,7 @@ import Tags (idname, tpolarities, tsemantics, TagElem)
 
 import Configuration
   ( Params(..), Switch(..), GrammarType(..)
-  , BuilderType(NullBuilder, SimpleBuilder, CkyBuilder)
+  , BuilderType(NullBuilder, SimpleBuilder, CkyBuilder, EarleyBuilder)
   , polarised, polsig, semfiltered )
 import GeniParsers 
 import GuiHelper
@@ -546,6 +546,7 @@ doGenerate f pstRef sembox useDebugger pauseOnLex =
           NullBuilder   -> error "No gui available for NullBuilder"
           SimpleBuilder -> simpleGui
           CkyBuilder    -> ckyGui 
+          EarleyBuilder -> earleyGui
         generateGui = BG.generateGui builderGui
     --
     do (if useDebugger then debugGui builderGui pstRef pauseOnLex else generateGui pstRef)
@@ -569,10 +570,7 @@ debugGui :: BG.BuilderGui -> ProgStateRef -> Bool -> IO ()
 debugGui builderGui pstRef pauseOnLex =
  do pst <- readIORef pstRef
     let config = pa pst
-    let btype = case builderType config of
-                NullBuilder   -> geniBug $ "No graphical mode for the null builder!"
-                CkyBuilder    -> "cky"
-                SimpleBuilder -> "simple"
+        btype = show $ builderType config
     --
     f <- frame [ text := "GenI Debugger - " ++ btype ++ " edition"
                , fullRepaintOnResize := False

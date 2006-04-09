@@ -25,7 +25,7 @@ module Configuration
   ( Params(..), GrammarType(..), BuilderType(..), Switch(..)
   , polarised, polsig, predicting
   , semfiltered,
-  , orderedsubs, isIaf
+  , isIaf
   , isBatch, emptyParams
   , treatArgs, optBatch
   )
@@ -120,7 +120,6 @@ isIaf        = hasOpt IafTok
 polsig       = hasOpt PolSigTok
 predicting   = hasOpt PredictingTok
 semfiltered  = hasOpt SemFilteredTok
-orderedsubs  = hasOpt OrderedSubTok
 isBatch      = hasOpt BatchTok
 \end{code}
 
@@ -162,8 +161,17 @@ switches that we use.
 data GrammarType = GeniHand | TAGML | XMGTools 
      deriving (Show, Eq)
 
-data BuilderType = NullBuilder | SimpleBuilder | CkyBuilder
-     deriving (Show, Eq)
+data BuilderType = NullBuilder | SimpleBuilder | CkyBuilder | EarleyBuilder
+     deriving (Eq)
+
+instance Show BuilderType where
+  show = showBuilderType
+
+showBuilderType :: BuilderType -> String
+showBuilderType NullBuilder = "null"
+showBuilderType SimpleBuilder = "simple"
+showBuilderType CkyBuilder = "CKY"
+showBuilderType EarleyBuilder = "Earley"
 
 data Switch = 
     HelpTok      |
@@ -182,8 +190,7 @@ data Switch =
     OptimisationsTok String   | PolOptsTok | AdjOptsTok |
     PolarisedTok | PolSigTok  | PredictingTok |
     ExtraPolaritiesTok String |
-    SemFilteredTok | OrderedAdjTok |  
-    OrderedSubTok {- cky only -} |
+    SemFilteredTok |
     IafTok {- one phase only! -} |
     BatchTok | RepeatTok String | 
     -- the WeirdTok exists strictly to please OS X when you launch
@@ -271,7 +278,6 @@ optimisationCodes =
  , (AdjOptsTok  , "adj",    "equivalent to 'S F'")
  , (PolSigTok      , "s",      "polarity signatures")
  , (SemFilteredTok , "S",      "semantic filtering")
- , (OrderedSubTok  , "Os",      "ordered substitution (cky only)")
  , (IafTok, "i", "index accesibility filtering (one-phase only)")
  , (BatchTok,          "batch", "batch processing") ]
 \end{code}
@@ -377,6 +383,7 @@ defineParams p (f:s) = defineParams pnext s
       -- builders
       BuilderTok "null"   -> p { builderType = NullBuilder }
       BuilderTok "cky"    -> p { builderType = CkyBuilder }
+      BuilderTok "earley" -> p { builderType = EarleyBuilder }
       BuilderTok "simple" -> p { builderType = SimpleBuilder }
       BuilderTok v        -> error ("unknown builder: " ++ v)
       -- advanced stuff

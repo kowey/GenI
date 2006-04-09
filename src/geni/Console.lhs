@@ -35,7 +35,7 @@ import Geni
 import Configuration
   ( Params, isGraphical, outputFile, statsFile, metricsParam
   , builderType
-  , BuilderType(CkyBuilder, SimpleBuilder, NullBuilder) )
+  , BuilderType(CkyBuilder, EarleyBuilder, SimpleBuilder, NullBuilder) )
 import qualified Builder as B
 import CkyBuilder
 import SimpleBuilder
@@ -166,6 +166,7 @@ runTestCase pstRef =
                             NullBuilder   -> helper B.nullBuilder
                             SimpleBuilder -> helper simpleBuilder
                             CkyBuilder    -> helper ckyBuilder
+                            EarleyBuilder -> helper earleyBuilder
      -- if no output file is set, write to stdout
      let oPutStrLn = if (null pstOutfile) then putStrLn 
                      else writeFile pstOutfile 
