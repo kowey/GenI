@@ -422,11 +422,11 @@ derivationNodes = (map fst).flatten
 -- | Remove na and subst/adj completion links
 thinDerivationTree :: Tree (ChartId, String) -> Tree (ChartId, String)
 thinDerivationTree =
- let thinlst = ["no-adj", "subst-finish", "adj-finish" ]
+ let thinlst = ["no-adj", "subst", "adj" ]
      helper n@(Node _ []) = n
      -- this is made complicated for fancy highlighting to work
-     helper (Node (id,op) [k]) | op `elem` thinlst = (Node (id,op2) $ map helper k2)
-       where (Node (_,op2) k2) = k
+     helper (Node (id,op) [k]) | op `elem` thinlst = (Node (id,op2) k2)
+       where (Node (_,op2) k2) = helper k
      helper (Node x kids) = (Node x $ map helper kids)
  in  helper
 
@@ -445,10 +445,10 @@ instance GraphvizShow CkyDebugParams (CkyStatus, CkyItem) where
        edgeParams (_ ,"no-adj") = [ label "na" ]
        edgeParams (_, "kids"  ) = []
        edgeParams (_, "init"  ) = [ label "i" ]
-       edgeParams (_, "subst" ) = [ style "bold",         substColor, arrowtail "normal" ]
-       edgeParams (_, "adj"   ) = [ style "bold, dashed", adjColor  , arrowtail "normal" ]
-       edgeParams (_, "subst-finish") = [ substColor ]
-       edgeParams (_, "adj-finish")   = [ adjColor, style "dashed" ]
+       edgeParams (_, "subst" ) = [ substColor ]
+       edgeParams (_, "adj"   ) = [ adjColor   ]
+       edgeParams (_, "subst-finish") = [ substColor, style "bold"        , arrowtail "normal" ]
+       edgeParams (_, "adj-finish")   = [ adjColor  , style "dashed, bold", arrowtail "normal" ]
        edgeParams (_, k) = [ ("label", "UNKNOWN: " ++ k) ]
        --
        whichDer    = debugWhichDerivation f
