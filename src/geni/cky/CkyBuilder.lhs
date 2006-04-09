@@ -44,7 +44,6 @@ where
 \ignore{
 \begin{code}
 
-import Control.Exception ( assert )
 import Control.Monad
   (unless, foldM)
 
@@ -77,7 +76,7 @@ import Builder
     semToIafMap, IafAble(..),  IafMap, fromUniConst, getIdx,
     recalculateAccesibility, iafBadSem, ts_iafFailure
   )
-import Configuration ( Params, setChartsharing, orderedsubs, isIaf )
+import Configuration ( Params, orderedsubs, isIaf )
 import General
   ( combinations, treeLeaves, BitVector, geniBug, fst3, snd3 )
 import Polarity
@@ -118,22 +117,7 @@ ckyBuilder = B.Builder
   , B.stepAll  = B.defaultStepAll ckyBuilder
   , B.finished = null.theAgenda
   , B.unpack   = \s -> concatMap (unpackItem s) $ theResults s
-  , B.run = run
   }
-
--- | Performs surface realisation from an input semantics and a lexical selection.
-run input config =
-  let stepAll = B.stepAll ckyBuilder
-      init    = B.init ckyBuilder
-      -- 1 run the setup stuff
-      -- (force chart sharing!) FIXME: this needs to be looked into
-      (combos, polcount , _, input2) = B.preInit input $
-                            setChartsharing True config
-      -- 2 call the init stuff
-      cands = assert (length combos == 1) $ head combos
-      (iSt, iStats) = init (input2 { B.inCands = cands }) config
-      -- 3 step thorugh the whole thing
-  in runState (execStateT stepAll iSt) (B.setPolStats polcount iStats)
 \end{code}
 
 The rest of the builder interface is implemented below.  I just

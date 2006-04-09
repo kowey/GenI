@@ -44,7 +44,7 @@ import Control.Exception (assert)
 import Control.Monad (when, guard, filterM, liftM)
 
 import Control.Monad.State
-  (State, get, put, modify, runState, execStateT, gets)
+  (get, put, modify, gets)
 
 import Data.List (intersect, partition, delete, sort, nub)
 import Data.Maybe (catMaybes)
@@ -68,7 +68,6 @@ import Btypes
   )
 import Builder (UninflectedWord, UninflectedSentence,
     incrCounter, num_iterations, num_comparisons, chart_size,
-    addCounters,
     SemBitMap, defineSemanticBits, semToBitVector, bitVectorToSem,
     )
 import qualified Builder as B
@@ -100,44 +99,8 @@ simpleBuilder = B.Builder
   { B.init     = initSimpleBuilder
   , B.step     = generateStep
   , B.stepAll  = B.defaultStepAll simpleBuilder
-  , B.run      = run
   , B.finished = \s -> (null.theAgenda) s && (step s == Auxiliar)
   , B.unpack   = unpackResults.theResults }
-\end{code}
-
-\fnlabel{run} performs surface realisation from an input semantics and a
-lexical selection.  If the polarity automaton optimisation is enabled,
-it first constructs the polarity automaton and uses that to guide the
-surface realisation process.
-
-There's an unfortunate source of complexity here : one way to do
-generation is to treat polarity automaton path as a seperate
-generation task.  We do this by mapping the surface realiser
-across each path and then merging the final states back into one.
-
-You should be careful if you want to translate this to a builder
-that uses a packing strategy; you should take care to rename the
-chart edges accordingly.
-
-\begin{code}
-run input config =
-  let stepAll = B.stepAll simpleBuilder
-      init    = B.init simpleBuilder
-      -- combos = polarity automaton paths
-      (combos,polcount,_,input2) = (B.preInit input config)
-      --
-      (nullS, nullStats)  = subInit []
-      --
-      (finalS, finalStats) = unzip $ map generate combos
-        where generate c =
-               let (iS, iStats) = subInit c
-               in  runState (execStateT stepAll iS) iStats
-      subInit cp = init (input2 { B.inCands = cp }) config
-      -- WARNING: will not work with packing!
-      mergeSt st1 st2 =
-        st1 { theResults = (theResults st1) ++ (theResults st2) }
-  -- FIXME: will have to update the stats later)
-  in (foldr mergeSt nullS finalS , foldr addCounters (B.setPolStats polcount nullStats) finalStats)
 \end{code}
 
 % --------------------------------------------------------------------

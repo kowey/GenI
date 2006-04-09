@@ -26,7 +26,6 @@ module CkyGui where
 import Graphics.UI.WX hiding (when)
 import Graphics.UI.WXCore hiding (when)
 
-import Control.Exception (assert)
 import qualified Control.Monad as Monad 
 import Control.Monad (liftM)
 
@@ -177,15 +176,14 @@ debugGui pstRef =
     let step2 newCands =
          do -- generation step 2.A (run polarity stuff)
             let newInitStuff = initStuff { B.inCands = map (\x -> (x, -1)) newCands } 
-                (combos, _, autstuff, input2) = B.preInit newInitStuff config
-                cands2PP = assert (length combos == 1) $ head combos
+                (input2, _, autstuff) = B.preInit newInitStuff config
             -- automata tab
             let (auts, finalaut, _) = autstuff
             autPnl <- if polarised config
                       then fst3 `liftM` polarityGui nb auts finalaut
                       else messageGui nb "polarities disabled"
             -- generation step 2.B (start the generator for each path)
-            debugPnl <- ckyDebuggerTab nb config (input2 { B.inCands = cands2PP }) "cky"
+            debugPnl <- ckyDebuggerTab nb config input2 "cky"
             let autTab   = tab "automata" autPnl
                 debugTab = tab "session" debugPnl
                 genTabs  = if polarised config then [ autTab, debugTab ] else [ debugTab ]

@@ -49,11 +49,12 @@ import qualified Data.Map as Map
 import Data.Maybe ( mapMaybe )
 import qualified Data.Set as Set
 import Data.Tree ( flatten )
+import Prelude hiding ( init )
 
 import Automaton (NFA, automatonPaths)
 import Configuration
   ( Params(metricsParam, ignoreSemantics, rootCatsParam), extrapol,
-    polarised, chartsharing )
+    polarised )
 import General (geniBug, BitVector, multiGroupByFM)
 import Btypes
   ( ILexEntry, SemInput, Sem, Pred, showPred, showSem,
@@ -61,8 +62,7 @@ import Btypes
     Collectable(collect), alphaConvert,
     GeniVal(GConst)
   )
-import Polarity  (PolResult, buildAutomaton, detectPolPaths,
-    defaultPolPaths )
+import Polarity  (PolResult, buildAutomaton, detectPolPaths)
 import Statistics (Statistics, incrIntMetric,
                    Metric(IntMetric), updateMetrics,
                    mergeMetrics, addIntMetrics,
@@ -88,13 +88,14 @@ All backends provide the same essential functionality:
 \item [unpack]    unpack chart results into a list of sentences
 \end{description}
 
+FIXME: need to update this comment
+
 \begin{code}
 data Builder st it pa = Builder
   { init     :: Input -> pa -> (st, Statistics)
   --
   , step     :: BuilderState st ()
   , stepAll  :: BuilderState st ()
-  , run      :: Input -> pa -> (st, Statistics)
   --
   , finished :: st -> Bool
   , unpack   :: st -> [UninflectedSentence] }
@@ -155,7 +156,7 @@ alpha conversion so that unification does not do the wrong thing when two trees
 have the same variables.
 
 \begin{code}
-preInit :: Input -> Params -> ([[(TagElem,BitVector)]], (Int,Int), PolResult , Input)
+preInit :: Input -> Params -> (Input, (Int,Int), PolResult)
 preInit input config =
  let (cand,_) = unzip $ inCands input
      seminput = inSemInput input
@@ -168,18 +169,15 @@ preInit input config =
      autstuff = buildAutomaton seminput cand rootCats extraPol
      (_, aut, sem2) = autstuff
      combosPol = if isPol then automatonPaths aut else [cand]
-     -- chart sharing optimisation (if enabled)
-     isChartSharing = chartsharing config
-     combosChart =
-       if isChartSharing then [detectPolPaths combosPol]
-       else map (map defaultPolPaths) combosPol
+     -- chart sharing optimisation
+     (cands2, pathIds) = unzip $ detectPolPaths combosPol
+     polcount = (length cands2, length combosPol)
      --
-     fixate g = zip (map alphaConvert $ setTidnums trees) polPath
-                where (trees, polPath) = unzip g
-     combos = map fixate combosChart
-     input2 = input { inSemInput = (sem2, snd seminput) }
+     fixate ts ps = zip (map alphaConvert $ setTidnums ts) ps
+     input2 = input { inCands    = fixate cands2 pathIds
+                    , inSemInput = (sem2, snd seminput) }
      -- note: autstuff is only useful for the graphical debugger
-  in (combos, (length combos, length combosPol), autstuff, input2)
+  in (input2, polcount, autstuff)
 
 setPolStats (exploredPaths, totalPaths) stats =
   updateMetrics (incrIntMetric "pol_explored" exploredPaths) $
@@ -201,6 +199,20 @@ unlessEmptySem input config =
   in if (null semanticsErr || ignoreSemantics config)
      then id
      else error semanticsErr
+\end{code}
+
+\subsection{Running a surface realiser}
+
+\begin{code}
+-- | Performs surface realisation from an input semantics and a lexical selection.
+run builder input config =
+  let -- 1 run the setup stuff
+      (input2, polcount, _) = preInit input config
+      -- 2 call the init stuff
+      (iSt, iStats) = init builder input2 config
+      -- 3 step through the whole thing
+      stepAll_ = stepAll builder
+  in runState (execStateT stepAll_ iSt) (setPolStats polcount iStats)
 \end{code}
 
 \subsection{Semantics and bit vectors}
@@ -408,7 +420,6 @@ nullBuilder = Builder
   { Builder.init = \_ _ -> ((), emptyStats)
   , step         = return ()
   , stepAll      = return ()
-  , run          = initNullBuilder
   , finished     = \_ -> True
   , unpack       = return [] }
 

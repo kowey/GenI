@@ -70,7 +70,6 @@ module Polarity(PolAut, AutDebug, PolResult,
                 detectSansIdx, detectPolFeatures, detectPols, detectPolPaths,
                 prefixRootCat,
                 declareRestrictors, detectRestrictors,
-                defaultPolPaths,
                 showLite, showLitePm, showPolPaths, showPolPaths',
                 calculateTreeCombos,
                 NFA(states),
@@ -982,9 +981,6 @@ detectPolPaths' accFM counter (path:ps) =
       fn f (t:ts) = fn (Map.insertWith (.|.) t currentBits f) ts 
       newFM       = fn accFM path
   in detectPolPaths' newFM (counter+1) ps
-
-defaultPolPaths :: TagElem -> (TagElem, BitVector)
-defaultPolPaths t = (t,1)
 \end{code}
 
 \paragraph{showPolPaths} displays the list of polarity automaton paths

@@ -166,25 +166,20 @@ debugGui pstRef =
         hasTree l = isJust $ find (\t -> tsemantics t == lsem) cand
           where lsem = isemantics l
         missedLex = [ showLexeme (iword l) | l <- lexonly, (not.hasTree) l ]
-    (canTab,_,_) <- candidateGui pst nb cand missedSem missedLex
+    (canPnl,_,_) <- candidateGui pst nb cand missedSem missedLex
     -- generation step 2.A (run polarity stuff)
-    let (combos, _, autstuff, input2) = B.preInit initStuff config
+    let (input2, _, autstuff) = B.preInit initStuff config
     -- automata tab
     let (auts, finalaut, _) = autstuff
-    autTab <- if polarised config 
-              then fst3 `liftM` polarityGui nb auts finalaut
-              else messageGui nb "polarities disabled"
-    -- basic tabs 
-    let basicTabs = tab "lexical selection" canTab :
-                    (if polarised config then [tab "automata" autTab] else [])
-    -- generation step 2.B (start the generator for each path)
-    let tabLabels = map (\x -> "session " ++ show x) [1..] 
-        createTab (cd,xs)  = simpleDebuggerTab nb config initStuff2 cd  
-          where initStuff2 = input2 { B.inCands = xs }
-    debugTabs <- mapM createTab $ zip tabLabels combos
-    let genTabs = zipWith tab tabLabels debugTabs
+    autPnl <- fst3 `liftM` polarityGui nb auts finalaut
+    -- generation step 2.B (start the generator)
+    debugPnl <- simpleDebuggerTab nb config input2 "simple" 
+    let lexTab = tab "lexical selection" canPnl
+        autTab = tab "automata" autPnl
+        debugTab = tab "session" debugPnl
+        genTabs = if polarised config then [ autTab, debugTab ] else [ debugTab ]
     --
-    set f [ layout := container p $ column 0 [ tabs nb (basicTabs ++ genTabs) ]
+    set f [ layout := container p $ column 0 [ tabs nb (lexTab : genTabs) ]
           , clientSize := sz 700 600 ]
     return ()
 \end{code}
