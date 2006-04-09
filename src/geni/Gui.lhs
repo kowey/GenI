@@ -139,6 +139,13 @@ We add some buttons for loading files and running the generator.
 Let's not forget the optimisations...
 
 \begin{code}
+       algoChoiceBox <- radioBox f Vertical ["simple","cky","earley"]
+                        [ selection := case builderType config of
+                                       SimpleBuilder -> 0
+                                       CkyBuilder    -> 1
+                                       EarleyBuilder -> 2
+                                       NullBuilder   -> 0 ]
+       set algoChoiceBox [ on select := toggleAlgo pstRef algoChoiceBox ]
        polChk <- checkBox f 
           [ text := "Polarities"
           , checked := polarised config 
@@ -184,7 +191,9 @@ Pack it all together, perform the layout operation.
                      , row 1 [ label "test suite:", hfill $ widget tsFileLabel ] 
                      ]
            optimBox =  --boxed "Optimisations " $ -- can't used boxed with wxwidgets 2.6 -- bug?
-                    column 5 [ label "Optimisations" 
+                    column 5 [ label "Algorithm"
+                             , dynamic $ widget algoChoiceBox
+                             , label "Optimisations"
                              , dynamic $ widget polChk 
                              , row 5 [ label "  ", column 5 
                                      [ dynamic $ row 5 [ label "Extra: ", widget extrapolText ]
@@ -214,10 +223,20 @@ Don't forget all the helper functions!
 
 \subsection{Configuration}
 
-Toggles for optimisatons controlled by a check box.  They enable or 
-disable the said optmisation.
-
 \begin{code}
+toggleAlgo :: (Selection a, Items a String) => ProgStateRef -> a -> IO ()
+toggleAlgo pstRef box =
+ do asel   <- get box selection
+    aitems <- get box items
+    let btype = case aitems !! asel of
+                "cky" -> CkyBuilder
+                "simple" -> SimpleBuilder
+                "earley" -> EarleyBuilder
+                x -> geniBug $ "Unkwown builder type " ++ x
+    modifyIORef pstRef (\x -> x { pa = (pa x) { builderType = btype } })
+
+-- | Toggles for optimisatons controlled by a check box.  They enable or
+--   disable the said optmisation.
 toggleChk :: (Checkable a) => ProgStateRef -> a -> Switch -> IO ()
 toggleChk pstRef chk tok = do
   isChecked <- get chk checked
