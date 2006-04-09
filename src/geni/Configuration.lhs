@@ -24,10 +24,9 @@ The input to this module is simply \texttt{argv}.
 module Configuration 
   ( Params(..), GrammarType(..), BuilderType(..), Switch(..)
   , polarised, polsig, predicting
-  , semfiltered, chartsharing, footconstr
+  , semfiltered,
   , orderedsubs, isIaf
   , isBatch, emptyParams
-  , setChartsharing
   , treatArgs, optBatch
   )
 where
@@ -39,7 +38,7 @@ import qualified Data.Map as Map
 
 import System.Console.GetOpt
 import System.Exit ( exitWith, ExitCode(..) )
-import Data.List  ( delete, find, intersperse )
+import Data.List  ( find, intersperse )
 import Data.Maybe ( catMaybes  )
 import Text.ParserCombinators.Parsec ( runParser )
 
@@ -112,8 +111,6 @@ polarised    :: Params -> Bool
 polsig       :: Params -> Bool
 predicting   :: Params -> Bool
 semfiltered  :: Params -> Bool
-chartsharing :: Params -> Bool
-footconstr   :: Params -> Bool
 isBatch      :: Params -> Bool
 
 hasOpt o p = o `elem` (optimisations p)
@@ -123,16 +120,8 @@ isIaf        = hasOpt IafTok
 polsig       = hasOpt PolSigTok
 predicting   = hasOpt PredictingTok
 semfiltered  = hasOpt SemFilteredTok
-chartsharing = hasOpt ChartSharingTok
-footconstr   = hasOpt FootConstraintTok
 orderedsubs  = hasOpt OrderedSubTok
 isBatch      = hasOpt BatchTok
-
-setChartsharing :: Bool -> Params -> Params
-setChartsharing c p =
-  let opts  = delete ChartSharingTok $ optimisations p
-      opts2 = if c then (ChartSharingTok:opts) else opts
-  in p { optimisations = opts2 }
 \end{code}
 
 \paragraph{defaultParams} returns the default parameters configuration
@@ -191,9 +180,9 @@ data Switch =
     RootCategoriesTok String | 
     -- optimisations
     OptimisationsTok String   | PolOptsTok | AdjOptsTok |
-    PolarisedTok | PolSigTok  | PredictingTok | ChartSharingTok |
+    PolarisedTok | PolSigTok  | PredictingTok |
     ExtraPolaritiesTok String |
-    FootConstraintTok         | SemFilteredTok | OrderedAdjTok |  
+    SemFilteredTok | OrderedAdjTok |  
     OrderedSubTok {- cky only -} |
     IafTok {- one phase only! -} |
     BatchTok | RepeatTok String | 
@@ -278,14 +267,11 @@ concise form what optimisations she used.
 optimisationCodes :: [(Switch,String,String)]
 optimisationCodes = 
  [ (PolarisedTok   , "p",      "polarity filtering")
- , (PolOptsTok  , "pol",    "equivalent to 'p Oa c'")
+ , (PolOptsTok  , "pol",    "equivalent to 'p'")
  , (AdjOptsTok  , "adj",    "equivalent to 'S F'")
  , (PolSigTok      , "s",      "polarity signatures")
- , (ChartSharingTok, "c",      "chart sharing")
  , (SemFilteredTok , "S",      "semantic filtering")
- , (OrderedAdjTok  , "Oa",      "ordered adjunction (by node)")
  , (OrderedSubTok  , "Os",      "ordered substitution (cky only)")
- , (FootConstraintTok,    "F", "foot constraints")
  , (IafTok, "i", "index accesibility filtering (one-phase only)")
  , (BatchTok,          "batch", "batch processing") ]
 \end{code}
@@ -319,8 +305,8 @@ It shows a table of optimisation codes and their meaning.
 \begin{code}
 optimisationsUsage :: String
 optimisationsUsage = 
-  let polopts  = [PolOptsTok, PolarisedTok, PolSigTok, ChartSharingTok]
-      adjopts  = [AdjOptsTok, SemFilteredTok, FootConstraintTok]
+  let polopts  = [PolOptsTok, PolarisedTok, PolSigTok]
+      adjopts  = [AdjOptsTok, SemFilteredTok]
       unlinesTab l = concat (intersperse "\n  " l)
       getstr k = case find (\x -> k == fst3 x) optimisationCodes of 
                    Just (_, code, desc) -> code ++ " - " ++ desc
@@ -422,8 +408,8 @@ defineParams p (f:s) = defineParams pnext s
               $ addif AdjOptsTok adjOpts 
               $ parseOptimisations v
     addif t x o = if (t `elem` o) then x ++ o else o
-    polOpts     = [PolarisedTok, ChartSharingTok] 
-    adjOpts     = [SemFilteredTok, FootConstraintTok]
+    polOpts     = [PolarisedTok]
+    adjOpts     = [SemFilteredTok]
 \end{code}
 
 
@@ -434,7 +420,7 @@ not have a combination that has polarity signatures, but not polarities.
 \begin{code}
 optBatch :: [Switch] -> [[Switch]] 
 optBatch enabledRaw = 
-  let enabled = if (ChartSharingTok `elem` enabledRaw || PolSigTok `elem` enabledRaw) 
+  let enabled = if PolSigTok `elem` enabledRaw
                 then PolarisedTok:enabledRaw
                 else enabledRaw
       use opt prev = if (opt `elem` enabled) 
@@ -442,11 +428,11 @@ optBatch enabledRaw =
                      else withopt ++ prev
                      where withopt = map (opt:) prev
       -- 
-      polBatch' = foldr use [[PolarisedTok]] [ChartSharingTok]
+      polBatch' = foldr use [[PolarisedTok]] []
       polBatch  = if PolarisedTok `elem` enabled
                  then polBatch' 
                  else [] : polBatch'
-      adjBatch  = foldr use polBatch [SemFilteredTok,FootConstraintTok]
+      adjBatch  = foldr use polBatch [SemFilteredTok]
       -- 
   in adjBatch
 \end{code}

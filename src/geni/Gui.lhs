@@ -48,7 +48,7 @@ import Tags (idname, tpolarities, tsemantics, TagElem)
 import Configuration
   ( Params(..), Switch(..), GrammarType(..)
   , BuilderType(NullBuilder, SimpleBuilder, CkyBuilder)
-  , polarised, polsig, chartsharing, semfiltered, footconstr )
+  , polarised, polsig, semfiltered )
 import GeniParsers 
 import GuiHelper
 
@@ -144,37 +144,15 @@ Let's not forget the optimisations...
           , checked := polarised config 
           , tooltip := "Use the polarity optimisation"
           ]
-       autopolChk <- checkBox f 
-          [ text := "Pol detection"
-          , checked := True 
-          , enabled := False
-          , tooltip := "Automatically detect polarities"
-          ]
        polsigChk <- checkBox f 
           [ text := "Pol signatures"
           , checked := polsig config 
           , tooltip := "Use polarity signatures (not reccomended)"
           ]
-       chartsharingChk <- checkBox f 
-         [ text := "Chart sharing"
-         , checked := chartsharing config 
-         , tooltip := "Enable chart sharing of polarity paths - this means that" 
-         ]
        semfilterChk <- checkBox f 
          [ text := "Semantic filters"
          , checked := semfiltered config 
          , tooltip := "Filter away semantically incomplete structures before adjunction phase"
-         ]
-       orderedadjChk <- checkBox f 
-         [ text := "Ordered adjunction"
-         , checked := True
-         , enabled := False 
-         , tooltip := "Impose a fixed order on adjunction to nodes"
-         ]
-       footconstrChk <- checkBox f 
-         [ text := "Foot constraint"
-         , checked := footconstr config 
-         , tooltip := "Don't allow adjunction twice on same node (eliminates redundant stuff only)"
          ]
        extrapolText <- staticText f 
          [ text := showLitePm $ extrapol config 
@@ -183,15 +161,11 @@ Let's not forget the optimisations...
        -- commands for the checkboxes
        let togglePolStuff = do c <- get polChk checked
                                set polsigChk       [ enabled := c ]
-                               set chartsharingChk [ enabled := c ]
                                set extrapolText    [ enabled := c ] 
        set polChk          [on command := do togglePolStuff
                                              toggleChk pstRef polChk PolarisedTok ] 
        set polsigChk       [on command := toggleChk pstRef polsigChk PolSigTok] 
-       -- set predictingChk   [on command := toggleChk pstRef predictingChk Predicting] 
-       set chartsharingChk [on command := toggleChk pstRef chartsharingChk ChartSharingTok]
        set semfilterChk    [on command := toggleChk pstRef semfilterChk SemFilteredTok] 
-       set footconstrChk   [on command := toggleChk pstRef footconstrChk FootConstraintTok] 
 \end{code}
 
 Pack it all together, perform the layout operation.
@@ -214,13 +188,8 @@ Pack it all together, perform the layout operation.
                              , dynamic $ widget polChk 
                              , row 5 [ label "  ", column 5 
                                      [ dynamic $ row 5 [ label "Extra: ", widget extrapolText ]
-                                     , dynamic $ widget autopolChk 
-                                     , dynamic $ widget polsigChk
-                                     , dynamic $ widget chartsharingChk ] ]
+                                     , dynamic $ widget polsigChk ] ]
                              , dynamic $ widget semfilterChk 
-                             , dynamic $ widget orderedadjChk 
-                             , dynamic $ widget footconstrChk 
-                             --, dynamic $ widget predictingChk
                              ]
        set f [layout := column 5 [ gramsemBox
                    , row 5 [ fill $ -- boxed "Input Semantics" $ 

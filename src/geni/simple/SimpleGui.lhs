@@ -35,7 +35,7 @@ import Btypes
   (GNode(gnname))
 import Tags (tsemantics, TagElem(idname), TagItem(..))
 
-import Configuration ( Params(..), chartsharing )
+import Configuration ( Params(..) )
 import General ( snd3 )
 import Graphviz ( GraphvizShow(..), gvNewline, gvUnlines )
 import GuiHelper
@@ -51,7 +51,7 @@ import qualified Builder    as B
 import qualified BuilderGui as BG 
 import Polarity
 import SimpleBuilder 
-  ( simpleBuilder, SimpleStatus, SimpleItem(..), genconfig
+  ( simpleBuilder, SimpleStatus, SimpleItem(..),
   , theResults, theAgenda, theAuxAgenda, theChart, theTrash)
 import Statistics (Statistics)
 \end{code}
@@ -149,9 +149,7 @@ stToGraphviz st =
       section n i = hd : (map tlFn i)
         where hd = (Nothing, "___" ++ n ++ "___")
               tlFn x = (Just x, (siToSentence x) ++ (showPaths $ siPolpaths x))
-      showPaths t = if (chartsharing $ genconfig st)
-                    then " (" ++ showPolPaths t ++ ")"
-                    else ""
+      showPaths t = " (" ++ showPolPaths t ++ ")"
   in unzip $ agenda ++ auxAgenda ++ chart ++ trash ++ results 
 
 simpleItemBar :: DebuggerItemBar Bool SimpleItem
