@@ -417,7 +417,7 @@ trees for ptoentially no good reason.
 
 \begin{code}
 nullBuilder = Builder
-  { Builder.init = \_ _ -> ((), emptyStats)
+  { Builder.init = initNullBuilder
   , step         = return ()
   , stepAll      = return ()
   , finished     = \_ -> True
