@@ -127,8 +127,10 @@ We add some buttons for loading files and running the generator.
        tsFileLabel      <- staticText f [ text := tsFile config ]
        -- Generate and Debug 
        let genfn = doGenerate f pstRef tsTextBox
-       debugBt <- button f [ text := "Debug"  , on command := genfn True ]
-       genBt  <- button f  [text := "Generate", on command := genfn False ] 
+       pauseOnLexChk <- checkBox f [ text := "Inspect lex", tooltip := "Affects debugger only"  ]
+       debugBt <- button f [ text := "Debug"
+                           , on command := get pauseOnLexChk checked >>= genfn True ]
+       genBt  <- button f  [text := "Generate", on command := genfn False False ]
        quitBt <- button f  [ text := "Quit",
                  on command := close f]
                   
@@ -228,7 +230,7 @@ Pack it all together, perform the layout operation.
                            , vfill optimBox ]
                     -- ----------------------------- Generate and quit 
                    , row 1 [ widget quitBt 
-                          , hfloatRight $ row 5 [ widget debugBt, widget genBt ]] ]
+                          , hfloatRight $ row 5 [ widget pauseOnLexChk, widget debugBt, widget genBt ]] ]
             , clientSize := sz 525 325
             , on closing := exitWith ExitSuccess 
             ]
@@ -563,8 +565,8 @@ command that makes everything ``work'':
 generator and displays the result in a results gui (below).
 
 \begin{code}
-doGenerate :: Textual b => Window a -> ProgStateRef -> b -> Bool -> IO ()
-doGenerate f pstRef sembox debugger = 
+doGenerate :: Textual b => Window a -> ProgStateRef -> b -> Bool -> Bool -> IO ()
+doGenerate f pstRef sembox useDebugger pauseOnLex =
  do loadGrammar pstRef
     sem <- get sembox text
     loadTargetSemStr pstRef sem
@@ -577,7 +579,7 @@ doGenerate f pstRef sembox debugger =
           CkyBuilder    -> ckyGui 
         generateGui = BG.generateGui builderGui
     --
-    do (if debugger then debugGui builderGui pstRef else generateGui pstRef)
+    do (if useDebugger then debugGui builderGui pstRef pauseOnLex else generateGui pstRef)
     `catch` handler "Error during realisation"
   -- FIXME: it would be nice to distinguish between generation and ts
   -- parsing errors
@@ -594,8 +596,8 @@ task (lexical selection, filtering, building).  We also rely heavily on
 helper code defined in \ref{sec:debugger_helpers}.
 
 \begin{code}
-debugGui :: BG.BuilderGui -> ProgStateRef -> IO ()
-debugGui builderGui pstRef =
+debugGui :: BG.BuilderGui -> ProgStateRef -> Bool -> IO ()
+debugGui builderGui pstRef pauseOnLex =
  do pst <- readIORef pstRef
     let config = pa pst
     let btype = case builderType config of
@@ -637,13 +639,16 @@ debugGui builderGui pstRef =
         hasTree l = isJust $ find (\t -> tsemantics t == lsem) cand
           where lsem = isemantics l
         missedLex = [ showLexeme (iword l) | l <- lexonly, (not.hasTree) l ]
-    (canPnl,_,_) <- pauseOnLexGui pst nb cand missedSem missedLex step2
+    (canPnl,_,_) <- if pauseOnLex
+                    then pauseOnLexGui pst nb cand missedSem missedLex step2
+                    else candidateGui  pst nb cand missedSem missedLex
     -- basic tabs
     let basicTabs = [ tab "lexical selection" canPnl ]
     --
     set f [ layout := container p $ tabs nb basicTabs
           , clientSize := sz 700 600 ]
-    return ()
+    -- display all tabs if we are not told to pause on lex selection
+    when (not pauseOnLex) (step2 cand)
 \end{code}
 
 
