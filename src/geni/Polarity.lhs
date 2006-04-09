@@ -71,7 +71,6 @@ module Polarity(PolAut, AutDebug, PolResult,
                 prefixRootCat,
                 declareRestrictors, detectRestrictors,
                 showLite, showLitePm, showPolPaths, showPolPaths',
-                calculateTreeCombos,
                 NFA(states),
 
                 -- re-exported from Automaton
@@ -90,7 +89,7 @@ import Data.Tree (flatten)
 
 import Automaton
 import Graphviz(GraphvizShow(..), gvUnlines, gvNewline, gvNode, gvEdge)
-import Tags(TagElem(..), TagItem(..), mapBySem)
+import Tags(TagElem(..), TagItem(..))
 import Btypes(Pred, SemInput, Sem, Flist, AvPair, showAv,
               GeniVal(GAnon), fromGConst, isConst,
               Replacable(..),
@@ -115,7 +114,8 @@ algorithm.
 buildAutomaton :: SemInput -> [TagElem] -> [String] -> PolMap ->  
   PolResult
 
-type PolResult = ([AutDebug], PolAut, Sem)
+-- | intermediate auts, seed aut, final aut, potentially modified sem
+type PolResult = ([AutDebug], PolAut, PolAut, Sem)
 type AutDebug  = (String, PolAut, PolAut)
 
 buildAutomaton (tsem,tres) candRaw rootCats extrapol  =
@@ -194,7 +194,7 @@ makePolAut candsRaw tsemRaw extraPol =
        where aut   = buildPolAut k initK (thd3 $ head xs)
              initK = Map.findWithDefault (ival 0) k extraPol
      res = foldr build [("(seed)",seed,prune seed)] ks
- in (reverse res, thd3 $ head res, tsem)
+ in (reverse res, seed, thd3 $ head res, tsem)
 \end{code}
 
 % ====================================================================
@@ -1360,28 +1360,4 @@ gvShowTrans aut stmap idFrom st =
 %      showfv (f,v) = charge (f,v) ++ f 
 %                   ++ (if (null v) then "" else ":" ++ v)
 %  in map showfv $ Map.keys p 
-
-% ----------------------------------------------------------------------
-\section{Miscellaneous}
-% ----------------------------------------------------------------------
-
-\paragraph{calculateTreeCombos} is a naive method for calculating the
-combinatorics of the generation problem.  Lexical ambiguity causes the
-generator to consider an exponential number of tree combinations.  If each
-literal $i$ has some degree of ambiguity $a_i$ (the number of ways to realise
-$i$), then the possible ways to choose realisations for the target semantics is
-product of these ambiguities: $\prod_{1 \leq i \leq n} a_i$.  
-(Note: if we simplify this by assuming a maximum $a$ for all literals, then the
- number of tree combinations is $a^n$).  
-
-\begin{code}
-calculateTreeCombos :: (TagItem t) => [t] -> Int
-calculateTreeCombos cands = 
-  let smapRaw   = mapBySem cands
-      ambiguity = map length $ Map.elems smapRaw 
-  in foldr (*) 1 ambiguity     
-\end{code}
-
-
-
 

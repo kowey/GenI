@@ -167,11 +167,12 @@ preInit input config =
      isPol      = polarised config
      -- polarity optimisation (if enabled)
      autstuff = buildAutomaton seminput cand rootCats extraPol
-     (_, aut, sem2) = autstuff
+     (_, seedAut, aut, sem2) = autstuff
      combosPol = if isPol then automatonPaths aut else [cand]
      -- chart sharing optimisation
      (cands2, pathIds) = unzip $ detectPolPaths combosPol
-     polcount = (length cands2, length combosPol)
+     -- the number of paths explored vs possible
+     polcount = (length cands2, length $ automatonPaths seedAut)
      --
      fixate ts ps = zip (map alphaConvert $ setTidnums ts) ps
      input2 = input { inCands    = fixate cands2 pathIds

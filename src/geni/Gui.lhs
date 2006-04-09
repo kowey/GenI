@@ -607,7 +607,7 @@ debugGui builderGui pstRef pauseOnLex =
             let newInitStuff = initStuff { B.inCands = map (\x -> (x, -1)) newCands }
                 (input2, _, autstuff) = B.preInit newInitStuff config
             -- automata tab
-            let (auts, finalaut, _) = autstuff
+            let (auts, _, finalaut, _) = autstuff
             autPnl <- fst3 `Monad.liftM` polarityGui nb auts finalaut
             -- generation step 2.B (start the generator for each path)
             debugPnl <- BG.debuggerPnl builderGui nb config input2 btype
