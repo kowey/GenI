@@ -314,7 +314,6 @@ instance GeniHandShow TagElem where
   ++ " "  ++ (toGeniHand.ttype $ te)
   ++ "\n" ++ (toGeniHand.ttree $ te)
   ++ "\n" ++ "semantics:" ++ (toGeniHand.tsemantics $ te)
-  ++ "\n"
 
 squares s = "[" ++ s ++ "]"
 \end{code}

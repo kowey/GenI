@@ -223,7 +223,7 @@ ckyCandidateGui pst f xs missedSem missedLex job = do
   -- supplementary button bar
   let saveCmd =
        do c <- varGet candV
-          let cStr = unwords $ map toGeniHand c
+          let cStr = unlines $ map toGeniHand c
           maybeSaveAsFile f cStr
       loadCmd =
        do let filetypes = [("Any file",["*","*.*"])]
