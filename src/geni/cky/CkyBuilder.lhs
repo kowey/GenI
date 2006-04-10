@@ -112,17 +112,16 @@ import Tags
 \section{Implementing the Builder interface}
 
 \begin{code}
-ckyBuilder = B.Builder
-  { B.init = initBuilder False
-  , B.step = generateStep False
-  , B.stepAll  = B.defaultStepAll ckyBuilder
+ckyBuilder    = ckyOrEarleyBuilder False
+earleyBuilder = ckyOrEarleyBuilder True
+
+ckyOrEarleyBuilder isEarley = B.Builder
+  { B.init = initBuilder isEarley
+  , B.step = generateStep isEarley
+  , B.stepAll  = B.defaultStepAll (ckyOrEarleyBuilder isEarley)
   , B.finished = null.theAgenda
   , B.unpack   = \s -> concatMap (unpackItem s) $ theResults s
   }
-
-earleyBuilder = ckyBuilder {
-    B.init = initBuilder True
-  , B.step = generateStep True }
 \end{code}
 
 The rest of the builder interface is implemented below.  I just
