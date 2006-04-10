@@ -39,7 +39,7 @@ module Tags(
 
    -- General functions
    mapBySem, drawTagTrees, subsumedBy, showTagSites,
-   collect,
+   collect, detectSites
 ) where
 \end{code}
 
@@ -51,7 +51,8 @@ import Data.List (intersperse)
 import Data.Tree
 
 import Btypes (Ptype(Initial, Auxiliar), SemPols,
-               GNode(gup, glexeme, gnname), Flist, 
+               GNode(gup, glexeme, gnname, gaconstr, gdown, gtype),
+               GType(Subs), Flist,
                Replacable(..), Collectable(..), Idable(..),
                Sem, Pred, emptyPred, 
                emptyGNode,
@@ -165,6 +166,14 @@ emptyTE = TE { idname = "",
                tsempols    = [],
                tinterface  = []
              }
+
+-- | Given a tree(GNode) returns a list of substitution or adjunction
+--   nodes.
+detectSites :: Tree GNode -> ([TagSite], [TagSite])
+detectSites t = (sites isSub, sites (not.gaconstr))
+ where
+ sites match = [ (gnname n, gup n, gdown n) | n <- flatten t, match n ]
+ isSub n = gtype n == Subs
 \end{code}
 
 \subsection{Unique ID}

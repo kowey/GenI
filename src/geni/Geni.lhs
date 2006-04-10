@@ -43,7 +43,6 @@ import Control.Monad (when)
 import Data.IORef (IORef, readIORef, modifyIORef)
 import Data.List (intersperse, sort, nub)
 import qualified Data.Map as Map
-import Data.Tree
 
 import System.CPUTime (getCPUTime, cpuTimePrecision)
 import System.Exit ( ExitCode(ExitSuccess, ExitFailure) )
@@ -58,11 +57,11 @@ import Btypes (Macros, MTtree, ILexEntry, Lexicon,
                Replacable(..),
                Sem, SemInput, 
                GeniVal(GConst), fromGVar,
-               GNode, GType(Subs), Flist,
+               GNode, Flist,
                isemantics, ifamname, iword, iparams, 
                ipfeat, ifilters,
                isempols, 
-               gnname, gtype, gaconstr, gup, gdown, toKeys,
+               toKeys,
                glexeme, 
                sortSem, subsumeSem, params, 
                showLexeme,
@@ -70,8 +69,8 @@ import Btypes (Macros, MTtree, ILexEntry, Lexicon,
                setLexeme, tree, unifyFeat)
 
 import Statistics (Statistics)
-import Tags (Tags, TagElem, emptyTE, TagSite, 
-             idname, ttreename,
+import Tags (Tags, TagElem, emptyTE,
+             idname, ttreename, detectSites,
              ttype, tsemantics, ttree, tsempols,
              tinterface, substnodes, adjnodes,
              setTidnums) 
@@ -638,21 +637,6 @@ combineOne lexitem e =
    in result
 \end{code}
 
-\paragraph{detectSites}: Given a tree(GNode) 
-returns a list of substitution or adjunction nodes
-
-\begin{code}
-detectSites :: Tree GNode -> ([TagSite], [TagSite])
-detectSites (Node a lt) =
-  let next = map detectSites lt
-      (snodes', anodes') = unzip next
-      --
-      site = [(gnname a, gup a, gdown a)]
-      snodes = if (gtype a == Subs) then (site:snodes') else snodes' 
-      anodes = if (gaconstr a)      then anodes' else (site:anodes')
-  in (concat snodes, concat anodes)
-\end{code}
-
 % --------------------------------------------------------------------
 \subsection{XMG anchoring}
 \label{sec:xmg_selection}
@@ -793,14 +777,11 @@ unification or checks to worry about.
 fixateXMG :: TagElem -> TagElem
 fixateXMG e = 
   let tree_   = ttree e
-      (snodes,anodes) = detectSites tree_
       -- for display purposes, get the list of lexemes in the tree
       lexemes = map (head.glexeme) $ filterTree (not.null.glexeme) tree_ 
       lexstr  = concat $ intersperse "-" $ lexemes
       origIdname = idname e
-  in e { idname = lexstr ++ "_" ++ origIdname
-       , substnodes = snodes
-       , adjnodes   = anodes }
+  in e { idname = lexstr ++ "_" ++ origIdname }
 \end{code}
 
 % --------------------------------------------------------------------

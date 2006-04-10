@@ -38,7 +38,7 @@ module GeniParsers (
 
 import General ((!+!), Interval, ival)
 import Btypes 
-import Tags (TagElem(..), emptyTE)
+import Tags (TagElem(..), emptyTE, detectSites, setTidnums)
 import Control.Monad (liftM)
 import Data.List (sort)
 import qualified Data.Map  as Map 
@@ -337,7 +337,7 @@ directly.  Note that this shares a lot of code with the macros above.
 Hopefully, it is reasonably refactored.
 
 FIXME: note that this is very rudimentary; we do not set id numbers,
-parse polarities, or detect the subst and anodes.  You'll have to call
+parse polarities. You'll have to call
 some of our helper functions if you want that functionality.
 
 \begin{code}
@@ -346,7 +346,7 @@ geniTagElems =
  do whiteSpace
     tt <- sepBy geniTagElem whiteSpace
     eof
-    return tt
+    return $ setTidnums tt
 
 geniTagElem :: Parser TagElem
 geniTagElem =
@@ -362,6 +362,8 @@ geniTagElem =
                      , tinterface = iface
                      , ttype  = theType
                      , ttree = theTree
+                     , substnodes = (fst.detectSites) theTree
+                     , adjnodes   = (snd.detectSites) theTree
                      , tsemantics = sem }
 \end{code}
 
