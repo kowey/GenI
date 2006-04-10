@@ -67,11 +67,10 @@ import GuiHelper
   , debuggerPanel, DebuggerItemBar
   , addGvHandler, modifyGvParams, 
   , GraphvizGuiSt(gvitems, gvsel, gvparams), GvIO, setGvSel,
-  , statsGui, graphvizGui, newGvRef, setGvDrawables,
+  , graphvizGui, newGvRef, setGvDrawables,
   )
 
 import Polarity
-import Statistics (Statistics)
 import Tags 
   ( idname, tsemantics, ttree, TagElem )
 \end{code}
@@ -82,16 +81,18 @@ import Tags
 % --------------------------------------------------------------------
 
 \begin{code}
-ckyGui = BG.BuilderGui {
-      BG.generateGui = generateGui False
-    , BG.debuggerPnl = ckyDebuggerTab }
+ckyGui    = ckyOrEarleyGui False
+earleyGui = ckyOrEarleyGui True
 
-earleyGui = ckyGui { BG.generateGui = generateGui True }
-
-generateGui :: Bool -> ProgStateRef -> IO ()
-generateGui isEarley pstRef =
-  runGeni pstRef builder >>= resultsGui pstRef
+ckyOrEarleyGui isEarley = BG.BuilderGui {
+    BG.resultsPnl = resultsPnl builder
+  , BG.debuggerPnl = ckyDebuggerTab builder }
   where builder = if isEarley then earleyBuilder else ckyBuilder
+
+resultsPnl builder pstRef f =
+  do (sentences, stats, st) <- runGeni pstRef builder
+     (lay, _, _) <- realisationsGui pstRef f (theResults st)
+     return (sentences, stats, lay)
 \end{code}
 
 % --------------------------------------------------------------------
@@ -99,35 +100,7 @@ generateGui isEarley pstRef =
 \label{sec:cky_results_gui}
 % --------------------------------------------------------------------
 
-The results gui displays two kinds of information: a detailed results
-browser showing the chart items that are classified as results, and a
-summary showing the list of sentences and some statistical stuff.
-
 \begin{code}
-resultsGui :: ProgStateRef -> ([String], Statistics, CkyStatus) -> IO ()
-resultsGui pstRef (sentences, stats, st) =
- do -- results window
-    f <- frame [ text := "Results"
-               , fullRepaintOnResize := False
-               , layout := stretch $ label "Generating..."
-               , clientSize := sz 300 300
-               ]
-    p    <- panel f []
-    nb   <- notebook p []
-    -- realisations tab
-    (resTab,_,_) <- realisationsGui pstRef nb (theResults st)
-    -- statistics tab
-    statTab <- statsGui nb sentences stats
-    -- pack it all together
-    set f [ layout := container p $ column 0 [ tabs nb
-          -- we put the realisations tab last because of what
-          -- seems to be buggy behaviour wrt to wxhaskell
-          -- or wxWidgets 2.4 and the splitter
-                 [ tab "summary"       statTab
-                 , tab "realisations"  resTab ] ]
-          , clientSize := sz 700 600 ]
-    return ()
-
 -- | Browser for the results (if there are any)
 realisationsGui :: ProgStateRef -> (Window a) -> [CkyItem]
                 -> GvIO CkyDebugParams (Maybe CkyItem)
@@ -166,9 +139,11 @@ setDebugShowSourceTree b x = x { debugShowSourceTree = b }
 setDebugWhichDerivation :: Int -> CkyDebugParams -> CkyDebugParams
 setDebugWhichDerivation w x = x { debugWhichDerivation = w }
 
-ckyDebuggerTab :: (Window a) -> Params -> B.Input -> String -> IO Layout 
-ckyDebuggerTab = debuggerPanel ckyBuilder initCkyDebugParams stateToGv ckyItemBar
+ckyDebuggerTab :: B.Builder CkyStatus CkyItem Params
+               -> (Window a) -> Params -> B.Input -> String -> IO Layout
+ckyDebuggerTab builder = debuggerPanel builder initCkyDebugParams stateToGv ckyItemBar
  where 
+  stateToGv :: CkyStatus -> ([(Maybe (CkyStatus,CkyItem))], [String])
   stateToGv st = 
    let agenda  = section "AGENDA"  $ theAgenda  st
        trash   = section "TRASH"   $ theTrash   st

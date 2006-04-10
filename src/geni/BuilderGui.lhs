@@ -24,10 +24,11 @@ import Graphics.UI.WXCore
 import qualified Builder as B
 import Geni (ProgStateRef)
 import Configuration (Params)
+import Statistics (Statistics)
 \end{code}
 
 \begin{code}
 data BuilderGui = BuilderGui
-  { generateGui :: ProgStateRef -> IO ()
+  { resultsPnl  :: forall a . ProgStateRef -> (Window a) -> IO ([String],Statistics,Layout)
   , debuggerPnl :: forall a . (Window a) -> Params -> B.Input -> String -> IO Layout }
 \end{code}

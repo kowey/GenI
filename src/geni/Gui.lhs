@@ -561,20 +561,52 @@ doGenerate f pstRef sembox useDebugger pauseOnLex =
     --
     pst <- readIORef pstRef
     let config = pa pst
-        builderGui = case builderType config of 
+        withBuilderGui f =
+          case builderType config of
           NullBuilder   -> error "No gui available for NullBuilder"
-          SimpleBuilder -> simpleGui
-          CkyBuilder    -> ckyGui 
-          EarleyBuilder -> earleyGui
-        generateGui = BG.generateGui builderGui
+          SimpleBuilder -> f simpleGui
+          CkyBuilder    -> f ckyGui
+          EarleyBuilder -> f earleyGui
     --
-    do (if useDebugger then debugGui builderGui pstRef pauseOnLex else generateGui pstRef)
-    `catch` handler "Error during realisation"
+    let doDebugger bg = debugGui bg pstRef pauseOnLex
+        doResults  bg = resultsGui bg pstRef
+    do catch (withBuilderGui $ if useDebugger then doDebugger else doResults)
+             (handler "Error during realisation")
   -- FIXME: it would be nice to distinguish between generation and ts
   -- parsing errors
  `catch` (handler "Error parsing the input semantics")
  where
    handler title err = errorDialog f title (show err)
+\end{code}
+
+\paragraph{resultsGui} displays generation result in a window.  The window
+consists of various tabs for intermediary results in lexical
+selection, derived trees, derivation trees and generation statistics.
+
+\begin{code}
+resultsGui :: BG.BuilderGui -> ProgStateRef -> IO ()
+resultsGui builderGui pstRef =
+ do -- results window
+    f <- frame [ text := "Results"
+               , fullRepaintOnResize := False
+               , layout := stretch $ label "Generating..."
+               , clientSize := sz 300 300
+               ]
+    p    <- panel f []
+    nb   <- notebook p []
+    -- realisations tab
+    (sentences,stats,resTab) <- BG.resultsPnl builderGui pstRef nb
+    -- statistics tab
+    statTab <- statsGui nb sentences stats
+    -- pack it all together
+    set f [ layout := container p $ column 0 [ tabs nb
+          -- we put the realisations tab last because of what
+          -- seems to be buggy behaviour wrt to wxhaskell
+          -- or wxWidgets 2.4 and the splitter
+                 [ tab "summary"       statTab
+                 , tab "realisations"  resTab ] ]
+          , clientSize := sz 700 600 ]
+    return ()
 \end{code}
 
 \paragraph{debuggerGui} All GenI builders can make use of an interactive

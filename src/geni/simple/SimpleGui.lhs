@@ -40,7 +40,7 @@ import General ( snd3 )
 import Graphviz ( GraphvizShow(..), gvNewline, gvUnlines )
 import GuiHelper
   ( toSentence,
-    statsGui, messageGui, tagViewerGui,
+    messageGui, tagViewerGui,
     debuggerPanel, DebuggerItemBar, setGvParams, GvIO, newGvRef,
     XMGDerivation(getSourceTrees),
   )
@@ -53,7 +53,6 @@ import Polarity
 import SimpleBuilder 
   ( simpleBuilder, SimpleStatus, SimpleItem(..),
   , theResults, theAgenda, theAuxAgenda, theChart, theTrash)
-import Statistics (Statistics)
 \end{code}
 }
 
@@ -63,49 +62,19 @@ import Statistics (Statistics)
 
 \begin{code}
 simpleGui = BG.BuilderGui {
-      BG.generateGui = generateGui 
+      BG.resultsPnl  = resultsPnl
     , BG.debuggerPnl = simpleDebuggerTab }
 
-generateGui :: ProgStateRef -> IO ()
-generateGui pstRef = 
-  do res <- runGeni pstRef simpleBuilder 
-     resultsGui pstRef res
+resultsPnl pstRef f =
+  do (sentences, stats, st) <- runGeni pstRef simpleBuilder
+     (lay, _, _) <- realisationsGui pstRef f (theResults st)
+     return (sentences, stats, lay)
 \end{code}
 
 % --------------------------------------------------------------------
 \section{Results}
 \label{sec:results_gui}
 % --------------------------------------------------------------------
-
-\paragraph{resultsGui} displays generation result in a window.  The window
-consists of various tabs for intermediary results in lexical
-selection, derived trees, derivation trees and generation statistics.
-
-\begin{code}
-resultsGui :: ProgStateRef -> ([String], Statistics, SimpleStatus) -> IO ()
-resultsGui pstRef (sentences, stats, st) =
- do -- results window
-    f <- frame [ text := "Results" 
-               , fullRepaintOnResize := False 
-               , layout := stretch $ label "Generating..."
-               , clientSize := sz 300 300 
-               ] 
-    p    <- panel f []
-    nb   <- notebook p []
-    -- realisations tab
-    (resTab,_,_) <- realisationsGui pstRef nb (theResults st)
-    -- statistics tab
-    statTab <- statsGui nb sentences stats
-    -- pack it all together 
-    set f [ layout := container p $ column 0 [ tabs nb 
-          -- we put the realisations tab last because of what
-          -- seems to be buggy behaviour wrt to wxhaskell 
-          -- or wxWidgets 2.4 and the splitter
-                 [ tab "summary"       statTab
-                 , tab "realisations"  resTab ] ]
-          , clientSize := sz 700 600 ] 
-    return ()
-\end{code}
 
 \subsection{Derived Trees}
 
