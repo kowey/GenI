@@ -346,8 +346,12 @@ type DebuggerItemBar flg itm
 --      2. an 'item bar' function which lets you control what bits you display
 --         of a selected item (for example, if you want a detailed view or not)
 --         the item bar should return a layout 
+--
+--   Note that we don't constrain the type of item returned by the builder to
+--   be the same as the type handled by your gui: that's quite normal because
+--   you might want to decorate the type with some other information
 debuggerPanel :: (GraphvizShow flg itm) 
-  => B.Builder st itm Params -- ^ builder to use
+  => B.Builder st itm2 Params -- ^ builder to use
   -> flg -- ^ initial value for the flag argument in GraphvizShow
   -> (st -> ([Maybe itm], [String])) 
      -- ^ function to convert a Builder state into lists of items
