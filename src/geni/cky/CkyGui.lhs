@@ -121,13 +121,15 @@ data CkyDebugParams =
  CkyDebugParams { debugShowFeats       :: Bool 
                 , debugShowFullDerv    :: Bool
                 , debugShowSourceTree  :: Bool
-                , debugWhichDerivation :: Int }
+                , debugWhichDerivation :: Int
+                , debugNodeChoice      :: [ChartId] }
 
 initCkyDebugParams = 
  CkyDebugParams { debugShowFeats       = False
                 , debugShowFullDerv    = False
                 , debugShowSourceTree  = False
-                , debugWhichDerivation = 0 }
+                , debugWhichDerivation = 0
+                , debugNodeChoice      = [] }
 
 -- would be nice if Haskell sugared this kind of stuff for us
 setDebugShowFeats, setDebugShowFullDerv :: Bool -> CkyDebugParams -> CkyDebugParams
@@ -137,6 +139,18 @@ setDebugShowSourceTree b x = x { debugShowSourceTree = b }
 
 setDebugWhichDerivation :: Int -> CkyDebugParams -> CkyDebugParams
 setDebugWhichDerivation w x = x { debugWhichDerivation = w }
+
+clearDebugNodeChoice :: CkyDebugParams -> CkyDebugParams
+clearDebugNodeChoice x = x { debugNodeChoice = [] }
+
+pushDebugNodeChoice :: ChartId -> CkyDebugParams -> CkyDebugParams
+pushDebugNodeChoice w x = x { debugNodeChoice = w:(debugNodeChoice x) }
+
+popDebugNodeChoice :: CkyDebugParams -> Maybe (ChartId, CkyDebugParams)
+popDebugNodeChoice x =
+ case debugNodeChoice x of
+ []    -> Nothing
+ (h:t) -> Just (h, x { debugNodeChoice = t })
 
 ckyDebuggerTab :: B.Builder CkyStatus CkyItem Params
                -> (Window a) -> Params -> B.Input -> String -> IO Layout
@@ -183,7 +197,8 @@ ckyItemBar f gvRef updaterFn =
     -- select derivation
     derTxt    <- staticText ib []
     derChoice <- choice ib [ tooltip := "Select a derivation" ]
-    jumpBtn <- button ib [ text := "Inspect" ]
+    jumpBtn <- button ib [ text := "Go to node" ]
+    unjumpBtn <- button ib [ text := "Pop back" ]
     jumpChoice <- choice ib [ tooltip := "Jump to item." ]
     let onDerChoice =
          do sel <- get derChoice selection
@@ -198,19 +213,6 @@ ckyItemBar f gvRef updaterFn =
                updaterFn
              Nothing    -> return ()
     set derChoice [ on select := onDerChoice ]
-    set jumpBtn [ on command := do
-      gvSt <- readIORef gvRef
-      jmpSel  <- get jumpChoice selection
-      jmpItms <- get jumpChoice items
-      let items = gvitems gvSt
-          jmpTo = (read $ jmpItms !! jmpSel)
-          isJmpTo Nothing  = False
-          isJmpTo (Just (_,x)) = ciId x == jmpTo
-      case findIndex isJmpTo (elems items) of
-        Nothing -> geniBug $ "Was asked to see node " ++ (show jmpTo) ++ ", which is not in the list"
-        Just x  -> setGvSel gvRef x
-      onDerChoice
-      updaterFn ]
     -- show features
     detailsChk <- checkBox ib [ text := "features"
                               , enabled := False, checked := False ]
@@ -247,13 +249,42 @@ ckyItemBar f gvRef updaterFn =
     addGvHandler gvRef handler
     -- call the handler to react to the first selection
     handler `liftM` readIORef gvRef
+    -- pushing and popping between nodes
+    let jumpToNode jmpTo =
+         do gvSt <- readIORef gvRef
+            let chartItems = elems $ gvitems gvSt
+            case findIndex isJmpTo chartItems of
+              Nothing -> geniBug $ "Was asked to see node " ++ (show jmpTo) ++ ", which is not in the list"
+              Just x  ->
+               do setGvSel gvRef x
+                  modifyGvParams gvRef (setDebugWhichDerivation 0)
+                  readIORef gvRef >>= handler
+                  updaterFn
+         where isJmpTo Nothing  = False
+               isJmpTo (Just (_,x)) = ciId x == jmpTo
+    set jumpBtn [ on command := do
+      gvSt <- readIORef gvRef
+      case (gvitems gvSt ! gvsel gvSt) of
+        Nothing -> return ()
+        Just x  -> modifyGvParams gvRef (pushDebugNodeChoice $ (ciId.snd) x)
+      jmpSel  <- get jumpChoice selection
+      jmpItms <- get jumpChoice items
+      let jmpTo = (read $ jmpItms !! jmpSel)
+      jumpToNode jmpTo ]
+
+    set unjumpBtn [ on command := do
+      gvSt <- readIORef gvRef
+      case popDebugNodeChoice (gvparams gvSt) of
+       Nothing -> return ()
+       Just (x,gvParam) -> do modifyGvParams gvRef (const gvParam)
+                              jumpToNode x ]
     --
     return $ hfloatCentre $ container ib $ column 0 $
              [ row 5
                 [ label "Show...", widget fullDervChk, widget srcTreeChk, widget detailsChk ]
              , row 5
                 [ widget derTxt, widget derChoice
-                , hspace 5, label "Node", widget jumpChoice, widget jumpBtn ]  ]
+                , hspace 5, label "Node", widget jumpChoice, widget jumpBtn, widget unjumpBtn ]  ]
 \end{code}
 
 \section{Helper code}
