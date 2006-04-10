@@ -70,7 +70,6 @@ import GuiHelper
   , graphvizGui, newGvRef, setGvDrawables,
   )
 
-import Polarity
 import Tags 
   ( idname, tsemantics, ttree, TagElem )
 \end{code}

@@ -83,7 +83,6 @@ import Tags (TagElem, TagSite, TagDerivation,
             )
 import Configuration
 import General (BitVector, fst3, mapTree)
-import Polarity
 import Statistics (Statistics)
 \end{code}
 }

@@ -68,7 +68,7 @@ import Btypes
   , unifyFeat )
 
 import Automaton
-  ( NFA(NFA, transitions, states), isFinalSt, finalSt, finalStList, startSt, addTrans )
+  ( NFA(NFA, transitions, states), isFinalSt, finalSt, finalStList, startSt, addTrans, automatonPaths )
 import qualified Builder as B
 import Builder
   ( SentenceAut, incrCounter, num_iterations, chart_size,
@@ -80,8 +80,6 @@ import Builder
 import Configuration ( Params, isIaf )
 import General
   ( combinations, treeLeaves, BitVector, geniBug, fst3, snd3 )
-import Polarity
-  ( automatonPaths )
 import Statistics ( Statistics )
 import Tags
   ( TagElem, tidnum, ttree, tsemantics, ttype,
