@@ -56,7 +56,7 @@ import Tags
 
 import Configuration(Params(..), GrammarType(..))
 
-import Automaton (states)
+import Automaton (numStates, numTransitions)
 import qualified Builder as B
 import Builder (queryCounter, num_iterations, chart_size,
     num_comparisons)
@@ -124,12 +124,11 @@ step.
 polarityGui :: (Window a) -> [(String,PolAut,PolAut)] -> PolAut
             -> GvIO () PolAut
 polarityGui   f xs final = do
-  let numsts a = " : " ++ (show n) ++ " states" 
-                 where n = foldr (+) 0 $ map length $ states a 
-      aut2  (_ , a1, a2) = [ a1, a2 ]
-      autLabel (fv,a1,_) = [ fv ++ numsts a1, fv ++ " pruned" ]
-      autlist = (concatMap aut2 xs) ++ [ final ] 
-      labels  = (concatMap autLabel xs) ++ [ "final" ++ numsts final ]
+  let stats a = " (" ++ (show $ numStates a) ++ "st " ++ (show $ numTransitions a) ++ "tr)"
+      aut2  (_ , a1, a2)  = [ a1, a2 ]
+      autLabel (fv,a1,a2) = [ fv ++ stats a1, fv ++ " pruned" ++ stats a2]
+      autlist = (concatMap aut2 xs) ++ [ final ]
+      labels  = (concatMap autLabel xs) ++ [ "final" ++ stats final ]
       --
   gvRef   <- newGvRef () labels "automata"
   setGvDrawables gvRef autlist
