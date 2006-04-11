@@ -106,7 +106,9 @@ data Params = Prms{
   statsFile      :: FilePath,
   -- generation sans semantics (not the usual geni mode)
   ignoreSemantics :: Bool, 
-  maxTrees       :: Maybe Int -- limit on num of trees in a derived tree 
+  maxTrees       :: Maybe Int, -- limit on num of trees in a derived tree,
+  -- timeout (s)
+  timeoutSecs :: Maybe Integer
 } deriving (Show)
 
 polarised    :: Params -> Bool
@@ -150,7 +152,8 @@ emptyParams = Prms {
   statsFile       = "",
   xmgErrFile      = "",
   ignoreSemantics = False,
-  maxTrees       = Nothing
+  maxTrees       = Nothing,
+  timeoutSecs    = Nothing
 }
 \end{code}
 
@@ -183,6 +186,7 @@ data Switch =
     CmdTok String String | -- key / command 
     OutputFileTok String |
     MetricsTok (Maybe String) | StatsFileTok String | XMGErrFile String  |
+    TimeoutTok String |
     IgnoreSemanticsTok Bool | MaxTreesTok String |
     BuilderTok String |
     -- grammar file
@@ -238,6 +242,8 @@ optionsAdvanced :: [OptDescr Switch]
 optionsAdvanced =
   [ Option ['b'] ["builder"]  (ReqArg BuilderTok "BUILDER")
       "use as realisation engine one of: simple cky"
+  , Option []    ["timeout"] (ReqArg TimeoutTok "SECONDS")
+      "time out after SECONDS seconds"
   , Option []    ["metrics"] (OptArg MetricsTok "LIST")
       "keep track of performance metrics: (default: iterations comparisons chart_size)"
   , Option []    ["statsfile"] (ReqArg StatsFileTok "FILE")
@@ -399,6 +405,7 @@ defineParams p (f:s) = defineParams pnext s
       CmdTok "view"     v -> p {viewCmd = v}
       TestCasesTok v      -> p {testCase = v }
       -- performance profiling
+      TimeoutTok v        -> p { timeoutSecs  = Just (read v) }
       MetricsTok Nothing  -> p { metricsParam = ["default"] }
       MetricsTok (Just v) -> p { metricsParam = words v }
       StatsFileTok v      -> p { statsFile    = v }

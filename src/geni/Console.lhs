@@ -30,10 +30,10 @@ import Data.List(find)
 import Control.Monad(when)
 import Data.IORef(readIORef, modifyIORef)
 
-import General(ePutStrLn) 
+import General(ePutStrLn, withTimeout)
 import Geni
 import Configuration
-  ( Params, isGraphical, outputFile, statsFile, metricsParam
+  ( Params, isGraphical, outputFile, statsFile, metricsParam, timeoutSecs
   , builderType
   , BuilderType(CkyBuilder, EarleyBuilder, SimpleBuilder, NullBuilder) )
 import qualified Builder as B
@@ -61,7 +61,14 @@ consoleGeni pstRef = do
   loadGrammar pstRef
   ePutStrLn "======================================================"
   --
-  runTestCase pstRef 
+  case timeoutSecs $ pa pst of
+    Nothing -> runTestCase pstRef
+    Just t  -> do putStrLn (show t)
+                  withTimeout t (timeoutErr t) $ runTestCase pstRef
+  where
+   timeoutErr t = ePutStrLn $ "GenI timed out after " ++ (show t) ++ "s"
+
+
   -- let batchTestOpts = isBatch config
   -- if batchTestOpts then runBatch pstRef else 
 \end{code}
