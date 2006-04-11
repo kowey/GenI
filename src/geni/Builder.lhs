@@ -439,7 +439,7 @@ initNullBuilder input config =
       countUp = do incrCounter "lex_subst_nodes" $ length snodes
                    incrCounter "lex_foot_nodes"  $ length anodes
                    incrCounter "lex_nodes"     $ length nodes
-                   incrCounter "lex_selection" $ length cands
+                   incrCounter "lex_trees"     $ length cands
                    incrCounter "sem_literals"  $ length tsem
   in runState (execStateT countUp ()) (initStats config)
 \end{code}
