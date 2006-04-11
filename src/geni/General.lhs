@@ -34,6 +34,12 @@ import Data.List (intersect, groupBy, group, sort, intersperse)
 import Data.Tree
 import System.IO (hPutStrLn, hPutStr, hFlush, stderr)
 import qualified Data.Map as Map
+
+-- for timeout
+import Control.Concurrent
+import Control.Exception
+import Data.Dynamic(Typeable, typeOf, TyCon, mkTyCon, mkTyConApp, toDyn)
+import Data.Unique
 \end{code}
 }
 
@@ -291,4 +297,40 @@ showTable header items displayfn =
       headerStr = showIt header ++ "\n" ++ showLine ++ "\n" 
       bodyStr   = concat $ intersperse "\n" $ map (showIt.resStr) items 
   in headerStr ++ bodyStr
+\end{code}
+
+\section{Timeouts}
+
+This code is taken directly from HyLoRes.  I have just reformatted it to be a bit more
+readable (in my eyes).
+
+\begin{code}
+data TimeOut = TimeOut Unique
+
+timeOutTc :: TyCon
+timeOutTc = mkTyCon "TimeOut"
+
+instance Typeable TimeOut where
+    typeOf _ = mkTyConApp timeOutTc []
+
+withTimeout :: Integer
+            -> IO a -- ^ action to run upon timing out
+            -> IO a -- ^ main action to run
+            -> IO a
+withTimeout secs on_timeout action =
+ do parent  <- myThreadId
+    i       <- newUnique
+    block $ do
+      timeout <- forkIO (timeout_thread secs parent i)
+      Control.Exception.catchDyn
+        ( unblock $ do result <- action
+                       killThread timeout
+                       return result )
+        ( \ex -> case ex of
+                 TimeOut u | u == i -> unblock on_timeout
+                 _ -> killThread timeout >>= throwDyn ex )
+ where
+  timeout_thread secs parent i =
+   do threadDelay $ (fromInteger secs) * 1000000
+      throwTo parent (DynException $ toDyn $ TimeOut i)
 \end{code}
