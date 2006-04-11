@@ -51,11 +51,11 @@ import qualified Data.Set as Set
 import Data.Tree ( flatten )
 import Prelude hiding ( init )
 
-import Automaton (NFA, automatonPaths)
+import Automaton (NFA, automatonPaths, numStates, numTransitions)
 import Configuration
   ( Params(metricsParam, ignoreSemantics, rootCatsParam), extrapol,
     polarised )
-import General (geniBug, BitVector, multiGroupByFM)
+import General (geniBug, BitVector, multiGroupByFM, snd3)
 import Btypes
   ( ILexEntry, SemInput, Sem, Pred, showPred, showSem,
     Flist, gtype, GType(Subs, Foot),
@@ -179,10 +179,6 @@ preInit input config =
                     , inSemInput = (sem2, snd seminput) }
      -- note: autstuff is only useful for the graphical debugger
   in (input2, polcount, autstuff)
-
-setPolStats (exploredPaths, totalPaths) stats =
-  updateMetrics (incrIntMetric "pol_explored" exploredPaths) $
-  updateMetrics (incrIntMetric "pol_total" totalPaths) stats
 \end{code}
 
 \begin{code}
@@ -208,12 +204,19 @@ unlessEmptySem input config =
 -- | Performs surface realisation from an input semantics and a lexical selection.
 run builder input config =
   let -- 1 run the setup stuff
-      (input2, polcount, _) = preInit input config
+      (input2, polcount, autstuff) = preInit input config
+      auts = (\(x,_,_,_) -> map snd3 x) autstuff
       -- 2 call the init stuff
       (iSt, iStats) = init builder input2 config
       -- 3 step through the whole thing
-      stepAll_ = stepAll builder
-  in runState (execStateT stepAll_ iSt) (setPolStats polcount iStats)
+      stepAll_ = do incrCounter "pol_used_paths"   $ fst polcount
+                    incrCounter "pol_total_paths"  $ snd polcount
+                    incrCounter "pol_total_states" $ sum $ map numStates auts
+                    incrCounter "pol_total_trans"  $ sum $ map numTransitions auts
+                    incrCounter "pol_max_states"   $ sum $ map numStates auts
+                    incrCounter "pol_max_trans"    $ sum $ map numTransitions auts
+                    stepAll builder
+  in runState (execStateT stepAll_ iSt) iStats
 \end{code}
 
 \subsection{Semantics and bit vectors}
