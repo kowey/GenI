@@ -44,7 +44,6 @@ import Data.IORef (IORef, readIORef, modifyIORef)
 import Data.List (intersperse, sort, nub)
 import qualified Data.Map as Map
 
-import System.CPUTime (getCPUTime, cpuTimePrecision)
 import System.Exit ( ExitCode(ExitSuccess, ExitFailure) )
 import System.IO (hPutStr, hClose, hGetContents)
 import System.IO.Unsafe (unsafePerformIO)
@@ -79,7 +78,7 @@ import Configuration
   ( Params
   , grammarType, testCase, morphCmd, ignoreSemantics, selectCmd,
   , GrammarType(..),
-  , tsFile, macrosFile, lexiconFile, morphFile)
+  , tsFile, macrosFile, lexiconFile, morphFile, xmgErrFile)
 
 import qualified Builder as B
 
@@ -665,18 +664,11 @@ runXMGAnchoring pst lexCand =
          gramfile = macrosFile gparams
      -- run the selector module
      let fil  = concat $ zipWith lexEntryToFil lexCand [1..]
-     startTime <- getCPUTime
-     selected <- startTime `seq` runSelector pst gramfile fil
-     endSelectTime <- (length selected) `seq` getCPUTime
-     ePutStrLn $ "selecting_time_ms " ++ (showTime $ endSelectTime - startTime)
+     selected <- runSelector pst gramfile fil
      let parsed = runParser geniTagElems () "" selected
      case parsed of 
        Left err -> fail (show err) 
-       Right gr -> do endAnchorTime <- (length gr) `seq` getCPUTime
-                      ePutStrLn $ "parsing_selected_time_ms " ++ (showTime $ endAnchorTime - startTime)
-                      return (map fixateXMG gr)
-  where showTime t = (show $ milliTime t) ++ ".0" -- tack on a .0 for gtester
-        milliTime t = (cpuTimePrecision * (t `div` cpuTimePrecision)) `div` (10^9)
+       Right gr -> return (map fixateXMG gr)
   -- FIXME: determine if we can nix this error handler
   --`catch` \e -> do ePutStrLn (show e)
   --                 return ([], []) 
@@ -725,7 +717,8 @@ runSelector pst gfile fil = do
      -- blocks without -threaded, you're warned.
      -- and maybe the process has already completed..
      exCode <- Control.Exception.catch (waitForProcess pid) (\_ -> return ExitSuccess)
-     ePutStr errput
+     let xmgErr = xmgErrFile (pa pst)
+     if null xmgErr then ePutStr errput else writeFile xmgErr errput
      case exCode of 
        ExitSuccess -> return output 
        ExitFailure n -> fail $ "There was a problem running the selector - exited with code " ++ (show n) ++ "\nCheck your terminal." 

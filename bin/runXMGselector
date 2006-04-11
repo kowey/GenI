@@ -20,7 +20,7 @@ TMP_RES_FILE_2="${TMP_RES_PREFIX_2}-$$.geni"
 # write the stuff from stdin into a filter file
 cat > ${TMP_FIL_FILE}
 
-SelectTAG ${GRAMMAR_FILE} ${TMP_FIL_FILE} --geni -o ${TMP_RES_FILE}
+time SelectTAG ${GRAMMAR_FILE} ${TMP_FIL_FILE} --geni -o ${TMP_RES_FILE}
 CMDEXIT=$?
 
 if [ -r ${TMP_RES_FILE} ]; then

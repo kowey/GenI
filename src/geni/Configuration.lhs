@@ -81,6 +81,8 @@ data Params = Prms{
   morphCmd       :: String,
   -- tree selector (needed if xmgtools)
   selectCmd      :: String,
+  -- | where to send XMG stderr chatter, stderr if null
+  xmgErrFile :: FilePath,
   -- tree viewer  (needed if xmgtools)
   viewCmd        :: String,
   --
@@ -145,7 +147,8 @@ emptyParams = Prms {
   batchRepeat    = 1,
   outputFile     = "",
   metricsParam   = [],
-  statsFile      = "",
+  statsFile       = "",
+  xmgErrFile      = "",
   ignoreSemantics = False,
   maxTrees       = Nothing
 }
@@ -179,7 +182,7 @@ data Switch =
     GraphicalTok Bool   | 
     CmdTok String String | -- key / command 
     OutputFileTok String |
-    MetricsTok (Maybe String) | StatsFileTok String |
+    MetricsTok (Maybe String) | StatsFileTok String | XMGErrFile String  |
     IgnoreSemanticsTok Bool | MaxTreesTok String |
     BuilderTok String |
     -- grammar file
@@ -239,6 +242,8 @@ optionsAdvanced =
       "keep track of performance metrics: (default: iterations comparisons chart_size)"
   , Option []    ["statsfile"] (ReqArg StatsFileTok "FILE")
       "write performance data to file FILE (stdout if unset)"
+  , Option []    ["xmgerrfile"] (ReqArg XMGErrFile "FILE")
+      "write XMG anchoring stderr to file FILE (stderr if unset)"
   , Option []    ["xmgtools"] (NoArg (GrammarType XMGTools))
       "use XMG format for trees and GDE format for lexicon"
   , Option []    ["extrapols"] (ReqArg ExtraPolaritiesTok "STRING")
@@ -397,6 +402,7 @@ defineParams p (f:s) = defineParams pnext s
       MetricsTok Nothing  -> p { metricsParam = ["default"] }
       MetricsTok (Just v) -> p { metricsParam = words v }
       StatsFileTok v      -> p { statsFile    = v }
+      XMGErrFile v        -> p { xmgErrFile   = v }
       --
       GrammarType v        -> p {grammarType = v} 
       IgnoreSemanticsTok v -> p { ignoreSemantics = v 
