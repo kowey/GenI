@@ -23,7 +23,7 @@ module Automaton
   ( NFA(..), 
     finalSt,
     addTrans, lookupTrans,
-    automatonPaths )
+    automatonPaths, numStates, numTransitions )
 where
 
 import qualified Data.Map as Map
@@ -132,3 +132,11 @@ automatonPaths aut = helper (transitions aut) (startSt aut)
                  Just ab -> if (null n) then [[ab]] else map (ab :) n
      in concatMap next cands 
 \end{code}
+
+\begin{code}
+numStates, numTransitions :: NFA st ab ->  Int
+numStates = sum . (map length) . states
+numTransitions = sum . (map subTotal) . (Map.elems) . transitions
+  where subTotal = sum . (map length) . (Map.elems)
+\end{code}
+
