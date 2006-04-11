@@ -927,14 +927,19 @@ unpackKidsToParentOp :: CkyStatus -> [CkyItem] -> SentenceAutPairMaybe
 unpackKidsToParentOp st kids =
   let (bef, aft) = span (not.ciOnTheSpine) kids
       (befL, befR) = unzip $ map (unpackItemToAuts st) bef
-      (_   , aftR) = unzip $ map (unpackItemToAuts st) aft
-      concatAut auts = foldr mJoinAutomata Nothing auts
-  in if null aft
+      concatAut_ last auts = foldr mJoinAutomata last auts
+      concatAut = concatAut_ Nothing
+  in case aft of
      -- two cases in one! (we expect one of these to be Nothing)
      -- we're either on the left or the right of the spine
-     then ( concatAut befL, concatAut befR )
-     -- we are on the spine
-     else ( concatAut befL, concatAut aftR )
+     [] -> ( concatAut befL, concatAut befR )
+     -- we are on the spine: we attach the left automaton of the
+     -- spinal child to the other left automata and likewise,
+     -- its right automaton to the rest of the right automata
+     (spi:aft2) ->
+       let (spiL, spiR) = unpackItemToAuts st spi
+           (_   , aftR) = unzip $ map (unpackItemToAuts st) aft2
+       in ( concatAut_ spiL befL, concatAut (spiR:aftR) )
 \end{code}
 
 \subsection{Core automaton stuff}
