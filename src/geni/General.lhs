@@ -91,7 +91,7 @@ thd3 (_,_,x) = x
 -- | A forgiving version of tail : if you give it the empty list, it returns the empty list
 tail_ :: [a] -> [a]
 tail_ [] = []
-tail_ (h:t) = t
+tail_ (_:t) = t
 \end{code}
 
 A generic version of the Data.List.words
