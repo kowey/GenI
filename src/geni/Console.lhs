@@ -30,7 +30,7 @@ import Data.List(find)
 import Control.Monad(when)
 import Data.IORef(readIORef, modifyIORef)
 
-import General(ePutStrLn, withTimeout)
+import General(ePutStrLn, withTimeout, exitTimeout)
 import Geni
 import Configuration
   ( Params, isGraphical, outputFile, statsFile, metricsParam, timeoutSecs
@@ -66,7 +66,8 @@ consoleGeni pstRef = do
     Just t  -> do putStrLn (show t)
                   withTimeout t (timeoutErr t) $ runTestCase pstRef
   where
-   timeoutErr t = ePutStrLn $ "GenI timed out after " ++ (show t) ++ "s"
+   timeoutErr t = do ePutStrLn $ "GenI timed out after " ++ (show t) ++ "s"
+                     exitTimeout
 
 
   -- let batchTestOpts = isBatch config

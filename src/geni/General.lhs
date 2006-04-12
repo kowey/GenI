@@ -40,6 +40,7 @@ import Control.Concurrent
 import Control.Exception
 import Data.Dynamic(Typeable, typeOf, TyCon, mkTyCon, mkTyConApp, toDyn)
 import Data.Unique
+import System.Exit(exitWith, ExitCode(ExitFailure))
 \end{code}
 }
 
@@ -333,4 +334,7 @@ withTimeout secs on_timeout action =
   timeout_thread secs parent i =
    do threadDelay $ (fromInteger secs) * 1000000
       throwTo parent (DynException $ toDyn $ TimeOut i)
+
+-- | Like 'exitFailure', except that we return with a code that we reserve for timing out
+exitTimeout = exitWith $ ExitFailure 4200
 \end{code}
