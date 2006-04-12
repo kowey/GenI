@@ -1002,8 +1002,10 @@ joinAutomata aut1 rawAut2 =
      aut1Final = finalSt aut1
      t1 = transitions aut1
      t2 = transitions aut2
-     maybeBridge s = if s `elem` aut1Final then startSt aut2 else s
-     newT1 = Map.map (Map.map $ map maybeBridge) t1
+     updateKey k2 k m = case Map.lookup k m of
+                        Nothing -> m
+                        Just v  -> Map.insert k2 v (Map.delete k m)
+     newT1 = foldr (updateKey (startSt aut2)) t1 aut1Final
      newStates1 = map (\\ aut1Final) $ states aut1
      --
  in  aut1 { states      = [ concat $ newStates1 ++ states aut2 ]
@@ -1016,7 +1018,7 @@ incrStates prefix aut =
  let -- increment a state
      addP_s = (prefix +)
      -- increment all the states involved in a transition
-     addP_t (k,e) = (addP_s k, Map.map (map addP_s) e)
+     addP_t (st,l) = (addP_s st, l)
  in aut { startSt     = addP_s (startSt aut)
         , states      = map (map addP_s) $ states aut
         , transitions = Map.fromList $ map addP_t $

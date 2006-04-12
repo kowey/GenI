@@ -392,17 +392,17 @@ buildPolAutHelper fk skeleton st (aut,prev) =
   let -- reconstruct the skeleton state used to build st 
       PolSt pr ex (po1:skelpo1) = st
       skelSt = PolSt pr ex skelpo1
-      -- for each transition out of the current state...
-      result      = foldr addT (aut,prev) cands 
-      skelStTrans = Map.findWithDefault Map.empty skelSt skeleton
-      cands       = Map.keys skelStTrans 
-      -- . for each state that a label transitions to...
-      addT tr (a,n) = foldr (addTS tr) (a,n) (lookupTr tr)
-      lookupTr tr   = Map.findWithDefault [] tr skelStTrans
+      -- for each transition out of the current state
+      -- nb: a transition is (next state, [labels to that state])
+      trans = Map.toList $ Map.findWithDefault Map.empty skelSt skeleton
+      result = foldr addT (aut,prev) trans
+      -- . for each label to the next state st2
+      addT (oldSt2,trs) (a,n) = foldr (addTS oldSt2) (a,n) trs
       -- .. calculate a new state and add a transition to it
-      addTS tr skel2 (a,n) = (addTrans a st tr st2, st2:n)
+      addTS skel2 tr (a,n) = (addTrans a st tr st2, st2:n)
         where st2 = newSt tr skel2
       --
+      newSt :: Maybe TagElem -> PolState -> PolState
       newSt t skel2 = PolSt pr2 ex2 (po2:skelPo2)
         where 
          PolSt pr2 ex2 skelPo2 = skel2 
@@ -459,15 +459,16 @@ prune' (sts:next) oldAut =
   let -- calculate the blacklist
       oldT  = transitions oldAut
       oldSt = states oldAut
-      sansTrans st = isNothing (Map.lookup st oldT)
-      blacklist    = filter sansTrans sts
-      -- removing all transitions to the blacklist
-      subDelete  = Map.map (\e -> e \\ blacklist)
-      -- removing all transitions labels that only go to the blacklist
-      subCleanup = Map.filter (\e -> not $ null e)
-      -- removing all states that only transition to the blacklist
-      newT    = cleanup $ Map.map (\e -> subCleanup $ subDelete e) oldT
-      cleanup = Map.filter (\e -> not $ Map.null e)
+      transFrom st = Map.lookup st oldT
+      blacklist    = filter (isNothing.transFrom) sts
+      -- given a st: filter out all transitions to the blacklist
+      allTrans  = Map.toList $ transitions oldAut
+      -- delete all transitions to the blacklist
+      miniTrim = Map.filterWithKey (\k _ -> not (k `elem` blacklist))
+      -- extra cleanup: delete from map states that only transition to the blacklist
+      trim = Map.filterWithKey (\k m -> not (k `elem` blacklist || Map.null m))
+      -- execute the kill and miniKill filters
+      newT = trim $ Map.fromList [ (st2, miniTrim m) | (st2,m) <- allTrans ]
       -- new list of states and new automaton
       newSts = sts \\ blacklist
       newAut = oldAut { transitions = newT,
@@ -482,7 +483,7 @@ prune' (sts:next) oldAut =
       showEx ex = if (null ex) then "" else (showSem ex)
       -}
       -- recursive step
-  in if (null blacklist) 
+  in if null blacklist
      then oldAut { states = (reverse oldSt) ++ (sts:next) }
      else prune' next newAut 
 \end{code}
@@ -1163,7 +1164,7 @@ data PolState = PolSt Int [Pred] [(Int,Int)]
      deriving (Eq)
 type PolTrans = TagElem
 type PolAut   = NFA PolState PolTrans
-type PolTransFn = Map.Map PolState (Map.Map (Maybe PolTrans) [PolState])
+type PolTransFn = Map.Map PolState (Map.Map PolState [Maybe PolTrans])
 \end{code}
 
 \begin{code}
@@ -1190,7 +1191,6 @@ fakestate s pol = PolSt s [] pol --PolSt (0, s, [""]) [] pol
 polstart :: [Interval] -> PolState
 polstart pol = fakestate 0 pol -- fakestate "START" pol
 \end{code}
-
 
 % ----------------------------------------------------------------------
 \section{Display code}
@@ -1322,12 +1322,7 @@ gvShowTrans :: PolAut -> Map.Map PolState String
                -> String -> PolState -> String 
 gvShowTrans aut stmap idFrom st = 
   let -- outgoing transition labels from st
-      alpha = Map.keys $ Map.findWithDefault Map.empty st (transitions aut) 
-      -- associate each st2 with a list of labels that transition to it
-      inverter x fm = foldr fn fm (lookupTrans aut st x)
-                      where fn    s f   = Map.insert s (xlist s f x) f
-                            xlist s f x = x:(Map.findWithDefault [] s f)
-      invFM = foldr inverter Map.empty alpha
+      trans = Map.findWithDefault Map.empty st $ transitions aut
       -- returns the graphviz dot command to draw a labeled transition
       drawTrans (stTo,x) = case Map.lookup stTo stmap of
                              Nothing   -> drawTrans' ("id_error_" ++ (showSem stTo)) x 
@@ -1348,7 +1343,7 @@ gvShowTrans aut stmap idFrom st =
           labs = if lablen > max 
                  then take max labstrs ++ [ excess ]
                  else labstrs 
-  in concatMap drawTrans $ Map.toList invFM
+  in unlines $ map drawTrans $ Map.toList trans
 \end{code}
 
 %gvShowTransPred te = 

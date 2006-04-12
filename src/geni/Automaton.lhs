@@ -23,10 +23,14 @@ module Automaton
   ( NFA(..), 
     finalSt,
     addTrans, lookupTrans,
-    automatonPaths, numStates, numTransitions )
+    automatonPaths, automatonPathSets,
+    numStates, numTransitions )
 where
 
 import qualified Data.Map as Map
+import Data.Maybe (catMaybes)
+
+import General (combinations)
 \end{code}
 
 This module provides a simple, naive implementation of nondeterministic
@@ -57,7 +61,7 @@ data NFA st ab = NFA
   , isFinalSt   :: Maybe (st -> Bool)
   , finalStList :: [st]
   -- 
-  , transitions :: Map.Map st (Map.Map (Maybe ab) [st])
+  , transitions :: Map.Map st (Map.Map st [Maybe ab])
   -- see chapter comments about list of list 
   , states    :: [[st]] 
   }
@@ -83,7 +87,7 @@ element \fnparam{ab} of the alphabet; and returns the state that
 
 \begin{code}
 lookupTrans :: (Ord ab, Ord st) => NFA st ab -> st -> (Maybe ab) -> [st]
-lookupTrans aut st ab = Map.findWithDefault [] ab subT
+lookupTrans aut st ab = Map.keys $ Map.filter (elem ab) subT
   where subT = Map.findWithDefault Map.empty st (transitions aut) 
 \end{code}
 
@@ -91,10 +95,9 @@ lookupTrans aut st ab = Map.findWithDefault [] ab subT
 addTrans :: (Ord ab, Ord st) => NFA st ab -> st -> Maybe ab -> st -> NFA st ab 
 addTrans aut st1 ab st2 = 
   aut { transitions = Map.insert st1 newSubT oldT }
-  where oldSt2   = Map.findWithDefault [] ab oldSubT 
-        oldT     = transitions aut
+  where oldT     = transitions aut
         oldSubT  = Map.findWithDefault Map.empty st1 oldT 
-        newSubT  = Map.insert ab (st2:oldSt2) oldSubT
+        newSubT  = Map.insertWith (++) st2 [ab] oldSubT
 \end{code}
 
 % ----------------------------------------------------------------------
@@ -109,28 +112,23 @@ in it.  Maybe it would still work if there were loops, with lazy
 evaluation, but I haven't had time to think this through, so only
 try it unless you're feeling adventurous.
 
+FIXME: we should write some unit tests and quickchecks for this
 \begin{code}
 automatonPaths :: (Ord st, Ord ab) => (NFA st ab) -> [[ab]]
-automatonPaths aut = helper (transitions aut) (startSt aut) 
-  where 
-    helper transMap st = 
-     let trans        = Map.findWithDefault Map.empty st transMap 
-         lookupTr ab  = Map.findWithDefault [] ab trans
-         newTransMap  = Map.delete st transMap 
-         --   
-         cands      = Map.keys trans
-         -- recursive steps: we call helper for each state we 
-         -- transition to and then add the label for the current 
-         -- transition to the results
-         next ab = concatMap (appendTo.pathsFrom) nextStates 
-           where 
-             nextStates    = lookupTr ab
-             pathsFrom st2 = helper newTransMap st2
-             appendTo n   = 
-               case ab of 
-                 Nothing -> n
-                 Just ab -> if (null n) then [[ab]] else map (ab :) n
-     in concatMap next cands 
+automatonPaths aut = concatMap combinations $ map (filter (not.null)) $ automatonPathSets aut
+
+-- | Not quite the set of all paths, but the sets of all transitions
+---  FIXME: explain later
+automatonPathSets :: (Ord st, Ord ab) => (NFA st ab) -> [[ [ab] ]]
+automatonPathSets aut = helper (startSt aut)
+ where
+  transFor st = Map.lookup st (transitions aut)
+  helper st = case transFor st of
+              Nothing   -> []
+              Just subT -> concat [ (next (catMaybes tr) st2) | (st2, tr) <- Map.toList subT ]
+  next tr st2 = case helper st2 of
+                []  -> [[tr]]
+                res -> map (tr :) res
 \end{code}
 
 \begin{code}

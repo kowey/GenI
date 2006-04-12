@@ -38,7 +38,7 @@ import Data.Tree
 
 import Automaton
  ( NFA(states, transitions, startSt, finalStList)
- , lookupTrans, addTrans )
+ , addTrans )
 import qualified Builder    as B
 import qualified BuilderGui as BG 
 import Btypes
@@ -430,19 +430,14 @@ gvShowTrans :: B.SentenceAut -> Map.Map SentenceAutState String
                -> String -> SentenceAutState -> String 
 gvShowTrans aut stmap idFrom st = 
   let -- outgoing transition labels from st
-      alpha = Map.keys $ Map.findWithDefault Map.empty st (transitions aut) 
-      -- associate each st2 with a list of labels that transition to it
-      inverter x fm = foldr fn fm (lookupTrans aut st x)
-                      where fn    s f   = Map.insert s (xlist s f x) f
-                            xlist s f x = x:(Map.findWithDefault [] s f)
-      invFM = foldr inverter Map.empty alpha
+      trans = Map.findWithDefault Map.empty st $ transitions aut
       -- returns the graphviz dot command to draw a labeled transition
       drawTrans (stTo,x) = case Map.lookup stTo stmap of
                              Nothing   -> drawTrans' ("id_error_" ++ (show stTo)) x 
                              Just idTo -> drawTrans' idTo x
       drawTrans' idTo x = gvEdge idFrom idTo (drawLabel x) []
       drawLabel labels  = gvUnlines $ map fst $ catMaybes labels 
-  in concatMap drawTrans $ Map.toList invFM
+  in unlines $ map drawTrans $ Map.toList trans
 \end{code}
 
 \begin{code}
