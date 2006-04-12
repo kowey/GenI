@@ -83,6 +83,8 @@ data Params = Prms{
   selectCmd      :: String,
   -- | where to send XMG stderr chatter, stderr if null
   xmgErrFile :: FilePath,
+  -- | where to dump the SelectTAG output (nowhere if null)
+  xmgOutFile :: FilePath,
   -- tree viewer  (needed if xmgtools)
   viewCmd        :: String,
   --
@@ -150,6 +152,7 @@ emptyParams = Prms {
   outputFile     = "",
   metricsParam   = [],
   statsFile       = "",
+  xmgOutFile      = "",
   xmgErrFile      = "",
   ignoreSemantics = False,
   maxTrees       = Nothing,
@@ -164,7 +167,8 @@ command line arguments.  To start things off, here is the list of command lines
 switches that we use.  
 
 \begin{code}
-data GrammarType = GeniHand | TAGML | XMGTools 
+data GrammarType = GeniHand | TAGML | XMGTools
+                 | PreAnchored -- ^ lexical selection already done
      deriving (Show, Eq)
 
 data BuilderType = NullBuilder | SimpleBuilder | CkyBuilder | EarleyBuilder
@@ -185,7 +189,8 @@ data Switch =
     GraphicalTok Bool   | 
     CmdTok String String | -- key / command 
     OutputFileTok String |
-    MetricsTok (Maybe String) | StatsFileTok String | XMGErrFile String  |
+    MetricsTok (Maybe String) | StatsFileTok String |
+    XMGOutFileTok String | XMGErrFileTok String  |
     TimeoutTok String |
     IgnoreSemanticsTok Bool | MaxTreesTok String |
     BuilderTok String |
@@ -248,7 +253,9 @@ optionsAdvanced =
       "keep track of performance metrics: (default: iterations comparisons chart_size)"
   , Option []    ["statsfile"] (ReqArg StatsFileTok "FILE")
       "write performance data to file FILE (stdout if unset)"
-  , Option []    ["xmgerrfile"] (ReqArg XMGErrFile "FILE")
+  , Option []    ["xmgoutfile"] (ReqArg XMGOutFileTok "FILE")
+      "write XMG anchoring results to file FILE; do not perform surface realisation"
+  , Option []    ["xmgerrfile"] (ReqArg XMGErrFileTok "FILE")
       "write XMG anchoring stderr to file FILE (stderr if unset)"
   , Option []    ["xmgtools"] (NoArg (GrammarType XMGTools))
       "use XMG format for trees and GDE format for lexicon"
@@ -262,6 +269,8 @@ optionsAdvanced =
       "morphological lexicon FILE (default: unset)"
   , Option []    ["morphcmd"]  (ReqArg (CmdTok "morph") "CMD") 
       "morphological post-processor CMD (default: unset)"
+  , Option []    ["preselected"] (NoArg (GrammarType PreAnchored))
+      "do NOT perform lexical selection - treat the grammar as the selection"
   , Option []    ["repeat"]   (ReqArg RepeatTok "INT")
       "perform INT trials during batch testing"
   , Option []    ["selectcmd"]  (ReqArg (CmdTok "select") "CMD") 
@@ -409,7 +418,8 @@ defineParams p (f:s) = defineParams pnext s
       MetricsTok Nothing  -> p { metricsParam = ["default"] }
       MetricsTok (Just v) -> p { metricsParam = words v }
       StatsFileTok v      -> p { statsFile    = v }
-      XMGErrFile v        -> p { xmgErrFile   = v }
+      XMGOutFileTok v     -> p { xmgOutFile   = v }
+      XMGErrFileTok v     -> p { xmgErrFile   = v }
       --
       GrammarType v        -> p {grammarType = v} 
       IgnoreSemanticsTok v -> p { ignoreSemantics = v 

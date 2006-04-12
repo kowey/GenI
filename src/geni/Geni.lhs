@@ -44,7 +44,7 @@ import Data.IORef (IORef, readIORef, modifyIORef)
 import Data.List (intersperse, sort, nub)
 import qualified Data.Map as Map
 
-import System.Exit ( ExitCode(ExitSuccess, ExitFailure) )
+import System.Exit ( exitWith, ExitCode(ExitSuccess, ExitFailure) )
 import System.IO (hPutStr, hClose, hGetContents)
 import System.IO.Unsafe (unsafePerformIO)
 import Text.ParserCombinators.Parsec 
@@ -78,7 +78,7 @@ import Configuration
   ( Params
   , grammarType, testCase, morphCmd, ignoreSemantics, selectCmd,
   , GrammarType(..),
-  , tsFile, macrosFile, lexiconFile, morphFile, xmgErrFile)
+  , tsFile, macrosFile, lexiconFile, morphFile, xmgOutFile, xmgErrFile)
 
 import qualified Builder as B
 
@@ -153,20 +153,24 @@ loadGrammar pstRef =
          gfilename = macrosFile config 
          lfilename = lexiconFile config 
          sfilename = tsFile config
+     -- grammar type
+         isNotPreanchored = not (grammarType config == PreAnchored)
      -- display 
      let errorlst  = filter (not.null) $ map errfn src 
            where errfn (err,msg) = if err then msg else ""
                  src = [ (null gfilename, "a tree file")
-                       , (null lfilename, "a lexicon file") 
+                       , (isNotPreanchored && null lfilename, "a lexicon file")
                        , (null sfilename, "a test suite") ]
          errormsg = "Please specify: " ++ (concat $ intersperse ", " errorlst)
      when (not $ null errorlst) $ fail errormsg 
-     -- we don't have to read in grammars from the simple format
+     -- we only have to read in grammars from the simple format
      case grammarType config of 
-        XMGTools -> return ()
-        _           -> loadGeniMacros pstRef config
+        XMGTools    -> return ()
+        PreAnchored -> return ()
+        _        -> loadGeniMacros pstRef config
+     -- we don't have to read in the lexicon if it's already pre-anchored
+     when isNotPreanchored $ loadLexicon pstRef config
      -- in any case, we have to...
-     loadLexicon   pstRef config 
      loadMorphInfo pstRef config 
      loadTestSuite pstRef 
 \end{code}
@@ -440,8 +444,9 @@ runLexSelection pst = {- #SCC "runLexSelection" -}
     -- then anchor these lexical items to trees
     let combineWithGr = combineList (gr pst)
     cand <- case (grammarType $ pa pst) of  
-              XMGTools -> runXMGAnchoring pst lexCand
-              _        -> return (concatMap combineWithGr lexCand)
+              XMGTools     -> runXMGAnchoring pst lexCand
+              PreAnchored  -> readPreAnchored pst
+              _            -> return (concatMap combineWithGr lexCand)
     -- attach any morphological information to the candidates
     let morphfn  = morphinf pst
         cand2    = attachMorph morphfn tsem cand 
@@ -718,6 +723,9 @@ runSelector pst gfile fil = do
      -- and maybe the process has already completed..
      exCode <- Control.Exception.catch (waitForProcess pid) (\_ -> return ExitSuccess)
      let xmgErr = xmgErrFile (pa pst)
+         xmgOut = xmgOutFile (pa pst)
+     when (not $ null xmgOut) $ do writeFile xmgOut output
+                                   exitWith ExitSuccess
      if null xmgErr then ePutStr errput else writeFile xmgErr errput
      case exCode of 
        ExitSuccess -> return output 
@@ -775,6 +783,27 @@ fixateXMG e =
       lexstr  = concat $ intersperse "-" $ lexemes
       origIdname = idname e
   in e { idname = lexstr ++ "_" ++ origIdname }
+\end{code}
+
+% --------------------------------------------------------------------
+\subsection{Pre-anchoring}
+\label{sec:pre-anchor}
+% --------------------------------------------------------------------
+
+For debugging purposes, it is often useful to perform lexical selection and
+surface realisation separately.  Pre-anchored mode allows the user to just
+pass the lexical selection in as a file of anchored trees associated with a
+semantics.
+
+\begin{code}
+readPreAnchored :: ProgState -> IO [TagElem]
+readPreAnchored pst =
+ do let gparams = pa pst
+        file    = macrosFile gparams
+    parsed <- parseFromFile geniTagElems file
+    case parsed of
+     Left err -> fail (show err)
+     Right c  -> return c
 \end{code}
 
 % --------------------------------------------------------------------
