@@ -44,7 +44,7 @@ where
 
 import Control.Monad.State
 import Data.Bits ( (.&.), (.|.), bit, xor )
-import Data.List ( (\\) )
+import Data.List ( (\\), maximum )
 import qualified Data.Map as Map
 import Data.Maybe ( mapMaybe )
 import qualified Data.Set as Set
@@ -172,7 +172,7 @@ preInit input config =
      -- chart sharing optimisation
      (cands2, pathIds) = unzip $ detectPolPaths combosPol
      -- the number of paths explored vs possible
-     polcount = (length cands2, length $ automatonPaths seedAut)
+     polcount = (length combosPol, length $ automatonPaths seedAut)
      --
      fixate ts ps = zip (map alphaConvert $ setTidnums ts) ps
      input2 = input { inCands    = fixate cands2 pathIds
@@ -213,8 +213,8 @@ run builder input config =
                     incrCounter "pol_total_paths"  $ snd polcount
                     incrCounter "pol_total_states" $ sum $ map numStates auts
                     incrCounter "pol_total_trans"  $ sum $ map numTransitions auts
-                    incrCounter "pol_max_states"   $ sum $ map numStates auts
-                    incrCounter "pol_max_trans"    $ sum $ map numTransitions auts
+                    incrCounter "pol_max_states"   $ maximum $ map numStates auts
+                    incrCounter "pol_max_trans"    $ maximum $ map numTransitions auts
                     stepAll builder
   in runState (execStateT stepAll_ iSt) iStats
 \end{code}
