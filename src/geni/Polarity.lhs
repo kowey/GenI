@@ -85,7 +85,7 @@ import qualified Data.Map as Map
 import Data.List
 import Data.Maybe (isNothing)
 import Data.Tree (flatten)
---import Data.Set
+import qualified Data.Set as Set
 
 import Automaton
 import Graphviz(GraphvizShow(..), gvUnlines, gvNewline, gvNode, gvEdge)
@@ -379,15 +379,15 @@ buildPolAut' fk skeleton aut =
       prev = head $ states aut 
       -- create the next batch of states
       fn st ap            = buildPolAutHelper fk skeleton st ap
-      (newAut,newStates)  = foldr fn (aut,[]) prev
-      next                = (nub newStates):(states aut)
+      (newAut,newStates)  = foldr fn (aut,Set.empty) prev
+      next                = (Set.toList $ newStates):(states aut)
       -- recursive step to the next literal
-  in if (null newStates)
+  in if Set.null newStates
      then aut
      else buildPolAut' fk skeleton (newAut { states = next })
 
 -- given a previously created state...
-buildPolAutHelper :: String -> PolTransFn -> PolState -> (PolAut,[PolState]) -> (PolAut,[PolState])  
+buildPolAutHelper :: String -> PolTransFn -> PolState -> (PolAut,Set.Set PolState) -> (PolAut,Set.Set PolState)
 buildPolAutHelper fk skeleton st (aut,prev) =
   let -- reconstruct the skeleton state used to build st 
       PolSt pr ex (po1:skelpo1) = st
@@ -399,7 +399,7 @@ buildPolAutHelper fk skeleton st (aut,prev) =
       -- . for each label to the next state st2
       addT (oldSt2,trs) (a,n) = foldr (addTS oldSt2) (a,n) trs
       -- .. calculate a new state and add a transition to it
-      addTS skel2 tr (a,n) = (addTrans a st tr st2, st2:n)
+      addTS skel2 tr (a,n) = (addTrans a st tr st2, Set.insert st2 n)
         where st2 = newSt tr skel2
       --
       newSt :: Maybe TagElem -> PolState -> PolState
