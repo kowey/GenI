@@ -89,7 +89,7 @@ import Data.Tree (flatten)
 
 import Automaton
 import Graphviz(GraphvizShow(..), gvUnlines, gvNewline, gvNode, gvEdge)
-import Tags(TagElem(..), TagItem(..))
+import Tags(TagElem(..), TagItem(..), setTidnums)
 import Btypes(Pred, SemInput, Sem, Flist, AvPair, showAv,
               GeniVal(GAnon), fromGConst, isConst,
               Replacable(..),
@@ -183,7 +183,8 @@ makePolAut candsRaw tsemRaw extraPol =
      ksExtra = Map.keys extraPol
      ks      = sortBy (flip compare) $ nub $ ksCands ++ ksExtra
      -- perform index counting
-     (tsem, cands) = fixPronouns (tsemRaw,candsRaw)
+     (tsem, cands') = fixPronouns (tsemRaw,candsRaw)
+     cands = setTidnums cands'
      -- sorted semantics (for more efficient construction)
      sortedsem = sortSemByFreq tsem cands 
      -- the seed automaton
