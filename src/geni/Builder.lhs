@@ -51,11 +51,11 @@ import qualified Data.Set as Set
 import Data.Tree ( flatten )
 import Prelude hiding ( init )
 
-import Automaton (NFA, automatonPaths, numStates, numTransitions)
+import Automaton (NFA, automatonPaths, automatonPathSets, numStates, numTransitions)
 import Configuration
   ( Params(metricsParam, ignoreSemantics, rootCatsParam), extrapol,
     polarised )
-import General (geniBug, BitVector, multiGroupByFM, snd3)
+import General (geniBug, BitVector, multiGroupByFM, fst3, snd3, thd3)
 import Btypes
   ( ILexEntry, SemInput, Sem, Pred, showPred, showSem,
     Flist, gtype, GType(Subs, Foot),
@@ -156,7 +156,7 @@ alpha conversion so that unification does not do the wrong thing when two trees
 have the same variables.
 
 \begin{code}
-preInit :: Input -> Params -> (Input, (Int,Int), PolResult)
+preInit :: Input -> Params -> (Input, (Int,Int,Int), PolResult)
 preInit input config =
  let (cand,_) = unzip $ inCands input
      seminput = inSemInput input
@@ -168,11 +168,12 @@ preInit input config =
      -- polarity optimisation (if enabled)
      autstuff = buildAutomaton seminput cand rootCats extraPol
      (_, seedAut, aut, sem2) = autstuff
-     combosPol = if isPol then automatonPaths aut else [cand]
+     autpaths = map concat $ automatonPathSets aut
+     combosPol = if isPol then autpaths else [cand]
      -- chart sharing optimisation
      (cands2, pathIds) = unzip $ detectPolPaths combosPol
      -- the number of paths explored vs possible
-     polcount = (length combosPol, length $ automatonPaths seedAut)
+     polcount = (length autpaths, length $ automatonPaths aut, length $ automatonPaths seedAut)
      --
      fixate ts ps = zip (map alphaConvert $ setTidnums ts) ps
      input2 = input { inCands    = fixate cands2 pathIds
@@ -209,8 +210,9 @@ run builder input config =
       -- 2 call the init stuff
       (iSt, iStats) = init builder input2 config
       -- 3 step through the whole thing
-      stepAll_ = do incrCounter "pol_used_paths"   $ fst polcount
-                    incrCounter "pol_total_paths"  $ snd polcount
+      stepAll_ = do incrCounter "pol_used_bundles" $ fst3 polcount
+                    incrCounter "pol_used_paths"   $ snd3 polcount
+                    incrCounter "pol_seed_paths"   $ thd3 polcount
                     incrCounter "pol_total_states" $ sum $ map numStates auts
                     incrCounter "pol_total_trans"  $ sum $ map numTransitions auts
                     incrCounter "pol_max_states"   $ maximum $ map numStates auts
