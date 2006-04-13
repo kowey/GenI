@@ -336,5 +336,5 @@ withTimeout secs on_timeout action =
       throwTo parent (DynException $ toDyn $ TimeOut i)
 
 -- | Like 'exitFailure', except that we return with a code that we reserve for timing out
-exitTimeout = exitWith $ ExitFailure 4200
+exitTimeout = exitWith $ ExitFailure 2
 \end{code}
