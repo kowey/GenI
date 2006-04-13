@@ -47,7 +47,7 @@ import Tags (idname, tpolarities, tsemantics, TagElem)
 
 import Configuration
   ( Params(..), Switch(..), GrammarType(..)
-  , BuilderType(NullBuilder, SimpleBuilder, CkyBuilder, EarleyBuilder)
+  , BuilderType(..),
   , polarised, polsig, semfiltered )
 import GeniParsers 
 import GuiHelper
@@ -139,11 +139,13 @@ We add some buttons for loading files and running the generator.
 Let's not forget the optimisations...
 
 \begin{code}
-       algoChoiceBox <- radioBox f Vertical ["simple","cky","earley"]
+       algoChoiceBox <- radioBox f Vertical
+                        (map show [SimpleBuilder, SimpleOnePhaseBuilder, CkyBuilder, EarleyBuilder])
                         [ selection := case builderType config of
                                        SimpleBuilder -> 0
-                                       CkyBuilder    -> 1
-                                       EarleyBuilder -> 2
+                                       SimpleOnePhaseBuilder -> 1
+                                       CkyBuilder    -> 2
+                                       EarleyBuilder -> 3
                                        NullBuilder   -> 0 ]
        set algoChoiceBox [ on select := toggleAlgo pstRef algoChoiceBox ]
        polChk <- checkBox f 
@@ -229,9 +231,10 @@ toggleAlgo pstRef box =
  do asel   <- get box selection
     aitems <- get box items
     let btype = case aitems !! asel of
-                "cky" -> CkyBuilder
-                "simple" -> SimpleBuilder
-                "earley" -> EarleyBuilder
+                "cky"       -> CkyBuilder
+                "simple"    -> SimpleBuilder
+                "simple-1p" -> SimpleOnePhaseBuilder
+                "earley"    -> EarleyBuilder
                 x -> geniBug $ "Unkwown builder type " ++ x
     modifyIORef pstRef (\x -> x { pa = (pa x) { builderType = btype } })
 
@@ -564,7 +567,8 @@ doGenerate f pstRef sembox useDebugger pauseOnLex =
         withBuilderGui f =
           case builderType config of
           NullBuilder   -> error "No gui available for NullBuilder"
-          SimpleBuilder -> f simpleGui
+          SimpleBuilder         -> f simpleGui_2p
+          SimpleOnePhaseBuilder -> f simpleGui_1p
           CkyBuilder    -> f ckyGui
           EarleyBuilder -> f earleyGui
     --

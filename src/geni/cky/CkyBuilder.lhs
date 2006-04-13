@@ -73,7 +73,7 @@ import qualified Builder as B
 import Builder
   ( SentenceAut, incrCounter, num_iterations, chart_size,
     SemBitMap, semToBitVector, bitVectorToSem, defineSemanticBits,
-    dispatchNew, DispatchFilter,
+    (>-->), DispatchFilter,
     semToIafMap, IafAble(..),  IafMap, fromUniConst, getIdx,
     recalculateAccesibility, iafBadSem, ts_iafFailure
   )
@@ -147,7 +147,7 @@ data CkyStatus = S
     , gencounter :: Integer
     , genconfig  :: Params
     , theRules   :: [CKY_InferenceRule]
-    , theDispatcher :: CkyItem -> CkyState ()
+    , theDispatcher :: CkyItem -> CkyState (Maybe CkyItem)
     , theResults :: [CkyItem]
     , genAutCounter :: Integer -- allocation of node numbers
     }
@@ -275,11 +275,11 @@ initBuilder isEarley input config =
   let (sem, _) = B.inSemInput input
       bmap  = defineSemanticBits sem
       cands = concatMap (initTree isEarley bmap) $ B.inCands input
-      filts = ckyDispatchFilters ++
-              if isIaf config
-              then [dispatchIafFailure, dispatchToAgenda]
-              else [dispatchToAgenda]
-      dispatchFn = dispatchNew filts
+      dispatchFn =
+        ckyDispatch >-->
+          (if isIaf config
+           then dispatchIafFailure >--> dispatchToAgenda
+           else dispatchToAgenda)
       initS = S
        { theAgenda  = []
        , theChart = []
@@ -673,10 +673,8 @@ We use the generic dispatch mechanism described in section \ref{sec:dispatch}.
 \begin{code}
 type CKY_DispatchFilter = DispatchFilter CkyState CkyItem
 
-ckyDispatchFilters :: [CKY_DispatchFilter]
-ckyDispatchFilters = [ dispatchTbFailure
-                      , dispatchRedundant
-                      , dispatchResults ]
+ckyDispatch :: CKY_DispatchFilter
+ckyDispatch = dispatchTbFailure >--> dispatchRedundant >--> dispatchResults
 
 dispatchToAgenda, dispatchRedundant, dispatchResults, dispatchTbFailure :: CKY_DispatchFilter
 

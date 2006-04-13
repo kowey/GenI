@@ -29,7 +29,7 @@ module SimpleBuilder (
    Agenda, AuxAgenda, Chart, SimpleStatus, SimpleState, SimpleItem(..),
 
    -- From SimpleStatus
-   simpleBuilder,
+   simpleBuilder_1p, simpleBuilder_2p, simpleBuilder,
    theAgenda, theAuxAgenda, theChart, theTrash, theResults,
    initSimpleBuilder,
    addToAgenda, addToChart,
@@ -40,8 +40,7 @@ where
 
 \ignore{
 \begin{code}
-import Control.Exception (assert)
-import Control.Monad (when, guard, filterM, liftM)
+import Control.Monad (when, guard, liftM, liftM2)
 
 import Control.Monad.State
   (get, put, modify, gets)
@@ -69,6 +68,7 @@ import Btypes
 import Builder (UninflectedWord, UninflectedSentence,
     incrCounter, num_iterations, num_comparisons, chart_size,
     SemBitMap, defineSemanticBits, semToBitVector, bitVectorToSem,
+    DispatchFilter, (>-->), condFilter,
     )
 import qualified Builder as B
 
@@ -94,11 +94,14 @@ import Statistics (Statistics)
 Here is our implementation of Builder.
 
 \begin{code}
-simpleBuilder = B.Builder
-  { B.init     = initSimpleBuilder
-  , B.step     = generateStep
-  , B.stepAll  = B.defaultStepAll simpleBuilder
-  , B.finished = \s -> (null.theAgenda) s && (step s == Auxiliar)
+simpleBuilder_2p = simpleBuilder True
+simpleBuilder_1p = simpleBuilder False
+
+simpleBuilder twophase = B.Builder
+  { B.init     = initSimpleBuilder twophase
+  , B.step     = if twophase then generateStep_2p else generateStep_1p
+  , B.stepAll  = B.defaultStepAll (simpleBuilder twophase)
+  , B.finished = \s -> (null.theAgenda) s && (not twophase || step s == Auxiliar)
   , B.unpack   = unpackResults.theResults }
 \end{code}
 
@@ -222,6 +225,9 @@ aux t = ((ttype.siTagElem) t == Auxiliar)
 closedAux :: SimpleItem -> Bool
 closedAux x = (aux x) && (closed x)
 
+adjdone = null.siAdjnodes
+
+siAdjnodes = adjnodes.siTagElem
 siSubstnodes = substnodes.siTagElem
 siInitial = not.aux
 \end{code}
@@ -232,13 +238,13 @@ siInitial = not.aux
 
 \begin{code}
 -- | Creates an initial SimpleStatus.
-initSimpleBuilder ::  B.Input -> Params -> (SimpleStatus, Statistics)
-initSimpleBuilder input config =
+initSimpleBuilder ::  Bool -> B.Input -> Params -> (SimpleStatus, Statistics)
+initSimpleBuilder twophase input config =
   let cands   = map (initSimpleItem bmap) $ B.inCands input
       (sem,_) = B.inSemInput input
       bmap    = defineSemanticBits sem
       --
-      (a,i) = partition closedAux cands
+      (a,i) = if twophase then partition closedAux cands else ([],cands)
       initS = S{ theAgenda    = i
                , theAuxAgenda = a
                , theChart     = []
@@ -274,10 +280,34 @@ initSimpleItem bmap (te,pp) = SimpleItem
 \section{Generate}
 % --------------------------------------------------------------------
 
-\paragraph{GenerateStep} is the main loop of the surface realiser.  This
-is a standard chart-and-agenda mechanism, where each iteration consists
-of picking an item off the agenda and combining it with elements from
-the chart.  One slightly complicated detail: we maintain two seperate
+\subsection{One-phase generation}
+
+This is a standard chart-and-agenda mechanism, where each iteration
+consists of picking an item off the agenda and combining it with
+elements from the chart.
+
+\begin{code}
+generateStep_1p :: SimpleState ()
+generateStep_1p =
+ do isDone <- gets (null.theAgenda)
+    if isDone
+       then return ()
+       else do given <- selectGiven
+               -- do both substitution and adjunction
+               applySubstitution1p given >>= dispatch
+               passiveAdjunction1p given >>= dispatch
+               activeAdjunction1p  given >>= dispatch
+               sansAdjunction      given >>= dispatch
+               -- determine which of the res should go in the agenda
+               -- (monadic state) and which should go in the result (res')
+               addToChart given
+ where dispatch = mapM simpleDispatch_1p
+\end{code}
+
+\subsection{Two-phase generation}
+
+Following \cite{carroll99}, we could also separate realisation into
+two distinct phases.  This requires that we maintain two seperate
 agendas and process them sequentially, one loop after the other.  See
 \fnref{switchToAux} for details.
 
@@ -293,12 +323,12 @@ agendas and process them sequentially, one loop after the other.  See
 \end{itemize}
 
 \begin{code}
-generateStep :: SimpleState ()
-generateStep = do
+generateStep_2p :: SimpleState ()
+generateStep_2p = do
   nir     <- gets (null.theAgenda)
   curStep <- gets step
   -- this check may seem redundant with generate, but it's needed
-  -- to protect against a user who calls generateStep on a finished
+  -- to protect against a user who calls generateStep_2p on a finished
   -- state
   if (nir && curStep == Auxiliar)
     then return ()
@@ -306,10 +336,10 @@ generateStep = do
             -- this triggers exactly once in the whole process
             if nir
                then switchToAux
-               else generateStep'
+               else generateStep_2p'
 
-generateStep' :: SimpleState ()
-generateStep' =
+generateStep_2p' :: SimpleState ()
+generateStep_2p' =
   do -- choose an item from the agenda
      given <- selectGiven
      -- have we triggered the switch to aux yet?
@@ -317,20 +347,26 @@ generateStep' =
      -- do either substitution or adjunction
      res <- if (curStep == Initial)
             then applySubstitution given
-            else applyAdjunction given
+            else liftM2 (++) (sansAdjunction given) (applyAdjunction given)
+
      -- determine which of the res should go in the agenda
      -- (monadic state) and which should go in the result (res')
-     dispatchNew res
+     mapM simpleDispatch res
      -- put the given into the chart untouched
      if (curStep == Initial)
         then addToChart given
         else when (null.adjnodes.siTagElem $ given) $ trashIt given
-  where
-     trashIt item =
-       do s <- get
-          let bmap = semBitMap s
-              missingSem = bitVectorToSem bmap $ tsem s `xor` siSemantics item
-          addToTrash item (ts_semIncomplete missingSem)
+\end{code}
+
+\subsection{Helpers for the generateSteps}
+
+\begin{code}
+trashIt :: SimpleItem -> SimpleState ()
+trashIt item =
+ do s <- get
+    let bmap = semBitMap s
+        missingSem = bitVectorToSem bmap $ tsem s `xor` siSemantics item
+    addToTrash item (ts_semIncomplete missingSem)
 
 -- | Arbitrarily selects and removes an element from the agenda and
 --   returns it.
@@ -426,17 +462,29 @@ possible substitutions between it and the elements in Chart
 
 \begin{code}
 applySubstitution :: SimpleItem -> SimpleState ([SimpleItem])
-applySubstitution item =  {-# SCC "applySubstitution" #-}
-  do gr <- lookupChart item
-     let -- tesem = tsemantics te
-         -- we rename tags to do a proper substitution
-         rItem = renameSimpleItem 'A' item
-         rgr'  = map (renameSimpleItem 'B') gr
-     active  <- mapM (\x -> iapplySubst rItem x (siSubstnodes     x)) rgr'
-     passive <- mapM (\x -> iapplySubst x rItem (siSubstnodes rItem)) rgr'
-     let res = concat $ active ++ passive
-     incrCounter num_comparisons (2 * (length gr))
-     return res
+applySubstitution item =
+ do gr <- lookupChart item
+    let -- tesem = tsemantics te
+        -- we rename tags to do a proper substitution
+        rItem = renameSimpleItem 'A' item
+        rgr'  = map (renameSimpleItem 'B') gr
+    active  <- mapM (\x -> iapplySubst rItem x (siSubstnodes x)) rgr'
+    passive <- mapM (\x -> iapplySubst x rItem (siSubstnodes rItem)) rgr'
+    let res = concat $ active ++ passive
+    incrCounter num_comparisons (2 * (length gr))
+    return res
+
+applySubstitution1p item =
+ do gr <- lookupChart item
+    let rItem = renameSimpleItem 'A' item
+        rgr'  = map (renameSimpleItem 'B') gr
+    active  <- if adjdone rItem
+               then mapM (\x -> iapplySubst rItem x (siSubstnodes     x)) rgr'
+               else return []
+    passive <- mapM (\x -> iapplySubst x rItem (siSubstnodes rItem)) $ filter adjdone rgr'
+    let res = concat $ active ++ passive
+    incrCounter num_comparisons (2 * (length gr))
+    return res
 \end{code}
 
 \paragraph{iapplySubst} Given two SimpleItem t1 t2 (with no overlaping names) and the list of
@@ -446,11 +494,8 @@ substitution nodes in t2 it returns ONE possible substitution (the head node)
 
 \begin{code}
 iapplySubst :: SimpleItem -> SimpleItem -> [(String, Flist, Flist)] -> SimpleState [SimpleItem]
-iapplySubst _ _ []      = return []
-iapplySubst item1 item2 (sn:_) = {-# SCC "applySubstitution" #-}
-  if not (null (siSubstnodes item1))
-  then return []
-  else iapplySubstNode item1 item2 sn
+iapplySubst item1 item2 (sn:_) | closed item1 = iapplySubstNode item1 item2 sn
+iapplySubst _ _ _ = return []
 
 iapplySubstNode :: SimpleItem -> SimpleItem -> (String, Flist, Flist) -> SimpleState [SimpleItem]
 iapplySubstNode item1 item2 sn@(n, fu, fd) = {-# SCC "applySubstitution" #-}
@@ -512,38 +557,45 @@ Note: as of 13 april 2005 - only uses ordered adjunction as described in
 \cite{kow04a}
 \begin{code}
 applyAdjunction :: SimpleItem -> SimpleState ([SimpleItem])
-applyAdjunction item = {-# SCC "applyAdjunction" #-} do
-   gr <- lookupChart item
-   let -- we rename tags to do a proper adjunction
-       rItem = renameSimpleItem 'A' item
-       rgr'  = map (renameSimpleItem 'B') gr
-       --
-       rte     = siTagElem rItem
-       ranodes = adjnodes rte
-       -- te2 is to account for the case where we simply don't do
-       -- adjunction on that particular node
-   res <- if null ranodes then return []
-             else let tryAdj x = case iapplyAdjNode x rItem (head ranodes) of
-                                  Nothing -> return Nothing
-                                  Just x  -> do incrCounter "adjunctions" 1
-                                                return $ Just x
-                  in do attempts <- catMaybes `liftM` mapM tryAdj rgr'
-                        return (sansAdjunction item : attempts)
-   --
-   let count   = (length gr)
-   incrCounter num_comparisons count
-   return res
+applyAdjunction item = {-# SCC "applyAdjunction" #-}
+ do gr <-lookupChart item
+    incrCounter num_comparisons (length gr)
+    catMaybes `liftM` mapM (\a -> tryAdj a item) gr
+
+passiveAdjunction1p item | closed item && siInitial item =
+  do gr <- lookupChart item
+     catMaybes `liftM` (mapM (\a -> tryAdj a item) $ filter validAux gr)
+passiveAdjunction1p _ = return []
+
+activeAdjunction1p item | validAux item =
+  do gr <- lookupChart item
+     catMaybes `liftM` (mapM (\p -> tryAdj item p) $ filter (\x -> siInitial x && closed x) gr)
+activeAdjunction1p _ = return []
+
+validAux t = closed t && (ttype.siTagElem) t == Auxiliar && adjdone t
+
+tryAdj aItem pItem =
+   case siAdjnodes p of
+   []     -> return Nothing
+   (an:_) -> case iapplyAdjNode a p an of
+               Nothing -> return Nothing
+               Just x  -> do incrCounter "adjunctions" 1
+                             return $ Just x
+   where -- we rename tags to do a proper adjunction
+        p = renameSimpleItem 'A' pItem
+        a = renameSimpleItem 'B' aItem
 
 -- | Ignore the next adjunction node
-sansAdjunction :: SimpleItem -> SimpleItem
-sansAdjunction item =
- let te = siTagElem item
-     (ahead:atail) = assert ((not.null.adjnodes) te) $ adjnodes te
-     gn    = fst3 ahead
-     ntree = constrainAdj gn (ttree te)
-     te2   = te { adjnodes = atail, ttree = ntree }
- in item { siTagElem = te2
-         , siHighlight = [gn] }
+sansAdjunction item | closed item =
+ case siAdjnodes item of
+ []            -> return []
+ (ahead:atail) ->
+   let te = siTagElem item
+       gn = fst3 ahead
+       ntree = constrainAdj gn (ttree te)
+       te2   = te { adjnodes = atail, ttree = ntree }
+   in return $! [item { siTagElem = te2, siHighlight = [gn] }]
+sansAdjunction _ = return []
 \end{code}
 
 The main work for adjunction is done in the helper function below
@@ -718,78 +770,86 @@ addToDerivation op tc tp =
 
 % --------------------------------------------------------------------
 \section{Dispatching new results}
-% ---------------------------------------------------------------
+% --------------------------------------------------------------------
 
-\fnlabel{dispatchNew} Given a list of SimpleItem, for each tree:
-\begin{enumerate}
-\item if the tree is both syntactically complete (no more subst nodes) and
-      semantically complete (matches target semantics), it is a result, so
-      unify the top and bottom feature structures of each node.  If that
-      succeeds, return it, otherwise discard it completely.
-\item if the number of subtrees exceeds the numTreesLimit, discard
-\item if it is only syntactically complete and it is an auxiliary tree,
-      then we don't need to do any more substitutions with it, so set it
-      aside on the auxiliary agenda (AuxAgenda)
-\item otherwise, put it on the regular agenda (Agenda)
-\end{enumerate}
+Dispatching is the process where new chart items are assigned to one of
+the trash, agenda, auxiliary agenda or chart.  The item could be
+modified during dispatch-time; for example, we might do top/bottom
+unification on it.  See \ref{sec:dispatching} for more details.
 
 \begin{code}
-dispatchNew :: [SimpleItem] -> SimpleState ()
-dispatchNew l = {-# SCC "dispatchNew" #-}
-  do -- first we seperate the results from the non results
-     st <- get
-     let synComplete x =
-           (not (aux x)) && closed x
-           -- don't forget about null adjnodes
-         semComplete x = (tsem st) == (siSemantics x)
-         isResult x =
-           synComplete x && semComplete x
-     let (res, notRes) = partition isResult l
-     -- --------------------------------------------------
-     -- the non results
-     -- --------------------------------------------------
-     -- now... throw out any trees which are over the num trees limit
-     -- (this only applies in IgnoreSemantics mode)
-     state <- get
-     let config = genconfig state
-     let numTreesLimit = maxTrees config
-         numTrees  x = length $ snd $ siDerivation x
-         overLimit x = case numTreesLimit of
-                         Nothing  -> False
-                         Just lim -> numTrees x > lim
-     let notRes2 = filter (not.overLimit) notRes
-     -- put any pure auxiliary trees on the auxiliary agenda
-     let dispatchAux x =
-           if closedAux x
-              then do { addToAuxAgenda x; return False }
-              else return True
-     notRes3 <- filterM dispatchAux notRes2
-     -- put any other trees on the agenda
-     mapM addToAgenda notRes3
-     -- --------------------------------------------------
-     -- the results
-     -- --------------------------------------------------
-     -- we perform top/bottom unification on any results
-     let tbUnify x =
-          case (tbUnifyTree x) of
-            Left n  -> do let x2 = x { siHighlight = [n] }
-                          addToTrash x2 ts_tbUnificationFailure
-                          return False
-            Right _ -> return True
-     res2 <- filterM tbUnify res
-     let rootCats = rootCatsParam config
-         rootCatCheck x =
-           case (gCategory.root.ttree.siTagElem) x of
-           Just (GConst c) ->
-             if null $ intersect c rootCats
-             then do addToTrash x (ts_wrongRootCategory c rootCats)
-                     return False
-             else return True
-           _ -> do addToTrash x ts_noRootCategory
-                   return False
-     res3 <- filterM rootCatCheck res2
-     mapM addToResults res3
-     return ()
+type SimpleDispatchFilter = DispatchFilter SimpleState SimpleItem
+
+simpleDispatch :: SimpleDispatchFilter
+simpleDispatch item =
+ do inputsem <- gets tsem
+    let synComplete x = (not.aux) x && closed x
+        -- don't forget about null adjnodes
+        semComplete x = inputsem == siSemantics x
+        isResult x = synComplete x && semComplete x
+    let theFilter = condFilter isResult
+                      (dpTbFailure >--> dpRootCatFailure >--> dpToResults)
+                      (dpTreeLimit >--> dpAux >--> dpToAgenda)
+    theFilter item
+
+-- FIXME: refactor me later!
+simpleDispatch_1p :: SimpleDispatchFilter
+simpleDispatch_1p item =
+ do inputsem <- gets tsem
+    let synComplete x = (not.aux) x && closed x && adjdone x
+        semComplete x = inputsem == siSemantics x
+        isResult x = synComplete x && semComplete x
+    let theFilter = condFilter isResult
+                      (dpTbFailure >--> dpRootCatFailure >--> dpToResults)
+                      (dpTreeLimit >--> dpToAgenda)
+    theFilter item
+
+dpAux, dpTreeLimit, dpToAgenda :: SimpleDispatchFilter
+dpTbFailure, dpRootCatFailure, dpToResults :: SimpleDispatchFilter
+dpToTrash :: String -> SimpleDispatchFilter
+
+dpToAgenda x  = addToAgenda x  >> return Nothing
+dpToResults x = addToResults x >> return Nothing
+dpToTrash m x = addToTrash x m >> return Nothing
+
+dpAux item =
+  if closedAux item
+  then addToAuxAgenda item >> return Nothing
+  else return $ Just item
+
+-- | Dispatches to the trash and returns Nothing if there is a tree
+--   size limit in effect and the item is over that limit.  The
+--   tree size limit is used in 'IgnoreSemantics' mode.
+dpTreeLimit item =
+ do config <- gets genconfig
+    case maxTrees config of
+     Nothing  -> return $ Just item
+     Just lim -> if (length.snd.siDerivation) item > lim
+                 then do addToTrash item (ts_overnumTrees lim)
+                         return Nothing
+                 else return $ Just item
+   where ts_overnumTrees l = "Over derivation size of " ++ (show l)
+
+-- | If the item (ostensibly a result) has a top/bottom unification
+--   failure, we dispatch to the trash and return Nothing.  If tb
+--   unification suceeds, it returns @Just newItem@, where newItem
+--   has its top and bottom nodes unified.
+dpTbFailure item =
+ case tbUnifyTree item of
+  Left n  -> dpToTrash ts_tbUnificationFailure $ item { siHighlight = [n] }
+  Right u -> return $ Just u
+
+-- | If the item (ostensibly a result) does not have the correct root
+--   category, return Nothing; otherwise return Just item
+dpRootCatFailure item =
+ do config <- gets genconfig
+    let rootCats = rootCatsParam config
+    case (gCategory.root.ttree.siTagElem) item of
+     Just (GConst c) ->
+      if null (intersect c rootCats)
+         then dpToTrash (ts_wrongRootCategory c rootCats) item
+         else return $ Just item
+     _ -> dpToTrash ts_noRootCategory item
 \end{code}
 
 % --------------------------------------------------------------------

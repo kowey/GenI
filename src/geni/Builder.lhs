@@ -351,13 +351,25 @@ slavery, erase is backspace.
 
 \begin{code}
 type DispatchFilter s a = a -> s (Maybe a)
-dispatchNew :: (Monad s) => [DispatchFilter s a] -> a -> s ()
-dispatchNew filts item =
- do let tryFilter Nothing _        = return Nothing
-        tryFilter (Just newItem) f = f newItem
-    -- keep trying dispatch filters until one of them suceeds
-    foldM tryFilter (Just item) filts
-    return ()
+
+-- | Sequence two dispatch filters.
+--   Just lifting Maybe monad, really.  Maybe we should just add
+--   this to our transformer stack.
+(>-->) :: (Monad s) => DispatchFilter s a -> DispatchFilter s a -> DispatchFilter s a
+f >--> f2 =
+ \x -> do res <- f x
+          case res of
+            -- succesful dispatch; no more work
+            Nothing -> return Nothing
+            -- no dispatch: but here, try the next filter
+            Just y  -> f2 y
+
+-- | If the item meets some condition, use the first filter, otherwise
+--   use the second one.
+condFilter :: (Monad s) => (a -> Bool)
+           -> DispatchFilter s a -> DispatchFilter s a
+           -> DispatchFilter s a
+condFilter cond f1 f2 = \x -> if cond x then f1 x else f2 x
 \end{code}
 
 \subsection{Statistics}

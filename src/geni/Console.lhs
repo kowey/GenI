@@ -35,7 +35,7 @@ import Geni
 import Configuration
   ( Params, isGraphical, outputFile, statsFile, metricsParam, timeoutSecs
   , builderType
-  , BuilderType(CkyBuilder, EarleyBuilder, SimpleBuilder, NullBuilder) )
+  , BuilderType(..) )
 import qualified Builder as B
 import CkyBuilder
 import SimpleBuilder
@@ -172,7 +172,8 @@ runTestCase pstRef =
      let config = pa pst
      (sentences, stats) <- case builderType config of
                             NullBuilder   -> helper B.nullBuilder
-                            SimpleBuilder -> helper simpleBuilder
+                            SimpleBuilder -> helper simpleBuilder_2p
+                            SimpleOnePhaseBuilder -> helper simpleBuilder_1p
                             CkyBuilder    -> helper ckyBuilder
                             EarleyBuilder -> helper earleyBuilder
      -- if no output file is set, write to stdout

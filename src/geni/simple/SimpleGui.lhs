@@ -61,12 +61,15 @@ import SimpleBuilder
 % --------------------------------------------------------------------
 
 \begin{code}
-simpleGui = BG.BuilderGui {
-      BG.resultsPnl  = resultsPnl
-    , BG.debuggerPnl = simpleDebuggerTab }
+simpleGui_2p = simpleGui True
+simpleGui_1p = simpleGui False
 
-resultsPnl pstRef f =
-  do (sentences, stats, st) <- runGeni pstRef simpleBuilder
+simpleGui twophase = BG.BuilderGui {
+      BG.resultsPnl  = resultsPnl twophase
+    , BG.debuggerPnl = simpleDebuggerTab twophase }
+
+resultsPnl twophase pstRef f =
+  do (sentences, stats, st) <- runGeni pstRef (simpleBuilder twophase)
      (lay, _, _) <- realisationsGui pstRef f (theResults st)
      return (sentences, stats, lay)
 \end{code}
@@ -104,8 +107,9 @@ realisationsGui pstRef f resultsRaw =
 % --------------------------------------------------------------------
 
 \begin{code}
-simpleDebuggerTab :: (Window a) -> Params -> B.Input -> String -> IO Layout 
-simpleDebuggerTab = debuggerPanel simpleBuilder False stToGraphviz simpleItemBar
+simpleDebuggerTab :: Bool -> (Window a) -> Params -> B.Input -> String -> IO Layout
+simpleDebuggerTab twophase =
+  debuggerPanel (simpleBuilder twophase) False stToGraphviz simpleItemBar
  
 stToGraphviz :: SimpleStatus -> ([Maybe SimpleItem], [String])
 stToGraphviz st = 
@@ -147,7 +151,7 @@ instance TagItem SimpleItem where
 instance XMGDerivation SimpleItem where
  -- Note: this is XMG-related stuff
  getSourceTrees item =
-  let -- strips all gorn addressing stuff
+ let -- strips all gorn addressing stuff
       stripGorn n = if dot `elem` n then stripGorn stripped else n
         where stripped = (tail $ dropWhile (/= dot) n)
               dot = '.'

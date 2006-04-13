@@ -171,7 +171,9 @@ data GrammarType = GeniHand | TAGML | XMGTools
                  | PreAnchored -- ^ lexical selection already done
      deriving (Show, Eq)
 
-data BuilderType = NullBuilder | SimpleBuilder | CkyBuilder | EarleyBuilder
+data BuilderType = NullBuilder |
+                   SimpleBuilder | SimpleOnePhaseBuilder |
+                   CkyBuilder | EarleyBuilder
      deriving (Eq)
 
 instance Show BuilderType where
@@ -180,6 +182,7 @@ instance Show BuilderType where
 showBuilderType :: BuilderType -> String
 showBuilderType NullBuilder = "null"
 showBuilderType SimpleBuilder = "simple"
+showBuilderType SimpleOnePhaseBuilder = "simple-1p"
 showBuilderType CkyBuilder = "CKY"
 showBuilderType EarleyBuilder = "Earley"
 
@@ -405,6 +408,7 @@ defineParams p (f:s) = defineParams pnext s
       BuilderTok "cky"    -> p { builderType = CkyBuilder }
       BuilderTok "earley" -> p { builderType = EarleyBuilder }
       BuilderTok "simple" -> p { builderType = SimpleBuilder }
+      BuilderTok "simple-1p" -> p { builderType = SimpleOnePhaseBuilder }
       BuilderTok v        -> error ("unknown builder: " ++ v)
       -- advanced stuff
       RootCategoriesTok v -> p {rootCatsParam = words v}
