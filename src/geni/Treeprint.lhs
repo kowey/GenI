@@ -283,7 +283,8 @@ instance GeniHandShow GNode where
   let gtypestr n = case (gtype n) of
                      Subs -> "type:subst"
                      Foot -> "type:foot"
-                     Lex  -> if (ganchor n) then "type:anchor" else "type:lex"
+                     Lex  -> if ganchor n && (null.glexeme) n
+                             then "type:anchor" else "type:lex"
                      _    -> ""
       glexstr  n = if null gl then "" else "\"" ++ gl ++ "\""
                    where gl = showLexeme $ glexeme n
