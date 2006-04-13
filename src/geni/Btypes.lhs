@@ -272,7 +272,9 @@ rootUpd (Node _ l) b = (Node b l)
 
 \begin{code}
 foot :: Tree GNode -> GNode
-foot t = head $ filterTree (\n -> gtype n == Foot) t
+foot t = case filterTree (\n -> gtype n == Foot) t of
+         [t] -> t
+         _   -> geniBug $ "foot returned weird result"
 \end{code}
 
 \fnlabel{setLexeme} 
@@ -284,7 +286,9 @@ setLexeme :: [String] -> Tree GNode -> Tree GNode
 setLexeme s t =
   let filt (Node a _) = (gtype a == Lex && ganchor a)
       fn (Node a l)   = Node a{glexeme = s} l
-  in (head.fst) $ listRepNode fn filt [t]
+  in case listRepNode fn filt [t] of
+     ([r],True) -> r
+     _ -> geniBug $ "setLexeme returned weird result"
 \end{code}
 
 \fnlabel{renameTree} 
@@ -307,11 +311,10 @@ repSubst n t1 t2 =
   let filt (Node a []) = (gnname a) == n 
       filt (Node _ _)  = False
       fn _ = t1
-      -- 
-      (lt,flag) = listRepNode fn filt [t2]
-  in if flag 
-     then head lt 
-     else error ("substitution unexpectedly failed on node " ++ n)
+  in case listRepNode fn filt [t2] of
+     ([r], True) -> r
+     (_, False)  -> geniBug $ "substitution unexpectedly failed on node " ++ n
+     _           -> geniBug $ "weird result on repSubst"
 \end{code}
 
 \subsection{Adjunction}
@@ -332,17 +335,19 @@ repAdj newFoot n t1 t2 =
       fn (Node a l)   = repFoot nf t1 l
                         where nf = newFoot { ganchor = ganchor a
                                            , glexeme = glexeme a }
-      (lt,flag) = listRepNode fn filt [t2] 
-  in if flag 
-     then head lt 
-     else error ("adjunction unexpectedly failed on node " ++ n)
+  in case listRepNode fn filt [t2] of
+     ([r], True) -> r
+     (_, False)  -> geniBug $ "adjunction unexpectedly failed on node " ++ n
+     _ -> geniBug $ "repAdj returned weird result"
 
 -- repFoot replaces the footnode of t with newFoot
 repFoot :: GNode -> Tree GNode -> [Tree GNode] -> Tree GNode
 repFoot newFoot t l =
   let filt (Node a _) = (gtype a == Foot)
       fn (Node _ _) = Node newFoot l
-  in (head.fst) $ listRepNode fn filt [t]  
+  in case listRepNode fn filt [t] of
+     ([r],True) -> r
+     _ -> geniBug $ "repFoot returned weird result"
 \end{code}
 
 \fnlabel{constrainAdj} searches the tree for a node with the given name
@@ -353,7 +358,9 @@ constrainAdj :: String -> Tree GNode -> Tree GNode
 constrainAdj n t =
   let filt (Node a _) = (gnname a == n)
       fn (Node a l)   = Node a { gaconstr = True } l
-  in (head.fst) $ listRepNode fn filt [t] 
+  in case listRepNode fn filt [t] of
+     ([r],True) -> r
+     _ -> geniBug $ "constrainAdj returned weird result"
 \end{code}
 
 
