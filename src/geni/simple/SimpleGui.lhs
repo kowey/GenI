@@ -151,7 +151,7 @@ instance TagItem SimpleItem where
 instance XMGDerivation SimpleItem where
  -- Note: this is XMG-related stuff
  getSourceTrees item =
- let -- strips all gorn addressing stuff
+  let -- strips all gorn addressing stuff
       stripGorn n = if dot `elem` n then stripGorn stripped else n
         where stripped = (tail $ dropWhile (/= dot) n)
               dot = '.'
