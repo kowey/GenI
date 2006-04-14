@@ -63,8 +63,7 @@ consoleGeni pstRef = do
   --
   case timeoutSecs $ pa pst of
     Nothing -> runTestCase pstRef
-    Just t  -> do putStrLn (show t)
-                  withTimeout t (timeoutErr t) $ runTestCase pstRef
+    Just t  -> withTimeout t (timeoutErr t) $ runTestCase pstRef
   where
    timeoutErr t = do ePutStrLn $ "GenI timed out after " ++ (show t) ++ "s"
                      exitTimeout
