@@ -60,7 +60,7 @@ import Automaton (numStates, numTransitions)
 import qualified Builder as B
 import Builder (queryCounter, num_iterations, chart_size,
     num_comparisons)
-import Polarity (PolAut, detectPolFeatures, detectSansIdx)
+import Polarity (PolAut, detectPolFeatures)
 import Statistics (Statistics, showFinalStats)
 
 \end{code}
@@ -90,16 +90,9 @@ candidateGui pst f xs missedSem missedLex = do
                    else "WARNING: '" ++ (concat $ intersperse ", " missedLex)
                         ++ "' were lexically selected, but are not anchored to"
                         ++ " any trees"
-      -- FIXME: get rid of this at earliest convenience (2006-03-30)
-      treesSansIdx_ = map idname $ detectSansIdx xs
-      treesSansIdx = "Trees without idx: " ++ (unlines $ map unwords $ everyN 6 treesSansIdx_)
-      everyN :: Int -> [a] -> [[a]]
-      everyN n = helper
-        where helper xs | length xs < n = [xs]
-              helper xs = a : helper b where (a,b) = (splitAt n) xs
       --
       polFeats = "Polarity attributes detected: " ++ (unwords.detectPolFeatures) xs
-      warning = unlines $ filter (not.null) [ warningSem, warningLex, polFeats, treesSansIdx ]
+      warning = unlines $ filter (not.null) [ warningSem, warningLex, polFeats ]
       items = if null warning then [ fill tb ] else [ hfill (label warning) , fill tb ]
       lay   = fill $ container p $ column 5 items
   return (lay, ref, updater)
