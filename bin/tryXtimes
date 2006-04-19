@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# Run a command up to $1 times until it exits with status 0
+TIMES=$1; shift
+C=$TIMES
+while [ $C -ge 0 ]
+do
+  C=$((C-1))
+  $*
+  LAST_EXIT=$?
+  if [ ${LAST_EXIT} -eq 0 ]; then exit 0; fi
+  echo "Trying again (${C} left)" 1>&2
+done
+exit ${LAST_EXIT}

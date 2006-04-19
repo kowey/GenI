@@ -38,7 +38,7 @@ GHCFLAGS_PROF   = $(GHCFLAGS) -prof -hisuf p_hi -osuf p_o -DDISABLE_GUI
 SOFTWARE        = Geni
 SOFTVERS        = $(SOFTWARE)-$(VERSION)
 
-TO_INSTALL=$(patsubst %, bin/%, geni xmgGeni runXMGselector runXMGfilter)
+TO_INSTALL=$(patsubst %, bin/%, tryXtimes geni xmgGeni runXMGselector runXMGfilter)
 
 # You should replace the value of this variable with your project
 # directory name.  The default assumption is that the project name
@@ -73,6 +73,7 @@ DVIPDF_CMD=dvips `basename $< .tex`.dvi -o `basename $< .tex`.ps;\
 SCRIPT_FILES = bin/runXMGselector\
 	       bin/runXMGfilter\
 	       bin/xmgGeni\
+	       bin/tryXtimes\
 	       etc/lhs2haddock\
 	       etc/stupidmorph.pl\
 	       etc/tommorph.pl\
