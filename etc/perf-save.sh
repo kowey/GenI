@@ -1,12 +1,9 @@
 #!/bin/sh
 
-cd `dirname $0`/..
-darcs record
-darcs push ../PerfStableGeni
-
-cd ../PerfStableGeni
+cd `dirname $0`/../../PerfGeniStable
+darcs pull -a
 echo "------ making perf STABLE geni -------"
 make debugger
 echo "------ running perf STABLE geni -------"
-./debugger-geni +RTS -p -K50M > out-stable
+bin/debugger-geni +RTS -p -RTS -s etc/perftest/semantics-t33 --nogui -m etc/perftest/lexselection-t33 --preselected --opts=pol > out-stable
 mv debugger-geni.prof prof-stable
