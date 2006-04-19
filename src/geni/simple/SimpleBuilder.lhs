@@ -431,17 +431,20 @@ adjunction.  More precisely, on the switch to adjunction, we do the following:
 In other words, we delete all initial trees that cannot produce a semantically
 complete result even with the help of auxiliary trees.
 
+FIXME: comment 2006-04-18: sem filter each polarity path separately (this is
+more aggressive; it gives us much more filtering)
+
 \begin{code}
 semfilter :: BitVector -> [SimpleItem] -> [SimpleItem] -> [SimpleItem]
 semfilter inputsem aux initial =
-  let auxsem = foldr (.|.) 0 $ map siSemantics aux
+  let auxsem x = foldr (.|.) 0 [ siSemantics a | a <- aux, siPolpaths a .&. siPolpaths x /= 0 ]
       -- lite, here, means sans auxiliary semantics
-      inputsemLite      = inputsem `xor` auxsem
-      siSemanticsLite x = siSemantics x .&. inputsemLite
+      notjunk x = (siSemantics x) .&. inputsemLite == inputsemLite
+                  where inputsemLite = inputsem `xor` (auxsem x)
       -- note that we can't just compare against siSemantics because
       -- that would exclude trees that have stuff in the aux semantics
       -- which would be overzealous
-  in filter (\x -> siSemanticsLite x == inputsemLite) initial
+  in filter notjunk initial
 \end{code}
 
 % --------------------------------------------------------------------
