@@ -850,8 +850,9 @@ the following properties:
 Unifying something with itself should always succeed
 
 \begin{code}
-prop_unify_self x = 
-  case (unify x x) of 
+prop_unify_self x =
+  (all qc_not_empty_GConst) x ==>
+    case unify x x of
     Nothing  -> False
     Just unf -> (fst unf == x)
 \end{code}
@@ -878,7 +879,9 @@ prop_unify_sym x y =
       --
       notOverlap (GVar _, GVar _) = False
       notOverlap _ = True
-  in all (notOverlap) (zip x y) ==> u1 == u2
+  in (all qc_not_empty_GConst) x &&
+     (all qc_not_empty_GConst) y &&
+     all (notOverlap) (zip x y) ==> u1 == u2
 \end{code}
 
 \ignore{
@@ -887,8 +890,12 @@ prop_unify_sym x y =
 instance Arbitrary GeniVal where
   arbitrary = oneof [ return $ GAnon, 
                       liftM GVar arbitrary, 
-                      liftM GConst arbitrary ] 
+                      liftM (GConst . nub) arbitrary ]
   coarbitrary = error "no implementation of coarbitrary for GeniVal"
+
+qc_not_empty_GConst :: GeniVal -> Bool
+qc_not_empty_GConst (GConst []) = False
+qc_not_empty_GConst _ = True
 \end{code}
 }
 
