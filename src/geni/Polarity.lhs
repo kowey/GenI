@@ -1003,42 +1003,6 @@ showPolPaths' bv counter =
         next = showPolPaths' (shiftR bv 1) (counter + 1)
 \end{code}
 
-\ignore{
-\subsection{Polarity signatures}
-\label{sec:polarity_signatures}
-
-Polarity signatures is an optimisation of the automaton construction.  We
-pre-process the lexically selected trees, and group together trees with
-identical semantics and polarity keys.  The groups are labeled with a tuple of
-$\tuple{S,K}$ where $S$ is the tree semantics and $K$ is the set of polarity
-keys that the tree holds.  These tuples, which we call \jargon{polarity
-signatures}, could then be used instead of trees as the labels of the
-polarity automaton, the reasoning being that though there maybe hundreds of
-trees for a given lexical item, the number of distinct polarity signatures is
-likely to be smaller. 
-
-The following function takes a list of trees, and returns a tuple with a list
-of signatures, and a function to map these back to trees.
-
-\begin{code}
-{-
-mapByPolsig :: [TagElem] -> [TagElem]
-mapByPolsig tes = 
-  let sigmap   = groupByFM gfn tes
-      gfn t    = (showSem $ tsemantics t) ++ " " ++
-                 (showLitePm $ tpolarities t) ++
-                 (show $ tsempols t)
-      -- creating a representative "tree" for each polarity signature
-      createTl key id = rep { idname = key,
-                              tidnum = id }
-                        where rep = case (Map.lookup key sigmap) of
-                                      Just (x:_) -> x
-                                      _          -> error "mapByPolSig error" 
-  in zipWith createTl (Map.keys sigmap) [0..]
--}
-\end{code}
-}
-
 \subsection{Semantic sorting}
 
 To minimise the number of states in the polarity automaton, we could

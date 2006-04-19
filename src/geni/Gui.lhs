@@ -48,7 +48,7 @@ import Tags (idname, tpolarities, tsemantics, TagElem)
 import Configuration
   ( Params(..), Switch(..), GrammarType(..)
   , BuilderType(..),
-  , polarised, polsig, semfiltered )
+  , polarised, semfiltered )
 import GeniParsers 
 import GuiHelper
 
@@ -153,11 +153,6 @@ Let's not forget the optimisations...
           , checked := polarised config 
           , tooltip := "Use the polarity optimisation"
           ]
-       polsigChk <- checkBox f 
-          [ text := "Pol signatures"
-          , checked := polsig config 
-          , tooltip := "Use polarity signatures (not reccomended)"
-          ]
        semfilterChk <- checkBox f 
          [ text := "Semantic filters"
          , checked := semfiltered config 
@@ -169,11 +164,9 @@ Let's not forget the optimisations...
          ]
        -- commands for the checkboxes
        let togglePolStuff = do c <- get polChk checked
-                               set polsigChk       [ enabled := c ]
                                set extrapolText    [ enabled := c ] 
        set polChk          [on command := do togglePolStuff
                                              toggleChk pstRef polChk PolarisedTok ] 
-       set polsigChk       [on command := toggleChk pstRef polsigChk PolSigTok] 
        set semfilterChk    [on command := toggleChk pstRef semfilterChk SemFilteredTok] 
 \end{code}
 
@@ -198,8 +191,7 @@ Pack it all together, perform the layout operation.
                              , label "Optimisations"
                              , dynamic $ widget polChk 
                              , row 5 [ label "  ", column 5 
-                                     [ dynamic $ row 5 [ label "Extra: ", widget extrapolText ]
-                                     , dynamic $ widget polsigChk ] ]
+                                     [ dynamic $ row 5 [ label "Extra: ", widget extrapolText ] ] ]
                              , dynamic $ widget semfilterChk 
                              ]
        set f [layout := column 5 [ gramsemBox

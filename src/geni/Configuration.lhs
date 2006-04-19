@@ -23,7 +23,7 @@ The input to this module is simply \texttt{argv}.
 \begin{code}
 module Configuration 
   ( Params(..), GrammarType(..), BuilderType(..), Switch(..)
-  , polarised, polsig, predicting
+  , polarised, predicting
   , semfiltered,
   , isIaf
   , isBatch, emptyParams
@@ -114,7 +114,6 @@ data Params = Prms{
 } deriving (Show)
 
 polarised    :: Params -> Bool
-polsig       :: Params -> Bool
 predicting   :: Params -> Bool
 semfiltered  :: Params -> Bool
 isBatch      :: Params -> Bool
@@ -123,7 +122,6 @@ hasOpt o p = o `elem` (optimisations p)
 
 polarised    = hasOpt PolarisedTok
 isIaf        = hasOpt IafTok
-polsig       = hasOpt PolSigTok
 predicting   = hasOpt PredictingTok
 semfiltered  = hasOpt SemFilteredTok
 isBatch      = hasOpt BatchTok
@@ -299,7 +297,6 @@ optimisationCodes =
  [ (PolarisedTok   , "p",      "polarity filtering")
  , (PolOptsTok  , "pol",    "equivalent to 'p'")
  , (AdjOptsTok  , "adj",    "equivalent to 'S F'")
- , (PolSigTok      , "s",      "polarity signatures")
  , (SemFilteredTok , "S",      "semantic filtering")
  , (IafTok, "i", "index accesibility filtering (one-phase only)")
  , (BatchTok,          "batch", "batch processing") ]
@@ -448,16 +445,12 @@ defineParams p (f:s) = defineParams pnext s
 
 
 \paragraph{optBatch} represents all meaningful combinations of optimisations
-which include \fnparam{enabledRaw}.  By meaningful combination, for example, we
-not have a combination that has polarity signatures, but not polarities.
+which include \fnparam{enabledRaw}.
 
 \begin{code}
 optBatch :: [Switch] -> [[Switch]] 
-optBatch enabledRaw = 
-  let enabled = if PolSigTok `elem` enabledRaw
-                then PolarisedTok:enabledRaw
-                else enabledRaw
-      use opt prev = if (opt `elem` enabled) 
+optBatch enabled =
+  let use opt prev = if (opt `elem` enabled)
                      then withopt 
                      else withopt ++ prev
                      where withopt = map (opt:) prev
