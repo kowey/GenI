@@ -820,31 +820,28 @@ The core unification algorithm follows these rules in order:
 
 \begin{code}
 unify :: [GeniVal] -> [GeniVal] -> Maybe ([GeniVal], Subst)
-
 unify [] l2 = Just (l2, [])
 unify l1 [] = Just (l1, [])
+unify (GAnon:t1) (h2:t2) = unifySansRep h2 t1 t2
+unify (h1:t1) (GAnon:t2) = unifySansRep h1 t1 t2
+unify (h1@(GVar _):t1) (h2:t2) = unifyWithRep h1 h2 t1 t2
+unify (h1:t1) (h2@(GVar _):t2) = unifyWithRep h2 h1 t1 t2
+unify ((GConst h1v):t1) ((GConst h2v):t2) =
+  case h1v `intersect` h2v of
+  []   -> Nothing
+  newH -> unifySansRep (GConst newH) t1 t2
 
-unify (h1:t1) (h2:t2) =
-  {-# SCC "unification" #-}
-  let sect = intersect (fromGConst h1) (fromGConst h2)
-      unifyval
-        | (isAnon h1) = sansrep    h2
-        | (isAnon h2) = sansrep    h1 
-        | (isVar h1)  = withrep h1 h2
-        | (isVar h2)  = withrep h2 h1
-        | (not.null) sect = sansrep (GConst sect)
-        | otherwise   = Nothing
-      --
-      withrep (GVar h1) x2 = do
-        let s = (h1,x2)
-        (res,subst) <- unify (replaceOne s t1) (replaceOne s t2)
-        return (x2:res, s:subst) 
-      withrep _ _ = geniBug "unification error" 
-      sansrep x2 = do
-        (res,subst) <- unify t1 t2 
-        return (x2:res, subst)
-      --
-  in unifyval 
+{-# INLINE unifySansRep #-}
+{-# INLINE unifyWithRep #-}
+unifySansRep x2 t1 t2 =
+ do (res,subst) <- unify t1 t2
+    return (x2:res, subst)
+
+unifyWithRep (GVar h1) x2 t1 t2 =
+ case (h1,x2) of
+ s -> do (res,subst) <- unify (replaceOne s t1) (replaceOne s t2)
+         return (x2:res, s:subst)
+unifyWithRep _ _ _ _ = geniBug "unification error"
 \end{code}
 
 \subsubsection{Unification tests} The unification algorithm should satisfy
