@@ -111,6 +111,7 @@ SOURCE_HSPP  := $(SOURCE_HSPP_1) $(SOURCE_HSPP_2)
 .PHONY: all nogui dep clean docs html release optimize\
        	permissions install\
 	extractor\
+	unit\
 	tags haddock
 
 # --------------------------------------------------------------------
@@ -204,6 +205,18 @@ uninstall:
 ifeq ($(OS),Darwin)
 	$(RM) -R $(BINDIR)/geni.app
 endif
+
+# --------------------------------------------------------------------
+# testing
+# --------------------------------------------------------------------
+
+GHCI_FLAGS=$(GHCINCLUDE) -fglasgow-exts
+
+ghci:
+	ghci -fglasgow-exts $(GHCI_FLAGS)
+
+unit:
+	etc/quickcheck.py src/geni/Btypes.lhs | ghci $(GHCI_FLAGS)
 
 # --------------------------------------------------------------------
 # documentation
