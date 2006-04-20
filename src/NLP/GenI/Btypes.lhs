@@ -24,7 +24,7 @@ low-level and primitive (well, with the exception of feature structure
 unification, that is).
 
 \begin{code}
-module Btypes(
+module NLP.GenI.Btypes(
    -- Datatypes 
    GNode(GN), GType(Subs, Foot, Lex, Other), 
    Ttree(..), MTtree, SemPols,
@@ -74,7 +74,7 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set 
 import Data.Tree
 
-import General(mapTree, filterTree, listRepNode, snd3, geniBug)
+import NLP.GenI.General(mapTree, filterTree, listRepNode, snd3, geniBug)
 --instance Show (IO()) where
 --  show _ = ""
 \end{code}

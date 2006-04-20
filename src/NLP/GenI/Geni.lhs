@@ -25,7 +25,7 @@ module also does lexical selection and anchoring because these processes might
 involve some messy IO performance tricks.
 
 \begin{code}
-module Geni (ProgState(..), ProgStateRef, 
+module NLP.GenI.Geni (ProgState(..), ProgStateRef,
              showRealisations, groupAndCount,
              initGeni, runGeni, 
              loadGrammar, loadLexicon, 
@@ -50,42 +50,44 @@ import System.IO.Unsafe (unsafePerformIO)
 import Text.ParserCombinators.Parsec 
 -- import System.Process 
 
-import General(filterTree, groupAndCount, multiGroupByFM, ePutStr, ePutStrLn, eFlush)
-
-import Btypes (Macros, MTtree, ILexEntry, Lexicon, 
-               Replacable(..),
-               Sem, SemInput, 
-               GeniVal(GConst), fromGVar,
-               GNode, Flist,
-               isemantics, ifamname, iword, iparams, 
-               ipfeat, ifilters,
-               isempols, 
-               toKeys,
-               glexeme, 
-               sortSem, subsumeSem, params, 
-               showLexeme,
-               pidname, pfamily, pfeat, ptype,
-               setLexeme, tree, unifyFeat)
-
 import Statistics (Statistics)
-import Tags (Tags, TagElem, emptyTE,
+
+import NLP.GenI.General(filterTree, groupAndCount, multiGroupByFM, ePutStr, ePutStrLn, eFlush)
+
+import NLP.GenI.Btypes
+  (Macros, MTtree, ILexEntry, Lexicon,
+   Replacable(..),
+   Sem, SemInput, sortSem, subsumeSem, params,
+   GeniVal(GConst), fromGVar,
+   GNode, Flist,
+   isemantics, ifamname, iword, iparams,
+   ipfeat, ifilters,
+   isempols,
+   toKeys,
+   glexeme,
+   showLexeme,
+   pidname, pfamily, pfeat, ptype,
+   setLexeme, tree, unifyFeat,
+   )
+
+import NLP.GenI.Tags (Tags, TagElem, emptyTE,
              idname, ttreename, detectSites,
              ttype, tsemantics, ttree, tsempols,
              tinterface, substnodes, adjnodes,
              setTidnums) 
 
-import Configuration
+import NLP.GenI.Configuration
   ( Params
   , grammarType, testCase, morphCmd, ignoreSemantics, selectCmd,
   , GrammarType(..),
   , tsFile, macrosFile, lexiconFile, morphFile, xmgOutFile, xmgErrFile)
 
-import qualified Builder as B
+import qualified NLP.GenI.Builder as B
 
-import GeniParsers (geniMacros, geniTagElems,
+import NLP.GenI.GeniParsers (geniMacros, geniTagElems,
                     geniLexicon, geniTestSuite, geniSemanticInput, 
                     geniMorphInfo)
-import Morphology
+import NLP.GenI.Morphology
 -- import CkyBuilder 
 -- import SimpleBuilder (simpleBuilder)
 
@@ -93,7 +95,7 @@ import Morphology
 -- FIXME: even better would be to really figure out all this
 -- Posix stuff so that I don't need to use my SysGeni hack
 #ifndef mingw32_BUILD_OS 
-import SysGeni 
+import NLP.GenI.SysGeni
 #endif
 \end{code}
 }
@@ -595,7 +597,7 @@ combineOne lexitem e =
        -- unify the parameters
        psubst = zip tp p
        paramsUnified | (length p) /= (length tp) = wterror "Wrong number of parameters."
-                     | otherwise = replace psubst (Btypes.tree e)
+                     | otherwise = replace psubst (NLP.GenI.Btypes.tree e)
        -- unify the features
        pf2  = replace psubst pf  
        tpf2 = replace psubst tpf 

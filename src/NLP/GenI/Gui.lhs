@@ -18,7 +18,7 @@
 \chapter{Graphical User Interface} 
 
 \begin{code}
-module Gui(guiGeni) where
+module NLP.GenI.Gui(guiGeni) where
 \end{code}
 
 \ignore{
@@ -36,25 +36,25 @@ import System.Directory
 import System.Exit (exitWith, ExitCode(ExitSuccess))
 import Text.ParserCombinators.Parsec ( runParser )
 
-import qualified Builder as B
-import qualified BuilderGui as BG
-import Geni 
+import qualified NLP.GenI.Builder as B
+import qualified NLP.GenI.BuilderGui as BG
+import NLP.GenI.Geni
   ( ProgState(..), ProgStateRef, combine, initGeni
   , loadGrammar, loadTestSuite, loadTargetSemStr)
-import General (boundsCheck, geniBug, trim, slash, fst3)
-import Btypes (showSem, showPairs, ILexEntry(isemantics, iword), showLexeme)
-import Tags (idname, tpolarities, tsemantics, TagElem)
+import NLP.GenI.General (boundsCheck, geniBug, trim, slash, fst3)
+import NLP.GenI.Btypes (showSem, showPairs, ILexEntry(isemantics, iword), showLexeme)
+import NLP.GenI.Tags (idname, tpolarities, tsemantics, TagElem)
 
-import Configuration
+import NLP.GenI.Configuration
   ( Params(..), Switch(..), GrammarType(..)
   , BuilderType(..),
   , polarised, semfiltered )
-import GeniParsers 
-import GuiHelper
+import NLP.GenI.GeniParsers
+import NLP.GenI.GuiHelper
 
-import Polarity
-import SimpleGui
-import CkyGui
+import NLP.GenI.Polarity
+import NLP.GenI.Simple.SimpleGui
+import NLP.GenI.CkyEarley.CkyGui
 \end{code}
 }
 

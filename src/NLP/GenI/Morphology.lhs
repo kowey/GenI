@@ -24,7 +24,7 @@ GenI farms out morphology to whatever third party program you
 specify in the configuration file.
 
 \begin{code}
-module Morphology where
+module NLP.GenI.Morphology where
 \end{code}
 
 \ignore{
@@ -36,9 +36,9 @@ import qualified Data.Map as Map
 import System.IO
 import System.Process
 
-import Btypes
-import General 
-import Tags
+import NLP.GenI.Btypes
+import NLP.GenI.General
+import NLP.GenI.Tags
 \end{code}
 }
 

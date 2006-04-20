@@ -22,12 +22,13 @@ endif
 # but *whine* it's so hard!
 OS:=$(shell uname)
 
-SRC_GENI := ./src/geni
-SRC_DIRS := $(SRC_GENI) $(SRC_GENI)/simple $(SRC_GENI)/cky
+SRC      := ./src
+SRC_GENI := ./src/NLP/GenI
+SRC_DIRS := $(SRC) $(SRC_GENI) $(SRC_GENI)/CkyEarley $(SRC_GENI)/Simple
 
 GHC             = ghc
 #-O
-GHCINCLUDE      = $(foreach d, $(SRC_DIRS), -i$(d))
+GHCINCLUDE      = -i$(SRC)
 #:$(HXMLDIR)/hparser:$(HXMLDIR)/hdom
 GHCPACKAGES     =
 #-package HaXml
@@ -85,9 +86,9 @@ SCRIPT_FILES = bin/runXMGselector\
 	       etc/macstuff/macosx-app\
 
 
-IFILE = $(SRC_GENI)/Main
+IFILE = $(SRC)/MainGeni
 CIFILE = $(SRC_GENI)/Converter
-EIFILE = $(SRC_GENI)/ExtractTestCases
+EIFILE = $(SRC)/ExtractTestCases
 
 OFILE = bin/geni
 DOFILE = bin/debugger-geni
@@ -102,8 +103,8 @@ OS_SPECIFIC_STUFF = cd bin; ../etc/macstuff/macosx-app geni
 endif
 
 
-SOURCE_FILES_1 := $(wildcard $(SRC_GENI)/*.lhs $(SRC_GENI/*.hs) $(SRC_GENI)/simple/*.lhs $(SRC_GENI)/cky/*.lhs)
-SOURCE_FILES_2 := $(wildcard $(SRC_GENI)/*.hs)
+SOURCE_FILES_1 := $(foreach d, $(SRC_DIRS), $(wildcard $(d)/*.lhs))
+SOURCE_FILES_2 := $(foreach d, $(SRC_DIRS), $(wildcard $(d)/*.hs))
 SOURCE_HSPP_1 := $(patsubst %.lhs,%.hspp,$(SOURCE_FILES_1))
 SOURCE_HSPP_2 := $(SOURCE_FILES_2)
 

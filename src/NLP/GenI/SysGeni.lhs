@@ -23,7 +23,7 @@ are in a MacOS X application bundle, then we add \verb!../Resources/bin!
 to the path for all the random crap that we ship with with GenI.
 
 \begin{code}
-module SysGeni 
+module NLP.GenI.SysGeni
 where
 \end{code}
 
@@ -32,7 +32,7 @@ where
 import qualified System.Process as S
 
 import Data.List(intersperse, isSuffixOf)
-import General(slash)
+import NLP.GenI.General(slash)
 
 #ifdef __GLASGOW_HASKELL__
 import Foreign

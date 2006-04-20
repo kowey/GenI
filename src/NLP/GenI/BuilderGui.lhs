@@ -16,14 +16,14 @@
 % Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 \begin{code}
-module BuilderGui 
+module NLP.GenI.BuilderGui
 where
 
 import Graphics.UI.WXCore
 
-import qualified Builder as B
-import Geni (ProgStateRef)
-import Configuration (Params)
+import qualified NLP.GenI.Builder as B
+import NLP.GenI.Geni (ProgStateRef)
+import NLP.GenI.Configuration (Params)
 import Statistics (Statistics)
 \end{code}
 

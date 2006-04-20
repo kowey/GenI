@@ -63,7 +63,7 @@ like $(-2,-2)n$!  But for the most part, the intervals are zero length,
 and you can just think of $-2n$ as shorthand for $(-2,-2)n$.
 
 \begin{code}
-module Polarity(PolAut, AutDebug, PolResult,
+module NLP.GenI.Polarity(PolAut, AutDebug, PolResult,
                 buildAutomaton,
                 makePolAut,
                 fixPronouns,
@@ -87,19 +87,19 @@ import Data.Maybe (isNothing)
 import Data.Tree (flatten)
 import qualified Data.Set as Set
 
-import Automaton
-import Graphviz(GraphvizShow(..), gvUnlines, gvNewline, gvNode, gvEdge)
-import Tags(TagElem(..), TagItem(..), setTidnums)
-import Btypes(Pred, SemInput, Sem, Flist, AvPair, showAv,
+import NLP.GenI.Automaton
+import NLP.GenI.Btypes(Pred, SemInput, Sem, Flist, AvPair, showAv,
               GeniVal(GAnon), fromGConst, isConst,
               Replacable(..),
               emptyPred, Ptype(Initial), 
               showSem, sortSem, 
               root, gup, gdown, gtype, GType(Subs),
               SemPols, unifyFeat, rootUpd)
-import General(
+import NLP.GenI.General(
     BitVector, isEmptyIntersect, fst3, snd3, thd3,
     Interval, ival, (!+!), showInterval)
+import NLP.GenI.Graphviz(GraphvizShow(..), gvUnlines, gvNewline, gvNode, gvEdge)
+import NLP.GenI.Tags(TagElem(..), TagItem(..), setTidnums)
 \end{code}
 
 \section{Interface}

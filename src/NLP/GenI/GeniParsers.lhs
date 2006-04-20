@@ -23,7 +23,7 @@ The parsers are written using the most excellent Parsec library.
 
 \ignore{
 \begin{code}
-module GeniParsers ( 
+module NLP.GenI.GeniParsers (
   -- test suite stuff
   geniTestSuite, geniSemanticInput,
   -- macros 
@@ -36,9 +36,9 @@ module GeniParsers (
   geniTagElems,
 ) where
 
-import General ((!+!), Interval, ival)
-import Btypes 
-import Tags (TagElem(..), emptyTE, detectSites, setTidnums)
+import NLP.GenI.General ((!+!), Interval, ival)
+import NLP.GenI.Btypes
+import NLP.GenI.Tags (TagElem(..), emptyTE, detectSites, setTidnums)
 import Control.Monad (liftM)
 import Data.List (sort)
 import qualified Data.Map  as Map 

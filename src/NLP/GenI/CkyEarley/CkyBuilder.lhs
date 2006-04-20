@@ -26,7 +26,7 @@ TAGs, and at the very end, we unpack the results directly into an
 automaton.  No derived trees here!
 
 \begin{code}
-module CkyBuilder
+module NLP.GenI.CkyEarley.CkyBuilder
  ( -- builder
    ckyBuilder, earleyBuilder,
    CkyStatus(..),
@@ -57,7 +57,7 @@ import qualified Data.Set as Set
 import Data.Maybe (catMaybes, mapMaybe, maybeToList)
 import Data.Tree
 
-import Btypes
+import NLP.GenI.Btypes
   ( unify, collect
   , Flist
   , Replacable(..), Subst
@@ -67,24 +67,24 @@ import Btypes
   , root, foot
   , unifyFeat )
 
-import Automaton
+import NLP.GenI.Automaton
   ( NFA(NFA, transitions, states), isFinalSt, finalSt, finalStList, startSt, addTrans, automatonPaths )
-import qualified Builder as B
-import Builder
+import qualified NLP.GenI.Builder as B
+import NLP.GenI.Builder
   ( SentenceAut, incrCounter, num_iterations, chart_size,
     SemBitMap, semToBitVector, bitVectorToSem, defineSemanticBits,
     (>-->), DispatchFilter,
     semToIafMap, IafAble(..),  IafMap, fromUniConst, getIdx,
     recalculateAccesibility, iafBadSem, ts_iafFailure
   )
-import Configuration ( Params, isIaf )
-import General
+import NLP.GenI.Configuration ( Params, isIaf )
+import NLP.GenI.General
   ( combinations, treeLeaves, BitVector, geniBug, fst3, snd3 )
-import Statistics ( Statistics )
-import Tags
+import NLP.GenI.Tags
   ( TagElem, tidnum, ttree, tsemantics, ttype,
     ts_tbUnificationFailure, TagSite, substnodes
   )
+import Statistics ( Statistics )
 
 -- -- Debugging stuff
 -- import Data.List ( intersperse )

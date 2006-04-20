@@ -21,7 +21,7 @@ This module handles the console user interface, batch processing, and test
 suites.  
 
 \begin{code}
-module Console(consoleGeni) where
+module NLP.GenI.Console(consoleGeni) where
 \end{code}
 
 \ignore{
@@ -30,15 +30,15 @@ import Data.List(find)
 import Control.Monad(when)
 import Data.IORef(readIORef, modifyIORef)
 
-import General(ePutStrLn, withTimeout, exitTimeout)
-import Geni
-import Configuration
+import NLP.GenI.General(ePutStrLn, withTimeout, exitTimeout)
+import NLP.GenI.Geni
+import NLP.GenI.Configuration
   ( Params, isGraphical, outputFile, statsFile, metricsParam, timeoutSecs
   , builderType
   , BuilderType(..) )
-import qualified Builder as B
-import CkyBuilder
-import SimpleBuilder
+import qualified NLP.GenI.Builder as B
+import NLP.GenI.CkyEarley.CkyBuilder
+import NLP.GenI.Simple.SimpleBuilder
 import Statistics ( showFinalStats, Statistics )
 \end{code}
 }

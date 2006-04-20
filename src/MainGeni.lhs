@@ -32,12 +32,12 @@ import Data.IORef(newIORef)
 import System(getArgs)
 import qualified Data.Map as Map
 
-import Geni(ProgState(..))
-import Console(consoleGeni)
-import Configuration(treatArgs, isGraphical, isBatch, Params)
+import NLP.GenI.Geni(ProgState(..))
+import NLP.GenI.Console(consoleGeni)
+import NLP.GenI.Configuration(treatArgs, isGraphical, isBatch, Params)
 
 #ifndef DISABLE_GUI
-import Gui(guiGeni)
+import NLP.GenI.Gui(guiGeni)
 #else
 guiGeni = consoleGeni
 #endif

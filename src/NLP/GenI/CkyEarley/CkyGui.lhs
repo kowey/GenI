@@ -18,7 +18,7 @@
 \chapter{CKY Gui}
 
 \begin{code}
-module CkyGui where
+module NLP.GenI.CkyEarley.CkyGui where
 \end{code}
 
 \ignore{
@@ -36,15 +36,14 @@ import qualified Data.Map as Map
 import Data.Maybe (listToMaybe, catMaybes)
 import Data.Tree 
 
-import Automaton
+import NLP.GenI.Automaton
  ( NFA(states, transitions, startSt, finalStList)
  , addTrans )
-import qualified Builder    as B
-import qualified BuilderGui as BG 
-import Btypes
-  ( GNode, gnname )
+import qualified NLP.GenI.Builder    as B
+import qualified NLP.GenI.BuilderGui as BG
+import NLP.GenI.Btypes ( GNode, gnname )
 
-import CkyBuilder 
+import NLP.GenI.CkyEarley.CkyBuilder
   ( ckyBuilder, earleyBuilder, CkyStatus, CkyItem(..), ChartId
   , ciRoot, ciAdjDone
   , bitVectorToSem, findId,
@@ -53,16 +52,12 @@ import CkyBuilder
   , emptySentenceAut, mJoinAutomata, mAutomatonPaths,
   , unpackItemToAuts,
   )
-import Configuration ( Params(..) )
+import NLP.GenI.Configuration ( Params(..) )
 
-import Geni 
+import NLP.GenI.Geni
   ( ProgStateRef, runGeni )
-import General ( boundsCheck, geniBug )
-import Graphviz 
-  ( GraphvizShow(..), gvNode, gvEdge, gvSubgraph, gvUnlines, gvShowTree
-  , gvNewline
-  , GraphvizShowNode(..) )
-import GuiHelper 
+import NLP.GenI.General ( boundsCheck, geniBug )
+import NLP.GenI.GuiHelper
   ( messageGui, toSentence
   , debuggerPanel, DebuggerItemBar
   , addGvHandler, modifyGvParams, 
@@ -70,8 +65,12 @@ import GuiHelper
   , graphvizGui, newGvRef, setGvDrawables,
   )
 
-import Tags 
-  ( idname, tsemantics, ttree, TagElem )
+import NLP.GenI.Tags ( idname, tsemantics, ttree, TagElem )
+
+import NLP.GenI.Graphviz
+  ( GraphvizShow(..), gvNode, gvEdge, gvSubgraph, gvUnlines, gvShowTree
+  , gvNewline
+  , GraphvizShowNode(..) )
 \end{code}
 }
 

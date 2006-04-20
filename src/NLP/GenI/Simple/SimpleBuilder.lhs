@@ -24,7 +24,7 @@ before adjunction).  There is no packing strategy whatsoever; each chart
 item is a derived tree.
 
 \begin{code}
-module SimpleBuilder (
+module NLP.GenI.Simple.SimpleBuilder (
    -- Types
    Agenda, AuxAgenda, Chart, SimpleStatus, SimpleState, SimpleItem(..),
 
@@ -51,8 +51,10 @@ import Data.Tree
 import Data.Bits
 import qualified Data.Map as Map
 
-import Automaton ( automatonPaths, NFA(..), addTrans )
-import Btypes
+import Statistics (Statistics)
+
+import NLP.GenI.Automaton ( automatonPaths, NFA(..), addTrans )
+import NLP.GenI.Btypes
   ( Ptype(Initial,Auxiliar),
   , Flist
   , Replacable(..), Subst
@@ -65,14 +67,14 @@ import Btypes
   , constrainAdj
   , unifyFeat, unifyFeat2
   )
-import Builder (UninflectedWord, UninflectedSentence,
+import NLP.GenI.Builder (UninflectedWord, UninflectedSentence,
     incrCounter, num_iterations, num_comparisons, chart_size,
     SemBitMap, defineSemanticBits, semToBitVector, bitVectorToSem,
     DispatchFilter, (>-->), condFilter,
     )
-import qualified Builder as B
+import qualified NLP.GenI.Builder as B
 
-import Tags (TagElem, TagSite, TagDerivation,
+import NLP.GenI.Tags (TagElem, TagSite, TagDerivation,
              idname, tidnum,
              ttree, ttype, tsemantics,
              adjnodes,
@@ -81,9 +83,8 @@ import Tags (TagElem, TagSite, TagDerivation,
              ts_synIncomplete, ts_semIncomplete, ts_tbUnificationFailure,
              ts_noRootCategory, ts_wrongRootCategory,
             )
-import Configuration
-import General (BitVector, fst3, mapTree)
-import Statistics (Statistics)
+import NLP.GenI.Configuration
+import NLP.GenI.General (BitVector, fst3, mapTree)
 \end{code}
 }
 

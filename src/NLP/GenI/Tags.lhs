@@ -24,7 +24,7 @@ substitution and adjunction here; see sections \ref{sec:substitution}
 and \ref{sec:adjunction} instead.  
 
 \begin{code}
-module Tags(
+module NLP.GenI.Tags(
    -- Main Datatypes
    Tags, TagElem(..), TagItem(..), TagSite, 
    TagDerivation, emptyTE,
@@ -50,14 +50,14 @@ import qualified Data.Map as Map
 import Data.List (intersperse)
 import Data.Tree
 
-import Btypes (Ptype(Initial, Auxiliar), SemPols,
+import NLP.GenI.Btypes (Ptype(Initial, Auxiliar), SemPols,
                GNode(gup, glexeme, gnname, gaconstr, gdown, gtype),
                GType(Subs), Flist,
                Replacable(..), Collectable(..), Idable(..),
                Sem, Pred, emptyPred, 
                emptyGNode,
                showPairs, showSem)
-import General (treeLeaves, groupByFM)
+import NLP.GenI.General (treeLeaves, groupByFM)
 \end{code}
 }
 

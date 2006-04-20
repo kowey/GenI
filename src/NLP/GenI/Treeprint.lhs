@@ -20,7 +20,7 @@
 The Treeprint module provides specialised functions for visualising tree data.
 
 \begin{code}
-module Treeprint 
+module NLP.GenI.Treeprint
 where
 \end{code}
 
@@ -30,18 +30,18 @@ import Data.Tree
 import Data.List(intersperse,nub)
 import qualified Data.Map
 
-import General (mapTree)
-import Tags
+import NLP.GenI.General (mapTree)
+import NLP.GenI.Tags
  ( TagElem(TE), idname,
    tsemantics, ttree, tinterface, ttype, ttreename,
  )
-import Btypes (GeniVal(GConst, GVar, GAnon), AvPair, Ptype(..),
+import NLP.GenI.Btypes (GeniVal(GConst, GVar, GAnon), AvPair, Ptype(..),
                GNode(..), GType(..), Flist,
                isConst,
                showLexeme,
                Pred, showSem, showAv)
 
-import Graphviz 
+import NLP.GenI.Graphviz
   ( gvUnlines, gvNewline
   , GraphvizShow(graphvizShowAsSubgraph, graphvizLabel, graphvizParams)
   , GraphvizShowNode(graphvizShowNode)

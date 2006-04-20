@@ -21,7 +21,7 @@ This module provides helper functions for building the GenI graphical
 user interface
 
 \begin{code}
-module GuiHelper where
+module NLP.GenI.GuiHelper where
 \end{code}
 
 \ignore{
@@ -40,29 +40,27 @@ import System.Directory
 import System.Process (runProcess)
 import Text.ParserCombinators.Parsec (parseFromFile)
 
-import Graphviz 
-import Treeprint(toGeniHand)
-
-import Tags (TagItem(tgIdName), tagLeaves)
-import Geni 
-  ( ProgState(..), showRealisations )
-import GeniParsers ( geniTagElems )
-import General (boundsCheck, slash, geniBug, tail_)
-import Btypes 
-  ( showPred, showSem, showLexeme
-  , Sem)
-import Tags 
-  ( idname, mapBySem, TagElem )
-
-import Configuration(Params(..), GrammarType(..))
-
-import Automaton (numStates, numTransitions)
-import qualified Builder as B
-import Builder (queryCounter, num_iterations, chart_size,
-    num_comparisons)
-import Polarity (PolAut, detectPolFeatures)
+import NLP.GenI.Graphviz
+import NLP.GenI.Automaton (numStates, numTransitions)
 import Statistics (Statistics, showFinalStats)
 
+import NLP.GenI.Treeprint(toGeniHand)
+import NLP.GenI.Tags (TagItem(tgIdName), tagLeaves)
+import NLP.GenI.Geni
+  ( ProgState(..), showRealisations )
+import NLP.GenI.GeniParsers ( geniTagElems )
+import NLP.GenI.General (boundsCheck, slash, geniBug, tail_)
+import NLP.GenI.Btypes
+  ( showPred, showSem, showLexeme, Sem)
+import NLP.GenI.Tags
+  ( idname, mapBySem, TagElem )
+
+import NLP.GenI.Configuration(Params(..), GrammarType(..))
+
+import qualified NLP.GenI.Builder as B
+import NLP.GenI.Builder (queryCounter, num_iterations, chart_size,
+    num_comparisons)
+import NLP.GenI.Polarity (PolAut, detectPolFeatures)
 \end{code}
 }
 

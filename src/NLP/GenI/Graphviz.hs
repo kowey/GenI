@@ -26,7 +26,7 @@
      <http://www.research.att.com/sw/tools/graphviz>
 -}
 
-module Graphviz
+module NLP.GenI.Graphviz
 where
 
 import Control.Monad(when)
@@ -35,7 +35,7 @@ import Data.Tree
 import System.IO(hPutStrLn, hClose)
 import System.Exit(ExitCode)
 
-import SysGeni(waitForProcess, runInteractiveProcess)
+import NLP.GenI.SysGeni(waitForProcess, runInteractiveProcess)
 
 {- |
      Data structures which can be visualised with GraphViz should

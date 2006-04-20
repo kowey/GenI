@@ -39,7 +39,7 @@ UML might help.  See figure \ref{fig:builderUml}.
 
 \ignore{
 \begin{code}
-module Builder 
+module NLP.GenI.Builder
 where
 
 import Control.Monad.State
@@ -51,25 +51,25 @@ import qualified Data.Set as Set
 import Data.Tree ( flatten )
 import Prelude hiding ( init )
 
-import Automaton (NFA, automatonPaths, automatonPathSets, numStates, numTransitions)
-import Configuration
+import NLP.GenI.Automaton (NFA, automatonPaths, automatonPathSets, numStates, numTransitions)
+import NLP.GenI.Configuration
   ( Params(metricsParam, ignoreSemantics, rootCatsParam), extrapol,
     polarised )
-import General (geniBug, BitVector, multiGroupByFM, fst3, snd3, thd3)
-import Btypes
+import NLP.GenI.General (geniBug, BitVector, multiGroupByFM, fst3, snd3, thd3)
+import NLP.GenI.Btypes
   ( ILexEntry, SemInput, Sem, Pred, showPred, showSem,
     Flist, gtype, GType(Subs, Foot),
     Collectable(collect), alphaConvert,
     GeniVal(GConst)
   )
-import Polarity  (PolResult, buildAutomaton, detectPolPaths)
+import NLP.GenI.Polarity  (PolResult, buildAutomaton, detectPolPaths)
+import NLP.GenI.Tags ( TagElem(idname,tsemantics,ttree), setTidnums )
 import Statistics (Statistics, incrIntMetric,
                    Metric(IntMetric), updateMetrics,
                    mergeMetrics, addIntMetrics,
                    queryMetrics, queryIntMetric,
                    addMetric, emptyStats,
                    )
-import Tags ( TagElem(idname,tsemantics,ttree), setTidnums )
 \end{code}
 }
 
@@ -435,7 +435,7 @@ trees for ptoentially no good reason.
 
 \begin{code}
 nullBuilder = Builder
-  { Builder.init = initNullBuilder
+  { NLP.GenI.Builder.init = initNullBuilder
   , step         = return ()
   , stepAll      = return ()
   , finished     = \_ -> True

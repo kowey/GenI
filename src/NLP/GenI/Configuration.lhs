@@ -21,7 +21,7 @@ This module handles configuration parameters from the command line.
 The input to this module is simply \texttt{argv}.
 
 \begin{code}
-module Configuration 
+module NLP.GenI.Configuration
   ( Params(..), GrammarType(..), BuilderType(..), Switch(..)
   , polarised, predicting
   , semfiltered,
@@ -42,8 +42,8 @@ import Data.List  ( find, intersperse )
 import Data.Maybe ( catMaybes  )
 import Text.ParserCombinators.Parsec ( runParser )
 
-import General ( geniBug, fst3, snd3, Interval )
-import GeniParsers ( geniPolarities )
+import NLP.GenI.General ( geniBug, fst3, snd3, Interval )
+import NLP.GenI.GeniParsers ( geniPolarities )
 \end{code}
 }
 

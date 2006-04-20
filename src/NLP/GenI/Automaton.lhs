@@ -19,7 +19,7 @@
 \label{cha:Automaton}
 
 \begin{code}
-module Automaton 
+module NLP.GenI.Automaton
   ( NFA(..), 
     finalSt,
     addTrans, lookupTrans,
@@ -30,7 +30,7 @@ where
 import qualified Data.Map as Map
 import Data.Maybe (catMaybes)
 
-import General (combinations)
+import NLP.GenI.General (combinations)
 \end{code}
 
 This module provides a simple, naive implementation of nondeterministic

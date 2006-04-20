@@ -18,7 +18,7 @@
 \chapter{Simple GUI}
 
 \begin{code}
-module SimpleGui where
+module NLP.GenI.Simple.SimpleGui where
 \end{code}
 
 \ignore{
@@ -29,28 +29,26 @@ import Graphics.UI.WXCore
 import Data.IORef
 import Data.List (nub)
 
-import Geni 
-  ( ProgStateRef, runGeni )
-import Btypes 
-  (GNode(gnname))
-import Tags (tsemantics, TagElem(idname), TagItem(..))
 
-import Configuration ( Params(..) )
-import General ( snd3 )
-import Graphviz ( GraphvizShow(..), gvNewline, gvUnlines )
-import GuiHelper
+
+import NLP.GenI.Btypes (GNode(gnname))
+import NLP.GenI.Configuration ( Params(..) )
+import NLP.GenI.General ( snd3 )
+import NLP.GenI.Geni ( ProgStateRef, runGeni )
+import NLP.GenI.Graphviz ( GraphvizShow(..), gvNewline, gvUnlines )
+import NLP.GenI.GuiHelper
   ( toSentence,
     messageGui, tagViewerGui,
     debuggerPanel, DebuggerItemBar, setGvParams, GvIO, newGvRef,
     XMGDerivation(getSourceTrees),
   )
-import Tags ( ttreename )
-import Treeprint ( graphvizShowDerivation )
+import NLP.GenI.Tags (tsemantics, TagElem(idname), TagItem(..), ttreename)
+import NLP.GenI.Treeprint ( graphvizShowDerivation )
 
-import qualified Builder    as B
-import qualified BuilderGui as BG 
-import Polarity
-import SimpleBuilder 
+import qualified NLP.GenI.Builder    as B
+import qualified NLP.GenI.BuilderGui as BG
+import NLP.GenI.Polarity
+import NLP.GenI.Simple.SimpleBuilder
   ( simpleBuilder, SimpleStatus, SimpleItem(..),
   , theResults, theAgenda, theAuxAgenda, theChart, theTrash)
 \end{code}

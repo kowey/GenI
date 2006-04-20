@@ -21,7 +21,7 @@ This module provides some very generic, non-Geni specific functions on strings,
 trees and other miscellaneous odds and ends.
 
 \begin{code}
-module General 
+module NLP.GenI.General
 where
 \end{code}
 
