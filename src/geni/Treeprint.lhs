@@ -28,13 +28,14 @@ where
 \begin{code}
 import Data.Tree
 import Data.List(intersperse,nub)
+import qualified Data.Map
 
 import General (mapTree)
 import Tags
- ( TagElem, idname,
+ ( TagElem(TE), idname,
    tsemantics, ttree, tinterface, ttype, ttreename,
  )
-import Btypes (GeniVal(GConst), AvPair, Ptype(..),
+import Btypes (GeniVal(GConst, GVar, GAnon), AvPair, Ptype(..),
                GNode(..), GType(..), Flist,
                isConst,
                showLexeme,
@@ -317,4 +318,58 @@ instance GeniHandShow TagElem where
   ++ "\n" ++ "semantics:" ++ (toGeniHand.tsemantics $ te)
 
 squares s = "[" ++ s ++ "]"
+\end{code}
+
+% ----------------------------------------------------------------------
+\section{HsShowable}
+% ----------------------------------------------------------------------
+
+One idea I'm experimenting with is dumping the grammars into Haskell, haskell which will
+need to be linked against GenI in order to produce a generator.  This might make the whole
+lexical selection thing og a lot faster.
+
+\begin{code}
+class HsShowable a where
+  hsShow :: a -> String
+
+hsParens s = "(" ++ s ++ ")"
+
+hsConstructor :: String -> [String] -> String
+hsConstructor c args = hsParens $ unwords (c:args)
+
+instance HsShowable Char where hsShow = show
+instance HsShowable Bool where hsShow = show
+instance HsShowable Int  where hsShow = show
+instance HsShowable Integer where hsShow = show
+
+instance HsShowable Ptype where hsShow = show
+instance HsShowable GType where hsShow = show
+
+instance (HsShowable a, HsShowable b) => HsShowable (a,b) where
+ hsShow (a,b) = hsParens $ (hsShow a) ++ "," ++ (hsShow b)
+
+instance (HsShowable a, HsShowable b, HsShowable c) => HsShowable (a,b,c) where
+ hsShow (a,b,c) = hsParens $ (hsShow a) ++ "," ++ (hsShow b) ++ "," ++ (hsShow c)
+
+instance (HsShowable a) => HsShowable [a] where
+ hsShow as = "[" ++ (concat $ intersperse "," $ map hsShow as) ++ "]"
+
+instance (HsShowable a) => HsShowable (Tree a) where
+ hsShow (Node a k) = hsConstructor "Node" [hsParens $ hsShow a, hsShow k]
+
+instance (HsShowable a, HsShowable b) => HsShowable (Data.Map.Map a b) where
+ -- | Note that you'll need to @import qualified Data.Map@
+ hsShow m = hsParens $ "Data.Map.fromList " ++ (hsShow $ Data.Map.toList m)
+
+instance HsShowable GeniVal where
+ hsShow (GConst xs) = hsConstructor "GConst" (map hsShow xs)
+ hsShow (GVar xs)   = hsConstructor "GVar" [hsShow xs]
+ hsShow GAnon       = "GAnon"
+
+instance HsShowable GNode where
+ hsShow (GN a b c d e f g) = hsConstructor "GN" [hsShow a, hsShow b, hsShow c, hsShow d, hsShow e, hsShow f, hsShow g]
+
+instance HsShowable TagElem where
+ hsShow (TE a b c d e f g h i j k) =
+  hsConstructor "TE" [hsShow a, hsShow b, hsShow c, hsShow d, hsShow e, hsShow f, hsShow g, hsShow h, hsShow i, hsShow j, hsShow k]
 \end{code}
