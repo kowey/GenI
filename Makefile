@@ -22,11 +22,12 @@ endif
 # but *whine* it's so hard!
 OS:=$(shell uname)
 
-SRC_GENI 	= ./src/geni
+SRC_GENI := ./src/geni
+SRC_DIRS := $(SRC_GENI) $(SRC_GENI)/simple $(SRC_GENI)/cky
 
 GHC             = ghc
 #-O
-GHCINCLUDE      = -i$(SRC_GENI) -i$(SRC_GENI)/simple -i$(SRC_GENI)/cky
+GHCINCLUDE      = $(foreach d, $(SRC_DIRS), -i$(d))
 #:$(HXMLDIR)/hparser:$(HXMLDIR)/hdom
 GHCPACKAGES     =
 #-package HaXml
@@ -136,14 +137,15 @@ tarball:
 	mv $(MYDIR)_$(DATE).tar.gz $(MYDIR)
 
 clean: tidy
-	rm -f $(SRC_GENI)/*.{ps,pdf}
+	rm -f bin/debugger-geni
+	rm -f $(foreach d, $(SRC_DIRS), $(d)/*.{ps,pdf})
 	rm -f $(MAKE_HTML)
 	rm -rf $(OFILE) $(OFILE).app
 	rm -rf $(SOURCE_HSPP_1) $(HADDOCK_OUT)
 
 tidy:
-	rm -f $(SRC_GENI)/*.{dvi,aux,log,bbl,blg,out,toc}
-	rm -f $(SRC_GENI)/*.{p_hi,p_o,hi,o}
+	rm -f $(foreach d, $(SRC_DIRS), $(d)/*.{dvi,aux,log,bbl,blg,out,toc})
+	rm -f $(foreach d, $(SRC_DIRS), $(d)/*.{p_hi,p_o,hi,o})
 
 permissions: $(config_file)
 	chmod u+x $(SCRIPT_FILES)
