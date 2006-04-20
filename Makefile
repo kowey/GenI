@@ -34,7 +34,7 @@ GHCPACKAGES     =
 GHCPACKAGES_GUI = -package wx $(GHCPACKAGES)
 
 GHCFLAGS        = $(LDFLAGS) -W -cpp -fglasgow-exts -threaded -O $(GHCINCLUDE)
-GHCFLAGS_PROF   = $(GHCFLAGS) -prof -hisuf p_hi -osuf p_o -DDISABLE_GUI
+GHCFLAGS_PROF   = $(GHCFLAGS) -prof -hisuf p_hi -osuf p_o -DDISABLE_GUI -auto-all
 
 SOFTWARE        = Geni
 SOFTVERS        = $(SOFTWARE)-$(VERSION)
@@ -46,6 +46,7 @@ TO_INSTALL=$(patsubst %, bin/%, tryXtimes geni xmgGeni runXMGselector runXMGfilt
 # is the same as the directory name.
 MYDIR = Geni
 DATE:=$(shell date +%Y-%m-%d)
+DATE2:=$(shell date +%Y-%m-%dT%H%M)
 
 # Add here any files that you want to compile.  For example:
 #   MAKE_DOCS=foo/bar.pdf foo/other.pdf baz/filename.pdf
@@ -89,6 +90,7 @@ CIFILE = $(SRC_GENI)/Converter
 EIFILE = $(SRC_GENI)/ExtractTestCases
 
 OFILE = bin/geni
+DOFILE = bin/debugger-geni
 COFILE = bin/geniconvert
 EOFILE = bin/geniExtractCases
 
@@ -112,7 +114,7 @@ SOURCE_HSPP  := $(SOURCE_HSPP_1) $(SOURCE_HSPP_2)
 .PHONY: all nogui dep clean docs html release optimize\
        	permissions install\
 	extractor\
-	unit\
+	unit profout profiler ghci\
 	tags haddock
 
 # --------------------------------------------------------------------
@@ -183,9 +185,9 @@ nogui : permissions
 	$(GHC) $(GHCFLAGS) --make -DDISABLE_GUI $(GHCPACKAGES) $(IFILE).lhs -o $(OFILE)
 	$(OS_SPECIFIC_STUFF)
 
-debugger: bin/debugger-geni
+debugger: $(DOFILE)
 
-bin/debugger-geni: $(SRC_GENI)/Main.lhs permissions
+$(DOFILE): $(SRC_GENI)/Main.lhs permissions
 	$(GHC) $(GHCFLAGS_PROF) $(GHCPACKAGES) --make $< -o $@
 
 # --------------------------------------------------------------------
@@ -212,13 +214,27 @@ endif
 # testing
 # --------------------------------------------------------------------
 
-GHCI_FLAGS=$(GHCINCLUDE) -fglasgow-exts
+GHCI_FLAGS=$(GHCINCLUDE) -fglasgow-exts -cpp
 
 ghci:
-	ghci -fglasgow-exts $(GHCI_FLAGS)
+	ghci $(GHCI_FLAGS)
 
 unit:
 	etc/quickcheck.py src/geni/Btypes.lhs | ghci $(GHCI_FLAGS)
+
+profiler: $(DOFILE) profout debugger-geni.pdf
+
+profout:
+	bin/debugger-geni +RTS -p -hm -RTS -s etc/perftest/semantics-t33 --nogui -m etc/perftest/lexselection-t33 --preselected --opts=pol -o profout
+
+debugger-geni.pdf: debugger-geni.hp
+	hp2ps $< > $(basename $@).ps
+	ps2pdf $(basename $@).ps $(basename $@)-$(DATE2).pdf
+	rm -f $@ $(basename $@).ps
+	ln -s $(basename $@)-$(DATE2).pdf $@
+
+clean-profiler:
+	rm debugger-geni*.pdf
 
 # --------------------------------------------------------------------
 # documentation
