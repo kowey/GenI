@@ -47,7 +47,7 @@ import NLP.GenI.Tags (idname, tpolarities, tsemantics, TagElem)
 
 import NLP.GenI.Configuration
   ( Params(..), Switch(..), GrammarType(..)
-  , BuilderType(..), allBuilderTypes
+  , BuilderType(..), mainBuilderTypes
   , polarised, semfiltered )
 import NLP.GenI.GeniParsers
 import NLP.GenI.GuiHelper
@@ -139,7 +139,7 @@ We add some buttons for loading files and running the generator.
 Let's not forget the optimisations...
 
 \begin{code}
-       algoChoiceBox <- radioBox f Vertical (map show allBuilderTypes)
+       algoChoiceBox <- radioBox f Vertical (map show mainBuilderTypes)
                         [ selection := case builderType config of
                                        SimpleBuilder -> 0
                                        SimpleOnePhaseBuilder -> 1
@@ -222,7 +222,7 @@ toggleAlgo pstRef box =
  do asel   <- get box selection
     aitems <- get box items
     let selected = aitems !! asel
-        btable = zip (map show allBuilderTypes) allBuilderTypes
+        btable = zip (map show mainBuilderTypes) mainBuilderTypes
         btype = case [ b | (name, b) <- btable, name == selected ] of
                 []  -> geniBug $ "Unknown builder type " ++ selected
                 [b] -> b

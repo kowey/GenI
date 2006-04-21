@@ -23,7 +23,7 @@ The input to this module is simply \texttt{argv}.
 \begin{code}
 module NLP.GenI.Configuration
   ( Params(..), GrammarType(..), BuilderType(..), Switch(..)
-  , allBuilderTypes
+  , mainBuilderTypes
   , polarised, predicting
   , semfiltered,
   , isIaf
@@ -185,9 +185,8 @@ showBuilderType SimpleOnePhaseBuilder = "simple-1p"
 showBuilderType CkyBuilder = "CKY"
 showBuilderType EarleyBuilder = "Earley"
 
-allBuilderTypes =
- [ NullBuilder
- , SimpleBuilder, SimpleOnePhaseBuilder
+mainBuilderTypes =
+ [ SimpleBuilder, SimpleOnePhaseBuilder
  , CkyBuilder, EarleyBuilder]
 
 data Switch = 
