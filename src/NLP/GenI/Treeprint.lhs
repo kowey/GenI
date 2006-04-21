@@ -357,8 +357,8 @@ instance (HsShowable a) => HsShowable [a] where
 instance (HsShowable a) => HsShowable (Tree a) where
  hsShow (Node a k) = hsConstructor "Node" [hsParens $ hsShow a, hsShow k]
 
+-- | Note that you'll need to @import qualified Data.Map@
 instance (HsShowable a, HsShowable b) => HsShowable (Data.Map.Map a b) where
- -- | Note that you'll need to @import qualified Data.Map@
  hsShow m = hsParens $ "Data.Map.fromList " ++ (hsShow $ Data.Map.toList m)
 
 instance HsShowable GeniVal where

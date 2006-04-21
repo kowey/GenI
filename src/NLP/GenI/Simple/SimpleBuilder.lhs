@@ -834,9 +834,9 @@ dpTreeLimit item =
                  else return $ Just item
    where ts_overnumTrees l = "Over derivation size of " ++ (show l)
 
--- | If the item (ostensibly a result) has a top/bottom unification
+-- | If the item (ostensibly a result) has a top-bottom unification
 --   failure, we dispatch to the trash and return Nothing.  If tb
---   unification suceeds, it returns @Just newItem@, where newItem
+--   unification suceeds, it returns @Just newItem@, where @newItem@
 --   has its top and bottom nodes unified.
 dpTbFailure item =
  case tbUnifyTree item of

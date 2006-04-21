@@ -315,7 +315,7 @@ selectedDerivation f s c =
 derivationNodes :: Tree (ChartId, String) -> [ChartId]
 derivationNodes = (map fst).flatten
 
--- | Remove na and subst/adj completion links
+-- | Remove na and subst or adj completion links
 thinDerivationTree :: Tree (ChartId, String) -> Tree (ChartId, String)
 thinDerivationTree =
  let thinlst = ["no-adj", "subst", "adj" ]
