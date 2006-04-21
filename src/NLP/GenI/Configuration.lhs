@@ -23,6 +23,7 @@ The input to this module is simply \texttt{argv}.
 \begin{code}
 module NLP.GenI.Configuration
   ( Params(..), GrammarType(..), BuilderType(..), Switch(..)
+  , allBuilderTypes
   , polarised, predicting
   , semfiltered,
   , isIaf
@@ -183,6 +184,11 @@ showBuilderType SimpleBuilder = "simple"
 showBuilderType SimpleOnePhaseBuilder = "simple-1p"
 showBuilderType CkyBuilder = "CKY"
 showBuilderType EarleyBuilder = "Earley"
+
+allBuilderTypes =
+ [ NullBuilder
+ , SimpleBuilder, SimpleOnePhaseBuilder
+ , CkyBuilder, EarleyBuilder]
 
 data Switch = 
     HelpTok      |

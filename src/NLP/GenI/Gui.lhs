@@ -47,7 +47,7 @@ import NLP.GenI.Tags (idname, tpolarities, tsemantics, TagElem)
 
 import NLP.GenI.Configuration
   ( Params(..), Switch(..), GrammarType(..)
-  , BuilderType(..),
+  , BuilderType(..), allBuilderTypes
   , polarised, semfiltered )
 import NLP.GenI.GeniParsers
 import NLP.GenI.GuiHelper
@@ -139,8 +139,7 @@ We add some buttons for loading files and running the generator.
 Let's not forget the optimisations...
 
 \begin{code}
-       algoChoiceBox <- radioBox f Vertical
-                        (map show [SimpleBuilder, SimpleOnePhaseBuilder, CkyBuilder, EarleyBuilder])
+       algoChoiceBox <- radioBox f Vertical (map show allBuilderTypes)
                         [ selection := case builderType config of
                                        SimpleBuilder -> 0
                                        SimpleOnePhaseBuilder -> 1
@@ -222,12 +221,12 @@ toggleAlgo :: (Selection a, Items a String) => ProgStateRef -> a -> IO ()
 toggleAlgo pstRef box =
  do asel   <- get box selection
     aitems <- get box items
-    let btype = case aitems !! asel of
-                "cky"       -> CkyBuilder
-                "simple"    -> SimpleBuilder
-                "simple-1p" -> SimpleOnePhaseBuilder
-                "earley"    -> EarleyBuilder
-                x -> geniBug $ "Unkwown builder type " ++ x
+    let selected = aitems !! asel
+        btable = zip (map show allBuilderTypes) allBuilderTypes
+        btype = case [ b | (name, b) <- btable, name == selected ] of
+                []  -> geniBug $ "Unknown builder type " ++ selected
+                [b] -> b
+                _   -> geniBug $ "More than one builder has the name " ++ selected
     modifyIORef pstRef (\x -> x { pa = (pa x) { builderType = btype } })
 
 -- | Toggles for optimisatons controlled by a check box.  They enable or
