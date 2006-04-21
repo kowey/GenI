@@ -48,7 +48,7 @@ import NLP.GenI.Tags (idname, tpolarities, tsemantics, TagElem)
 import NLP.GenI.Configuration
   ( Params(..), Switch(..), GrammarType(..)
   , BuilderType(..), mainBuilderTypes
-  , polarised, semfiltered )
+  , isIaf, polarised, semfiltered )
 import NLP.GenI.GeniParsers
 import NLP.GenI.GuiHelper
 
@@ -152,6 +152,11 @@ Let's not forget the optimisations...
           , checked := polarised config 
           , tooltip := "Use the polarity optimisation"
           ]
+       iafChk <- checkBox f
+          [ text := "Idx acc filter"
+          , checked := isIaf config
+          , tooltip := "Only available in CKY/Earley for now"
+          ]
        semfilterChk <- checkBox f 
          [ text := "Semantic filters"
          , checked := semfiltered config 
@@ -166,6 +171,7 @@ Let's not forget the optimisations...
                                set extrapolText    [ enabled := c ] 
        set polChk          [on command := do togglePolStuff
                                              toggleChk pstRef polChk PolarisedTok ] 
+       set iafChk          [on command := toggleChk pstRef iafChk IafTok]
        set semfilterChk    [on command := toggleChk pstRef semfilterChk SemFilteredTok] 
 \end{code}
 
@@ -192,6 +198,7 @@ Pack it all together, perform the layout operation.
                              , row 5 [ label "  ", column 5 
                                      [ dynamic $ row 5 [ label "Extra: ", widget extrapolText ] ] ]
                              , dynamic $ widget semfilterChk 
+                             , dynamic $ widget iafChk
                              ]
        set f [layout := column 5 [ gramsemBox
                    , row 5 [ fill $ -- boxed "Input Semantics" $ 
