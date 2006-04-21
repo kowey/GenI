@@ -457,7 +457,145 @@ nonAdjunctionRule item _ =
      else [ item { ciNode = node2
                  , ciPayload = []
                  , ciDerivation = [ NullAdjOp $ ciId item ] } ]
+\end{code}
 
+\subsection{Parent rule}
+
+WARNING: unproven code below!  There is a piece of code floating around
+here which attempts to make the parent rule go a little bit faster and
+could eventually be used to replace \verb!ciSubsts! altogether.  But
+somebody needs to sit down and prove that this is correct first.
+
+The basic problem is that you've got some child nodes from a tree and
+you want to know if you can use them to climb up to the parent node.
+Consider for instance the tree $(P:?X L:?X R:?X)$, that is a
+simple tree with two child nodes with a shared variable $?X$ on all
+nodes.  Your two jobs are to
+\begin{enumerate}
+\item Make sure that the assignments of $?X$ do not conflict, for
+example, if in your instance of $L$, you have $?X \leftarrow a$ and in
+$R$, you have $?X \leftarrow b$, that would be bad and you should rule
+it out.
+\item Propagate any assignments of $?X$ up to the parent node.
+\end{enumerate}
+
+First of all, here is a straightforward NON-SOLUTION: for each kid, to
+apply the replacements (\verb!ciSubsts!) from all the other kids and
+make sure that is ok. Let's revisit the example above to see why this
+would \emph{not} work: you now have $L$ with $?X \leftarrow a$ and
+$R$ with $?X \leftarrow b$.  What you want to happen is that when you
+apply $?X \leftarrow b$ to $L$, it fails because of the conflicting
+value $a$, but it doesn't!  The unification because $?X$ no longer
+exists in $L$; we had replaced it with $a$, remember?  So you can't just
+successively apply the replacements from all children, because that does
+not fail where we want it to.
+
+A naïve ``safe'' solution then seems to be that you have to unify
+together all instances of the child nodes: that is, in the example
+above, you need to unify $L$ with $R$'s idea of what $L$ is and vice
+versa, and then somehow propaagate everything up.  Keep in mind that
+this is not the same thing as unifying $L$ with $R$ (why on earth would
+you want to do something like that?).  I don't like this solution,
+because I get the impression that it makes us do a lot of unification
+for nothing.
+
+Ok, so how do we go about making this cheaper to perform?  Here is what
+I ended up implementing: in the initialisation phase, you collect a set
+of open variables for each tree.  This is the initial value of
+\verb!ciVariables!.  Now, whenever you do anything with a chart item,
+for example, unifying some feature structure because of adjunction, you
+take care to also apply the variable replacements to the
+\verb!ciVariables!  list.  This way, it always contains the
+latest values for what were the open variables of the original tree.
+When you apply the parent rule, so goes the unproven idea, all you have
+to do is unify \verb!ciVariables! for all the child nodes.  In order
+to propagate this to the parent node, you have to remember what the
+original values for \verb!ciVariables! was and use that to create a
+new replacements list.  Let's work this out with a concrete example:
+
+\begin{enumerate}
+\item You've got the source tree in figure
+\ref{fig:variableCollection-01-04} with two open variables, $?X$ and
+$?Y$.
+\item Substitution into one of the nodes gives you the replacement
+$?Y \leftarrow b$
+\item Our first application of the parent rule: we climb up to the next
+node, rather trivially here since there is only one child
+\item This parent node $L$ receives adjunction, which sets the variable
+$?X \leftarrow a$
+\item (figure \ref{fig:variableCollection-05-06}) Independently of all
+this, we substitute something into the other side of the tree.  This
+sets $?X \leftarrow c$.  We don't know yet that this is a conflict with
+the previous step because we haven't tried applying the parent rule yet.
+\item But when we try to apply the parent rule here between the child
+$L$ and this version of the child $R$, we get a failure because their
+two instances of \verb!ciVariables! fail to unify ($a \neq c$).
+\item (figure \ref{fig:variableCollection-07-09}) We've seen what failure
+looks like, so let's try for success.  Say we had substituted something
+different into $R$ and as a result, we get the assignement $?X
+\leftarrow b$.
+\item This time, unification between the \verb!ciVariables! from the
+children $L$ and $R$ actually succeeds, so we allow the parent rule
+to apply.
+\item Notice that the same \verb!ciVariables! unification mechanism
+also propagates up the assignemnt $?Y \leftarrow a$
+\end{enumerate}
+
+\begin{figure}
+\begin{center}
+\includegraphics[scale=0.5]{images/variableCollection-01-04}
+\caption{Variable collections example (part 1/3)}
+\label{fig:variableCollection-01-04}
+\end{center}
+\end{figure}
+\begin{figure}
+\begin{center}
+\includegraphics[scale=0.5]{images/variableCollection-05-06}
+\caption{Variable collections example (part 2/3)}
+\label{fig:variableCollection-05-06}
+\end{center}
+\end{figure}
+\begin{figure}
+\begin{center}
+\includegraphics[scale=0.5]{images/variableCollection-07-09}
+\caption{Variable collections example (part 3/3)}
+\label{fig:variableCollection-07-09}
+\end{center}
+\end{figure}
+
+I hope you get the idea how the mechanism works.  Now the problem is
+that there are three unknowns for me, namely
+\begin{itemize}
+\item Is this actually correct?  Are there cases where I would cause
+the parent rule to fail when it should pass (I doubt it). More insiduously,
+are there cases where I would cause the parent rule to succeed where it
+should fail?
+\item Is this actually any faster than just going ahead and doing it
+the traditional way?  Intuitively, it seems obvious that the answer is
+yes, but maybe I just spent all this time explaining the mechanism and
+making these diagrams for nothing, because in the grand scheme of
+things, it doesn't really make a difference, or because there is some
+other super-obvious, easy solution staring me in the face.
+\item Could this be used to make other parts of the CKY/Earley algorithm
+faster?  Since we have this mechanism, can we get rid of the
+\verb!ciSubsts! (which is a list of all replacements to make, and is
+currently being appended to and applied at each derivation (ugh!)?
+\end{itemize}
+
+One potentially useful thought about the last bullet point, though, if
+you're thinking about replacing \verb!ciSubsts! with something lighter,
+think carefully.  For instance, given a list of replacements to make,
+you want to make things cheaper by reducing the transitive stuff, so if
+you see something like ($?X \leftarrow ?Y, ?A \leftarrow b,
+?Y \leftarrow z$), you reduce it down ($?A \leftarrow b, ?X \leftarrow
+z$).  This sounds nice, but it probably isn't a very good idea, because
+example above, you might have standalone instances of $?Y$ that weren't
+derived from from $?Y$ and if reduce that $?Y$ away, you're basically
+forgetting that you need to replace it by $z$.  So transitive reduction
+(?) is not an option, and this is why I am hesitant to replace
+\verb!ciSubsts! by \verb!ciVariables! as much as I would love to do so.
+
+\begin{code}
 -- | CKY parent rule
 parentRule item chart | ciComplete item =
  do (leftS,rightS,p)  <- Map.lookup (gnname node) (ciRouting item)
@@ -468,6 +606,8 @@ parentRule item chart | ciComplete item =
           _   -> error "multiple adjunction points in parentRule?!"
         combine p kids = do
           let unifyOnly (x, _) y = maybeToList $ unify x y
+          -- IMPORTANT! This blocks the parent rule from applying
+          -- if the child variables don't unify.
           newVars <- foldM unifyOnly (ciVariables item,[]) $
                      map ciVariables kids
           let newSubsts = concatMap ciSubsts (item:kids)
