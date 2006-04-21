@@ -991,19 +991,22 @@ mJoinAutomata (Just aut1) (Just aut2) = Just $ joinAutomata aut1 aut2
 
 -- | Concatenate two sentence automata.  This merges the final state of the
 -- first automaton into the initial state of the second automaton.
+joinAutomata :: SentenceAut -> SentenceAut -> SentenceAut
 joinAutomata aut1 rawAut2 =
  let -- rename all the states in aut2 so that they don't overlap
-     aut1Max = foldr max (-1) $ concat $ states aut1
+     aut1Max = (maximum.concat.states) aut1
      aut2 = incrStates (1 + aut1Max) rawAut2
      -- replace all transitions to aut1's final st by
      -- transitions to aut2's start state
      aut1Final = finalSt aut1
+     aut2Start = startSt aut2
      t1 = transitions aut1
      t2 = transitions aut2
-     updateKey k2 k m = case Map.lookup k m of
-                        Nothing -> m
-                        Just v  -> Map.insert k2 v (Map.delete k m)
-     newT1 = foldr (updateKey (startSt aut2)) t1 aut1Final
+     updateKey k m = case Map.lookup k m of
+                     Nothing -> m
+                     Just v  -> Map.insert aut2Start v (Map.delete k m)
+     replaceFinal (f,t) = (f, foldr updateKey t aut1Final)
+     newT1 = Map.fromList $ map replaceFinal $ Map.toList t1
      newStates1 = map (\\ aut1Final) $ states aut1
      --
  in  aut1 { states      = [ concat $ newStates1 ++ states aut2 ]
@@ -1016,7 +1019,7 @@ incrStates prefix aut =
  let -- increment a state
      addP_s = (prefix +)
      -- increment all the states involved in a transition
-     addP_t (st,l) = (addP_s st, l)
+     addP_t (st,l) = (addP_s st, Map.mapKeys addP_s l)
  in aut { startSt     = addP_s (startSt aut)
         , states      = map (map addP_s) $ states aut
         , transitions = Map.fromList $ map addP_t $
