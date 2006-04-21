@@ -773,6 +773,25 @@ mergeItems master slave =
  master { ciDerivation = ciDerivation master ++ (ciDerivation slave) }
 \end{code}
 
+Note that we do not perform index accesibility filtering on auxiliary
+trees.  What we're after here is delayed substitution, meaning that we
+don't do any substitution until the adjunctions are done.  If an
+auxiliary tree has substitution nodes, this puts us in the paradoxical
+situation where we're trying to delay a substitution which we need in
+order to perform an adjunction.
+
+Consider for example, the semantics \texttt{john(j) ask(e1 j e2) go(e2
+j w) where(w)} which we intend to realise as \natlang{John asks where to
+go}.  Depending on your grammar, one conceivable way to realise this is
+as an initial tree for ``to go'', and an auxiliary tree for ``asks'' (a
+sentential modifier).  You plug ``where'' into ``to go'' to get ``where
+to go'' and ``John'' into ``asks''.  This gives you an auxiliary tree
+``John asks'' which adjoins into another tree ``where to go''.  Now the
+problem is that if you enable iaf on auxiliary trees, you're not going
+to be able to construct the ``John asks'' tree because it thinks that
+by doing so, you have sealed off access to the \texttt{j} index in
+\texttt{go(e2 j w)}.  Conclusion: iaf on auxiliary trees is a no-no.
+
 \begin{code}
 instance IafAble CkyItem where
   iafAcc   = ciAccesible
@@ -784,6 +803,7 @@ instance IafAble CkyItem where
       concatMap (getIdx.snd3) (ciSubstnodes i)
 
 dispatchIafFailure :: CkyItem -> CkyState (Maybe CkyItem)
+dispatchIafFailure item | ciAux item = return $ Just item
 dispatchIafFailure itemRaw =
  do s <- get
     let bmap = ciSemBitMap item
