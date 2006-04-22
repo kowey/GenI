@@ -98,8 +98,6 @@ data TagElem = TE {
                    tidnum       :: Integer,
                    ttype        :: Ptype,
                    ttree        :: Tree GNode,
-                   substnodes   :: [TagSite],
-                   adjnodes     :: [TagSite],
                    tsemantics   :: Sem,
                    -- optimisation stuff
                    -- (polarity key to charge interval)
@@ -136,9 +134,7 @@ instance Ord TagElem where
 
 instance Replacable TagElem where
   replace s te =
-    te { substnodes = replace s (substnodes te)
-       , adjnodes   = replace s (adjnodes te)
-       , tinterface = replace s (tinterface te)
+    te { tinterface = replace s (tinterface te)
        , ttree      = replace s (ttree te)
        , tsemantics = replace s (tsemantics te) }
 
@@ -160,7 +156,6 @@ emptyTE = TE { idname = "",
                tidnum = -1,
                ttype  = Initial,
                ttree  = Node emptyGNode [],
-               substnodes = [], adjnodes   = [],
                tsemantics = [], 
                tpolarities = Map.empty,
                tsempols    = [],

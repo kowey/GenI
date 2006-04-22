@@ -82,7 +82,7 @@ import NLP.GenI.General
   ( combinations, treeLeaves, BitVector, geniBug, fst3, snd3 )
 import NLP.GenI.Tags
   ( TagElem, tidnum, ttree, tsemantics, ttype,
-    ts_tbUnificationFailure, TagSite, substnodes
+    ts_tbUnificationFailure, TagSite, detectSites
   )
 import Statistics ( Statistics )
 
@@ -343,7 +343,7 @@ leafToItem left (te,pp) node = CkyItem
   , ciDiagnostic   = []
   , ciAccesible    = [] -- to be set
   , ciInaccessible = []
-  , ciSubstnodes   = substnodes te
+  , ciSubstnodes   = (fst.detectSites.ttree) te
   , ciDerivation   = [ InitOp ] }
   where
    spineSide | left                = LeftSide

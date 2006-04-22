@@ -38,7 +38,7 @@ module NLP.GenI.GeniParsers (
 
 import NLP.GenI.General ((!+!), Interval, ival)
 import NLP.GenI.Btypes
-import NLP.GenI.Tags (TagElem(..), emptyTE, detectSites, setTidnums)
+import NLP.GenI.Tags (TagElem(..), emptyTE, setTidnums)
 import Control.Monad (liftM)
 import Data.List (sort)
 import qualified Data.Map  as Map 
@@ -362,8 +362,6 @@ geniTagElem =
                      , tinterface = iface
                      , ttype  = theType
                      , ttree = theTree
-                     , substnodes = (fst.detectSites) theTree
-                     , adjnodes   = (snd.detectSites) theTree
                      , tsemantics = sem }
 \end{code}
 

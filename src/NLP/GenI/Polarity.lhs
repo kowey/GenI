@@ -847,7 +847,7 @@ detectPolFeatures tes =
       -- root node is implicitly canceled by the foot node
       rfeats, sfeats :: [Flist]
       rfeats = map (gdown.root.ttree) $ filter (\t -> ttype t == Initial) tes
-      sfeats = map ((concatMap snd3).substnodes) $ filter (not.null.substnodes) tes
+      sfeats = [ concat s | s <- map substTops tes, (not.null) s ]
       --
       attrs :: Flist -> [String]
       attrs avs = [ a | (a,v) <- avs, isConst v ]
@@ -862,11 +862,10 @@ detectPolFeatures tes =
 detectSansIdx :: [TagElem] -> [TagElem]
 detectSansIdx =
   let rfeats t = (gdown.root.ttree) t
-      sfeats t = ((map snd3).substnodes) t
-      feats  t | ttype t == Initial = concat $ (rfeats t) : (sfeats t)
-      feats  t = concat $ sfeats t
+      feats  t | ttype t == Initial = concat $ (rfeats t) : (substTops t)
+      feats  t = concat $ substTops t
       attrs avs = [ a | (a,v) <- avs, isConst v ]
-      hasIdx t = "idx" `elem` (attrs.feats $ t) || (ttype t /= Initial && (null $ substnodes t))
+      hasIdx t = "idx" `elem` (attrs.feats $ t) || (ttype t /= Initial && (null $ substTops t))
   in filter (not.hasIdx)
 \end{code}
 
@@ -904,14 +903,13 @@ detectPols' te =
       --
       rootdown  = (gdown.root.ttree) te
       rootup    = (gup.root.ttree) te
-      subup     = [ gup gn | gn <- (flatten.ttree) te, gtype gn == Subs ]
       rstuff   :: [[String]]
       rstuff   = getval cat_ rootup -- cat is special, see below
                  ++ (concatMap (\v -> getval v rootdown) otherFeats)
       -- re:above, cat it is considered global to the whole tree
       -- to be robust, we grab it from the top feature
       substuff :: [[String]]
-      substuff = concatMap (\v -> concatMap (getval v) subup) feats
+      substuff = concatMap (\v -> concatMap (getval v) (substTops te)) feats
       --
       getval :: String -> Flist -> [[String]]
       getval att fl =
@@ -941,6 +939,9 @@ detectPols' te =
       --
       oldfm = tpolarities te
   in te { tpolarities = foldr addPol oldfm pols }
+
+substTops :: TagElem -> [Flist]
+substTops t = [ gup gn | gn <- (flatten.ttree) t, gtype gn == Subs ]
 \end{code}
 
 

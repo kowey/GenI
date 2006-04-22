@@ -71,9 +71,9 @@ import NLP.GenI.Btypes
    )
 
 import NLP.GenI.Tags (Tags, TagElem, emptyTE,
-             idname, ttreename, detectSites,
+             idname, ttreename,
              ttype, tsemantics, ttree, tsempols,
-             tinterface, substnodes, adjnodes,
+             tinterface,
              setTidnums) 
 
 import NLP.GenI.Configuration
@@ -609,7 +609,6 @@ combineOne lexitem e =
        featsUnified = replace fsubst paramsUnified 
        -- detect subst and adj nodes
        unified = featsUnified
-       (snodes,anodes) = detectSites unified 
        -- the final result
        showid i = if null i then "" else ("-" ++ i)
         -- if the parameters are of different length
@@ -631,8 +630,6 @@ combineOne lexitem e =
                 ttreename = pfamily e,
                 ttype = ptype e,
                 ttree = setLexeme (iword lexitem) unified,
-                substnodes = snodes,
-                adjnodes   = anodes,
                 tsemantics = replace fsubst sem,
                 tsempols    = isempols lexitem,
                 tinterface  = funif

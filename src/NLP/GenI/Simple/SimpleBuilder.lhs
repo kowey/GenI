@@ -77,9 +77,7 @@ import qualified NLP.GenI.Builder as B
 import NLP.GenI.Tags (TagElem, TagSite, TagDerivation,
              idname, tidnum,
              ttree, ttype, tsemantics,
-             adjnodes,
-             substnodes,
-             tagLeaves,
+             detectSites, tagLeaves,
              ts_synIncomplete, ts_semIncomplete, ts_tbUnificationFailure,
              ts_noRootCategory, ts_wrongRootCategory,
             )
@@ -195,6 +193,9 @@ data SimpleItem = SimpleItem
  { siTagElem   :: TagElem
  , siId        :: ChartId
  --
+ , siSubstnodes :: [TagSite]
+ , siAdjnodes   :: [TagSite]
+ --
  , siSemantics :: BitVector
  , siPolpaths  :: BitVector
  -- if there are things wrong with this item, what?
@@ -210,13 +211,15 @@ data SimpleItem = SimpleItem
 type ChartId = Integer
 
 instance Replacable SimpleItem where
-  replace s i = i { siTagElem = replace s (siTagElem i) }
+  replace s i = i { siSubstnodes = replace s (siSubstnodes i)
+                  , siAdjnodes   = replace s (siAdjnodes i)
+                  , siTagElem = replace s (siTagElem i) }
 \end{code}
 
 \begin{code}
 -- | True if the chart item has no open substitution nodes
 closed :: SimpleItem -> Bool
-closed = null.substnodes.siTagElem
+closed = null.siSubstnodes
 
 -- | True if the chart item is an auxiliary tree
 aux :: SimpleItem -> Bool
@@ -228,8 +231,6 @@ closedAux x = (aux x) && (closed x)
 
 adjdone = null.siAdjnodes
 
-siAdjnodes = adjnodes.siTagElem
-siSubstnodes = substnodes.siTagElem
 siInitial = not.aux
 \end{code}
 
@@ -262,19 +263,23 @@ initSimpleBuilder twophase input config =
 
 
 initSimpleItem :: SemBitMap -> (TagElem, BitVector) -> SimpleItem
-initSimpleItem bmap (te,pp) = SimpleItem
- { siId        = tidnum te
- , siTagElem   = te
- , siSemantics = semToBitVector bmap (tsemantics te)
- , siPolpaths  = pp
- , siDiagnostic = []
- -- how was this item produced?
- , siDerivation = (0, [])
- -- nodes to highlight
- , siHighlight  = []
- -- for generation sans semantics
- , siAdjlist = []
- }
+initSimpleItem bmap (te,pp) =
+ case (detectSites.ttree) te of
+ (snodes,anodes) -> SimpleItem
+  { siId        = tidnum te
+  , siTagElem   = te
+  , siSemantics = semToBitVector bmap (tsemantics te)
+  , siSubstnodes = snodes
+  , siAdjnodes   = anodes
+  , siPolpaths  = pp
+  , siDiagnostic = []
+  -- how was this item produced?
+  , siDerivation = (0, [])
+  -- nodes to highlight
+  , siHighlight  = []
+  -- for generation sans semantics
+  , siAdjlist = []
+  }
 \end{code}
 
 % --------------------------------------------------------------------
@@ -356,7 +361,7 @@ generateStep_2p' =
      -- put the given into the chart untouched
      if (curStep == Initial)
         then addToChart given
-        else when (null.adjnodes.siTagElem $ given) $ trashIt given
+        else when (adjdone given) $ trashIt given
 \end{code}
 
 \subsection{Helpers for the generateSteps}
@@ -531,15 +536,14 @@ iapplySubstNode item1 item2 sn@(n, fu, fd) = {-# SCC "applySubstitution" #-}
 
       --
       ncopy x = (gnname x, gup x, gdown x)
-      adj1  = (ncopy nr) : (delete (ncopy r) $ adjnodes te1)
-      adj2  = adjnodes te2
-      newadjnodes   = sort $ nub $ adj1 ++ adj2
-      newTe = te2{ttree = ntree,
-                  substnodes = (delete sn (substnodes te2))++ (substnodes te1),
-                  adjnodes =   newadjnodes}
+      adj1  = (ncopy nr) : (delete (ncopy r) $ siAdjnodes item1)
+      adj2  = siAdjnodes item2
+      newTe = te2{ttree = ntree}
       res = replace subst $ combineSimpleItems 's' item1 $
-            item2 { siTagElem   = newTe
-                  , siHighlight = [gnname nr] }
+            item2 { siTagElem    = newTe
+                  , siSubstnodes = (delete sn $ siSubstnodes item2) ++ (siSubstnodes item1)
+                  , siAdjnodes   = sort $ nub $ adj1 ++ adj2
+                  , siHighlight  = [gnname nr] }
   in if (siInitial item1 && succ1 && succ2)
      then do incrCounter "substitutions" 1
              return [res]
@@ -597,8 +601,10 @@ sansAdjunction item | closed item =
    let te = siTagElem item
        gn = fst3 ahead
        ntree = constrainAdj gn (ttree te)
-       te2   = te { adjnodes = atail, ttree = ntree }
-   in return $! [item { siTagElem = te2, siHighlight = [gn] }]
+       te2   = te { ttree = ntree }
+       newItem = item { siTagElem = te2, siHighlight = [gn]
+                      , siAdjnodes = atail }
+   in return $! [newItem]
 sansAdjunction _ = return []
 \end{code}
 
@@ -665,25 +671,23 @@ iapplyAdjNode item1 item2 an@(n, an_up, an_down) = do
       -- ------------------------
       ncopy x = (gnname x, gup x, gdown x)
       -- 1) delete the adjunction site and the aux root node
-      auxlite = delete (ncopy r) $ adjnodes te1
-      telite  = delete an $ adjnodes te2
+      auxlite = delete (ncopy r) $ siAdjnodes item1
+      telite  = delete an $ siAdjnodes item2
       -- 2) union the remaining adjunction nodes
       newadjnodes' = auxlite ++ telite
       -- 3) apply the substitutions
-      nte2 = te2 { ttree = ntree, adjnodes = newadjnodes' }
+      nte2 = te2 { ttree = ntree }
       res' = replace subst $ combineSimpleItems 'a' item1 $ item2
                { siTagElem = nte2
                , siHighlight = map gnname [anr, anf]
                , siAdjlist = (n, (tidnum te1)):(siAdjlist item2)
+               , siAdjnodes = newadjnodes'
                }
       -- 4) add the new adjunction nodes
       --    this has to come after 3 so that we don't repeat the subst
-      addextra a = (ncopy anr) : a
+      res = res' { siAdjnodes = (ncopy anr) : siAdjnodes res' }
   -- the final result
   -- ----------------
-  let res = res' { siTagElem = t2 }
-            where t2 = t { adjnodes = (addextra.adjnodes) t }
-                  t  = siTagElem res'
   return res
 \end{code}
 
@@ -726,19 +730,15 @@ combineSimpleItems d item1 item2 =
 renameSimpleItem :: Char -> SimpleItem -> SimpleItem
 renameSimpleItem c item =
  let al = map (\(n, tid) -> (c:n, tid)) (siAdjlist item)
- in item { siTagElem = renameTagElem c $ siTagElem item
+ in item { siTagElem    = renameTagElem c $ siTagElem item
+         , siSubstnodes = map (\(n, fu, fd) -> (c:n, fu, fd)) (siSubstnodes item)
+         , siAdjnodes   = map (\(n, fu, fd) -> (c:n, fu, fd)) (siAdjnodes item)
          , siAdjlist = al }
 
 -- | Given a 'Char' c and a 'TagElem' te, renames nodes in
 -- substnodes, adjnodes and the tree in te by prefixing c.
 renameTagElem :: Char -> TagElem -> TagElem
-renameTagElem c te =
-  let sn = map (\(n, fu, fd) -> (c:n, fu, fd)) (substnodes te)
-      an = map (\(n, fu, fd) -> (c:n, fu, fd)) (adjnodes te)
-      t = renameTree c (ttree te)
-  in te{substnodes = sn,
-        adjnodes = an,
-        ttree = t}
+renameTagElem c te = te{ ttree = renameTree c (ttree te) }
 \end{code}
 
 \subsubsection{Derivation trees}
@@ -897,11 +897,10 @@ tbUnifyTree item = {-# SCC "tbUnifyTree" #-}
               (_,u3,_) = unifyFeat2 u2 d2
       --
       fixItem :: Subst -> Tree GNode -> SimpleItem
-      fixItem sb tt2 = item { siTagElem =
-        te { ttree      = mapTree fixNode tt2
-           , adjnodes   = map (fixSite sb) (adjnodes te)
-           , substnodes = map (fixSite sb) (substnodes te)}
-      }
+      fixItem sb tt2 =
+        item { siTagElem    = te { ttree = mapTree fixNode tt2 }
+             , siAdjnodes   = map (fixSite sb) (siAdjnodes item)
+             , siSubstnodes = map (fixSite sb) (siSubstnodes item) }
   in case (tryUnification $ (ttree.siTagElem) item) of
        Left  n        -> Left  n
        Right (sb,tt2) -> Right (fixItem sb tt2)
