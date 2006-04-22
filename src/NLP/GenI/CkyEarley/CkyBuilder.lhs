@@ -275,11 +275,7 @@ initBuilder isEarley input config =
   let (sem, _) = B.inSemInput input
       bmap  = defineSemanticBits sem
       cands = concatMap (initTree isEarley bmap) $ B.inCands input
-      dispatchFn =
-        ckyDispatch >-->
-          (if isIaf config
-           then dispatchIafFailure >--> dispatchToAgenda
-           else dispatchToAgenda)
+      dispatchFn = ckyDispatch (isIaf config)
       initS = S
        { theAgenda  = []
        , theChart = []
@@ -813,8 +809,12 @@ We use the generic dispatch mechanism described in section \ref{sec:dispatch}.
 \begin{code}
 type CKY_DispatchFilter = DispatchFilter CkyState CkyItem
 
-ckyDispatch :: CKY_DispatchFilter
-ckyDispatch = dispatchTbFailure >--> dispatchRedundant >--> dispatchResults
+ckyDispatch :: Bool -- ^ index accessibility filtering
+            -> CKY_DispatchFilter
+ckyDispatch iaf =
+  dispatchTbFailure >--> dispatchRedundant >--> dispatchResults >-->
+    (if iaf then dispatchIafFailure >--> dispatchToAgenda
+            else dispatchToAgenda)
 
 dispatchToAgenda, dispatchRedundant, dispatchResults, dispatchTbFailure :: CKY_DispatchFilter
 
