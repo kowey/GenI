@@ -124,24 +124,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 This document contains the source code to the GenI generator 
 partly adapted to a literate programming style.  
 
-\section{Core files}
+\section{Core files and Builders}
 
-Geni.lhs and Mstate.lhs perform the candidate selection and generation.
-They will tend make heavy use of the modules Btypes.lhs and Tags.lhs, in
-which we try to encapsulate some basic or generic operations into the
-files.
+The modules where the most action happens are Geni (chapter
+\ref{cha:geni}) which acts as an interface between the front end and
+backend(s) and also takes care of lexical selection.
 
-\begin{description}
- \item[Main.lhs] - determines which user interface to run 
- \item[Geni.lhs] - parses and formats data for the generator 
- \item[Builder.lhs] - a chart generator   
- \item[SimpleBuilder.lhs] - the chart generator itself (note: substitution,
- adjunction, FS unification are done here, not in Tags.lhs)
- \item[CkyBuilder.lhs] - CKY version of the chart generator
- \item[Btypes.lhs] - basic data types and operations
- \item[Tags.lhs] - TAG specific data types
- \item[Automaton.lhs] - NFA  
-\end{description}
+Otherwise, you probably want to look at the various Builders in
+\ref{prt:builders}.  This is where all the chart generation stuff
+happens.
+
+The other core modules provide basic data structures and operations
+like feature structure unification.
 
 \section{Enhancements}
 
@@ -156,32 +150,17 @@ modules.
  \item[Polarity.lhs]   - the polarity automaton optimisation 
 \end{description}
 
-\section{User Interface}
+\section{Miscellaneous}
 
-We use the WxHaskell toolkit for the Geni user interface.  Geni
-can also be used without the GUI if you edit the .genirc file.
-We currently visualise our results with Graphviz, a third party graph
-visualisation tool.
+For reference, we also include in chapter \label{cha:GeniParsers} the
+parsers for all GenI formats (macros, lexicon, input semantics).  These
+are all written in Parsec.  They used to be written in Happy, but I
+eventually found that hard to maintain and extend.
 
-\begin{description}
- \item[Console.lhs] - provides console and batch processing
- \item[Gui.lhs] - main GUI code 
- \item[SysGeni.lhs] - handles operating system stuff
- \item[Treeprint.lhs] - outputs trees in various formats 
-                        (currently as sentences and as graphviz dot
-                        files)
- \item[Graphviz.hs] - interacts with the graphviz drawing tool (note:
-                      not literate Haskell; see the API or the source)
-\end{description}
-
-\section{Input files}
-
-\begin{description}
- \item[GenIParsers.lhs] parsers for input files (written using the
- Parsec library)
- \item[Configuration.lhs] inteprets result of Cparser.y
-\end{description}
-
+There are also many modules which I have removed from this document,
+mostly the user interface code.  See chapter \ref{cha:other} for
+details.  One idea which might be interesting is to make the user
+interface documentation just be the users manual, \`a la darcs.
 
 % -------------------------------------------------------------------------
 % future literate notes
@@ -197,6 +176,7 @@ visualisation tool.
 \input{Automaton.lhs}       
 
 \part{Builders}
+\label{prt:builders}
 
 \input{Builder.lhs}       
 \input{Simple/SimpleBuilder.lhs}
@@ -233,6 +213,7 @@ See section \ref{sec:foot_constraint}
 %\input{Converter.lhs}
 
 \chapter{Other source code}
+\label{cha:other}
 
 Some parts of the GenI source code do not appear to be adapted to the
 literate programming style: they are not included in this document.
