@@ -65,5 +65,5 @@ writeMacros t tes =
                                    , "import Btypes"
                                    , "import Tags"
                                    , "myGeniGrammar = " ++ hsLongList tes ]
-            "geni"    -> toGeniHand tes
+            "geni"    -> unlines $ map toGeniHand tes
             _         -> fail ("Unknown -t type" ++ t)
