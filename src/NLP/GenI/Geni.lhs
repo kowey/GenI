@@ -25,9 +25,9 @@ module also does lexical selection and anchoring because these processes might
 involve some messy IO performance tricks.
 
 \begin{code}
-module NLP.GenI.Geni (ProgState(..), ProgStateRef,
+module NLP.GenI.Geni (ProgState(..), ProgStateRef, emptyProgState,
              showRealisations, groupAndCount,
-             initGeni, runGeni, 
+             initGeni, runGeni, Selector, compiledLexSelection,
              loadGrammar, loadLexicon, 
              loadTestSuite, loadTargetSemStr,
              combine, testGeni)
@@ -43,6 +43,7 @@ import Control.Monad (when)
 import Data.IORef (IORef, readIORef, modifyIORef)
 import Data.List (intersperse, sort, nub)
 import qualified Data.Map as Map
+import Data.Maybe (fromMaybe)
 
 import System.Exit ( exitWith, ExitCode(ExitSuccess, ExitFailure) )
 import System.IO (hPutStr, hClose, hGetContents)
@@ -135,6 +136,17 @@ data ProgState = ST{pa     :: Params,
                }
 
 type ProgStateRef = IORef ProgState
+
+-- | The program state when you start GenI for the very first time
+emptyProgState :: Params -> ProgState
+emptyProgState args =
+ ST { pa = args
+    , gr = []
+    , le = Map.empty
+    , morphinf = const Nothing
+    , ts = ([],[])
+    , tcase = []
+    , tsuite = [] }
 \end{code}
 
 % --------------------------------------------------------------------
@@ -322,12 +334,17 @@ It returns a list of sentences, a set of Statistics, and the generator state.
 The generator state is mostly useful for debugging via the graphical interface.
 
 \begin{code}
-runGeni :: ProgStateRef -> B.Builder st it Params -> IO ([String], Statistics, st)
-runGeni pstRef builder = 
+-- | If in doubt about the Maybe Selector argument, just pass in Nothing;
+--   it is only used for instances of GenI where the grammar is compiled
+--   directly into GenI.
+type Selector = ProgState -> IO ([TagElem],[ILexEntry])
+runGeni :: Maybe Selector -- ^ lexical selection from a precompiled grammar
+        -> ProgStateRef -> B.Builder st it Params -> IO ([String], Statistics, st)
+runGeni mSelector pstRef builder =
   do let run    = B.run builder
          unpack = B.unpack builder
      -- step 1
-     initStuff <- initGeni pstRef
+     initStuff <- initGeni mSelector pstRef
      --
      pst <- readIORef pstRef
      let config  = pa pst
@@ -353,11 +370,12 @@ builder implementation.
 any morpohological literals
 
 \begin{code}
-initGeni :: ProgStateRef -> IO (B.Input)
-initGeni pstRef = 
- do -- lexical selection
+initGeni :: Maybe Selector -> ProgStateRef -> IO (B.Input)
+initGeni mSelector pstRef =
+ do let selector = fromMaybe (runLexSelection) mSelector
+    -- lexical selection
     pstLex   <- readIORef pstRef
-    (cand, lexonly) <- runLexSelection pstLex
+    (cand, lexonly) <- selector pstLex
     -- strip morphological predicates
     let (tsem,tres) = ts pstLex
         tsem2       = stripMorphSem (morphinf pstLex) tsem
@@ -803,6 +821,12 @@ readPreAnchored pst =
     case parsed of
      Left err -> fail (show err)
      Right c  -> return c
+\end{code}
+
+FIXME: for debugging only
+\begin{code}
+compiledLexSelection :: [TagElem] -> Selector
+compiledLexSelection tes _ = return (tes, [])
 \end{code}
 
 % --------------------------------------------------------------------

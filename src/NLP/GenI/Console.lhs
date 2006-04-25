@@ -35,7 +35,7 @@ import NLP.GenI.Geni
 import NLP.GenI.Configuration
   ( Params, isGraphical, outputFile, statsFile, metricsParam, timeoutSecs
   , builderType
-  , BuilderType(..) )
+  , BuilderType(..))
 import qualified NLP.GenI.Builder as B
 import NLP.GenI.CkyEarley.CkyBuilder
 import NLP.GenI.Simple.SimpleBuilder
@@ -52,8 +52,8 @@ handle one test case at a time.  If you want do process the whole
 test suite, you'll have to write a shell script.
 
 \begin{code}
-consoleGeni :: ProgStateRef -> IO()
-consoleGeni pstRef = do 
+consoleGeni :: Maybe Selector -> ProgStateRef -> IO()
+consoleGeni mSelector pstRef = do
   pst <- readIORef pstRef
   when (isGraphical $ pa pst) $ do
     ePutStrLn "GUI not available"
@@ -62,8 +62,8 @@ consoleGeni pstRef = do
   ePutStrLn "======================================================"
   --
   case timeoutSecs $ pa pst of
-    Nothing -> runTestCase pstRef
-    Just t  -> withTimeout t (timeoutErr t) $ runTestCase pstRef
+    Nothing -> runTestCase mSelector pstRef
+    Just t  -> withTimeout t (timeoutErr t) $ runTestCase mSelector pstRef
   where
    timeoutErr t = do ePutStrLn $ "GenI timed out after " ++ (show t) ++ "s"
                      exitTimeout
@@ -152,8 +152,8 @@ specify any test cases, we run the first one.  If the user specifies a non-exist
 test case we raise an error.
 
 \begin{code}
-runTestCase :: ProgStateRef -> IO () 
-runTestCase pstRef = 
+runTestCase :: Maybe Selector -> ProgStateRef -> IO ()
+runTestCase mSelector pstRef =
   do pst <- readIORef pstRef 
      let pstCase    = tcase pst
          pstSuite   = tsuite pst
@@ -187,6 +187,6 @@ runTestCase pstRef =
   where
     helper :: B.Builder st it Params -> IO ([String], Statistics)
     helper builder =
-      do (sentences, stats, _) <- runGeni pstRef builder
+      do (sentences, stats, _) <- runGeni mSelector pstRef builder
          return (sentences, stats)
 \end{code}

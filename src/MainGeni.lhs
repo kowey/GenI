@@ -30,17 +30,34 @@ module Main (main) where
 \begin{code}
 import Data.IORef(newIORef)
 import System(getArgs)
-import qualified Data.Map as Map
 
-import NLP.GenI.Geni(ProgState(..))
+import NLP.GenI.Geni(emptyProgState)
 import NLP.GenI.Console(consoleGeni)
 import NLP.GenI.Configuration(treatArgs, isGraphical, isBatch, Params)
 
+#ifndef PRECOMPILED_GRAMMAR
 #ifndef DISABLE_GUI
 import NLP.GenI.Gui(guiGeni)
+#endif {- PRECOMPILED_GRAMMAR -}
+#endif {- DISABLE_GUI -}
+
+#ifdef PRECOMPILED_GRAMMAR
+import MyGeniGrammar
+import Geni(compiledLexSelection)
+#endif {- PRECOMPILED_GRAMMAR -}
+
+#ifdef PRECOMPILED_GRAMMAR
+mSelector = Just $ compiledLexSelection myGeniGrammar
 #else
+mSelector = Nothing
+#endif {- PRECOMPILED_GRAMMAR -}
+
+#ifdef PRECOMPILED_GRAMMAR
 guiGeni = consoleGeni
-#endif
+#endif {- PRECOMPILED_GRAMMAR -}
+#ifdef DISABLE_GUI
+guiGeni = consoleGeni
+#endif {- DISABLE_GUI -}
 \end{code}
 }
 
@@ -71,21 +88,7 @@ main = do
       graphical = isGraphical confArgs 
   if (graphical && notBatch) 
      then guiGeni pstRef
-     else consoleGeni pstRef
-\end{code}
-
-\paragraph{emptyProgState} is the program state when you start GenI for the very first time
-
-\begin{code}
-emptyProgState :: Params -> ProgState
-emptyProgState args = 
- ST { pa = args 
-    , gr = []
-    , le = Map.empty
-    , morphinf = const Nothing
-    , ts = ([],[])
-    , tcase = []
-    , tsuite = [] }
+     else consoleGeni mSelector pstRef
 \end{code}
 
 % TODO
