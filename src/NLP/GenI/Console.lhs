@@ -91,59 +91,6 @@ consoleGeni mSelector pstRef = do
 %     ePutStrLn $ showOptResults resSet
 %     return ()
 %\end{code}
-%
-%\paragraph{runSample} is used to run a single sample for batch
-%processing of optimisations for as many iterations as requested. The
-%inner layer runs the generator and prints a reduced version of the
-%summary.  The purpose is to reduce the amount of redundant information
-%being displayed to the user; and to summarise everything in a fancy
-%table.
-%
-%\begin{code}
-%runBatchSample :: ProgStateRef -> Params -> IO (GeniResults TagElem)
-%runBatchSample pstRef newPa = do 
-%  modifyIORef pstRef (\x -> x{pa = newPa})
-%  let numIter = batchRepeat newPa
-%  resSet <- mapM (\_ -> runGeni pstRef simpleBuilder) [1..numIter]
-%  --
-%  let avgStats  = avgGstats $ map grStats resSet
-%      res       = (head resSet) { grStats = avgStats } 
-%      sentences = grSentences res
-%      optPair   = grOptStr res
-%      optStr1   = fst optPair
-%      optStr2   = if (optStr1 /= "none ") then ("(" ++ snd optPair ++ ")") else ""
-%  --
-%  ePutStrLn $ "------------" 
-%  ePutStrLn $ "Optimisations: " ++ optStr1 ++ optStr2 
-%  ePutStrLn $ "Automaton paths explored: " ++ (grAutPaths res)
-%  ePutStrLn $ "\nRealisations: " 
-%  ePutStrLn $ showRealisations sentences 
-%  return res
-%\end{code}
-%
-%\paragraph{showOptResults} displays a list of performance results in a
-%single table.  The intention is for each item in the list to be the 
-%result of a different optimisation on the same grammar/semantics
-%
-%\begin{code}
-%showOptResults :: [GeniResults TagElem] -> String
-%showOptResults grs = 
-%  let header   = [ "      optimisations" 
-%                 , "rslts"
-%                 , "agnd sz"
-%                 , "chrt sz"
-%                 , "compared"
-%                 , "time ms  " ]
-%      display r = [ fst  $ grOptStr r ,
-%                    show $ length $ grDerived r,
-%                    show $ geniter s,
-%                    show $ szchart s,
-%                    show $ numcompar s,
-%                    grTimeStr r ]
-%                 where s = grStats r
-%  in showTable header grs display
-%\end{code}
-%
 
 \section{Test suites}
 
