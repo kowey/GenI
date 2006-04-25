@@ -383,6 +383,7 @@ instance (HsShowable a) => HsShowable (Tree a) where
 -- | Note that you'll need to @import qualified Data.Map@
 instance (HsShowable a, HsShowable b) => HsShowable (Data.Map.Map a b) where
  -- | Note that you'll need to @import qualified Data.Map@
+ hsShow m | Data.Map.null m = "Data.Map.empty"
  hsShow m = hsParens $ "Data.Map.fromList " ++ (hsShow $ Data.Map.toList m)
 
 instance HsShowable GeniVal where
@@ -394,6 +395,9 @@ instance HsShowable GNode where
  hsShow (GN a b c d e f g) = hsConstructor "GN" [hsShow a, hsShow b, hsShow c, hsShow d, hsShow e, hsShow f, hsShow g]
 
 instance HsShowable TagElem where
- hsShow (TE a b c d e f g h i j k) =
-  hsConstructor "TE" [hsShow a, hsShow b, hsShow c, hsShow d, hsShow e, hsShow f, hsShow g, hsShow h, hsShow i, hsShow j, hsShow k]
+ hsShow (TE a b c d e f g h i) =
+  hsConstructor "TE" [hsShow a, hsShow b, hsShow c, hsShow d, hsShow e, hsShow f, hsShow g, hsShow h, hsShow i]
+
+instance HsShowable f => HsShowable (Ttree f) where
+ hsShow (TT a b c d e f) = hsConstructor "TT" [hsShow a, hsShow b, hsShow c, hsShow d, hsShow e, hsShow f]
 \end{code}
