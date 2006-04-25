@@ -175,7 +175,7 @@ $(OFILE) : $(SOURCE_FILES)
 	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES_GUI) $(IFILE).lhs -o $(OFILE)
 	$(OS_SPECIFIC_STUFF)
 
-$(CONVERTER): ./src/Converter.lhs $(SOURCE_FILES)
+$(CONVERTER): ./src/Converter.hs $(SOURCE_FILES)
 	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES) -package HaXml $< -o $@
 	$(OS_SPECIFIC_STUFF)
 
