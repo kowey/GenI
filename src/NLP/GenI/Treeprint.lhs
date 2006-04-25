@@ -32,14 +32,15 @@ import qualified Data.Map
 
 import NLP.GenI.General (mapTree)
 import NLP.GenI.Tags
- ( TagElem(TE), idname,
+ ( TagElem(TE), TagSite, idname,
    tsemantics, ttree, tinterface, ttype, ttreename,
  )
 import NLP.GenI.Btypes (GeniVal(GConst, GVar, GAnon), AvPair, Ptype(..),
+               Ttree(TT, pidname, pfamily, pfeat, ptype, tree), Macros,
                GNode(..), GType(..), Flist,
                isConst,
                showLexeme,
-               Pred, showSem, showAv)
+               Pred, Sem, SemPols, showSem, showAv)
 
 import NLP.GenI.Graphviz
   ( gvUnlines, gvNewline
@@ -317,6 +318,14 @@ instance GeniHandShow TagElem where
   ++ "\n" ++ (toGeniHand.ttree $ te)
   ++ "\n" ++ "semantics:" ++ (toGeniHand.tsemantics $ te)
 
+instance (GeniHandShow a) => GeniHandShow (Ttree a) where
+ toGeniHand tt =
+  "\n% ------------------------- " ++ pidname tt
+  ++ "\n" ++ (pfamily tt) ++ ":" ++ (pidname tt)
+  ++ " "  ++ (toGeniHand.pfeat $ tt)
+  ++ " "  ++ (toGeniHand.ptype $ tt)
+  ++ "\n" ++ (toGeniHand.tree $ tt)
+
 squares s = "[" ++ s ++ "]"
 \end{code}
 
@@ -370,6 +379,6 @@ instance HsShowable GNode where
  hsShow (GN a b c d e f g) = hsConstructor "GN" [hsShow a, hsShow b, hsShow c, hsShow d, hsShow e, hsShow f, hsShow g]
 
 instance HsShowable TagElem where
- hsShow (TE a b c d e f g h i) =
-  hsConstructor "TE" [hsShow a, hsShow b, hsShow c, hsShow d, hsShow e, hsShow f, hsShow g, hsShow h, hsShow i]
+ hsShow (TE a b c d e f g h i j k) =
+  hsConstructor "TE" [hsShow a, hsShow b, hsShow c, hsShow d, hsShow e, hsShow f, hsShow g, hsShow h, hsShow i, hsShow j, hsShow k]
 \end{code}
