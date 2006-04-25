@@ -342,11 +342,14 @@ class HsShowable a where
   hsShow :: a -> String
 
 hsParens s = "(" ++ s ++ ")"
+hsBrackets s = "[" ++ s ++ "]"
 
 hsConstructor :: String -> [String] -> String
 hsConstructor c args = hsParens $ unwords (c:args)
+hsList xs = hsBrackets $ concat $ intersperse "," $ map hsShow xs
+hsLongList xs = hsBrackets $ concat $ intersperse "\n\n," $ map hsShow xs
 
-instance HsShowable Char where hsShow = show
+instance HsShowable String where hsShow = show
 instance HsShowable Bool where hsShow = show
 instance HsShowable Int  where hsShow = show
 instance HsShowable Integer where hsShow = show
@@ -354,24 +357,36 @@ instance HsShowable Integer where hsShow = show
 instance HsShowable Ptype where hsShow = show
 instance HsShowable GType where hsShow = show
 
+-- | :-( I wish I could make do this with a default, overridable instance instead
+--   basically, i would like to use hsList everywhere unless there is a specific
+--   instance declaration, like one for String
+instance (HsShowable a, HsShowable b) => HsShowable [(a,b)] where hsShow = hsList
+instance (HsShowable a) => HsShowable (Forest a) where hsShow = hsList
+instance HsShowable [String] where hsShow = hsList
+instance HsShowable [TagSite] where hsShow = hsList
+instance HsShowable [GeniVal] where hsShow = hsList
+instance HsShowable Sem where hsShow = hsList
+instance HsShowable SemPols where hsShow = hsList
+instance HsShowable [SemPols] where hsShow = hsList
+instance HsShowable [TagElem] where hsShow = hsList
+instance HsShowable Macros where hsShow = hsList
+
 instance (HsShowable a, HsShowable b) => HsShowable (a,b) where
  hsShow (a,b) = hsParens $ (hsShow a) ++ "," ++ (hsShow b)
 
 instance (HsShowable a, HsShowable b, HsShowable c) => HsShowable (a,b,c) where
  hsShow (a,b,c) = hsParens $ (hsShow a) ++ "," ++ (hsShow b) ++ "," ++ (hsShow c)
 
-instance (HsShowable a) => HsShowable [a] where
- hsShow as = "[" ++ (concat $ intersperse "," $ map hsShow as) ++ "]"
-
 instance (HsShowable a) => HsShowable (Tree a) where
  hsShow (Node a k) = hsConstructor "Node" [hsParens $ hsShow a, hsShow k]
 
 -- | Note that you'll need to @import qualified Data.Map@
 instance (HsShowable a, HsShowable b) => HsShowable (Data.Map.Map a b) where
+ -- | Note that you'll need to @import qualified Data.Map@
  hsShow m = hsParens $ "Data.Map.fromList " ++ (hsShow $ Data.Map.toList m)
 
 instance HsShowable GeniVal where
- hsShow (GConst xs) = hsConstructor "GConst" (map hsShow xs)
+ hsShow (GConst xs) = hsConstructor "GConst" [hsShow xs]
  hsShow (GVar xs)   = hsConstructor "GVar" [hsShow xs]
  hsShow GAnon       = "GAnon"
 
