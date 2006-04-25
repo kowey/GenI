@@ -36,7 +36,7 @@ import NLP.GenI.Tags
    tsemantics, ttree, tinterface, ttype, ttreename,
  )
 import NLP.GenI.Btypes (GeniVal(GConst, GVar, GAnon), AvPair, Ptype(..),
-               Ttree(TT, pidname, pfamily, pfeat, ptype, tree), Macros,
+               Ttree(TT, params, pidname, pfamily, pfeat, ptype, tree, psemantics), Macros,
                GNode(..), GType(..), Flist,
                isConst,
                showLexeme,
@@ -322,10 +322,16 @@ instance (GeniHandShow a) => GeniHandShow (Ttree a) where
  toGeniHand tt =
   "\n% ------------------------- " ++ pidname tt
   ++ "\n" ++ (pfamily tt) ++ ":" ++ (pidname tt)
-  ++ " "  ++ (toGeniHand.pfeat $ tt)
+  ++ " "  ++ (parens $    (unwords $ map toGeniHand $ params tt)
+                       ++ " ! "
+                       ++ (unwords $ map toGeniHand $ pfeat tt))
   ++ " "  ++ (toGeniHand.ptype $ tt)
   ++ "\n" ++ (toGeniHand.tree $ tt)
+  ++ case psemantics tt of
+     Nothing   -> ""
+     Just psem -> "\n" ++ "semantics:" ++ (toGeniHand psem)
 
+parens s  = "(" ++ s ++ ")"
 squares s = "[" ++ s ++ "]"
 \end{code}
 
@@ -386,6 +392,10 @@ instance (HsShowable a, HsShowable b) => HsShowable (Data.Map.Map a b) where
  hsShow m | Data.Map.null m = "Data.Map.empty"
  hsShow m = hsParens $ "Data.Map.fromList " ++ (hsShow $ Data.Map.toList m)
 
+instance HsShowable a => HsShowable (Maybe a) where
+ hsShow Nothing  = "Nothing"
+ hsShow (Just x) = hsConstructor "Just" [hsShow x]
+
 instance HsShowable GeniVal where
  hsShow (GConst xs) = hsConstructor "GConst" [hsShow xs]
  hsShow (GVar xs)   = hsConstructor "GVar" [hsShow xs]
@@ -399,5 +409,5 @@ instance HsShowable TagElem where
   hsConstructor "TE" [hsShow a, hsShow b, hsShow c, hsShow d, hsShow e, hsShow f, hsShow g, hsShow h, hsShow i]
 
 instance HsShowable f => HsShowable (Ttree f) where
- hsShow (TT a b c d e f) = hsConstructor "TT" [hsShow a, hsShow b, hsShow c, hsShow d, hsShow e, hsShow f]
+ hsShow (TT a b c d e f g) = hsConstructor "TT" [hsShow a, hsShow b, hsShow c, hsShow d, hsShow e, hsShow f, hsShow g]
 \end{code}

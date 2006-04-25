@@ -243,6 +243,7 @@ geniTreeDef ttypeP =
      (params,iface)   <- geniParams 
      ttype    <- ttypeP
      theTree  <- geniTree
+     psem     <- option Nothing $ do { keywordSemantics; liftM Just (squares geniSemantics) }
      --
      return TT{ params = params 
               , pfamily = family
@@ -250,6 +251,7 @@ geniTreeDef ttypeP =
               , pfeat = iface 
               , ptype = ttype 
               , tree = theTree
+              , psemantics = psem
               }
 \end{code}
 
