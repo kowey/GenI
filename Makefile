@@ -24,7 +24,7 @@ OS:=$(shell uname)
 
 SRC      := ./src
 SRC_GENI := ./src/NLP/GenI
-SRC_DIRS := $(SRC) $(SRC_GENI) $(SRC_GENI)/CkyEarley $(SRC_GENI)/Simple
+SRC_DIRS := $(SRC) $(SRC_GENI) $(SRC_GENI)/CkyEarley $(SRC_GENI)/Simple $(SRC_GENI)/Converter
 
 GHC             = ghc
 #-O
@@ -86,13 +86,12 @@ SCRIPT_FILES = bin/runXMGselector\
 	       etc/macstuff/macosx-app\
 
 
-IFILE = $(SRC_GENI)/Main
-CIFILE = $(SRC_GENI)/Converter
-EIFILE = $(SRC_GENI)/ExtractTestCases
+IFILE = $(SRC)/MainGeni
+EIFILE = $(SRC)/ExtractTestCases
 
 CONVERTER := bin/geniconvert
 OFILE = bin/geni
-COFILE = bin/geniconvert
+DOFILE = bin/debugger-geni
 EOFILE = bin/geniExtractCases
 
 DOC_DIR = doc
@@ -169,15 +168,15 @@ tags:
 
 compile: permissions $(OFILE) $(EOFILE)
 
-converter: $(CONVERTER) 
+converter: $(CONVERTER)
 extractor: $(EOFILE)
 
 $(OFILE) : $(SOURCE_FILES)
 	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES_GUI) $(IFILE).lhs -o $(OFILE)
 	$(OS_SPECIFIC_STUFF)
 
-$(COFILE) : $(SOURCE_FILES)
-	$(GHC) -W --make $(GHCPACKAGES) $(CIFILE).lhs -o $(COFILE) 
+$(CONVERTER): ./src/Converter.lhs $(SOURCE_FILES)
+	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES) -package HaXml $< -o $@
 	$(OS_SPECIFIC_STUFF)
 
 $(EOFILE) : $(EIFILE).lhs $(SOURCE_FILES)
