@@ -66,15 +66,13 @@ data Sym = Sym
 newtype Semantics = Semantics [Semantics_] 		deriving (Eq,Show)
 data Semantics_ = Semantics_Literal Literal
                 | Semantics_Sym Sym
+                | Semantics_Semdominance Semdominance
                 deriving (Eq,Show)
-data Literal = Literal Literal_Attrs [Literal_]
+data Literal = Literal Literal_Attrs (Maybe Label) Predicate [Arg]
              deriving (Eq,Show)
 data Literal_Attrs = Literal_Attrs
     { literalNegated :: (Defaultable String)
     } deriving (Eq,Show)
-data Literal_ = Literal_Label_Predicate_Arg ((Maybe Label),Predicate,[Arg])
-              | Literal_Semdominance Semdominance
-              deriving (Eq,Show)
 newtype Label = Label Sym 		deriving (Eq,Show)
 newtype Predicate = Predicate Sym 		deriving (Eq,Show)
 data Arg = ArgSym Sym
@@ -347,22 +345,31 @@ instance XmlContent Semantics_ where
                 case (fromElem c0) of
                 (Just a,rest) -> (Just (Semantics_Sym a), rest)
                 (_,_) ->
-                    (Nothing, c0)
+                        case (fromElem c0) of
+                        (Just a,rest) -> (Just (Semantics_Semdominance a), rest)
+                        (_,_) ->
+                            (Nothing, c0)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (Semantics_Literal a) = toElem a
     toElem (Semantics_Sym a) = toElem a
+    toElem (Semantics_Semdominance a) = toElem a
 instance XmlContent Literal where
     fromElem (CElem (Elem "literal" as c0):rest) =
         (\(a,ca)->
-           (Just (Literal (fromAttrs as) a), rest))
-        (many fromElem c0)
+           (\(b,cb)->
+              (\(c,cc)->
+                 (Just (Literal (fromAttrs as) a b c), rest))
+              (many fromElem cb))
+           (definite fromElem "<predicate>" "literal" ca))
+        (fromElem c0)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem (CString _ s:rest) | all isSpace s = fromElem rest
     fromElem rest = (Nothing, rest)
-    toElem (Literal as a) =
-        [CElem (Elem "literal" (toAttrs as) (concatMap toElem a))]
+    toElem (Literal as a b c) =
+        [CElem (Elem "literal" (toAttrs as) (maybe [] toElem a ++ toElem b
+                                             ++ concatMap toElem c))]
 instance XmlAttributes Literal_Attrs where
     fromAttrs as =
         Literal_Attrs
@@ -371,20 +378,6 @@ instance XmlAttributes Literal_Attrs where
     toAttrs v = catMaybes 
         [ defaultToAttr toAttrFrStr "negated" (literalNegated v)
         ]
-instance XmlContent Literal_ where
-    fromElem c0 =
-        case (fromElem c0) of
-        (Just a,rest) -> (Just (Literal_Label_Predicate_Arg a), rest)
-        (_,_) ->
-                case (fromElem c0) of
-                (Just a,rest) -> (Just (Literal_Semdominance a), rest)
-                (_,_) ->
-                    (Nothing, c0)
-    fromElem (CMisc _:rest) = fromElem rest
-    fromElem (CString _ s:rest) | all isSpace s = fromElem rest
-    fromElem rest = (Nothing, rest)
-    toElem (Literal_Label_Predicate_Arg a) = toElem a
-    toElem (Literal_Semdominance a) = toElem a
 instance XmlContent Label where
     fromElem (CElem (Elem "label" [] c0):rest) =
         (\(a,ca)->

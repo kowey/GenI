@@ -20,21 +20,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 module NLP.GenI.Converter.ReadTagml where
 
 import Data.Char
-import qualified Data.Map as Map
 import Data.List (partition,sort,delete,find)
 import Data.Tree
 import Control.Monad.State (State, runState, get, put)
 import Text.XML.HaXml.Xml2Haskell
 
 import NLP.GenI.Btypes
-  ( AvPair, Flist, ILexEntry(..)
+  ( AvPair, Flist,
   , GType(Subs,Foot,Lex,Other)
   , GNode(..), Macros, Ttree(..)
-  , GeniVal(GConst, GVar), fromGConst,
-  , emptyGNode, emptyMacro, Ptype(..), Pred, Sem)
+  , GeniVal(GConst, GVar, GAnon), fromGConst,
+  , emptyMacro, Ptype(..), Pred, Sem)
 -- import NLP.GenI.Tags(emptyTE,TagElem(..),Tags,TagSite,addToTags)
 import qualified NLP.GenI.Converter.XmgTagml as X 
-import Debug.Trace
 
 -- ======================================================================
 -- Macros
@@ -48,12 +46,6 @@ readTagmlMacros g =
  Just (X.GrammarEntry es) -> Right $ map translateEntry es
  _ -> Left "Not a TAGML grammar entry"
 
--- parseEntryAndSem :: Content -> (MTree,Sem) 
--- parseEntryAndSem e =
---   let litF = keep /> tag "semantics" /> tag "literal"
---       sem  = map parseLiteral (litF e)
---   in  (translateEntry e, sem)
- 
 translateEntry :: X.Entry -> MTree
 translateEntry (X.Entry (X.Entry_Attrs tname) (X.Family family) _ t sem (X.Interface iface)) =
  let ifeats = case iface of
@@ -62,7 +54,8 @@ translateEntry (X.Entry (X.Entry_Attrs tname) (X.Family family) _ t sem (X.Inter
  in (translateTree t) { pfamily = family
                       , pidname = tname
                       , params  = []
-                      , pfeat   = ifeats }
+                      , pfeat   = ifeats
+                      , psemantics = Just $ translateSemantics sem }
 
 -- ----------------------------------------------------------------------
 -- Syntax
@@ -92,7 +85,7 @@ translateTree (X.Tree _ root) =
 -- the fs recursion never goes further than that one level, and that
 -- global features belong to both the top and bottom lists.
 translateNode :: X.Node -> State TreeInfo (Tree GNode)
-translateNode node@(X.Node nattrs _ kids) = do
+translateNode node@(X.Node _ _ kids) = do
   st <- get
   -- update the monadic state
   let idnum = tiNum st
@@ -112,7 +105,7 @@ translateNodeHelper idnum (X.Node nattrs mnargs _) = gn where
               Just (X.Narg n) -> translateFs n
       --
       recursiveNamed x (Node (Left n) _) = n == x
-      recursiveNamed x _                 = False
+      recursiveNamed _ _ = False
       topF_ = find (recursiveNamed "top") allFs
       botF_ = find (recursiveNamed "bot") allFs
       gloF_ = case topF_ of
@@ -163,22 +156,27 @@ translateNodeHelper idnum (X.Node nattrs mnargs _) = gn where
                 gtype   = ntype,
                 gaconstr = aconstr }
 
-{-
 -- ----------------------------------------------------------------------
 -- Semantics
 -- ----------------------------------------------------------------------
 
-parseLiteral :: Content -> Pred 
-parseLiteral lit =
-  let labelF = (o2 "parseLiteral:label" translateSym (children `o` (keep /> tag "label")))
-      predF  = (o2 "parseLiteral:pred"  translateSym (children `o` (keep /> tag "predicate")))
-      argsF  = (concatMap translateSym) . (children `o` (keep /> tag "arg"))
-  in case labelF lit of
-     []    -> geniXmlError "parseLiteral label"
-     (l:_) -> case predF lit of
-              []    -> geniXmlError "parseLiteral pred"
-              (p:_) -> (l, p, argsF lit)
--}
+translateSemantics :: X.Semantics -> Sem
+translateSemantics (X.Semantics ls) = map translateSemantics_ ls
+
+translateSemantics_ :: X.Semantics_ -> Pred
+translateSemantics_ (X.Semantics_Literal l) = translateLiteral l
+translateSemantics_ _ = geniXmlError "fancy semantics not supported"
+
+translateLiteral :: X.Literal -> Pred
+translateLiteral (X.Literal _ mlabel (X.Predicate pred) args) =
+ let label = case mlabel of
+             Nothing          -> GAnon
+             Just (X.Label s) -> translateSym s
+ in (label, translateSym pred, map translateArg args)
+
+translateArg :: X.Arg -> GeniVal
+translateArg (X.ArgSym s) = translateSym s
+translateArg (X.ArgFs _) = geniXmlError "complex semantic arguments not supported"
 
 -- ----------------------------------------------------------------------
 -- Features
