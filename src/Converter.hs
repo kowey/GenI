@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 module Main (main) where
 
+import Data.List (intersperse)
 import System (ExitCode(ExitFailure), exitWith, getArgs, getProgName)
 import System.IO(getContents)
 import Text.ParserCombinators.Parsec
@@ -29,7 +30,7 @@ import Text.ParserCombinators.Parsec
 import NLP.GenI.Btypes (Macros)
 import NLP.GenI.General (ePutStrLn)
 import NLP.GenI.GeniParsers (geniMacros)
-import NLP.GenI.Treeprint (toGeniHand, hsLongList)
+import NLP.GenI.Treeprint (toGeniHand, hsShow)
 import NLP.GenI.Converter.ReadTagml (readTagmlMacros)
 
 main :: IO ()
@@ -61,9 +62,10 @@ writeMacros t tes =
  putStrLn $ case t of
             "haskell" -> unlines $ [ "module MyGeniGrammar where"
                                    , "import Data.Tree"
-                                   , "import qualified Data.Map"
-                                   , "import Btypes"
-                                   , "import Tags"
-                                   , "myGeniGrammar = " ++ hsLongList tes ]
+                                   , "import NLP.GenI.Btypes"
+                                   , ""
+                                   , "myGeniGrammar = "
+                                   , " [" ++ (concat $ intersperse "\n ," $ map hsShow tes)
+                                   , " ]" ]
             "geni"    -> unlines $ map toGeniHand tes
             _         -> fail ("Unknown -t type" ++ t)
