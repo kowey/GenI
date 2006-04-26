@@ -311,7 +311,8 @@ generateStep_1p =
     let dispatch = mapM (simpleDispatch_1p iaf)
     if isDone
        then return ()
-       else do given <- selectGiven
+       else do incrCounter num_iterations 1
+               given <- selectGiven
                -- do both substitution and adjunction
                applySubstitution1p given >>= dispatch
                passiveAdjunction1p given >>= dispatch
