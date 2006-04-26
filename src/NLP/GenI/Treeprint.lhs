@@ -291,7 +291,7 @@ instance GeniHandShow GNode where
       glexstr  n = if null gl then "" else "\"" ++ gl ++ "\""
                    where gl = showLexeme $ glexeme n
       tbFeats n = (toGeniHand $ gup n) ++ "!" ++ (toGeniHand $ gdown n)
-  in "n" ++ (unwords $ filter (not.null) $ [ gnname n, gtypestr n, glexstr n, tbFeats n ])
+  in unwords $ filter (not.null) $ [ gnname n, gtypestr n, glexstr n, tbFeats n ]
 
 instance (GeniHandShow a) => GeniHandShow [a] where
  toGeniHand = squares . unwords . (map toGeniHand)
