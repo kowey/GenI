@@ -186,6 +186,10 @@ nogui : permissions
 	$(GHC) $(GHCFLAGS) --make -DDISABLE_GUI $(GHCPACKAGES) $(IFILE).lhs -o $(OFILE)
 	$(OS_SPECIFIC_STUFF)
 
+precompiled: permissions
+	$(GHC) $(GHCFLAGS) --make -DPRECOMPILED_GRAMMAR +RTS -K50m -RTS $(GHCPACKAGES) $(IFILE).lhs -o $(OFILE)
+	$(OS_SPECIFIC_STUFF)
+
 debugger: $(DOFILE)
 
 $(DOFILE): $(SRC_GENI)/Main.lhs permissions
