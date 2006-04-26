@@ -88,7 +88,7 @@ ckyOrEarleyGui isEarley = BG.BuilderGui {
   where builder = if isEarley then earleyBuilder else ckyBuilder
 
 resultsPnl builder pstRef f =
-  do (sentences, stats, st) <- runGeni Nothing pstRef builder
+  do (sentences, stats, st) <- runGeni pstRef builder
      (lay, _, _) <- realisationsGui pstRef f (theResults st)
      return (sentences, stats, lay)
 \end{code}

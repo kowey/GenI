@@ -67,7 +67,7 @@ simpleGui twophase = BG.BuilderGui {
     , BG.debuggerPnl = simpleDebuggerTab twophase }
 
 resultsPnl twophase pstRef f =
-  do (sentences, stats, st) <- runGeni Nothing pstRef (simpleBuilder twophase)
+  do (sentences, stats, st) <- runGeni pstRef (simpleBuilder twophase)
      (lay, _, _) <- realisationsGui pstRef f (theResults st)
      return (sentences, stats, lay)
 \end{code}

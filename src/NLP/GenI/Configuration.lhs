@@ -166,6 +166,7 @@ switches that we use.
 
 \begin{code}
 data GrammarType = GeniHand | TAGML | XMGTools
+                 | PreCompiled -- ^ no parsing needed
                  | PreAnchored -- ^ lexical selection already done
      deriving (Show, Eq)
 

@@ -631,7 +631,7 @@ debugGui builderGui pstRef pauseOnLex =
     p    <- panel f []
     nb   <- notebook p []
     -- generation step 1
-    initStuff <- initGeni Nothing pstRef
+    initStuff <- initGeni pstRef
     let (tsem,_)   = B.inSemInput initStuff
         (cand,_)   = unzip $ B.inCands initStuff
         lexonly    = B.inLex initStuff

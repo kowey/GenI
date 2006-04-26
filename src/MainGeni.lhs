@@ -31,9 +31,11 @@ module Main (main) where
 import Data.IORef(newIORef)
 import System(getArgs)
 
-import NLP.GenI.Geni(emptyProgState)
+import NLP.GenI.Geni(emptyProgState, ProgState(gr))
 import NLP.GenI.Console(consoleGeni)
-import NLP.GenI.Configuration(treatArgs, isGraphical, isBatch, Params)
+import NLP.GenI.Configuration (treatArgs, isGraphical, isBatch, Params,
+                               grammarType, GrammarType(PreCompiled),
+                              )
 
 #ifndef PRECOMPILED_GRAMMAR
 #ifndef DISABLE_GUI
@@ -43,13 +45,12 @@ import NLP.GenI.Gui(guiGeni)
 
 #ifdef PRECOMPILED_GRAMMAR
 import MyGeniGrammar
-import Geni(compiledLexSelection)
 #endif {- PRECOMPILED_GRAMMAR -}
 
 #ifdef PRECOMPILED_GRAMMAR
-mSelector = Just $ compiledLexSelection myGeniGrammar
+mPreGrammar = Just myGeniGrammar
 #else
-mSelector = Nothing
+mPreGrammar = Nothing
 #endif {- PRECOMPILED_GRAMMAR -}
 
 #ifdef PRECOMPILED_GRAMMAR
@@ -83,12 +84,16 @@ main :: IO ()
 main = do       
   args     <- getArgs
   confArgs <- treatArgs args
-  pstRef   <- newIORef (emptyProgState confArgs)
+  let pst = case mPreGrammar of
+            Nothing -> emptyProgState confArgs
+            Just g  -> let cargs = confArgs { grammarType = PreCompiled }
+                       in  (emptyProgState cargs) { gr = g }
+  pstRef <- newIORef pst
   let notBatch  = not (isBatch confArgs)
       graphical = isGraphical confArgs 
   if (graphical && notBatch) 
      then guiGeni pstRef
-     else consoleGeni mSelector pstRef
+     else consoleGeni pstRef
 \end{code}
 
 % TODO

@@ -27,7 +27,7 @@ involve some messy IO performance tricks.
 \begin{code}
 module NLP.GenI.Geni (ProgState(..), ProgStateRef, emptyProgState,
              showRealisations, groupAndCount,
-             initGeni, runGeni, Selector, compiledLexSelection,
+             initGeni, runGeni, Selector,
              loadGrammar, loadLexicon, 
              loadTestSuite, loadTargetSemStr,
              combine, testGeni)
@@ -43,7 +43,6 @@ import Control.Monad (when)
 import Data.IORef (IORef, readIORef, modifyIORef)
 import Data.List (intersperse, sort, nub)
 import qualified Data.Map as Map
-import Data.Maybe (fromMaybe)
 
 import System.Exit ( exitWith, ExitCode(ExitSuccess, ExitFailure) )
 import System.IO (hPutStr, hClose, hGetContents)
@@ -169,10 +168,11 @@ loadGrammar pstRef =
          sfilename = tsFile config
      -- grammar type
          isNotPreanchored = not (grammarType config == PreAnchored)
+         isNotPrecompiled = not (grammarType config == PreCompiled)
      -- display 
      let errorlst  = filter (not.null) $ map errfn src 
            where errfn (err,msg) = if err then msg else ""
-                 src = [ (null gfilename, "a tree file")
+                 src = [ (isNotPrecompiled && null gfilename, "a tree file")
                        , (isNotPreanchored && null lfilename, "a lexicon file")
                        , (null sfilename, "a test suite") ]
          errormsg = "Please specify: " ++ (concat $ intersperse ", " errorlst)
@@ -181,6 +181,7 @@ loadGrammar pstRef =
      case grammarType config of 
         XMGTools    -> return ()
         PreAnchored -> return ()
+        PreCompiled -> return ()
         _        -> loadGeniMacros pstRef config
      -- we don't have to read in the lexicon if it's already pre-anchored
      when isNotPreanchored $ loadLexicon pstRef config
@@ -338,13 +339,12 @@ The generator state is mostly useful for debugging via the graphical interface.
 --   it is only used for instances of GenI where the grammar is compiled
 --   directly into GenI.
 type Selector = ProgState -> IO ([TagElem],[ILexEntry])
-runGeni :: Maybe Selector -- ^ lexical selection from a precompiled grammar
-        -> ProgStateRef -> B.Builder st it Params -> IO ([String], Statistics, st)
-runGeni mSelector pstRef builder =
+runGeni :: ProgStateRef -> B.Builder st it Params -> IO ([String], Statistics, st)
+runGeni pstRef builder =
   do let run    = B.run builder
          unpack = B.unpack builder
      -- step 1
-     initStuff <- initGeni mSelector pstRef
+     initStuff <- initGeni pstRef
      --
      pst <- readIORef pstRef
      let config  = pa pst
@@ -370,12 +370,11 @@ builder implementation.
 any morpohological literals
 
 \begin{code}
-initGeni :: Maybe Selector -> ProgStateRef -> IO (B.Input)
-initGeni mSelector pstRef =
- do let selector = fromMaybe (runLexSelection) mSelector
-    -- lexical selection
+initGeni :: ProgStateRef -> IO (B.Input)
+initGeni pstRef =
+ do -- lexical selection
     pstLex   <- readIORef pstRef
-    (cand, lexonly) <- selector pstLex
+    (cand, lexonly) <- runLexSelection pstLex
     -- strip morphological predicates
     let (tsem,tres) = ts pstLex
         tsem2       = stripMorphSem (morphinf pstLex) tsem
@@ -821,12 +820,6 @@ readPreAnchored pst =
     case parsed of
      Left err -> fail (show err)
      Right c  -> return c
-\end{code}
-
-FIXME: for debugging only
-\begin{code}
-compiledLexSelection :: [TagElem] -> Selector
-compiledLexSelection tes _ = return (tes, [])
 \end{code}
 
 % --------------------------------------------------------------------
