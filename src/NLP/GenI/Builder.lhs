@@ -364,6 +364,10 @@ f >--> f2 =
             -- no dispatch: but here, try the next filter
             Just y  -> f2 y
 
+-- | A filter that always fails (i.e. no filtering)
+nullFilter :: (Monad s) => DispatchFilter s a
+nullFilter = return.Just
+
 -- | If the item meets some condition, use the first filter, otherwise
 --   use the second one.
 condFilter :: (Monad s) => (a -> Bool)

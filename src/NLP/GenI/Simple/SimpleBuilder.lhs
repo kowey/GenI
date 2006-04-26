@@ -70,7 +70,9 @@ import NLP.GenI.Btypes
 import NLP.GenI.Builder (UninflectedWord, UninflectedSentence,
     incrCounter, num_iterations, num_comparisons, chart_size,
     SemBitMap, defineSemanticBits, semToBitVector, bitVectorToSem,
-    DispatchFilter, (>-->), condFilter,
+    DispatchFilter, (>-->), condFilter, nullFilter,
+    semToIafMap, IafAble(..), IafMap, fromUniConst, getIdx,
+    recalculateAccesibility, iafBadSem, ts_iafFailure,
     )
 import qualified NLP.GenI.Builder as B
 
@@ -141,6 +143,7 @@ data SimpleStatus = S
   , theChart     :: Chart
   , theTrash   :: Trash
   , theResults :: [SimpleItem]
+  , theIafMap  :: IafMap -- for index accessibility filtering
   , tsem       :: BitVector
   , step       :: Ptype
   , gencounter :: Integer
@@ -206,6 +209,9 @@ data SimpleItem = SimpleItem
  , siHighlight  :: [String]
  -- for generation sans semantics
  , siAdjlist :: [(String,Integer)] -- (node name, auxiliary tree id)
+ -- for index accesibility filtering (one-phase only)
+ , siAccesible    :: [ String ] -- it's acc/inacc/undetermined
+ , siInaccessible :: [ String ] -- that's why you want both
  } deriving Show
 
 type ChartId = Integer
@@ -254,6 +260,7 @@ initSimpleBuilder twophase input config =
                , theResults   = []
                , semBitMap = bmap
                , tsem      = semToBitVector bmap sem
+               , theIafMap = semToIafMap sem
                , step     = Initial
                , gencounter = toInteger $ length cands
                , genconfig  = config }
@@ -265,7 +272,7 @@ initSimpleBuilder twophase input config =
 initSimpleItem :: SemBitMap -> (TagElem, BitVector) -> SimpleItem
 initSimpleItem bmap (te,pp) =
  case (detectSites.ttree) te of
- (snodes,anodes) -> SimpleItem
+ (snodes,anodes) -> setIaf $ SimpleItem
   { siId        = tidnum te
   , siTagElem   = te
   , siSemantics = semToBitVector bmap (tsemantics te)
@@ -273,6 +280,9 @@ initSimpleItem bmap (te,pp) =
   , siAdjnodes   = anodes
   , siPolpaths  = pp
   , siDiagnostic = []
+  -- for index accesibility filtering
+  , siAccesible    = [] -- see below
+  , siInaccessible = []
   -- how was this item produced?
   , siDerivation = (0, [])
   -- nodes to highlight
@@ -280,6 +290,7 @@ initSimpleItem bmap (te,pp) =
   -- for generation sans semantics
   , siAdjlist = []
   }
+  where setIaf i = i { siAccesible = iafNewAcc i }
 \end{code}
 
 % --------------------------------------------------------------------
@@ -296,6 +307,8 @@ elements from the chart.
 generateStep_1p :: SimpleState ()
 generateStep_1p =
  do isDone <- gets (null.theAgenda)
+    iaf <- gets (isIaf.genconfig)
+    let dispatch = mapM (simpleDispatch_1p iaf)
     if isDone
        then return ()
        else do given <- selectGiven
@@ -307,7 +320,6 @@ generateStep_1p =
                -- determine which of the res should go in the agenda
                -- (monadic state) and which should go in the result (res')
                addToChart given
- where dispatch = mapM simpleDispatch_1p
 \end{code}
 
 \subsection{Two-phase generation}
@@ -797,15 +809,16 @@ simpleDispatch item =
     theFilter item
 
 -- FIXME: refactor me later!
-simpleDispatch_1p :: SimpleDispatchFilter
-simpleDispatch_1p item =
+simpleDispatch_1p :: Bool -> SimpleDispatchFilter
+simpleDispatch_1p iaf item =
  do inputsem <- gets tsem
     let synComplete x = (not.aux) x && closed x && adjdone x
         semComplete x = inputsem == siSemantics x
         isResult x = synComplete x && semComplete x
-    let theFilter = condFilter isResult
+    let maybeDpIaf = if iaf then dpIafFailure else nullFilter
+        theFilter = condFilter isResult
                       (dpTbFailure >--> dpRootCatFailure >--> dpToResults)
-                      (dpTreeLimit >--> dpToAgenda)
+                      (dpTreeLimit >--> maybeDpIaf >--> dpToAgenda)
     theFilter item
 
 dpAux, dpTreeLimit, dpToAgenda :: SimpleDispatchFilter
@@ -956,6 +969,41 @@ tbUnifyNode gnRaw (Right (pending,whole)) =
 -- if earlier we had a failure, don't even bother
 tbUnifyNode _ (Left n) = Left n
 \end{code}
+
+% --------------------------------------------------------------------
+\subsection{Index accesibility filtering}
+\label{sec:simple:iaf}
+% --------------------------------------------------------------------
+
+Note that index accesibility filtering only makes sense for the one-phase
+algorithm.  See also \ref{sec:iaf} for more details about what this is.
+
+\begin{code}
+instance IafAble SimpleItem where
+  iafAcc   = siAccesible
+  iafInacc = siInaccessible
+  iafSetAcc   a i = i { siAccesible = a }
+  iafSetInacc a i = i { siInaccessible = a }
+  iafNewAcc i =
+    concatMap fromUniConst $
+    concat [ getIdx up | (_,up,_) <- siSubstnodes i ]
+
+dpIafFailure :: SimpleDispatchFilter
+dpIafFailure item | aux item = return $ Just item
+dpIafFailure itemRaw =
+ do s <- get
+    let bmap = semBitMap s
+        item = recalculateAccesibility itemRaw
+        badSem = iafBadSem (theIafMap s) bmap (tsem s) siSemantics item
+        inAcc = iafInacc item
+    if badSem == 0
+      then -- can't dispatch, but that's good!
+           -- (note that we return the item with its iaf criteria updated)
+           return $ Just item
+      else do addToTrash item (ts_iafFailure inAcc $ bitVectorToSem bmap badSem)
+              return Nothing
+\end{code}
+
 
 % --------------------------------------------------------------------
 \section{Unpacking the results}
