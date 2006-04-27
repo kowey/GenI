@@ -728,7 +728,7 @@ unification. It makes the following assumptions:
 \end{itemize}
 
 \begin{code}
-unifyFeat :: Flist -> Flist -> Maybe (Flist, Subst)
+unifyFeat :: (Monad m) => Flist -> Flist -> m (Flist, Subst)
 unifyFeat f1 f2 = 
   {-# SCC "unification" #-}
   do let (att, val1, val2) = alignFeat f1 f2
@@ -821,16 +821,16 @@ The core unification algorithm follows these rules in order:
 \end{enumerate}
 
 \begin{code}
-unify :: [GeniVal] -> [GeniVal] -> Maybe ([GeniVal], Subst)
-unify [] l2 = Just (l2, [])
-unify l1 [] = Just (l1, [])
+unify :: (Monad m) => [GeniVal] -> [GeniVal] -> m ([GeniVal], Subst)
+unify [] l2 = return (l2, [])
+unify l1 [] = return (l1, [])
 unify (GAnon:t1) (h2:t2) = unifySansRep h2 t1 t2
 unify (h1:t1) (GAnon:t2) = unifySansRep h1 t1 t2
 unify (h1@(GVar _):t1) (h2:t2) = unifyWithRep h1 h2 t1 t2
 unify (h1:t1) (h2@(GVar _):t2) = unifyWithRep h2 h1 t1 t2
 unify ((GConst h1v):t1) ((GConst h2v):t2) =
   case h1v `intersect` h2v of
-  []   -> Nothing
+  []   -> fail "unification failure"
   newH -> unifySansRep (GConst newH) t1 t2
 
 {-# INLINE unifySansRep #-}
@@ -876,7 +876,7 @@ normalise the sides so that this doesn't happen.
          
 \begin{code}
 prop_unify_sym x y = 
-  let u1 = unify x y 
+  let u1 = (unify x y) :: Maybe ([GeniVal],Subst)
       u2 = unify y x
       --
       notOverlap (GVar _, GVar _) = False
