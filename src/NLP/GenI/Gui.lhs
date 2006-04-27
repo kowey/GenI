@@ -42,7 +42,7 @@ import NLP.GenI.Geni
   ( ProgState(..), ProgStateRef, combine, initGeni
   , loadGrammar, loadTestSuite, loadTargetSemStr)
 import NLP.GenI.General (boundsCheck, geniBug, trim, slash, fst3)
-import NLP.GenI.Btypes (showSem, showPairs, ILexEntry(isemantics, iword), showLexeme)
+import NLP.GenI.Btypes (showSem, showPairs, ILexEntry(isemantics))
 import NLP.GenI.Tags (idname, tpolarities, tsemantics, TagElem)
 
 import NLP.GenI.Configuration
@@ -658,7 +658,7 @@ debugGui builderGui pstRef pauseOnLex =
         -- it must have the same semantics
         hasTree l = isJust $ find (\t -> tsemantics t == lsem) cand
           where lsem = isemantics l
-        missedLex = [ showLexeme (iword l) | l <- lexonly, (not.hasTree) l ]
+        missedLex = [ l | l <- lexonly, (not.hasTree) l ]
     (canPnl,_,_) <- if pauseOnLex
                     then pauseOnLexGui pst nb cand missedSem missedLex step2
                     else candidateGui  pst nb cand missedSem missedLex

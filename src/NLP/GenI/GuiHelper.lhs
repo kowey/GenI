@@ -51,7 +51,7 @@ import NLP.GenI.Geni
 import NLP.GenI.GeniParsers ( geniTagElems )
 import NLP.GenI.General (boundsCheck, slash, geniBug, tail_)
 import NLP.GenI.Btypes
-  ( showPred, showSem, showLexeme, Sem)
+  ( showPred, showSem, showLexeme, Sem, ILexEntry(iword, ifamname), )
 import NLP.GenI.Tags
   ( idname, mapBySem, TagElem )
 
@@ -76,7 +76,7 @@ have not been accounted for, or if there have been lexically selected
 items for which no tree has been found.
 
 \begin{code}
-candidateGui :: ProgState -> (Window a) -> [TagElem] -> Sem -> [String]
+candidateGui :: ProgState -> (Window a) -> [TagElem] -> Sem -> [ILexEntry]
              -> GvIO Bool (Maybe TagElem)
 candidateGui pst f xs missedSem missedLex = do
   p  <- panel f []      
@@ -85,9 +85,10 @@ candidateGui pst f xs missedSem missedLex = do
   let warningSem = if null missedSem then ""
                    else "WARNING: no lexical selection for " ++ showSem missedSem
       warningLex = if null missedLex then ""
-                   else "WARNING: '" ++ (concat $ intersperse ", " missedLex)
+                   else "WARNING: '" ++ (concat $ intersperse ", " $ map showLex missedLex)
                         ++ "' were lexically selected, but are not anchored to"
                         ++ " any trees"
+                   where showLex l = (showLexeme $ iword l) ++ "-" ++ (ifamname l)
       --
       polFeats = "Polarity attributes detected: " ++ (unwords.detectPolFeatures) xs
       warning = unlines $ filter (not.null) [ warningSem, warningLex, polFeats ]
@@ -258,7 +259,7 @@ also includes a "Begin" button which runs your continuation on the new
 lexical selection.
 
 \begin{code}
-pauseOnLexGui :: ProgState -> (Window a) -> [TagElem] -> Sem -> [String]
+pauseOnLexGui :: ProgState -> (Window a) -> [TagElem] -> Sem -> [ILexEntry]
               -> ([TagElem] -> IO ()) -- ^ continuation
               -> GvIO Bool (Maybe TagElem)
 pauseOnLexGui pst f xs missedSem missedLex job = do
