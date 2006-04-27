@@ -153,7 +153,7 @@ translateNodeHelper idnum (X.Node nattrs mnargs _) = gn where
       gn = GN { gnname  = name,
                 gup     = sort $ topF ++ gloF,
                 gdown   = sort $ botF ++ gloF,
-                ganchor = null lex && ntype == Lex,
+                ganchor = X.nodeType nattrs == X.Node_type_anchor,
                 glexeme = lex,
                 gtype   = ntype,
                 gaconstr = aconstr }
