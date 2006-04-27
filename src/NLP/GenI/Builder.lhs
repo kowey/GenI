@@ -59,7 +59,7 @@ import NLP.GenI.General (geniBug, BitVector, multiGroupByFM, fst3, snd3, thd3)
 import NLP.GenI.Btypes
   ( ILexEntry, SemInput, Sem, Pred, showPred, showSem,
     Flist, gtype, GType(Subs, Foot),
-    Collectable(collect), alphaConvert,
+    Collectable(collect), alphaConvertById,
     GeniVal(GConst)
   )
 import NLP.GenI.Polarity  (PolResult, buildAutomaton, detectPolPaths)
@@ -175,7 +175,7 @@ preInit input config =
      -- the number of paths explored vs possible
      polcount = (length autpaths, length $ automatonPaths aut, length $ automatonPaths seedAut)
      --
-     fixate ts ps = zip (map alphaConvert $ setTidnums ts) ps
+     fixate ts ps = zip (map alphaConvertById $ setTidnums ts) ps
      input2 = input { inCands    = fixate cands2 pathIds
                     , inSemInput = (sem2, snd seminput) }
      -- note: autstuff is only useful for the graphical debugger

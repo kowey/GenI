@@ -52,7 +52,7 @@ module NLP.GenI.Btypes(
 
    -- Other functions
    Replacable(..), Collectable(..), Idable(..),
-   alphaConvert,
+   alphaConvert, alphaConvertById,
    fromGConst, fromGVar,
    isConst, isVar, isAnon, testBtypes,
 
@@ -108,6 +108,17 @@ data Ttree a = TT
 
 data Ptype = Initial | Auxiliar | Unspecified   
              deriving (Show, Eq)
+
+instance (Replacable a) => Replacable (Ttree a) where
+  replace s mt =
+    mt { params = replace s (params mt)
+       , tree   = replace s (tree mt)
+       , pinterface  = replace s (pinterface mt)
+       , psemantics = replace s (psemantics mt) }
+
+instance (Collectable a) => Collectable (Ttree a) where
+  collect mt = (collect $ params mt) . (collect $ tree mt) .
+               (collect $ psemantics mt) . (collect $ pinterface mt)
 \end{code}
 
 \fnlabel{emptyMacro} provides a null tree which you can use for
@@ -443,6 +454,10 @@ a more general notion that I can transform this into.
 class Collectable a where
   collect :: a -> Set.Set String -> Set.Set String
 
+instance Collectable a => Collectable (Maybe a) where
+  collect Nothing  s = s
+  collect (Just x) s = collect x s
+
 instance (Collectable a => Collectable [a]) where
   collect l s = foldr collect s l
 
@@ -479,6 +494,10 @@ class Replacable a where
 
   replaceOne :: (String,GeniVal) -> a -> a
   replaceOne s = {-# SCC "replace" #-} replace [s]
+
+instance (Replacable a => Replacable (Maybe a)) where
+  replace _ Nothing  = Nothing
+  replace s (Just x) = Just (replace s x)
 \end{code}
 
 GeniVal is probably the simplest thing you would one to apply a
@@ -527,14 +546,16 @@ to all variables in an object.  See section \ref{sec:fs_unification} for
 why we want this.
 
 \begin{code}
-alphaConvert :: (Collectable a, Replacable a, Idable a) => a -> a
-alphaConvert x = {-# SCC "alphaConvert" #-}
+alphaConvertById :: (Collectable a, Replacable a, Idable a) => a -> a
+alphaConvertById x = {-# SCC "alphaConvertById" #-}
+  alphaConvert ("-" ++ (show $ idOf x)) x
+
+alphaConvert :: (Collectable a, Replacable a) => String -> a -> a
+alphaConvert suffix x = {-# SCC "alphaConvert" #-}
   let vars   = Set.elems $ collect x Set.empty
-      suffix = "-" ++ (show $ idOf x)
       convert v = GVar (v ++ suffix)
-      --
-      subst = map (\v -> (v, convert v)) vars 
-  in replace subst x 
+      subst = map (\v -> (v, convert v)) vars
+  in replace subst x
 \end{code}
 
 \fnlabel{sortFlist} sorts Flists according with its feature

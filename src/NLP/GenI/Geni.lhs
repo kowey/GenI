@@ -38,36 +38,41 @@ where
 \begin{code}
 import Control.Concurrent       (forkIO)
 import qualified Control.Exception
-import Control.Monad (when)
+import Control.Monad.Error
 
 import Data.IORef (IORef, readIORef, modifyIORef)
-import Data.List (intersperse, sort, nub)
+import Data.List (intersperse, sort, nub, partition, groupBy, span)
 import qualified Data.Map as Map
+import Data.Maybe (mapMaybe)
 
 import System.Exit ( exitWith, ExitCode(ExitSuccess, ExitFailure) )
 import System.IO (hPutStr, hClose, hGetContents)
-import System.IO.Unsafe (unsafePerformIO)
 import Text.ParserCombinators.Parsec 
 -- import System.Process 
 
 import Statistics (Statistics)
 
-import NLP.GenI.General(filterTree, groupAndCount, multiGroupByFM, ePutStr, ePutStrLn, eFlush)
+import NLP.GenI.General(filterTree, groupAndCount, multiGroupByFM,
+    geniBug,
+    repNodeByNode,
+    ePutStr, ePutStrLn, eFlush,
+    )
 
 import NLP.GenI.Btypes
   (Macros, MTtree, ILexEntry, Lexicon,
    Replacable(..),
    Sem, SemInput, sortSem, subsumeSem, params,
    GeniVal(GConst), fromGVar,
-   GNode, Flist,
-   isemantics, ifamname, iword, iparams,
+   GNode(ganchor, gnname, gup), Flist,
+   isemantics, ifamname, iword, iparams, iequations,
    iinterface, ifilters,
    isempols,
    toKeys,
    glexeme,
    showLexeme,
-   pidname, pfamily, pinterface, ptype,
+   pidname, pfamily, pinterface, ptype, psemantics,
    setLexeme, tree, unifyFeat,
+   alphaConvert,
    )
 
 import NLP.GenI.Tags (Tags, TagElem, emptyTE,
@@ -461,11 +466,14 @@ runLexSelection pst = {- #SCC "runLexSelection" -}
         lexicon  = le pst
         lexCand   = chooseLexCand lexicon tsem
     -- then anchor these lexical items to trees
-    let combineWithGr = combineList (gr pst)
+    let combineWithGr l =
+         do let (errs, res) = combineList (gr pst) l
+            when (not.null $ errs) $ ePutStrLn (unlines errs)
+            return res
     cand <- case (grammarType $ pa pst) of  
               XMGTools     -> runXMGAnchoring pst lexCand
               PreAnchored  -> readPreAnchored pst
-              _            -> return (concatMap combineWithGr lexCand)
+              _            -> concat `liftM` mapM combineWithGr lexCand
     -- attach any morphological information to the candidates
     let morphfn  = morphinf pst
         cand2    = attachMorph morphfn tsem cand 
@@ -574,10 +582,13 @@ We start by collecting all the features and parameters we want to combine.
 \begin{code}
 combine :: Macros -> Lexicon -> Tags
 combine gram lexicon =
-  let helper li = map (combineOne li) macs 
+  let helper li = mapEither (combineOne li) macs
        where tn   = ifamname li
              macs = [ t | t <- gram, pfamily t == tn ]
   in Map.map (\e -> concatMap helper e) lexicon 
+
+mapEither :: (a -> Either l r) -> [a] -> [r]
+mapEither fn = mapMaybe (\x -> either (const Nothing) Just $ fn x)
 \end{code}
 
 \paragraph{combineList} takes a lexical item; it looks up the tree
@@ -585,77 +596,146 @@ families for that item, and anchors the item to the trees.  A simple
 list of trees is returned.
 
 \begin{code}
-combineList :: Macros -> ILexEntry -> [TagElem]
-combineList gram lexitem = 
-  let tn      = ifamname lexitem
-      macs    = [ t | t <- gram, pfamily t == tn ]
-      result  = map (combineOne lexitem) macs
-      warning = "Warning: family " ++ tn ++ " not found in Macros"
-  in unsafePerformIO $ do 
-       when (null macs) $ ePutStrLn warning 
-       return result 
+combineList :: Macros -> ILexEntry
+            -> ([String],[TagElem]) -- ^ any warnings, plus the results
+combineList gram lexitem =
+  case [ t | t <- gram, pfamily t == tn ] of
+       []   -> (["Warning: family " ++ tn ++ " not found in Macros"],[])
+       macs -> unzipEither $ map (combineOne lexitem) macs
+  where tn = ifamname lexitem
+
+unzipEither :: (Show b) => [Either String b] -> ([String], [b])
+unzipEither es = helper ([],[]) es where
+ helper accs [] = accs
+ helper (eAcc, rAcc) (Left e : next)  = helper (e:eAcc,rAcc) next
+ helper (eAcc, rAcc) (Right r : next) = helper (eAcc,r:rAcc) next
 \end{code}
 
 \paragraph{combineOne} \label{fn:combineOne} combines a single tree with its
-lexical item to form a bonafide TagElem
+lexical item to form a bonafide TagElem.  This process can fail; however,
+because of filtering or enrichement
 
 \begin{code}
-combineOne :: ILexEntry -> MTtree -> TagElem
-combineOne lexitem e = 
-   let wt = "(Word: "++ (showLexeme $ iword lexitem) ++
-            ", Family:" ++ (ifamname lexitem) ++ ")\n"
-       -- lexitem stuff
-       sem  = isemantics lexitem
-       p    = iparams lexitem
-       pf   = iinterface lexitem
-       -- tree stuff
-       tp   = map fromGVar $ params e
-       tpf  = pinterface e
-       -- unify the parameters
-       psubst = zip tp p
-       paramsUnified | (length p) /= (length tp) = wterror "Wrong number of parameters."
-                     | otherwise = replace psubst (NLP.GenI.Btypes.tree e)
-       -- unify the features
-       pf2  = replace psubst pf  
-       tpf2 = replace psubst tpf 
-       (funif, fsubst) = 
-         -- if fs unification fails for any reason (probably a bug)
-         case unifyFeat pf2 tpf2 of
-         Nothing -> wterror "Feature unification failed."
-         Just x  -> x
-       featsUnified = replace fsubst paramsUnified 
-       -- detect subst and adj nodes
-       unified = featsUnified
-       -- the final result
-       showid i = if null i then "" else ("-" ++ i)
-        -- if the parameters are of different length
-{-
-  This check prevents us from using large families of trees with
-  very different interfaces
-
-         -- if the lex item features are not a subset of the tree features
-         | intersect fpf ftpf /= fpf = error $
-             "Lex entry " ++ iword lexitem 
-             ++ "'s features are not a subset of"
-             ++ " tree's features: "  
-             ++ "\nlex:  " ++ show fpf  
-             ++ "\ntree: " ++ show ftpf
--}
-       result = emptyTE {
-                idname = (head $ iword lexitem) ++ "_" 
-                         ++ pfamily e ++ showid (pidname e),
-                ttreename = pfamily e,
-                ttype = ptype e,
-                ttree = setLexeme (iword lexitem) unified,
-                tsemantics = replace fsubst sem,
-                tsempols    = isempols lexitem,
-                tinterface  = funif
-                -- tpredictors = combinePredictors e lexitem
-               }        
-       -- well... with error checking
-       wterror s = error (s ++ " " ++ wt)
-   in result
+combineOne :: ILexEntry -> MTtree -> Either String TagElem
+combineOne lexRaw eRaw = -- Maybe monad
+ -- trace ("\n" ++ (show wt)) $
+ do let l1 = alphaConvert "-l" lexRaw
+        e1 = alphaConvert "-t" eRaw
+    (l,e) <- unifyParamsWithWarning (l1,e1)
+             >>= unifyInterfaceUsing iinterface
+             >>= unifyInterfaceUsing ifilters -- filtering
+             >>= enrichWithWarning -- enrichment
+    return $ emptyTE
+              { idname = (head $ iword l) ++ "_"
+                         ++ pfamily e ++ showid (pidname e)
+              , ttreename = pfamily e
+              , ttype = ptype e
+              , ttree = setLexeme (iword l) (tree e)
+              , tsemantics  =
+                 sortSem $ case psemantics e of
+                           Nothing -> isemantics l
+                           Just s  -> s
+              , tsempols    = isempols l
+              , tinterface  = pinterface e }
+ where
+  wt = "(Word: "++ (showLexeme $ iword lexRaw) ++
+       ", Family:" ++ (ifamname lexRaw) ++
+       ", Tree:" ++ (pidname eRaw) ++ ")"
+  showid i = if null i then "" else ("-" ++ i)
+  --
+  unifyParamsWithWarning (l,t) =
+   -- trace ("unify params " ++ wt) $
+   let lp = iparams l
+       tp = map fromGVar $ params t
+       psubst = zip tp lp
+   in if (length lp) /= (length tp)
+      then Left  $ "Warning: Parameter length mismatch on " ++ wt
+      else Right $ (replace psubst l, replace psubst t)
+  --
+  unifyInterfaceUsing ifn (l,e) =
+    -- trace ("unify interface" ++ wt) $
+    case unifyFeat (ifn l) (pinterface e) of
+    Nothing             -> Left $ "Warning: interface trouble on " ++ wt
+    Just (int2, fsubst) -> Right $ (replace fsubst l, e2)
+                           where e2 = (replace fsubst e) { pinterface = int2 }
+  --
+  enrichWithWarning (l,e) =
+    -- trace ("enrich" ++ wt) $
+    do e2 <- enrich l e
+       return (l,e2)
 \end{code}
+
+Enrichment is a concept introduced by the common grammar manifesto
+\cite{kow05CGM}, the idea being that during lexical selection, you sometimes
+want to add feature structures to specific nodes in a tree.  The conventions
+taken for enrichment are:
+
+\begin{tabular}{|l|l|}
+\textbf{path equation} & \textbf{result} \\
+\hline
+\verb!interface.a=v! & \fs{a:v} is unified with the interface \\
+\verb!a=v!           & a:v is inserted into the top feature of the anchor \\
+\verb!foo.a=v!       & a:v is inserted with the top feature of the node \verb!foo! \\
+\end{tabular}
+
+Notes:
+\begin{enumerate}
+\item Enrichment can fail if one of the unification fails; however, any node
+      names that are not found are silently ignored.
+\item Our implementation of enrichement depends on weak unification behaviour;
+that is if an attribute is not present in one of the nodes, it is inserted.
+\end{enumerate}
+
+\begin{code}
+enrich :: ILexEntry -> MTtree -> Either String MTtree
+enrich l t = -- using the Maybe monad
+ do -- separate into interface/anchor/named
+    let (intF, anchF, namedFs) = splitPathEquations $ iequations l
+        lname = showLexeme (iword l)
+        tname = pidname t
+    -- enrich the interface
+    (i2, isubs) <- unifyFeat intF (pinterface t)
+                   `catchError` (\_ -> throwError $ "enrichment failure on interface: " ++ lname ++ " " ++ tname)
+    let t2 = (replace isubs t) { pinterface = i2 }
+    -- enrich the anchor
+    t3 <- enrichBy Nothing anchF t2
+    -- enrich the named nodes
+    foldM (\t (n,f) -> enrichBy (Just n) f t) t3 namedFs
+
+-- | Separate path equations into interface, anchor, named
+splitPathEquations :: Flist -> (Flist, Flist, [(String, Flist)])
+splitPathEquations avs =
+ let (named_, anonF) = partition ((elem '.') . fst) avs
+     splitName (a,v) = (n, (drop 1 a2,v)) where (n,a2) = span (/= '.') a
+     (intF, named) = partition (\n -> fst n == "interface") $
+                     map splitName named_
+     namedFs = map (\f -> (fst (head f), map snd f)) $
+               groupBy (\(n1,_) (n2,_) -> n1 == n2)  $
+               sort named
+ in (map snd intF, anonF, namedFs)
+
+enrichBy :: Maybe String -- enriches anchor if set to Nothing
+         -> Flist -> MTtree -> Either String MTtree
+enrichBy mname fls t =
+ -- trace ("enrichBy " ++ (show mname)) $
+ case filterTree match (tree t) of
+ [a] -> do (newgup, sub) <- unifyFeat fls (gup a)
+                            `catchError` (\_ -> throwError $ "enrichment failure on " ++ matchErr)
+           return $ fixNode (a { gup = newgup }) $ replace sub t
+ []  -> Right t -- to be robust, we accept if the node isn't there
+ _   -> geniBug ("Tree with multiple matches in enrichBy. " ++
+                 "\nTree: " ++ pidname t ++ "\nFamily: " ++ pfamily t ++
+                 "\nMatching on: " ++ matchErr)
+ where
+   fixNode n mt = mt { tree = repNodeByNode match n (tree mt) }
+   match = case mname of
+           Nothing -> ganchor
+           Just n  -> \g -> gnname g == n
+   matchErr = case mname of
+              Nothing -> "anchor node"
+              Just n  -> "node with name " ++ n
+\end{code}
+
 
 % --------------------------------------------------------------------
 \subsection{XMG anchoring}

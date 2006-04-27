@@ -206,6 +206,20 @@ listRepNode fn filt ((n@(Node a l1)):l2) =
        in if flag1
           then ((Node a lt1):l2, flag1)
           else (n:lt2, flag2)
+
+-- | Replace a node in the tree in-place with another node; keep the
+--   children the same.  If the node is not found in the tree, or if
+--   there are multiple instances of the node, this is treated as an
+--   error.
+repNodeByNode :: (a -> Bool) -- ^ which node?
+              -> a -> Tree a -> Tree a
+repNodeByNode nfilt rep t =
+ let tfilt (Node n _) = nfilt n
+     replaceFn (Node _ k) = Node rep k
+ in case listRepNode replaceFn tfilt [t] of
+    ([t2], True) -> t2
+    (_ ,  False) -> geniBug "Node not found in repNode"
+    _            -> geniBug "Unexpected result in repNode"
 \end{code}
 
 \section{Errors}
