@@ -146,8 +146,6 @@ translateNodeHelper idnum (X.Node nattrs mnargs _) = gn where
       -- the node name is either the counter or something hardset
       name = case X.nodeName nattrs of
              Nothing     -> 'n' : (show idnum)
-             -- FIXME: temporary hack (WF: Yannick to fix CheckTAG 2006-04-26)
-             Just "none" -> 'n' : (show idnum)
              Just n      -> n
       -- saving the results in a Gnode
       gn = GN { gnname  = name,
