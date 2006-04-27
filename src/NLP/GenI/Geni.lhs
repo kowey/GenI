@@ -61,12 +61,12 @@ import NLP.GenI.Btypes
    GeniVal(GConst), fromGVar,
    GNode, Flist,
    isemantics, ifamname, iword, iparams,
-   ipfeat, ifilters,
+   iinterface, ifilters,
    isempols,
    toKeys,
    glexeme,
    showLexeme,
-   pidname, pfamily, pfeat, ptype,
+   pidname, pfamily, pinterface, ptype,
    setLexeme, tree, unifyFeat,
    )
 
@@ -607,10 +607,10 @@ combineOne lexitem e =
        -- lexitem stuff
        sem  = isemantics lexitem
        p    = iparams lexitem
-       pf   = ipfeat lexitem
+       pf   = iinterface lexitem
        -- tree stuff
        tp   = map fromGVar $ params e
-       tpf  = pfeat e
+       tpf  = pinterface e
        -- unify the parameters
        psubst = zip tp p
        paramsUnified | (length p) /= (length tp) = wterror "Wrong number of parameters."
@@ -767,7 +767,7 @@ only one literal in the lexical item semantics.
 lexEntryToFil :: ILexEntry -> Int -> String
 lexEntryToFil lex n = 
   let filters   = ifilters lex
-      enrichers = ipfeat lex 
+      enrichers = iinterface lex 
       --
       showFil (a,v) = a ++ ":" ++ xmgShow v
       showEnr (a,v) = a ++ "=" ++ xmgShow v

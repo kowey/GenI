@@ -135,14 +135,12 @@ Each lexical entry is
       This is equivalent to the attribute-value pairs above; the only
       difference is that we don't do any parameters, and we use square
       brackets instead of parentheses.
-
-      Note that for XMG grammars, this feature structure can consist of
+\item Optionally: a set of path equations for enrichmment.
+      This feature structure can consist of
       path equations of the form node.att:val, because they will be
       unified with the entire tree and not just the tree interface. To
       force something to unify with a tree interface in XMG, you should
       supply ``interface.'' as a node name.
-
-      You may also optionally prefix this by the keyword ``equation''.
 \end{itemize}
 \item Optionally: a set of filters.  This is to be used in conjunction
       with XMG's SelectTAG.  Note that you must explicitly include 
@@ -162,7 +160,9 @@ geniLexicalEntry :: Parser ILexEntry
 geniLexicalEntry = 
   do lemma  <- identifier <?> "a lemma"
      family <- identifier <?> "a tree family"
-     (params, interface) <- parens paramsParser <|> interfaceParser
+     (params, interface) <- option ([],[]) $ parens paramsParser
+     equations <- option [] $ do keyword "equations"
+                                 geniFeats <?> "path equations"
      filters <- option [] $ do keyword "filters"
                                geniFeats
      keywordSemantics
@@ -171,7 +171,8 @@ geniLexicalEntry =
      return emptyLE { iword = [lemma]
                     , ifamname = family 
                     , iparams = params
-                    , ipfeat  = sort interface
+                    , iinterface = sortFlist interface
+                    , iequations = equations
                     , ifilters = filters
                     , isemantics = sem
                     , isempols = pols }
@@ -182,11 +183,6 @@ geniLexicalEntry =
       interface <- option [] $ do symbol "!"
                                   sepBy geniAttVal whiteSpace 
       return (params, interface)
-    interfaceParser :: Parser ([GeniVal], Flist)
-    interfaceParser = do
-      optional (keyword "equations")
-      interface <- geniFeats
-      return ([], interface) <?> "an interface"
 \end{code}
 
 \section{Trees}
@@ -248,7 +244,7 @@ geniTreeDef ttypeP =
      return TT{ params = params 
               , pfamily = family
               , pidname = id
-              , pfeat = iface 
+              , pinterface = iface 
               , ptype = ttype 
               , tree = theTree
               , psemantics = psem

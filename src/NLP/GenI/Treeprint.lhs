@@ -36,7 +36,7 @@ import NLP.GenI.Tags
    tsemantics, ttree, tinterface, ttype, ttreename,
  )
 import NLP.GenI.Btypes (GeniVal(GConst, GVar, GAnon), AvPair, Ptype(..),
-               Ttree(TT, params, pidname, pfamily, pfeat, ptype, tree, psemantics), Macros,
+               Ttree(TT, params, pidname, pfamily, pinterface, ptype, tree, psemantics), Macros,
                GNode(..), GType(..), Flist,
                isConst,
                showLexeme,
@@ -324,7 +324,7 @@ instance (GeniHandShow a) => GeniHandShow (Ttree a) where
   ++ "\n" ++ (pfamily tt) ++ ":" ++ (pidname tt)
   ++ " "  ++ (parens $    (unwords $ map toGeniHand $ params tt)
                        ++ " ! "
-                       ++ (unwords $ map toGeniHand $ pfeat tt))
+                       ++ (unwords $ map toGeniHand $ pinterface tt))
   ++ " "  ++ (toGeniHand.ptype $ tt)
   ++ "\n" ++ (toGeniHand.tree $ tt)
   ++ case psemantics tt of

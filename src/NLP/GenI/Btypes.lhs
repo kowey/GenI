@@ -100,7 +100,7 @@ data Ttree a = TT
   { params  :: [GeniVal]
   , pfamily :: String
   , pidname :: String
-  , pfeat :: Flist
+  , pinterface :: Flist
   , ptype :: Ptype
   , psemantics :: Maybe Sem
   , tree :: Tree a } 
@@ -118,7 +118,7 @@ emptyMacro :: MTtree
 emptyMacro = TT { params  = [],
                   pidname = "", 
                   pfamily = "",
-                  pfeat = [],
+                  pinterface = [],
                   ptype = Unspecified,
                   psemantics = Nothing,
                   tree  = Node emptyGNode []
@@ -136,8 +136,9 @@ data ILexEntry = ILE
       iword       :: [String]
     , ifamname    :: String
     , iparams     :: [GeniVal]
-    , ipfeat      :: Flist
+    , iinterface  :: Flist
     , ifilters    :: Flist
+    , iequations  :: Flist
     , iptype      :: Ptype
     , isemantics  :: Sem
     , isempols    :: [SemPols] }
@@ -145,17 +146,25 @@ data ILexEntry = ILE
 
 instance Replacable ILexEntry where
   replace s i = 
-    i { ipfeat  = replace s (ipfeat i)
+    i { iinterface  = replace s (iinterface i)
+      , iequations  = replace s (iequations i)
+      , isemantics  = replace s (isemantics i)
       , iparams = replace s (iparams i) }
+
+instance Collectable ILexEntry where
+  collect l = (collect $ iinterface l) . (collect $ iparams l) .
+              (collect $ ifilters l) . (collect $ iequations l) .
+              (collect $ isemantics l)
 
 emptyLE :: ILexEntry  
 emptyLE = ILE { iword = [],
                 ifamname = "", 
                 iparams = [],
-                ipfeat   = [],
+                iinterface   = [],
                 ifilters = [],
                 iptype = Unspecified,
                 isemantics = [],
+                iequations = [],
                 isempols   = [] }
 \end{code}
 
