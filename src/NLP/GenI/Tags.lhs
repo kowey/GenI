@@ -56,7 +56,8 @@ import NLP.GenI.Btypes (Ptype(Initial, Auxiliar), SemPols,
                Replacable(..), Collectable(..), Idable(..),
                Sem, Pred, emptyPred, 
                emptyGNode,
-               showPairs, showSem)
+               showPairs, showSem, lexemeAttributes,
+               )
 import NLP.GenI.General (treeLeaves, groupByFM)
 \end{code}
 }
@@ -283,10 +284,8 @@ tagLeaf :: GNode -> ([String],Flist)
 tagLeaf node = 
   let lexeme = glexeme node
       guppy  = gup node
-      cat' = -- note the order
-             [ v | (a,v) <- guppy, a == "lex" ] ++
-             [ v | (a,v) <- guppy, a == "phon" ] ++
-             [ v | (a,v) <- guppy, a == "cat" ] 
+      cat' = concat $ map (\la -> [ v | (a,v) <- guppy, a == la ])
+                      lexemeAttributes
              -- grab the first match
       cats  = if null cat' then [gnname node] else map show cat'
       name  = map (map toUpper) cats

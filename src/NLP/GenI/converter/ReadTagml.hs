@@ -117,11 +117,11 @@ translateNodeHelper idnum (X.Node nattrs mnargs _) = gn where
       --
       mflattenFs mfs = case mfs of Nothing -> []
                                    Just fs -> flattenFs fs
-      topF  = mflattenFs topF_
-      botF  = mflattenFs botF_
-      gloF' = concatMap flattenFs gloF_
+      topF = mflattenFs topF_
+      botF = mflattenFs botF_
+      gloF = concatMap flattenFs gloF_
       -- reading the node type
-      ntypeRaw = case X.nodeType nattrs of
+      ntype = case X.nodeType nattrs of
                  X.Node_type_subst    -> Subs
                  X.Node_type_foot     -> Foot
                  X.Node_type_anchor   -> Lex
@@ -129,15 +129,14 @@ translateNodeHelper idnum (X.Node nattrs mnargs _) = gn where
                  X.Node_type_lex      -> Lex
                  X.Node_type_std      -> Other
                  X.Node_type_nadj     -> Other
-      -- hard setting the lexeme
-      isLexeme (a,_) = a == "phon" || a == "lex"
-      (lexL, gloF)   = partition isLexeme gloF'
-      (ntype, lex)   =
-        -- FIXME: hack: we sort lexL so that priority is given to the lex attribute
-        -- since ("lex" < "phon")
-        case sort lexL of
-        []    -> (ntypeRaw, [])
-        (l:_) -> (Lex, (fromGConst.snd) l)
+      -- figuring out what the lexeme might be
+      -- (we a list of distinguished attributes, in order of preference)
+      lexL = concat $ map (\la -> [ v | (a,v) <- gloF, a == la ])
+                      lexemeAttributes
+      lex = case ntype of
+            Lex -> take 1 h $ map (\la -> [ v | (a,v) <- gloF, a == la ]) $
+                   lexemeAttributes
+            _   -> []
       aconstr = case X.nodeType nattrs of
                 X.Node_type_subst -> True
                 X.Node_type_foot  -> True

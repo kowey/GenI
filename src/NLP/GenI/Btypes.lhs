@@ -35,7 +35,7 @@ module NLP.GenI.Btypes(
 
    -- GNode stuff 
    gnname, gup, gdown, ganchor, glexeme, gtype, gaconstr,
-   gCategory, showLexeme,
+   gCategory, showLexeme, lexemeAttributes,
 
    -- Functions from Tree GNode
    repSubst, repAdj, constrainAdj, 
@@ -208,6 +208,15 @@ gCategory gn =
   []  -> Nothing
   [c] -> Just c
   _   -> geniBug $ "Impossible case: node with more than one category"
+\end{code}
+
+A TAG node might also have a lexeme.  If we are lucky, this is explicitly
+set in the glexeme field of the node.  Otherwise, we try to guess it from
+a list of distinguished attributes (in order of preference).
+\begin{code}
+-- | Attributes recognised as lexemes, in order of preference
+lexemeAttributes :: [String]
+lexemeAttributes = [ "lex", "phon", "cat" ]
 \end{code}
 
 \paragraph{show (GNode)} the default show for GNode tries to
