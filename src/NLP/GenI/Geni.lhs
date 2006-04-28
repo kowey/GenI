@@ -847,7 +847,7 @@ only one literal in the lexical item semantics.
 lexEntryToFil :: ILexEntry -> Int -> String
 lexEntryToFil lex n = 
   let filters   = ifilters lex
-      enrichers = iinterface lex 
+      enrichers = iequations lex
       --
       showFil (a,v) = a ++ ":" ++ xmgShow v
       showEnr (a,v) = a ++ "=" ++ xmgShow v
