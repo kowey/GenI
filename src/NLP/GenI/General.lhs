@@ -99,7 +99,7 @@ A generic version of the Data.List.words
 
 \begin{code}
 wordsBy :: (Eq a) => a -> [a] -> [[a]]
-wordsBy c = groupBy (\x y -> x /= c && y /= c) 
+wordsBy c xs = filter (/= [c]) $ groupBy (\x y -> x /= c && y /= c) xs
 
 -- | Makes sure that index s is in the bounds of list l.  
 --   Surely there must be some more intelligent way to deal with this.
