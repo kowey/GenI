@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 module NLP.GenI.Converter.ReadTagml where
 
 import Data.Char
-import Data.List (partition,sort,delete,find)
+import Data.List (sort,delete,find)
 import Data.Tree
 import Control.Monad.State (State, runState, get, put)
 import Text.XML.HaXml.Xml2Haskell
@@ -29,7 +29,7 @@ import NLP.GenI.Btypes
   ( AvPair, Flist,
   , GType(Subs,Foot,Lex,Other)
   , GNode(..), Macros, Ttree(..)
-  , GeniVal(GConst, GVar, GAnon), fromGConst,
+  , GeniVal(GConst, GVar, GAnon), fromGConst, lexemeAttributes
   , emptyMacro, Ptype(..), Pred, Sem)
 -- import NLP.GenI.Tags(emptyTE,TagElem(..),Tags,TagSite,addToTags)
 import qualified NLP.GenI.Converter.XmgTagml as X 
@@ -54,7 +54,7 @@ translateEntry (X.Entry (X.Entry_Attrs tname) (X.Family family) _ t sem (X.Inter
  in (translateTree t) { pfamily = family
                       , pidname = tname
                       , params  = []
-                      , pfeat   = ifeats
+                      , pinterface = ifeats
                       , psemantics = Just $ translateSemantics sem }
 
 -- ----------------------------------------------------------------------
@@ -133,10 +133,10 @@ translateNodeHelper idnum (X.Node nattrs mnargs _) = gn where
       -- (we a list of distinguished attributes, in order of preference)
       lexL = concat $ map (\la -> [ v | (a,v) <- gloF, a == la ])
                       lexemeAttributes
-      lex = case ntype of
-            Lex -> take 1 h $ map (\la -> [ v | (a,v) <- gloF, a == la ]) $
-                   lexemeAttributes
-            _   -> []
+      lex = case (ntype,lexL) of
+            (Lex,h:_) -> fromGConst h
+            _         -> []
+      anchor = X.nodeType nattrs == X.Node_type_anchor
       aconstr = case X.nodeType nattrs of
                 X.Node_type_subst -> True
                 X.Node_type_foot  -> True
@@ -150,8 +150,8 @@ translateNodeHelper idnum (X.Node nattrs mnargs _) = gn where
       gn = GN { gnname  = name,
                 gup     = sort $ topF ++ gloF,
                 gdown   = sort $ botF ++ gloF,
-                ganchor = X.nodeType nattrs == X.Node_type_anchor,
-                glexeme = lex,
+                ganchor = anchor,
+                glexeme = if anchor then [] else lex,
                 gtype   = ntype,
                 gaconstr = aconstr }
 
