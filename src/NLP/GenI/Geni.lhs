@@ -41,12 +41,13 @@ import qualified Control.Exception
 import Control.Monad.Error
 
 import Data.IORef (IORef, readIORef, modifyIORef)
-import Data.List (intersperse, sort, nub, partition, groupBy, span)
+import Data.List (intersperse, sort, nub, partition, groupBy)
 import qualified Data.Map as Map
 import Data.Maybe (mapMaybe)
 
 import System.Exit ( exitWith, ExitCode(ExitSuccess, ExitFailure) )
 import System.IO (hPutStr, hClose, hGetContents)
+import System.IO.Unsafe (unsafePerformIO)
 import Text.ParserCombinators.Parsec 
 -- import System.Process 
 
@@ -55,6 +56,8 @@ import Statistics (Statistics)
 import NLP.GenI.General(filterTree, groupAndCount, multiGroupByFM,
     geniBug,
     repNodeByNode,
+    wordsBy,
+    fst3, snd3,
     ePutStr, ePutStrLn, eFlush,
     )
 
@@ -63,15 +66,15 @@ import NLP.GenI.Btypes
    Replacable(..),
    Sem, SemInput, sortSem, subsumeSem, params,
    GeniVal(GConst), fromGVar,
-   GNode(ganchor, gnname, gup), Flist,
+   GNode(ganchor, gnname, gup, gdown), Flist,
    isemantics, ifamname, iword, iparams, iequations,
    iinterface, ifilters,
    isempols,
    toKeys,
    glexeme,
-   showLexeme,
+   showLexeme, showPairs,
    pidname, pfamily, pinterface, ptype, psemantics,
-   setLexeme, tree, unifyFeat,
+   setLexeme, tree, unifyFeat, sortFlist,
    alphaConvert,
    )
 
@@ -665,77 +668,147 @@ combineOne lexRaw eRaw = -- Maybe monad
        return (l,e2)
 \end{code}
 
+\subsubsection{CGM Enrichement}
+
 Enrichment is a concept introduced by the common grammar manifesto
 \cite{kow05CGM}, the idea being that during lexical selection, you sometimes
-want to add feature structures to specific nodes in a tree.  The conventions
-taken for enrichment are:
+want to add feature structures to specific nodes in a tree.
 
-\begin{tabular}{|l|l|}
-\textbf{path equation} & \textbf{result} \\
+The conventions taken by GenI for path equations are:
+
+\begin{tabular}{|l|p{8cm}|}
 \hline
-\verb!interface.a=v! & \fs{a:v} is unified with the interface \\
-\verb!a=v!           & a:v is inserted into the top feature of the anchor \\
-\verb!foo.a=v!       & a:v is inserted with the top feature of the node \verb!foo! \\
+\verb!interface.foo=bar! &
+\fs{foo=bar} is unified into the interface (not the tree) \\
+\hline
+\verb!anchor.bot.foo=bar! &
+\fs{foo=bar} is unified into the bottom feature of the node
+which is marked anchor.  \\
+\hline
+\verb!toto.top.foo=bar! &
+\fs{foo=bar} is unified into the top feature of node named toto \\
+\hline
+\verb!toto.bot.foo=bar! &
+\fs{foo=bar} is unified into the bot feature of node named toto \\
+\hline
+\verb!anchor.foo=bar! &
+same as \verb!anchor.bot.foo=bar!  \\
+\hline
+\verb!anc.whatever...! &
+same as \verb!anchor.whatever...!  \\
+\hline
+\verb!top.foo=bar! &
+same as \verb!anchor.top.foo=bar!  \\
+\hline
+\verb!bot.foo=bar! &
+same as \verb!anchor.bot.foo=bar!  \\
+\hline
+\verb!foo=bar! &
+same as \verb!anchor.bot.foo=bar!  \\
+\hline
+\verb!toto.foo=bar! &
+same as \verb!toto.top.foo=bar! (creates a warning) \\
+\hline
 \end{tabular}
 
-Notes:
-\begin{enumerate}
-\item Enrichment can fail if one of the unification fails; however, any node
-      names that are not found are silently ignored.
-\item Our implementation of enrichement depends on weak unification behaviour;
-that is if an attribute is not present in one of the nodes, it is inserted.
-\end{enumerate}
-
 \begin{code}
+-- | (node, top, att) (node is Nothing if anchor)
+type PathEqLhs  = (String, Bool, String)
+type PathEq     = (PathEqLhs, GeniVal)
+
 enrich :: ILexEntry -> MTtree -> Either String MTtree
 enrich l t = -- using the Maybe monad
  do -- separate into interface/anchor/named
-    let (intF, anchF, namedFs) = splitPathEquations $ iequations l
-        lname = showLexeme (iword l)
-        tname = pidname t
+    let name = fst3.fst
+        nameIs n x = name x == n
+        isTop = snd3.fst
+        clump :: [PathEq] -> [[PathEq]]
+        clump eqs = groupBy (\x y -> name x == name y) (sort eqs)
+        --
+        parsed1 = map (\ (a,v) -> (parsePathEq a, v)) (iequations l)
+        (intE, parsed2)  = partition (nameIs "interface") parsed1
+        --
+        (ancE_top, parsed3) = partition (\x -> nameIs "anchor" x && isTop x) parsed2
+        (ancE_bot, parsed4) = partition (\x -> nameIs "anchor" x) parsed3
+        --
+        (parsed5a, parsed5b) = partition isTop parsed4
+        namedFs_top = clump parsed5a
+        namedFs_bot = clump parsed5b
+        --
+    let enrichNamed :: Bool -> [[PathEq]] -> MTtree -> Either String MTtree
+        enrichNamed top cl tr =
+          foldM (\t c -> enrichBy (Just $ nameOfClump c) top (toFlist c) t) tr cl
+        nameOfClump :: [PathEq] -> String
+        nameOfClump []    = geniBug "empty clump in enrich"
+        nameOfClump (n:_) = name n
+        toFlist :: [PathEq] -> Flist
+        toFlist eqs = sortFlist $ map (\ ((_,_,a),v) -> (a,v)) eqs
     -- enrich the interface
-    (i2, isubs) <- unifyFeat intF (pinterface t)
-                   `catchError` (\_ -> throwError $ "enrichment failure on interface: " ++ lname ++ " " ++ tname)
+    (i2, isubs) <- unifyFeat (toFlist intE) (pinterface t)
+                   `catchError` (\_ -> throwError enrichErr)
     let t2 = (replace isubs t) { pinterface = i2 }
-    -- enrich the anchor
-    t3 <- enrichBy Nothing anchF t2
-    -- enrich the named nodes
-    foldM (\t (n,f) -> enrichBy (Just n) f t) t3 namedFs
-
--- | Separate path equations into interface, anchor, named
-splitPathEquations :: Flist -> (Flist, Flist, [(String, Flist)])
-splitPathEquations avs =
- let (named_, anonF) = partition ((elem '.') . fst) avs
-     splitName (a,v) = (n, (drop 1 a2,v)) where (n,a2) = span (/= '.') a
-     (intF, named) = partition (\n -> fst n == "interface") $
-                     map splitName named_
-     namedFs = map (\f -> (fst (head f), map snd f)) $
-               groupBy (\(n1,_) (n2,_) -> n1 == n2)  $
-               sort named
- in (map snd intF, anonF, namedFs)
+    -- enrich the anchor top and bot
+    (enrichBy Nothing True  (toFlist ancE_top) t2
+     >>= enrichBy Nothing True  (toFlist ancE_top)
+     >>= enrichBy Nothing False (toFlist ancE_bot)
+     -- enrich the named nodes
+     >>= enrichNamed True  namedFs_top
+     >>= enrichNamed False namedFs_bot)
+ where
+  enrichErr = "Warning: enrichment failure on interface: " ++ (showLexeme $ iword l) ++ " " ++ (pidname t)
 
 enrichBy :: Maybe String -- enriches anchor if set to Nothing
+         -> Bool         -- true if top
          -> Flist -> MTtree -> Either String MTtree
-enrichBy mname fls t =
+enrichBy mname top fls t =
  -- trace ("enrichBy " ++ (show mname)) $
  case filterTree match (tree t) of
- [a] -> do (newgup, sub) <- unifyFeat fls (gup a)
-                            `catchError` (\_ -> throwError $ "enrichment failure on " ++ matchErr)
-           return $ fixNode (a { gup = newgup }) $ replace sub t
- []  -> Right t -- to be robust, we accept if the node isn't there
+ [a] -> do let tfeat = (if top then gup else gdown) a
+           (newfeat, sub) <- unifyFeat fls tfeat
+                             `catchError` (\_ -> throwError (enrichErr tfeat))
+           let newnode = if top then a {gup   = newfeat}
+                                else a {gdown = newfeat}
+           return $ fixNode newnode $ replace sub t
+ []  -> unsafePerformIO $ do
+          ePutStrLn $ matchName ++ " not found in tree " ++ (pidname t)
+          return $ Right t -- to be robust, we accept if the node isn't there
  _   -> geniBug ("Tree with multiple matches in enrichBy. " ++
                  "\nTree: " ++ pidname t ++ "\nFamily: " ++ pfamily t ++
-                 "\nMatching on: " ++ matchErr)
+                 "\nMatching on: " ++ matchName)
  where
    fixNode n mt = mt { tree = repNodeByNode match n (tree mt) }
    match = case mname of
            Nothing -> ganchor
            Just n  -> \g -> gnname g == n
-   matchErr = case mname of
-              Nothing -> "anchor node"
-              Just n  -> "node with name " ++ n
-\end{code}
+   enrichErr tfeat = "Warning: enrichment failure on "
+              ++ "tree " ++ (pidname t)
+              ++ ", " ++ matchName ++ "(" ++ (if top then "top" else "bottom")
+              ++ ") using " ++ (showPairs fls)
+   matchName = case mname of
+               Nothing -> "anchor node"
+               Just n  -> "node with name " ++ n
 
+-- | Parse a path equation using the GenI conventions
+parsePathEq :: String -> PathEqLhs
+parsePathEq e =
+ case wordsBy '.' e of
+ (n:"top":r) -> (n, True, rejoin r)
+ (n:"bot":r) -> (n, False, rejoin r)
+ ("top":r) -> ("anchor", True, rejoin r)
+ ("bot":r) -> ("anchor", False, rejoin r)
+ ("anc":r) -> parsePathEq $ rejoin $ "anchor":r
+ ("anchor":r)    -> ("anchor", False, rejoin r)
+ ("interface":r) -> ("interface", False, rejoin r)
+ (n:r) -> unsafePerformIO $ do
+           ePutStrLn $ "Warning: Interpreting path equation " ++ e ++
+                       "as applying to top of " ++ n ++ "."
+           return (n, True, rejoin r)
+ _ -> unsafePerformIO $ do
+        ePutStrLn $ "Warning: could not interpret path equation " ++ e
+        return ("", True, e) -- unknown
+ where
+  rejoin = concat . (intersperse ".")
+\end{code}
 
 % --------------------------------------------------------------------
 \subsection{XMG anchoring}
