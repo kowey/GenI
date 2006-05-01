@@ -42,6 +42,10 @@ SOFTVERS        = $(SOFTWARE)-$(VERSION)
 
 TO_INSTALL=$(patsubst %, bin/%, tryXtimes geni xmgGeni runXMGselector runXMGfilter)
 
+ifndef RTS_FLAGS
+RTS_FLAGS:=-p -hm
+endif
+
 # You should replace the value of this variable with your project
 # directory name.  The default assumption is that the project name
 # is the same as the directory name.
@@ -111,7 +115,7 @@ SOURCE_FILES := $(SOURCE_FILES_1) $(SOURCE_FILES_2)
 SOURCE_HSPP  := $(SOURCE_HSPP_1) $(SOURCE_HSPP_2)
 
 # Phony targets do not keep track of file modification times
-.PHONY: all nogui dep clean docs html release optimize\
+.PHONY: all nogui dep clean docs doc maindoc html release optimize\
        	permissions install\
 	extractor\
 	unit profout profiler ghci\
@@ -125,7 +129,9 @@ normal: compile
 all: compile docs tidy
 release: compile docs html tidy tarball
 
-doc:  permissions $(MAKE_DOCS) haddock
+doc:  permissions maindoc haddock
+
+maindoc: $(MAKE_DOCS)
 	cp $(MAKE_DOCS) $(DOC_DIR)
 
 docs: doc
@@ -171,8 +177,8 @@ compile: permissions $(OFILE) $(EOFILE)
 converter: $(CONVERTER)
 extractor: $(EOFILE)
 
-$(OFILE) : $(SOURCE_FILES)
-	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES_GUI) $(IFILE).lhs -o $(OFILE)
+$(OFILE) : $(IFILE).lhs $(SOURCE_FILES)
+	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES_GUI) $< -o $@
 	$(OS_SPECIFIC_STUFF)
 
 $(CONVERTER): ./src/Converter.hs $(SOURCE_FILES)
@@ -182,18 +188,33 @@ $(CONVERTER): ./src/Converter.hs $(SOURCE_FILES)
 $(EOFILE) : $(EIFILE).lhs $(SOURCE_FILES)
 	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES) $< -o $@
 
-nogui : permissions
-	$(GHC) $(GHCFLAGS) --make -DDISABLE_GUI $(GHCPACKAGES) $(IFILE).lhs -o $(OFILE)
-	$(OS_SPECIFIC_STUFF)
-
-precompiled: permissions
-	$(GHC) $(GHCFLAGS) --make -DPRECOMPILED_GRAMMAR +RTS -K50m -RTS $(GHCPACKAGES) $(IFILE).lhs -o $(OFILE)
+nogui : $(IFILE).lhs permissions
+	$(GHC) $(GHCFLAGS) --make -DDISABLE_GUI $(GHCPACKAGES) $< -o $(OFILE)
 	$(OS_SPECIFIC_STUFF)
 
 debugger: $(DOFILE)
 
-$(DOFILE): $(SRC_GENI)/Main.lhs permissions
+$(DOFILE): $(IFILE).lhs permissions
 	$(GHC) $(GHCFLAGS_PROF) $(GHCPACKAGES) --make $< -o $@
+
+# --------------------------------------------------------------------
+# geni with a precompiled grammar
+# --------------------------------------------------------------------
+
+# this stuff is broken down into small pieces so that we can do the hard
+# stuff (hs -> hc) on a very fast machine and the rest of the compilation
+# locally
+
+src/MyGeniGrammar.hc : src/MyGeniGrammar.hs
+	time $(GHC) $(GHCFLAGS) -C +RTS -K100m -RTS $(GHCPACKAGES) $<
+
+src/MyGeniGrammar.o : src/MyGeniGrammar.hc
+	$(GHC) $(GHCFLAGS) -c $(GHCPACKAGES) $<
+
+precompiled: permissions src/MyGeniGrammar.o
+	$(GHC) $(GHCFLAGS) --make -DPRECOMPILED_GRAMMAR $(GHCPACKAGES) $(IFILE).lhs -o $(OFILE)
+	$(OS_SPECIFIC_STUFF)
+
 
 # --------------------------------------------------------------------
 # installing
@@ -230,7 +251,7 @@ unit:
 profiler: $(DOFILE) profout debugger-geni.pdf
 
 profout:
-	bin/debugger-geni +RTS -p -hm -RTS -s etc/perftest/semantics-t33 --nogui -m etc/perftest/lexselection-t33 --preselected --opts=pol -o profout
+	bin/debugger-geni +RTS $(RTS_FLAGS) -RTS -s etc/perftest/semantics-t33 --nogui -m etc/perftest/lexselection-t33 --preselected --opts=pol -o profout
 
 debugger-geni.pdf: debugger-geni.hp
 	hp2ps $< > $(basename $@).ps
