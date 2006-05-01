@@ -737,7 +737,7 @@ enrich l t = -- using the Maybe monad
         --
     let enrichNamed :: Bool -> [[PathEq]] -> MTtree -> Either String MTtree
         enrichNamed top cl tr =
-          foldM (\t c -> enrichBy (Just $ nameOfClump c) top (toFlist c) t) tr cl
+          foldM (\t c -> enrichBy (Just $ nameOfClump c) top lexeme (toFlist c) t) tr cl
         nameOfClump :: [PathEq] -> String
         nameOfClump []    = geniBug "empty clump in enrich"
         nameOfClump (n:_) = name n
@@ -748,19 +748,21 @@ enrich l t = -- using the Maybe monad
                    `catchError` (\_ -> throwError enrichErr)
     let t2 = (replace isubs t) { pinterface = i2 }
     -- enrich the anchor top and bot
-    (enrichBy Nothing True  (toFlist ancE_top) t2
-     >>= enrichBy Nothing True  (toFlist ancE_top)
-     >>= enrichBy Nothing False (toFlist ancE_bot)
+    (    enrichBy Nothing True  lexeme (toFlist ancE_top) t2
+     >>= enrichBy Nothing True  lexeme (toFlist ancE_top)
+     >>= enrichBy Nothing False lexeme (toFlist ancE_bot)
      -- enrich the named nodes
      >>= enrichNamed True  namedFs_top
      >>= enrichNamed False namedFs_bot)
  where
-  enrichErr = "Warning: enrichment failure on interface: " ++ (showLexeme $ iword l) ++ " " ++ (pidname t)
+  lexeme = showLexeme (iword l)
+  enrichErr = "Warning: enrichment failure on interface: " ++ lexeme ++ " " ++ (pidname t)
 
 enrichBy :: Maybe String -- enriches anchor if set to Nothing
          -> Bool         -- true if top
+         -> String       -- lexeme (for debugging info)
          -> Flist -> MTtree -> Either String MTtree
-enrichBy mname top fls t =
+enrichBy mname top lex fls t =
  -- trace ("enrichBy " ++ (show mname)) $
  case filterTree match (tree t) of
  [a] -> do let tfeat = (if top then gup else gdown) a
@@ -781,12 +783,13 @@ enrichBy mname top fls t =
            Nothing -> ganchor
            Just n  -> \g -> gnname g == n
    enrichErr tfeat = "Warning: enrichment failure on "
-              ++ "tree " ++ (pidname t)
-              ++ ", " ++ matchName ++ "(" ++ (if top then "top" else "bottom")
-              ++ ") using " ++ (showPairs fls)
+              ++ lex ++ " " ++ (pidname t)
+              ++ ", " ++ matchName ++ " (" ++ (if top then "top" else "bottom")
+              ++ ") applying [" ++ (showPairs fls)
+              ++ "] on [" ++ (showPairs tfeat) ++ "]"
    matchName = case mname of
-               Nothing -> "anchor node"
-               Just n  -> "node with name " ++ n
+               Nothing -> "anchor "
+               Just n  -> "node " ++ n
 
 -- | Parse a path equation using the GenI conventions
 parsePathEq :: String -> PathEqLhs
