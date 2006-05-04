@@ -87,7 +87,7 @@ import NLP.GenI.Tags (Tags, TagElem, emptyTE,
 import NLP.GenI.Configuration
   ( Params
   , grammarType, testCase, morphCmd, ignoreSemantics, selectCmd,
-  , GrammarType(..),
+  , GrammarType(..), isServer,
   , tsFile, macrosFile, lexiconFile, morphFile, xmgOutFile, xmgErrFile)
 
 import qualified NLP.GenI.Builder as B
@@ -177,12 +177,13 @@ loadGrammar pstRef =
      -- grammar type
          isNotPreanchored = not (grammarType config == PreAnchored)
          isNotPrecompiled = not (grammarType config == PreCompiled)
+         isNotServer = not (isServer config)
      -- display 
      let errorlst  = filter (not.null) $ map errfn src 
            where errfn (err,msg) = if err then msg else ""
                  src = [ (isNotPrecompiled && null gfilename, "a tree file")
                        , (isNotPreanchored && null lfilename, "a lexicon file")
-                       , (null sfilename, "a test suite") ]
+                       , (isNotServer && null sfilename, "a test suite") ]
          errormsg = "Please specify: " ++ (concat $ intersperse ", " errorlst)
      when (not $ null errorlst) $ fail errormsg 
      -- we only have to read in grammars from the simple format
@@ -195,7 +196,7 @@ loadGrammar pstRef =
      when isNotPreanchored $ loadLexicon pstRef config
      -- in any case, we have to...
      loadMorphInfo pstRef config 
-     loadTestSuite pstRef 
+     when isNotServer $ loadTestSuite pstRef
 \end{code}
 
 \fnlabel{loadLexicon} Given the pointer to the monadic state pstRef and

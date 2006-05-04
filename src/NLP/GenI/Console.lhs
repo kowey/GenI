@@ -21,7 +21,7 @@ This module handles the console user interface, batch processing, and test
 suites.  
 
 \begin{code}
-module NLP.GenI.Console(consoleGeni) where
+module NLP.GenI.Console(consoleGeni, runTestCase) where
 \end{code}
 
 \ignore{
@@ -62,8 +62,8 @@ consoleGeni pstRef = do
   ePutStrLn "======================================================"
   --
   case timeoutSecs $ pa pst of
-    Nothing -> runTestCase pstRef
-    Just t  -> withTimeout t (timeoutErr t) $ runTestCase pstRef
+    Nothing -> runTestCase pstRef >> return ()
+    Just t  -> withTimeout t (timeoutErr t) $ runTestCase pstRef >> return ()
   where
    timeoutErr t = do ePutStrLn $ "GenI timed out after " ++ (show t) ++ "s"
                      exitTimeout
@@ -99,7 +99,7 @@ specify any test cases, we run the first one.  If the user specifies a non-exist
 test case we raise an error.
 
 \begin{code}
-runTestCase :: ProgStateRef -> IO ()
+runTestCase :: ProgStateRef -> IO [String]
 runTestCase pstRef =
   do pst <- readIORef pstRef 
      let pstCase    = tcase pst
@@ -131,6 +131,7 @@ runTestCase pstRef =
          soPutStrLn = if (null sFile) then putStrLn else writeFile sFile
      when (not $ null $ metricsParam config) $
        do soPutStrLn $ "begin stats\n" ++ showFinalStats stats ++ "end"
+     return sentences
   where
     helper :: B.Builder st it Params -> IO ([String], Statistics)
     helper builder =

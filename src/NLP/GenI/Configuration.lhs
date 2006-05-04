@@ -27,7 +27,7 @@ module NLP.GenI.Configuration
   , polarised, predicting
   , semfiltered, isIaf
   , isBatch, emptyParams
-  , treatArgs, optBatch
+  , treatArgs, treatArgsWithParams, optBatch
   )
 where
 \end{code}
@@ -89,6 +89,7 @@ data Params = Prms{
   viewCmd        :: String,
   --
   isGraphical    :: Bool,
+  isServer       :: Bool,
   optimisations  :: [Switch],
   --
   macrosFile     :: String,
@@ -143,6 +144,7 @@ emptyParams = Prms {
   selectCmd      = "runXMGselector",
   viewCmd        = "ViewTAG",
   isGraphical    = True,
+  isServer       = False,
   testCase      = [],
   optimisations  = [],
   extrapol       = Map.empty,
@@ -311,8 +313,10 @@ optimisationCodes =
 (represented as a list of strings).   
 
 \begin{code}
-treatArgs :: [String] -> IO Params
-treatArgs argv = do
+treatArgs argv = treatArgsWithParams argv emptyParams
+
+treatArgsWithParams :: [String] -> Params -> IO Params
+treatArgsWithParams argv initParams = do
    let header   = "Usage: geni [OPTION...]"
        usageExample = "Example:\n" ++  
          " geni --gui -m examples/ej/mac -l examples/ej/lexicon -s examples/ej/suite\n"
