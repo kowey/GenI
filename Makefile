@@ -90,13 +90,38 @@ SCRIPT_FILES = bin/runXMGselector\
 	       etc/macstuff/macosx-app\
 
 
-IFILE = $(SRC)/MainGeni
-EIFILE = $(SRC)/ExtractTestCases
+GENI := bin/geni
+GENI_MAIN := $(SRC)/MainGeni.lhs
+GENI_DEPS = $(call getdeps,$(GENI_MAIN))
+
+EXTRACTOR := bin/geniExtractCases
+EXTRACTOR_MAIN := $(SRC)/ExtractTestCases.lhs
+EXTRACTOR_DEPS = $(call getdeps,$(EXTRACTOR_MAIN))
 
 CONVERTER := bin/geniconvert
-OFILE = bin/geni
-DOFILE = bin/debugger-geni
-EOFILE = bin/geniExtractCases
+CONVERTER_MAIN := $(SRC)/Converter.hs
+CONVERTER_DEPS = $(call getdeps,$(CONVERTER_MAIN))
+
+PROFGENI := bin/debugger-geni
+
+SERVER := bin/geniserver
+SERVER_MAIN := $(SRC)/Server.hs
+SERVER_DEPS := $(call getdeps,$(CLIENT_MAIN))
+
+CLIENT := bin/geniclient
+CLIENT_MAIN := $(SRC)/Client.hs
+CLIENT_DEPS := $(call getdeps,$(CLIENT_MAIN))
+
+# dependencies
+COMPILE_TARGETS:=$(GENI_MAIN) $(EXTRACTOR_MAIN) $(CONVERTER_MAIN)\
+		 $(SERVER_MAIN) $(CLIENT_MAIN)
+DEPENDS:=$(patsubst %,.depends/%.dep,$(COMPILE_TARGETS))
+
+# if make deps has been called, use the dependencies file
+# otherwise, default to a safer, but more annoying definition
+getdeps = $(if $(wildcard .depends/$(1).dep),\
+	   $(shell grep -E \.l?hs .depends/$(1).dep | sed -e 's/.* : //' | xargs),\
+	   $(SOURCE_FILES))
 
 DOC_DIR = doc
 HADDOCK_OUT = $(DOC_DIR)/api
@@ -115,8 +140,9 @@ SOURCE_FILES := $(SOURCE_FILES_1) $(SOURCE_FILES_2)
 SOURCE_HSPP  := $(SOURCE_HSPP_1) $(SOURCE_HSPP_2)
 
 # Phony targets do not keep track of file modification times
-.PHONY: all nogui dep clean docs doc maindoc html release optimize\
-       	permissions install\
+.PHONY: all nogui deps $(DEPENDS)\
+	clean docs doc maindoc html release optimize\
+       	init permissions install\
 	extractor\
 	unit profout profiler ghci\
 	tags haddock
@@ -129,7 +155,7 @@ normal: compile
 all: compile docs tidy
 release: compile docs html tidy tarball
 
-doc:  permissions maindoc haddock
+doc:  init maindoc haddock
 
 maindoc: $(MAKE_DOCS)
 	cp $(MAKE_DOCS) $(DOC_DIR)
@@ -148,12 +174,16 @@ clean: tidy
 	rm -f bin/debugger-geni
 	rm -f $(foreach d, $(SRC_DIRS), $(d)/*.{ps,pdf})
 	rm -f $(MAKE_HTML)
-	rm -rf $(OFILE) $(OFILE).app
+	rm -rf $(GENI) $(GENI).app $(PROFGENI)
+	rm -rf $(CONVERTER) $(EXTRACTOR) $(CLIENT) $(SERVER)
 	rm -rf $(SOURCE_HSPP_1) $(HADDOCK_OUT)
+	rm -rf .depends
 
 tidy:
 	rm -f $(foreach d, $(SRC_DIRS), $(d)/*.{dvi,aux,log,bbl,blg,out,toc})
 	rm -f $(foreach d, $(SRC_DIRS), $(d)/*.{p_hi,p_o,hi,o})
+
+init: permissions deps
 
 permissions: $(config_file)
 	chmod u+x $(SCRIPT_FILES)
@@ -168,34 +198,47 @@ tags:
 	sort $@ > $@.tmp
 	mv $@.tmp $@
 
+deps: $(DEPENDS)
+
+$(DEPENDS): .depends/%.dep : %
+	@echo Calculating dependencies for $<
+	@mkdir -p $(dir $@)
+	@$(GHC) $(GHCFLAGS) -M -optdep-f -optdep$@ $<
+
 # --------------------------------------------------------------------
 # compilation
 # --------------------------------------------------------------------
 
-compile: permissions $(OFILE) $(EOFILE)
+compile: init $(GENI) $(EXTRACTOR) $(CONVERTER) $(SERVER) $(CLIENT)
 
 converter: $(CONVERTER)
-extractor: $(EOFILE)
+extractor: $(EXTRACTOR)
+clientserver: $(SERVER) $(CLIENT)
 
-$(OFILE) : $(IFILE).lhs $(SOURCE_FILES)
+$(GENI) : $(GENI_MAIN) $(GENI_DEPS)
 	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES_GUI) $< -o $@
 	$(OS_SPECIFIC_STUFF)
 
-$(CONVERTER): ./src/Converter.hs $(SOURCE_FILES)
+$(CONVERTER): $(CONVERTER_MAIN) $(CONVERTER_DEPS)
+	@echo $(CONVERTER_DEPS)
 	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES) -package HaXml $< -o $@
-	$(OS_SPECIFIC_STUFF)
 
-$(EOFILE) : $(EIFILE).lhs $(SOURCE_FILES)
+$(EXTRACTOR) : $(CONVERTER_MAIN) $(EXTRACTOR_DEPS)
 	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES) $< -o $@
 
-nogui : $(IFILE).lhs permissions
-	$(GHC) $(GHCFLAGS) --make -DDISABLE_GUI $(GHCPACKAGES) $< -o $(OFILE)
-	$(OS_SPECIFIC_STUFF)
+nogui : $(GENI_MAIN) $(GENI_DEPS) permissions
+	$(GHC) $(GHCFLAGS) --make -DDISABLE_GUI $(GHCPACKAGES) $< -o $(GENI)
 
-debugger: $(DOFILE)
+debugger: $(PROFGENI)
 
-$(DOFILE): $(IFILE).lhs permissions
+$(PROFGENI): $(GENI_MAIN) $(GENI_DEPS) permissions
 	$(GHC) $(GHCFLAGS_PROF) $(GHCPACKAGES) --make $< -o $@
+
+$(SERVER): $(SERVER_MAIN) $(SERVER_DEPS)
+	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES) $< -o $@
+
+$(CLIENT): $(CLIENT_MAIN) $(CLIENT_DEPS)
+	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES) $< -o $@
 
 # --------------------------------------------------------------------
 # geni with a precompiled grammar
@@ -211,8 +254,8 @@ src/MyGeniGrammar.hc : src/MyGeniGrammar.hs
 src/MyGeniGrammar.o : src/MyGeniGrammar.hc
 	$(GHC) $(GHCFLAGS) -c $(GHCPACKAGES) $<
 
-precompiled: permissions src/MyGeniGrammar.o
-	$(GHC) $(GHCFLAGS) --make -DPRECOMPILED_GRAMMAR $(GHCPACKAGES) $(IFILE).lhs -o $(OFILE)
+precompiled: init src/MyGeniGrammar.o
+	$(GHC) $(GHCFLAGS) --make -DPRECOMPILED_GRAMMAR $(GHCPACKAGES) $(GENI_MAIN).lhs -o $(GENI)
 	$(OS_SPECIFIC_STUFF)
 
 
@@ -248,7 +291,7 @@ ghci:
 unit:
 	etc/quickcheck.py src/geni/Btypes.lhs | ghci $(GHCI_FLAGS)
 
-profiler: $(DOFILE) profout debugger-geni.pdf
+profiler: $(PROFGENI_MAIN) profout debugger-geni.pdf
 
 profout:
 	bin/debugger-geni +RTS $(RTS_FLAGS) -RTS -s etc/perftest/semantics-t33 --nogui -m etc/perftest/lexselection-t33 --preselected --opts=pol -o profout
