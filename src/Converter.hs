@@ -27,7 +27,7 @@ import System (ExitCode(ExitFailure), exitWith, getArgs, getProgName)
 import System.IO(getContents)
 import Text.ParserCombinators.Parsec
 
-import NLP.GenI.Btypes (Macros)
+import NLP.GenI.Btypes (Macros,pfamily,MTtree)
 import NLP.GenI.General (ePutStrLn)
 import NLP.GenI.GeniParsers (geniMacros)
 import NLP.GenI.Treeprint (toGeniHand, hsShow)
@@ -58,14 +58,25 @@ readMacros f =
      _       -> fail ("Unknown -f type: " ++ f)
 
 writeMacros :: String -> Macros -> IO ()
-writeMacros t tes =
- putStrLn $ case t of
-            "haskell" -> unlines $ [ "module MyGeniGrammar where"
+writeMacros ty ms =
+ putStrLn $ case ty of
+            "haskell" -> unlines $ [ "module MyGeniGrammar(myGeniGrammar) where"
                                    , "import Data.Tree"
                                    , "import NLP.GenI.Btypes"
                                    , ""
+                                   , (uncommas $ map valName tpairs) ++ " :: MTtree"
+                                   , "" ] ++
+
+                                   (intersperse "" $ map (\ (i,t) -> valName (i,t) ++ " = " ++ hsShow t) tpairs) ++
+
+                                   [ ""
+                                   , "myGeniGrammar :: [MTtree]"
                                    , "myGeniGrammar = "
-                                   , " [" ++ (concat $ intersperse "\n ," $ map hsShow tes)
+                                   , " [" ++ (uncommas $ map valName tpairs)
                                    , " ]" ]
-            "geni"    -> unlines $ map toGeniHand tes
-            _         -> fail ("Unknown -t type" ++ t)
+                         where uncommas = concat . (intersperse ", ")
+                               tpairs :: [(Integer,MTtree)]
+                               tpairs = zip [1..] ms
+                               valName (i,t) = "t" ++ (show i) ++ "_" ++ (pfamily t)
+            "geni"    -> unlines $ map toGeniHand ms
+            _         -> fail ("Unknown -t type" ++ ty)
