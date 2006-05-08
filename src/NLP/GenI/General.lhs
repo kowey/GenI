@@ -48,8 +48,11 @@ import System.Exit(exitWith, ExitCode(ExitFailure))
 
 \fnlabel{stderr} PutStr and PutStrLn an stderr
 \begin{code}
+ePutStr, ePutStrLn :: String -> IO()
 ePutStr   = hPutStr stderr
 ePutStrLn = hPutStrLn stderr
+
+eFlush :: IO()
 eFlush    = hFlush stderr
 \end{code}
 
@@ -67,6 +70,7 @@ trim = reverse . (dropWhile isSpace) . reverse . (dropWhile isSpace)
 string upper and lower case, respectively.  
 
 \begin{code}
+toUpperHead, toLowerHead :: String -> String
 toUpperHead []    = []
 toUpperHead (h:t) = (toUpper h):t
 toLowerHead []    = []
@@ -235,6 +239,7 @@ geniBug s = error $ "Bug in GenI!\n" ++ s ++
 
 \begin{code}
 -- FIXME: should be OS-independant 
+slash :: String
 slash = "/"
 \end{code}
 
@@ -265,7 +270,7 @@ Hmm... do i really feel like instantiating a datatype for this?
 \begin{code}
 showInterval :: Interval -> String
 showInterval (x,y) =
- let sign x = if x > 0 then "+" else ""
+ let sign i = if i > 0 then "+" else ""
      --
  in if (x==y) 
     then (sign x) ++ (show x) 
@@ -279,8 +284,8 @@ type BitVector = Integer
 
 -- | displays a bit vector, using a minimum number of bits
 showBitVector :: Int -> BitVector -> String
-showBitVector min 0 = take min $ repeat '0'
-showBitVector min x = showBitVector (min - 1) (shiftR x 1) ++ (show $ x .&. 1) 
+showBitVector min_ 0 = take min_ $ repeat '0'
+showBitVector min_ x = showBitVector (min_ - 1) (shiftR x 1) ++ (show $ x .&. 1)
 \end{code}
 
 \paragraph{showTable} pretty-prints an ASCII table from a list of items.
@@ -345,10 +350,11 @@ withTimeout secs on_timeout action =
                  TimeOut u | u == i -> unblock on_timeout
                  _ -> killThread timeout >>= throwDyn ex )
  where
-  timeout_thread secs parent i =
-   do threadDelay $ (fromInteger secs) * 1000000
+  timeout_thread secs_ parent i =
+   do threadDelay $ (fromInteger secs_) * 1000000
       throwTo parent (DynException $ toDyn $ TimeOut i)
 
 -- | Like 'exitFailure', except that we return with a code that we reserve for timing out
+exitTimeout :: IO ()
 exitTimeout = exitWith $ ExitFailure 2
 \end{code}
