@@ -32,6 +32,9 @@ where
 import qualified System.Process as S
 
 import Data.List(intersperse, isSuffixOf)
+import System.Exit (ExitCode)
+import System.IO (Handle)
+
 import NLP.GenI.General(slash)
 
 #ifdef __GLASGOW_HASKELL__
@@ -46,6 +49,7 @@ import Control.Monad
 \section{Running a process}
 
 \begin{code}
+waitForProcess :: S.ProcessHandle -> IO ExitCode
 waitForProcess = S.waitForProcess
 \end{code}
 
@@ -55,6 +59,10 @@ processes we want to run are in \texttt{../Resources/bin}.
 
 \begin{code}
 #ifdef darwin_TARGET_OS 
+runInteractiveProcess :: String -> [String]
+                      -> Maybe FilePath
+                      -> Maybe [(String, String)]
+                      -> IO (Handle, Handle, Handle, S.ProcessHandle)
 runInteractiveProcess cmd args x y = do
   dirname <- getProgDirName
   -- detect if we're in an .app bundle, i.e. if 
