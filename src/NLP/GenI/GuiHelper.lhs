@@ -92,13 +92,13 @@ candidateGui pst f xs missedSem missedLex = do
       --
       polFeats = "Polarity attributes detected: " ++ (unwords.detectPolFeatures) xs
       warning = unlines $ filter (not.null) [ warningSem, warningLex, polFeats ]
-      items = if null warning then [ fill tb ] else [ hfill (label warning) , fill tb ]
-      lay   = fill $ container p $ column 5 items
+      theItems = if null warning then [ fill tb ] else [ hfill (label warning) , fill tb ]
+      lay   = fill $ container p $ column 5 theItems
   return (lay, ref, updater)
 
 sectionsBySem :: (TagItem t) => [t] -> [ (Maybe t, String) ]
-sectionsBySem ts =
- let semmap   = mapBySem ts
+sectionsBySem tsem =
+ let semmap   = mapBySem tsem
      sem      = Map.keys semmap
      --
      lookupTr k = Map.findWithDefault [] k semmap
@@ -363,13 +363,13 @@ debuggerPanel builder gvInitial stateToGv itemBar f config input cachedir =
         --
     let (initS, initStats) = initBuilder input config2
         config2 = config { metricsParam = B.defaultMetricNames }
-        (items,labels) = stateToGv initS 
+        (theItems,labels) = stateToGv initS
     p <- panel f []      
     -- ---------------------------------------------------------
     -- item viewer: select and display an item
     -- ---------------------------------------------------------
     gvRef <- newGvRef gvInitial labels "debugger session" 
-    setGvDrawables gvRef items 
+    setGvDrawables gvRef theItems
     (layItemViewer,_,updaterFn) <- graphvizGui p cachedir gvRef
     -- ----------------------------------------------------------
     -- item bar: controls for how an individual item is displayed
@@ -387,7 +387,7 @@ debuggerPanel builder gvInitial stateToGv itemBar f config input cachedir =
     -- dashboard commands
     let showQuery c gs = case queryCounter c gs of
                          Nothing -> "???"
-                         Just c  -> show c
+                         Just q  -> show q
         updateStatsTxt gs = set statsTxt [ text :~ (\_ -> txtStats gs) ]
         txtStats   gs =  "itr " ++ (showQuery num_iterations gs) ++ " "
                       ++ "chart sz: " ++ (showQuery chart_size gs)
@@ -395,7 +395,8 @@ debuggerPanel builder gvInitial stateToGv itemBar f config input cachedir =
     let genStep _ (st,stats) = runState (execStateT nextStep st) stats
     let showNext s_stats = 
           do leapTxt <- get leapVal text
-             let leapInt = read leapTxt
+             let leapInt :: Integer
+                 leapInt = read leapTxt
                  (s2,stats2) = foldr genStep s_stats [1..leapInt]
              setGvDrawables2 gvRef (stateToGv s2)
              setGvSel gvRef 1
@@ -471,6 +472,7 @@ data GraphvizGuiSt a b =
                gvorders  :: [GraphvizOrder] }
 type GraphvizRef a b = IORef (GraphvizGuiSt a b)
 
+newGvRef :: forall a . forall b . b -> [String] -> String -> IO (GraphvizRef a b)
 newGvRef p l t =
   let st = GvSt { gvparams = p,
                   gvitems  = array (0,0) [],
@@ -481,30 +483,36 @@ newGvRef p l t =
                   gvorders = [] }
   in newIORef st
 
+setGvSel :: GraphvizRef a b  -> Int -> IO ()
 setGvSel gvref s  =
   do let fn x = x { gvsel = s,
                     gvorders = GvoSel : (gvorders x) }
      modifyIORef gvref fn 
   
+setGvParams :: GraphvizRef a b -> b -> IO ()
 setGvParams gvref c  =
   do let fn x = x { gvparams = c,
                     gvorders = GvoParams : (gvorders x) }
      modifyIORef gvref fn 
 
+modifyGvParams :: GraphvizRef a b -> (b -> b) -> IO ()
 modifyGvParams gvref fn  =
   do gvSt <- readIORef gvref
      setGvParams gvref (fn $ gvparams gvSt)
 
+setGvDrawables :: GraphvizRef a b -> [a] -> IO ()
 setGvDrawables gvref it =
   do let fn x = x { gvitems = array (0, length it) (zip [0..] it),
                     gvorders = GvoItems : (gvorders x) }
      modifyIORef gvref fn 
 
+setGvDrawables2 :: GraphvizRef a b -> ([a],[String]) -> IO ()
 setGvDrawables2 gvref (it,lb) =
   do let fn x = x { gvlabels = lb }
      modifyIORef gvref fn 
      setGvDrawables gvref it
 
+setGvHandler :: GraphvizRef a b -> Maybe (GraphvizGuiSt a b -> IO ()) -> IO ()
 setGvHandler gvref mh =
   do gvSt <- readIORef gvref
      modifyIORef gvref (\x -> x { gvhandler = mh })
@@ -514,6 +522,7 @@ setGvHandler gvref mh =
 
 -- | add a selection handler - if there already is a handler
 --   this handler will be called before the new one
+addGvHandler :: GraphvizRef a b -> (GraphvizGuiSt a b -> IO ()) -> IO ()
 addGvHandler gvref h =
   do gvSt <- readIORef gvref
      let newH = case gvhandler gvSt of 

@@ -257,7 +257,8 @@ you run the \fnref{configGui}.  It is also called when you first launch
 the GUI
 
 \begin{code}
--- readConfig :: (Textual a) => ProgStateRef -> a -> IO ()
+readConfig :: (Textual l, Textual t, Able ch, Items ch String, Selection ch, Selecting ch)
+           => Window w -> ProgStateRef -> l -> l -> l -> t -> ch -> IO ()
 readConfig f pstRef macrosFileLabel lexiconFileLabel tsFileLabel tsBox tsChoice = 
   do pst <- readIORef pstRef
      let errhandler title err = errorDialog f title (show err)
@@ -290,7 +291,8 @@ readTestSuite pstRef tsBox tsChoice =
          suiteCases = map fst suite 
      -- we number the cases for easy identification, putting 
      -- a star to highlight the selected test case (if available)
-     let numfn n t = (if t == theCase then "* " else "")
+     let numfn :: Int -> String -> String
+         numfn n t = (if t == theCase then "* " else "")
                       ++ (show n) ++ ". " ++ t
          tcaseLabels = zipWith numfn [1..] suiteCases 
      -- we select the first case in cases_, if available
@@ -457,10 +459,10 @@ and updates said label when the user has made a selection.
   -- helper functions
   curDir <- getCurrentDirectory
   let curDir2 = curDir ++ slash
-      trim2 p = if curDir2 `isPrefixOf` p2
-                          then drop (length curDir2) p2
-                          else p2
-                 where p2 = trim p
+      trim2 pth = if curDir2 `isPrefixOf` pth2
+                     then drop (length curDir2) pth2
+                     else pth2
+                  where pth2 = trim pth
   let onBrowse theLabel 
        = do rawFilename <- get theLabel text
             let filename = trim2 rawFilename
@@ -484,10 +486,10 @@ Let's not forget the layout which puts the whole configGui together and the
 command that makes everything ``work'':
 
 \begin{code}
-  let parsePol p 
-       = case (runParser geniPolarities () "" p) of
-           Left err -> error (show err)
-           Right p2 -> p2
+  let parsePol polStr
+       = case runParser geniPolarities () "" polStr of
+           Left err  -> error (show err)
+           Right pol -> pol
       onLoad 
        = do macrosVal <- get macrosFileLabel text
             lexconVal <- get lexiconFileLabel text
@@ -562,13 +564,13 @@ doGenerate f pstRef sembox useDebugger pauseOnLex =
     --
     pst <- readIORef pstRef
     let config = pa pst
-        withBuilderGui f =
+        withBuilderGui a =
           case builderType config of
           NullBuilder   -> error "No gui available for NullBuilder"
-          SimpleBuilder         -> f simpleGui_2p
-          SimpleOnePhaseBuilder -> f simpleGui_1p
-          CkyBuilder    -> f ckyGui
-          EarleyBuilder -> f earleyGui
+          SimpleBuilder         -> a simpleGui_2p
+          SimpleOnePhaseBuilder -> a simpleGui_1p
+          CkyBuilder    -> a ckyGui
+          EarleyBuilder -> a earleyGui
     --
     let doDebugger bg = debugGui bg pstRef pauseOnLex
         doResults  bg = resultsGui bg pstRef
