@@ -36,6 +36,8 @@ import qualified Data.Map as Map
 import Data.Maybe (listToMaybe, catMaybes)
 import Data.Tree 
 
+import Statistics (Statistics)
+
 import NLP.GenI.Automaton
  ( NFA(states, transitions, startSt, finalStList)
  , addTrans )
@@ -79,14 +81,17 @@ import NLP.GenI.Graphviz
 % --------------------------------------------------------------------
 
 \begin{code}
+ckyGui, earleyGui :: BG.BuilderGui
 ckyGui    = ckyOrEarleyGui False
 earleyGui = ckyOrEarleyGui True
 
+ckyOrEarleyGui :: Bool -> BG.BuilderGui
 ckyOrEarleyGui isEarley = BG.BuilderGui {
     BG.resultsPnl = resultsPnl builder
   , BG.debuggerPnl = ckyDebuggerTab builder }
   where builder = if isEarley then earleyBuilder else ckyBuilder
 
+resultsPnl :: B.Builder CkyStatus CkyItem Params -> ProgStateRef -> Window a -> IO ([String], Statistics, Layout)
 resultsPnl builder pstRef f =
   do (sentences, stats, st) <- runGeni pstRef builder
      (lay, _, _) <- realisationsGui pstRef f (theResults st)
@@ -123,6 +128,7 @@ data CkyDebugParams =
                 , debugWhichDerivation :: Int
                 , debugNodeChoice      :: [ChartId] }
 
+initCkyDebugParams :: CkyDebugParams
 initCkyDebugParams = 
  CkyDebugParams { debugShowFeats       = False
                 , debugShowFullDerv    = False
@@ -131,7 +137,7 @@ initCkyDebugParams =
                 , debugNodeChoice      = [] }
 
 -- would be nice if Haskell sugared this kind of stuff for us
-setDebugShowFeats, setDebugShowFullDerv :: Bool -> CkyDebugParams -> CkyDebugParams
+setDebugShowFeats, setDebugShowFullDerv, setDebugShowSourceTree :: Bool -> CkyDebugParams -> CkyDebugParams
 setDebugShowFeats b x = x { debugShowFeats = b }
 setDebugShowFullDerv b x = x { debugShowFullDerv = b }
 setDebugShowSourceTree b x = x { debugShowSourceTree = b }
@@ -241,7 +247,7 @@ ckyItemBar f gvRef updaterFn =
                   updateDerTxt "n/a"
              Just (s,c) -> 
                do let derivations = extractDerivations s c 
-                      dervLabels  = zipWith (\n _ -> show n) [1..] derivations 
+                      dervLabels  = zipWith (\n _ -> show n) ([1..]::[Int]) derivations
                   set derChoice [ enabled := True, items := dervLabels, selection := 0 ]
                   onDerChoice
                   updateDerTxt $ show $ length derivations
@@ -295,7 +301,7 @@ gornAddressStr t target =
   (concat . (intersperse ".") . (map show)) `liftM` gornAddress t target
 
 gornAddress :: Tree GNode -> GNode -> Maybe [Int]
-gornAddress t target = reverse `liftM` helper [] t
+gornAddress tr target = reverse `liftM` helper [] tr
  where
  helper current (Node x _)  | (gnname x == gnname target) = Just current
  helper current (Node _ l)  = listToMaybe $ catMaybes $
@@ -321,7 +327,7 @@ thinDerivationTree =
  let thinlst = ["no-adj", "subst", "adj" ]
      helper n@(Node _ []) = n
      -- this is made complicated for fancy highlighting to work
-     helper (Node (id,op) [k]) | op `elem` thinlst = (Node (id,op2) k2)
+     helper (Node (i,op) [k]) | op `elem` thinlst = (Node (i,op2) k2)
        where (Node (_,op2) k2) = helper k
      helper (Node x kids) = (Node x $ map helper kids)
  in  helper
@@ -330,21 +336,21 @@ instance GraphvizShow CkyDebugParams (CkyStatus, CkyItem) where
   graphvizLabel  f (_,c) = graphvizLabel f c
   graphvizParams f (_,c) = graphvizParams f c
   graphvizShowAsSubgraph f p (s,c) = 
-   let color x = ("color", x)
-       label x = ("label", x)
-       style x = ("style", x)
-       arrowtail x = ("arrowtail", x)
+   let color_ x = ("color", x)
+       label_ x = ("label", x)
+       style_ x = ("style", x)
+       arrowtail_ x = ("arrowtail", x)
        --
-       substColor = color "blue"
-       adjColor   = color "red"
+       substColor = color_ "blue"
+       adjColor   = color_ "red"
        --
-       edgeParams (_ ,"no-adj") = [ label "na" ]
+       edgeParams (_ ,"no-adj") = [ label_ "na" ]
        edgeParams (_, "kids"  ) = []
-       edgeParams (_, "init"  ) = [ label "i" ]
+       edgeParams (_, "init"  ) = [ label_ "i" ]
        edgeParams (_, "subst" ) = [ substColor ]
        edgeParams (_, "adj"   ) = [ adjColor   ]
-       edgeParams (_, "subst-finish") = [ substColor, style "bold"        , arrowtail "normal" ]
-       edgeParams (_, "adj-finish")   = [ adjColor  , style "dashed, bold", arrowtail "normal" ]
+       edgeParams (_, "subst-finish") = [ substColor, style_ "bold"        , arrowtail_ "normal" ]
+       edgeParams (_, "adj-finish")   = [ adjColor  , style_ "dashed, bold", arrowtail_ "normal" ]
        edgeParams (_, k) = [ ("label", "UNKNOWN: " ++ k) ]
        --
        whichDer    = debugWhichDerivation f
@@ -377,8 +383,8 @@ instance GraphvizShowNode (CkyStatus,Bool,[ChartId]) (ChartId, String) where
        treename i = " (" ++ ((idname.ciSourceTree) i) ++ ")"
        txt = case findId st theId of
              Nothing   -> ("???" ++ idStr)
-             Just item -> idStr ++ " " ++ (show.ciNode) item
-                          ++ (if showFullDerv then treename item else "")
+             Just i    -> idStr ++ " " ++ (show.ciNode) i
+                          ++ (if showFullDerv then treename i else "")
        custom = if theId `elem` highlight then [ ("fontcolor","red") ] else []
    in gvNode prefix txt custom
 
@@ -407,7 +413,7 @@ toTagElem ci =
 instance GraphvizShow () B.SentenceAut where
   graphvizShowAsSubgraph _ prefix aut =
    let st  = (concat.states) aut
-       ids = map (\x -> prefix ++ show x) [0..]
+       ids = map (\x -> prefix ++ show x) ([0..]::[Int])
        -- map which permits us to assign an id to a state
        stmap = Map.fromList $ zip st ids
        lookupFinal x = Map.findWithDefault "error_final" x stmap
@@ -445,6 +451,6 @@ mJoinAutomataUsingHole :: Maybe B.SentenceAut -> Maybe B.SentenceAut -> Maybe B.
 mJoinAutomataUsingHole aut1 Nothing = aut1
 mJoinAutomataUsingHole aut1 aut2 =
  mJoinAutomata aut1 $ mJoinAutomata (Just holeAut) aut2
- where holeAut = addTrans empty 0 (Just ("..",[])) 1
-       empty   = emptySentenceAut { startSt = 0, finalStList = [1], states = [[0,1]] }
+ where holeAut = addTrans emptyA 0 (Just ("..",[])) 1
+       emptyA  = emptySentenceAut { startSt = 0, finalStList = [1], states = [[0,1]] }
 \end{code}

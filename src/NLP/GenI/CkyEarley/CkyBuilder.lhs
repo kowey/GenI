@@ -110,9 +110,13 @@ import Statistics ( Statistics )
 \section{Implementing the Builder interface}
 
 \begin{code}
+type CkyBuilder = B.Builder CkyStatus CkyItem Params
+
+ckyBuilder, earleyBuilder :: CkyBuilder
 ckyBuilder    = ckyOrEarleyBuilder False
 earleyBuilder = ckyOrEarleyBuilder True
 
+ckyOrEarleyBuilder :: Bool -> CkyBuilder
 ckyOrEarleyBuilder isEarley = B.Builder
   { B.init = initBuilder isEarley
   , B.step = generateStep isEarley
@@ -241,7 +245,7 @@ data ChartOperation = SubstOp    ChartId  ChartId
 
 type ChartOperationConstructor = ChartId -> ChartId -> ChartOperation
 
-ciRoot, ciFoot, ciSubs, ciAdjDone, ciAux, ciInit :: CkyItem -> Bool
+ciRoot, ciFoot, ciSubs, ciAdjDone, ciAux, ciInit, ciComplete :: CkyItem -> Bool
 ciRoot  i = (gnname.ciNode) i == (gnname.root.ttree.ciSourceTree) i
 ciFoot  i = (gtype.ciNode) i == Foot
 ciSubs  i = (gtype.ciNode) i == Subs
@@ -443,6 +447,8 @@ ckyRules =
  , (activeAdjunctionRule, "actAdjRule")
  , (passiveAdjunctionRule, "psvAdjRule") ]
 
+parentRule, substRule, nonAdjunctionRule, activeAdjunctionRule, passiveAdjunctionRule :: CKY_InferenceRule
+
 -- | CKY non adjunction rule - creates items in which
 -- we do not apply any adjunction
 -- this rule also doubles as top
@@ -600,7 +606,7 @@ parentRule item chart | ciComplete item =
           []  -> Nothing
           [x] -> Just x
           _   -> error "multiple adjunction points in parentRule?!"
-        combine p kids = do
+        combine par kids = do
           let unifyOnly (x, _) y = maybeToList $ unify x y
           -- IMPORTANT! This blocks the parent rule from applying
           -- if the child variables don't unify.
@@ -612,7 +618,7 @@ parentRule item chart | ciComplete item =
                       | any ciOnTheSpine kids = OnTheSpine
                       | otherwise = geniBug $ "parentRule: Weird situtation involving tree sides"
               newItem = item
-               { ciNode      = replace newSubsts p
+               { ciNode      = replace newSubsts par
                , ciSubsts    = newSubsts
                , ciAdjPoint  = mergePoints kids
                , ciVariables = fst newVars
@@ -831,8 +837,8 @@ dispatchRedundant item =
   do st <- get
      let chart = theChart st
          mergeEquivItems o =
-           let isEq = canMerge o item
-           in  (isEq, if isEq then mergeItems o item else o)
+           let equiv = canMerge o item
+           in  (equiv, if equiv then mergeItems o item else o)
          (isEq, newChart) = unzip $ map mergeEquivItems chart
      --
      if or isEq
@@ -1085,7 +1091,7 @@ unpackKidsToParentOp :: CkyStatus -> [CkyItem] -> SentenceAutPairMaybe
 unpackKidsToParentOp st kids =
   let (bef, aft) = span (not.ciOnTheSpine) kids
       (befL, befR) = unzip $ map (unpackItemToAuts st) bef
-      concatAut_ last auts = foldr mJoinAutomata last auts
+      concatAut_ theLast auts = foldr mJoinAutomata theLast auts
       concatAut = concatAut_ Nothing
   in case aft of
      -- two cases in one! (we expect one of these to be Nothing)
@@ -1234,10 +1240,10 @@ extractDerivations st item =
  where
    createNode op kids =
      return $ Node (ciId item, op) kids
-   treeFor id =
-     case findId st id of
+   treeFor i =
+     case findId st i of
        Nothing -> geniBug $ "derivation for item " ++ (show $ ciId item)
-                         ++ "points to non-existent item " ++ (show id)
+                         ++ "points to non-existent item " ++ (show i)
        Just x  -> extractDerivations st x
 \end{code}
 
@@ -1249,9 +1255,9 @@ findId st i = find (\x -> ciId x == i) $ theChart st ++ (theAgenda st) ++ (theRe
 
 -- | The same as 'findId' but calls 'geniBug' if not found
 findIdOrBug :: CkyStatus -> ChartId -> CkyItem
-findIdOrBug st id =
- case findId st id of
-   Nothing -> geniBug $ "Cannot find item in chart with id " ++ (show id)
+findIdOrBug st i =
+ case findId st i of
+   Nothing -> geniBug $ "Cannot find item in chart with id " ++ (show i)
    Just x  -> x
 \end{code}
 

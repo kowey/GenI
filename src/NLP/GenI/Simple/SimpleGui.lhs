@@ -29,7 +29,7 @@ import Graphics.UI.WXCore
 import Data.IORef
 import Data.List (nub)
 
-
+import Statistics (Statistics)
 
 import NLP.GenI.Btypes (GNode(gnname))
 import NLP.GenI.Configuration ( Params(..) )
@@ -59,13 +59,16 @@ import NLP.GenI.Simple.SimpleBuilder
 % --------------------------------------------------------------------
 
 \begin{code}
+simpleGui_2p, simpleGui_1p :: BG.BuilderGui
 simpleGui_2p = simpleGui True
 simpleGui_1p = simpleGui False
 
+simpleGui :: Bool -> BG.BuilderGui
 simpleGui twophase = BG.BuilderGui {
       BG.resultsPnl  = resultsPnl twophase
     , BG.debuggerPnl = simpleDebuggerTab twophase }
 
+resultsPnl :: Bool -> ProgStateRef -> Window a -> IO ([String], Statistics, Layout)
 resultsPnl twophase pstRef f =
   do (sentences, stats, st) <- runGeni pstRef (simpleBuilder twophase)
      (lay, _, _) <- realisationsGui pstRef f (theResults st)
@@ -148,13 +151,13 @@ instance TagItem SimpleItem where
 
 instance XMGDerivation SimpleItem where
  -- Note: this is XMG-related stuff
- getSourceTrees item =
+ getSourceTrees it =
   let -- strips all gorn addressing stuff
       stripGorn n = if dot `elem` n then stripGorn stripped else n
         where stripped = (tail $ dropWhile (/= dot) n)
               dot = '.'
-      deriv  = map (stripGorn.snd3) $ snd $ siDerivation item
-  in  nub ((ttreename.siTagElem) item : deriv)
+      deriv  = map (stripGorn.snd3) $ snd $ siDerivation it
+  in  nub ((ttreename.siTagElem) it : deriv)
 \end{code}
 
 \begin{code}
@@ -163,15 +166,15 @@ instance GraphvizShow Bool SimpleItem where
     graphvizLabel f (siTagElem c) ++ gvNewline ++ (gvUnlines $ siDiagnostic c)
 
   graphvizParams f c = graphvizParams f (siTagElem c)
-  graphvizShowAsSubgraph f p item =
-   let isHiglight n = gnname n `elem` siHighlight item
+  graphvizShowAsSubgraph f p it =
+   let isHiglight n = gnname n `elem` siHighlight it
        info n | isHiglight n = (n, Just "red")
               | otherwise    = (n, Nothing)
    in    "\n// ------------------- elementary tree --------------------------\n"
-      ++ graphvizShowAsSubgraph (f, info) (p ++ "TagElem") (siTagElem item)
+      ++ graphvizShowAsSubgraph (f, info) (p ++ "TagElem") (siTagElem it)
       ++ "\n// ------------------- derivation tree --------------------------\n"
       -- derivation tree is displayed without any decoration
-      ++ (graphvizShowDerivation $ snd $ siDerivation item)
+      ++ (graphvizShowDerivation $ snd $ siDerivation it)
 \end{code}
 
 \begin{code}

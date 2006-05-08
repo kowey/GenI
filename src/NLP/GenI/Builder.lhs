@@ -203,6 +203,7 @@ unlessEmptySem input config =
 
 \begin{code}
 -- | Performs surface realisation from an input semantics and a lexical selection.
+run :: Builder st it Params -> Input -> Params -> (st, Statistics)
 run builder input config =
   let -- 1 run the setup stuff
       (input2, polcount, autstuff) = preInit input config
@@ -235,8 +236,8 @@ defineSemanticBits sem = Map.fromList $ zip sem bits
    bits = map bit [0..] -- 0001, 0010, 0100...
 
 semToBitVector :: SemBitMap -> Sem -> BitVector
-semToBitVector bmap sem = foldr (.|.) 0 $ map lookup sem
-  where lookup p =
+semToBitVector bmap sem = foldr (.|.) 0 $ map doLookup sem
+  where doLookup p =
          case Map.lookup p bmap of
          Nothing -> geniBug $ "predicate " ++ showPred p ++ " not found in semanticBit map"
          Just b  -> b
@@ -438,6 +439,7 @@ selection.  Doing so would in a real builder might cause it to walk entire
 trees for ptoentially no good reason.
 
 \begin{code}
+nullBuilder :: Builder () (NullState ()) Params
 nullBuilder = Builder
   { NLP.GenI.Builder.init = initNullBuilder
   , step         = return ()

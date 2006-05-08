@@ -95,9 +95,12 @@ import NLP.GenI.General (BitVector, fst3, mapTree)
 Here is our implementation of Builder.
 
 \begin{code}
+type SimpleBuilder = B.Builder SimpleStatus SimpleItem Params
+simpleBuilder_2p, simpleBuilder_1p :: SimpleBuilder
 simpleBuilder_2p = simpleBuilder True
 simpleBuilder_1p = simpleBuilder False
 
+simpleBuilder :: Bool -> SimpleBuilder
 simpleBuilder twophase = B.Builder
   { B.init     = initSimpleBuilder twophase
   , B.step     = if twophase then generateStep_2p else generateStep_1p
@@ -235,8 +238,10 @@ aux t = ((ttype.siTagElem) t == Auxiliar)
 closedAux :: SimpleItem -> Bool
 closedAux x = (aux x) && (closed x)
 
+adjdone :: SimpleItem -> Bool
 adjdone = null.siAdjnodes
 
+siInitial :: SimpleItem -> Bool
 siInitial = not.aux
 \end{code}
 
@@ -455,8 +460,8 @@ more aggressive; it gives us much more filtering)
 
 \begin{code}
 semfilter :: BitVector -> [SimpleItem] -> [SimpleItem] -> [SimpleItem]
-semfilter inputsem aux initial =
-  let auxsem x = foldr (.|.) 0 [ siSemantics a | a <- aux, siPolpaths a .&. siPolpaths x /= 0 ]
+semfilter inputsem auxs initial =
+  let auxsem x = foldr (.|.) 0 [ siSemantics a | a <- auxs, siPolpaths a .&. siPolpaths x /= 0 ]
       -- lite, here, means sans auxiliary semantics
       notjunk x = (siSemantics x) .&. inputsemLite == inputsemLite
                   where inputsemLite = inputsem `xor` (auxsem x)
@@ -496,6 +501,7 @@ applySubstitution item =
     incrCounter num_comparisons (2 * (length gr))
     return res
 
+applySubstitution1p :: SimpleItem -> SimpleState ([SimpleItem])
 applySubstitution1p item =
  do gr <- lookupChart item
     let rItem = renameSimpleItem 'A' item
@@ -583,18 +589,22 @@ applyAdjunction item = {-# SCC "applyAdjunction" #-}
     incrCounter num_comparisons (length gr)
     catMaybes `liftM` mapM (\a -> tryAdj a item) gr
 
+passiveAdjunction1p :: SimpleItem -> SimpleState [SimpleItem]
 passiveAdjunction1p item | closed item && siInitial item =
   do gr <- lookupChart item
      catMaybes `liftM` (mapM (\a -> tryAdj a item) $ filter validAux gr)
 passiveAdjunction1p _ = return []
 
+activeAdjunction1p :: SimpleItem -> SimpleState [SimpleItem]
 activeAdjunction1p item | validAux item =
   do gr <- lookupChart item
      catMaybes `liftM` (mapM (\p -> tryAdj item p) $ filter (\x -> siInitial x && closed x) gr)
 activeAdjunction1p _ = return []
 
+validAux :: SimpleItem -> Bool
 validAux t = closed t && (ttype.siTagElem) t == Auxiliar && adjdone t
 
+tryAdj :: SimpleItem -> SimpleItem -> SimpleState (Maybe SimpleItem)
 tryAdj aItem pItem =
    case siAdjnodes p of
    []     -> return Nothing
@@ -607,6 +617,7 @@ tryAdj aItem pItem =
         a = renameSimpleItem 'B' aItem
 
 -- | Ignore the next adjunction node
+sansAdjunction :: SimpleItem -> SimpleState [SimpleItem]
 sansAdjunction item | closed item =
  case siAdjnodes item of
  []            -> return []
