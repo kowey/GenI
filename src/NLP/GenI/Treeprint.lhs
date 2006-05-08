@@ -393,7 +393,6 @@ instance (HsShowable a) => HsShowable (Tree a) where
 
 -- | Note that you'll need to @import qualified Data.Map@
 instance (HsShowable a, HsShowable b) => HsShowable (Data.Map.Map a b) where
- -- | Note that you'll need to @import qualified Data.Map@
  hsShow m | Data.Map.null m = "Data.Map.empty"
  hsShow m = hsParens $ "Data.Map.fromList " ++ (hsShow $ Data.Map.toList m)
 
