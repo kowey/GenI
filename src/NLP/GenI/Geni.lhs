@@ -30,7 +30,7 @@ module NLP.GenI.Geni (ProgState(..), ProgStateRef, emptyProgState,
              initGeni, runGeni, Selector,
              loadGrammar, loadLexicon, 
              loadTestSuite, loadTargetSemStr,
-             combine, testGeni)
+             combine)
 where
 \end{code}
 
@@ -111,8 +111,6 @@ import NLP.GenI.SysGeni
 \begin{code}
 myEMPTY :: String
 myEMPTY = "MYEMPTY" 
-
-testGeni = True
 \end{code}
 
 % --------------------------------------------------------------------
@@ -211,20 +209,18 @@ loadLexicon pstRef config = do
        ePutStr $ "Loading Lexicon " ++ lfilename ++ "..."
        eFlush
        pst <- readIORef pstRef
-       let params = pa pst
-           --       
-           getSem l  = if (ignoreSemantics params) then [] else isemantics l 
+       let getSem l  = if ignoreSemantics (pa pst) then [] else isemantics l
            sorter l  = l { isemantics = (sortSem . getSem) l }
            cleanup   = (mapBySemKeys isemantics) . (map sorter)
            --
        prelex <- parseFromFile geniLexicon lfilename
-       let lex = case prelex of 
-                   Left err -> error (show err)
-                   Right x  -> cleanup x 
+       let theLex = case prelex of
+                      Left err -> error (show err)
+                      Right x  -> cleanup x
        --
-       ePutStr ((show $ length $ Map.keys lex) ++ " entries\n")
+       ePutStr ((show $ length $ Map.keys theLex) ++ " entries\n")
        -- combine the two lexicons
-       modifyIORef pstRef (\x -> x{le = lex})
+       modifyIORef pstRef (\x -> x{le = theLex})
 
        return ()
 \end{code}
@@ -293,7 +289,7 @@ loadTestSuite pstRef = do
     ePutStr $ "Loading Test Suite " ++ filename ++ "...\n"
     eFlush
     -- helper functions for test suite stuff
-    let cleanup (id, (sm,sr), _) = (id, newsmsr)
+    let cleanup (i, (sm,sr), _) = (i, newsmsr)
           where newsmsr = (sortSem sm, sort sr)
         updateTsuite s x = x { tsuite = map cleanup s   
                              , tcase  = testCase config}
@@ -313,8 +309,7 @@ ts field of the ProgState
 loadTargetSemStr :: ProgStateRef -> String -> IO ()
 loadTargetSemStr pstRef str = 
     do pst <- readIORef pstRef
-       let params = pa pst
-       if (ignoreSemantics params) then return () else parseSem 
+       if ignoreSemantics (pa pst) then return () else parseSem
     where
        parseSem = do
          let sem = runParser geniSemanticInput () "" str
@@ -414,11 +409,10 @@ generator in a relatively compact form
 \begin{code}
 showRealisations :: [String] -> String
 showRealisations sentences =
-  let sentencesGrouped = map (\ (s,c) -> s ++ count c) g
+  let sentencesGrouped = map (\ (s,c) -> s ++ countStr c) g
                          where g = groupAndCount sentences 
-      count c = if (c > 1) 
-                then " (" ++ show c ++ " instances)"
-                else ""
+      countStr c = if c > 1 then " (" ++ show c ++ " instances)"
+                            else ""
   in if null sentences
      then "(none)"
      else concat $ intersperse "\n" $ sentencesGrouped
@@ -525,10 +519,10 @@ chooseCandI tsem cand =
         (replace sub i) { isemantics = sem }
       --
       helper :: ILexEntry -> [ILexEntry]
-      helper le = if (null sem) then [le] 
-                  else map (replaceLex le) psubsem 
+      helper l = if null sem then [l]
+                 else map (replaceLex l) psubsem
         where psubsem = subsumeSem tsem sem
-              sem = isemantics le
+              sem = isemantics l
       --
   in nub $ concatMap helper cand 
 \end{code}
@@ -557,10 +551,10 @@ semantics match and they point to the same tree families.
 
 \begin{code}
 mergeSynonyms :: [ILexEntry] -> [ILexEntry]
-mergeSynonyms lex =
+mergeSynonyms lexEntry =
   let mergeFn l1 l2 = l1 { iword = (iword l1) ++ (iword l2) }
       keyFn l = (ifamname l, isemantics l)   
-      synMap = foldr helper Map.empty lex  
+      synMap = foldr helper Map.empty lexEntry
         where helper x acc = Map.insertWith mergeFn (keyFn x) x acc 
   in Map.elems synMap
 \end{code}
@@ -738,7 +732,7 @@ enrich l t = -- using the Maybe monad
         --
     let enrichNamed :: Bool -> [[PathEq]] -> MTtree -> Either String MTtree
         enrichNamed top cl tr =
-          foldM (\t c -> enrichBy (Just $ nameOfClump c) top lexeme (toFlist c) t) tr cl
+          foldM (\tx c -> enrichBy (Just $ nameOfClump c) top lexeme (toFlist c) tx) tr cl
         nameOfClump :: [PathEq] -> String
         nameOfClump []    = geniBug "empty clump in enrich"
         nameOfClump (n:_) = name n
@@ -763,7 +757,7 @@ enrichBy :: Maybe String -- enriches anchor if set to Nothing
          -> Bool         -- true if top
          -> String       -- lexeme (for debugging info)
          -> Flist -> MTtree -> Either String MTtree
-enrichBy mname top lex fls t =
+enrichBy mname top lexEntry fls t =
  -- trace ("enrichBy " ++ (show mname)) $
  case filterTree match (tree t) of
  [a] -> do let tfeat = (if top then gup else gdown) a
@@ -784,7 +778,7 @@ enrichBy mname top lex fls t =
            Nothing -> ganchor
            Just n  -> \g -> gnname g == n
    enrichErr tfeat = "Warning: enrichment failure on "
-              ++ lex ++ " " ++ (pidname t)
+              ++ lexEntry ++ " " ++ (pidname t)
               ++ ", " ++ matchName ++ " (" ++ (if top then "top" else "bottom")
               ++ ") applying [" ++ (showPairs fls)
               ++ "] on [" ++ (showPairs tfeat) ++ "]"
@@ -846,7 +840,7 @@ runXMGAnchoring pst lexCand =
      let parsed = runParser geniTagElems () "" selected
      case parsed of 
        Left err -> fail (show err) 
-       Right gr -> return (map fixateXMG gr)
+       Right g  -> return (map fixateXMG g)
   -- FIXME: determine if we can nix this error handler
   --`catch` \e -> do ePutStrLn (show e)
   --                 return ([], []) 
@@ -922,15 +916,15 @@ only one literal in the lexical item semantics.
 
 \begin{code}
 lexEntryToFil :: ILexEntry -> Int -> String
-lexEntryToFil lex n = 
-  let filters   = ifilters lex
-      enrichers = iequations lex
+lexEntryToFil lexEntry n =
+  let filters   = ifilters lexEntry
+      enrichers = iequations lexEntry
       --
       showFil (a,v) = a ++ ":" ++ xmgShow v
       showEnr (a,v) = a ++ "=" ++ xmgShow v
       concatSperse x y = concat $ intersperse x y
   in show n 
-    ++ " " ++ (showLexeme $ iword lex) ++ " "
+    ++ " " ++ (showLexeme $ iword lexEntry) ++ " "
     ++ "[" 
     ++ (concatSperse ","   $ map showFil filters)
     ++ "]\n(" 
