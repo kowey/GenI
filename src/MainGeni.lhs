@@ -102,4 +102,3 @@ main = do
 %      but not the types.
 %      Re-write functions in Main as needed.
 % Change input in Lexicon and Grammar to allow more than one anchor.
-% Keys used in Tags are specially bad for Pn, perhaps they can be improved.
