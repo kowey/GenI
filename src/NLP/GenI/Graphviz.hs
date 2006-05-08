@@ -167,9 +167,10 @@ gvShowTree :: (GraphvizShowNode f n) =>
 gvShowTree edgeFn f prefix t = 
   "edge [ arrowhead = none ]\n" ++ gvShowTreeHelper edgeFn f prefix t  
 
-gvShowTreeHelper :: (GraphvizShowNode f n) => (n->[(String,String)]) -> f -> String -> (Tree n) -> String
+gvShowTreeHelper :: forall n . forall f . (GraphvizShowNode f n) => (n->[(String,String)]) -> f -> String -> (Tree n) -> String
 gvShowTreeHelper edgeFn f prefix (Node node l) = 
    let showNode = graphvizShowNode f prefix 
+       showKid :: Integer -> Tree n -> String
        showKid index kid = 
          gvShowTreeHelper edgeFn f kidname kid ++ " " 
          ++ (gvEdge prefix kidname "" (edgeFn node))
