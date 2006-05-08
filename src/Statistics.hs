@@ -109,7 +109,7 @@ addInspectionMetric newMetric = modify (\stat -> stat{inspectionMetrics = (inspe
 setPrintOutInterval :: Int -> StatisticsState ()
 setPrintOutInterval i = modify (resetInterval i)
     where resetInterval 0 stat = stat{step = Nothing}
-          resetInterval i stat = stat{step = Just i}
+          resetInterval x stat = stat{step = Just x}
 
 printOutAllMetrics :: StatisticsStateIO ()
 printOutAllMetrics = get >>= (liftIO . printOutAllMetrics')
