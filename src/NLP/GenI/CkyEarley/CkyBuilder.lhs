@@ -481,17 +481,6 @@ it out.
 \item Propagate any assignments of $?X$ up to the parent node.
 \end{enumerate}
 
-First of all, here is a straightforward NON-SOLUTION: for each kid, to
-apply the replacements (\verb!ciSubsts!) from all the other kids and
-make sure that is ok. Let's revisit the example above to see why this
-would \emph{not} work: you now have $L$ with $?X \leftarrow a$ and
-$R$ with $?X \leftarrow b$.  What you want to happen is that when you
-apply $?X \leftarrow b$ to $L$, it fails because of the conflicting
-value $a$, but it doesn't!  The unification because $?X$ no longer
-exists in $L$; we had replaced it with $a$, remember?  So you can't just
-successively apply the replacements from all children, because that does
-not fail where we want it to.
-
 A naïve ``safe'' solution then seems to be that you have to unify
 together all instances of the child nodes: that is, in the example
 above, you need to unify $L$ with $R$'s idea of what $L$ is and vice
@@ -564,38 +553,6 @@ also propagates up the assignemnt $?Y \leftarrow a$
 \label{fig:variableCollection-07-09}
 \end{center}
 \end{figure}
-
-I hope you get the idea how the mechanism works.  Now the problem is
-that there are three unknowns for me, namely
-\begin{itemize}
-\item Is this actually correct?  Are there cases where I would cause
-the parent rule to fail when it should pass (I doubt it). More insiduously,
-are there cases where I would cause the parent rule to succeed where it
-should fail?
-\item Is this actually any faster than just going ahead and doing it
-the traditional way?  Intuitively, it seems obvious that the answer is
-yes, but maybe I just spent all this time explaining the mechanism and
-making these diagrams for nothing, because in the grand scheme of
-things, it doesn't really make a difference, or because there is some
-other super-obvious, easy solution staring me in the face.
-\item Could this be used to make other parts of the CKY/Earley algorithm
-faster?  Since we have this mechanism, can we get rid of the
-\verb!ciSubsts! (which is a list of all replacements to make, and is
-currently being appended to and applied at each derivation (ugh!)?
-\end{itemize}
-
-One potentially useful thought about the last bullet point, though, if
-you're thinking about replacing \verb!ciSubsts! with something lighter,
-think carefully.  For instance, given a list of replacements to make,
-you want to make things cheaper by reducing the transitive stuff, so if
-you see something like ($?X \leftarrow ?Y, ?A \leftarrow b,
-?Y \leftarrow z$), you reduce it down ($?A \leftarrow b, ?X \leftarrow
-z$).  This sounds nice, but it probably isn't a very good idea, because
-example above, you might have standalone instances of $?Y$ that weren't
-derived from from $?Y$ and if reduce that $?Y$ away, you're basically
-forgetting that you need to replace it by $z$.  So transitive reduction
-(?) is not an option, and this is why I am hesitant to replace
-\verb!ciSubsts! by \verb!ciVariables! as much as I would love to do so.
 
 \begin{code}
 -- | CKY parent rule
