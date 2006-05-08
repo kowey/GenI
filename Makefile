@@ -34,7 +34,7 @@ GHCPACKAGES     =
 #-package HaXml
 GHCPACKAGES_GUI = -package wx $(GHCPACKAGES)
 
-GHCFLAGS        = $(LDFLAGS) -W -cpp -fglasgow-exts -threaded -O $(GHCINCLUDE)
+GHCFLAGS        = $(LDFLAGS) -Wall -cpp -fglasgow-exts -threaded -O $(GHCINCLUDE)
 GHCFLAGS_PROF   = $(GHCFLAGS) -prof -hisuf p_hi -osuf p_o -DDISABLE_GUI -auto-all
 
 SOFTWARE        = Geni
