@@ -114,13 +114,10 @@ data Params = Prms{
   timeoutSecs :: Maybe Integer
 } deriving (Show)
 
-polarised    :: Params -> Bool
-predicting   :: Params -> Bool
-semfiltered  :: Params -> Bool
-isBatch      :: Params -> Bool
-
+hasOpt :: Switch -> Params -> Bool
 hasOpt o p = o `elem` (optimisations p)
 
+polarised, isIaf, predicting, semfiltered, isBatch :: Params -> Bool
 polarised    = hasOpt PolarisedTok
 isIaf        = hasOpt IafTok
 predicting   = hasOpt PredictingTok
@@ -187,6 +184,7 @@ showBuilderType SimpleOnePhaseBuilder = "simple-1p"
 showBuilderType CkyBuilder = "CKY"
 showBuilderType EarleyBuilder = "Earley"
 
+mainBuilderTypes :: [BuilderType]
 mainBuilderTypes =
  [ SimpleBuilder, SimpleOnePhaseBuilder
  , CkyBuilder, EarleyBuilder]
@@ -313,6 +311,7 @@ optimisationCodes =
 (represented as a list of strings).   
 
 \begin{code}
+treatArgs :: [String] -> IO Params
 treatArgs argv = treatArgsWithParams argv emptyParams
 
 treatArgsWithParams :: [String] -> Params -> IO Params
@@ -397,8 +396,8 @@ defineParams :: Params -> [Switch] -> Params
 defineParams p [] = p
 defineParams p (f:s) = defineParams pnext s
   where
-    parsePol p = 
-      case (runParser geniPolarities () "" p) of
+    parsePol polStr =
+      case runParser geniPolarities () "" polStr of
         Left err -> error (show err)
         Right p2 -> p2
     pnext = case f of 
@@ -440,7 +439,7 @@ defineParams p (f:s) = defineParams pnext s
       ExtraPolaritiesTok v -> p {extrapol = parsePol v } 
       RepeatTok v          -> p {batchRepeat = read v}
       WeirdTok _           -> p
-      p -> error ("Unknown configuration parameter: " ++ show p)
+      unknown -> error ("Unknown configuration parameter: " ++ show unknown)
     -- when PolOpts and AdjOpts are in the list of optimisations
     -- then include all polarity-related optimisations and 
     -- all adjunction-related optimisations respectively
