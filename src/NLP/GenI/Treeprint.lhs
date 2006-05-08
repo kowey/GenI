@@ -151,6 +151,7 @@ instance GraphvizShowString () GeniVal where
   graphvizShow () (GConst x) = concat $ intersperse " ! " x
   graphvizShow () x = show x
 
+showGnDecorations :: GNode -> String
 showGnDecorations gn =
   case gtype gn of
   Subs -> "!"
@@ -171,8 +172,8 @@ showGnStub gn =
      idxB = getIdx gdown
      idx  = idxT ++ (maybeShow_ "." idxB)
      --
-     lex  = concat $ intersperse "!" $ glexeme gn
- in concat $ intersperse ":" $ filter (not.null) [ cat, idx, lex ]
+     lexeme  = concat $ intersperse "!" $ glexeme gn
+ in concat $ intersperse ":" $ filter (not.null) [ cat, idx, lexeme ]
 
 getGnVal :: (GNode -> Flist) -> String -> GNode -> Maybe GeniVal
 getGnVal getFeat attr gn =
@@ -218,8 +219,8 @@ graphvizShowDerivation deriv =
 \begin{code}
 graphvizShowDerivation' :: (Char, String, String) -> String
 graphvizShowDerivation' (substadj, child, parent) = 
-  gvEdge (gvDerivationLab parent) (gvDerivationLab child) "" params
-  where params = if substadj == 'a' then [("style","dashed")] else []
+  gvEdge (gvDerivationLab parent) (gvDerivationLab child) "" p
+  where p = if substadj == 'a' then [("style","dashed")] else []
 \end{code}
 
 We have a couple of functions to help massage our data into Graphviz input 
@@ -281,7 +282,7 @@ instance GeniHandShow Pred where
  toGeniHand (h, p, l) = (toGeniHand h) ++ ":" ++ (toGeniHand p) ++ "(" ++ unwords (map toGeniHand l) ++ ")"
 
 instance GeniHandShow GNode where
- toGeniHand n =
+ toGeniHand x =
   let gtypestr n = case (gtype n) of
                      Subs -> "type:subst"
                      Foot -> "type:foot"
@@ -291,7 +292,7 @@ instance GeniHandShow GNode where
       glexstr  n = if null gl then "" else "\"" ++ gl ++ "\""
                    where gl = showLexeme $ glexeme n
       tbFeats n = (toGeniHand $ gup n) ++ "!" ++ (toGeniHand $ gdown n)
-  in unwords $ filter (not.null) $ [ gnname n, gtypestr n, glexstr n, tbFeats n ]
+  in unwords $ filter (not.null) $ [ gnname x, gtypestr x, glexstr x, tbFeats x ]
 
 instance (GeniHandShow a) => GeniHandShow [a] where
  toGeniHand = squares . unwords . (map toGeniHand)
@@ -301,9 +302,9 @@ instance (GeniHandShow a) => GeniHandShow (Tree a) where
   let treestr i (Node a l) =
         spaces i ++ toGeniHand a ++
         case (l,i) of
-        ([], 0) -> "{}"
-        ([], _) -> ""
-        (l,  i) -> "{\n" ++ (unlines $ map next l) ++ spaces i ++ "}"
+        ([], 0)  -> "{}"
+        ([], _)  -> ""
+        (_, _)   -> "{\n" ++ (unlines $ map next l) ++ spaces i ++ "}"
         where next = treestr (i+1)
       --
       spaces i = take i $ repeat ' '
@@ -331,6 +332,7 @@ instance (GeniHandShow a) => GeniHandShow (Ttree a) where
      Nothing   -> ""
      Just psem -> "\n" ++ "semantics:" ++ (toGeniHand psem)
 
+parens, squares :: String -> String
 parens s  = "(" ++ s ++ ")"
 squares s = "[" ++ s ++ "]"
 \end{code}
@@ -347,11 +349,14 @@ lexical selection thing og a lot faster.
 class HsShowable a where
   hsShow :: a -> String
 
+hsParens, hsBrackets :: String -> String
 hsParens s = "(" ++ s ++ ")"
 hsBrackets s = "[" ++ s ++ "]"
 
 hsConstructor :: String -> [String] -> String
 hsConstructor c args = hsParens $ unwords (c:args)
+
+hsList, hsLongList :: (HsShowable h) => [h] -> String
 hsList xs = hsBrackets $ concat $ intersperse "," $ map hsShow xs
 hsLongList xs = hsBrackets $ concat $ intersperse "\n\n," $ map hsShow xs
 
