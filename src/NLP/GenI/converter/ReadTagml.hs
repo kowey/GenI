@@ -94,9 +94,9 @@ translateNode node@(X.Node _ _ kids) = do
              -- tiLex = if ntype == Lex then lex else (tiLex st),
              tiHasFoot = tiHasFoot st || gtype gn == Foot }
   -- recursion to the kids  
-  kids <- mapM translateNode kids
+  kidsOut <- mapM translateNode kids
   -- output the node
-  return $! Node gn kids
+  return $! Node gn kidsOut
 
 translateNodeHelper :: Int -> X.Node -> GNode
 translateNodeHelper idnum (X.Node nattrs mnargs _) = gn where
@@ -133,9 +133,9 @@ translateNodeHelper idnum (X.Node nattrs mnargs _) = gn where
       -- (we a list of distinguished attributes, in order of preference)
       lexL = concat $ map (\la -> [ v | (a,v) <- gloF, a == la ])
                       lexemeAttributes
-      lex = case (ntype,lexL) of
-            (Lex,h:_) -> fromGConst h
-            _         -> []
+      lexeme = case (ntype,lexL) of
+               (Lex,h:_) -> fromGConst h
+               _         -> []
       anchor = X.nodeType nattrs == X.Node_type_anchor
       aconstr = case X.nodeType nattrs of
                 X.Node_type_subst -> True
@@ -151,7 +151,7 @@ translateNodeHelper idnum (X.Node nattrs mnargs _) = gn where
                 gup     = sort $ topF ++ gloF,
                 gdown   = sort $ botF ++ gloF,
                 ganchor = anchor,
-                glexeme = if anchor then [] else lex,
+                glexeme = if anchor then [] else lexeme,
                 gtype   = ntype,
                 gaconstr = aconstr }
 
@@ -167,11 +167,11 @@ translateSemantics_ (X.Semantics_Literal l) = translateLiteral l
 translateSemantics_ _ = geniXmlError "fancy semantics not supported"
 
 translateLiteral :: X.Literal -> Pred
-translateLiteral (X.Literal _ mlabel (X.Predicate pred) args) =
+translateLiteral (X.Literal _ mlabel (X.Predicate pr) args) =
  let label = case mlabel of
              Nothing          -> GAnon
              Just (X.Label s) -> translateSym s
- in (label, translateSym pred, map translateArg args)
+ in (label, translateSym pr, map translateArg args)
 
 translateArg :: X.Arg -> GeniVal
 translateArg (X.ArgSym s) = translateSym s
@@ -219,4 +219,5 @@ translateVAlt (X.VAlt _ (NonEmpty ss)) = GConst $ map (fromJ.(X.symValue)) ss
   where fromJ (Just n) = n
         fromJ _ = geniXmlError "atomic disjunction with non atomic component"
 
+geniXmlError :: String -> a
 geniXmlError s = error $ "GenI XML error: " ++ s
