@@ -40,8 +40,8 @@ import NLP.GenI.Configuration (treatArgs, isGraphical, isBatch, Params,
 #ifndef PRECOMPILED_GRAMMAR
 #ifndef DISABLE_GUI
 import NLP.GenI.Gui(guiGeni)
-#endif {- PRECOMPILED_GRAMMAR -}
 #endif {- DISABLE_GUI -}
+#endif {- PRECOMPILED_GRAMMAR -}
 
 #ifdef PRECOMPILED_GRAMMAR
 import MyGeniGrammar
