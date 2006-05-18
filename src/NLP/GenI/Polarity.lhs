@@ -718,14 +718,14 @@ excess pronouns in their extra literal semantics (see page
       comparefn :: GeniVal -> Int -> Int -> [GeniVal]
       comparefn i c1 c2 = if (c2 < c1) then extra else []
         where extra = take (c1 - c2) $ repeat i 
-      compare :: (PredLite,SemPols) -> [GeniVal]
-      compare (lit,c1) = concat $ zipWith3 comparefn idxs c1 c2
+      comparePron :: (PredLite,SemPols) -> [GeniVal]
+      comparePron (lit,c1) = concat $ zipWith3 comparefn idxs c1 c2
         where idxs = snd lit
               c2   = Map.findWithDefault [] lit usagemap
       addextra :: TagElem -> TagElem
       addextra c = c { tsemantics = sortSem (sem ++ extra) }
         where sem   = tsemantics c
-              extra = map indexPred $ concatMap compare (getpols c)
+              extra = map indexPred $ concatMap comparePron (getpols c)
       cands3 = map addextra cands2
   in (tsem2, cands3)
 \end{code}
@@ -1241,7 +1241,7 @@ instance GraphvizShow () PolAut where
   --
   graphvizShowAsSubgraph _ prefix aut = 
    let st  = (concat.states) aut
-       ids = map (\x -> prefix ++ show x) [0..]
+       ids = map (\x -> prefix ++ show x) ([0..] :: [Int])
        -- map which permits us to assign an id to a state
        stmap = Map.fromList $ zip st ids
    in --
@@ -1290,23 +1290,23 @@ gvShowTrans aut stmap idFrom st =
       trans = Map.findWithDefault Map.empty st $ transitions aut
       -- returns the graphviz dot command to draw a labeled transition
       drawTrans (stTo,x) = case Map.lookup stTo stmap of
-                             Nothing   -> drawTrans' ("id_error_" ++ (showSem stTo)) x 
+                             Nothing   -> drawTrans' ("id_error_" ++ (sem_ stTo)) x
                              Just idTo -> drawTrans' idTo x
-                           where showSem (PolSt i _ _) = show i 
+                           where sem_ (PolSt i _ _) = show i
                                  --showSem (PolSt (_,pred,_) _ _) = pred 
       drawTrans' idTo x = gvEdge idFrom idTo (drawLabel x) []
       drawLabel labels  = gvUnlines labs 
         where 
-          lablen = length labels
-          max    = 6 
-          excess = "...and " ++ (show $ lablen - max) ++ " more"
+          lablen  = length labels
+          maxlabs = 6
+          excess = "...and " ++ (show $ lablen - maxlabs) ++ " more"
           --
           labstrs = map fn labels
           fn Nothing  = "EMPTY"
           fn (Just x) = idname x
           --
-          labs = if lablen > max 
-                 then take max labstrs ++ [ excess ]
+          labs = if lablen > maxlabs
+                 then take maxlabs labstrs ++ [ excess ]
                  else labstrs 
   in unlines $ map drawTrans $ Map.toList trans
 \end{code}
