@@ -54,7 +54,7 @@ module NLP.GenI.Btypes(
    Replacable(..), Collectable(..), Idable(..),
    alphaConvert, alphaConvertById,
    fromGConst, fromGVar,
-   isConst, isVar, isAnon, testBtypes,
+   isConst, isVar, isAnon,
 
    -- Polarities
 
@@ -201,12 +201,9 @@ data GNode = GN{gnname :: String,
 -- Node type used during parsing of the grammar 
 data GType = Subs | Foot | Lex | Other
            deriving (Show, Eq)
-\end{code}
 
-\fnlabel{emptyGNode} provides a null gnode which you can use
-for various debugging or display purposes.
-
-\begin{code}
+-- | A null 'GNode' which you can use for various debugging or display purposes.
+emptyGNode :: GNode
 emptyGNode = GN { gnname = "",
                   gup = [], gdown = [],
                   ganchor = False,
@@ -246,12 +243,12 @@ and any flags which are marked on that node.
 \begin{code}
 instance Show GNode where
   show gn =
-    let cat  = case gCategory gn of
+    let cat_ = case gCategory gn of
                Nothing -> []
                Just c  -> show c
-        lex  = showLexeme $ glexeme gn
+        lex_ = showLexeme $ glexeme gn
         --
-        stub = concat $ intersperse ":" $ filter (not.null) [ cat, lex ]
+        stub = concat $ intersperse ":" $ filter (not.null) [ cat_, lex_ ]
         extra = case (gtype gn) of
                    Subs -> " !"
                    Foot -> " *"
@@ -304,7 +301,7 @@ rootUpd (Node _ l) b = (Node b l)
 \begin{code}
 foot :: Tree GNode -> GNode
 foot t = case filterTree (\n -> gtype n == Foot) t of
-         [t] -> t
+         [x] -> x
          _   -> geniBug $ "foot returned weird result"
 \end{code}
 
@@ -569,6 +566,7 @@ sortFlist fl = sortBy (\(f1,_) (f2, _) -> compare f1 f2) fl
 showPairs :: Flist -> String
 showPairs l = unwords $ map showAv l
 
+showAv :: AvPair -> String
 showAv (y,z) = y ++ ":" ++ show z 
 \end{code}
 
@@ -583,6 +581,7 @@ type Pred = (GeniVal, GeniVal, [GeniVal])
 type Sem = [Pred]
 type SemInput = (Sem,Flist)
 type Subst = [(String, GeniVal)]
+emptyPred :: Pred
 emptyPred = (GAnon,GAnon,[])
 \end{code}
 
@@ -678,9 +677,9 @@ subsumePred [] _ = []
 subsumePred ((h1, p1, la1):l) (pred2@(h2,p2,la2)) = 
     -- if we found the proper predicate
     if ((p1 == p2) && (length la1 == length la2))
-    then let rs   = unify (h1:la1) (h2:la2)
+    then let mrs  = unify (h1:la1) (h2:la2)
              next = subsumePred l pred2
-         in case rs of
+         in case mrs of
               Nothing -> next
               Just rs -> rs : next
     else if (p1 < p2) -- note that the semantics have to be reversed!
@@ -696,10 +695,6 @@ Sorts semantics first according to its predicate, and then to its handles.
 \begin{code}
 sortSem :: Sem -> Sem
 sortSem = sortBy (\(h1,p1,a1) (h2,p2,a2) -> compare (p1, h1:a1) (p2, h2:a2))  
-\end{code}
-
-\begin{code}
-testBtypes = False --testSubstFlist
 \end{code}
 
 % --------------------------------------------------------------------  
@@ -874,10 +869,12 @@ unify ((GConst h1v):t1) ((GConst h2v):t2) =
 
 {-# INLINE unifySansRep #-}
 {-# INLINE unifyWithRep #-}
+unifySansRep :: (Monad m) => GeniVal -> [GeniVal] -> [GeniVal] -> m ([GeniVal], Subst)
 unifySansRep x2 t1 t2 =
  do (res,subst) <- unify t1 t2
     return (x2:res, subst)
 
+unifyWithRep :: (Monad m) => GeniVal -> GeniVal -> [GeniVal] -> [GeniVal] -> m ([GeniVal], Subst)
 unifyWithRep (GVar h1) x2 t1 t2 =
  case (h1,x2) of
  s -> do (res,subst) <- unify (replaceOne s t1) (replaceOne s t2)
@@ -891,6 +888,7 @@ the following properties:
 Unifying something with itself should always succeed
 
 \begin{code}
+prop_unify_self :: [GeniVal] -> Property
 prop_unify_self x =
   (all qc_not_empty_GConst) x ==>
     case unify x x of
@@ -901,6 +899,7 @@ prop_unify_self x =
 Unifying something with only anonymous variables should succeed.
 
 \begin{code}
+prop_unify_anon :: [GeniVal] -> Bool
 prop_unify_anon x = 
   case (unify x y) of
     Nothing  -> False
@@ -914,6 +913,7 @@ are cases where there are variables in the same place on both sides, so we
 normalise the sides so that this doesn't happen.
          
 \begin{code}
+prop_unify_sym :: [GeniVal] -> [GeniVal] -> Property
 prop_unify_sym x y = 
   let u1 = (unify x y) :: Maybe ([GeniVal],Subst)
       u2 = unify y x
