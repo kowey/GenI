@@ -71,10 +71,10 @@ mergeMetrics :: (Metric -> Metric -> Metric) -> Statistics -> Statistics -> Stat
 mergeMetrics f s1 s2 = s1 { metrics           = zipWith f (metrics s1) (metrics s2)
                           , inspectionMetrics = zipWith f (inspectionMetrics s1) (inspectionMetrics s2)}
 
-updateStep :: Statistics -> Statistics
-updateStep s@(Stat _ [] _     _)         = s
-updateStep s@(Stat _ _  _     Nothing)   = s
-updateStep stat                          = stat{count = (count stat)+1}
+--updateStep :: Statistics -> Statistics
+--updateStep s@(Stat _ [] _     _)         = s
+--updateStep s@(Stat _ _  _     Nothing)   = s
+--updateStep stat                          = stat{count = (count stat)+1}
 
 needsToPrintOut :: Statistics -> Bool
 needsToPrintOut (Stat _ [] _     _)         = False
@@ -165,6 +165,6 @@ addIntMetrics :: Metric -> Metric -> Metric
 addIntMetrics (IntMetric s1 c1) (IntMetric s2 c2) | s1 == s2 = IntMetric s1 (c1 + c2)
 addIntMetrics s1 _ = s1
 
-ratio :: Int -> Int -> Float
-ratio x y = (fromIntegral x) / (fromIntegral y)
+-- ratio :: Int -> Int -> Float
+-- ratio x y = (fromIntegral x) / (fromIntegral y)
 
