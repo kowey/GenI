@@ -928,10 +928,32 @@ prop_unify_sym x y =
 \ignore{
 \begin{code}
 -- Definition of Arbitrary GeniVal for QuickCheck
+newtype GTestString = GTestString String
+newtype GTestString2 = GTestString2 String
+
+fromGTestString :: GTestString -> String
+fromGTestString (GTestString s) = s
+
+fromGTestString2 :: GTestString2 -> String
+fromGTestString2 (GTestString2 s) = s
+
+instance Arbitrary GTestString where
+  arbitrary =
+    oneof $ map (return . GTestString) $
+    [ "a", "apple" , "b", "banana", "c", "carrot", "d", "durian"
+    , "e", "eggplant", "f", "fennel" , "g", "grape" ]
+  coarbitrary = error "no implementation of coarbitrary for GTestString"
+
+instance Arbitrary GTestString2 where
+  arbitrary =
+    oneof $ map (return . GTestString2) $
+    [ "X", "Y", "Z", "H", "I", "J", "P", "Q", "R", "S", "T", "U"  ]
+  coarbitrary = error "no implementation of coarbitrary for GTestString2"
+
 instance Arbitrary GeniVal where
   arbitrary = oneof [ return $ GAnon, 
-                      liftM GVar arbitrary, 
-                      liftM (GConst . nub) arbitrary ]
+                      liftM (GVar . fromGTestString2) arbitrary,
+                      liftM (GConst . nub . sort . map fromGTestString) arbitrary ]
   coarbitrary = error "no implementation of coarbitrary for GeniVal"
 
 qc_not_empty_GConst :: GeniVal -> Bool
