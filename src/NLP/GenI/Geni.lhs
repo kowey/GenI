@@ -799,7 +799,7 @@ parsePathEq e =
  ("interface":r) -> ("interface", False, rejoin r)
  (n:r) -> unsafePerformIO $ do
            ePutStrLn $ "Warning: Interpreting path equation " ++ e ++
-                       "as applying to top of " ++ n ++ "."
+                       " as applying to top of " ++ n ++ "."
            return (n, True, rejoin r)
  _ -> unsafePerformIO $ do
         ePutStrLn $ "Warning: could not interpret path equation " ++ e
