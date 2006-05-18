@@ -31,6 +31,7 @@ module Main (main) where
 import Data.IORef(newIORef)
 import System(getArgs)
 
+import NLP.GenI.Btypes(Macros)
 import NLP.GenI.Geni(emptyProgState, ProgState(gr))
 import NLP.GenI.Console(consoleGeni)
 import NLP.GenI.Configuration (treatArgs, isGraphical, isBatch, Params,
@@ -47,6 +48,7 @@ import NLP.GenI.Gui(guiGeni)
 import MyGeniGrammar
 #endif {- PRECOMPILED_GRAMMAR -}
 
+mPreGrammar :: Maybe Macros
 #ifdef PRECOMPILED_GRAMMAR
 mPreGrammar = Just myGeniGrammar
 #else
