@@ -62,7 +62,7 @@ import NLP.GenI.Btypes
   , Flist
   , Replacable(..), Subst
   , GNode(..), GType(Subs, Foot, Other)
-  , GeniVal(GVar),
+  , GeniVal(GVar), fromGVar,
   , Ptype(Auxiliar)
   , root, foot
   , unifyFeat )
@@ -214,8 +214,6 @@ data CkyItem = CkyItem
   , ciRouting    :: RoutingMap
   -- used by the next leaf rule (if active)
   , ciPayload    :: [CkyItem]
-  -- variable replacements to accumulate
-  , ciSubsts     :: Subst -- do we actually need this if we have ciVariables?
   -- a list of genivals which were variables when the node was
   -- first initialised
   , ciVariables  :: [GeniVal]
@@ -337,7 +335,6 @@ leafToItem left (te,pp) node = CkyItem
   , ciVariables     = [] -- to be set
   , ciPayload       = [] -- to be set
   , ciAdjPoint   = Nothing
-  , ciSubsts     = []
   , ciSemBitMap  = Map.empty
   , ciTreeSide   = spineSide
   , ciDiagnostic   = []
@@ -567,18 +564,17 @@ parentRule item chart | ciComplete item =
           let unifyOnly (x, _) y = maybeToList $ unify x y
           -- IMPORTANT! This blocks the parent rule from applying
           -- if the child variables don't unify.
-          newVars <- foldM unifyOnly (ciVariables item,[]) $
-                     map ciVariables kids
-          let newSubsts = concatMap ciSubsts (item:kids)
+          (newVars, _) <- foldM unifyOnly (ciVariables item,[]) $
+                          map ciVariables kids
+          let newSubsts = zip (map fromGVar $ ciOrigVariables item) newVars
               newSide | all ciLeftSide   kids = LeftSide
                       | all ciRightSide  kids = RightSide
                       | any ciOnTheSpine kids = OnTheSpine
                       | otherwise = geniBug $ "parentRule: Weird situtation involving tree sides"
               newItem = item
                { ciNode      = replace newSubsts par
-               , ciSubsts    = newSubsts
                , ciAdjPoint  = mergePoints kids
-               , ciVariables = fst newVars
+               , ciVariables = newVars
                , ciTreeSide     = newSide
                , ciDerivation   = [ KidsToParentOp $ map ciId kids ]
                , ciPayload      = []
@@ -737,7 +733,6 @@ combineWith :: ChartOperationConstructor -- ^ how did we get the new item?
 combineWith operation node subst active passive =
   combineVectors active $
   passive { ciNode      = node
-          , ciSubsts    = (ciSubsts passive) ++ subst
           , ciPayload      = []
           , ciVariables = replace subst (ciVariables passive)
           , ciDerivation   = [ operation (ciId active) (ciId passive) ] }
@@ -843,10 +838,9 @@ tbUnify item =
     let origVars = ciOrigVariables item
         treeVars = ciVariables item
         nodeVars = replace sub1 origVars
-    (newVars, sub2) <- unify treeVars nodeVars
+    (newVars, _) <- unify treeVars nodeVars
     return $ item
       { ciNode = node { gup = newTop, gdown = [] }
-      , ciSubsts = ciSubsts item ++ sub2
       , ciVariables = newVars }
 \end{code}
 
@@ -902,8 +896,10 @@ instance IafAble CkyItem where
   iafSetAcc   a i = i { ciAccesible = a }
   iafSetInacc a i = i { ciInaccessible = a }
   iafNewAcc i =
-    concatMap fromUniConst $ replace (ciSubsts i) $
+    concatMap fromUniConst $ replace r $
       concatMap (getIdx.snd3) (ciSubstnodes i)
+    where r = zip (map fromGVar $ ciOrigVariables i)
+                  (ciVariables i)
 
 dispatchIafFailure :: CkyItem -> CkyState (Maybe CkyItem)
 dispatchIafFailure item | ciAux item = return $ Just item
