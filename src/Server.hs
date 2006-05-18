@@ -22,7 +22,6 @@ module Main (main) where
 import Data.IORef (newIORef, readIORef, modifyIORef)
 import Network (withSocketsDo, listenOn, accept, PortID(UnixSocket), Socket)
 import System (getArgs)
-import System.Directory (removeFile)
 import System.IO
 import System.Posix.Signals (installHandler, sigPIPE, Handler(Ignore))
 

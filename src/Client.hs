@@ -22,11 +22,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 module Main (main) where
 
-import Network (connectTo, withSocketsDo, PortID(UnixSocket, PortNumber))
+import Network (connectTo, withSocketsDo, PortID(UnixSocket))
 import System (getArgs)
 import System.IO
 
-import NLP.GenI.ClientServer (socketPath, hGetBeginEnd, hGetNonEmptyLine)
+import NLP.GenI.ClientServer (socketPath, hGetBeginEnd)
 
 main :: IO ()
 main = withSocketsDo $
