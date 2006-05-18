@@ -329,7 +329,7 @@ treatArgsWithParams argv initParams = do
         if HelpTok `elem` o 
              then do putStrLn usageAdv
                      exitWith ExitSuccess
-             else return (defineParams emptyParams o)
+             else return (defineParams initParams o)
      (_,_,errs) -> ioError (userError $ concat errs ++ usage)
 \end{code}
 
