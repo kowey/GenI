@@ -58,9 +58,9 @@ information file into GenI's internal format.
 
 \begin{code}
 readMorph :: [(String,[AvPair])] -> MorphFn
-readMorph minfo pred = Map.lookup key fm
+readMorph minfo pred_ = Map.lookup key fm
   where fm = Map.fromList minfo
-        key = show $ snd3 pred 
+        key = show $ snd3 pred_
 \end{code}
 
 \fnlabel{stripMorphSem} filters away from an input semantics any
