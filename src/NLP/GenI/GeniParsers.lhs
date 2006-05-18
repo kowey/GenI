@@ -110,12 +110,12 @@ geniSemanticInput =
      -- this is to simplify checking if a result is
      -- semantically complete
      createHandles :: Sem -> Sem
-     createHandles = zipWith setHandle [1..] 
+     createHandles = zipWith setHandle ([1..] :: [Int])
      --
-     setHandle i (h, pred, params) =
+     setHandle i (h, pred_, par) =
        let h2 = if h /= GAnon then h 
                 else GConst ["genihandle" ++ (show i)]
-       in (h2, pred, params) 
+       in (h2, pred_, par)
 \end{code}
 
 \section{Lexicon}
@@ -160,7 +160,7 @@ geniLexicalEntry :: Parser ILexEntry
 geniLexicalEntry = 
   do lemma  <- identifier <?> "a lemma"
      family <- identifier <?> "a tree family"
-     (params, interface) <- option ([],[]) $ parens paramsParser
+     (pars, interface) <- option ([],[]) $ parens paramsParser
      equations <- option [] $ do keyword "equations"
                                  geniFeats <?> "path equations"
      filters <- option [] $ do keyword "filters"
@@ -170,7 +170,7 @@ geniLexicalEntry =
      --
      return emptyLE { iword = [lemma]
                     , ifamname = family 
-                    , iparams = params
+                    , iparams = pars
                     , iinterface = sortFlist interface
                     , iequations = equations
                     , ifilters = filters
@@ -179,10 +179,10 @@ geniLexicalEntry =
   where 
     paramsParser :: Parser ([GeniVal], Flist)
     paramsParser = do
-      params    <- sepEndBy geniValue whiteSpace <?> "some parameters"
+      pars <- sepEndBy geniValue whiteSpace <?> "some parameters"
       interface <- option [] $ do symbol "!"
                                   sepBy geniAttVal whiteSpace 
-      return (params, interface)
+      return (pars, interface)
 \end{code}
 
 \section{Trees}
@@ -211,12 +211,13 @@ geniTreeGroup =
      <|> group initType Initial  
      <|> group auxType  Auxiliar
   where 
-    group key gtype = 
+    group key ty =
       do try $ do { symbol "begin"; key }
-         t <- sepEndBy (try $ geniTreeDef $ option gtype key) whiteSpace
+         t <- sepEndBy (try $ geniTreeDef $ option ty key) whiteSpace
          symbol "end"  ; key 
          return t
 
+initType, auxType :: Parser Ptype
 initType = try $ do { symbol "initial"  ; return Initial  }
 auxType  = try $ do { symbol "auxiliary"; return Auxiliar }
 \end{code}
@@ -233,19 +234,20 @@ A tree definition consists of
 \end{enumerate}
 
 \begin{code}
+geniTreeDef :: Parser Ptype -> Parser MTtree
 geniTreeDef ttypeP =
   do family   <- identifier 
-     id       <- option "" $ do { colon; identifier }
-     (params,iface)   <- geniParams 
-     ttype    <- ttypeP
+     tname    <- option "" $ do { colon; identifier }
+     (pars,iface)   <- geniParams 
+     theTtype  <- ttypeP
      theTree  <- geniTree
      psem     <- option Nothing $ do { keywordSemantics; liftM Just (squares geniSemantics) }
      --
-     return TT{ params = params 
+     return TT{ params = pars
               , pfamily = family
-              , pidname = id
+              , pidname = tname
               , pinterface = iface 
-              , ptype = ttype 
+              , ptype = theTtype
               , tree = theTree
               , psemantics = psem
               }
@@ -292,7 +294,7 @@ geniNode =
   do name      <- identifier 
      nodeType  <- option "" (do { typeIs; typeParser }
                              <|> try (symbol "anchor"))
-     lex    <- if nodeType == lexType 
+     lex_   <- if nodeType == lexType
                   then (sepBy (stringLiteral<|>identifier) (symbol "|") <?> "some lexemes") 
                   else return [] 
      constr <- if null nodeType 
@@ -312,7 +314,7 @@ geniNode =
                        other     -> error ("unknown node type: " ++ other)
      return $ GN { gnname = name, gtype = nodeType2
                  , gup = top, gdown = bot
-                 , glexeme  = lex
+                 , glexeme  = lex_
                  , ganchor  = isAnchor
                  , gaconstr = constr }
   where 
@@ -349,13 +351,13 @@ geniTagElems =
 geniTagElem :: Parser TagElem
 geniTagElem =
  do family   <- identifier
-    id       <- option "" $ do { colon; identifier }
+    tname    <- option "" $ do { colon; identifier }
     iface    <- (snd `liftM` geniParams) <|> geniFeats
     theType  <- initType <|> auxType
     theTree  <- geniTree
     sem      <- do { keywordSemantics; squares geniSemantics }
     --
-    return $ emptyTE { idname = id
+    return $ emptyTE { idname = tname
                      , ttreename = family
                      , tinterface = iface
                      , ttype  = theType
@@ -410,9 +412,9 @@ geniMorphInfo =
 
 morphEntry :: Parser (String,Flist)
 morphEntry =
-  do pred  <- identifier
+  do pred_ <- identifier
      feats <- geniFeats
-     return (pred, feats)
+     return (pred_, feats)
 \end{code}
 
 \section{Generic GenI stuff}
@@ -424,6 +426,7 @@ Some preliminaries about GenI formats in general - comments start with
 comments.  
 
 \begin{code}
+lexer :: TokenParser ()
 lexer  = makeTokenParser 
          (emptyDef
          { commentLine = "%"
@@ -435,14 +438,21 @@ lexer  = makeTokenParser
          , identLetter = alphaNum <|> oneOf "_'-."
          })
 
+whiteSpace :: CharParser () ()
 whiteSpace = P.whiteSpace lexer
-identifier = P.identifier lexer
+
+identifier, stringLiteral, colon :: CharParser () String
+identifier    = P.identifier lexer
 stringLiteral = P.stringLiteral lexer
-squares   = P.squares lexer
-symbol    = P.symbol  lexer
-braces    = P.braces  lexer
-colon     = P.colon   lexer
-parens    = P.parens  lexer
+colon         = P.colon lexer
+
+squares, braces, parens :: CharParser () a -> CharParser () a
+squares = P.squares lexer
+braces  = P.braces  lexer
+parens  = P.parens  lexer
+
+symbol :: String -> CharParser () String
+symbol = P.symbol lexer
 \end{code}
 
 \subsection{Keyword}
@@ -456,6 +466,7 @@ keyword k =
   do let helper = try $ do { symbol k; colon; return k }
      helper <?> k ++ ":"
 
+keywordSemantics :: Parser String
 keywordSemantics = keyword "semantics"
 \end{code}
 
@@ -489,9 +500,9 @@ bang seperator.
 \begin{code}
 geniParams :: Parser ([GeniVal], Flist)
 geniParams = parens $ do
-  params    <- sepEndBy geniValue whiteSpace <?> "some parameters"
+  pars <- sepEndBy geniValue whiteSpace <?> "some parameters"
   interface <- option [] $ do { symbol "!"; sepBy geniAttVal whiteSpace }
-  return (params, interface)
+  return (pars, interface)
 \end{code}
 
 \subsection{Semantics}
@@ -516,9 +527,9 @@ geniLiteral :: Parser Pred
 geniLiteral =  
   do handle    <- option GAnon handleParser <?> "a handle"
      predicate <- geniValue <?> "a predicate"
-     params    <- parens (many geniValue) <?> "some parameters"
+     pars      <- parens (many geniValue) <?> "some parameters"
      --
-     return (handle, predicate, params)
+     return (handle, predicate, pars)
   where handleParser =  
           try $ do { h <- geniValue ; whiteSpace; char ':' ; return h } 
 \end{code}
@@ -542,8 +553,8 @@ geniLexLiteral =
      predicate  <- geniValue <?> "a predicate"
      paramsPols <- parens (many geniPolValue) <?> "some parameters"
      --
-     let (params, pols) = unzip paramsPols
-         literal = (handle, predicate, params)
+     let (pars, pols) = unzip paramsPols
+         literal = (handle, predicate, pars)
      return (literal, hpol:pols)
   where handleParser =  
           try $ do { h <- geniPolValue; whiteSpace; colon; return h } 
