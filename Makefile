@@ -283,13 +283,13 @@ endif
 # testing
 # --------------------------------------------------------------------
 
-GHCI_FLAGS=$(GHCINCLUDE) -fglasgow-exts -cpp
+GHCI_FLAGS=$(GHCINCLUDE) -package QuickCheck -fglasgow-exts -cpp
 
 ghci:
 	ghci $(GHCI_FLAGS)
 
 unit:
-	etc/quickcheck.py src/geni/Btypes.lhs | ghci $(GHCI_FLAGS)
+	etc/quickcheck.py src/NLP/GenI/Btypes.lhs | ghci $(GHCI_FLAGS)
 
 profiler: $(PROFGENI_MAIN) profout debugger-geni.pdf
 

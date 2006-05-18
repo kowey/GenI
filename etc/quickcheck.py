@@ -45,7 +45,7 @@ def processFile(filename):
             if m != None:
                 prop = m.group('p')
                 output += "putStrLn \"" + prop + "\"\n"
-                output += "QuickCheck.quickCheck " + prop + "\n"
+                output += "Test.QuickCheck.quickCheck " + prop + "\n"
             if endCodePat.match(lines[i]) != None:
                 inCodeblock = False
         else: # if not inCodeblock

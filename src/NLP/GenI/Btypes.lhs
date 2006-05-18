@@ -66,13 +66,13 @@ module NLP.GenI.Btypes(
 \ignore{
 \begin{code}
 -- import Debug.Trace -- for test stuff
-import QuickCheck hiding (collect) -- needed for testing via ghci 
 import Control.Monad (liftM)
 import Data.List
 import Data.Maybe (maybe)
 import qualified Data.Map as Map
 import qualified Data.Set as Set 
 import Data.Tree
+import Test.QuickCheck hiding (collect) -- needed for testing via ghci
 
 import NLP.GenI.General(mapTree, filterTree, listRepNode, snd3, geniBug)
 --instance Show (IO()) where
