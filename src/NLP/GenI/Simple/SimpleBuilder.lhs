@@ -707,10 +707,7 @@ iapplyAdjNode item1 item2 an@(TagSite n an_up an_down) = {-# SCC "iapplyAdjNode"
                }
       -- 4) add the new adjunction nodes
       --    this has to come after 3 so that we don't repeat the subst
-      res = res' { siAdjnodes = (ncopy anr) : siAdjnodes res' }
-  -- the final result
-  -- ----------------
-  return res
+  return $! res' { siAdjnodes = (ncopy anr) : siAdjnodes res' }
 \end{code}
 
 % --------------------------------------------------------------------
