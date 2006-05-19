@@ -32,7 +32,7 @@ import qualified Data.Map
 
 import NLP.GenI.General (mapTree)
 import NLP.GenI.Tags
- ( TagElem(TE), TagSite, idname,
+ ( TagElem(TE), idname,
    tsemantics, ttree, tinterface, ttype, ttreename,
  )
 import NLP.GenI.Btypes (GeniVal(GConst, GVar, GAnon), AvPair, Ptype(..),
@@ -374,7 +374,6 @@ instance HsShowable GType where hsShow = show
 instance (HsShowable a, HsShowable b) => HsShowable [(a,b)] where hsShow = hsList
 instance (HsShowable a) => HsShowable (Forest a) where hsShow = hsList
 instance HsShowable [String] where hsShow = hsList
-instance HsShowable [TagSite] where hsShow = hsList
 instance HsShowable [GeniVal] where hsShow = hsList
 instance HsShowable Sem where hsShow = hsList
 instance HsShowable SemPols where hsShow = hsList

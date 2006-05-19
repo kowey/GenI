@@ -79,10 +79,10 @@ import NLP.GenI.Builder
   )
 import NLP.GenI.Configuration ( Params, isIaf )
 import NLP.GenI.General
-  ( combinations, treeLeaves, BitVector, geniBug, fst3, snd3 )
+  ( combinations, treeLeaves, BitVector, geniBug )
 import NLP.GenI.Tags
   ( TagElem, tidnum, ttree, tsemantics, ttype,
-    ts_tbUnificationFailure, TagSite, detectSites
+    ts_tbUnificationFailure, TagSite(TagSite), detectSites
   )
 import Statistics ( Statistics )
 
@@ -725,7 +725,7 @@ combineWithSubst node subst a p =
   newPassive { ciAccesible    = (ciAccesible a) `union` (ciAccesible p)
              , ciInaccessible = (ciInaccessible a) `union` (ciInaccessible p)
              , ciSubstnodes = newCiSubstnodes }
-  where newCiSubstnodes = filter (\x -> fst3 x /= gnname node) $ ciSubstnodes p
+  where newCiSubstnodes = [ t | t@(TagSite x _ _) <- ciSubstnodes p, x /= gnname node ]
         newPassive = combineWith SubstOp node subst a p
 
 combineWith :: ChartOperationConstructor -- ^ how did we get the new item?
@@ -897,7 +897,7 @@ instance IafAble CkyItem where
   iafSetInacc a i = i { ciInaccessible = a }
   iafNewAcc i =
     concatMap fromUniConst $ replace r $
-      concatMap (getIdx.snd3) (ciSubstnodes i)
+      concat [ getIdx u | (TagSite _ u _) <- ciSubstnodes i ]
     where r = zip (map fromGVar $ ciOrigVariables i)
                   (ciVariables i)
 

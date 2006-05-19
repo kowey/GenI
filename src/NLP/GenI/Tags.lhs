@@ -26,7 +26,7 @@ and \ref{sec:adjunction} instead.
 \begin{code}
 module NLP.GenI.Tags(
    -- Main Datatypes
-   Tags, TagElem(..), TagItem(..), TagSite, 
+   Tags, TagElem(..), TagItem(..), TagSite(..),
    TagDerivation, emptyTE,
    ts_synIncomplete, ts_semIncomplete, ts_tbUnificationFailure,
    ts_noRootCategory, ts_wrongRootCategory,
@@ -93,7 +93,9 @@ combining macros with lexicon (see section \ref{sec:combine_macros}).
 
 \begin{code}
 -- type TPredictors = Map.Map AvPair Int 
-type TagSite = (String, Flist, Flist)
+data TagSite = TagSite String Flist Flist
+  deriving (Show, Eq, Ord)
+
 data TagElem = TE {
                    idname       :: String,
                    ttreename    :: String,
@@ -136,12 +138,12 @@ instance Ord TagElem where
 
 instance Replacable TagElem where
   replace s te =
-    te { tinterface = replace s (tinterface te)
+    te { tinterface = replace_Flist s (tinterface te)
        , ttree      = replace s (ttree te)
        , tsemantics = replace s (tsemantics te) }
 
 instance Replacable TagSite where
-  replace s (n, fu, fd) = (n, replace_Flist s fu, replace_Flist s fd)
+  replace s (TagSite n fu fd) = TagSite n (replace_Flist s fu) (replace_Flist s fd)
 
 instance Collectable TagElem where
   collect t = (collect $ tinterface t) . (collect $ ttree t) 
@@ -169,7 +171,7 @@ emptyTE = TE { idname = "",
 detectSites :: Tree GNode -> ([TagSite], [TagSite])
 detectSites t = (sites isSub, sites (not.gaconstr))
  where
- sites match = [ (gnname n, gup n, gdown n) | n <- flatten t, match n ]
+ sites match = [ TagSite (gnname n) (gup n) (gdown n) | n <- flatten t, match n ]
  isSub n = gtype n == Subs
 \end{code}
 
@@ -318,7 +320,7 @@ substitution nodes
 \begin{code}
 showTagSites :: [TagSite] -> String
 showTagSites sites = concat $ intersperse "\n  " $ map fn sites
-  where fn (n,t,b) = n ++ "/" ++ showPairs t ++ "/" ++ showPairs b
+  where fn (TagSite n t b) = n ++ "/" ++ showPairs t ++ "/" ++ showPairs b
 \end{code}
 
 % ----------------------------------------------------------------------

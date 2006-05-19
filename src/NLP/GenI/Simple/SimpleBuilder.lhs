@@ -56,7 +56,6 @@ import Statistics (Statistics)
 import NLP.GenI.Automaton ( automatonPaths, NFA(..), addTrans )
 import NLP.GenI.Btypes
   ( Ptype(Initial,Auxiliar),
-  , Flist
   , Replacable(..), Subst
   , sortSem
   , GType(Other), GNode(..), gCategory
@@ -76,7 +75,7 @@ import NLP.GenI.Builder (UninflectedWord, UninflectedSentence,
     )
 import qualified NLP.GenI.Builder as B
 
-import NLP.GenI.Tags (TagElem, TagSite, TagDerivation,
+import NLP.GenI.Tags (TagElem, TagSite(TagSite), TagDerivation,
              idname, tidnum,
              ttree, ttype, tsemantics,
              detectSites, tagLeaves,
@@ -84,7 +83,7 @@ import NLP.GenI.Tags (TagElem, TagSite, TagDerivation,
              ts_noRootCategory, ts_wrongRootCategory,
             )
 import NLP.GenI.Configuration
-import NLP.GenI.General (BitVector, fst3, mapTree)
+import NLP.GenI.General (BitVector, mapTree)
 \end{code}
 }
 
@@ -521,12 +520,12 @@ substitution nodes in t2 it returns ONE possible substitution (the head node)
   we force substitution in order.
 
 \begin{code}
-iapplySubst :: SimpleItem -> SimpleItem -> [(String, Flist, Flist)] -> SimpleState [SimpleItem]
+iapplySubst :: SimpleItem -> SimpleItem -> [TagSite] -> SimpleState [SimpleItem]
 iapplySubst item1 item2 (sn:_) | closed item1 = iapplySubstNode item1 item2 sn
 iapplySubst _ _ _ = return []
 
-iapplySubstNode :: SimpleItem -> SimpleItem -> (String, Flist, Flist) -> SimpleState [SimpleItem]
-iapplySubstNode item1 item2 sn@(n, fu, fd) = {-# SCC "applySubstitution" #-}
+iapplySubstNode :: SimpleItem -> SimpleItem -> TagSite -> SimpleState [SimpleItem]
+iapplySubstNode item1 item2 sn@(TagSite n fu fd) = {-# SCC "applySubstitution" #-}
   let te1 = siTagElem item1
       te2 = siTagElem item2
       --
@@ -554,7 +553,7 @@ iapplySubstNode item1 item2 sn@(n, fu, fd) = {-# SCC "applySubstitution" #-}
       ntree = repSubst n nt1 t2
 
       --
-      ncopy x = (gnname x, gup x, gdown x)
+      ncopy x = TagSite (gnname x) (gup x) (gdown x)
       adj1  = (ncopy nr) : (delete (ncopy r) $ siAdjnodes item1)
       adj2  = siAdjnodes item2
       newTe = te2{ttree = ntree}
@@ -621,9 +620,8 @@ sansAdjunction :: SimpleItem -> SimpleState [SimpleItem]
 sansAdjunction item | closed item =
  case siAdjnodes item of
  []            -> return []
- (ahead:atail) ->
+ (TagSite gn _ _ : atail) ->
    let te = siTagElem item
-       gn = fst3 ahead
        ntree = constrainAdj gn (ttree te)
        te2   = te { ttree = ntree }
        newItem = item { siTagElem = te2, siHighlight = [gn]
@@ -657,8 +655,8 @@ with \texttt{anr} and \texttt{anf}\footnote{\texttt{anf} is only added
 if the foot node constraint is disabled}.
 
 \begin{code}
-iapplyAdjNode :: SimpleItem -> SimpleItem -> (String, Flist, Flist) -> Maybe SimpleItem
-iapplyAdjNode item1 item2 an@(n, an_up, an_down) = do
+iapplyAdjNode :: SimpleItem -> SimpleItem -> TagSite -> Maybe SimpleItem
+iapplyAdjNode item1 item2 an@(TagSite n an_up an_down) = {-# SCC "iapplyAdjNode" #-} do
   -- block repeated adjunctions of the same SimpleItem (for ignore semantics mode)
   guard $ not $ (n, siId item1) `elem` (siAdjlist item2)
   -- let's go!
@@ -693,7 +691,7 @@ iapplyAdjNode item1 item2 an@(n, an_up, an_down) = do
 
       -- the new adjunction nodes
       -- ------------------------
-      ncopy x = (gnname x, gup x, gdown x)
+      ncopy x = TagSite (gnname x) (gup x) (gdown x)
       -- 1) delete the adjunction site and the aux root node
       auxlite = delete (ncopy r) $ siAdjnodes item1
       telite  = delete an $ siAdjnodes item2
@@ -755,14 +753,17 @@ renameSimpleItem :: Char -> SimpleItem -> SimpleItem
 renameSimpleItem c item =
  let al = map (\(n, tid) -> (c:n, tid)) (siAdjlist item)
  in item { siTagElem    = renameTagElem c $ siTagElem item
-         , siSubstnodes = map (\(n, fu, fd) -> (c:n, fu, fd)) (siSubstnodes item)
-         , siAdjnodes   = map (\(n, fu, fd) -> (c:n, fu, fd)) (siAdjnodes item)
+         , siSubstnodes = map (renameTagSite c) (siSubstnodes item)
+         , siAdjnodes   = map (renameTagSite c) (siAdjnodes item)
          , siAdjlist = al }
 
 -- | Given a 'Char' c and a 'TagElem' te, renames nodes in
 -- substnodes, adjnodes and the tree in te by prefixing c.
 renameTagElem :: Char -> TagElem -> TagElem
 renameTagElem c te = te{ ttree = renameTree c (ttree te) }
+
+renameTagSite :: Char -> TagSite -> TagSite
+renameTagSite c (TagSite n u d) = TagSite (c:n) u d
 \end{code}
 
 \subsubsection{Derivation trees}
@@ -916,7 +917,7 @@ tbUnifyTree item = {-# SCC "tbUnifyTree" #-}
                    where (_,u,_) = unifyFeat2 (gup gn) (gdown gn)
       --
       fixSite :: Subst -> TagSite -> TagSite
-      fixSite sb (n, u, d) = (n, u3, [])
+      fixSite sb (TagSite n u d) = TagSite n u3 []
         where u2 = replace sb u
               d2 = replace sb d
               (_,u3,_) = unifyFeat2 u2 d2
@@ -998,7 +999,7 @@ instance IafAble SimpleItem where
   iafSetInacc a i = i { siInaccessible = a }
   iafNewAcc i =
     concatMap fromUniConst $
-    concat [ getIdx up | (_,up,_) <- siSubstnodes i ]
+    concat [ getIdx up | (TagSite _ up _) <- siSubstnodes i ]
 
 dpIafFailure :: SimpleDispatchFilter
 dpIafFailure item | aux item = return $ Just item
