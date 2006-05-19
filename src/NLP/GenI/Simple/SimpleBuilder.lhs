@@ -56,7 +56,7 @@ import Statistics (Statistics)
 import NLP.GenI.Automaton ( automatonPaths, NFA(..), addTrans )
 import NLP.GenI.Btypes
   ( Ptype(Initial,Auxiliar),
-  , Replacable(..), Subst
+  , Replacable(..), Subst, replace_Flist,
   , sortSem
   , GType(Other), GNode(..), gCategory
   , GeniVal(GConst)
@@ -669,9 +669,9 @@ iapplyAdjNode item1 item2 an@(TagSite n an_up an_down) = {-# SCC "iapplyAdjNode"
       r_up   = gup r    -- top features of the root of the auxiliar tree
       f_down = gdown f  -- bottom features of the foot of the auxiliar tree
   (anr_up',  subst1) <- unifyFeat r_up an_up
-  (anf_down, subst2) <- unifyFeat (replace subst1 f_down) (replace subst1 an_down)
+  (anf_down, subst2) <- unifyFeat (replace_Flist subst1 f_down) (replace_Flist subst1 an_down)
   let -- don't forget to propagate the substitution set from the down stuff
-      anr_up = replace subst2 anr_up'
+      anr_up = replace_Flist subst2 anr_up'
       -- combined substitution list and success condition
       subst   = subst1++subst2
 
