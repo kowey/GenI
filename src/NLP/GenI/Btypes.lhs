@@ -51,7 +51,8 @@ module NLP.GenI.Btypes(
    showPairs, showAv,
 
    -- Other functions
-   Replacable(..), Collectable(..), Idable(..),
+   Replacable(..),  replace_Flist,
+   Collectable(..), Idable(..),
    alphaConvert, alphaConvertById,
    fromGConst, fromGVar,
    isConst, isVar, isAnon,
@@ -272,8 +273,8 @@ instance Replacable GNode where
     gn { gup = replaceOne s (gup gn) 
        , gdown = replaceOne s (gdown gn) }
   replace s gn =
-    gn { gup = replace s (gup gn) 
-       , gdown = replace s (gdown gn) }
+    gn { gup = replace_Flist s (gup gn)
+       , gdown = replace_Flist s (gdown gn) }
 \end{code}
 
 % ----------------------------------------------------------------------
@@ -502,8 +503,18 @@ substitution on
 
 \begin{code}
 instance Replacable GeniVal where
-  replace sl v = {-# SCC "replace" #-} foldl' (flip replaceOne) v sl
-  replaceOne (s1,s2) v = {-# SCC "replace" #-} if (v == GVar s1) then s2 else v
+  replace = {-# SCC "replace" #-} replace_
+  replaceOne (s1, s2) (GVar v_) | v_ == s1 = s2
+  replaceOne _ v = v
+
+{- # INLINE replace_ #-}
+{- # INLINE replaceOne_flipped #-}
+replace_ :: Subst -> GeniVal -> GeniVal
+replace_ sl v = foldl' replaceOne_flipped v sl
+
+replaceOne_flipped :: GeniVal -> (String, GeniVal) -> GeniVal
+replaceOne_flipped (GVar v_) (s1,s2) | v_ == s1 = s2
+replaceOne_flipped v _ = v
 \end{code}
 
 Substitution on list consists of performing substitution on 
@@ -520,8 +531,20 @@ Substitution on an attribute/value pairs consists of ignoring
 the attribute and performing substitution on the value.
 
 \begin{code}
-instance (Replacable a => Replacable (String, a)) where
-  replace s (a,v) = {-# SCC "replace" #-} (a, replace s v)
+instance Replacable AvPair where
+  replace = {-# SCC "replace" #-} replace_avPair
+\end{code}
+
+For performance reasons, here are some specialised variants of replace for
+frequently used types:
+\begin{code}
+{-# INLINE replace_Flist #-}
+replace_Flist :: Subst -> Flist -> Flist
+replace_Flist s = map (replace_avPair s)
+
+{-# INLINE replace_avPair #-}
+replace_avPair :: Subst -> AvPair -> AvPair
+replace_avPair s (a,v) = (a, replace_ s v)
 \end{code}
 
 \subsection{Idable}
