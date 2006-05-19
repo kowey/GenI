@@ -40,7 +40,7 @@ where
 
 \ignore{
 \begin{code}
-import Control.Monad (when, guard, liftM, liftM2)
+import Control.Monad (when, liftM, liftM2)
 
 import Control.Monad.State
   (get, put, modify, gets)
@@ -210,7 +210,7 @@ data SimpleItem = SimpleItem
  -- nodes to highlight
  , siHighlight  :: [String]
  -- for generation sans semantics
- , siAdjlist :: [(String,Integer)] -- (node name, auxiliary tree id)
+ -- , siAdjlist :: [(String,Integer)] -- (node name, auxiliary tree id)
  -- for index accesibility filtering (one-phase only)
  , siAccesible    :: [ String ] -- it's acc/inacc/undetermined
  , siInaccessible :: [ String ] -- that's why you want both
@@ -292,7 +292,7 @@ initSimpleItem bmap (te,pp) =
   -- nodes to highlight
   , siHighlight  = []
   -- for generation sans semantics
-  , siAdjlist = []
+  -- , siAdjlist = []
   }
   where setIaf i = i { siAccesible = iafNewAcc i }
 \end{code}
@@ -658,7 +658,7 @@ if the foot node constraint is disabled}.
 iapplyAdjNode :: SimpleItem -> SimpleItem -> TagSite -> Maybe SimpleItem
 iapplyAdjNode item1 item2 an@(TagSite n an_up an_down) = {-# SCC "iapplyAdjNode" #-} do
   -- block repeated adjunctions of the same SimpleItem (for ignore semantics mode)
-  guard $ not $ (n, siId item1) `elem` (siAdjlist item2)
+  -- guard $ not $ (n, siId item1) `elem` (siAdjlist item2)
   -- let's go!
   let te1 = siTagElem item1
       te2 = siTagElem item2
@@ -702,7 +702,7 @@ iapplyAdjNode item1 item2 an@(TagSite n an_up an_down) = {-# SCC "iapplyAdjNode"
       res' = replace subst $ combineSimpleItems 'a' item1 $ item2
                { siTagElem = nte2
                , siHighlight = map gnname [anr, anf]
-               , siAdjlist = (n, (tidnum te1)):(siAdjlist item2)
+               -- , siAdjlist = (n, (tidnum te1)):(siAdjlist item2)
                , siAdjnodes = newadjnodes'
                }
       -- 4) add the new adjunction nodes
@@ -748,11 +748,12 @@ combineSimpleItems d item1 item2 =
 -- | Just a wrapper to 'renameTagElem'
 renameSimpleItem :: Char -> SimpleItem -> SimpleItem
 renameSimpleItem c item =
- let al = map (\(n, tid) -> (c:n, tid)) (siAdjlist item)
- in item { siTagElem    = renameTagElem c $ siTagElem item
+ -- let al = map (\(n, tid) -> (c:n, tid)) (siAdjlist item)
+ --in
+    item { siTagElem    = renameTagElem c $ siTagElem item
          , siSubstnodes = map (renameTagSite c) (siSubstnodes item)
          , siAdjnodes   = map (renameTagSite c) (siAdjnodes item)
-         , siAdjlist = al }
+ 	 } -- , siAdjlist = al }
 
 -- | Given a 'Char' c and a 'TagElem' te, renames nodes in
 -- substnodes, adjnodes and the tree in te by prefixing c.
