@@ -906,7 +906,7 @@ tbUnifyTree item = {-# SCC "tbUnifyTree" #-}
   let te = siTagElem item
       --
       tryUnification :: Tree GNode -> TbEither
-      tryUnification t = foldr tbUnifyNode start flat
+      tryUnification t = foldl tbUnifyNode start flat
         where start = Right ([], t)
               flat  = flatten t
       --
@@ -966,19 +966,19 @@ Getting this right was a big pain in the butt, so don't go trying to
 simplify this over-complicated code unless you know what you're doing.
 
 \begin{code}
-tbUnifyNode :: GNode -> TbEither -> TbEither
-tbUnifyNode gnRaw (Right (pending,whole)) =
-  let -- apply pending substitutions
-      gn = replace pending gnRaw
-  -- check top/bottom unification on this node
-  in case unifyFeat (gup gn) (gdown gn) of
-     -- stop all future iterations
-     Nothing -> Left (gnname gn)
-     -- apply any new substutions to the whole tree
-     Just (_,sb) -> Right (pending ++ sb, replace sb whole)
+tbUnifyNode :: TbEither -> GNode -> TbEither
+tbUnifyNode (Right (pending,whole)) gnRaw =
+  -- apply pending substitutions
+  case replace pending gnRaw of
+  gn -> -- check top/bottom unification on this node
+        case unifyFeat (gup gn) (gdown gn) of
+        -- stop all future iterations
+        Nothing -> Left (gnname gn)
+        -- apply any new substutions to the whole tree
+        Just (_,sb) -> Right (pending ++ sb, replace sb whole)
 
 -- if earlier we had a failure, don't even bother
-tbUnifyNode _ (Left n) = Left n
+tbUnifyNode (Left n) _ = Left n
 \end{code}
 
 % --------------------------------------------------------------------
