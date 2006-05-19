@@ -755,6 +755,9 @@ renameSimpleItem c item = {-# SCC "renameSimpleItem" #-}
          , siAdjnodes   = map (renameTagSite c) (siAdjnodes item)
  	 } -- , siAdjlist = al }
 
+{-# INLINE renameTagSite #-}
+{-# INLINE renameTagElem #-}
+
 -- | Given a 'Char' c and a 'TagElem' te, renames nodes in
 -- substnodes, adjnodes and the tree in te by prefixing c.
 renameTagElem :: Char -> TagElem -> TagElem
