@@ -906,9 +906,8 @@ tbUnifyTree item = {-# SCC "tbUnifyTree" #-}
   let te = siTagElem item
       --
       tryUnification :: Tree GNode -> TbEither
-      tryUnification t = foldl tbUnifyNode start flat
-        where start = Right ([], t)
-              flat  = flatten t
+      tryUnification t =
+        foldl tbUnifyNode (Right ([],t)) $! flatten t
       --
       fixNode :: GNode -> GNode
       fixNode gn =
