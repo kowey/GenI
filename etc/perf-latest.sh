@@ -1,10 +1,10 @@
 #!/bin/sh
 
-OUT_FILE=out
+OUT_FILE=profout
 PROF_FILE=prof
 STABLE_DIR=../PerfGeniStable
-STABLE_OUT_FILE=out-stable
-STABLE_PROF_FILE=prof-stable
+STABLE_OUT_FILE=profout-stable
+STABLE_PROF_FILE=profout-stable
 
 cd `dirname $0`/..
 
@@ -14,7 +14,7 @@ MAKE_STATUS=$?
 if [ "${MAKE_STATUS}" -ne 0 ] ; then exit 1; fi
 
 echo "Running GenI ..."
-bin/debugger-geni +RTS -p -RTS -s etc/perftest/semantics-t33 --nogui -m etc/perftest/lexselection-t33 --preselected --opts=pol > ${OUT_FILE}
+make profiler
 mv debugger-geni.prof ${PROF_FILE}
 
 echo "----- first make sure you have the same results -----"
