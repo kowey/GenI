@@ -794,7 +794,8 @@ unifyFeat f1 f2 =
 
 -- does the same thing but returning True/False on success or failure
 unifyFeat2 :: Flist -> Flist -> (Bool, Flist, Subst)
-unifyFeat2 a b = maybe failure success $ unifyFeat a b
+unifyFeat2 a b = {-# SCC "unification" #-}
+  maybe failure success $ unifyFeat a b
   where failure       = (False, [], [])
         success (f,s) = (True, f, s)
 \end{code}
@@ -879,13 +880,13 @@ The core unification algorithm follows these rules in order:
 
 \begin{code}
 unify :: (Monad m) => [GeniVal] -> [GeniVal] -> m ([GeniVal], Subst)
-unify [] l2 = return (l2, [])
-unify l1 [] = return (l1, [])
-unify (GAnon:t1) (h2:t2) = unifySansRep h2 t1 t2
-unify (h1:t1) (GAnon:t2) = unifySansRep h1 t1 t2
-unify (h1@(GVar _):t1) (h2:t2) = unifyWithRep h1 h2 t1 t2
-unify (h1:t1) (h2@(GVar _):t2) = unifyWithRep h2 h1 t1 t2
-unify ((GConst h1v):t1) ((GConst h2v):t2) =
+unify [] l2 = {-# SCC "unification" #-} return (l2, [])
+unify l1 [] = {-# SCC "unification" #-} return (l1, [])
+unify (GAnon:t1) (h2:t2) = {-# SCC "unification" #-} unifySansRep h2 t1 t2
+unify (h1:t1) (GAnon:t2) = {-# SCC "unification" #-} unifySansRep h1 t1 t2
+unify (h1@(GVar _):t1) (h2:t2) = {-# SCC "unification" #-} unifyWithRep h1 h2 t1 t2
+unify (h1:t1) (h2@(GVar _):t2) = {-# SCC "unification" #-} unifyWithRep h2 h1 t1 t2
+unify ((GConst h1v):t1) ((GConst h2v):t2) = {-# SCC "unification" #-}
   case h1v `intersect` h2v of
   []   -> fail "unification failure"
   newH -> unifySansRep (GConst newH) t1 t2
@@ -893,12 +894,12 @@ unify ((GConst h1v):t1) ((GConst h2v):t2) =
 {-# INLINE unifySansRep #-}
 {-# INLINE unifyWithRep #-}
 unifySansRep :: (Monad m) => GeniVal -> [GeniVal] -> [GeniVal] -> m ([GeniVal], Subst)
-unifySansRep x2 t1 t2 =
+unifySansRep x2 t1 t2 = {-# SCC "unification" #-}
  do (res,subst) <- unify t1 t2
     return (x2:res, subst)
 
 unifyWithRep :: (Monad m) => GeniVal -> GeniVal -> [GeniVal] -> [GeniVal] -> m ([GeniVal], Subst)
-unifyWithRep (GVar h1) x2 t1 t2 =
+unifyWithRep (GVar h1) x2 t1 t2 = {-# SCC "unification" #-}
  case (h1,x2) of
  s -> do (res,subst) <- unify (replaceOne s t1) (replaceOne s t2)
          return (x2:res, s:subst)
