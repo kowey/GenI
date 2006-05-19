@@ -911,8 +911,9 @@ tbUnifyTree item = {-# SCC "tbUnifyTree" #-}
               flat  = flatten t
       --
       fixNode :: GNode -> GNode
-      fixNode gn = gn { gup = u, gdown = [] }
-                   where (_,u,_) = unifyFeat2 (gup gn) (gdown gn)
+      fixNode gn =
+        case unifyFeat2 (gup gn) (gdown gn) of
+        (_,u,_) -> gn { gup = u, gdown = [] }
       --
       fixSite :: Subst -> TagSite -> TagSite
       fixSite sb (TagSite n u d) = TagSite n u3 []
