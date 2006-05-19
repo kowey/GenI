@@ -813,22 +813,21 @@ alignFeat :: Flist -> Flist -> ([String], [GeniVal], [GeniVal])
 alignFeat [] [] = ([], [], [])
 
 alignFeat [] ((f,v):x) = 
-  let (att, left, right) = alignFeat [] x
-  in  (f:att, GAnon:left, v:right)
+  case alignFeat [] x of
+  (att, left, right) -> (f:att, GAnon:left, v:right)
 
 alignFeat x [] = 
-  let (att, left, right) = alignFeat [] x
-  in  (att, right, left)
+  case alignFeat [] x of
+  (att, left, right) -> (att, right, left)
 
 alignFeat fs1@((f1, v1):l1) fs2@((f2, v2):l2) 
-   | f1 == f2  = (f1:att0, v1:left0,    v2:right0)
-   | f1 <  f2  = (f1:att1, v1:left1, GAnon:right1) 
-   | f1 >  f2  = (f2:att2, GAnon:left2, v2:right2)
+   | f1 == f2  = case alignFeat l1 l2 of
+                 (att, left, right) -> (f1:att, v1:left,    v2:right)
+   | f1 <  f2  = case alignFeat l1 fs2 of
+                 (att, left, right) -> (f1:att, v1:left, GAnon:right)
+   | f1 >  f2  = case alignFeat fs1 l2 of
+                 (att, left, right) -> (f2:att, GAnon:left, v2:right)
    | otherwise = error "Feature structure unification is badly broken"
-   --
-  where (att0, left0, right0) = alignFeat l1 l2
-        (att1, left1, right1) = alignFeat l1 fs2
-        (att2, left2, right2) = alignFeat fs1 l2
 \end{code}
 
 \subsection{GeniVal}
