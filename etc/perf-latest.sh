@@ -4,7 +4,7 @@ OUT_FILE=profout
 PROF_FILE=prof
 STABLE_DIR=../PerfGeniStable
 STABLE_OUT_FILE=profout-stable
-STABLE_PROF_FILE=profout-stable
+STABLE_PROF_FILE=prof-stable
 
 cd `dirname $0`/..
 
