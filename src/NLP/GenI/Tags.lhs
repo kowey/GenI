@@ -93,7 +93,7 @@ combining macros with lexicon (see section \ref{sec:combine_macros}).
 
 \begin{code}
 -- type TPredictors = Map.Map AvPair Int 
-data TagSite = TagSite String Flist Flist
+data TagSite = TagSite !String !Flist !Flist
   deriving (Show, Eq, Ord)
 
 data TagElem = TE {
