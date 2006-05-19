@@ -734,7 +734,7 @@ lookupChart given = do
 
 -- | Helper function for when chart operations succeed.
 combineSimpleItems :: Char -> SimpleItem -> SimpleItem -> SimpleItem
-combineSimpleItems d item1 item2 =
+combineSimpleItems d item1 item2 = {-# SCC "combineSimpleItems" #-}
   item2 { siSemantics = (siSemantics item1) .|. (siSemantics item2)
         , siPolpaths  = (siPolpaths  item1) .&. (siPolpaths  item2)
         , siDerivation = addToDerivation d item1 item2
@@ -747,7 +747,7 @@ combineSimpleItems d item1 item2 =
 
 -- | Just a wrapper to 'renameTagElem'
 renameSimpleItem :: Char -> SimpleItem -> SimpleItem
-renameSimpleItem c item =
+renameSimpleItem c item = {-# SCC "renameSimpleItem" #-}
  -- let al = map (\(n, tid) -> (c:n, tid)) (siAdjlist item)
  --in
     item { siTagElem    = renameTagElem c $ siTagElem item
@@ -782,7 +782,7 @@ used (uniquely?) in the Gorn address.
 
 \begin{code}
 addToDerivation :: Char -> SimpleItem -> SimpleItem -> TagDerivation
-addToDerivation op tc tp =
+addToDerivation op tc tp = {-# SCC "addToDerivation" #-}
   let (cp,hp)  = siDerivation tp
       (_ ,hc)  = siDerivation tc
       siIdname = idname.siTagElem

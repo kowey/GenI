@@ -358,7 +358,7 @@ to the new foot node.
 \begin{code}
 
 repAdj :: GNode -> String -> Tree GNode -> Tree GNode -> Tree GNode
-repAdj newFoot n t1 t2 =
+repAdj newFoot n t1 t2 = {-# SCC "repAdj" #-}
   let filt (Node a _) = (gnname a == n)
                         -- replace the footnode of t1 with nf  
       fn (Node a l)   = repFoot nf t1 l
@@ -371,7 +371,7 @@ repAdj newFoot n t1 t2 =
 
 -- repFoot replaces the footnode of t with newFoot
 repFoot :: GNode -> Tree GNode -> [Tree GNode] -> Tree GNode
-repFoot newFoot t l =
+repFoot newFoot t l = {-# SCC "repFoot" #-}
   let filt (Node a _) = (gtype a == Foot)
       fn (Node _ _) = Node newFoot l
   in case listRepNode fn filt [t] of
