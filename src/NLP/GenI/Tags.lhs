@@ -53,7 +53,8 @@ import Data.Tree
 import NLP.GenI.Btypes (Ptype(Initial, Auxiliar), SemPols,
                GNode(gup, glexeme, gnname, gaconstr, gdown, gtype),
                GType(Subs), Flist,
-               Replacable(..), Collectable(..), Idable(..),
+               Replacable(..), replace_Flist,
+               Collectable(..), Idable(..),
                Sem, Pred, emptyPred, 
                emptyGNode,
                showPairs, showSem, lexemeAttributes,
@@ -140,7 +141,7 @@ instance Replacable TagElem where
        , tsemantics = replace s (tsemantics te) }
 
 instance Replacable TagSite where
-  replace s (n, fu, fd) = (n, replace s fu, replace s fd)
+  replace s (n, fu, fd) = (n, replace_Flist s fu, replace_Flist s fd)
 
 instance Collectable TagElem where
   collect t = (collect $ tinterface t) . (collect $ ttree t) 
