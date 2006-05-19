@@ -27,7 +27,7 @@ where
 
 \ignore{
 \begin{code}
-import Control.Monad (liftM2)
+import Control.Monad (liftM, liftM2)
 import Data.Bits (shiftR, (.&.))
 import Data.Char (isSpace, toUpper, toLower)
 import Data.List (intersect, groupBy, group, sort, intersperse)
@@ -163,6 +163,16 @@ groupAndCount xs =
 combinations :: [[a]] -> [[a]]
 combinations []     = [[]]
 combinations (hs:t) = liftM2 (:) hs (combinations t)
+\end{code}
+
+\begin{code}
+mapMaybeM :: (Monad m) => (a -> m (Maybe b)) -> [a] -> m [b]
+mapMaybeM _ [] = return []
+mapMaybeM f (x:xs) =
+ f x >>=
+ (\my -> case my of
+          Nothing -> mapMaybeM f xs
+	  Just y  -> liftM (y:) (mapMaybeM f xs))
 \end{code}
 
 \section{Trees}

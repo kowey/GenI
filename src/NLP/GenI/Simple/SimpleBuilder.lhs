@@ -83,7 +83,7 @@ import NLP.GenI.Tags (TagElem, TagSite(TagSite), TagDerivation,
              ts_noRootCategory, ts_wrongRootCategory,
             )
 import NLP.GenI.Configuration
-import NLP.GenI.General (BitVector, mapTree)
+import NLP.GenI.General (BitVector, mapTree, mapMaybeM)
 \end{code}
 }
 
@@ -586,7 +586,7 @@ applyAdjunction :: SimpleItem -> SimpleState ([SimpleItem])
 applyAdjunction item = {-# SCC "applyAdjunction" #-}
  do gr <-lookupChart item
     incrCounter num_comparisons (length gr)
-    catMaybes `liftM` mapM (\a -> tryAdj a item) gr
+    mapMaybeM (\a -> tryAdj a item) gr
 
 passiveAdjunction1p :: SimpleItem -> SimpleState [SimpleItem]
 passiveAdjunction1p item | closed item && siInitial item =
