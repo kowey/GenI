@@ -31,20 +31,17 @@ GHC             = ghc
 GHCINCLUDE      = -i$(SRC)
 #:$(HXMLDIR)/hparser:$(HXMLDIR)/hdom
 GHCPACKAGES     =
-#-package HaXml
 GHCPACKAGES_GUI = -package wx $(GHCPACKAGES)
 
 GHCFLAGS        = $(LDFLAGS) -Wall -cpp -fglasgow-exts -threaded -O $(GHCINCLUDE)
-GHCFLAGS_PROF   = $(GHCFLAGS) -prof -hisuf p_hi -osuf p_o -DDISABLE_GUI -auto-all
+ifdef PROFILE
+GHCFLAGS += -prof -hisuf p_hi -osuf p_o -hcsuf p_hc -DDISABLE_GUI -auto
+endif
 
 SOFTWARE        = Geni
 SOFTVERS        = $(SOFTWARE)-$(VERSION)
 
 TO_INSTALL=$(patsubst %, bin/%, tryXtimes geni xmgGeni runXMGselector runXMGfilter)
-
-ifndef RTS_FLAGS
-RTS_FLAGS:=-p -hm
-endif
 
 # You should replace the value of this variable with your project
 # directory name.  The default assumption is that the project name
@@ -52,6 +49,36 @@ endif
 MYDIR = Geni
 DATE:=$(shell date +%Y-%m-%d)
 DATE2:=$(shell date +%Y-%m-%dT%H%M)
+
+# --------------------------------------------------------------------
+# options for profiling
+# --------------------------------------------------------------------
+
+ifndef PROFILE_WITH
+# -hm # modules
+# -hy # types
+# -hc # cost centre
+# -hd # closure description
+# -hr # retainer set
+# -hb # biography
+PROFILE_WITH := -hc
+endif
+empty :=
+space := $(empty) $(empty)
+PROFILE_WITH_SCRUNCHED := $(subst $(space),,$(PROFILE_WITH))
+
+PERFTEST =
+PERFTEST += -m etc/perftest/grammar-adjtest.geni
+PERFTEST += -l etc/perftest/lemmas.glex
+PERFTEST += -s etc/perftest/semantics-adjunctions-t8
+
+ifndef RTS_FLAGS
+RTS_FLAGS:=-p $(PROFILE_WITH)
+endif
+
+# --------------------------------------------------------------------
+# genidoc options
+# --------------------------------------------------------------------
 
 # Add here any files that you want to compile.  For example:
 #   MAKE_DOCS=foo/bar.pdf foo/other.pdf baz/filename.pdf
@@ -71,7 +98,6 @@ LATEX=pdflatex
 DVIPDF_CMD=dvips `basename $< .tex`.dvi -o `basename $< .tex`.ps;\
 	ps2pdf `basename $< .tex`.ps
 #DVIPDF=$(DVIPDF_CMD)
-
 
 # --------------------------------------------------------------------
 # source stuff
@@ -198,7 +224,11 @@ tags:
 	sort $@ > $@.tmp
 	mv $@.tmp $@
 
+ifdef PROFILE
+deps:
+else
 deps: $(DEPENDS)
+endif
 
 $(DEPENDS): .depends/%.dep : %
 	@echo Calculating dependencies for $<
@@ -229,10 +259,11 @@ $(EXTRACTOR) : $(CONVERTER_MAIN) $(EXTRACTOR_DEPS)
 nogui : $(GENI_MAIN) $(GENI_DEPS) permissions
 	$(GHC) $(GHCFLAGS) --make -DDISABLE_GUI $(GHCPACKAGES) $< -o $(GENI)
 
-debugger: $(PROFGENI)
+debugger:
+	make $(PROFGENI) PROFILE=1
 
 $(PROFGENI): $(GENI_MAIN) $(GENI_DEPS) permissions
-	$(GHC) $(GHCFLAGS_PROF) $(GHCPACKAGES) --make $< -o $@
+	$(GHC) $(GHCFLAGS) $(GHCPACKAGES) --make $< -o $@
 
 $(SERVER): $(SERVER_MAIN) $(SERVER_DEPS)
 	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES) $< -o $@
@@ -247,17 +278,30 @@ $(CLIENT): $(CLIENT_MAIN) $(CLIENT_DEPS)
 # this stuff is broken down into small pieces so that we can do the hard
 # stuff (hs -> hc) on a very fast machine and the rest of the compilation
 # locally
+src/MyGeniGrammar.hspp : src/MyGeniGrammar.hs
+	time nice $(GHC) $(GHCFLAGS) -DPRECOMPILED_GRAMMAR -E +RTS -K100m -RTS $(GHCPACKAGES) $<
 
-src/MyGeniGrammar.hc : src/MyGeniGrammar.hs
-	time $(GHC) $(GHCFLAGS) -C +RTS -K100m -RTS $(GHCPACKAGES) $<
+src/MyGeniGrammar.hc : src/MyGeniGrammar.hspp
+	time nice $(GHC) $(GHCFLAGS) -DPRECOMPILED_GRAMMAR -C +RTS -K100m -RTS $(GHCPACKAGES) $<
 
-src/MyGeniGrammar.o : src/MyGeniGrammar.hc
-	$(GHC) $(GHCFLAGS) -c $(GHCPACKAGES) $<
+src/MyGeniGrammar.p_hc : src/MyGeniGrammar.hspp
+	time nice $(GHC) $(GHCFLAGS) -DPRECOMPILED_GRAMMAR -C +RTS -K100m -RTS $(GHCPACKAGES) $<
+
+ifdef PROFILE
+MYGENIGRAMMAR_HC := src/MyGeniGrammar.p_hc
+else
+MYGENIGRAMMAR_HC := src/MyGeniGrammar.hc
+endif
+
+src/MyGeniGrammar.o : $(MYGENIGRAMMAR_HC)
+	time nice $(GHC) $(GHCFLAGS) -DPRECOMPILED_GRAMMAR -c +RTS -K100m -RTS $(GHCPACKAGES) $<
 
 precompiled: init src/MyGeniGrammar.o
-	$(GHC) $(GHCFLAGS) --make -DPRECOMPILED_GRAMMAR $(GHCPACKAGES) $(GENI_MAIN).lhs -o $(GENI)
-	$(OS_SPECIFIC_STUFF)
+	time $(GHC) $(GHCFLAGS) --make -DPRECOMPILED_GRAMMAR +RTS -K100m -RTS $(GHCPACKAGES) $(GENI_MAIN).lhs -o $(GENI)
+	#$(OS_SPECIFIC_STUFF)
 
+weedep: src/MyGeniGrammar.hs
+	$(GHC) $(GHCFLAGS) -M $<
 
 # --------------------------------------------------------------------
 # installing
@@ -291,12 +335,15 @@ ghci:
 unit:
 	etc/quickcheck.py src/NLP/GenI/Btypes.lhs | ghci $(GHCI_FLAGS)
 
-profiler: $(PROFGENI_MAIN) profout debugger-geni.pdf
+profiler: $(PROFGENI_MAIN) profout debugger-geni$(PROFILE_WITH_SCRUNCHED).pdf
 
 profout:
-	bin/debugger-geni +RTS $(RTS_FLAGS) -RTS -s etc/perftest/semantics-t33 --nogui -m etc/perftest/lexselection-t33 --preselected --opts=pol -o profout
+	bin/debugger-geni +RTS $(RTS_FLAGS) -RTS --nogui $(PERFTEST) --opts=pol -o profout
 
-debugger-geni.pdf: debugger-geni.hp
+debugger-geni$(PROFILE_WITH_SCRUNCHED).hp: debugger-geni.hp
+	cp $< $@
+
+debugger-geni%.pdf: debugger-geni%.hp
 	hp2ps $< > $(basename $@).ps
 	ps2pdf $(basename $@).ps $(basename $@)-$(DATE2).pdf
 	rm -f $@ $(basename $@).ps
