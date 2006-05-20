@@ -347,7 +347,7 @@ debugger-geni%.txt: debugger-geni%.hp
 	Hp2Summary < $< > $@
 
 debugger-geni%.pdf: debugger-geni%.hp
-	hp2ps $< > $(basename $@).ps
+	hp2ps -c $< > $(basename $@).ps
 	ps2pdf $(basename $@).ps $(basename $@)-$(DATE2).pdf
 	rm -f $@ $(basename $@).ps
 	ln -s $(basename $@)-$(DATE2).pdf $@
