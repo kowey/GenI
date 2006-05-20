@@ -29,9 +29,6 @@ head ${STABLE_DIR}/${STABLE_PROF_FILE}
 echo "== AFTER =="
 head ${PROF_FILE}
 echo "----- here are the heap results -----"
-echo "== BEFORE =="
-cat ${STABLE_DIR}/${HEAP_FILE}
-echo "== AFTER =="
-cat ${HEAP_FILE}
 echo "== DIFF =="
+echo "Don't forget that this can vary even if there is no change!"
 diff ${STABLE_DIR}/${HEAP_FILE} ${HEAP_FILE}
