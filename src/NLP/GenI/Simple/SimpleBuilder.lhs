@@ -66,7 +66,7 @@ import NLP.GenI.Btypes
   , constrainAdj
   , unifyFeat, unifyFeat2
   )
-import NLP.GenI.Builder (UninflectedWord, UninflectedSentence,
+import NLP.GenI.Builder (UninflectedSentence,
     incrCounter, num_iterations, num_comparisons, chart_size,
     SemBitMap, defineSemanticBits, semToBitVector, bitVectorToSem,
     DispatchFilter, (>-->), condFilter, nullFilter,
@@ -1054,15 +1054,11 @@ listToSentenceAut nodes =
       -- create a transition for each lexeme in the node to the
       -- next state...
       helper :: (Int, B.UninflectedDisjunction) -> B.SentenceAut -> B.SentenceAut
-      helper (current, word) aut = foldr addT aut lemmas
+      helper (current, (lemmas, features)) aut =
+        foldl addT aut lemmas
         where
-          lemmas   = fst word
-          features = snd word
-          --
-          addT t a = addTrans a current (toTrans t) next
+          addT a t = addTrans a current (Just (t, features)) next
           next = current + 1
-          toTrans :: String -> Maybe UninflectedWord
-          toTrans l = Just (l, features)
       --
   in foldr helper emptyAut (zip theStates nodes)
 \end{code}
