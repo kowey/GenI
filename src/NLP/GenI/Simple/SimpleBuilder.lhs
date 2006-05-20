@@ -494,8 +494,8 @@ applySubstitution item =
         -- we rename tags to do a proper substitution
         rItem = renameSimpleItem 'A' item
         rgr'  = map (renameSimpleItem 'B') gr
-    active  <- mapM (\x -> iapplySubst rItem x (siSubstnodes x)) rgr'
-    passive <- mapM (\x -> iapplySubst x rItem (siSubstnodes rItem)) rgr'
+    active  <- mapM (\x -> iapplySubst rItem x) rgr'
+    passive <- mapM (\x -> iapplySubst x rItem) rgr'
     let res = concat $ active ++ passive
     incrCounter num_comparisons (2 * (length gr))
     return res
@@ -506,66 +506,57 @@ applySubstitution1p item =
     let rItem = renameSimpleItem 'A' item
         rgr'  = map (renameSimpleItem 'B') gr
     active  <- if adjdone rItem
-               then mapM (\x -> iapplySubst rItem x (siSubstnodes     x)) rgr'
+               then mapM (\x -> iapplySubst rItem x) rgr'
                else return []
-    passive <- mapM (\x -> iapplySubst x rItem (siSubstnodes rItem)) $ filter adjdone rgr'
+    passive <- mapM (\x -> iapplySubst x rItem) $ filter adjdone rgr'
     let res = concat $ active ++ passive
     incrCounter num_comparisons (2 * (length gr))
     return res
-\end{code}
 
-\paragraph{iapplySubst} Given two SimpleItem t1 t2 (with no overlaping names) and the list of
-substitution nodes in t2 it returns ONE possible substitution (the head node)
-  of the first in the second.  As all substitutions nodes should be substituted
-  we force substitution in order.
-
-\begin{code}
-iapplySubst :: SimpleItem -> SimpleItem -> [TagSite] -> SimpleState [SimpleItem]
-iapplySubst item1 item2 (sn:_) | closed item1 = iapplySubstNode item1 item2 sn
-iapplySubst _ _ _ = return []
-
-iapplySubstNode :: SimpleItem -> SimpleItem -> TagSite -> SimpleState [SimpleItem]
-iapplySubstNode item1 item2 sn@(TagSite n fu fd) = {-# SCC "applySubstitution" #-}
-  let te1 = siTagElem item1
-      te2 = siTagElem item2
-      --
-      t2 = ttree te2
-      -- root of t1
-      t1 = ttree te1
-      r = root t1
-      tfup   = gup r
-      tfdown = gdown r
-      -- FIXME: now that this behaves the same way as adjunction,
-      -- maybe we could refactor?
-      (succ1, newgup,   subst1) = unifyFeat2 tfup fu
-      (succ2, newgdown, subst2) = unifyFeat2 tfdown2 fd2
-        where tfdown2 = replace subst1 tfdown
-              fd2     = replace subst1 fd
-      subst = subst1 ++ subst2
-      -- IMPORTANT: nt1 should be ready for replacement
-      -- (e.g, top features unified, type changed to Other)
-      -- when passed to repSubst
-      nr  = r { gup   = newgup,
-                -- note that the bot features come from sn, not r!
-                gdown = newgdown,
-                gtype = Other }
-      nt1 = rootUpd t1 nr
-      ntree = repSubst n nt1 t2
-
-      --
-      ncopy x = TagSite (gnname x) (gup x) (gdown x)
-      adj1  = (ncopy nr) : (delete (ncopy r) $ siAdjnodes item1)
-      adj2  = siAdjnodes item2
-      newTe = te2{ttree = ntree}
-      res = replace subst $ combineSimpleItems 's' item1 $
-            item2 { siTagElem    = newTe
-                  , siSubstnodes = (delete sn $ siSubstnodes item2) ++ (siSubstnodes item1)
-                  , siAdjnodes   = sort $ nub $ adj1 ++ adj2
-                  , siHighlight  = [gnname nr] }
-  in if (siInitial item1 && succ1 && succ2)
-     then do incrCounter "substitutions" 1
-             return [res]
-     else return []
+-- | Note: returns ONE possible substitution (the head node)
+--   of the first in the second.  As all substitutions nodes should
+--   be substituted we force substitution in order.
+iapplySubst :: SimpleItem -> SimpleItem -> SimpleState [SimpleItem]
+iapplySubst item1 item2 | siInitial item1 && closed item1 = {-# SCC "applySubstitution" #-}
+ case siSubstnodes item2 of
+ [] -> return []
+ ((TagSite n fu fd) : stail) ->
+  let doIt =
+       do -- Maybe monad
+          let te1 = siTagElem item1
+              te2 = siTagElem item2
+              --
+              t2 = ttree te2
+              -- root of t1
+              t1 = ttree te1
+              r = root t1
+          (newgup,   subst1) <- unifyFeat (gup r) fu
+          (newgdown, subst2) <- unifyFeat (replace subst1 $ gdown r) (replace subst1 fd)
+          let subst = subst1 ++ subst2
+              -- IMPORTANT: nt1 should be ready for replacement
+              -- (e.g, top features unified, type changed to Other)
+              -- when passed to repSubst
+              nr  = r { gup   = newgup,
+                        -- note that the bot features come from sn, not r!
+                        gdown = newgdown,
+                        gtype = Other }
+              nt1 = rootUpd t1 nr
+              ntree = repSubst n nt1 t2 -- expensive?
+              --
+              ncopy x = TagSite (gnname x) (gup x) (gdown x)
+              adj1  = (ncopy nr) : (delete (ncopy r) $ siAdjnodes item1)
+              adj2  = siAdjnodes item2
+              newTe = te2{ttree = ntree}
+          return $! replace subst $ combineSimpleItems 's' item1 $
+                     item2 { siTagElem    = newTe
+                           , siSubstnodes = stail ++ (siSubstnodes item1)
+                           , siAdjnodes   = sort $ nub $ adj1 ++ adj2
+                           , siHighlight  = [gnname nr] }
+  in case doIt of
+     Nothing -> return []
+     Just x  -> do incrCounter "substitutions" 1
+                   return [x]
+iapplySubst _ _ = return []
 \end{code}
 
 % --------------------------------------------------------------------
