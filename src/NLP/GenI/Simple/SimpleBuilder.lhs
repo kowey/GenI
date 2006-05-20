@@ -903,19 +903,21 @@ Note: this does not detect if there are multiple nodes which cause top and
 bottom unification to fail.
 
 \begin{code}
-type TbEither = Either String (Subst, Tree GNode)
+type TbEither = Either String Subst
 tbUnifyTree :: SimpleItem -> Either String SimpleItem
 tbUnifyTree item = {-# SCC "tbUnifyTree" #-}
   let te = siTagElem item
+      tt = ttree te
       --
       tryUnification :: Tree GNode -> TbEither
       tryUnification t =
-        foldl tbUnifyNode (Right ([],t)) $! flatten t
+        foldl tbUnifyNode (Right []) $! flatten t
       --
-      fixNode :: GNode -> GNode
-      fixNode gn =
+      fixNode :: Subst -> GNode -> GNode
+      fixNode sb gn =
         case unifyFeat2 (gup gn) (gdown gn) of
-        (_,u,_) -> gn { gup = u, gdown = [] }
+        (_,u,_) -> gn { gup = replace_Flist sb u
+                      , gdown = [] }
       --
       fixSite :: Subst -> TagSite -> TagSite
       fixSite sb (TagSite n u d) = TagSite n u3 []
@@ -925,20 +927,20 @@ tbUnifyTree item = {-# SCC "tbUnifyTree" #-}
       --
       fixItem :: Subst -> Tree GNode -> SimpleItem
       fixItem sb tt2 =
-        item { siTagElem    = te { ttree = mapTree fixNode tt2 }
+        item { siTagElem    = te { ttree = mapTree (fixNode sb) tt2 }
              , siAdjnodes   = map (fixSite sb) (siAdjnodes item)
              , siSubstnodes = map (fixSite sb) (siSubstnodes item) }
-  in case (tryUnification $ (ttree.siTagElem) item) of
-       Left  n        -> Left  n
-       Right (sb,tt2) -> Right (fixItem sb tt2)
+  in case tryUnification tt of
+       Left  n  -> Left  n
+       Right sb -> Right (fixItem sb tt)
 \end{code}
 
 Our helper function corresponds to the first unification step.  It is
 meant to be called from a fold.  The node argument represents the
-current node being explored.  The Maybe argument holds a list of
+current node being explored.  The Either argument holds a list of
 pending substitutions and a copy of the entire tree.
 
-There are three things going on in here:
+There are two things going on in here:
 
 \begin{enumerate}
 \item check if unification is possible - first we apply the pending
@@ -948,17 +950,7 @@ There are three things going on in here:
 \item keep track of the substitutions that need to be performed -
       any new substitutions that result from unification are
       added to the pending list
-\item propagate new substitutions throughout the tree - this is
-      why we keep a copy of the tree; note that we \emph{have}
-      to keep the entire tree around because variable substitutions
-      must be back-propagated to nodes we had visited in the past.
 \end{enumerate}
-
-You might also think it redundant to apply substitutions both to the
-entire tree and the current node; but we have to because the node is
-only a copy of the tree data and not a reference to it.  This is why
-we keep a list of pending substitutions instead of simply returning
-the corrected tree.
 
 Note that we wrap the second argument in a Maybe; this is used to
 indicate that if unification suceeds or fails.  We also use it to
@@ -970,7 +962,7 @@ simplify this over-complicated code unless you know what you're doing.
 
 \begin{code}
 tbUnifyNode :: TbEither -> GNode -> TbEither
-tbUnifyNode (Right (pending,whole)) gnRaw =
+tbUnifyNode (Right pending) gnRaw =
   -- apply pending substitutions
   case replace pending gnRaw of
   gn -> -- check top/bottom unification on this node
@@ -978,7 +970,7 @@ tbUnifyNode (Right (pending,whole)) gnRaw =
         -- stop all future iterations
         Nothing -> Left (gnname gn)
         -- apply any new substutions to the whole tree
-        Just (_,sb) -> Right (pending ++ sb, replace sb whole)
+        Just (_,sb) -> Right (pending ++ sb)
 
 -- if earlier we had a failure, don't even bother
 tbUnifyNode (Left n) _ = Left n
