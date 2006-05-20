@@ -335,13 +335,16 @@ ghci:
 unit:
 	etc/quickcheck.py src/NLP/GenI/Btypes.lhs | ghci $(GHCI_FLAGS)
 
-profiler: $(PROFGENI_MAIN) profout debugger-geni$(PROFILE_WITH_SCRUNCHED).pdf
+profiler: $(PROFGENI_MAIN) profout debugger-geni$(PROFILE_WITH_SCRUNCHED).txt debugger-geni$(PROFILE_WITH_SCRUNCHED).pdf
 
 profout:
 	bin/debugger-geni +RTS $(RTS_FLAGS) -RTS --nogui $(PERFTEST) --opts=pol -o profout
 
 debugger-geni$(PROFILE_WITH_SCRUNCHED).hp: debugger-geni.hp
 	cp $< $@
+
+debugger-geni%.txt: debugger-geni%.hp
+	Hp2Summary < $< > $@
 
 debugger-geni%.pdf: debugger-geni%.hp
 	hp2ps $< > $(basename $@).ps
