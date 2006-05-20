@@ -353,7 +353,7 @@ debugger-geni%.pdf: debugger-geni%.hp
 	ln -s $(basename $@)-$(DATE2).pdf $@
 
 clean-profiler:
-	rm debugger-geni*.pdf
+	rm debugger-geni*.{pdf,hp,aux,png}
 
 # --------------------------------------------------------------------
 # documentation
