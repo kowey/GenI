@@ -5,7 +5,7 @@ PROF_FILE=prof
 STABLE_DIR=../PerfGeniStable
 STABLE_OUT_FILE=profout-stable
 STABLE_PROF_FILE=prof-stable
-PROFILE_WITH=-hm
+PROFILE_WITH=-hc
 HEAP_FILE=debugger-geni${PROFILE_WITH}.txt
 
 cd `dirname $0`/..
