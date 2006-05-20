@@ -212,14 +212,12 @@ function returns True is transformed with the replacement function.
 listRepNode :: (Tree a -> Tree a) -> (Tree a -> Bool) 
               -> [Tree a] -> ([Tree a], Bool)
 listRepNode _ _ [] = ([], False)
-listRepNode fn filt ((n@(Node a l1)):l2) = 
-  if filt n
-  then ((fn n):(l2), True)
-  else let (lt1, flag1) = listRepNode fn filt l1 
-           (lt2, flag2) = listRepNode fn filt l2
-       in if flag1
-          then ((Node a lt1):l2, flag1)
-          else (n:lt2, flag2)
+listRepNode fn filt (n:l2) | filt n = (fn n : l2, True)
+listRepNode fn filt ((n@(Node a l1)):l2) =
+  case listRepNode fn filt l1 of
+  (lt1, True) -> ((Node a lt1):l2, True)
+  _ -> case listRepNode fn filt l2 of
+       (lt2, flag2) -> (n:lt2, flag2)
 
 -- | Replace a node in the tree in-place with another node; keep the
 --   children the same.  If the node is not found in the tree, or if
