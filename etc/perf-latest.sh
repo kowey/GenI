@@ -6,6 +6,7 @@ STABLE_DIR=../PerfGeniStable
 STABLE_OUT_FILE=profout-stable
 STABLE_PROF_FILE=prof-stable
 PROFILE_WITH=-hm
+HEAP_FILE=debugger-geni${PROFILE_WITH}.txt
 
 cd `dirname $0`/..
 
@@ -22,11 +23,15 @@ echo "----- first make sure you have the same results -----"
 head ${STABLE_DIR}/${STABLE_OUT_FILE} > outhead-stable
 head ${OUT_FILE} > outhead
 diff outhead-stable outhead | grep -v Loading
-echo "----- here are the performance results -----"
+echo "----- here are the cost centre results -----"
 echo "== BEFORE =="
-cat ${STABLE_DIR}/debugger-geni-${PROFILE_WITH}.txt
 head ${STABLE_DIR}/${STABLE_PROF_FILE}
 echo "== AFTER =="
-cat debugger-geni-${PROFILE_WITH}.txt
 head ${PROF_FILE}
-
+echo "----- here are the heap results -----"
+echo "== BEFORE =="
+cat ${STABLE_DIR}/${HEAP_FILE}
+echo "== AFTER =="
+cat ${HEAP_FILE}
+echo "== DIFF =="
+diff ${STABLE_DIR}/${HEAP_FILE} ${HEAP_FILE}
