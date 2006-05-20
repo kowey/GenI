@@ -877,7 +877,7 @@ dpRootCatFailure item =
     let rootCats = rootCatsParam config
     case (gCategory.root.ttree.siTagElem) item of
      Just (GConst c) ->
-      if null (intersect c rootCats)
+      if null $! intersect c rootCats
          then dpToTrash (ts_wrongRootCategory c rootCats) item
          else return $ Just item
      _ -> dpToTrash ts_noRootCategory item
