@@ -531,7 +531,8 @@ iapplySubst item1 item2 | siInitial item1 && closed item1 = {-# SCC "applySubsti
               t1 = ttree te1
               r = root t1
           (newgup,   subst1) <- unifyFeat (gup r) fu
-          (newgdown, subst2) <- unifyFeat (replace subst1 $ gdown r) (replace subst1 fd)
+          (newgdown, subst2) <- unifyFeat (replace_Flist subst1 $ gdown r)
+                                          (replace_Flist subst1 fd)
           let subst = subst1 ++ subst2
               -- IMPORTANT: nt1 should be ready for replacement
               -- (e.g, top features unified, type changed to Other)
