@@ -596,13 +596,12 @@ validAux t = closed t && (ttype.siTagElem) t == Auxiliar && adjdone t
 
 tryAdj :: SimpleItem -> SimpleItem -> SimpleState (Maybe SimpleItem)
 tryAdj aItem pItem =
-   case iapplyAdjNode a p of
-   Nothing -> return Nothing
-   Just x  -> do incrCounter "adjunctions" 1
-                 return $ Just x
-   where -- we rename tags to do a proper adjunction
-        p = renameSimpleItem 'A' pItem
-        a = renameSimpleItem 'B' aItem
+ case renameSimpleItem 'A' pItem of
+ p -> case renameSimpleItem 'B' aItem of
+      a -> case iapplyAdjNode a p of
+           Just x  -> do incrCounter "adjunctions" 1
+                         return $ Just x
+           Nothing -> return Nothing
 
 -- | Ignore the next adjunction node
 sansAdjunction :: SimpleItem -> SimpleState [SimpleItem]
