@@ -35,7 +35,7 @@ GHCPACKAGES_GUI = -package wx $(GHCPACKAGES)
 
 GHCFLAGS        = $(LDFLAGS) -Wall -cpp -fglasgow-exts -threaded -O $(GHCINCLUDE)
 ifdef PROFILE
-GHCFLAGS += -prof -hisuf p_hi -osuf p_o -DDISABLE_GUI -auto
+GHCFLAGS += -prof -hisuf p_hi -osuf p_o -DDISABLE_GUI -auto-all -ignore-scc
 endif
 
 SOFTWARE        = Geni
