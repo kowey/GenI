@@ -596,12 +596,10 @@ validAux t = closed t && (ttype.siTagElem) t == Auxiliar && adjdone t
 
 tryAdj :: SimpleItem -> SimpleItem -> SimpleState (Maybe SimpleItem)
 tryAdj aItem pItem =
-   case siAdjnodes p of
-   []     -> return Nothing
-   (an:_) -> case iapplyAdjNode a p an of
-               Nothing -> return Nothing
-               Just x  -> do incrCounter "adjunctions" 1
-                             return $ Just x
+   case iapplyAdjNode a p of
+   Nothing -> return Nothing
+   Just x  -> do incrCounter "adjunctions" 1
+                 return $ Just x
    where -- we rename tags to do a proper adjunction
         p = renameSimpleItem 'A' pItem
         a = renameSimpleItem 'B' aItem
@@ -652,8 +650,11 @@ with \texttt{anr} and \texttt{anf}\footnote{\texttt{anf} is only added
 if the foot node constraint is disabled}.
 
 \begin{code}
-iapplyAdjNode :: SimpleItem -> SimpleItem -> TagSite -> Maybe SimpleItem
-iapplyAdjNode item1 item2 an@(TagSite n an_up an_down) = {-# SCC "iapplyAdjNode" #-} do
+iapplyAdjNode :: SimpleItem -> SimpleItem -> Maybe SimpleItem
+iapplyAdjNode item1 item2 = {-# SCC "iapplyAdjNode" #-}
+ case siAdjnodes item2 of
+ [] -> Nothing
+ (TagSite n an_up an_down : atail) -> do
   -- block repeated adjunctions of the same SimpleItem (for ignore semantics mode)
   -- guard $ not $ (n, siId item1) `elem` (siAdjlist item2)
   -- let's go!
@@ -693,9 +694,8 @@ iapplyAdjNode item1 item2 an@(TagSite n an_up an_down) = {-# SCC "iapplyAdjNode"
       ncopy x = TagSite (gnname x) (gup x) (gdown x)
       -- 1) delete the adjunction site and the aux root node
       auxlite = delete (ncopy r) $ siAdjnodes item1
-      telite  = delete an $ siAdjnodes item2
       -- 2) union the remaining adjunction nodes
-      newadjnodes' = auxlite ++ telite
+      newadjnodes' = auxlite ++ atail
       -- 3) apply the substitutions
       nte2 = te2 { ttree = ntree }
       subst = subst12 ++ subst3
