@@ -45,7 +45,7 @@ import Control.Monad (when, liftM, liftM2)
 import Control.Monad.State
   (get, put, modify, gets)
 
-import Data.List (intersect, partition, delete, sort, nub)
+import Data.List (intersect, partition, delete)
 import Data.Maybe (catMaybes)
 import Data.Bits
 import qualified Data.Map as Map
@@ -550,7 +550,7 @@ iapplySubst item1 item2 | siInitial item1 && closed item1 = {-# SCC "applySubsti
           return $! replace subst $ combineSimpleItems 's' item1 $
                      item2 { siTagElem    = newTe
                            , siSubstnodes = stail ++ (siSubstnodes item1)
-                           , siAdjnodes   = sort $ nub $ adj1 ++ adj2
+                           , siAdjnodes   = adj2 ++ adj1
                            , siHighlight  = [gnname nr] }
   in case doIt of
      Nothing -> return []
