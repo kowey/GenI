@@ -297,9 +297,10 @@ geniNode =
      lex_   <- if nodeType == lexType
                   then (sepBy (stringLiteral<|>identifier) (symbol "|") <?> "some lexemes") 
                   else return [] 
-     constr <- if null nodeType 
-                  then adjConstraintParser 
-                  else return True
+     constr <- case nodeType of
+               ""       -> adjConstraintParser
+               "anchor" -> return False -- preterminal node
+               _ -> return True
      (top_,bot_) <- topbotParser 
      --
      let top   = sort top_

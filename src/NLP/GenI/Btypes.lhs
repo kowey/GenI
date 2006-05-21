@@ -313,8 +313,11 @@ where l has been assigned to the "lexeme" node in t'
 \begin{code}
 setLexeme :: [String] -> Tree GNode -> Tree GNode
 setLexeme s t =
-  let filt (Node a _) = (gtype a == Lex && ganchor a)
-      fn (Node a l)   = Node a{glexeme = s} l
+  let filt (Node a []) = (gtype a == Lex && ganchor a)
+      filt _ = False
+      fn (Node a []) = Node a [ Node subanc [] ]
+        where subanc = emptyGNode { gaconstr = True, glexeme = s}
+      fn _ = geniBug "impossible case in setLexeme"
   in case listRepNode fn filt [t] of
      ([r],True) -> r
      _ -> geniBug $ "setLexeme returned weird result"
