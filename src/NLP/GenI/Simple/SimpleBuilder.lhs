@@ -612,13 +612,19 @@ sansAdjunction :: SimpleItem -> SimpleState [SimpleItem]
 sansAdjunction item | closed item =
  case siAdjnodes item of
  []            -> return []
- (TagSite gn _ _ : atail) ->
-   let te = siTagElem item
-       ntree = constrainAdj gn (ttree te)
-       te2   = te { ttree = ntree }
-       newItem = item { siTagElem = te2, siHighlight = [gn]
-                      , siAdjnodes = atail }
-   in return $! [newItem]
+ (TagSite gn t b : atail) ->
+   -- do top/bottom unification on the node
+   case unifyFeat t b of
+   Nothing ->
+     do addToTrash (item { siHighlight = [gn] }) ts_tbUnificationFailure
+        return []
+   Just (g2,s) ->
+     let te  = siTagElem item
+         te2 = te { ttree = constrainAdj gn g2 (ttree te) }
+         newItem = replace s $
+                   item { siTagElem = te2, siHighlight = [gn]
+                        , siAdjnodes = atail }
+     in return $! [newItem]
 sansAdjunction _ = return []
 \end{code}
 
@@ -660,21 +666,23 @@ iapplyAdjNode item1 item2 an@(TagSite n an_up an_down) = {-# SCC "iapplyAdjNode"
       f = foot t1
       r_up   = gup r    -- top features of the root of the auxiliar tree
       f_down = gdown f  -- bottom features of the foot of the auxiliar tree
-  (anr_up',  subst1) <- unifyFeat r_up an_up
-  (anf_down, subst2) <- unifyFeat (replace_Flist subst1 f_down) (replace_Flist subst1 an_down)
+  (anr_up',   subst1) <- unifyFeat r_up an_up
+  (anf_down, subst2)  <- unifyFeat (replace_Flist subst1 f_down) (replace_Flist subst1 an_down)
   let -- don't forget to propagate the substitution set from the down stuff
       anr_up = replace_Flist subst2 anr_up'
       -- combined substitution list and success condition
-      subst   = subst1++subst2
-
+      subst12 = subst1++subst2
       -- the adjoined tree
       -- -----------------
       -- the result of unifying the t1 root and the t2 an
       anr = r { gnname = n, -- jackie
                 gup = anr_up,
                 gtype = Other }
-      -- the result of unifying the t1 foot and the t2 an
-      anf = f { gdown = anf_down,
+  -- top and bottom unification on the former foot
+  (anf_merged, subst3) <- unifyFeat (replace_Flist subst12 $ gup f)
+                                    (replace_Flist subst2 anf_down)
+  let anf = f { gup = anf_merged,
+                gdown = [],
                 gtype = Other,
                 gaconstr = True }
       -- calculation of the adjoined tree
@@ -691,15 +699,16 @@ iapplyAdjNode item1 item2 an@(TagSite n an_up an_down) = {-# SCC "iapplyAdjNode"
       newadjnodes' = auxlite ++ telite
       -- 3) apply the substitutions
       nte2 = te2 { ttree = ntree }
+      subst = subst12 ++ subst3
       res' = replace subst $ combineSimpleItems 'a' item1 $ item2
                { siTagElem = nte2
                , siHighlight = map gnname [anr, anf]
                -- , siAdjlist = (n, (tidnum te1)):(siAdjlist item2)
-               , siAdjnodes = newadjnodes'
+               , siAdjnodes = ncopy anr : newadjnodes'
                }
       -- 4) add the new adjunction nodes
       --    this has to come after 3 so that we don't repeat the subst
-  return $! res' { siAdjnodes = (ncopy anr) : siAdjnodes res' }
+  return $! res'
 \end{code}
 
 % --------------------------------------------------------------------
@@ -805,12 +814,12 @@ type SimpleDispatchFilter = DispatchFilter SimpleState SimpleItem
 simpleDispatch :: SimpleDispatchFilter
 simpleDispatch item =
  do inputsem <- gets tsem
-    let synComplete x = (not.aux) x && closed x
+    let synComplete x = (not.aux) x && closed x && adjdone x
         -- don't forget about null adjnodes
         semComplete x = inputsem == siSemantics x
         isResult x = synComplete x && semComplete x
     let theFilter = condFilter isResult
-                      (dpTbFailure >--> dpRootCatFailure >--> dpToResults)
+                      (dpRootCatFailure >--> dpToResults)
                       (dpTreeLimit >--> dpAux >--> dpToAgenda)
     theFilter item
 

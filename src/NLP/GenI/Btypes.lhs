@@ -382,14 +382,20 @@ repFoot newFoot t l = {-# SCC "repFoot" #-}
      _ -> geniBug $ "repFoot returned weird result"
 \end{code}
 
-\fnlabel{constrainAdj} searches the tree for a node with the given name
-and add an adjunction constraint on it.
 
 \begin{code}
-constrainAdj :: String -> Tree GNode -> Tree GNode
-constrainAdj n t =
+-- | Search the tree for a node with the given name, add an adjunction
+--   constraint to it,  set its top feature and erase its bottom feature
+--   (the idea is that when you call this, you also do top/bot
+--   unification
+constrainAdj :: String
+             -> Flist -- ^ new top node
+             -> Tree GNode -> Tree GNode
+constrainAdj n newup t =
   let filt (Node a _) = (gnname a == n)
-      fn (Node a l)   = Node a { gaconstr = True } l
+      fn (Node a l)   = Node a { gup = newup
+                               , gdown = []
+                               , gaconstr = True } l
   in case listRepNode fn filt [t] of
      ([r],True) -> r
      _ -> geniBug $ "constrainAdj returned weird result"
