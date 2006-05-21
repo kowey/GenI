@@ -694,7 +694,7 @@ iapplyAdjNode item1 item2 = {-# SCC "iapplyAdjNode" #-}
       -- 1) delete the adjunction site and the aux root node
       auxlite = delete (ncopy r) $ siAdjnodes item1
       -- 2) union the remaining adjunction nodes
-      newadjnodes' = auxlite ++ atail
+      newadjnodes' = ncopy anr : (atail ++ auxlite)
       -- 3) apply the substitutions
       nte2 = te2 { ttree = ntree }
       subst = subst12 ++ subst3
@@ -702,7 +702,7 @@ iapplyAdjNode item1 item2 = {-# SCC "iapplyAdjNode" #-}
                { siTagElem = nte2
                , siHighlight = map gnname [anr, anf]
                -- , siAdjlist = (n, (tidnum te1)):(siAdjlist item2)
-               , siAdjnodes = ncopy anr : newadjnodes'
+               , siAdjnodes = newadjnodes'
                }
       -- 4) add the new adjunction nodes
       --    this has to come after 3 so that we don't repeat the subst
