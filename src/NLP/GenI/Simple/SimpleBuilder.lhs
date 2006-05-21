@@ -47,7 +47,6 @@ import Control.Monad.State
 
 import Data.List (intersect, partition, delete, sort, nub)
 import Data.Maybe (catMaybes)
-import Data.Tree
 import Data.Bits
 import qualified Data.Map as Map
 
@@ -56,7 +55,7 @@ import Statistics (Statistics)
 import NLP.GenI.Automaton ( automatonPaths, NFA(..), addTrans )
 import NLP.GenI.Btypes
   ( Ptype(Initial,Auxiliar),
-  , Replacable(..), Subst, replace_Flist,
+  , Replacable(..), replace_Flist,
   , sortSem
   , GType(Other), GNode(..), gCategory
   , GeniVal(GConst)
@@ -64,7 +63,7 @@ import NLP.GenI.Btypes
   , repAdj, repSubst
   , renameTree
   , constrainAdj
-  , unifyFeat, unifyFeat2
+  , unifyFeat,
   )
 import NLP.GenI.Builder (UninflectedSentence,
     incrCounter, num_iterations, num_comparisons, chart_size,
@@ -83,7 +82,7 @@ import NLP.GenI.Tags (TagElem, TagSite(TagSite), TagDerivation,
              ts_noRootCategory, ts_wrongRootCategory,
             )
 import NLP.GenI.Configuration
-import NLP.GenI.General (BitVector, mapTree, mapMaybeM)
+import NLP.GenI.General (BitVector, mapMaybeM)
 \end{code}
 }
 
@@ -832,12 +831,12 @@ simpleDispatch_1p iaf item =
         isResult x = synComplete x && semComplete x
     let maybeDpIaf = if iaf then dpIafFailure else nullFilter
         theFilter = condFilter isResult
-                      (dpTbFailure >--> dpRootCatFailure >--> dpToResults)
+                      (dpRootCatFailure >--> dpToResults)
                       (dpTreeLimit >--> maybeDpIaf >--> dpToAgenda)
     theFilter item
 
 dpAux, dpTreeLimit, dpToAgenda :: SimpleDispatchFilter
-dpTbFailure, dpRootCatFailure, dpToResults :: SimpleDispatchFilter
+dpRootCatFailure, dpToResults :: SimpleDispatchFilter
 dpToTrash :: String -> SimpleDispatchFilter
 
 dpToAgenda x  = addToAgenda x  >> return Nothing
@@ -862,15 +861,6 @@ dpTreeLimit item =
                  else return $ Just item
    where ts_overnumTrees l = "Over derivation size of " ++ (show l)
 
--- | If the item (ostensibly a result) has a top-bottom unification
---   failure, we dispatch to the trash and return Nothing.  If tb
---   unification suceeds, it returns @Just newItem@, where @newItem@
---   has its top and bottom nodes unified.
-dpTbFailure item =
- case tbUnifyTree item of
-  Left n  -> dpToTrash ts_tbUnificationFailure $ item { siHighlight = [n] }
-  Right u -> return $ Just u
-
 -- | If the item (ostensibly a result) does not have the correct root
 --   category, return Nothing; otherwise return Just item
 dpRootCatFailure item =
@@ -882,99 +872,6 @@ dpRootCatFailure item =
          then dpToTrash (ts_wrongRootCategory c rootCats) item
          else return $ Just item
      _ -> dpToTrash ts_noRootCategory item
-\end{code}
-
-% --------------------------------------------------------------------
-\subsection{Top and bottom unification}
-% --------------------------------------------------------------------
-
-\paragraph{tbUnifyTree} unifies the top and bottom feature structures
-of each node on each tree. If succesful we return the tree, otherwise we
-return a string indicating the name of the offending node.  This is is the
-final step in generation of a result.
-
-We do unification in twe steps: the first time is to check if
-unification is possible and to determine/apply variable substitutions
-throughout the entire tree.  The first time we do unification, we
-discard the results.  The second time we do unification is to get the
-result and only that; we do not do any more success checks or
-substitutions.
-
-Note: this does not detect if there are multiple nodes which cause top and
-bottom unification to fail.
-
-\begin{code}
-type TbEither = Either String Subst
-tbUnifyTree :: SimpleItem -> Either String SimpleItem
-tbUnifyTree item = {-# SCC "tbUnifyTree" #-}
-  let te = siTagElem item
-      tt = ttree te
-      --
-      tryUnification :: Tree GNode -> TbEither
-      tryUnification t =
-        foldl tbUnifyNode (Right []) $! flatten t
-      --
-      fixNode :: Subst -> GNode -> GNode
-      fixNode sb gn =
-        case unifyFeat2 (gup gn) (gdown gn) of
-        (_,u,_) -> gn { gup = replace_Flist sb u
-                      , gdown = [] }
-      --
-      fixSite :: Subst -> TagSite -> TagSite
-      fixSite sb (TagSite n u d) = TagSite n u3 []
-        where u2 = replace sb u
-              d2 = replace sb d
-              (_,u3,_) = unifyFeat2 u2 d2
-      --
-      fixItem :: Subst -> Tree GNode -> SimpleItem
-      fixItem sb tt2 =
-        item { siTagElem    = te { ttree = mapTree (fixNode sb) tt2 }
-             , siAdjnodes   = map (fixSite sb) (siAdjnodes item)
-             , siSubstnodes = map (fixSite sb) (siSubstnodes item) }
-  in case tryUnification tt of
-       Left  n  -> Left  n
-       Right sb -> Right (fixItem sb tt)
-\end{code}
-
-Our helper function corresponds to the first unification step.  It is
-meant to be called from a fold.  The node argument represents the
-current node being explored.  The Either argument holds a list of
-pending substitutions and a copy of the entire tree.
-
-There are two things going on in here:
-
-\begin{enumerate}
-\item check if unification is possible - first we apply the pending
-      substitutions on the node and then we check if unification
-      of the top and bottom feature structures of that node
-      succeeds
-\item keep track of the substitutions that need to be performed -
-      any new substitutions that result from unification are
-      added to the pending list
-\end{enumerate}
-
-Note that we wrap the second argument in a Maybe; this is used to
-indicate that if unification suceeds or fails.  We also use it to
-prevent the function from doing any work if a unification failure
-from a previous call has already occured.
-
-Getting this right was a big pain in the butt, so don't go trying to
-simplify this over-complicated code unless you know what you're doing.
-
-\begin{code}
-tbUnifyNode :: TbEither -> GNode -> TbEither
-tbUnifyNode (Right pending) gnRaw =
-  -- apply pending substitutions
-  case replace pending gnRaw of
-  gn -> -- check top/bottom unification on this node
-        case unifyFeat (gup gn) (gdown gn) of
-        -- stop all future iterations
-        Nothing -> Left (gnname gn)
-        -- apply any new substutions to the whole tree
-        Just (_,sb) -> Right (pending ++ sb)
-
--- if earlier we had a failure, don't even bother
-tbUnifyNode (Left n) _ = Left n
 \end{code}
 
 % --------------------------------------------------------------------
