@@ -603,16 +603,21 @@ tryAdj aItem pItem =
 sansAdjunction :: SimpleItem -> SimpleState [SimpleItem]
 sansAdjunction item | closed item =
  case siAdjnodes item of
- []            -> return []
- (TagSite gn t b : atail) ->
-   -- do top/bottom unification on the node
-   case unifyFeat t b of
+ [] -> return []
+ (TagSite gn t b : atail) -> do
+  isGui <- gets (isGraphical . genconfig)
+  -- do top/bottom unification on the node
+  case unifyFeat t b of
    Nothing ->
      do addToTrash (item { siHighlight = [gn] }) ts_tbUnificationFailure
         return []
    Just (g2,s) ->
      let te  = siTagElem item
-         te2 = te { ttree = constrainAdj gn g2 (ttree te) }
+         -- there really is no reason to call constrainAdj (except for
+         -- the gui); it's not like we read these anyway
+         te2 = if isGui
+               then te { ttree = constrainAdj gn g2 (ttree te) }
+               else te
          newItem = replace s $!
                    item { siTagElem = te2, siHighlight = [gn]
                         , siAdjnodes = atail }
