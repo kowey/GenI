@@ -193,14 +193,14 @@ addToResults te = do
 
 \begin{code}
 data SimpleItem = SimpleItem
- { siTagElem   :: TagElem
+ { siTagElem   :: !TagElem
  , siId        :: ChartId
  --
- , siSubstnodes :: [TagSite]
- , siAdjnodes   :: [TagSite]
+ , siSubstnodes :: ![TagSite]
+ , siAdjnodes   :: ![TagSite]
  --
- , siSemantics :: BitVector
- , siPolpaths  :: BitVector
+ , siSemantics :: !BitVector
+ , siPolpaths  :: !BitVector
  -- if there are things wrong with this item, what?
  , siDiagnostic :: [String]
  -- how was this item produced?
