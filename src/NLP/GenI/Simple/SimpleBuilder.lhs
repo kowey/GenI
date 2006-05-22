@@ -81,7 +81,7 @@ import NLP.GenI.Tags (TagElem, TagSite(TagSite), TagDerivation,
              ts_noRootCategory, ts_wrongRootCategory,
             )
 import NLP.GenI.Configuration
-import NLP.GenI.General (BitVector, mapMaybeM, mapTree)
+import NLP.GenI.General (BitVector, mapMaybeM, mapTree, geniBug)
 \end{code}
 }
 
@@ -402,9 +402,10 @@ trashIt item =
 --   returns it.
 selectGiven :: SimpleState SimpleItem
 selectGiven = do
-  a <- gets theAgenda
-  updateAgenda (tail a)
-  return (head a)
+  agenda <- gets theAgenda
+  case agenda of
+   []        -> geniBug "null agenda in selectGiven"
+   (a:atail) -> updateAgenda atail >> return a
 \end{code}
 
 \subsection{Switching phases}
