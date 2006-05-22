@@ -241,7 +241,7 @@ adjdone :: SimpleItem -> Bool
 adjdone = null.siAdjnodes
 
 siInitial :: SimpleItem -> Bool
-siInitial = not.aux
+siInitial t = (ttype.siTagElem) t == Initial
 \end{code}
 
 % --------------------------------------------------------------------
@@ -423,7 +423,7 @@ switchToAux = do
       -- You might be wondering why we ignore the auxiliary trees in the
       -- chart; this is because all the syntactically complete auxiliary
       -- trees have already been filtered away by calls to classifyNew
-      initialT  = filter (not.aux) chart
+      initialT  = filter siInitial chart
       (compT, incompT) = partition (null.siSubstnodes) initialT
       auxAgenda = theAuxAgenda st
       --
@@ -797,8 +797,7 @@ type SimpleDispatchFilter = DispatchFilter SimpleState SimpleItem
 simpleDispatch :: SimpleDispatchFilter
 simpleDispatch item =
  do inputsem <- gets tsem
-    let synComplete x = (not.aux) x && closed x && adjdone x
-        -- don't forget about null adjnodes
+    let synComplete x = siInitial x && closed x && adjdone x
         semComplete x = inputsem == siSemantics x
         isResult x = synComplete x && semComplete x
     let theFilter = condFilter isResult
@@ -810,7 +809,7 @@ simpleDispatch item =
 simpleDispatch_1p :: Bool -> SimpleDispatchFilter
 simpleDispatch_1p iaf item =
  do inputsem <- gets tsem
-    let synComplete x = (not.aux) x && closed x && adjdone x
+    let synComplete x = siInitial x && closed x && adjdone x
         semComplete x = inputsem == siSemantics x
         isResult x = synComplete x && semComplete x
     let maybeDpIaf = if iaf then dpIafFailure else nullFilter
