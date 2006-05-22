@@ -100,7 +100,7 @@ data TagElem = TE {
                    idname       :: String,
                    ttreename    :: String,
                    tidnum       :: Integer,
-                   ttype        :: Ptype,
+                   ttype        :: !Ptype,
                    ttree        :: Tree GNode,
                    tsemantics   :: Sem,
                    -- optimisation stuff
