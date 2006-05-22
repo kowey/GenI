@@ -744,8 +744,8 @@ combineSimpleItems :: Char -> SimpleItem -> SimpleItem -> SimpleItem
 combineSimpleItems d item1 item2 = {-# SCC "combineSimpleItems" #-}
   item2 { siSemantics = (siSemantics item1) .|. (siSemantics item2)
         , siPolpaths  = (siPolpaths  item1) .&. (siPolpaths  item2)
-        , siDerivation = addToDerivation d item1 item2
         -- only used for graphical debugging!
+        , siDerivation = addToDerivation d item1 item2
         , siTagElem = te2 { tsemantics = combineSem (tsemantics te1) (tsemantics te2) }
   }
   where te1 = siTagElem item1
