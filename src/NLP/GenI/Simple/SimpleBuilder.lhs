@@ -61,7 +61,6 @@ import NLP.GenI.Btypes
   , GeniVal(GConst)
   , rootUpd, root, foot
   , repAdj, repSubst
-  , renameTree
   , constrainAdj
   , unifyFeat,
   )
@@ -82,7 +81,7 @@ import NLP.GenI.Tags (TagElem, TagSite(TagSite), TagDerivation,
              ts_noRootCategory, ts_wrongRootCategory,
             )
 import NLP.GenI.Configuration
-import NLP.GenI.General (BitVector, mapMaybeM)
+import NLP.GenI.General (BitVector, mapMaybeM, mapTree)
 \end{code}
 }
 
@@ -273,7 +272,8 @@ initSimpleBuilder twophase input config =
 
 
 initSimpleItem :: SemBitMap -> (TagElem, BitVector) -> SimpleItem
-initSimpleItem bmap (te,pp) =
+initSimpleItem bmap (teRaw,pp) =
+ let te = renameNodesWithTidnum teRaw in
  case (detectSites.ttree) te of
  (snodes,anodes) -> setIaf $ SimpleItem
   { siId        = tidnum te
@@ -294,6 +294,12 @@ initSimpleItem bmap (te,pp) =
   -- , siAdjlist = []
   }
   where setIaf i = i { siAccesible = iafNewAcc i }
+
+renameNodesWithTidnum :: TagElem -> TagElem
+renameNodesWithTidnum te =
+  te { ttree = (mapTree renameNode) . ttree $ te }
+  where renameNode n = n { gnname = gnname n ++ "-" ++ tidstr }
+        tidstr = show . tidnum $ te
 \end{code}
 
 % --------------------------------------------------------------------
@@ -489,25 +495,18 @@ possible substitutions between it and the elements in Chart
 applySubstitution :: SimpleItem -> SimpleState ([SimpleItem])
 applySubstitution item =
  do gr <- lookupChart item
-    let -- tesem = tsemantics te
-        -- we rename tags to do a proper substitution
-        rItem = renameSimpleItem 'A' item
-        rgr'  = map (renameSimpleItem 'B') gr
-    active  <- mapM (\x -> iapplySubst rItem x) rgr'
-    passive <- mapM (\x -> iapplySubst x rItem) rgr'
+    active  <- mapM (\x -> iapplySubst item x) gr
+    passive <- mapM (\x -> iapplySubst x item) gr
     let res = concat $ active ++ passive
     incrCounter num_comparisons (2 * (length gr))
     return res
 
 applySubstitution1p :: SimpleItem -> SimpleState ([SimpleItem])
+applySubstitution1p item | (not.adjdone) item = return []
 applySubstitution1p item =
  do gr <- lookupChart item
-    let rItem = renameSimpleItem 'A' item
-        rgr'  = map (renameSimpleItem 'B') gr
-    active  <- if adjdone rItem
-               then mapM (\x -> iapplySubst rItem x) rgr'
-               else return []
-    passive <- mapM (\x -> iapplySubst x rItem) $ filter adjdone rgr'
+    active  <- mapM (\x -> iapplySubst item x) gr
+    passive <- mapM (\x -> iapplySubst x item) $ filter adjdone gr
     let res = concat $ active ++ passive
     incrCounter num_comparisons (2 * (length gr))
     return res
@@ -595,12 +594,10 @@ validAux t = closed t && (ttype.siTagElem) t == Auxiliar && adjdone t
 
 tryAdj :: SimpleItem -> SimpleItem -> SimpleState (Maybe SimpleItem)
 tryAdj aItem pItem =
- case renameSimpleItem 'A' pItem of
- p -> case renameSimpleItem 'B' aItem of
-      a -> case iapplyAdjNode a p of
-           Just x  -> do incrCounter "adjunctions" 1
-                         return $ Just x
-           Nothing -> return Nothing
+  case iapplyAdjNode aItem pItem of
+  Just x  -> do incrCounter "adjunctions" 1
+                return $ Just x
+  Nothing -> return Nothing
 
 -- | Ignore the next adjunction node
 sansAdjunction :: SimpleItem -> SimpleState [SimpleItem]
@@ -744,27 +741,6 @@ combineSimpleItems d item1 item2 = {-# SCC "combineSimpleItems" #-}
   where te1 = siTagElem item1
         te2 = siTagElem item2
         combineSem s1 s2 = sortSem (s1 ++ s2)
-
--- | Just a wrapper to 'renameTagElem'
-renameSimpleItem :: Char -> SimpleItem -> SimpleItem
-renameSimpleItem c item = {-# SCC "renameSimpleItem" #-}
- -- let al = map (\(n, tid) -> (c:n, tid)) (siAdjlist item)
- --in
-    item { siTagElem    = renameTagElem c $ siTagElem item
-         , siSubstnodes = map (renameTagSite c) (siSubstnodes item)
-         , siAdjnodes   = map (renameTagSite c) (siAdjnodes item)
- 	 } -- , siAdjlist = al }
-
-{-# INLINE renameTagSite #-}
-{-# INLINE renameTagElem #-}
-
--- | Given a 'Char' c and a 'TagElem' te, renames nodes in
--- substnodes, adjnodes and the tree in te by prefixing c.
-renameTagElem :: Char -> TagElem -> TagElem
-renameTagElem c te = te{ ttree = renameTree c (ttree te) }
-
-renameTagSite :: Char -> TagSite -> TagSite
-renameTagSite c (TagSite n u d) = TagSite (c:n) u d
 \end{code}
 
 \subsubsection{Derivation trees}
