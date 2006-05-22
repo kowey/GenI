@@ -938,7 +938,7 @@ listToSentenceAut nodes =
       -- next state...
       helper :: (Int, B.UninflectedDisjunction) -> B.SentenceAut -> B.SentenceAut
       helper (current, (lemmas, features)) aut =
-        foldl addT aut lemmas
+        foldl' addT aut lemmas
         where
           addT a t = addTrans a current (Just (t, features)) next
           next = current + 1
