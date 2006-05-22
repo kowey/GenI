@@ -285,14 +285,14 @@ tagLeaves te = map tagLeaf $ (treeLeaves.ttree) te
 
 tagLeaf :: GNode -> ([String],Flist)
 tagLeaf node = 
-  let lexeme = glexeme node
-      guppy  = gup node
-      cat' = concat $ map (\la -> [ v | (a,v) <- guppy, a == la ])
-                      lexemeAttributes
-             -- grab the first match
-      cats  = if null cat' then [gnname node] else map show cat'
-      name  = map (map toUpper) cats
-      output =  if null lexeme then name else lexeme
+  let guppy  = gup node
+      grab la = [ (map toUpper) . show $ v | (a,v) <- guppy, a == la ]
+      lastResort = case concatMap grab lexemeAttributes of
+                   [] -> [gnname node]
+                   x  -> x
+      output = case glexeme node of
+               []     -> lastResort
+               lexeme -> lexeme
   in (output, gup node)
 \end{code}
 
