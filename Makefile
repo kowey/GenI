@@ -70,7 +70,7 @@ PROFILE_WITH_SCRUNCHED := $(subst $(space),,$(PROFILE_WITH))
 PERFTEST =
 PERFTEST += -m etc/perftest/grammar-adjtest.geni
 PERFTEST += -l etc/perftest/lemmas.glex
-PERFTEST += -s etc/perftest/semantics-adjunctions-t8
+PERFTEST += -s etc/perftest/semantics-adjunctions-hard
 
 ifndef RTS_FLAGS
 RTS_FLAGS:=-p $(PROFILE_WITH)
