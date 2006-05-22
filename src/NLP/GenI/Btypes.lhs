@@ -565,7 +565,7 @@ why we want this.
 \begin{code}
 alphaConvertById :: (Collectable a, Replacable a, Idable a) => a -> a
 alphaConvertById x = {-# SCC "alphaConvertById" #-}
-  alphaConvert ("-" ++ (show $ idOf x)) x
+  alphaConvert ('-' : (show . idOf $ x)) x
 
 alphaConvert :: (Collectable a, Replacable a) => String -> a -> a
 alphaConvert suffix x = {-# SCC "alphaConvert" #-}
