@@ -218,8 +218,8 @@ geniTreeGroup =
          return t
 
 initType, auxType :: Parser Ptype
-initType = try $ do { symbol "initial"  ; return Initial  }
-auxType  = try $ do { symbol "auxiliary"; return Auxiliar }
+initType = do { symbol "initial"  ; return Initial  }
+auxType  = do { symbol "auxiliary"; return Auxiliar }
 \end{code}
 
 \subsection{Tree definitions}
@@ -462,11 +462,13 @@ A key is nothing simpler than the keyword, followed by a colon.
 We factor this into a seperate function to account for whitespace.
 
 \begin{code}
+{-# INLINE keyword #-}
 keyword :: String -> Parser String 
 keyword k = 
   do let helper = try $ do { symbol k; colon; return k }
      helper <?> k ++ ":"
 
+{-# INLINE keywordSemantics #-}
 keywordSemantics :: Parser String
 keywordSemantics = keyword "semantics"
 \end{code}
