@@ -71,6 +71,7 @@ PERFTEST =
 PERFTEST += -m etc/perftest/grammar-adjtest.geni
 PERFTEST += -l etc/perftest/lemmas.glex
 PERFTEST += -s etc/perftest/semantics-adjunctions-hard
+PERFTEST += --opts=pol --opts=S
 
 ifndef RTS_FLAGS
 RTS_FLAGS:=-p $(PROFILE_WITH)
@@ -338,7 +339,7 @@ unit:
 profiler: $(PROFGENI_MAIN) profout debugger-geni.txt debugger-geni.pdf
 
 profout:
-	bin/debugger-geni +RTS $(RTS_FLAGS) -RTS --nogui $(PERFTEST) --opts=pol -o profout
+	bin/debugger-geni +RTS $(RTS_FLAGS) -RTS --nogui $(PERFTEST) -o profout
 
 debugger-geni$(PROFILE_WITH_SCRUNCHED).hp: debugger-geni.hp
 	cp $< $@
