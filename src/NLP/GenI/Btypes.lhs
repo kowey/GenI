@@ -785,9 +785,9 @@ unification. It makes the following assumptions:
 unifyFeat :: (Monad m) => Flist -> Flist -> m (Flist, Subst)
 unifyFeat f1 f2 = 
   {-# SCC "unification" #-}
-  do let (att, val1, val2) = alignFeat f1 f2
-     (res, subst) <- unify val1 val2 
-     return (zip att res, subst)
+  case alignFeat f1 f2 of
+  (att, val1, val2) -> do (res, subst) <- unify val1 val2
+                          return (zip att res, subst)
 \end{code}
 
 \fnlabel{alignFeat}
