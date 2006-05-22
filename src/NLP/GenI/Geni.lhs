@@ -243,9 +243,7 @@ loadGeniMacros pstRef config =
        Right g   -> setGram g
   where
     setGram g = 
-      do let sizeg = length g
-         ePutStr $ show sizeg ++ " trees in " 
-         ePutStr $ (show $ length g) ++ " families\n"
+      do ePutStr $ show (length g) ++ " trees\n"
          modifyIORef pstRef (\x -> x{gr = g})
 \end{code}
 
