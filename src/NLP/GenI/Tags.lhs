@@ -282,7 +282,7 @@ node we return a list of lemmas for each leaf.
 
 \begin{code}
 tagLeaves :: TagElem -> [([String],Flist)]
-tagLeaves te = map tagLeaf $ (treeLeaves.ttree) te 
+tagLeaves = (map tagLeaf) . treeLeaves . ttree
 
 tagLeaf :: GNode -> ([String],Flist)
 tagLeaf node = 
