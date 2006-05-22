@@ -39,7 +39,6 @@ module NLP.GenI.Btypes(
 
    -- Functions from Tree GNode
    repSubst, repAdj, constrainAdj, 
-   renameTree, 
    root, rootUpd, foot, setLexeme,
 
    -- Functions from Sem
@@ -47,7 +46,7 @@ module NLP.GenI.Btypes(
    emptyPred,
 
    -- Functions from Flist
-   sortFlist, unify, unifyFeat, unifyFeat2,
+   sortFlist, unify, unifyFeat,
    showPairs, showAv,
 
    -- Other functions
@@ -69,7 +68,6 @@ module NLP.GenI.Btypes(
 -- import Debug.Trace -- for test stuff
 import Control.Monad (liftM)
 import Data.List
-import Data.Maybe (maybe)
 import qualified Data.Map as Map
 import qualified Data.Set as Set 
 import Data.Tree
@@ -322,16 +320,6 @@ setLexeme s t =
      ([r],True) -> r
      _ -> geniBug $ "setLexeme returned weird result"
 \end{code}
-
-\fnlabel{renameTree} 
-Given a Char c and a tree, renames nodes in 
-the tree by prefixing c.
-
-\begin{code}
-renameTree :: Char -> Tree GNode -> Tree GNode
-renameTree c = mapTree (\a -> a{gnname = c:(gnname a)}) 
-\end{code}
-
 
 \subsection{Substitution}
 
@@ -800,13 +788,6 @@ unifyFeat f1 f2 =
   do let (att, val1, val2) = alignFeat f1 f2
      (res, subst) <- unify val1 val2 
      return (zip att res, subst)
-
--- does the same thing but returning True/False on success or failure
-unifyFeat2 :: Flist -> Flist -> (Bool, Flist, Subst)
-unifyFeat2 a b = {-# SCC "unification" #-}
-  maybe failure success $ unifyFeat a b
-  where failure       = (False, [], [])
-        success (f,s) = (True, f, s)
 \end{code}
 
 \fnlabel{alignFeat}
