@@ -225,8 +225,9 @@ are filed under an empty predicate, if any.
 \begin{code}
 mapBySem :: (TagItem t) => [t] -> Map.Map Pred [t]
 mapBySem ts = 
-  let gfn t = if (null s) then emptyPred else head s 
-              where s = tgSemantics t 
+  let gfn t = case tgSemantics t of
+              []    -> emptyPred
+              (x:_) -> x
   in groupByFM gfn ts
 \end{code}
 
