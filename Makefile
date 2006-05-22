@@ -335,7 +335,7 @@ ghci:
 unit:
 	etc/quickcheck.py src/NLP/GenI/Btypes.lhs | ghci $(GHCI_FLAGS)
 
-profiler: $(PROFGENI_MAIN) profout debugger-geni$(PROFILE_WITH_SCRUNCHED).txt debugger-geni$(PROFILE_WITH_SCRUNCHED).pdf
+profiler: $(PROFGENI_MAIN) profout debugger-geni.txt debugger-geni.pdf
 
 profout:
 	bin/debugger-geni +RTS $(RTS_FLAGS) -RTS --nogui $(PERFTEST) --opts=pol -o profout
@@ -343,14 +343,22 @@ profout:
 debugger-geni$(PROFILE_WITH_SCRUNCHED).hp: debugger-geni.hp
 	cp $< $@
 
-debugger-geni%.txt: debugger-geni%.hp
+debugger-geni-%.txt: debugger-geni-%.hp
 	Hp2Summary < $< > $@
 
-debugger-geni%.pdf: debugger-geni%.hp
+debugger-geni-%.pdf: debugger-geni-%.hp
 	hp2ps -c $< > $(basename $@).ps
 	ps2pdf $(basename $@).ps $(basename $@)-$(DATE2).pdf
 	rm -f $@ $(basename $@).ps
-	ln -s $(basename $@)-$(DATE2).pdf $@
+	ln $(basename $@)-$(DATE2).pdf $@
+
+debugger-geni.txt: debugger-geni$(PROFILE_WITH_SCRUNCHED).txt
+	rm -f $@
+	ln $< $@
+
+debugger-geni.pdf: debugger-geni$(PROFILE_WITH_SCRUNCHED).pdf
+	rm -f $@
+	ln $< $@
 
 clean-profiler:
 	rm debugger-geni*.{pdf,hp,aux,png}
