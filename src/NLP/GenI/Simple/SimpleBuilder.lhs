@@ -45,7 +45,7 @@ import Control.Monad (when, liftM, liftM2)
 import Control.Monad.State
   (get, put, modify, gets)
 
-import Data.List (intersect, partition, delete)
+import Data.List (intersect, partition, delete, foldl')
 import Data.Maybe (catMaybes)
 import Data.Bits
 import qualified Data.Map as Map
@@ -470,7 +470,7 @@ more aggressive; it gives us much more filtering)
 \begin{code}
 semfilter :: BitVector -> [SimpleItem] -> [SimpleItem] -> [SimpleItem]
 semfilter inputsem auxs initial =
-  let auxsem x = foldr (.|.) 0 [ siSemantics a | a <- auxs, siPolpaths a .&. siPolpaths x /= 0 ]
+  let auxsem x = foldl' (.|.) 0 [ siSemantics a | a <- auxs, siPolpaths a .&. siPolpaths x /= 0 ]
       -- lite, here, means sans auxiliary semantics
       notjunk x = (siSemantics x) .&. inputsemLite == inputsemLite
                   where inputsemLite = inputsem `xor` (auxsem x)
