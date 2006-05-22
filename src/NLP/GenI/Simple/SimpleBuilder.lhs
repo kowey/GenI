@@ -613,7 +613,7 @@ sansAdjunction item | closed item =
    Just (g2,s) ->
      let te  = siTagElem item
          te2 = te { ttree = constrainAdj gn g2 (ttree te) }
-         newItem = replace s $
+         newItem = replace s $!
                    item { siTagElem = te2, siHighlight = [gn]
                         , siAdjnodes = atail }
      in return $! [newItem]
