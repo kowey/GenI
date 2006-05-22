@@ -543,7 +543,6 @@ iapplySubst item1 item2 | siInitial item1 && closed item1 = {-# SCC "applySubsti
               nt1 = rootUpd t1 nr
               ntree = repSubst n nt1 t2 -- expensive?
               --
-              ncopy x = TagSite (gnname x) (gup x) (gdown x)
               adj1  = (ncopy nr) : (delete (ncopy r) $ siAdjnodes item1)
               adj2  = siAdjnodes item2
               newTe = te2{ttree = ntree}
@@ -690,7 +689,6 @@ iapplyAdjNode item1 item2 = {-# SCC "iapplyAdjNode" #-}
 
       -- the new adjunction nodes
       -- ------------------------
-      ncopy x = TagSite (gnname x) (gup x) (gdown x)
       -- 1) delete the adjunction site and the aux root node
       auxlite = delete (ncopy r) $ siAdjnodes item1
       -- 2) union the remaining adjunction nodes
@@ -714,6 +712,9 @@ iapplyAdjNode item1 item2 = {-# SCC "iapplyAdjNode" #-}
 % --------------------------------------------------------------------
 
 \begin{code}
+ncopy :: GNode -> TagSite
+ncopy x = TagSite (gnname x) (gup x) (gdown x)
+
 -- | Retrieves a list of trees from the chart which could be combined with the given agenda tree.
 -- The current implementation searches for trees which
 --  * do not have overlapping semantics with the given
