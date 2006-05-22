@@ -895,8 +895,10 @@ unifySansRep x2 t1 t2 = {-# SCC "unification" #-}
 unifyWithRep :: (Monad m) => GeniVal -> GeniVal -> [GeniVal] -> [GeniVal] -> m ([GeniVal], Subst)
 unifyWithRep (GVar h1) x2 t1 t2 = {-# SCC "unification" #-}
  case (h1,x2) of
- s -> do (res,subst) <- unify (replaceOne s t1) (replaceOne s t2)
-         return (x2:res, s:subst)
+ s -> case replaceOne s t1 of
+      t1_ -> case replaceOne s t2 of
+             t2_ -> do (res,subst) <- unify t1_ t2_
+                       return (x2:res, s:subst)
 unifyWithRep _ _ _ _ = geniBug "unification error"
 \end{code}
 
