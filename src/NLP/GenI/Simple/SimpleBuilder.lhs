@@ -592,7 +592,7 @@ activeAdjunction1p item | validAux item =
 activeAdjunction1p _ = return []
 
 validAux :: SimpleItem -> Bool
-validAux t = closed t && (ttype.siTagElem) t == Auxiliar && adjdone t
+validAux t = closedAux t && adjdone t
 
 tryAdj :: SimpleItem -> SimpleItem -> SimpleState (Maybe SimpleItem)
 tryAdj aItem pItem =
