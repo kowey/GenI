@@ -223,6 +223,8 @@ instance Replacable SimpleItem where
 \end{code}
 
 \begin{code}
+{-# INLINE closedAux #-}
+
 -- | True if the chart item has no open substitution nodes
 closed :: SimpleItem -> Bool
 closed = null.siSubstnodes
