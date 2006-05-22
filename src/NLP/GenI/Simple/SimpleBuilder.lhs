@@ -431,7 +431,9 @@ switchToAux = do
       initial = if (semfiltered $ genconfig st)
                 then filteredT else compT
   -- toss the syntactically incomplete stuff in the trash
-  mapM (\t -> addToTrash t ts_synIncomplete) incompT
+  when (isGraphical.genconfig $ st) $
+    do mapM (\t -> addToTrash t ts_synIncomplete) incompT
+       return ()
   put st{theAgenda = initial,
          theAuxAgenda = [],
          theChart = auxAgenda,
@@ -612,7 +614,7 @@ sansAdjunction item | closed item =
   -- do top/bottom unification on the node
   case unifyFeat t b of
    Nothing ->
-     do addToTrash (item { siHighlight = [gn] }) ts_tbUnificationFailure
+     do when isGui $ addToTrash (item { siHighlight = [gn] }) ts_tbUnificationFailure
         return []
    Just (g2,s) ->
      let te  = siTagElem item
