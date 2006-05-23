@@ -124,30 +124,33 @@ isEmptyIntersect :: (Eq a) => [a] -> [a] -> Bool
 isEmptyIntersect a b = null $ intersect a b
 \end{code}
 
-\fnlabel{groupByFM} serves the same function as Data.List.groupBy.  It
-groups together items by some property they have in common. The
-difference is that the property is used as a key to a Map that you
-can lookup.  \texttt{fn} extracts the property from the item.
+\paragraph{Grouping things together}
 
 \begin{code}
+-- | Serves the same function as 'Data.List.groupBy'.  It groups together
+--   items by some property they have in common. The difference is that the
+--   property is used as a key to a Map that you can lookup.
 groupByFM :: (Ord b) => (a -> b) -> [a] -> (Map.Map b [a])
 groupByFM fn list = 
-  let addfn  x acc key = Map.insertWith (++) key [x] acc 
-      helper x acc     = addfn x acc (fn x)
-  in foldr helper Map.empty list 
-\end{code}
+  let addfn  x acc key = insertToListMap key x acc
+      helper acc x = addfn x acc (fn x)
+  in foldl helper Map.empty list
 
-\fnlabel{multiGroupByFM} is the same as groupByFM, except that we
-assume an item can appear in multiple groups.  \texttt{fn} extracts the
-property from the item, and returns multiple results in the form of a
-list.
-
-\begin{code}
+-- | Same as 'groupByFM', except that we let an item appear in
+--   multiple groups.  The fn extracts the property from the item,
+--   and returns multiple results in the form of a list
 multiGroupByFM :: (Ord b) => (a -> [b]) -> [a] -> (Map.Map b [a])
 multiGroupByFM fn list = 
-  let addfn  x key acc = Map.insertWith (++) key [x] acc
-      helper x acc     = foldr (addfn x) acc (fn x)
-  in foldr helper Map.empty list 
+  let addfn  x acc key = insertToListMap key x acc
+      helper acc x = foldl (addfn x) acc (fn x)
+  in foldl helper Map.empty list
+
+{-# INLINE insertToListMap #-}
+insertToListMap :: (Ord b) => b -> a -> Map.Map b [a] -> Map.Map b [a]
+insertToListMap k i m =
+  case Map.lookup k m of
+  Nothing -> Map.insert k [i] m
+  Just p  -> Map.insert k (i:p) m
 \end{code}
 
 \fnlabel{groupAndCount} is a generic list-processing function.
