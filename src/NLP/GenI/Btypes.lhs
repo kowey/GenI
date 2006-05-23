@@ -74,7 +74,7 @@ import qualified Data.Set as Set
 import Data.Tree
 import Test.QuickCheck hiding (collect) -- needed for testing via ghci
 
-import NLP.GenI.General(mapTree, filterTree, listRepNode, snd3, geniBug)
+import NLP.GenI.General(map', mapTree, filterTree, listRepNode, snd3, geniBug)
 --instance Show (IO()) where
 --  show _ = ""
 \end{code}
@@ -504,8 +504,8 @@ of course.
 
 \begin{code}
 instance (Replacable a => Replacable [a]) where
-  replace s    = {-# SCC "replace" #-} map (replace s)
-  replaceOne s = {-# SCC "replace" #-} map (replaceOne s)
+  replace s    = {-# SCC "replace" #-} map' (replace s)
+  replaceOne s = {-# SCC "replace" #-} map' (replaceOne s)
 \end{code}
 
 Substitution on an attribute/value pairs consists of ignoring
@@ -524,7 +524,7 @@ frequently used types:
 \begin{code}
 {-# INLINE replace_Flist #-}
 replace_Flist :: Subst -> Flist -> Flist
-replace_Flist s = map (replace_avPair s)
+replace_Flist s = map' (replace_avPair s)
 
 {-# INLINE replace_avPair #-}
 replace_avPair :: Subst -> AvPair -> AvPair

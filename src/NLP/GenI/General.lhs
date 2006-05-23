@@ -97,6 +97,11 @@ thd3 (_,_,x) = x
 tail_ :: [a] -> [a]
 tail_ [] = []
 tail_ (_:t) = t
+
+-- | A strict version of 'map'
+map' :: (a->b) -> [a] -> [b]
+map' _ [] = []
+map' f (x:xs) = let a = f x in a `seq` (a:(map' f xs))
 \end{code}
 
 A generic version of the Data.List.words
