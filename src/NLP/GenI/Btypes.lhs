@@ -516,7 +516,7 @@ instance Replacable AvPair where
   replace = {-# SCC "replace" #-} replace_avPair
 
 instance Replacable (String, ([String], Flist)) where
-  replace s (n,(a,v)) = {-# SCC "replace" #-} (n,(a, replace s v))
+  replace s (n,(a,v)) = {-# SCC "replace" #-} (n,(a, replace_Flist s v))
 \end{code}
 
 For performance reasons, here are some specialised variants of replace for
