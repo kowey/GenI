@@ -86,7 +86,7 @@ import NLP.GenI.Tags (TagElem, TagSite(TagSite), TagDerivation,
             )
 import NLP.GenI.Configuration
 import NLP.GenI.General
- ( BitVector, mapMaybeM, mapTree, geniBug, treeLeaves, repList)
+ ( BitVector, mapMaybeM, mapTree', geniBug, treeLeaves, repList)
 
 #ifndef DISABLE_GUI
 import NLP.GenI.Btypes (sortSem)
@@ -347,8 +347,8 @@ initSimpleGuiItem te = SimpleGuiItem
 
 renameNodesWithTidnum :: TagElem -> (TagElem, Tree NodeName)
 renameNodesWithTidnum te =
-  ( te { ttree = mapTree renameNode theTree }
-  , mapTree newName theTree )
+  ( te { ttree = mapTree' renameNode theTree }
+  , mapTree' newName theTree )
   where theTree = ttree te
         renameNode n = n { gnname = newName n }
         newName n = gnname n ++ "-" ++ tidstr

@@ -191,13 +191,17 @@ repList pr fn (x:xs)
 
 \section{Trees}
 
-\fnlabel{mapTree} is like map, except on Trees.  This has to be
-tucked away somewhere (i.e. i must be reinventing the wheel)!
-
 \begin{code}
 mapTree :: (a->b) -> Tree a -> Tree b
 mapTree fn (Node a []) = (Node (fn a) [])
 mapTree fn (Node a l)  = (Node (fn a) (map (mapTree fn) l))
+
+-- | Strict version of 'mapTree'
+mapTree' :: (a->b) -> Tree a -> Tree b
+mapTree' fn (Node a []) = let b = fn a in b `seq` Node b []
+mapTree' fn (Node a l)  = let b = fn a
+                              bs = map' (mapTree' fn) l
+                          in b `seq` bs `seq` Node b bs
 \end{code}
 
 \fnlabel{filterTree} is like filter, except on Trees.  Filter 
