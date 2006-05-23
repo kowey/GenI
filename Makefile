@@ -118,6 +118,7 @@ SCRIPT_FILES = bin/runXMGselector\
 
 
 GENI := bin/geni
+GENI_PRECOMPILED := bin/geni-precompiled
 GENI_MAIN := $(SRC)/MainGeni.lhs
 GENI_DEPS = $(call getdeps,$(GENI_MAIN))
 
@@ -272,6 +273,14 @@ $(SERVER): $(SERVER_MAIN) $(SERVER_DEPS)
 $(CLIENT): $(CLIENT_MAIN) $(CLIENT_DEPS)
 	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES) $< -o $@
 
+# sometimes you have stuff that doesn't get built with ghc --make
+%.o : %.lhs
+	$(GHC) $(GHCFLAGS) -c $(GHCPACKAGES) $< -o $@
+%.o : %.hs
+	$(GHC) $(GHCFLAGS) -c $(GHCPACKAGES) $< -o $@
+
+%.hi : %.o
+	@:
 # --------------------------------------------------------------------
 # geni with a precompiled grammar
 # --------------------------------------------------------------------
@@ -297,8 +306,8 @@ endif
 src/MyGeniGrammar.o : $(MYGENIGRAMMAR_HC)
 	time nice $(GHC) $(GHCFLAGS) -DPRECOMPILED_GRAMMAR -c +RTS -K100m -RTS $(GHCPACKAGES) $<
 
-precompiled: init src/MyGeniGrammar.o
-	time $(GHC) $(GHCFLAGS) --make -DPRECOMPILED_GRAMMAR +RTS -K100m -RTS $(GHCPACKAGES) $(GENI_MAIN).lhs -o $(GENI)
+precompiled: $(GENI_MAIN) init src/MyGeniGrammar.o
+	time $(GHC) $(GHCFLAGS) --make -DPRECOMPILED_GRAMMAR +RTS -K100m -RTS $(GHCPACKAGES) $< -o $(GENI_PRECOMPILED)
 	#$(OS_SPECIFIC_STUFF)
 
 weedep: src/MyGeniGrammar.hs
@@ -382,3 +391,15 @@ $(MAKE_DOCS): %.pdf: %.tex $(DOC_SRC)
 	$(LATEX) $(<F) && bibtex $(<F:.tex=) &&\
        	$(LATEX) $(<F) && $(LATEX) $(<F)\
 	$(DVIPDF)
+
+# --------------------------------------------------------------------
+# explicit deps
+# --------------------------------------------------------------------
+
+# DO NOT DELETE: Beginning of Haskell dependencies
+./src/NLP/GenI/General.o : ./src/NLP/GenI/General.lhs
+./src/NLP/GenI/Btypes.o : ./src/NLP/GenI/Btypes.lhs
+./src/NLP/GenI/Btypes.o : ./src/NLP/GenI/General.hi
+src/MyGeniGrammar.o : src/MyGeniGrammar.hs
+src/MyGeniGrammar.o : ./src/NLP/GenI/Btypes.hi
+# DO NOT DELETE: End of Haskell dependencies
