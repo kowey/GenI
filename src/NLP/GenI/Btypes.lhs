@@ -772,9 +772,10 @@ unification. It makes the following assumptions:
 unifyFeat :: (Monad m) => Flist -> Flist -> m (Flist, Subst)
 unifyFeat f1 f2 = 
   {-# SCC "unification" #-}
-  case alignFeat f1 f2 of
-  (att, val1, val2) -> do (res, subst) <- unify val1 val2
-                          return (zip att res, subst)
+  let (att, val1, val2) = alignFeat f1 f2
+  in att `seq`
+     do (res, subst) <- unify val1 val2
+        return (zip att res, subst)
 \end{code}
 
 \fnlabel{alignFeat}
@@ -881,11 +882,12 @@ unifySansRep x2 t1 t2 = {-# SCC "unification" #-}
 
 unifyWithRep :: (Monad m) => GeniVal -> GeniVal -> [GeniVal] -> [GeniVal] -> m ([GeniVal], Subst)
 unifyWithRep (GVar h1) x2 t1 t2 = {-# SCC "unification" #-}
- case (h1,x2) of
- s -> case replaceOne s t1 of
-      t1_ -> case replaceOne s t2 of
-             t2_ -> do (res,subst) <- unify t1_ t2_
-                       return (x2:res, s:subst)
+ let s = (h1,x2)
+     t1_ = replaceOne s t1
+     t2_ = replaceOne s t2
+ in s `seq` t1_ `seq` t2_ `seq` do
+       (res,subst) <- unify t1_ t2_
+       return (x2:res, s:subst)
 unifyWithRep _ _ _ _ = geniBug "unification error"
 \end{code}
 
