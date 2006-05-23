@@ -885,9 +885,9 @@ unifyWithRep (GVar h1) x2 t1 t2 = {-# SCC "unification" #-}
  let s = (h1,x2)
      t1_ = replaceOne s t1
      t2_ = replaceOne s t2
- in s `seq` t1_ `seq` t2_ `seq` do
-       (res,subst) <- unify t1_ t2_
-       return (x2:res, s:subst)
+     ustep = unify t1_ t2_
+ in s `seq` t1_ `seq` t2_ `seq` ustep `seq`
+    (ustep >>= \(res,subst) -> return (x2:res, s:subst))
 unifyWithRep _ _ _ _ = geniBug "unification error"
 \end{code}
 
