@@ -27,17 +27,20 @@ item is a derived tree.
 module NLP.GenI.Simple.SimpleBuilder (
    -- Types
    Agenda, AuxAgenda, Chart, SimpleStatus, SimpleState,
-   SimpleItem(..), SimpleGuiItem(..),
+   SimpleItem(..),
 
    -- From SimpleStatus
    simpleBuilder_1p, simpleBuilder_2p, simpleBuilder,
-   theAgenda, theAuxAgenda, theChart, theTrash, theResults,
+   theAgenda, theAuxAgenda, theChart, theResults,
    initSimpleBuilder,
    addToAgenda, addToChart,
    genconfig,
 
-   -- Stuff for the Gui
-   unpackResult,)
+#ifndef DISABLE_GUI
+   SimpleGuiItem(..),
+   theTrash, unpackResult,
+#endif
+   )
 where
 \end{code}
 
@@ -150,7 +153,9 @@ data SimpleStatus = S
   { theAgenda    :: Agenda
   , theAuxAgenda :: AuxAgenda
   , theChart     :: Chart
+#ifndef DISABLE_GUI
   , theTrash   :: Trash
+#endif
   , theResults :: [SimpleItem]
   , theIafMap  :: IafMap -- for index accessibility filtering
   , tsem       :: BitVector
@@ -188,10 +193,12 @@ addToChart te = do
   modify $ \s -> s { theChart = te:(theChart s) }
   incrCounter chart_size 1
 
+#ifndef DISABLE_GUI
 addToTrash :: SimpleItem -> String -> SimpleState ()
 addToTrash te err = do
   let te2 = modifyGuiStuff (\g -> g { siDiagnostic = err:(siDiagnostic g) }) te
   modify $ \s -> s { theTrash = te2 : (theTrash s) }
+#endif
 
 addToResults :: SimpleItem -> SimpleState ()
 addToResults te = do
@@ -219,10 +226,13 @@ data SimpleItem = SimpleItem
  , siDerived :: Tree String
  , siRoot    :: TagSite
  , siFoot    :: Maybe TagSite
+#ifndef DISABLE_GUI
  -- for the debugger only
  , siGuiStuff :: SimpleGuiItem
+#endif
  } deriving Show
 
+#ifndef DISABLE_GUI
 -- | Things whose only use is within the graphical debugger
 data SimpleGuiItem = SimpleGuiItem
  { siHighlight :: [String] -- ^ nodes to highlight
@@ -237,6 +247,7 @@ data SimpleGuiItem = SimpleGuiItem
 
 modifyGuiStuff :: (SimpleGuiItem -> SimpleGuiItem) -> SimpleItem -> SimpleItem
 modifyGuiStuff fn i = i { siGuiStuff = fn . siGuiStuff $ i }
+#endif
 
 type ChartId = Integer
 
@@ -246,13 +257,12 @@ instance Replacable SimpleItem where
                   , siLeaves  = replace s (siLeaves i)
                   , siRoot    = replace s (siRoot i)
                   , siFoot    = replace s (siFoot i)
+#ifndef DISABLE_GUI
                   , siGuiStuff = replace s (siGuiStuff i)
+#endif
   }
 
-#ifdef DISABLE_GUI
-instance Replacable SimpleGuiItem where
- replace _ i = i
-#else
+#ifndef DISABLE_GUI
 instance Replacable SimpleGuiItem where
  replace s i = i { siNodes = replace s (siNodes i) }
 #endif
@@ -296,7 +306,9 @@ initSimpleBuilder twophase input config =
       initS = S{ theAgenda    = i
                , theAuxAgenda = a
                , theChart     = []
+#ifndef DISABLE_GUI
                , theTrash     = []
+#endif
                , theResults   = []
                , semBitMap = bmap
                , tsem      = semToBitVector bmap sem
@@ -330,12 +342,15 @@ initSimpleItem bmap (teRaw,pp) =
   , siFoot = if ttype te == Initial then Nothing
              else Just . ncopy.foot $ theTree
   --
+#ifndef DISABLE_GUI
   , siGuiStuff = initSimpleGuiItem te
+#endif
   }
   where setIaf i = i { siAccesible = iafNewAcc i }
         getLeaf n = (gnname n, tagLeaf n)
         theTree = ttree te
 
+#ifndef DISABLE_GUI
 initSimpleGuiItem :: TagElem -> SimpleGuiItem
 initSimpleGuiItem te = SimpleGuiItem
  { siHighlight = []
@@ -344,6 +359,7 @@ initSimpleGuiItem te = SimpleGuiItem
  , siDiagnostic = []
  , siFullSem = tsemantics te
  , siIdname = idname te }
+#endif
 
 renameNodesWithTidnum :: TagElem -> (TagElem, Tree NodeName)
 renameNodesWithTidnum te =
@@ -443,11 +459,15 @@ generateStep_2p' =
 
 \begin{code}
 trashIt :: SimpleItem -> SimpleState ()
+#ifdef DISABLE_GUI
+trashIt _ = return ()
+#else
 trashIt item =
  do s <- get
     let bmap = semBitMap s
         missingSem = bitVectorToSem bmap $ tsem s `xor` siSemantics item
     addToTrash item (ts_semIncomplete missingSem)
+#endif
 
 -- | Arbitrarily selects and removes an element from the agenda and
 --   returns it.
@@ -482,9 +502,9 @@ switchToAux = do
       initial = if (semfiltered $ genconfig st)
                 then filteredT else compT
   -- toss the syntactically incomplete stuff in the trash
-  when (isGraphical.genconfig $ st) $
-    do mapM (\t -> addToTrash t ts_synIncomplete) incompT
-       return ()
+#ifndef DISABLE_GUI
+  mapM (\t -> addToTrash t ts_synIncomplete) incompT
+#endif
   put st{theAgenda = initial,
          theAuxAgenda = [],
          theChart = auxAgenda,
@@ -588,10 +608,13 @@ iapplySubst item1 item2 | siInitial item1 && closed item1 = {-# SCC "applySubsti
               -- gui stuff
               newRoot g = g { gup = newgup, gdown = newgdown
                             , gtype = Other }
+#ifdef DISABLE_GUI
+              item1g = item1
+#else
               item1g = item1 { siGuiStuff = g2 }
                 where g2 = g { siNodes = repList (gnnameIs rn) newRoot (siNodes g) }
                       g  = siGuiStuff item1
-              --
+#endif
           return $! replace subst $ combineSimpleItems 's' [rn] item1g $
                      item2 { siSubstnodes = stail ++ (siSubstnodes item1)
                            , siAdjnodes   = adj2 ++ adj1
@@ -928,8 +951,7 @@ dpIafFailure itemRaw =
       then -- can't dispatch, but that's good!
            -- (note that we return the item with its iaf criteria updated)
            return $ Just item
-      else do addToTrash item (ts_iafFailure inAcc $ bitVectorToSem bmap badSem)
-              return Nothing
+      else dpToTrash (ts_iafFailure inAcc $ bitVectorToSem bmap badSem) item
 \end{code}
 
 
