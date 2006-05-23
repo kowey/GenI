@@ -26,7 +26,7 @@ unification, that is).
 \begin{code}
 module NLP.GenI.Btypes(
    -- Datatypes 
-   GNode(GN), GType(Subs, Foot, Lex, Other), 
+   GNode(GN), GType(Subs, Foot, Lex, Other), NodeName,
    Ttree(..), MTtree, SemPols,
    Ptype(Initial,Auxiliar,Unspecified), 
    Pred, Flist, AvPair, GeniVal(..),
@@ -35,10 +35,10 @@ module NLP.GenI.Btypes(
 
    -- GNode stuff 
    gnname, gup, gdown, ganchor, glexeme, gtype, gaconstr,
-   gCategory, showLexeme, lexemeAttributes,
+   gCategory, showLexeme, lexemeAttributes, gnnameIs,
 
    -- Functions from Tree GNode
-   repSubst, repAdj, constrainAdj, 
+   plugTree, spliceTree,
    root, rootUpd, foot, setLexeme,
 
    -- Functions from Sem
@@ -68,6 +68,7 @@ module NLP.GenI.Btypes(
 -- import Debug.Trace -- for test stuff
 import Control.Monad (liftM)
 import Data.List
+import Data.Maybe (mapMaybe)
 import qualified Data.Map as Map
 import qualified Data.Set as Set 
 import Data.Tree
@@ -188,7 +189,7 @@ top and bottom feature structures (gup, gdown), a lexeme
 information (gtype, gaconstr).
 
 \begin{code}
-data GNode = GN{gnname :: String,
+data GNode = GN{gnname :: NodeName,
                 gup    :: Flist,
                 gdown  :: Flist,
                 ganchor  :: Bool,
@@ -201,6 +202,8 @@ data GNode = GN{gnname :: String,
 data GType = Subs | Foot | Lex | Other
            deriving (Show, Eq)
 
+type NodeName = String
+
 -- | A null 'GNode' which you can use for various debugging or display purposes.
 emptyGNode :: GNode
 emptyGNode = GN { gnname = "",
@@ -209,6 +212,9 @@ emptyGNode = GN { gnname = "",
                   glexeme = [], 
                   gtype = Other,
                   gaconstr = False }
+
+gnnameIs :: NodeName -> GNode -> Bool
+gnnameIs n = (== n) . gnname
 \end{code}
 
 A TAG node may have a category.  In the core GenI algorithm, there is nothing
@@ -218,9 +224,9 @@ do treat this attribute differently.  We take here the convention that the
 category of a node is associated to the attribute ``cat''.  
 \begin{code}
 -- | Return the value of the "cat" attribute, if available
-gCategory :: GNode -> Maybe GeniVal 
-gCategory gn =
-  case [ v | (a,v) <- gup gn, a == "cat" ] of
+gCategory :: Flist -> Maybe GeniVal
+gCategory top =
+  case [ v | (a,v) <- top, a == "cat" ] of
   []  -> Nothing
   [c] -> Just c
   _   -> geniBug $ "Impossible case: node with more than one category"
@@ -242,7 +248,7 @@ and any flags which are marked on that node.
 \begin{code}
 instance Show GNode where
   show gn =
-    let cat_ = case gCategory gn of
+    let cat_ = case gCategory.gup $ gn of
                Nothing -> []
                Just c  -> show c
         lex_ = showLexeme $ glexeme gn
@@ -314,81 +320,59 @@ setLexeme s t =
   let filt (Node a []) = (gtype a == Lex && ganchor a)
       filt _ = False
       fn (Node a []) = Node a [ Node subanc [] ]
-        where subanc = emptyGNode { gaconstr = True, glexeme = s}
+        where subanc = emptyGNode { gnname = '_' : ((gnname a) ++ ('.' : (concat s)))
+                                  , gaconstr = True
+                                  , glexeme = s}
       fn _ = geniBug "impossible case in setLexeme"
   in case listRepNode fn filt [t] of
      ([r],True) -> r
      _ -> geniBug $ "setLexeme returned weird result"
 \end{code}
 
-\subsection{Substitution}
+\subsection{Substitution and Adjunction}
 
-\fnlabel{repSubst} Given two trees t1 t2, and the name n of a node in t2, 
-replaces t1 in t2 at the (leaf) node named n.
-\begin{code}
-repSubst :: String -> Tree GNode -> Tree GNode -> Tree GNode
-repSubst n t1 t2 =
-  let filt (Node a []) = (gnname a) == n 
-      filt (Node _ _)  = False
-      fn _ = t1
-  in case listRepNode fn filt [t2] of
-     ([r], True) -> r
-     (_, False)  -> geniBug $ "substitution unexpectedly failed on node " ++ n
-     _           -> geniBug $ "weird result on repSubst"
-\end{code}
-
-\subsection{Adjunction}
-
-\fnlabel{repAdj} 
-Given two trees \fnparam{t1} \fnparam{t2} (where t1 is an auxiliary tree), and
-the name n of a node in t2, replaces t1 in t2 at the node named n by an
-adjunction move (using newFoot to replace the foot node in t1).  
-
-Minor ugliness: we copy any lexical information from the t2 node
-to the new foot node.
-\begin{code}
-
-repAdj :: GNode -> String -> Tree GNode -> Tree GNode -> Tree GNode
-repAdj newFoot n t1 t2 = {-# SCC "repAdj" #-}
-  let filt (Node a _) = (gnname a == n)
-                        -- replace the footnode of t1 with nf  
-      fn (Node a l)   = repFoot nf t1 l
-                        where nf = newFoot { ganchor = ganchor a
-                                           , glexeme = glexeme a }
-  in case listRepNode fn filt [t2] of
-     ([r], True) -> r
-     (_, False)  -> geniBug $ "adjunction unexpectedly failed on node " ++ n
-     _ -> geniBug $ "repAdj returned weird result"
-
--- repFoot replaces the footnode of t with newFoot
-repFoot :: GNode -> Tree GNode -> [Tree GNode] -> Tree GNode
-repFoot newFoot t l = {-# SCC "repFoot" #-}
-  let filt (Node a _) = (gtype a == Foot)
-      fn (Node _ _) = Node newFoot l
-  in case listRepNode fn filt [t] of
-     ([r],True) -> r
-     _ -> geniBug $ "repFoot returned weird result"
-\end{code}
-
+This module handles the strictly syntactic part of the TAG substitution and
+adjunction.  We do substitution with a very general \fnreflite{plugTree}
+function, whose only job is to plug two trees together at a specified node.
+Note that this function is also used to implement adjunction.
 
 \begin{code}
--- | Search the tree for a node with the given name, add an adjunction
---   constraint to it,  set its top feature and erase its bottom feature
---   (the idea is that when you call this, you also do top/bot
---   unification
-constrainAdj :: String
-             -> Flist -- ^ new top node
-             -> Tree GNode -> Tree GNode
-constrainAdj n newup t =
-  let filt (Node a _) = (gnname a == n)
-      fn (Node a l)   = Node a { gup = newup
-                               , gdown = []
-                               , gaconstr = True } l
-  in case listRepNode fn filt [t] of
-     ([r],True) -> r
-     _ -> geniBug $ "constrainAdj returned weird result"
-\end{code}
+-- | Plug the first tree into the second tree at the specified node.
+--   Anything below the second node is silently discarded.
+--   We assume the trees are pluggable; it is treated as a bug if
+--   they are not!
+plugTree :: Tree NodeName -> NodeName -> Tree NodeName -> Tree NodeName
+plugTree male n female =
+  case listRepNode (const male) (nmatch n) [female] of
+  ([r], True) -> r
+  _           -> geniBug $ "unexpected plug failure at node " ++ n
 
+-- | Given two trees 'auxt' and 't', splice the tree 'auxt' into
+--   't' via the TAG adjunction rule.
+spliceTree :: NodeName      -- ^ foot node of the aux tree
+           -> Tree NodeName -- ^ aux tree
+           -> NodeName      -- ^ place to adjoin in target tree
+           -> Tree NodeName -- ^ target tree
+           -> Tree NodeName
+spliceTree f auxT n targetT =
+  case findSubTree n targetT of -- excise the subtree at n
+  Nothing -> geniBug $ "Unexpected adjunction failure. " ++
+                       "Could not find node " ++ n ++ " of target tree."
+  Just eT -> -- plug the excised bit into the aux
+             let auxPlus = plugTree eT f auxT
+             -- plug the augmented aux at n
+             in  plugTree auxPlus n targetT
+
+nmatch :: NodeName -> Tree NodeName -> Bool
+nmatch n (Node a _) = a == n
+
+findSubTree :: NodeName -> Tree NodeName -> Maybe (Tree NodeName)
+findSubTree n n2@(Node x ks)
+  | x == n    = Just n2
+  | otherwise = case mapMaybe (findSubTree n) ks of
+                []    -> Nothing
+                (h:_) -> Just h
+\end{code}
 
 % ----------------------------------------------------------------------
 \section{Features and variables}
@@ -530,6 +514,9 @@ the attribute and performing substitution on the value.
 \begin{code}
 instance Replacable AvPair where
   replace = {-# SCC "replace" #-} replace_avPair
+
+instance Replacable (String, ([String], Flist)) where
+  replace s (n,(a,v)) = {-# SCC "replace" #-} (n,(a, replace s v))
 \end{code}
 
 For performance reasons, here are some specialised variants of replace for

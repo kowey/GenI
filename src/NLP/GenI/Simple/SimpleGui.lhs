@@ -27,29 +27,29 @@ import Graphics.UI.WX
 import Graphics.UI.WXCore
 
 import Data.IORef
-import Data.List (nub)
+import qualified Data.Map as Map
 
 import Statistics (Statistics)
 
-import NLP.GenI.Btypes (GNode(gnname))
+import NLP.GenI.Btypes (GNode(gnname, gup), emptyGNode, GeniVal(GConst))
 import NLP.GenI.Configuration ( Params(..) )
-import NLP.GenI.General ( snd3 )
+import NLP.GenI.General ( snd3, mapTree )
 import NLP.GenI.Geni ( ProgStateRef, runGeni )
 import NLP.GenI.Graphviz ( GraphvizShow(..), gvNewline, gvUnlines )
 import NLP.GenI.GuiHelper
-  ( toSentence,
-    messageGui, tagViewerGui,
+  ( messageGui, tagViewerGui,
     debuggerPanel, DebuggerItemBar, setGvParams, GvIO, newGvRef,
     XMGDerivation(getSourceTrees),
   )
-import NLP.GenI.Tags (tsemantics, TagElem(idname), TagItem(..), ttreename)
+import NLP.GenI.Tags (tsemantics, TagElem(idname, ttree), TagItem(..), emptyTE)
 import NLP.GenI.Treeprint ( graphvizShowDerivation )
 
 import qualified NLP.GenI.Builder    as B
 import qualified NLP.GenI.BuilderGui as BG
 import NLP.GenI.Polarity
 import NLP.GenI.Simple.SimpleBuilder
-  ( simpleBuilder, SimpleStatus, SimpleItem(..),
+  ( simpleBuilder, SimpleStatus, SimpleItem(..), SimpleGuiItem(..),
+  , unpackResult
   , theResults, theAgenda, theAuxAgenda, theChart, theTrash)
 \end{code}
 }
@@ -145,9 +145,9 @@ simpleItemBar f gvRef updaterFn =
 
 \begin{code}
 instance TagItem SimpleItem where
- tgIdName    = idname.siTagElem
+ tgIdName    = siIdname.siGuiStuff
  tgIdNum     = siId
- tgSemantics = tsemantics.siTagElem
+ tgSemantics = siFullSem.siGuiStuff
 
 instance XMGDerivation SimpleItem where
  -- Note: this is XMG-related stuff
@@ -156,28 +156,42 @@ instance XMGDerivation SimpleItem where
       stripGorn n = if dot `elem` n then stripGorn stripped else n
         where stripped = (tail $ dropWhile (/= dot) n)
               dot = '.'
-      deriv  = map (stripGorn.snd3) $ snd $ siDerivation it
-  in  nub ((ttreename.siTagElem) it : deriv)
+      deriv  = map (stripGorn.snd3) $ snd $ (siDerivation.siGuiStuff) it
+  in  deriv -- FIXME: this might be slightly broken
 \end{code}
 
 \begin{code}
 instance GraphvizShow Bool SimpleItem where
   graphvizLabel  f c =
-    graphvizLabel f (siTagElem c) ++ gvNewline ++ (gvUnlines $ siDiagnostic c)
+    graphvizLabel f (toTagElem c) ++ gvNewline ++ (gvUnlines $ siDiagnostic $ siGuiStuff c)
 
-  graphvizParams f c = graphvizParams f (siTagElem c)
+  graphvizParams f c = graphvizParams f (toTagElem c)
   graphvizShowAsSubgraph f p it =
-   let isHiglight n = gnname n `elem` siHighlight it
+   let isHiglight n = gnname n `elem` (siHighlight.siGuiStuff) it
        info n | isHiglight n = (n, Just "red")
               | otherwise    = (n, Nothing)
    in    "\n// ------------------- elementary tree --------------------------\n"
-      ++ graphvizShowAsSubgraph (f, info) (p ++ "TagElem") (siTagElem it)
+      ++ graphvizShowAsSubgraph (f, info) (p ++ "TagElem") (toTagElem it)
       ++ "\n// ------------------- derivation tree --------------------------\n"
       -- derivation tree is displayed without any decoration
-      ++ (graphvizShowDerivation $ snd $ siDerivation it)
+      ++ (graphvizShowDerivation . snd . siDerivation . siGuiStuff $ it)
+
+toTagElem :: SimpleItem -> TagElem
+toTagElem si =
+  emptyTE { idname = tgIdName si
+          , tsemantics = tgSemantics si
+          , ttree = mapTree lookupOrBug (siDerived si) }
+  where
+   nodes   = siNodes.siGuiStuff $ si
+   nodeMap = Map.fromList $ zip (map gnname nodes) nodes
+   lookupOrBug k = case Map.lookup k nodeMap of
+                   Nothing -> emptyGNode { gup = [ ("cat",GConst ["error looking up " ++ k]) ] }
+                   Just x  -> x
 \end{code}
 
 \begin{code}
 siToSentence :: SimpleItem -> String
-siToSentence = toSentence.siTagElem
+siToSentence si = case unpackResult si of
+                  []    -> siIdname.siGuiStuff $ si
+                  (h:_) -> unwords $ map fst h
 \end{code}

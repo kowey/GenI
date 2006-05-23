@@ -26,14 +26,18 @@ item is a derived tree.
 \begin{code}
 module NLP.GenI.Simple.SimpleBuilder (
    -- Types
-   Agenda, AuxAgenda, Chart, SimpleStatus, SimpleState, SimpleItem(..),
+   Agenda, AuxAgenda, Chart, SimpleStatus, SimpleState,
+   SimpleItem(..), SimpleGuiItem(..),
 
    -- From SimpleStatus
    simpleBuilder_1p, simpleBuilder_2p, simpleBuilder,
    theAgenda, theAuxAgenda, theChart, theTrash, theResults,
    initSimpleBuilder,
    addToAgenda, addToChart,
-   genconfig)
+   genconfig,
+
+   -- Stuff for the Gui
+   unpackResult,)
 where
 \end{code}
 
@@ -46,9 +50,10 @@ import Control.Monad.State
   (get, put, modify, gets)
 
 import Data.List (intersect, partition, delete, foldl')
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, isJust, isNothing)
 import Data.Bits
 import qualified Data.Map as Map
+import Data.Tree
 
 import Statistics (Statistics)
 
@@ -56,13 +61,12 @@ import NLP.GenI.Automaton ( automatonPaths, NFA(..), addTrans )
 import NLP.GenI.Btypes
   ( Ptype(Initial,Auxiliar),
   , Replacable(..), replace_Flist,
-  , sortSem
-  , GType(Other), GNode(..), gCategory
+  , Sem,
+  , GType(Other), GNode(..), gCategory, NodeName, gnnameIs,
   , GeniVal(GConst)
-  , rootUpd, root, foot
-  , repAdj, repSubst
-  , constrainAdj
-  , unifyFeat,
+  , root, foot
+  , plugTree, spliceTree
+  , unifyFeat, Flist,
   )
 import NLP.GenI.Builder (UninflectedSentence,
     incrCounter, num_iterations, num_comparisons, chart_size,
@@ -76,12 +80,17 @@ import qualified NLP.GenI.Builder as B
 import NLP.GenI.Tags (TagElem, TagSite(TagSite), TagDerivation,
              idname, tidnum,
              ttree, ttype, tsemantics,
-             detectSites, tagLeaves,
+             detectSites, tagLeaf,
              ts_synIncomplete, ts_semIncomplete, ts_tbUnificationFailure,
              ts_noRootCategory, ts_wrongRootCategory,
             )
 import NLP.GenI.Configuration
-import NLP.GenI.General (BitVector, mapMaybeM, mapTree, geniBug)
+import NLP.GenI.General
+ ( BitVector, mapMaybeM, mapTree, geniBug, treeLeaves, repList)
+
+#ifndef DISABLE_GUI
+import NLP.GenI.Btypes (sortSem)
+#endif
 \end{code}
 }
 
@@ -181,7 +190,7 @@ addToChart te = do
 
 addToTrash :: SimpleItem -> String -> SimpleState ()
 addToTrash te err = do
-  let te2 = te { siDiagnostic = err:(siDiagnostic te) }
+  let te2 = modifyGuiStuff (\g -> g { siDiagnostic = err:(siDiagnostic g) }) te
   modify $ \s -> s { theTrash = te2 : (theTrash s) }
 
 addToResults :: SimpleItem -> SimpleState ()
@@ -193,33 +202,60 @@ addToResults te = do
 
 \begin{code}
 data SimpleItem = SimpleItem
- { siTagElem   :: !TagElem
- , siId        :: ChartId
+ { siId        :: ChartId
  --
  , siSubstnodes :: ![TagSite]
  , siAdjnodes   :: ![TagSite]
  --
  , siSemantics :: !BitVector
  , siPolpaths  :: !BitVector
- -- if there are things wrong with this item, what?
- , siDiagnostic :: [String]
- -- how was this item produced?
- , siDerivation :: TagDerivation
- -- nodes to highlight
- , siHighlight  :: [String]
  -- for generation sans semantics
  -- , siAdjlist :: [(String,Integer)] -- (node name, auxiliary tree id)
  -- for index accesibility filtering (one-phase only)
  , siAccesible    :: [ String ] -- it's acc/inacc/undetermined
  , siInaccessible :: [ String ] -- that's why you want both
+ --
+ , siLeaves  :: [(String, ([String], Flist))] -- ^ actually a set
+ , siDerived :: Tree String
+ , siRoot    :: TagSite
+ , siFoot    :: Maybe TagSite
+ -- for the debugger only
+ , siGuiStuff :: SimpleGuiItem
  } deriving Show
+
+-- | Things whose only use is within the graphical debugger
+data SimpleGuiItem = SimpleGuiItem
+ { siHighlight :: [String] -- ^ nodes to highlight
+ , siNodes :: [GNode]    -- ^ actually a set
+ -- how was this item produced?
+ , siDerivation :: TagDerivation
+ -- if there are things wrong with this item, what?
+ , siDiagnostic :: [String]
+ , siFullSem :: Sem
+ , siIdname  :: String
+ } deriving Show
+
+modifyGuiStuff :: (SimpleGuiItem -> SimpleGuiItem) -> SimpleItem -> SimpleItem
+modifyGuiStuff fn i = i { siGuiStuff = fn . siGuiStuff $ i }
 
 type ChartId = Integer
 
 instance Replacable SimpleItem where
   replace s i = i { siSubstnodes = replace s (siSubstnodes i)
                   , siAdjnodes   = replace s (siAdjnodes i)
-                  , siTagElem = replace s (siTagElem i) }
+                  , siLeaves  = replace s (siLeaves i)
+                  , siRoot    = replace s (siRoot i)
+                  , siFoot    = replace s (siFoot i)
+                  , siGuiStuff = replace s (siGuiStuff i)
+  }
+
+#ifdef DISABLE_GUI
+instance Replacable SimpleGuiItem where
+ replace _ i = i
+#else
+instance Replacable SimpleGuiItem where
+ replace s i = i { siNodes = replace s (siNodes i) }
+#endif
 \end{code}
 
 \begin{code}
@@ -231,7 +267,7 @@ closed = null.siSubstnodes
 
 -- | True if the chart item is an auxiliary tree
 aux :: SimpleItem -> Bool
-aux t = ((ttype.siTagElem) t == Auxiliar)
+aux = isJust . siFoot
 
 -- | True if both 'closed' and 'aux' are True
 closedAux :: SimpleItem -> Bool
@@ -241,7 +277,7 @@ adjdone :: SimpleItem -> Bool
 adjdone = null.siAdjnodes
 
 siInitial :: SimpleItem -> Bool
-siInitial t = (ttype.siTagElem) t == Initial
+siInitial =  isNothing . siFoot
 \end{code}
 
 % --------------------------------------------------------------------
@@ -275,32 +311,47 @@ initSimpleBuilder twophase input config =
 
 initSimpleItem :: SemBitMap -> (TagElem, BitVector) -> SimpleItem
 initSimpleItem bmap (teRaw,pp) =
- let te = renameNodesWithTidnum teRaw in
+ let (te,tlite) = renameNodesWithTidnum teRaw in
  case (detectSites.ttree) te of
  (snodes,anodes) -> setIaf $ SimpleItem
   { siId        = tidnum te
-  , siTagElem   = te
   , siSemantics = semToBitVector bmap (tsemantics te)
   , siSubstnodes = snodes
   , siAdjnodes   = anodes
   , siPolpaths  = pp
-  , siDiagnostic = []
   -- for index accesibility filtering
   , siAccesible    = [] -- see below
   , siInaccessible = []
-  -- how was this item produced?
-  , siDerivation = (0, [])
-  -- nodes to highlight
-  , siHighlight  = []
   -- for generation sans semantics
   -- , siAdjlist = []
+  , siLeaves  = (map getLeaf).treeLeaves $ theTree
+  , siDerived = tlite
+  , siRoot = ncopy.root $ theTree
+  , siFoot = if ttype te == Initial then Nothing
+             else Just . ncopy.foot $ theTree
+  --
+  , siGuiStuff = initSimpleGuiItem te
   }
   where setIaf i = i { siAccesible = iafNewAcc i }
+        getLeaf n = (gnname n, tagLeaf n)
+        theTree = ttree te
 
-renameNodesWithTidnum :: TagElem -> TagElem
+initSimpleGuiItem :: TagElem -> SimpleGuiItem
+initSimpleGuiItem te = SimpleGuiItem
+ { siHighlight = []
+ , siNodes = flatten.ttree $ te
+ , siDerivation = (0, [])
+ , siDiagnostic = []
+ , siFullSem = tsemantics te
+ , siIdname = idname te }
+
+renameNodesWithTidnum :: TagElem -> (TagElem, Tree NodeName)
 renameNodesWithTidnum te =
-  te { ttree = (mapTree renameNode) . ttree $ te }
-  where renameNode n = n { gnname = gnname n ++ "-" ++ tidstr }
+  ( te { ttree = mapTree renameNode theTree }
+  , mapTree newName theTree )
+  where theTree = ttree te
+        renameNode n = n { gnname = newName n }
+        newName n = gnname n ++ "-" ++ tidstr
         tidstr = show . tidnum $ te
 \end{code}
 
@@ -526,35 +577,27 @@ iapplySubst item1 item2 | siInitial item1 && closed item1 = {-# SCC "applySubsti
  ((TagSite n fu fd) : stail) ->
   let doIt =
        do -- Maybe monad
-          let te1 = siTagElem item1
-              te2 = siTagElem item2
-              --
-              t2 = ttree te2
-              -- root of t1
-              t1 = ttree te1
-              r = root t1
-          (newgup,   subst1) <- unifyFeat (gup r) fu
-          (newgdown, subst2) <- unifyFeat (replace_Flist subst1 $ gdown r)
+          let r@(TagSite rn ru rd) = siRoot item1
+          (newgup,   subst1) <- unifyFeat ru fu
+          (newgdown, subst2) <- unifyFeat (replace_Flist subst1 rd)
                                           (replace_Flist subst1 fd)
           let subst = subst1 ++ subst2
-              -- IMPORTANT: nt1 should be ready for replacement
-              -- (e.g, top features unified, type changed to Other)
-              -- when passed to repSubst
-              nr  = r { gup   = newgup,
-                        -- note that the bot features come from sn, not r!
-                        gdown = newgdown,
-                        gtype = Other }
-              nt1 = rootUpd t1 nr
-              ntree = repSubst n nt1 t2 -- expensive?
-              --
-              adj1  = (ncopy nr) : (delete (ncopy r) $ siAdjnodes item1)
+              nr  = TagSite rn newgup newgdown
+              adj1  = nr : (delete r $ siAdjnodes item1)
               adj2  = siAdjnodes item2
-              newTe = te2{ttree = ntree}
-          return $! replace subst $ combineSimpleItems 's' item1 $
-                     item2 { siTagElem    = newTe
-                           , siSubstnodes = stail ++ (siSubstnodes item1)
+              -- gui stuff
+              newRoot g = g { gup = newgup, gdown = newgdown
+                            , gtype = Other }
+              item1g = item1 { siGuiStuff = g2 }
+                where g2 = g { siNodes = repList (gnnameIs rn) newRoot (siNodes g) }
+                      g  = siGuiStuff item1
+              --
+          return $! replace subst $ combineSimpleItems 's' [rn] item1g $
+                     item2 { siSubstnodes = stail ++ (siSubstnodes item1)
                            , siAdjnodes   = adj2 ++ adj1
-                           , siHighlight  = [gnname nr] }
+                           , siDerived    = plugTree (siDerived item1) n (siDerived item2)
+                           , siLeaves     = (siLeaves item1) ++ (siLeaves item2)
+                           }
   in case doIt of
      Nothing -> return []
      Just x  -> do incrCounter "substitutions" 1
@@ -610,23 +653,26 @@ sansAdjunction item | closed item =
  case siAdjnodes item of
  [] -> return []
  (TagSite gn t b : atail) -> do
-  isGui <- gets (isGraphical . genconfig)
   -- do top/bottom unification on the node
   case unifyFeat t b of
    Nothing ->
-     do when isGui $ addToTrash (item { siHighlight = [gn] }) ts_tbUnificationFailure
+#ifndef DISABLE_GUI
+     do addToTrash (modifyGuiStuff (\g -> g { siHighlight = [gn] }) item)
+                   ts_tbUnificationFailure
+#endif
         return []
-   Just (g2,s) ->
-     let te  = siTagElem item
-         -- there really is no reason to call constrainAdj (except for
-         -- the gui); it's not like we read these anyway
-         te2 = if isGui
-               then te { ttree = constrainAdj gn g2 (ttree te) }
-               else te
-         newItem = replace s $!
-                   item { siTagElem = te2, siHighlight = [gn]
-                        , siAdjnodes = atail }
-     in return $! [newItem]
+#ifdef DISABLE_GUI
+   Just (_,s) ->
+     let item_ = item
+#else
+   Just (tb,s) ->
+     let newGuiItem g =
+           g { siHighlight = [gn]
+             , siNodes = repList (gnnameIs gn) fixIt (siNodes g) }
+           where fixIt n = n { gup = tb, gdown = [], gaconstr = True }
+         item_ = modifyGuiStuff newGuiItem item
+#endif
+     in return $! [replace s $! item_ { siAdjnodes = atail }]
 sansAdjunction _ = return []
 \end{code}
 
@@ -663,54 +709,28 @@ iapplyAdjNode item1 item2 = {-# SCC "iapplyAdjNode" #-}
   -- block repeated adjunctions of the same SimpleItem (for ignore semantics mode)
   -- guard $ not $ (n, siId item1) `elem` (siAdjlist item2)
   -- let's go!
-  let te1 = siTagElem item1
-      te2 = siTagElem item2
-      t1 = ttree te1
-      t2 = ttree te2
-      r = root t1
-      f = foot t1
-      r_up   = gup r    -- top features of the root of the auxiliar tree
-      f_down = gdown f  -- bottom features of the foot of the auxiliar tree
-  (anr_up',   subst1) <- unifyFeat r_up an_up
+  let r@(TagSite r_name r_up r_down) = siRoot item1 -- auxiliary tree, eh?
+  (TagSite f_name f_up f_down) <- siFoot item1 -- should really be an error if fails
+  (anr_up',  subst1)  <- unifyFeat r_up an_up
   (anf_down, subst2)  <- unifyFeat (replace_Flist subst1 f_down) (replace_Flist subst1 an_down)
-  let -- don't forget to propagate the substitution set from the down stuff
-      anr_up = replace_Flist subst2 anr_up'
-      -- combined substitution list and success condition
+  let -- combined substitution list and success condition
       subst12 = subst1++subst2
-      -- the adjoined tree
-      -- -----------------
       -- the result of unifying the t1 root and the t2 an
-      anr = r { gnname = n, -- jackie
-                gup = anr_up,
-                gtype = Other }
+      anr = TagSite r_name (replace_Flist subst2 anr_up') r_down
   -- top and bottom unification on the former foot
-  (anf_merged, subst3) <- unifyFeat (replace_Flist subst12 $ gup f)
+  (_, subst3) <- unifyFeat (replace_Flist subst12 f_up)
                                     (replace_Flist subst2 anf_down)
-  let anf = f { gup = anf_merged,
-                gdown = [],
-                gtype = Other,
-                gaconstr = True }
-      -- calculation of the adjoined tree
-      nt1 = rootUpd t1 anr
-      ntree = repAdj anf n nt1 t2
-
-      -- the new adjunction nodes
-      -- ------------------------
-      -- 1) delete the adjunction site and the aux root node
-      auxlite = delete (ncopy r) $ siAdjnodes item1
-      -- 2) union the remaining adjunction nodes
-      newadjnodes' = ncopy anr : (atail ++ auxlite)
-      -- 3) apply the substitutions
-      nte2 = te2 { ttree = ntree }
+  let -- the new adjunction nodes
+      auxlite = delete r $ siAdjnodes item1
+      newadjnodes = anr : (atail ++ auxlite)
+      -- apply the substitutions
       subst = subst12 ++ subst3
-      res' = replace subst $ combineSimpleItems 'a' item1 $ item2
-               { siTagElem = nte2
-               , siHighlight = map gnname [anr, anf]
+      res' = replace subst $ combineSimpleItems 'a' [r_name, f_name] item1 $ item2
+               { siAdjnodes = newadjnodes
+               , siLeaves  = (siLeaves item1) ++ (siLeaves item2)
+               , siDerived = spliceTree f_name (siDerived item1) n (siDerived item2)
                -- , siAdjlist = (n, (tidnum te1)):(siAdjlist item2)
-               , siAdjnodes = newadjnodes'
                }
-      -- 4) add the new adjunction nodes
-      --    this has to come after 3 so that we don't repeat the subst
   return $! res'
 \end{code}
 
@@ -740,17 +760,28 @@ lookupChart given = do
          ]
 
 -- | Helper function for when chart operations succeed.
-combineSimpleItems :: Char -> SimpleItem -> SimpleItem -> SimpleItem
-combineSimpleItems d item1 item2 = {-# SCC "combineSimpleItems" #-}
+combineSimpleItems :: Char -- ^ operation
+                   -> [NodeName] -- ^ nodes to highlight
+                   -> SimpleItem -> SimpleItem -> SimpleItem
+combineSimpleItems d hi item1 item2 = {-# SCC "combineSimpleItems" #-}
   item2 { siSemantics = (siSemantics item1) .|. (siSemantics item2)
         , siPolpaths  = (siPolpaths  item1) .&. (siPolpaths  item2)
-        -- only used for graphical debugging!
-        , siDerivation = addToDerivation d item1 item2
-        , siTagElem = te2 { tsemantics = combineSem (tsemantics te1) (tsemantics te2) }
-  }
-  where te1 = siTagElem item1
-        te2 = siTagElem item2
-        combineSem s1 s2 = sortSem (s1 ++ s2)
+#ifndef DISABLE_GUI
+        , siGuiStuff  = combineSimpleGuiItems d hi (siGuiStuff item1) (siGuiStuff item2)
+#endif
+        }
+
+#ifndef DISABLE_GUI
+combineSimpleGuiItems :: Char -> [NodeName]
+                      -> SimpleGuiItem -> SimpleGuiItem -> SimpleGuiItem
+combineSimpleGuiItems d hi item1 item2 =
+ item2 { siFullSem = sortSem $ (siFullSem item1) ++ (siFullSem item2)
+       , siDerivation = addToDerivation d item1 item2
+       , siNodes = (siNodes item1) ++ (siNodes item2)
+       , siDiagnostic = (siDiagnostic item1) ++ (siDiagnostic item2)
+       , siHighlight = hi
+       }
+#endif
 \end{code}
 
 \subsubsection{Derivation trees}
@@ -770,11 +801,11 @@ the result of prepending $c_p$ + 1 to every item of $h_c$. The counter $c$ is
 used (uniquely?) in the Gorn address.
 
 \begin{code}
-addToDerivation :: Char -> SimpleItem -> SimpleItem -> TagDerivation
+#ifndef DISABLE_GUI
+addToDerivation :: Char -> SimpleGuiItem -> SimpleGuiItem -> TagDerivation
 addToDerivation op tc tp = {-# SCC "addToDerivation" #-}
   let (cp,hp)  = siDerivation tp
       (_ ,hc)  = siDerivation tc
-      siIdname = idname.siTagElem
       --
       newcp   = cp + 1
       addcp x = (show newcp) ++ "." ++ x
@@ -782,6 +813,7 @@ addToDerivation op tc tp = {-# SCC "addToDerivation" #-}
       --
       newnode = (op, (addcp.siIdname) tc, siIdname tp)
   in (newcp, newnode:(hp++newhc) )
+#endif DISABLE_GUI
 \end{code}
 
 % --------------------------------------------------------------------
@@ -804,7 +836,7 @@ simpleDispatch item =
         isResult x = synComplete x && semComplete x
     let theFilter = condFilter isResult
                       (dpRootCatFailure >--> dpToResults)
-                      (dpTreeLimit >--> dpAux >--> dpToAgenda)
+                      (dpAux >--> dpToAgenda)
     theFilter item
 
 -- FIXME: refactor me later!
@@ -817,22 +849,27 @@ simpleDispatch_1p iaf item =
     let maybeDpIaf = if iaf then dpIafFailure else nullFilter
         theFilter = condFilter isResult
                       (dpRootCatFailure >--> dpToResults)
-                      (dpTreeLimit >--> maybeDpIaf >--> dpToAgenda)
+                      (maybeDpIaf >--> dpToAgenda)
     theFilter item
 
-dpAux, dpTreeLimit, dpToAgenda :: SimpleDispatchFilter
+dpAux, dpToAgenda :: SimpleDispatchFilter
 dpRootCatFailure, dpToResults :: SimpleDispatchFilter
 dpToTrash :: String -> SimpleDispatchFilter
 
 dpToAgenda x  = addToAgenda x  >> return Nothing
 dpToResults x = addToResults x >> return Nothing
+#ifdef DISABLE_GUI
+dpToTrash _ _ = return Nothing
+#else
 dpToTrash m x = addToTrash x m >> return Nothing
+#endif
 
 dpAux item =
   if closedAux item
   then addToAuxAgenda item >> return Nothing
   else return $ Just item
 
+{-
 -- | Dispatches to the trash and returns Nothing if there is a tree
 --   size limit in effect and the item is over that limit.  The
 --   tree size limit is used in 'IgnoreSemantics' mode.
@@ -845,13 +882,15 @@ dpTreeLimit item =
                          return Nothing
                  else return $ Just item
    where ts_overnumTrees l = "Over derivation size of " ++ (show l)
+-}
 
 -- | If the item (ostensibly a result) does not have the correct root
 --   category, return Nothing; otherwise return Just item
 dpRootCatFailure item =
  do config <- gets genconfig
     let rootCats = rootCatsParam config
-    case (gCategory.root.ttree.siTagElem) item of
+        (TagSite _ top _) = siRoot item
+    case gCategory top of
      Just (GConst c) ->
       if null $! intersect c rootCats
          then dpToTrash (ts_wrongRootCategory c rootCats) item
@@ -904,13 +943,18 @@ each automaton.
 
 \begin{code}
 unpackResults :: [SimpleItem] ->  [B.UninflectedSentence]
-unpackResults tes =
-  {- #SCC "unpackResults" -}
-  -- sentence automaton
-  let treeLeaves   = map (tagLeaves.siTagElem) tes
-      sentenceAuts = map listToSentenceAut treeLeaves
-      uninflected  = concatMap automatonPaths sentenceAuts
-  in uninflected
+unpackResults = concatMap unpackResult
+
+unpackResult :: SimpleItem -> [B.UninflectedSentence]
+unpackResult item =
+  let leafMap :: Map.Map String B.UninflectedDisjunction
+      leafMap = Map.fromList . siLeaves $ item
+      lookupOrBug :: NodeName -> B.UninflectedDisjunction
+      lookupOrBug k = case Map.lookup k leafMap of
+                      Nothing -> geniBug $ "unpackResult : could not find node " ++ k
+                      Just w  -> w
+  in automatonPaths . listToSentenceAut $
+     [ lookupOrBug k | k <- (treeLeaves . siDerived) item ]
 \end{code}
 
 \subsection{Sentence automata}

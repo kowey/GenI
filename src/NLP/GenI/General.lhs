@@ -175,6 +175,15 @@ mapMaybeM f (x:xs) =
 	  Just y  -> liftM (y:) (mapMaybeM f xs))
 \end{code}
 
+\begin{code}
+-- | Return the list, modifying only the first matching item.
+repList :: (a->Bool) -> (a->a) -> [a] -> [a]
+repList _ _ [] = []
+repList pr fn (x:xs)
+  | pr x = fn x : xs
+  | otherwise = x : (repList pr fn xs)
+\end{code}
+
 \section{Trees}
 
 \fnlabel{mapTree} is like map, except on Trees.  This has to be

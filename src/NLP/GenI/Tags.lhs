@@ -32,7 +32,7 @@ module NLP.GenI.Tags(
    ts_noRootCategory, ts_wrongRootCategory,
 
    -- Functions from Tags
-   addToTags, tagLeaves,
+   addToTags, tagLeaves, tagLeaf,
 
    -- Functions from TagElem
    setTidnums, 
