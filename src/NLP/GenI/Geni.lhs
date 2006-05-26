@@ -456,7 +456,7 @@ succeed in anchoring it.
 
 \begin{code}
 runLexSelection :: ProgState -> IO ([TagElem], [ILexEntry])
-runLexSelection pst = {- #SCC "runLexSelection" -}
+runLexSelection pst =
  do -- select lexical items first 
     let (tsem,_) = ts pst
         lexicon  = le pst

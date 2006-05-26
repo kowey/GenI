@@ -488,8 +488,8 @@ instance Replacable GeniVal where
   replaceOne (s1, s2) (GVar v_) | v_ == s1 = s2
   replaceOne _ v = v
 
-{- # INLINE replace_ #-}
-{- # INLINE replaceOne_flipped #-}
+{-# INLINE replace_ #-}
+{-# INLINE replaceOne_flipped #-}
 replace_ :: Subst -> GeniVal -> GeniVal
 replace_ sl v = foldl' replaceOne_flipped v sl
 
