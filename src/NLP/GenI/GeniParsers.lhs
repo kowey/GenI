@@ -85,7 +85,7 @@ geniTestCase =
   where
     sentenceParser = 
       do optional (keyword "sentence")
-         w <- squares (sepBy1 geniWord whiteSpace<?> "a sentence") 
+         w <- squares (many1 geniWord <?> "a sentence")
          return (unwords w)
       where geniWord = many1 (noneOf "[]\v\f\t\r\n")
 \end{code}
@@ -152,7 +152,7 @@ Each lexical entry is
 geniLexicon :: Parser [ILexEntry]
 geniLexicon = 
   do whiteSpace
-     l <- sepEndBy1 geniLexicalEntry whiteSpace
+     l <- many1 geniLexicalEntry
      eof
      return l
 
@@ -179,9 +179,9 @@ geniLexicalEntry =
   where 
     paramsParser :: Parser ([GeniVal], Flist)
     paramsParser = do
-      pars <- sepEndBy geniValue whiteSpace <?> "some parameters"
+      pars <- many geniValue <?> "some parameters"
       interface <- option [] $ do symbol "!"
-                                  sepBy geniAttVal whiteSpace 
+                                  many geniAttVal
       return (pars, interface)
 \end{code}
 
@@ -207,13 +207,13 @@ geniMacros =
 
 geniTreeGroup :: Parser [MTtree]
 geniTreeGroup = 
-  do     sepEndBy1 (try $ geniTreeDef $ initType <|> auxType) whiteSpace
+  do     many1 (try $ geniTreeDef $ initType <|> auxType)
      <|> group initType Initial  
      <|> group auxType  Auxiliar
   where 
     group key ty =
       do try $ do { symbol "begin"; key }
-         t <- sepEndBy (try $ geniTreeDef $ option ty key) whiteSpace
+         t <- many (try $ geniTreeDef $ option ty key)
          symbol "end"  ; key 
          return t
 
@@ -285,7 +285,7 @@ n3[cat:vp idx:?Event]![]
 geniTree :: Parser (T.Tree GNode)
 geniTree = 
   do node <- geniNode
-     kids <- option [] (braces $ sepEndBy geniTree whiteSpace) 
+     kids <- option [] (braces $ many geniTree)
              <?> "child nodes"
      return (T.Node node kids)
 
@@ -326,7 +326,7 @@ geniNode =
     adjConstraintParser = option False $ do { symbol "aconstr:noadj"; return True }
     topbotParser = option ([],[]) $ try $ 
       do top <- geniFeats <?> "top features" 
-         whiteSpace; symbol "!"
+         symbol "!"
          bot <- geniFeats <?> "bot features"
          return (top,bot)
 \end{code}
@@ -345,7 +345,7 @@ some of our helper functions if you want that functionality.
 geniTagElems :: Parser [TagElem]
 geniTagElems =
  do whiteSpace
-    tt <- sepBy geniTagElem whiteSpace
+    tt <- many geniTagElem
     eof
     return $ setTidnums tt
 
@@ -481,14 +481,12 @@ details about what the values look like.
 
 \begin{code}
 geniFeats :: Parser Flist
-geniFeats = option [] $ squares $ sepEndBy geniAttVal whiteSpace 
+geniFeats = option [] $ squares $ many geniAttVal
 
 geniAttVal :: Parser AvPair
 geniAttVal = do
   att <- identifier <?> "an attribute"; colon 
-  whiteSpace
   val <- geniValue <?> "a GenI value"
-  whiteSpace
   return (att, val)
 \end{code}
 
@@ -503,8 +501,8 @@ bang seperator.
 \begin{code}
 geniParams :: Parser ([GeniVal], Flist)
 geniParams = parens $ do
-  pars <- sepEndBy geniValue whiteSpace <?> "some parameters"
-  interface <- option [] $ do { symbol "!"; sepBy geniAttVal whiteSpace }
+  pars <- many geniValue <?> "some parameters"
+  interface <- option [] $ do { symbol "!"; many geniAttVal }
   return (pars, interface)
 \end{code}
 
@@ -534,7 +532,7 @@ geniLiteral =
      --
      return (handle, predicate, pars)
   where handleParser =  
-          try $ do { h <- geniValue ; whiteSpace; char ':' ; return h } 
+          try $ do { h <- geniValue ; char ':' ; return h }
 \end{code}
 
 \subsection{Lexical semantics}
@@ -560,7 +558,7 @@ geniLexLiteral =
          literal = (handle, predicate, pars)
      return (literal, hpol:pols)
   where handleParser =  
-          try $ do { h <- geniPolValue; whiteSpace; colon; return h } 
+          try $ do { h <- geniPolValue; colon; return h }
 
 geniPolValue :: Parser (GeniVal, Int)
 geniPolValue = 
@@ -592,12 +590,14 @@ geniValue =   ((try $ anonymous) <?> "_ or ?_")
           <|> (variable   <?> "a variable")
   where 
     question = "?"
-    geniId = many1 (alphaNum <|> oneOf "+-_") 
+    geniId =
+      do v <- many1 (alphaNum <|> oneOf "+-_")
+         whiteSpace
+         return v
     --
     constants :: Parser GeniVal 
     constants = 
       do c <- sepBy1 geniId (symbol "|")
-         whiteSpace 
          return (GConst c)
     variable :: Parser GeniVal
     variable = 
