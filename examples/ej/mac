@@ -23,12 +23,9 @@ vArity1:IntrV(?Event ?Agent ! agr:?A) initial
 	n1[cat:s idx:?Event]![]
 	{	
 	 n2 type:subst [cat:np idx:?Agent]![]
-	 n3[cat:vp idx:?Event]![]
+	 n3 [cat:vp idx:?Event]![]
 	  {
-	   n4 aconstr:noadj [cat:v idx:?Event]![]
-	   {
-	    n5 anchor
-	   }
+	   n4 anchor [cat:v idx:?Event]![]
 	  }
 	}
 
@@ -38,10 +35,7 @@ vArity2:TrV(?Event ?Agent ?Experiencer ! agr:?A) initial
 	 n2 type:subst [cat:np idx:?Agent ]![]
 	 n3[cat:vp idx:?Event]![]
 	  {
-	   n4[cat:v idx:?Event]![]
-	   {
-	    n5 anchor
-	   }
+	   n4 anchor [cat:v idx:?Event]![]
 	   n6 type:subst [cat:np idx:?Experiencer ]![]
 	  }
 	}
@@ -52,10 +46,7 @@ vArity3:TrVPP(?Event ?Agent ?Theme ?Loc ! agr:?A) initial
 	  n2 type:subst [cat:np idx:?Agent ]![]
 	  n3[cat:vp idx:?Event]![]
 	  {
-	    n4[cat:v idx:?Event]![]
-	    {
-	      n5 anchor
-	    }
+	    n4 anchor [cat:v idx:?Event]![]
 	    n6 type:subst [cat:np idx:?Theme ]![]
 	    n7 aconstr:noadj [cat:pp]![]
             {
@@ -71,37 +62,25 @@ vArity3:TrVPP(?Event ?Agent ?Theme ?Loc ! agr:?A) initial
 Dp(?Entity ! agr:?A) initial
 	n1[cat:np idx:?Entity]![]
 	{
-	  n2[cat:det]![]
-	  {
-	    n3 anchor
-	  }
+	  n2 anchor [cat:det]![]
 	  n4 type:subst [cat:n idx:?Entity ]![]
 	}
 
 Pn(?Entity ! agr:?A) initial
 	n1[cat:np idx:?Entity]![]
 	{
-	 n2[cat:pn idx:?Entity]![]
-	 {
-	  n3 anchor
-	 }
+	 n2 anchor [cat:pn idx:?Entity]![]
 	}
 
 Cn(?Entity ! agr:?A) initial
-	n1[cat:n idx:?Entity]![]
-	{
-	 n2 anchor
-	}
+	n1 anchor [cat:n idx:?Entity]![]
 
 %% ?AUXILIARY ?TREES
 
 Adj(?Entity) auxiliary
 	n1[cat:n idx:?Entity]![]
 	{
-	  n2[cat:adj]![]
-	  {
-	    n3 anchor
-	  }
+	  n2 anchor [cat:adj]![]
 	  n4 type:foot [cat:n idx:?Entity ]![]
 	}
 
@@ -109,8 +88,5 @@ Adv(?Event) auxiliary
 	n1[cat:vp idx:?Event]![]
 	{
 	  n2 type:foot [cat:vp idx:?Event]![]
-	  n3[cat:adv]![]
-	  {
-	    n4 anchor
-	  }
+	  n3 anchor [cat:adv]![]
 	}	
