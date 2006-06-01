@@ -32,9 +32,11 @@ that batch-test GenI.
 module Main (main) where
 
 import NLP.GenI.Btypes
+import NLP.GenI.General(snd3)
 import NLP.GenI.GeniParsers(geniTestSuite)
 
 import Control.Monad(when)
+import Data.List(nubBy)
 import System.Directory
 import System.Environment
 import System.Exit(exitFailure)
@@ -58,9 +60,14 @@ main =
         outdir    = argv !! 1
     -- parse the test suite
     parsed <- parseFromFile geniTestSuite tfilename 
-    suite  <- case parsed of
+    suite' <- case parsed of
                Left  err     -> fail (show err)
                Right entries -> return entries 
+    -- process the suite
+    -- (for now, just remove redundant entries)
+    let sortSemOnly (sem,res) = (sortSem sem, res)
+        semOf x = sortSemOnly.snd3 $ x
+        suite = nubBy (\x y -> semOf x == semOf y) suite'
     -- write stuff to the output directory
     createDirectoryIfMissing False outdir
     mapM (createSubdir outdir) suite
