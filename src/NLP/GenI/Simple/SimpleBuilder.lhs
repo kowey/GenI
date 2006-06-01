@@ -490,25 +490,40 @@ step is then changed to Auxiliary
 switchToAux :: SimpleState ()
 switchToAux = do
   st <- get
-  let chart = theChart st
+  let chart  = theChart st
+      config = genconfig st
       -- You might be wondering why we ignore the auxiliary trees in the
       -- chart; this is because all the syntactically complete auxiliary
       -- trees have already been filtered away by calls to classifyNew
       initialT  = filter siInitial chart
-      (compT, incompT) = partition (null.siSubstnodes) initialT
-      auxAgenda = theAuxAgenda st
+      res1@(compT1, incompT1) =
+         if substfiltered config
+         then partition (null.siSubstnodes) initialT
+         else (initialT, [])
       --
-      filteredT = semfilter (tsem st) auxAgenda compT
-      initial = if (semfiltered $ genconfig st)
-                then filteredT else compT
+      auxAgenda = theAuxAgenda st
+      (compT2, incompT2) =
+        if semfiltered config
+        then semfilter (tsem st) auxAgenda compT1
+        else res1
+      --
+      compT = compT2
+  put st{ theAgenda = []
+        , theAuxAgenda = []
+        , theChart = auxAgenda
+        , step = Auxiliar}
+  -- the root cat filter by Claire
+  let switchFilter =
+        if rootcatfiltered config
+        then dpRootCatFailure >--> dpToAgenda
+        else dpToAgenda
+  mapM switchFilter compT
   -- toss the syntactically incomplete stuff in the trash
 #ifndef DISABLE_GUI
-  mapM (\t -> addToTrash t ts_synIncomplete) incompT
+  mapM (\t -> addToTrash t ts_synIncomplete) incompT1
+  mapM (\t -> addToTrash t "sem-filtered") incompT2
+  return ()
 #endif
-  put st{theAgenda = initial,
-         theAuxAgenda = [],
-         theChart = auxAgenda,
-         step = Auxiliar}
 \end{code}
 
 \subsubsection{SemFilter Optimisation}
@@ -539,7 +554,7 @@ FIXME: comment 2006-04-18: sem filter each polarity path separately (this is
 more aggressive; it gives us much more filtering)
 
 \begin{code}
-semfilter :: BitVector -> [SimpleItem] -> [SimpleItem] -> [SimpleItem]
+semfilter :: BitVector -> [SimpleItem] -> [SimpleItem] -> ([SimpleItem], [SimpleItem])
 semfilter inputsem auxs initial =
   let auxsem x = foldl' (.|.) 0 [ siSemantics a | a <- auxs, siPolpaths a .&. siPolpaths x /= 0 ]
       -- lite, here, means sans auxiliary semantics
@@ -548,7 +563,7 @@ semfilter inputsem auxs initial =
       -- note that we can't just compare against siSemantics because
       -- that would exclude trees that have stuff in the aux semantics
       -- which would be overzealous
-  in filter notjunk initial
+  in partition notjunk initial
 \end{code}
 
 % --------------------------------------------------------------------

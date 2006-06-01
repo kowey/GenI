@@ -25,7 +25,8 @@ module NLP.GenI.Configuration
   ( Params(..), GrammarType(..), BuilderType(..), Switch(..)
   , mainBuilderTypes
   , polarised, predicting
-  , semfiltered, isIaf
+  , rootcatfiltered, substfiltered, semfiltered,
+  , isIaf
   , isBatch, emptyParams
   , treatArgs, treatArgsWithParams, optBatch
   )
@@ -117,11 +118,14 @@ data Params = Prms{
 hasOpt :: Switch -> Params -> Bool
 hasOpt o p = o `elem` (optimisations p)
 
-polarised, isIaf, predicting, semfiltered, isBatch :: Params -> Bool
+polarised, isIaf, predicting, isBatch :: Params -> Bool
+rootcatfiltered, semfiltered, substfiltered :: Params -> Bool
 polarised    = hasOpt PolarisedTok
 isIaf        = hasOpt IafTok
 predicting   = hasOpt PredictingTok
 semfiltered  = hasOpt SemFilteredTok
+substfiltered = hasOpt SubstFilteredTok
+rootcatfiltered = hasOpt RootCatFilteredTok
 isBatch      = hasOpt BatchTok
 \end{code}
 
@@ -206,9 +210,9 @@ data Switch =
     RootCategoriesTok String | 
     -- optimisations
     OptimisationsTok String   | PolOptsTok | AdjOptsTok |
-    PolarisedTok | PolSigTok  | PredictingTok |
+    PolarisedTok | PredictingTok |
     ExtraPolaritiesTok String |
-    SemFilteredTok |
+    RootCatFilteredTok | SubstFilteredTok | SemFilteredTok |
     IafTok {- one phase only! -} |
     BatchTok | RepeatTok String | 
     -- the WeirdTok exists strictly to please OS X when you launch
@@ -302,7 +306,10 @@ optimisationCodes =
  [ (PolarisedTok   , "p",      "polarity filtering")
  , (PolOptsTok  , "pol",    "equivalent to 'p'")
  , (AdjOptsTok  , "adj",    "equivalent to 'S F'")
- , (SemFilteredTok , "S",      "semantic filtering")
+ , (SemFilteredTok , "S",      "semantic filtering (same as f-sem)")
+ , (SemFilteredTok , "f-sem",      "semantic filtering (two-phase only)")
+ , (SubstFilteredTok, "f-sub",     "filtering on substitutions (two-phase only)")
+ , (RootCatFilteredTok, "f-root",  "filtering on root node (two-phase only)")
  , (IafTok, "i", "index accesibility filtering (one-phase only)")
  , (BatchTok,          "batch", "batch processing") ]
 \end{code}
@@ -339,8 +346,8 @@ It shows a table of optimisation codes and their meaning.
 \begin{code}
 optimisationsUsage :: String
 optimisationsUsage = 
-  let polopts  = [PolOptsTok, PolarisedTok, PolSigTok]
-      adjopts  = [AdjOptsTok, SemFilteredTok]
+  let polopts  = [PolOptsTok, PolarisedTok]
+      adjopts  = [AdjOptsTok, SubstFilteredTok, RootCatFilteredTok, SemFilteredTok]
       unlinesTab l = concat (intersperse "\n  " l)
       getstr k = case find (\x -> k == fst3 x) optimisationCodes of 
                    Just (_, code, desc) -> code ++ " - " ++ desc
