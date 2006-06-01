@@ -24,25 +24,48 @@ module Main (main) where
 
 import Data.List (intersperse)
 import System (ExitCode(ExitFailure), exitWith, getArgs, getProgName)
+import System.Console.GetOpt(OptDescr(Option), ArgDescr(ReqArg), usageInfo, getOpt, ArgOrder(Permute))
 import System.IO(getContents)
 import Text.ParserCombinators.Parsec
 
 import NLP.GenI.Btypes (Macros,pfamily,MTtree)
-import NLP.GenI.General (ePutStrLn)
+import NLP.GenI.General (ePutStrLn, toUpperHead)
 import NLP.GenI.GeniParsers (geniMacros)
 import NLP.GenI.Treeprint (toGeniHand, hsShow)
 import NLP.GenI.Converter.ReadTagml (readTagmlMacros)
+
+data Flag = FromTok String | ToTok String | StemTok String
+
+options :: [OptDescr Flag]
+options =
+  [ Option "f" ["from"] (ReqArg FromTok "FILE") "tagml|geni"
+  , Option "t" ["to"]   (ReqArg ToTok "FILE")   "haskell|geni"
+  , Option "s" ["stem"]  (ReqArg StemTok "STRING")  "prefix to use for output files (if -t haskell)"  ]
+
+data InputParams = InputParams { fromArg :: Maybe String
+                               , toArg   :: Maybe String
+                               , stemArg :: Maybe String }
+
+toInputParams :: [Flag] -> InputParams
+toInputParams [] = InputParams Nothing Nothing Nothing
+toInputParams (FromTok x : n) = (toInputParams n) { fromArg = Just x }
+toInputParams (ToTok x : n)   = (toInputParams n) { toArg = Just x }
+toInputParams (StemTok x : n)  = (toInputParams n) { stemArg = Just x }
 
 main :: IO ()
 main =
  do args <- getArgs
     progname <- getProgName
-    case args of
-      ["-f", f, "-t", t] -> readMacros f >>= writeMacros t
-      _ -> showUsage progname
+    case getOpt Permute options args of
+     (o,_,[]  ) -> let (InputParams mf mt s) = toInputParams o in
+                   case (mf, mt) of
+                   (Just f, Just t) -> readMacros f >>= writeMacros t s
+                   _                -> showUsage progname
+     _ -> showUsage progname
  where
   showUsage p =
-    do ePutStrLn ("usage: " ++ p ++ " -f [tagml|geni] -t [haskell|geni] < input > output")
+    do let header = "usage: " ++ p ++ " -f [tagml|geni] -t [haskell|geni] < input > output"
+       ePutStrLn $ usageInfo header options
        exitWith (ExitFailure 1)
 
 readMacros :: String -> IO Macros
@@ -57,26 +80,64 @@ readMacros f =
                 Right  c -> return c
      _       -> fail ("Unknown -f type: " ++ f)
 
-writeMacros :: String -> Macros -> IO ()
-writeMacros ty ms =
- putStrLn $ case ty of
-            "haskell" -> unlines $ [ "module MyGeniGrammar(myGeniGrammar) where"
-                                   , "import Data.Tree"
-                                   , "import NLP.GenI.Btypes"
-                                   , ""
-                                   , (uncommas $ map valName tpairs) ++ " :: MTtree"
-                                   , "" ] ++
+writeMacros :: String -> Maybe String -> Macros -> IO ()
+writeMacros ty mf ms =
+ case ty of
+ "haskell" ->
+   case mf of
+    Nothing -> ePutStrLn $ "Can't write haskell to stdout (Please provide a stem)."
+    Just f  -> writeHaskell f ms
+ "geni"    ->
+   case mf of
+    Nothing -> putStrLn stuff
+    Just f  -> writeFile f stuff
+   where stuff = unlines $ map toGeniHand ms
+ _         -> fail ("Unknown -t type" ++ ty)
 
-                                   (intersperse "" $ map (\ (i,t) -> valName (i,t) ++ " = " ++ hsShow t) tpairs) ++
+writeHaskell :: String -> Macros -> IO ()
+writeHaskell rawStem ms =
+ do let tpairs = zip [1::Integer ..] ms
+        stem   = toUpperHead rawStem
+    -- write the sub files
+    let chunks   = everyN 15 tpairs
+        chunkIds = take (length chunks) [1::Int ..]
+    sequence $ zipWith (writeChunk stem) chunkIds chunks
+    -- write the main file
+    writeFile (stem ++ ".hs") $ unlines $
+      [ "module " ++ stem ++ "(myGeniGrammar) where"
+      , "import NLP.GenI.Btypes"
+      , "" ] ++
+      map (\i -> "import " ++ stem ++ (show i)) chunkIds ++
+      [ ""
+      , "myGeniGrammar :: [MTtree]"
+      , "myGeniGrammar = "
+      , " [" ++ (uncommas $ map valName tpairs)
+      , " ]" ]
 
-                                   [ ""
-                                   , "myGeniGrammar :: [MTtree]"
-                                   , "myGeniGrammar = "
-                                   , " [" ++ (uncommas $ map valName tpairs)
-                                   , " ]" ]
-                         where uncommas = concat . (intersperse ", ")
-                               tpairs :: [(Integer,MTtree)]
-                               tpairs = zip [1..] ms
-                               valName (i,t) = "t" ++ (show i) ++ "_" ++ (pfamily t)
-            "geni"    -> unlines $ map toGeniHand ms
-            _         -> fail ("Unknown -t type" ++ ty)
+writeChunk :: String -> Int -> [(Integer,MTtree)] -> IO ()
+writeChunk stem n tps =
+ let filename   = stem ++ (show n) ++ ".hs"
+     modulename = stem ++ (show n)
+     treenames  = uncommas $ map valName tps
+ in  writeFile filename $
+     unlines $ [ "module " ++ modulename ++ "(" ++ treenames ++ ") where"
+               , "import Data.Tree"
+               , "import NLP.GenI.Btypes"
+               , ""
+               , treenames ++ " :: MTtree"
+               , "" ] ++
+               (intersperse "" $ map (\ (i,t) -> valName (i,t) ++ " = " ++ hsShow t) tps)
+
+valName :: (Integer, MTtree) -> String
+valName (i,t) = "t" ++ (show i) ++ "_" ++ (pfamily t)
+
+-- | Break a list up in to n sized chunks; the last element of the list might
+--   be somewhat smaller, eh?
+everyN :: Int -> [a] -> [[a]]
+everyN n xs
+ | length xs < n = [xs]
+ | otherwise     = take n xs : (everyN n $ drop n xs)
+
+
+uncommas :: [String] -> String
+uncommas = concat . (intersperse ", ")
