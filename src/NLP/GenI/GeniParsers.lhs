@@ -85,7 +85,7 @@ geniTestCase =
   where
     sentenceParser = 
       do optional (keyword "sentence")
-         w <- squares (many1 geniWord <?> "a sentence")
+         w <- squares (sepBy1 geniWord whiteSpace <?> "a sentence")
          return (unwords w)
       where geniWord = many1 (noneOf "[]\v\f\t\r\n")
 \end{code}
