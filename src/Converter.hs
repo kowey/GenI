@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 module Main (main) where
 
+import Control.Monad (liftM)
 import Data.List (intersperse)
 import System (ExitCode(ExitFailure), exitWith, getArgs, getProgName)
 import System.Console.GetOpt(OptDescr(Option), ArgDescr(ReqArg), usageInfo, getOpt, ArgOrder(Permute))
@@ -57,10 +58,11 @@ main =
  do args <- getArgs
     progname <- getProgName
     case getOpt Permute options args of
-     (o,_,[]  ) -> let (InputParams mf mt s) = toInputParams o in
-                   case (mf, mt) of
-                   (Just f, Just t) -> readMacros f >>= writeMacros t s
-                   _                -> showUsage progname
+     (o,fs,[]  ) ->
+       let (InputParams mf mt s) = toInputParams o in
+       case (mf, mt) of
+         (Just f, Just t) -> readMacros f fs >>= writeMacros t s
+         _                -> showUsage progname
      _ -> showUsage progname
  where
   showUsage p =
@@ -68,17 +70,26 @@ main =
        ePutStrLn $ usageInfo header options
        exitWith (ExitFailure 1)
 
-readMacros :: String -> IO Macros
-readMacros f =
- do lf <- getContents
-    case f of
-     "tagml" -> case readTagmlMacros lf of
-                Left err -> fail err
-                Right  c -> return c
-     "geni"  -> case parse geniMacros "" lf of
-                Left err -> fail (show err)
-                Right  c -> return c
-     _       -> fail ("Unknown -f type: " ++ f)
+readMacros :: String -> [FilePath] -> IO Macros
+readMacros f fs =
+ let reader = case f of
+             "tagml" -> tagmlReader
+             "geni"  -> geniReader
+             _       -> fail ("Unknown -f type: " ++ f)
+ in if null fs then getContents >>= reader
+    else liftM concat $ mapM (\x -> readFile x >>= reader) fs
+
+tagmlReader :: String -> IO Macros
+tagmlReader lf =
+  case readTagmlMacros lf of
+  Left err -> fail err
+  Right  c -> return c
+
+geniReader :: String -> IO Macros
+geniReader lf =
+  case parse geniMacros "" lf of
+  Left err -> fail (show err)
+  Right  c -> return c
 
 writeMacros :: String -> Maybe String -> Macros -> IO ()
 writeMacros ty mf ms =
