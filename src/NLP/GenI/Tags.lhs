@@ -45,12 +45,12 @@ module NLP.GenI.Tags(
 
 \ignore{
 \begin{code}
-import Data.Char(toUpper)
 import qualified Data.Map as Map
 import Data.List (intersperse)
 import Data.Tree
 
 import NLP.GenI.Btypes (Ptype(Initial, Auxiliar), SemPols,
+               fromGConst, isConst,
                GNode(gup, glexeme, gnname, gaconstr, gdown, gtype),
                GType(Subs), Flist,
                Replacable(..), replace_Flist,
@@ -287,8 +287,8 @@ tagLeaves = (map tagLeaf) . treeLeaves . ttree
 tagLeaf :: GNode -> ([String],Flist)
 tagLeaf node = 
   let guppy  = gup node
-      grab la = [ (map toUpper) . show $ v | (a,v) <- guppy, a == la ]
-      lastResort = case concatMap grab lexemeAttributes of
+      grab la = [ fromGConst v | (a,v) <- guppy, a == la && isConst v ]
+      lastResort = case concat $ concatMap grab lexemeAttributes of
                    [] -> [gnname node]
                    x  -> x
       output = case glexeme node of
