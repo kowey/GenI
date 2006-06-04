@@ -47,13 +47,12 @@ where
 
 \ignore{
 \begin{code}
-import Control.Monad (when, liftM, liftM2)
-
+import Control.Monad (when, liftM2)
 import Control.Monad.State
   (get, put, modify, gets)
 
 import Data.List (intersect, partition, delete, foldl')
-import Data.Maybe (catMaybes, isJust, isNothing)
+import Data.Maybe (isJust, isNothing)
 import Data.Bits
 import qualified Data.Map as Map
 import Data.Tree
@@ -69,7 +68,7 @@ import NLP.GenI.Btypes
   , GeniVal(GConst)
   , root, foot
   , plugTree, spliceTree
-  , unifyFeat, Flist,
+  , unifyFeat, Flist, Subst,
   )
 import NLP.GenI.Builder (UninflectedSentence,
     incrCounter, num_iterations, num_comparisons, chart_size,
@@ -226,6 +225,8 @@ data SimpleItem = SimpleItem
  , siDerived :: Tree String
  , siRoot    :: TagSite
  , siFoot    :: Maybe TagSite
+ --
+ , siPendingTb :: [ TagSite ] -- only for one-phase
 #ifndef DISABLE_GUI
  -- for the debugger only
  , siGuiStuff :: SimpleGuiItem
@@ -257,6 +258,7 @@ instance Replacable SimpleItem where
                   , siLeaves  = replace s (siLeaves i)
                   , siRoot    = replace s (siRoot i)
                   , siFoot    = replace s (siFoot i)
+                  , siPendingTb = replace s (siPendingTb i)
 #ifndef DISABLE_GUI
                   , siGuiStuff = replace s (siGuiStuff i)
 #endif
@@ -341,6 +343,7 @@ initSimpleItem bmap (teRaw,pp) =
   , siRoot = ncopy.root $ theTree
   , siFoot = if ttype te == Initial then Nothing
              else Just . ncopy.foot $ theTree
+  , siPendingTb = []
   --
 #ifndef DISABLE_GUI
   , siGuiStuff = initSimpleGuiItem te
@@ -395,7 +398,7 @@ generateStep_1p =
                applySubstitution1p given >>= dispatch
                passiveAdjunction1p given >>= dispatch
                activeAdjunction1p  given >>= dispatch
-               sansAdjunction      given >>= dispatch
+               sansAdjunction1p    given >>= dispatch
                -- determine which of the res should go in the agenda
                -- (monadic state) and which should go in the result (res')
                addToChart given
@@ -444,7 +447,7 @@ generateStep_2p' =
      -- do either substitution or adjunction
      res <- if (curStep == Initial)
             then applySubstitution given
-            else liftM2 (++) (sansAdjunction given) (applyAdjunction given)
+            else liftM2 (++) (sansAdjunction2p given) (applyAdjunction2p given)
 
      -- determine which of the res should go in the agenda
      -- (monadic state) and which should go in the result (res')
@@ -586,18 +589,18 @@ possible substitutions between it and the elements in Chart
 applySubstitution :: SimpleItem -> SimpleState ([SimpleItem])
 applySubstitution item =
  do gr <- lookupChart item
-    active  <- mapM (\x -> iapplySubst item x) gr
-    passive <- mapM (\x -> iapplySubst x item) gr
+    active  <- mapM (\x -> iapplySubst True item x) gr
+    passive <- mapM (\x -> iapplySubst True x item) gr
     let res = concat $ active ++ passive
     incrCounter num_comparisons (2 * (length gr))
     return res
 
 applySubstitution1p :: SimpleItem -> SimpleState ([SimpleItem])
-applySubstitution1p item | (not.adjdone) item = return []
 applySubstitution1p item =
  do gr <- lookupChart item
-    active  <- mapM (\x -> iapplySubst item x) gr
-    passive <- mapM (\x -> iapplySubst x item) $ filter adjdone gr
+    active  <- if adjdone item then return []
+               else mapM (\x -> iapplySubst False item x) gr
+    passive <- mapM (\x -> iapplySubst False x item) $ filter adjdone gr
     let res = concat $ active ++ passive
     incrCounter num_comparisons (2 * (length gr))
     return res
@@ -605,24 +608,23 @@ applySubstitution1p item =
 -- | Note: returns ONE possible substitution (the head node)
 --   of the first in the second.  As all substitutions nodes should
 --   be substituted we force substitution in order.
-iapplySubst :: SimpleItem -> SimpleItem -> SimpleState [SimpleItem]
-iapplySubst item1 item2 | siInitial item1 && closed item1 = {-# SCC "applySubstitution" #-}
+iapplySubst :: Bool -> SimpleItem -> SimpleItem -> SimpleState [SimpleItem]
+iapplySubst twophase item1 item2 | siInitial item1 && closed item1 = {-# SCC "applySubstitution" #-}
  case siSubstnodes item2 of
  [] -> return []
  ((TagSite n fu fd) : stail) ->
   let doIt =
        do -- Maybe monad
           let r@(TagSite rn ru rd) = siRoot item1
-          (newgup,   subst1) <- unifyFeat ru fu
-          (newgdown, subst2) <- unifyFeat (replace_Flist subst1 rd)
-                                          (replace_Flist subst1 fd)
+          (newU, subst1) <- unifyFeat ru fu
+          (newD, subst2) <- unifyFeat (replace_Flist subst1 rd)
+                                      (replace_Flist subst1 fd)
           let subst = subst1 ++ subst2
-              nr  = TagSite rn newgup newgdown
+              nr    = TagSite rn newU newD
               adj1  = nr : (delete r $ siAdjnodes item1)
               adj2  = siAdjnodes item2
               -- gui stuff
-              newRoot g = g { gup = newgup, gdown = newgdown
-                            , gtype = Other }
+              newRoot g = g { gup = newU, gdown = newD, gtype = Other }
 #ifdef DISABLE_GUI
               item1g = item1
 #else
@@ -630,17 +632,20 @@ iapplySubst item1 item2 | siInitial item1 && closed item1 = {-# SCC "applySubsti
                 where g2 = g { siNodes = repList (gnnameIs rn) newRoot (siNodes g) }
                       g  = siGuiStuff item1
 #endif
+          let pending = if twophase then []
+                        else nr : ((siPendingTb item1) ++ (siPendingTb item2))
           return $! replace subst $ combineSimpleItems 's' [rn] item1g $
                      item2 { siSubstnodes = stail ++ (siSubstnodes item1)
                            , siAdjnodes   = adj2 ++ adj1
                            , siDerived    = plugTree (siDerived item1) n (siDerived item2)
                            , siLeaves     = (siLeaves item1) ++ (siLeaves item2)
+                           , siPendingTb  = pending
                            }
   in case doIt of
      Nothing -> return []
      Just x  -> do incrCounter "substitutions" 1
                    return [x]
-iapplySubst _ _ = return []
+iapplySubst _ _ _ = return []
 \end{code}
 
 % --------------------------------------------------------------------
@@ -650,44 +655,59 @@ iapplySubst _ _ = return []
 \label{sec:foot_constraint}
 % ---------------------------------------------------------------
 
-\paragraph{applyAdjunction} Given a SimpleItem, it returns the list of all
+\paragraph{applyAdjunction2p} Given a SimpleItem, it returns the list of all
 possible adjunctions between it and the elements in Chart.
 The Chart contains Auxiliars, while SimpleItem is an Initial
 
 Note: as of 13 april 2005 - only uses ordered adjunction as described in
 \cite{kow04a}
 \begin{code}
-applyAdjunction :: SimpleItem -> SimpleState ([SimpleItem])
-applyAdjunction item = {-# SCC "applyAdjunction" #-}
+applyAdjunction2p :: SimpleItem -> SimpleState ([SimpleItem])
+applyAdjunction2p item = {-# SCC "applyAdjunction2p" #-}
  do gr <-lookupChart item
     incrCounter num_comparisons (length gr)
-    mapMaybeM (\a -> tryAdj a item) gr
+    mapMaybeM (\a -> tryAdj True a item) gr
 
 passiveAdjunction1p :: SimpleItem -> SimpleState [SimpleItem]
 passiveAdjunction1p item | closed item && siInitial item =
   do gr <- lookupChart item
-     catMaybes `liftM` (mapM (\a -> tryAdj a item) $ filter validAux gr)
+     mapMaybeM (\a -> tryAdj False a item) $ filter validAux gr
 passiveAdjunction1p _ = return []
 
 activeAdjunction1p :: SimpleItem -> SimpleState [SimpleItem]
 activeAdjunction1p item | validAux item =
   do gr <- lookupChart item
-     catMaybes `liftM` (mapM (\p -> tryAdj item p) $ filter (\x -> siInitial x && closed x) gr)
+     mapMaybeM (\p -> tryAdj False item p) $ filter (\x -> siInitial x && closed x) gr
 activeAdjunction1p _ = return []
 
 validAux :: SimpleItem -> Bool
 validAux t = closedAux t && adjdone t
 
-tryAdj :: SimpleItem -> SimpleItem -> SimpleState (Maybe SimpleItem)
-tryAdj aItem pItem =
-  case iapplyAdjNode aItem pItem of
-  Just x  -> do incrCounter "adjunctions" 1
-                return $ Just x
-  Nothing -> return Nothing
+tryAdj :: Bool -> SimpleItem -> SimpleItem -> SimpleState (Maybe SimpleItem)
+tryAdj twophase aItem pItem =
+ do case iapplyAdjNode twophase aItem pItem of
+     Just x  -> do incrCounter "adjunctions" 1
+                   return $ Just x
+     Nothing -> return Nothing
+\end{code}
+
+Note that in the one-phase variant of non-adjunction, we can't do top/bot
+unification on the fly, because afaik we can't tell that a node will never
+be revisited.  One example of this is if you try to adjoin into the root
+
+\begin{code}
+-- | Ignore the next adjunction node
+sansAdjunction1p, sansAdjunction2p :: SimpleItem -> SimpleState [SimpleItem]
+sansAdjunction1p item | closed item =
+ case siAdjnodes item of
+ [] -> return []
+ (ahead : atail) ->
+   return $ [item { siAdjnodes = atail
+                  , siPendingTb = ahead : (siPendingTb item) } ]
+sansAdjunction1p _ = return []
 
 -- | Ignore the next adjunction node
-sansAdjunction :: SimpleItem -> SimpleState [SimpleItem]
-sansAdjunction item | closed item =
+sansAdjunction2p item | closed item =
  case siAdjnodes item of
  [] -> return []
  (TagSite gn t b : atail) -> do
@@ -699,19 +719,17 @@ sansAdjunction item | closed item =
                    ts_tbUnificationFailure
 #endif
         return []
-#ifdef DISABLE_GUI
-   Just (_,s) ->
-     let item_ = item
-#else
    Just (tb,s) ->
-     let newGuiItem g =
-           g { siHighlight = [gn]
-             , siNodes = repList (gnnameIs gn) fixIt (siNodes g) }
-           where fixIt n = n { gup = tb, gdown = [], gaconstr = True }
-         item_ = modifyGuiStuff newGuiItem item
+     let item1 = if isRootOf item gn
+                 then item { siRoot = TagSite gn tb [] }
+                 else item
+#ifdef DISABLE_GUI
+         item2 = item1
+#else
+         item2 = modifyGuiStuff (constrainAdj gn tb) item1
 #endif
-     in return $! [replace s $! item_ { siAdjnodes = atail }]
-sansAdjunction _ = return []
+     in return $! [replace s $! item2 { siAdjnodes = atail }]
+sansAdjunction2p _ = return []
 \end{code}
 
 The main work for adjunction is done in the helper function below
@@ -739,37 +757,58 @@ with \texttt{anr} and \texttt{anf}\footnote{\texttt{anf} is only added
 if the foot node constraint is disabled}.
 
 \begin{code}
-iapplyAdjNode :: SimpleItem -> SimpleItem -> Maybe SimpleItem
-iapplyAdjNode item1 item2 = {-# SCC "iapplyAdjNode" #-}
- case siAdjnodes item2 of
+iapplyAdjNode :: Bool -> SimpleItem -> SimpleItem -> Maybe SimpleItem
+iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
+ case siAdjnodes pItem of
  [] -> Nothing
  (TagSite n an_up an_down : atail) -> do
   -- block repeated adjunctions of the same SimpleItem (for ignore semantics mode)
-  -- guard $ not $ (n, siId item1) `elem` (siAdjlist item2)
+  -- guard $ not $ (n, siId aItem) `elem` (siAdjlist pItem)
   -- let's go!
-  let r@(TagSite r_name r_up r_down) = siRoot item1 -- auxiliary tree, eh?
-  (TagSite f_name f_up f_down) <- siFoot item1 -- should really be an error if fails
+  let r@(TagSite r_name r_up r_down) = siRoot aItem -- auxiliary tree, eh?
+  (TagSite f_name f_up f_down) <- siFoot aItem -- should really be an error if fails
   (anr_up',  subst1)  <- unifyFeat r_up an_up
   (anf_down, subst2)  <- unifyFeat (replace_Flist subst1 f_down) (replace_Flist subst1 an_down)
   let -- combined substitution list and success condition
       subst12 = subst1++subst2
       -- the result of unifying the t1 root and the t2 an
       anr = TagSite r_name (replace_Flist subst2 anr_up') r_down
-  -- top and bottom unification on the former foot
-  (_, subst3) <- unifyFeat (replace_Flist subst12 f_up)
-                                    (replace_Flist subst2 anf_down)
-  let -- the new adjunction nodes
-      auxlite = delete r $ siAdjnodes item1
+  let anf_up = replace_Flist subst2 f_up
+      -- the new adjunction nodes
+      auxlite = delete r $ siAdjnodes aItem
       newadjnodes = anr : (atail ++ auxlite)
-      -- apply the substitutions
-      subst = subst12 ++ subst3
-      res' = replace subst $ combineSimpleItems 'a' [r_name, f_name] item1 $ item2
+      --
+      rawCombined =
+        combineSimpleItems 'a' [r_name, f_name] aItem $ pItem
                { siAdjnodes = newadjnodes
-               , siLeaves  = (siLeaves item1) ++ (siLeaves item2)
-               , siDerived = spliceTree f_name (siDerived item1) n (siDerived item2)
+               , siLeaves  = (siLeaves aItem) ++ (siLeaves pItem)
+               , siDerived = spliceTree f_name (siDerived aItem) n (siDerived pItem)
                -- , siAdjlist = (n, (tidnum te1)):(siAdjlist item2)
+               -- if we adjoin into the root, the new root is that of the aux
+               -- tree (affects 1p only)
+               , siRoot = if isRootOf pItem n then r else siRoot pItem
+               , siPendingTb =
+                  if twophase then []
+                  else (TagSite n anf_up anf_down) : (siPendingTb pItem) ++ (siPendingTb aItem)
                }
-  return $! res'
+      -- one phase = postpone tb unification
+      -- two phase = do tb unification on the fly
+      finalRes1p = return $ replace subst12 rawCombined
+      finalRes2p =
+       do -- tb on the former foot
+          tbRes <- unifyFeat anf_up anf_down
+#ifdef DISABLE_GUI
+          let (_, subst3) = tbRes
+              myRes = res'
+#else
+          let (anf_tb, subst3) = tbRes
+              myRes = modifyGuiStuff (constrainAdj n anf_tb) res'
+#endif
+          -- apply the substitutions
+              res' = replace (subst12 ++ subst3) rawCombined
+          return myRes
+  -- ---------------
+  if twophase then finalRes2p else finalRes1p
 \end{code}
 
 % --------------------------------------------------------------------
@@ -779,6 +818,10 @@ iapplyAdjNode item1 item2 = {-# SCC "iapplyAdjNode" #-}
 \begin{code}
 ncopy :: GNode -> TagSite
 ncopy x = TagSite (gnname x) (gup x) (gdown x)
+
+isRootOf :: SimpleItem -> String -> Bool
+isRootOf item n = n == rname
+  where (TagSite rname _ _) = siRoot item
 
 -- | Retrieves a list of trees from the chart which could be combined with the given agenda tree.
 -- The current implementation searches for trees which
@@ -819,6 +862,11 @@ combineSimpleGuiItems d hi item1 item2 =
        , siDiagnostic = (siDiagnostic item1) ++ (siDiagnostic item2)
        , siHighlight = hi
        }
+
+constrainAdj :: String -> Flist -> SimpleGuiItem -> SimpleGuiItem
+constrainAdj gn newT g =
+  g { siNodes = repList (gnnameIs gn) fixIt (siNodes g) }
+  where fixIt n = n { gup = newT, gdown = [], gaconstr = True }
 #endif
 \end{code}
 
@@ -886,12 +934,12 @@ simpleDispatch_1p iaf item =
         isResult x = synComplete x && semComplete x
     let maybeDpIaf = if iaf then dpIafFailure else nullFilter
         theFilter = condFilter isResult
-                      (dpRootCatFailure >--> dpToResults)
+                      (dpRootCatFailure >--> dpTbFailure >--> dpToResults)
                       (maybeDpIaf >--> dpToAgenda)
     theFilter item
 
 dpAux, dpToAgenda :: SimpleDispatchFilter
-dpRootCatFailure, dpToResults :: SimpleDispatchFilter
+dpTbFailure, dpRootCatFailure, dpToResults :: SimpleDispatchFilter
 dpToTrash :: String -> SimpleDispatchFilter
 
 dpToAgenda x  = addToAgenda x  >> return Nothing
@@ -922,6 +970,10 @@ dpTreeLimit item =
    where ts_overnumTrees l = "Over derivation size of " ++ (show l)
 -}
 
+-- | This is only used for the one-phase algorithm
+dpTbFailure item =
+ return $ if tbUnifyTree item then Just item else Nothing
+
 -- | If the item (ostensibly a result) does not have the correct root
 --   category, return Nothing; otherwise return Just item
 dpRootCatFailure item =
@@ -931,9 +983,74 @@ dpRootCatFailure item =
     case gCategory top of
      Just (GConst c) ->
       if null $! intersect c rootCats
-         then dpToTrash (ts_wrongRootCategory c rootCats) item
+         then do incrCounter "root_cat_discards" 1
+                 dpToTrash (ts_wrongRootCategory c rootCats) item
          else return $ Just item
      _ -> dpToTrash ts_noRootCategory item
+\end{code}
+% --------------------------------------------------------------------
+\subsection{Top and bottom unification}
+% --------------------------------------------------------------------
+
+\paragraph{tbUnifyTree} unifies the top and bottom feature structures
+of each node on each tree.  Note: this only determines if it is
+possible to do so.  Actually returning the results is possible
+and even easy
+(you'll have to look back into the darcs repository and unpull the
+ patch from 2006-05-21T15:40:51 ``Remove top/bot unification standalone
+ code.'')
+but since it is only used in the one-phase algorithm and for the
+graphical interface, I decided not to bother.
+
+\begin{code}
+type TbEither = Either String Subst
+tbUnifyTree :: SimpleItem -> Bool
+tbUnifyTree item = {-# SCC "tbUnifyTree" #-}
+  case foldl tbUnifyNode (Right []) (siPendingTb item) of
+    Left  _ -> False
+    Right _ -> True
+\end{code}
+
+Our helper function corresponds to the first unification step.  It is
+meant to be called from a fold.  The node argument represents the
+current node being explored.  The Either argument holds a list of
+pending substitutions and a copy of the entire tree.
+
+There are two things going on in here:
+
+\begin{enumerate}
+\item check if unification is possible - first we apply the pending
+      substitutions on the node and then we check if unification
+      of the top and bottom feature structures of that node
+      succeeds
+\item keep track of the substitutions that need to be performed -
+      any new substitutions that result from unification are
+      added to the pending list
+\end{enumerate}
+
+Note that we wrap the second argument in a Maybe; this is used to
+indicate that if unification suceeds or fails.  We also use it to
+prevent the function from doing any work if a unification failure
+from a previous call has already occured.
+
+Getting this right was a big pain in the butt, so don't go trying to
+simplify this over-complicated code unless you know what you're doing.
+
+\begin{code}
+tbUnifyNode :: TbEither -> TagSite -> TbEither
+tbUnifyNode (Right pending) rawSite =
+  -- apply pending substitutions
+  case replace pending rawSite of
+  (TagSite name up down) ->
+    -- check top/bottom unification on this node
+    case unifyFeat up down of
+    -- stop all future iterations
+    Nothing -> Left name
+    -- apply any new substutions to the whole tree
+    Just (_,sb) -> Right (pending ++ sb)
+
+-- if earlier we had a failure, don't even bother
+tbUnifyNode (Left n) _ = Left n
 \end{code}
 
 % --------------------------------------------------------------------
