@@ -39,7 +39,6 @@ import NLP.GenI.Btypes (GeniVal(GConst, GVar, GAnon), AvPair, Ptype(..),
                Ttree(TT, params, pidname, pfamily, pinterface, ptype, tree, psemantics), Macros,
                GNode(..), GType(..), Flist,
                isConst,
-               showLexeme,
                Pred, Sem, SemPols, showSem, showAv)
 
 import NLP.GenI.Graphviz
@@ -289,8 +288,11 @@ instance GeniHandShow GNode where
                      Lex  -> if ganchor n && (null.glexeme) n
                              then "type:anchor" else "type:lex"
                      _    -> ""
-      glexstr  n = if null gl then "" else "\"" ++ gl ++ "\""
-                   where gl = showLexeme $ glexeme n
+      glexstr n =
+        if null ls then ""
+        else concat $ intersperse "|" $ map quote ls
+        where quote s = "\"" ++ s ++ "\""
+              ls = glexeme n
       tbFeats n = (toGeniHand $ gup n) ++ "!" ++ (toGeniHand $ gdown n)
   in unwords $ filter (not.null) $ [ gnname x, gtypestr x, glexstr x, tbFeats x ]
 
