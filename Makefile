@@ -108,7 +108,6 @@ SCRIPT_FILES = bin/runXMGselector\
 	       bin/runXMGfilter\
 	       bin/xmgGeni\
 	       bin/tryXtimes\
-	       etc/lhs2haddock\
 	       etc/stupidmorph.pl\
 	       etc/tommorph.pl\
 	       etc/quickcheck.py\
