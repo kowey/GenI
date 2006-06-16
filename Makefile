@@ -41,7 +41,9 @@ endif
 SOFTWARE        = Geni
 SOFTVERS        = $(SOFTWARE)-$(VERSION)
 
-TO_INSTALL=$(patsubst %, bin/%, tryXtimes geni xmgGeni runXMGselector runXMGfilter)
+ifndef TO_INSTALL
+TO_INSTALL=$(patsubst %, bin/%, tryXtimes geni xmgGeni runXMGselector runXMGfilter geni-precompiled)
+endif
 
 # You should replace the value of this variable with your project
 # directory name.  The default assumption is that the project name
@@ -160,11 +162,11 @@ endif
 
 SOURCE_FILES_1 := $(foreach d, $(SRC_DIRS), $(wildcard $(d)/*.lhs))
 SOURCE_FILES_2 := $(foreach d, $(SRC_DIRS), $(wildcard $(d)/*.hs))
-SOURCE_HSPP_1 := $(patsubst %.lhs,%.hspp,$(SOURCE_FILES_1))
-SOURCE_HSPP_2 := $(SOURCE_FILES_2)
+SOURCE_HSD_1 := $(patsubst %.lhs,%.hsd,$(SOURCE_FILES_1))
+SOURCE_HSD_2 := $(SOURCE_FILES_2)
 
 SOURCE_FILES := $(SOURCE_FILES_1) $(SOURCE_FILES_2)
-SOURCE_HSPP  := $(SOURCE_HSPP_1) $(SOURCE_HSPP_2)
+SOURCE_HSD  := $(SOURCE_HSD_1) $(SOURCE_HSD_2)
 
 # Phony targets do not keep track of file modification times
 .PHONY: all nogui deps $(DEPENDS)\
@@ -203,7 +205,7 @@ clean: tidy
 	rm -f $(MAKE_HTML)
 	rm -rf $(GENI) $(GENI).app $(PROFGENI)
 	rm -rf $(CONVERTER) $(EXTRACTOR) $(CLIENT) $(SERVER)
-	rm -rf $(SOURCE_HSPP_1) $(HADDOCK_OUT)
+	rm -rf $(SOURCE_HSD_1) $(HADDOCK_OUT)
 	rm -rf .depends
 
 tidy:
@@ -254,7 +256,7 @@ $(CONVERTER): $(CONVERTER_MAIN) $(CONVERTER_DEPS)
 	@echo $(CONVERTER_DEPS)
 	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES) -package HaXml $< -o $@
 
-$(EXTRACTOR) : $(CONVERTER_MAIN) $(EXTRACTOR_DEPS)
+$(EXTRACTOR) : $(EXTRACTOR_MAIN) $(EXTRACTOR_DEPS)
 	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES) $< -o $@
 
 nogui : $(GENI_MAIN) $(GENI_DEPS) permissions
@@ -287,13 +289,13 @@ $(CLIENT): $(CLIENT_MAIN) $(CLIENT_DEPS)
 # this stuff is broken down into small pieces so that we can do the hard
 # stuff (hs -> hc) on a very fast machine and the rest of the compilation
 # locally
-src/MyGeniGrammar.hspp : src/MyGeniGrammar.hs
+src/MyGeniGrammar.hsd : src/MyGeniGrammar.hs
 	time nice $(GHC) $(GHCFLAGS) -DPRECOMPILED_GRAMMAR -E +RTS -K100m -RTS $(GHCPACKAGES) $<
 
-src/MyGeniGrammar.hc : src/MyGeniGrammar.hspp
+src/MyGeniGrammar.hc : src/MyGeniGrammar.hsd
 	time nice $(GHC) $(GHCFLAGS) -DPRECOMPILED_GRAMMAR -C +RTS -K100m -RTS $(GHCPACKAGES) $<
 
-src/MyGeniGrammar.p_hc : src/MyGeniGrammar.hspp
+src/MyGeniGrammar.p_hc : src/MyGeniGrammar.hsd
 	time nice $(GHC) $(GHCFLAGS) -DPRECOMPILED_GRAMMAR -C +RTS -K100m -RTS $(GHCPACKAGES) $<
 
 ifdef PROFILE
@@ -378,11 +380,11 @@ clean-profiler:
 
 DOC_SRC=$(SOURCE_FILES)
 
-haddock: $(SOURCE_HSPP)
+haddock: $(SOURCE_HSD)
 	mkdir -p $(HADDOCK_OUT)
-	haddock -h $(SOURCE_HSPP) -o $(HADDOCK_OUT)
+	haddock -h $(SOURCE_HSD) -o $(HADDOCK_OUT)
 
-$(SOURCE_HSPP_1): %.hspp: %.lhs
+$(SOURCE_HSD_1): %.hsd: %.lhs
 	etc/lhs2haddock < $< > $@
 
 $(MAKE_DOCS): %.pdf: %.tex $(DOC_SRC)
