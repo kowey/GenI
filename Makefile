@@ -324,14 +324,14 @@ install: $(TO_INSTALL)
 	$(foreach file,$^, $(INSTALL) $(file) $(BINDIR) &&)\
 	:
 ifeq ($(OS),Darwin)
-	$(CP) -R bin/geni.app $(BINDIR)
+	#$(CP) -R bin/geni.app $(BINDIR)
 endif
 
 uninstall:
 	$(foreach file,$(patsubst bin/%, %, $(TO_INSTALL)), $(RM) $(BINDIR)/$(file) &&)\
 	:
 ifeq ($(OS),Darwin)
-	$(RM) -R $(BINDIR)/geni.app
+	#$(RM) -R $(BINDIR)/geni.app
 endif
 
 # --------------------------------------------------------------------
