@@ -937,7 +937,7 @@ simpleDispatch_1p iaf item =
     theFilter item
 
 dpAux, dpToAgenda :: SimpleDispatchFilter
-dpTbFailure, dpRootCatFailure, dpToResults :: SimpleDispatchFilter
+dpTbFailure, dpRootCatFailure, dpRootCatFailure2, dpToResults :: SimpleDispatchFilter
 dpToTrash :: String -> SimpleDispatchFilter
 
 dpToAgenda x  = addToAgenda x  >> return Nothing
@@ -977,6 +977,7 @@ dpTbFailure item =
 dpRootCatFailure  = dpRootCatFailure_ False
 dpRootCatFailure2 = dpRootCatFailure_ True
 
+dpRootCatFailure_ :: Bool -> SimpleDispatchFilter
 dpRootCatFailure_ count item =
  do config <- gets genconfig
     let rootCats = rootCatsParam config
