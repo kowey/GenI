@@ -42,7 +42,7 @@ SOFTWARE        = Geni
 SOFTVERS        = $(SOFTWARE)-$(VERSION)
 
 ifndef TO_INSTALL
-TO_INSTALL=$(patsubst %, bin/%, tryXtimes geni xmgGeni runXMGselector runXMGfilter geni-precompiled)
+TO_INSTALL=$(patsubst %, bin/%, tryXtimes geni xmgGeni geni-precompiled)
 endif
 
 # You should replace the value of this variable with your project
@@ -106,10 +106,7 @@ DVIPDF_CMD=dvips `basename $< .tex`.dvi -o `basename $< .tex`.ps;\
 # source stuff
 # --------------------------------------------------------------------
 
-SCRIPT_FILES = bin/runXMGselector\
-	       bin/runXMGfilter\
-	       bin/xmgGeni\
-	       bin/tryXtimes\
+SCRIPT_FILES = bin/tryXtimes\
 	       etc/stupidmorph.pl\
 	       etc/tommorph.pl\
 	       etc/quickcheck.py\

@@ -80,13 +80,7 @@ data Params = Prms{
   builderType    :: BuilderType,
   -- external morphological generator (optional)
   morphCmd       :: String,
-  -- tree selector (needed if xmgtools)
-  selectCmd      :: String,
-  -- | where to send XMG stderr chatter, stderr if null
-  xmgErrFile :: FilePath,
-  -- | where to dump the SelectTAG output (nowhere if null)
-  xmgOutFile :: FilePath,
-  -- tree viewer  (needed if xmgtools)
+  -- tree viewer  (useful if using an XMG grammar)
   viewCmd        :: String,
   --
   isGraphical    :: Bool,
@@ -140,7 +134,6 @@ emptyParams = Prms {
   rootCatsParam = ["s"],
   grammarType   = GeniHand,
   morphCmd       = "",
-  selectCmd      = "runXMGselector",
   viewCmd        = "ViewTAG",
   isGraphical    = True,
   isServer       = False,
@@ -150,8 +143,6 @@ emptyParams = Prms {
   outputFile     = "",
   metricsParam   = [],
   statsFile       = "",
-  xmgOutFile      = "",
-  xmgErrFile      = "",
   batchDir        = "",
   ignoreSemantics = False,
   maxTrees       = Nothing,
@@ -166,7 +157,7 @@ command line arguments.  To start things off, here is the list of command lines
 switches that we use.  
 
 \begin{code}
-data GrammarType = GeniHand | TAGML | XMGTools
+data GrammarType = GeniHand | TAGML
                  | PreCompiled -- ^ no parsing needed
                  | PreAnchored -- ^ lexical selection already done
      deriving (Show, Eq)
@@ -261,12 +252,6 @@ optionsAdvanced =
       "keep track of performance metrics: (default: iterations comparisons chart_size)"
   , Option []    ["statsfile"] (ReqArg StatsFileTok "FILE")
       "write performance data to file FILE (stdout if unset)"
-  , Option []    ["xmgoutfile"] (ReqArg XMGOutFileTok "FILE")
-      "write XMG anchoring results to file FILE; do not perform surface realisation"
-  , Option []    ["xmgerrfile"] (ReqArg XMGErrFileTok "FILE")
-      "write XMG anchoring stderr to file FILE (stderr if unset)"
-  , Option []    ["xmgtools"] (NoArg (GrammarType XMGTools))
-      "use XMG format for trees and GDE format for lexicon"
   , Option []    ["extrapols"] (ReqArg ExtraPolaritiesTok "STRING")
       "preset polarities (normally, you should use rootcats instead)" 
   , Option []    ["ignoresem"]   (NoArg (IgnoreSemanticsTok True))
@@ -281,8 +266,6 @@ optionsAdvanced =
       "do NOT perform lexical selection - treat the grammar as the selection"
   , Option []    ["batchdir"]    (ReqArg BatchDirTok "DIR")
       "batch process the test suite and save results to DIR"
-  , Option []    ["selectcmd"]  (ReqArg (CmdTok "select") "CMD") 
-      "tree selecting/anchoring CMD (default: unset)"
   , Option []    ["testcase"]   (ReqArg TestCasesTok "String")
       "run test case STRING"
   , Option []    ["viewcmd"]  (ReqArg (CmdTok "view") "CMD") 
@@ -420,7 +403,6 @@ defineParams p (f:s) = defineParams pnext s
       RootCategoriesTok v -> p {rootCatsParam = words v}
       MorphInfoTok v      -> p {morphFile   = v}
       CmdTok "morph"    v -> p {morphCmd  = v}
-      CmdTok "select"   v -> p {selectCmd = v}
       CmdTok "view"     v -> p {viewCmd = v}
       TestCasesTok v      -> p {testCase = v }
       -- performance profiling
@@ -428,8 +410,6 @@ defineParams p (f:s) = defineParams pnext s
       MetricsTok Nothing  -> p { metricsParam = ["default"] }
       MetricsTok (Just v) -> p { metricsParam = words v }
       StatsFileTok v      -> p { statsFile    = v }
-      XMGOutFileTok v     -> p { xmgOutFile   = v }
-      XMGErrFileTok v     -> p { xmgErrFile   = v }
       --
       GrammarType v        -> p {grammarType = v} 
       IgnoreSemanticsTok v -> p { ignoreSemantics = v 

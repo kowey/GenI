@@ -55,7 +55,7 @@ import NLP.GenI.Btypes
 import NLP.GenI.Tags
   ( idname, mapBySem, TagElem )
 
-import NLP.GenI.Configuration(Params(..), GrammarType(..))
+import NLP.GenI.Configuration(Params(..))
 
 import qualified NLP.GenI.Builder as B
 import NLP.GenI.Builder (queryCounter, num_iterations, chart_size,
@@ -189,7 +189,6 @@ tagViewerGui :: (GraphvizShow Bool t, TagItem t, XMGDerivation t)
              => ProgState -> (Window a) -> String -> String -> [(Maybe t,String)]
              -> GvIO Bool (Maybe t)
 tagViewerGui pst f tip cachedir itNlab = do
-  let config = pa pst
   p <- panel f []      
   let (tagelems,labels) = unzip itNlab
   gvRef <- newGvRef False labels tip
@@ -232,7 +231,7 @@ tagViewerGui pst f tip cachedir itNlab = do
     set detailsChk [ on command := onDetailsChk detailsChk ]
     set displayTraceBut 
          [ on command := onDisplayTrace 
-         , enabled    := grammarType config == XMGTools ] 
+         , enabled    := False ] -- FIXME: enable this if grammar.xml exists
   -- pack it all in      
   let cmdBar = hfill $ row 5 
                 [ dynamic $ widget detailsChk

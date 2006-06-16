@@ -36,8 +36,6 @@ where
 
 \ignore{
 \begin{code}
-import Control.Concurrent       (forkIO)
-import qualified Control.Exception
 import Control.Monad.Error
 
 import Data.IORef (IORef, readIORef, modifyIORef)
@@ -45,8 +43,6 @@ import Data.List (intersperse, sort, nub, partition, groupBy)
 import qualified Data.Map as Map
 import Data.Maybe (mapMaybe)
 
-import System.Exit ( exitWith, ExitCode(ExitSuccess, ExitFailure) )
-import System.IO (hPutStr, hClose, hGetContents)
 import System.IO.Unsafe (unsafePerformIO)
 import Text.ParserCombinators.Parsec 
 -- import System.Process 
@@ -65,13 +61,12 @@ import NLP.GenI.Btypes
   (Macros, MTtree, ILexEntry, Lexicon,
    Replacable(..),
    Sem, SemInput, sortSem, subsumeSem, params,
-   GeniVal(GConst), fromGVar,
+   GeniVal, fromGVar,
    GNode(ganchor, gnname, gup, gdown), Flist,
    isemantics, ifamname, iword, iparams, iequations,
    iinterface, ifilters,
    isempols,
    toKeys,
-   glexeme,
    showLexeme, showPairs,
    pidname, pfamily, pinterface, ptype, psemantics,
    setLexeme, tree, unifyFeat, sortFlist,
@@ -86,9 +81,9 @@ import NLP.GenI.Tags (Tags, TagElem, emptyTE,
 
 import NLP.GenI.Configuration
   ( Params
-  , grammarType, testCase, morphCmd, ignoreSemantics, selectCmd,
+  , grammarType, testCase, morphCmd, ignoreSemantics,
   , GrammarType(..), isServer,
-  , tsFile, macrosFile, lexiconFile, morphFile, xmgOutFile, xmgErrFile)
+  , tsFile, macrosFile, lexiconFile, morphFile)
 
 import qualified NLP.GenI.Builder as B
 
@@ -98,13 +93,6 @@ import NLP.GenI.GeniParsers (geniMacros, geniTagElems,
 import NLP.GenI.Morphology
 -- import CkyBuilder 
 -- import SimpleBuilder (simpleBuilder)
-
--- Not for windows
--- FIXME: even better would be to really figure out all this
--- Posix stuff so that I don't need to use my SysGeni hack
-#ifndef mingw32_BUILD_OS 
-import NLP.GenI.SysGeni
-#endif
 \end{code}
 }
 
@@ -186,7 +174,6 @@ loadGrammar pstRef =
      when (not $ null errorlst) $ fail errormsg 
      -- we only have to read in grammars from the simple format
      case grammarType config of 
-        XMGTools    -> return ()
         PreAnchored -> return ()
         PreCompiled -> return ()
         _        -> loadGeniMacros pstRef config
@@ -467,7 +454,6 @@ runLexSelection pst =
             when (not.null $ errs) $ ePutStrLn (unlines errs)
             return res
     cand <- case (grammarType $ pa pst) of  
-              XMGTools     -> runXMGAnchoring pst lexCand
               PreAnchored  -> readPreAnchored pst
               _            -> concat `liftM` mapM combineWithGr lexCand
     -- attach any morphological information to the candidates
@@ -476,9 +462,8 @@ runLexSelection pst =
     -- filter out candidates which have a semantics that does not
     -- subsume the input semantics
     --
-    -- this is for XMG tools, actually, because the metagrammar
-    -- could very well INTRODUCE literals into the semantics
-    -- that weren't associated with the lexical entry
+    -- this is in case the grammar introduces literals into the
+    -- semantics that weren't associated with the lexical entry
     let subsetSem t = all (`elem` tsem) $ tsemantics t
         cand3 = filter subsetSem cand2
     -- FIXME: should we tell the user that we are doing this?
@@ -804,150 +789,6 @@ parsePathEq e =
         return ("", True, e) -- unknown
  where
   rejoin = concat . (intersperse ".")
-\end{code}
-
-% --------------------------------------------------------------------
-\subsection{XMG anchoring}
-\label{sec:xmg_selection}
-% --------------------------------------------------------------------
-
-XMG is a metagrammar compiler.  GenI supports XMG grammars which obey
-the LORIA common grammar manifesto \cite{kow05CGM}.  This is an
-attempt to build a reversible TAG grammar and lexicon, that is, one
-that can be used for parsing and generation.  
-
-When you are using XMG stuff, three things are different:
-\begin{enumerate}
-\item The grammar format is different (.rec pickles produced by XMG)
-\item The lexicon format is different (See the Common Grammar Manifesto site) 
-\item Tree anchoring is farmed out to a third party tool we call the
-the Selector.  This module handles most of the XMG-specific bits of 
-the lexical selection process via a XMG lexicon.  
-\end{enumerate}
-
-\paragraph{runXMGAnchoring} is the front end to XMG tree anchoring.
-
-\begin{code}
-runXMGAnchoring :: ProgState -> [ILexEntry] -> IO [TagElem]
-runXMGAnchoring pst lexCand = 
-  do let gparams  = pa pst
-         gramfile = macrosFile gparams
-     -- run the selector module
-     let fil  = concat $ zipWith lexEntryToFil lexCand [1..]
-     selected <- runSelector pst gramfile fil
-     let parsed = runParser geniTagElems () "" selected
-     case parsed of 
-       Left err -> fail (show err) 
-       Right g  -> return (map fixateXMG g)
-  -- FIXME: determine if we can nix this error handler
-  --`catch` \e -> do ePutStrLn (show e)
-  --                 return ([], []) 
-\end{code}
-
-\subsubsection{Calling the Selector}
-
-\paragraph{runSelector} calls the Selector, passing it the
-grammar file (argument \fnparam{gfile}) and the
-lexical selection (argument \fnparam{l}).
-It returns a list of anchored trees.
-
-The selector is expected to read cgm filter stuff 
-(see \cite{kow05CGM} and lexEntryToFil below) and output 
-a set of geni formatted trees.
-
-\begin{code}
-runSelector :: ProgState -> String -> String -> IO String 
-runSelector pst gfile fil = do
-#ifdef mingw32_BUILD_OS
-     ePutStr $ "Selector not available under Windows until Eric"
-              ++ " figures out all this Posix stuff.\n"
-     return ""
-#else
-      -- run the selector
-     let theCmd  = selectCmd (pa pst)
-         selectArgs = [gfile]
-         input = fil
-     when (null theCmd) $ fail "Please specify a tree selection command!"
-     ePutStr $ "Selector started.\n"
-     eFlush
-     (toP, fromP, errP, pid) <- runInteractiveProcess theCmd selectArgs Nothing Nothing
-     hPutStr toP input 
-     hClose toP -- so that process gets EOF and knows it can stop
-     output <- hGetContents fromP 
-     -- strangely enough, doing an hGetContents of errP is essential if you 
-     -- want the process to come back
-     errput <- hGetContents errP 
-     -- SimonM sez:
-     -- ... avoids blocking the main thread, but ensures that all the
-     -- data gets pulled as it becomes available. you have to force the
-     -- output strings before waiting for the process to terminate.
-     forkIO (Control.Exception.evaluate (length output) >> return ())
-     forkIO (Control.Exception.evaluate (length errput) >> return ())
-     -- And now we wait. We must wait after we read, unsurprisingly.
-     -- blocks without -threaded, you're warned.
-     -- and maybe the process has already completed..
-     exCode <- Control.Exception.catch (waitForProcess pid) (\_ -> return ExitSuccess)
-     let xmgErr = xmgErrFile (pa pst)
-         xmgOut = xmgOutFile (pa pst)
-     when (not $ null xmgOut) $ do writeFile xmgOut output
-                                   exitWith ExitSuccess
-     if null xmgErr then ePutStr errput else writeFile xmgErr errput
-     case exCode of 
-       ExitSuccess -> return output 
-       ExitFailure n -> fail $ "There was a problem running the selector - exited with code " ++ (show n) ++ "\nCheck your terminal." 
-#endif
-\end{code}
-
-\paragraph{lexEntryToFil} converts a lexical entry to a XMG filter for
-use by the selection module.  The selection module is a third-party
-program which selects the trees from a grammar that correspond to each
-lexical item and which performs enrichement and anchoring.  The
-arguments are \fnparam{lex}, the lexical item to convert; and
-\fnparam{n}, the numerical id you wish to associate to that item.  
-
-Note: One weird thing we do in this function is to add some stuff to
-the path equations for enrichment.  This stuff corresponds to semantic
-arguments.  For example, if the semantics of the lexical item is
-\semexpr{hate(m,j)}, we add the equations \verb!interface.arg1=m! and
-\verb!interface.arg2=j!.  In order to do this, we assume that there is
-only one literal in the lexical item semantics.
-
-\begin{code}
-lexEntryToFil :: ILexEntry -> Int -> String
-lexEntryToFil lexEntry n =
-  let filters   = ifilters lexEntry
-      enrichers = iequations lexEntry
-      --
-      showFil (a,v) = a ++ ":" ++ xmgShow v
-      showEnr (a,v) = a ++ "=" ++ xmgShow v
-      concatSperse x y = concat $ intersperse x y
-  in show n 
-    ++ " " ++ (showLexeme $ iword lexEntry) ++ " "
-    ++ "[" 
-    ++ (concatSperse ","   $ map showFil filters)
-    ++ "]\n(" 
-    ++ (concatSperse ",\n" $ map showEnr enrichers)
-    ++ ")\n\n"
-
-xmgShow :: GeniVal -> String
-xmgShow (GConst []) = "" 
-xmgShow (GConst x)  = head x
-xmgShow x  =  show x
-\end{code}
-
-\paragraph{fixateXMG} is similar to \fnref{combineOne} except that we are
-working with fully anchored and instantiated TagElems.  There is no boring
-unification or checks to worry about.
-
-\begin{code}
-fixateXMG :: TagElem -> TagElem
-fixateXMG e = 
-  let tree_   = ttree e
-      -- for display purposes, get the list of lexemes in the tree
-      lexemes = map (head.glexeme) $ filterTree (not.null.glexeme) tree_ 
-      lexstr  = concat $ intersperse "-" $ lexemes
-      origIdname = idname e
-  in e { idname = lexstr ++ "_" ++ origIdname }
 \end{code}
 
 % --------------------------------------------------------------------

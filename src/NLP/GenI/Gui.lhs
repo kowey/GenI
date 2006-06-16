@@ -46,7 +46,7 @@ import NLP.GenI.Btypes (showSem, showPairs, ILexEntry(isemantics))
 import NLP.GenI.Tags (idname, tpolarities, tsemantics, TagElem)
 
 import NLP.GenI.Configuration
-  ( Params(..), Switch(..), GrammarType(..)
+  ( Params(..), Switch(..),
   , BuilderType(..), mainBuilderTypes
   , isIaf, polarised, semfiltered )
 import NLP.GenI.GeniParsers
@@ -397,20 +397,11 @@ into more tabs?
 \begin{code}
   padv <- panel nb []
   -- XMG tools 
-  xmgChk <- checkBox padv 
-    [ text := "Use XMG grammar and anchoring"
-    , checked := (grammarType config == XMGTools) ]
-  selectCmdTxt <- entry padv 
-    [ tooltip := "Command used for tree anchoring" 
-    , text := selectCmd config ]
   viewCmdTxt <- entry padv 
     [ tooltip := "Command used for XMG tree viewing"
     , text := viewCmd config ] 
   let layXMG = fakeBoxed "XMG tools" 
-                [ widget xmgChk 
-                , row 3 [ label "select command"
-                        , marginRight $ hfill $ widget selectCmdTxt ]
-                , row 3 [ label "XMG view command"
+                [ row 3 [ label "XMG view command"
                         , marginRight $ hfill $ widget viewCmdTxt ] ]
   -- polarities
   extraPolsTxt <- entry padv 
@@ -498,8 +489,6 @@ command that makes everything ``work'':
             rootCatVal  <- get rootCatsTxt  text
             extraPolVal <- get extraPolsTxt text
             --
-            xmgVal    <- get xmgChk checked 
-            selectVal <- get selectCmdTxt text 
             viewVal   <- get viewCmdTxt text 
             --
             morphCmdVal  <- get morphCmdTxt text
@@ -516,9 +505,6 @@ command that makes everything ``work'':
                  , rootCatsParam = words rootCatVal
                  , extrapol = parsePol extraPolVal
                  --
-                 , grammarType = if xmgVal then XMGTools
-                                 else GeniHand
-                 , selectCmd  = selectVal 
                  , viewCmd    = viewVal
                  --
                  , morphCmd  = morphCmdVal
