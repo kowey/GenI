@@ -26,7 +26,7 @@ import System.IO
 import System.Posix.Signals (installHandler, sigPIPE, Handler(Ignore))
 
 import NLP.GenI.Configuration (treatArgs, treatArgsWithParams, Params(isServer))
-import NLP.GenI.Console (runTestCase)
+import NLP.GenI.Console (runTestCaseOnly)
 import NLP.GenI.Geni (loadGrammar, loadTestSuite, emptyProgState, ProgState(pa))
 import NLP.GenI.ClientServer (hGetBeginEnd, socketPath)
 
@@ -57,9 +57,9 @@ listen sock pst =
        do conf <- treatArgsWithParams task (pa pst)
           modifyIORef pstRef (\p -> p { pa = conf })
           loadTestSuite pstRef
-          s <- runTestCase pstRef
+          (sentences, _) <- runTestCaseOnly pstRef
           hPutStrLn h "begin responses"
-          hPutStrLn h $ unlines s
+          hPutStrLn h $ unlines sentences
           hPutStrLn h "end responses"
     -- close shop and start over
     (hClose h `catch` \err -> hPutStrLn stderr (show err))

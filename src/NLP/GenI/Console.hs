@@ -18,7 +18,7 @@
 -- | The console user interface including batch processing on entire
 --   test suites.
 
-module NLP.GenI.Console(consoleGeni) where
+module NLP.GenI.Console(consoleGeni, runTestCaseOnly) where
 
 import Data.List(find)
 import Control.Monad(when)
@@ -64,7 +64,7 @@ runSuite pstRef =
      let bdir   = batchDir $ pa pst
          suite  = tsuite pst
      if null bdir
-        then runTestCaseOnly pstRef
+        then runTestCaseOnly pstRef >> return ()
         else if any null $ map fst suite
              then ePutStrLn "Can't do batch processing. The test suite has cases with no name."
              else do mapM (\ (n,s) -> runOnSemInput pstRef (PartOfSuite n bdir) s) suite
@@ -72,7 +72,7 @@ runSuite pstRef =
 
 -- | Run the specified test case, or failing that, the first test
 --   case in the suite
-runTestCaseOnly :: ProgStateRef -> IO ()
+runTestCaseOnly :: ProgStateRef -> IO ([String], Statistics)
 runTestCaseOnly pstRef =
  do pst <- readIORef pstRef
     let config     = pa pst
@@ -102,7 +102,7 @@ data RunAs = Standalone  FilePath FilePath
 runOnSemInput :: ProgStateRef
               -> RunAs
               -> SemInput
-              -> IO ()
+              -> IO ([String], Statistics)
 runOnSemInput pstRef args semInput =
   do modifyIORef pstRef (\x -> x{ts = semInput})
      pst <- readIORef pstRef
@@ -129,6 +129,7 @@ runOnSemInput pstRef args semInput =
      -- print out statistical data (if available)
      when (not . null . metricsParam $ config) $
        do soPutStrLn $ "begin stats\n" ++ showFinalStats stats ++ "end"
+     return (sentences, stats)
   where
     helper :: B.Builder st it Params -> IO ([String], Statistics)
     helper builder =
