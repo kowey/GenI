@@ -451,16 +451,29 @@ type NullState a = BuilderState () a
 
 initNullBuilder ::  Input -> Params -> ((), Statistics)
 initNullBuilder input config =
-  let tsem  = fst $ inSemInput input
+  let countsFor ts = (length ts, length nodes, length sn, length an)
+        where nodes = concatMap (flatten.ttree) ts
+              sn = [ n | n <- nodes, gtype n == Subs  ]
+              an = [ n | n <- nodes, gtype n == Foot  ]
+      --
+      (tsem,_) = inSemInput input
       cands = map fst $ inCands input
-      nodes = concatMap (flatten.ttree) cands
-      snodes  = [ n | n <- nodes, gtype n == Subs  ]
-      anodes  = [ n | n <- nodes, gtype n == Foot  ]
-      countUp = do incrCounter "lex_subst_nodes" $ length snodes
-                   incrCounter "lex_foot_nodes"  $ length anodes
-                   incrCounter "lex_nodes"     $ length nodes
-                   incrCounter "lex_trees"     $ length cands
-                   incrCounter "sem_literals"  $ length tsem
+      (_,_,(_,_,aut,_)) = preInit input config
+      cands2 = concatMap concat $ automatonPathSets aut
+      --
+      countUp = do incrCounter "sem_literals"  $ length tsem
+                   --
+                   incrCounter "lex_subst_nodes" snl
+                   incrCounter "lex_foot_nodes"  anl
+                   incrCounter "lex_nodes"        nl
+                   incrCounter "lex_trees"        tl
+                   -- node count after polarities are taken into account
+                   incrCounter "plex_subst_nodes" snl2
+                   incrCounter "plex_foot_nodes"  anl2
+                   incrCounter "plex_nodes"        nl2
+                   incrCounter "plex_trees"        tl2
+                where (tl , nl , snl , anl ) = countsFor cands
+                      (tl2, nl2, snl2, anl2) = countsFor cands2
   in runState (execStateT countUp ()) (initStats config)
 \end{code}
 
