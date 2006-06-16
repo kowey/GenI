@@ -385,7 +385,7 @@ haddock: $(SOURCE_HSD)
 	haddock -h $(SOURCE_HSD) -o $(HADDOCK_OUT)
 
 $(SOURCE_HSD_1): %.hsd: %.lhs
-	etc/lhs2haddock < $< > $@
+	ghc -cpp -E -optP-P -ignore-scc -D__HADDOCK__ $< -o $@
 
 $(MAKE_DOCS): %.pdf: %.tex $(DOC_SRC)
 	cd $(<D) &&\
