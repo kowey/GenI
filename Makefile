@@ -107,6 +107,7 @@ DVIPDF_CMD=dvips `basename $< .tex`.dvi -o `basename $< .tex`.ps;\
 # --------------------------------------------------------------------
 
 SCRIPT_FILES = bin/tryXtimes\
+	       bin/cutXMG\
 	       etc/stupidmorph.pl\
 	       etc/tommorph.pl\
 	       etc/quickcheck.py\

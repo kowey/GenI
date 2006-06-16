@@ -1,0 +1,73 @@
+#!/usr/bin/env perl
+
+# ----------------------------------------------------------------------  
+# The purpose of this script is help the grammar hacker avoid recompiling the
+# entire XMG metagrammar everytime she makes an edit.  Only the relevant
+# subset is compiled.
+# ----------------------------------------------------------------------  
+# How do I use it?
+#
+# 1. cutXMG in.mg > out.mg
+# 2  geniselect -l youlexicon.lex -s testsuite \
+#      | sed -e 's/^/value /' -e 's/ |.*//'\
+#      | sort | uniq >> out.mg
+#
+# Note that you don't neccesarily have to use this with geniselect
+# Use this script to read in all the mg includes, and then just
+# append the values you want
+# ----------------------------------------------------------------------  
+
+use strict;
+use File::Basename;
+
+# command line arguments
+if ($#ARGV > 1) {
+  printf STDERR "usage: cutXMG grammar_file [output_file]\n";
+  exit 1;
+}
+# infer the GRAMMAR_DIR from the grammar_file
+my $INPUT_MG=$ARGV[0];
+my $GRAMMAR_DIR=dirname($INPUT_MG);
+
+# ----------------------------------------------------------------------
+# creating the tmp .mg
+# ----------------------------------------------------------------------
+
+# print out the stub contents
+open INPUT_MG, $INPUT_MG;
+while (<INPUT_MG>) { 
+  my $line = $_;
+  if (/^include (.*?)\s*$/) {
+    my $included  = $GRAMMAR_DIR."/".$1;
+    my $has_value = 0;
+    # first: does the file have values?
+    open TMP, $included;
+    while (<TMP>) { 
+      if (/(^value)/) {
+        $has_value = 1;
+        last;
+      }
+    }
+    close TMP;
+    # second: if it does, cat it, but comment out the values
+    if ($has_value) {
+      open TMP, $included;
+      while (<TMP>) { 
+        s/^(value)/%$1/;
+        print;
+      }
+      close TMP;
+    } else {
+      printf $line;
+    }
+  } else {
+    # print any other line you see
+    print;
+  }
+}
+close INPUT_MG;
+
+printf "\n";
+
+# *-*-perl-*-*
+# vim: syntax=perl
