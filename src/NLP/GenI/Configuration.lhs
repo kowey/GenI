@@ -119,7 +119,7 @@ hasOpt :: Switch -> Params -> Bool
 hasOpt o p = o `elem` (optimisations p)
 
 polarised, isIaf, predicting :: Params -> Bool
-rootcatfiltered, semfiltered, :: Params -> Bool
+rootcatfiltered, semfiltered :: Params -> Bool
 polarised    = hasOpt PolarisedTok
 isIaf        = hasOpt IafTok
 predicting   = hasOpt PredictingTok
