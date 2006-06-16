@@ -286,33 +286,9 @@ $(CLIENT): $(CLIENT_MAIN) $(CLIENT_DEPS)
 # geni with a precompiled grammar
 # --------------------------------------------------------------------
 
-# this stuff is broken down into small pieces so that we can do the hard
-# stuff (hs -> hc) on a very fast machine and the rest of the compilation
-# locally
-src/MyGeniGrammar.hsd : src/MyGeniGrammar.hs
-	time nice $(GHC) $(GHCFLAGS) -DPRECOMPILED_GRAMMAR -E +RTS -K100m -RTS $(GHCPACKAGES) $<
-
-src/MyGeniGrammar.hc : src/MyGeniGrammar.hsd
-	time nice $(GHC) $(GHCFLAGS) -DPRECOMPILED_GRAMMAR -C +RTS -K100m -RTS $(GHCPACKAGES) $<
-
-src/MyGeniGrammar.p_hc : src/MyGeniGrammar.hsd
-	time nice $(GHC) $(GHCFLAGS) -DPRECOMPILED_GRAMMAR -C +RTS -K100m -RTS $(GHCPACKAGES) $<
-
-ifdef PROFILE
-MYGENIGRAMMAR_HC := src/MyGeniGrammar.p_hc
-else
-MYGENIGRAMMAR_HC := src/MyGeniGrammar.hc
-endif
-
-src/MyGeniGrammar.o : $(MYGENIGRAMMAR_HC)
-	time nice $(GHC) $(GHCFLAGS) -DPRECOMPILED_GRAMMAR -c +RTS -K100m -RTS $(GHCPACKAGES) $<
-
-precompiled: $(GENI_MAIN) init src/MyGeniGrammar.o
-	time $(GHC) $(GHCFLAGS) --make -DPRECOMPILED_GRAMMAR +RTS -K100m -RTS $(GHCPACKAGES) $< -o $(GENI_PRECOMPILED)
+precompiled: $(GENI_MAIN) init
+	time $(GHC) $(GHCFLAGS) -igrammars --make -DPRECOMPILED_GRAMMAR +RTS -K100m -RTS $(GHCPACKAGES) $< -o $(GENI_PRECOMPILED)
 	#$(OS_SPECIFIC_STUFF)
-
-weedep: src/MyGeniGrammar.hs
-	$(GHC) $(GHCFLAGS) -M $<
 
 # --------------------------------------------------------------------
 # installing
@@ -392,15 +368,3 @@ $(MAKE_DOCS): %.pdf: %.tex $(DOC_SRC)
 	$(LATEX) $(<F) && bibtex $(<F:.tex=) &&\
        	$(LATEX) $(<F) && $(LATEX) $(<F)\
 	$(DVIPDF)
-
-# --------------------------------------------------------------------
-# explicit deps
-# --------------------------------------------------------------------
-
-# DO NOT DELETE: Beginning of Haskell dependencies
-./src/NLP/GenI/General.o : ./src/NLP/GenI/General.lhs
-./src/NLP/GenI/Btypes.o : ./src/NLP/GenI/Btypes.lhs
-./src/NLP/GenI/Btypes.o : ./src/NLP/GenI/General.hi
-src/MyGeniGrammar.o : src/MyGeniGrammar.hs
-src/MyGeniGrammar.o : ./src/NLP/GenI/Btypes.hi
-# DO NOT DELETE: End of Haskell dependencies
