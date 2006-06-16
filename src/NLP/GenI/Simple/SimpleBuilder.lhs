@@ -500,9 +500,7 @@ switchToAux = do
       -- trees have already been filtered away by calls to classifyNew
       initialT  = filter siInitial chart
       res1@(compT1, incompT1) =
-         if substfiltered config
-         then partition (null.siSubstnodes) initialT
-         else (initialT, [])
+         partition (null.siSubstnodes) initialT
       --
       auxAgenda = theAuxAgenda st
       (compT2, incompT2) =
@@ -518,7 +516,7 @@ switchToAux = do
   -- the root cat filter by Claire
   let switchFilter =
         if rootcatfiltered config
-        then dpRootCatFailure >--> dpToAgenda
+        then dpRootCatFailure2 >--> dpToAgenda
         else dpToAgenda
   mapM switchFilter compT
   -- toss the syntactically incomplete stuff in the trash
@@ -976,17 +974,20 @@ dpTbFailure item =
 
 -- | If the item (ostensibly a result) does not have the correct root
 --   category, return Nothing; otherwise return Just item
-dpRootCatFailure item =
+dpRootCatFailure  = dpRootCatFailure_ False
+dpRootCatFailure2 = dpRootCatFailure_ True
+
+dpRootCatFailure_ count item =
  do config <- gets genconfig
     let rootCats = rootCatsParam config
         (TagSite _ top _) = siRoot item
     case gCategory top of
      Just (GConst c) ->
       if null $! intersect c rootCats
-         then do incrCounter "root_cat_discards" 1
+         then do when count $ incrCounter "root_cat_discards" 1
                  dpToTrash (ts_wrongRootCategory c rootCats) item
          else return $ Just item
-     _ -> dpToTrash ts_noRootCategory item
+     _ -> do dpToTrash ts_noRootCategory item
 \end{code}
 % --------------------------------------------------------------------
 \subsection{Top and bottom unification}

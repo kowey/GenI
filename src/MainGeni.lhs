@@ -34,7 +34,7 @@ import System(getArgs)
 import NLP.GenI.Btypes(Macros)
 import NLP.GenI.Geni(emptyProgState, ProgState(gr))
 import NLP.GenI.Console(consoleGeni)
-import NLP.GenI.Configuration (treatArgs, isGraphical, isBatch, Params,
+import NLP.GenI.Configuration (treatArgs, isGraphical, Params(batchDir),
                                grammarType, GrammarType(PreCompiled),
                               )
 
@@ -91,7 +91,7 @@ main = do
             Just g  -> let cargs = confArgs { grammarType = PreCompiled }
                        in  (emptyProgState cargs) { gr = g }
   pstRef <- newIORef pst
-  let notBatch  = not (isBatch confArgs)
+  let notBatch  = null (batchDir confArgs)
       graphical = isGraphical confArgs 
   if (graphical && notBatch) 
      then guiGeni pstRef

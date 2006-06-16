@@ -25,9 +25,9 @@ module NLP.GenI.Configuration
   ( Params(..), GrammarType(..), BuilderType(..), Switch(..)
   , mainBuilderTypes
   , polarised, predicting
-  , rootcatfiltered, substfiltered, semfiltered,
+  , rootcatfiltered, semfiltered,
   , isIaf
-  , isBatch, emptyParams
+  , emptyParams
   , treatArgs, treatArgsWithParams, optBatch
   )
 where
@@ -102,7 +102,7 @@ data Params = Prms{
   --
   testCase       :: String, -- names of test cases
   extrapol       :: Map.Map String Interval,
-  batchRepeat    :: Integer,
+  batchDir       :: FilePath,
   --
   outputFile     :: String,
   -- statistical metricts
@@ -118,15 +118,13 @@ data Params = Prms{
 hasOpt :: Switch -> Params -> Bool
 hasOpt o p = o `elem` (optimisations p)
 
-polarised, isIaf, predicting, isBatch :: Params -> Bool
-rootcatfiltered, semfiltered, substfiltered :: Params -> Bool
+polarised, isIaf, predicting :: Params -> Bool
+rootcatfiltered, semfiltered, :: Params -> Bool
 polarised    = hasOpt PolarisedTok
 isIaf        = hasOpt IafTok
 predicting   = hasOpt PredictingTok
 semfiltered  = hasOpt SemFilteredTok
-substfiltered = hasOpt SubstFilteredTok
 rootcatfiltered = hasOpt RootCatFilteredTok
-isBatch      = hasOpt BatchTok
 \end{code}
 
 \paragraph{defaultParams} returns the default parameters configuration
@@ -149,12 +147,12 @@ emptyParams = Prms {
   testCase      = [],
   optimisations  = [],
   extrapol       = Map.empty,
-  batchRepeat    = 1,
   outputFile     = "",
   metricsParam   = [],
   statsFile       = "",
   xmgOutFile      = "",
   xmgErrFile      = "",
+  batchDir        = "",
   ignoreSemantics = False,
   maxTrees       = Nothing,
   timeoutSecs    = Nothing
@@ -212,9 +210,9 @@ data Switch =
     OptimisationsTok String   | PolOptsTok | AdjOptsTok |
     PolarisedTok | PredictingTok |
     ExtraPolaritiesTok String |
-    RootCatFilteredTok | SubstFilteredTok | SemFilteredTok |
+    RootCatFilteredTok | SemFilteredTok |
     IafTok {- one phase only! -} |
-    BatchTok | RepeatTok String | 
+    BatchDirTok FilePath | RepeatTok String |
     -- the WeirdTok exists strictly to please OS X when you launch
     -- GenI in an application bundle (double-click)... for some
     -- reason it wants to pass an argument to -p
@@ -281,8 +279,8 @@ optionsAdvanced =
       "morphological post-processor CMD (default: unset)"
   , Option []    ["preselected"] (NoArg (GrammarType PreAnchored))
       "do NOT perform lexical selection - treat the grammar as the selection"
-  , Option []    ["repeat"]   (ReqArg RepeatTok "INT")
-      "perform INT trials during batch testing"
+  , Option []    ["batchdir"]    (ReqArg BatchDirTok "DIR")
+      "batch process the test suite and save results to DIR"
   , Option []    ["selectcmd"]  (ReqArg (CmdTok "select") "CMD") 
       "tree selecting/anchoring CMD (default: unset)"
   , Option []    ["testcase"]   (ReqArg TestCasesTok "String")
@@ -308,10 +306,8 @@ optimisationCodes =
  , (AdjOptsTok  , "adj",    "equivalent to 'S F'")
  , (SemFilteredTok , "S",      "semantic filtering (same as f-sem)")
  , (SemFilteredTok , "f-sem",      "semantic filtering (two-phase only)")
- , (SubstFilteredTok, "f-sub",     "filtering on substitutions (two-phase only)")
  , (RootCatFilteredTok, "f-root",  "filtering on root node (two-phase only)")
- , (IafTok, "i", "index accesibility filtering (one-phase only)")
- , (BatchTok,          "batch", "batch processing") ]
+ , (IafTok, "i", "index accesibility filtering (one-phase only)") ]
 \end{code}
 
 \paragraph{treatArgs} does the actual work of parsing command line arguments 
@@ -347,7 +343,7 @@ It shows a table of optimisation codes and their meaning.
 optimisationsUsage :: String
 optimisationsUsage = 
   let polopts  = [PolOptsTok, PolarisedTok]
-      adjopts  = [AdjOptsTok, SubstFilteredTok, RootCatFilteredTok, SemFilteredTok]
+      adjopts  = [AdjOptsTok, RootCatFilteredTok, SemFilteredTok]
       unlinesTab l = concat (intersperse "\n  " l)
       getstr k = case find (\x -> k == fst3 x) optimisationCodes of 
                    Just (_, code, desc) -> code ++ " - " ++ desc
@@ -360,8 +356,6 @@ optimisationsUsage =
      ++ "  " ++ unlinesTab (map getstr polopts) ++ "\n\n"
      ++ "Adjunction optimisations:\n"
      ++ "  " ++ unlinesTab (map getstr adjopts) ++ "\n"
-     ++ "Batch processing:\n"
-     ++ "  " ++ (getstr BatchTok) ++ "\n"
 \end{code}
 
 \paragraph{parseOptimisations} parses a string of codes like \texttt{+pol+c}
@@ -444,7 +438,7 @@ defineParams p (f:s) = defineParams pnext s
                                     Just lim -> Just lim }
       MaxTreesTok v        -> p {maxTrees = Just (read v)} 
       ExtraPolaritiesTok v -> p {extrapol = parsePol v } 
-      RepeatTok v          -> p {batchRepeat = read v}
+      BatchDirTok  v       -> p {batchDir = v}
       WeirdTok _           -> p
       unknown -> error ("Unknown configuration parameter: " ++ show unknown)
     -- when PolOpts and AdjOpts are in the list of optimisations
