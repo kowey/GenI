@@ -36,13 +36,14 @@ import NLP.GenI.GeniParsers (geniMacros)
 import NLP.GenI.Treeprint (toGeniHand, hsShow)
 import NLP.GenI.Converter.ReadTagml (readTagmlMacros)
 
-data Flag = FromTok String | ToTok String | StemTok String
+data Flag = FromTok String | ToTok String | OutputTok String
 
 options :: [OptDescr Flag]
 options =
   [ Option "f" ["from"] (ReqArg FromTok "TYPE") "tagml|geni"
   , Option "t" ["to"]   (ReqArg ToTok "TYPE")   "haskell|geni"
-  , Option "s" ["stem"]  (ReqArg StemTok "STRING")  "prefix to use for output files (if -t haskell)"  ]
+  , Option "o" ["output"]  (ReqArg OutputTok "STRING")  "output file, or -t haskell, prefix for output files"
+  ]
 
 data InputParams = InputParams { fromArg :: Maybe String
                                , toArg   :: Maybe String
@@ -52,7 +53,7 @@ toInputParams :: [Flag] -> InputParams
 toInputParams [] = InputParams Nothing Nothing Nothing
 toInputParams (FromTok x : n) = (toInputParams n) { fromArg = Just x }
 toInputParams (ToTok x : n)   = (toInputParams n) { toArg = Just x }
-toInputParams (StemTok x : n)  = (toInputParams n) { stemArg = Just x }
+toInputParams (OutputTok x : n)  = (toInputParams n) { stemArg = Just x }
 
 main :: IO ()
 main =
