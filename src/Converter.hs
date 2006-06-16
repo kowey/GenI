@@ -22,11 +22,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 module Main (main) where
 
-import Control.Monad (liftM)
+import Data.IORef (newIORef, modifyIORef, readIORef)
 import Data.List (intersperse)
 import System (ExitCode(ExitFailure), exitWith, getArgs, getProgName)
 import System.Console.GetOpt(OptDescr(Option), ArgDescr(ReqArg), usageInfo, getOpt, ArgOrder(Permute))
 import System.IO(getContents)
+import System.IO.Unsafe(unsafeInterleaveIO)
 import Text.ParserCombinators.Parsec
 
 import NLP.GenI.Btypes (Macros,pfamily,MTtree)
@@ -39,8 +40,8 @@ data Flag = FromTok String | ToTok String | StemTok String
 
 options :: [OptDescr Flag]
 options =
-  [ Option "f" ["from"] (ReqArg FromTok "FILE") "tagml|geni"
-  , Option "t" ["to"]   (ReqArg ToTok "FILE")   "haskell|geni"
+  [ Option "f" ["from"] (ReqArg FromTok "TYPE") "tagml|geni"
+  , Option "t" ["to"]   (ReqArg ToTok "TYPE")   "haskell|geni"
   , Option "s" ["stem"]  (ReqArg StemTok "STRING")  "prefix to use for output files (if -t haskell)"  ]
 
 data InputParams = InputParams { fromArg :: Maybe String
@@ -59,25 +60,33 @@ main =
     progname <- getProgName
     case getOpt Permute options args of
      (o,fs,[]  ) ->
-       let (InputParams mf mt s) = toInputParams o in
-       case (mf, mt) of
-         (Just f, Just t) -> readMacros f fs >>= writeMacros t s
-         _                -> showUsage progname
+       let (InputParams mfTy mtTy mf) = toInputParams o in
+       case (mfTy, mtTy, mf) of
+         (_, Just "haskell", Nothing) -> ePutStrLn $ "Can't write haskell to stdout (Please provide a stem)."
+         (Just fTy, Just "haskell", Just f) -> doHaskell fTy f fs
+         (Just fTy, Just "geni", _) -> readAndWriteMacros fTy fs (geniWriter mf)
+         _                           -> showUsage progname
      _ -> showUsage progname
  where
   showUsage p =
     do let header = "usage: " ++ p ++ " -f [tagml|geni] -t [haskell|geni] < input > output"
        ePutStrLn $ usageInfo header options
        exitWith (ExitFailure 1)
+  doHaskell fromType f fs =
+   do mref <- newIORef []
+      readAndWriteMacros fromType fs (\m -> modifyIORef mref (++ m))
+      macros <- readIORef mref
+      writeHaskell f macros
 
-readMacros :: String -> [FilePath] -> IO Macros
-readMacros f fs =
+readAndWriteMacros :: String -> [FilePath] -> (Macros -> IO ()) -> IO ()
+readAndWriteMacros f fs writer =
  let reader = case f of
              "tagml" -> tagmlReader
              "geni"  -> geniReader
              _       -> fail ("Unknown -f type: " ++ f)
- in if null fs then getContents >>= reader
-    else liftM concat $ mapM (\x -> readFile x >>= reader) fs
+ in if null fs then getContents >>= reader >>= writer
+    else do mapM (\x -> unsafeInterleaveIO (readFile x) >>= reader >>= writer) fs
+            return ()
 
 tagmlReader :: String -> IO Macros
 tagmlReader lf =
@@ -91,19 +100,12 @@ geniReader lf =
   Left err -> fail (show err)
   Right  c -> return c
 
-writeMacros :: String -> Maybe String -> Macros -> IO ()
-writeMacros ty mf ms =
- case ty of
- "haskell" ->
-   case mf of
-    Nothing -> ePutStrLn $ "Can't write haskell to stdout (Please provide a stem)."
-    Just f  -> writeHaskell f ms
- "geni"    ->
-   case mf of
-    Nothing -> putStrLn stuff
-    Just f  -> writeFile f stuff
-   where stuff = unlines $ map toGeniHand ms
- _         -> fail ("Unknown -t type" ++ ty)
+geniWriter :: Maybe String -> Macros -> IO ()
+geniWriter mf ms =
+ case mf of
+   Nothing -> putStrLn stuff
+   Just f  -> writeFile f stuff
+ where stuff = unlines $ map toGeniHand ms
 
 writeHaskell :: String -> Macros -> IO ()
 writeHaskell rawStem ms =
