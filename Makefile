@@ -139,8 +139,12 @@ CLIENT := bin/geniclient
 CLIENT_MAIN := $(SRC)/Client.hs
 CLIENT_DEPS := $(call getdeps,$(CLIENT_MAIN))
 
+SELECT := bin/geniselect
+SELECT_MAIN := $(SRC)/Select.hs
+CLIENT_DEPS := $(call getdeps,$(SELECT_MAIN))
+
 # dependencies
-COMPILE_TARGETS:=$(GENI_MAIN) $(EXTRACTOR_MAIN) $(CONVERTER_MAIN)\
+COMPILE_TARGETS:=$(GENI_MAIN) $(EXTRACTOR_MAIN) $(CONVERTER_MAIN) $(SELECT_MAIN)\
 		 $(SERVER_MAIN) $(CLIENT_MAIN)
 DEPENDS:=$(patsubst %,.depends/%.dep,$(COMPILE_TARGETS))
 
@@ -240,7 +244,7 @@ $(DEPENDS): .depends/%.dep : %
 # compilation
 # --------------------------------------------------------------------
 
-compile: init $(GENI) $(EXTRACTOR) $(CONVERTER) $(SERVER) $(CLIENT)
+compile: init $(GENI) $(EXTRACTOR) $(CONVERTER) $(SERVER) $(CLIENT) $(SELECT)
 
 converter: $(CONVERTER)
 extractor: $(EXTRACTOR)
@@ -270,6 +274,9 @@ $(SERVER): $(SERVER_MAIN) $(SERVER_DEPS)
 	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES) $< -o $@
 
 $(CLIENT): $(CLIENT_MAIN) $(CLIENT_DEPS)
+	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES) $< -o $@
+
+$(SELECT): $(SELECT_MAIN) $(SELECT_DEPS)
 	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES) $< -o $@
 
 # sometimes you have stuff that doesn't get built with ghc --make

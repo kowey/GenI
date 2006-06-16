@@ -30,7 +30,11 @@ module NLP.GenI.Geni (ProgState(..), ProgStateRef, emptyProgState,
              initGeni, runGeni, Selector,
              loadGrammar, loadLexicon, 
              loadTestSuite, loadTargetSemStr,
-             combine)
+             combine,
+
+             -- used by auxiliary tools only
+             chooseLexCand,
+             )
 where
 \end{code}
 
