@@ -267,9 +267,11 @@ geniBug s = error $ "Bug in GenI!\n" ++ s ++
 \section{Files}
 
 \begin{code}
--- FIXME: should be OS-independant 
-slash :: String
-slash = "/"
+-- from darcs
+(///) :: FilePath -> FilePath -> FilePath
+""///b = b
+a///"" = a
+a///b  = a ++ "/" ++ b
 \end{code}
 
 \section{Intervals}

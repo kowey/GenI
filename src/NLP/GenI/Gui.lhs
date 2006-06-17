@@ -41,7 +41,7 @@ import qualified NLP.GenI.BuilderGui as BG
 import NLP.GenI.Geni
   ( ProgState(..), ProgStateRef, combine, initGeni
   , loadGrammar, loadTestSuite, loadTargetSemStr)
-import NLP.GenI.General (boundsCheck, geniBug, trim, slash, fst3)
+import NLP.GenI.General (boundsCheck, geniBug, trim, fst3)
 import NLP.GenI.Btypes (showSem, showPairs, ILexEntry(isemantics))
 import NLP.GenI.Tags (idname, tpolarities, tsemantics, TagElem)
 
@@ -449,7 +449,7 @@ and updates said label when the user has made a selection.
 \begin{code}
   -- helper functions
   curDir <- getCurrentDirectory
-  let curDir2 = curDir ++ slash
+  let curDir2 = curDir ++ "/"
       trim2 pth = if curDir2 `isPrefixOf` pth2
                      then drop (length curDir2) pth2
                      else pth2

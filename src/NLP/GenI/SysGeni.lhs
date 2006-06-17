@@ -31,11 +31,11 @@ where
 \begin{code}
 import qualified System.Process as S
 
-import Data.List(intersperse, isSuffixOf)
+import Data.List(isSuffixOf)
 import System.Exit (ExitCode)
 import System.IO (Handle)
 
-import NLP.GenI.General(slash)
+import NLP.GenI.General((///))
 
 #ifdef __GLASGOW_HASKELL__
 import Foreign
@@ -67,11 +67,8 @@ runInteractiveProcess cmd args x y = do
   dirname <- getProgDirName
   -- detect if we're in an .app bundle, i.e. if 
   -- we are running from something.app/Contents/MacOS
-  let insertSlashes p = (concat $ intersperse slash p)
-      appBundle = (insertSlashes p) ++ slash
-        where p = [ ".app", "Contents", "MacOS" ]
-      resBinCmd = dirname ++ (insertSlashes p)
-        where p = [ "..", "Resources", "bin", cmd ]
+  let appBundle = ".app/Contents/MacOS/"
+      resBinCmd = "../Resources/bin" /// cmd
   -- if we're in an .app bundle, we should prefix the
   -- path with ../Resources/bin
   let cmd2 = if appBundle `isSuffixOf` dirname 

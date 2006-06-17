@@ -26,7 +26,7 @@ import Data.IORef(readIORef, modifyIORef)
 import System.Directory(createDirectoryIfMissing)
 
 import NLP.GenI.Btypes( SemInput )
-import NLP.GenI.General(ePutStrLn, withTimeout, exitTimeout)
+import NLP.GenI.General(ePutStrLn, withTimeout, exitTimeout, (///))
 import NLP.GenI.Geni
 import NLP.GenI.Configuration
   ( Params(batchDir), isGraphical, outputFile, statsFile, metricsParam, timeoutSecs
@@ -135,9 +135,3 @@ runOnSemInput pstRef args semInput =
     helper builder =
       do (sentences, stats, _) <- runGeni pstRef builder
          return (sentences, stats)
-
--- from darcs (move to general)
-(///) :: FilePath -> FilePath -> FilePath
-""///b = b
-a///"" = a
-a///b  = a ++ "/" ++ b

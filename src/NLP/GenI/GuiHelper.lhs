@@ -49,7 +49,7 @@ import NLP.GenI.Tags (TagItem(tgIdName), tagLeaves)
 import NLP.GenI.Geni
   ( ProgState(..), showRealisations )
 import NLP.GenI.GeniParsers ( geniTagElems )
-import NLP.GenI.General (boundsCheck, slash, geniBug, tail_)
+import NLP.GenI.General (boundsCheck, (///), geniBug, tail_)
 import NLP.GenI.Btypes
   ( showPred, showSem, showLexeme, Sem, ILexEntry(iword, ifamname), )
 import NLP.GenI.Tags
@@ -733,7 +733,7 @@ initCacheDir cachesubdir = do
   cmainExists  <- doesDirectoryExist mainCacheDir 
   Monad.when (not cmainExists) $ createDirectory mainCacheDir 
   -- 
-  let cachedir = mainCacheDir ++ slash ++ cachesubdir  
+  let cachedir = mainCacheDir /// cachesubdir
   cExists    <- doesDirectoryExist cachedir
   if (cExists)
     then do let notdot x = (x /= "." && x /= "..")
@@ -773,17 +773,17 @@ messageGui f msg = do
 gv_CACHEDIR :: IO String
 gv_CACHEDIR = do
   home <- getHomeDirectory
-  return $ home ++ slash ++ ".gvcache"
+  return $ home /// ".gvcache"
 
 createImagePath :: String -> String -> IO String
 createImagePath subdir name = do
   cdir <- gv_CACHEDIR
-  return $ cdir ++ slash ++ subdir ++ slash ++ name ++ ".png"
+  return $ cdir /// subdir /// name ++ ".png"
 
 createDotPath :: String -> String -> IO String
 createDotPath subdir name = do 
   cdir <- gv_CACHEDIR
-  return $ cdir ++ slash ++ subdir ++ slash ++ name ++ ".dot"
+  return $ cdir /// subdir /// name ++ ".dot"
 \end{code}
 
 \subsection{XMG Metagrammar stuff}
