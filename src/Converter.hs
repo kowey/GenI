@@ -45,15 +45,15 @@ options =
   , Option "o" ["output"]  (ReqArg OutputTok "STRING")  "output file, or -t haskell, prefix for output files"
   ]
 
-data InputParams = InputParams { fromArg :: Maybe String
-                               , toArg   :: Maybe String
-                               , stemArg :: Maybe String }
+data InputParams = InputParams { fromArg :: String
+                               , toArg   :: String
+                               , stemArg :: String }
 
 toInputParams :: [Flag] -> InputParams
-toInputParams [] = InputParams Nothing Nothing Nothing
-toInputParams (FromTok x : n) = (toInputParams n) { fromArg = Just x }
-toInputParams (ToTok x : n)   = (toInputParams n) { toArg = Just x }
-toInputParams (OutputTok x : n)  = (toInputParams n) { stemArg = Just x }
+toInputParams [] = InputParams "" "" ""
+toInputParams (FromTok x : n)    = (toInputParams n) { fromArg = x }
+toInputParams (ToTok x : n)      = (toInputParams n) { toArg = x }
+toInputParams (OutputTok x : n)  = (toInputParams n) { stemArg = x }
 
 main :: IO ()
 main =
@@ -61,14 +61,19 @@ main =
     progname <- getProgName
     case getOpt Permute options args of
      (o,fs,[]  ) ->
-       let (InputParams mfTy mtTy mf) = toInputParams o in
-       case (mfTy, mtTy, mf) of
-         (_, Just "haskell", Nothing) -> ePutStrLn $ "Can't write haskell to stdout (Please provide a stem)."
-         (Just fTy, Just "haskell", Just f) -> doHaskell fTy f fs
-         (Just fTy, Just "geni", _) -> readAndWriteMacros fTy fs (geniWriter mf)
-         _                           -> showUsage progname
-     _ -> showUsage progname
+       let (InputParams fTy tTy f) = toInputParams o in
+       do mInitialiseFile f
+          case tTy of
+           "haskell" -> if null f
+                        then ePutStrLn $ "Can't write haskell to stdout (Please provide a stem)."
+                        else doHaskell fTy f fs
+           "geni"    -> readAndWriteMacros fTy fs (geniWriter f)
+           _         -> do ePutStrLn $ "Unkwown output type : " ++ tTy
+                           exitWith (ExitFailure 1)
+     _         -> showUsage progname
  where
+  mInitialiseFile "" = return ()
+  mInitialiseFile f  = writeFile f ""
   showUsage p =
     do let header = "usage: " ++ p ++ " -f [tagml|geni] -t [haskell|geni] < input > output"
        ePutStrLn $ usageInfo header options
@@ -101,12 +106,10 @@ geniReader lf =
   Left err -> fail (show err)
   Right  c -> return c
 
-geniWriter :: Maybe String -> Macros -> IO ()
+geniWriter :: FilePath -> Macros -> IO ()
 geniWriter mf ms =
- case mf of
-   Nothing -> putStrLn stuff
-   Just f  -> writeFile f stuff
- where stuff = unlines $ map toGeniHand ms
+ write $ unlines $ map toGeniHand ms
+ where write = if null mf then putStrLn else appendFile mf
 
 writeHaskell :: String -> Macros -> IO ()
 writeHaskell rawStem ms =
