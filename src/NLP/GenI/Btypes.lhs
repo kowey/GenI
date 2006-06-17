@@ -103,6 +103,7 @@ data Ttree a = TT
   , pinterface :: Flist
   , ptype :: Ptype
   , psemantics :: Maybe Sem
+  , ptrace :: [String]
   , tree :: Tree a } 
   deriving Show
 
@@ -132,6 +133,7 @@ emptyMacro = TT { params  = [],
                   pinterface = [],
                   ptype = Unspecified,
                   psemantics = Nothing,
+                  ptrace = [],
                   tree  = Node emptyGNode []
                  }
 \end{code}

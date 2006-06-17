@@ -36,7 +36,8 @@ import NLP.GenI.Tags
    tsemantics, ttree, tinterface, ttype, ttreename,
  )
 import NLP.GenI.Btypes (GeniVal(GConst, GVar, GAnon), AvPair, Ptype(..),
-               Ttree(TT, params, pidname, pfamily, pinterface, ptype, tree, psemantics), Macros,
+               Ttree(TT, params, pidname, pfamily, pinterface, ptype, tree, psemantics, ptrace),
+               Macros,
                GNode(..), GType(..), Flist,
                isConst,
                Pred, Sem, SemPols, showSem, showAv)
@@ -330,9 +331,10 @@ instance (GeniHandShow a) => GeniHandShow (Ttree a) where
                        ++ (unwords $ map toGeniHand $ pinterface tt))
   ++ " "  ++ (toGeniHand.ptype $ tt)
   ++ "\n" ++ (toGeniHand.tree $ tt)
-  ++ case psemantics tt of
-     Nothing   -> ""
-     Just psem -> "\n" ++ "semantics:" ++ (toGeniHand psem)
+  ++ (case psemantics tt of
+      Nothing   -> ""
+      Just psem -> "\n" ++ "semantics:" ++ (toGeniHand psem))
+  ++ "\ntrace:" ++ (squares $ unwords $ ptrace tt)
 
 parens, squares :: String -> String
 parens s  = "(" ++ s ++ ")"
@@ -414,5 +416,5 @@ instance HsShowable TagElem where
   hsConstructor "TE" [hsShow a, hsShow b, hsShow c, hsShow d, hsShow e, hsShow f, hsShow g, hsShow h, hsShow i]
 
 instance HsShowable f => HsShowable (Ttree f) where
- hsShow (TT a b c d e f g) = hsConstructor "TT" [hsShow a, hsShow b, hsShow c, hsShow d, hsShow e, hsShow f, hsShow g]
+ hsShow (TT a b c d e f g h) = hsConstructor "TT" [hsShow a, hsShow b, hsShow c, hsShow d, hsShow e, hsShow f, hsShow g, hsShow h]
 \end{code}

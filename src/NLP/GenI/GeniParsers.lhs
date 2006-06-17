@@ -242,6 +242,7 @@ geniTreeDef ttypeP =
      theTtype  <- ttypeP
      theTree  <- geniTree
      psem     <- option Nothing $ do { keywordSemantics; liftM Just (squares geniSemantics) }
+     ptrc     <- option [] $ do { keyword "trace"; squares (many identifier) }
      --
      return TT{ params = pars
               , pfamily = family
@@ -249,6 +250,7 @@ geniTreeDef ttypeP =
               , pinterface = iface 
               , ptype = theTtype
               , tree = theTree
+              , ptrace = ptrc
               , psemantics = psem
               }
 \end{code}
