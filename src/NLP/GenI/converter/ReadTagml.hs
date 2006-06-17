@@ -48,14 +48,16 @@ readTagmlMacros g =
  _ -> Left "Not a TAGML grammar entry"
 
 translateEntry :: X.Entry -> MTree
-translateEntry (X.Entry (X.Entry_Attrs tname) (X.Family family) _ t sem (X.Interface iface)) =
+translateEntry (X.Entry (X.Entry_Attrs tname) (X.Family family) (X.Trace trace) t sem (X.Interface iface)) =
  let ifeats = case iface of
               Nothing  -> []
               Just ifs -> translateFlatFs ifs
+     fromClass (X.Class s) = s
  in (translateTree t) { pfamily = family
                       , pidname = tname
                       , params  = []
                       , pinterface = ifeats
+                      , ptrace  = map fromClass trace
                       , psemantics = Just $ translateSemantics sem }
 
 -- ----------------------------------------------------------------------
