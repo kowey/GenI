@@ -23,7 +23,8 @@ import Data.Char
 import Data.List (sort,delete,find)
 import Data.Tree
 import Control.Monad.State (State, runState, get, put)
-import Text.XML.HaXml.Xml2Haskell
+import Text.XML.HaXml.XmlContent
+
 
 import NLP.GenI.Btypes
   ( AvPair, Flist,
@@ -43,7 +44,7 @@ type MTree = Ttree GNode
 readTagmlMacros :: String -> Either String Macros
 readTagmlMacros g = 
  case readXml g of
- Just (X.GrammarEntry es) -> Right $ map translateEntry es
+ Right (X.GrammarEntry es) -> Right $ map translateEntry es
  _ -> Left "Not a TAGML grammar entry"
 
 translateEntry :: X.Entry -> MTree
