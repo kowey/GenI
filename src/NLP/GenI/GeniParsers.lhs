@@ -25,7 +25,7 @@ The parsers are written using the most excellent Parsec library.
 \begin{code}
 module NLP.GenI.GeniParsers (
   -- test suite stuff
-  geniTestSuite, geniSemanticInput,
+  geniTestSuite, geniSemanticInput, geniTestSuiteString,
   -- macros 
   geniMacros,
   -- lexicons
@@ -67,6 +67,11 @@ geniTestSuite =
      s <- many geniTestCase 
      eof
      return s
+
+-- | Just the String representations of the semantics
+--   in the test suite
+geniTestSuiteString :: Parser [String]
+geniTestSuiteString = many geniTestCaseString
 \end{code}
 
 A test case is composed of an optional test id, some semantic input
@@ -80,14 +85,24 @@ geniTestCase :: Parser TestCase
 geniTestCase =
   do name <- option "" (identifier <?> "a test case name")
      (sem,res)   <- geniSemanticInput
-     sentences   <- option [] (many sentenceParser)
+     sentences   <- many geniSentence
      return (name, (sem,res), sentences)
-  where
-    sentenceParser = 
-      do optional (keyword "sentence")
-         w <- squares (sepBy1 geniWord whiteSpace <?> "a sentence")
-         return (unwords w)
-      where geniWord = many1 (noneOf "[]\v\f\t\r\n")
+
+geniSentence :: Parser String
+geniSentence =
+  do optional (keyword "sentence")
+     w <- squares (sepBy1 geniWord whiteSpace <?> "a sentence")
+     return (unwords w)
+  where geniWord = many1 (noneOf "[]\v\f\t\r\n")
+
+-- | The original string representation of a test case semantics
+--   (for gui)
+geniTestCaseString :: Parser String
+geniTestCaseString =
+ do option "" (identifier <?> "a test case name")
+    s <- geniSemanticInputString
+    many geniSentence
+    return s
 \end{code}
 
 \section{Semantics}
@@ -102,7 +117,7 @@ geniSemanticInput :: Parser (Sem,Flist)
 geniSemanticInput =
   do keywordSemantics
      sem <- squares geniSemantics 
-     res <- option [] $ do { keyword "restrictors" ; geniFeats } 
+     res <- option [] geniRestrictors
      --
      return (createHandles sem, res)
   where 
@@ -116,6 +131,25 @@ geniSemanticInput =
        let h2 = if h /= GAnon then h 
                 else GConst ["genihandle" ++ (show i)]
        in (h2, pred_, par)
+
+-- | The original string representation of the semantics (for gui)
+geniSemanticInputString :: Parser String
+geniSemanticInputString =
+ do keywordSemantics
+    s <- squaresString
+    whiteSpace
+    optional geniRestrictors
+    return s
+
+geniRestrictors :: Parser Flist
+geniRestrictors = keyword "restrictors" >> geniFeats
+
+squaresString :: Parser String
+squaresString =
+ do char '['
+    s <- liftM concat $ many $ (many1 $ noneOf "[]") <|> squaresString
+    char ']'
+    return $ "[" ++ s ++ "]"
 \end{code}
 
 \section{Lexicon}

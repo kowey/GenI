@@ -288,7 +288,7 @@ readTestSuite pstRef tsBox tsChoice =
   do pst <- readIORef pstRef
      let suite   = tsuite pst
          theCase = tcase pst
-         suiteCases = map fst suite 
+         suiteCases = map fst3 suite
      -- we number the cases for easy identification, putting 
      -- a star to highlight the selected test case (if available)
      let numfn :: Int -> String -> String
@@ -304,14 +304,14 @@ readTestSuite pstRef tsBox tsChoice =
      ----------------------------------------------------
      -- handler for selecting a test case
      ----------------------------------------------------
-     let displaySemInput (s,r) = 
-              "semantics: " ++ showSem s 
+     let displaySemInput (_,str,(_,r)) =
+              "semantics: " ++ str
            ++ (if null r then "" 
                else "\nrestrictors:" ++ showPairs r)
      let onTestCaseChoice = do
          csel <- get tsChoice selection
          if (boundsCheck csel suite)
-           then do let s = snd (suite !! csel)
+           then do let s = (suite !! csel)
                    set tsBox [ text :~ (\_ -> displaySemInput s) ]
            else geniBug $ "Gui: test case selector bounds check error: " ++
                           show csel ++ " of " ++ show suite ++ "\n" 

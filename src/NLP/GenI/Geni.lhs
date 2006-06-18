@@ -92,7 +92,8 @@ import NLP.GenI.Configuration
 import qualified NLP.GenI.Builder as B
 
 import NLP.GenI.GeniParsers (geniMacros, geniTagElems,
-                    geniLexicon, geniTestSuite, geniSemanticInput, 
+                    geniLexicon, geniTestSuite,
+                    geniTestSuiteString, geniSemanticInput,
                     geniMorphInfo)
 import NLP.GenI.Morphology
 -- import CkyBuilder 
@@ -128,8 +129,8 @@ data ProgState = ST{pa     :: Params,
                     ts       :: SemInput, 
                     -- names of test case to run
                     tcase    :: String, 
-                    --name, sem
-                    tsuite   :: [(String,SemInput)]
+                    -- name, original string (for gui), sem
+                    tsuite   :: [(String,String,SemInput)]
                }
 
 type ProgStateRef = IORef ProgState
@@ -278,14 +279,20 @@ loadTestSuite pstRef = do
     ePutStr $ "Loading Test Suite " ++ filename ++ "...\n"
     eFlush
     -- helper functions for test suite stuff
-    let cleanup (i, (sm,sr), _) = (i, newsmsr)
-          where newsmsr = (sortSem sm, sort sr)
-        updateTsuite s x = x { tsuite = map cleanup s   
-                             , tcase  = testCase config}
+    let cleanup tc str = (i, str, newsmsr)
+          where (i, (sm,sr), _) = tc
+                newsmsr = (sortSem sm, sort sr)
+        updateTsuite s s2 x =
+          x { tsuite = zipWith cleanup s s2
+            , tcase  = testCase config}
     sem <- parseFromFile geniTestSuite filename 
     case sem of 
       Left err -> fail (show err)
-      Right s  -> modifyIORef pstRef $ updateTsuite s 
+      Right s  -> do
+        mStrs <- parseFromFile geniTestSuiteString filename
+        case mStrs of
+          Left e   -> fail (show e)
+          Right s2 -> modifyIORef pstRef $ updateTsuite s s2
     -- in the end we just say we're done
     --ePutStr "done\n"
 \end{code}
