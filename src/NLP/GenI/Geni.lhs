@@ -72,7 +72,7 @@ import NLP.GenI.Btypes
    isempols,
    toKeys,
    showLexeme, showPairs,
-   pidname, pfamily, pinterface, ptype, psemantics,
+   pidname, pfamily, pinterface, ptype, psemantics, ptrace,
    setLexeme, tree, unifyFeat, sortFlist,
    alphaConvert,
    )
@@ -80,7 +80,7 @@ import NLP.GenI.Btypes
 import NLP.GenI.Tags (Tags, TagElem, emptyTE,
              idname, ttreename,
              ttype, tsemantics, ttree, tsempols,
-             tinterface,
+             tinterface, ttrace,
              setTidnums) 
 
 import NLP.GenI.Configuration
@@ -456,7 +456,7 @@ succeed in anchoring it.
 runLexSelection :: ProgState -> IO ([TagElem], [ILexEntry])
 runLexSelection pst =
  do -- select lexical items first 
-    let (tsem,_,_) = ts pst
+    let (tsem,_,litConstrs) = ts pst
         lexicon  = le pst
         lexCand   = chooseLexCand lexicon tsem
     -- then anchor these lexical items to trees
@@ -471,12 +471,16 @@ runLexSelection pst =
     let morphfn  = morphinf pst
         cand2    = attachMorph morphfn tsem cand 
     -- filter out candidates which have a semantics that does not
-    -- subsume the input semantics
-    --
+    -- subsume the input semantics, or which do not fulfill the
+    -- trace constraints
     -- this is in case the grammar introduces literals into the
     -- semantics that weren't associated with the lexical entry
     let subsetSem t = all (`elem` tsem) $ tsemantics t
-        cand3 = filter subsetSem cand2
+        matchesLc t = all (`elem` myTrace) constrs
+          where constrs = concat [ cs | (l,cs) <- litConstrs, l `elem` mySem ]
+                mySem   = tsemantics t
+                myTrace = ttrace t
+        cand3 = filter matchesLc $ filter subsetSem cand2
     -- FIXME: should we tell the user that we are doing this?
     -- assign ids to each candidate
     let cand4 = setTidnums cand3
@@ -628,7 +632,9 @@ combineOne lexRaw eRaw = -- Maybe monad
                            Nothing -> isemantics l
                            Just s  -> s
               , tsempols    = isempols l
-              , tinterface  = pinterface e }
+              , tinterface  = pinterface e
+              , ttrace      = ptrace e
+              }
  where
   wt = "(Word: "++ (showLexeme $ iword lexRaw) ++
        ", Family:" ++ (ifamname lexRaw) ++

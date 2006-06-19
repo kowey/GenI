@@ -106,7 +106,8 @@ data TagElem = TE {
                    -- optimisation stuff
                    -- (polarity key to charge interval)
                    tpolarities  :: Map.Map String (Int,Int), 
-                   tinterface   :: Flist,  -- for restrictors 
+                   tinterface   :: Flist,  -- for restrictors
+                   ttrace       :: [String],
                    tsempols     :: [SemPols]
                 }
              deriving (Show, Eq)
@@ -163,7 +164,8 @@ emptyTE = TE { idname = "",
                tsemantics = [], 
                tpolarities = Map.empty,
                tsempols    = [],
-               tinterface  = []
+               tinterface  = [],
+               ttrace = []
              }
 
 -- | Given a tree(GNode) returns a list of substitution or adjunction

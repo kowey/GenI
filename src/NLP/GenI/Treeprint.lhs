@@ -412,8 +412,8 @@ instance HsShowable GNode where
  hsShow (GN a b c d e f g) = hsConstructor "GN" [hsShow a, hsShow b, hsShow c, hsShow d, hsShow e, hsShow f, hsShow g]
 
 instance HsShowable TagElem where
- hsShow (TE a b c d e f g h i) =
-  hsConstructor "TE" [hsShow a, hsShow b, hsShow c, hsShow d, hsShow e, hsShow f, hsShow g, hsShow h, hsShow i]
+ hsShow (TE a b c d e f g h i j) =
+  hsConstructor "TE" [hsShow a, hsShow b, hsShow c, hsShow d, hsShow e, hsShow f, hsShow g, hsShow h, hsShow i, hsShow j]
 
 instance HsShowable f => HsShowable (Ttree f) where
  hsShow (TT a b c d e f g h) = hsConstructor "TT" [hsShow a, hsShow b, hsShow c, hsShow d, hsShow e, hsShow f, hsShow g, hsShow h]
