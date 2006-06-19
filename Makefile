@@ -214,7 +214,7 @@ tidy:
 	rm -f $(foreach d, $(SRC_DIRS), $(d)/*.{dvi,aux,log,bbl,blg,out,toc})
 	rm -f $(foreach d, $(SRC_DIRS), $(d)/*.{p_hi,p_o,hi,o})
 
-init: permissions deps
+init: permissions
 
 permissions: $(config_file)
 	chmod u+x $(SCRIPT_FILES)
@@ -229,11 +229,7 @@ tags:
 	sort $@ > $@.tmp
 	mv $@.tmp $@
 
-ifdef PROFILE
-deps:
-else
 deps: $(DEPENDS)
-endif
 
 $(DEPENDS): .depends/%.dep : %
 	@echo Calculating dependencies for $<
