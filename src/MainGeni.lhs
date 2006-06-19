@@ -41,26 +41,26 @@ import NLP.GenI.Configuration (treatArgs, isGraphical, Params(batchDir),
 #ifndef PRECOMPILED_GRAMMAR
 #ifndef DISABLE_GUI
 import NLP.GenI.Gui(guiGeni)
-#endif {- DISABLE_GUI -}
-#endif {- PRECOMPILED_GRAMMAR -}
+#endif
+#endif
 
 #ifdef PRECOMPILED_GRAMMAR
 import MyGeniGrammar
-#endif {- PRECOMPILED_GRAMMAR -}
+#endif
 
 mPreGrammar :: Maybe Macros
 #ifdef PRECOMPILED_GRAMMAR
 mPreGrammar = Just myGeniGrammar
 #else
 mPreGrammar = Nothing
-#endif {- PRECOMPILED_GRAMMAR -}
+#endif
 
 #ifdef PRECOMPILED_GRAMMAR
 guiGeni = consoleGeni
-#endif {- PRECOMPILED_GRAMMAR -}
+#endif
 #ifdef DISABLE_GUI
 guiGeni = consoleGeni
-#endif {- DISABLE_GUI -}
+#endif
 \end{code}
 }
 

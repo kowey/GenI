@@ -897,7 +897,7 @@ addToDerivation op tc tp = {-# SCC "addToDerivation" #-}
       --
       newnode = (op, (addcp.siIdname) tc, siIdname tp)
   in (newcp, newnode:(hp++newhc) )
-#endif DISABLE_GUI
+#endif
 \end{code}
 
 % --------------------------------------------------------------------
