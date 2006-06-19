@@ -604,7 +604,7 @@ unzipEither es = helper ([],[]) es where
 \end{code}
 
 \paragraph{combineOne} \label{fn:combineOne} combines a single tree with its
-lexical item to form a bonafide TagElem.  This process can fail; however,
+lexical item to form a bonafide TagElem.  This process can fail, however,
 because of filtering or enrichement
 
 \begin{code}
