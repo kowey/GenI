@@ -177,7 +177,7 @@ preInit input config =
      --
      fixate ts ps = zip (map alphaConvertById $ setTidnums ts) ps
      input2 = input { inCands    = fixate cands2 pathIds
-                    , inSemInput = (sem2, snd seminput) }
+                    , inSemInput = (sem2, snd3 seminput, thd3 seminput) }
      -- note: autstuff is only useful for the graphical debugger
   in (input2, polcount, autstuff)
 \end{code}
@@ -456,7 +456,7 @@ initNullBuilder input config =
               sn = [ n | n <- nodes, gtype n == Subs  ]
               an = [ n | n <- nodes, gtype n == Foot  ]
       --
-      (tsem,_) = inSemInput input
+      (tsem,_,_) = inSemInput input
       cands = map fst $ inCands input
       (_,_,(_,_,aut,_)) = preInit input config
       cands2 = concatMap concat $ automatonPathSets aut

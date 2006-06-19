@@ -142,7 +142,7 @@ emptyProgState args =
     , gr = []
     , le = Map.empty
     , morphinf = const Nothing
-    , ts = ([],[])
+    , ts = ([],[],[])
     , tcase = []
     , tsuite = [] }
 \end{code}
@@ -280,8 +280,8 @@ loadTestSuite pstRef = do
     eFlush
     -- helper functions for test suite stuff
     let cleanup tc str = (i, str, newsmsr)
-          where (i, (sm,sr), _) = tc
-                newsmsr = (sortSem sm, sort sr)
+          where (i, (sm, sr, lc), _) = tc
+                newsmsr = (sortSem sm, sort sr, lc)
         updateTsuite s s2 x =
           x { tsuite = zipWith cleanup s s2
             , tcase  = testCase config}
@@ -312,7 +312,7 @@ loadTargetSemStr pstRef str =
          case sem of
            Left  err -> fail (show err)
            Right sr  -> modifyIORef pstRef (\x -> x{ts = smooth sr})
-       smooth (s,r) = (sortSem s, sort r)
+       smooth (s,r,l) = (sortSem s, sort r, l)
 \end{code}
 
 % --------------------------------------------------------------------
@@ -376,11 +376,11 @@ initGeni pstRef =
     pstLex   <- readIORef pstRef
     (cand, lexonly) <- runLexSelection pstLex
     -- strip morphological predicates
-    let (tsem,tres) = ts pstLex
-        tsem2       = stripMorphSem (morphinf pstLex) tsem
+    let (tsem,tres,lc) = ts pstLex
+        tsem2 = stripMorphSem (morphinf pstLex) tsem
     --
     let initStuff = B.Input 
-          { B.inSemInput = (tsem2, tres)
+          { B.inSemInput = (tsem2, tres, lc)
           , B.inLex   = lexonly 
           , B.inCands = map (\c -> (c,-1)) cand
           }
@@ -456,7 +456,7 @@ succeed in anchoring it.
 runLexSelection :: ProgState -> IO ([TagElem], [ILexEntry])
 runLexSelection pst =
  do -- select lexical items first 
-    let (tsem,_) = ts pst
+    let (tsem,_,_) = ts pst
         lexicon  = le pst
         lexCand   = chooseLexCand lexicon tsem
     -- then anchor these lexical items to trees

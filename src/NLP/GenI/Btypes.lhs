@@ -30,7 +30,7 @@ module NLP.GenI.Btypes(
    Ttree(..), MTtree, SemPols,
    Ptype(Initial,Auxiliar,Unspecified), 
    Pred, Flist, AvPair, GeniVal(..),
-   Lexicon, ILexEntry(..), Macros, Sem, SemInput, Subst,
+   Lexicon, ILexEntry(..), Macros, Sem, LitConstr, SemInput, Subst,
    emptyLE, emptyGNode, emptyMacro, 
 
    -- GNode stuff 
@@ -588,7 +588,8 @@ showAv (y,z) = y ++ ":" ++ show z
 -- handle, predicate, parameters
 type Pred = (GeniVal, GeniVal, [GeniVal])
 type Sem = [Pred]
-type SemInput = (Sem,Flist)
+type LitConstr = (Pred, [String])
+type SemInput  = (Sem,Flist,[LitConstr])
 type Subst = [(String, GeniVal)]
 emptyPred :: Pred
 emptyPred = (GAnon,GAnon,[])

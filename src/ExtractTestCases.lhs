@@ -32,11 +32,11 @@ that batch-test GenI.
 module Main (main) where
 
 import NLP.GenI.Btypes
-import NLP.GenI.General(snd3)
-import NLP.GenI.GeniParsers(geniTestSuite)
+import NLP.GenI.General (snd3, (///))
+import NLP.GenI.GeniParsers(geniTestSuite, geniTestSuiteString)
 
 import Control.Monad(when)
-import Data.List(nubBy)
+import Data.List(nubBy,sort)
 import System.Directory
 import System.Environment
 import System.Exit(exitFailure)
@@ -63,31 +63,33 @@ main =
     suite' <- case parsed of
                Left  err     -> fail (show err)
                Right entries -> return entries 
+    parsed2  <- parseFromFile geniTestSuiteString tfilename
+    caseStrs <- case parsed2 of
+                 Left  err -> fail (show err)
+                 Right cs  -> return cs
     -- process the suite
     -- (for now, just remove redundant entries)
-    let sortSemOnly (sem,res) = (sortSem sem, res)
-        semOf x = sortSemOnly.snd3 $ x
-        suite = nubBy (\x y -> semOf x == semOf y) suite'
+    let canon x = srt.snd3.snd $ x
+          where srt (sem,res,lc) = (sortSem sem, sort res, sort lc)
+        suite = nubBy (\x y -> canon x == canon y) $ zip caseStrs suite'
     -- write stuff to the output directory
     createDirectoryIfMissing False outdir
     mapM (createSubdir outdir) suite
     return ()
     
-createSubdir :: String -> TestCase -> IO ()
-createSubdir outdir testcase = 
+createSubdir :: String -> (String,TestCase) -> IO ()
+createSubdir outdir (semanticsStr_, testcase) =
  do --  
-    let slash x y = x ++ "/" ++ y
-        (name, semres, sent) = testcase
-        (sem, res) = semres
-        subdir = outdir `slash` name
-    createDirectoryIfMissing False subdir
-    --
-    let semanticsStr = "semantics:" ++ showSem sem 
-          ++ (if null res then "" else r)
+    let (name, (_,res,_), sent) = testcase
+        subdir = outdir /// name
+        semanticsStr = "semantics:" ++ semanticsStr_
+           ++ (if null res then "" else r)
          where r = "\nrestrictors: [" ++ showPairs res ++ "]"
         sentencesStr = unlines sent
-    writeFile (subdir `slash` "semantics") semanticsStr 
-    writeFile (subdir `slash` "sentences") sentencesStr 
+    --
+    createDirectoryIfMissing False subdir
+    writeFile (subdir /// "semantics") semanticsStr
+    writeFile (subdir /// "sentences") sentencesStr
 \end{code}
 
 

@@ -42,7 +42,7 @@ import NLP.GenI.Geni
   ( ProgState(..), ProgStateRef, combine, initGeni
   , loadGrammar, loadTestSuite, loadTargetSemStr)
 import NLP.GenI.General (boundsCheck, geniBug, trim, fst3)
-import NLP.GenI.Btypes (showSem, showPairs, ILexEntry(isemantics))
+import NLP.GenI.Btypes (showPairs, ILexEntry(isemantics))
 import NLP.GenI.Tags (idname, tpolarities, tsemantics, TagElem)
 
 import NLP.GenI.Configuration
@@ -304,7 +304,7 @@ readTestSuite pstRef tsBox tsChoice =
      ----------------------------------------------------
      -- handler for selecting a test case
      ----------------------------------------------------
-     let displaySemInput (_,str,(_,r)) =
+     let displaySemInput (_,str,(_,r,_)) =
               "semantics: " ++ str
            ++ (if null r then "" 
                else "\nrestrictors:" ++ showPairs r)
@@ -620,7 +620,7 @@ debugGui builderGui pstRef pauseOnLex =
     nb   <- notebook p []
     -- generation step 1
     initStuff <- initGeni pstRef
-    let (tsem,_)   = B.inSemInput initStuff
+    let (tsem,_,_) = B.inSemInput initStuff
         (cand,_)   = unzip $ B.inCands initStuff
         lexonly    = B.inLex initStuff
     -- continuation for candidate selection tab

@@ -56,9 +56,8 @@ import qualified Text.ParserCombinators.Parsec.Token as P
 The test suite format consists of arbitrarily many test cases:
 
 \begin{code}
-type SemRes   = ( Sem, [AvPair] ) 
 type TestCase = ( String    -- name
-                , SemRes    -- semantics / restrictors
+                , SemInput  -- semantics / restrictors
                 , [String]) -- sentences
 
 geniTestSuite :: Parser [TestCase]
@@ -83,10 +82,10 @@ keyword.)
 \begin{code}
 geniTestCase :: Parser TestCase
 geniTestCase =
-  do name <- option "" (identifier <?> "a test case name")
-     (sem,res)   <- geniSemanticInput
+  do name  <- option "" (identifier <?> "a test case name")
+     tcase <- geniSemanticInput
      sentences   <- many geniSentence
-     return (name, (sem,res), sentences)
+     return (name, tcase, sentences)
 
 geniSentence :: Parser String
 geniSentence =
@@ -107,19 +106,28 @@ geniTestCaseString =
 
 \section{Semantics}
 
-\fnlabel{geniSemanticInput} consists of a semantics, and optionally a set of
-restrictors.  Restrictors are represented as feature structures.  For more
+\fnlabel{geniSemanticInput} consists of a semantics, and optionally a
+set of restrictors (FIXME: these absolutely have to be renamed).
+
+The semantics may contain literal based constraints as described in
+section \ref{sec:fixme}.  These constraints are just a space-delimited
+list of String.  When returning the results, we separate them out from
+the semantics proper so that they can be treated separately.
+
+Restrictors are represented as feature structures.  For more
 details about restrictors, see \fnref{detectRestrictors} for details about
 restrictors.
 
 \begin{code}
-geniSemanticInput :: Parser (Sem,Flist)
+geniSemanticInput :: Parser (Sem,Flist,[LitConstr])
 geniSemanticInput =
   do keywordSemantics
-     sem <- squares geniSemantics 
-     res <- option [] geniRestrictors
+     (sem,trc) <- liftM unzip $ squares $ many literalAndTraceRes
+     res       <- option [] geniRestrictors
      --
-     return (createHandles sem, res)
+     let sem2    = createHandles sem
+         semtrc2 = [ (s,t) | (s,t) <- zip sem2 trc, (not.null) t ]
+     return (createHandles sem, res, semtrc2)
   where 
      -- set all anonymous handles to some unique value
      -- this is to simplify checking if a result is
@@ -131,6 +139,12 @@ geniSemanticInput =
        let h2 = if h /= GAnon then h 
                 else GConst ["genihandle" ++ (show i)]
        in (h2, pred_, par)
+     --
+     literalAndTraceRes :: Parser (Pred, [String])
+     literalAndTraceRes =
+       do l <- geniLiteral
+          t <- option [] $ squares $ many identifier
+          return (l,t)
 
 -- | The original string representation of the semantics (for gui)
 geniSemanticInputString :: Parser String

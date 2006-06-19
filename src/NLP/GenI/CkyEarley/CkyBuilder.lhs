@@ -274,7 +274,7 @@ type RoutingMap = Map.Map String ([String], [String], GNode)
 \begin{code}
 initBuilder :: Bool -> B.Input -> Params -> (CkyStatus, Statistics)
 initBuilder isEarley input config =
-  let (sem, _) = B.inSemInput input
+  let (sem, _, _) = B.inSemInput input
       bmap  = defineSemanticBits sem
       cands = concatMap (initTree isEarley bmap) $ B.inCands input
       dispatchFn = ckyDispatch (isIaf config)

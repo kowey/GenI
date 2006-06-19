@@ -118,7 +118,7 @@ buildAutomaton :: SemInput -> [TagElem] -> [String] -> PolMap ->
 type PolResult = ([AutDebug], PolAut, PolAut, Sem)
 type AutDebug  = (String, PolAut, PolAut)
 
-buildAutomaton (tsem,tres) candRaw rootCats extrapol  =
+buildAutomaton (tsem,tres,_) candRaw rootCats extrapol  =
   let -- root catogories, restrictors, and external polarities
       rcatPol :: Map.Map String Interval
       rcatPol = 

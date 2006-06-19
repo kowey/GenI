@@ -301,7 +301,7 @@ siInitial =  isNothing . siFoot
 initSimpleBuilder ::  Bool -> B.Input -> Params -> (SimpleStatus, Statistics)
 initSimpleBuilder twophase input config =
   let cands   = map (initSimpleItem bmap) $ B.inCands input
-      (sem,_) = B.inSemInput input
+      (sem,_,_) = B.inSemInput input
       bmap    = defineSemanticBits sem
       --
       (a,i) = if twophase then partition closedAux cands else ([],cands)
