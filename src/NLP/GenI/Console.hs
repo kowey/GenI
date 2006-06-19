@@ -70,8 +70,12 @@ runSuite pstRef =
         then runTestCaseOnly pstRef >> return ()
         else if any null $ map fst3 suite
              then ePutStrLn "Can't do batch processing. The test suite has cases with no name."
-             else do mapM (\ (n,_,s) -> runOnSemInput pstRef (PartOfSuite n bdir) s) suite
-                     return ()
+             else do ePutStrLn "Batch processing mode"
+                     mapM_ (runCase bdir) suite
+ where
+  runCase bdir (n,_,s) =
+   do (res , _) <- runOnSemInput pstRef (PartOfSuite n bdir) s
+      ePutStrLn $ " " ++ n ++ " - " ++ (show $ length res) ++ " results"
 
 -- | Run the specified test case, or failing that, the first test
 --   case in the suite
