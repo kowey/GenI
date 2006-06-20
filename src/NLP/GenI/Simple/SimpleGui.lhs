@@ -148,6 +148,7 @@ instance TagItem SimpleItem where
  tgIdName    = siIdname.siGuiStuff
  tgIdNum     = siId
  tgSemantics = siFullSem.siGuiStuff
+ tgTrace     = const [] -- FIXME : do we need an implementation of this?
 
 instance XMGDerivation SimpleItem where
  -- Note: this is XMG-related stuff

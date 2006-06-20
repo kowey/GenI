@@ -45,7 +45,7 @@ import NLP.GenI.Automaton (numStates, numTransitions)
 import Statistics (Statistics, showFinalStats)
 
 import NLP.GenI.Treeprint(toGeniHand)
-import NLP.GenI.Tags (TagItem(tgIdName), tagLeaves)
+import NLP.GenI.Tags (TagItem(tgIdName, tgTrace), tagLeaves)
 import NLP.GenI.Geni
   ( ProgState(..), showRealisations )
 import NLP.GenI.GeniParsers ( geniTagElems )
@@ -190,16 +190,35 @@ tagViewerGui :: (GraphvizShow Bool t, TagItem t, XMGDerivation t)
              -> GvIO Bool (Maybe t)
 tagViewerGui pst f tip cachedir itNlab = do
   p <- panel f []      
+  pMain <- panel p []
   let (tagelems,labels) = unzip itNlab
   gvRef <- newGvRef False labels tip
   setGvDrawables gvRef tagelems 
-  (lay,ref,updaterFn) <- graphvizGui p cachedir gvRef
-  -- widgets
+  (lay,ref,updaterFn) <- graphvizGui pMain cachedir gvRef
+  -- trace panel
+  pTrace <- panel pMain []
+  lTrace <- singleListBox pTrace [ tooltip := "trace for this tree" ]
+  bNote  <- button pTrace [ text := "Note this" ]
+  tNoted <- textCtrl pTrace [ wrap := WrapWord, text := "Hint: copy from below and paste into the sem:\n" ]
+  let layTrace = container pTrace $ column 2
+                   [ label "trace"
+                   ,  fill $ widget lTrace
+                   , hfill $ widget bNote
+                   ,  fill $ widget tNoted ]
+  let layMain  = container pMain $ row 2 [ fill lay, vfill layTrace ]
+  -- button bar widgets
   detailsChk <- checkBox p [ text := "Show features"
                            , checked := False ]
   displayTraceBut <- button p [ text := "Display trace for" ]
   displayTraceCom <- choice p [ tooltip := "derivation tree" ]
   -- handlers
+  let addLine :: String -> String -> String
+      addLine x y = y ++ "\n" ++ x
+      onNoteThese
+       = do sel  <- get lTrace selection
+            itsTrace <- get lTrace items
+            when (sel > 0) $ set tNoted [ text :~ addLine (itsTrace !! sel) ]
+  set bNote [ on command := onNoteThese ]
   let onDisplayTrace 
        = do gvSt <- readIORef gvRef
             s <- get displayTraceCom selection
@@ -223,8 +242,9 @@ tagViewerGui pst f tip cachedir itNlab = do
         let selected = tagelems !! tsel 
         case selected of 
          Nothing -> set displayTraceCom [ enabled := False ]
-         Just s  -> set displayTraceCom 
-                     [ enabled := True, items := getSourceTrees s, selection := 0 ]
+         Just s  -> do set lTrace [ items := tgTrace s ]
+                       set displayTraceCom
+                         [ enabled := True, items := getSourceTrees s, selection := 0 ]
   --
   Monad.when (not $ null tagelems) $ do 
     addGvHandler gvRef selHandler
@@ -238,7 +258,7 @@ tagViewerGui pst f tip cachedir itNlab = do
                 , dynamic $ widget displayTraceBut
                 , dynamic $ widget displayTraceCom 
                 ]
-      lay2   = fill $ container p $ column 5 [ lay, cmdBar ] 
+      lay2   = fill $ container p $ column 5 [ fill layMain, cmdBar ]
   return (lay2,ref,updaterFn)
 \end{code}
 
