@@ -468,8 +468,8 @@ runLexSelection pst =
             unless (null enrichEs) $ do
                 let errLocs = map eeLocation enrichEs
                     hasMatch (a,_) = any (== parsePathEq a) errLocs
-                ePutStrLn $ "Warning: enrichment failures "
-                            ++ (show $ length enrichEs) ++ " members of\t" ++ (ifamname l)
+                ePutStrLn $ "Warning: enrichment failures\t"
+                            ++ (show $ length enrichEs) ++ " members of " ++ (ifamname l)
                             ++ " vs.\t" ++ (showLexeme.iword $ l)
                             ++ " [" ++ (showPairs $ filter hasMatch $ iequations l) ++ "] "
             mapM (ePutStrLn.show) otherEs
