@@ -43,9 +43,9 @@ where
 import Control.Monad.Error
 
 import Data.IORef (IORef, readIORef, modifyIORef)
-import Data.List (intersperse, sort, nub, partition, groupBy)
+import Data.List (intersperse, sort, nub, partition)
 import qualified Data.Map as Map
-import Data.Maybe (mapMaybe, isNothing)
+import Data.Maybe (mapMaybe)
 
 import System.IO.Unsafe (unsafePerformIO)
 import Text.ParserCombinators.Parsec 
@@ -57,7 +57,7 @@ import NLP.GenI.General(filterTree, groupAndCount, multiGroupByFM,
     geniBug,
     repNodeByNode,
     wordsBy,
-    fst3, snd3,
+    fst3,
     ePutStr, ePutStrLn, eFlush,
     )
 
@@ -73,7 +73,7 @@ import NLP.GenI.Btypes
    toKeys,
    showLexeme, showPairs,
    pidname, pfamily, pinterface, ptype, psemantics, ptrace,
-   setLexeme, tree, unifyFeat, sortFlist,
+   setLexeme, tree, unifyFeat,
    alphaConvert,
    )
 
@@ -467,12 +467,7 @@ runLexSelection pst =
                 (enrichEs, otherEs) = partition isEnrichErr errs
             unless (null enrichEs) $ do
                 let errLocs = map eeLocation enrichEs
-                    hasMatch x =
-                     case (parsePathEq.fst) x of
-                       ("interface",_,_) -> any isNothing errLocs
-                       (n,t,_)           -> let isMatch Nothing = False
-                                                isMatch (Just xy) = xy ==  (n,t)
-                                            in any isMatch errLocs
+                    hasMatch (a,_) = any (== parsePathEq a) errLocs
                 ePutStrLn $ "Warning: enrichment failures "
                             ++ (show $ length enrichEs) ++ " members of\t" ++ (ifamname l)
                             ++ " vs.\t" ++ (showLexeme.iword $ l)
@@ -588,7 +583,7 @@ data LexCombineError =
         BoringError String
       | EnrichError { eeMacro    :: MTtree
                     , eeLexEntry :: ILexEntry
-                    , eeLocation :: Maybe (String, Bool) }
+                    , eeLocation :: PathEqLhs }
      | OtherError MTtree ILexEntry String
 
 instance Error LexCombineError where
@@ -746,84 +741,58 @@ same as \verb!toto.top.foo=bar! (creates a warning) \\
 \begin{code}
 -- | (node, top, att) (node is Nothing if anchor)
 type PathEqLhs  = (String, Bool, String)
-type PathEq     = (PathEqLhs, GeniVal)
 
 enrich :: ILexEntry -> MTtree -> Either LexCombineError MTtree
 enrich l t = -- using the Maybe monad
  do -- separate into interface/anchor/named
     let name = fst3.fst
         nameIs n x = name x == n
-        isTop = snd3.fst
-        clump :: [PathEq] -> [[PathEq]]
-        clump eqs = groupBy (\x y -> name x == name y) (sort eqs)
         --
         parsed1 = map (\ (a,v) -> (parsePathEq a, v)) (iequations l)
         (intE, parsed2)  = partition (nameIs "interface") parsed1
-        --
-        (ancE_top, parsed3) = partition (\x -> nameIs "anchor" x && isTop x) parsed2
-        (ancE_bot, parsed4) = partition (\x -> nameIs "anchor" x) parsed3
-        --
-        (parsed5a, parsed5b) = partition isTop parsed4
-        namedFs_top = clump parsed5a
-        namedFs_bot = clump parsed5b
-        --
-    let enrichNamed :: Bool -> [[PathEq]] -> MTtree -> Either LexCombineError MTtree
-        enrichNamed top cl tr =
-          foldM (\tx c -> enrichBy (Just $ nameOfClump c) top l (toFlist c) tx) tr cl
-        nameOfClump :: [PathEq] -> String
-        nameOfClump []    = geniBug "empty clump in enrich"
-        nameOfClump (n:_) = name n
-    -- enrich the interface
-    let intE_ = toFlist intE
-    (i2, isubs) <- unifyFeat intE_ (pinterface t)
-                   `catchError` (\_ -> throwError ifaceEnrichErr)
-    let t2 = (replace isubs t) { pinterface = i2 }
-    -- enrich the anchor top and bot
-    (    enrichBy Nothing True  l (toFlist ancE_top) t2
-     >>= enrichBy Nothing True  l (toFlist ancE_top)
-     >>= enrichBy Nothing False l (toFlist ancE_bot)
-     -- enrich the named nodes
-     >>= enrichNamed True  namedFs_top
-     >>= enrichNamed False namedFs_bot)
+    -- enrich the interface and everything else
+    t2 <- foldM enrichInterface t intE
+    -- enrich everything else
+    foldM (enrichBy l) t2 parsed2
  where
-  toFlist :: [PathEq] -> Flist
-  toFlist eqs = sortFlist $ map (\ ((_,_,a),v) -> (a,v)) eqs
-  --
-  ifaceEnrichErr = EnrichError
+  toAvPair ((_,_,a),v) = (a,v)
+  enrichInterface tx en =
+    do (i2, isubs) <- unifyFeat [toAvPair en] (pinterface tx)
+         `catchError` (\_ -> throwError $ ifaceEnrichErr en)
+       return $ (replace isubs tx) { pinterface = i2 }
+  ifaceEnrichErr (loc,_) = EnrichError
     { eeMacro    = t
     , eeLexEntry = l
-    , eeLocation = Nothing }
+    , eeLocation = loc }
 
-enrichBy :: Maybe String -- enriches anchor if set to Nothing
-         -> Bool         -- true if top
-         -> ILexEntry    -- lexeme (for debugging info)
-         -> Flist -> MTtree -> Either LexCombineError MTtree
-enrichBy mname top lexEntry fls t =
+enrichBy :: ILexEntry -- ^ lexeme (for debugging info)
+         -> MTtree
+         -> (PathEqLhs, GeniVal) -- ^ enrichment eq
+         -> Either LexCombineError MTtree
+enrichBy lexEntry t (eqLhs, eqVal) =
  -- trace ("enrichBy " ++ (show mname)) $
  case filterTree match (tree t) of
- [a] -> do let tfeat = (if top then gup else gdown) a
-           (newfeat, sub) <- unifyFeat fls tfeat
-                             `catchError` (\_ -> throwError enrichErr)
-           let newnode = if top then a {gup   = newfeat}
-                                else a {gdown = newfeat}
+ [a] -> do let tfeat = (if eqTop then gup else gdown) a
+           (newfeat, sub) <- unifyFeat [(eqAtt,eqVal)] tfeat
+                              `catchError` (\_ -> throwError enrichErr)
+           let newnode = if eqTop then a {gup   = newfeat}
+                                  else a {gdown = newfeat}
            return $ fixNode newnode $ replace sub t
  []  -> unsafePerformIO $ do
-          ePutStrLn $ "Warning: " ++ matchName ++ " not found in tree " ++ (pidname t) ++ " (skipped)"
+          ePutStrLn $ "Warning: " ++ eqName ++ " not found in tree " ++ (pidname t) ++ " (skipped)"
           return $ Right t -- to be robust, we accept if the node isn't there
  _   -> geniBug ("Tree with multiple matches in enrichBy. " ++
                  "\nTree: " ++ pidname t ++ "\nFamily: " ++ pfamily t ++
-                 "\nMatching on: " ++ matchName)
+                 "\nMatching on: " ++ eqName)
  where
+   (eqName, eqTop, eqAtt) = eqLhs
    fixNode n mt = mt { tree = repNodeByNode match n (tree mt) }
-   match = case mname of
-           Nothing -> ganchor
-           Just n  -> \g -> gnname g == n
+   match = case eqName of
+           "anchor" -> ganchor
+           n -> \g -> gnname g == n
    enrichErr = EnrichError { eeMacro    = t
                            , eeLexEntry = lexEntry
-                           , eeLocation = Just (matchName, top) }
-   matchName = case mname of
-               Nothing -> "anchor"
-               Just n  -> n
+                           , eeLocation = eqLhs }
 
 -- | Parse a path equation using the GenI conventions
 parsePathEq :: String -> PathEqLhs
