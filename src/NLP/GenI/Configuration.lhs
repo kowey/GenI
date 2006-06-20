@@ -172,7 +172,7 @@ instance Show BuilderType where
 
 showBuilderType :: BuilderType -> String
 showBuilderType NullBuilder = "null"
-showBuilderType SimpleBuilder = "simple"
+showBuilderType SimpleBuilder = "simple-2p"
 showBuilderType SimpleOnePhaseBuilder = "simple-1p"
 showBuilderType CkyBuilder = "CKY"
 showBuilderType EarleyBuilder = "Earley"
@@ -397,6 +397,7 @@ defineParams p (f:s) = defineParams pnext s
       BuilderTok "cky"    -> p { builderType = CkyBuilder }
       BuilderTok "earley" -> p { builderType = EarleyBuilder }
       BuilderTok "simple" -> p { builderType = SimpleBuilder }
+      BuilderTok "simple-2p" -> p { builderType = SimpleBuilder }
       BuilderTok "simple-1p" -> p { builderType = SimpleOnePhaseBuilder }
       BuilderTok v        -> error ("unknown builder: " ++ v)
       -- advanced stuff
