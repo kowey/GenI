@@ -45,7 +45,7 @@ import Control.Monad.Error
 import Data.IORef (IORef, readIORef, modifyIORef)
 import Data.List (intersperse, sort, nub, partition, groupBy)
 import qualified Data.Map as Map
-import Data.Maybe (mapMaybe)
+import Data.Maybe (mapMaybe, isNothing)
 
 import System.IO.Unsafe (unsafePerformIO)
 import Text.ParserCombinators.Parsec 
@@ -462,7 +462,24 @@ runLexSelection pst =
     -- then anchor these lexical items to trees
     let combineWithGr l =
          do let (errs, res) = combineList (gr pst) l
-            when (not.null $ errs) $ ePutStrLn (unlines errs)
+                isEnrichErr (EnrichError _ _ _) = True
+                isEnrichErr _ = False
+                (enrichEs, otherEs) = partition isEnrichErr errs
+            unless (null enrichEs) $ do
+                let errLocs = map eeLocation enrichEs
+                    hasMatch x =
+                     case (parsePathEq.fst) x of
+                       ("interface",_,_) -> any isNothing errLocs
+                       (n,t,_)           -> let isMatch Nothing = False
+                                                isMatch (Just xy) = xy ==  (n,t)
+                                            in any isMatch errLocs
+                ePutStrLn $ "Warning: enrichment failures "
+                            ++ (show $ length enrichEs) ++ " members of\t" ++ (ifamname l)
+                            ++ " vs.\t" ++ (showLexeme.iword $ l)
+                            ++ " [" ++ (showPairs $ filter hasMatch $ iequations l) ++ "] "
+            mapM (ePutStrLn.show) otherEs
+
+            -- FIXMENOW when (not.null $ errs) $ ePutStrLn (unlines errs)
             return res
     cand <- case (grammarType $ pa pst) of  
               PreAnchored  -> readPreAnchored pst
@@ -562,6 +579,29 @@ mergeSynonyms lexEntry =
 \label{sec:combine_macros}
 % --------------------------------------------------------------------
 
+This section of the code helps you to combined a selected lexical item with
+a macro or a list of macros.  This is a process that can go fail for any
+number of reasons, so we try to record the possible failures for book-keeping.
+
+\begin{code}
+data LexCombineError =
+        BoringError String
+      | EnrichError { eeMacro    :: MTtree
+                    , eeLexEntry :: ILexEntry
+                    , eeLocation :: Maybe (String, Bool) }
+     | OtherError MTtree ILexEntry String
+
+instance Error LexCombineError where
+  noMsg    = strMsg "error combining items"
+  strMsg s = BoringError s
+
+instance Show LexCombineError where
+ show (BoringError s)    = "Warning: " ++ s
+ show (OtherError t l s) =
+   "Warning: " ++ s ++ " on " ++ (pidname t) ++ "-" ++ (pfamily t) ++ " (" ++ (showLexeme $ iword l) ++ ")"
+ show (EnrichError t l _)  = show (OtherError t l "enrichment error")
+\end{code}
+
 \fnlabel{combine}: Given 
 \begin{itemize}
 \item the Macros 
@@ -593,14 +633,14 @@ list of trees is returned.
 
 \begin{code}
 combineList :: Macros -> ILexEntry
-            -> ([String],[TagElem]) -- ^ any warnings, plus the results
+            -> ([LexCombineError],[TagElem]) -- ^ any warnings, plus the results
 combineList gram lexitem =
   case [ t | t <- gram, pfamily t == tn ] of
-       []   -> (["Warning: family " ++ tn ++ " not found in Macros"],[])
+       []   -> ([BoringError $ "Family " ++ tn ++ " not found in Macros"],[])
        macs -> unzipEither $ map (combineOne lexitem) macs
   where tn = ifamname lexitem
 
-unzipEither :: (Show b) => [Either String b] -> ([String], [b])
+unzipEither :: (Error e, Show b) => [Either e b] -> ([e], [b])
 unzipEither es = helper ([],[]) es where
  helper accs [] = accs
  helper (eAcc, rAcc) (Left e : next)  = helper (e:eAcc,rAcc) next
@@ -612,7 +652,7 @@ lexical item to form a bonafide TagElem.  This process can fail, however,
 because of filtering or enrichement
 
 \begin{code}
-combineOne :: ILexEntry -> MTtree -> Either String TagElem
+combineOne :: ILexEntry -> MTtree -> Either LexCombineError TagElem
 combineOne lexRaw eRaw = -- Maybe monad
  -- trace ("\n" ++ (show wt)) $
  do let l1 = alphaConvert "-l" lexRaw
@@ -636,9 +676,6 @@ combineOne lexRaw eRaw = -- Maybe monad
               , ttrace      = ptrace e
               }
  where
-  wt = "(Word: "++ (showLexeme $ iword lexRaw) ++
-       ", Family:" ++ (ifamname lexRaw) ++
-       ", Tree:" ++ (pidname eRaw) ++ ")"
   showid i = if null i then "" else ("-" ++ i)
   --
   unifyParamsWithWarning (l,t) =
@@ -647,13 +684,13 @@ combineOne lexRaw eRaw = -- Maybe monad
        tp = map fromGVar $ params t
        psubst = zip tp lp
    in if (length lp) /= (length tp)
-      then Left  $ "Warning: Parameter length mismatch on " ++ wt
+      then Left $ OtherError t l $ "Parameter length mismatch"
       else Right $ (replace psubst l, replace psubst t)
   --
   unifyInterfaceUsing ifn (l,e) =
     -- trace ("unify interface" ++ wt) $
     case unifyFeat (ifn l) (pinterface e) of
-    Nothing             -> Left $ "Warning: interface trouble on " ++ wt
+    Nothing             -> Left $ OtherError e l $ "Interface unification error"
     Just (int2, fsubst) -> Right $ (replace fsubst l, e2)
                            where e2 = (replace fsubst e) { pinterface = int2 }
   --
@@ -711,7 +748,7 @@ same as \verb!toto.top.foo=bar! (creates a warning) \\
 type PathEqLhs  = (String, Bool, String)
 type PathEq     = (PathEqLhs, GeniVal)
 
-enrich :: ILexEntry -> MTtree -> Either String MTtree
+enrich :: ILexEntry -> MTtree -> Either LexCombineError MTtree
 enrich l t = -- using the Maybe monad
  do -- separate into interface/anchor/named
     let name = fst3.fst
@@ -730,44 +767,48 @@ enrich l t = -- using the Maybe monad
         namedFs_top = clump parsed5a
         namedFs_bot = clump parsed5b
         --
-    let enrichNamed :: Bool -> [[PathEq]] -> MTtree -> Either String MTtree
+    let enrichNamed :: Bool -> [[PathEq]] -> MTtree -> Either LexCombineError MTtree
         enrichNamed top cl tr =
-          foldM (\tx c -> enrichBy (Just $ nameOfClump c) top lexeme (toFlist c) tx) tr cl
+          foldM (\tx c -> enrichBy (Just $ nameOfClump c) top l (toFlist c) tx) tr cl
         nameOfClump :: [PathEq] -> String
         nameOfClump []    = geniBug "empty clump in enrich"
         nameOfClump (n:_) = name n
-        toFlist :: [PathEq] -> Flist
-        toFlist eqs = sortFlist $ map (\ ((_,_,a),v) -> (a,v)) eqs
     -- enrich the interface
-    (i2, isubs) <- unifyFeat (toFlist intE) (pinterface t)
-                   `catchError` (\_ -> throwError enrichErr)
+    let intE_ = toFlist intE
+    (i2, isubs) <- unifyFeat intE_ (pinterface t)
+                   `catchError` (\_ -> throwError ifaceEnrichErr)
     let t2 = (replace isubs t) { pinterface = i2 }
     -- enrich the anchor top and bot
-    (    enrichBy Nothing True  lexeme (toFlist ancE_top) t2
-     >>= enrichBy Nothing True  lexeme (toFlist ancE_top)
-     >>= enrichBy Nothing False lexeme (toFlist ancE_bot)
+    (    enrichBy Nothing True  l (toFlist ancE_top) t2
+     >>= enrichBy Nothing True  l (toFlist ancE_top)
+     >>= enrichBy Nothing False l (toFlist ancE_bot)
      -- enrich the named nodes
      >>= enrichNamed True  namedFs_top
      >>= enrichNamed False namedFs_bot)
  where
-  lexeme = showLexeme (iword l)
-  enrichErr = "Warning: enrichment failure on interface: " ++ lexeme ++ " " ++ (pidname t)
+  toFlist :: [PathEq] -> Flist
+  toFlist eqs = sortFlist $ map (\ ((_,_,a),v) -> (a,v)) eqs
+  --
+  ifaceEnrichErr = EnrichError
+    { eeMacro    = t
+    , eeLexEntry = l
+    , eeLocation = Nothing }
 
 enrichBy :: Maybe String -- enriches anchor if set to Nothing
          -> Bool         -- true if top
-         -> String       -- lexeme (for debugging info)
-         -> Flist -> MTtree -> Either String MTtree
+         -> ILexEntry    -- lexeme (for debugging info)
+         -> Flist -> MTtree -> Either LexCombineError MTtree
 enrichBy mname top lexEntry fls t =
  -- trace ("enrichBy " ++ (show mname)) $
  case filterTree match (tree t) of
  [a] -> do let tfeat = (if top then gup else gdown) a
            (newfeat, sub) <- unifyFeat fls tfeat
-                             `catchError` (\_ -> throwError (enrichErr tfeat))
+                             `catchError` (\_ -> throwError enrichErr)
            let newnode = if top then a {gup   = newfeat}
                                 else a {gdown = newfeat}
            return $ fixNode newnode $ replace sub t
  []  -> unsafePerformIO $ do
-          ePutStrLn $ matchName ++ " not found in tree " ++ (pidname t)
+          ePutStrLn $ "Warning: " ++ matchName ++ " not found in tree " ++ (pidname t) ++ " (skipped)"
           return $ Right t -- to be robust, we accept if the node isn't there
  _   -> geniBug ("Tree with multiple matches in enrichBy. " ++
                  "\nTree: " ++ pidname t ++ "\nFamily: " ++ pfamily t ++
@@ -777,14 +818,12 @@ enrichBy mname top lexEntry fls t =
    match = case mname of
            Nothing -> ganchor
            Just n  -> \g -> gnname g == n
-   enrichErr tfeat = "Warning: enrichment failure on "
-              ++ lexEntry ++ " " ++ (pidname t)
-              ++ ", " ++ matchName ++ " (" ++ (if top then "top" else "bottom")
-              ++ ") applying [" ++ (showPairs fls)
-              ++ "] on [" ++ (showPairs tfeat) ++ "]"
+   enrichErr = EnrichError { eeMacro    = t
+                           , eeLexEntry = lexEntry
+                           , eeLocation = Just (matchName, top) }
    matchName = case mname of
-               Nothing -> "anchor "
-               Just n  -> "node " ++ n
+               Nothing -> "anchor"
+               Just n  -> n
 
 -- | Parse a path equation using the GenI conventions
 parsePathEq :: String -> PathEqLhs
