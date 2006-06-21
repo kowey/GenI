@@ -177,13 +177,14 @@ Let's not forget the optimisations...
          ]
        -- commands for the checkboxes
        let togglePolStuff = do c <- get polChk checked
-                               set extrapolText    [ enabled := c ] 
-       set polChk          [on command := do togglePolStuff
-                                             toggleChk pstRef polChk PolarisedTok ] 
-       set iafChk          [on command := toggleChk pstRef iafChk IafTok]
-       set semfilterChk    [on command := toggleChk pstRef semfilterChk SemFilteredTok] 
-       set rootfilterChk   [on command := toggleChk pstRef rootfilterChk RootCatFilteredTok]
-       set useSemConstraintsChk [on command := toggleAntiChk pstRef rootfilterChk NoConstraintsTok]
+                               set extrapolText [ enabled := c ]
+       set polChk [on command := togglePolStuff ]
+       sequence_ $ map (setToggleChk pstRef)
+          [ (polChk, PolarisedTok)
+          , (iafChk, IafTok)
+          , (rootfilterChk, RootCatFilteredTok)]
+       sequence_ $ map (setToggleAntiChk pstRef)
+          [ (useSemConstraintsChk, NoConstraintsTok) ]
 \end{code}
 
 Pack it all together, perform the layout operation.
@@ -260,22 +261,22 @@ toggleAlgo pstRef box =
 
 -- | Toggles for optimisatons controlled by a check box.  They enable or
 --   disable the said optmisation.
-toggleChk :: (Checkable a) => ProgStateRef -> a -> Switch -> IO ()
-toggleChk = toggleChk_ id
+setToggleChk :: (Commanding a, Checkable a) => ProgStateRef -> (a, Switch) -> IO ()
+setToggleChk = setToggleChk_ id
 
 -- | Same as above, except for anti-optimisations
-toggleAntiChk :: (Checkable a) => ProgStateRef -> a -> Switch -> IO ()
-toggleAntiChk = toggleChk_ not
+setToggleAntiChk :: (Commanding a, Checkable a) => ProgStateRef -> (a, Switch) -> IO ()
+setToggleAntiChk = setToggleChk_ not
 
 -- Expecting either 'id' or 'not' for the (Bool->Bool)
-toggleChk_ :: (Checkable a) => (Bool -> Bool) -> ProgStateRef -> a -> Switch -> IO ()
-toggleChk_ id_ pstRef chk tok = do
-  isChecked <- get chk checked
-  let fn config = config { optimisations = nub newopt }
-                  where opt = optimisations config 
-                        newopt = if id_ isChecked then tok:opt else delete tok opt
-  modifyIORef pstRef (\x -> x{pa = fn (pa x)})
-  return ()
+setToggleChk_ :: (Commanding a, Checkable a) => (Bool -> Bool) -> ProgStateRef -> (a, Switch) -> IO ()
+setToggleChk_ id_ pstRef (chk,tok) =
+ set chk [ on command :~ (>> stc) ]
+ where
+  stc = do isChecked <- get chk checked
+           let modopt = if id_ isChecked then (tok:) else delete tok
+               fn c = c { optimisations = nub.modopt.optimisations $ c}
+           modifyIORef pstRef (\x -> x{pa = fn (pa x)})
 \end{code}
 
 % --------------------------------------------------------------------
