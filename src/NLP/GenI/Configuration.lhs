@@ -24,7 +24,7 @@ The input to this module is simply \texttt{argv}.
 module NLP.GenI.Configuration
   ( Params(..), GrammarType(..), BuilderType(..), Switch(..)
   , mainBuilderTypes
-  , polarised, predicting
+  , hasOpt, polarised, predicting
   , rootcatfiltered, semfiltered,
   , isIaf
   , emptyParams
@@ -199,7 +199,7 @@ data Switch =
     RootCategoriesTok String | 
     -- optimisations
     OptimisationsTok String   | PolOptsTok | AdjOptsTok |
-    PolarisedTok | PredictingTok |
+    PolarisedTok | PredictingTok | NoConstraintsTok |
     ExtraPolaritiesTok String |
     RootCatFilteredTok | SemFilteredTok |
     IafTok {- one phase only! -} |
@@ -290,7 +290,9 @@ optimisationCodes =
  , (SemFilteredTok , "S",      "semantic filtering (same as f-sem)")
  , (SemFilteredTok , "f-sem",      "semantic filtering (two-phase only)")
  , (RootCatFilteredTok, "f-root",  "filtering on root node (two-phase only)")
- , (IafTok, "i", "index accesibility filtering (one-phase only)") ]
+ , (IafTok, "i", "index accesibility filtering (one-phase only)")
+ , (NoConstraintsTok, "nc", "disable semantic constraints (anti-optimisation!)")
+ ]
 \end{code}
 
 \paragraph{treatArgs} does the actual work of parsing command line arguments 

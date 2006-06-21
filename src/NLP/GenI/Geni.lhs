@@ -84,7 +84,7 @@ import NLP.GenI.Tags (Tags, TagElem, emptyTE,
              setTidnums) 
 
 import NLP.GenI.Configuration
-  ( Params
+  ( Params, hasOpt, Switch(NoConstraintsTok),
   , grammarType, testCase, morphCmd, ignoreSemantics,
   , GrammarType(..), isServer,
   , tsFile, macrosFile, lexiconFile, morphFile)
@@ -372,13 +372,18 @@ any morpohological literals
 \begin{code}
 initGeni :: ProgStateRef -> IO (B.Input)
 initGeni pstRef =
- do -- lexical selection
-    pstLex   <- readIORef pstRef
+ do -- disable constraints if the NoConstraintsTok anti-optimisation is active
+    modifyIORef pstRef
+      (\p -> if hasOpt NoConstraintsTok (pa p)
+             then p { ts = (fst3 (ts p),[],[]) }
+             else p)
+    -- lexical selection
+    pstLex <- readIORef pstRef
     (cand, lexonly) <- runLexSelection pstLex
     -- strip morphological predicates
     let (tsem,tres,lc) = ts pstLex
         tsem2 = stripMorphSem (morphinf pstLex) tsem
-    --
+            --
     let initStuff = B.Input 
           { B.inSemInput = (tsem2, tres, lc)
           , B.inLex   = lexonly 
