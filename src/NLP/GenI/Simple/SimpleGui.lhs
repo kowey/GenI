@@ -33,12 +33,14 @@ import Statistics (Statistics)
 
 import NLP.GenI.Btypes (GNode(gnname, gup), emptyGNode, GeniVal(GConst))
 import NLP.GenI.Configuration ( Params(..) )
-import NLP.GenI.General ( snd3, mapTree )
+import NLP.GenI.General ( snd3, mapTree, dropTillIncluding, boundsCheck, geniBug )
 import NLP.GenI.Geni ( ProgStateRef, runGeni )
 import NLP.GenI.Graphviz ( GraphvizShow(..), gvNewline, gvUnlines )
 import NLP.GenI.GuiHelper
   ( messageGui, tagViewerGui,
     debuggerPanel, DebuggerItemBar, setGvParams, GvIO, newGvRef,
+    gvOnSelect, addGvHandler,
+    runViewTag,
     XMGDerivation(getSourceTrees),
   )
 import NLP.GenI.Tags (tsemantics, TagElem(idname, ttree), TagItem(..), emptyTE)
@@ -109,8 +111,9 @@ realisationsGui pstRef f resultsRaw =
 
 \begin{code}
 simpleDebuggerTab :: Bool -> (Window a) -> Params -> B.Input -> String -> IO Layout
-simpleDebuggerTab twophase =
-  debuggerPanel (simpleBuilder twophase) False stToGraphviz simpleItemBar
+simpleDebuggerTab twophase x1 (pa@x2) =
+  debuggerPanel (simpleBuilder twophase) False stToGraphviz (simpleItemBar pa)
+   x1 x2
  
 stToGraphviz :: SimpleStatus -> ([Maybe SimpleItem], [String])
 stToGraphviz st = 
@@ -126,17 +129,43 @@ stToGraphviz st =
       showPaths t = " (" ++ showPolPaths t ++ ")"
   in unzip $ agenda ++ auxAgenda ++ chart ++ trash ++ results 
 
-simpleItemBar :: DebuggerItemBar Bool SimpleItem
-simpleItemBar f gvRef updaterFn =
+simpleItemBar :: Params -> DebuggerItemBar Bool SimpleItem
+simpleItemBar pa f gvRef updaterFn =
  do ib <- panel f []
     detailsChk <- checkBox ib [ text := "Show features"
                               , checked := False ]
+    viewTagBtn <- button ib [ text := "ViewTAG" ]
+    viewTagCom <- choice ib [ tooltip := "derivation tree" ]
+    -- handlers
     let onDetailsChk = 
          do isDetailed <- get detailsChk checked 
             setGvParams gvRef isDetailed
             updaterFn
-    set detailsChk [ on command := onDetailsChk ] 
-    return $ hfloatCentre $ container ib $ row 5 [ dynamic $ widget detailsChk ]
+    let onViewTag = readIORef gvRef >>=
+         gvOnSelect (return ())
+           (\t -> do let derv = getSourceTrees t
+                     ds <- get viewTagCom selection
+                     if boundsCheck ds derv
+                        then runViewTag pa (derv !! ds)
+                        else geniBug $ "Gui: bounds check in onViewTag"
+           )
+    set detailsChk [ on command := onDetailsChk ]
+    set viewTagBtn [ on command := onViewTag ]
+    -- when the user selects a tree, we want to update the list of derivations
+    let updateDerivationList = gvOnSelect
+          (set viewTagCom [ enabled := False ])
+          (\s -> set viewTagCom [ enabled := True
+                                , items := getSourceTrees s
+                                , selection := 0] )
+    addGvHandler gvRef updateDerivationList
+    updateDerivationList =<< readIORef gvRef
+    --
+    return . hfloatCentre . (container ib) . row 5 $
+               [ hspace 5
+               , widget detailsChk
+               , hglue
+               , widget viewTagCom, widget viewTagBtn
+               , hspace 5 ]
 \end{code}
 
 % --------------------------------------------------------------------
@@ -153,12 +182,14 @@ instance TagItem SimpleItem where
 instance XMGDerivation SimpleItem where
  -- Note: this is XMG-related stuff
  getSourceTrees it =
-  let -- strips all gorn addressing stuff
-      stripGorn n = if dot `elem` n then stripGorn stripped else n
-        where stripped = (tail $ dropWhile (/= dot) n)
-              dot = '.'
-      deriv  = map (stripGorn.snd3) $ snd $ (siDerivation.siGuiStuff) it
-  in  deriv -- FIXME: this might be slightly broken
+  let -- strips all gorn addressing stuff... grr, if i were a better haskeller,
+      -- this recursion would not be explicit
+      stripGorn n = if '.' `elem` n
+                    then (stripGorn.stripGornLevel) n
+                    else n
+      stripGornLevel = dropTillIncluding '.'
+      deriv = map (stripGorn.snd3) $ snd $ (siDerivation.siGuiStuff) it
+  in  tgIdName it : deriv
 \end{code}
 
 \begin{code}

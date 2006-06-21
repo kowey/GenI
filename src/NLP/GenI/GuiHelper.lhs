@@ -49,7 +49,7 @@ import NLP.GenI.Tags (TagItem(tgIdName, tgTrace), tagLeaves)
 import NLP.GenI.Geni
   ( ProgState(..), showRealisations )
 import NLP.GenI.GeniParsers ( geniTagElems )
-import NLP.GenI.General (boundsCheck, (///), geniBug, tail_)
+import NLP.GenI.General ((///), dropTillIncluding, basename)
 import NLP.GenI.Btypes
   ( showPred, showSem, showLexeme, Sem, ILexEntry(iword, ifamname), )
 import NLP.GenI.Tags
@@ -198,65 +198,51 @@ tagViewerGui pst f tip cachedir itNlab = do
   -- trace panel
   pTrace <- panel pMain []
   lTrace <- singleListBox pTrace [ tooltip := "trace for this tree" ]
-  bNote  <- button pTrace [ text := "Note this" ]
+  noteBtn <- button pTrace [ text := "Note this" ]
   tNoted <- textCtrl pTrace [ wrap := WrapWord, text := "Hint: copy from below and paste into the sem:\n" ]
   let layTrace = container pTrace $ column 2
                    [ label "trace"
                    ,  fill $ widget lTrace
-                   , hfill $ widget bNote
+                   , hfill $ widget noteBtn
                    ,  fill $ widget tNoted ]
   let layMain  = container pMain $ row 2 [ fill lay, vfill layTrace ]
   -- button bar widgets
   detailsChk <- checkBox p [ text := "Show features"
                            , checked := False ]
-  displayTraceBut <- button p [ text := "Display trace for" ]
-  displayTraceCom <- choice p [ tooltip := "derivation tree" ]
+  displayTraceBtn <- button p [ text := "ViewTAG" ]
   -- handlers
   let addLine :: String -> String -> String
       addLine x y = y ++ "\n" ++ x
-      onNoteThese
-       = do sel  <- get lTrace selection
-            itsTrace <- get lTrace items
-            when (sel > 0) $ set tNoted [ text :~ addLine (itsTrace !! sel) ]
-  set bNote [ on command := onNoteThese ]
-  let onDisplayTrace 
-       = do gvSt <- readIORef gvRef
-            s <- get displayTraceCom selection
-            let tsel = gvsel gvSt
-            Monad.when (boundsCheck tsel tagelems) $ do
-            let tree = tagelems !! (gvsel gvSt)
-            case tree of 
-             Nothing -> set displayTraceCom [ enabled := False ]
-             Just t  -> let derv = getSourceTrees t
-                            fmtName = tail_ . (dropWhile (/= '_')) in
-                        if boundsCheck s derv
-                           then runViewTag pst (fmtName (derv !! s))
-                           else geniBug $ "Gui: bounds check in onDisplayTrace" 
-  let onDetailsChk c 
-       = do isDetailed <- get c checked 
-            setGvParams gvRef isDetailed 
-            updaterFn 
-  let selHandler gvSt = do
-      let tsel = gvsel gvSt
-      Monad.when (boundsCheck tsel tagelems) $ do
-        let selected = tagelems !! tsel 
-        case selected of 
-         Nothing -> set displayTraceCom [ enabled := False ]
-         Just s  -> do set lTrace [ items := tgTrace s ]
-                       set displayTraceCom
-                         [ enabled := True, items := getSourceTrees s, selection := 0 ]
+      --
+      onNoteThese =
+        do sel  <- get lTrace selection
+           itsTrace <- get lTrace items
+           when (sel > 0) $ set tNoted [ text :~ addLine (itsTrace !! sel) ]
+      onDetailsChk =
+        do isDetailed <- get detailsChk checked
+           setGvParams gvRef isDetailed
+           updaterFn
+  set noteBtn [ on command := onNoteThese ]
+  set detailsChk [ on command := onDetailsChk ]
+  -- updaters: what happens when the user selects an item
+  let updateTrace = gvOnSelect (return ())
+         (\s -> set lTrace [ items := tgTrace s ])
+      updateDisplayTraceBt = gvOnSelect
+         (set displayTraceBtn [ enabled := False ])
+         (\s -> set displayTraceBtn
+                 [ enabled := True
+                 , on command := runViewTag (pa pst) (tgIdName s) ])
   --
-  Monad.when (not $ null tagelems) $ do 
-    addGvHandler gvRef selHandler
-    set detailsChk [ on command := onDetailsChk detailsChk ]
-    set displayTraceBut 
-         [ on command := onDisplayTrace 
-         , enabled    := False ] -- FIXME: enable this if grammar.xml exists
+  Monad.unless (null tagelems) $ do
+    addGvHandler gvRef updateTrace
+    addGvHandler gvRef updateDisplayTraceBt
+    gvSt <- readIORef gvRef
+    updateTrace gvSt
+    updateDisplayTraceBt gvSt
   -- pack it all in      
   let cmdBar = hfill $ row 5 
                 [ dynamic $ widget detailsChk
-                , dynamic $ widget displayTraceBut
-                , dynamic $ widget displayTraceCom 
+                , dynamic $ widget displayTraceBtn
                 ]
       lay2   = fill $ container p $ column 5 [ fill layMain, cmdBar ]
   return (lay2,ref,updaterFn)
@@ -530,6 +516,19 @@ setGvDrawables2 gvref (it,lb) =
   do let fn x = x { gvlabels = lb }
      modifyIORef gvref fn 
      setGvDrawables gvref it
+
+-- | Helper function for making selection handlers (see 'addGvHandler')
+--   Note that this was designed for cases where the contents is a Maybe
+gvOnSelect :: IO () -> (a -> IO ()) -> GraphvizGuiSt (Maybe a) b -> IO ()
+gvOnSelect onNothing onJust gvSt =
+ let sel    = gvsel gvSt
+     things = gvitems gvSt
+     (low, high) = bounds things
+ in if sel >= low && sel <= high
+    then case things ! sel of
+         Nothing -> onNothing
+         Just  s -> onJust s
+    else onNothing
 
 setGvHandler :: GraphvizRef a b -> Maybe (GraphvizGuiSt a b -> IO ()) -> IO ()
 setGvHandler gvref mh =
@@ -818,14 +817,14 @@ just does this.
 displays trees produced by the XMG metagrammar system.  
 
 \begin{code}
-runViewTag :: ProgState -> String -> IO ()
-runViewTag pst drName =  
+runViewTag :: Params -> String -> IO ()
+runViewTag params drName =
   do -- figure out what grammar file to use
-     let params  = pa pst
-         gramfile = macrosFile params
+     let gramfile = (basename $ macrosFile params) ++ ".rec"
+         treenameOnly = (dropTillIncluding '-') . (dropTillIncluding '_')
      -- run the viewer 
      let cmd  = viewCmd params 
-         args = [gramfile, drName]
+         args = [gramfile, treenameOnly drName]
      -- run the viewer
      runProcess cmd args Nothing Nothing Nothing Nothing Nothing
      return ()
