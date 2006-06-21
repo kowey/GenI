@@ -42,9 +42,9 @@ import NLP.GenI.Geni
   ( ProgState(..), ProgStateRef, combine, initGeni
   , loadGrammar, loadTestSuite, loadTargetSemStr)
 import NLP.GenI.General (boundsCheck, geniBug, trim, fst3)
-import NLP.GenI.Btypes (showPairs, ILexEntry(isemantics))
+import NLP.GenI.Btypes (ILexEntry(isemantics))
 import NLP.GenI.Tags (idname, tpolarities, tsemantics, TagElem)
-
+import NLP.GenI.Treeprint (toGeniHand)
 import NLP.GenI.Configuration
   ( Params(..), Switch(..), hasOpt,
   , BuilderType(..), mainBuilderTypes )
@@ -335,10 +335,8 @@ readTestSuite pstRef tsBox tsChoice =
      ----------------------------------------------------
      -- handler for selecting a test case
      ----------------------------------------------------
-     let displaySemInput (_,str,(_,r,_)) =
-              "semantics: " ++ str
-           ++ (if null r then "" 
-               else "\nrestrictors:" ++ showPairs r)
+     let displaySemInput (_,str,si) =
+           toGeniHand $ toSemInputString si str
      let onTestCaseChoice = do
          csel <- get tsChoice selection
          if (boundsCheck csel suite)

@@ -33,8 +33,8 @@ module Main (main) where
 
 import NLP.GenI.Btypes
 import NLP.GenI.General (snd3, (///))
-import NLP.GenI.GeniParsers(geniTestSuite, geniTestSuiteString)
-
+import NLP.GenI.GeniParsers(geniTestSuite, geniTestSuiteString, toSemInputString)
+import NLP.GenI.Treeprint (GeniHandShow(toGeniHand))
 import Control.Monad(when)
 import Data.List(nubBy,sort)
 import System.Directory
@@ -79,17 +79,13 @@ main =
     
 createSubdir :: String -> (String,TestCase) -> IO ()
 createSubdir outdir (semanticsStr_, testcase) =
- do --  
-    let (name, (_,res,_), sent) = testcase
+ do let (name, seminput, sent) = testcase
         subdir = outdir /// name
-        semanticsStr = "semantics:" ++ semanticsStr_
-           ++ (if null res then "" else r)
-         where r = "\nrestrictors: [" ++ showPairs res ++ "]"
-        sentencesStr = unlines sent
-    --
     createDirectoryIfMissing False subdir
-    writeFile (subdir /// "semantics") semanticsStr
-    writeFile (subdir /// "sentences") sentencesStr
+    --
+    writeFile (subdir /// "semantics") $ toGeniHand $
+      toSemInputString seminput semanticsStr_
+    writeFile (subdir /// "sentences") $ unlines sent
 \end{code}
 
 

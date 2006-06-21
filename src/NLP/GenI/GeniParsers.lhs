@@ -26,6 +26,7 @@ The parsers are written using the most excellent Parsec library.
 module NLP.GenI.GeniParsers (
   -- test suite stuff
   geniTestSuite, geniSemanticInput, geniTestSuiteString,
+  toSemInputString,
   -- macros 
   geniMacros,
   -- lexicons
@@ -39,6 +40,7 @@ module NLP.GenI.GeniParsers (
 import NLP.GenI.General ((!+!), Interval, ival)
 import NLP.GenI.Btypes
 import NLP.GenI.Tags (TagElem(..), emptyTE, setTidnums)
+import NLP.GenI.Treeprint (GeniHandShow(toGeniHand))
 import Control.Monad (liftM)
 import Data.List (sort)
 import qualified Data.Map  as Map 
@@ -57,7 +59,7 @@ The test suite format consists of arbitrarily many test cases:
 
 \begin{code}
 type TestCase = ( String    -- name
-                , SemInput  -- semantics / restrictors
+                , SemInput  -- semantics / idxconstraints
                 , [String]) -- sentences
 
 geniTestSuite :: Parser [TestCase]
@@ -107,27 +109,26 @@ geniTestCaseString =
 \section{Semantics}
 
 \fnlabel{geniSemanticInput} consists of a semantics, and optionally a
-set of restrictors (FIXME: these absolutely have to be renamed).
+set of index constraints.
 
 The semantics may contain literal based constraints as described in
 section \ref{sec:fixme}.  These constraints are just a space-delimited
 list of String.  When returning the results, we separate them out from
 the semantics proper so that they can be treated separately.
 
-Restrictors are represented as feature structures.  For more
-details about restrictors, see \fnref{detectRestrictors} for details about
-restrictors.
+Index constraints are represented as feature structures.  For more
+details about them, see \fnref{detectIdxConstraints}.
 
 \begin{code}
 geniSemanticInput :: Parser (Sem,Flist,[LitConstr])
 geniSemanticInput =
   do keywordSemantics
-     (sem,trc) <- liftM unzip $ squares $ many literalAndTraceRes
-     res       <- option [] geniRestrictors
+     (sem,litC) <- liftM unzip $ squares $ many literalAndConstraint
+     idxC       <- option [] geniIdxConstraints
      --
-     let sem2    = createHandles sem
-         semtrc2 = [ (s,t) | (s,t) <- zip sem2 trc, (not.null) t ]
-     return (createHandles sem, res, semtrc2)
+     let sem2     = createHandles sem
+         semlitC2 = [ (s,c) | (s,c) <- zip sem2 litC, (not.null) c ]
+     return (createHandles sem, idxC, semlitC2)
   where 
      -- set all anonymous handles to some unique value
      -- this is to simplify checking if a result is
@@ -140,8 +141,8 @@ geniSemanticInput =
                 else GConst ["genihandle" ++ (show i)]
        in (h2, pred_, par)
      --
-     literalAndTraceRes :: Parser (Pred, [String])
-     literalAndTraceRes =
+     literalAndConstraint :: Parser (Pred, [String])
+     literalAndConstraint =
        do l <- geniLiteral
           t <- option [] $ squares $ many identifier
           return (l,t)
@@ -152,11 +153,11 @@ geniSemanticInputString =
  do keywordSemantics
     s <- squaresString
     whiteSpace
-    optional geniRestrictors
+    optional geniIdxConstraints
     return s
 
-geniRestrictors :: Parser Flist
-geniRestrictors = keyword "restrictors" >> geniFeats
+geniIdxConstraints :: Parser Flist
+geniIdxConstraints = keyword "idxconstraints" >> geniFeats
 
 squaresString :: Parser String
 squaresString =
@@ -164,6 +165,19 @@ squaresString =
     s <- liftM concat $ many $ (many1 $ noneOf "[]") <|> squaresString
     char ']'
     return $ "[" ++ s ++ "]"
+
+-- the output end of things
+-- displaying preformatted semantic input
+
+data SemInputString = SemInputString String Flist
+
+instance GeniHandShow SemInputString where
+ toGeniHand (SemInputString semStr idxC) =
+   "semantics:" ++ semStr ++ (if null idxC then "" else r)
+   where r = "\nidxconstraints: [" ++ showPairs idxC ++ "]"
+
+toSemInputString :: SemInput -> String -> SemInputString
+toSemInputString (_,lc,_) s = SemInputString s lc
 \end{code}
 
 \section{Lexicon}

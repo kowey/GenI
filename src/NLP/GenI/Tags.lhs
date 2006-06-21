@@ -106,7 +106,7 @@ data TagElem = TE {
                    -- optimisation stuff
                    -- (polarity key to charge interval)
                    tpolarities  :: Map.Map String (Int,Int), 
-                   tinterface   :: Flist,  -- for restrictors
+                   tinterface   :: Flist,  -- for idxconstraints (pol)
                    ttrace       :: [String],
                    tsempols     :: [SemPols]
                 }

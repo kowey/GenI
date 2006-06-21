@@ -69,7 +69,7 @@ module NLP.GenI.Polarity(PolAut, AutDebug, PolResult,
                 fixPronouns,
                 detectSansIdx, detectPolFeatures, detectPols, detectPolPaths,
                 prefixRootCat,
-                declareRestrictors, detectRestrictors,
+                declareIdxConstraints, detectIdxConstraints,
                 showLite, showLitePm, showPolPaths, showPolPaths',
                 NFA(states),
 
@@ -106,7 +106,7 @@ import NLP.GenI.Tags(TagElem(..), TagItem(..), setTidnums)
 
 \paragraph{buildAutomaton} constructs a polarity automaton from the
 surface realiser's input: input semantics, lexical selection, 
-extra polarities and restrictors.  For debugging purposes, it 
+extra polarities and index constraints.  For debugging purposes, it
 returns all the intermediate automata produced by the construction
 algorithm.
 
@@ -119,7 +119,7 @@ type PolResult = ([AutDebug], PolAut, PolAut, Sem)
 type AutDebug  = (String, PolAut, PolAut)
 
 buildAutomaton (tsem,tres,_) candRaw rootCats extrapol  =
-  let -- root catogories, restrictors, and external polarities
+  let -- root catogories, index constraints, and external polarities
       rcatPol :: Map.Map String Interval
       rcatPol = 
         case rootCats of
@@ -129,14 +129,14 @@ buildAutomaton (tsem,tres,_) candRaw rootCats extrapol  =
         -- polarity intervals (which may be a bit less effective)
         rs  -> Map.fromList $ map (\r -> (prefixRootCat r, (-1,0))) rs
       allExtraPols = Map.unionsWith (!+!) [ extrapol, inputRest, rcatPol ]
-      -- restrictors on candidate trees
-      detect      = detectRestrictors tres
-      restrict t = t { tpolarities = Map.unionWith (!+!) p r
-                     } --, tinterface  = [] }
+      -- index constraints on candidate trees
+      detect      = detectIdxConstraints tres
+      constrain t = t { tpolarities = Map.unionWith (!+!) p r
+                      } --, tinterface  = [] }
                    where p  = tpolarities t
                          r  = (detect . tinterface) t
-      candRest  = map restrict candRaw 
-      inputRest = declareRestrictors tres
+      candRest  = map constrain candRaw
+      inputRest = declareIdxConstraints tres
       -- polarity detection 
       cand = detectPols candRest
       -- building the automaton
@@ -787,15 +787,14 @@ assignIndex i te =
 \section{Further optimisations}
 % ====================================================================
 
-\subsection{Lexical filtering} \label{fn:detectRestrictors}
+\subsection{Lexical filtering} \label{fn:detectIdxConstraints}
 
-Lexical filtering allows the user to restricte the lexical selection
+Lexical filtering allows the user to constrain the lexical selection
 to only those items that contain a certain property, for example, the
 realising an item as a cleft.
 
 The idea is that the user provides an input like
-\verb$restrictors:[cleft:j]$ \footnote{This is completely unrelated to
-Shieber's notion of feature structure restriction \cite{shieber85}}
+\verb$idxconstraints:[cleft:j]$,
 which means that the lexical selection must include exactly one tree
 with the property cleft:j in its interface.  This mechanism works as
 pre-processing step after lexical selection and before polarity
@@ -806,28 +805,27 @@ mechanism.  What we do is
 \item Preprocess the lexically selected trees; any tree which has a
       a desired property (e.g. cleft:j) in its interface is assigned
       a positive polarity for that property (+cleft:j)
-\item Add all the restrictions as negative extra polarities (-cleft:j)
+\item Add all the index constraints as negative extra polarities (-cleft:j)
 \end{enumerate}
 
-Note: we assume the restrictors and interface are sorted; also, we
-prefix the restrictor polarities with a ``.'' because they are likely to
+Note: we assume the index constraints and interface are sorted; also, we
+prefix the index constraint polarities with a ``.'' because they are likely to
 be very powerful filters and we would like them to be used first.
 
 \begin{code}
-detectRestrictors :: Flist -> Flist -> PolMap 
-detectRestrictors restrict interface =
-  let matches  = intersect restrict interface
-      matchStr = map showRestrictor matches
+detectIdxConstraints :: Flist -> Flist -> PolMap 
+detectIdxConstraints cs interface =
+  let matches  = intersect cs interface
+      matchStr = map showIdxConstraint matches
   in Map.fromList $ zip matchStr ((repeat.ival) 1)
 
-declareRestrictors :: Flist -> PolMap
-declareRestrictors restrict =
-  let restrictStr = map showRestrictor restrict
-      minusone    = (repeat.ival) (-1)
-  in Map.fromList $ zip restrictStr minusone
+declareIdxConstraints :: Flist -> PolMap
+declareIdxConstraints = Map.fromList . (map declare) where
+   declare c = (showIdxConstraint c, minusone)
+   minusone = ival (-1)
 
-showRestrictor :: AvPair -> String
-showRestrictor = ('.' :) . showAv
+showIdxConstraint :: AvPair -> String
+showIdxConstraint = ('.' :) . showAv
 \end{code}
 
 \subsection{Automatic detection}
