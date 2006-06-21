@@ -64,6 +64,10 @@ implement.
 \begin{code}
 trim :: String -> String
 trim = reverse . (dropWhile isSpace) . reverse . (dropWhile isSpace) 
+
+-- | Drop all characters up to and including the one in question
+dropTillIncluding :: Char -> String -> String
+dropTillIncluding c = tail_ . (dropWhile (/= c))
 \end{code}
 
 \fnlabel{toUpperHead and toLowerHead} make the first character of a
@@ -267,6 +271,11 @@ geniBug s = error $ "Bug in GenI!\n" ++ s ++
 \section{Files}
 
 \begin{code}
+basename :: FilePath -> FilePath
+basename x
+ | '.' `elem` x = reverse . tail . dropWhile (/= '.') . reverse $ x
+ | otherwise    = x
+
 -- from darcs
 (///) :: FilePath -> FilePath -> FilePath
 ""///b = b
