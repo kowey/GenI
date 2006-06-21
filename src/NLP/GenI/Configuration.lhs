@@ -278,7 +278,7 @@ optionsAdvanced =
 we have a lookup table of optimisation codes.  Each optimisation is
 assigned a short codes like "a" for polarity detection.  This is useful 
 both for taking command line arguments 
-(something like \texttt{--opt=+pol+F}) and for telling the user in
+(something like \texttt{--opt='pol S i'}) and for telling the user in
 concise form what optimisations she used.
 
 \begin{code}
