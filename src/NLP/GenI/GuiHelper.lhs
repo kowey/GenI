@@ -545,7 +545,7 @@ addGvHandler gvref h =
   do gvSt <- readIORef gvref
      let newH = case gvhandler gvSt of 
                 Nothing   -> Just h
-                Just oldH -> Just (oldH >> h)
+                Just oldH -> Just (\g -> oldH g >> h g)
      setGvHandler gvref newH
 \end{code}
 
