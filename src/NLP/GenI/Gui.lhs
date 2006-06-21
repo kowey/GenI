@@ -46,9 +46,8 @@ import NLP.GenI.Btypes (showPairs, ILexEntry(isemantics))
 import NLP.GenI.Tags (idname, tpolarities, tsemantics, TagElem)
 
 import NLP.GenI.Configuration
-  ( Params(..), Switch(..),
-  , BuilderType(..), mainBuilderTypes
-  , isIaf, polarised, semfiltered )
+  ( Params(..), Switch(..), hasOpt,
+  , BuilderType(..), mainBuilderTypes )
 import NLP.GenI.GeniParsers
 import NLP.GenI.GuiHelper
 
@@ -149,18 +148,28 @@ Let's not forget the optimisations...
        set algoChoiceBox [ on select := toggleAlgo pstRef algoChoiceBox ]
        polChk <- checkBox f 
           [ text := "Polarities"
-          , checked := polarised config 
+          , checked := hasOpt PolarisedTok config
           , tooltip := "Use the polarity optimisation"
           ]
+       useSemConstraintsChk <- checkBox f
+         [ text := "Sem constraints"
+         , checked := not $ hasOpt NoConstraintsTok config
+         , tooltip := "Use any sem constraints the user provides"
+         ]
        iafChk <- checkBox f
           [ text := "Idx acc filter"
-          , checked := isIaf config
+          , checked := hasOpt IafTok config
           , tooltip := "Only available in CKY/Earley for now"
           ]
        semfilterChk <- checkBox f 
          [ text := "Semantic filters"
-         , checked := semfiltered config 
-         , tooltip := "Filter away semantically incomplete structures before adjunction phase"
+         , checked := hasOpt SemFilteredTok config
+         , tooltip := "(2p only) Filter away semantically incomplete structures before adjunction phase"
+         ]
+       rootfilterChk <- checkBox f
+         [ text := "Root filters"
+         , checked := hasOpt RootCatFilteredTok config
+         , tooltip := "(2p only) Filter away non-root structures before adjunction phase"
          ]
        extrapolText <- staticText f 
          [ text := showLitePm $ extrapol config 
@@ -173,6 +182,8 @@ Let's not forget the optimisations...
                                              toggleChk pstRef polChk PolarisedTok ] 
        set iafChk          [on command := toggleChk pstRef iafChk IafTok]
        set semfilterChk    [on command := toggleChk pstRef semfilterChk SemFilteredTok] 
+       set rootfilterChk   [on command := toggleChk pstRef rootfilterChk RootCatFilteredTok]
+       set useSemConstraintsChk [on command := toggleAntiChk pstRef rootfilterChk NoConstraintsTok]
 \end{code}
 
 Pack it all together, perform the layout operation.
@@ -197,7 +208,9 @@ Pack it all together, perform the layout operation.
                              , dynamic $ widget polChk 
                              , row 5 [ label "  ", column 5 
                                      [ dynamic $ row 5 [ label "Extra: ", widget extrapolText ] ] ]
+                             , dynamic $ widget useSemConstraintsChk
                              , dynamic $ widget semfilterChk 
+                             , dynamic $ widget rootfilterChk
                              , dynamic $ widget iafChk
                              ]
        set f [layout := column 5 [ gramsemBox
@@ -223,6 +236,15 @@ Don't forget all the helper functions!
 
 \subsection{Configuration}
 
+Most of the optimisations are availalable as checkboxes.  Note the following
+point about anti-optimisations: An anti-optimisation disables a default
+behaviour which is assumed to be ``optimisation''.  But of course we don't
+want to confuse the GUI user, so we confuse the programmer instead:
+Given an anti-optimisation DisableFoo, we have a check box UseFoo.  If UseFoo
+is checked, we remove DisableFoo from the list; if it is unchecked, we add
+it to the list.  This is the opposite of the default behaviour, but the
+result, I hope, is intuitive for the user.
+
 \begin{code}
 toggleAlgo :: (Selection a, Items a String) => ProgStateRef -> a -> IO ()
 toggleAlgo pstRef box =
@@ -239,11 +261,19 @@ toggleAlgo pstRef box =
 -- | Toggles for optimisatons controlled by a check box.  They enable or
 --   disable the said optmisation.
 toggleChk :: (Checkable a) => ProgStateRef -> a -> Switch -> IO ()
-toggleChk pstRef chk tok = do
+toggleChk = toggleChk_ id
+
+-- | Same as above, except for anti-optimisations
+toggleAntiChk :: (Checkable a) => ProgStateRef -> a -> Switch -> IO ()
+toggleAntiChk = toggleChk_ not
+
+-- Expecting either 'id' or 'not' for the (Bool->Bool)
+toggleChk_ :: (Checkable a) => (Bool -> Bool) -> ProgStateRef -> a -> Switch -> IO ()
+toggleChk_ id_ pstRef chk tok = do
   isChecked <- get chk checked
   let fn config = config { optimisations = nub newopt }
                   where opt = optimisations config 
-                        newopt = if isChecked then tok:opt else delete tok opt
+                        newopt = if id_ isChecked then tok:opt else delete tok opt
   modifyIORef pstRef (\x -> x{pa = fn (pa x)})
   return ()
 \end{code}
@@ -635,7 +665,8 @@ debugGui builderGui pstRef pauseOnLex =
             debugPnl <- BG.debuggerPnl builderGui nb config input2 btype
             let autTab   = tab "automata" autPnl
                 debugTab = tab (btype ++ "-session") debugPnl
-                genTabs  = if polarised config then [ autTab, debugTab ] else [ debugTab ]
+                genTabs  = if hasOpt PolarisedTok config
+                           then [ autTab, debugTab ] else [ debugTab ]
             --
             set f [ layout := container p $ tabs nb genTabs
                   , clientSize := sz 700 600 ]
