@@ -205,7 +205,6 @@ class TagItem t where
   tgIdName    :: t -> String
   tgIdNum     :: t -> Integer
   tgSemantics :: t -> Sem
-  tgTrace     :: t -> [String]
 \end{code}
 
 \begin{code}
@@ -213,7 +212,6 @@ instance TagItem TagElem where
   tgIdName = idname
   tgIdNum  = tidnum
   tgSemantics = tsemantics
-  tgTrace     = ttrace
 \end{code}
 
 % ----------------------------------------------------------------------

@@ -33,15 +33,13 @@ import Statistics (Statistics)
 
 import NLP.GenI.Btypes (GNode(gnname, gup), emptyGNode, GeniVal(GConst))
 import NLP.GenI.Configuration ( Params(..) )
-import NLP.GenI.General ( snd3, mapTree, dropTillIncluding, boundsCheck, geniBug )
+import NLP.GenI.General ( snd3, mapTree, dropTillIncluding )
 import NLP.GenI.Geni ( ProgStateRef, runGeni )
 import NLP.GenI.Graphviz ( GraphvizShow(..), gvNewline, gvUnlines )
 import NLP.GenI.GuiHelper
   ( messageGui, tagViewerGui,
     debuggerPanel, DebuggerItemBar, setGvParams, GvIO, newGvRef,
-    gvOnSelect, addGvHandler,
-    runViewTag,
-    XMGDerivation(getSourceTrees),
+    viewTagWidgets, XMGDerivation(getSourceTrees),
   )
 import NLP.GenI.Tags (tsemantics, TagElem(idname, ttree), TagItem(..), emptyTE)
 import NLP.GenI.Treeprint ( graphvizShowDerivation )
@@ -134,37 +132,19 @@ simpleItemBar pa f gvRef updaterFn =
  do ib <- panel f []
     detailsChk <- checkBox ib [ text := "Show features"
                               , checked := False ]
-    viewTagBtn <- button ib [ text := "ViewTAG" ]
-    viewTagCom <- choice ib [ tooltip := "derivation tree" ]
+    viewTagLay <- viewTagWidgets ib gvRef pa
     -- handlers
     let onDetailsChk = 
          do isDetailed <- get detailsChk checked 
             setGvParams gvRef isDetailed
             updaterFn
-    let onViewTag = readIORef gvRef >>=
-         gvOnSelect (return ())
-           (\t -> do let derv = getSourceTrees t
-                     ds <- get viewTagCom selection
-                     if boundsCheck ds derv
-                        then runViewTag pa (derv !! ds)
-                        else geniBug $ "Gui: bounds check in onViewTag"
-           )
     set detailsChk [ on command := onDetailsChk ]
-    set viewTagBtn [ on command := onViewTag ]
-    -- when the user selects a tree, we want to update the list of derivations
-    let updateDerivationList = gvOnSelect
-          (set viewTagCom [ enabled := False ])
-          (\s -> set viewTagCom [ enabled := True
-                                , items := getSourceTrees s
-                                , selection := 0] )
-    addGvHandler gvRef updateDerivationList
-    updateDerivationList =<< readIORef gvRef
     --
     return . hfloatCentre . (container ib) . row 5 $
                [ hspace 5
                , widget detailsChk
                , hglue
-               , widget viewTagCom, widget viewTagBtn
+               , viewTagLay
                , hspace 5 ]
 \end{code}
 
@@ -177,7 +157,6 @@ instance TagItem SimpleItem where
  tgIdName    = siIdname.siGuiStuff
  tgIdNum     = siId
  tgSemantics = siFullSem.siGuiStuff
- tgTrace     = const [] -- FIXME : do we need an implementation of this?
 
 instance XMGDerivation SimpleItem where
  -- Note: this is XMG-related stuff

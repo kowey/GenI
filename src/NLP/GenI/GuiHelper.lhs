@@ -45,15 +45,15 @@ import NLP.GenI.Automaton (numStates, numTransitions)
 import Statistics (Statistics, showFinalStats)
 
 import NLP.GenI.Treeprint(toGeniHand)
-import NLP.GenI.Tags (TagItem(tgIdName, tgTrace), tagLeaves)
+import NLP.GenI.Tags (TagItem(tgIdName), tagLeaves)
 import NLP.GenI.Geni
   ( ProgState(..), showRealisations )
 import NLP.GenI.GeniParsers ( geniTagElems )
-import NLP.GenI.General ((///), dropTillIncluding, basename)
+import NLP.GenI.General (geniBug, boundsCheck, (///), dropTillIncluding, basename)
 import NLP.GenI.Btypes
-  ( showPred, showSem, showLexeme, Sem, ILexEntry(iword, ifamname), )
+  ( showAv, showPred, showSem, showLexeme, Sem, ILexEntry(iword, ifamname), )
 import NLP.GenI.Tags
-  ( idname, mapBySem, TagElem )
+  ( idname, mapBySem, TagElem(ttrace, tinterface) )
 
 import NLP.GenI.Configuration(Params(..))
 
@@ -80,8 +80,8 @@ candidateGui :: ProgState -> (Window a) -> [TagElem] -> Sem -> [ILexEntry]
              -> GvIO Bool (Maybe TagElem)
 candidateGui pst f xs missedSem missedLex = do
   p  <- panel f []      
-  (tb,ref,updater) <- tagViewerGui pst p "lexically selected item" "candidates"
-                      $ sectionsBySem xs
+  (tb,gvRef,updater) <- tagViewerGui pst p "lexically selected item" "candidates"
+                        $ sectionsBySem xs
   let warningSem = if null missedSem then ""
                    else "WARNING: no lexical selection for " ++ showSem missedSem
       warningLex = if null missedLex then ""
@@ -92,9 +92,45 @@ candidateGui pst f xs missedSem missedLex = do
       --
       polFeats = "Polarity attributes detected: " ++ (unwords.detectPolFeatures) xs
       warning = unlines $ filter (not.null) [ warningSem, warningLex, polFeats ]
-      theItems = if null warning then [ fill tb ] else [ hfill (label warning) , fill tb ]
-      lay   = fill $ container p $ column 5 theItems
-  return (lay, ref, updater)
+  -- side panel
+  sidePnl <- panel p []
+  ifaceLst <- singleListBox sidePnl [ tooltip := "interface for this tree (double-click me!)" ]
+  traceLst <- singleListBox sidePnl [ tooltip := "trace for this tree (double-click me!)" ]
+  tNoted <- textCtrl sidePnl [ wrap := WrapWord, text := "Hint: copy from below and paste into the sem:\n" ]
+  let laySide = container sidePnl $ column 2
+                  [ label "interface"
+                  ,  fill $ widget ifaceLst
+                  , label "trace"
+                  ,  fill $ widget traceLst
+                  , label "notes"
+                  ,  fill $ widget tNoted ]
+  -- handlers
+  let addLine :: String -> String -> String
+      addLine x y = y ++ "\n" ++ x
+      --
+      addToNoted w =
+        do sel    <- get w selection
+           things <- get w items
+           when (sel > 0) $ set tNoted [ text :~ addLine (things !! sel) ]
+  set ifaceLst [ on doubleClick := \_ -> addToNoted ifaceLst ]
+  set traceLst [ on doubleClick := \_ -> addToNoted traceLst ]
+  -- updaters : what happens when the user selects an item
+  let updateTrace = gvOnSelect (return ())
+        (\s -> set traceLst [ items := ttrace s ])
+      updateIface = gvOnSelect (return ())
+        (\s -> set ifaceLst [ items := map showAv $ tinterface s ])
+  Monad.unless (null xs) $ do
+    addGvHandler gvRef updateTrace
+    addGvHandler gvRef updateIface
+    -- first time run
+    gvSt <- readIORef gvRef
+    updateIface gvSt
+    updateTrace gvSt
+  --
+  let layMain = fill $ row 2 [ fill tb, vfill laySide ]
+      theItems = if null warning then [ layMain ] else [ hfill (label warning) , layMain ]
+      lay  = fill $ container p $ column 5 theItems
+  return (lay, gvRef, updater)
 
 sectionsBySem :: (TagItem t) => [t] -> [ (Maybe t, String) ]
 sectionsBySem tsem =
@@ -190,62 +226,74 @@ tagViewerGui :: (GraphvizShow Bool t, TagItem t, XMGDerivation t)
              -> GvIO Bool (Maybe t)
 tagViewerGui pst f tip cachedir itNlab = do
   p <- panel f []      
-  pMain <- panel p []
   let (tagelems,labels) = unzip itNlab
   gvRef <- newGvRef False labels tip
   setGvDrawables gvRef tagelems 
-  (lay,ref,updaterFn) <- graphvizGui pMain cachedir gvRef
-  -- trace panel
-  pTrace <- panel pMain []
-  lTrace <- singleListBox pTrace [ tooltip := "trace for this tree" ]
-  noteBtn <- button pTrace [ text := "Note this" ]
-  tNoted <- textCtrl pTrace [ wrap := WrapWord, text := "Hint: copy from below and paste into the sem:\n" ]
-  let layTrace = container pTrace $ column 2
-                   [ label "trace"
-                   ,  fill $ widget lTrace
-                   , hfill $ widget noteBtn
-                   ,  fill $ widget tNoted ]
-  let layMain  = container pMain $ row 2 [ fill lay, vfill layTrace ]
+  (lay,ref,updaterFn) <- graphvizGui p cachedir gvRef
   -- button bar widgets
   detailsChk <- checkBox p [ text := "Show features"
                            , checked := False ]
-  displayTraceBtn <- button p [ text := "ViewTAG" ]
+  viewTagLay <- viewTagWidgets p gvRef (pa pst)
   -- handlers
-  let addLine :: String -> String -> String
-      addLine x y = y ++ "\n" ++ x
-      --
-      onNoteThese =
-        do sel  <- get lTrace selection
-           itsTrace <- get lTrace items
-           when (sel > 0) $ set tNoted [ text :~ addLine (itsTrace !! sel) ]
-      onDetailsChk =
+  let onDetailsChk =
         do isDetailed <- get detailsChk checked
            setGvParams gvRef isDetailed
            updaterFn
-  set noteBtn [ on command := onNoteThese ]
   set detailsChk [ on command := onDetailsChk ]
-  -- updaters: what happens when the user selects an item
-  let updateTrace = gvOnSelect (return ())
-         (\s -> set lTrace [ items := tgTrace s ])
-      updateDisplayTraceBt = gvOnSelect
-         (set displayTraceBtn [ enabled := False ])
-         (\s -> set displayTraceBtn
-                 [ enabled := True
-                 , on command := runViewTag (pa pst) (tgIdName s) ])
-  --
-  Monad.unless (null tagelems) $ do
-    addGvHandler gvRef updateTrace
-    addGvHandler gvRef updateDisplayTraceBt
-    gvSt <- readIORef gvRef
-    updateTrace gvSt
-    updateDisplayTraceBt gvSt
   -- pack it all in      
   let cmdBar = hfill $ row 5 
                 [ dynamic $ widget detailsChk
-                , dynamic $ widget displayTraceBtn
-                ]
-      lay2   = fill $ container p $ column 5 [ fill layMain, cmdBar ]
+                , viewTagLay ]
+      lay2   = fill $ container p $ column 5 [ fill lay, cmdBar ]
   return (lay2,ref,updaterFn)
+\end{code}
+
+\subsection{XMG Metagrammar stuff}
+
+XMG trees are produced by the XMG metagrammar system
+(\url{http://sourcesup.cru.fr/xmg/}). To debug these grammars, it is useful,
+given a TAG tree, to see what its metagrammar origins are.  We provide here an
+interface to Yannick Parmentier's handy visualisation tool ViewTAG.
+
+\begin{code}
+viewTagWidgets :: (GraphvizShow Bool t, TagItem t, XMGDerivation t)
+               => Window a -> GraphvizRef (Maybe t) Bool -> Params
+               -> IO Layout
+viewTagWidgets p gvRef config =
+ do viewTagBtn <- button p [ text := "ViewTAG" ]
+    viewTagCom <- choice p [ tooltip := "derivation tree" ]
+    -- handlers
+    let onViewTag = readIORef gvRef >>=
+         gvOnSelect (return ())
+           (\t -> do let derv = getSourceTrees t
+                     ds <- get viewTagCom selection
+                     if boundsCheck ds derv
+                        then runViewTag config (derv !! ds)
+                        else geniBug $ "Gui: bounds check in onViewTag"
+           )
+    set viewTagBtn [ on command := onViewTag ]
+    -- when the user selects a tree, we want to update the list of derivations
+    let updateDerivationList = gvOnSelect
+          (set viewTagCom [ enabled := False ])
+          (\s -> set viewTagCom [ enabled := True
+                                , items := getSourceTrees s
+                                , selection := 0] )
+    addGvHandler gvRef updateDerivationList
+    updateDerivationList =<< readIORef gvRef
+    --
+    return $ row 5 $ map dynamic [ widget viewTagCom, widget viewTagBtn ]
+
+runViewTag :: Params -> String -> IO ()
+runViewTag params drName =
+  do -- figure out what grammar file to use
+     let gramfile = (basename $ macrosFile params) ++ ".rec"
+         treenameOnly = (dropTillIncluding '-') . (dropTillIncluding '_')
+     -- run the viewer
+     let cmd  = viewCmd params
+         args = [gramfile, treenameOnly drName]
+     -- run the viewer
+     runProcess cmd args Nothing Nothing Nothing Nothing Nothing
+     return ()
 \end{code}
 
 % --------------------------------------------------------------------
@@ -805,27 +853,4 @@ createDotPath subdir name = do
   return $ cdir /// subdir /// name ++ ".dot"
 \end{code}
 
-\subsection{XMG Metagrammar stuff}
 
-XMG trees are produced by the XMG metagrammar system
-(\url{http://sourcesup.cru.fr/xmg/}). To debug these grammars, it is
-useful, given a TAG tree, to see what its metagrammar origins are.  We
-provide here an interface to the handy visualisation tool ViewTAG that
-just does this.
-
-\paragraph{runViewTag} runs Yannick Parmentier's ViewTAG module, which
-displays trees produced by the XMG metagrammar system.  
-
-\begin{code}
-runViewTag :: Params -> String -> IO ()
-runViewTag params drName =
-  do -- figure out what grammar file to use
-     let gramfile = (basename $ macrosFile params) ++ ".rec"
-         treenameOnly = (dropTillIncluding '-') . (dropTillIncluding '_')
-     -- run the viewer 
-     let cmd  = viewCmd params 
-         args = [gramfile, treenameOnly drName]
-     -- run the viewer
-     runProcess cmd args Nothing Nothing Nothing Nothing Nothing
-     return ()
-\end{code}
