@@ -32,6 +32,7 @@ import Data.List(intersperse)
 import Data.IORef(newIORef, readIORef, modifyIORef)
 
 import NLP.GenI.Btypes(SemInput, ILexEntry(ifamname))
+import NLP.GenI.General(fst3,thd3)
 import NLP.GenI.Geni(emptyProgState, ProgState(le, pa, ts, tcase, tsuite), ProgStateRef,
                      loadGrammar, chooseLexCand,)
 import NLP.GenI.Configuration(treatArgs,
@@ -48,8 +49,8 @@ main =
     let pstCase  = tcase pst
         suite    = tsuite pst
     inputs <- if null pstCase
-                 then return $ map snd suite
-                 else case [ s | (n,s) <- suite, n == pstCase ] of
+                 then return $ map thd3 suite
+                 else case [ s | (n,_,s) <- suite, n == pstCase ] of
                       [] -> fail ("No such test case: " ++ pstCase)
                       cs -> return cs
     sequence_ $ map (selectOnSemInput pstRef) inputs
@@ -60,7 +61,7 @@ selectOnSemInput :: ProgStateRef -> SemInput -> IO ()
 selectOnSemInput pstRef semInput =
   do modifyIORef pstRef (\x -> x{ts = semInput})
      pst <- readIORef pstRef
-     let selection = chooseLexCand (le pst) (fst semInput)
+     let selection = chooseLexCand (le pst) (fst3 semInput)
      --
      let config = pa pst
          out    = outputFile config
