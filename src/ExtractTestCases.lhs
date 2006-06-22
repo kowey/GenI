@@ -32,7 +32,7 @@ that batch-test GenI.
 module Main (main) where
 
 import NLP.GenI.Btypes
-import NLP.GenI.General (snd3, (///))
+import NLP.GenI.General (snd3, (///), ePutStrLn)
 import NLP.GenI.GeniParsers(geniTestSuite, geniTestSuiteString, toSemInputString)
 import NLP.GenI.Treeprint (GeniHandShow(toGeniHand))
 import Control.Monad(when)
@@ -61,11 +61,11 @@ main =
     -- parse the test suite
     parsed <- parseFromFile geniTestSuite tfilename 
     suite' <- case parsed of
-               Left  err     -> fail (show err)
+               Left  err     -> exitShowing err
                Right entries -> return entries 
     parsed2  <- parseFromFile geniTestSuiteString tfilename
     caseStrs <- case parsed2 of
-                 Left  err -> fail (show err)
+                 Left  err -> exitShowing err
                  Right cs  -> return cs
     -- process the suite
     -- (for now, just remove redundant entries)
@@ -77,6 +77,12 @@ main =
     mapM (createSubdir outdir) suite
     return ()
     
+exitShowing :: (Show a) => a -> IO b
+exitShowing err=
+ do let err_ = show err
+    ePutStrLn err_
+    exitFailure
+
 createSubdir :: String -> (String,TestCase) -> IO ()
 createSubdir outdir (semanticsStr_, testcase) =
  do let (name, seminput, sent) = testcase
