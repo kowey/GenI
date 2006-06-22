@@ -68,4 +68,5 @@ selectOnSemInput pstRef semInput =
      oPutStrLn . unlines . (map showLex) $ selection
 
 showLex :: ILexEntry -> String
-showLex i = concat $ intersperse " | " [ifamname i]-- $ (ifamname i):(iword i)
+showLex i = concat $ intersperse " | " [ifamname i]
+-- $ (ifamname i):(iword i)
