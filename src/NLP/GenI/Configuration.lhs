@@ -25,7 +25,7 @@ module NLP.GenI.Configuration
   ( Params(..), GrammarType(..), BuilderType(..), Switch(..)
   , mainBuilderTypes
   , hasOpt, polarised, predicting
-  , rootcatfiltered, semfiltered,
+  , rootcatfiltered, semfiltered
   , isIaf
   , emptyParams
   , treatArgs, treatArgsWithParams, optBatch
