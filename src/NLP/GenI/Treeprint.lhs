@@ -40,7 +40,7 @@ import NLP.GenI.Btypes (GeniVal(GConst, GVar, GAnon), AvPair, Ptype(..),
                Macros,
                GNode(..), GType(..), Flist,
                isConst,
-               Pred, Sem, SemPols, showSem, showAv)
+               Pred, Sem, SemPols, showSem)
 
 import NLP.GenI.Graphviz
   ( gvUnlines, gvNewline
@@ -70,10 +70,7 @@ instance GraphvizShow Bool TagElem where
 
 instance GraphvizShow (Bool, GvHighlighter GNode) TagElem where
  graphvizShowAsSubgraph (sf,hfn) prefix te =
-  -- the interface
-  (graphvizShowInterface sf $ tinterface te)
-  -- then the tree itself
-  ++ (gvShowTree (\_->[]) sf (prefix ++ "DerivedTree0") $
+    (gvShowTree (\_->[]) sf (prefix ++ "DerivedTree0") $
      mapTree hfn $ ttree te)
 
  graphvizLabel _ te =
@@ -89,19 +86,6 @@ instance GraphvizShow (Bool, GvHighlighter GNode) TagElem where
 \end{code}
 
 Helper functions for the TagElem GraphvizShow instance 
-
-\begin{code}
--- | shows the contents of the TAG tree's interface
--- Used for debugging grammars when surface realisaiton goes wrong.
-graphvizShowInterface :: Bool -> Flist -> String
-graphvizShowInterface sf iface 
-  | sf == False = ""
-  | null iface  = ""
-  | otherwise =
-      let showFs   = gvUnlines $ map showAv iface 
-          theLabel = "{ interface | " ++ showFs ++ "}"
-      in gvNode "interface" theLabel [ ("shape", "record") ]
-\end{code}
 
 \section{GNode - GraphvizShow}
 
