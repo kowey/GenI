@@ -37,10 +37,9 @@ import NLP.GenI.Tags
  )
 import NLP.GenI.Btypes (GeniVal(GConst, GVar, GAnon), AvPair, Ptype(..),
                Ttree(TT, params, pidname, pfamily, pinterface, ptype, tree, psemantics, ptrace),
-               Macros,
                GNode(..), GType(..), Flist,
                isConst,
-               Pred, Sem, SemPols, showSem)
+               Pred, showSem)
 
 import NLP.GenI.Graphviz
   ( gvUnlines, gvNewline
@@ -336,69 +335,80 @@ lexical selection thing og a lot faster.
 \begin{code}
 class HsShowable a where
   hsShow :: a -> String
+  hsShow x = hsShows x ""
+  hsShows :: a -> ShowS
 
-hsParens, hsBrackets :: String -> String
-hsParens s = "(" ++ s ++ ")"
-hsBrackets s = "[" ++ s ++ "]"
+hsParens, hsBrackets :: ShowS -> ShowS
+hsParens fn   = showChar '(' . fn . showChar ')'
+hsBrackets fn = showChar '[' . fn . showChar ']'
 
-hsConstructor :: String -> [String] -> String
-hsConstructor c args = hsParens $ unwords (c:args)
+unwordsByS :: ShowS -> [ShowS] -> ShowS
+unwordsByS _   [] = id
+unwordsByS sep ss = foldr1 (\s r -> s . sep . r) ss
 
-hsList, hsLongList :: (HsShowable h) => [h] -> String
-hsList xs = hsBrackets $ concat $ intersperse "," $ map hsShow xs
-hsLongList xs = hsBrackets $ concat $ intersperse "\n\n," $ map hsShow xs
+hsList, hsLongList :: [ShowS] -> ShowS
+hsList ss     = hsBrackets $ unwordsByS (showChar ',') ss
+hsLongList ss = hsBrackets $ unwordsByS (showString "\n\n,")  ss
 
-instance HsShowable String where hsShow = show
-instance HsShowable Bool where hsShow = show
-instance HsShowable Int  where hsShow = show
-instance HsShowable Integer where hsShow = show
+hsConstructor :: String -> [ShowS] -> ShowS
+hsConstructor c ss =
+  hsParens $ showString c
+           . showChar ' '
+           . unwordsByS (showChar ' ') ss
 
-instance HsShowable Ptype where hsShow = show
-instance HsShowable GType where hsShow = show
+instance HsShowable String where hsShows = shows
+instance HsShowable Bool where hsShows = shows
+instance HsShowable Int  where hsShows = shows
+instance HsShowable Integer where hsShows = shows
+
+instance HsShowable Ptype where hsShows = shows
+instance HsShowable GType where hsShows = shows
 
 -- | :-( I wish I could make do this with a default, overridable instance instead
 --   basically, i would like to use hsList everywhere unless there is a specific
 --   instance declaration, like one for String
-instance (HsShowable a, HsShowable b) => HsShowable [(a,b)] where hsShow = hsList
-instance (HsShowable a) => HsShowable (Forest a) where hsShow = hsList
-instance HsShowable [String] where hsShow = hsList
-instance HsShowable [GeniVal] where hsShow = hsList
-instance HsShowable Sem where hsShow = hsList
-instance HsShowable SemPols where hsShow = hsList
-instance HsShowable [SemPols] where hsShow = hsList
-instance HsShowable [TagElem] where hsShow = hsList
-instance HsShowable Macros where hsShow = hsList
+instance HsShowable a => HsShowable [a] where
+ hsShows xs = hsList (map hsShows xs)
 
 instance (HsShowable a, HsShowable b) => HsShowable (a,b) where
- hsShow (a,b) = hsParens $ (hsShow a) ++ "," ++ (hsShow b)
+ hsShows (a,b) = hsParens $ (hsShows a) . (showChar ',') . (hsShows b)
 
 instance (HsShowable a, HsShowable b, HsShowable c) => HsShowable (a,b,c) where
- hsShow (a,b,c) = hsParens $ (hsShow a) ++ "," ++ (hsShow b) ++ "," ++ (hsShow c)
+ hsShows (a,b,c) = hsParens $ (hsShows a) . (showChar ',') . (hsShows b) . (showChar ',')  . (hsShows c)
 
 instance (HsShowable a) => HsShowable (Tree a) where
- hsShow (Node a k) = hsConstructor "Node" [hsParens $ hsShow a, hsShow k]
+ hsShows (Node a k) = hsConstructor "Node" [hsShows a, hsShows k]
 
 -- | Note that you'll need to @import qualified Data.Map@
 instance (HsShowable a, HsShowable b) => HsShowable (Data.Map.Map a b) where
- hsShow m | Data.Map.null m = "Data.Map.empty"
- hsShow m = hsParens $ "Data.Map.fromList " ++ (hsShow $ Data.Map.toList m)
+ hsShows m | Data.Map.null m = showString "Data.Map.empty"
+ hsShows m = hsParens $ (showString "Data.Map.fromList ")
+                      . (hsShows (Data.Map.toList m))
 
 instance HsShowable a => HsShowable (Maybe a) where
- hsShow Nothing  = "Nothing"
- hsShow (Just x) = hsConstructor "Just" [hsShow x]
+ hsShows Nothing  = showString "Nothing"
+ hsShows (Just x) = hsConstructor "Just" [hsShows x]
 
 instance HsShowable GeniVal where
- hsShow (GConst xs) = hsConstructor "GConst" [hsShow xs]
- hsShow (GVar xs)   = hsConstructor "GVar" [hsShow xs]
- hsShow GAnon       = "GAnon"
+ hsShows (GConst xs) = hsConstructor "GConst" [hsShows xs]
+ hsShows (GVar xs)   = hsConstructor "GVar" [hsShows xs]
+ hsShows GAnon       = showString "GAnon"
 
 instance HsShowable GNode where
- hsShow (GN a b c d e f g) = hsConstructor "GN" [hsShow a, hsShow b, hsShow c, hsShow d, hsShow e, hsShow f, hsShow g]
+ hsShows (GN a b c d e f g) =
+   hsConstructor "GN"
+    [ hsShows a, hsShows b, hsShows c, hsShows d
+    , hsShows e, hsShows f, hsShows g]
 
 instance HsShowable TagElem where
- hsShow (TE a b c d e f g h i j) =
-  hsConstructor "TE" [hsShow a, hsShow b, hsShow c, hsShow d, hsShow e, hsShow f, hsShow g, hsShow h, hsShow i, hsShow j]
+ hsShows (TE a b c d e f g h i j) =
+  hsConstructor "TE"
+   [ hsShows a, hsShows b, hsShows c, hsShows d
+   , hsShows e, hsShows f, hsShows g, hsShows h
+   , hsShows i, hsShows j]
 
 instance HsShowable f => HsShowable (Ttree f) where
- hsShow (TT a b c d e f g h) = hsConstructor "TT" [hsShow a, hsShow b, hsShow c, hsShow d, hsShow e, hsShow f, hsShow g, hsShow h]
+ hsShows (TT a b c d e f g h) = hsConstructor "TT"
+   [ hsShows a, hsShows b, hsShows c, hsShows d
+   , hsShows e, hsShows f, hsShows g, hsShows h]
 \end{code}
