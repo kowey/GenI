@@ -33,7 +33,7 @@ GHCINCLUDE      = -i$(SRC)
 GHCPACKAGES     =
 GHCPACKAGES_GUI = -package wx $(GHCPACKAGES)
 
-GHCFLAGS        = $(LDFLAGS) -Wall -cpp -fglasgow-exts -threaded -O $(GHCINCLUDE)
+GHCFLAGS        = $(LDFLAGS) -Wall -cpp -fallow-overlapping-instances -fglasgow-exts -threaded -O $(GHCINCLUDE)
 ifdef PROFILE
 GHCFLAGS += -prof -hisuf p_hi -osuf p_o -DDISABLE_GUI -auto-all -ignore-scc
 endif
@@ -234,7 +234,7 @@ deps: $(DEPENDS)
 $(DEPENDS): .depends/%.dep : %
 	@echo Calculating dependencies for $<
 	@mkdir -p $(dir $@)
-	@$(GHC) $(GHCFLAGS) -M -optdep-f -optdep$@ $<
+	@$(GHC) $(GHCFLAGS) -package HaXml -M -optdep-f -optdep$@ $<
 
 # --------------------------------------------------------------------
 # compilation
@@ -315,7 +315,7 @@ endif
 # testing
 # --------------------------------------------------------------------
 
-GHCI_FLAGS=$(GHCINCLUDE) -package QuickCheck -fglasgow-exts -cpp
+GHCI_FLAGS=$(GHCINCLUDE) -package QuickCheck -fglasgow-exts -fallow-overlapping-instances -cpp
 
 ghci:
 	ghci $(GHCI_FLAGS)
