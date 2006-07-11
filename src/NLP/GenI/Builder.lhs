@@ -354,16 +354,8 @@ slavery, erase is backspace.
 type DispatchFilter s a = a -> s (Maybe a)
 
 -- | Sequence two dispatch filters.
---   Just lifting Maybe monad, really.  Maybe we should just add
---   this to our transformer stack.
 (>-->) :: (Monad s) => DispatchFilter s a -> DispatchFilter s a -> DispatchFilter s a
-f >--> f2 =
- \x -> do res <- f x
-          case res of
-            -- succesful dispatch; no more work
-            Nothing -> return Nothing
-            -- no dispatch: but here, try the next filter
-            Just y  -> f2 y
+f >--> f2 = \x -> f x >>= maybe (return Nothing) f2
 
 -- | A filter that always fails (i.e. no filtering)
 nullFilter :: (Monad s) => DispatchFilter s a
