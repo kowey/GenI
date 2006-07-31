@@ -1,5 +1,0 @@
-Macros     = gram/macros 
-Lexicon    = gram/lex 
-MorphInfo  = gram/morphinfo
-TestSuite  = testsuite
-RootCategories = p

@@ -1,4 +1,0 @@
-Macros  = gram/mac 
-Lexicon = gram/lexicon
-RootCategories = p 
-TestSuite = sem

@@ -1,4 +1,0 @@
-Macros  = gram/demomac 
-Lexicon = gram/demolex
-TestSuite = suite
-RootCategories = p
