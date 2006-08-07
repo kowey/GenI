@@ -1,5 +1,3 @@
-% vi: set cinoptions=0,p0:
-
 %% 02 april 2004
 %% 1. Jean promet un cadeau a Marie
 %% 2. Jean promet a Marie de partir
@@ -517,3 +515,7 @@ n1[cat:p mode:FIXME]![]
 }
 
 end initial
+
+% vi: set cinoptions=0,p0:
+
+

@@ -1,5 +1,3 @@
-% vi: set cinoptions=0,p0:
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %	DETERMINERS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -130,3 +128,5 @@ n0[cat:n idx:?Y det:plus qu:?_]![cat:n idx:?Y det:?_ qu:?_ ]
         [cat:n idx:?X det:?_ qu:?_ ]         
     }
 }
+
+% vi: set cinoptions=0,p0:
