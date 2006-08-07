@@ -1,7 +1,0 @@
-semantics : [def(a)
-             man(s1 a) 
-             run(e a)
-             big(s3 a)
-             tall(s3 a)
-            ]
-
