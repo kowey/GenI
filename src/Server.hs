@@ -25,7 +25,8 @@ import System (getArgs)
 import System.IO
 import System.Posix.Signals (installHandler, sigPIPE, Handler(Ignore))
 
-import NLP.GenI.Configuration (treatArgs, treatArgsWithParams, Params(isServer))
+import NLP.GenI.Configuration ( treatArgs, treatArgsWithParams,
+                              , setFlag, GeniFlag(ServerModeFlg))
 import NLP.GenI.Console (runTestCaseOnly)
 import NLP.GenI.Geni (loadGrammar, loadTestSuite, emptyProgState, ProgState(pa))
 import NLP.GenI.ClientServer (hGetBeginEnd, socketPath)
@@ -38,7 +39,7 @@ main = withSocketsDo $
     --
     args     <- getArgs
     confArgs <- treatArgs args
-    let pst = (emptyProgState $ confArgs { isServer = True })
+    let pst = (emptyProgState $ setFlag ServerModeFlg True confArgs)
     pstRef <- newIORef pst
     loadGrammar pstRef
     pst2 <- readIORef pstRef

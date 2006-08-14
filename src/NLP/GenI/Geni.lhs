@@ -84,9 +84,10 @@ import NLP.GenI.Tags (Tags, TagElem, emptyTE,
              setTidnums) 
 
 import NLP.GenI.Configuration
-  ( Params, hasOpt, Switch(NoConstraintsFlg),
-  , grammarType, testCase, morphCmd, ignoreSemantics,
-  , GrammarType(..), isServer,
+  ( Params, hasFlag, hasOpt
+  , GeniFlag(IgnoreSemanticsFlg, NoConstraintsFlg, ServerModeFlg),
+  , grammarType, testCase, morphCmd,
+  , GrammarType(..),
   , tsFile, macrosFile, lexiconFile, morphFile)
 
 import qualified NLP.GenI.Builder as B
@@ -168,7 +169,7 @@ loadGrammar pstRef =
      -- grammar type
          isNotPreanchored = not (grammarType config == PreAnchored)
          isNotPrecompiled = not (grammarType config == PreCompiled)
-         isNotServer = not (isServer config)
+         isNotServer = not . (hasFlag ServerModeFlg) $ config
      -- display 
      let errorlst  = filter (not.null) $ map errfn src 
            where errfn (err,msg) = if err then msg else ""
@@ -201,7 +202,7 @@ loadLexicon pstRef config = do
        ePutStr $ "Loading Lexicon " ++ lfilename ++ "..."
        eFlush
        pst <- readIORef pstRef
-       let getSem l  = if ignoreSemantics (pa pst) then [] else isemantics l
+       let getSem l  = if hasFlag IgnoreSemanticsFlg (pa pst) then [] else isemantics l
            sorter l  = l { isemantics = (sortSem . getSem) l }
            cleanup   = (mapBySemKeys isemantics) . (map sorter)
            --
@@ -273,7 +274,7 @@ loadTestSuite pstRef = do
   pst <- readIORef pstRef
   let config   = pa pst
       filename = (tsFile.pa) pst
-      useSem   = not $ ignoreSemantics config
+      useSem   = not $ hasFlag IgnoreSemanticsFlg config
   when (null filename) $ fail "Please specify a test suite!"
   when useSem $ do
     ePutStr $ "Loading Test Suite " ++ filename ++ "...\n"
@@ -305,7 +306,7 @@ ts field of the ProgState
 loadTargetSemStr :: ProgStateRef -> String -> IO ()
 loadTargetSemStr pstRef str = 
     do pst <- readIORef pstRef
-       if ignoreSemantics (pa pst) then return () else parseSem
+       if hasFlag IgnoreSemanticsFlg (pa pst) then return () else parseSem
     where
        parseSem = do
          let sem = runParser geniSemanticInput () "" str

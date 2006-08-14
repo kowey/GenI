@@ -32,7 +32,8 @@ import NLP.GenI.General
   )
 import NLP.GenI.Geni
 import NLP.GenI.Configuration
-  ( Params(batchDir), isGraphical, outputFile, statsFile, metricsParam, timeoutSecs
+  ( Params(batchDir), GeniFlag(EnableGuiFlg)
+  , hasFlag, outputFile, statsFile, metricsParam, timeoutSecs
   , builderType
   , BuilderType(..))
 import qualified NLP.GenI.Builder as B
@@ -43,7 +44,7 @@ import Statistics ( showFinalStats, Statistics )
 consoleGeni :: ProgStateRef -> IO()
 consoleGeni pstRef = do
   pst <- readIORef pstRef
-  when (isGraphical $ pa pst) $ do
+  when (hasFlag EnableGuiFlg (pa pst)) $ do
     ePutStrLn "GUI not available"
   --
   loadGrammar pstRef

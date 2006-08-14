@@ -46,7 +46,7 @@ import NLP.GenI.Btypes (ILexEntry(isemantics))
 import NLP.GenI.Tags (idname, tpolarities, tsemantics, TagElem)
 import NLP.GenI.Treeprint (toGeniHand)
 import NLP.GenI.Configuration
-  ( Params(..), Switch(..), hasOpt,
+  ( Params(..), GeniFlag(..), hasOpt, hasFlag, setFlag,
   , BuilderType(..), mainBuilderTypes )
 import NLP.GenI.GeniParsers
 import NLP.GenI.GuiHelper
@@ -111,7 +111,7 @@ We add some buttons for loading files and running the generator.
        let config     = pa pst 
            suite      = tsuite pst
            hasSem     = not (null suite)
-           ignoreSem  = ignoreSemantics config
+           ignoreSem  = hasFlag IgnoreSemanticsFlg config
        -- Target Semantics
        tsTextBox <- textCtrl f [ wrap := WrapWord
                                , clientSize := sz 400 80
@@ -261,15 +261,15 @@ toggleAlgo pstRef box =
 
 -- | Toggles for optimisatons controlled by a check box.  They enable or
 --   disable the said optmisation.
-setToggleChk :: (Commanding a, Checkable a) => ProgStateRef -> (a, Switch) -> IO ()
+setToggleChk :: (Commanding a, Checkable a) => ProgStateRef -> (a, GeniFlag) -> IO ()
 setToggleChk = setToggleChk_ id
 
 -- | Same as above, except for anti-optimisations
-setToggleAntiChk :: (Commanding a, Checkable a) => ProgStateRef -> (a, Switch) -> IO ()
+setToggleAntiChk :: (Commanding a, Checkable a) => ProgStateRef -> (a, GeniFlag) -> IO ()
 setToggleAntiChk = setToggleChk_ not
 
 -- Expecting either 'id' or 'not' for the (Bool->Bool)
-setToggleChk_ :: (Commanding a, Checkable a) => (Bool -> Bool) -> ProgStateRef -> (a, Switch) -> IO ()
+setToggleChk_ :: (Commanding a, Checkable a) => (Bool -> Bool) -> ProgStateRef -> (a, GeniFlag) -> IO ()
 setToggleChk_ id_ pstRef (chk,tok) =
  set chk [ on command :~ (>> stc) ]
  where
@@ -454,7 +454,7 @@ into more tabs?
   ignoreSemChk <- checkBox padv 
      [ text    := "Ignore semantics"
      , tooltip := "Useful as a corpus generator"
-     , checked := ignoreSemantics config ]
+     , checked := hasFlag IgnoreSemanticsFlg config ]
   let maxTreesStr = case maxTrees config of 
         Nothing -> ""
         Just m  -> show m
@@ -526,7 +526,7 @@ command that makes everything ``work'':
             ignoreVal   <- get ignoreSemChk checked 
             maxTreesVal <- get maxTreesText text
             --
-            let config2 = config 
+            let config2 = setFlag IgnoreSemanticsFlg ignoreVal $ config
                  { macrosFile  = macrosVal
                  , lexiconFile = lexconVal
                  , tsFile      = tsVal
@@ -539,7 +539,6 @@ command that makes everything ``work'':
                  , morphCmd  = morphCmdVal
                  , morphFile = morphInfoVal
                  --
-                 , ignoreSemantics = ignoreVal
                  , maxTrees = if null maxTreesVal 
                      then Nothing
                      else Just (read maxTreesVal)

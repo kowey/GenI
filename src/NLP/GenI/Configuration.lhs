@@ -22,9 +22,9 @@ The input to this module is simply \texttt{argv}.
 
 \begin{code}
 module NLP.GenI.Configuration
-  ( Params(..), GrammarType(..), BuilderType(..), Switch(..)
+  ( Params(..), GrammarType(..), BuilderType(..), GeniFlag(..)
   , mainBuilderTypes
-  , hasOpt, polarised, predicting
+  , hasFlag, setFlag, hasOpt, polarised, predicting
   , rootcatfiltered, semfiltered
   , isIaf
   , emptyParams
@@ -39,8 +39,8 @@ import qualified Data.Map as Map
 
 import System.Console.GetOpt
 import System.Exit ( exitWith, ExitCode(..) )
-import Data.List  ( find, intersperse )
-import Data.Maybe ( catMaybes  )
+import Data.List  ( delete, find, intersperse )
+import Data.Maybe ( catMaybes, fromMaybe  )
 import Text.ParserCombinators.Parsec ( runParser )
 
 import NLP.GenI.General ( geniBug, fst3, snd3, Interval )
@@ -83,9 +83,8 @@ data Params = Prms{
   -- tree viewer  (useful if using an XMG grammar)
   viewCmd        :: String,
   --
-  isGraphical    :: Bool,
-  isServer       :: Bool,
-  optimisations  :: [Switch],
+  geniFlags      :: [GeniFlag],
+  optimisations  :: [GeniFlag],
   --
   macrosFile     :: String,
   lexiconFile    :: String,
@@ -103,13 +102,15 @@ data Params = Prms{
   metricsParam   :: [String],
   statsFile      :: FilePath,
   -- generation sans semantics (not the usual geni mode)
-  ignoreSemantics :: Bool, 
   maxTrees       :: Maybe Int, -- limit on num of trees in a derived tree,
   -- timeout (s)
   timeoutSecs :: Maybe Integer
 } deriving (Show)
 
-hasOpt :: Switch -> Params -> Bool
+hasFlag :: GeniFlag -> Params -> Bool
+hasFlag o p = o `elem` (geniFlags p)
+
+hasOpt :: GeniFlag -> Params -> Bool
 hasOpt o p = o `elem` (optimisations p)
 
 polarised, isIaf, predicting :: Params -> Bool
@@ -135,16 +136,14 @@ emptyParams = Prms {
   grammarType   = GeniHand,
   morphCmd       = "",
   viewCmd        = "ViewTAG",
-  isGraphical    = True,
-  isServer       = False,
-  testCase      = [],
+  testCase       = [],
   optimisations  = [],
   extrapol       = Map.empty,
   outputFile     = "",
   metricsParam   = [],
   statsFile       = "",
   batchDir        = "",
-  ignoreSemantics = False,
+  geniFlags      = [EnableGuiFlg],
   maxTrees       = Nothing,
   timeoutSecs    = Nothing
 }
@@ -182,17 +181,18 @@ mainBuilderTypes =
  [ SimpleBuilder, SimpleOnePhaseBuilder
  , CkyBuilder, EarleyBuilder]
 
-data Switch = 
+data GeniFlag = 
     HelpFlg      |
     TestCasesFlg String | TestSuiteFlg String | 
-    GraphicalFlg Bool   | 
+    EnableGuiFlg | DisableGuiFlag |
     CmdFlg String String | -- key / command 
     OutputFileFlg String |
     MetricsFlg (Maybe String) | StatsFileFlg String |
     XMGOutFileFlg String | XMGErrFileFlg String  |
     TimeoutFlg String |
-    IgnoreSemanticsFlg Bool | MaxTreesFlg String |
+    IgnoreSemanticsFlg | MaxTreesFlg String |
     BuilderFlg String |
+    ServerModeFlg |
     -- grammar file
     GrammarType GrammarType  | 
     MacrosFlg String         | LexiconFlg String | MorphInfoFlg String | 
@@ -215,14 +215,14 @@ Here's the switches again and the switches they are associated with.
 Note that we divide them into basic and advanced usage.
 
 \begin{code}
-options :: [OptDescr Switch]
+options :: [OptDescr GeniFlag]
 options = optionsBasic ++ optionsAdvanced ++
   -- FIXME: weird mac stuff
   [ Option ['p']    []  (ReqArg WeirdFlg "CMD") "" ]
 
-optionsBasic :: [OptDescr Switch] 
+optionsBasic :: [OptDescr GeniFlag] 
 optionsBasic =
-  [ Option []    ["nogui"] (NoArg  (GraphicalFlg False)) 
+  [ Option []    ["nogui"] (NoArg DisableGuiFlag)
       "disable graphical user interface"
   , Option []    ["help"] (NoArg  HelpFlg) 
       "show full list of command line switches"
@@ -242,7 +242,7 @@ optionsBasic =
       "optimisations 'LIST' (--help for details)"
   ]
     
-optionsAdvanced :: [OptDescr Switch] 
+optionsAdvanced :: [OptDescr GeniFlag] 
 optionsAdvanced =
   [ Option ['b'] ["builder"]  (ReqArg BuilderFlg "BUILDER")
       "use as realisation engine one of: simple cky"
@@ -254,7 +254,7 @@ optionsAdvanced =
       "write performance data to file FILE (stdout if unset)"
   , Option []    ["extrapols"] (ReqArg ExtraPolaritiesFlg "STRING")
       "preset polarities (normally, you should use rootcats instead)" 
-  , Option []    ["ignoresem"]   (NoArg (IgnoreSemanticsFlg True))
+  , Option []    ["ignoresem"]   (NoArg IgnoreSemanticsFlg)
       "ignore all semantic information"
   , Option []    ["maxtrees"]   (ReqArg MaxTreesFlg "INT")
       "max tree size INT by number of elementary trees"
@@ -282,7 +282,7 @@ both for taking command line arguments
 concise form what optimisations she used.
 
 \begin{code}
-optimisationCodes :: [(Switch,String,String)]
+optimisationCodes :: [(GeniFlag,String,String)]
 optimisationCodes = 
  [ (PolarisedFlg   , "p",      "polarity filtering")
  , (PolOptsFlg  , "pol",    "equivalent to 'p'")
@@ -348,12 +348,12 @@ into a list of optimisations.  We blithely ignore codes that we don't
 recognise.
 
 \begin{code}
-parseOptimisations :: String -> [Switch] 
+parseOptimisations :: String -> [GeniFlag] 
 parseOptimisations str = 
   let codes = words str
   in  catMaybes (map lookupOptimisation codes)
 
-lookupOptimisation :: String -> Maybe Switch
+lookupOptimisation :: String -> Maybe GeniFlag
 lookupOptimisation code = do
   triple <- find (\x -> snd3 x == code) optimisationCodes
   return (fst3 triple)
@@ -378,7 +378,7 @@ a singleton list of lists.
 \end{itemize}
 
 \begin{code}
-defineParams :: Params -> [Switch] -> Params
+defineParams :: Params -> [GeniFlag] -> Params
 defineParams p [] = p
 defineParams p (f:s) = defineParams pnext s
   where
@@ -387,7 +387,7 @@ defineParams p (f:s) = defineParams pnext s
         Left err -> error (show err)
         Right p2 -> p2
     pnext = case f of 
-      GraphicalFlg v     -> p {isGraphical = v}
+      DisableGuiFlag     -> deleteFlag EnableGuiFlg p
       OptimisationsFlg v -> p {optimisations = readOpt v ++ (optimisations p)}
       OutputFileFlg v    -> p {outputFile = v}
       -- grammar stuff
@@ -415,10 +415,8 @@ defineParams p (f:s) = defineParams pnext s
       StatsFileFlg v      -> p { statsFile    = v }
       --
       GrammarType v        -> p {grammarType = v} 
-      IgnoreSemanticsFlg v -> p { ignoreSemantics = v 
-                                , maxTrees = case maxTrees p of
-                                    Nothing  -> if v then Just 5 else Nothing 
-                                    Just lim -> Just lim }
+      IgnoreSemanticsFlg   -> addFlag IgnoreSemanticsFlg $
+                                p { maxTrees = Just $ fromMaybe 5 $ maxTrees p }
       MaxTreesFlg v        -> p {maxTrees = Just (read v)} 
       ExtraPolaritiesFlg v -> p {extrapol = parsePol v } 
       BatchDirFlg  v       -> p {batchDir = v}
@@ -433,6 +431,16 @@ defineParams p (f:s) = defineParams pnext s
     addif t x o = if (t `elem` o) then x ++ o else o
     polOpts     = [PolarisedFlg]
     adjOpts     = [SemFilteredFlg]
+
+addFlag :: GeniFlag -> Params -> Params
+addFlag f p = p { geniFlags = f : (geniFlags p) }
+
+setFlag :: GeniFlag -> Bool -> Params -> Params
+setFlag f b pRaw = if b then addFlag f p else p
+  where p = deleteFlag f pRaw
+
+deleteFlag :: GeniFlag -> Params -> Params
+deleteFlag f p = p { geniFlags = delete f (geniFlags p) }
 \end{code}
 
 
@@ -440,7 +448,7 @@ defineParams p (f:s) = defineParams pnext s
 which include \fnparam{enabledRaw}.
 
 \begin{code}
-optBatch :: [Switch] -> [[Switch]] 
+optBatch :: [GeniFlag] -> [[GeniFlag]] 
 optBatch enabled =
   let use opt prev = if (opt `elem` enabled)
                      then withopt 
