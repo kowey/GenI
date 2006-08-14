@@ -36,13 +36,13 @@ import NLP.GenI.GeniParsers (geniMacros)
 import NLP.GenI.Treeprint (toGeniHand, hsShow)
 import NLP.GenI.Converter.ReadTagml (readTagmlMacros)
 
-data Flag = FromTok String | ToTok String | OutputTok String
+data Flag = FromFlg String | ToFlg String | OutputFlg String
 
 options :: [OptDescr Flag]
 options =
-  [ Option "f" ["from"] (ReqArg FromTok "TYPE") "tagml|geni"
-  , Option "t" ["to"]   (ReqArg ToTok "TYPE")   "haskell|geni"
-  , Option "o" ["output"]  (ReqArg OutputTok "STRING")  "output file, or -t haskell, prefix for output files"
+  [ Option "f" ["from"] (ReqArg FromFlg "TYPE") "tagml|geni"
+  , Option "t" ["to"]   (ReqArg ToFlg "TYPE")   "haskell|geni"
+  , Option "o" ["output"]  (ReqArg OutputFlg "STRING")  "output file, or -t haskell, prefix for output files"
   ]
 
 data InputParams = InputParams { fromArg :: String
@@ -51,9 +51,9 @@ data InputParams = InputParams { fromArg :: String
 
 toInputParams :: [Flag] -> InputParams
 toInputParams [] = InputParams "" "" ""
-toInputParams (FromTok x : n)    = (toInputParams n) { fromArg = x }
-toInputParams (ToTok x : n)      = (toInputParams n) { toArg = x }
-toInputParams (OutputTok x : n)  = (toInputParams n) { stemArg = x }
+toInputParams (FromFlg x : n)    = (toInputParams n) { fromArg = x }
+toInputParams (ToFlg x : n)      = (toInputParams n) { toArg = x }
+toInputParams (OutputFlg x : n)  = (toInputParams n) { stemArg = x }
 
 main :: IO ()
 main =

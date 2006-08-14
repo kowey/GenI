@@ -114,11 +114,11 @@ hasOpt o p = o `elem` (optimisations p)
 
 polarised, isIaf, predicting :: Params -> Bool
 rootcatfiltered, semfiltered :: Params -> Bool
-polarised    = hasOpt PolarisedTok
-isIaf        = hasOpt IafTok
-predicting   = hasOpt PredictingTok
-semfiltered  = hasOpt SemFilteredTok
-rootcatfiltered = hasOpt RootCatFilteredTok
+polarised    = hasOpt PolarisedFlg
+isIaf        = hasOpt IafFlg
+predicting   = hasOpt PredictingFlg
+semfiltered  = hasOpt SemFilteredFlg
+rootcatfiltered = hasOpt RootCatFilteredFlg
 \end{code}
 
 \paragraph{defaultParams} returns the default parameters configuration
@@ -183,31 +183,31 @@ mainBuilderTypes =
  , CkyBuilder, EarleyBuilder]
 
 data Switch = 
-    HelpTok      |
-    TestCasesTok String | TestSuiteTok String | 
-    GraphicalTok Bool   | 
-    CmdTok String String | -- key / command 
-    OutputFileTok String |
-    MetricsTok (Maybe String) | StatsFileTok String |
-    XMGOutFileTok String | XMGErrFileTok String  |
-    TimeoutTok String |
-    IgnoreSemanticsTok Bool | MaxTreesTok String |
-    BuilderTok String |
+    HelpFlg      |
+    TestCasesFlg String | TestSuiteFlg String | 
+    GraphicalFlg Bool   | 
+    CmdFlg String String | -- key / command 
+    OutputFileFlg String |
+    MetricsFlg (Maybe String) | StatsFileFlg String |
+    XMGOutFileFlg String | XMGErrFileFlg String  |
+    TimeoutFlg String |
+    IgnoreSemanticsFlg Bool | MaxTreesFlg String |
+    BuilderFlg String |
     -- grammar file
     GrammarType GrammarType  | 
-    MacrosTok String         | LexiconTok String | MorphInfoTok String | 
-    RootCategoriesTok String | 
+    MacrosFlg String         | LexiconFlg String | MorphInfoFlg String | 
+    RootCategoriesFlg String | 
     -- optimisations
-    OptimisationsTok String   | PolOptsTok | AdjOptsTok |
-    PolarisedTok | PredictingTok | NoConstraintsTok |
-    ExtraPolaritiesTok String |
-    RootCatFilteredTok | SemFilteredTok |
-    IafTok {- one phase only! -} |
-    BatchDirTok FilePath | RepeatTok String |
-    -- the WeirdTok exists strictly to please OS X when you launch
+    OptimisationsFlg String   | PolOptsFlg | AdjOptsFlg |
+    PolarisedFlg | PredictingFlg | NoConstraintsFlg |
+    ExtraPolaritiesFlg String |
+    RootCatFilteredFlg | SemFilteredFlg |
+    IafFlg {- one phase only! -} |
+    BatchDirFlg FilePath | RepeatFlg String |
+    -- the WeirdFlg exists strictly to please OS X when you launch
     -- GenI in an application bundle (double-click)... for some
     -- reason it wants to pass an argument to -p
-    WeirdTok String 
+    WeirdFlg String 
     deriving (Show,Eq)
 \end{code}
 
@@ -218,57 +218,57 @@ Note that we divide them into basic and advanced usage.
 options :: [OptDescr Switch]
 options = optionsBasic ++ optionsAdvanced ++
   -- FIXME: weird mac stuff
-  [ Option ['p']    []  (ReqArg WeirdTok "CMD") "" ]
+  [ Option ['p']    []  (ReqArg WeirdFlg "CMD") "" ]
 
 optionsBasic :: [OptDescr Switch] 
 optionsBasic =
-  [ Option []    ["nogui"] (NoArg  (GraphicalTok False)) 
+  [ Option []    ["nogui"] (NoArg  (GraphicalFlg False)) 
       "disable graphical user interface"
-  , Option []    ["help"] (NoArg  HelpTok) 
+  , Option []    ["help"] (NoArg  HelpFlg) 
       "show full list of command line switches"
-  , Option ['m'] ["macros"] (ReqArg MacrosTok "FILE") 
+  , Option ['m'] ["macros"] (ReqArg MacrosFlg "FILE") 
       "macros file FILE (unanchored trees)"
-  , Option ['l'] ["lexicon"] (ReqArg LexiconTok "FILE") 
+  , Option ['l'] ["lexicon"] (ReqArg LexiconFlg "FILE") 
       "lexicon file FILE"
-  , Option ['s'] ["testsuite"] (ReqArg TestSuiteTok "FILE") 
+  , Option ['s'] ["testsuite"] (ReqArg TestSuiteFlg "FILE") 
       "test suite FILE"
-  , Option []    ["rootcats"] (ReqArg RootCategoriesTok "LIST")
+  , Option []    ["rootcats"] (ReqArg RootCategoriesFlg "LIST")
       ("root categories 'LIST' (for polarities, default:"
        ++ (unwords $ rootCatsParam emptyParams)
        ++ ")")
-  , Option ['o'] ["output"] (ReqArg OutputFileTok "FILE")
+  , Option ['o'] ["output"] (ReqArg OutputFileFlg "FILE")
       "output file FILE (stdout if unset)"
-  , Option []    ["opts"] (ReqArg OptimisationsTok "LIST")
+  , Option []    ["opts"] (ReqArg OptimisationsFlg "LIST")
       "optimisations 'LIST' (--help for details)"
   ]
     
 optionsAdvanced :: [OptDescr Switch] 
 optionsAdvanced =
-  [ Option ['b'] ["builder"]  (ReqArg BuilderTok "BUILDER")
+  [ Option ['b'] ["builder"]  (ReqArg BuilderFlg "BUILDER")
       "use as realisation engine one of: simple cky"
-  , Option []    ["timeout"] (ReqArg TimeoutTok "SECONDS")
+  , Option []    ["timeout"] (ReqArg TimeoutFlg "SECONDS")
       "time out after SECONDS seconds"
-  , Option []    ["metrics"] (OptArg MetricsTok "LIST")
+  , Option []    ["metrics"] (OptArg MetricsFlg "LIST")
       "keep track of performance metrics: (default: iterations comparisons chart_size)"
-  , Option []    ["statsfile"] (ReqArg StatsFileTok "FILE")
+  , Option []    ["statsfile"] (ReqArg StatsFileFlg "FILE")
       "write performance data to file FILE (stdout if unset)"
-  , Option []    ["extrapols"] (ReqArg ExtraPolaritiesTok "STRING")
+  , Option []    ["extrapols"] (ReqArg ExtraPolaritiesFlg "STRING")
       "preset polarities (normally, you should use rootcats instead)" 
-  , Option []    ["ignoresem"]   (NoArg (IgnoreSemanticsTok True))
+  , Option []    ["ignoresem"]   (NoArg (IgnoreSemanticsFlg True))
       "ignore all semantic information"
-  , Option []    ["maxtrees"]   (ReqArg MaxTreesTok "INT")
+  , Option []    ["maxtrees"]   (ReqArg MaxTreesFlg "INT")
       "max tree size INT by number of elementary trees"
-  , Option []    ["morphinfo"] (ReqArg MorphInfoTok "FILE")
+  , Option []    ["morphinfo"] (ReqArg MorphInfoFlg "FILE")
       "morphological lexicon FILE (default: unset)"
-  , Option []    ["morphcmd"]  (ReqArg (CmdTok "morph") "CMD") 
+  , Option []    ["morphcmd"]  (ReqArg (CmdFlg "morph") "CMD") 
       "morphological post-processor CMD (default: unset)"
   , Option []    ["preselected"] (NoArg (GrammarType PreAnchored))
       "do NOT perform lexical selection - treat the grammar as the selection"
-  , Option []    ["batchdir"]    (ReqArg BatchDirTok "DIR")
+  , Option []    ["batchdir"]    (ReqArg BatchDirFlg "DIR")
       "batch process the test suite and save results to DIR"
-  , Option []    ["testcase"]   (ReqArg TestCasesTok "String")
+  , Option []    ["testcase"]   (ReqArg TestCasesFlg "String")
       "run test case STRING"
-  , Option []    ["viewcmd"]  (ReqArg (CmdTok "view") "CMD") 
+  , Option []    ["viewcmd"]  (ReqArg (CmdFlg "view") "CMD") 
       "XMG tree-view command"
 -- note: need to code optimisations string
   ]
@@ -284,14 +284,14 @@ concise form what optimisations she used.
 \begin{code}
 optimisationCodes :: [(Switch,String,String)]
 optimisationCodes = 
- [ (PolarisedTok   , "p",      "polarity filtering")
- , (PolOptsTok  , "pol",    "equivalent to 'p'")
- , (AdjOptsTok  , "adj",    "equivalent to 'S F'")
- , (SemFilteredTok , "S",      "semantic filtering (same as f-sem)")
- , (SemFilteredTok , "f-sem",      "semantic filtering (two-phase only)")
- , (RootCatFilteredTok, "f-root",  "filtering on root node (two-phase only)")
- , (IafTok, "i", "index accesibility filtering (one-phase only)")
- , (NoConstraintsTok, "nc", "disable semantic constraints (anti-optimisation!)")
+ [ (PolarisedFlg   , "p",      "polarity filtering")
+ , (PolOptsFlg  , "pol",    "equivalent to 'p'")
+ , (AdjOptsFlg  , "adj",    "equivalent to 'S F'")
+ , (SemFilteredFlg , "S",      "semantic filtering (same as f-sem)")
+ , (SemFilteredFlg , "f-sem",      "semantic filtering (two-phase only)")
+ , (RootCatFilteredFlg, "f-root",  "filtering on root node (two-phase only)")
+ , (IafFlg, "i", "index accesibility filtering (one-phase only)")
+ , (NoConstraintsFlg, "nc", "disable semantic constraints (anti-optimisation!)")
  ]
 \end{code}
 
@@ -314,7 +314,7 @@ treatArgsWithParams argv initParams = do
                   ++ "\n\n" ++ usageExample
    case getOpt Permute options argv of
      (o,_,[]  ) -> 
-        if HelpTok `elem` o 
+        if HelpFlg `elem` o 
              then do putStrLn usageAdv
                      exitWith ExitSuccess
              else return (defineParams initParams o)
@@ -327,8 +327,8 @@ It shows a table of optimisation codes and their meaning.
 \begin{code}
 optimisationsUsage :: String
 optimisationsUsage = 
-  let polopts  = [PolOptsTok, PolarisedTok]
-      adjopts  = [AdjOptsTok, RootCatFilteredTok, SemFilteredTok]
+  let polopts  = [PolOptsFlg, PolarisedFlg]
+      adjopts  = [AdjOptsFlg, RootCatFilteredFlg, SemFilteredFlg]
       unlinesTab l = concat (intersperse "\n  " l)
       getstr k = case find (\x -> k == fst3 x) optimisationCodes of 
                    Just (_, code, desc) -> code ++ " - " ++ desc
@@ -387,52 +387,52 @@ defineParams p (f:s) = defineParams pnext s
         Left err -> error (show err)
         Right p2 -> p2
     pnext = case f of 
-      GraphicalTok v     -> p {isGraphical = v}
-      OptimisationsTok v -> p {optimisations = readOpt v ++ (optimisations p)}
-      OutputFileTok v    -> p {outputFile = v}
+      GraphicalFlg v     -> p {isGraphical = v}
+      OptimisationsFlg v -> p {optimisations = readOpt v ++ (optimisations p)}
+      OutputFileFlg v    -> p {outputFile = v}
       -- grammar stuff
-      MacrosTok    v -> p {macrosFile  = v}
-      LexiconTok   v -> p {lexiconFile = v} 
-      TestSuiteTok v -> p {tsFile = v}
+      MacrosFlg    v -> p {macrosFile  = v}
+      LexiconFlg   v -> p {lexiconFile = v} 
+      TestSuiteFlg v -> p {tsFile = v}
       -- builders
-      BuilderTok "null"   -> p { builderType = NullBuilder }
-      BuilderTok "cky"    -> p { builderType = CkyBuilder }
-      BuilderTok "earley" -> p { builderType = EarleyBuilder }
-      BuilderTok "simple" -> p { builderType = SimpleBuilder }
-      BuilderTok "simple-2p" -> p { builderType = SimpleBuilder }
-      BuilderTok "simple-1p" -> p { builderType = SimpleOnePhaseBuilder }
-      BuilderTok v        -> error ("unknown builder: " ++ v)
+      BuilderFlg "null"   -> p { builderType = NullBuilder }
+      BuilderFlg "cky"    -> p { builderType = CkyBuilder }
+      BuilderFlg "earley" -> p { builderType = EarleyBuilder }
+      BuilderFlg "simple" -> p { builderType = SimpleBuilder }
+      BuilderFlg "simple-2p" -> p { builderType = SimpleBuilder }
+      BuilderFlg "simple-1p" -> p { builderType = SimpleOnePhaseBuilder }
+      BuilderFlg v        -> error ("unknown builder: " ++ v)
       -- advanced stuff
-      RootCategoriesTok v -> p {rootCatsParam = words v}
-      MorphInfoTok v      -> p {morphFile   = v}
-      CmdTok "morph"    v -> p {morphCmd  = v}
-      CmdTok "view"     v -> p {viewCmd = v}
-      TestCasesTok v      -> p {testCase = v }
+      RootCategoriesFlg v -> p {rootCatsParam = words v}
+      MorphInfoFlg v      -> p {morphFile   = v}
+      CmdFlg "morph"    v -> p {morphCmd  = v}
+      CmdFlg "view"     v -> p {viewCmd = v}
+      TestCasesFlg v      -> p {testCase = v }
       -- performance profiling
-      TimeoutTok v        -> p { timeoutSecs  = Just (read v) }
-      MetricsTok Nothing  -> p { metricsParam = ["default"] }
-      MetricsTok (Just v) -> p { metricsParam = words v }
-      StatsFileTok v      -> p { statsFile    = v }
+      TimeoutFlg v        -> p { timeoutSecs  = Just (read v) }
+      MetricsFlg Nothing  -> p { metricsParam = ["default"] }
+      MetricsFlg (Just v) -> p { metricsParam = words v }
+      StatsFileFlg v      -> p { statsFile    = v }
       --
       GrammarType v        -> p {grammarType = v} 
-      IgnoreSemanticsTok v -> p { ignoreSemantics = v 
+      IgnoreSemanticsFlg v -> p { ignoreSemantics = v 
                                 , maxTrees = case maxTrees p of
                                     Nothing  -> if v then Just 5 else Nothing 
                                     Just lim -> Just lim }
-      MaxTreesTok v        -> p {maxTrees = Just (read v)} 
-      ExtraPolaritiesTok v -> p {extrapol = parsePol v } 
-      BatchDirTok  v       -> p {batchDir = v}
-      WeirdTok _           -> p
+      MaxTreesFlg v        -> p {maxTrees = Just (read v)} 
+      ExtraPolaritiesFlg v -> p {extrapol = parsePol v } 
+      BatchDirFlg  v       -> p {batchDir = v}
+      WeirdFlg _           -> p
       unknown -> error ("Unknown configuration parameter: " ++ show unknown)
     -- when PolOpts and AdjOpts are in the list of optimisations
     -- then include all polarity-related optimisations and 
     -- all adjunction-related optimisations respectively
-    readOpt v = addif PolOptsTok polOpts      
-              $ addif AdjOptsTok adjOpts 
+    readOpt v = addif PolOptsFlg polOpts      
+              $ addif AdjOptsFlg adjOpts 
               $ parseOptimisations v
     addif t x o = if (t `elem` o) then x ++ o else o
-    polOpts     = [PolarisedTok]
-    adjOpts     = [SemFilteredTok]
+    polOpts     = [PolarisedFlg]
+    adjOpts     = [SemFilteredFlg]
 \end{code}
 
 
@@ -447,11 +447,11 @@ optBatch enabled =
                      else withopt ++ prev
                      where withopt = map (opt:) prev
       -- 
-      polBatch' = foldr use [[PolarisedTok]] []
-      polBatch  = if PolarisedTok `elem` enabled
+      polBatch' = foldr use [[PolarisedFlg]] []
+      polBatch  = if PolarisedFlg `elem` enabled
                  then polBatch' 
                  else [] : polBatch'
-      adjBatch  = foldr use polBatch [SemFilteredTok]
+      adjBatch  = foldr use polBatch [SemFilteredFlg]
       -- 
   in adjBatch
 \end{code}

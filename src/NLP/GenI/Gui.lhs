@@ -148,27 +148,27 @@ Let's not forget the optimisations...
        set algoChoiceBox [ on select := toggleAlgo pstRef algoChoiceBox ]
        polChk <- checkBox f 
           [ text := "Polarities"
-          , checked := hasOpt PolarisedTok config
+          , checked := hasOpt PolarisedFlg config
           , tooltip := "Use the polarity optimisation"
           ]
        useSemConstraintsChk <- checkBox f
          [ text := "Sem constraints"
-         , checked := not $ hasOpt NoConstraintsTok config
+         , checked := not $ hasOpt NoConstraintsFlg config
          , tooltip := "Use any sem constraints the user provides"
          ]
        iafChk <- checkBox f
           [ text := "Idx acc filter"
-          , checked := hasOpt IafTok config
+          , checked := hasOpt IafFlg config
           , tooltip := "Only available in CKY/Earley for now"
           ]
        semfilterChk <- checkBox f 
          [ text := "Semantic filters"
-         , checked := hasOpt SemFilteredTok config
+         , checked := hasOpt SemFilteredFlg config
          , tooltip := "(2p only) Filter away semantically incomplete structures before adjunction phase"
          ]
        rootfilterChk <- checkBox f
          [ text := "Root filters"
-         , checked := hasOpt RootCatFilteredTok config
+         , checked := hasOpt RootCatFilteredFlg config
          , tooltip := "(2p only) Filter away non-root structures before adjunction phase"
          ]
        extrapolText <- staticText f 
@@ -180,11 +180,11 @@ Let's not forget the optimisations...
                                set extrapolText [ enabled := c ]
        set polChk [on command := togglePolStuff ]
        sequence_ $ map (setToggleChk pstRef)
-          [ (polChk, PolarisedTok)
-          , (iafChk, IafTok)
-          , (rootfilterChk, RootCatFilteredTok)]
+          [ (polChk, PolarisedFlg)
+          , (iafChk, IafFlg)
+          , (rootfilterChk, RootCatFilteredFlg)]
        sequence_ $ map (setToggleAntiChk pstRef)
-          [ (useSemConstraintsChk, NoConstraintsTok) ]
+          [ (useSemConstraintsChk, NoConstraintsFlg) ]
 \end{code}
 
 Pack it all together, perform the layout operation.
@@ -664,7 +664,7 @@ debugGui builderGui pstRef pauseOnLex =
             debugPnl <- BG.debuggerPnl builderGui nb config input2 btype
             let autTab   = tab "automata" autPnl
                 debugTab = tab (btype ++ "-session") debugPnl
-                genTabs  = if hasOpt PolarisedTok config
+                genTabs  = if hasOpt PolarisedFlg config
                            then [ autTab, debugTab ] else [ debugTab ]
             --
             set f [ layout := container p $ tabs nb genTabs
