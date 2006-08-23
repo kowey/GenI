@@ -281,26 +281,27 @@ loadTestSuite pstRef = do
    Nothing -> fail "Please specify a test suite!"
    Just filename -> do
      let config = pa pst
-     unless (hasFlagP IgnoreSemanticsFlg config) $ do
-     ePutStr $ "Loading Test Suite " ++ filename ++ "...\n"
-     eFlush
-     -- helper functions for test suite stuff
-     let cleanup tc str = (i, str, newsmsr)
-           where (i, (sm, sr, lc), _) = tc
-                 newsmsr = (sortSem sm, sort sr, lc)
-         updateTsuite s s2 x =
-          x { tsuite = zipWith cleanup s s2
-            , tcase  = fromMaybe "" $ getFlagP TestCaseFlg config}
-     sem <- parseFromFile geniTestSuite filename
-     case sem of 
-      Left err -> fail (show err)
-      Right s  -> do
-        mStrs <- parseFromFile geniTestSuiteString filename
-        case mStrs of
-          Left e   -> fail (show e)
-          Right s2 -> modifyIORef pstRef $ updateTsuite s s2
-     -- in the end we just say we're done
-     --ePutStr "done\n"
+     unless (hasFlagP IgnoreSemanticsFlg config) $
+      do ePutStr $ "Loading Test Suite " ++ filename ++ "...\n"
+         eFlush
+         -- ugh: I'm using CPS here, when what I really want is
+         -- some kind of Error-based monad transformer
+         parseAnd geniTestSuite $ \sem ->
+           parseAnd geniTestSuiteString $ \mStrs ->
+             modifyIORef pstRef $ updateTsuite config sem mStrs
+         return ()
+     where -- helper functions for test suite stuff
+      parseAnd p cont =
+        do mr <- parseFromFile p filename
+           case mr of
+             Left  e -> fail (show e)
+             Right r -> cont r
+      updateTsuite config s s2 x =
+        x { tsuite = zipWith cleanup s s2
+          , tcase  = fromMaybe "" $ getFlagP TestCaseFlg config}
+      cleanup (i, (sm, sr, lc), _) str =
+        let newsmsr = (sortSem sm, sort sr, lc)
+        in  (i, str, newsmsr)
 \end{code}
 
 \fnlabel{loadTargetSemStr} Given a string with some semantics, it
