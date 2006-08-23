@@ -26,7 +26,7 @@ import System.IO
 import System.Posix.Signals (installHandler, sigPIPE, Handler(Ignore))
 
 import NLP.GenI.Configuration ( treatArgs, treatArgsWithParams,
-                              , setFlag, GeniFlag(ServerModeFlg))
+                              , setFlagP, ServerModeFlg(..) )
 import NLP.GenI.Console (runTestCaseOnly)
 import NLP.GenI.Geni (loadGrammar, loadTestSuite, emptyProgState, ProgState(pa))
 import NLP.GenI.ClientServer (hGetBeginEnd, socketPath)
@@ -37,9 +37,8 @@ main = withSocketsDo $
     -- is available when we try to write back to it
     installHandler sigPIPE Ignore Nothing
     --
-    args     <- getArgs
-    confArgs <- treatArgs args
-    let pst = (emptyProgState $ setFlag ServerModeFlg True confArgs)
+    confArgs <- treatArgs =<< getArgs
+    let pst = (emptyProgState $ setFlagP ServerModeFlg () confArgs)
     pstRef <- newIORef pst
     loadGrammar pstRef
     pst2 <- readIORef pstRef

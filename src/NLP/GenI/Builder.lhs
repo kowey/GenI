@@ -46,15 +46,16 @@ import Control.Monad.State
 import Data.Bits ( (.&.), (.|.), bit, xor )
 import Data.List ( (\\), maximum )
 import qualified Data.Map as Map
-import Data.Maybe ( mapMaybe )
+import Data.Maybe ( mapMaybe, fromMaybe  )
 import qualified Data.Set as Set
 import Data.Tree ( flatten )
 import Prelude hiding ( init )
 
 import NLP.GenI.Automaton (NFA, automatonPaths, automatonPathSets, numStates, numTransitions)
 import NLP.GenI.Configuration
-  ( hasFlag, Params(metricsParam, rootCatsParam), extrapol,
-    GeniFlag(IgnoreSemanticsFlg),
+  ( getFlagP, hasFlagP, Params,
+    ExtraPolaritiesFlg(..), MetricsFlg(..),
+    IgnoreSemanticsFlg(..), RootCategoriesFlg(..),
     polarised )
 import NLP.GenI.General (geniBug, BitVector, multiGroupByFM, fst3, snd3, thd3)
 import NLP.GenI.Btypes
@@ -162,8 +163,8 @@ preInit input config =
  let (cand,_) = unzip $ inCands input
      seminput = inSemInput input
      --
-     extraPol = extrapol config
-     rootCats = rootCatsParam config
+     extraPol = fromMaybe (Map.empty) $ getFlagP ExtraPolaritiesFlg config
+     rootCats = fromMaybe [] $ getFlagP RootCategoriesFlg config
      -- do any optimisations
      isPol      = polarised config
      -- polarity optimisation (if enabled)
@@ -195,7 +196,7 @@ unlessEmptySem input config =
      unInstSemErr   = "The following trees have an uninstantiated semantics: " ++ (unwords unInstSemCands)
      semanticsErr   = (if null nullSemCands then "" else nullSemErr ++ "\n") ++
                       (if null unInstSemCands then "" else unInstSemErr)
-  in if (null semanticsErr || hasFlag IgnoreSemanticsFlg config)
+  in if (null semanticsErr || hasFlagP IgnoreSemanticsFlg config)
      then id
      else error semanticsErr
 \end{code}
@@ -398,7 +399,7 @@ initStats pa =
  let identifyMs :: [String] -> [Metric]
      identifyMs ["default"] = identifyMs defaultMetricNames
      identifyMs ms = map namedMetric ms
-     metrics = identifyMs $ metricsParam pa
+     metrics = identifyMs $ fromMaybe [] $ getFlagP MetricsFlg pa
  in execState (mapM addMetric metrics) emptyStats
 
 namedMetric :: String -> Metric

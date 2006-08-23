@@ -44,18 +44,21 @@ import NLP.GenI.Graphviz
 import NLP.GenI.Automaton (numStates, numTransitions)
 import Statistics (Statistics, showFinalStats)
 
+import NLP.GenI.Configuration ( getFlagP, MacrosFlg(..), ViewCmdFlg(..) )
 import NLP.GenI.Treeprint(toGeniHand)
 import NLP.GenI.Tags (TagItem(tgIdName), tagLeaves)
 import NLP.GenI.Geni
   ( ProgState(..), showRealisations )
 import NLP.GenI.GeniParsers ( geniTagElems )
-import NLP.GenI.General (geniBug, boundsCheck, (///), dropTillIncluding, basename)
+import NLP.GenI.General
+  (geniBug, boundsCheck, (///), dropTillIncluding, basename, ePutStrLn)
 import NLP.GenI.Btypes
   ( showAv, showPred, showSem, showLexeme, Sem, ILexEntry(iword, ifamname), )
 import NLP.GenI.Tags
   ( idname, mapBySem, TagElem(ttrace, tinterface) )
 
-import NLP.GenI.Configuration(Params(..))
+import NLP.GenI.Configuration
+  ( Params(..), MetricsFlg(..), setFlagP )
 
 import qualified NLP.GenI.Builder as B
 import NLP.GenI.Builder (queryCounter, num_iterations, chart_size,
@@ -285,15 +288,19 @@ viewTagWidgets p gvRef config =
 
 runViewTag :: Params -> String -> IO ()
 runViewTag params drName =
-  do -- figure out what grammar file to use
-     let gramfile = (basename $ macrosFile params) ++ ".rec"
+  case getFlagP MacrosFlg params of
+  Nothing -> ePutStrLn "Warning: No macros files specified (runViewTag)"
+  Just f  -> do
+     -- figure out what grammar file to use
+     let gramfile = basename f ++ ".rec"
          treenameOnly = (dropTillIncluding '-') . (dropTillIncluding '_')
      -- run the viewer
-     let cmd  = viewCmd params
-         args = [gramfile, treenameOnly drName]
-     -- run the viewer
-     runProcess cmd args Nothing Nothing Nothing Nothing Nothing
-     return ()
+     case getFlagP ViewCmdFlg params of
+       Nothing -> ePutStrLn "Warning: No viewcmd specified (runViewTag)"
+       Just c  -> do -- run the viewer
+                     runProcess c [gramfile, treenameOnly drName]
+                       Nothing Nothing Nothing Nothing Nothing
+                     return ()
 \end{code}
 
 % --------------------------------------------------------------------
@@ -415,7 +422,7 @@ debuggerPanel builder gvInitial stateToGv itemBar f config input cachedir =
         allSteps    = B.stepAll builder 
         --
     let (initS, initStats) = initBuilder input config2
-        config2 = config { metricsParam = B.defaultMetricNames }
+        config2 = setFlagP MetricsFlg (B.defaultMetricNames) config
         (theItems,labels) = stateToGv initS
     p <- panel f []      
     -- ---------------------------------------------------------

@@ -41,11 +41,12 @@ where
 \ignore{
 \begin{code}
 import Control.Monad.Error
+import Control.Monad (unless)
 
 import Data.IORef (IORef, readIORef, modifyIORef)
 import Data.List (intersperse, sort, nub, partition)
 import qualified Data.Map as Map
-import Data.Maybe (mapMaybe)
+import Data.Maybe (mapMaybe, fromMaybe)
 
 import System.IO.Unsafe (unsafePerformIO)
 import Text.ParserCombinators.Parsec 
@@ -84,11 +85,12 @@ import NLP.GenI.Tags (Tags, TagElem, emptyTE,
              setTidnums) 
 
 import NLP.GenI.Configuration
-  ( Params, hasFlag, hasOpt
-  , GeniFlag(IgnoreSemanticsFlg, NoConstraintsFlg, ServerModeFlg),
-  , grammarType, testCase, morphCmd,
-  , GrammarType(..),
-  , tsFile, macrosFile, lexiconFile, morphFile)
+  ( Params, getFlagP, hasFlagP, hasOpt, Optimisation(NoConstraints)
+  , MacrosFlg(..), LexiconFlg(..), TestSuiteFlg(..), TestCaseFlg(..),
+  , MorphInfoFlg(..), MorphCmdFlg(..),
+  , IgnoreSemanticsFlg(..), ServerModeFlg(..),
+  , grammarType,
+  , GrammarType(..) )
 
 import qualified NLP.GenI.Builder as B
 
@@ -162,22 +164,23 @@ loadGrammar :: ProgStateRef -> IO()
 loadGrammar pstRef =
   do pst <- readIORef pstRef
      --
-     let config    = pa pst
-         gfilename = macrosFile config 
-         lfilename = lexiconFile config 
-         sfilename = tsFile config
+     let config   = pa pst
+         isMissing f = not $ hasFlagP f config
      -- grammar type
-         isNotPreanchored = not (grammarType config == PreAnchored)
-         isNotPrecompiled = not (grammarType config == PreCompiled)
-         isNotServer = not . (hasFlag ServerModeFlg) $ config
+         isNotPreanchored = grammarType config /= PreAnchored
+         isNotPrecompiled = grammarType config /= PreCompiled
+         isNotServer = isMissing ServerModeFlg
      -- display 
-     let errorlst  = filter (not.null) $ map errfn src 
-           where errfn (err,msg) = if err then msg else ""
-                 src = [ (isNotPrecompiled && null gfilename, "a tree file")
-                       , (isNotPreanchored && null lfilename, "a lexicon file")
-                       , (isNotServer && null sfilename, "a test suite") ]
-         errormsg = "Please specify: " ++ (concat $ intersperse ", " errorlst)
-     when (not $ null errorlst) $ fail errormsg 
+     let errormsg =
+           concat $ intersperse ", " [ msg | (con, msg) <- errorlst, con ]
+         errorlst =
+              [ (isNotPrecompiled && isMissing MacrosFlg,
+                "a tree file")
+              , (isNotPreanchored && isMissing LexiconFlg,
+                "a lexicon file")
+              , (isNotServer && isMissing TestSuiteFlg,
+                "a test suite") ]
+     unless (null errormsg) $ fail ("Please specify: " ++ errormsg)
      -- we only have to read in grammars from the simple format
      case grammarType config of 
         PreAnchored -> return ()
@@ -196,17 +199,18 @@ the lexicon file.
 
 \begin{code}
 loadLexicon :: ProgStateRef -> Params -> IO ()
-loadLexicon pstRef config = do
-       let lfilename = lexiconFile config
-       when (null lfilename) $ fail "Please specify a lexicon!"
-       ePutStr $ "Loading Lexicon " ++ lfilename ++ "..."
+loadLexicon pstRef config =
+ case getFlagP LexiconFlg config of
+ Nothing    -> fail "Please specify a lexicon!"
+ Just lfile ->
+    do ePutStr $ "Loading Lexicon " ++ lfile ++ "..."
        eFlush
        pst <- readIORef pstRef
-       let getSem l  = if hasFlag IgnoreSemanticsFlg (pa pst) then [] else isemantics l
+       let getSem l  = if hasFlagP IgnoreSemanticsFlg (pa pst) then [] else isemantics l
            sorter l  = l { isemantics = (sortSem . getSem) l }
            cleanup   = (mapBySemKeys isemantics) . (map sorter)
            --
-       prelex <- parseFromFile geniLexicon lfilename
+       prelex <- parseFromFile geniLexicon lfile
        let theLex = case prelex of
                       Left err -> error (show err)
                       Right x  -> cleanup x
@@ -225,12 +229,12 @@ macros file.  The macros are stored as a hashing function in the monad.
 \begin{code}
 loadGeniMacros :: ProgStateRef -> Params -> IO ()
 loadGeniMacros pstRef config = 
-  do let filename = macrosFile config
-     --
-     ePutStr $ "Loading Macros " ++ filename ++ "..."
+ case getFlagP MacrosFlg config of
+ Nothing    -> fail "Please specify a trees file!"
+ Just mfile ->
+  do ePutStr $ "Loading Macros " ++ mfile ++ "..."
      eFlush
-     when (null filename) $ fail "Please specify a trees file!"
-     parsed <- parseFromFile geniMacros filename
+     parsed <- parseFromFile geniMacros mfile
      case parsed of 
        Left  err -> fail (show err)
        Right g   -> setGram g
@@ -248,8 +252,9 @@ as a lookup function in the monad.
 \begin{code}
 loadMorphInfo :: ProgStateRef -> Params -> IO ()
 loadMorphInfo pstRef config = 
-  do let filename = morphFile config
-     when (not $ null filename ) $ do --
+ case getFlagP MorphInfoFlg config of
+ Nothing       -> return ()
+ Just filename -> do
         ePutStr $ "Loading Morphological Info " ++ filename ++ "..."
         eFlush
         parsed <- parseFromFile geniMorphInfo filename
@@ -272,30 +277,30 @@ test suite, and assigns it to the tsuite field of st.
 loadTestSuite :: ProgStateRef -> IO ()
 loadTestSuite pstRef = do
   pst <- readIORef pstRef
-  let config   = pa pst
-      filename = (tsFile.pa) pst
-      useSem   = not $ hasFlag IgnoreSemanticsFlg config
-  when (null filename) $ fail "Please specify a test suite!"
-  when useSem $ do
-    ePutStr $ "Loading Test Suite " ++ filename ++ "...\n"
-    eFlush
-    -- helper functions for test suite stuff
-    let cleanup tc str = (i, str, newsmsr)
-          where (i, (sm, sr, lc), _) = tc
-                newsmsr = (sortSem sm, sort sr, lc)
-        updateTsuite s s2 x =
+  case getFlagP TestSuiteFlg (pa pst) of
+   Nothing -> fail "Please specify a test suite!"
+   Just filename -> do
+     let config = pa pst
+     unless (hasFlagP IgnoreSemanticsFlg config) $ do
+     ePutStr $ "Loading Test Suite " ++ filename ++ "...\n"
+     eFlush
+     -- helper functions for test suite stuff
+     let cleanup tc str = (i, str, newsmsr)
+           where (i, (sm, sr, lc), _) = tc
+                 newsmsr = (sortSem sm, sort sr, lc)
+         updateTsuite s s2 x =
           x { tsuite = zipWith cleanup s s2
-            , tcase  = testCase config}
-    sem <- parseFromFile geniTestSuite filename 
-    case sem of 
+            , tcase  = fromMaybe "" $ getFlagP TestCaseFlg config}
+     sem <- parseFromFile geniTestSuite filename
+     case sem of 
       Left err -> fail (show err)
       Right s  -> do
         mStrs <- parseFromFile geniTestSuiteString filename
         case mStrs of
           Left e   -> fail (show e)
           Right s2 -> modifyIORef pstRef $ updateTsuite s s2
-    -- in the end we just say we're done
-    --ePutStr "done\n"
+     -- in the end we just say we're done
+     --ePutStr "done\n"
 \end{code}
 
 \fnlabel{loadTargetSemStr} Given a string with some semantics, it
@@ -306,7 +311,7 @@ ts field of the ProgState
 loadTargetSemStr :: ProgStateRef -> String -> IO ()
 loadTargetSemStr pstRef str = 
     do pst <- readIORef pstRef
-       if hasFlag IgnoreSemanticsFlg (pa pst) then return () else parseSem
+       if hasFlagP IgnoreSemanticsFlg (pa pst) then return () else parseSem
     where
        parseSem = do
          let sem = runParser geniSemanticInput () "" str
@@ -375,7 +380,7 @@ initGeni :: ProgStateRef -> IO (B.Input)
 initGeni pstRef =
  do -- disable constraints if the NoConstraintsFlg anti-optimisation is active
     modifyIORef pstRef
-      (\p -> if hasOpt NoConstraintsFlg (pa p)
+      (\p -> if hasOpt NoConstraints (pa p)
              then p { ts = (fst3 (ts p),[],[]) }
              else p)
     -- lexical selection
@@ -835,12 +840,13 @@ semantics.
 \begin{code}
 readPreAnchored :: ProgState -> IO [TagElem]
 readPreAnchored pst =
- do let gparams = pa pst
-        file    = macrosFile gparams
-    parsed <- parseFromFile geniTagElems file
-    case parsed of
-     Left err -> fail (show err)
-     Right c  -> return c
+ case getFlagP MacrosFlg (pa pst) of
+ Nothing   -> fail "No macros file specified (preanchored mode)"
+ Just file ->
+  do parsed <- parseFromFile geniTagElems file
+     case parsed of
+       Left err -> fail (show err)
+       Right c  -> return c
 \end{code}
 
 % --------------------------------------------------------------------
@@ -854,10 +860,9 @@ has been specified.  If not, it returns the sentences as lemmas.
 runMorph :: ProgStateRef -> [[(String,Flist)]] -> IO [String]
 runMorph pstRef sentences = 
   do pst <- readIORef pstRef
-     let mcmd = morphCmd (pa pst)
-     if null mcmd
-        then return (map sansMorph sentences)
-        else inflectSentences mcmd sentences 
+     case getFlagP MorphCmdFlg (pa pst) of
+       Nothing  -> return (map sansMorph sentences)
+       Just cmd -> inflectSentences cmd sentences
 \end{code}
 
 

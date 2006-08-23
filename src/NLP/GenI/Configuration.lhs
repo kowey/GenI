@@ -15,20 +15,40 @@
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-\chapter{Configuration}
-
-This module handles configuration parameters from the command line.
-The input to this module is simply \texttt{argv}.
+\chapter{Command line arguments}
 
 \begin{code}
 module NLP.GenI.Configuration
-  ( Params(..), GrammarType(..), BuilderType(..), GeniFlag(..)
+  ( Params(..), GrammarType(..), BuilderType(..), Flag,
+  -- flags
+  , BatchDirFlg(..)
+  , DisableGuiFlg(..)
+  , ExtraPolaritiesFlg(..)
+  , HelpFlg(..)
+  , IgnoreSemanticsFlg(..)
+  , LexiconFlg(..)
+  , MacrosFlg(..)
+  , MaxTreesFlg(..)
+  , MetricsFlg(..)
+  , MorphCmdFlg(..)
+  , MorphInfoFlg(..)
+  , OptimisationsFlg(..)
+  , OutputFileFlg(..)
+  , RootCategoriesFlg(..)
+  , ServerModeFlg(..)
+  , StatsFileFlg(..)
+  , TestCaseFlg(..)
+  , TestSuiteFlg(..)
+  , TimeoutFlg(..)
+  , ViewCmdFlg(..)
+  --
   , mainBuilderTypes
-  , hasFlag, setFlag, hasOpt, polarised, predicting
+  , getFlagP, getListFlagP, setFlagP, hasFlagP, deleteFlagP, hasOpt, polarised,
+  , Optimisation(..)
   , rootcatfiltered, semfiltered
   , isIaf
   , emptyParams
-  , treatArgs, treatArgsWithParams, optBatch
+  , treatArgs, treatArgsWithParams,
   )
 where
 \end{code}
@@ -37,10 +57,13 @@ where
 \begin{code}
 import qualified Data.Map as Map
 
+import Control.Monad ( liftM )
+import Data.Char ( toLower )
+import Data.Typeable ( Typeable, typeOf, cast )
 import System.Console.GetOpt
 import System.Exit ( exitWith, ExitCode(..) )
-import Data.List  ( delete, find, intersperse )
-import Data.Maybe ( catMaybes, fromMaybe  )
+import Data.List  ( find, intersperse, nubBy )
+import Data.Maybe ( catMaybes, fromMaybe, isNothing, fromJust )
 import Text.ParserCombinators.Parsec ( runParser )
 
 import NLP.GenI.General ( geniBug, fst3, snd3, Interval )
@@ -48,419 +71,607 @@ import NLP.GenI.GeniParsers ( geniPolarities )
 \end{code}
 }
 
-% --------------------------------------------------------------------  
+% --------------------------------------------------------------------
 % Code for debugging. (should be latex-commented
 % when not in use)
-% --------------------------------------------------------------------  
+% --------------------------------------------------------------------
 
 %\begin{code}
 %import Debug.Trace
 %\end{code}
 
-% --------------------------------------------------------------------  
-\section{Params}
-% --------------------------------------------------------------------  
-
-The Params data type holds the specification for how Geni should be
-run, its input files, etc.  This is the stuff that would normally be
-found in the configuration file. (FIXME move following comment?) There
-are two basic generation modes in Geni: 
-\begin{itemize}
-\item one that does consider semantics (the original mode),
-\item and one that does not consider semantics (addition jackie).
-\end{itemize}
-The purpose of the second option is to list (almost) all of the
-sentences a grammar can produce, without bothering with semantics.
-The generation includes some exceptions to ensure that Geni does not
-infinitely loop.
+% --------------------------------------------------------------------
+% Params
+% --------------------------------------------------------------------
 
 \begin{code}
+-- | Holds the specification for how Geni should be run, its input
+--   files, etc.  This is the stuff that would normally be found in
+--   the configuration file.
 data Params = Prms{
-  -- which generation engine to use 
-  builderType    :: BuilderType,
-  -- external morphological generator (optional)
-  morphCmd       :: String,
-  -- tree viewer  (useful if using an XMG grammar)
-  viewCmd        :: String,
-  --
-  geniFlags      :: [GeniFlag],
-  optimisations  :: [GeniFlag],
-  --
-  macrosFile     :: String,
-  lexiconFile    :: String,
-  tsFile         :: String, 
-  morphFile      :: String,
-  rootCatsParam  :: [String],
   grammarType    :: GrammarType,
-  --
-  testCase       :: String, -- names of test cases
-  extrapol       :: Map.Map String Interval,
-  batchDir       :: FilePath,
-  --
-  outputFile     :: String,
-  -- statistical metricts
-  metricsParam   :: [String],
-  statsFile      :: FilePath,
-  -- generation sans semantics (not the usual geni mode)
-  maxTrees       :: Maybe Int, -- limit on num of trees in a derived tree,
-  -- timeout (s)
-  timeoutSecs :: Maybe Integer
+  builderType    :: BuilderType,
+  geniFlags      :: [Flag]
 } deriving (Show)
 
-hasFlag :: GeniFlag -> Params -> Bool
-hasFlag o p = o `elem` (geniFlags p)
+hasOpt :: Optimisation -> Params -> Bool
+hasOpt o p = maybe False (elem o) $ getFlagP OptimisationsFlg p
 
-hasOpt :: GeniFlag -> Params -> Bool
-hasOpt o p = o `elem` (optimisations p)
-
-polarised, isIaf, predicting :: Params -> Bool
+polarised, isIaf :: Params -> Bool
 rootcatfiltered, semfiltered :: Params -> Bool
-polarised    = hasOpt PolarisedFlg
-isIaf        = hasOpt IafFlg
-predicting   = hasOpt PredictingFlg
-semfiltered  = hasOpt SemFilteredFlg
-rootcatfiltered = hasOpt RootCatFilteredFlg
-\end{code}
+polarised    = hasOpt Polarised
+isIaf        = hasOpt Iaf
+semfiltered  = hasOpt SemFiltered
+rootcatfiltered = hasOpt RootCatFiltered
 
-\paragraph{defaultParams} returns the default parameters configuration
+hasFlagP    :: (Typeable f, Typeable x) => (x -> f) -> Params -> Bool
+deleteFlagP :: (Typeable f, Typeable x) => (x -> f) -> Params -> Params
+setFlagP    :: (Eq f, Show f, Show x, Typeable f, Typeable x) => (x -> f) -> x -> Params -> Params
+getFlagP    :: (Show f, Show x, Typeable f, Typeable x) => (x -> f) -> Params -> Maybe x
+getListFlagP :: (Show f, Show x, Typeable f, Typeable x) => ([x] -> f) -> Params -> [x]
 
-\begin{code}
+hasFlagP f      = (hasFlag f) . geniFlags
+deleteFlagP f p = p { geniFlags = deleteFlag f (geniFlags p) }
+setFlagP f v p  = p { geniFlags = setFlag f v (geniFlags p) }
+getFlagP f     = (getFlag f) . geniFlags
+getListFlagP f = (fromMaybe []) . (getFlagP f)
+-- | The default parameters configuration
 emptyParams :: Params
 emptyParams = Prms {
-  builderType = SimpleBuilder,
-  macrosFile  = "",
-  lexiconFile = "",
-  tsFile      = "",
-  morphFile   = "",
-  rootCatsParam = ["s"],
+  builderType   = SimpleBuilder,
   grammarType   = GeniHand,
-  morphCmd       = "",
-  viewCmd        = "ViewTAG",
-  testCase       = [],
-  optimisations  = [],
-  extrapol       = Map.empty,
-  outputFile     = "",
-  metricsParam   = [],
-  statsFile       = "",
-  batchDir        = "",
-  geniFlags      = [EnableGuiFlg],
-  maxTrees       = Nothing,
-  timeoutSecs    = Nothing
+  geniFlags     = [ Flag ViewCmdFlg "ViewTAG"
+                  , Flag RootCategoriesFlg ["s"] ]
 }
 \end{code}
 
-\section{Parsing command line arguments}
+% --------------------------------------------------------------------
+\section{Command line arguments}
+% --------------------------------------------------------------------
 
-\paragraph{options} We use the Haskell GetOpt library to process the
-command line arguments.  To start things off, here is the list of command lines
-switches that we use.  
+Command line arguments can be specified in the GNU style, for example
+\texttt{--foo=bar} or \texttt{--foo bar}, or \texttt{-f bar} when a
+short switch is available.  For more information, type \texttt{geni
+--help}.
 
 \begin{code}
-data GrammarType = GeniHand | TAGML
-                 | PreCompiled -- ^ no parsing needed
-                 | PreAnchored -- ^ lexical selection already done
-     deriving (Show, Eq)
+-- | Uses the GetOpt library to process the command line arguments.
+-- Note that we divide them into basic and advanced usage.
+options, optionsAdvanced :: [OptDescr Flag]
+options = nubBySwitches $ optionsForBasicStuff ++ optionsAdvanced
+          ++ -- FIXME: weird mac stuff
+          [ Option ['p']    []  (reqArg WeirdFlg id "CMD") "" ]
 
+optionsAdvanced = nubBySwitches $
+        optionsForUserInterface
+     ++ optionsForInputFiles
+     ++ optionsForOptimisation
+     ++ optionsForBuilder
+     ++ optionsForTesting
+     ++ optionsForMorphology
+     ++ optionsForIgnoreSem
+
+getSwitches :: OptDescr a -> ([Char],[String])
+getSwitches (Option s l _ _) = (s,l)
+
+nubBySwitches :: [OptDescr a] -> [OptDescr a]
+nubBySwitches = nubBy (\x y -> getSwitches x == getSwitches y)
+\end{code}
+
+\subsection{Essential arguments}
+
+See also section \ref{sec:optimisations} for more details on
+optimisations.
+
+% FIXME: what would be great is some special processing of the
+% code below so that the documentation writes itself
+
+\begin{code}
+-- GetOpt wrappers
+noArg :: forall f . (Eq f, Show f, Typeable f)
+      => (() -> f) -> ArgDescr Flag
+noArg  s = NoArg (Flag s ())
+
+reqArg :: forall f x . (Eq f, Show f, Typeable f, Eq x, Show x, Typeable x)
+       => (x -> f)      -- ^ flag
+       -> (String -> x) -- ^ string reader for flag (probably |id| if already a String)
+       -> String        -- ^ description
+       -> ArgDescr Flag
+reqArg s fn desc = ReqArg (\x -> Flag s (fn x)) desc
+
+optArg :: forall f x . (Eq f, Show f, Typeable f, Eq x, Show x, Typeable x)
+       => (x -> f)       -- ^ flag
+       -> x              -- ^ default value
+       -> (String -> x)  -- ^ string reader (as in @reqArg@)
+       -> String         -- ^ description
+       -> ArgDescr Flag
+optArg s def fn desc = OptArg (\x -> Flag s (maybe def fn x)) desc
+\end{code}
+
+\begin{code}
+-- -------------------------------------------------------------------
+-- Parsing command line arguments
+-- -------------------------------------------------------------------
+
+usage :: Bool -- ^ advanced
+      -> String
+usage adv =
+ let header   = "Usage: geni [OPTION...]"
+     body     = basic ++ if adv then ("\n\n" ++ advanced) else ""
+     example  = "Example:\n" ++
+       " geni --gui -m examples/ej/mac -l examples/ej/lexicon -s examples/ej/suite\n"
+     basic    = usageInfo header optionsForBasicStuff
+     advanced = basic
+                ++ usageInfo "Advanced options (note: all LIST are space delimited)" optionsAdvanced
+                ++ usageForOptimisations
+ in header ++ body ++ "\n\n" ++ example
+
+treatArgs :: [String] -> IO Params
+treatArgs argv = treatArgsWithParams argv emptyParams
+
+treatArgsWithParams :: [String] -> Params -> IO Params
+treatArgsWithParams argv initParams =
+   case getOpt Permute options argv of
+     (os,_,[]  ) ->
+        if (Flag HelpFlg ()) `elem` os
+             then do putStrLn $ usage True
+                     exitWith ExitSuccess
+             else return $ defineParams os initParams
+     (_,_,errs) -> ioError (userError $ concat errs ++ usage False)
+
+defineParams :: [Flag] -> Params -> Params
+defineParams flgs prms =
+  (\p -> foldr setDefault p $ geniFlags prms)
+  . maybeSetMaxTrees
+  . (mergeFlagsP OptimisationsFlg)
+  . (mergeFlagsP MetricsFlg)
+  $ prms
+    { geniFlags     = flgs
+    , builderType   = fromFlags builderType BuilderFlg flgs
+    , grammarType   = fromFlags grammarType GrammarTypeFlg flgs
+    }
+ where
+  setDefault (Flag f v) p =
+    if hasFlagP f p then p else setFlagP f v p
+  mergeFlagsP f p =
+    if hasFlagP f p
+    then setFlagP f (concat $ getAllFlags f flgs) p
+    else p
+  fromFlags default_ t fs =
+    fromMaybe (default_ prms) (getFlag t fs)
+  maybeSetMaxTrees p =
+    if hasFlagP IgnoreSemanticsFlg p && (not $ hasFlagP MaxTreesFlg p)
+    then setFlagP MaxTreesFlg 5 p else p
+\end{code}
+
+\section{Options by theme}
+\label{sec:fancy_parameters}
+
+Note that you might see an option described in more than one place
+because it falls into multiple categories.
+
+% --------------------------------------------------------------------
+\subsection{Basic options}
+% --------------------------------------------------------------------
+
+\begin{code}
+optionsForBasicStuff :: [OptDescr Flag]
+optionsForBasicStuff =
+  [ helpOption, noguiOption
+  , macrosOption , lexiconOption, testSuiteOption
+  , outputOption
+  ]
+\end{code}
+
+% --------------------------------------------------------------------
+\subsection{Input files}
+% --------------------------------------------------------------------
+
+\begin{code}
+optionsForInputFiles :: [OptDescr Flag]
+optionsForInputFiles =
+  [ macrosOption
+  , lexiconOption
+  , testSuiteOption
+  , morphInfoOption
+  , outputOption
+  , Option []    ["preselected"] (NoArg (Flag GrammarTypeFlg PreAnchored))
+      "do NOT perform lexical selection - treat the grammar as the selection"
+  ]
+
+macrosOption, lexiconOption, outputOption :: OptDescr Flag
+
+macrosOption =
+  Option ['m'] ["macros"] (reqArg MacrosFlg id "FILE")
+      "macros file FILE (unanchored trees)"
+
+lexiconOption =
+  Option ['l'] ["lexicon"] (reqArg LexiconFlg id "FILE")
+     "lexicon file FILE"
+
+outputOption =
+  Option ['o'] ["output"] (reqArg OutputFileFlg id "FILE")
+    "output file FILE (stdout if unset)"
+
+\end{code}
+
+% --------------------------------------------------------------------
+\subsection{User interface}
+% --------------------------------------------------------------------
+
+\begin{code}
+optionsForUserInterface :: [OptDescr Flag]
+optionsForUserInterface =
+  [ noguiOption, helpOption
+  , Option []    ["viewcmd"]  (reqArg ViewCmdFlg id "CMD")
+      "XMG tree-view command"
+  ]
+
+noguiOption, helpOption :: OptDescr Flag
+noguiOption = Option [] ["nogui"] (noArg DisableGuiFlg)
+                "disable graphical user interface"
+helpOption  = Option [] ["help"] (noArg HelpFlg)
+                "show full list of command line switches"
+\end{code}
+
+% --------------------------------------------------------------------
+\subsection{Optimisations}
+% --------------------------------------------------------------------
+
+\begin{description}
+\item[opt]
+  The opt switch lets you specify a list of optimisations
+  that GenI should use, for example, \texttt{--opt='pol S i'}.
+  We associate each optimisation with a short code like 'i' for
+  ``index accessibility filtering''.  This code is what the
+  user passes in, and is sometimes used by GenI to tell the
+  user which optimisations it's using.  See \texttt{geni
+    --help} for more detail on the codes.
+
+  Optimisations can be accumulated.  For example, if you say something
+  like \texttt{--opt='foo bar' --opt='quux'} it is the same as saying
+  \texttt{--opt='foo bar quux'}.
+
+  Note that we also have two special thematic codes ``pol'' and
+  ``adj'' which tell GenI that it should enable all the
+  polarity-related, and all the adjunction-related
+  optimisations respectively.
+
+\item[rootcats]
+  This flag is quite important if you enable the polarites
+  optimisation.  Polarity filtering only works if you tell GenI what are
+  the root categories in your grammar.  The default is \texttt{s} for
+  sentences.  But if your grammar stops working just because of
+  polarities, maybe it's because you're using some weird convention
+  like \texttt{p} for the French ``phrase''?  Note that you can have
+  more than one root cat, for example, \texttt{s np} if you want both
+  sentences and noun phrases as output.
+
+\item[extrapols]
+  Allows to to preset some polarities.  There's not very much use for
+  this, in my opinion.  Most likely, what you really want is rootcats.
+\end{description}
+
+\begin{code}
+optionsForOptimisation :: [OptDescr Flag]
+optionsForOptimisation =
+   [ Option [] ["opts"]
+         (reqArg OptimisationsFlg readOptimisations "LIST")
+         "optimisations 'LIST' (--help for details)"
+   , Option [] ["rootcats"]
+         (reqArg RootCategoriesFlg words "LIST")
+         ("root categories 'LIST' (for polarities, default:"
+          ++ (unwords defaultRootCats) ++ ")")
+  , Option [] ["extrapols"]
+         (reqArg ExtraPolaritiesFlg readPolarities "STRING")
+         "preset polarities (normally, you should use rootcats instead)"
+  ]
+  where defaultRootCats = fromMaybe [] (getFlagP RootCategoriesFlg emptyParams)
+
+data Optimisation =
+  PolOpts | AdjOpts | Polarised | NoConstraints |
+  RootCatFiltered | SemFiltered | Iaf {- one phase only! -}
+  deriving (Show,Eq,Typeable)
+
+optimisationCodes :: [(Optimisation,String,String)]
+optimisationCodes =
+ [ (Polarised        , "p",      "polarity filtering")
+ , (SemFiltered      , "S",      "semantic filtering (same as f-sem)")
+ , (SemFiltered      , "f-sem",  "semantic filtering (two-phase only)")
+ , (RootCatFiltered  , "f-root", "filtering on root node (two-phase only)")
+ , (Iaf              , "i",      "index accesibility filtering (one-phase only)")
+ , (NoConstraints    , "nc",     "disable semantic constraints (anti-optimisation!)")
+ , (PolOpts          , "pol",    equivalentTo polOpts)
+ , (AdjOpts          , "adj",    equivalentTo adjOpts)
+ ]
+ where equivalentTo os = "equivalent to '" ++ (unwords $ map showOptCode os) ++ "'"
+
+polOpts, adjOpts :: [Optimisation]
+polOpts = [Polarised]
+adjOpts = [RootCatFiltered, SemFiltered]
+\end{code}
+
+\begin{code}
+-- ---------------------------------------------------------------------
+-- Optimisation usage info
+-- ---------------------------------------------------------------------
+
+lookupOpt:: Optimisation -> (String, String)
+lookupOpt k =
+ case find (\x -> k == fst3 x) optimisationCodes of
+ Just (_, c, d) -> (c, d)
+ Nothing -> geniBug $ "optimisation " ++  show k ++ " unknown"
+
+showOptCode :: Optimisation -> String
+showOptCode = fst.lookupOpt
+
+describeOpt :: Optimisation -> String
+describeOpt o = k ++ " - " ++ d where (k,d) = lookupOpt o
+
+-- | Displays the usage text for optimisations.
+--   It shows a table of optimisation codes and their meaning.
+usageForOptimisations :: String
+usageForOptimisations = "\n"
+     ++ "List of optimisations.\n"
+     ++ "(ex: --opt='f s' for foot constraints and semantic filters)\n"
+     ++ "\n"
+     ++ "Polarity optimisations:\n"
+     ++ "  " ++ unlinesTab (map describeOpt polOpts) ++ "\n\n"
+     ++ "Adjunction optimisations:\n"
+     ++ "  " ++ unlinesTab (map describeOpt adjOpts) ++ "\n"
+ where unlinesTab l = concat (intersperse "\n  " l)
+\end{code}
+
+\begin{code}
+-- ---------------------------------------------------------------------
+-- Parsing optimisation stuff
+-- ---------------------------------------------------------------------
+
+-- | If we do not recognise a code, we output an error message.  We
+--  also take the liberty of expanding thematic codes like 'pol'
+--  into the respective list of optimisations.
+readOptimisations :: String -> [Optimisation]
+readOptimisations str =
+  case parseOptimisations str of
+    Left ick -> error $ "Unknown optimisations: " ++ (unwords ick)
+    Right os -> (addif PolOpts polOpts) . (addif AdjOpts adjOpts) $ os
+  where addif t x o = if (t `elem` o) then x ++ o else o
+
+-- | Returns |Left| for any codes we don't recognise, or
+--   |Right| if everything is ok.
+parseOptimisations :: String -> Either [String] [Optimisation]
+parseOptimisations str =
+  let codes = words str
+      mopts = map lookupOptimisation codes
+  in if any isNothing mopts
+     then Left  [ c | (c,o) <- zip codes mopts, isNothing o ]
+     else Right $ map fromJust mopts
+
+lookupOptimisation :: String -> Maybe Optimisation
+lookupOptimisation code =
+  liftM fst3 $ find (\x -> snd3 x == code) optimisationCodes
+
+-- | Note: error if fails
+readPolarities :: String -> Map.Map String Interval
+readPolarities polStr =
+  case runParser geniPolarities () "" polStr of
+  Left err -> error (show err)
+  Right p2 -> p2
+\end{code}
+
+% --------------------------------------------------------------------
+\subsection{Builders}
+% --------------------------------------------------------------------
+
+\begin{description}
+\item[builder]
+  A builder is basically a surface realisation algorithm.  Some
+  builders do not differ by very much.  For example, the Earley and CKY builders
+  are more or less the same from GenI's point of view, except with one little
+  parameter to tweak.
+\end{description}
+
+\begin{code}
 data BuilderType = NullBuilder |
                    SimpleBuilder | SimpleOnePhaseBuilder |
                    CkyBuilder | EarleyBuilder
-     deriving (Eq)
+     deriving (Eq, Typeable)
 
 instance Show BuilderType where
-  show = showBuilderType
+  show NullBuilder           = "null"
+  show SimpleBuilder         = "simple-2p"
+  show SimpleOnePhaseBuilder = "simple-1p"
+  show CkyBuilder            = "CKY"
+  show EarleyBuilder         = "Earley"
 
-showBuilderType :: BuilderType -> String
-showBuilderType NullBuilder = "null"
-showBuilderType SimpleBuilder = "simple-2p"
-showBuilderType SimpleOnePhaseBuilder = "simple-1p"
-showBuilderType CkyBuilder = "CKY"
-showBuilderType EarleyBuilder = "Earley"
+optionsForBuilder :: [OptDescr Flag]
+optionsForBuilder =
+  [ Option ['b'] ["builder"]  (reqArg BuilderFlg readBuilderType "BUILDER")
+      ("use as realisation engine one of: " ++ (unwords $ map show mainBuilderTypes))
+  ]
 
 mainBuilderTypes :: [BuilderType]
 mainBuilderTypes =
  [ SimpleBuilder, SimpleOnePhaseBuilder
  , CkyBuilder, EarleyBuilder]
 
-data GeniFlag = 
-    HelpFlg      |
-    TestCasesFlg String | TestSuiteFlg String | 
-    EnableGuiFlg | DisableGuiFlag |
-    CmdFlg String String | -- key / command 
-    OutputFileFlg String |
-    MetricsFlg (Maybe String) | StatsFileFlg String |
-    XMGOutFileFlg String | XMGErrFileFlg String  |
-    TimeoutFlg String |
-    IgnoreSemanticsFlg | MaxTreesFlg String |
-    BuilderFlg String |
-    ServerModeFlg |
-    -- grammar file
-    GrammarType GrammarType  | 
-    MacrosFlg String         | LexiconFlg String | MorphInfoFlg String | 
-    RootCategoriesFlg String | 
-    -- optimisations
-    OptimisationsFlg String   | PolOptsFlg | AdjOptsFlg |
-    PolarisedFlg | PredictingFlg | NoConstraintsFlg |
-    ExtraPolaritiesFlg String |
-    RootCatFilteredFlg | SemFilteredFlg |
-    IafFlg {- one phase only! -} |
-    BatchDirFlg FilePath | RepeatFlg String |
-    -- the WeirdFlg exists strictly to please OS X when you launch
-    -- GenI in an application bundle (double-click)... for some
-    -- reason it wants to pass an argument to -p
-    WeirdFlg String 
-    deriving (Show,Eq)
+-- | Hint: compose with (map toLower) to make it case-insensitive
+mReadBuilderType :: String -> Maybe BuilderType
+mReadBuilderType "null"      = Just NullBuilder
+mReadBuilderType "cky"       = Just CkyBuilder
+mReadBuilderType "earley"    = Just EarleyBuilder
+mReadBuilderType "simple"    = Just SimpleBuilder
+mReadBuilderType "simple-2p" = Just SimpleBuilder
+mReadBuilderType "simple-1p" = Just SimpleOnePhaseBuilder
+mReadBuilderType _           = Nothing
+
+-- | Is case-insensitive, error if unknown type
+readBuilderType :: String -> BuilderType
+readBuilderType b =
+  case mReadBuilderType $ map toLower b of
+  Just x  -> x
+  Nothing -> error $ "Unknown builder type " ++ b
+
 \end{code}
 
-Here's the switches again and the switches they are associated with.
-Note that we divide them into basic and advanced usage.
+% --------------------------------------------------------------------
+\subsection{Testing and profiling}
+% --------------------------------------------------------------------
 
 \begin{code}
-options :: [OptDescr GeniFlag]
-options = optionsBasic ++ optionsAdvanced ++
-  -- FIXME: weird mac stuff
-  [ Option ['p']    []  (ReqArg WeirdFlg "CMD") "" ]
+testSuiteOption :: OptDescr Flag
+testSuiteOption =
+  Option ['s'] ["testsuite"] (reqArg TestSuiteFlg id "FILE") "test suite FILE"
 
-optionsBasic :: [OptDescr GeniFlag] 
-optionsBasic =
-  [ Option []    ["nogui"] (NoArg DisableGuiFlag)
-      "disable graphical user interface"
-  , Option []    ["help"] (NoArg  HelpFlg) 
-      "show full list of command line switches"
-  , Option ['m'] ["macros"] (ReqArg MacrosFlg "FILE") 
-      "macros file FILE (unanchored trees)"
-  , Option ['l'] ["lexicon"] (ReqArg LexiconFlg "FILE") 
-      "lexicon file FILE"
-  , Option ['s'] ["testsuite"] (ReqArg TestSuiteFlg "FILE") 
-      "test suite FILE"
-  , Option []    ["rootcats"] (ReqArg RootCategoriesFlg "LIST")
-      ("root categories 'LIST' (for polarities, default:"
-       ++ (unwords $ rootCatsParam emptyParams)
-       ++ ")")
-  , Option ['o'] ["output"] (ReqArg OutputFileFlg "FILE")
-      "output file FILE (stdout if unset)"
-  , Option []    ["opts"] (ReqArg OptimisationsFlg "LIST")
-      "optimisations 'LIST' (--help for details)"
-  ]
-    
-optionsAdvanced :: [OptDescr GeniFlag] 
-optionsAdvanced =
-  [ Option ['b'] ["builder"]  (ReqArg BuilderFlg "BUILDER")
-      "use as realisation engine one of: simple cky"
-  , Option []    ["timeout"] (ReqArg TimeoutFlg "SECONDS")
-      "time out after SECONDS seconds"
-  , Option []    ["metrics"] (OptArg MetricsFlg "LIST")
-      "keep track of performance metrics: (default: iterations comparisons chart_size)"
-  , Option []    ["statsfile"] (ReqArg StatsFileFlg "FILE")
-      "write performance data to file FILE (stdout if unset)"
-  , Option []    ["extrapols"] (ReqArg ExtraPolaritiesFlg "STRING")
-      "preset polarities (normally, you should use rootcats instead)" 
-  , Option []    ["ignoresem"]   (NoArg IgnoreSemanticsFlg)
-      "ignore all semantic information"
-  , Option []    ["maxtrees"]   (ReqArg MaxTreesFlg "INT")
-      "max tree size INT by number of elementary trees"
-  , Option []    ["morphinfo"] (ReqArg MorphInfoFlg "FILE")
-      "morphological lexicon FILE (default: unset)"
-  , Option []    ["morphcmd"]  (ReqArg (CmdFlg "morph") "CMD") 
-      "morphological post-processor CMD (default: unset)"
-  , Option []    ["preselected"] (NoArg (GrammarType PreAnchored))
-      "do NOT perform lexical selection - treat the grammar as the selection"
-  , Option []    ["batchdir"]    (ReqArg BatchDirFlg "DIR")
-      "batch process the test suite and save results to DIR"
-  , Option []    ["testcase"]   (ReqArg TestCasesFlg "String")
+optionsForTesting :: [OptDescr Flag]
+optionsForTesting =
+  [ testSuiteOption
+  , Option []    ["testcase"]   (reqArg TestCaseFlg id "STRING")
       "run test case STRING"
-  , Option []    ["viewcmd"]  (ReqArg (CmdFlg "view") "CMD") 
-      "XMG tree-view command"
--- note: need to code optimisations string
-  ]
-\end{code}
-
-\paragraph{optimisationCodes} In addition to the command line switches,
-we have a lookup table of optimisation codes.  Each optimisation is
-assigned a short codes like "a" for polarity detection.  This is useful 
-both for taking command line arguments 
-(something like \texttt{--opt='pol S i'}) and for telling the user in
-concise form what optimisations she used.
-
-\begin{code}
-optimisationCodes :: [(GeniFlag,String,String)]
-optimisationCodes = 
- [ (PolarisedFlg   , "p",      "polarity filtering")
- , (PolOptsFlg  , "pol",    "equivalent to 'p'")
- , (AdjOptsFlg  , "adj",    "equivalent to 'S F'")
- , (SemFilteredFlg , "S",      "semantic filtering (same as f-sem)")
- , (SemFilteredFlg , "f-sem",      "semantic filtering (two-phase only)")
- , (RootCatFilteredFlg, "f-root",  "filtering on root node (two-phase only)")
- , (IafFlg, "i", "index accesibility filtering (one-phase only)")
- , (NoConstraintsFlg, "nc", "disable semantic constraints (anti-optimisation!)")
+  , Option []    ["timeout"] (reqArg TimeoutFlg read "SECONDS")
+      "time out after SECONDS seconds"
+  , Option []    ["metrics"] (optArg MetricsFlg ["default"] words "LIST")
+      "keep track of performance metrics: (default: iterations comparisons chart_size)"
+  , Option []    ["statsfile"] (reqArg StatsFileFlg id "FILE")
+      "write performance data to file FILE (stdout if unset)"
+  , Option []    ["batchdir"]    (reqArg BatchDirFlg id "DIR")
+      "batch process the test suite and save results to DIR"
  ]
 \end{code}
 
-\paragraph{treatArgs} does the actual work of parsing command line arguments 
-(represented as a list of strings).   
+% --------------------------------------------------------------------
+\subsection{Morphology}
+% --------------------------------------------------------------------
 
 \begin{code}
-treatArgs :: [String] -> IO Params
-treatArgs argv = treatArgsWithParams argv emptyParams
+optionsForMorphology :: [OptDescr Flag]
+optionsForMorphology =
+  [ morphInfoOption
+  , Option []    ["morphcmd"]  (reqArg MorphCmdFlg id "CMD")
+      "morphological post-processor CMD (default: unset)" ]
 
-treatArgsWithParams :: [String] -> Params -> IO Params
-treatArgsWithParams argv initParams = do
-   let header   = "Usage: geni [OPTION...]"
-       usageExample = "Example:\n" ++  
-         " geni --gui -m examples/ej/mac -l examples/ej/lexicon -s examples/ej/suite\n"
-       usage    = usageInfo header optionsBasic ++ "\n\n" ++usageExample
-       usageAdv = usage 
-                  ++ usageInfo "Advanced options (note: all LIST are space delimited)" optionsAdvanced
-                  ++ optimisationsUsage
-                  ++ "\n\n" ++ usageExample
-   case getOpt Permute options argv of
-     (o,_,[]  ) -> 
-        if HelpFlg `elem` o 
-             then do putStrLn usageAdv
-                     exitWith ExitSuccess
-             else return (defineParams initParams o)
-     (_,_,errs) -> ioError (userError $ concat errs ++ usage)
+morphInfoOption :: OptDescr Flag
+morphInfoOption = Option [] ["morphinfo"] (reqArg MorphInfoFlg id "FILE")
+  "morphological lexicon FILE (default: unset)"
 \end{code}
 
-\paragraph{optimisationsUsage} displays the usage text for optimisations.  
-It shows a table of optimisation codes and their meaning.
+% --------------------------------------------------------------------
+\subsection{Ignore semantics mode}
+% --------------------------------------------------------------------
+
+\begin{description}
+\item[ignoresem] is a special generation mode for systematically
+churning out any sentences that the grammar can produce, without
+using an input semantics.  \textbf{Note}: This was implemented by Jackie
+Lai (see patches around 2005-06-16), but has been horribly broken by
+Eric sometime before 2006-08.  Please let us know if you actually use
+this thing, so that we can fix it.
+\item[maxtrees] limits ignoresem mode by restricting the size of its
+derivation trees (in number of elementary trees).  Otherwise, GenI
+would just spin around exploring an infinite number of sentences.
+If you don't specify a maxtrees under ignoresem mode, we'll use a
+default of 5.  Note that maxtrees also works in normal generation
+mode.  It could be a useful way of saying ``give me only really
+small sentences''.
+\end{description}
 
 \begin{code}
-optimisationsUsage :: String
-optimisationsUsage = 
-  let polopts  = [PolOptsFlg, PolarisedFlg]
-      adjopts  = [AdjOptsFlg, RootCatFilteredFlg, SemFilteredFlg]
-      unlinesTab l = concat (intersperse "\n  " l)
-      getstr k = case find (\x -> k == fst3 x) optimisationCodes of 
-                   Just (_, code, desc) -> code ++ " - " ++ desc
-                   Nothing -> geniBug $ "code" ++ show k ++ "not found in optimisationsUsage"
-  in "\n" 
-     ++ "List of optimisations.\n"
-     ++ "(ex: --opt='f s' for foot constraints and semantic filters)\n"
-     ++ "\n"
-     ++ "Polarity optimisations:\n"
-     ++ "  " ++ unlinesTab (map getstr polopts) ++ "\n\n"
-     ++ "Adjunction optimisations:\n"
-     ++ "  " ++ unlinesTab (map getstr adjopts) ++ "\n"
+optionsForIgnoreSem :: [OptDescr Flag]
+optionsForIgnoreSem =
+  [ Option []    ["ignoresem"]   (noArg IgnoreSemanticsFlg)
+      "ignore all semantic information"
+  , Option []    ["maxtrees"]   (reqArg MaxTreesFlg read "INT")
+      "max tree size INT by number of elementary trees"
+  ]
 \end{code}
 
-\paragraph{parseOptimisations} parses a string of codes like \texttt{+pol+c}
-into a list of optimisations.  We blithely ignore codes that we don't
-recognise.
+% --------------------------------------------------------------------
+\subsection{Other options}
+% --------------------------------------------------------------------
 
 \begin{code}
-parseOptimisations :: String -> [GeniFlag] 
-parseOptimisations str = 
-  let codes = words str
-  in  catMaybes (map lookupOptimisation codes)
-
-lookupOptimisation :: String -> Maybe GeniFlag
-lookupOptimisation code = do
-  triple <- find (\x -> snd3 x == code) optimisationCodes
-  return (fst3 triple)
+data GrammarType = GeniHand    -- ^ geni's text format
+                 | PreCompiled -- ^ built into geni, no parsing needed
+                 | PreAnchored -- ^ lexical selection already done
+     deriving (Show, Eq, Typeable)
 \end{code}
 
-% --------------------------------------------------------------------  
-\section{Values for Params}
-% --------------------------------------------------------------------  
-
-The configuration file is intepreted as a list of lists of tokens.  We
-use a list of lists for purposes of batch processing.  Each list of
-tokens is a session.  Each session inherits the properties of the
-previous sesssion, except for the optimisations  
-
-If there is no batch processing; then we only have
-a singleton list of lists.  
-
-\paragraph{defineParams} Rewrites the configuration in Params using L, where 
-\begin{itemize}
-\item a Params structure p (previous parameters)
-\item a list L of lists of pairs (Variable, Value) 
-\end{itemize}
+% --------------------------------------------------------------------
+% Flags
+% --------------------------------------------------------------------
 
 \begin{code}
-defineParams :: Params -> [GeniFlag] -> Params
-defineParams p [] = p
-defineParams p (f:s) = defineParams pnext s
-  where
-    parsePol polStr =
-      case runParser geniPolarities () "" polStr of
-        Left err -> error (show err)
-        Right p2 -> p2
-    pnext = case f of 
-      DisableGuiFlag     -> deleteFlag EnableGuiFlg p
-      OptimisationsFlg v -> p {optimisations = readOpt v ++ (optimisations p)}
-      OutputFileFlg v    -> p {outputFile = v}
-      -- grammar stuff
-      MacrosFlg    v -> p {macrosFile  = v}
-      LexiconFlg   v -> p {lexiconFile = v} 
-      TestSuiteFlg v -> p {tsFile = v}
-      -- builders
-      BuilderFlg "null"   -> p { builderType = NullBuilder }
-      BuilderFlg "cky"    -> p { builderType = CkyBuilder }
-      BuilderFlg "earley" -> p { builderType = EarleyBuilder }
-      BuilderFlg "simple" -> p { builderType = SimpleBuilder }
-      BuilderFlg "simple-2p" -> p { builderType = SimpleBuilder }
-      BuilderFlg "simple-1p" -> p { builderType = SimpleOnePhaseBuilder }
-      BuilderFlg v        -> error ("unknown builder: " ++ v)
-      -- advanced stuff
-      RootCategoriesFlg v -> p {rootCatsParam = words v}
-      MorphInfoFlg v      -> p {morphFile   = v}
-      CmdFlg "morph"    v -> p {morphCmd  = v}
-      CmdFlg "view"     v -> p {viewCmd = v}
-      TestCasesFlg v      -> p {testCase = v }
-      -- performance profiling
-      TimeoutFlg v        -> p { timeoutSecs  = Just (read v) }
-      MetricsFlg Nothing  -> p { metricsParam = ["default"] }
-      MetricsFlg (Just v) -> p { metricsParam = words v }
-      StatsFileFlg v      -> p { statsFile    = v }
-      --
-      GrammarType v        -> p {grammarType = v} 
-      IgnoreSemanticsFlg   -> addFlag IgnoreSemanticsFlg $
-                                p { maxTrees = Just $ fromMaybe 5 $ maxTrees p }
-      MaxTreesFlg v        -> p {maxTrees = Just (read v)} 
-      ExtraPolaritiesFlg v -> p {extrapol = parsePol v } 
-      BatchDirFlg  v       -> p {batchDir = v}
-      WeirdFlg _           -> p
-      unknown -> error ("Unknown configuration parameter: " ++ show unknown)
-    -- when PolOpts and AdjOpts are in the list of optimisations
-    -- then include all polarity-related optimisations and 
-    -- all adjunction-related optimisations respectively
-    readOpt v = addif PolOptsFlg polOpts      
-              $ addif AdjOptsFlg adjOpts 
-              $ parseOptimisations v
-    addif t x o = if (t `elem` o) then x ++ o else o
-    polOpts     = [PolarisedFlg]
-    adjOpts     = [SemFilteredFlg]
+{-
+Flags are GenI's internal representation of command line arguments.  We
+use phantom existential types (?) for representing GenI flags.  This
+makes it simpler to do things such as ``get the value of the MacrosFlg''
+whilst preserving type safety (we always know that MacrosFlg is
+associated with String).  The alternative would be writing getters and
+setters for each flag, and that gets really boring after a while.
+-}
 
-addFlag :: GeniFlag -> Params -> Params
-addFlag f p = p { geniFlags = f : (geniFlags p) }
+data Flag = forall f x . (Eq f, Show f, Show x, Typeable f, Typeable x) =>
+     Flag (x -> f) x deriving (Typeable)
 
-setFlag :: GeniFlag -> Bool -> Params -> Params
-setFlag f b pRaw = if b then addFlag f p else p
-  where p = deleteFlag f pRaw
+instance Show Flag where
+ show (Flag f x) = "Flag " ++ show (f x)
 
-deleteFlag :: GeniFlag -> Params -> Params
-deleteFlag f p = p { geniFlags = delete f (geniFlags p) }
+instance Eq Flag where
+ (Flag f1 x1) == (Flag f2 x2)
+   | (typeOf f1 == typeOf f2) && (typeOf x1 == typeOf x2) =
+       (fromJust . cast . f1 $ x1) == (f2 x2)
+   | otherwise = False
+
+isFlag     :: (Typeable f, Typeable x) => (x -> f) -> Flag -> Bool
+hasFlag    :: (Typeable f, Typeable x) => (x -> f) -> [Flag] -> Bool
+deleteFlag :: (Typeable f, Typeable x) => (x -> f) -> [Flag] -> [Flag]
+setFlag    :: (Eq f, Show f, Show x, Typeable f, Typeable x) => (x -> f) -> x -> [Flag] -> [Flag]
+getFlag    :: (Show f, Show x, Typeable f, Typeable x)  => (x -> f) -> [Flag] -> Maybe x
+getAllFlags :: (Show f, Show x, Typeable f, Typeable x) => (x -> f) -> [Flag] -> [x]
+
+isFlag f1 (Flag f2 _) = typeOf f1 == typeOf f2
+hasFlag f       = any (isFlag f)
+deleteFlag f    = filter (not.(isFlag f))
+setFlag f v fs  = (Flag f v) : tl where tl = deleteFlag f fs
+getFlag f fs    = do (Flag _ v) <- find (isFlag f) fs ; cast v
+getAllFlags f fs = catMaybes [ cast v | flg@(Flag _ v) <- fs, isFlag f flg ]
+
+
+{-
+Below are just the individual flags, which unfortunately have to be
+defined as separate data types because of our fancy existential
+data type code.
+-}
+-- input files
+#define FLAG(x,y) data x = x y deriving (Eq, Show, Typeable)
+
+FLAG (BatchDirFlg, FilePath)
+FLAG (DisableGuiFlg, ())
+FLAG (ExtraPolaritiesFlg, (Map.Map String Interval))
+FLAG (HelpFlg, ())
+FLAG (IgnoreSemanticsFlg, ())
+FLAG (LexiconFlg, FilePath)
+FLAG (MacrosFlg, FilePath)
+FLAG (MaxTreesFlg, Int)
+FLAG (MetricsFlg, [String])
+FLAG (MorphCmdFlg, String)
+FLAG (MorphInfoFlg, FilePath)
+FLAG (OptimisationsFlg, [Optimisation])
+FLAG (OutputFileFlg, String)
+FLAG (RootCategoriesFlg, [String])
+FLAG (ServerModeFlg, ())
+FLAG (StatsFileFlg, FilePath)
+FLAG (TestCaseFlg, String)
+FLAG (TestSuiteFlg, FilePath)
+FLAG (TimeoutFlg, Integer)
+FLAG (ViewCmdFlg, String)
+-- not to be exported (defaults)
+-- the WeirdFlg exists strictly to please OS X when you launch
+-- GenI in an application bundle (double-click)... for some
+-- reason it wants to pass an argument to -p
+FLAG (BuilderFlg,  BuilderType)
+FLAG (GrammarTypeFlg, GrammarType)
+FLAG (WeirdFlg, String)
 \end{code}
 
-
-\paragraph{optBatch} represents all meaningful combinations of optimisations
-which include \fnparam{enabledRaw}.
-
-\begin{code}
-optBatch :: [GeniFlag] -> [[GeniFlag]] 
-optBatch enabled =
-  let use opt prev = if (opt `elem` enabled)
-                     then withopt 
-                     else withopt ++ prev
-                     where withopt = map (opt:) prev
-      -- 
-      polBatch' = foldr use [[PolarisedFlg]] []
-      polBatch  = if PolarisedFlg `elem` enabled
-                 then polBatch' 
-                 else [] : polBatch'
-      adjBatch  = foldr use polBatch [SemFilteredFlg]
-      -- 
-  in adjBatch
-\end{code}
 

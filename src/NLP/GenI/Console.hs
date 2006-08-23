@@ -20,9 +20,10 @@
 
 module NLP.GenI.Console(consoleGeni, runTestCaseOnly) where
 
-import Data.List(find)
-import Control.Monad(when)
+import Control.Monad ( when, unless )
 import Data.IORef(readIORef, modifyIORef)
+import Data.List(find)
+import Data.Maybe ( isJust, fromMaybe )
 import System.Directory(createDirectoryIfMissing)
 
 import NLP.GenI.Btypes( SemInput )
@@ -32,10 +33,13 @@ import NLP.GenI.General
   )
 import NLP.GenI.Geni
 import NLP.GenI.Configuration
-  ( Params(batchDir), GeniFlag(EnableGuiFlg)
-  , hasFlag, outputFile, statsFile, metricsParam, timeoutSecs
-  , builderType
-  , BuilderType(..))
+  ( Params
+  , DisableGuiFlg(..), BatchDirFlg(..), OutputFileFlg(..)
+  , MetricsFlg(..), StatsFileFlg(..)
+  , TestCaseFlg(..), TimeoutFlg(..),
+  , hasFlagP, getFlagP,
+  , builderType , BuilderType(..),
+  )
 import qualified NLP.GenI.Builder as B
 import NLP.GenI.CkyEarley.CkyBuilder
 import NLP.GenI.Simple.SimpleBuilder
@@ -44,13 +48,13 @@ import Statistics ( showFinalStats, Statistics )
 consoleGeni :: ProgStateRef -> IO()
 consoleGeni pstRef = do
   pst <- readIORef pstRef
-  when (hasFlag EnableGuiFlg (pa pst)) $ do
+  unless (hasFlagP DisableGuiFlg (pa pst)) $ do
     ePutStrLn "GUI not available"
   --
   loadGrammar pstRef
   ePutStrLn "======================================================"
   --
-  case timeoutSecs $ pa pst of
+  case getFlagP TimeoutFlg (pa pst) of
     Nothing -> runSuite pstRef
     Just t  -> withTimeout t (timeoutErr t) $ runSuite pstRef
   where
@@ -65,11 +69,11 @@ consoleGeni pstRef = do
 runSuite :: ProgStateRef -> IO ()
 runSuite pstRef =
   do pst <- readIORef pstRef
-     let bdir   = batchDir $ pa pst
-         suite  = tsuite pst
-     if null bdir
-        then runTestCaseOnly pstRef >> return ()
-        else if any null $ map fst3 suite
+     let suite  = tsuite pst
+     case getFlagP BatchDirFlg (pa pst) of
+       Nothing   -> runTestCaseOnly pstRef >> return ()
+       Just bdir ->
+          if any null $ map fst3 suite
              then ePutStrLn "Can't do batch processing. The test suite has cases with no name."
              else do ePutStrLn "Batch processing mode"
                      mapM_ (runCase bdir) suite
@@ -84,12 +88,11 @@ runTestCaseOnly :: ProgStateRef -> IO ([String], Statistics)
 runTestCaseOnly pstRef =
  do pst <- readIORef pstRef
     let config     = pa pst
-        pstCase    = tcase pst
-        pstOutfile = outputFile config
-        sFile      = statsFile config
-    semInput <- if null pstCase
-                   then getFirstCase pst
-                   else findCase pst pstCase
+        pstOutfile = fromMaybe "" $ getFlagP OutputFileFlg config
+        sFile      = fromMaybe "" $ getFlagP StatsFileFlg  config
+    semInput <- case getFlagP TestCaseFlg config of
+                   Nothing -> getFirstCase pst
+                   Just c  -> findCase pst c
     runOnSemInput pstRef (Standalone pstOutfile sFile) semInput
  where
   getFirstCase pst =
@@ -135,7 +138,7 @@ runOnSemInput pstRef args semInput =
                      PartOfSuite n f -> writeFile $ f /// n /// "stats"
      oPutStrLn (unlines sentences)
      -- print out statistical data (if available)
-     when (not . null . metricsParam $ config) $
+     when (isJust $ getFlagP MetricsFlg config) $
        do soPutStrLn $ "begin stats\n" ++ showFinalStats stats ++ "end"
      return (sentences, stats)
   where

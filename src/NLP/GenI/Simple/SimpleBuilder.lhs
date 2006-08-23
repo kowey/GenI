@@ -52,7 +52,7 @@ import Control.Monad.State
   (get, put, modify, gets)
 
 import Data.List (intersect, partition, delete, foldl')
-import Data.Maybe (isJust, isNothing)
+import Data.Maybe (isJust, isNothing, fromMaybe)
 import Data.Bits
 import qualified Data.Map as Map
 import Data.Tree
@@ -980,7 +980,7 @@ dpRootCatFailure2 = dpRootCatFailure_ True
 dpRootCatFailure_ :: Bool -> SimpleDispatchFilter
 dpRootCatFailure_ count item =
  do config <- gets genconfig
-    let rootCats = rootCatsParam config
+    let rootCats = fromMaybe [] $ getFlagP RootCategoriesFlg config
         (TagSite _ top _) = siRoot item
     case gCategory top of
      Just (GConst c) ->

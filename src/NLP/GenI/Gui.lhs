@@ -46,7 +46,22 @@ import NLP.GenI.Btypes (ILexEntry(isemantics))
 import NLP.GenI.Tags (idname, tpolarities, tsemantics, TagElem)
 import NLP.GenI.Treeprint (toGeniHand)
 import NLP.GenI.Configuration
-  ( Params(..), GeniFlag(..), hasOpt, hasFlag, setFlag,
+  ( Params(..), hasOpt,
+  , hasFlagP, deleteFlagP, setFlagP, getFlagP, getListFlagP,
+    --
+  , ExtraPolaritiesFlg(..)
+  , IgnoreSemanticsFlg(..)
+  , LexiconFlg(..)
+  , MacrosFlg(..)
+  , MaxTreesFlg(..)
+  , MorphCmdFlg(..)
+  , MorphInfoFlg(..)
+  , OptimisationsFlg(..)
+  , RootCategoriesFlg(..)
+  , TestSuiteFlg(..)
+  , ViewCmdFlg(..)
+  --
+  , Optimisation(..)
   , BuilderType(..), mainBuilderTypes )
 import NLP.GenI.GeniParsers
 import NLP.GenI.GuiHelper
@@ -54,6 +69,8 @@ import NLP.GenI.GuiHelper
 import NLP.GenI.Polarity
 import NLP.GenI.Simple.SimpleGui
 import NLP.GenI.CkyEarley.CkyGui
+
+
 \end{code}
 }
 
@@ -65,7 +82,7 @@ guiGeni pstRef = do
   pst <- readIORef pstRef
   let gramConfig = pa pst
       -- errHandler title err = errorDialog f title (show err)
-  Monad.when ( (not.null.tsFile) gramConfig) $ 
+  Monad.when (hasFlagP TestSuiteFlg gramConfig) $
     loadTestSuite pstRef
     -- `catch` (errHandler "Whoops!")
   start (mainGui pstRef)
@@ -111,7 +128,7 @@ We add some buttons for loading files and running the generator.
        let config     = pa pst 
            suite      = tsuite pst
            hasSem     = not (null suite)
-           ignoreSem  = hasFlag IgnoreSemanticsFlg config
+           ignoreSem  = hasFlagP IgnoreSemanticsFlg config
        -- Target Semantics
        tsTextBox <- textCtrl f [ wrap := WrapWord
                                , clientSize := sz 400 80
@@ -121,9 +138,9 @@ We add some buttons for loading files and running the generator.
        testCaseChoice <- choice f [ selection := 0 
                                   , enabled := hasSem ]
        -- Box and Frame for files loaded 
-       macrosFileLabel  <- staticText f [ text := macrosFile config  ]
-       lexiconFileLabel <- staticText f [ text := lexiconFile config ]
-       tsFileLabel      <- staticText f [ text := tsFile config ]
+       macrosFileLabel  <- staticText f [ text := getListFlagP MacrosFlg config  ]
+       lexiconFileLabel <- staticText f [ text := getListFlagP LexiconFlg config ]
+       tsFileLabel      <- staticText f [ text := getListFlagP TestSuiteFlg config ]
        -- Generate and Debug 
        let genfn = doGenerate f pstRef tsTextBox
        pauseOnLexChk <- checkBox f [ text := "Inspect lex", tooltip := "Affects debugger only"  ]
@@ -148,31 +165,31 @@ Let's not forget the optimisations...
        set algoChoiceBox [ on select := toggleAlgo pstRef algoChoiceBox ]
        polChk <- checkBox f 
           [ text := "Polarities"
-          , checked := hasOpt PolarisedFlg config
+          , checked := hasOpt Polarised config
           , tooltip := "Use the polarity optimisation"
           ]
        useSemConstraintsChk <- checkBox f
          [ text := "Sem constraints"
-         , checked := not $ hasOpt NoConstraintsFlg config
+         , checked := not $ hasOpt NoConstraints config
          , tooltip := "Use any sem constraints the user provides"
          ]
        iafChk <- checkBox f
           [ text := "Idx acc filter"
-          , checked := hasOpt IafFlg config
+          , checked := hasOpt Iaf config
           , tooltip := "Only available in CKY/Earley for now"
           ]
        semfilterChk <- checkBox f 
          [ text := "Semantic filters"
-         , checked := hasOpt SemFilteredFlg config
+         , checked := hasOpt SemFiltered config
          , tooltip := "(2p only) Filter away semantically incomplete structures before adjunction phase"
          ]
        rootfilterChk <- checkBox f
          [ text := "Root filters"
-         , checked := hasOpt RootCatFilteredFlg config
+         , checked := hasOpt RootCatFiltered config
          , tooltip := "(2p only) Filter away non-root structures before adjunction phase"
          ]
        extrapolText <- staticText f 
-         [ text := showLitePm $ extrapol config 
+         [ text := maybe "" showLitePm $ getFlagP ExtraPolaritiesFlg config
          , tooltip := "Use the following additional polarities" 
          ]
        -- commands for the checkboxes
@@ -180,11 +197,11 @@ Let's not forget the optimisations...
                                set extrapolText [ enabled := c ]
        set polChk [on command := togglePolStuff ]
        sequence_ $ map (setToggleChk pstRef)
-          [ (polChk, PolarisedFlg)
-          , (iafChk, IafFlg)
-          , (rootfilterChk, RootCatFilteredFlg)]
+          [ (polChk, Polarised)
+          , (iafChk, Iaf)
+          , (rootfilterChk, RootCatFiltered)]
        sequence_ $ map (setToggleAntiChk pstRef)
-          [ (useSemConstraintsChk, NoConstraintsFlg) ]
+          [ (useSemConstraintsChk, NoConstraints) ]
 \end{code}
 
 Pack it all together, perform the layout operation.
@@ -261,22 +278,24 @@ toggleAlgo pstRef box =
 
 -- | Toggles for optimisatons controlled by a check box.  They enable or
 --   disable the said optmisation.
-setToggleChk :: (Commanding a, Checkable a) => ProgStateRef -> (a, GeniFlag) -> IO ()
+setToggleChk :: (Commanding a, Checkable a) => ProgStateRef -> (a, Optimisation) -> IO ()
 setToggleChk = setToggleChk_ id
 
 -- | Same as above, except for anti-optimisations
-setToggleAntiChk :: (Commanding a, Checkable a) => ProgStateRef -> (a, GeniFlag) -> IO ()
+setToggleAntiChk :: (Commanding a, Checkable a) => ProgStateRef -> (a, Optimisation) -> IO ()
 setToggleAntiChk = setToggleChk_ not
 
 -- Expecting either 'id' or 'not' for the (Bool->Bool)
-setToggleChk_ :: (Commanding a, Checkable a) => (Bool -> Bool) -> ProgStateRef -> (a, GeniFlag) -> IO ()
+setToggleChk_ :: (Commanding a, Checkable a) => (Bool -> Bool) -> ProgStateRef -> (a, Optimisation) -> IO ()
 setToggleChk_ id_ pstRef (chk,tok) =
  set chk [ on command :~ (>> stc) ]
  where
   stc = do isChecked <- get chk checked
-           let modopt = if id_ isChecked then (tok:) else delete tok
-               fn c = c { optimisations = nub.modopt.optimisations $ c}
-           modifyIORef pstRef (\x -> x{pa = fn (pa x)})
+           pst <- readIORef pstRef
+           let config  = pa pst
+               modopt  = if id_ isChecked then (tok:) else delete tok
+               newopts = nub.modopt $ getListFlagP OptimisationsFlg config
+           modifyIORef pstRef (\x -> x{pa = setFlagP OptimisationsFlg newopts (pa x)})
 \end{code}
 
 % --------------------------------------------------------------------
@@ -295,16 +314,16 @@ readConfig f pstRef macrosFileLabel lexiconFileLabel tsFileLabel tsBox tsChoice 
      let errhandler title err = errorDialog f title (show err)
      let config = pa pst
          -- errHandler title err = errorDialog f title (show err)
-     set macrosFileLabel  [ text := macrosFile config ]
-     set lexiconFileLabel [ text := lexiconFile config ]
-     set tsFileLabel      [ text := tsFile config ]
+     set macrosFileLabel  [ text := getListFlagP MacrosFlg config ]
+     set lexiconFileLabel [ text := getListFlagP LexiconFlg config ]
+     set tsFileLabel      [ text := getListFlagP TestSuiteFlg config ]
      -- read the test suite if there is one
-     if (null.tsFile) config
-       then set tsChoice [ enabled := False, items := [] ]
-       else do loadTestSuite pstRef
+     if hasFlagP TestSuiteFlg config
+       then do loadTestSuite pstRef
                readTestSuite pstRef tsBox tsChoice
                set tsChoice [ enabled := True ]
             `catch` errhandler "Error reading test suite"
+       else set tsChoice [ enabled := False, items := [] ]
 
 \end{code}
 
@@ -389,16 +408,16 @@ The first tab contains only the basic options:
 \begin{code}
   pbas <- panel nb []
   -- files loaded (labels)
-  macrosFileLabel  <- staticText pbas [ text := macrosFile config  ]
-  lexiconFileLabel <- staticText pbas [ text := lexiconFile config ]
-  tsFileLabel      <- staticText pbas [ text := tsFile config ]
+  macrosFileLabel  <- staticText pbas [ text := getListFlagP MacrosFlg config  ]
+  lexiconFileLabel <- staticText pbas [ text := getListFlagP LexiconFlg config ]
+  tsFileLabel      <- staticText pbas [ text := getListFlagP TestSuiteFlg config ]
   -- "Browse buttons"
   macrosBrowseBt  <- button pbas [ text := browseTxt ]
   lexiconBrowseBt <- button pbas [ text := browseTxt ]
   tsBrowseBt      <- button pbas [ text := browseTxt ]
   -- root category 
   rootCatsTxt <- entry pbas
-    [ text := unwords $ rootCatsParam config 
+    [ text := maybe "" unwords $ getFlagP RootCategoriesFlg config
     , size := longSize ]
   let layFiles = [ row 1 [ label "trees:" 
                          , fill $ widget macrosFileLabel
@@ -428,22 +447,22 @@ into more tabs?
   -- XMG tools 
   viewCmdTxt <- entry padv 
     [ tooltip := "Command used for XMG tree viewing"
-    , text := viewCmd config ] 
+    , text := getListFlagP ViewCmdFlg config ]
   let layXMG = fakeBoxed "XMG tools" 
                 [ row 3 [ label "XMG view command"
                         , marginRight $ hfill $ widget viewCmdTxt ] ]
   -- polarities
   extraPolsTxt <- entry padv 
-    [ text := showLitePm $ extrapol config 
+    [ text := maybe "" showLitePm $ getFlagP ExtraPolaritiesFlg config
     , size := shortSize ]
   let layPolarities = fakeBoxed "Polarities" [ hfill $ row 1 
           [ label "extra polarities", rigid $ widget extraPolsTxt ] ]
   -- morphology
-  morphFileLabel    <- staticText padv [ text := morphFile config ]
+  morphFileLabel    <- staticText padv [ text := getListFlagP MorphInfoFlg config ]
   morphFileBrowseBt <- button padv [ text := browseTxt ]
   morphCmdTxt    <- entry padv 
     [ tooltip := "Commmand used for morphological generation" 
-    , text    := morphCmd config ]
+    , text    := getListFlagP MorphCmdFlg config ]
   let layMorph = fakeBoxed "Morphology" 
                    [ row 3 [ label "morph info:"
                            , expand $ hfill $ widget morphFileLabel
@@ -454,10 +473,8 @@ into more tabs?
   ignoreSemChk <- checkBox padv 
      [ text    := "Ignore semantics"
      , tooltip := "Useful as a corpus generator"
-     , checked := hasFlag IgnoreSemanticsFlg config ]
-  let maxTreesStr = case maxTrees config of 
-        Nothing -> ""
-        Just m  -> show m
+     , checked := hasFlagP IgnoreSemanticsFlg config ]
+  let maxTreesStr = maybe "" show $ getFlagP MaxTreesFlg config
   maxTreesText <- entry padv 
      [ text    := maxTreesStr 
      , tooltip := "Limit number of elementary trees in a derived tree" 
@@ -526,24 +543,22 @@ command that makes everything ``work'':
             ignoreVal   <- get ignoreSemChk checked 
             maxTreesVal <- get maxTreesText text
             --
-            let config2 = setFlag IgnoreSemanticsFlg ignoreVal $ config
-                 { macrosFile  = macrosVal
-                 , lexiconFile = lexconVal
-                 , tsFile      = tsVal
-                 -- 
-                 , rootCatsParam = words rootCatVal
-                 , extrapol = parsePol extraPolVal
-                 --
-                 , viewCmd    = viewVal
-                 --
-                 , morphCmd  = morphCmdVal
-                 , morphFile = morphInfoVal
-                 --
-                 , maxTrees = if null maxTreesVal 
-                     then Nothing
-                     else Just (read maxTreesVal)
-                 }
-            modifyIORef pstRef (\x -> x { pa = config2 })
+            let maybeSet fl fn x =
+                   if null x then deleteFlagP fl else setFlagP fl (fn x)
+                maybeSetStr fl x = maybeSet fl id x
+                toggleFlag fl b = if b then setFlagP fl () else deleteFlagP fl
+            let setConfig = id
+                  . (maybeSet   MaxTreesFlg read maxTreesVal)
+                  . (toggleFlag IgnoreSemanticsFlg ignoreVal)
+                  . (maybeSetStr   MacrosFlg macrosVal)
+                  . (maybeSetStr LexiconFlg lexconVal)
+                  . (maybeSetStr TestSuiteFlg tsVal)
+                  . (maybeSet RootCategoriesFlg words rootCatVal)
+                  . (maybeSet ExtraPolaritiesFlg parsePol extraPolVal)
+                  . (maybeSetStr ViewCmdFlg viewVal)
+                  . (maybeSetStr MorphCmdFlg morphCmdVal)
+                  . (maybeSetStr MorphInfoFlg morphInfoVal)
+            modifyIORef pstRef $ \x -> x { pa = setConfig (pa x) }
             loadFn 
   -- end onLoad
     -- the button bar
@@ -663,7 +678,7 @@ debugGui builderGui pstRef pauseOnLex =
             debugPnl <- BG.debuggerPnl builderGui nb config input2 btype
             let autTab   = tab "automata" autPnl
                 debugTab = tab (btype ++ "-session") debugPnl
-                genTabs  = if hasOpt PolarisedFlg config
+                genTabs  = if hasOpt Polarised config
                            then [ autTab, debugTab ] else [ debugTab ]
             --
             set f [ layout := container p $ tabs nb genTabs
