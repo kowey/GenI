@@ -25,6 +25,7 @@ OS:=$(shell uname)
 SRC      := ./src
 SRC_GENI := ./src/NLP/GenI
 SRC_DIRS := $(SRC) $(SRC_GENI) $(SRC_GENI)/CkyEarley $(SRC_GENI)/Simple $(SRC_GENI)/Converter
+DOC_DIRS := doc
 
 GHC             = ghc
 #-O
@@ -87,7 +88,7 @@ endif
 #   MAKE_DOCS=foo/bar.pdf foo/other.pdf baz/filename.pdf
 # If you are making slides instead of documents, you should
 # uncomment and modify the MAKE_SLIDES variable.
-MAKE_DOCS = src/NLP/GenI/genidoc.pdf
+MAKE_DOCS = doc/literateGenI.pdf doc/genimanual.pdf
 
 # -- Latex or Pdflatex? (pdflatex by default) --
 # If you use latex instead of pdflatex, you should change the line
@@ -189,7 +190,6 @@ release: compile docs html tidy tarball
 doc:  init maindoc haddock
 
 maindoc: $(MAKE_DOCS)
-	cp $(MAKE_DOCS) $(DOC_DIR)
 
 docs: doc
 html: $(MAKE_HTML)
@@ -203,7 +203,7 @@ tarball:
 
 clean: tidy
 	rm -f bin/debugger-geni
-	rm -f $(foreach d, $(SRC_DIRS), $(d)/*.{ps,pdf})
+	rm -f $(foreach d, $(DOC_DIRS), $(d)/*.{ps,pdf})
 	rm -f $(MAKE_HTML)
 	rm -rf $(GENI) $(GENI).app $(PROFGENI)
 	rm -rf $(CONVERTER) $(EXTRACTOR) $(CLIENT) $(SERVER)
@@ -211,8 +211,8 @@ clean: tidy
 	rm -rf .depends
 
 tidy:
-	rm -f $(foreach d, $(SRC_DIRS), $(d)/*.{dvi,aux,log,bbl,blg,out,toc})
-	rm -f $(foreach d, $(SRC_DIRS), $(d)/*.{p_hi,p_o,hi,o})
+	rm -f $(foreach d, $(DOC_DIRS), $(d)/*.{dvi,aux,log,bbl,blg,out,toc})
+	rm -f $(foreach d, $(DOC_DIRS), $(d)/*.{p_hi,p_o,hi,o})
 
 init: permissions
 
