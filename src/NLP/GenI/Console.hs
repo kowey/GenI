@@ -36,7 +36,7 @@ import NLP.GenI.Configuration
   ( Params
   , DisableGuiFlg(..), BatchDirFlg(..), OutputFileFlg(..)
   , MetricsFlg(..), StatsFileFlg(..)
-  , TestCaseFlg(..), TimeoutFlg(..),
+  , TestCaseFlg(..), TimeoutFlg(..),  VerboseModeFlg(..)
   , hasFlagP, getFlagP,
   , builderType , BuilderType(..),
   )
@@ -48,11 +48,13 @@ import Statistics ( showFinalStats, Statistics )
 consoleGeni :: ProgStateRef -> IO()
 consoleGeni pstRef = do
   pst <- readIORef pstRef
-  unless (hasFlagP DisableGuiFlg (pa pst)) $ do
+  let config = pa pst
+  unless (hasFlagP DisableGuiFlg config) $
     ePutStrLn "GUI not available"
   --
   loadGrammar pstRef
-  ePutStrLn "======================================================"
+  when (hasFlagP VerboseModeFlg config) $
+    ePutStrLn "======================================================"
   --
   case getFlagP TimeoutFlg (pa pst) of
     Nothing -> runSuite pstRef
