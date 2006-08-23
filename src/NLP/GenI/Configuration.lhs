@@ -40,6 +40,7 @@ module NLP.GenI.Configuration
   , TestCaseFlg(..)
   , TestSuiteFlg(..)
   , TimeoutFlg(..)
+  , VerboseModeFlg(..)
   , ViewCmdFlg(..)
   --
   , mainBuilderTypes
@@ -257,7 +258,7 @@ because it falls into multiple categories.
 \begin{code}
 optionsForBasicStuff :: [OptDescr Flag]
 optionsForBasicStuff =
-  [ helpOption, noguiOption
+  [ helpOption, verboseOption, noguiOption
   , macrosOption , lexiconOption, testSuiteOption
   , outputOption
   ]
@@ -307,11 +308,13 @@ optionsForUserInterface =
       "XMG tree-view command"
   ]
 
-noguiOption, helpOption :: OptDescr Flag
+verboseOption, noguiOption, helpOption :: OptDescr Flag
 noguiOption = Option [] ["nogui"] (noArg DisableGuiFlg)
                 "disable graphical user interface"
 helpOption  = Option [] ["help"] (noArg HelpFlg)
                 "show full list of command line switches"
+verboseOption = Option ['v'] ["verbose"] (noArg VerboseModeFlg)
+                "verbose mode"
 \end{code}
 
 % --------------------------------------------------------------------
@@ -664,6 +667,7 @@ FLAG (StatsFileFlg, FilePath)
 FLAG (TestCaseFlg, String)
 FLAG (TestSuiteFlg, FilePath)
 FLAG (TimeoutFlg, Integer)
+FLAG (VerboseModeFlg, ())
 FLAG (ViewCmdFlg, String)
 -- not to be exported (defaults)
 -- the WeirdFlg exists strictly to please OS X when you launch
