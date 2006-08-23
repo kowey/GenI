@@ -88,7 +88,7 @@ import NLP.GenI.Configuration
   ( Params, getFlagP, hasFlagP, hasOpt, Optimisation(NoConstraints)
   , MacrosFlg(..), LexiconFlg(..), TestSuiteFlg(..), TestCaseFlg(..),
   , MorphInfoFlg(..), MorphCmdFlg(..),
-  , IgnoreSemanticsFlg(..), ServerModeFlg(..),
+  , IgnoreSemanticsFlg(..), ServerModeFlg(..), VerboseModeFlg(..),
   , grammarType,
   , GrammarType(..) )
 
@@ -203,8 +203,10 @@ loadLexicon pstRef config =
  case getFlagP LexiconFlg config of
  Nothing    -> fail "Please specify a lexicon!"
  Just lfile ->
-    do ePutStr $ "Loading Lexicon " ++ lfile ++ "..."
-       eFlush
+    do let verbose = hasFlagP VerboseModeFlg config
+       when verbose $ do
+         ePutStr $ "Loading Lexicon " ++ lfile ++ "..."
+         eFlush
        pst <- readIORef pstRef
        let getSem l  = if hasFlagP IgnoreSemanticsFlg (pa pst) then [] else isemantics l
            sorter l  = l { isemantics = (sortSem . getSem) l }
@@ -215,7 +217,7 @@ loadLexicon pstRef config =
                       Left err -> error (show err)
                       Right x  -> cleanup x
        --
-       ePutStr ((show $ length $ Map.keys theLex) ++ " entries\n")
+       when verbose $ ePutStr ((show $ length $ Map.keys theLex) ++ " entries\n")
        -- combine the two lexicons
        modifyIORef pstRef (\x -> x{le = theLex})
 
@@ -232,16 +234,16 @@ loadGeniMacros pstRef config =
  case getFlagP MacrosFlg config of
  Nothing    -> fail "Please specify a trees file!"
  Just mfile ->
-  do ePutStr $ "Loading Macros " ++ mfile ++ "..."
-     eFlush
+  do let verbose = hasFlagP VerboseModeFlg config
+     when verbose $ do
+       ePutStr $ "Loading Macros " ++ mfile ++ "..."
+       eFlush
      parsed <- parseFromFile geniMacros mfile
      case parsed of 
        Left  err -> fail (show err)
-       Right g   -> setGram g
-  where
-    setGram g = 
-      do ePutStr $ show (length g) ++ " trees\n"
-         modifyIORef pstRef (\x -> x{gr = g})
+       Right g   -> do
+          when verbose $ ePutStr $ show (length g) ++ " trees\n"
+          modifyIORef pstRef (\x -> x{gr = g})
 \end{code}
 
 \fnlabel{loadMorphInfo} Given the pointer to the monadic state pstRef and
@@ -281,9 +283,11 @@ loadTestSuite pstRef = do
    Nothing -> fail "Please specify a test suite!"
    Just filename -> do
      let config = pa pst
+         verbose = hasFlagP VerboseModeFlg config
      unless (hasFlagP IgnoreSemanticsFlg config) $
-      do ePutStr $ "Loading Test Suite " ++ filename ++ "...\n"
-         eFlush
+      do when verbose $ do
+           ePutStr $ "Loading Test Suite " ++ filename ++ "...\n"
+           eFlush
          -- ugh: I'm using CPS here, when what I really want is
          -- some kind of Error-based monad transformer
          parseAnd geniTestSuite $ \sem ->
