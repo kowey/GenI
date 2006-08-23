@@ -72,7 +72,7 @@ geniTestSuite =
 -- | Just the String representations of the semantics
 --   in the test suite
 geniTestSuiteString :: Parser [String]
-geniTestSuiteString = many geniTestCaseString
+geniTestSuiteString = whiteSpace >> many geniTestCaseString
 \end{code}
 
 A test case is composed of an optional test id, some semantic input
