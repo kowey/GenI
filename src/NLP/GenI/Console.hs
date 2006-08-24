@@ -25,16 +25,20 @@ import Data.IORef(readIORef, modifyIORef)
 import Data.List(find)
 import Data.Maybe ( isJust, fromMaybe )
 import System.Directory(createDirectoryIfMissing)
+import Test.HUnit.Text (runTestTT)
+import qualified Test.HUnit.Base as H
+import Test.HUnit.Base ((@?))
 
-import NLP.GenI.Btypes( SemInput, TestCase(..) )
+import NLP.GenI.Btypes( SemInput, TestCase(..), showSem )
 import NLP.GenI.General
   ( ePutStrLn, withTimeout, exitTimeout, (///)
+  , fst3
   )
 import NLP.GenI.Geni
 import NLP.GenI.Configuration
   ( Params
   , DisableGuiFlg(..), BatchDirFlg(..), OutputFileFlg(..)
-  , MetricsFlg(..), StatsFileFlg(..)
+  , MetricsFlg(..), RegressionTestModeFlg(..), StatsFileFlg(..)
   , TestCaseFlg(..), TimeoutFlg(..),  VerboseModeFlg(..)
   , hasFlagP, getFlagP,
   , builderType , BuilderType(..),
@@ -71,17 +75,44 @@ runSuite :: ProgStateRef -> IO ()
 runSuite pstRef =
   do pst <- readIORef pstRef
      let suite  = tsuite pst
-     case getFlagP BatchDirFlg (pa pst) of
-       Nothing   -> runTestCaseOnly pstRef >> return ()
-       Just bdir ->
-          if any null $ map tcName suite
-             then ePutStrLn "Can't do batch processing. The test suite has cases with no name."
-             else do ePutStrLn "Batch processing mode"
-                     mapM_ (runCase bdir) suite
- where
+         config = pa pst
+     if hasFlagP RegressionTestModeFlg config
+        then runRegressionSuite pstRef >> return ()
+        else case getFlagP BatchDirFlg config of
+              Nothing   -> runTestCaseOnly pstRef >> return ()
+              Just bdir -> runBatch bdir suite
+  where
+  runBatch bdir suite =
+    if any null $ map tcName suite
+    then    ePutStrLn "Can't do batch processing. The test suite has cases with no name."
+    else do ePutStrLn "Batch processing mode"
+            mapM_ (runCase bdir) suite
   runCase bdir (TestCase n _ s _) =
    do (res , _) <- runOnSemInput pstRef (PartOfSuite n bdir) s
       ePutStrLn $ " " ++ n ++ " - " ++ (show $ length res) ++ " results"
+
+
+-- | Run a test suite, but in HUnit regression testing mode,
+--   treating each GenI test case as an HUnit test.  Obviously
+--   we need a test suite, grammar, etc as input
+runRegressionSuite :: ProgStateRef -> IO (H.Counts)
+runRegressionSuite pstRef =
+ do pst <- readIORef pstRef
+    tests <- (mapM toTest) . tsuite $ pst
+    runTestTT . (H.TestList) . concat $ tests
+ where
+  toTest :: TestCase -> IO [H.Test] -- ^ GenI test case to HUnit Tests
+  toTest tc = -- run the case, and return a test case for each expected result
+   do (res , _) <- runOnSemInput pstRef InRegressionTest (tcSem tc)
+      let name = tcName tc
+          semStr = showSem . fst3 . tcSem $ tc
+          mainMsg  = "for " ++ semStr ++ ",  got no results"
+          mainCase = H.TestLabel name
+            $ H.TestCase $ (not.null $ res) @? mainMsg
+          subMsg e = "for " ++ semStr ++ ", failed to get (" ++ e ++ ")"
+          subCase e = H.TestLabel name
+            $ H.TestCase $ (e `elem` res) @? subMsg e
+      return $ (mainCase :) $ map subCase (tcExpected tc)
 
 -- | Run the specified test case, or failing that, the first test
 --   case in the suite
@@ -107,6 +138,7 @@ runTestCaseOnly pstRef =
 
 data RunAs = Standalone  FilePath FilePath
            | PartOfSuite String FilePath
+           | InRegressionTest
 
 -- | Runs a case in the test suite.  If the user does not specify any test
 --   cases, we run the first one.  If the user specifies a non-existing
@@ -133,10 +165,12 @@ runOnSemInput pstRef args semInput =
                      Standalone "" _ -> putStrLn
                      Standalone f  _ -> writeFile f
                      PartOfSuite n f -> writeFile $ f /// n /// "responses"
+                     InRegressionTest -> const $ return ()
          soPutStrLn = case args of
                      Standalone _ "" -> putStrLn
                      Standalone _ f  -> writeFile f
                      PartOfSuite n f -> writeFile $ f /// n /// "stats"
+                     InRegressionTest -> const $ return ()
      oPutStrLn (unlines sentences)
      -- print out statistical data (if available)
      when (isJust $ getFlagP MetricsFlg config) $
