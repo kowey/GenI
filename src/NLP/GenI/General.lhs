@@ -27,7 +27,7 @@ where
 
 \ignore{
 \begin{code}
-import Control.Monad (liftM, liftM2)
+import Control.Monad (liftM)
 import Data.Bits (shiftR, (.&.))
 import Data.Char (isSpace, toUpper, toLower)
 import Data.List (intersect, groupBy, group, sort, intersperse)
@@ -173,8 +173,7 @@ groupAndCount xs =
 -- Given a list of lists, return all lists such that one item from each sublist is chosen.
 -- If returns the empty list if there are any empty sublists.
 combinations :: [[a]] -> [[a]]
-combinations []     = [[]]
-combinations (hs:t) = liftM2 (:) hs (combinations t)
+combinations = sequence
 \end{code}
 
 \begin{code}
