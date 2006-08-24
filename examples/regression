@@ -6,14 +6,20 @@ do_geni() {
   ${GENI_CMD} $* --nogui
 }
 
+do_geni_pn() {
+  echo "${GENI_CMD} $* --nogui --rootcats='p n'"
+  ${GENI_CMD} $* --nogui --rootcats='p n'
+}
+
+
 do_geni ${GENI_FLAGS} -m examples/ej/mac -l examples/ej/lexicon -s examples/ej/suite
-do_geni ${GENI_FLAGS} -m examples/chatnoir/mac -l examples/chatnoir/lexicon -s examples/chatnoir/sem --rootcats=p
+do_geni_pn ${GENI_FLAGS} -m examples/chatnoir/mac -l examples/chatnoir/lexicon -s examples/chatnoir/sem
 
-DEMO_FLAGS="-m examples/demo/demomac -l examples/demo/demolex -s examples/demo/suite --rootcats=p"
-do_geni ${GENI_FLAGS} ${DEMO_FLAGS}
+DEMO_FLAGS="-m examples/demo/demomac -l examples/demo/demolex -s examples/demo/suite"
+do_geni_pn ${GENI_FLAGS} ${DEMO_FLAGS}
 
-PROMETTRE_FLAGS="-m examples/promettre/macros -l examples/promettre/lexicon -s examples/promettre/testsuite --rootcats=p --opts=pol"
-do_geni ${GENI_FLAGS} ${PROMETTRE_FLAGS}
+PROMETTRE_FLAGS="-m examples/promettre/macros -l examples/promettre/lexicon -s examples/promettre/testsuite --opts=pol"
+do_geni_pn ${GENI_FLAGS} ${PROMETTRE_FLAGS}
 
 #Grammar   = examples/demo/index
 #!
