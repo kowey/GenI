@@ -201,7 +201,7 @@ usage adv =
  let header   = "Usage: geni [OPTION...]"
      body     = basic ++ if adv then ("\n\n" ++ advanced) else ""
      example  = "Example:\n" ++
-       " geni --gui -m examples/ej/mac -l examples/ej/lexicon -s examples/ej/suite\n"
+       " geni -m examples/ej/mac -l examples/ej/lexicon -s examples/ej/suite\n"
      basic    = usageInfo header optionsForBasicStuff
      advanced = basic
                 ++ usageInfo "Advanced options (note: all LIST are space delimited)" optionsAdvanced
