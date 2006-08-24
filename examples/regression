@@ -1,5 +1,5 @@
 GENI_CMD=bin/geni
-GENI_FLAGS="$* --opts=f-sem"
+GENI_FLAGS="$* --opts=f-sem --regression"
 
 do_geni() {
   echo "${GENI_CMD} $* --nogui"
@@ -10,14 +10,10 @@ do_geni ${GENI_FLAGS} -m examples/ej/mac -l examples/ej/lexicon -s examples/ej/s
 do_geni ${GENI_FLAGS} -m examples/chatnoir/mac -l examples/chatnoir/lexicon -s examples/chatnoir/sem --rootcats=p
 
 DEMO_FLAGS="-m examples/demo/demomac -l examples/demo/demolex -s examples/demo/suite --rootcats=p"
-do_geni ${GENI_FLAGS} ${DEMO_FLAGS} 
-do_geni ${GENI_FLAGS} ${DEMO_FLAGS} --testcase=promettre_donner
+do_geni ${GENI_FLAGS} ${DEMO_FLAGS}
 
 PROMETTRE_FLAGS="-m examples/promettre/macros -l examples/promettre/lexicon -s examples/promettre/testsuite --rootcats=p --opts=pol"
 do_geni ${GENI_FLAGS} ${PROMETTRE_FLAGS}
-do_geni ${GENI_FLAGS} ${PROMETTRE_FLAGS} --testcase=promettre_donner_persuader
-do_geni ${GENI_FLAGS} ${PROMETTRE_FLAGS} --testcase=pr_per_per_per_do
-do_geni ${GENI_FLAGS} ${PROMETTRE_FLAGS} --testcase=jean_promet_a_marie_de_le_donner_un_livre
 
 #Grammar   = examples/demo/index
 #!
