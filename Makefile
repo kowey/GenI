@@ -247,7 +247,7 @@ extractor: $(EXTRACTOR)
 clientserver: $(SERVER) $(CLIENT)
 
 $(GENI) : $(GENI_MAIN) $(GENI_DEPS)
-	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES_GUI) $< -o $@
+	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES_GUI) -package HUnit $< -o $@
 	$(OS_SPECIFIC_STUFF)
 
 $(CONVERTER): $(CONVERTER_MAIN) $(CONVERTER_DEPS)
