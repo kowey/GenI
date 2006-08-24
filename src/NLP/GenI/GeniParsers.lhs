@@ -58,10 +58,6 @@ import qualified Text.ParserCombinators.Parsec.Token as P
 The test suite format consists of arbitrarily many test cases:
 
 \begin{code}
-type TestCase = ( String    -- name
-                , SemInput  -- semantics / idxconstraints
-                , [String]) -- sentences
-
 geniTestSuite :: Parser [TestCase]
 geniTestSuite = 
   do whiteSpace
@@ -85,9 +81,9 @@ keyword.)
 geniTestCase :: Parser TestCase
 geniTestCase =
   do name  <- option "" (identifier <?> "a test case name")
-     tcase <- geniSemanticInput
+     seminput <- geniSemanticInput
      sentences   <- many geniSentence
-     return (name, tcase, sentences)
+     return $ TestCase name "" seminput sentences
 
 geniSentence :: Parser String
 geniSentence =

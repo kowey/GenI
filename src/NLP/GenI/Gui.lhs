@@ -42,7 +42,7 @@ import NLP.GenI.Geni
   ( ProgState(..), ProgStateRef, combine, initGeni
   , loadGrammar, loadTestSuite, loadTargetSemStr)
 import NLP.GenI.General (boundsCheck, geniBug, trim, fst3)
-import NLP.GenI.Btypes (ILexEntry(isemantics))
+import NLP.GenI.Btypes (ILexEntry(isemantics), TestCase(..))
 import NLP.GenI.Tags (idname, tpolarities, tsemantics, TagElem)
 import NLP.GenI.Treeprint (toGeniHand)
 import NLP.GenI.Configuration
@@ -338,7 +338,7 @@ readTestSuite pstRef tsBox tsChoice =
   do pst <- readIORef pstRef
      let suite   = tsuite pst
          theCase = tcase pst
-         suiteCases = map fst3 suite
+         suiteCases = map tcName suite
      -- we number the cases for easy identification, putting 
      -- a star to highlight the selected test case (if available)
      let numfn :: Int -> String -> String
@@ -354,7 +354,7 @@ readTestSuite pstRef tsBox tsChoice =
      ----------------------------------------------------
      -- handler for selecting a test case
      ----------------------------------------------------
-     let displaySemInput (_,str,si) =
+     let displaySemInput (TestCase _ str si _) =
            toGeniHand $ toSemInputString si str
      let onTestCaseChoice = do
          csel <- get tsChoice selection

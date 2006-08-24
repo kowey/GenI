@@ -65,7 +65,7 @@ import NLP.GenI.General(filterTree, groupAndCount, multiGroupByFM,
 import NLP.GenI.Btypes
   (Macros, MTtree, ILexEntry, Lexicon,
    Replacable(..),
-   Sem, SemInput, sortSem, subsumeSem, params,
+   Sem, SemInput, TestCase(..), sortSem, subsumeSem, params,
    GeniVal, fromGVar,
    GNode(ganchor, gnname, gup, gdown), Flist,
    isemantics, ifamname, iword, iparams, iequations,
@@ -133,7 +133,7 @@ data ProgState = ST{pa     :: Params,
                     -- names of test case to run
                     tcase    :: String, 
                     -- name, original string (for gui), sem
-                    tsuite   :: [(String,String,SemInput)]
+                    tsuite   :: [TestCase]
                }
 
 type ProgStateRef = IORef ProgState
@@ -303,9 +303,10 @@ loadTestSuite pstRef = do
       updateTsuite config s s2 x =
         x { tsuite = zipWith cleanup s s2
           , tcase  = fromMaybe "" $ getFlagP TestCaseFlg config}
-      cleanup (i, (sm, sr, lc), _) str =
-        let newsmsr = (sortSem sm, sort sr, lc)
-        in  (i, str, newsmsr)
+      cleanup tc str =
+        tc { tcSem = (sortSem sm, sort sr, lc)
+           , tcSemString = str }
+        where (sm, sr, lc) = tcSem tc
 \end{code}
 
 \fnlabel{loadTargetSemStr} Given a string with some semantics, it

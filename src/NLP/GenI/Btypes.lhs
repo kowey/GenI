@@ -27,7 +27,7 @@ unification, that is).
 module NLP.GenI.Btypes(
    -- Datatypes 
    GNode(GN), GType(Subs, Foot, Lex, Other), NodeName,
-   Ttree(..), MTtree, SemPols,
+   Ttree(..), MTtree, SemPols, TestCase(..),
    Ptype(Initial,Auxiliar,Unspecified), 
    Pred, Flist, AvPair, GeniVal(..),
    Lexicon, ILexEntry(..), Macros, Sem, LitConstr, SemInput, Subst,
@@ -591,6 +591,14 @@ type Sem = [Pred]
 type LitConstr = (Pred, [String])
 type SemInput  = (Sem,Flist,[LitConstr])
 type Subst = [(String, GeniVal)]
+
+data TestCase = TestCase
+       { tcName :: String
+       , tcSemString :: String -- ^ for gui
+       , tcSem  :: SemInput
+       , tcExpected :: [String] -- ^ expected results (for testing)
+       } deriving Show
+
 emptyPred :: Pred
 emptyPred = (GAnon,GAnon,[])
 \end{code}

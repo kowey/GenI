@@ -26,10 +26,9 @@ import Data.List(find)
 import Data.Maybe ( isJust, fromMaybe )
 import System.Directory(createDirectoryIfMissing)
 
-import NLP.GenI.Btypes( SemInput )
+import NLP.GenI.Btypes( SemInput, TestCase(..) )
 import NLP.GenI.General
   ( ePutStrLn, withTimeout, exitTimeout, (///)
-  , fst3, thd3,
   )
 import NLP.GenI.Geni
 import NLP.GenI.Configuration
@@ -75,12 +74,12 @@ runSuite pstRef =
      case getFlagP BatchDirFlg (pa pst) of
        Nothing   -> runTestCaseOnly pstRef >> return ()
        Just bdir ->
-          if any null $ map fst3 suite
+          if any null $ map tcName suite
              then ePutStrLn "Can't do batch processing. The test suite has cases with no name."
              else do ePutStrLn "Batch processing mode"
                      mapM_ (runCase bdir) suite
  where
-  runCase bdir (n,_,s) =
+  runCase bdir (TestCase n _ s _) =
    do (res , _) <- runOnSemInput pstRef (PartOfSuite n bdir) s
       ePutStrLn $ " " ++ n ++ " - " ++ (show $ length res) ++ " results"
 
@@ -100,11 +99,11 @@ runTestCaseOnly pstRef =
   getFirstCase pst =
     case tsuite pst of
     []    -> fail "Test suite is empty."
-    (c:_) -> return $ thd3 c
+    (c:_) -> return $ tcSem c
   findCase pst theCase =
-    case find (\x -> fst3 x == theCase) (tsuite pst) of
-    Nothing      -> fail ("No such test case: " ++ theCase)
-    Just (_,_,s) -> return s
+    case find (\x -> tcName x == theCase) (tsuite pst) of
+    Nothing -> fail ("No such test case: " ++ theCase)
+    Just s  -> return $ tcSem s
 
 data RunAs = Standalone  FilePath FilePath
            | PartOfSuite String FilePath

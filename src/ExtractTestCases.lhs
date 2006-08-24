@@ -45,8 +45,6 @@ import Text.ParserCombinators.Parsec
 \end{code}
 
 \begin{code}
-type TestCase = (String,SemInput,[String])
-
 main :: IO ()
 main = 
  do -- read the command line arguments
@@ -69,9 +67,10 @@ main =
                  Right cs  -> return cs
     -- process the suite
     -- (for now, just remove redundant entries)
-    let canon x = srt.snd3.snd $ x
+    let canon = srt . tcSem
           where srt (sem,res,lc) = (sortSem sem, sort res, sort lc)
-        suite = nubBy (\x y -> canon x == canon y) $ zip caseStrs suite'
+        suite = nubBy (\x y -> canon x == canon y) $ zipWith setStr suite' caseStrs
+          where setStr tc s = tc { tcSemString = s }
     -- write stuff to the output directory
     createDirectoryIfMissing False outdir
     mapM (createSubdir outdir) suite
@@ -83,14 +82,13 @@ exitShowing err=
     ePutStrLn err_
     exitFailure
 
-createSubdir :: String -> (String,TestCase) -> IO ()
-createSubdir outdir (semanticsStr_, testcase) =
- do let (name, seminput, sent) = testcase
-        subdir = outdir /// name
+createSubdir :: String -> TestCase -> IO ()
+createSubdir outdir (TestCase name semStr semInput sent) =
+ do let subdir = outdir /// name
     createDirectoryIfMissing False subdir
     --
     writeFile (subdir /// "semantics") $ toGeniHand $
-      toSemInputString seminput semanticsStr_
+      toSemInputString semInput semStr
     writeFile (subdir /// "sentences") $ unlines sent
 \end{code}
 
