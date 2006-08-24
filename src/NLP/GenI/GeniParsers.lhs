@@ -88,9 +88,9 @@ geniTestCase =
 geniSentence :: Parser String
 geniSentence =
   do optional (keyword "sentence")
-     w <- squares (sepBy1 geniWord whiteSpace <?> "a sentence")
+     w <- squares (sepEndBy1 geniWord whiteSpace <?> "a sentence")
      return (unwords w)
-  where geniWord = many1 (noneOf "[]\v\f\t\r\n")
+  where geniWord = many1 (noneOf "[]\v\f\t\r\n ")
 
 -- | The original string representation of a test case semantics
 --   (for gui)
