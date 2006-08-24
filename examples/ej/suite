@@ -1,6 +1,10 @@
 v_runs 
 semantics: [ name(s1 a vincent)
              run(e a) ]
+[Vincent runs]
+[Vincent gallops]
+[Vinny runs]
+[Vinny gallops]
 
 v_loves_m 
 semantics: [ name(s1 a vincent)
@@ -28,6 +32,7 @@ semantics : [def(a)
 
 man_love_m
 semantics: [man(s1 a) 
+            def(a)
             love(e a ex)
             name(s2 ex mia)]
 
@@ -42,11 +47,15 @@ semantics : [man(s1 a)
 
 man_remove_white_rabbit_fast
 semantics : [man(s1 a)
+             def(a)
              remove(e a ex h)
 	     rabbit(s2 ex)
+             def(ex)
 	     white(s6 ex)
 	     fast (s5 e)
-	     hat(s3 h)]
+	     hat(s3 h)
+             def(h)]
+[the man removes the white rabbit from the hat fast]
 
 man_remove_rabbit_fast
 semantics : [man(s1 a) 
