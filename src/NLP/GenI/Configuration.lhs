@@ -34,6 +34,7 @@ module NLP.GenI.Configuration
   , MorphInfoFlg(..)
   , OptimisationsFlg(..)
   , OutputFileFlg(..)
+  , RegressionTestModeFlg(..)
   , RootCategoriesFlg(..)
   , ServerModeFlg(..)
   , StatsFileFlg(..)
@@ -304,6 +305,8 @@ outputOption =
 optionsForUserInterface :: [OptDescr Flag]
 optionsForUserInterface =
   [ noguiOption, helpOption
+  , Option []    ["regression"] (noArg RegressionTestModeFlg)
+      "Run in regression testing mode (needs grammar, etc)"
   , Option []    ["viewcmd"]  (reqArg ViewCmdFlg id "CMD")
       "XMG tree-view command"
   ]
@@ -661,6 +664,7 @@ FLAG (MorphCmdFlg, String)
 FLAG (MorphInfoFlg, FilePath)
 FLAG (OptimisationsFlg, [Optimisation])
 FLAG (OutputFileFlg, String)
+FLAG (RegressionTestModeFlg, ())
 FLAG (RootCategoriesFlg, [String])
 FLAG (ServerModeFlg, ())
 FLAG (StatsFileFlg, FilePath)
