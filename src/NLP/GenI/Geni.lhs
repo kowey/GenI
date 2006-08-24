@@ -475,6 +475,8 @@ runLexSelection pst =
     let (tsem,_,litConstrs) = ts pst
         lexicon  = le pst
         lexCand   = chooseLexCand lexicon tsem
+        config   = pa pst
+        verbose  = hasFlagP VerboseModeFlg config
     -- then anchor these lexical items to trees
     let combineWithGr l =
          do let (errs, res) = combineList (gr pst) l
@@ -492,7 +494,7 @@ runLexSelection pst =
 
             -- FIXMENOW when (not.null $ errs) $ ePutStrLn (unlines errs)
             return res
-    cand <- case (grammarType $ pa pst) of  
+    cand <- case grammarType config of
               PreAnchored  -> readPreAnchored pst
               _            -> concat `liftM` mapM combineWithGr lexCand
     -- attach any morphological information to the candidates
@@ -512,7 +514,15 @@ runLexSelection pst =
     -- FIXME: should we tell the user that we are doing this?
     -- assign ids to each candidate
     let cand4 = setTidnums cand3
-    return (cand4, lexCand)
+    --
+    let candFinal = cand4
+        indent  x = ' ' : x
+        unlinesIndentAnd :: (x -> String) -> [x] -> String
+        unlinesIndentAnd f = unlines . map (indent . f)
+    when verbose $
+      do ePutStrLn $ "Lexical items selected:\n" ++ (unlinesIndentAnd (showLexeme.iword) lexCand)
+         ePutStrLn $ "Trees anchored (family) :\n" ++ (unlinesIndentAnd idname candFinal)
+    return (candFinal, lexCand)
 \end{code}
 
 \paragraph{chooseLexCand} selects and returns the set of entries from
