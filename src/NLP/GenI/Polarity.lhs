@@ -96,7 +96,7 @@ import NLP.GenI.Btypes(Pred, SemInput, Sem, Flist, AvPair, showAv,
               root, gup, gdown, gtype, GType(Subs),
               SemPols, unifyFeat, rootUpd)
 import NLP.GenI.General(
-    BitVector, isEmptyIntersect, fst3, snd3, thd3,
+    BitVector, isEmptyIntersect, thd3,
     Interval, ival, (!+!), showInterval)
 import NLP.GenI.Graphviz(GraphvizShow(..), gvUnlines, gvNewline, gvNode, gvEdge)
 import NLP.GenI.Tags(TagElem(..), TagItem(..), setTidnums)
@@ -675,27 +675,20 @@ type SemWeightMap = Map.Map PredLite SemPols
 
 fixPronouns :: (Sem,[TagElem]) -> (Sem,[TagElem])
 fixPronouns (tsem,cands) = 
-  let -- part 1 (get smallest charge)
+  let -- part 1 (for each literal get smallest charge for each idx)
       getpols :: TagElem -> [ (PredLite,SemPols) ]
-      getpols x = zip (map fn $ tsemantics x) (tsempols x)
-        where fn :: Pred -> PredLite
-              fn s = (show $ snd3 s, fst3 s : thd3 s)
+      getpols x = zip [ (show p, h:as) | (h,p,as) <- tsemantics x ] (tsempols x)
       sempols :: [ (PredLite,SemPols) ]
       sempols = concatMap getpols cands
-      usagefn :: (PredLite,SemPols) -> SemWeightMap -> SemWeightMap 
-      usagefn (lit,cnts) m = Map.insertWith (zipWith min) lit cnts m
       usagemap :: SemWeightMap 
-      usagemap = foldr usagefn Map.empty sempols 
+      usagemap = Map.fromListWith (zipWith min) sempols
       -- part 2 (cancel sem polarities)
-      usagelist :: [(GeniVal,Int)]
-      usagelist = concatMap fn (Map.toList usagemap)
-        where fn ((_,idxs),pols) = zip idxs pols
       chargemap :: Map.Map GeniVal Int -- index to charge 
-      chargemap =  foldr addfn Map.empty usagelist 
-        where addfn (p,c) m = Map.insertWith (+) p c m
+      chargemap =  Map.fromListWith (+) $ concatMap clump $ Map.toList usagemap
+        where clump ((_,is),ps) = zip is ps
       -- part 3 (adding extra semantics)
       indices = concatMap fn (Map.toList chargemap) 
-        where fn (i,c) = take (0-c) (repeat i)
+        where fn (i,c) = replicate (0-c) i
       -- the extra columns 
       extraSem = map indexPred indices
       tsem2    = sortSem (tsem ++ extraSem)
@@ -704,8 +697,7 @@ fixPronouns (tsem,cands) =
       cands2 = (cands \\ zlit) ++ (concatMap fn indices)
         where fn i = map (tweak i) zlit
               tweak i x = assignIndex i $ x { tsemantics = [indexPred i] }
-      -- part 4 (insert excess pronouns in sem)
-      -- fixPronouns  
+      -- part 4 (insert excess pronouns in tree sem)
       comparefn :: GeniVal -> Int -> Int -> [GeniVal]
       comparefn i c1 c2 = if (c2 < c1) then extra else []
         where extra = take (c1 - c2) $ repeat i 
