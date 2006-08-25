@@ -654,20 +654,29 @@ of a pronoun, and does not need one in its lexical combination.
 \end{figure}
 
 \paragraph{fixPronouns} returns a modified input semantics and lexical
-selection in which pronouns are properly accounted for.
+selection in which pronouns are properly accounted for.  The steps in
+this process are
+\begin{enumerate}
+\item For each literal in the input semantics, establish the
+      smallest charge for each of its semantic indices.
+\item Cancel out the polarities for every index in the input
+      semantics.
+\item Compensate for any uncancelled negative polarities by an
+      adding an additional literal to the input semantics -- a pronoun --
+      for every negative charge.
+\item Finally, deal with the problem of lexical items who require fewer
+      pronouns than predicted by inserting the excess pronouns in their extra
+      literal semantics (see page \pageref{different_sem_annotations})
+\end{enumerate}
 
 \begin{code}
 type PredLite = (String,[GeniVal]) -- handle is head of arg list 
 type SemWeightMap = Map.Map PredLite SemPols
+
 fixPronouns :: (Sem,[TagElem]) -> (Sem,[TagElem])
 fixPronouns (tsem,cands) = 
-\end{code}
-
-First, for each literal in the input semantics, we establish the
-smallest charge for each of its semantic indices.
-
-\begin{code}
-  let getpols :: TagElem -> [ (PredLite,SemPols) ]
+  let -- part 1 (get smallest charge)
+      getpols :: TagElem -> [ (PredLite,SemPols) ]
       getpols x = zip (map fn $ tsemantics x) (tsempols x)
         where fn :: Pred -> PredLite
               fn s = (show $ snd3 s, fst3 s : thd3 s)
@@ -677,25 +686,14 @@ smallest charge for each of its semantic indices.
       usagefn (lit,cnts) m = Map.insertWith (zipWith min) lit cnts m
       usagemap :: SemWeightMap 
       usagemap = foldr usagefn Map.empty sempols 
-\end{code}
-
-Second, we cancel out the polarities for every index in the input
-semantics.  
-
-\begin{code}
+      -- part 2 (cancel sem polarities)
       usagelist :: [(GeniVal,Int)]
       usagelist = concatMap fn (Map.toList usagemap)
         where fn ((_,idxs),pols) = zip idxs pols
       chargemap :: Map.Map GeniVal Int -- index to charge 
       chargemap =  foldr addfn Map.empty usagelist 
         where addfn (p,c) m = Map.insertWith (+) p c m
-\end{code}
-
-Third, we compensate for any uncancelled negative polarities by an
-adding an additional literal to the input semantics -- a pronoun --
-for every negative charge.
-
-\begin{code}
+      -- part 3 (adding extra semantics)
       indices = concatMap fn (Map.toList chargemap) 
         where fn (i,c) = take (0-c) (repeat i)
       -- the extra columns 
@@ -706,14 +704,7 @@ for every negative charge.
       cands2 = (cands \\ zlit) ++ (concatMap fn indices)
         where fn i = map (tweak i) zlit
               tweak i x = assignIndex i $ x { tsemantics = [indexPred i] }
-\end{code}
-
-Fourth, and finally, we deal with the problem of lexical items
-who require fewer pronouns than predicted by inserting the 
-excess pronouns in their extra literal semantics (see page
-\pageref{different_sem_annotations})
-
-\begin{code}
+      -- part 4 (insert excess pronouns in sem)
       -- fixPronouns  
       comparefn :: GeniVal -> Int -> Int -> [GeniVal]
       comparefn i c1 c2 = if (c2 < c1) then extra else []
