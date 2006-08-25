@@ -1,0 +1,8 @@
+% these should all fail
+
+k2p_conflict semantics:[t1() t2() db()]
+adj_failure  semantics:[a() xb()] % top/bot conflict
+
+tb_failure1  semantics:[eb1()]
+tb_failure2  semantics:[eb2() t1() t2()]
+
