@@ -1,12 +1,19 @@
 GENI_CMD=bin/geni
 GENI_FLAGS="$* --opts=f-sem --regression"
 
+echo_bar() {
+  echo
+  echo "---------------------------------------------"
+}
+
 do_geni() {
+  echo_bar
   echo "${GENI_CMD} $* --nogui"
   ${GENI_CMD} $* --nogui
 }
 
 do_geni_pn() {
+  echo_bar
   echo "${GENI_CMD} $* --nogui --rootcats='p n'"
   ${GENI_CMD} $* --nogui --rootcats='p n'
 }
