@@ -1,50 +1,57 @@
-%semantics:[h2:mary(m)
-%           e1:love(j m)]
-%[ il aimer marie ]
-%
-%semantics:[h1:john(j) 
-%           h2:mary(m)
-%           e1:love(j m)]
-%[ jean aimer marie ]
-%
-%semantics:[h1:john(j) 
-%           h2:book(l) h2:def(l)
-%           e1:love(j l)]
-%[ jean aimer le livre ]
-%
-%semantics:[h1:john(j) 
-%           e1:love(j j)]
-%[ jean se aimer ]
-%
-%semantics:[h1:john(j) 
-%           h2:mary(m) 
-%           e1:love(j m) 
-%           e2:promise(j e1 m)]
-%[ jean promettre a marie de le aimer ]
-%[ jean promettre marie de le aimer ]
+il_aime_marie
+semantics:[h2:mary(m)
+           e1:love(j m)]
+[ il aimer Marie ]
 
+jean_aime_marie
+semantics:[h1:john(j)
+           h2:mary(m)
+           e1:love(j m)]
+[ Jean aimer Marie ]
+
+jean_aime_le_livre
+semantics:[h1:john(j)
+           h2:book(l) h2:def(l)
+           e1:love(j l)]
+[ Jean aimer le livre ]
+
+jean_s_aime
+semantics:[h1:john(j)
+           e1:love(j j)]
+[ Jean se aimer ]
+
+%jean_promet_marie_de_l'aimer
+%semantics:[h1:john(j)
+%           h2:mary(m)
+%           e1:love(j m)
+%           e2:promise(j e1 m)]
+%[ Jean promettre a Marie de le aimer ]
+%[ Jean promettre Marie de le aimer ]
+
+jean_donne_un_livre_a_marie
 semantics:[john(j) 
            mary(m) 
            book(b) indef(b)
            give(j b m)]
-[ jean donne a marie un livre ]
-[ jean donne un livre a marie ]
+%[ Jean donner a Marie un livre ]
+[ Jean donner un livre a Marie ]
 
+jean_promet_a_marie_de_donner_un_livre_a_Claire
 semantics:[john(j) 
            mary(m) 
            book(b) indef(b)
            claire(c)
            e1:give(j b c) 
            promise(j e1 m) ]
-[ jean promet a marie de donner un livre a claire ]
+[ Jean promettre a Marie de donner un livre a Claire ]
 
-jean_promet_a_marie_de_le_donner_un_livre
+jean_promet_a_Marie_de_le_donner_un_livre
 semantics:[john(j) 
            mary(m) 
            book(b) indef(b)
            e1:give(j b m) 
            promise(j e1 m) ]
-[ jean promet a marie de le donner un livre ]
+[ Jean promettre a Marie de le donner un livre ]
 
 %semantics:[h1:john(j) 
 %           h2:mary(m) 
@@ -53,7 +60,7 @@ semantics:[john(j)
 %           e1:give(j b p) 
 %           e2:promise(j e1 m) 
 %           e3:convince(p e2 j) ]
-%[ paul persuader jean de promettre a marie de le donner un livre ]
+%[ Paul persuader Jean de promettre a Marie de le donner un livre ]
 
 promettre
 semantics : [ h1:def(b)
