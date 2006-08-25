@@ -19,13 +19,13 @@ do_geni_pn() {
 }
 
 
-do_geni ${GENI_FLAGS} -m examples/ej/mac -l examples/ej/lexicon -s examples/ej/suite
-do_geni_pn ${GENI_FLAGS} -m examples/chatnoir/mac -l examples/chatnoir/lexicon -s examples/chatnoir/sem
+do_geni ${GENI_FLAGS} -m examples/ej/macros -l examples/ej/lexicon -s examples/ej/suite
+do_geni_pn ${GENI_FLAGS} -m examples/chatnoir/macros -l examples/chatnoir/lexicon -s examples/chatnoir/suite
 
-DEMO_FLAGS="-m examples/demo/demomac -l examples/demo/demolex -s examples/demo/suite"
+DEMO_FLAGS="-m examples/demo/macros -l examples/demo/lexicon -s examples/demo/suite"
 do_geni_pn ${GENI_FLAGS} ${DEMO_FLAGS}
 
-PROMETTRE_FLAGS="-m examples/promettre/macros -l examples/promettre/lexicon -s examples/promettre/testsuite --opts=pol"
+PROMETTRE_FLAGS="-m examples/promettre/macros -l examples/promettre/lexicon -s examples/promettre/suite --opts=pol"
 do_geni_pn ${GENI_FLAGS} ${PROMETTRE_FLAGS}
 
 #Grammar   = examples/demo/index
