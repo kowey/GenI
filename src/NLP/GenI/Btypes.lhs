@@ -328,7 +328,7 @@ setLexeme s t =
       fn _ = geniBug "impossible case in setLexeme"
   in case listRepNode fn filt [t] of
      ([r],True) -> r
-     _ -> geniBug $ "setLexeme returned weird result"
+     _ -> geniBug $ "setLexeme " ++ show s ++ " returned weird result"
 \end{code}
 
 \subsection{Substitution and Adjunction}
