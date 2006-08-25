@@ -27,8 +27,3 @@ do_geni_pn ${GENI_FLAGS} ${DEMO_FLAGS}
 
 PROMETTRE_FLAGS="-m examples/promettre/macros -l examples/promettre/lexicon -s examples/promettre/suite --opts=pol"
 do_geni_pn ${GENI_FLAGS} ${PROMETTRE_FLAGS}
-
-#Grammar   = examples/demo/index
-#!
-#Grammar   = examples/promettre/index
-#MorphCmd  = etc/stupidmorph.pl
