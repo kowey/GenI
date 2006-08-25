@@ -1,29 +1,44 @@
 GENI_CMD=bin/geni
 GENI_FLAGS="$* --opts=f-sem --regression"
 
-echo_bar() {
-  echo
-  echo "---------------------------------------------"
-}
-
 do_geni() {
-  echo_bar
-  echo "${GENI_CMD} $* --nogui"
-  ${GENI_CMD} $* --nogui
+  echo "--------------------------------"
+  FINAL_CMD="${GENI_CMD} $* --nogui"
+  echo "${FINAL_CMD}"
+  sh -c "${FINAL_CMD}"
+  echo
 }
 
-do_geni_pn() {
-  echo_bar
-  echo "${GENI_CMD} $* --nogui --rootcats='p n'"
-  ${GENI_CMD} $* --nogui --rootcats='p n'
-}
 
+echo "================================================================"
+echo "Artificial cases"
+echo "================================================================"
+echo
+
+do_geni ${GENI_FLAGS} -m examples/artificial/macros -l examples/artificial/lexicon -s examples/artificial/suite --rootcats="'a b s t1'"
+
+echo "================================================================"
+echo "Bad artificial cases - these should all fail!"
+echo "================================================================"
+echo
+
+do_geni ${GENI_FLAGS} -m examples/artificial/macros -l examples/artificial/lexicon -s examples/artificial/suite-bad\
+        --rootcats="'a b s t1'"\
+        2>&1 | grep -v "got no results" | grep -v "Error in"
+
+echo "================================================================"
+echo "Normal English/French test suites - should pass"
+echo "================================================================"
+echo
 
 do_geni ${GENI_FLAGS} -m examples/ej/macros -l examples/ej/lexicon -s examples/ej/suite
-do_geni_pn ${GENI_FLAGS} -m examples/chatnoir/macros -l examples/chatnoir/lexicon -s examples/chatnoir/suite
+# note: '' is for the cmd; "" is the for the wrappers provided by this script
+do_geni ${GENI_FLAGS} -m examples/chatnoir/macros -l examples/chatnoir/lexicon -s examples/chatnoir/suite --rootcats="'p n'"
 
 DEMO_FLAGS="-m examples/demo/macros -l examples/demo/lexicon -s examples/demo/suite"
-do_geni_pn ${GENI_FLAGS} ${DEMO_FLAGS}
+do_geni ${GENI_FLAGS} ${DEMO_FLAGS} --rootcats=p
 
 PROMETTRE_FLAGS="-m examples/promettre/macros -l examples/promettre/lexicon -s examples/promettre/suite --opts=pol"
-do_geni_pn ${GENI_FLAGS} ${PROMETTRE_FLAGS}
+do_geni ${GENI_FLAGS} ${PROMETTRE_FLAGS} --rootcats=p
+
+
