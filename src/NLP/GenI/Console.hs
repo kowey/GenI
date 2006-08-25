@@ -29,7 +29,11 @@ import Test.HUnit.Text (runTestTT)
 import qualified Test.HUnit.Base as H
 import Test.HUnit.Base ((@?))
 
-import NLP.GenI.Btypes( SemInput, TestCase(..), showSem )
+import NLP.GenI.Btypes
+   ( SemInput, showSem,
+   , TestCase(tcSem, tcName, tcExpected)
+   )
+import qualified NLP.GenI.Btypes as G
 import NLP.GenI.General
   ( ePutStrLn, withTimeout, exitTimeout, (///)
   , fst3
@@ -87,7 +91,7 @@ runSuite pstRef =
     then    ePutStrLn "Can't do batch processing. The test suite has cases with no name."
     else do ePutStrLn "Batch processing mode"
             mapM_ (runCase bdir) suite
-  runCase bdir (TestCase n _ s _) =
+  runCase bdir (G.TestCase n _ s _) =
    do (res , _) <- runOnSemInput pstRef (PartOfSuite n bdir) s
       ePutStrLn $ " " ++ n ++ " - " ++ (show $ length res) ++ " results"
 
@@ -101,7 +105,7 @@ runRegressionSuite pstRef =
     tests <- (mapM toTest) . tsuite $ pst
     runTestTT . (H.TestList) . concat $ tests
  where
-  toTest :: TestCase -> IO [H.Test] -- ^ GenI test case to HUnit Tests
+  toTest :: G.TestCase -> IO [H.Test] -- ^ GenI test case to HUnit Tests
   toTest tc = -- run the case, and return a test case for each expected result
    do (res , _) <- runOnSemInput pstRef InRegressionTest (tcSem tc)
       let name = tcName tc
