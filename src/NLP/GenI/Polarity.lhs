@@ -699,8 +699,9 @@ fixPronouns (tsem,cands) =
               tweak i x = assignIndex i $ x { tsemantics = [indexPred i] }
       -- part 4 (insert excess pronouns in tree sem)
       comparefn :: GeniVal -> Int -> Int -> [GeniVal]
-      comparefn i c1 c2 = if (c2 < c1) then extra else []
-        where extra = take (c1 - c2) $ repeat i 
+      comparefn i ct cm = if (cm < ct) then extra else []
+        where maxNeeded = Map.findWithDefault 0 i chargemap -- cap the number added
+              extra = replicate (min (0 - maxNeeded) (ct - cm)) i
       comparePron :: (PredLite,SemPols) -> [GeniVal]
       comparePron (lit,c1) = concat $ zipWith3 comparefn idxs c1 c2
         where idxs = snd lit
