@@ -332,7 +332,7 @@ initSimpleItem :: SemBitMap -> (TagElem, BitVector) -> SimpleItem
 initSimpleItem bmap (teRaw,pp) =
  let (te,tlite) = renameNodesWithTidnum teRaw in
  case (detectSites.ttree) te of
- (snodes,anodes) -> setIaf $ SimpleItem
+ (snodes,anodes,_) -> setIaf $ SimpleItem
   { siId        = tidnum te
   , siSemantics = semToBitVector bmap (tsemantics te)
   , siSubstnodes = snodes

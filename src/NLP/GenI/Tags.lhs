@@ -169,12 +169,18 @@ emptyTE = TE { idname = "",
              }
 
 -- | Given a tree(GNode) returns a list of substitution or adjunction
---   nodes.
-detectSites :: Tree GNode -> ([TagSite], [TagSite])
-detectSites t = (sites isSub, sites (not.gaconstr))
+--   nodes, as well as remaining nodes with a null adjunction constraint.
+detectSites :: Tree GNode -> ([TagSite], [TagSite], [TagSite])
+detectSites t =
+  ( sites isSub           -- for substitution
+  , sites (not.gaconstr)  -- for adjunction
+  , sites constrButNotSub -- for neither
+  )
  where
- sites match = [ TagSite (gnname n) (gup n) (gdown n) | n <- flatten t, match n ]
+ ns = flatten t
+ sites match = [ TagSite (gnname n) (gup n) (gdown n) | n <- ns, match n ]
  isSub n = gtype n == Subs
+ constrButNotSub n = gaconstr n && (not $ isSub n)
 \end{code}
 
 \subsection{Unique ID}
