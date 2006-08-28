@@ -523,8 +523,8 @@ switchToAux = do
 #ifndef DISABLE_GUI
   mapM (\t -> addToTrash t ts_synIncomplete) incompT1
   mapM (\t -> addToTrash t "sem-filtered") incompT2
-  return ()
 #endif
+  return ()
 \end{code}
 
 \subsubsection{SemFilter Optimisation}
