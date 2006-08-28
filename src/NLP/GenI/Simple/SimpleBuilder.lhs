@@ -49,7 +49,7 @@ where
 \begin{code}
 import Control.Monad (when, liftM2)
 import Control.Monad.State
-  (get, put, modify, gets)
+  (get, put, modify, gets, runState, execStateT)
 
 import Data.List (intersect, partition, delete, foldl')
 import Data.Maybe (isJust, isNothing, fromMaybe)
@@ -307,10 +307,11 @@ initSimpleBuilder twophase input config =
   let cands   = map (initSimpleItem bmap) $ B.inCands input
       (sem,_,_) = B.inSemInput input
       bmap    = defineSemanticBits sem
+      dispatchFn = if twophase then simpleDispatch_2p
+                   else simpleDispatch_1p (isIaf config)
       --
-      (a,i) = if twophase then partition closedAux cands else ([],cands)
-      initS = S{ theAgenda    = i
-               , theAuxAgenda = a
+      initS = S{ theAgenda    = []
+               , theAuxAgenda = []
                , theChart     = []
 #ifndef DISABLE_GUI
                , theTrash     = []
@@ -324,7 +325,7 @@ initSimpleBuilder twophase input config =
                , genconfig  = config }
       --
   in B.unlessEmptySem input config $
-     (initS, B.initStats config)
+     runState (execStateT (mapM dispatchFn cands) initS) (B.initStats config)
 
 
 initSimpleItem :: SemBitMap -> (TagElem, BitVector) -> SimpleItem
