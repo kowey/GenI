@@ -41,7 +41,7 @@ import NLP.GenI.General ((!+!), Interval, ival)
 import NLP.GenI.Btypes
 import NLP.GenI.Tags (TagElem(..), emptyTE, setTidnums)
 import NLP.GenI.Treeprint (GeniHandShow(toGeniHand))
-import Control.Monad (liftM)
+import Control.Monad (liftM, when)
 import Data.List (sort)
 import qualified Data.Map  as Map 
 import qualified Data.Tree as T
@@ -299,6 +299,16 @@ geniTreeDef ttypeP =
      (pars,iface)   <- geniParams 
      theTtype  <- ttypeP
      theTree  <- geniTree
+     -- sanity checks?
+     let theNodes = T.flatten theTree
+         numFeet  = length [ x | x <- theNodes, gtype x == Foot ]
+     when (not $ any ganchor theNodes) $
+       fail "At least one node in an LTAG tree must be an anchor"
+     when (numFeet > 1) $
+       fail "There can be no more than 1 foot node in a tree"
+     when (theTtype == Initial && numFeet > 0) $
+       fail "Initial trees may not have foot nodes"
+     --
      psem     <- option Nothing $ do { keywordSemantics; liftM Just (squares geniSemantics) }
      ptrc     <- option [] $ do { keyword "trace"; squares (many identifier) }
      --
