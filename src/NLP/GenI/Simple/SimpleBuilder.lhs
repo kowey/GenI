@@ -455,7 +455,7 @@ generateStep_2p' =
 
      -- determine which of the res should go in the agenda
      -- (monadic state) and which should go in the result (res')
-     mapM simpleDispatch res
+     mapM simpleDispatch_2p res
      -- put the given into the chart untouched
      if (curStep == Initial)
         then addToChart given
@@ -916,29 +916,24 @@ unification on it.  See \ref{sec:dispatching} for more details.
 \begin{code}
 type SimpleDispatchFilter = DispatchFilter SimpleState SimpleItem
 
-simpleDispatch :: SimpleDispatchFilter
-simpleDispatch item =
- do inputsem <- gets tsem
-    let synComplete x = siInitial x && closed x && adjdone x
-        semComplete x = inputsem == siSemantics x
-        isResult x = synComplete x && semComplete x
-    let theFilter = condFilter isResult
-                      (dpRootCatFailure >--> dpToResults)
-                      (dpAux >--> dpToAgenda)
-    theFilter item
+simpleDispatch_2p :: SimpleDispatchFilter
+simpleDispatch_2p =
+ simpleDispatch (dpRootCatFailure >--> dpToResults)
+                (dpAux >--> dpToAgenda)
 
--- FIXME: refactor me later!
 simpleDispatch_1p :: Bool -> SimpleDispatchFilter
-simpleDispatch_1p iaf item =
+simpleDispatch_1p iaf =
+ simpleDispatch (dpRootCatFailure >--> dpTbFailure >--> dpToResults)
+                (maybeDpIaf >--> dpToAgenda)
+ where maybeDpIaf = if iaf then dpIafFailure else nullFilter
+
+simpleDispatch :: SimpleDispatchFilter -> SimpleDispatchFilter -> SimpleDispatchFilter
+simpleDispatch resFilter nonResFilter item =
  do inputsem <- gets tsem
     let synComplete x = siInitial x && closed x && adjdone x
         semComplete x = inputsem == siSemantics x
         isResult x = synComplete x && semComplete x
-    let maybeDpIaf = if iaf then dpIafFailure else nullFilter
-        theFilter = condFilter isResult
-                      (dpRootCatFailure >--> dpTbFailure >--> dpToResults)
-                      (maybeDpIaf >--> dpToAgenda)
-    theFilter item
+    condFilter isResult resFilter nonResFilter item
 
 dpAux, dpToAgenda :: SimpleDispatchFilter
 dpTbFailure, dpRootCatFailure, dpRootCatFailure2, dpToResults :: SimpleDispatchFilter
