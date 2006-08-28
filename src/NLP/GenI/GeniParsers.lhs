@@ -369,8 +369,8 @@ geniNode =
                   else return [] 
      constr <- case nodeType of
                ""       -> adjConstraintParser
-               "anchor" -> return False -- preterminal node
-               _ -> return True
+               "anchor" -> adjConstraintParser
+               _  -> return True
      (top_,bot_) <- topbotParser 
      --
      let top   = sort top_
