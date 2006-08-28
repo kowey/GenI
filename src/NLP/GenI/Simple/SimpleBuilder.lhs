@@ -472,8 +472,12 @@ trashIt _ = return ()
 trashIt item =
  do s <- get
     let bmap = semBitMap s
-        missingSem = bitVectorToSem bmap $ tsem s `xor` siSemantics item
-    addToTrash item (ts_semIncomplete missingSem)
+        itemSem = siSemantics item
+        inputSem = tsem s
+        reason = if inputSem == itemSem
+                    then "unknown reason!"
+                    else ts_semIncomplete $ bitVectorToSem bmap $ inputSem `xor` itemSem
+    addToTrash item reason
 #endif
 
 -- | Arbitrarily selects and removes an element from the agenda and
