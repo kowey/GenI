@@ -212,7 +212,7 @@ clean: tidy
 
 tidy:
 	rm -f $(foreach d, $(DOC_DIRS), $(d)/*.{dvi,aux,log,bbl,blg,out,toc})
-	rm -f $(foreach d, $(DOC_DIRS), $(d)/*.{p_hi,p_o,hi,o})
+	rm -f $(foreach d, $(SRC_DIRS), $(d)/*.{p_hi,p_o,hi,o})
 
 init: permissions
 
