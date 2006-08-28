@@ -63,8 +63,7 @@ import NLP.GenI.Automaton ( automatonPaths, NFA(..), addTrans )
 import NLP.GenI.Btypes
   ( Ptype(Initial,Auxiliar),
   , Replacable(..), replace_Flist,
-  , Sem,
-  , GType(Other), GNode(..), gCategory, NodeName, gnnameIs,
+  , GNode(..), gCategory, NodeName,
   , GeniVal(GConst)
   , root, foot
   , plugTree, spliceTree
@@ -79,19 +78,22 @@ import NLP.GenI.Builder (UninflectedSentence,
     )
 import qualified NLP.GenI.Builder as B
 
-import NLP.GenI.Tags (TagElem, TagSite(TagSite), TagDerivation,
-             idname, tidnum,
+import NLP.GenI.Tags (TagElem, TagSite(TagSite),
+             tidnum,
              ttree, ttype, tsemantics,
              detectSites, tagLeaf,
-             ts_synIncomplete, ts_semIncomplete, ts_tbUnificationFailure,
              ts_noRootCategory, ts_wrongRootCategory,
             )
 import NLP.GenI.Configuration
 import NLP.GenI.General
- ( BitVector, mapMaybeM, mapTree', geniBug, treeLeaves, repList)
+ ( BitVector, mapMaybeM, mapTree', geniBug, treeLeaves, )
 
 #ifndef DISABLE_GUI
-import NLP.GenI.Btypes (sortSem)
+import NLP.GenI.Btypes ( GType(Other), sortSem, Sem, gnnameIs, )
+import NLP.GenI.General ( repList, )
+import NLP.GenI.Tags ( TagDerivation, idname,
+    ts_synIncomplete, ts_semIncomplete, ts_tbUnificationFailure,
+    )
 #endif
 \end{code}
 }
@@ -125,7 +127,9 @@ simpleBuilder twophase = B.Builder
 type Agenda = [SimpleItem]
 type AuxAgenda  = [SimpleItem]
 type Chart  = [SimpleItem]
+#ifndef DISABLE_GUI
 type Trash = [SimpleItem]
+#endif
 \end{code}
 
 \subsection{SimpleState and SimpleStatus}
@@ -621,14 +625,14 @@ iapplySubst twophase item1 item2 | siInitial item1 && closed item1 = {-# SCC "ap
               nr    = TagSite rn newU newD
               adj1  = nr : (delete r $ siAdjnodes item1)
               adj2  = siAdjnodes item2
-              -- gui stuff
-              newRoot g = g { gup = newU, gdown = newD, gtype = Other }
 #ifdef DISABLE_GUI
               item1g = item1
 #else
               item1g = item1 { siGuiStuff = g2 }
                 where g2 = g { siNodes = repList (gnnameIs rn) newRoot (siNodes g) }
                       g  = siGuiStuff item1
+              -- gui stuff
+              newRoot g = g { gup = newU, gdown = newD, gtype = Other }
 #endif
           let pending = if twophase then []
                         else nr : ((siPendingTb item1) ++ (siPendingTb item2))
