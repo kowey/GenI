@@ -307,8 +307,13 @@ initSimpleBuilder twophase input config =
   let cands   = map (initSimpleItem bmap) $ B.inCands input
       (sem,_,_) = B.inSemInput input
       bmap    = defineSemanticBits sem
-      dispatchFn = if twophase then simpleDispatch_2p
-                   else simpleDispatch_1p (isIaf config)
+      -- FIXME: I don't know if this matters for one-phase
+      -- because of on-the-fly tb unification (in 2p), we
+      -- need an initial tb step that only addresses the
+      -- nodes with null adjunction constraints
+      simpleDp = if twophase then simpleDispatch_2p
+                 else simpleDispatch_1p (isIaf config)
+      initialDp = dpTbFailure >--> simpleDp
       --
       initS = S{ theAgenda    = []
                , theAuxAgenda = []
@@ -325,14 +330,14 @@ initSimpleBuilder twophase input config =
                , genconfig  = config }
       --
   in B.unlessEmptySem input config $
-     runState (execStateT (mapM dispatchFn cands) initS) (B.initStats config)
+     runState (execStateT (mapM initialDp cands) initS) (B.initStats config)
 
 
 initSimpleItem :: SemBitMap -> (TagElem, BitVector) -> SimpleItem
 initSimpleItem bmap (teRaw,pp) =
  let (te,tlite) = renameNodesWithTidnum teRaw in
  case (detectSites.ttree) te of
- (snodes,anodes,_) -> setIaf $ SimpleItem
+ (snodes,anodes,nullAdjNodes) -> setIaf $ SimpleItem
   { siId        = tidnum te
   , siSemantics = semToBitVector bmap (tsemantics te)
   , siSubstnodes = snodes
@@ -348,7 +353,8 @@ initSimpleItem bmap (teRaw,pp) =
   , siRoot = ncopy.root $ theTree
   , siFoot = if ttype te == Initial then Nothing
              else Just . ncopy.foot $ theTree
-  , siPendingTb = []
+  -- note: see comment in initSimpleBuilder re: tb unification
+  , siPendingTb = nullAdjNodes
   --
 #ifndef DISABLE_GUI
   , siGuiStuff = initSimpleGuiItem te
