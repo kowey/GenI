@@ -320,8 +320,17 @@ GHCI_FLAGS=$(GHCINCLUDE) -package QuickCheck -fglasgow-exts -fallow-overlapping-
 ghci:
 	ghci $(GHCI_FLAGS)
 
+test: unit regression
+
+regression: etc/SumHUnit
+	@chmod u+x etc/regression
+	etc/regression
+
 unit:
 	etc/quickcheck.py src/NLP/GenI/Btypes.lhs | ghci $(GHCI_FLAGS)
+
+etc/SumHUnit : etc/SumHUnit.hs
+	ghc --make -o $@ $<
 
 profiler: $(PROFGENI_MAIN) profout debugger-geni.txt debugger-geni.pdf
 
