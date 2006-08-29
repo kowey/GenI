@@ -1,8 +1,11 @@
 % these should all fail
 
-k2p_conflict semantics:[t1() t2() db()]
-adj_failure  semantics:[a() xb()] % top/bot conflict
+k2p-conflict semantics:[t1() t2() db()]
+adj-failure  semantics:[a() xb()] % top/bot conflict
 
-tb_failure1  semantics:[eb1()]
-tb_failure2  semantics:[eb2() t1() t2()]
+tb-failure1  semantics:[eb1()]
+tb-failure2  semantics:[eb2() t1() t2()]
+
+% aconstr:noadj nodes
+tb-noadj-bad semantics:[tb-unification() thing-bad()]
 

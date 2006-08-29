@@ -31,13 +31,20 @@ semantics: [xg2()]
 _d wu5 () 
 semantics: [d()]
 
-_d_b wu5-bad()
+_d-b wu5-bad()
 semantics: [db()]
 
 _e    liu6-good () semantics:[eg()]
-_e_b1 liu6-bad1 () semantics:[eb1()]
-_e_b2 liu6-bad2 () semantics:[eb2()]
+_e-b1 liu6-bad1 () semantics:[eb1()]
+_e-b2 liu6-bad2 () semantics:[eb2()]
 
 whatever k2p-trivial () semantics:[k2p()]
 iaf-g iaf-killer-good (?X) semantics:[iaf(?X)]
+
+whatever aconstr-with-anchor () semantics:[aconstr-with-anchor()]
+
+tb-unification tb-unification () semantics:[tb-unification()]
+no-thing   no-thing   () semantics:[no-thing()]
+thing-good thing-good () semantics:[thing-good()]
+thing-bad  thing-bad  () semantics:[thing-bad()]
 

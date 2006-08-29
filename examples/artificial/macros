@@ -1,6 +1,6 @@
 % trivial example of the kid to parent rule
 k2p-trivial() initial 
-Mother [cat:a]![] { Anchor anchor }
+Mother [cat:a]![] { Anchor anchor [ cat:x ]![] }
 
 % note: the alphabetical names below are meaningless - they are just
 % chinese numbers (which is why i follow them by the equivalent 
@@ -11,35 +11,35 @@ Mother [cat:a]![] { Anchor anchor }
 
 
 yi1() initial
-Mother [cat:a tb:?T]![tb:?B] {
- Left  anchor 
- Right type:subst  [ cat:b ]![]
+YiMo [cat:a tb:?T]![tb:?B] {
+ YiLe anchor [ cat:x ]![]
+ YiRi type:subst  [ cat:b ]![]
 }
 
 er2() initial
 Mother [cat:b]![] {
-  Left anchor
+  Left anchor [ cat:x ]![]
   Right type:subst [ cat:t1 ]![]
 }
 
 term(?C ?X) initial
-Mother anchor [cat:?C foo:?X]![] 
+T anchor [cat:?C foo:?X]![]
 
 aux-bad() auxiliary
 Mother [cat:t1 tb:foo]![] {
-  Left anchor 
+  Left anchor [ cat:x ]![]
   Foot type:foot [cat:t1]![tb:bar]
 }
 
 aux-good() auxiliary
-Mother [cat:t1 tb:ping]![] {
-  Left anchor 
-  Foot type:foot [cat:t1]![tb:ping]
+MothA [cat:t1 tb:ping]![] {
+  LeftA anchor [cat:x]![]
+  FootA type:foot [cat:t1]![tb:ping]
 }
 
 aux-nepas () auxiliary
 Mother [cat:t1 tb:ping]![] {
-  Left anchor
+  Left anchor [cat:x]![]
   Foot type:foot [cat:t1]![tb:ping]
   Right type:lex "pas"
 }
@@ -49,20 +49,20 @@ Mother [cat:t1 tb:ping]![] {
 % meant to receive substitution from san3 
 % if it works - ?A should be set to bar
 wu5 () initial
-Mother [cat:a foo:?A]![] {
-  Left anchor
-  Right type:subst [cat:t1 foo:?A]![]
+WuM [cat:a foo:?A]![] {
+  WuL anchor [cat:x]![]
+  WuR type:subst [cat:t1 foo:?A]![]
 }
 
 % a simple tb unification which ought to work
 liu6-good () initial 
-Mother [cat:a]![cat:a] { Anchor anchor }
+Mother [cat:a]![cat:a] { Anchor anchor [cat:x]![] }
 
 % unification + subst should work, but this should NOT propagate up! 
 % this should NOT propagate up
 wu5-bad () initial
 Mother [cat:a foo:?A]![] {
-  Anch anchor
+  Anch anchor [cat:x]![]
   Left  type:subst [cat:t1 foo:?A]![]
   Right type:subst [cat:t2 foo:?A]![]
 }
@@ -71,12 +71,12 @@ Mother [cat:a foo:?A]![] {
 
 % top-bot unification failure (simple)
 liu6-bad1 () initial 
-Mother [cat:a]![cat:b] { Anch anchor }
+Mother [cat:a]![cat:b] { Anch anchor [cat:x]![] }
 
 % top-bot unification (complex)
 liu6-bad2 () initial 
 Mother [cat:a tb:?X]![tb:?Y] {
-  Anch anchor
+  Anch anchor [cat:x]![]
   Left  type:subst [cat:t1 foo:?X]![]
   Right type:subst [cat:t2 foo:?Y]![]
 }
@@ -84,10 +84,28 @@ Mother [cat:a tb:?X]![tb:?Y] {
 % this should still be passed
 iaf-killer-good (?X) initial
 Mother [cat:a]![cat:a] {
-  Anch anchor
+  Anch anchor [cat:x]![]
   Left  type:subst [cat:t1 idx:?X]![]
   Right type:subst [cat:t2 idx:?X]![]
 }
 
+aconstr-with-anchor () initial
+Anch anchor aconstr:noadj [cat:a]![]
+
+% this succeeds iff thing is good or left unset
+tb-unification-noadj () initial
+M [cat:a]![] {
+  X type:subst [cat:x thing:?X]![thing:good]
+  Y anchor [cat:b]![]
+}
+
+no-thing () initial
+X anchor [cat:x]![]
+
+thing-good () initial
+X anchor [cat:x thing:good]![]
+
+thing-bad () initial
+X anchor [cat:x thing:bad]![]
 
 

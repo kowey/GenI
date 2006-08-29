@@ -7,15 +7,19 @@ sub semantics:[b() t1()]
 
 % adjunction 
 adj semantics:[t1() xg()]
-adj_nepas semantics:[t1() xnepas()]
-adj_multi semantics:[t1() xg() xg2()]
+adj-nepas semantics:[t1() xnepas()]
+adj-multi semantics:[t1() xg() xg2()]
 
 % kidsToParents rule
 k2p         semantics:[t1() d()]
-k2p_trivial semantics:[k2p()]
+k2p-trivial semantics:[k2p()]
 
 % this should still work
-iaf_killer_good semantics:[t1(x) t2(x) iaf(x)]
+iaf-killer-good semantics:[t1(x) t2(x) iaf(x)]
 
-tb_success   semantics:[eg()]
+tb-success   semantics:[eg()]
 
+aconstr-with-anchor semantics:[aconstr-with-anchor()]
+
+tb-noadj-good-1 semantics:[tb-unification() no-thing()]
+tb-noadj-good-2 semantics:[tb-unification() thing-good()]
