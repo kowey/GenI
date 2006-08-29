@@ -1,14 +1,25 @@
 GENI_CMD=bin/geni
-GENI_FLAGS="$* --opts=f-sem --regression"
+GENI_FLAGS="$* --opts=f-sem"
+
+TMP_GARBAGE_P=tmp-garbage-p-$$
+TMP_GARBAGE_F=tmp-garbage-f-$$
 
 do_geni() {
+  do_geni_only $* 2>&1 | tee -a ${TMP_GARBAGE_P}
+}
+
+# for cases we expect to fail
+do_geni_fail() {
+  do_geni_only $* 2>&1 | tee -a ${TMP_GARBAGE_F}
+}
+
+do_geni_only() {
   echo "--------------------------------"
-  FINAL_CMD="${GENI_CMD} $* --nogui"
+  FINAL_CMD="${GENI_CMD} $* --nogui --regression"
   echo "${FINAL_CMD}"
   sh -c "${FINAL_CMD}"
   echo
 }
-
 
 echo "================================================================"
 echo "Artificial cases"
@@ -22,7 +33,7 @@ echo "Bad artificial cases - these should all fail!"
 echo "================================================================"
 echo
 
-do_geni ${GENI_FLAGS} -m examples/artificial/macros -l examples/artificial/lexicon -s examples/artificial/suite-bad\
+do_geni_fail ${GENI_FLAGS} -m examples/artificial/macros -l examples/artificial/lexicon -s examples/artificial/suite-bad\
         --rootcats="'a b s t1'"\
         2>&1 | grep -v "got no results" | grep -v "Error in"
 
@@ -41,4 +52,16 @@ do_geni ${GENI_FLAGS} ${DEMO_FLAGS} --rootcats=p
 PROMETTRE_FLAGS="-m examples/promettre/macros -l examples/promettre/lexicon -s examples/promettre/suite --opts=pol"
 do_geni ${GENI_FLAGS} ${PROMETTRE_FLAGS} --rootcats=p
 
+echo "================================================================"
+echo "Summary"
+echo "================================================================"
+echo
 
+SUMHUNIT=`dirname $0`/SumHUnit
+
+# note that the --invert-pe should be changed to --invert-pf
+# if HUnit's treating of failures as errors ever gets fixed
+(${SUMHUNIT} < ${TMP_GARBAGE_P}\
+;${SUMHUNIT} --invert-pe < ${TMP_GARBAGE_F}) | ${SUMHUNIT}
+
+rm ${TMP_GARBAGE_P} ${TMP_GARBAGE_F}
