@@ -31,12 +31,12 @@ import System(getArgs)
 import Data.List(intersperse)
 import Data.IORef(newIORef, readIORef, modifyIORef)
 
-import NLP.GenI.Btypes(SemInput, ILexEntry(ifamname))
-import NLP.GenI.General(fst3,thd3)
+import NLP.GenI.Btypes(SemInput, ILexEntry(ifamname), TestCase(tcName,tcSem))
+import NLP.GenI.General(fst3)
 import NLP.GenI.Geni(emptyProgState, ProgState(le, pa, ts, tcase, tsuite), ProgStateRef,
                      loadGrammar, chooseLexCand,)
-import NLP.GenI.Configuration(treatArgs,
-    Params(grammarType, outputFile), GrammarType(PreCompiled))
+import NLP.GenI.Configuration(treatArgs, getListFlagP, OutputFileFlg(..),
+    Params(grammarType), GrammarType(PreCompiled))
 
 
 main :: IO ()
@@ -49,8 +49,8 @@ main =
     let pstCase  = tcase pst
         suite    = tsuite pst
     inputs <- if null pstCase
-                 then return $ map thd3 suite
-                 else case [ s | (n,_,s) <- suite, n == pstCase ] of
+                 then return $ map tcSem suite
+                 else case [ tcSem tc | tc <- suite, tcName tc == pstCase ] of
                       [] -> fail ("No such test case: " ++ pstCase)
                       cs -> return cs
     sequence_ $ map (selectOnSemInput pstRef) inputs
@@ -64,7 +64,7 @@ selectOnSemInput pstRef semInput =
      let selection = chooseLexCand (le pst) (fst3 semInput)
      --
      let config = pa pst
-         out    = outputFile config
+         out    = getListFlagP OutputFileFlg config
          oPutStrLn = if null out then putStrLn else writeFile out
      oPutStrLn . unlines . (map showLex) $ selection
 
