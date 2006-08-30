@@ -358,7 +358,7 @@ geniTree =
      kids <- option [] (braces $ many geniTree)
              <?> "child nodes"
      -- sanity checks
-     let noKidsAllowed t c = when (c node && not.null $ kids) $
+     let noKidsAllowed t c = when (c node && (not.null $ kids)) $
              fail $ t ++ " nodes may *not* have any children"
      noKidsAllowed "Anchor"       $ ganchor
      noKidsAllowed "Substitution" $ (== Subs) . gtype
