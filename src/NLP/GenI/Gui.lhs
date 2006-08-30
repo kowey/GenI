@@ -163,29 +163,24 @@ Let's not forget the optimisations...
                                        EarleyBuilder -> 3
                                        NullBuilder   -> 0 ]
        set algoChoiceBox [ on select := toggleAlgo pstRef algoChoiceBox ]
-       polChk <- checkBox f 
+       polChk <- optCheckBox Polarised pstRef f
           [ text := "Polarities"
-          , checked := hasOpt Polarised config
           , tooltip := "Use the polarity optimisation"
           ]
-       useSemConstraintsChk <- checkBox f
+       useSemConstraintsChk <- antiOptCheckBox NoConstraints pstRef f
          [ text := "Sem constraints"
-         , checked := not $ hasOpt NoConstraints config
          , tooltip := "Use any sem constraints the user provides"
          ]
-       iafChk <- checkBox f
+       iafChk <- optCheckBox Iaf pstRef f
           [ text := "Idx acc filter"
-          , checked := hasOpt Iaf config
           , tooltip := "Only available in CKY/Earley for now"
           ]
-       semfilterChk <- checkBox f 
+       semfilterChk <- optCheckBox SemFiltered pstRef f
          [ text := "Semantic filters"
-         , checked := hasOpt SemFiltered config
          , tooltip := "(2p only) Filter away semantically incomplete structures before adjunction phase"
          ]
-       rootfilterChk <- checkBox f
+       rootfilterChk <- optCheckBox RootCatFiltered pstRef f
          [ text := "Root filters"
-         , checked := hasOpt RootCatFiltered config
          , tooltip := "(2p only) Filter away non-root structures before adjunction phase"
          ]
        extrapolText <- staticText f 
@@ -195,13 +190,7 @@ Let's not forget the optimisations...
        -- commands for the checkboxes
        let togglePolStuff = do c <- get polChk checked
                                set extrapolText [ enabled := c ]
-       set polChk [on command := togglePolStuff ]
-       sequence_ $ map (setToggleChk pstRef)
-          [ (polChk, Polarised)
-          , (iafChk, Iaf)
-          , (rootfilterChk, RootCatFiltered)]
-       sequence_ $ map (setToggleAntiChk pstRef)
-          [ (useSemConstraintsChk, NoConstraints) ]
+       set polChk [on command :~ (>> togglePolStuff) ]
 \end{code}
 
 Pack it all together, perform the layout operation.
@@ -276,26 +265,37 @@ toggleAlgo pstRef box =
                 _   -> geniBug $ "More than one builder has the name " ++ selected
     modifyIORef pstRef (\x -> x { pa = (pa x) { builderType = btype } })
 
--- | Toggles for optimisatons controlled by a check box.  They enable or
---   disable the said optmisation.
-setToggleChk :: (Commanding a, Checkable a) => ProgStateRef -> (a, Optimisation) -> IO ()
-setToggleChk = setToggleChk_ id
+optCheckBox, antiOptCheckBox ::
+  Optimisation -> ProgStateRef
+               -> Window a -> [Prop (CheckBox ())]
+               -> IO (CheckBox ())
 
--- | Same as above, except for anti-optimisations
-setToggleAntiChk :: (Commanding a, Checkable a) => ProgStateRef -> (a, Optimisation) -> IO ()
-setToggleAntiChk = setToggleChk_ not
+-- | Checkbox for enabling/disabling an optimisation
+--   You need not set the checked or on command attributes
+--   as this is done for you (but you can if you want,
+--   setting checked will override the default, and any
+--   command you set will be run before the toggle stuff)
+optCheckBox = optCheckBoxHelper id
 
--- Expecting either 'id' or 'not' for the (Bool->Bool)
-setToggleChk_ :: (Commanding a, Checkable a) => (Bool -> Bool) -> ProgStateRef -> (a, Optimisation) -> IO ()
-setToggleChk_ id_ pstRef (chk,tok) =
- set chk [ on command :~ (>> stc) ]
- where
-  stc = do isChecked <- get chk checked
-           pst <- readIORef pstRef
-           let config  = pa pst
-               modopt  = if id_ isChecked then (tok:) else delete tok
-               newopts = nub.modopt $ getListFlagP OptimisationsFlg config
-           modifyIORef pstRef (\x -> x{pa = setFlagP OptimisationsFlg newopts (pa x)})
+-- | Same as 'optCheckBox' but for anti-optimisations
+antiOptCheckBox = optCheckBoxHelper not
+
+optCheckBoxHelper :: (Bool -> Bool) -> Optimisation -> ProgStateRef
+                  -> Window a -> [Prop (CheckBox ())]
+                  -> IO (CheckBox ())
+optCheckBoxHelper idOrNot o pstRef f as =
+  do pst <- readIORef pstRef
+     chk <- checkBox f $ [ checked := idOrNot $ hasOpt o $ pa pst ] ++ as
+     set chk [ on command :~ (>> onCheck chk) ]
+     return chk
+  where
+   onCheck chk =
+    do isChecked <- get chk checked
+       pst <- readIORef pstRef
+       let config  = pa pst
+           modopt  = if idOrNot isChecked then (o:) else delete o
+           newopts = nub.modopt $ getListFlagP OptimisationsFlg config
+       modifyIORef pstRef (\x -> x{pa = setFlagP OptimisationsFlg newopts (pa x)})
 \end{code}
 
 % --------------------------------------------------------------------
