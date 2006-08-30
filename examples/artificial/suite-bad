@@ -7,5 +7,5 @@ tb-failure1  semantics:[eb1()]
 tb-failure2  semantics:[eb2() t1() t2()]
 
 % aconstr:noadj nodes
-tb-noadj-bad semantics:[tb-unification() thing-bad()]
+tb-noadj-bad semantics:[tb-unification-noadj() thing-bad()]
 
