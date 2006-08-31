@@ -46,7 +46,7 @@ module NLP.GenI.Tags(
 \ignore{
 \begin{code}
 import qualified Data.Map as Map
-import Data.List (intersperse)
+import Data.List (find, intersperse)
 import Data.Tree
 
 import NLP.GenI.Btypes (Ptype(Initial, Auxiliar), SemPols,
@@ -296,11 +296,9 @@ tagLeaf :: GNode -> ([String],Flist)
 tagLeaf node = 
   let guppy  = gup node
       grab la = [ fromGConst v | (a,v) <- guppy, a == la && isConst v ]
-      lastResort = case concat $ concatMap grab lexemeAttributes of
-                   [] -> [gnname node]
-                   x  -> x
       output = case glexeme node of
-               []     -> lastResort
+               []     -> maybe [gnname node] concat
+                           $ find (not.null) $ map grab lexemeAttributes
                lexeme -> lexeme
   in (output, gup node)
 \end{code}
