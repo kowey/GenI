@@ -216,7 +216,7 @@ geniLexicon =
 
 geniLexicalEntry :: Parser ILexEntry
 geniLexicalEntry = 
-  do lemma  <- identifier <?> "a lemma"
+  do lemma  <- (identifier <|> stringLiteral) <?> "a lemma"
      family <- identifier <?> "a tree family"
      (pars, interface) <- option ([],[]) $ parens paramsParser
      equations <- option [] $ do keyword "equations"
@@ -674,7 +674,7 @@ geniValue =   ((try $ anonymous) <?> "_ or ?_")
     --
     constants :: Parser GeniVal 
     constants = 
-      do c <- sepBy1 geniId (symbol "|")
+      do c <- sepBy1 (geniId <|> stringLiteral) (symbol "|")
          return (GConst c)
     variable :: Parser GeniVal
     variable = 
