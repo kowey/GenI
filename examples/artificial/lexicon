@@ -48,3 +48,4 @@ no-thing   no-thing   () semantics:[no-thing()]
 thing-good thing-good () semantics:[thing-good()]
 thing-bad  thing-bad  () semantics:[thing-bad()]
 
+"string-literal-in-lemma" term () semantics:["string-lit'+!|"(foo)]
