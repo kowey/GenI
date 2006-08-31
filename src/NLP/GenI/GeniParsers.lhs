@@ -301,9 +301,12 @@ geniTreeDef ttypeP =
      theTree  <- geniTree
      -- sanity checks?
      let theNodes = T.flatten theTree
-         numFeet  = length [ x | x <- theNodes, gtype x == Foot ]
+         numFeet    = length [ x | x <- theNodes, gtype x == Foot ]
+         numAnchors = length [ x | x <- theNodes, ganchor x ]
      when (not $ any ganchor theNodes) $
        fail "At least one node in an LTAG tree must be an anchor"
+     when (numAnchors > 1) $
+       fail "There can be no more than 1 anchor node in a tree"
      when (numFeet > 1) $
        fail "There can be no more than 1 foot node in a tree"
      when (theTtype == Initial && numFeet > 0) $
