@@ -60,9 +60,6 @@ consoleGeni pstRef = do
     ePutStrLn "GUI not available"
   --
   loadGrammar pstRef
-  when (hasFlagP VerboseModeFlg config) $
-    ePutStrLn "======================================================"
-  --
   case getFlagP TimeoutFlg (pa pst) of
     Nothing -> runSuite pstRef
     Just t  -> withTimeout t (timeoutErr t) $ runSuite pstRef
@@ -80,21 +77,23 @@ runSuite pstRef =
   do pst <- readIORef pstRef
      let suite  = tsuite pst
          config = pa pst
+         verbose = hasFlagP VerboseModeFlg config
      if hasFlagP RegressionTestModeFlg config
         then runRegressionSuite pstRef >> return ()
         else case getFlagP BatchDirFlg config of
               Nothing   -> runTestCaseOnly pstRef >> return ()
-              Just bdir -> runBatch bdir suite
+              Just bdir -> runBatch verbose bdir suite
   where
-  runBatch bdir suite =
+  runBatch verbose bdir suite =
     if any null $ map tcName suite
     then    ePutStrLn "Can't do batch processing. The test suite has cases with no name."
     else do ePutStrLn "Batch processing mode"
-            mapM_ (runCase bdir) suite
-  runCase bdir (G.TestCase n _ s _) =
-   do (res , _) <- runOnSemInput pstRef (PartOfSuite n bdir) s
+            mapM_ (runCase verbose bdir) suite
+  runCase verbose bdir (G.TestCase n _ s _) =
+   do when verbose $
+        ePutStrLn "======================================================"
+      (res , _) <- runOnSemInput pstRef (PartOfSuite n bdir) s
       ePutStrLn $ " " ++ n ++ " - " ++ (show $ length res) ++ " results"
-
 
 -- | Run a test suite, but in HUnit regression testing mode,
 --   treating each GenI test case as an HUnit test.  Obviously
