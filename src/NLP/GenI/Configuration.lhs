@@ -63,7 +63,7 @@ import Control.Monad ( liftM )
 import Data.Char ( toLower )
 import Data.Typeable ( Typeable, typeOf, cast )
 import System.Console.GetOpt
-import System.Exit ( exitWith, ExitCode(..) )
+import System.Exit ( exitFailure, exitWith, ExitCode(..) )
 import Data.List  ( find, intersperse, nubBy )
 import Data.Maybe ( catMaybes, fromMaybe, isNothing, fromJust )
 import Text.ParserCombinators.Parsec ( runParser )
@@ -214,12 +214,22 @@ treatArgs argv = treatArgsWithParams argv emptyParams
 treatArgsWithParams :: [String] -> Params -> IO Params
 treatArgsWithParams argv initParams =
    case getOpt Permute options argv of
-     (os,_,[]  ) ->
-        if (Flag HelpFlg ()) `elem` os
-             then do putStrLn $ usage True
-                     exitWith ExitSuccess
-             else return $ defineParams os initParams
+     (os,_,[]  )
+       | hasFlag HelpFlg os ->
+           do putStrLn $ usage True
+              exitWith ExitSuccess
+       | hasFlag DisableGuiFlg os
+         && notHasFlag TestCaseFlg os
+         && notHasFlag RegressionTestModeFlg os
+         && notHasFlag BatchDirFlg os ->
+           do putStrLn $ "GenI must either be run in graphical mode, "
+                         ++ "in regression mode, with a test case specified "
+                         ++ "or with a batch directory specified"
+              exitFailure
+       | otherwise ->
+           return $ defineParams os initParams
      (_,_,errs) -> ioError (userError $ concat errs ++ usage False)
+  where notHasFlag f l = not $ hasFlag f l
 
 defineParams :: [Flag] -> Params -> Params
 defineParams flgs prms =
