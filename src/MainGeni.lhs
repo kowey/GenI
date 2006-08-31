@@ -36,6 +36,7 @@ import NLP.GenI.Geni(emptyProgState, ProgState(gr))
 import NLP.GenI.Console(consoleGeni)
 import NLP.GenI.Configuration (treatArgs,
                                hasFlagP, BatchDirFlg(..), DisableGuiFlg(..),
+                               RegressionTestModeFlg(..),
                                grammarType, GrammarType(PreCompiled),
                               )
 
@@ -94,7 +95,8 @@ main = do
   pstRef <- newIORef pst
   let batch   = hasFlagP BatchDirFlg confArgs
       console = hasFlagP DisableGuiFlg confArgs
-  if (console || batch)
+      regression = hasFlagP RegressionTestModeFlg confArgs
+  if (console || batch || regression)
      then consoleGeni pstRef
      else guiGeni pstRef
 \end{code}
