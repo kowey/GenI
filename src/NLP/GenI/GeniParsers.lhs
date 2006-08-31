@@ -232,7 +232,7 @@ geniLexicon =
 
 geniLexicalEntry :: Parser ILexEntry
 geniLexicalEntry = 
-  do lemma  <- (identifier <|> stringLiteral) <?> "a lemma"
+  do lemma  <- (looseIdentifier <|> stringLiteral) <?> "a lemma"
      family <- identifier <?> "a tree family"
      (pars, interface) <- option ([],[]) $ parens paramsParser
      equations <- option [] $ do keyword "equations"
@@ -524,8 +524,10 @@ comments.
 
 \begin{code}
 lexer :: TokenParser ()
-lexer  = makeTokenParser 
-         (emptyDef
+lexer  = makeTokenParser geniLanguageDef
+
+geniLanguageDef :: LanguageDef ()
+geniLanguageDef = emptyDef
          { commentLine = "%"
          , commentStart = "/*"
          , commentEnd = "*/"
@@ -538,14 +540,25 @@ lexer  = makeTokenParser
              , BEGIN , END ]
          , identLetter = identStuff
          , identStart  = identStuff
-         })
+         }
   where identStuff = alphaNum <|> oneOf "_'-."
 
 whiteSpace :: CharParser () ()
 whiteSpace = P.whiteSpace lexer
 
-identifier, stringLiteral, colon :: CharParser () String
+looseIdentifier, identifier, stringLiteral, colon :: CharParser () String
 identifier    = P.identifier lexer
+
+-- stolen from Parsec code (ident)
+-- | Like 'identifier' but allows for reserved words too
+looseIdentifier =
+ do { i <- ident ; whiteSpace; return i }
+ where
+  ident =
+   do { c <- identStart geniLanguageDef
+      ; cs <- many (identLetter geniLanguageDef)
+      ; return (c:cs) } <?> "identifier"
+
 stringLiteral = P.stringLiteral lexer
 colon         = P.colon lexer
 
