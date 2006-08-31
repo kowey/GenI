@@ -322,7 +322,7 @@ ghci:
 
 test: unit regression
 
-regression: etc/SumHUnit
+regression: $(GENI) etc/SumHUnit
 	@chmod u+x etc/regression
 	etc/regression
 
