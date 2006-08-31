@@ -684,8 +684,8 @@ combineOne lexRaw eRaw = -- Maybe monad
              >>= unifyInterfaceUsing ifilters -- filtering
              >>= enrichWithWarning -- enrichment
     return $ emptyTE
-              { idname = (head $ iword l) ++ "_"
-                         ++ pfamily e ++ showid (pidname e)
+              { idname = concat $ intersperse ":" $ filter (not.null)
+                           [ head (iword l) , pfamily e , pidname e ]
               , ttreename = pfamily e
               , ttype = ptype e
               , ttree = setLexeme (iword l) (tree e)
@@ -698,8 +698,6 @@ combineOne lexRaw eRaw = -- Maybe monad
               , ttrace      = ptrace e
               }
  where
-  showid i = if null i then "" else ("-" ++ i)
-  --
   unifyParamsWithWarning (l,t) =
    -- trace ("unify params " ++ wt) $
    let lp = iparams l
