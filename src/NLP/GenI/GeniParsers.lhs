@@ -50,6 +50,22 @@ import Text.ParserCombinators.Parsec.Language (emptyDef)
 import Text.ParserCombinators.Parsec.Token (TokenParser, 
     LanguageDef(..), makeTokenParser)
 import qualified Text.ParserCombinators.Parsec.Token as P
+
+-- reserved words
+#define SEMANTICS       "semantics"
+#define SENTENCES       "sentences"
+#define TRACE           "trace"
+#define ANCHOR          "anchor"
+#define SUBST           "subst"
+#define FOOT            "foot"
+#define LEX             "lex"
+#define TYPE            "type"
+#define ACONSTR_NOADJ   "aconstr:noadj"
+#define INITIAL         "initial"
+#define AUXILIARY       "auxiliary"
+#define IDXCONSTRAINTS  "idxconstraints"
+#define BEGIN           "begin"
+#define END             "end"
 \end{code}
 }
 
@@ -87,7 +103,7 @@ geniTestCase =
 
 geniSentence :: Parser String
 geniSentence =
-  do optional (keyword "sentence")
+  do optional (keyword SENTENCES)
      w <- squares (sepEndBy1 geniWord whiteSpace <?> "a sentence")
      return (unwords w)
   where geniWord = many1 (noneOf "[]\v\f\t\r\n ")
@@ -153,7 +169,7 @@ geniSemanticInputString =
     return s
 
 geniIdxConstraints :: Parser Flist
-geniIdxConstraints = keyword "idxconstraints" >> geniFeats
+geniIdxConstraints = keyword IDXCONSTRAINTS >> geniFeats
 
 squaresString :: Parser String
 squaresString =
@@ -169,8 +185,8 @@ data SemInputString = SemInputString String Flist
 
 instance GeniHandShow SemInputString where
  toGeniHand (SemInputString semStr idxC) =
-   "semantics:" ++ semStr ++ (if null idxC then "" else r)
-   where r = "\nidxconstraints: [" ++ showPairs idxC ++ "]"
+   SEMANTICS ++ ":" ++ semStr ++ (if null idxC then "" else r)
+   where r = "\n" ++ IDXCONSTRAINTS ++ ": [" ++ showPairs idxC ++ "]"
 
 toSemInputString :: SemInput -> String -> SemInputString
 toSemInputString (_,lc,_) s = SemInputString s lc
@@ -270,14 +286,14 @@ geniTreeGroup =
      <|> group auxType  Auxiliar
   where 
     group key ty =
-      do try $ do { symbol "begin"; key }
+      do try $ do { reserved BEGIN; key }
          t <- many (try $ geniTreeDef $ option ty key)
-         symbol "end"  ; key 
+         reserved END ; key
          return t
 
 initType, auxType :: Parser Ptype
-initType = do { symbol "initial"  ; return Initial  }
-auxType  = do { symbol "auxiliary"; return Auxiliar }
+initType = do { reserved INITIAL ; return Initial  }
+auxType  = do { reserved AUXILIARY ; return Auxiliar }
 \end{code}
 
 \subsection{Tree definitions}
@@ -313,7 +329,7 @@ geniTreeDef ttypeP =
        fail "Initial trees may not have foot nodes"
      --
      psem     <- option Nothing $ do { keywordSemantics; liftM Just (squares geniSemantics) }
-     ptrc     <- option [] $ do { keyword "trace"; squares (many identifier) }
+     ptrc     <- option [] $ do { keyword TRACE; squares (many identifier) }
      --
      return TT{ params = pars
               , pfamily = family
@@ -372,39 +388,39 @@ geniTree =
 geniNode :: Parser GNode
 geniNode = 
   do name      <- identifier 
-     nodeType  <- option "" (do { typeIs; typeParser }
-                             <|> try (symbol "anchor"))
-     lex_   <- if nodeType == lexType
+     nodeType  <- option "" ( (keyword TYPE >> typeParser)
+                              <|>
+                              reserved ANCHOR)
+     lex_   <- if nodeType == LEX
                   then (sepBy (stringLiteral<|>identifier) (symbol "|") <?> "some lexemes") 
                   else return [] 
      constr <- case nodeType of
-               ""       -> adjConstraintParser
-               "anchor" -> adjConstraintParser
+               ""     -> adjConstraintParser
+               ANCHOR -> adjConstraintParser
                _  -> return True
-     (top_,bot_) <- topbotParser 
+     (top_,bot_) <- -- features only obligatory for non-lex nodes
+                    if nodeType == LEX
+                       then option ([],[]) $ try topbotParser
+                       else topbotParser
      --
      let top   = sort top_
          bot   = sort bot_
-         isAnchor  = (nodeType == "anchor")
          nodeType2 = case nodeType of
-                       "anchor"  -> Lex
-                       "lex"     -> Lex
-                       "foot"    -> Foot
-                       "subst"   -> Subs 
+                       ANCHOR  -> Lex
+                       LEX     -> Lex
+                       FOOT    -> Foot
+                       SUBST   -> Subs
                        ""        -> Other
                        other     -> error ("unknown node type: " ++ other)
      return $ GN { gnname = name, gtype = nodeType2
                  , gup = top, gdown = bot
                  , glexeme  = lex_
-                 , ganchor  = isAnchor
+                 , ganchor  = (nodeType == ANCHOR)
                  , gaconstr = constr }
   where 
-    lexType    = "lex"
-    typeIs     = keyword "type"
-    typeParser = choice $ map (try.symbol) $
-                   [ "anchor", "foot", "subst", lexType ]
-    adjConstraintParser = option False $ do { symbol "aconstr:noadj"; return True }
-    topbotParser = option ([],[]) $ try $ 
+    typeParser = choice $ map (try.symbol) [ ANCHOR, FOOT, SUBST, LEX ]
+    adjConstraintParser = option False $ reserved ACONSTR_NOADJ >> return True
+    topbotParser =
       do top <- geniFeats <?> "top features" 
          symbol "!"
          bot <- geniFeats <?> "bot features"
@@ -515,7 +531,11 @@ lexer  = makeTokenParser
          , commentEnd = "*/"
          , opLetter = oneOf ""
          , reservedOpNames = [""]
-         , reservedNames = ["semantics"]
+         , reservedNames =
+             [ SEMANTICS , SENTENCES, IDXCONSTRAINTS, TRACE
+             , ANCHOR , SUBST , FOOT , LEX , TYPE , ACONSTR_NOADJ
+             , INITIAL , AUXILIARY
+             , BEGIN , END ]
          , identLetter = identStuff
          , identStart  = identStuff
          })
@@ -534,7 +554,8 @@ squares = P.squares lexer
 braces  = P.braces  lexer
 parens  = P.parens  lexer
 
-symbol :: String -> CharParser () String
+reserved, symbol :: String -> CharParser () String
+reserved s = P.reserved lexer s >> return s
 symbol = P.symbol lexer
 \end{code}
 
@@ -547,12 +568,12 @@ We factor this into a seperate function to account for whitespace.
 {-# INLINE keyword #-}
 keyword :: String -> Parser String 
 keyword k = 
-  do let helper = try $ do { symbol k; colon; return k }
+  do let helper = try $ do { reserved k; colon; return k }
      helper <?> k ++ ":"
 
 {-# INLINE keywordSemantics #-}
 keywordSemantics :: Parser String
-keywordSemantics = keyword "semantics"
+keywordSemantics = keyword SEMANTICS
 \end{code}
 
 \subsection{Feature structures}
@@ -673,7 +694,8 @@ geniValue =   ((try $ anonymous) <?> "_ or ?_")
   where 
     question = "?"
     geniId =
-      -- FIXME: explain why we don't just use identifier
+      -- we don't use identifiers because we don't respect any
+      -- notion of reserved words
       do v <- many1 (alphaNum <|> oneOf "+-_")
          whiteSpace
          return v
