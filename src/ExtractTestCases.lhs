@@ -32,7 +32,7 @@ that batch-test GenI.
 module Main (main) where
 
 import NLP.GenI.Btypes
-import NLP.GenI.General (snd3, (///), ePutStrLn)
+import NLP.GenI.General ((///), ePutStrLn)
 import NLP.GenI.GeniParsers(geniTestSuite, geniTestSuiteString, toSemInputString)
 import NLP.GenI.Treeprint (GeniHandShow(toGeniHand))
 import Control.Monad(when)
