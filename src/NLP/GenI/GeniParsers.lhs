@@ -516,8 +516,10 @@ lexer  = makeTokenParser
          , opLetter = oneOf ""
          , reservedOpNames = [""]
          , reservedNames = ["semantics"]
-         , identLetter = alphaNum <|> oneOf "_'-."
+         , identLetter = identStuff
+         , identStart  = identStuff
          })
+  where identStuff = alphaNum <|> oneOf "_'-."
 
 whiteSpace :: CharParser () ()
 whiteSpace = P.whiteSpace lexer
@@ -671,6 +673,7 @@ geniValue =   ((try $ anonymous) <?> "_ or ?_")
   where 
     question = "?"
     geniId =
+      -- FIXME: explain why we don't just use identifier
       do v <- many1 (alphaNum <|> oneOf "+-_")
          whiteSpace
          return v
