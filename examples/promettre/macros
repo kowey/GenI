@@ -46,10 +46,7 @@ n1[cat:p mode:FIXME]![]
 {
   n2 type:subst [cat:n idx:?X det:plus qu:minus]![cat:n idx:?Y]
   n5 [cat:se idx:?X det:plus qu:minus]![cat:se idx:?Y]
-  n3 [cat:v idx:?E]![]
-  {
-    n4 anchor
-  }
+  n3 type:anchor [cat:v idx:?E]![]
 }
 
 vArity2:n0cl1v(?E ?X ?Y) initial
@@ -57,20 +54,14 @@ n1[cat:p mode:FIXME]![]
 {
   n2 type:subst [cat:n idx:?X det:plus qu:minus]![cat:n idx:?X]
   n5 type:subst [cat:cl idx:?Y det:plus qu:minus]![cat:cl idx:?Y]
-  n3 [cat:v idx:?E]![]
-  {
-    n4 anchor
-  }
+  n3 type:anchor [cat:v idx:?E]![]
 }
 
 vArity2:n0vn1(?E ?X ?Y) initial
 n1[cat:p mode:FIXME]![]
 {
   n2 type:subst [cat:n idx:?X det:plus qu:minus]![cat:n idx:?X]
-  n3[cat:v idx:?E]![]
-  {
-    n4 anchor
-  }
+  n3 type:anchor [cat:v idx:?E]![]
   n5 type:subst [cat:n idx:?Y det:plus qu:minus]![cat:n idx:?Y]
 } 
 
@@ -78,10 +69,7 @@ n1[cat:p mode:FIXME]![]
 vArity2:vinfn1(?E ?X ?Y) initial 
 n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p]
 {
-  n2 [cat:v idx:?E]![]
-  {
-    n3 anchor
-  }
+  n2 type:anchor [cat:v idx:?E]![]
   n4 type:subst [cat:n idx:?Y det:plus qu:minus]![cat:n idx:?Y]
 }
 
@@ -90,10 +78,7 @@ cl0vinf(?E ?X ?Y) initial
 n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p]
 {
   n5 type:subst [cat:cl idx:?Y det:plus qu:minus]![cat:cl idx:?Y]
-  n2 [cat:v idx:?E]![]
-  {
-    n3 anchor
-  }
+  n2 type:anchor [cat:v idx:?E]![]
 }
 
 begin initial 
@@ -103,10 +88,7 @@ vArity3:cl2vinfn0(?E ?X ?Y ?Z) initial
 n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p]
 {
   n5 type:subst [cat:cl idx:?Z det:plus qu:minus]![cat:cl idx:?Z]
-  n2 [cat:v idx:?E]![]
-  {
-    n3 anchor
-  }
+  n2 type:anchor [cat:v idx:?E]![]
   n4 type:subst [cat:n idx:?Y det:plus qu:minus]![cat:n idx:?Y]
 }  
 
@@ -134,10 +116,7 @@ n1[cat:p mode:FIXME]![]
 vArity3:vinfn1sp2(?E ?X ?Y ?Z) 
 n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p]
 {
-  n2[cat:v idx:?E]![]
-  {
-    n3 anchor
-  }
+  n2 type:anchor [cat:v idx:?E]![]
   n4 type:subst [cat:n idx:?Y det:plus qu:minus]![cat:n idx:?Y]
   n5[cat:sp idx:?Z det:plus]![]
   { n6[cat:prep]![]
@@ -186,10 +165,7 @@ n0[cat:n idx:?Z det:plus]![cat:n idx:?Z]
     n7[cat:p idx:?E]![]
     {
       n8 type:subst [cat:n idx:?X det:plus qu:minus]![cat:n idx:?X  qu:minus]
-      n9[cat:v idx:?E]![cat:p idx:?E]
-      {
-        n10 anchor
-      }
+      n9 type:anchor [cat:v idx:?E]![cat:p idx:?E]
       n11 type:subst [cat:n idx:?Y det:plus qu:minus]![cat:n idx:?Y]
     }
   }
@@ -225,10 +201,7 @@ n1[cat:p mode:FIXME]![]
 vArity3control:vinfsp2pinf1(?E ?X ?Y ?Z) 
 n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p] 
 {
-  n2[cat:v idx:?E]![]
-  {
-    n3 anchor
-  }
+  n2 type:anchor [cat:v idx:?E]![]
   n4[cat:sp idx:?Y det:plus]![]
   { n5[cat:prep]![]
     {
@@ -251,10 +224,7 @@ n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p]
 vArity3control:vinfn2pinf1(?E ?X ?Y ?Z) 
 n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p] 
 {
-  n2[cat:v idx:?E]![]
-  {
-    n3 anchor
-  }
+  n2 type:anchor [cat:v idx:?E]![]
 
   n5[cat:sp idx:?Z det:plus]![]
   { n6[cat:prep]![]
@@ -283,10 +253,7 @@ n0[cat:n idx:?X det:plus]![cat:n idx:?X]
   n2[cat:p]![]
   {
     n3 type:subst [cat:cl idx:?X det:plus qu:minus]![cat:cl idx:?X]
-    n4[cat:v idx:?E]![]
-    {
-      n5 anchor
-    }
+    n4 type:anchor [cat:v idx:?E]![]
     n6[cat:sp idx:?Y]![]
     { n7[cat:prep]![]
       {
@@ -321,10 +288,7 @@ n0[cat:n idx:?Y det:plus]![cat:n idx:?Y]
     n7[cat:p idx:?E]![]
     {
       n8 type:subst [cat:n idx:?X det:plus qu:minus]![cat:n idx:?X  qu:minus]
-      n9[cat:v idx:?E]![cat:p idx:?E]
-      {
-        n10 anchor
-      }
+      n9 type:anchor [cat:v idx:?E]![cat:p idx:?E]
     }
     n9[cat:p]![]
     {n10[cat:prep]![]
@@ -343,10 +307,7 @@ n0[cat:n idx:?X det:plus]![cat:n idx:?X]
   n2[cat:p]![]
   {
     n3 type:subst [cat:cl idx:?X det:plus qu:minus]![cat:n idx:?X]
-    n4[cat:v idx:?E]![]
-    {
-      n5 anchor
-    }
+    n4 type:anchor [cat:v idx:?E]![]
     n6 type:subst [cat:n idx:?Y det:plus qu:minus]![cat:n 
     ] 
     n7[cat:p]![]
@@ -365,10 +326,7 @@ n0[cat:n idx:?X det:plus]![cat:n idx:?X]
   n2[cat:p]![]
   {
     n3 type:subst [cat:cl idx:?X det:plus qu:minus]![cat:n idx:?X]
-    n4[cat:v idx:?E]![]
-    {
-      n5 anchor
-    }
+    n4 type:anchor [cat:v idx:?E]![]
     n6 type:subst [cat:n idx:?Z det:plus qu:minus]![cat:n idx:?Z]
     n7[cat:sp idx:?Y]![]
     { n8[cat:p]![]
@@ -388,10 +346,7 @@ n0[cat:n idx:?X det:plus]![cat:n idx:?X]
   n2[cat:p]![]
   {
     n3 type:subst [cat:cl idx:?X det:plus qu:minus]![cat:cl idx:?X]
-    n4[cat:v idx:?E]![]
-    {
-      n5 anchor
-    }
+    n4 type:anchor [cat:v idx:?E]![]
     n6 type:subst [cat:n idx:?Z det:plus qu:minus]![cat:n idx:?Z]
     n7[cat:sp idx:?Y]![]
     { n8[cat:p]![]
@@ -420,10 +375,7 @@ n0[cat:n idx:?Y det:plus]![cat:n idx:?Y]
     n7[cat:p idx:?E]![]
     {
       n8 type:subst [cat:n idx:?X det:plus qu:minus]![cat:n idx:?X  qu:minus]
-      n9[cat:v idx:?E]![cat:p idx:?E]
-      {
-        n10 anchor
-      }
+      n9 type:anchor [cat:v idx:?E]![cat:p idx:?E]
       n11 type:subst [cat:n idx:?Z det:plus qu:minus]![cat:n idx:?Z]
     }
   }
@@ -437,10 +389,7 @@ vArity3controlObj:n0vsp2pinf1b(?E ?X ?Y ?Z)
 n1[cat:p mode:FIXME]![]
 {
   n2 type:subst [cat:n idx:?X det:plus qu:minus]![cat:n idx:?X]
-  n3[cat:v idx:?E]![]
-  {
-    n4 anchor
-  }
+  n3 type:anchor [cat:v idx:?E]![]
   n5[cat:sp idx:?Z det:plus]![]
   { n6[cat:prep]![]
     {
@@ -462,10 +411,7 @@ vArity3controlObj:n0vn2pinf1b(?E ?X ?Y ?Z)
 n1[cat:p mode:FIXME]![]
 {
   n2 type:subst [cat:n idx:?X det:plus qu:minus]![cat:n idx:?X]
-  n3[cat:v idx:?E]![]
-  {
-    n4 anchor
-  }
+  n3 type:anchor [cat:v idx:?E]![]
   n5 type:subst [cat:n idx:?Z det:plus qu:minus]![cat:n idx:?Z]
   n6[cat:p]![]
   {n7[cat:prep]![]
@@ -480,10 +426,7 @@ n1[cat:p mode:FIXME]![]
 vArity3controlObj:vinfn2pinf1b(?E ?X ?Y ?Z) 
 n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p] 
 {
-  n2[cat:v idx:?E]![]
-  {
-    n3 anchor
-  }
+  n2 type:anchor [cat:v idx:?E]![]
   n4 type:subst [cat:n idx:?Z det:plus qu:minus]![cat:n idx:?Z] 
   n5[cat:p]![]
   {n6[cat:prep]![]
@@ -499,10 +442,7 @@ vArity3controlObj:n0vn1sp2(?E ?X ?Y ?Z)
 n1[cat:p mode:FIXME]![]
 {
   n2 type:subst [cat:n idx:?X det:plus qu:minus]![cat:n idx:?X]
-  n3[cat:v idx:?E]![]
-  {
-    n4 anchor
-  }
+  n3 type:anchor [cat:v idx:?E]![]
   n5 type:subst [cat:n idx:?Y det:plus qu:minus]![cat:n idx:?Y]
   n6[cat:sp idx:?Z det:plus]![]
   { n8[cat:p]![]
