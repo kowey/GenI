@@ -78,14 +78,7 @@ import NLP.GenI.CkyEarley.CkyGui
 
 \begin{code}
 guiGeni :: ProgStateRef -> IO() 
-guiGeni pstRef = do
-  pst <- readIORef pstRef
-  let gramConfig = pa pst
-      -- errHandler title err = errorDialog f title (show err)
-  Monad.when (hasFlagP TestSuiteFlg gramConfig) $
-    loadTestSuite pstRef
-    -- `catch` (errHandler "Whoops!")
-  start (mainGui pstRef)
+guiGeni pstRef = start $ mainGui pstRef
 \end{code}
 
 This is the first screen that the user sees in the GenI interface.
