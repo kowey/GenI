@@ -19,7 +19,7 @@
 
 \begin{code}
 module NLP.GenI.Configuration
-  ( Params(..), GrammarType(..), BuilderType(..), Flag,
+  ( Params(..), GrammarType(..), BuilderType(..), Flag
   -- flags
   , BatchDirFlg(..)
   , DisableGuiFlg(..)
@@ -45,7 +45,7 @@ module NLP.GenI.Configuration
   , ViewCmdFlg(..)
   --
   , mainBuilderTypes
-  , getFlagP, getListFlagP, setFlagP, hasFlagP, deleteFlagP, hasOpt, polarised,
+  , getFlagP, getListFlagP, setFlagP, hasFlagP, deleteFlagP, hasOpt, polarised
   , Optimisation(..)
   , rootcatfiltered, semfiltered
   , isIaf
