@@ -263,7 +263,7 @@ optCheckBox, antiOptCheckBox ::
                -> Window a -> [Prop (CheckBox ())]
                -> IO (CheckBox ())
 
--- | Checkbox for enabling/disabling an optimisation
+-- | Checkbox for enabling or disabling an optimisation
 --   You need not set the checked or on command attributes
 --   as this is done for you (but you can if you want,
 --   setting checked will override the default, and any
