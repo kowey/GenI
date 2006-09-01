@@ -25,6 +25,7 @@ import Data.IORef(readIORef, modifyIORef)
 import Data.List(find)
 import Data.Maybe ( isJust, fromMaybe )
 import System.Directory(createDirectoryIfMissing)
+import System.Exit ( exitFailure )
 import Test.HUnit.Text (runTestTT)
 import qualified Test.HUnit.Base as H
 import Test.HUnit.Base ((@?))
@@ -41,7 +42,7 @@ import NLP.GenI.General
 import NLP.GenI.Geni
 import NLP.GenI.Configuration
   ( Params
-  , DisableGuiFlg(..), BatchDirFlg(..), OutputFileFlg(..)
+  , DisableGuiFlg(..), BatchDirFlg(..), EarlyDeathFlg(..), OutputFileFlg(..)
   , MetricsFlg(..), RegressionTestModeFlg(..), StatsFileFlg(..)
   , TestCaseFlg(..), TimeoutFlg(..),  VerboseModeFlg(..)
   , hasFlagP, getFlagP,
@@ -78,22 +79,26 @@ runSuite pstRef =
      let suite  = tsuite pst
          config = pa pst
          verbose = hasFlagP VerboseModeFlg config
+         earlyDeath = hasFlagP EarlyDeathFlg config
      if hasFlagP RegressionTestModeFlg config
         then runRegressionSuite pstRef >> return ()
         else case getFlagP BatchDirFlg config of
               Nothing   -> runTestCaseOnly pstRef >> return ()
-              Just bdir -> runBatch verbose bdir suite
+              Just bdir -> runBatch earlyDeath verbose bdir suite
   where
-  runBatch verbose bdir suite =
+  runBatch earlyDeath verbose bdir suite =
     if any null $ map tcName suite
     then    ePutStrLn "Can't do batch processing. The test suite has cases with no name."
     else do ePutStrLn "Batch processing mode"
-            mapM_ (runCase verbose bdir) suite
-  runCase verbose bdir (G.TestCase n _ s _) =
+            mapM_ (runCase earlyDeath verbose bdir) suite
+  runCase earlyDeath verbose bdir (G.TestCase n _ s _) =
    do when verbose $
         ePutStrLn "======================================================"
       (res , _) <- runOnSemInput pstRef (PartOfSuite n bdir) s
       ePutStrLn $ " " ++ n ++ " - " ++ (show $ length res) ++ " results"
+      when (null res && earlyDeath) $ do
+        ePutStrLn $ "Exiting early because test case " ++ n ++ " failed."
+        exitFailure
 
 -- | Run a test suite, but in HUnit regression testing mode,
 --   treating each GenI test case as an HUnit test.  Obviously

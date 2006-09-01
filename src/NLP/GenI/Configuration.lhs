@@ -23,6 +23,7 @@ module NLP.GenI.Configuration
   -- flags
   , BatchDirFlg(..)
   , DisableGuiFlg(..)
+  , EarlyDeathFlg(..)
   , ExtraPolaritiesFlg(..)
   , HelpFlg(..)
   , IgnoreSemanticsFlg(..)
@@ -552,6 +553,8 @@ optionsForTesting =
       "write performance data to file FILE (stdout if unset)"
   , Option []    ["batchdir"]    (reqArg BatchDirFlg id "DIR")
       "batch process the test suite and save results to DIR"
+  , Option []    ["earlydeath"]    (noArg EarlyDeathFlg)
+      "exit on first case with no results (batch processing) "
  ]
 \end{code}
 
@@ -663,6 +666,7 @@ data type code.
 
 FLAG (BatchDirFlg, FilePath)
 FLAG (DisableGuiFlg, ())
+FLAG (EarlyDeathFlg, ())
 FLAG (ExtraPolaritiesFlg, (Map.Map String Interval))
 FLAG (HelpFlg, ())
 FLAG (IgnoreSemanticsFlg, ())
