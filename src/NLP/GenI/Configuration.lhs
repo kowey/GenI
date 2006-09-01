@@ -204,8 +204,7 @@ usage adv =
      example  = "Example:\n" ++
        " geni -m examples/ej/mac -l examples/ej/lexicon -s examples/ej/suite\n"
      basic    = usageInfo header optionsForBasicStuff
-     advanced = basic
-                ++ usageInfo "Advanced options (note: all LIST are space delimited)" optionsAdvanced
+     advanced = usageInfo "Advanced options (note: all LIST are space delimited)" optionsAdvanced
                 ++ usageForOptimisations
  in header ++ body ++ "\n\n" ++ example
 
@@ -390,14 +389,19 @@ data Optimisation =
   RootCatFiltered | SemFiltered | Iaf {- one phase only! -}
   deriving (Show,Eq,Typeable)
 
-optimisationCodes :: [(Optimisation,String,String)]
-optimisationCodes =
+coreOptimisationCodes :: [(Optimisation,String,String)]
+coreOptimisationCodes =
  [ (Polarised        , "p",      "polarity filtering")
- , (SemFiltered      , "S",      "semantic filtering (same as f-sem)")
  , (SemFiltered      , "f-sem",  "semantic filtering (two-phase only)")
  , (RootCatFiltered  , "f-root", "filtering on root node (two-phase only)")
  , (Iaf              , "i",      "index accesibility filtering (one-phase only)")
  , (NoConstraints    , "nc",     "disable semantic constraints (anti-optimisation!)")
+ ]
+
+optimisationCodes :: [(Optimisation,String,String)]
+optimisationCodes =
+ coreOptimisationCodes ++
+ [ (SemFiltered      , "S",      "semantic filtering (same as f-sem)")
  , (PolOpts          , "pol",    equivalentTo polOpts)
  , (AdjOpts          , "adj",    equivalentTo adjOpts)
  ]
@@ -422,20 +426,18 @@ lookupOpt k =
 showOptCode :: Optimisation -> String
 showOptCode = fst.lookupOpt
 
-describeOpt :: Optimisation -> String
-describeOpt o = k ++ " - " ++ d where (k,d) = lookupOpt o
+describeOpt :: (Optimisation, String, String) -> String
+describeOpt (_,k,d) = k ++ " - " ++ d
 
 -- | Displays the usage text for optimisations.
 --   It shows a table of optimisation codes and their meaning.
 usageForOptimisations :: String
 usageForOptimisations = "\n"
      ++ "List of optimisations.\n"
-     ++ "(ex: --opt='f s' for foot constraints and semantic filters)\n"
+     ++ "(ex: --opt='p f-sem' for polarities and semantic filtering)\n"
      ++ "\n"
-     ++ "Polarity optimisations:\n"
-     ++ "  " ++ unlinesTab (map describeOpt polOpts) ++ "\n\n"
-     ++ "Adjunction optimisations:\n"
-     ++ "  " ++ unlinesTab (map describeOpt adjOpts) ++ "\n"
+     ++ "Optimisations:\n"
+     ++ "  " ++ unlinesTab (map describeOpt coreOptimisationCodes) ++ "\n"
  where unlinesTab l = concat (intersperse "\n  " l)
 \end{code}
 
