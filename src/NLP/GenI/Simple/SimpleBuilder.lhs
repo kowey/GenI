@@ -62,7 +62,7 @@ import Statistics (Statistics)
 import NLP.GenI.Automaton ( automatonPaths, NFA(..), addTrans )
 import NLP.GenI.Btypes
   ( Ptype(Initial,Auxiliar),
-  , Replacable(..), replace_Flist,
+  , Replacable(..),
   , GNode(..), gCategory, NodeName,
   , GeniVal(GConst)
   , root, foot
@@ -257,20 +257,21 @@ modifyGuiStuff fn i = i { siGuiStuff = fn . siGuiStuff $ i }
 type ChartId = Integer
 
 instance Replacable SimpleItem where
-  replace s i = i { siSubstnodes = replace s (siSubstnodes i)
-                  , siAdjnodes   = replace s (siAdjnodes i)
-                  , siLeaves  = replace s (siLeaves i)
-                  , siRoot    = replace s (siRoot i)
-                  , siFoot    = replace s (siFoot i)
-                  , siPendingTb = replace s (siPendingTb i)
+  replaceMap s i =
+    i { siSubstnodes = replaceMap s (siSubstnodes i)
+      , siAdjnodes   = replaceMap s (siAdjnodes i)
+      , siLeaves  = replaceMap s (siLeaves i)
+      , siRoot    = replaceMap s (siRoot i)
+      , siFoot    = replaceMap s (siFoot i)
+      , siPendingTb = replaceMap s (siPendingTb i)
 #ifndef DISABLE_GUI
-                  , siGuiStuff = replace s (siGuiStuff i)
+      , siGuiStuff = replaceMap s (siGuiStuff i)
 #endif
   }
 
 #ifndef DISABLE_GUI
 instance Replacable SimpleGuiItem where
- replace s i = i { siNodes = replace s (siNodes i) }
+ replaceMap s i = i { siNodes = replaceMap s (siNodes i) }
 #endif
 \end{code}
 
@@ -630,8 +631,8 @@ iapplySubst twophase item1 item2 | siInitial item1 && closed item1 = {-# SCC "ap
        do -- Maybe monad
           let r@(TagSite rn ru rd) = siRoot item1
           (newU, subst1) <- unifyFeat ru fu
-          (newD, subst2) <- unifyFeat (replace_Flist subst1 rd)
-                                      (replace_Flist subst1 fd)
+          (newD, subst2) <- unifyFeat (replace subst1 rd)
+                                      (replace subst1 fd)
           let subst = subst1 ++ subst2
               nr    = TagSite rn newU newD
               adj1  = nr : (delete r $ siAdjnodes item1)
@@ -781,12 +782,12 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
   let r@(TagSite r_name r_up r_down) = siRoot aItem -- auxiliary tree, eh?
   (TagSite f_name f_up f_down) <- siFoot aItem -- should really be an error if fails
   (anr_up',  subst1)  <- unifyFeat r_up an_up
-  (anf_down, subst2)  <- unifyFeat (replace_Flist subst1 f_down) (replace_Flist subst1 an_down)
+  (anf_down, subst2)  <- unifyFeat (replace subst1 f_down) (replace subst1 an_down)
   let -- combined substitution list and success condition
       subst12 = subst1++subst2
       -- the result of unifying the t1 root and the t2 an
-      anr = TagSite r_name (replace_Flist subst2 anr_up') r_down
-  let anf_up = replace_Flist subst2 f_up
+      anr = TagSite r_name (replace subst2 anr_up') r_down
+  let anf_up = replace subst2 f_up
       -- the new adjunction nodes
       auxlite = delete r $ siAdjnodes aItem
       newadjnodes = anr : (atail ++ auxlite)

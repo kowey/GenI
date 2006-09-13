@@ -50,7 +50,7 @@ module NLP.GenI.Btypes(
    showPairs, showAv,
 
    -- Other functions
-   Replacable(..),  replace_Flist,
+   Replacable(..),
    Collectable(..), Idable(..),
    alphaConvert, alphaConvertById,
    fromGConst, fromGVar,
@@ -111,11 +111,11 @@ data Ptype = Initial | Auxiliar | Unspecified
              deriving (Show, Eq)
 
 instance (Replacable a) => Replacable (Ttree a) where
-  replace s mt =
-    mt { params = replace s (params mt)
-       , tree   = replace s (tree mt)
-       , pinterface  = replace s (pinterface mt)
-       , psemantics = replace s (psemantics mt) }
+  replaceMap s mt =
+    mt { params = replaceMap s (params mt)
+       , tree   = replaceMap s (tree mt)
+       , pinterface  = replaceMap s (pinterface mt)
+       , psemantics = replaceMap s (psemantics mt) }
 
 instance (Collectable a) => Collectable (Ttree a) where
   collect mt = (collect $ params mt) . (collect $ tree mt) .
@@ -158,11 +158,11 @@ data ILexEntry = ILE
   deriving (Show, Eq)
 
 instance Replacable ILexEntry where
-  replace s i = 
-    i { iinterface  = replace s (iinterface i)
-      , iequations  = replace s (iequations i)
-      , isemantics  = replace s (isemantics i)
-      , iparams = replace s (iparams i) }
+  replaceMap s i =
+    i { iinterface  = replaceMap s (iinterface i)
+      , iequations  = replaceMap s (iequations i)
+      , isemantics  = replaceMap s (isemantics i)
+      , iparams = replaceMap s (iparams i) }
 
 instance Collectable ILexEntry where
   collect l = (collect $ iinterface l) . (collect $ iparams l) .
@@ -278,9 +278,9 @@ instance Replacable GNode where
   replaceOne s gn =
     gn { gup = replaceOne s (gup gn) 
        , gdown = replaceOne s (gdown gn) }
-  replace s gn =
-    gn { gup = replace_Flist s (gup gn)
-       , gdown = replace_Flist s (gdown gn) }
+  replaceMap s gn =
+    gn { gup = replaceMap s (gup gn)
+       , gdown = replaceMap s (gdown gn) }
 \end{code}
 
 % ----------------------------------------------------------------------
@@ -290,7 +290,7 @@ instance Replacable GNode where
 \begin{code}
 instance (Replacable a) => Replacable (Tree a) where
   replaceOne s t = mapTree (replaceOne s) t
-  replace s t    = mapTree (replace s) t
+  replaceMap s t = mapTree (replaceMap s) t
 \end{code}
 
 Projector and Update function for Tree
@@ -471,14 +471,21 @@ making a type class out of it.
 
 \begin{code}
 class Replacable a where
-  replace :: Subst -> a -> a 
+  replaceMap :: Map.Map String GeniVal -> a -> a
 
   replaceOne :: (String,GeniVal) -> a -> a
-  replaceOne s = {-# SCC "replace" #-} replace [s]
+  replaceOne s = {-# SCC "replace" #-} replaceMap (uncurry Map.singleton s)
+
+  -- | Here it is safe to say (X -> Y; Y -> Z) because this would be crushed
+  --   down into a final value of (X -> Z; Y -> Z)
+  replace :: [(String,GeniVal)] -> a -> a
+  replace = replaceMap . foldl update Map.empty
+    where
+     update m (s1,s2) = Map.insert s1 s2 $ Map.map (replaceOne (s1,s2)) m
 
 instance (Replacable a => Replacable (Maybe a)) where
-  replace _ Nothing  = Nothing
-  replace s (Just x) = Just (replace s x)
+  replaceMap _ Nothing  = Nothing
+  replaceMap s (Just x) = Just (replaceMap s x)
 \end{code}
 
 GeniVal is probably the simplest thing you would one to apply a
@@ -486,18 +493,11 @@ substitution on
 
 \begin{code}
 instance Replacable GeniVal where
-  replace = {-# SCC "replace" #-} replace_
+  replaceMap m v@(GVar v_) = Map.findWithDefault v v_ m
+  replaceMap _ v = v
+
   replaceOne (s1, s2) (GVar v_) | v_ == s1 = s2
   replaceOne _ v = v
-
-{-# INLINE replace_ #-}
-{-# INLINE replaceOne_flipped #-}
-replace_ :: Subst -> GeniVal -> GeniVal
-replace_ sl v = foldl' replaceOne_flipped v sl
-
-replaceOne_flipped :: GeniVal -> (String, GeniVal) -> GeniVal
-replaceOne_flipped (GVar v_) (s1,s2) | v_ == s1 = s2
-replaceOne_flipped v _ = v
 \end{code}
 
 Substitution on list consists of performing substitution on 
@@ -506,7 +506,7 @@ of course.
 
 \begin{code}
 instance (Replacable a => Replacable [a]) where
-  replace s    = {-# SCC "replace" #-} map' (replace s)
+  replaceMap s = {-# SCC "replace" #-} map' (replaceMap s)
   replaceOne s = {-# SCC "replace" #-} map' (replaceOne s)
 \end{code}
 
@@ -515,22 +515,10 @@ the attribute and performing substitution on the value.
 
 \begin{code}
 instance Replacable AvPair where
-  replace = {-# SCC "replace" #-} replace_avPair
+  replaceMap s (a,v) = {-# SCC "replace" #-} (a, replaceMap s v)
 
 instance Replacable (String, ([String], Flist)) where
-  replace s (n,(a,v)) = {-# SCC "replace" #-} (n,(a, replace_Flist s v))
-\end{code}
-
-For performance reasons, here are some specialised variants of replace for
-frequently used types:
-\begin{code}
-{-# INLINE replace_Flist #-}
-replace_Flist :: Subst -> Flist -> Flist
-replace_Flist s = map' (replace_avPair s)
-
-{-# INLINE replace_avPair #-}
-replace_avPair :: Subst -> AvPair -> AvPair
-replace_avPair s (a,v) = (a, replace_ s v)
+  replaceMap s (n,(a,v)) = {-# SCC "replace" #-} (n,(a, replaceMap s v))
 \end{code}
 
 \subsection{Idable}
@@ -560,8 +548,8 @@ alphaConvert :: (Collectable a, Replacable a) => String -> a -> a
 alphaConvert suffix x = {-# SCC "alphaConvert" #-}
   let vars   = Set.elems $ collect x Set.empty
       convert v = GVar (v ++ suffix)
-      subst = map (\v -> (v, convert v)) vars
-  in replace subst x
+      subst = Map.fromList $ map (\v -> (v, convert v)) vars
+  in replaceMap subst x
 \end{code}
 
 \fnlabel{sortFlist} sorts Flists according with its feature
@@ -613,7 +601,7 @@ A replacement on a predicate is just a replacement on its parameters
 
 \begin{code}
 instance Replacable Pred where 
-  replace s (h, n, lp) = (replace s h, replace s n, replace s lp) 
+  replaceMap s (h, n, lp) = (replaceMap s h, replaceMap s n, replaceMap s lp)
 \end{code}
 
 \begin{code}
@@ -678,8 +666,8 @@ subsumeSemHelper acc tsem (hd:tl) =
       -- next adds a result from predication subsumption to
       -- the accumulators and goes to the next recursive step
       next (p,s) = subsumeSemHelper acc2 tsem2 tl2
-         where tl2   = replace s tl 
-               tsem2 = replace s tsem 
+         where tl2   = replace s tl
+               tsem2 = replace s tsem
                acc2  = (toPred p : accSem, accSub ++ s) 
   in concatMap next pRes
 \end{code}
