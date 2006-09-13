@@ -53,7 +53,7 @@ import NLP.GenI.Btypes (Ptype(Initial, Auxiliar), SemPols,
                fromGConst, isConst,
                GNode(gup, glexeme, gnname, gaconstr, gdown, gtype),
                GType(Subs), Flist,
-               Replacable(..),
+               Replacable(..), replaceOneAsMap,
                Collectable(..), Idable(..),
                Sem, Pred, emptyPred, 
                emptyGNode,
@@ -142,9 +142,11 @@ instance Replacable TagElem where
     te { tinterface = replaceMap s (tinterface te)
        , ttree      = replaceMap s (ttree te)
        , tsemantics = replaceMap s (tsemantics te) }
+  replaceOne = replaceOneAsMap
 
 instance Replacable TagSite where
   replaceMap s (TagSite n fu fd) = TagSite n (replaceMap s fu) (replaceMap s fd)
+  replaceOne s (TagSite n fu fd) = TagSite n (replaceOne s fu) (replaceOne s fd)
 
 instance Collectable TagElem where
   collect t = (collect $ tinterface t) . (collect $ ttree t) 

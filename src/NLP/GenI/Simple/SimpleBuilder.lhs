@@ -62,7 +62,7 @@ import Statistics (Statistics)
 import NLP.GenI.Automaton ( automatonPaths, NFA(..), addTrans )
 import NLP.GenI.Btypes
   ( Ptype(Initial,Auxiliar),
-  , Replacable(..),
+  , Replacable(..), replaceOneAsMap,
   , GNode(..), gCategory, NodeName,
   , GeniVal(GConst)
   , root, foot
@@ -267,11 +267,13 @@ instance Replacable SimpleItem where
 #ifndef DISABLE_GUI
       , siGuiStuff = replaceMap s (siGuiStuff i)
 #endif
-  }
+     }
+  replaceOne = replaceOneAsMap
 
 #ifndef DISABLE_GUI
 instance Replacable SimpleGuiItem where
  replaceMap s i = i { siNodes = replaceMap s (siNodes i) }
+ replaceOne = replaceOneAsMap
 #endif
 \end{code}
 

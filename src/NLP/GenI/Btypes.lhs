@@ -50,7 +50,7 @@ module NLP.GenI.Btypes(
    showPairs, showAv,
 
    -- Other functions
-   Replacable(..),
+   Replacable(..), replaceOneAsMap,
    Collectable(..), Idable(..),
    alphaConvert, alphaConvertById,
    fromGConst, fromGVar,
@@ -116,6 +116,7 @@ instance (Replacable a) => Replacable (Ttree a) where
        , tree   = replaceMap s (tree mt)
        , pinterface  = replaceMap s (pinterface mt)
        , psemantics = replaceMap s (psemantics mt) }
+  replaceOne = replaceOneAsMap
 
 instance (Collectable a) => Collectable (Ttree a) where
   collect mt = (collect $ params mt) . (collect $ tree mt) .
@@ -163,6 +164,7 @@ instance Replacable ILexEntry where
       , iequations  = replaceMap s (iequations i)
       , isemantics  = replaceMap s (isemantics i)
       , iparams = replaceMap s (iparams i) }
+  replaceOne = replaceOneAsMap
 
 instance Collectable ILexEntry where
   collect l = (collect $ iinterface l) . (collect $ iparams l) .
@@ -477,7 +479,6 @@ class Replacable a where
   replaceMap :: Map.Map String GeniVal -> a -> a
 
   replaceOne :: (String,GeniVal) -> a -> a
-  replaceOne s = {-# SCC "replace" #-} replaceMap (uncurry Map.singleton s)
 
   -- | Here it is safe to say (X -> Y; Y -> Z) because this would be crushed
   --   down into a final value of (X -> Z; Y -> Z)
@@ -486,9 +487,14 @@ class Replacable a where
     where
      update m (s1,s2) = Map.insert s1 s2 $ Map.map (replaceOne (s1,s2)) m
 
+-- | Default implementation for replaceOne but not a good idea for the
+--   core stuff; which is why it is not a typeclass default
+replaceOneAsMap :: Replacable a => (String, GeniVal) -> a -> a
+replaceOneAsMap s = replaceMap (uncurry Map.singleton s)
+
 instance (Replacable a => Replacable (Maybe a)) where
-  replaceMap _ Nothing  = Nothing
-  replaceMap s (Just x) = Just (replaceMap s x)
+  replaceMap s = liftM (replaceMap s)
+  replaceOne s = liftM (replaceOne s)
 \end{code}
 
 GeniVal is probably the simplest thing you would one to apply a
@@ -509,8 +515,8 @@ of course.
 
 \begin{code}
 instance (Replacable a => Replacable [a]) where
-  replaceMap s = {-# SCC "replace" #-} map' (replaceMap s)
-  replaceOne s = {-# SCC "replace" #-} map' (replaceOne s)
+  replaceMap s = map' (replaceMap s)
+  replaceOne s = map' (replaceOne s)
 \end{code}
 
 Substitution on an attribute/value pairs consists of ignoring
@@ -518,10 +524,12 @@ the attribute and performing substitution on the value.
 
 \begin{code}
 instance Replacable AvPair where
-  replaceMap s (a,v) = {-# SCC "replace" #-} (a, replaceMap s v)
+  replaceMap s (a,v) = (a, replaceMap s v)
+  replaceOne s (a,v) = (a, replaceOne s v)
 
 instance Replacable (String, ([String], Flist)) where
-  replaceMap s (n,(a,v)) = {-# SCC "replace" #-} (n,(a, replaceMap s v))
+  replaceMap s (n,(a,v)) = (n,(a, replaceMap s v))
+  replaceOne s (n,(a,v)) = (n,(a, replaceOne s v))
 \end{code}
 
 \subsection{Idable}
@@ -605,6 +613,7 @@ A replacement on a predicate is just a replacement on its parameters
 \begin{code}
 instance Replacable Pred where 
   replaceMap s (h, n, lp) = (replaceMap s h, replaceMap s n, replaceMap s lp)
+  replaceOne s (h, n, lp) = (replaceOne s h, replaceOne s n, replaceOne s lp)
 \end{code}
 
 \begin{code}
