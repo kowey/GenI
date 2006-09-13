@@ -65,7 +65,7 @@ import NLP.GenI.Btypes
   , GeniVal(GVar), fromGVar,
   , Ptype(Auxiliar)
   , root, foot
-  , unifyFeat )
+  , unifyFeat, mergeSubst )
 
 import NLP.GenI.Automaton
   ( NFA(NFA, transitions, states), isFinalSt, finalSt, finalStList, startSt, addTrans, automatonPaths )
@@ -564,9 +564,9 @@ parentRule item chart | ciComplete item =
           let unifyOnly (x, _) y = maybeToList $ unify x y
           -- IMPORTANT! This blocks the parent rule from applying
           -- if the child variables don't unify.
-          (newVars, _) <- foldM unifyOnly (ciVariables item,[]) $
+          (newVars, _) <- foldM unifyOnly (ciVariables item, Map.empty) $
                           map ciVariables kids
-          let newSubsts = zip (map fromGVar $ ciOrigVariables item) newVars
+          let newSubsts = Map.fromList $ zip (map fromGVar $ ciOrigVariables item) newVars
               newSide | all ciLeftSide   kids = LeftSide
                       | all ciRightSide  kids = RightSide
                       | any ciOnTheSpine kids = OnTheSpine
@@ -755,7 +755,7 @@ unifyPair :: (Flist, Flist) -> (Flist, Flist) -> Maybe (Flist, Flist, Subst)
 unifyPair (t1, b1) (t2, b2) =
  do (newTop, subst1) <- unifyFeat t1 t2
     (newBot, subst2) <- unifyFeat (replace subst1 b1) (replace subst1 b2)
-    return (newTop, newBot, subst1 ++ subst2)
+    return (newTop, newBot, mergeSubst subst1 subst2)
 \end{code}
 
 % --------------------------------------------------------------------
@@ -896,7 +896,7 @@ instance IafAble CkyItem where
   iafSetAcc   a i = i { ciAccesible = a }
   iafSetInacc a i = i { ciInaccessible = a }
   iafNewAcc i =
-    concatMap fromUniConst $ replace r $
+    concatMap fromUniConst $ replaceList r $
       concat [ getIdx u | (TagSite _ u _) <- ciSubstnodes i ]
     where r = zip (map fromGVar $ ciOrigVariables i)
                   (ciVariables i)

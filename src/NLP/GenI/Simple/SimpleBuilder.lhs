@@ -67,7 +67,7 @@ import NLP.GenI.Btypes
   , GeniVal(GConst)
   , root, foot
   , plugTree, spliceTree
-  , unifyFeat, Flist, Subst,
+  , unifyFeat, Flist, Subst, mergeSubst,
   )
 import NLP.GenI.Builder (UninflectedSentence,
     incrCounter, num_iterations, num_comparisons, chart_size,
@@ -89,7 +89,7 @@ import NLP.GenI.General
  ( BitVector, mapMaybeM, mapTree', geniBug, treeLeaves, )
 
 #ifndef DISABLE_GUI
-import NLP.GenI.Btypes ( GType(Other), sortSem, Sem, gnnameIs, )
+import NLP.GenI.Btypes ( GType(Other), sortSem, Sem, gnnameIs )
 import NLP.GenI.General ( repList, )
 import NLP.GenI.Tags ( TagDerivation, idname,
     ts_synIncomplete, ts_semIncomplete, ts_tbUnificationFailure,
@@ -633,7 +633,7 @@ iapplySubst twophase item1 item2 | siInitial item1 && closed item1 = {-# SCC "ap
           (newU, subst1) <- unifyFeat ru fu
           (newD, subst2) <- unifyFeat (replace subst1 rd)
                                       (replace subst1 fd)
-          let subst = subst1 ++ subst2
+          let subst = mergeSubst subst1 subst2
               nr    = TagSite rn newU newD
               adj1  = nr : (delete r $ siAdjnodes item1)
               adj2  = siAdjnodes item2
@@ -784,7 +784,7 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
   (anr_up',  subst1)  <- unifyFeat r_up an_up
   (anf_down, subst2)  <- unifyFeat (replace subst1 f_down) (replace subst1 an_down)
   let -- combined substitution list and success condition
-      subst12 = subst1++subst2
+      subst12 = mergeSubst subst1 subst2
       -- the result of unifying the t1 root and the t2 an
       anr = TagSite r_name (replace subst2 anr_up') r_down
   let anf_up = replace subst2 f_up
@@ -819,7 +819,7 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
               myRes = modifyGuiStuff (constrainAdj n anf_tb) res'
 #endif
           -- apply the substitutions
-              res' = replace (subst12 ++ subst3) rawCombined
+              res' = replace (mergeSubst subst12 subst3) rawCombined
           return myRes
   -- ---------------
   if twophase then finalRes2p else finalRes1p
@@ -1019,7 +1019,7 @@ graphical interface, I decided not to bother.
 type TbEither = Either String Subst
 tbUnifyTree :: SimpleItem -> Bool
 tbUnifyTree item = {-# SCC "tbUnifyTree" #-}
-  case foldl tbUnifyNode (Right []) (siPendingTb item) of
+  case foldl tbUnifyNode (Right Map.empty) (siPendingTb item) of
     Left  _ -> False
     Right _ -> True
 \end{code}
@@ -1060,7 +1060,7 @@ tbUnifyNode (Right pending) rawSite =
     -- stop all future iterations
     Nothing -> Left name
     -- apply any new substutions to the whole tree
-    Just (_,sb) -> Right (pending ++ sb)
+    Just (_,sb) -> Right (mergeSubst pending sb)
 
 -- if earlier we had a failure, don't even bother
 tbUnifyNode (Left n) _ = Left n

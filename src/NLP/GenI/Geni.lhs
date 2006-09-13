@@ -705,7 +705,7 @@ combineOne lexRaw eRaw = -- Maybe monad
        psubst = zip tp lp
    in if (length lp) /= (length tp)
       then Left $ OtherError t l $ "Parameter length mismatch"
-      else Right $ (replace psubst l, replace psubst t)
+      else Right $ (replaceList psubst l, replaceList psubst t)
   --
   unifyInterfaceUsing ifn (l,e) =
     -- trace ("unify interface" ++ wt) $

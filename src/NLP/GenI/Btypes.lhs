@@ -46,7 +46,7 @@ module NLP.GenI.Btypes(
    emptyPred,
 
    -- Functions from Flist
-   sortFlist, unify, unifyFeat,
+   sortFlist, unify, unifyFeat, mergeSubst,
    showPairs, showAv,
 
    -- Other functions
@@ -68,7 +68,7 @@ module NLP.GenI.Btypes(
 -- import Debug.Trace -- for test stuff
 import Control.Monad (liftM)
 import Data.List
-import Data.Maybe (mapMaybe)
+import Data.Maybe (fromMaybe, isJust, mapMaybe)
 import qualified Data.Map as Map
 import qualified Data.Set as Set 
 import Data.Tree
@@ -471,6 +471,9 @@ making a type class out of it.
 
 \begin{code}
 class Replacable a where
+  replace :: Subst -> a -> a
+  replace = replaceMap
+
   replaceMap :: Map.Map String GeniVal -> a -> a
 
   replaceOne :: (String,GeniVal) -> a -> a
@@ -478,8 +481,8 @@ class Replacable a where
 
   -- | Here it is safe to say (X -> Y; Y -> Z) because this would be crushed
   --   down into a final value of (X -> Z; Y -> Z)
-  replace :: [(String,GeniVal)] -> a -> a
-  replace = replaceMap . foldl update Map.empty
+  replaceList :: [(String,GeniVal)] -> a -> a
+  replaceList = replaceMap . foldl update Map.empty
     where
      update m (s1,s2) = Map.insert s1 s2 $ Map.map (replaceOne (s1,s2)) m
 
@@ -578,7 +581,7 @@ type Pred = (GeniVal, GeniVal, [GeniVal])
 type Sem = [Pred]
 type LitConstr = (Pred, [String])
 type SemInput  = (Sem,Flist,[LitConstr])
-type Subst = [(String, GeniVal)]
+type Subst = Map.Map String GeniVal
 
 data TestCase = TestCase
        { tcName :: String
@@ -645,7 +648,7 @@ non-empty.
 \begin{code}
 subsumeSem :: Sem -> Sem -> [(Sem,Subst)]
 subsumeSem tsem lsem =
-  subsumeSemHelper ([],[]) (reverse tsem) (reverse lsem)
+  subsumeSemHelper ([],Map.empty) (reverse tsem) (reverse lsem)
 \end{code}
 
 This is tricky because each substep returns multiple results.  We solicit
@@ -668,7 +671,7 @@ subsumeSemHelper acc tsem (hd:tl) =
       next (p,s) = subsumeSemHelper acc2 tsem2 tl2
          where tl2   = replace s tl
                tsem2 = replace s tsem
-               acc2  = (toPred p : accSem, accSub ++ s) 
+               acc2  = (toPred p : accSem, mergeSubst accSub s)
   in concatMap next pRes
 \end{code}
 
@@ -685,9 +688,7 @@ subsumePred ((h1, p1, la1):l) (pred2@(h2,p2,la2)) =
     if ((p1 == p2) && (length la1 == length la2))
     then let mrs  = unify (h1:la1) (h2:la2)
              next = subsumePred l pred2
-         in case mrs of
-              Nothing -> next
-              Just rs -> rs : next
+         in maybe next (:next) mrs
     else if (p1 < p2) -- note that the semantics have to be reversed!
          then []
          else subsumePred l pred2 
@@ -856,8 +857,8 @@ The core unification algorithm follows these rules in order:
 
 \begin{code}
 unify :: (Monad m) => [GeniVal] -> [GeniVal] -> m ([GeniVal], Subst)
-unify [] l2 = {-# SCC "unification" #-} return (l2, [])
-unify l1 [] = {-# SCC "unification" #-} return (l1, [])
+unify [] l2 = {-# SCC "unification" #-} return (l2, Map.empty)
+unify l1 [] = {-# SCC "unification" #-} return (l1, Map.empty)
 unify (GAnon:t1) (h2:t2) = {-# SCC "unification" #-} unifySansRep h2 t1 t2
 unify (h1:t1) (GAnon:t2) = {-# SCC "unification" #-} unifySansRep h1 t1 t2
 unify (h1@(GVar _):t1) (h2:t2) = {-# SCC "unification" #-} unifyWithRep h1 h2 t1 t2
@@ -886,8 +887,33 @@ unifyWithRep (GVar h1) x2 t1 t2 = {-# SCC "unification" #-}
      t2_ = replaceOne s t2
      ustep = unify t1_ t2_
  in s `seq` t1_ `seq` t2_ `seq` ustep `seq`
-    (ustep >>= \(res,subst) -> return (x2:res, s:subst))
+    (ustep >>= \(res,subst) -> return (x2:res, prependToSubst s subst))
 unifyWithRep _ _ _ _ = geniBug "unification error"
+\end{code}
+
+\begin{code}
+-- | Note that the first Subst is assumed to come chronologically
+--   before the second one; so merging @{ X -> Y }@ and @{ Y -> 3 }@
+--   should give us @{ X -> 3; Y -> 3 }@;
+--
+--   See 'prependToSubst' for a warning!
+mergeSubst :: Subst -> Subst -> Subst
+mergeSubst sm1 sm2 = Map.foldWithKey (curry prependToSubst) sm2 sm1
+
+-- | Add to variable replacement to a 'Subst' that logical comes before
+--   the other stuff in it.  So for example, if we have @Y -> foo@
+--   and we want to insert @X -> Y@, we notice that, in fact, @Y@ has
+--   already been replaced by @foo@, so we add @X -> foo@ instead
+--
+--   Note that it is undefined if you try to append something like
+--   @Y -> foo@ to @Y -> bar@, because that would mean that unification
+--   is broken
+prependToSubst :: (String,GeniVal) -> Subst -> Subst
+prependToSubst (v, gr@(GVar r)) sm
+  | isJust $ Map.lookup v sm = geniBug $ "prependToSubst: Eric broke unification.  Prepending " ++ v ++ " twice."
+  | otherwise = Map.insert v gr2 sm
+  where gr2 = fromMaybe gr $ Map.lookup r sm
+prependToSubst (v, gr) sm = Map.insert v gr sm
 \end{code}
 
 \subsubsection{Unification tests} The unification algorithm should satisfy
