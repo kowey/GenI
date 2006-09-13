@@ -1,1 +1,2 @@
+test
 semantics:[l1:agent(e1 x1) l2:agent(e2 x2) l3:agent(e3 x4) l2:avertir(e2) l1:demander(e1) jean(x1) marc(x5) marie(x3) l2:patient(e2 x3) pierre(x2) pierrette(x4) se(noone) l3:souvenir(e3) l2:theme(e2 e3) l3:theme(e3 x5) l1:topic(e1 e2)]

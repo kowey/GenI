@@ -74,6 +74,7 @@ PERFTEST =
 PERFTEST += -m etc/perftest/grammar-adjtest.geni
 PERFTEST += -l etc/perftest/lemmas.glex
 PERFTEST += -s etc/perftest/semantics-adjunctions-hard
+PERFTEST += --testcase test
 PERFTEST += --opts=pol --opts=S
 
 ifndef RTS_FLAGS

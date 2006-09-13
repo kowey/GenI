@@ -1,4 +1,5 @@
 % note: we try to make this about as hard as GenI can handle without dying.
+test
 semantics:[l1:discuter(e1) l1:agent(e1 x1) l1:patient(e1 x2)
            un(x2) gentil(x2) ingénieur(x2) excellent(x2) affectueux(x2)
            un(x1) gentil(x1) femme(x1)]
