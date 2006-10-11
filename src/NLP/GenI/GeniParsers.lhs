@@ -53,7 +53,7 @@ import qualified Text.ParserCombinators.Parsec.Token as P
 
 -- reserved words
 #define SEMANTICS       "semantics"
-#define SENTENCES       "sentences"
+#define SENTENCE        "sentence"
 #define TRACE           "trace"
 #define ANCHOR          "anchor"
 #define SUBST           "subst"
@@ -103,7 +103,7 @@ geniTestCase =
 
 geniSentence :: Parser String
 geniSentence =
-  do optional (keyword SENTENCES)
+  do optional (keyword SENTENCE)
      w <- squares (sepEndBy1 geniWord whiteSpace <?> "a sentence")
      return (unwords w)
   where geniWord = many1 (noneOf "[]\v\f\t\r\n ")
@@ -534,7 +534,7 @@ geniLanguageDef = emptyDef
          , opLetter = oneOf ""
          , reservedOpNames = [""]
          , reservedNames =
-             [ SEMANTICS , SENTENCES, IDXCONSTRAINTS, TRACE
+             [ SEMANTICS , SENTENCE, IDXCONSTRAINTS, TRACE
              , ANCHOR , SUBST , FOOT , LEX , TYPE , ACONSTR_NOADJ
              , INITIAL , AUXILIARY
              , BEGIN , END ]
