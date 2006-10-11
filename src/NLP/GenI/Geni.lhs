@@ -482,18 +482,25 @@ runLexSelection pst =
         config   = pa pst
         verbose  = hasFlagP VerboseModeFlg config
     -- then anchor these lexical items to trees
-    let combineWithGr l =
-         do let (errs, res) = combineList (gr pst) l
+    let grammar = gr pst
+        combineWithGr l =
+         do let (errs, res) = combineList grammar l
                 isEnrichErr (EnrichError _ _ _) = True
                 isEnrichErr _ = False
                 (enrichEs, otherEs) = partition isEnrichErr errs
             unless (null enrichEs) $ do
-                let errLocs = map eeLocation enrichEs
+                let family = ifamname l
+                    lexeme = showLexeme.iword $ l
+                    numDiscards = length enrichEs
+                    numInFamily = length [ p | p <- grammar, pfamily p == family ]
+                    badEnrichments = [ av | av <- iequations l, hasMatch av ]
                     hasMatch (a,_) = any (== parsePathEq a) errLocs
-                ePutStrLn $ "Warning: enrichment failures\t"
-                            ++ (show $ length enrichEs) ++ " members of " ++ (ifamname l)
-                            ++ " vs.\t" ++ (showLexeme.iword $ l)
-                            ++ " [" ++ (showPairs $ filter hasMatch $ iequations l) ++ "] "
+                    errLocs = map eeLocation enrichEs
+                ePutStrLn $      "Warning: Discarded "
+                            ++ show numDiscards ++ "/" ++ show numInFamily
+                            ++ " instances of " ++ lexeme ++ ":" ++ family
+                            ++ "\n         due to enrichment failure with "
+                            ++ "[" ++ showPairs badEnrichments ++ "]."
             mapM (ePutStrLn.show) otherEs
 
             -- FIXMENOW when (not.null $ errs) $ ePutStrLn (unlines errs)
