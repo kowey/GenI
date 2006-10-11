@@ -227,12 +227,21 @@ treeLeaves (Node n []) = [n]
 treeLeaves (Node _ l ) = concatMap treeLeaves l
 \end{code}
 
-\fnlabel{listRepNode} is a generic tree-walking/editing function.  It
+\paragraph{repNode and listRepNode} are a generic tree-walking/editing
+function and its equivalent for lists of trees.  It
 takes a replacement function, a filtering function and a tree.  It
 returns the tree, except that the first node for which the filtering
 function returns True is transformed with the replacement function.
 
 \begin{code}
+repNode :: (Tree a -> Tree a) -> (Tree a -> Bool)
+        -> Tree a -> Maybe (Tree a)
+repNode fn filt t =
+ case listRepNode fn filt [t] of
+ (_, False)   -> Nothing
+ ([t2], True) -> Just t2
+ _            -> geniBug "Either repNode or listRepNode are broken"
+
 listRepNode :: (Tree a -> Tree a) -> (Tree a -> Bool) 
               -> [Tree a] -> ([Tree a], Bool)
 listRepNode _ _ [] = ([], False)
