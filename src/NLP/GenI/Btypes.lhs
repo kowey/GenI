@@ -507,11 +507,11 @@ substitution on
 
 \begin{code}
 instance Replacable GeniVal where
-  replaceMap m v@(GVar v_) = Map.findWithDefault v v_ m
-  replaceMap _ v = v
+  replaceMap m v@(GVar v_) = {-# SCC "replaceMap" #-} Map.findWithDefault v v_ m
+  replaceMap _ v = {-# SCC "replaceMap" #-} v
 
-  replaceOne (s1, s2) (GVar v_) | v_ == s1 = s2
-  replaceOne _ v = v
+  replaceOne (s1, s2) (GVar v_) | v_ == s1 = {-# SCC "replaceOne" #-} s2
+  replaceOne _ v = {-# SCC "replaceOne" #-} v
 \end{code}
 
 Substitution on list consists of performing substitution on 
@@ -520,8 +520,8 @@ of course.
 
 \begin{code}
 instance (Replacable a => Replacable [a]) where
-  replaceMap s = map' (replaceMap s)
-  replaceOne s = map' (replaceOne s)
+  replaceMap s = {-# SCC "replaceMap" #-} map' (replaceMap s)
+  replaceOne s = {-# SCC "replaceOne" #-} map' (replaceOne s)
 \end{code}
 
 Substitution on an attribute/value pairs consists of ignoring
@@ -529,12 +529,12 @@ the attribute and performing substitution on the value.
 
 \begin{code}
 instance Replacable AvPair where
-  replaceMap s (a,v) = (a, replaceMap s v)
-  replaceOne s (a,v) = (a, replaceOne s v)
+  replaceMap s (a,v) = {-# SCC "replaceMap" #-} (a, replaceMap s v)
+  replaceOne s (a,v) = {-# SCC "replaceOne" #-} (a, replaceOne s v)
 
 instance Replacable (String, ([String], Flist)) where
-  replaceMap s (n,(a,v)) = (n,(a, replaceMap s v))
-  replaceOne s (n,(a,v)) = (n,(a, replaceOne s v))
+  replaceMap s (n,(a,v)) = {-# SCC "replaceMap" #-} (n,(a, replaceMap s v))
+  replaceOne s (n,(a,v)) = {-# SCC "replaceOne" #-} (n,(a, replaceOne s v))
 \end{code}
 
 \subsection{Idable}
