@@ -543,8 +543,9 @@ chooseLexCand slex tsem =
       -- and refine the selection... 
       cand2 = chooseCandI tsem cand
       -- treat synonyms as a single lexical entry
-      cand3 = mergeSynonyms cand2
-  in cand3
+      -- FIXME: disabled see mergeSynonyms for explanation
+      -- cand3 = mergeSynonyms cand2
+  in cand2
 \end{code}
 
 With a helper function, we refine the candidate selection by
@@ -589,7 +590,13 @@ atomic disjunction to merge all synonyms into a single lexical
 entry.  Two lexical entries are considered synonyms if their
 semantics match and they point to the same tree families.
 
+FIXME: 2006-10-11 - note that this is no longer being used,
+because it breaks the case where two lexical entries differ
+only by their use of path equations.  Perhaps it's worthwhile
+just to add a check that the path equations match exactly.
+
 \begin{code}
+{-
 mergeSynonyms :: [ILexEntry] -> [ILexEntry]
 mergeSynonyms lexEntry =
   let mergeFn l1 l2 = l1 { iword = (iword l1) ++ (iword l2) }
@@ -597,6 +604,7 @@ mergeSynonyms lexEntry =
       synMap = foldr helper Map.empty lexEntry
         where helper x acc = Map.insertWith mergeFn (keyFn x) x acc 
   in Map.elems synMap
+-}
 \end{code}
 
 % --------------------------------------------------------------------
