@@ -69,7 +69,7 @@ import NLP.GenI.Btypes
    Replacable(..),
    Sem, SemInput, TestCase(..), sortSem, subsumeSem, params,
    GeniVal(GConst), fromGVar,
-   GNode(ganchor, gnname, gup, gdown, gtype), Flist,
+   GNode(ganchor, gnname, gup, gdown, gaconstr, gtype), Flist,
    GType(Subs, Other),
    isemantics, ifamname, iword, iparams, iequations,
    iinterface, ifilters,
@@ -879,7 +879,8 @@ setLemmaAnchors t =
  where
   filt (Node a []) = gtype a == Subs && (isJust. lemAnch) a
   filt _ = False
-  fn (Node x k) = setLexeme (lemAnchOrFake x) $ Node (x { gtype = Other }) k
+  fn (Node x k) = setLexeme (lemAnchOrFake x) $
+                    Node (x { gtype = Other, gaconstr = False }) k
   --
   lemAnchOrFake :: GNode -> [String]
   lemAnchOrFake n =
