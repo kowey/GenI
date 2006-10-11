@@ -46,7 +46,8 @@ import Control.Monad (unless)
 import Data.IORef (IORef, readIORef, modifyIORef)
 import Data.List (intersperse, sort, nub, partition)
 import qualified Data.Map as Map
-import Data.Maybe (mapMaybe, fromMaybe)
+import Data.Maybe (mapMaybe, fromMaybe, isJust)
+import Data.Tree (Tree(Node))
 
 import System.IO.Unsafe (unsafePerformIO)
 import Text.ParserCombinators.Parsec 
@@ -54,7 +55,8 @@ import Text.ParserCombinators.Parsec
 
 import Statistics (Statistics)
 
-import NLP.GenI.General(filterTree, groupAndCount, multiGroupByFM,
+import NLP.GenI.General(filterTree, repNode,
+    groupAndCount, multiGroupByFM,
     geniBug,
     repNodeByNode,
     wordsBy,
@@ -66,15 +68,16 @@ import NLP.GenI.Btypes
   (Macros, MTtree, ILexEntry, Lexicon,
    Replacable(..),
    Sem, SemInput, TestCase(..), sortSem, subsumeSem, params,
-   GeniVal, fromGVar,
-   GNode(ganchor, gnname, gup, gdown), Flist,
+   GeniVal(GConst), fromGVar,
+   GNode(ganchor, gnname, gup, gdown, gtype), Flist,
+   GType(Subs, Other),
    isemantics, ifamname, iword, iparams, iequations,
    iinterface, ifilters,
    isempols,
    toKeys,
    showLexeme, showPairs,
    pidname, pfamily, pinterface, ptype, psemantics, ptrace,
-   setLexeme, tree, unifyFeat,
+   setAnchor, setLexeme, tree, unifyFeat,
    alphaConvert,
    )
 
@@ -688,7 +691,7 @@ combineOne lexRaw eRaw = -- Maybe monad
                            [ head (iword l) , pfamily e , pidname e ]
               , ttreename = pfamily e
               , ttype = ptype e
-              , ttree = setLexeme (iword l) (tree e)
+              , ttree = setLemmaAnchors $ setAnchor (iword l) (tree e)
               , tsemantics  =
                  sortSem $ case psemantics e of
                            Nothing -> isemantics l
@@ -839,6 +842,58 @@ parsePathEq e =
         return ("", True, e) -- unknown
  where
   rejoin = concat . (intersperse ".")
+\end{code}
+
+\subsubsection{Lemmaanchor mechanism}
+
+One problem in building reversible grammars is the treatment of co-anchors.
+In the French language, for example, we have some structures like
+\natlang{C'est Jean qui regarde Marie}
+\natlang{It is John who looks at Mary}
+
+One might be tempted to hard code the ce (it) and the être (is) into the tree
+for regarder (look at), something like \texttt{s(ce, être, n$\downarrow$, qui,
+v(regarder), n$\downarrow$)}.  Indeed, this would work just fine for
+generation, but not for parsing.  When you parse, you would encounter inflected
+forms for these items for example \natlang{c'} for \natlang{ce} or
+\natlang{sont} or \natlang{est} for \natlang{être}.  Hard-coding the \natlang{ce}
+into such trees would break parsing.
+
+To workaround this, we propose a mechanism to have our co-anchors and parsing
+too. Co-anchors that are susceptible to morphological variation should be
+\begin{itemize}
+\item marked in a substitution site (this is to keep parsers happy)
+\item have a feature \texttt{bot.lemmaanchor:foo} where foo is the
+      coanchor you want
+\end{itemize}
+
+GenI will convert these into non-substitution sites with a lexical item
+leaf node.
+
+\begin{code}
+setLemmaAnchors :: Tree GNode -> Tree GNode
+setLemmaAnchors t =
+ case repNode fn filt t of
+   Just t2 -> t2
+   Nothing -> t
+ where
+  filt (Node a []) = gtype a == Subs && (isJust. lemAnch) a
+  filt _ = False
+  fn (Node x k) = setLexeme (lemAnchOrFake x) $ Node (x { gtype = Other }) k
+  --
+  lemAnchOrFake :: GNode -> [String]
+  lemAnchOrFake n =
+    case lemAnch n of
+    Nothing -> ["ERR_UNSET_LEMMANCHOR"]
+    Just l  -> l
+  lemAnch :: GNode -> Maybe [String]
+  lemAnch n =
+    case [ v | (a,v) <- gdown n, a == _lemmanchor ] of
+    [GConst l] -> Just l
+    _          -> Nothing
+
+_lemmanchor :: String
+_lemmanchor = "lemmaanchor"
 \end{code}
 
 % --------------------------------------------------------------------

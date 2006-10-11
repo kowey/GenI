@@ -39,7 +39,7 @@ module NLP.GenI.Btypes(
 
    -- Functions from Tree GNode
    plugTree, spliceTree,
-   root, rootUpd, foot, setLexeme,
+   root, rootUpd, foot, setLexeme, setAnchor,
 
    -- Functions from Sem
    toKeys, subsumeSem, sortSem, showSem, showPred,
@@ -314,23 +314,28 @@ foot t = case filterTree (\n -> gtype n == Foot) t of
          _   -> geniBug $ "foot returned weird result"
 \end{code}
 
-\fnlabel{setLexeme} 
-Given a string l and a Tree GNode t, returns the tree t'
-where l has been assigned to the "lexeme" node in t'
-
 \begin{code}
-setLexeme :: [String] -> Tree GNode -> Tree GNode
-setLexeme s t =
+-- | Given a lexical item @s@ and a Tree GNode t, returns the tree t'
+--   where l has been assigned to the anchor node in t'
+setAnchor :: [String] -> Tree GNode -> Tree GNode
+setAnchor s t =
   let filt (Node a []) = (gtype a == Lex && ganchor a)
       filt _ = False
-      fn (Node a []) = Node a [ Node subanc [] ]
-        where subanc = emptyGNode { gnname = '_' : ((gnname a) ++ ('.' : (concat s)))
-                                  , gaconstr = True
-                                  , glexeme = s}
-      fn _ = geniBug "impossible case in setLexeme"
-  in case listRepNode fn filt [t] of
+  in case listRepNode (setLexeme s) filt [t] of
      ([r],True) -> r
      _ -> geniBug $ "setLexeme " ++ show s ++ " returned weird result"
+
+-- | Given a lexical item @l@ and a tree node @n@ (actually a subtree
+--   with no children), return the same node with the lexical item as
+--   its unique child.  The idea is that it converts terminal lexeme nodes
+--   into preterminal nodes where the actual terminal is the given lexical
+--   item
+setLexeme :: [String] -> Tree GNode -> Tree GNode
+setLexeme l (Node a []) = Node a [ Node subanc [] ]
+  where subanc = emptyGNode { gnname = '_' : ((gnname a) ++ ('.' : (concat l)))
+                            , gaconstr = True
+                            , glexeme = l}
+setLexeme _ _ = geniBug "impossible case in setLexeme - subtree with kids"
 \end{code}
 
 \subsection{Substitution and Adjunction}

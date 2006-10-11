@@ -128,10 +128,10 @@ attachMorphHelper mfs te =
           -- replace the anchor with the unification results
           newgdown = replace subst (gdown anchor) 
           newa = anchor { gup = unf, gdown = newgdown }
-      in te2 { ttree = setAnchor newa tt2 }
+      in te2 { ttree = setMorphAnchor newa tt2 }
 
-setAnchor :: GNode -> Tree GNode -> Tree GNode
-setAnchor n t =
+setMorphAnchor :: GNode -> Tree GNode -> Tree GNode
+setMorphAnchor n t =
   let filt (Node a _) = (gtype a == Lex && ganchor a)
       fn (Node _ l)   = Node n l
   in (head.fst) $ listRepNode fn filt [t]
