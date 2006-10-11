@@ -1,0 +1,123 @@
+\documentclass[a4paper,11pt]{report}
+%\documentclass{foils}
+
+\usepackage{geometry,graphicx}
+\usepackage{verbatim}
+\usepackage{url}
+\usepackage{fancybox}
+\usepackage{fancyhdr}
+\usepackage{framed}
+\usepackage{color}
+\usepackage{multirow}
+
+\usepackage{lingmacros}  % included with GenI
+\usepackage{covington}   % included with GenI
+
+% ----------------------------------------
+\newcommand{\jargon}{\textbf}
+\newcommand{\natlang}{\textit}
+\newcommand{\semexpr}{\texttt}
+\newcommand{\tautree}[1] {$\tau_{#1}$}
+\newcommand{\koweytree}{\texttt}
+\long\def\ignore#1{}
+
+\newcommand{\fnparam}{\texttt}
+\newcommand{\fnref}[1]{\textit{#1} (page \pageref{fn:#1})}
+\newcommand{\fnreflite}[1]{\textit{#1}}
+\newcommand{\fnlabel}[1]{\paragraph{#1}\label{fn:#1}}
+
+\newcommand{\tuple}[1]{\langle #1 \rangle}
+\setcounter{chapter}{-1}
+\setcounter{secnumdepth}{3}
+% ----------------------------------------
+
+\geometry{verbose,tmargin=40mm,bmargin=40mm,lmargin=25mm,rmargin=25mm}
+%\input{lambdaTeX}
+
+\pagestyle{fancyplain} 
+\lfoot{Geni source code}
+\cfoot{\thepage}
+\rfoot{}
+
+%\setlength\parindent{0pt}
+\setlength{\fboxsep}{0.1pt}
+
+\renewcommand\FrameHeightAdjust{1pt}
+
+\newenvironment{code}{\comment}{\endcomment}
+
+\begin{document}
+\title{Geni manual}
+\author{Langue et Dialogue\\LORIA}
+
+\maketitle
+\tableofcontents
+
+% -------------------------------------------------------------------------
+% Overview
+% -------------------------------------------------------------------------
+
+\chapter*{License}
+
+GenI surface realiser\\
+Copyright \copyright 2005/2006 Carlos Areces and Eric Kow
+
+\bigskip
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+\bigskip
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+\bigskip
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
+\chapter{Overview}
+
+This document doesn't officially exist yet.  It's just Eric
+experimenting with using Literate Haskell to build the manual
+along with the source code \`a la Darcs.
+
+Some of the text here might be pretty nonsensical in a manual.  It's
+because in the early days of Literate GenI, I was mostly using literate
+programming for writing comments.  Later on, (by reading the darcs
+source code),  I discovered that another good use of literate
+programming is for embedding your user manual right into your code.
+This makes it easier to keep your documentation up to date.  My hope
+is that either I or the person who looks after GenI when I'm gone
+will complete the transition of the user manual stuff into this style.
+
+Note that in addition to the manual, there is \textit{Literate GenI}
+\cite{literateGeni} which actually tries to explain how GenI is
+implemented.
+
+% -------------------------------------------------------------------------
+% Overview
+% -------------------------------------------------------------------------
+
+\part{Manual}
+
+\input{../src/NLP/GenI/Configuration.lhs}
+\input{../src/NLP/GenI/GeniParsers.lhs}
+\input{../src/NLP/GenI/Gui.lhs}
+
+\part{Optimisations}
+
+\input{../src/NLP/GenI/Polarity.lhs}
+
+{
+\bibliographystyle{alpha}
+\bibliography{genidoc}
+}
+
+\end{document}
