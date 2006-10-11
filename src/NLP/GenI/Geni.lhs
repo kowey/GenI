@@ -691,7 +691,7 @@ combineOne lexRaw eRaw = -- Maybe monad
                            [ head (iword l) , pfamily e , pidname e ]
               , ttreename = pfamily e
               , ttype = ptype e
-              , ttree = setLemmaAnchors $ setAnchor (iword l) (tree e)
+              , ttree = setLemAnchors $ setAnchor (iword l) (tree e)
               , tsemantics  =
                  sortSem $ case psemantics e of
                            Nothing -> isemantics l
@@ -863,7 +863,7 @@ To workaround this, we propose a mechanism to have our co-anchors and parsing
 too. Co-anchors that are susceptible to morphological variation should be
 \begin{itemize}
 \item marked in a substitution site (this is to keep parsers happy)
-\item have a feature \texttt{bot.lemmaanchor:foo} where foo is the
+\item have a feature \texttt{bot.lemanchor:foo} where foo is the
       coanchor you want
 \end{itemize}
 
@@ -871,30 +871,30 @@ GenI will convert these into non-substitution sites with a lexical item
 leaf node.
 
 \begin{code}
-setLemmaAnchors :: Tree GNode -> Tree GNode
-setLemmaAnchors t =
+setLemAnchors :: Tree GNode -> Tree GNode
+setLemAnchors t =
  case repNode fn filt t of
    Just t2 -> t2
    Nothing -> t
  where
-  filt (Node a []) = gtype a == Subs && (isJust. lemAnch) a
+  filt (Node a []) = gtype a == Subs && (isJust. lemAnchor) a
   filt _ = False
-  fn (Node x k) = setLexeme (lemAnchOrFake x) $
+  fn (Node x k) = setLexeme (lemAnchorMaybeFake x) $
                     Node (x { gtype = Other, gaconstr = False }) k
   --
-  lemAnchOrFake :: GNode -> [String]
-  lemAnchOrFake n =
-    case lemAnch n of
+  lemAnchorMaybeFake :: GNode -> [String]
+  lemAnchorMaybeFake n =
+    case lemAnchor n of
     Nothing -> ["ERR_UNSET_LEMMANCHOR"]
     Just l  -> l
-  lemAnch :: GNode -> Maybe [String]
-  lemAnch n =
-    case [ v | (a,v) <- gdown n, a == _lemmanchor ] of
+  lemAnchor :: GNode -> Maybe [String]
+  lemAnchor n =
+    case [ v | (a,v) <- gdown n, a == _lemanchor ] of
     [GConst l] -> Just l
     _          -> Nothing
 
-_lemmanchor :: String
-_lemmanchor = "lemmaanchor"
+_lemanchor :: String
+_lemanchor = "lemanchor"
 \end{code}
 
 % --------------------------------------------------------------------
