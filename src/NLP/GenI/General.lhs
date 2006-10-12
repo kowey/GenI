@@ -242,6 +242,14 @@ repNode fn filt t =
  ([t2], True) -> Just t2
  _            -> geniBug "Either repNode or listRepNode are broken"
 
+-- | Like 'repNode' except that it performs the operations on
+--   all nodes that match and doesn't care if any nodes match
+--   or not
+repAllNode :: (Tree a -> Tree a) -> (Tree a -> Bool)
+           -> Tree a -> Tree a
+repAllNode fn filt n | filt n = fn n
+repAllNode fn filt (Node p ks) = Node p $ map (repAllNode fn filt) ks
+
 listRepNode :: (Tree a -> Tree a) -> (Tree a -> Bool) 
               -> [Tree a] -> ([Tree a], Bool)
 listRepNode _ _ [] = ([], False)

@@ -55,7 +55,7 @@ import Text.ParserCombinators.Parsec
 
 import Statistics (Statistics)
 
-import NLP.GenI.General(filterTree, repNode,
+import NLP.GenI.General(filterTree, repAllNode,
     groupAndCount, multiGroupByFM,
     geniBug,
     repNodeByNode,
@@ -888,9 +888,7 @@ leaf node.
 \begin{code}
 setLemAnchors :: Tree GNode -> Tree GNode
 setLemAnchors t =
- case repNode fn filt t of
-   Just t2 -> t2
-   Nothing -> t
+ repAllNode fn filt t
  where
   filt (Node a []) = gtype a == Subs && (isJust. lemAnchor) a
   filt _ = False
