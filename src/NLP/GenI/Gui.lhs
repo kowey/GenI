@@ -119,8 +119,7 @@ We add some buttons for loading files and running the generator.
 
 \begin{code}
        let config     = pa pst 
-           suite      = tsuite pst
-           hasSem     = not (null suite)
+           hasSem     = hasFlagP TestSuiteFlg config
            ignoreSem  = hasFlagP IgnoreSemanticsFlg config
        -- Target Semantics
        tsTextBox <- textCtrl f [ wrap := WrapWord
