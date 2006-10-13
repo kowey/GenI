@@ -293,7 +293,7 @@ runViewTag params drName =
   Just f  -> do
      -- figure out what grammar file to use
      let gramfile = basename f ++ ".rec"
-         treenameOnly = (dropTillIncluding '-') . (dropTillIncluding '_')
+         treenameOnly = (dropTillIncluding ':') . (dropTillIncluding ':')
      -- run the viewer
      case getFlagP ViewCmdFlg params of
        Nothing -> ePutStrLn "Warning: No viewcmd specified (runViewTag)"
