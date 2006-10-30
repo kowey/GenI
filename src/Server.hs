@@ -25,7 +25,7 @@ import System (getArgs)
 import System.IO
 import System.Posix.Signals (installHandler, sigPIPE, Handler(Ignore))
 
-import NLP.GenI.Configuration ( treatArgs, treatArgsWithParams,
+import NLP.GenI.Configuration ( treatArgs, treatArgsWithParams
                               , setFlagP, ServerModeFlg(..) )
 import NLP.GenI.Console (runTestCaseOnly)
 import NLP.GenI.Geni (loadGrammar, loadTestSuite, emptyProgState, ProgState(pa))
