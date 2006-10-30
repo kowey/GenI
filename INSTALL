@@ -14,9 +14,8 @@ wxhaskell with special options.  Please see
 
 Building geni
 -------------
- ./configure
- make 
- make install
+ runhaskell Setup.lhs configure
+ runhaskell Setup.lhs build
+ runhaskell Setup.lhs install
 
-(Note: blind users or GUI abstainers can do 'make nogui' 
- instead of just 'make')
+(Note: blind users or GUI abstainers can do 'make nogui')
