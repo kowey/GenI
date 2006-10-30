@@ -48,10 +48,10 @@ import NLP.GenI.Btypes ( GNode, gnname )
 import NLP.GenI.CkyEarley.CkyBuilder
   ( ckyBuilder, earleyBuilder, CkyStatus, CkyItem(..), ChartId
   , ciRoot, ciAdjDone
-  , bitVectorToSem, findId,
+  , bitVectorToSem, findId
   , extractDerivations
   , theResults, theAgenda, theChart, theTrash
-  , emptySentenceAut, mJoinAutomata, mAutomatonPaths,
+  , emptySentenceAut, mJoinAutomata, mAutomatonPaths
   , unpackItemToAuts,
   )
 import NLP.GenI.Configuration ( Params(..) )
@@ -62,8 +62,8 @@ import NLP.GenI.General ( boundsCheck, geniBug )
 import NLP.GenI.GuiHelper
   ( messageGui, toSentence
   , debuggerPanel, DebuggerItemBar
-  , addGvHandler, modifyGvParams, 
-  , GraphvizGuiSt(gvitems, gvsel, gvparams), GvIO, setGvSel,
+  , addGvHandler, modifyGvParams
+  , GraphvizGuiSt(gvitems, gvsel, gvparams), GvIO, setGvSel
   , graphvizGui, newGvRef, setGvDrawables,
   )
 

@@ -62,7 +62,7 @@ import NLP.GenI.Btypes
   , Flist
   , Replacable(..), Subst
   , GNode(..), GType(Subs, Foot, Other)
-  , GeniVal(GVar), fromGVar,
+  , GeniVal(GVar), fromGVar
   , Ptype(Auxiliar)
   , root, foot
   , unifyFeat, mergeSubst )
