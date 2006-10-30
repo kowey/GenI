@@ -1,0 +1,26 @@
+Name:           GenI
+Version:        0.10
+License:        GPL
+Author:         Carlos Areces and Eric Kow
+Build-Depends:  base,  haskell98, mtl, parsec, wxcore, wx, QuickCheck, HUnit, HaXml >=1.16
+Synopsis:       Natural language generator for TAG
+
+Executable:     geni
+Main-Is:        MainGeni.lhs
+Hs-Source-Dirs: src
+Extensions:     CPP, Rank2Types, OverlappingInstances, MultiParamTypeClasses
+
+Executable:     geniconvert
+Hs-Source-Dirs: src
+Main-Is:        Converter.hs
+Extensions:     CPP, Rank2Types, OverlappingInstances
+
+Executable:     geniextract
+Hs-Source-Dirs: src
+Main-Is:        ExtractTestCases.lhs
+Extensions:     CPP, Rank2Types, OverlappingInstances
+
+Executable:     geniselect
+Hs-Source-Dirs: src
+Main-Is:        Select.hs
+Extensions:     CPP, Rank2Types, OverlappingInstances
