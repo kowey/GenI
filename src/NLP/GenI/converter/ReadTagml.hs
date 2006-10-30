@@ -27,7 +27,7 @@ import Text.XML.HaXml.XmlContent
 
 
 import NLP.GenI.Btypes
-  ( AvPair, Flist,
+  ( AvPair, Flist
   , GType(Subs,Foot,Lex,Other)
   , GNode(..), Macros, Ttree(..)
   , GeniVal(GConst, GVar, GAnon), fromGConst, lexemeAttributes
