@@ -48,7 +48,7 @@ import qualified NLP.GenI.Builder    as B
 import qualified NLP.GenI.BuilderGui as BG
 import NLP.GenI.Polarity
 import NLP.GenI.Simple.SimpleBuilder
-  ( simpleBuilder, SimpleStatus, SimpleItem(..), SimpleGuiItem(..),
+  ( simpleBuilder, SimpleStatus, SimpleItem(..), SimpleGuiItem(..)
   , unpackResult
   , theResults, theAgenda, theAuxAgenda, theChart, theTrash)
 \end{code}

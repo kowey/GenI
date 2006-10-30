@@ -61,13 +61,13 @@ import Statistics (Statistics)
 
 import NLP.GenI.Automaton ( automatonPaths, NFA(..), addTrans )
 import NLP.GenI.Btypes
-  ( Ptype(Initial,Auxiliar),
-  , Replacable(..), replaceOneAsMap,
-  , GNode(..), gCategory, NodeName,
+  ( Ptype(Initial,Auxiliar)
+  , Replacable(..), replaceOneAsMap
+  , GNode(..), gCategory, NodeName
   , GeniVal(GConst)
   , root, foot
   , plugTree, spliceTree
-  , unifyFeat, Flist, Subst, mergeSubst,
+  , unifyFeat, Flist, Subst, mergeSubst
   )
 import NLP.GenI.Builder (UninflectedSentence,
     incrCounter, num_iterations, num_comparisons, chart_size,
