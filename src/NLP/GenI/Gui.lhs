@@ -46,8 +46,8 @@ import NLP.GenI.Btypes (ILexEntry(isemantics), TestCase(..))
 import NLP.GenI.Tags (idname, tpolarities, tsemantics, TagElem)
 import NLP.GenI.Treeprint (toGeniHand)
 import NLP.GenI.Configuration
-  ( Params(..), hasOpt,
-  , hasFlagP, deleteFlagP, setFlagP, getFlagP, getListFlagP,
+  ( Params(..), hasOpt
+  , hasFlagP, deleteFlagP, setFlagP, getFlagP, getListFlagP
     --
   , ExtraPolaritiesFlg(..)
   , IgnoreSemanticsFlg(..)

@@ -89,10 +89,10 @@ import NLP.GenI.Tags (Tags, TagElem, emptyTE,
 
 import NLP.GenI.Configuration
   ( Params, getFlagP, hasFlagP, hasOpt, Optimisation(NoConstraints)
-  , MacrosFlg(..), LexiconFlg(..), TestSuiteFlg(..), TestCaseFlg(..),
-  , MorphInfoFlg(..), MorphCmdFlg(..),
-  , IgnoreSemanticsFlg(..), ServerModeFlg(..), VerboseModeFlg(..),
-  , grammarType,
+  , MacrosFlg(..), LexiconFlg(..), TestSuiteFlg(..), TestCaseFlg(..)
+  , MorphInfoFlg(..), MorphCmdFlg(..)
+  , IgnoreSemanticsFlg(..), ServerModeFlg(..), VerboseModeFlg(..)
+  , grammarType
   , GrammarType(..) )
 
 import qualified NLP.GenI.Builder as B

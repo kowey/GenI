@@ -31,7 +31,7 @@ import qualified Test.HUnit.Base as H
 import Test.HUnit.Base ((@?))
 
 import NLP.GenI.Btypes
-   ( SemInput, showSem,
+   ( SemInput, showSem
    , TestCase(tcSem, tcName, tcExpected)
    )
 import qualified NLP.GenI.Btypes as G
@@ -45,8 +45,8 @@ import NLP.GenI.Configuration
   , DisableGuiFlg(..), BatchDirFlg(..), EarlyDeathFlg(..), OutputFileFlg(..)
   , MetricsFlg(..), RegressionTestModeFlg(..), StatsFileFlg(..)
   , TestCaseFlg(..), TimeoutFlg(..),  VerboseModeFlg(..)
-  , hasFlagP, getFlagP,
-  , builderType , BuilderType(..),
+  , hasFlagP, getFlagP
+  , builderType , BuilderType(..)
   )
 import qualified NLP.GenI.Builder as B
 import NLP.GenI.CkyEarley.CkyBuilder
