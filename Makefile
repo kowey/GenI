@@ -14,9 +14,7 @@
 # include this file if configure had been run
 # see the $(config_file) target to make it complain
 config_file:=config/config.mk
-ifneq '$(wildcard $(config_file))' ''
-include $(config_file)
-endif
+-include $(config_file)
 
 # i know, i know, i should be using autotools...
 # but *whine* it's so hard!
