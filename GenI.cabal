@@ -1,6 +1,7 @@
 Name:           GenI
 Version:        0.10
 License:        GPL
+License-file:   LICENSE
 Author:         Carlos Areces and Eric Kow
 Build-Depends:  base,  haskell98, mtl, parsec, wxcore, wx, QuickCheck, HUnit, HaXml >=1.16
 Synopsis:       Natural language generator for TAG
