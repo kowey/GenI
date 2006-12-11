@@ -23,3 +23,5 @@ aconstr-with-anchor semantics:[aconstr-with-anchor()]
 
 tb-noadj-good-1 semantics:[tb-unification-noadj() no-thing()]
 tb-noadj-good-2 semantics:[tb-unification-noadj() thing-good()]
+
+lemanchor semantics:[lemanchor()]
