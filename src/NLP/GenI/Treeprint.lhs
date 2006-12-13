@@ -395,10 +395,10 @@ instance HsShowable GeniVal where
  hsShows GAnon       = showString "GAnon"
 
 instance HsShowable GNode where
- hsShows (GN a b c d e f g) =
+ hsShows (GN a b c d e f g h) =
    hsConstructor "GN"
     [ hsShows a, hsShows b, hsShows c, hsShows d
-    , hsShows e, hsShows f, hsShows g]
+    , hsShows e, hsShows f, hsShows g, hsShows h]
 
 instance HsShowable TagElem where
  hsShows (TE a b c d e f g h i j) =

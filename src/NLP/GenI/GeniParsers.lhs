@@ -416,7 +416,8 @@ geniNode =
                  , gup = top, gdown = bot
                  , glexeme  = lex_
                  , ganchor  = (nodeType == ANCHOR)
-                 , gaconstr = constr }
+                 , gaconstr = constr
+                 , gorigin  = "" }
   where 
     typeParser = choice $ map (try.symbol) [ ANCHOR, FOOT, SUBST, LEX ]
     adjConstraintParser = option False $ reserved ACONSTR_NOADJ >> return True

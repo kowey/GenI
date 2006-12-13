@@ -156,7 +156,8 @@ translateNodeHelper idnum (X.Node nattrs mnargs _) = gn where
                 ganchor = anchor,
                 glexeme = if anchor then [] else lexeme,
                 gtype   = ntype,
-                gaconstr = aconstr }
+                gaconstr = aconstr,
+                gorigin  = "" }
 
 -- ----------------------------------------------------------------------
 -- Semantics

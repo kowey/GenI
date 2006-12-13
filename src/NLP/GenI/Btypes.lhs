@@ -26,7 +26,7 @@ unification, that is).
 \begin{code}
 module NLP.GenI.Btypes(
    -- Datatypes 
-   GNode(GN), GType(Subs, Foot, Lex, Other), NodeName,
+   GNode(..), GType(Subs, Foot, Lex, Other), NodeName,
    Ttree(..), MTtree, SemPols, TestCase(..),
    Ptype(Initial,Auxiliar,Unspecified), 
    Pred, Flist, AvPair, GeniVal(..),
@@ -34,7 +34,6 @@ module NLP.GenI.Btypes(
    emptyLE, emptyGNode, emptyMacro, 
 
    -- GNode stuff 
-   gnname, gup, gdown, ganchor, glexeme, gtype, gaconstr,
    gCategory, showLexeme, lexemeAttributes, gnnameIs,
 
    -- Functions from Tree GNode
@@ -199,7 +198,10 @@ data GNode = GN{gnname :: NodeName,
                 ganchor  :: Bool,
                 glexeme  :: [String],
                 gtype    :: GType,
-                gaconstr :: Bool}
+                gaconstr :: Bool,
+                gorigin  :: String  -- ^ for TAG, this would be the elementary tree
+                                    --   that this node originally came from
+                }
            deriving Eq
 
 -- Node type used during parsing of the grammar 
@@ -215,7 +217,8 @@ emptyGNode = GN { gnname = "",
                   ganchor = False,
                   glexeme = [], 
                   gtype = Other,
-                  gaconstr = False }
+                  gaconstr = False,
+                  gorigin = "" }
 
 gnnameIs :: NodeName -> GNode -> Bool
 gnnameIs n = (== n) . gnname
