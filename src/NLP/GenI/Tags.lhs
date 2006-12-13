@@ -347,7 +347,7 @@ ts_tbUnificationFailure = "top/bot unification failure"
 ts_noRootCategory = "root category unset?!"
 
 ts_wrongRootCategory :: [String] -> [String] -> String
-ts_wrongRootCategory c cats = "wrong root category(ies): " ++ (show c) ++ " should be:" ++ (show cats)
+ts_wrongRootCategory c cats = "wrong root category(ies): " ++ unwords c ++ " (should be: " ++ unwords cats ++ ")"
 
 ts_semIncomplete :: [Pred] -> String
 ts_semIncomplete sem = "semantically incomplete - missing:  " ++ showSem sem
