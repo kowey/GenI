@@ -26,7 +26,7 @@ echo "Artificial cases"
 echo "================================================================"
 echo
 
-do_geni ${GENI_FLAGS} -m examples/artificial/macros -l examples/artificial/lexicon -s examples/artificial/suite --rootcats="'a b s t1'"
+do_geni ${GENI_FLAGS} -m examples/artificial/macros -l examples/artificial/lexicon -s examples/artificial/suite --rootcats="'a b s x t1'"
 
 echo "================================================================"
 echo "Bad artificial cases - these should all fail!"
@@ -34,7 +34,7 @@ echo "================================================================"
 echo
 
 do_geni_fail ${GENI_FLAGS} -m examples/artificial/macros -l examples/artificial/lexicon -s examples/artificial/suite-bad\
-        --rootcats="'a b s t1'"\
+        --rootcats="'a b s x t1'"\
         2>&1 | grep -v "got no results" | grep -v "Error in"
 
 echo "================================================================"
