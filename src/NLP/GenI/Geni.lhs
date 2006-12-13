@@ -542,8 +542,7 @@ the lexicon whose semantics subsumes the input semantics.
 \begin{code}
 chooseLexCand :: Lexicon -> Sem -> [ILexEntry]
 chooseLexCand slex tsem = 
-  let -- the initial "MYEMPTY" takes care of items with empty semantics
-      keys = myEMPTY:(toKeys tsem)   
+  let keys = toKeys tsem
       -- we choose candidates that match keys
       lookuplex t = Map.findWithDefault [] t slex
       cand  = concatMap lookuplex keys
