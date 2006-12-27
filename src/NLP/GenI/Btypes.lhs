@@ -604,6 +604,8 @@ data TestCase = TestCase
        , tcSemString :: String -- ^ for gui
        , tcSem  :: SemInput
        , tcExpected :: [String] -- ^ expected results (for testing)
+       , tcOvergens :: [String] -- ^ reserved for overgeneration "red flags",
+                                --   things you most certainly don't want it to produce
        } deriving Show
 
 emptyPred :: Pred

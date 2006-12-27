@@ -54,6 +54,7 @@ import qualified Text.ParserCombinators.Parsec.Token as P
 -- reserved words
 #define SEMANTICS       "semantics"
 #define SENTENCE        "sentence"
+#define OVERGEN         "overgen"
 #define TRACE           "trace"
 #define ANCHOR          "anchor"
 #define SUBST           "subst"
@@ -99,14 +100,23 @@ geniTestCase =
   do name  <- option "" (identifier <?> "a test case name")
      seminput <- geniSemanticInput
      sentences   <- many geniSentence
-     return $ TestCase name "" seminput sentences
+     overgens    <- many geniOvergen
+     return $ TestCase name "" seminput sentences overgens
+
+geniOvergen :: Parser String
+geniOvergen =
+  do keyword OVERGEN -- note that this is NOT optional
+     w <- squares (sepEndBy1 geniWord whiteSpace <?> "a sentence")
+     return (unwords w)
 
 geniSentence :: Parser String
 geniSentence =
   do optional (keyword SENTENCE)
      w <- squares (sepEndBy1 geniWord whiteSpace <?> "a sentence")
      return (unwords w)
-  where geniWord = many1 (noneOf "[]\v\f\t\r\n ")
+
+geniWord :: Parser String
+geniWord = many1 (noneOf "[]\v\f\t\r\n ")
 
 -- | The original string representation of a test case semantics
 --   (for gui)
@@ -535,7 +545,7 @@ geniLanguageDef = emptyDef
          , opLetter = oneOf ""
          , reservedOpNames = [""]
          , reservedNames =
-             [ SEMANTICS , SENTENCE, IDXCONSTRAINTS, TRACE
+             [ SEMANTICS , SENTENCE, OVERGEN, IDXCONSTRAINTS, TRACE
              , ANCHOR , SUBST , FOOT , LEX , TYPE , ACONSTR_NOADJ
              , INITIAL , AUXILIARY
              , BEGIN , END ]
