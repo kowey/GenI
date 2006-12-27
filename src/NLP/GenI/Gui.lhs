@@ -346,7 +346,7 @@ readTestSuite pstRef tsBox tsChoice =
      ----------------------------------------------------
      -- handler for selecting a test case
      ----------------------------------------------------
-     let displaySemInput (TestCase _ str si _) =
+     let displaySemInput (TestCase { tcSem = si, tcSemString = str }) =
            geniShow $ toSemInputString si str
      let onTestCaseChoice = do
          csel <- get tsChoice selection

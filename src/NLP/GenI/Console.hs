@@ -91,7 +91,7 @@ runSuite pstRef =
     then    ePutStrLn "Can't do batch processing. The test suite has cases with no name."
     else do ePutStrLn "Batch processing mode"
             mapM_ (runCase earlyDeath verbose bdir) suite
-  runCase earlyDeath verbose bdir (G.TestCase n _ s _) =
+  runCase earlyDeath verbose bdir (G.TestCase { tcName = n, tcSem = s }) =
    do when verbose $
         ePutStrLn "======================================================"
       (res , _) <- runOnSemInput pstRef (PartOfSuite n bdir) s

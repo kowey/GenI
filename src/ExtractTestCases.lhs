@@ -83,7 +83,10 @@ exitShowing err=
     exitFailure
 
 createSubdir :: String -> TestCase -> IO ()
-createSubdir outdir (TestCase name semStr semInput sent) =
+createSubdir outdir (TestCase { tcName = name
+                              , tcSemString = semStr
+                              , tcSem =  semInput
+                              , tcExpected = sent}) =
  do let subdir = outdir /// name
     createDirectoryIfMissing False subdir
     --
