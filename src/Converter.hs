@@ -151,10 +151,8 @@ valName (i,t) = "t" ++ (show i) ++ "_" ++ (pfamily t)
 -- | Break a list up in to n sized chunks; the last element of the list might
 --   be somewhat smaller, eh?
 everyN :: Int -> [a] -> [[a]]
-everyN n xs
- | length xs < n = [xs]
- | otherwise     = take n xs : (everyN n $ drop n xs)
-
+everyN n [] = []
+everyN n xs = take n xs : (everyN n $ drop n xs)
 
 uncommas :: [String] -> String
 uncommas = concat . (intersperse ", ")
