@@ -33,7 +33,8 @@ import Text.ParserCombinators.Parsec
 import NLP.GenI.Btypes (Macros,pfamily,MTtree)
 import NLP.GenI.General (ePutStrLn, toUpperHead)
 import NLP.GenI.GeniParsers (geniMacros)
-import NLP.GenI.Treeprint (geniShow, hsShow)
+import NLP.GenI.Treeprint (geniShow)
+import NLP.GenI.HsShowable (hsShow)
 import NLP.GenI.Converter.ReadTagml (readTagmlMacros)
 
 data Flag = FromFlg String | ToFlg String | OutputFlg String
