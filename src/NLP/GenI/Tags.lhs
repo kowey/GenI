@@ -325,7 +325,7 @@ trees in String form.
 
 \begin{code}
 drawTagTrees :: [TagElem] -> String
-drawTagTrees tes = concat $ intersperse "\n" $ map drawTagTree tes  
+drawTagTrees tes = unlines . map drawTagTree $ tes
 
 drawTagTree :: TagElem -> String 
 drawTagTree te = idname te ++ ":\n"
