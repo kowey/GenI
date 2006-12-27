@@ -51,7 +51,7 @@ import Data.Tree
 
 import NLP.GenI.Btypes (Ptype(Initial, Auxiliar), SemPols,
                fromGConst, isConst,
-               GNode(gup, glexeme, gnname, gaconstr, gdown, gtype),
+               GNode(gup, glexeme, gnname, gaconstr, gdown, gtype, gorigin),
                GType(Subs), Flist,
                Replacable(..), replaceOneAsMap,
                Collectable(..), Idable(..),
@@ -59,7 +59,7 @@ import NLP.GenI.Btypes (Ptype(Initial, Auxiliar), SemPols,
                emptyGNode,
                showPairs, showSem, lexemeAttributes,
                )
-import NLP.GenI.General (treeLeaves, groupByFM)
+import NLP.GenI.General (mapTree, treeLeaves, groupByFM)
 \end{code}
 }
 
@@ -93,7 +93,10 @@ combining macros with lexicon (see section \ref{sec:combine_macros}).
 
 \begin{code}
 -- type TPredictors = Map.Map AvPair Int 
-data TagSite = TagSite !String !Flist !Flist
+data TagSite = TagSite !String -- ^ node name
+                       !Flist  -- ^ top
+                       !Flist  -- ^ bot
+                       !String -- ^ origin
   deriving (Show, Eq, Ord)
 
 data TagElem = TE {
@@ -145,8 +148,8 @@ instance Replacable TagElem where
   replaceOne = replaceOneAsMap
 
 instance Replacable TagSite where
-  replaceMap s (TagSite n fu fd) = TagSite n (replaceMap s fu) (replaceMap s fd)
-  replaceOne s (TagSite n fu fd) = TagSite n (replaceOne s fu) (replaceOne s fd)
+  replaceMap s (TagSite n fu fd o) = TagSite n (replaceMap s fu) (replaceMap s fd) o
+  replaceOne s (TagSite n fu fd o) = TagSite n (replaceOne s fu) (replaceOne s fd) o
 
 instance Collectable TagElem where
   collect t = (collect $ tinterface t) . (collect $ ttree t) 
@@ -180,7 +183,7 @@ detectSites t =
   )
  where
  ns = flatten t
- sites match = [ TagSite (gnname n) (gup n) (gdown n) | n <- ns, match n ]
+ sites match = [ TagSite (gnname n) (gup n) (gdown n) (gorigin n) | n <- ns, match n ]
  isSub n = gtype n == Subs
  constrButNotSub n = gaconstr n && (not $ isSub n)
 \end{code}
@@ -194,12 +197,19 @@ lexical selection and generation proper, because during generation
 proper, you can simply keep a counter within a State monad to assign
 unique IDs to new TagElems.
 
-\paragraph{setTidnums} assigns a unique id to each element of this list,
-that is, an integer between 1 and the size of the list.
+Note that we also label each node of the tree with its elementary tree
+name and with the unique ID.  This helps us to build derivation trees
+correctly
 
 \begin{code}
+-- | Assigns a unique id to each element of this list, that is, an integer
+--   between 1 and the size of the list.
 setTidnums :: [TagElem] -> [TagElem]
-setTidnums xs = zipWith (\c i -> c {tidnum = i}) xs [1..]
+setTidnums xs = zipWith (\c i -> setOrigin $ c {tidnum = i}) xs [1..]
+
+setOrigin :: TagElem -> TagElem
+setOrigin te = te { ttree = mapTree setLabel . ttree $ te }
+ where setLabel g = g { gorigin = idname te ++ ":" ++ (show.tidnum) te }
 \end{code}
 
 % ----------------------------------------------------------------------
@@ -329,7 +339,9 @@ substitution nodes
 \begin{code}
 showTagSites :: [TagSite] -> String
 showTagSites sites = concat $ intersperse "\n  " $ map fn sites
-  where fn (TagSite n t b) = n ++ "/" ++ showPairs t ++ "/" ++ showPairs b
+  where
+   fn (TagSite n t b o) =
+    concat . intersperse "/" $ [ n, showPairs t, showPairs b, o ]
 \end{code}
 
 % ----------------------------------------------------------------------

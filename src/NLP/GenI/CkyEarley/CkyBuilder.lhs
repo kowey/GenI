@@ -725,7 +725,7 @@ combineWithSubst node subst a p =
   newPassive { ciAccesible    = (ciAccesible a) `union` (ciAccesible p)
              , ciInaccessible = (ciInaccessible a) `union` (ciInaccessible p)
              , ciSubstnodes = newCiSubstnodes }
-  where newCiSubstnodes = [ t | t@(TagSite x _ _) <- ciSubstnodes p, x /= gnname node ]
+  where newCiSubstnodes = [ t | t@(TagSite x _ _ _) <- ciSubstnodes p, x /= gnname node ]
         newPassive = combineWith SubstOp node subst a p
 
 combineWith :: ChartOperationConstructor -- ^ how did we get the new item?
@@ -897,7 +897,7 @@ instance IafAble CkyItem where
   iafSetInacc a i = i { ciInaccessible = a }
   iafNewAcc i =
     concatMap fromUniConst $ replaceList r $
-      concat [ getIdx u | (TagSite _ u _) <- ciSubstnodes i ]
+      concat [ getIdx u | (TagSite _ u _ _) <- ciSubstnodes i ]
     where r = zip (map fromGVar $ ciOrigVariables i)
                   (ciVariables i)
 

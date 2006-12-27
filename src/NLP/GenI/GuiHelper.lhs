@@ -46,7 +46,7 @@ import Statistics (Statistics, showFinalStats)
 
 import NLP.GenI.Configuration ( getFlagP, MacrosFlg(..), ViewCmdFlg(..) )
 import NLP.GenI.Treeprint(geniShow)
-import NLP.GenI.Tags (TagItem(tgIdName), tagLeaves)
+import NLP.GenI.Tags (TagItem(tgIdName, tgIdNum), tagLeaves)
 import NLP.GenI.Geni
   ( ProgState(..), showRealisations )
 import NLP.GenI.GeniParsers ( geniTagElems )
@@ -141,8 +141,9 @@ sectionsBySem tsem =
      sem      = Map.keys semmap
      --
      lookupTr k = Map.findWithDefault [] k semmap
-     section  k = (Nothing, header) : (map (\t -> (Just t, tgIdName t)) $ lookupTr k)
+     section  k = (Nothing, header) : (map tlab $ lookupTr k)
                   where header = "___" ++ showPred k ++ "___"
+                        tlab t = (Just t, tgIdName t ++ ":" ++ show (tgIdNum t))
  in concatMap section sem
 \end{code}
       

@@ -55,7 +55,7 @@ import Text.ParserCombinators.Parsec
 
 import Statistics (Statistics)
 
-import NLP.GenI.General(filterTree, repAllNode,
+import NLP.GenI.General(mapTree, filterTree, repAllNode,
     groupAndCount, multiGroupByFM,
     geniBug,
     repNodeByNode,
@@ -69,7 +69,7 @@ import NLP.GenI.Btypes
    Replacable(..),
    Sem, SemInput, TestCase(..), sortSem, subsumeSem, params,
    GeniVal(GConst), fromGVar,
-   GNode(ganchor, gnname, gup, gdown, gaconstr, gtype), Flist,
+   GNode(ganchor, gnname, gup, gdown, gaconstr, gtype, gorigin), Flist,
    GType(Subs, Other),
    isemantics, ifamname, iword, iparams, iequations,
    iinterface, ifilters,
@@ -700,12 +700,13 @@ combineOne lexRaw eRaw = -- Maybe monad
              >>= unifyInterfaceUsing iinterface
              >>= unifyInterfaceUsing ifilters -- filtering
              >>= enrichWithWarning -- enrichment
+    let name = concat $ intersperse ":" $ filter (not.null)
+                 [ head (iword l) , pfamily e , pidname e ]
     return $ emptyTE
-              { idname = concat $ intersperse ":" $ filter (not.null)
-                           [ head (iword l) , pfamily e , pidname e ]
+              { idname = name
               , ttreename = pfamily e
               , ttype = ptype e
-              , ttree = setLemAnchors $ setAnchor (iword l) (tree e)
+              , ttree = setOrigin name . setLemAnchors . setAnchor (iword l) $ tree e
               , tsemantics  =
                  sortSem $ case psemantics e of
                            Nothing -> isemantics l
@@ -907,6 +908,17 @@ setLemAnchors t =
 
 _lemanchor :: String
 _lemanchor = "lemanchor"
+\end{code}
+
+\subsubsection{Node origins}
+
+After lexical selection, we label each tree node with its origin, most
+likely the name and id of its elementary tree.  This is useful for
+building derivation trees
+
+\begin{code}
+setOrigin :: String -> Tree GNode -> Tree GNode
+setOrigin t = mapTree (\g -> g { gorigin = t })
 \end{code}
 
 % --------------------------------------------------------------------

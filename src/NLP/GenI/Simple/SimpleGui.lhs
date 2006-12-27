@@ -123,7 +123,7 @@ stToGraphviz st =
       --
       section n i = hd : (map tlFn i)
         where hd = (Nothing, "___" ++ n ++ "___")
-              tlFn x = (Just x, (siToSentence x) ++ (showPaths $ siPolpaths x))
+              tlFn x = (Just x, (siToSentence x) ++ (showPaths $ siPolpaths x) ++ " : " ++ (show . siId $ x))
       showPaths t = " (" ++ showPolPaths t ++ ")"
   in unzip $ agenda ++ auxAgenda ++ chart ++ trash ++ results 
 
@@ -167,7 +167,7 @@ instance XMGDerivation SimpleItem where
                     then (stripGorn.stripGornLevel) n
                     else n
       stripGornLevel = dropTillIncluding '.'
-      deriv = map (stripGorn.snd3) $ snd $ (siDerivation.siGuiStuff) it
+      deriv = map (stripGorn.snd3) . snd . siDerivation $ it
   in  tgIdName it : deriv
 \end{code}
 
@@ -185,7 +185,7 @@ instance GraphvizShow Bool SimpleItem where
       ++ graphvizShowAsSubgraph (f, info) (p ++ "TagElem") (toTagElem it)
       ++ "\n// ------------------- derivation tree --------------------------\n"
       -- derivation tree is displayed without any decoration
-      ++ (graphvizShowDerivation . snd . siDerivation . siGuiStuff $ it)
+      ++ (graphvizShowDerivation . snd . siDerivation $ it)
 
 toTagElem :: SimpleItem -> TagElem
 toTagElem si =

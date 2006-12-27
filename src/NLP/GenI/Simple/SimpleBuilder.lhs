@@ -231,6 +231,8 @@ data SimpleItem = SimpleItem
  , siFoot    :: Maybe TagSite
  --
  , siPendingTb :: [ TagSite ] -- only for one-phase
+ -- how was this item produced?
+ , siDerivation :: TagDerivation
 #ifndef DISABLE_GUI
  -- for the debugger only
  , siGuiStuff :: SimpleGuiItem
@@ -242,8 +244,6 @@ data SimpleItem = SimpleItem
 data SimpleGuiItem = SimpleGuiItem
  { siHighlight :: [String] -- ^ nodes to highlight
  , siNodes :: [GNode]    -- ^ actually a set
- -- how was this item produced?
- , siDerivation :: TagDerivation
  -- if there are things wrong with this item, what?
  , siDiagnostic :: [String]
  , siFullSem :: Sem
@@ -339,7 +339,7 @@ initSimpleBuilder twophase input config =
 initSimpleItem :: SemBitMap -> (TagElem, BitVector) -> SimpleItem
 initSimpleItem bmap (teRaw,pp) =
  let (te,tlite) = renameNodesWithTidnum teRaw in
- case (detectSites.ttree) te of
+ case detectSites (ttree te) of
  (snodes,anodes,nullAdjNodes) -> setIaf $ SimpleItem
   { siId        = tidnum te
   , siSemantics = semToBitVector bmap (tsemantics te)
@@ -356,6 +356,7 @@ initSimpleItem bmap (teRaw,pp) =
   , siRoot = ncopy.root $ theTree
   , siFoot = if ttype te == Initial then Nothing
              else Just . ncopy.foot $ theTree
+  , siDerivation = (0, [])
   -- note: see comment in initSimpleBuilder re: tb unification
   , siPendingTb = nullAdjNodes
   --
@@ -372,7 +373,6 @@ initSimpleGuiItem :: TagElem -> SimpleGuiItem
 initSimpleGuiItem te = SimpleGuiItem
  { siHighlight = []
  , siNodes = flatten.ttree $ te
- , siDerivation = (0, [])
  , siDiagnostic = []
  , siFullSem = tsemantics te
  , siIdname = idname te }
@@ -628,15 +628,15 @@ iapplySubst :: Bool -> SimpleItem -> SimpleItem -> SimpleState [SimpleItem]
 iapplySubst twophase item1 item2 | siInitial item1 && closed item1 = {-# SCC "applySubstitution" #-}
  case siSubstnodes item2 of
  [] -> return []
- ((TagSite n fu fd) : stail) ->
+ ((TagSite n fu fd nOrigin) : stail) ->
   let doIt =
        do -- Maybe monad
-          let r@(TagSite rn ru rd) = siRoot item1
+          let r@(TagSite rn ru rd rOrigin) = siRoot item1
           (newU, subst1) <- unifyFeat ru fu
           (newD, subst2) <- unifyFeat (replace subst1 rd)
                                       (replace subst1 fd)
           let subst = mergeSubst subst1 subst2
-              nr    = TagSite rn newU newD
+              nr    = TagSite rn newU newD rOrigin
               adj1  = nr : (delete r $ siAdjnodes item1)
               adj2  = siAdjnodes item2
 #ifdef DISABLE_GUI
@@ -650,10 +650,11 @@ iapplySubst twophase item1 item2 | siInitial item1 && closed item1 = {-# SCC "ap
 #endif
           let pending = if twophase then []
                         else nr : ((siPendingTb item1) ++ (siPendingTb item2))
-          return $! replace subst $ combineSimpleItems 's' [rn] item1g $
+          return $! replace subst $ combineSimpleItems [rn] item1g $
                      item2 { siSubstnodes = stail ++ (siSubstnodes item1)
                            , siAdjnodes   = adj2 ++ adj1
                            , siDerived    = plugTree (siDerived item1) n (siDerived item2)
+                           , siDerivation = addToDerivation 's' (item1g,rOrigin) (item2,nOrigin)
                            , siLeaves     = (siLeaves item1) ++ (siLeaves item2)
                            , siPendingTb  = pending
                            }
@@ -726,7 +727,7 @@ sansAdjunction1p _ = return []
 sansAdjunction2p item | closed item =
  case siAdjnodes item of
  [] -> return []
- (TagSite gn t b : atail) -> do
+ (TagSite gn t b o: atail) -> do
   -- do top/bottom unification on the node
   case unifyFeat t b of
    Nothing ->
@@ -737,7 +738,7 @@ sansAdjunction2p item | closed item =
         return []
    Just (tb,s) ->
      let item1 = if isRootOf item gn
-                 then item { siRoot = TagSite gn tb [] }
+                 then item { siRoot = TagSite gn tb [] o }
                  else item
 #ifdef DISABLE_GUI
          item2 = item1
@@ -777,35 +778,36 @@ iapplyAdjNode :: Bool -> SimpleItem -> SimpleItem -> Maybe SimpleItem
 iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
  case siAdjnodes pItem of
  [] -> Nothing
- (TagSite n an_up an_down : atail) -> do
+ (TagSite n an_up an_down nOrigin : atail) -> do
   -- block repeated adjunctions of the same SimpleItem (for ignore semantics mode)
   -- guard $ not $ (n, siId aItem) `elem` (siAdjlist pItem)
   -- let's go!
-  let r@(TagSite r_name r_up r_down) = siRoot aItem -- auxiliary tree, eh?
-  (TagSite f_name f_up f_down) <- siFoot aItem -- should really be an error if fails
+  let r@(TagSite r_name r_up r_down rOrigin) = siRoot aItem -- auxiliary tree, eh?
+  (TagSite f_name f_up f_down _) <- siFoot aItem -- should really be an error if fails
   (anr_up',  subst1)  <- unifyFeat r_up an_up
   (anf_down, subst2)  <- unifyFeat (replace subst1 f_down) (replace subst1 an_down)
   let -- combined substitution list and success condition
       subst12 = mergeSubst subst1 subst2
       -- the result of unifying the t1 root and the t2 an
-      anr = TagSite r_name (replace subst2 anr_up') r_down
+      anr = TagSite r_name (replace subst2 anr_up') r_down rOrigin
   let anf_up = replace subst2 f_up
       -- the new adjunction nodes
       auxlite = delete r $ siAdjnodes aItem
       newadjnodes = anr : (atail ++ auxlite)
       --
       rawCombined =
-        combineSimpleItems 'a' [r_name, f_name] aItem $ pItem
+        combineSimpleItems [r_name, f_name] aItem $ pItem
                { siAdjnodes = newadjnodes
                , siLeaves  = (siLeaves aItem) ++ (siLeaves pItem)
                , siDerived = spliceTree f_name (siDerived aItem) n (siDerived pItem)
+               , siDerivation = addToDerivation 'a' (aItem,rOrigin) (pItem,nOrigin)
                -- , siAdjlist = (n, (tidnum te1)):(siAdjlist item2)
                -- if we adjoin into the root, the new root is that of the aux
                -- tree (affects 1p only)
                , siRoot = if isRootOf pItem n then r else siRoot pItem
                , siPendingTb =
                   if twophase then []
-                  else (TagSite n anf_up anf_down) : (siPendingTb pItem) ++ (siPendingTb aItem)
+                  else (TagSite n anf_up anf_down nOrigin) : (siPendingTb pItem) ++ (siPendingTb aItem)
                }
       -- one phase = postpone tb unification
       -- two phase = do tb unification on the fly
@@ -833,11 +835,11 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
 
 \begin{code}
 ncopy :: GNode -> TagSite
-ncopy x = TagSite (gnname x) (gup x) (gdown x)
+ncopy x = TagSite (gnname x) (gup x) (gdown x) (gorigin x)
 
 isRootOf :: SimpleItem -> String -> Bool
 isRootOf item n = n == rname
-  where (TagSite rname _ _) = siRoot item
+  where (TagSite rname _ _ _) = siRoot item
 
 -- | Retrieves a list of trees from the chart which could be combined with the given agenda tree.
 -- The current implementation searches for trees which
@@ -857,23 +859,21 @@ lookupChart given = do
          ]
 
 -- | Helper function for when chart operations succeed.
-combineSimpleItems :: Char -- ^ operation
-                   -> [NodeName] -- ^ nodes to highlight
+combineSimpleItems :: [NodeName] -- ^ nodes to highlight
                    -> SimpleItem -> SimpleItem -> SimpleItem
-combineSimpleItems d hi item1 item2 = {-# SCC "combineSimpleItems" #-}
+combineSimpleItems hi item1 item2 = {-# SCC "combineSimpleItems" #-}
   item2 { siSemantics = (siSemantics item1) .|. (siSemantics item2)
         , siPolpaths  = (siPolpaths  item1) .&. (siPolpaths  item2)
 #ifndef DISABLE_GUI
-        , siGuiStuff  = combineSimpleGuiItems d hi (siGuiStuff item1) (siGuiStuff item2)
+        , siGuiStuff  = combineSimpleGuiItems hi (siGuiStuff item1) (siGuiStuff item2)
 #endif
         }
 
 #ifndef DISABLE_GUI
-combineSimpleGuiItems :: Char -> [NodeName]
+combineSimpleGuiItems :: [NodeName]
                       -> SimpleGuiItem -> SimpleGuiItem -> SimpleGuiItem
-combineSimpleGuiItems d hi item1 item2 =
+combineSimpleGuiItems hi item1 item2 =
  item2 { siFullSem = sortSem $ (siFullSem item1) ++ (siFullSem item2)
-       , siDerivation = addToDerivation d item1 item2
        , siNodes = (siNodes item1) ++ (siNodes item2)
        , siDiagnostic = (siDiagnostic item1) ++ (siDiagnostic item2)
        , siHighlight = hi
@@ -888,34 +888,21 @@ constrainAdj gn newT g =
 
 \subsubsection{Derivation trees}
 
-The basic problem of derivation trees is that you have to account for
-the same tree being used in two seperate places; these two uses must
-be treated as different trees, or else you'll get all sorts of
-unpredicted behaviour like your drawing software displaying multiple
-edges or loops in the derivation tree.  We approach this problem by
-prepending a Gorn address to each node in the derivation history.
-
-Given a trees $t_p$ with derivation $(c_p, h_p)$ and a tree $t_c$ with
-derivation $(c_c, h_c)$, the derivation history that results from performing
-some operation on $t_p$ (either substituting or adjoining $t_c$ into it) is:
-$(c,h)$ where $c = c' + 1$ and $h$ is $h_p$ appended to $h_c'$ where $h_c'$ is
-the result of prepending $c_p$ + 1 to every item of $h_c$. The counter $c$ is
-used (uniquely?) in the Gorn address.
+We make the simplifying assumption that each chart item is only used once.
+This is clearly wrong if we allow for items with an empty semantics, but
+since we do not actually allow such a thing, we're ok.
 
 \begin{code}
-#ifndef DISABLE_GUI
-addToDerivation :: Char -> SimpleGuiItem -> SimpleGuiItem -> TagDerivation
-addToDerivation op tc tp = {-# SCC "addToDerivation" #-}
-  let (cp,hp)  = siDerivation tp
+addToDerivation :: Char
+                -> (SimpleItem,String)
+                -> (SimpleItem,String)
+                -> TagDerivation
+addToDerivation op (tc,tcOrigin) (tp,tpOrigin) =
+  let (_ ,hp)  = siDerivation tp
       (_ ,hc)  = siDerivation tc
       --
-      newcp   = cp + 1
-      addcp x = (show newcp) ++ "." ++ x
-      newhc   = map (\ (o,c,p) -> (o, addcp c, addcp p)) hc
-      --
-      newnode = (op, (addcp.siIdname) tc, siIdname tp)
-  in (newcp, newnode:(hp++newhc) )
-#endif
+      newnode = (op, tcOrigin, tpOrigin)
+  in (0, newnode:hp++hc )
 \end{code}
 
 % --------------------------------------------------------------------
@@ -994,7 +981,7 @@ dpRootCatFailure_ :: Bool -> SimpleDispatchFilter
 dpRootCatFailure_ count item =
  do config <- gets genconfig
     let rootCats = fromMaybe [] $ getFlagP RootCategoriesFlg config
-        (TagSite _ top _) = siRoot item
+        (TagSite _ top _ _) = siRoot item
     case gCategory top of
      Just (GConst c) ->
       if null $! intersect c rootCats
@@ -1056,7 +1043,7 @@ tbUnifyNode :: TbEither -> TagSite -> TbEither
 tbUnifyNode (Right pending) rawSite =
   -- apply pending substitutions
   case replace pending rawSite of
-  (TagSite name up down) ->
+  (TagSite name up down _) ->
     -- check top/bottom unification on this node
     case unifyFeat up down of
     -- stop all future iterations
@@ -1084,7 +1071,7 @@ instance IafAble SimpleItem where
   iafSetInacc a i = i { siInaccessible = a }
   iafNewAcc i =
     concatMap fromUniConst $
-    concat [ getIdx up | (TagSite _ up _) <- siSubstnodes i ]
+    concat [ getIdx up | (TagSite _ up _ _) <- siSubstnodes i ]
 
 dpIafFailure :: SimpleDispatchFilter
 dpIafFailure item | aux item = return $ Just item
