@@ -40,7 +40,7 @@ module NLP.GenI.GeniParsers (
 import NLP.GenI.General ((!+!), Interval, ival)
 import NLP.GenI.Btypes
 import NLP.GenI.Tags (TagElem(..), emptyTE, setTidnums)
-import NLP.GenI.Treeprint (GeniHandShow(toGeniHand))
+import NLP.GenI.Treeprint (GeniShow(geniShow))
 import Control.Monad (liftM, when)
 import Data.List (sort)
 import qualified Data.Map  as Map 
@@ -183,8 +183,8 @@ squaresString =
 
 data SemInputString = SemInputString String Flist
 
-instance GeniHandShow SemInputString where
- toGeniHand (SemInputString semStr idxC) =
+instance GeniShow SemInputString where
+ geniShow (SemInputString semStr idxC) =
    SEMANTICS ++ ":" ++ semStr ++ (if null idxC then "" else r)
    where r = "\n" ++ IDXCONSTRAINTS ++ ": [" ++ showPairs idxC ++ "]"
 

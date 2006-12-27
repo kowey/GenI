@@ -44,7 +44,7 @@ import NLP.GenI.Geni
 import NLP.GenI.General (boundsCheck, geniBug, trim, fst3)
 import NLP.GenI.Btypes (ILexEntry(isemantics), TestCase(..))
 import NLP.GenI.Tags (idname, tpolarities, tsemantics, TagElem)
-import NLP.GenI.Treeprint (toGeniHand)
+import NLP.GenI.Treeprint (geniShow)
 import NLP.GenI.Configuration
   ( Params(..), hasOpt
   , hasFlagP, deleteFlagP, setFlagP, getFlagP, getListFlagP
@@ -347,7 +347,7 @@ readTestSuite pstRef tsBox tsChoice =
      -- handler for selecting a test case
      ----------------------------------------------------
      let displaySemInput (TestCase _ str si _) =
-           toGeniHand $ toSemInputString si str
+           geniShow $ toSemInputString si str
      let onTestCaseChoice = do
          csel <- get tsChoice selection
          if (boundsCheck csel suite)

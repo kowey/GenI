@@ -33,7 +33,7 @@ import Text.ParserCombinators.Parsec
 import NLP.GenI.Btypes (Macros,pfamily,MTtree)
 import NLP.GenI.General (ePutStrLn, toUpperHead)
 import NLP.GenI.GeniParsers (geniMacros)
-import NLP.GenI.Treeprint (toGeniHand, hsShow)
+import NLP.GenI.Treeprint (geniShow, hsShow)
 import NLP.GenI.Converter.ReadTagml (readTagmlMacros)
 
 data Flag = FromFlg String | ToFlg String | OutputFlg String
@@ -108,7 +108,7 @@ geniReader lf =
 
 geniWriter :: FilePath -> Macros -> IO ()
 geniWriter mf ms =
- write $ unlines $ map toGeniHand ms
+ write $ unlines $ map geniShow ms
  where write = if null mf then putStrLn else appendFile mf
 
 writeHaskell :: String -> Macros -> IO ()

@@ -246,26 +246,26 @@ based format is more annoying, so I stuck with HaXml to make my life easy.
 Unfortunately, HaXml seems to have some kind of space leak.
 
 \begin{code}
-class GeniHandShow a where
-  toGeniHand :: a -> String
+class GeniShow a where
+  geniShow :: a -> String
 
-instance GeniHandShow Ptype where
- toGeniHand Initial  = "initial"
- toGeniHand Auxiliar = "auxiliary"
- toGeniHand _        = ""
+instance GeniShow Ptype where
+ geniShow Initial  = "initial"
+ geniShow Auxiliar = "auxiliary"
+ geniShow _        = ""
 
-instance GeniHandShow AvPair where
- toGeniHand (a,v) = a ++ ":" ++ toGeniHand v
+instance GeniShow AvPair where
+ geniShow (a,v) = a ++ ":" ++ geniShow v
 
-instance GeniHandShow GeniVal where
- toGeniHand (GConst xs) = concat $ intersperse "|" xs
- toGeniHand x = show  x
+instance GeniShow GeniVal where
+ geniShow (GConst xs) = concat $ intersperse "|" xs
+ geniShow x = show  x
 
-instance GeniHandShow Pred where
- toGeniHand (h, p, l) = (toGeniHand h) ++ ":" ++ (toGeniHand p) ++ "(" ++ unwords (map toGeniHand l) ++ ")"
+instance GeniShow Pred where
+ geniShow (h, p, l) = (geniShow h) ++ ":" ++ (geniShow p) ++ "(" ++ unwords (map geniShow l) ++ ")"
 
-instance GeniHandShow GNode where
- toGeniHand x =
+instance GeniShow GNode where
+ geniShow x =
   let gtypestr n = case (gtype n) of
                      Subs -> "type:subst"
                      Foot -> "type:foot"
@@ -277,16 +277,16 @@ instance GeniHandShow GNode where
         else concat $ intersperse "|" $ map quote ls
         where quote s = "\"" ++ s ++ "\""
               ls = glexeme n
-      tbFeats n = (toGeniHand $ gup n) ++ "!" ++ (toGeniHand $ gdown n)
+      tbFeats n = (geniShow $ gup n) ++ "!" ++ (geniShow $ gdown n)
   in unwords $ filter (not.null) $ [ gnname x, gtypestr x, glexstr x, tbFeats x ]
 
-instance (GeniHandShow a) => GeniHandShow [a] where
- toGeniHand = squares . unwords . (map toGeniHand)
+instance (GeniShow a) => GeniShow [a] where
+ geniShow = squares . unwords . (map geniShow)
 
-instance (GeniHandShow a) => GeniHandShow (Tree a) where
- toGeniHand t =
+instance (GeniShow a) => GeniShow (Tree a) where
+ geniShow t =
   let treestr i (Node a l) =
-        spaces i ++ toGeniHand a ++
+        spaces i ++ geniShow a ++
         case (l,i) of
         ([], 0)  -> "{}"
         ([], _)  -> ""
@@ -296,27 +296,27 @@ instance (GeniHandShow a) => GeniHandShow (Tree a) where
       spaces i = take i $ repeat ' '
   in treestr 0 t
 
-instance GeniHandShow TagElem where
- toGeniHand te =
+instance GeniShow TagElem where
+ geniShow te =
   "\n% ------------------------- " ++ idname te
   ++ "\n" ++ (ttreename te) ++ ":" ++ (idname te)
-  ++ " "  ++ (toGeniHand.tinterface $ te)
-  ++ " "  ++ (toGeniHand.ttype $ te)
-  ++ "\n" ++ (toGeniHand.ttree $ te)
-  ++ "\n" ++ "semantics:" ++ (toGeniHand.tsemantics $ te)
+  ++ " "  ++ (geniShow.tinterface $ te)
+  ++ " "  ++ (geniShow.ttype $ te)
+  ++ "\n" ++ (geniShow.ttree $ te)
+  ++ "\n" ++ "semantics:" ++ (geniShow.tsemantics $ te)
 
-instance (GeniHandShow a) => GeniHandShow (Ttree a) where
- toGeniHand tt =
+instance (GeniShow a) => GeniShow (Ttree a) where
+ geniShow tt =
   "\n% ------------------------- " ++ pidname tt
   ++ "\n" ++ (pfamily tt) ++ ":" ++ (pidname tt)
-  ++ " "  ++ (parens $    (unwords $ map toGeniHand $ params tt)
+  ++ " "  ++ (parens $    (unwords $ map geniShow $ params tt)
                        ++ " ! "
-                       ++ (unwords $ map toGeniHand $ pinterface tt))
-  ++ " "  ++ (toGeniHand.ptype $ tt)
-  ++ "\n" ++ (toGeniHand.tree $ tt)
+                       ++ (unwords $ map geniShow $ pinterface tt))
+  ++ " "  ++ (geniShow.ptype $ tt)
+  ++ "\n" ++ (geniShow.tree $ tt)
   ++ (case psemantics tt of
       Nothing   -> ""
-      Just psem -> "\n" ++ "semantics:" ++ (toGeniHand psem))
+      Just psem -> "\n" ++ "semantics:" ++ (geniShow psem))
   ++ "\ntrace:" ++ (squares $ unwords $ ptrace tt)
 
 parens, squares :: String -> String

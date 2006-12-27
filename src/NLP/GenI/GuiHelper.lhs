@@ -45,7 +45,7 @@ import NLP.GenI.Automaton (numStates, numTransitions)
 import Statistics (Statistics, showFinalStats)
 
 import NLP.GenI.Configuration ( getFlagP, MacrosFlg(..), ViewCmdFlg(..) )
-import NLP.GenI.Treeprint(toGeniHand)
+import NLP.GenI.Treeprint(geniShow)
 import NLP.GenI.Tags (TagItem(tgIdName), tagLeaves)
 import NLP.GenI.Geni
   ( ProgState(..), showRealisations )
@@ -329,7 +329,7 @@ pauseOnLexGui pst f xs missedSem missedLex job = do
   -- supplementary button bar
   let saveCmd =
        do c <- varGet candV
-          let cStr = unlines $ map toGeniHand c
+          let cStr = unlines $ map geniShow c
           maybeSaveAsFile f cStr
       loadCmd =
        do let filetypes = [("Any file",["*","*.*"])]
