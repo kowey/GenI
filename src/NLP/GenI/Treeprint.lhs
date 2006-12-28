@@ -303,7 +303,7 @@ instance GeniShow TagElem where
   ++ " "  ++ (geniShow.tinterface $ te)
   ++ " "  ++ (geniShow.ttype $ te)
   ++ "\n" ++ (geniShow.ttree $ te)
-  ++ "\n" ++ "semantics:" ++ (geniShow.tsemantics $ te)
+  ++ "\n" ++ geniShowKeyword "semantics" "" ++ (geniShow.tsemantics $ te)
 
 instance (GeniShow a) => GeniShow (Ttree a) where
  geniShow tt =
@@ -316,12 +316,41 @@ instance (GeniShow a) => GeniShow (Ttree a) where
   ++ "\n" ++ (geniShow.tree $ tt)
   ++ (case psemantics tt of
       Nothing   -> ""
-      Just psem -> "\n" ++ "semantics:" ++ (geniShow psem))
-  ++ "\ntrace:" ++ (squares $ unwords $ ptrace tt)
+      Just psem -> "\n" ++ geniShowKeyword "semantics" (geniShow psem))
+  ++ "\n" ++ geniShowKeyword "trace" (squares.unwords.ptrace $ tt)
+
+instance GeniShow TestCase where
+ geniShow (TestCase { tcName = name
+                    , tcExpected = sentences
+                    , tcOvergens = ovgs
+                    , tcSemString = semStr
+                    , tcSem = sem }) =
+  unlines $ [ name, semS ]
+            ++ map squares sentences
+            ++ map (geniShowKeyword "overgen") ovgs
+  where
+   semS = if null semStr then geniShowSemInput sem "" else semStr
+
+
 
 parens, squares :: String -> String
 parens s  = "(" ++ s ++ ")"
 squares s = "[" ++ s ++ "]"
+
+geniShowKeyword :: String -> ShowS
+geniShowKeyword k = showString k . showChar ':'
+
+geniShowSemInput :: SemInput -> ShowS
+geniShowSemInput (sem,icons,lcons) =
+  let withConstraints lit =
+        case concat [ cs | (p,cs) <- lcons, p == lit ] of
+        [] -> geniShow lit
+        cs -> geniShow lit ++ (squares . unwords $ cs)
+      semStuff = geniShowKeyword "semantics"
+               . (showString . unwords . map withConstraints $ sem)
+      idxStuff = geniShowKeyword "idxconstraints"
+               . (showString . geniShow $ icons)
+ in semStuff .  (if null icons then id else showChar '\n' . idxStuff)
 \end{code}
 
 \include{src/NLP/GenI/HsShowable.lhs}
