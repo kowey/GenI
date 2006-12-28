@@ -43,6 +43,7 @@ import NLP.GenI.Tags (TagElem(..), emptyTE, setTidnums)
 import NLP.GenI.Treeprint (GeniShow(geniShow))
 import Control.Monad (liftM, when)
 import Data.List (sort)
+import Data.Maybe (mapMaybe)
 import qualified Data.Map  as Map 
 import qualified Data.Tree as T
 import Text.ParserCombinators.Parsec
@@ -90,18 +91,27 @@ geniTestSuiteString = whiteSpace >> many geniTestCaseString
 
 A test case is composed of an optional test id, some semantic input
 \fnref{geniSemanticInput}, followed by any number of sentences.  
-Each sentence in the test suite may be optionally preceded by the
-keyword 'sentence'.  (We ought to eventually force the use of this
-keyword.)
+The sentences can either be known good sentences (in which case
+they are optionally preceded by the keyword 'sentence' -- perhaps
+this should be mandatory one day), or known bad sentences, in which
+case they are preceded by the keyword 'overgen'.
 
 \begin{code}
 geniTestCase :: Parser TestCase
 geniTestCase =
   do name  <- option "" (identifier <?> "a test case name")
      seminput <- geniSemanticInput
-     sentences   <- many geniSentence
-     overgens    <- many geniOvergen
+     output   <- many (parseEither geniSentence geniOvergen)
+     let sentences = mapMaybe mLeft  output
+         overgens  = mapMaybe mRight output
      return $ TestCase name "" seminput sentences overgens
+  where mLeft (Left x) = Just x
+        mLeft _        = Nothing
+        mRight (Right x) = Just x
+        mRight _         = Nothing
+
+parseEither :: Parser a -> Parser b -> Parser (Either a b)
+parseEither p1 p2 = Left `fmap` p1 <|> Right `fmap` p2
 
 geniOvergen :: Parser String
 geniOvergen =
