@@ -41,6 +41,12 @@ import Control.Exception
 import Data.Dynamic(Typeable, typeOf, TyCon, mkTyCon, mkTyConApp, toDyn)
 import Data.Unique
 import System.Exit(exitWith, ExitCode(ExitFailure))
+
+-- for non-lazy IO
+import System.IO (openFile, IOMode(ReadMode), hFileSize, hGetBuf)
+import System.IO.Unsafe (unsafeInterleaveIO)
+import Foreign (mallocForeignPtrBytes, withForeignPtr, ForeignPtr, Ptr, peekElemOff, plusPtr, Word8)
+import Data.Char (chr)
 \end{code}
 }
 
@@ -373,6 +379,44 @@ showTable header items displayfn =
       headerStr = showIt header ++ "\n" ++ showLine ++ "\n" 
       bodyStr   = concat $ intersperse "\n" $ map (showIt.resStr) items 
   in headerStr ++ bodyStr
+\end{code}
+
+\section{Non-lazy IO}
+
+Simon Marlow wrote this code on the Haskell mailing list 2005-08-02.
+Using readFile' can be a good idea if you're dealing with not-so-huge
+files (i.e. where you don't want lazy evaluation), because it ensures
+that the handles are closed. No more ``too many open files''
+
+\begin{code}
+readFile' :: FilePath -> IO String
+readFile' f = do
+  h <- openFile f ReadMode
+  s <- hFileSize h
+  fp <- mallocForeignPtrBytes (fromIntegral s)
+  len <- withForeignPtr fp $ \buf -> hGetBuf h buf (fromIntegral s)
+  lazySlurp fp 0 len
+
+buf_size :: Int
+buf_size = 4096 :: Int
+
+lazySlurp :: ForeignPtr Word8 -> Int -> Int -> IO String
+lazySlurp fp ix len
+  | fp `seq` False = undefined
+  | ix >= len = return []
+  | otherwise = do
+      cs <- unsafeInterleaveIO (lazySlurp fp (ix + buf_size) len)
+      ws <- withForeignPtr fp $ \p -> loop (min (len-ix) buf_size - 1)
+					((p :: Ptr Word8) `plusPtr` ix) cs
+      return ws
+ where
+  loop :: Int -> Ptr Word8 -> String -> IO String
+  loop sublen p acc
+    | sublen `seq` p `seq` False = undefined
+    | sublen < 0 = return acc
+    | otherwise = do
+       w <- peekElemOff p sublen
+       loop (sublen-1) p (chr (fromIntegral w):acc)
 \end{code}
 
 \section{Timeouts}
