@@ -15,39 +15,38 @@
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-\chapter{Treeprint}
+\section{GraphvizShow}
 
-The Treeprint module provides specialised functions for visualising tree data.
+Outputting core GenI data to graphviz.
 
 \begin{code}
-module NLP.GenI.Treeprint
+module NLP.GenI.GraphvizShow
 where
 \end{code}
 
 \ignore{
 \begin{code}
-import Data.Tree
 import Data.List(intersperse,nub)
-import qualified Data.Map
 
 import NLP.GenI.General (mapTree)
 import NLP.GenI.Tags
- ( TagElem(TE), idname,
-   tsemantics, ttree, tinterface, ttype, ttreename,
+ ( TagElem, idname,
+   tsemantics, ttree,
  )
-import NLP.GenI.Btypes (GeniVal(GConst, GVar, GAnon), AvPair, Ptype(..),
-               Ttree(TT, params, pidname, pfamily, pinterface, ptype, tree, psemantics, ptrace),
+import NLP.GenI.Btypes (GeniVal(GConst), AvPair,
                GNode(..), GType(..), Flist,
                isConst,
-               Pred, showSem)
+               showSem,
+               )
 
 import NLP.GenI.Graphviz
   ( gvUnlines, gvNewline
   , GraphvizShow(graphvizShowAsSubgraph, graphvizLabel, graphvizParams)
   , GraphvizShowNode(graphvizShowNode)
   , GraphvizShowString(graphvizShow)
-  , gvNode, gvEdge, gvShowTree 
+  , gvNode, gvEdge, gvShowTree
   )
+
 \end{code}
 }
 
@@ -77,31 +76,31 @@ instance GraphvizShow (Bool, GvHighlighter GNode) TagElem where
   let treename   = "name: " ++ (idname te)
       semlist    = "semantics: " ++ (showSem $ tsemantics te)
   in gvUnlines [ treename, semlist ]
- 
- graphvizParams _ _ = 
+
+ graphvizParams _ _ =
   [ "fontsize = 10", "ranksep = 0.3"
   , "node [fontsize=10]"
   , "edge [fontsize=10 arrowhead=none]" ]
 \end{code}
 
-Helper functions for the TagElem GraphvizShow instance 
+Helper functions for the TagElem GraphvizShow instance
 
 \section{GNode - GraphvizShow}
 
 \begin{code}
 instance GraphvizShowNode (Bool) (GNode, Maybe String) where
- -- compact -> (node, mcolour) -> String 
+ -- compact -> (node, mcolour) -> String
  graphvizShowNode detailed prefix (gn, mcolour) =
-   let -- attributes 
+   let -- attributes
        filledParam         = ("style", "filled")
        fillcolorParam      = ("fillcolor", "lemonchiffon")
        shapeRecordParam    = ("shape", "record")
        shapePlaintextParam = ("shape", "plaintext")
        --
        colorParams = case mcolour of
-                     Nothing -> [] 
+                     Nothing -> []
                      Just c  -> [ ("fontcolor", c) ]
-       shapeParams = if detailed 
+       shapeParams = if detailed
                      then [ shapeRecordParam, filledParam, fillcolorParam ]
                      else [ shapePlaintextParam ]
        -- content
@@ -125,7 +124,7 @@ instance GraphvizShowString () GNode where
   graphvizShow () gn =
     let stub  = showGnStub gn
         extra = showGnDecorations gn
-    in stub ++ (maybeShow_ " " extra)
+    in stub ++ (maybeShow_ " " extra) ++ ":" ++ gorigin gn
 
 instance GraphvizShowString () AvPair where
   graphvizShow () (a,v) = a ++ ":" ++ (graphvizShow_ v)
@@ -180,33 +179,33 @@ graphvizShow_ = graphvizShow ()
 % ----------------------------------------------------------------------
 
 \paragraph{graphvizShowDerivation} displays the derivation tree.
-This is actually trickier than it looks: one thing we need to prevent 
+This is actually trickier than it looks: one thing we need to prevent
 for is the potential for loops in the graph (not infinite loops, but
-diagrams with loops in them).  For example if I am a NomRel, I can 
+diagrams with loops in them).  For example if I am a NomRel, I can
 both attach to a det and have a det attached to me.  Oops.  The basic
 trick is to treat each derivation item as a node in the derivation tree.
 
 \begin{code}
 graphvizShowDerivation :: [(Char, String, String)] -> String
-graphvizShowDerivation deriv =  
-  if (null histNodes) 
-     then "" 
-     else " node [ shape = plaintext ];\n" 
-          ++ (concatMap showHistNode histNodes) 
+graphvizShowDerivation deriv =
+  if (null histNodes)
+     then ""
+     else " node [ shape = plaintext ];\n"
+          ++ (concatMap showHistNode histNodes)
           ++ (concatMap graphvizShowDerivation' deriv)
   where showHistNode n  = gvNode (gvDerivationLab n) (lastSegmentOf n) []
-        lastSegmentOf   = reverse . takeWhile (/= '.') . reverse 
+        lastSegmentOf   = reverse . takeWhile (/= '.') . reverse
         histNodes       = reverse $ nub $ concatMap (\ (_,c,p) -> [c,p]) deriv
 \end{code}
 
 \begin{code}
 graphvizShowDerivation' :: (Char, String, String) -> String
-graphvizShowDerivation' (substadj, child, parent) = 
+graphvizShowDerivation' (substadj, child, parent) =
   gvEdge (gvDerivationLab parent) (gvDerivationLab child) "" p
   where p = if substadj == 'a' then [("style","dashed")] else []
 \end{code}
 
-We have a couple of functions to help massage our data into Graphviz input 
+We have a couple of functions to help massage our data into Graphviz input
 format: node names can't have hyphens in them and newlines within the node
 labels should be represented literally as \verb$\n$.
 
@@ -221,136 +220,7 @@ newlineToSlashN :: Char -> String
 newlineToSlashN '\n' = gvNewline
 newlineToSlashN x = [x]
 
-dot2x :: Char -> Char 
+dot2x :: Char -> Char
 dot2x '.' = 'x'
 dot2x c   = c
-\end{code}   
-
-% ----------------------------------------------------------------------
-\section{GeniHand}
-% ----------------------------------------------------------------------
-
-We need to be able to dump some of GenI's data structures into a simple
-text format we call GeniHand.
-
-There are at leaste two uses for this, one is that it allows us to
-interrupt the debugging process, dump everything to file, muck around
-with the trees and then pick up where we left off.
-
-The other use is to make large grammars faster to load.  We don't actually do
-this anymore, mind you, but it's nice to have the option.  The idea is to take
-a massive XML grammar, parse it to a set of TagElems and then write these back
-in the lighter syntax.  It's not that XML is inherently less efficient to parse
-than the handwritten syntax, just that writing an efficient parser for XML
-based format is more annoying, so I stuck with HaXml to make my life easy.
-Unfortunately, HaXml seems to have some kind of space leak.
-
-\begin{code}
-class GeniShow a where
-  geniShow :: a -> String
-
-instance GeniShow Ptype where
- geniShow Initial  = "initial"
- geniShow Auxiliar = "auxiliary"
- geniShow _        = ""
-
-instance GeniShow AvPair where
- geniShow (a,v) = a ++ ":" ++ geniShow v
-
-instance GeniShow GeniVal where
- geniShow (GConst xs) = concat $ intersperse "|" xs
- geniShow x = show  x
-
-instance GeniShow Pred where
- geniShow (h, p, l) = (geniShow h) ++ ":" ++ (geniShow p) ++ "(" ++ unwords (map geniShow l) ++ ")"
-
-instance GeniShow GNode where
- geniShow x =
-  let gtypestr n = case (gtype n) of
-                     Subs -> "type:subst"
-                     Foot -> "type:foot"
-                     Lex  -> if ganchor n && (null.glexeme) n
-                             then "type:anchor" else "type:lex"
-                     _    -> ""
-      glexstr n =
-        if null ls then ""
-        else concat $ intersperse "|" $ map quote ls
-        where quote s = "\"" ++ s ++ "\""
-              ls = glexeme n
-      tbFeats n = (geniShow $ gup n) ++ "!" ++ (geniShow $ gdown n)
-  in unwords $ filter (not.null) $ [ gnname x, gtypestr x, glexstr x, tbFeats x ]
-
-instance (GeniShow a) => GeniShow [a] where
- geniShow = squares . unwords . (map geniShow)
-
-instance (GeniShow a) => GeniShow (Tree a) where
- geniShow t =
-  let treestr i (Node a l) =
-        spaces i ++ geniShow a ++
-        case (l,i) of
-        ([], 0)  -> "{}"
-        ([], _)  -> ""
-        (_, _)   -> "{\n" ++ (unlines $ map next l) ++ spaces i ++ "}"
-        where next = treestr (i+1)
-      --
-      spaces i = take i $ repeat ' '
-  in treestr 0 t
-
-instance GeniShow TagElem where
- geniShow te =
-  "\n% ------------------------- " ++ idname te
-  ++ "\n" ++ (ttreename te) ++ ":" ++ (idname te)
-  ++ " "  ++ (geniShow.tinterface $ te)
-  ++ " "  ++ (geniShow.ttype $ te)
-  ++ "\n" ++ (geniShow.ttree $ te)
-  ++ "\n" ++ geniShowKeyword "semantics" "" ++ (geniShow.tsemantics $ te)
-
-instance (GeniShow a) => GeniShow (Ttree a) where
- geniShow tt =
-  "\n% ------------------------- " ++ pidname tt
-  ++ "\n" ++ (pfamily tt) ++ ":" ++ (pidname tt)
-  ++ " "  ++ (parens $    (unwords $ map geniShow $ params tt)
-                       ++ " ! "
-                       ++ (unwords $ map geniShow $ pinterface tt))
-  ++ " "  ++ (geniShow.ptype $ tt)
-  ++ "\n" ++ (geniShow.tree $ tt)
-  ++ (case psemantics tt of
-      Nothing   -> ""
-      Just psem -> "\n" ++ geniShowKeyword "semantics" (geniShow psem))
-  ++ "\n" ++ geniShowKeyword "trace" (squares.unwords.ptrace $ tt)
-
-instance GeniShow TestCase where
- geniShow (TestCase { tcName = name
-                    , tcExpected = sentences
-                    , tcOvergens = ovgs
-                    , tcSemString = semStr
-                    , tcSem = sem }) =
-  unlines $ [ name, semS ]
-            ++ map squares sentences
-            ++ map (geniShowKeyword "overgen") ovgs
-  where
-   semS = if null semStr then geniShowSemInput sem "" else semStr
-
-
-
-parens, squares :: String -> String
-parens s  = "(" ++ s ++ ")"
-squares s = "[" ++ s ++ "]"
-
-geniShowKeyword :: String -> ShowS
-geniShowKeyword k = showString k . showChar ':'
-
-geniShowSemInput :: SemInput -> ShowS
-geniShowSemInput (sem,icons,lcons) =
-  let withConstraints lit =
-        case concat [ cs | (p,cs) <- lcons, p == lit ] of
-        [] -> geniShow lit
-        cs -> geniShow lit ++ (squares . unwords $ cs)
-      semStuff = geniShowKeyword "semantics"
-               . (showString . unwords . map withConstraints $ sem)
-      idxStuff = geniShowKeyword "idxconstraints"
-               . (showString . geniShow $ icons)
- in semStuff .  (if null icons then id else showChar '\n' . idxStuff)
 \end{code}
-
-\include{src/NLP/GenI/HsShowable.lhs}

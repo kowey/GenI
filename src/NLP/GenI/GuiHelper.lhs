@@ -45,7 +45,8 @@ import NLP.GenI.Automaton (numStates, numTransitions)
 import Statistics (Statistics, showFinalStats)
 
 import NLP.GenI.Configuration ( getFlagP, MacrosFlg(..), ViewCmdFlg(..) )
-import NLP.GenI.Treeprint(geniShow)
+import NLP.GenI.GeniShow(geniShow)
+import NLP.GenI.GraphvizShow ()
 import NLP.GenI.Tags (TagItem(tgIdName, tgIdNum), tagLeaves)
 import NLP.GenI.Geni
   ( ProgState(..), showRealisations )

@@ -44,7 +44,7 @@ import NLP.GenI.Geni
 import NLP.GenI.General (boundsCheck, geniBug, trim, fst3)
 import NLP.GenI.Btypes (ILexEntry(isemantics), TestCase(..))
 import NLP.GenI.Tags (idname, tpolarities, tsemantics, TagElem)
-import NLP.GenI.Treeprint (geniShow)
+import NLP.GenI.GeniShow (geniShow)
 import NLP.GenI.Configuration
   ( Params(..), hasOpt
   , hasFlagP, deleteFlagP, setFlagP, getFlagP, getListFlagP

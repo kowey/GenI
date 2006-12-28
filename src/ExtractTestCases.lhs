@@ -34,7 +34,7 @@ module Main (main) where
 import NLP.GenI.Btypes
 import NLP.GenI.General ((///), ePutStrLn)
 import NLP.GenI.GeniParsers(geniTestSuite, geniTestSuiteString, toSemInputString)
-import NLP.GenI.Treeprint (GeniShow(geniShow))
+import NLP.GenI.GeniShow (GeniShow(geniShow))
 import Control.Monad(when)
 import Data.List(nubBy,sort)
 import System.Directory

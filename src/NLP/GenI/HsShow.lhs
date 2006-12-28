@@ -15,40 +15,34 @@
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-\chapter{HsShowable}
+\chapter{HsShow}
 
 One idea I'm experimenting with is dumping the grammars into Haskell, haskell which will
 need to be linked against GenI in order to produce a generator.  This might make the whole
 lexical selection thing og a lot faster.
 
 \begin{code}
-module NLP.GenI.HsShowable
+module NLP.GenI.HsShow
 where
 \end{code}
 
 \ignore{
 \begin{code}
 import Data.Tree
-import Data.List(intersperse,nub)
 import qualified Data.Map
 
-import NLP.GenI.General (mapTree)
 import NLP.GenI.Tags
- ( TagElem(TE), idname,
-   tsemantics, ttree, tinterface, ttype, ttreename,
+ ( TagElem(TE),
  )
-import NLP.GenI.Btypes (GeniVal(GConst, GVar, GAnon), AvPair, Ptype(..),
-               Ttree(TT, params, pidname, pfamily, pinterface, ptype, tree, psemantics, ptrace),
-               GNode(..), GType(..), Flist,
-               isConst,
-               Pred, showSem,
-               TestCase(..),
+import NLP.GenI.Btypes (GeniVal(GConst, GVar, GAnon), Ptype(..),
+               Ttree(TT),
+               GNode(..), GType(..),
                )
 \end{code}
 }
 
 \begin{code}
-class HsShowable a where
+class HsShow a where
   hsShow :: a -> String
   hsShow x = hsShows x ""
   hsShows :: a -> ShowS
@@ -71,58 +65,58 @@ hsConstructor c ss =
            . showChar ' '
            . unwordsByS (showChar ' ') ss
 
-instance HsShowable String where hsShows = shows
-instance HsShowable Bool where hsShows = shows
-instance HsShowable Int  where hsShows = shows
-instance HsShowable Integer where hsShows = shows
+instance HsShow String where hsShows = shows
+instance HsShow Bool where hsShows = shows
+instance HsShow Int  where hsShows = shows
+instance HsShow Integer where hsShows = shows
 
-instance HsShowable Ptype where hsShows = shows
-instance HsShowable GType where hsShows = shows
+instance HsShow Ptype where hsShows = shows
+instance HsShow GType where hsShows = shows
 
 -- | :-( I wish I could make do this with a default, overridable instance instead
 --   basically, i would like to use hsList everywhere unless there is a specific
 --   instance declaration, like one for String
-instance HsShowable a => HsShowable [a] where
+instance HsShow a => HsShow [a] where
  hsShows xs = hsList (map hsShows xs)
 
-instance (HsShowable a, HsShowable b) => HsShowable (a,b) where
+instance (HsShow a, HsShow b) => HsShow (a,b) where
  hsShows (a,b) = hsParens $ (hsShows a) . (showChar ',') . (hsShows b)
 
-instance (HsShowable a, HsShowable b, HsShowable c) => HsShowable (a,b,c) where
+instance (HsShow a, HsShow b, HsShow c) => HsShow (a,b,c) where
  hsShows (a,b,c) = hsParens $ (hsShows a) . (showChar ',') . (hsShows b) . (showChar ',')  . (hsShows c)
 
-instance (HsShowable a) => HsShowable (Tree a) where
+instance (HsShow a) => HsShow (Tree a) where
  hsShows (Node a k) = hsConstructor "Node" [hsShows a, hsShows k]
 
 -- | Note that you'll need to @import qualified Data.Map@
-instance (HsShowable a, HsShowable b) => HsShowable (Data.Map.Map a b) where
+instance (HsShow a, HsShow b) => HsShow (Data.Map.Map a b) where
  hsShows m | Data.Map.null m = showString "Data.Map.empty"
  hsShows m = hsParens $ (showString "Data.Map.fromList ")
                       . (hsShows (Data.Map.toList m))
 
-instance HsShowable a => HsShowable (Maybe a) where
+instance HsShow a => HsShow (Maybe a) where
  hsShows Nothing  = showString "Nothing"
  hsShows (Just x) = hsConstructor "Just" [hsShows x]
 
-instance HsShowable GeniVal where
+instance HsShow GeniVal where
  hsShows (GConst xs) = hsConstructor "GConst" [hsShows xs]
  hsShows (GVar xs)   = hsConstructor "GVar" [hsShows xs]
  hsShows GAnon       = showString "GAnon"
 
-instance HsShowable GNode where
+instance HsShow GNode where
  hsShows (GN a b c d e f g h) =
    hsConstructor "GN"
     [ hsShows a, hsShows b, hsShows c, hsShows d
     , hsShows e, hsShows f, hsShows g, hsShows h]
 
-instance HsShowable TagElem where
+instance HsShow TagElem where
  hsShows (TE a b c d e f g h i j) =
   hsConstructor "TE"
    [ hsShows a, hsShows b, hsShows c, hsShows d
    , hsShows e, hsShows f, hsShows g, hsShows h
    , hsShows i, hsShows j]
 
-instance HsShowable f => HsShowable (Ttree f) where
+instance HsShow f => HsShow (Ttree f) where
  hsShows (TT a b c d e f g h) = hsConstructor "TT"
    [ hsShows a, hsShows b, hsShows c, hsShows d
    , hsShows e, hsShows f, hsShows g, hsShows h]

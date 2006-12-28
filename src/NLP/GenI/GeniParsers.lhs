@@ -40,7 +40,7 @@ module NLP.GenI.GeniParsers (
 import NLP.GenI.General ((!+!), Interval, ival)
 import NLP.GenI.Btypes
 import NLP.GenI.Tags (TagElem(..), emptyTE, setTidnums)
-import NLP.GenI.Treeprint (GeniShow(geniShow))
+import NLP.GenI.GeniShow (GeniShow(geniShow))
 import Control.Monad (liftM, when)
 import Data.List (sort)
 import Data.Maybe (mapMaybe)

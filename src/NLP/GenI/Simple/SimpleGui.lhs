@@ -42,7 +42,7 @@ import NLP.GenI.GuiHelper
     viewTagWidgets, XMGDerivation(getSourceTrees),
   )
 import NLP.GenI.Tags (tsemantics, TagElem(idname, ttree), TagItem(..), emptyTE)
-import NLP.GenI.Treeprint ( graphvizShowDerivation )
+import NLP.GenI.GraphvizShow ( graphvizShowDerivation )
 
 import qualified NLP.GenI.Builder    as B
 import qualified NLP.GenI.BuilderGui as BG
