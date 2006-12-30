@@ -143,8 +143,14 @@ SELECT := bin/geniselect
 SELECT_MAIN := $(SRC)/Select.hs
 CLIENT_DEPS := $(call getdeps,$(SELECT_MAIN))
 
+MAKESUITE := bin/genimakesuite
+MAKESUITE_MAIN := $(SRC)/MakeSuite.hs
+MAKESUITE_DEPS = $(call getdeps,$(MAKESUITE_MAIN))
+
+
 # dependencies
 COMPILE_TARGETS:=$(GENI_MAIN) $(EXTRACTOR_MAIN) $(CONVERTER_MAIN) $(SELECT_MAIN)\
+		 $(MAKESUITE_MAIN)\
 		 $(SERVER_MAIN) $(CLIENT_MAIN)
 DEPENDS:=$(patsubst %,.depends/%.dep,$(COMPILE_TARGETS))
 
@@ -205,7 +211,7 @@ clean: tidy
 	rm -f $(foreach d, $(DOC_DIRS), $(d)/*.{ps,pdf})
 	rm -f $(MAKE_HTML)
 	rm -rf $(GENI) $(GENI).app $(PROFGENI)
-	rm -rf $(CONVERTER) $(EXTRACTOR) $(CLIENT) $(SERVER)
+	rm -rf $(CONVERTER) $(EXTRACTOR) $(MAKESUITE) $(CLIENT) $(SERVER)
 	rm -rf $(SOURCE_HSD_1) $(HADDOCK_OUT)
 	rm -rf .depends
 
@@ -255,6 +261,10 @@ $(CONVERTER): $(CONVERTER_MAIN) $(CONVERTER_DEPS)
 
 $(EXTRACTOR) : $(EXTRACTOR_MAIN) $(EXTRACTOR_DEPS)
 	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES) $< -o $@
+
+$(MAKESUITE) : $(MAKESUITE_MAIN) $(MAKESUITE_DEPS)
+	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES) $< -o $@
+
 
 nogui : $(GENI_MAIN) $(GENI_DEPS) permissions
 	$(GHC) $(GHCFLAGS) --make -DDISABLE_GUI $(GHCPACKAGES) $< -o $(GENI)
