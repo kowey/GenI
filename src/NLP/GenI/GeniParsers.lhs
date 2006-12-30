@@ -78,15 +78,19 @@ The test suite format consists of arbitrarily many test cases:
 \begin{code}
 geniTestSuite :: Parser [TestCase]
 geniTestSuite = 
-  do whiteSpace
-     s <- many geniTestCase 
-     eof
-     return s
+  tillEof (whiteSpace >> many geniTestCase)
 
 -- | Just the String representations of the semantics
 --   in the test suite
 geniTestSuiteString :: Parser [String]
-geniTestSuiteString = whiteSpace >> many geniTestCaseString
+geniTestSuiteString =
+  tillEof (whiteSpace >> many geniTestCaseString)
+
+tillEof :: Parser a -> Parser a
+tillEof p =
+  do r <- p
+     eof
+     return r
 \end{code}
 
 A test case is composed of an optional test id, some semantic input
@@ -113,20 +117,17 @@ geniTestCase =
 parseEither :: Parser a -> Parser b -> Parser (Either a b)
 parseEither p1 p2 = Left `fmap` p1 <|> Right `fmap` p2
 
+-- note that the keyword is NOT optional
 geniOvergen :: Parser String
-geniOvergen =
-  do keyword OVERGEN -- note that this is NOT optional
-     w <- squares (sepEndBy1 geniWord whiteSpace <?> "a sentence")
-     return (unwords w)
+geniOvergen = keyword OVERGEN >> geniWords
 
 geniSentence :: Parser String
-geniSentence =
-  do optional (keyword SENTENCE)
-     w <- squares (sepEndBy1 geniWord whiteSpace <?> "a sentence")
-     return (unwords w)
+geniSentence = optional (keyword SENTENCE) >> geniWords
 
-geniWord :: Parser String
-geniWord = many1 (noneOf "[]\v\f\t\r\n ")
+geniWords :: Parser String
+geniWords =
+ unwords `fmap` squares (sepEndBy1 geniWord whiteSpace <?> "a sentence")
+ where geniWord = many1 (noneOf "[]\v\f\t\r\n ")
 
 -- | The original string representation of a test case semantics
 --   (for gui)
@@ -134,7 +135,7 @@ geniTestCaseString :: Parser String
 geniTestCaseString =
  do option "" (identifier <?> "a test case name")
     s <- geniSemanticInputString
-    many geniSentence
+    many (parseEither geniSentence geniOvergen)
     return s
 \end{code}
 
