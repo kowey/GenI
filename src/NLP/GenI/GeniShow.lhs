@@ -141,7 +141,7 @@ instance GeniShow TestCase where
                     , tcSem = sem }) =
   unlines $ [ name, semS ]
             ++ map squares sentences
-            ++ map (geniShowKeyword "overgen") ovgs
+            ++ map (geniShowKeyword "overgen" . squares) ovgs
   where
    semS = if null semStr then geniShowSemInput sem "" else semStr
 
@@ -160,10 +160,10 @@ geniShowSemInput (sem,icons,lcons) =
         case concat [ cs | (p,cs) <- lcons, p == lit ] of
         [] -> geniShow lit
         cs -> geniShow lit ++ (squares . unwords $ cs)
-      semStuff = geniShowKeyword "semantics"
+      semStuff = geniShowKeyword "semantics" . squares
                . (showString . unwords . map withConstraints $ sem)
       idxStuff = geniShowKeyword "idxconstraints"
-               . (showString . geniShow $ icons)
+               . (showString . geniShow $ icons) . squares
  in semStuff .  (if null icons then id else showChar '\n' . idxStuff)
 \end{code}
 
