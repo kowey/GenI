@@ -43,7 +43,6 @@ import NLP.GenI.Tags (TagElem(..), emptyTE, setTidnums)
 import NLP.GenI.GeniShow (GeniShow(geniShow))
 import Control.Monad (liftM, when)
 import Data.List (sort)
-import Data.Maybe (mapMaybe)
 import qualified Data.Map  as Map 
 import qualified Data.Tree as T
 import Text.ParserCombinators.Parsec
@@ -55,7 +54,7 @@ import qualified Text.ParserCombinators.Parsec.Token as P
 -- reserved words
 #define SEMANTICS       "semantics"
 #define SENTENCE        "sentence"
-#define OVERGEN         "overgen"
+#define OUTPUT          "output"
 #define TRACE           "trace"
 #define ANCHOR          "anchor"
 #define SUBST           "subst"
@@ -94,32 +93,27 @@ tillEof p =
 \end{code}
 
 A test case is composed of an optional test id, some semantic input
-\fnref{geniSemanticInput}, followed by any number of sentences.  
-The sentences can either be known good sentences (in which case
-they are optionally preceded by the keyword 'sentence' -- perhaps
-this should be mandatory one day), or known bad sentences, in which
-case they are preceded by the keyword 'overgen'.
+\fnref{geniSemanticInput}, followed by any number of sentences
+and optionally followed by a list of outputs.
+The sentences can either be known good sentences (optionally preceded by the
+keyword 'sentence' -- perhaps this should be mandatory one day).  The outputs
+are used directly by users.  The field is useful for noting what outputs were
+actually produced, say, in a script that generates test suites from GenI
+output.  This field doesn't have much use for GenI per se, just its satellite
+scripts.
 
 \begin{code}
 geniTestCase :: Parser TestCase
 geniTestCase =
   do name  <- option "" (identifier <?> "a test case name")
      seminput <- geniSemanticInput
-     output   <- many (parseEither geniSentence geniOvergen)
-     let sentences = mapMaybe mLeft  output
-         overgens  = mapMaybe mRight output
-     return $ TestCase name "" seminput sentences overgens
-  where mLeft (Left x) = Just x
-        mLeft _        = Nothing
-        mRight (Right x) = Just x
-        mRight _         = Nothing
-
-parseEither :: Parser a -> Parser b -> Parser (Either a b)
-parseEither p1 p2 = Left `fmap` p1 <|> Right `fmap` p2
+     sentences <- many geniSentence
+     outputs   <- many geniOutput
+     return $ TestCase name "" seminput sentences outputs
 
 -- note that the keyword is NOT optional
-geniOvergen :: Parser String
-geniOvergen = keyword OVERGEN >> geniWords
+geniOutput :: Parser String
+geniOutput = keyword OUTPUT >> geniWords
 
 geniSentence :: Parser String
 geniSentence = optional (keyword SENTENCE) >> geniWords
@@ -135,7 +129,8 @@ geniTestCaseString :: Parser String
 geniTestCaseString =
  do option "" (identifier <?> "a test case name")
     s <- geniSemanticInputString
-    many (parseEither geniSentence geniOvergen)
+    many geniSentence
+    many geniOutput
     return s
 \end{code}
 
@@ -556,7 +551,7 @@ geniLanguageDef = emptyDef
          , opLetter = oneOf ""
          , reservedOpNames = [""]
          , reservedNames =
-             [ SEMANTICS , SENTENCE, OVERGEN, IDXCONSTRAINTS, TRACE
+             [ SEMANTICS , SENTENCE, OUTPUT, IDXCONSTRAINTS, TRACE
              , ANCHOR , SUBST , FOOT , LEX , TYPE , ACONSTR_NOADJ
              , INITIAL , AUXILIARY
              , BEGIN , END ]

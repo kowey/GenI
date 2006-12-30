@@ -141,12 +141,12 @@ instance (GeniShow a) => GeniShow (Ttree a) where
 instance GeniShow TestCase where
  geniShow (TestCase { tcName = name
                     , tcExpected = sentences
-                    , tcOvergens = ovgs
+                    , tcOutputs = outputs
                     , tcSemString = semStr
                     , tcSem = sem }) =
   unlines $ [ name, semS ]
-            ++ map squares sentences
-            ++ map (geniShowKeyword "overgen" . squares) ovgs
+            ++ map (geniShowKeyword "sentence" . squares) sentences
+            ++ map (geniShowKeyword "output"   . squares) outputs
   where
    semS = if null semStr then geniShowSemInput sem "" else semStr
 

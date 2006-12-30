@@ -17,6 +17,12 @@
 
 -- This standalone program is a counterpart to geniextract.
 
+-- We have a little bit of sneakiness here: the sentence keyword
+-- is optional, so we exploit this fact to visually distinguish
+-- between expected test cases (sentence), and results produced
+-- by the generator.  If you read the resulting test suite in
+-- GenI, both are interpreted as expected output.
+
 module Main (main) where
 
 import NLP.GenI.Btypes
@@ -24,7 +30,7 @@ import NLP.GenI.General (basename, comparing, (///), ePutStrLn, readFile', toAlp
 import NLP.GenI.GeniParsers(geniSemanticInput)
 import NLP.GenI.GeniShow (GeniShow(geniShow))
 
-import Data.List (sort, nub, sortBy)
+import Data.List (sortBy)
 import qualified Data.Map as Map
 import Data.Maybe(catMaybes)
 import System.Directory
@@ -38,10 +44,13 @@ main =
  do (eDir, rDir) <- readArgv
     cases     <- readSubDirsWith readExtracted eDir
     responses <- readSubDirsWith readResponses rDir
-    let caseMap1 = Map.fromList $ zip (map tcName cases) cases
-        caseMap2 = foldr addOvergens caseMap1 responses
-        casesOut = map snd $ sortBy (comparing $ toAlphaNum . fst) $ Map.toList $ caseMap2
-    putStrLn . unlines . map geniShow $ casesOut
+    let responseMap = Map.fromList responses
+        showCase = geniShow.getExtra
+        getExtra c = case Map.lookup (tcName c) responseMap of
+                        Nothing -> c
+                        Just rs -> c { tcOutputs = rs }
+        sortAlphaNum = sortBy (comparing $ toAlphaNum.tcName)
+    putStrLn . unlines . map showCase . sortAlphaNum $ cases
  where
   readArgv =
     do argv <- getArgs
@@ -56,13 +65,6 @@ main =
     do subdirs <- getDirectoryContents d
        catMaybes `fmap` mapM (r d) subdirs
 
-
-addOvergens :: (String,[String]) -> Map.Map String TestCase -> Map.Map String TestCase
-addOvergens (k,os) m =
- case Map.lookup k m of
- Just tc -> Map.insert k (tc {tcOvergens = sort $ nub os}) m
- Nothing -> m
-
 readExtracted :: FilePath -> FilePath -> IO (Maybe TestCase)
 readExtracted parentdir subdir =
  do semanticsE <- doesFileExist semanticsF
@@ -75,7 +77,7 @@ readExtracted parentdir subdir =
                  , tcSemString = ""
                  , tcSem  = semantics
                  , tcExpected = sentences
-                 , tcOvergens = []
+                 , tcOutputs = []
                  }
        else return Nothing
  where
