@@ -87,6 +87,36 @@ toLowerHead []    = []
 toLowerHead(h:t)  = (toLower h):t
 \end{code}
 
+An alphanumeric sort is one where you treat the numbers in the string
+as actual numbers.  An alphanumeric sort would put x2 before x100,
+because 2 < 10, wheraeas a naive sort would put it the other way
+around because the characters 1 < 2.  To sort alphanumerically, just
+use \fnreflite{toAlphanum} as in \verb!sortBy (comparing toAlphanum)!
+
+\begin{code}
+data AlphaNum = A String | N Int deriving Eq
+
+-- we don't derive this, because we want num < alpha
+instance Ord AlphaNum where
+ compare (A s1)  (A s2) = compare s1 s2
+ compare (N s1)  (N s2) = compare s1 s2
+ compare (A _)   (N _)  = GT
+ compare (N _)   (A _)  = LT
+
+toAlphaNum :: String -> [AlphaNum]
+toAlphaNum = map readOne . groupBy (equating isNumber)
+ where
+   readOne s
+     | all isNumber s = N (read s)
+     | otherwise      = A s
+\end{code}
+
+\begin{code}
+-- Crappy version until GHC 6.6 becomes the norm
+isNumber :: Char -> Bool
+isNumber c = c `elem` "1234567890"
+\end{code}
+
 \section{Three-tuples}
 
 \begin{code}
@@ -101,6 +131,14 @@ thd3 (_,_,x) = x
 \end{code}
 
 \section{Lists}
+
+\begin{code}
+equating :: (a -> Bool) -> (a -> a -> Bool)
+equating f a b = f a == f b
+
+comparing :: Ord b => (a -> b) -> (a -> a -> Ordering)
+comparing f a b = compare (f a) (f b)
+\end{code}
 
 \begin{code}
 -- | A forgiving version of tail : if you give it the empty list, it returns the empty list

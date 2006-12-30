@@ -20,13 +20,11 @@
 module Main (main) where
 
 import NLP.GenI.Btypes
-import NLP.GenI.General (basename, (///), ePutStrLn, readFile')
+import NLP.GenI.General (basename, comparing, (///), ePutStrLn, readFile', toAlphaNum)
 import NLP.GenI.GeniParsers(geniSemanticInput)
 import NLP.GenI.GeniShow (GeniShow(geniShow))
 
-import Data.Char (isNumber)
-import Data.Ord  (comparing)
-import Data.List (sort, nub, groupBy, sortBy)
+import Data.List (sort, nub, sortBy)
 import qualified Data.Map as Map
 import Data.Maybe(catMaybes)
 import System.Directory
@@ -42,7 +40,7 @@ main =
     responses <- readSubDirsWith readResponses rDir
     let caseMap1 = Map.fromList $ zip (map tcName cases) cases
         caseMap2 = foldr addOvergens caseMap1 responses
-        casesOut = map snd $ sortBy (comparing $ toAlphaNum . fst) $ Map.toList $ caseMap2 
+        casesOut = map snd $ sortBy (comparing $ toAlphaNum . fst) $ Map.toList $ caseMap2
     putStrLn . unlines . map geniShow $ casesOut
  where
   readArgv =
@@ -102,18 +100,4 @@ exitShowing err=
     ePutStrLn err_
     exitFailure
 
--- cheesy alphanumeric sort
-cmpAlphanum :: String -> String -> Ordering
-cmpAlphanum = comparing readAlphaNum
 
-data AlphaNum = A String | N Int deriving (Eq, Ord)
-
-toAlphaNum :: String -> [AlphaNum]
-toAlphaNum = map readOne . groupBy (equaling isNumber)
- where
-   readOne s
-     | all isNumber s = N (read s)
-     | otherwise      = A s
-
-equaling :: (a -> Bool) -> (a -> a -> Bool)
-equaling f a b = f a == f b
