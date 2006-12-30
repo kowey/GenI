@@ -245,7 +245,7 @@ $(DEPENDS): .depends/%.dep : %
 # compilation
 # --------------------------------------------------------------------
 
-compile: init $(GENI) $(EXTRACTOR) $(CONVERTER) $(SERVER) $(CLIENT) $(SELECT)
+compile: init $(GENI) $(EXTRACTOR) $(CONVERTER) $(SERVER) $(CLIENT) $(SELECT) $(MAKESUITE)
 
 converter: $(CONVERTER)
 extractor: $(EXTRACTOR)
