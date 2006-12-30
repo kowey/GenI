@@ -1,5 +1,5 @@
 Name:           GenI
-Version:        0.10
+Version:        0.11
 License:        GPL
 License-file:   LICENSE
 Author:         Carlos Areces and Eric Kow
@@ -10,18 +10,28 @@ Executable:     geni
 Main-Is:        MainGeni.lhs
 Hs-Source-Dirs: src
 Extensions:     CPP, Rank2Types, OverlappingInstances, MultiParamTypeClasses
+Ghc-options:    -Wall
 
 Executable:     geniconvert
 Hs-Source-Dirs: src
 Main-Is:        Converter.hs
 Extensions:     CPP, Rank2Types, OverlappingInstances
+Ghc-options:    -Wall
 
 Executable:     geniextract
 Hs-Source-Dirs: src
 Main-Is:        ExtractTestCases.lhs
 Extensions:     CPP, Rank2Types, OverlappingInstances
+Ghc-options:    -Wall
 
 Executable:     geniselect
 Hs-Source-Dirs: src
 Main-Is:        Select.hs
 Extensions:     CPP, Rank2Types, OverlappingInstances
+Ghc-options:    -Wall
+
+Executable:     genimakesuite
+Hs-Source-Dirs: src
+Main-Is:        MakeSuite.hs
+Extensions:     CPP, Rank2Types, OverlappingInstances
+Ghc-options:    -Wall
