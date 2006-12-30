@@ -67,7 +67,8 @@ main =
          _       -> showUsage
   showUsage =
     do pname <- getProgName
-       exitShowing $ "usage: " ++ pname ++ " testDir responsesDir"
+       ePutStrLn err_
+       exitFailure
     
 createSubdir :: String -> TestCase -> IO ()
 createSubdir outdir (TestCase { tcName = name

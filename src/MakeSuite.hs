@@ -50,7 +50,8 @@ main =
          _    -> showUsage
   showUsage =
     do pname <- getProgName
-       exitShowing $ "usage: " ++ pname ++ " testDir responsesDir"
+       ePutStrLn  $ "usage: " ++ pname ++ " testDir responsesDir"
+       exitFailure
   readSubDirsWith r d =
     do subdirs <- getDirectoryContents d
        catMaybes `fmap` mapM (r d) subdirs
