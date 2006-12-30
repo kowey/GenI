@@ -35,7 +35,6 @@ import NLP.GenI.Btypes
 import NLP.GenI.General ((///), ePutStrLn)
 import NLP.GenI.GeniParsers(geniTestSuite, geniTestSuiteString, toSemInputString)
 import NLP.GenI.GeniShow (GeniShow(geniShow))
-import Control.Monad(when)
 import Data.List(nubBy,sort)
 import System.Directory
 import System.Environment
@@ -47,24 +46,10 @@ import Text.ParserCombinators.Parsec
 \begin{code}
 main :: IO ()
 main = 
- do -- read the command line arguments
-    pname <- getProgName
-    argv  <- getArgs
-    let usage = "usage: " ++ pname ++ " testsuite outputdir"
-    when (length argv /= 2) $ do
-      hPutStrLn stderr usage 
-      exitFailure
-    let tfilename = argv !! 0
-        outdir    = argv !! 1
+ do (tfilename, outdir) <- readArgv
     -- parse the test suite
-    parsed <- parseFromFile geniTestSuite tfilename 
-    suite' <- case parsed of
-               Left  err     -> exitShowing err
-               Right entries -> return entries 
-    parsed2  <- parseFromFile geniTestSuiteString tfilename
-    caseStrs <- case parsed2 of
-                 Left  err -> exitShowing err
-                 Right cs  -> return cs
+    suite'   <- getParseFromFile geniTestSuite tfilename 
+    caseStrs <- getParseFromFile geniTestSuiteString tfilename
     -- process the suite
     -- (for now, just remove redundant entries)
     let canon = srt . tcSem
@@ -73,15 +58,17 @@ main =
           where setStr tc s = tc { tcSemString = s }
     -- write stuff to the output directory
     createDirectoryIfMissing False outdir
-    mapM (createSubdir outdir) suite
-    return ()
+    mapM_ (createSubdir outdir) suite
+ where
+  readArgv =
+    do argv <- getArgs
+       case argv of
+         [x1,x2] -> return (x1, x2)
+         _       -> showUsage
+  showUsage =
+    do pname <- getProgName
+       exitShowing $ "usage: " ++ pname ++ " testDir responsesDir"
     
-exitShowing :: (Show a) => a -> IO b
-exitShowing err=
- do let err_ = show err
-    ePutStrLn err_
-    exitFailure
-
 createSubdir :: String -> TestCase -> IO ()
 createSubdir outdir (TestCase { tcName = name
                               , tcSemString = semStr
@@ -95,4 +82,15 @@ createSubdir outdir (TestCase { tcName = name
     writeFile (subdir /// "sentences") $ unlines sent
 \end{code}
 
+\begin{code}
+getParseFromFile :: Parser b -> FilePath -> IO b
+getParseFromFile p f =
+  parseFromFile p f >>= either exitShowing return
+
+exitShowing :: (Show a) => a -> IO b
+exitShowing err=
+ do let err_ = show err
+    ePutStrLn err_
+    exitFailure
+\end{code}
 
