@@ -44,7 +44,7 @@ where
 \ignore{
 \begin{code}
 import Data.Tree
-import Data.List(intersperse)
+import Data.List(intersperse, isPrefixOf)
 
 import NLP.GenI.Tags
  ( TagElem, idname,
@@ -76,7 +76,12 @@ instance GeniShow GeniVal where
  geniShow x = show  x
 
 instance GeniShow Pred where
- geniShow (h, p, l) = (geniShow h) ++ ":" ++ (geniShow p) ++ "(" ++ unwords (map geniShow l) ++ ")"
+ geniShow (h, p, l) =
+   showh ++ geniShow p ++ "(" ++ unwords (map geniShow l) ++ ")"
+   where
+    hideh (GConst [x]) = "genihandle" `isPrefixOf` x
+    hideh _ = False
+    showh = if hideh h then "" else geniShow h ++ ":"
 
 instance GeniShow GNode where
  geniShow x =
