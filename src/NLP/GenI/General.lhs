@@ -133,7 +133,7 @@ thd3 (_,_,x) = x
 \section{Lists}
 
 \begin{code}
-equating :: (a -> Bool) -> (a -> a -> Bool)
+equating :: Eq b => (a -> b) -> (a -> a -> Bool)
 equating f a b = f a == f b
 
 comparing :: Ord b => (a -> b) -> (a -> a -> Ordering)
