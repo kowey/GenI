@@ -120,6 +120,7 @@ GENI := bin/geni
 GENI_PRECOMPILED := bin/geni-precompiled
 GENI_MAIN := $(SRC)/MainGeni.lhs
 GENI_DEPS = $(call getdeps,$(GENI_MAIN))
+GENI_HELPERS = $(EXTRACTOR)  $(SELECT) $(CONVERTER) $(MAKESUITE) $(COUNT_OUTPUTS)
 
 EXTRACTOR := bin/geniExtractCases
 EXTRACTOR_MAIN := $(SRC)/ExtractTestCases.lhs
@@ -141,11 +142,16 @@ CLIENT_DEPS := $(call getdeps,$(CLIENT_MAIN))
 
 SELECT := bin/geniselect
 SELECT_MAIN := $(SRC)/Select.hs
-CLIENT_DEPS := $(call getdeps,$(SELECT_MAIN))
+SELECT_DEPS := $(call getdeps,$(SELECT_MAIN))
 
 MAKESUITE := bin/genimakesuite
 MAKESUITE_MAIN := $(SRC)/MakeSuite.hs
 MAKESUITE_DEPS = $(call getdeps,$(MAKESUITE_MAIN))
+
+COUNT_OUTPUTS:= bin/genicount
+COUNT_OUTPUTS_MAIN:= $(SRC)/CountOutputs.lhs
+COUNT_OUTPUTS_DEPS = $(call getdeps,$(MAKESUITE_MAIN))
+
 
 
 # dependencies
@@ -211,7 +217,7 @@ clean: tidy
 	rm -f $(foreach d, $(DOC_DIRS), $(d)/*.{ps,pdf})
 	rm -f $(MAKE_HTML)
 	rm -rf $(GENI) $(GENI).app $(PROFGENI)
-	rm -rf $(CONVERTER) $(EXTRACTOR) $(MAKESUITE) $(CLIENT) $(SERVER)
+	rm -rf $(GENI_HELPERS)
 	rm -rf $(SOURCE_HSD_1) $(HADDOCK_OUT)
 	rm -rf .depends
 
@@ -245,26 +251,31 @@ $(DEPENDS): .depends/%.dep : %
 # compilation
 # --------------------------------------------------------------------
 
-compile: init $(GENI) $(EXTRACTOR) $(CONVERTER) $(SERVER) $(CLIENT) $(SELECT) $(MAKESUITE)
+compile: init $(GENI) $(GENI_HELPERS) $(SERVER) $(CLIENT)
 
 converter: $(CONVERTER)
 extractor: $(EXTRACTOR)
 clientserver: $(SERVER) $(CLIENT)
 
+define ghc-make
+	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES) $(1) $< -o $@
+endef
+
 $(GENI) : $(GENI_MAIN) $(GENI_DEPS)
-	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES_GUI) -package HUnit $< -o $@
+	$(call ghc-make, $(GHCPACKAGES_GUI) -package HUnit)
 	$(OS_SPECIFIC_STUFF)
 
 $(CONVERTER): $(CONVERTER_MAIN) $(CONVERTER_DEPS)
-	@echo $(CONVERTER_DEPS)
-	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES) -package HaXml $< -o $@
+	$(call ghc-make, -package HaXml)
 
 $(EXTRACTOR) : $(EXTRACTOR_MAIN) $(EXTRACTOR_DEPS)
-	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES) $< -o $@
+	$(call ghc-make)
 
 $(MAKESUITE) : $(MAKESUITE_MAIN) $(MAKESUITE_DEPS)
-	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES) $< -o $@
+	$(call ghc-make)
 
+$(COUNT_OUTPUTS) : $(COUNT_OUTPUTS_MAIN) $(CONVERTER_DEPS)
+	$(call ghc-make)
 
 nogui : $(GENI_MAIN) $(GENI_DEPS) permissions
 	$(GHC) $(GHCFLAGS) --make -DDISABLE_GUI $(GHCPACKAGES) $< -o $(GENI)
@@ -273,16 +284,16 @@ debugger:
 	make $(PROFGENI) PROFILE=1
 
 $(PROFGENI): $(GENI_MAIN) $(GENI_DEPS) permissions
-	$(GHC) $(GHCFLAGS) $(GHCPACKAGES) --make $< -o $@
+	$(call ghc-make)
 
 $(SERVER): $(SERVER_MAIN) $(SERVER_DEPS)
-	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES) $< -o $@
+	$(call ghc-make)
 
 $(CLIENT): $(CLIENT_MAIN) $(CLIENT_DEPS)
-	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES) $< -o $@
+	$(call ghc-make)
 
 $(SELECT): $(SELECT_MAIN) $(SELECT_DEPS)
-	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES) $< -o $@
+	$(call ghc-make)
 
 # sometimes you have stuff that doesn't get built with ghc --make
 %.o : %.lhs
