@@ -40,11 +40,12 @@ where
 
 \ignore{
 \begin{code}
+import Control.Arrow (first)
 import Control.Monad.Error
 import Control.Monad (unless)
 
 import Data.IORef (IORef, readIORef, modifyIORef)
-import Data.List (intersperse, sort, nub, partition)
+import Data.List (group, intersperse, sort, nub, nubBy, partition)
 import qualified Data.Map as Map
 import Data.Maybe (mapMaybe, fromMaybe, isJust)
 import Data.Tree (Tree(Node))
@@ -56,7 +57,7 @@ import Text.ParserCombinators.Parsec
 import Statistics (Statistics)
 
 import NLP.GenI.General(mapTree, filterTree, repAllNode,
-    groupAndCount, multiGroupByFM,
+    equating, groupAndCount, multiGroupByFM,
     geniBug,
     repNodeByNode,
     wordsBy,
@@ -488,17 +489,29 @@ runLexSelection pst =
                 isEnrichErr (EnrichError _ _ _) = True
                 isEnrichErr _ = False
                 (enrichEs, otherEs) = partition isEnrichErr errs
+                family = ifamname l
+                familyMembers = [ p | p <- grammar, pfamily p == family ]
+            -- snippets of error message
+            let lexeme = showLexeme.iword $ l
+                _outOfFamily n = show n ++ "/" ++ (show $ length familyMembers)
+                                 ++ " instances of " ++ lexeme ++ ":" ++ family
+            -- print out missing coanchors list
+            case concatMap (missingCoanchors l) familyMembers of
+              [] -> return ()
+              cs -> mapM_ showWarning . group . sort $ cs
+                    where showWarning [] = geniBug "silly error in Geni.runLexSelection"
+                          showWarning xs =
+                           ePutStrLn $
+                             "Warning: Missing co-anchor '" ++ head xs ++ "'"
+                             ++ " in " ++ (_outOfFamily $ length xs) ++ "."
+            -- print out enrichment errors
             unless (null enrichEs) $ do
-                let family = ifamname l
-                    lexeme = showLexeme.iword $ l
-                    numDiscards = length enrichEs
-                    numInFamily = length [ p | p <- grammar, pfamily p == family ]
+                let numDiscards = length enrichEs
                     badEnrichments = [ av | av <- iequations l, hasMatch av ]
                     hasMatch (a,_) = any (== parsePathEq a) errLocs
                     errLocs = map eeLocation enrichEs
                 ePutStrLn $      "Warning: Discarded "
-                            ++ show numDiscards ++ "/" ++ show numInFamily
-                            ++ " instances of " ++ lexeme ++ ":" ++ family
+                            ++ _outOfFamily numDiscards
                             ++ "\n         due to enrichment failure with "
                             ++ "[" ++ showPairs badEnrichments ++ "]."
             mapM (ePutStrLn.show) otherEs
@@ -784,19 +797,16 @@ same as \verb!toto.top.foo=bar! (creates a warning) \\
 \begin{code}
 -- | (node, top, att) (node is Nothing if anchor)
 type PathEqLhs  = (String, Bool, String)
+type PathEqPair = (PathEqLhs, GeniVal)
 
 enrich :: ILexEntry -> MTtree -> Either LexCombineError MTtree
-enrich l t = -- using the Maybe monad
+enrich l t =
  do -- separate into interface/anchor/named
-    let name = fst3.fst
-        nameIs n x = name x == n
-        --
-        parsed1 = map (\ (a,v) -> (parsePathEq a, v)) (iequations l)
-        (intE, parsed2)  = partition (nameIs "interface") parsed1
+    let (intE, namedE) = lexEquations l
     -- enrich the interface and everything else
     t2 <- foldM enrichInterface t intE
     -- enrich everything else
-    foldM (enrichBy l) t2 parsed2
+    foldM (enrichBy l) t2 namedE
  where
   toAvPair ((_,_,a),v) = (a,v)
   enrichInterface tx en =
@@ -813,29 +823,53 @@ enrichBy :: ILexEntry -- ^ lexeme (for debugging info)
          -> (PathEqLhs, GeniVal) -- ^ enrichment eq
          -> Either LexCombineError MTtree
 enrichBy lexEntry t (eqLhs, eqVal) =
- -- trace ("enrichBy " ++ (show mname)) $
- case filterTree match (tree t) of
- [a] -> do let tfeat = (if eqTop then gup else gdown) a
+ case seekCoanchor eqName t of
+ Nothing -> return t -- to be robust, we accept if the node isn't there
+ Just a  ->
+        do let tfeat = (if eqTop then gup else gdown) a
            (newfeat, sub) <- unifyFeat [(eqAtt,eqVal)] tfeat
                               `catchError` (\_ -> throwError enrichErr)
            let newnode = if eqTop then a {gup   = newfeat}
                                   else a {gdown = newfeat}
            return $ fixNode newnode $ replace sub t
- []  -> unsafePerformIO $ do
-          ePutStrLn $ "Warning: " ++ eqName ++ " not found in tree " ++ (pidname t) ++ " (skipped)"
-          return $ Right t -- to be robust, we accept if the node isn't there
- _   -> geniBug ("Tree with multiple matches in enrichBy. " ++
-                 "\nTree: " ++ pidname t ++ "\nFamily: " ++ pfamily t ++
-                 "\nMatching on: " ++ eqName)
  where
    (eqName, eqTop, eqAtt) = eqLhs
-   fixNode n mt = mt { tree = repNodeByNode match n (tree mt) }
-   match = case eqName of
-           "anchor" -> ganchor
-           n -> \g -> gnname g == n
+   fixNode n mt = mt { tree = repNodeByNode (matchNodeName eqName) n (tree mt) }
    enrichErr = EnrichError { eeMacro    = t
                            , eeLexEntry = lexEntry
                            , eeLocation = eqLhs }
+
+pathEqName :: PathEqPair -> String
+pathEqName = fst3.fst
+
+missingCoanchors :: ILexEntry -> MTtree -> [String]
+missingCoanchors lexEntry t =
+  -- list monad
+  do eq <- nubBy (equating pathEqName) $ snd $ lexEquations lexEntry
+     let name = pathEqName eq
+     case seekCoanchor name t of
+       Nothing -> [name]
+       Just _  -> []
+
+-- | Split a lex entry's path equations into interface enrichement equations
+--   or (co-)anchor modifiers
+lexEquations :: ILexEntry -> ([PathEqPair], [PathEqPair])
+lexEquations =
+  partition (nameIs "interface") . map (first parsePathEq) . iequations
+  where nameIs n x = pathEqName x == n
+
+seekCoanchor :: String -> MTtree -> Maybe GNode
+seekCoanchor eqName t =
+ case filterTree (matchNodeName eqName) (tree t) of
+ [a] -> Just a
+ []  -> Nothing
+ _   -> geniBug $ "Tree with multiple matches in enrichBy. " ++
+                  "\nTree: " ++ pidname t ++ "\nFamily: " ++ pfamily t ++
+                  "\nMatching on: " ++ eqName
+
+matchNodeName :: String -> GNode -> Bool
+matchNodeName "anchor" = ganchor
+matchNodeName n        = (== n) . gnname
 
 -- | Parse a path equation using the GenI conventions
 parsePathEq :: String -> PathEqLhs
