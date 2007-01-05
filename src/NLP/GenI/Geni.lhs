@@ -505,6 +505,7 @@ runLexSelection pst =
                              "Warning: Missing co-anchor '" ++ head xs ++ "'"
                              ++ " in " ++ (_outOfFamily $ length xs) ++ "."
             -- print out enrichment errors
+{-
             unless (null enrichEs) $ do
                 let numDiscards = length enrichEs
                     badEnrichments = [ av | av <- iequations l, hasMatch av ]
@@ -515,6 +516,7 @@ runLexSelection pst =
                             ++ "\n         due to enrichment failure with "
                             ++ "[" ++ showPairs badEnrichments ++ "]."
             mapM (ePutStrLn.show) otherEs
+-}
 
             -- FIXMENOW when (not.null $ errs) $ ePutStrLn (unlines errs)
             return res
