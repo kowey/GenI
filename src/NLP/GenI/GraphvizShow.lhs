@@ -28,7 +28,6 @@ where
 \begin{code}
 import Data.List(intersperse,nub)
 
-import NLP.GenI.General (mapTree)
 import NLP.GenI.Tags
  ( TagElem, idname,
    tsemantics, ttree,
@@ -69,7 +68,7 @@ instance GraphvizShow Bool TagElem where
 instance GraphvizShow (Bool, GvHighlighter GNode) TagElem where
  graphvizShowAsSubgraph (sf,hfn) prefix te =
     (gvShowTree (\_->[]) sf (prefix ++ "DerivedTree0") $
-     mapTree hfn $ ttree te)
+     fmap hfn $ ttree te)
 
  graphvizLabel _ te =
   -- we display the tree semantics as the graph label

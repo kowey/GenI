@@ -73,7 +73,7 @@ import qualified Data.Set as Set
 import Data.Tree
 import Test.QuickCheck hiding (collect) -- needed for testing via ghci
 
-import NLP.GenI.General(map', mapTree, filterTree, listRepNode, snd3, geniBug)
+import NLP.GenI.General(map', filterTree, listRepNode, snd3, geniBug)
 --instance Show (IO()) where
 --  show _ = ""
 \end{code}
@@ -294,8 +294,8 @@ instance Replacable GNode where
 
 \begin{code}
 instance (Replacable a) => Replacable (Tree a) where
-  replaceOne s t = mapTree (replaceOne s) t
-  replaceMap s t = mapTree (replaceMap s) t
+  replaceOne s t = fmap (replaceOne s) t
+  replaceMap s t = fmap (replaceMap s) t
 \end{code}
 
 Projector and Update function for Tree

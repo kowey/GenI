@@ -59,7 +59,7 @@ import NLP.GenI.Btypes (Ptype(Initial, Auxiliar), SemPols,
                emptyGNode,
                showPairs, showSem, lexemeAttributes,
                )
-import NLP.GenI.General (mapTree, treeLeaves, groupByFM)
+import NLP.GenI.General (treeLeaves, groupByFM)
 \end{code}
 }
 
@@ -208,7 +208,7 @@ setTidnums :: [TagElem] -> [TagElem]
 setTidnums xs = zipWith (\c i -> setOrigin $ c {tidnum = i}) xs [1..]
 
 setOrigin :: TagElem -> TagElem
-setOrigin te = te { ttree = mapTree setLabel . ttree $ te }
+setOrigin te = te { ttree = fmap setLabel . ttree $ te }
  where setLabel g = g { gorigin = idname te ++ ":" ++ (show.tidnum) te }
 \end{code}
 

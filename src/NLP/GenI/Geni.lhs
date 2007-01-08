@@ -56,7 +56,7 @@ import Text.ParserCombinators.Parsec
 
 import Statistics (Statistics)
 
-import NLP.GenI.General(mapTree, filterTree, repAllNode,
+import NLP.GenI.General(filterTree, repAllNode,
     equating, groupAndCount, multiGroupByFM,
     geniBug,
     repNodeByNode,
@@ -953,7 +953,7 @@ building derivation trees
 
 \begin{code}
 setOrigin :: String -> Tree GNode -> Tree GNode
-setOrigin t = mapTree (\g -> g { gorigin = t })
+setOrigin t = fmap (\g -> g { gorigin = t })
 \end{code}
 
 % --------------------------------------------------------------------

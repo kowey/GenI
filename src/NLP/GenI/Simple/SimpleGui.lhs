@@ -33,7 +33,7 @@ import Statistics (Statistics)
 
 import NLP.GenI.Btypes (GNode(gnname, gup), emptyGNode, GeniVal(GConst))
 import NLP.GenI.Configuration ( Params(..) )
-import NLP.GenI.General ( snd3, mapTree, dropTillIncluding )
+import NLP.GenI.General ( snd3, dropTillIncluding )
 import NLP.GenI.Geni ( ProgStateRef, runGeni )
 import NLP.GenI.Graphviz ( GraphvizShow(..), gvNewline, gvUnlines )
 import NLP.GenI.GuiHelper
@@ -191,7 +191,7 @@ toTagElem :: SimpleItem -> TagElem
 toTagElem si =
   emptyTE { idname = tgIdName si
           , tsemantics = tgSemantics si
-          , ttree = mapTree lookupOrBug (siDerived si) }
+          , ttree = fmap lookupOrBug (siDerived si) }
   where
    nodes   = siNodes.siGuiStuff $ si
    nodeMap = Map.fromList $ zip (map gnname nodes) nodes

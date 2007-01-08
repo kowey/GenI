@@ -242,11 +242,7 @@ repList pr fn (x:xs)
 \section{Trees}
 
 \begin{code}
-mapTree :: (a->b) -> Tree a -> Tree b
-mapTree fn (Node a []) = (Node (fn a) [])
-mapTree fn (Node a l)  = (Node (fn a) (map (mapTree fn) l))
-
--- | Strict version of 'mapTree'
+-- | Strict version of 'mapTree' (for non-strict, just use fmap)
 mapTree' :: (a->b) -> Tree a -> Tree b
 mapTree' fn (Node a []) = let b = fn a in b `seq` Node b []
 mapTree' fn (Node a l)  = let b = fn a
