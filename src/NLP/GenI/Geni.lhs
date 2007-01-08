@@ -489,12 +489,11 @@ runLexSelection pst =
                 isEnrichErr (EnrichError _ _ _) = True
                 isEnrichErr _ = False
                 (enrichEs, otherEs) = partition isEnrichErr errs
-                family = ifamname l
-                familyMembers = [ p | p <- grammar, pfamily p == family ]
+                familyMembers = [ p | p <- grammar, pfamily p == ifamname l ]
             -- snippets of error message
             let lexeme = showLexeme.iword $ l
                 _outOfFamily n = show n ++ "/" ++ (show $ length familyMembers)
-                                 ++ " instances of " ++ lexeme ++ ":" ++ family
+                                 ++ " instances of " ++ lexeme ++ ":" ++ ifamname l
             -- print out missing coanchors list
             case concatMap (missingCoanchors l) familyMembers of
               [] -> return ()
