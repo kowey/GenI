@@ -60,7 +60,7 @@ consoleGeni pstRef = do
   unless (hasFlagP DisableGuiFlg config) $
     ePutStrLn "GUI not available"
   --
-  loadGrammar pstRef
+  loadEverything pstRef
   case getFlagP TimeoutFlg (pa pst) of
     Nothing -> runSuite pstRef
     Just t  -> withTimeout t (timeoutErr t) $ runSuite pstRef

@@ -40,7 +40,7 @@ import qualified NLP.GenI.Builder as B
 import qualified NLP.GenI.BuilderGui as BG
 import NLP.GenI.Geni
   ( ProgState(..), ProgStateRef, combine, initGeni
-  , loadGrammar, loadTestSuite, loadTargetSemStr)
+  , loadEverything, loadTestSuite, loadTargetSemStr)
 import NLP.GenI.General (boundsCheck, geniBug, trim, fst3)
 import NLP.GenI.Btypes (ILexEntry(isemantics), TestCase(..))
 import NLP.GenI.Tags (idname, tpolarities, tsemantics, TagElem)
@@ -111,7 +111,7 @@ mainGui pstRef
              -- put the menu event handler for an about box on the frame.
              , on (menu aboutMeIt) := infoDialog f "About GenI" "The GenI generator.\nhttp://wiki.loria.fr/wiki/GenI" 
              -- event handler for the tree browser
-             , on (menu gbrowserMenIt) := do { loadGrammar pstRef; treeBrowserGui pstRef }  
+             , on (menu gbrowserMenIt) := do { loadEverything pstRef; treeBrowserGui pstRef }  
              ]
 \end{code}
 
@@ -579,7 +579,7 @@ generator and displays the result in a results gui (below).
 \begin{code}
 doGenerate :: Textual b => Window a -> ProgStateRef -> b -> Bool -> Bool -> IO ()
 doGenerate f pstRef sembox useDebugger pauseOnLex =
- do loadGrammar pstRef
+ do loadEverything pstRef
     sem <- get sembox text
     loadTargetSemStr pstRef sem
     --

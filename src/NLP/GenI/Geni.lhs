@@ -28,7 +28,7 @@ involve some messy IO performance tricks.
 module NLP.GenI.Geni (ProgState(..), ProgStateRef, emptyProgState,
              showRealisations, groupAndCount,
              initGeni, runGeni, getTraces, GeniResult, Selector,
-             loadGrammar, loadLexicon, 
+             loadEverything, loadLexicon, 
              loadTestSuite, loadTargetSemStr,
              combine,
 
@@ -159,13 +159,14 @@ emptyProgState args =
 \subsection{Loading and parsing}
 % --------------------------------------------------------------------
 
-\fnlabel{loadGrammar} Given the pointer to the monadic state pstRef it reads
-and parses everything it needs to get going, that is, the macros file, 
-lexicon file and test suite.
+We have one master function that loads all the files GenI is expected to
+use.  This just calls the sub-loaders below, some of which are exported
+for use by the graphical interface.  The master function also makes sure
+to complain intelligently if some of the required files are missing.
 
 \begin{code}
-loadGrammar :: ProgStateRef -> IO() 
-loadGrammar pstRef =
+loadEverything :: ProgStateRef -> IO() 
+loadEverything pstRef =
   do pst <- readIORef pstRef
      --
      let config   = pa pst
@@ -197,9 +198,10 @@ loadGrammar pstRef =
      when isNotServer $ loadTestSuite pstRef
 \end{code}
 
-\fnlabel{loadLexicon} Given the pointer to the monadic state pstRef and
-the parameters from a grammar index file parameters; it reads and parses
-the lexicon file.   
+The file loading functions all work the same way: we load the file,
+and try to parse it.  If this doesn't work, we just fail in IO, and
+GenI dies.  If we succeed, we update the program state passed in as
+an IORef.
 
 \begin{code}
 loadLexicon :: ProgStateRef -> Params -> IO ()
@@ -223,13 +225,8 @@ loadLexicon pstRef config =
        modifyIORef pstRef (\x -> x{le = theLex})
 
        return ()
-\end{code}
 
-\fnlabel{loadGeniMacros} Given the pointer to the monadic state pstRef and
-the parameters from a grammar index file parameters; it reads and parses
-macros file.  The macros are stored as a hashing function in the monad.
-
-\begin{code}
+-- | The macros are stored as a hashing function in the monad.
 loadGeniMacros :: ProgStateRef -> Params -> IO ()
 loadGeniMacros pstRef config = 
  case getFlagP MacrosFlg config of
@@ -242,14 +239,8 @@ loadGeniMacros pstRef config =
      g <- parseFromFileOrFail geniMacros mfile
      when verbose $ ePutStr $ show (length g) ++ " trees\n"
      modifyIORef pstRef (\x -> x{gr = g})
-\end{code}
 
-\fnlabel{loadMorphInfo} Given the pointer to the monadic state pstRef and
-the parameters from a grammar index file parameters; it reads and parses
-the morphological information file, if available.  The results are stored
-as a lookup function in the monad.
-
-\begin{code}
+-- | The results are stored as a lookup function in the monad.
 loadMorphInfo :: ProgStateRef -> Params -> IO ()
 loadMorphInfo pstRef config = 
  case getFlagP MorphInfoFlg config of
@@ -264,12 +255,16 @@ loadMorphInfo pstRef config =
 
 \subsubsection{Target semantics}
 
-\fnlabel{loadTestSuite} 
-given a pointer pstRef to the general state st, it access the parameters and the
-name of the file for the target semantics from params.  It parses the file as a
-test suite, and assigns it to the tsuite field of st.
+Reading in the target semantics (or test suite) is a little more
+complicated.  It follows the same general schema as above, except
+that we parse the file twice: once for our internal representation,
+and once to get a string representation of each test case.  The
+string representation is for the graphical interface; it avoids us
+figuring out how to pretty-print things because we can assume the
+user will format it the way s/he wants.
 
 \begin{code}
+-- | Stores the results in the tcase and tsuite fields
 loadTestSuite :: ProgStateRef -> IO ()
 loadTestSuite pstRef = do
   pst <- readIORef pstRef
@@ -296,11 +291,12 @@ loadTestSuite pstRef = do
         where (sm, sr, lc) = tcSem tc
 \end{code}
 
-\fnlabel{loadTargetSemStr} Given a string with some semantics, it
-parses the string and assigns the assigns the target semantics to the 
-ts field of the ProgState 
+Sometimes, the target semantics does not come from a file, but from
+the graphical interface, so we also provide the ability to parse an
+arbitrary string as the semantics.
 
 \begin{code}
+-- | Updates program state the same way as 'loadTestSuite'
 loadTargetSemStr :: ProgStateRef -> String -> IO ()
 loadTargetSemStr pstRef str = 
     do pst <- readIORef pstRef
@@ -313,6 +309,8 @@ loadTargetSemStr pstRef str =
            Right sr  -> modifyIORef pstRef (\x -> x{ts = smooth sr})
        smooth (s,r,l) = (sortSem s, sort r, l)
 \end{code}
+
+\subsubsection{Helpers for loading files}
 
 \begin{code}
 parseFromFileOrFail :: Parser a -> FilePath -> IO a
