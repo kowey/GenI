@@ -93,10 +93,11 @@ combining macros with lexicon (see section \ref{sec:combine_macros}).
 
 \begin{code}
 -- type TPredictors = Map.Map AvPair Int 
-data TagSite = TagSite !String -- ^ node name
-                       !Flist  -- ^ top
-                       !Flist  -- ^ bot
-                       !String -- ^ origin
+data TagSite = TagSite { tsName :: !String
+                       , tsUp   :: !Flist
+                       , tsDown :: !Flist
+                       , tsOrigin :: !String
+                       }
   deriving (Show, Eq, Ord)
 
 data TagElem = TE {
