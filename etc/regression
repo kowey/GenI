@@ -59,9 +59,7 @@ echo
 
 SUMHUNIT=`dirname $0`/SumHUnit
 
-# note that the --invert-pe should be changed to --invert-pf
-# if HUnit's treating of failures as errors ever gets fixed
 (${SUMHUNIT} < ${TMP_GARBAGE_P}\
-;${SUMHUNIT} --invert-pe < ${TMP_GARBAGE_F}) | ${SUMHUNIT}
+;${SUMHUNIT} --invert-pf < ${TMP_GARBAGE_F}) | ${SUMHUNIT}
 
 rm ${TMP_GARBAGE_P} ${TMP_GARBAGE_F}
