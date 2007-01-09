@@ -167,7 +167,7 @@ instance XMGDerivation SimpleItem where
                     then (stripGorn.stripGornLevel) n
                     else n
       stripGornLevel = dropTillIncluding '.'
-      deriv = map (stripGorn.snd3) . snd . siDerivation $ it
+      deriv = map (stripGorn.snd3) . siDerivation $ it
   in  tgIdName it : deriv
 \end{code}
 
@@ -185,7 +185,7 @@ instance GraphvizShow Bool SimpleItem where
       ++ graphvizShowAsSubgraph (f, info) (p ++ "TagElem") (toTagElem it)
       ++ "\n// ------------------- derivation tree --------------------------\n"
       -- derivation tree is displayed without any decoration
-      ++ (graphvizShowDerivation . snd . siDerivation $ it)
+      ++ (graphvizShowDerivation . siDerivation $ it)
 
 toTagElem :: SimpleItem -> TagElem
 toTagElem si =

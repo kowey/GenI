@@ -356,7 +356,7 @@ initSimpleItem bmap (teRaw,pp) =
   , siRoot = ncopy.root $ theTree
   , siFoot = if ttype te == Initial then Nothing
              else Just . ncopy.foot $ theTree
-  , siDerivation = (0, [])
+  , siDerivation = []
   -- note: see comment in initSimpleBuilder re: tb unification
   , siPendingTb = nullAdjNodes
   --
@@ -898,12 +898,13 @@ addToDerivation :: Char
                 -> (SimpleItem,String)
                 -> TagDerivation
 addToDerivation op (tc,tcOrigin) (tp,tpOrigin) =
-  let (_ ,hp)  = siDerivation tp
-      (_ ,hc)  = siDerivation tc
-      --
+  let hp = siDerivation tp
+      hc = siDerivation tc
       newnode = (op, tcOrigin, tpOrigin)
-  in (0, newnode:hp++hc )
+  in newnode:hp++hc
 \end{code}
+
+
 
 % --------------------------------------------------------------------
 \section{Dispatching new results}

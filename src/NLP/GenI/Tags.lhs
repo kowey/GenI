@@ -116,17 +116,12 @@ data TagElem = TE {
              deriving (Show, Eq)
 \end{code}
 
-A tag derivation history consists of 1) a counter representing the number of 
-substitution or adjunctions which have been done to the tree
-(this is neccesary for distinguishing between derivation nodes later on)
-(note that substitutions and adjunctions that have already been done to
-subtrees are not counted),
-and 2) a list of 3-tuples representing the operation (s for substitution, a
-for adjunction), the name of the child tree, and the name of the parent 
-tree.
+A TAG derivation history consists of a list of 3-tuples representing the
+operation (s for substitution, a for adjunction), the name of the child tree,
+and the name of the parent tree.
 
 \begin{code}
-type TagDerivation = (Int, [ (Char, String, String) ])
+type TagDerivation = [ (Char, String, String) ]
 \end{code}
 
 \begin{code}
