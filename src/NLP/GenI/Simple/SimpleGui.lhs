@@ -33,7 +33,7 @@ import Statistics (Statistics)
 
 import NLP.GenI.Btypes (GNode(gnname, gup), emptyGNode, GeniVal(GConst))
 import NLP.GenI.Configuration ( Params(..) )
-import NLP.GenI.General ( snd3, dropTillIncluding )
+import NLP.GenI.General ( snd3 )
 import NLP.GenI.Geni ( ProgStateRef, runGeni, GeniResult )
 import NLP.GenI.Graphviz ( GraphvizShow(..), gvNewline, gvUnlines )
 import NLP.GenI.GuiHelper
@@ -160,15 +160,7 @@ instance TagItem SimpleItem where
 
 instance XMGDerivation SimpleItem where
  -- Note: this is XMG-related stuff
- getSourceTrees it =
-  let -- strips all gorn addressing stuff... grr, if i were a better haskeller,
-      -- this recursion would not be explicit
-      stripGorn n = if '.' `elem` n
-                    then (stripGorn.stripGornLevel) n
-                    else n
-      stripGornLevel = dropTillIncluding '.'
-      deriv = map (stripGorn.snd3) . siDerivation $ it
-  in  tgIdName it : deriv
+ getSourceTrees it = tgIdName it : (map snd3 . siDerivation $ it)
 \end{code}
 
 \begin{code}
