@@ -7,6 +7,11 @@
 # - make clean   removes all compiled files (like *.pdf, *.aux)
 # - make release creates a tarball that you can give to others
 
+# FIXME: When ghc-6.6 or later starts being more widely distributed
+# we'll need to hack up the Setup.lhs so that it runs macosx-app on
+# the geni binary, and replace a good chunk of the Makefile targets
+# with Cabal stuff.
+
 # --------------------------------------------------------------------
 # configuration
 # --------------------------------------------------------------------
