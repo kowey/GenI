@@ -27,7 +27,7 @@ involve some messy IO performance tricks.
 \begin{code}
 module NLP.GenI.Geni (ProgState(..), ProgStateRef, emptyProgState,
              showRealisations, groupAndCount,
-             initGeni, runGeni, GeniResult, Selector,
+             initGeni, runGeni, getTraces, GeniResult, Selector,
              loadGrammar, loadLexicon, 
              loadTestSuite, loadTargetSemStr,
              combine,
@@ -437,7 +437,26 @@ showRealisations sentences =
                             else ""
   in if null sentences
      then "(none)"
-     else concat $ intersperse "\n" $ sentencesGrouped
+     else unlines sentencesGrouped
+\end{code}
+
+\paragraph{getTraces} is most likely useful for grammars produced by a
+metagrammar system.  Given a tree name, we retrieve the ``trace''
+information from the grammar for all trees that have this name.  We
+assume the tree name was constructed by GenI; see the source code for
+details.
+
+\begin{code}
+getTraces :: ProgState -> String -> [String]
+getTraces pst tname =
+  concat [ ptrace t | t <- gr pst, pidname t == readPidname tname ]
+
+-- | We assume the name was constructed by 'combineName'
+readPidname :: String -> String
+readPidname n =
+  case wordsBy ':' n of
+  (_:_:p:_) -> p
+  _         -> geniBug "readPidname or combineName are broken"
 \end{code}
 
 %\paragraph{describeOpts} concisely describes the optimisations used

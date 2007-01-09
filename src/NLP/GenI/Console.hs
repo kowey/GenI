@@ -37,7 +37,7 @@ import NLP.GenI.Btypes
 import qualified NLP.GenI.Btypes as G
 import NLP.GenI.General
   ( ePutStrLn, withTimeout, exitTimeout, (///)
-  , fst3
+  , fst3, wordsBy,
   )
 import NLP.GenI.Geni
 import NLP.GenI.Configuration
@@ -170,21 +170,34 @@ runOnSemInput pstRef args semInput =
      case args of
        PartOfSuite n f -> createDirectoryIfMissing False (f///n)
        _               -> return ()
-     let oPutStrLn = case args of
+     let oWrite = case args of
                      Standalone "" _ -> putStrLn
                      Standalone f  _ -> writeFile f
                      PartOfSuite n f -> writeFile $ f /// n /// "responses"
                      InRegressionTest -> const $ return ()
-         soPutStrLn = case args of
+         dWrite = case args of
+                     PartOfSuite n f -> writeFile $ f /// n /// "derivations"
+                     _               -> const $ return ()
+         soWrite = case args of
                      Standalone _ "" -> putStrLn
                      Standalone _ f  -> writeFile f
                      PartOfSuite n f -> writeFile $ f /// n /// "stats"
                      InRegressionTest -> const $ return ()
-     let (sentences, derivations) = unzip results
-     oPutStrLn (unlines sentences)
+     oWrite . unlines . map fst $ results
+     -- print out derivation information
+     let showWithDerivation (s,d) =
+           "sentence:[" ++ s ++ "]\n"
+           ++ (unlines $ map showTraceElement d)
+         showTraceElement t =
+           "trace:[" ++ trimName t ++ "\t! " ++ (unwords $ getTraces pst t) ++ "]"
+         trimName n =
+           case wordsBy ':' n of
+           (lem:_:t:_) -> lem ++ " " ++ t
+           _           -> n
+     dWrite . unlines . map showWithDerivation $ results
      -- print out statistical data (if available)
      when (isJust $ getFlagP MetricsFlg config) $
-       do soPutStrLn $ "begin stats\n" ++ showFinalStats stats ++ "end"
+       do soWrite $ "begin stats\n" ++ showFinalStats stats ++ "end"
      return (results, stats)
   where
     helper builder =
