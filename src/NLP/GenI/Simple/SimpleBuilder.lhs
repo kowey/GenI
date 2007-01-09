@@ -51,7 +51,7 @@ import Control.Monad (when, liftM2)
 import Control.Monad.State
   (get, put, modify, gets, runState, execStateT)
 
-import Data.List (intersect, partition, delete, foldl')
+import Data.List (nub, intersect, partition, delete, foldl')
 import Data.Maybe (isJust, isNothing, fromMaybe)
 import Data.Bits
 import qualified Data.Map as Map
@@ -1110,9 +1110,11 @@ unpackResult item =
       lookupOrBug k = case Map.lookup k leafMap of
                       Nothing -> geniBug $ "unpackResult : could not find node " ++ k
                       Just w  -> w
+      derivation = nub (d2 ++ d3)
+        where (_,d2,d3) = unzip3 . siDerivation $ item
       paths = automatonPaths . listToSentenceAut $
               [ lookupOrBug k | k <- (treeLeaves . siDerived) item ]
- in zip paths (repeat [])
+ in zip paths (repeat derivation)
 \end{code}
 
 \subsection{Sentence automata}
