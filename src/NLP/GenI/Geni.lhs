@@ -93,6 +93,7 @@ import NLP.GenI.Configuration
   , MacrosFlg(..), LexiconFlg(..), TestSuiteFlg(..), TestCaseFlg(..)
   , MorphInfoFlg(..), MorphCmdFlg(..)
   , IgnoreSemanticsFlg(..), ServerModeFlg(..), VerboseModeFlg(..)
+  , TracesFlg(..)
   , grammarType
   , GrammarType(..) )
 
@@ -137,7 +138,9 @@ data ProgState = ST{pa     :: Params,
                     -- names of test case to run
                     tcase    :: String, 
                     -- name, original string (for gui), sem
-                    tsuite   :: [TestCase]
+                    tsuite   :: [TestCase],
+                    -- simplified traces (optional)
+                    traces   :: [String]
                }
 
 type ProgStateRef = IORef ProgState
@@ -151,7 +154,9 @@ emptyProgState args =
     , morphinf = const Nothing
     , ts = ([],[],[])
     , tcase = []
-    , tsuite = [] }
+    , tsuite = []
+    , traces = []
+    }
 \end{code}
 
 % --------------------------------------------------------------------
@@ -196,6 +201,8 @@ loadEverything pstRef =
      -- in any case, we have to...
      loadMorphInfo pstRef config 
      when isNotServer $ loadTestSuite pstRef
+     -- the trace filter file
+     loadTraces pstRef config
 \end{code}
 
 The file loading functions all work the same way: we load the file,
@@ -249,6 +256,17 @@ loadMorphInfo pstRef config =
         parsed <- parseFromFileOrFail geniMorphInfo filename
         ePutStr $ (show $ length parsed) ++ " entries\n"
         modifyIORef pstRef (\x -> x{morphinf = readMorph parsed})
+
+loadTraces :: ProgStateRef -> Params -> IO ()
+loadTraces pstRef config =
+  case getFlagP TracesFlg config of
+  Nothing    -> return ()
+  Just fname -> do
+       ePutStr $ "Loading trace file " ++ fname ++ "..."
+       eFlush
+       theTs <- lines `fmap` readFile fname
+       ePutStr $ (show $ length theTs) ++ " entries\n"
+       modifyIORef pstRef (\x -> x{traces = theTs})
 \end{code}
 
 \subsubsection{Target semantics}
@@ -433,7 +451,11 @@ details.
 \begin{code}
 getTraces :: ProgState -> String -> [String]
 getTraces pst tname =
-  concat [ ptrace t | t <- gr pst, pidname t == readPidname tname ]
+  filt $ concat [ ptrace t | t <- gr pst, pidname t == readPidname tname ]
+  where
+   filt = case traces pst of
+          []    -> id
+          theTs -> filter (`elem` theTs)
 
 -- | We assume the name was constructed by 'combineName'
 readPidname :: String -> String

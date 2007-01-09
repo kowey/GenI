@@ -42,6 +42,7 @@ module NLP.GenI.Configuration
   , TestCaseFlg(..)
   , TestSuiteFlg(..)
   , TimeoutFlg(..)
+  , TracesFlg(..)
   , VerboseModeFlg(..)
   , ViewCmdFlg(..)
   --
@@ -284,6 +285,7 @@ optionsForInputFiles :: [OptDescr Flag]
 optionsForInputFiles =
   [ macrosOption
   , lexiconOption
+  , tracesOption
   , testSuiteOption
   , morphInfoOption
   , outputOption
@@ -291,7 +293,7 @@ optionsForInputFiles =
       "do NOT perform lexical selection - treat the grammar as the selection"
   ]
 
-macrosOption, lexiconOption, outputOption :: OptDescr Flag
+macrosOption, lexiconOption, tracesOption, outputOption :: OptDescr Flag
 
 macrosOption =
   Option ['m'] ["macros"] (reqArg MacrosFlg id "FILE")
@@ -300,6 +302,10 @@ macrosOption =
 lexiconOption =
   Option ['l'] ["lexicon"] (reqArg LexiconFlg id "FILE")
      "lexicon file FILE"
+
+tracesOption =
+  Option [] ["traces"] (reqArg TracesFlg id "FILE")
+    "traces file FILE (list of traces to display)"
 
 outputOption =
   Option ['o'] ["output"] (reqArg OutputFileFlg id "FILE")
@@ -674,6 +680,7 @@ FLAG (HelpFlg, ())
 FLAG (IgnoreSemanticsFlg, ())
 FLAG (LexiconFlg, FilePath)
 FLAG (MacrosFlg, FilePath)
+FLAG (TracesFlg, FilePath)
 FLAG (MaxTreesFlg, Int)
 FLAG (MetricsFlg, [String])
 FLAG (MorphCmdFlg, String)
