@@ -224,8 +224,6 @@ loadLexicon pstRef config =
        -- combine the two lexicons
        modifyIORef pstRef (\x -> x{le = theLex})
 
-       return ()
-
 -- | The macros are stored as a hashing function in the monad.
 loadGeniMacros :: ProgStateRef -> Params -> IO ()
 loadGeniMacros pstRef config = 
