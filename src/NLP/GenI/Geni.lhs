@@ -216,10 +216,7 @@ loadLexicon pstRef config =
            sorter l  = l { isemantics = (sortSem . getSem) l }
            cleanup   = (mapBySemKeys isemantics) . (map sorter)
            --
-       prelex <- parseFromFile geniLexicon lfile
-       let theLex = case prelex of
-                      Left err -> error (show err)
-                      Right x  -> cleanup x
+       theLex <- cleanup `fmap` parseFromFileOrFail geniLexicon lfile
        --
        when verbose $ ePutStr ((show $ length $ Map.keys theLex) ++ " entries\n")
        -- combine the two lexicons
@@ -242,12 +239,9 @@ loadGeniMacros pstRef config =
      when verbose $ do
        ePutStr $ "Loading Macros " ++ mfile ++ "..."
        eFlush
-     parsed <- parseFromFile geniMacros mfile
-     case parsed of 
-       Left  err -> fail (show err)
-       Right g   -> do
-          when verbose $ ePutStr $ show (length g) ++ " trees\n"
-          modifyIORef pstRef (\x -> x{gr = g})
+     g <- parseFromFileOrFail geniMacros mfile
+     when verbose $ ePutStr $ show (length g) ++ " trees\n"
+     modifyIORef pstRef (\x -> x{gr = g})
 \end{code}
 
 \fnlabel{loadMorphInfo} Given the pointer to the monadic state pstRef and
@@ -263,13 +257,9 @@ loadMorphInfo pstRef config =
  Just filename -> do
         ePutStr $ "Loading Morphological Info " ++ filename ++ "..."
         eFlush
-        parsed <- parseFromFile geniMorphInfo filename
-        let g = case parsed of 
-                  Left err -> fail (show err)
-                  Right  x -> x
-            sizeg  = length g
-        ePutStr $ show sizeg ++ " entries\n" 
-        modifyIORef pstRef (\x -> x{morphinf = readMorph g})
+        parsed <- parseFromFileOrFail geniMorphInfo filename
+        ePutStr $ (show $ length parsed) ++ " entries\n"
+        modifyIORef pstRef (\x -> x{morphinf = readMorph parsed})
 \end{code}
 
 \subsubsection{Target semantics}
@@ -292,18 +282,11 @@ loadTestSuite pstRef = do
       do when verbose $ do
            ePutStr $ "Loading Test Suite " ++ filename ++ "...\n"
            eFlush
-         -- ugh: I'm using CPS here, when what I really want is
-         -- some kind of Error-based monad transformer
-         parseAnd geniTestSuite $ \sem ->
-           parseAnd geniTestSuiteString $ \mStrs ->
-             modifyIORef pstRef $ updateTsuite config sem mStrs
+         sem   <- parseFromFileOrFail geniTestSuite filename
+         mStrs <- parseFromFileOrFail geniTestSuiteString filename
+         modifyIORef pstRef $ updateTsuite config sem mStrs
          return ()
      where -- helper functions for test suite stuff
-      parseAnd p cont =
-        do mr <- parseFromFile p filename
-           case mr of
-             Left  e -> fail (show e)
-             Right r -> cont r
       updateTsuite config s s2 x =
         x { tsuite = zipWith cleanup s s2
           , tcase  = fromMaybe "" $ getFlagP TestCaseFlg config}
@@ -329,6 +312,11 @@ loadTargetSemStr pstRef str =
            Left  err -> fail (show err)
            Right sr  -> modifyIORef pstRef (\x -> x{ts = smooth sr})
        smooth (s,r,l) = (sortSem s, sort r, l)
+\end{code}
+
+\begin{code}
+parseFromFileOrFail :: Parser a -> FilePath -> IO a
+parseFromFileOrFail p f = parseFromFile p f >>= either (fail.show) (return)
 \end{code}
 
 % --------------------------------------------------------------------
@@ -995,11 +983,7 @@ readPreAnchored :: ProgState -> IO [TagElem]
 readPreAnchored pst =
  case getFlagP MacrosFlg (pa pst) of
  Nothing   -> fail "No macros file specified (preanchored mode)"
- Just file ->
-  do parsed <- parseFromFile geniTagElems file
-     case parsed of
-       Left err -> fail (show err)
-       Right c  -> return c
+ Just file -> parseFromFileOrFail geniTagElems file
 \end{code}
 
 % --------------------------------------------------------------------
