@@ -57,7 +57,7 @@ import NLP.GenI.CkyEarley.CkyBuilder
 import NLP.GenI.Configuration ( Params(..) )
 
 import NLP.GenI.Geni
-  ( ProgStateRef, runGeni )
+  ( ProgStateRef, runGeni, GeniResult )
 import NLP.GenI.General ( boundsCheck, geniBug )
 import NLP.GenI.GuiHelper
   ( messageGui, toSentence
@@ -91,7 +91,7 @@ ckyOrEarleyGui isEarley = BG.BuilderGui {
   , BG.debuggerPnl = ckyDebuggerTab builder }
   where builder = if isEarley then earleyBuilder else ckyBuilder
 
-resultsPnl :: B.Builder CkyStatus CkyItem Params -> ProgStateRef -> Window a -> IO ([String], Statistics, Layout)
+resultsPnl :: B.Builder CkyStatus CkyItem Params -> ProgStateRef -> Window a -> IO ([GeniResult], Statistics, Layout)
 resultsPnl builder pstRef f =
   do (sentences, stats, st) <- runGeni pstRef builder
      (lay, _, _) <- realisationsGui pstRef f (theResults st)

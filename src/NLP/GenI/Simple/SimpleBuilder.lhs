@@ -69,7 +69,7 @@ import NLP.GenI.Btypes
   , plugTree, spliceTree
   , unifyFeat, Flist, Subst, mergeSubst
   )
-import NLP.GenI.Builder (UninflectedSentence,
+import NLP.GenI.Builder (
     incrCounter, num_iterations, num_comparisons, chart_size,
     SemBitMap, defineSemanticBits, semToBitVector, bitVectorToSem,
     DispatchFilter, (>-->), condFilter, nullFilter,
@@ -1098,10 +1098,10 @@ automaton (to take care of atomic disjunction) and reading the paths of
 each automaton.
 
 \begin{code}
-unpackResults :: [SimpleItem] ->  [B.UninflectedSentence]
+unpackResults :: [SimpleItem] ->  [B.Output]
 unpackResults = concatMap unpackResult
 
-unpackResult :: SimpleItem -> [B.UninflectedSentence]
+unpackResult :: SimpleItem -> [B.Output]
 unpackResult item =
   let leafMap :: Map.Map String B.UninflectedDisjunction
       leafMap = Map.fromList . siLeaves $ item
@@ -1109,8 +1109,9 @@ unpackResult item =
       lookupOrBug k = case Map.lookup k leafMap of
                       Nothing -> geniBug $ "unpackResult : could not find node " ++ k
                       Just w  -> w
-  in automatonPaths . listToSentenceAut $
-     [ lookupOrBug k | k <- (treeLeaves . siDerived) item ]
+      paths = automatonPaths . listToSentenceAut $
+              [ lookupOrBug k | k <- (treeLeaves . siDerived) item ]
+ in zip paths (repeat [])
 \end{code}
 
 \subsection{Sentence automata}

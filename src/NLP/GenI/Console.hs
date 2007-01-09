@@ -112,19 +112,20 @@ runRegressionSuite pstRef =
   toTest :: G.TestCase -> IO [H.Test] -- ^ GenI test case to HUnit Tests
   toTest tc = -- run the case, and return a test case for each expected result
    do (res , _) <- runOnSemInput pstRef InRegressionTest (tcSem tc)
-      let name = tcName tc
+      let sentences = fst (unzip res)
+          name = tcName tc
           semStr = showSem . fst3 . tcSem $ tc
           mainMsg  = "for " ++ semStr ++ ",  got no results"
           mainCase = H.TestLabel name
-            $ H.TestCase $ (not.null $ res) @? mainMsg
+            $ H.TestCase $ (not.null $ sentences) @? mainMsg
           subMsg e = "for " ++ semStr ++ ", failed to get (" ++ e ++ ")"
           subCase e = H.TestLabel name
-            $ H.TestCase $ (e `elem` res) @? subMsg e
+            $ H.TestCase $ (e `elem` sentences) @? subMsg e
       return $ (mainCase :) $ map subCase (tcExpected tc)
 
 -- | Run the specified test case, or failing that, the first test
 --   case in the suite
-runTestCaseOnly :: ProgStateRef -> IO ([String], Statistics)
+runTestCaseOnly :: ProgStateRef -> IO ([GeniResult], Statistics)
 runTestCaseOnly pstRef =
  do pst <- readIORef pstRef
     let config     = pa pst
@@ -154,12 +155,12 @@ data RunAs = Standalone  FilePath FilePath
 runOnSemInput :: ProgStateRef
               -> RunAs
               -> SemInput
-              -> IO ([String], Statistics)
+              -> IO ([GeniResult], Statistics)
 runOnSemInput pstRef args semInput =
   do modifyIORef pstRef (\x -> x{ts = semInput})
      pst <- readIORef pstRef
      let config = pa pst
-     (sentences, stats) <- case builderType config of
+     (results, stats) <- case builderType config of
                             NullBuilder   -> helper B.nullBuilder
                             SimpleBuilder -> helper simpleBuilder_2p
                             SimpleOnePhaseBuilder -> helper simpleBuilder_1p
@@ -179,13 +180,13 @@ runOnSemInput pstRef args semInput =
                      Standalone _ f  -> writeFile f
                      PartOfSuite n f -> writeFile $ f /// n /// "stats"
                      InRegressionTest -> const $ return ()
+     let (sentences, derivations) = unzip results
      oPutStrLn (unlines sentences)
      -- print out statistical data (if available)
      when (isJust $ getFlagP MetricsFlg config) $
        do soPutStrLn $ "begin stats\n" ++ showFinalStats stats ++ "end"
-     return (sentences, stats)
+     return (results, stats)
   where
-    helper :: B.Builder st it Params -> IO ([String], Statistics)
     helper builder =
-      do (sentences, stats, _) <- runGeni pstRef builder
-         return (sentences, stats)
+      do (results, stats, _) <- runGeni pstRef builder
+         return (results, stats)

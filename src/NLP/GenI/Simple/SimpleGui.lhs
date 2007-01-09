@@ -34,7 +34,7 @@ import Statistics (Statistics)
 import NLP.GenI.Btypes (GNode(gnname, gup), emptyGNode, GeniVal(GConst))
 import NLP.GenI.Configuration ( Params(..) )
 import NLP.GenI.General ( snd3, dropTillIncluding )
-import NLP.GenI.Geni ( ProgStateRef, runGeni )
+import NLP.GenI.Geni ( ProgStateRef, runGeni, GeniResult )
 import NLP.GenI.Graphviz ( GraphvizShow(..), gvNewline, gvUnlines )
 import NLP.GenI.GuiHelper
   ( messageGui, tagViewerGui,
@@ -68,7 +68,7 @@ simpleGui twophase = BG.BuilderGui {
       BG.resultsPnl  = resultsPnl twophase
     , BG.debuggerPnl = simpleDebuggerTab twophase }
 
-resultsPnl :: Bool -> ProgStateRef -> Window a -> IO ([String], Statistics, Layout)
+resultsPnl :: Bool -> ProgStateRef -> Window a -> IO ([GeniResult], Statistics, Layout)
 resultsPnl twophase pstRef f =
   do (sentences, stats, st) <- runGeni pstRef (simpleBuilder twophase)
      (lay, _, _) <- realisationsGui pstRef f (theResults st)
@@ -204,5 +204,5 @@ toTagElem si =
 siToSentence :: SimpleItem -> String
 siToSentence si = case unpackResult si of
                   []    -> siIdname.siGuiStuff $ si
-                  (h:_) -> unwords $ map fst h
+                  (h:_) -> unwords . map fst . fst $ h
 \end{code}

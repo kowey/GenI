@@ -620,8 +620,9 @@ resultsGui builderGui pstRef =
     p    <- panel f []
     nb   <- notebook p []
     -- realisations tab
-    (sentences,stats,resTab) <- BG.resultsPnl builderGui pstRef nb
+    (results,stats,resTab) <- BG.resultsPnl builderGui pstRef nb
     -- statistics tab
+    let sentences = (fst . unzip) results
     statTab <- statsGui nb sentences stats
     -- pack it all together
     set f [ layout := container p $ column 0 [ tabs nb

@@ -22,13 +22,13 @@ where
 import Graphics.UI.WXCore
 
 import qualified NLP.GenI.Builder as B
-import NLP.GenI.Geni (ProgStateRef)
+import NLP.GenI.Geni (ProgStateRef, GeniResult)
 import NLP.GenI.Configuration (Params)
 import Statistics (Statistics)
 \end{code}
 
 \begin{code}
 data BuilderGui = BuilderGui
-  { resultsPnl  :: forall a . ProgStateRef -> (Window a) -> IO ([String],Statistics,Layout)
+  { resultsPnl  :: forall a . ProgStateRef -> (Window a) -> IO ([GeniResult],Statistics,Layout)
   , debuggerPnl :: forall a . (Window a) -> Params -> B.Input -> String -> IO Layout }
 \end{code}

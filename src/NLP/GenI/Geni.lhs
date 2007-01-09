@@ -27,7 +27,7 @@ involve some messy IO performance tricks.
 \begin{code}
 module NLP.GenI.Geni (ProgState(..), ProgStateRef, emptyProgState,
              showRealisations, groupAndCount,
-             initGeni, runGeni, Selector,
+             initGeni, runGeni, GeniResult, Selector,
              loadGrammar, loadLexicon, 
              loadTestSuite, loadTargetSemStr,
              combine,
@@ -355,7 +355,9 @@ The generator state is mostly useful for debugging via the graphical interface.
 --   it is only used for instances of GenI where the grammar is compiled
 --   directly into GenI.
 type Selector = ProgState -> IO ([TagElem],[ILexEntry])
-runGeni :: ProgStateRef -> B.Builder st it Params -> IO ([String], Statistics, st)
+type GeniResult = (String, [String])
+
+runGeni :: ProgStateRef -> B.Builder st it Params -> IO ([GeniResult], Statistics, st)
 runGeni pstRef builder =
   do let run    = B.run builder
          unpack = B.unpack builder
@@ -412,8 +414,11 @@ initGeni pstRef =
 morphological generator, but there could conceivably be more involved.
 
 \begin{code}
-finaliseResults :: ProgStateRef -> [B.UninflectedSentence] -> IO [String]
-finaliseResults = runMorph 
+finaliseResults :: ProgStateRef -> [B.Output] -> IO [GeniResult]
+finaliseResults pstRef os =
+ do mss <- runMorph pstRef ss
+    return $ zip mss ds
+ where (ss,ds) = unzip os
 \end{code}
 
 % --------------------------------------------------------------------

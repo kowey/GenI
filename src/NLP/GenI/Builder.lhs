@@ -100,7 +100,10 @@ data Builder st it pa = Builder
   , stepAll  :: BuilderState st ()
   --
   , finished :: st -> Bool
-  , unpack   :: st -> [UninflectedSentence] }
+  , unpack   :: st -> [Output] }
+
+type Output = (UninflectedSentence, Derivation)
+type Derivation = [String]
 \end{code}
 
 To simplify interaction with the backend, we provide a single data

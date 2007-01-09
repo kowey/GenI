@@ -922,9 +922,10 @@ dispatchIafFailure itemRaw =
 % --------------------------------------------------------------------
 
 \begin{code}
-unpackItem :: CkyStatus -> CkyItem -> [B.UninflectedSentence]
+unpackItem :: CkyStatus -> CkyItem -> [B.Output]
 unpackItem st it =
-  mAutomatonPaths $ uncurry mJoinAutomata $ unpackItemToAuts st it
+  zip (mAutomatonPaths $ uncurry mJoinAutomata $ unpackItemToAuts st it)
+      (repeat [])
 
 type SentenceAutPairMaybe = (Maybe SentenceAut, Maybe SentenceAut)
 
