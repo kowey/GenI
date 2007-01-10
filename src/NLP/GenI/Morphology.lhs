@@ -199,7 +199,7 @@ inflectSentences morphcmd sentences =
      let fn (lem,fs) = lem ++ " [" ++ showPairs fs ++ "]"
          order = unlines $ map fn morphlst 
      -- run the inflector
-     (fromP, toP, _, pid) <- runInteractiveCommand morphcmd 
+     (toP, fromP, _, pid) <- runInteractiveCommand morphcmd
      hPutStrLn toP order
      hClose toP
      waitForProcess pid 
