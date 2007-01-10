@@ -34,7 +34,7 @@ import Data.IORef(newIORef, readIORef, modifyIORef)
 import NLP.GenI.Btypes(SemInput, ILexEntry(ifamname), TestCase(tcName,tcSem))
 import NLP.GenI.General(fst3)
 import NLP.GenI.Geni(emptyProgState, ProgState(le, pa, ts, tcase, tsuite), ProgStateRef,
-                     loadGrammar, chooseLexCand,)
+                     loadEverything, chooseLexCand,)
 import NLP.GenI.Configuration(treatArgs, getListFlagP, OutputFileFlg(..),
     Params(grammarType), GrammarType(PreCompiled))
 
@@ -43,7 +43,7 @@ main :: IO ()
 main =
  do confArgs <- treatArgs =<< getArgs
     pstRef   <- newIORef . emptyProgState $ confArgs { grammarType = PreCompiled }
-    loadGrammar pstRef
+    loadEverything pstRef
     --
     pst <- readIORef pstRef
     let pstCase  = tcase pst
