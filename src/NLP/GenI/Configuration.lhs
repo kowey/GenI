@@ -33,6 +33,7 @@ module NLP.GenI.Configuration
   , MetricsFlg(..)
   , MorphCmdFlg(..)
   , MorphInfoFlg(..)
+  , MorphLexiconFlg(..)
   , OptimisationsFlg(..)
   , OutputFileFlg(..)
   , RegressionTestModeFlg(..)
@@ -575,7 +576,10 @@ optionsForMorphology :: [OptDescr Flag]
 optionsForMorphology =
   [ morphInfoOption
   , Option []    ["morphcmd"]  (reqArg MorphCmdFlg id "CMD")
-      "morphological post-processor CMD (default: unset)" ]
+      "morphological post-processor CMD (default: unset)"
+  , Option []    ["morphlexicon"]  (reqArg MorphLexiconFlg id "FILE")
+      "morphological lexicon FILE (default: unset) - overrides morphcmd!"
+  ]
 
 morphInfoOption :: OptDescr Flag
 morphInfoOption = Option [] ["morphinfo"] (reqArg MorphInfoFlg id "FILE")
@@ -685,6 +689,7 @@ FLAG (MaxTreesFlg, Int)
 FLAG (MetricsFlg, [String])
 FLAG (MorphCmdFlg, String)
 FLAG (MorphInfoFlg, FilePath)
+FLAG (MorphLexiconFlg, FilePath)
 FLAG (OptimisationsFlg, [Optimisation])
 FLAG (OutputFileFlg, String)
 FLAG (RegressionTestModeFlg, ())
