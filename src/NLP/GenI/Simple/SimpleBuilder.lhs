@@ -79,14 +79,14 @@ import NLP.GenI.Builder (
 import qualified NLP.GenI.Builder as B
 
 import NLP.GenI.Tags (TagElem, TagSite(TagSite),
-             tidnum,
+             tagLeaves, tidnum,
              ttree, ttype, tsemantics,
-             detectSites, tagLeaf,
+             detectSites,
              ts_noRootCategory, ts_wrongRootCategory,
             )
 import NLP.GenI.Configuration
 import NLP.GenI.General
- ( BitVector, mapMaybeM, mapTree', geniBug, treeLeaves, )
+ ( BitVector, mapMaybeM, mapTree', geniBug, preTerminals, )
 
 #ifndef DISABLE_GUI
 import NLP.GenI.Btypes ( GType(Other), sortSem, Sem, gnnameIs )
@@ -225,7 +225,8 @@ data SimpleItem = SimpleItem
  , siAccesible    :: [ String ] -- it's acc/inacc/undetermined
  , siInaccessible :: [ String ] -- that's why you want both
  --
- , siLeaves  :: [(String, ([String], Flist))] -- ^ actually a set
+ -- | actually: a set of pre-terminals and their leaves
+ , siLeaves  :: [(String, B.UninflectedDisjunction)]
  , siDerived :: Tree String
  , siRoot    :: TagSite
  , siFoot    :: Maybe TagSite
@@ -351,7 +352,7 @@ initSimpleItem bmap (teRaw,pp) =
   , siInaccessible = []
   -- for generation sans semantics
   -- , siAdjlist = []
-  , siLeaves  = (map getLeaf).treeLeaves $ theTree
+  , siLeaves  = tagLeaves te
   , siDerived = tlite
   , siRoot = ncopy.root $ theTree
   , siFoot = if ttype te == Initial then Nothing
@@ -365,7 +366,6 @@ initSimpleItem bmap (teRaw,pp) =
 #endif
   }
   where setIaf i = i { siAccesible = iafNewAcc i }
-        getLeaf n = (gnname n, tagLeaf n)
         theTree = ttree te
 
 #ifndef DISABLE_GUI
@@ -770,17 +770,16 @@ In addition to the trees proper, we have to consider that each tree has
 a list with a copy of its adjunction sites.  The adjunction list of the
 result (\texttt{adjnodes res}) should then contain \texttt{adjnodes te1}
 and \texttt{adjnodes te2}, but replacing \texttt{r} and \texttt{an}
-with \texttt{anr} and \texttt{anf}\footnote{\texttt{anf} is only added
-if the foot node constraint is disabled}.
+with \texttt{anr}.
 
 \begin{code}
 iapplyAdjNode :: Bool -> SimpleItem -> SimpleItem -> Maybe SimpleItem
 iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
  case siAdjnodes pItem of
  [] -> Nothing
- (TagSite n an_up an_down nOrigin : atail) -> do
+ (TagSite an_name an_up an_down nOrigin : atail) -> do
   -- block repeated adjunctions of the same SimpleItem (for ignore semantics mode)
-  -- guard $ not $ (n, siId aItem) `elem` (siAdjlist pItem)
+  -- guard $ not $ (an_name, siId aItem) `elem` (siAdjlist pItem)
   -- let's go!
   let r@(TagSite r_name r_up r_down rOrigin) = siRoot aItem -- auxiliary tree, eh?
   (TagSite f_name f_up f_down _) <- siFoot aItem -- should really be an error if fails
@@ -794,20 +793,25 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
       -- the new adjunction nodes
       auxlite = delete r $ siAdjnodes aItem
       newadjnodes = anr : (atail ++ auxlite)
+      -- if the node was pre-terminal before receiving adjunction, it is pre
+      -- terminal no longer; now the foot node of the aux tree is
+      newLeaves = siLeaves aItem ++ (map update $ siLeaves pItem)
+        where update (n,(l,_)) | n == an_name = (f_name, (l,an_up))
+              update x = x
       --
       rawCombined =
         combineSimpleItems [r_name, f_name] aItem $ pItem
                { siAdjnodes = newadjnodes
-               , siLeaves  = (siLeaves aItem) ++ (siLeaves pItem)
-               , siDerived = spliceTree f_name (siDerived aItem) n (siDerived pItem)
+               , siLeaves  = newLeaves
+               , siDerived = spliceTree f_name (siDerived aItem) an_name (siDerived pItem)
                , siDerivation = addToDerivation 'a' (aItem,rOrigin) (pItem,nOrigin)
                -- , siAdjlist = (n, (tidnum te1)):(siAdjlist item2)
                -- if we adjoin into the root, the new root is that of the aux
                -- tree (affects 1p only)
-               , siRoot = if isRootOf pItem n then r else siRoot pItem
+               , siRoot = if isRootOf pItem an_name then r else siRoot pItem
                , siPendingTb =
                   if twophase then []
-                  else (TagSite n anf_up anf_down nOrigin) : (siPendingTb pItem) ++ (siPendingTb aItem)
+                  else (TagSite an_name anf_up anf_down nOrigin) : (siPendingTb pItem) ++ (siPendingTb aItem)
                }
       -- one phase = postpone tb unification
       -- two phase = do tb unification on the fly
@@ -820,7 +824,7 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
               myRes = res'
 #else
           let (anf_tb, subst3) = tbRes
-              myRes = modifyGuiStuff (constrainAdj n anf_tb) res'
+              myRes = modifyGuiStuff (constrainAdj an_name anf_tb) res'
 #endif
           -- apply the substitutions
               res' = replace (mergeSubst subst12 subst3) rawCombined
@@ -1113,7 +1117,7 @@ unpackResult item =
       derivation = nub (d2 ++ d3)
         where (_,d2,d3) = unzip3 . siDerivation $ item
       paths = automatonPaths . listToSentenceAut $
-              [ lookupOrBug k | k <- (treeLeaves . siDerived) item ]
+              [ lookupOrBug k | (k,_) <- (preTerminals . siDerived) item ]
  in zip paths (repeat derivation)
 \end{code}
 

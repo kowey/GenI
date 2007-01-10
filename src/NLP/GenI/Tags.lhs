@@ -32,7 +32,7 @@ module NLP.GenI.Tags(
    ts_noRootCategory, ts_wrongRootCategory,
 
    -- Functions from Tags
-   addToTags, tagLeaves, tagLeaf,
+   addToTags, tagLeaves,
 
    -- Functions from TagElem
    setTidnums, 
@@ -46,11 +46,12 @@ module NLP.GenI.Tags(
 \ignore{
 \begin{code}
 import qualified Data.Map as Map
-import Data.List (find, intersperse)
+import Data.Maybe (fromMaybe, listToMaybe, mapMaybe)
+import Data.List (intersperse)
 import Data.Tree
 
 import NLP.GenI.Btypes (Ptype(Initial, Auxiliar), SemPols,
-               fromGConst, isConst,
+               GeniVal(GConst),
                GNode(gup, glexeme, gnname, gaconstr, gdown, gtype, gorigin),
                GType(Subs), Flist,
                Replacable(..), replaceOneAsMap,
@@ -59,7 +60,7 @@ import NLP.GenI.Btypes (Ptype(Initial, Auxiliar), SemPols,
                emptyGNode,
                showPairs, showSem, lexemeAttributes,
                )
-import NLP.GenI.General (treeLeaves, groupByFM)
+import NLP.GenI.General (groupByFM, preTerminals)
 \end{code}
 }
 
@@ -289,26 +290,38 @@ subsumedBy ((ch, cp, cla):cl) (th, tp,tla)
 \section{Extracting sentences}
 % ----------------------------------------------------------------------
 
-\paragraph{tagLeaves} returns the leaves of a TAG tree as a list of
-lemmas and features.  This is meant for converting TAG trees to 
-sentences, the idea being that you'd pass the lemma and feature pairs 
-to morphological generator and get an inflected form for each word.  
-Note that because of the possibility of atomic disjunction on each
-node we return a list of lemmas for each leaf.
+Normally, extracting the sentences from a TAG tree would just consist of
+reading its leaves.  But if you want the generator to return inflected
+forms instead of just lemmas, you also need to return the relevant
+features for each leaf.  In TAG, or at least our use of it, the features
+come from the \emph{pre-terminal} nodes, that is, not the leaves
+themselves but their parents.  Another bit of trickiness: because of
+atomic disjunction, leaves might have more than one value, so we can't
+just return a String lemma but a list of String, one for each
+possibility.
 
 \begin{code}
-tagLeaves :: TagElem -> [([String],Flist)]
-tagLeaves = (map tagLeaf) . treeLeaves . ttree
+type UninflectedDisjunction = ([String], Flist)
 
-tagLeaf :: GNode -> ([String],Flist)
-tagLeaf node = 
-  let guppy  = gup node
-      grab la = [ fromGConst v | (a,v) <- guppy, a == la && isConst v ]
-      output = case glexeme node of
-               []     -> maybe [gnname node] concat
-                           $ find (not.null) $ map grab lexemeAttributes
-               lexeme -> lexeme
-  in (output, gup node)
+tagLeaves :: TagElem -> [ (String, UninflectedDisjunction) ]
+tagLeaves te = [ (gnname pt, (getLexeme t, gup pt)) | (pt,t) <- preTerminals . ttree $ te ]
+
+-- | Try in order: lexeme, lexeme attributes, node name
+getLexeme :: GNode -> [String]
+getLexeme node =
+  case glexeme node of
+    []   -> fromMaybe [gnname node] $ firstMaybe grab lexemeAttributes
+    lexs -> lexs
+  where
+   grab la =
+     let match (a, (GConst v)) | a == la = Just v
+         match _ = Nothing
+     in firstMaybe match guppy
+   guppy      = gup node
+
+firstMaybe :: (a -> Maybe b) -> [a] -> Maybe b
+firstMaybe fn = listToMaybe . mapMaybe fn
+
 \end{code}
 
 

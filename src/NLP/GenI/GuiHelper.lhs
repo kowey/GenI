@@ -214,10 +214,10 @@ morphological processing.
 
 \begin{code}
 toSentence :: TagElem -> String
-toSentence = unwords . (map squishLeaf) . tagLeaves
+toSentence = unwords . map squishLeaf . tagLeaves
 
-squishLeaf :: ([String], a) -> String
-squishLeaf = showLexeme.fst 
+squishLeaf :: (a,([String], b)) -> String
+squishLeaf = showLexeme.fst.snd
 \end{code}
 
 \subsection{TAG viewer}

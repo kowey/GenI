@@ -265,6 +265,12 @@ filterTree fn = (filter fn) . flatten
 treeLeaves :: Tree a -> [a]
 treeLeaves (Node n []) = [n]
 treeLeaves (Node _ l ) = concatMap treeLeaves l
+
+-- | Return pairs of (parent, terminal)
+preTerminals :: Tree a -> [(a,a)]
+preTerminals (Node _ []) = []
+preTerminals (Node x ks) =
+ [ (x,y) | (Node y ys) <- ks, null ys ] ++ concatMap preTerminals ks
 \end{code}
 
 \paragraph{repNode and listRepNode} are a generic tree-walking/editing
