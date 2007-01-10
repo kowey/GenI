@@ -49,6 +49,7 @@ import Data.List (group, intersperse, sort, nub, nubBy, partition)
 import qualified Data.Map as Map
 import Data.Maybe (mapMaybe, fromMaybe, isJust)
 import Data.Tree (Tree(Node))
+import Data.Typeable (Typeable)
 
 import System.IO.Unsafe (unsafePerformIO)
 import Text.ParserCombinators.Parsec 
@@ -195,14 +196,14 @@ loadEverything pstRef =
      case grammarType config of 
         PreAnchored -> return ()
         PreCompiled -> return ()
-        _        -> loadGeniMacros pstRef config
+        _        -> loadGeniMacros pstRef
      -- we don't have to read in the lexicon if it's already pre-anchored
-     when isNotPreanchored $ loadLexicon pstRef config
+     when isNotPreanchored $ loadLexicon pstRef
      -- in any case, we have to...
-     loadMorphInfo pstRef config 
+     loadMorphInfo pstRef
      when isNotServer $ loadTestSuite pstRef
      -- the trace filter file
-     loadTraces pstRef config
+     loadTraces pstRef
 \end{code}
 
 The file loading functions all work the same way: we load the file,
@@ -211,62 +212,34 @@ GenI dies.  If we succeed, we update the program state passed in as
 an IORef.
 
 \begin{code}
-loadLexicon :: ProgStateRef -> Params -> IO ()
-loadLexicon pstRef config =
- case getFlagP LexiconFlg config of
- Nothing    -> fail "Please specify a lexicon!"
- Just lfile ->
-    do let verbose = hasFlagP VerboseModeFlg config
-       when verbose $ do
-         ePutStr $ "Loading Lexicon " ++ lfile ++ "..."
-         eFlush
-       pst <- readIORef pstRef
-       let getSem l  = if hasFlagP IgnoreSemanticsFlg (pa pst) then [] else isemantics l
+loadLexicon, loadGeniMacros, loadMorphInfo, loadTraces :: ProgStateRef -> IO ()
+
+loadLexicon pstRef =
+    do config <- pa `fmap` readIORef pstRef
+       let getSem l  = if hasFlagP IgnoreSemanticsFlg config
+                       then [] else isemantics l
            sorter l  = l { isemantics = (sortSem . getSem) l }
-           cleanup   = (mapBySemKeys isemantics) . (map sorter)
-           --
-       theLex <- cleanup `fmap` parseFromFileOrFail geniLexicon lfile
-       --
-       when verbose $ ePutStr ((show $ length $ Map.keys theLex) ++ " entries\n")
-       -- combine the two lexicons
-       modifyIORef pstRef (\x -> x{le = theLex})
+           cleanup   = mapBySemKeys isemantics . map sorter
+       loadThingOrDie LexiconFlg "lexicon" pstRef
+         (parseFromFileOrFail geniLexicon)
+         (\l p -> p { le = cleanup l })
 
 -- | The macros are stored as a hashing function in the monad.
-loadGeniMacros :: ProgStateRef -> Params -> IO ()
-loadGeniMacros pstRef config = 
- case getFlagP MacrosFlg config of
- Nothing    -> fail "Please specify a trees file!"
- Just mfile ->
-  do let verbose = hasFlagP VerboseModeFlg config
-     when verbose $ do
-       ePutStr $ "Loading Macros " ++ mfile ++ "..."
-       eFlush
-     g <- parseFromFileOrFail geniMacros mfile
-     when verbose $ ePutStr $ show (length g) ++ " trees\n"
-     modifyIORef pstRef (\x -> x{gr = g})
+loadGeniMacros pstRef =
+  loadThingOrDie MacrosFlg "trees" pstRef parser updater
+  where parser = parseFromFileOrFail geniMacros
+        updater g p = p { gr = g }
 
 -- | The results are stored as a lookup function in the monad.
-loadMorphInfo :: ProgStateRef -> Params -> IO ()
-loadMorphInfo pstRef config = 
- case getFlagP MorphInfoFlg config of
- Nothing       -> return ()
- Just filename -> do
-        ePutStr $ "Loading Morphological Info " ++ filename ++ "..."
-        eFlush
-        parsed <- parseFromFileOrFail geniMorphInfo filename
-        ePutStr $ (show $ length parsed) ++ " entries\n"
-        modifyIORef pstRef (\x -> x{morphinf = readMorph parsed})
+loadMorphInfo pstRef =
+ loadThingOrIgnore MorphInfoFlg "morphological info" pstRef parser updater
+ where parser = parseFromFileOrFail geniMorphInfo
+       updater m p = p { morphinf = readMorph m }
 
-loadTraces :: ProgStateRef -> Params -> IO ()
-loadTraces pstRef config =
-  case getFlagP TracesFlg config of
-  Nothing    -> return ()
-  Just fname -> do
-       ePutStr $ "Loading trace file " ++ fname ++ "..."
-       eFlush
-       theTs <- lines `fmap` readFile fname
-       ePutStr $ (show $ length theTs) ++ " entries\n"
-       modifyIORef pstRef (\x -> x{traces = theTs})
+loadTraces pstRef =
+ loadThingOrIgnore TracesFlg "traces" pstRef
+   (\f -> lines `fmap` readFile f)
+   (\t p -> p {traces = t})
 \end{code}
 
 \subsubsection{Target semantics}
@@ -283,28 +256,20 @@ user will format it the way s/he wants.
 -- | Stores the results in the tcase and tsuite fields
 loadTestSuite :: ProgStateRef -> IO ()
 loadTestSuite pstRef = do
-  pst <- readIORef pstRef
-  case getFlagP TestSuiteFlg (pa pst) of
-   Nothing -> fail "Please specify a test suite!"
-   Just filename -> do
-     let config = pa pst
-         verbose = hasFlagP VerboseModeFlg config
-     unless (hasFlagP IgnoreSemanticsFlg config) $
-      do when verbose $ do
-           ePutStr $ "Loading Test Suite " ++ filename ++ "...\n"
-           eFlush
-         sem   <- parseFromFileOrFail geniTestSuite filename
-         mStrs <- parseFromFileOrFail geniTestSuiteString filename
-         modifyIORef pstRef $ updateTsuite config sem mStrs
-         return ()
-     where -- helper functions for test suite stuff
-      updateTsuite config s s2 x =
-        x { tsuite = zipWith cleanup s s2
-          , tcase  = fromMaybe "" $ getFlagP TestCaseFlg config}
-      cleanup tc str =
-        tc { tcSem = (sortSem sm, sort sr, lc)
-           , tcSemString = str }
-        where (sm, sr, lc) = tcSem tc
+  config <- pa `fmap` readIORef pstRef
+  unless (hasFlagP IgnoreSemanticsFlg config) $
+    let parser f = do
+           sem   <- parseFromFileOrFail geniTestSuite f
+           mStrs <- parseFromFileOrFail geniTestSuiteString f
+           return $ zip sem mStrs
+        updater s x =
+          x { tsuite = map cleanup s
+            , tcase  = fromMaybe "" $ getFlagP TestCaseFlg config}
+        cleanup (tc,str) =
+          tc { tcSem = (sortSem sm, sort sr, lc)
+             , tcSemString = str }
+          where (sm, sr, lc) = tcSem tc
+    in loadThingOrDie TestSuiteFlg "test suite" pstRef parser updater
 \end{code}
 
 Sometimes, the target semantics does not come from a file, but from
@@ -329,6 +294,47 @@ loadTargetSemStr pstRef str =
 \subsubsection{Helpers for loading files}
 
 \begin{code}
+type UpdateFn a = (a -> ProgState -> ProgState)
+
+loadThingOrIgnore, loadThingOrDie :: forall f a . (Eq f, Show f, Typeable f)
+           => (FilePath -> f) -- ^ flag
+           -> String
+           -> ProgStateRef
+           -> (FilePath -> IO [a])
+           -> UpdateFn [a]
+           -> IO ()
+
+loadThing :: FilePath             -- ^ file to load
+          -> String               -- ^ description
+          -> ProgStateRef
+          -> (FilePath -> IO [a]) -- ^ parsing cmd
+          -> UpdateFn [a]         -- ^ update fn
+          -> IO ()
+
+-- | Load the file if the relevant option is set, otherwise ignore
+loadThingOrIgnore flag description pstRef parser job =
+ do config <- pa `fmap` readIORef pstRef
+    case getFlagP flag config of
+      Nothing -> return ()
+      Just f  -> loadThing f description pstRef parser job
+
+-- | Load the file if the relevant option is set, otherwise complain and die
+loadThingOrDie flag description pstRef parser job =
+ do config <- pa `fmap` readIORef pstRef
+    case getFlagP flag config of
+      Nothing -> fail $ "Please specify a " ++ description ++ "!"
+      Just f  -> loadThing f description pstRef parser job
+
+loadThing filename description pstRef parser job =
+ do config <- pa `fmap` readIORef pstRef
+    let verbose = hasFlagP VerboseModeFlg config
+    when verbose $ do
+       ePutStr $ unwords [ "Loading",  description, filename ++ "... " ]
+       eFlush
+    theTs <- parser filename
+    when verbose $ ePutStr $ (show $ length theTs) ++ " entries\n"
+    modifyIORef pstRef (job theTs)
+
 parseFromFileOrFail :: Parser a -> FilePath -> IO a
 parseFromFileOrFail p f = parseFromFile p f >>= either (fail.show) (return)
 \end{code}
