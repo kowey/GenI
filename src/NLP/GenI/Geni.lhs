@@ -92,7 +92,7 @@ import NLP.GenI.Tags (Tags, TagElem, emptyTE,
 import NLP.GenI.Configuration
   ( Params, getFlagP, hasFlagP, hasOpt, Optimisation(NoConstraints)
   , MacrosFlg(..), LexiconFlg(..), TestSuiteFlg(..), TestCaseFlg(..)
-  , MorphInfoFlg(..), MorphCmdFlg(..)
+  , MorphInfoFlg(..), MorphCmdFlg(..), MorphLexiconFlg(..)
   , IgnoreSemanticsFlg(..), ServerModeFlg(..), VerboseModeFlg(..)
   , TracesFlg(..)
   , grammarType
@@ -103,7 +103,8 @@ import qualified NLP.GenI.Builder as B
 import NLP.GenI.GeniParsers (geniMacros, geniTagElems,
                     geniLexicon, geniTestSuite,
                     geniTestSuiteString, geniSemanticInput,
-                    geniMorphInfo)
+                    geniMorphInfo, geniMorphLexicon,
+                    )
 import NLP.GenI.Morphology
 -- import CkyBuilder 
 -- import SimpleBuilder (simpleBuilder)
@@ -135,6 +136,7 @@ data ProgState = ST{pa     :: Params,
                     gr       :: Macros,
                     le       :: Lexicon,
                     morphinf :: MorphFn,
+                    morphlex :: Maybe [(String,String,Flist)],
                     ts       :: SemInput, 
                     -- names of test case to run
                     tcase    :: String, 
@@ -153,6 +155,7 @@ emptyProgState args =
     , gr = []
     , le = Map.empty
     , morphinf = const Nothing
+    , morphlex = Nothing
     , ts = ([],[],[])
     , tcase = []
     , tsuite = []
@@ -202,6 +205,8 @@ loadEverything pstRef =
      -- in any case, we have to...
      loadMorphInfo pstRef
      when isNotServer $ loadTestSuite pstRef
+     -- the morphological lexicon
+     loadMorphLexicon pstRef
      -- the trace filter file
      loadTraces pstRef
 \end{code}
@@ -212,7 +217,7 @@ GenI dies.  If we succeed, we update the program state passed in as
 an IORef.
 
 \begin{code}
-loadLexicon, loadGeniMacros, loadMorphInfo, loadTraces :: ProgStateRef -> IO ()
+loadLexicon, loadGeniMacros, loadMorphInfo, loadMorphLexicon, loadTraces :: ProgStateRef -> IO ()
 
 loadLexicon pstRef =
     do config <- pa `fmap` readIORef pstRef
@@ -235,6 +240,11 @@ loadMorphInfo pstRef =
  loadThingOrIgnore MorphInfoFlg "morphological info" pstRef parser updater
  where parser = parseFromFileOrFail geniMorphInfo
        updater m p = p { morphinf = readMorph m }
+
+loadMorphLexicon pstRef =
+ loadThingOrIgnore MorphLexiconFlg "morphological lexicon" pstRef parser updater
+ where parser = parseFromFileOrFail geniMorphLexicon
+       updater m p = p { morphlex = Just m }
 
 loadTraces pstRef =
  loadThingOrIgnore TracesFlg "traces" pstRef
@@ -1021,9 +1031,12 @@ has been specified.  If not, it returns the sentences as lemmas.
 runMorph :: ProgStateRef -> [[(String,Flist)]] -> IO [String]
 runMorph pstRef sentences = 
   do pst <- readIORef pstRef
-     case getFlagP MorphCmdFlg (pa pst) of
-       Nothing  -> return (map sansMorph sentences)
-       Just cmd -> inflectSentences cmd sentences
+     case morphlex pst of
+       Just  m -> return (inflectSentencesUsingLex m sentences)
+       Nothing -> case getFlagP MorphCmdFlg (pa pst) of
+                  Nothing  -> return (map sansMorph sentences)
+                  Just cmd -> inflectSentencesUsingCmd cmd sentences
+
 \end{code}
 
 

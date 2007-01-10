@@ -29,7 +29,7 @@ module NLP.GenI.Morphology where
 
 \ignore{
 \begin{code}
-import Data.Maybe (isNothing)
+import Data.Maybe (isNothing, fromMaybe, listToMaybe, isJust)
 import Data.List (intersperse)
 import Data.Tree
 import qualified Data.Map as Map
@@ -190,8 +190,23 @@ into inflected ones by calling the third party software.  Since we're
 using system calls, we're stuck with an IO monad. 
 
 \begin{code}
-inflectSentences :: String -> [[(String,Flist)]] -> IO [String]
-inflectSentences morphcmd sentences =  
+type MorphLexicon = [(String, String, Flist)]
+type UninflectedDisjunction = (String, Flist)
+
+inflectSentencesUsingLex :: MorphLexicon -> [[UninflectedDisjunction]] -> [String]
+inflectSentencesUsingLex mlex = map (inflectSentenceUsingLex mlex)
+
+inflectSentenceUsingLex :: MorphLexicon -> [UninflectedDisjunction] -> String
+inflectSentenceUsingLex mlex = unwords . map (inflectWordUsingLex mlex)
+
+-- | Return first match
+inflectWordUsingLex :: MorphLexicon -> UninflectedDisjunction -> String
+inflectWordUsingLex mlex (lem,fs) = fromMaybe lem $ listToMaybe matches
+ where
+  matches = [ word | (word, mLem, mFs) <- mlex, lem == mLem, isJust $ fs `unifyFeat` mFs ]
+
+inflectSentencesUsingCmd :: String -> [[UninflectedDisjunction]] -> IO [String]
+inflectSentencesUsingCmd morphcmd sentences =
   do -- add intersential delimiters
      let delim    = [("----",[])]
          morphlst = concat (intersperse delim sentences)
