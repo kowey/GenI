@@ -34,7 +34,7 @@ module NLP.GenI.GeniParsers (
   -- macros 
   geniMacros,
   -- lexicons
-  geniLexicon, geniMorphInfo,
+  geniLexicon, geniMorphLexicon, geniMorphInfo,
   -- polarities
   geniPolarities,
   -- TagElem,
@@ -119,7 +119,9 @@ geniSentence = optional (keyword SENTENCE) >> geniWords
 geniWords :: Parser String
 geniWords =
  unwords `fmap` squares (sepEndBy1 geniWord whiteSpace <?> "a sentence")
- where geniWord = many1 (noneOf "[]\v\f\t\r\n ")
+
+geniWord :: Parser String
+geniWord = many1 (noneOf "[]\v\f\t\r\n ")
 
 -- | The original string representation of a test case semantics
 --   (for gui)
@@ -494,10 +496,12 @@ geniPolarity = option 0 (plus <|> minus)
 
 \section{Morphology}
 
-A morphological information file associates predicates with
-morphological feature structures.  Each morphological entry
-consists of a predicate followed by a feature structuer.
-For more information, see chapter \ref{cha:Morphology}.
+GenI has two types of morphological input.
+
+\paragraph{morphinfo} A morphinfo file associates predicates with
+morphological feature structures.  Each morphological entry consists of
+a predicate followed by a feature structuer.  For more information, see
+chapter \ref{cha:Morphology}.
 
 \begin{code}
 geniMorphInfo :: Parser [(String,Flist)]
@@ -508,6 +512,24 @@ morphEntry =
   do pred_ <- identifier
      feats <- geniFeats
      return (pred_, feats)
+\end{code}
+
+\paragraph{morphlexicon} A morphological lexicon is a table where each
+entry is an inflected form followed by the lemma and the feature
+structure to which it is associated.  The table is whitespace-delimited.
+
+\begin{code}
+geniMorphLexicon :: Parser [(String,String,Flist)]
+geniMorphLexicon = tillEof $ many morphLexiconEntry
+
+morphLexiconEntry :: Parser (String, String, Flist)
+morphLexiconEntry =
+ do inflected <- geniWord
+    whiteSpace
+    lemma     <- geniWord
+    whiteSpace
+    feats     <- geniFeats
+    return (inflected, lemma, feats)
 \end{code}
 
 \section{Generic GenI stuff}
