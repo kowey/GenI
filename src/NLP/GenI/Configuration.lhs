@@ -571,6 +571,29 @@ optionsForTesting =
 \subsection{Morphology}
 % --------------------------------------------------------------------
 
+GenI provides two options for morphology: either you use an external
+inflection program (morphcmd), or you pass in a morphological lexicon
+(morphlexicon) and in doing so, use GenI's built in inflecter.  The
+GenI internal morphology mechanism is a simple and stupid lookup-and-
+unify table, so you probably don't want to use it if you have a huge
+lexicon.
+
+\begin{description}
+\item[morphcmd] specifies the program used for morphology.  Literate
+GenI \cite{literateGeni} has a chapter describing how that program must work.
+It will mostly likely be a script you wrote to wrap around some off-the-shelf
+software.
+\item[morphlexicon] specifies a morphological lexicon for use by
+GenI's internal morphological generator.  Specifying this option will
+cause the morphcmd flag to be ignored.
+\item[morphinfo] tells GenI which literals in the input semantics are
+to be used by the morphological \emph{pre-}processor.  The pre-processor
+strips these features from the input and fiddles with the elementary
+trees used by GenI so that the right features get attached to the leaf
+nodes.  An example of a ``morphological'' literal is something like
+\texttt{past(p)}.
+\end{description}
+
 \begin{code}
 optionsForMorphology :: [OptDescr Flag]
 optionsForMorphology =
