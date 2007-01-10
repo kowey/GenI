@@ -15,11 +15,15 @@
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-\chapter{GeniParsers}
+\chapter{File formats (GeniParsers)}
 \label{cha:GeniParsers}
 
-GeniParsers parses everything that GenI knows how to read natively.  
-The parsers are written using the most excellent Parsec library.
+This chapter is a description of the file format used by GenI.  You
+might also have to look at the LORIA wiki for documentation on this.
+See \url{http://wiki.loria.fr/wiki/GenI/Input_format}.  If the
+descriptions here sound a little weird to you, it's likely because
+they used to be source code comments, and are being converted into
+actual documentation.
 
 \ignore{
 \begin{code}
