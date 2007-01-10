@@ -81,19 +81,13 @@ The test suite format consists of arbitrarily many test cases:
 \begin{code}
 geniTestSuite :: Parser [TestCase]
 geniTestSuite = 
-  tillEof (whiteSpace >> many geniTestCase)
+  tillEof (many geniTestCase)
 
 -- | Just the String representations of the semantics
 --   in the test suite
 geniTestSuiteString :: Parser [String]
 geniTestSuiteString =
-  tillEof (whiteSpace >> many geniTestCaseString)
-
-tillEof :: Parser a -> Parser a
-tillEof p =
-  do r <- p
-     eof
-     return r
+  tillEof (many geniTestCaseString)
 \end{code}
 
 A test case is composed of an optional test id, some semantic input
@@ -244,11 +238,7 @@ Each lexical entry is
 
 \begin{code}
 geniLexicon :: Parser [ILexEntry]
-geniLexicon = 
-  do whiteSpace
-     l <- many1 geniLexicalEntry
-     eof
-     return l
+geniLexicon = tillEof $ many1 geniLexicalEntry
 
 geniLexicalEntry :: Parser ILexEntry
 geniLexicalEntry = 
@@ -293,11 +283,7 @@ leave them in, but the definition must match the group type)
 
 \begin{code}
 geniMacros :: Parser [MTtree]
-geniMacros = 
-  do whiteSpace
-     groups <- many geniTreeGroup 
-     eof
-     return (concat groups) 
+geniMacros = tillEof $ concat `fmap` many geniTreeGroup
 
 geniTreeGroup :: Parser [MTtree]
 geniTreeGroup = 
@@ -460,11 +446,7 @@ some of our helper functions if you want that functionality.
 
 \begin{code}
 geniTagElems :: Parser [TagElem]
-geniTagElems =
- do whiteSpace
-    tt <- many geniTagElem
-    eof
-    return $ setTidnums tt
+geniTagElems = tillEof $ setTidnums `fmap` many geniTagElem
 
 geniTagElem :: Parser TagElem
 geniTagElem =
@@ -490,12 +472,9 @@ user. For more information, see chapter \ref{cha:Polarity}.
 
 \begin{code}
 geniPolarities :: Parser (Map.Map String Interval)
-geniPolarities =
-  do whiteSpace
-     p <- many pol 
-     eof
-     return (Map.fromListWith (!+!) p)
+geniPolarities = tillEof $ toMap `fmap` many pol
   where 
+    toMap = Map.fromListWith (!+!)
     pol = do p <- geniPolarity 
              i <- identifier
              return (i,ival p)
@@ -522,11 +501,7 @@ For more information, see chapter \ref{cha:Morphology}.
 
 \begin{code}
 geniMorphInfo :: Parser [(String,Flist)]
-geniMorphInfo =
-  do whiteSpace
-     m <- many morphEntry
-     eof
-     return m
+geniMorphInfo = tillEof $ many morphEntry
 
 morphEntry :: Parser (String,Flist)
 morphEntry =
@@ -748,6 +723,15 @@ geniValue =   ((try $ anonymous) <?> "_ or ?_")
       do optional $ symbol question 
          symbol "_"
          return GAnon
+\end{code}
+
+\begin{code}
+tillEof :: Parser a -> Parser a
+tillEof p =
+  do whiteSpace
+     r <- p
+     eof
+     return r
 \end{code}
 
 
