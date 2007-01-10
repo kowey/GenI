@@ -182,7 +182,7 @@ unavailable, doesn't work, etc.
 
 \begin{code}
 sansMorph :: [(String,Flist)] -> String
-sansMorph s = (unwords . (map fst)) s
+sansMorph = unwords . (map fst)
 \end{code}
 
 \paragraph{inflectSentences} converts a list of uninflected sentences
@@ -201,14 +201,12 @@ inflectSentences morphcmd sentences =
      -- run the inflector
      (fromP, toP, _, pid) <- runInteractiveCommand morphcmd 
      hPutStrLn toP order
-     hClose toP 
+     hClose toP
      waitForProcess pid 
      -- read the inflector output back as a list of strings
-     res <- hGetContents fromP 
-     let sentences2 = map trim $ lines res
-     --
-     return sentences2
-  `catch` \_ -> do putStrLn "Error calling morphological generator"
+     (map trim . lines) `fmap` hGetContents fromP
+  `catch` \e -> do ePutStrLn "Error calling morphological generator"
+                   ePutStrLn $ show e
                    return $ map sansMorph sentences
 \end{code}
 
