@@ -123,7 +123,7 @@ instance GraphvizShowString () GNode where
   graphvizShow () gn =
     let stub  = showGnStub gn
         extra = showGnDecorations gn
-    in stub ++ (maybeShow_ " " extra) ++ ":" ++ gorigin gn
+    in stub ++ maybeShow_ " " extra
 
 instance GraphvizShowString () AvPair where
   graphvizShow () (a,v) = a ++ ":" ++ (graphvizShow_ v)
