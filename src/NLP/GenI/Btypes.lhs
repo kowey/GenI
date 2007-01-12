@@ -73,7 +73,7 @@ import qualified Data.Set as Set
 import Data.Tree
 import Test.QuickCheck hiding (collect) -- needed for testing via ghci
 
-import NLP.GenI.General(map', filterTree, listRepNode, snd3, geniBug)
+import NLP.GenI.General(map', filterTree, listRepNode, snd3, geniBug, comparing)
 --instance Show (IO()) where
 --  show _ = ""
 \end{code}
@@ -92,9 +92,7 @@ and trees into a set of anchored trees.
 \begin{code}
 type MTtree = Ttree GNode
 type Macros = [MTtree]
-\end{code}
 
-\begin{code}
 data Ttree a = TT
   { params  :: [GeniVal]
   , pfamily :: String
@@ -400,6 +398,18 @@ instance Show GeniVal where
   show (GVar x)   = '?':x
   show GAnon      = "?_"
 
+isConst :: GeniVal -> Bool
+isConst (GConst _) = True
+isConst _ = False
+
+isVar :: GeniVal -> Bool
+isVar (GVar _) = True
+isVar _        = False
+
+isAnon :: GeniVal -> Bool
+isAnon GAnon = True
+isAnon _     = False
+
 -- | (assumes that it's a GConst!)
 fromGConst :: GeniVal -> [String]
 fromGConst (GConst x) = x
@@ -553,15 +563,13 @@ alphaConvert suffix x = {-# SCC "alphaConvert" #-}
 \begin{code}
 -- | Sort an Flist according with its attributes
 sortFlist :: Flist -> Flist
-sortFlist fl = sortBy (\(f1,_) (f2, _) -> compare f1 f2) fl
-\end{code}
+sortFlist = sortBy (comparing fst)
 
-\begin{code}
 showPairs :: Flist -> String
-showPairs l = unwords $ map showAv l
+showPairs = unwords . map showAv
 
 showAv :: AvPair -> String
-showAv (y,z) = y ++ ":" ++ show z 
+showAv (y,z) = y ++ ":" ++ show z
 \end{code}
 
 % ----------------------------------------------------------------------
@@ -589,12 +597,6 @@ emptyPred :: Pred
 emptyPred = (GAnon,GAnon,[])
 \end{code}
 
-\begin{code}
-showSem :: Sem -> String
-showSem l =
-    "[" ++ (unwords $ map showPred l) ++ "]"
-\end{code}
-
 A replacement on a predicate is just a replacement on its parameters
 
 \begin{code}
@@ -604,6 +606,10 @@ instance Replacable Pred where
 \end{code}
 
 \begin{code}
+showSem :: Sem -> String
+showSem l =
+    "[" ++ (unwords $ map showPred l) ++ "]"
+
 showPred :: Pred -> String
 showPred (h, p, l) = showh ++ show p ++ "(" ++ unwords (map show l) ++ ")"
   where 
@@ -799,25 +805,6 @@ alignFeat fs1@((f1, v1):l1) fs2@((f2, v2):l2)
    | f1 >  f2  = case alignFeat fs1 l2 of
                  (att, left, right) -> (f2:att, GAnon:left, v2:right)
    | otherwise = error "Feature structure unification is badly broken"
-\end{code}
-
-\subsection{GeniVal}
-
-We throw in some simple predicates for accessing the GeniVal
-cases.
-
-\begin{code}
-isConst :: GeniVal -> Bool
-isConst (GConst _) = True
-isConst _ = False
-
-isVar :: GeniVal -> Bool
-isVar (GVar _) = True
-isVar _        = False
-
-isAnon :: GeniVal -> Bool
-isAnon GAnon = True
-isAnon _     = False
 \end{code}
 
 \subsection{Unification}
