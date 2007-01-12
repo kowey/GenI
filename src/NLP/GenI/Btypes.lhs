@@ -120,12 +120,8 @@ instance (Replacable a) => Replacable (Ttree a) where
 instance (Collectable a) => Collectable (Ttree a) where
   collect mt = (collect $ params mt) . (collect $ tree mt) .
                (collect $ psemantics mt) . (collect $ pinterface mt)
-\end{code}
 
-\fnlabel{emptyMacro} provides a null tree which you can use for
-various debugging or display purposes.
-
-\begin{code}
+-- | A null tree which you can use for various debugging or display purposes.
 emptyMacro :: MTtree
 emptyMacro = TT { params  = [],
                   pidname = "", 
@@ -138,10 +134,10 @@ emptyMacro = TT { params  = [],
                  }
 \end{code}
 
-Auxiliary types used during the parsing of the Lexicon.  
-A lexicon maps semantic predicates to lexical entries.
+\paragraph{Lexical entries}
 
 \begin{code}
+-- | A lexicon maps semantic predicates to lexical entries.
 type Lexicon = Map.Map String [ILexEntry]
 type SemPols  = [Int]
 data ILexEntry = ILE
@@ -306,11 +302,7 @@ root (Node a _) = a
 
 rootUpd :: Tree a -> a -> Tree a
 rootUpd (Node _ l) b = (Node b l)
-\end{code}
 
-\fnlabel{foot} extracts the foot node of a tree
-
-\begin{code}
 foot :: Tree GNode -> GNode
 foot t = case filterTree (\n -> gtype n == Foot) t of
          [x] -> x
@@ -402,31 +394,18 @@ data GeniVal = GConst [String]
              | GVar   !String
              | GAnon
   deriving (Eq,Ord)
-\end{code}
 
-To maintain some semblance of backwards comptability, we read/show GeniVal 
-in the following manner:
-\begin{itemize}
-\item Constants have the first letter lower cased.
-\item Variables have the first letter capitalised.
-\item Anonymous variables are underscores. 
-\end{itemize}
-
-\begin{code}
 instance Show GeniVal where
   show (GConst x) = concat $ intersperse "|" x
   show (GVar x)   = '?':x
   show GAnon      = "?_"
-\end{code}
 
-\fnlabel{fromGConst and fromGVar} respectively extract the constant or  
-variable string value of a GeniVal, assuming it has that kind of value.
-
-\begin{code}
+-- | (assumes that it's a GConst!)
 fromGConst :: GeniVal -> [String]
 fromGConst (GConst x) = x
 fromGConst x = error ("fromGConst on " ++ show x)
 
+-- | (assumes that it's a GVar!)
 fromGVar :: GeniVal -> String
 fromGVar (GVar x) = x
 fromGVar x = error ("fromGVar on " ++ show x)
@@ -571,9 +550,8 @@ alphaConvert suffix x = {-# SCC "alphaConvert" #-}
   in replaceMap subst x
 \end{code}
 
-\fnlabel{sortFlist} sorts Flists according with its feature
-
 \begin{code}
+-- | Sort an Flist according with its attributes
 sortFlist :: Flist -> Flist
 sortFlist fl = sortBy (\(f1,_) (f2, _) -> compare f1 f2) fl
 \end{code}
@@ -635,10 +613,9 @@ showPred (h, p, l) = showh ++ show p ++ "(" ++ unwords (map show l) ++ ")"
     showh = if (hideh h) then "" else (show h) ++ ":"
 \end{code}
 
-\fnlabel{toKeys} 
-Given a Semantics, returns the string with the proper keys
-(propsymbol+arity) to access the agenda
 \begin{code}
+-- | Given a Semantics, return the string with the proper keys
+--   (propsymbol+arity) to access the agenda
 toKeys :: Sem -> [String] 
 toKeys l = map (\(_,prop,par) -> show prop ++ (show $ length par)) l
 \end{code}
@@ -714,10 +691,8 @@ subsumePred ((h1, p1, la1):l) (pred2@(h2,p2,la2)) =
 
 \subsection{Other semantic stuff}
 
-\fnlabel{sortSem} 
-Sorts semantics first according to its predicate, and then to its handles.
-
 \begin{code}
+-- | Sort semantics first according to its predicate, and then to its handles.
 sortSem :: Sem -> Sem
 sortSem = sortBy (\(h1,p1,a1) (h2,p2,a2) -> compare (p1, h1:a1) (p2, h2:a2))  
 \end{code}

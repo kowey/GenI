@@ -443,10 +443,8 @@ finaliseResults pstRef os =
 \subsection{Displaying results}
 % --------------------------------------------------------------------
 
-\paragraph{showRealisations} shows the sentences produced by the
-generator in a relatively compact form 
-
 \begin{code}
+-- | Show the sentences produced by the generator, in a relatively compact form
 showRealisations :: [String] -> String
 showRealisations sentences =
   let sentencesGrouped = map (\ (s,c) -> s ++ countStr c) g
@@ -594,12 +592,9 @@ runLexSelection pst =
       do ePutStrLn $ "Lexical items selected:\n" ++ (unlinesIndentAnd (showLexeme.iword) lexCand)
          ePutStrLn $ "Trees anchored (family) :\n" ++ (unlinesIndentAnd idname candFinal)
     return (candFinal, lexCand)
-\end{code}
 
-\paragraph{chooseLexCand} selects and returns the set of entries from
-the lexicon whose semantics subsumes the input semantics. 
-
-\begin{code}
+-- | Select and returns the set of entries from the lexicon whose semantics
+--   subsumes the input semantics.
 chooseLexCand :: Lexicon -> Sem -> [ILexEntry]
 chooseLexCand slex tsem = 
   let keys = toKeys tsem
@@ -726,11 +721,9 @@ mapEither :: (a -> Either l r) -> [a] -> [r]
 mapEither fn = mapMaybe (\x -> either (const Nothing) Just $ fn x)
 \end{code}
 
-\paragraph{combineList} takes a lexical item; it looks up the tree
-families for that item, and anchors the item to the trees.  A simple
-list of trees is returned.
-
 \begin{code}
+-- | Given a lexical item, looks up the tree families for that item, and
+--   anchor the item to the trees.
 combineList :: Macros -> ILexEntry
             -> ([LexCombineError],[TagElem]) -- ^ any warnings, plus the results
 combineList gram lexitem =
@@ -746,11 +739,11 @@ unzipEither es = helper ([],[]) es where
  helper (eAcc, rAcc) (Right r : next) = helper (eAcc,r:rAcc) next
 \end{code}
 
-\paragraph{combineOne} \label{fn:combineOne} combines a single tree with its
-lexical item to form a bonafide TagElem.  This process can fail, however,
-because of filtering or enrichement
+\label{fn:combineOne}
 
 \begin{code}
+-- | Combine a single tree with its lexical item to form a bonafide TagElem.
+--   This process can fail, however, because of filtering or enrichement
 combineOne :: ILexEntry -> MTtree -> Either LexCombineError TagElem
 combineOne lexRaw eRaw = -- Maybe monad
  -- trace ("\n" ++ (show wt)) $
@@ -940,7 +933,7 @@ parsePathEq e =
   rejoin = concat . (intersperse ".")
 \end{code}
 
-\subsubsection{Lemmaanchor mechanism}
+\subsubsection{Lemanchor mechanism}
 
 One problem in building reversible grammars is the treatment of co-anchors.
 In the French language, for example, we have some structures like
@@ -955,7 +948,7 @@ forms for these items for example \natlang{c'} for \natlang{ce} or
 \natlang{sont} or \natlang{est} for \natlang{être}.  Hard-coding the \natlang{ce}
 into such trees would break parsing.
 
-To workaround this, we propose a mechanism to have our co-anchors and parsing
+To work around this, we propose a mechanism to have our co-anchors and parsing
 too. Co-anchors that are susceptible to morphological variation should be
 \begin{itemize}
 \item marked in a substitution site (this is to keep parsers happy)

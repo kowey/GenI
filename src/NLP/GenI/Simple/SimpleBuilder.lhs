@@ -420,7 +420,7 @@ generateStep_1p =
 
 \subsection{Two-phase generation}
 
-Following \cite{carroll99}, we could also separate realisation into
+Following \cite{carroll1999ecg}, we could also separate realisation into
 two distinct phases.  This requires that we maintain two seperate
 agendas and process them sequentially, one loop after the other.  See
 \fnref{switchToAux} for details.
