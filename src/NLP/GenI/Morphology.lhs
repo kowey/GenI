@@ -29,7 +29,7 @@ module NLP.GenI.Morphology where
 
 \ignore{
 \begin{code}
-import Data.Maybe (isNothing, fromMaybe, listToMaybe, isJust)
+import Data.Maybe (isNothing, isJust)
 import Data.List (intersperse)
 import Data.Tree
 import qualified Data.Map as Map
@@ -165,7 +165,8 @@ detester [num:sg tense:past]
 \end{verbatim}
 
 It must return inflected forms on stdout, \emph{sentences} delimited by
-newlines.  Notice that the morphological generator can choose to delete
+newlines. Note also that we expect exactly one result for every input.
+Notice that the morphological generator can choose to delete
 spaces or do other orthographical tricks in between words:
 
 \begin{verbatim}
@@ -193,17 +194,21 @@ using system calls, we're stuck with an IO monad.
 type MorphLexicon = [(String, String, Flist)]
 type UninflectedDisjunction = (String, Flist)
 
+-- | Note that GenI expects you have to one result for each sentence
 inflectSentencesUsingLex :: MorphLexicon -> [[UninflectedDisjunction]] -> [String]
 inflectSentencesUsingLex mlex = map (inflectSentenceUsingLex mlex)
 
 inflectSentenceUsingLex :: MorphLexicon -> [UninflectedDisjunction] -> String
 inflectSentenceUsingLex mlex = unwords . map (inflectWordUsingLex mlex)
 
--- | Return first match
+-- | Return only one match, but note any ambiguities or missing matches
 inflectWordUsingLex :: MorphLexicon -> UninflectedDisjunction -> String
-inflectWordUsingLex mlex (lem,fs) = fromMaybe lem $ listToMaybe matches
- where
-  matches = [ word | (word, mLem, mFs) <- mlex, lem == mLem, isJust $ fs `unifyFeat` mFs ]
+inflectWordUsingLex mlex (lem,fs)
+   | null matches       = lem ++ "-" -- no matches = lemma plus little icon
+   | length matches > 1 = lem ++ "*" -- too many matches!
+   | otherwise          = head matches
+  where
+   matches = [ word | (word, mLem, mFs) <- mlex, lem == mLem, isJust $ fs `unifyFeat` mFs ]
 
 inflectSentencesUsingCmd :: String -> [[UninflectedDisjunction]] -> IO [String]
 inflectSentencesUsingCmd morphcmd sentences =
