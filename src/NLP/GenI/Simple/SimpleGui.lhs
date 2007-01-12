@@ -123,7 +123,7 @@ stToGraphviz st =
       --
       section n i = hd : (map tlFn i)
         where hd = (Nothing, "___" ++ n ++ "___")
-              tlFn x = (Just x, (siToSentence x) ++ (showPaths $ siPolpaths x) ++ " : " ++ (show . siId $ x))
+              tlFn x = (Just x, siToSentence x ++ (showPaths $ siPolpaths x))
       showPaths t = " (" ++ showPolPaths t ++ ")"
   in unzip $ agenda ++ auxAgenda ++ chart ++ trash ++ results 
 
