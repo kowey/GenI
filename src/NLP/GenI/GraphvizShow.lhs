@@ -37,7 +37,7 @@ import NLP.GenI.Btypes (GeniVal(GConst), AvPair,
                isConst,
                showSem,
                )
-
+import NLP.GenI.General (wordsBy)
 import NLP.GenI.Graphviz
   ( gvUnlines, gvNewline
   , GraphvizShow(graphvizShowAsSubgraph, graphvizLabel, graphvizParams)
@@ -177,13 +177,6 @@ graphvizShow_ = graphvizShow ()
 \section{Derivation tree}
 % ----------------------------------------------------------------------
 
-\paragraph{graphvizShowDerivation} displays the derivation tree.
-This is actually trickier than it looks: one thing we need to prevent
-for is the potential for loops in the graph (not infinite loops, but
-diagrams with loops in them).  For example if I am a NomRel, I can
-both attach to a det and have a det attached to me.  Oops.  The basic
-trick is to treat each derivation item as a node in the derivation tree.
-
 \begin{code}
 graphvizShowDerivation :: [(Char, String, String)] -> String
 graphvizShowDerivation deriv =
@@ -192,8 +185,10 @@ graphvizShowDerivation deriv =
      else " node [ shape = plaintext ];\n"
           ++ (concatMap showHistNode histNodes)
           ++ (concatMap graphvizShowDerivation' deriv)
-  where showHistNode n  = gvNode (gvDerivationLab n) (lastSegmentOf n) []
-        lastSegmentOf   = reverse . takeWhile (/= '.') . reverse
+  where showHistNode n  = gvNode (gvDerivationLab n) (label n) []
+        label n = case wordsBy ':' n of
+                  name:fam:tree:_ -> name ++ ":" ++ fam ++ gvNewline ++ tree
+                  _               -> n ++ " (geni/gv ERROR)"
         histNodes       = reverse $ nub $ concatMap (\ (_,c,p) -> [c,p]) deriv
 \end{code}
 
@@ -210,14 +205,14 @@ labels should be represented literally as \verb$\n$.
 
 \begin{code}
 gvDerivationLab :: String -> String
-gvDerivationLab xs = "Derivation" ++ (map dot2x $ dehyphen xs)
-
-dehyphen :: String -> String
-dehyphen = filter (/= '-')
+gvDerivationLab xs = "Derivation" ++ gvMunge xs
 
 newlineToSlashN :: Char -> String
 newlineToSlashN '\n' = gvNewline
 newlineToSlashN x = [x]
+
+gvMunge :: String -> String
+gvMunge = map dot2x . filter (/= ':') . filter (/= '-')
 
 dot2x :: Char -> Char
 dot2x '.' = 'x'
