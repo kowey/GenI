@@ -793,16 +793,11 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
       -- the new adjunction nodes
       auxlite = delete r $ siAdjnodes aItem
       newadjnodes = anr : (atail ++ auxlite)
-      -- if the node was pre-terminal before receiving adjunction, it is pre
-      -- terminal no longer; now the foot node of the aux tree is
-      newLeaves = siLeaves aItem ++ (map update $ siLeaves pItem)
-        where update (n,(l,_)) | n == an_name = (f_name, (l,an_up))
-              update x = x
       --
       rawCombined =
         combineSimpleItems [r_name, f_name] aItem $ pItem
                { siAdjnodes = newadjnodes
-               , siLeaves  = newLeaves
+               , siLeaves  = siLeaves aItem ++ siLeaves pItem
                , siDerived = spliceTree f_name (siDerived aItem) an_name (siDerived pItem)
                , siDerivation = addToDerivation 'a' (aItem,rOrigin) (pItem,nOrigin)
                -- , siAdjlist = (n, (tidnum te1)):(siAdjlist item2)
