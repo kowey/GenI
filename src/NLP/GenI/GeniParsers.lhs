@@ -30,6 +30,7 @@ actual documentation.
 module NLP.GenI.GeniParsers (
   -- test suite stuff
   geniTestSuite, geniSemanticInput, geniTestSuiteString,
+  geniDerivations,
   toSemInputString,
   -- macros 
   geniMacros,
@@ -88,6 +89,10 @@ geniTestSuite =
 geniTestSuiteString :: Parser [String]
 geniTestSuiteString =
   tillEof (many geniTestCaseString)
+
+-- | This is only used by the script genimakesuite
+geniDerivations :: Parser [(String, [String])]
+geniDerivations = tillEof $ many geniOutput
 \end{code}
 
 A test case is composed of an optional test id, some semantic input
@@ -110,8 +115,11 @@ geniTestCase =
      return $ TestCase name "" seminput sentences outputs
 
 -- note that the keyword is NOT optional
-geniOutput :: Parser String
-geniOutput = keyword OUTPUT >> geniWords
+geniOutput :: Parser (String, [String])
+geniOutput =
+ do ws <- keyword OUTPUT >> geniWords
+    ds <- many (keyword TRACE >> geniWords)
+    return (ws, ds)
 
 geniSentence :: Parser String
 geniSentence = optional (keyword SENTENCE) >> geniWords

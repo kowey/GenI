@@ -27,10 +27,10 @@ module Main (main) where
 
 import NLP.GenI.Btypes
 import NLP.GenI.General (basename, comparing, (///), ePutStrLn, readFile', toAlphaNum)
-import NLP.GenI.GeniParsers(geniSemanticInput)
+import NLP.GenI.GeniParsers(geniSemanticInput, geniDerivations)
 import NLP.GenI.GeniShow (GeniShow(geniShow))
 
-import Data.List (sortBy)
+import Data.List (sortBy, intersperse)
 import qualified Data.Map as Map
 import Data.Maybe(catMaybes)
 import System.Directory
@@ -50,8 +50,11 @@ main =
                         Nothing -> c
                         Just rs -> c { tcOutputs = rs }
         sortAlphaNum = sortBy (comparing $ toAlphaNum.tcName)
-    putStrLn . unlines . map showCase . sortAlphaNum $ cases
+    putStrLn . unlines . intersperse comment . map showCase . sortAlphaNum $ cases
  where
+  comment =
+     "\n% ------------------------------------------------------------------------\n"
+
   readArgv =
     do argv <- getArgs
        case argv of
@@ -84,15 +87,17 @@ readExtracted parentdir subdir =
   semanticsF = parentdir /// subdir /// "semantics"
   sentencesF = parentdir /// subdir /// "sentences"
 
-readResponses :: FilePath -> FilePath -> IO (Maybe (String, [String]))
+type Result = (String, [String])
+
+readResponses :: FilePath -> FilePath -> IO (Maybe (String, [Result]))
 readResponses parentdir subdir =
  do overgensE <- doesFileExist overgensF
     if overgensE
-       then do os <- lines `fmap` readFile' overgensF
+       then do os <- getParse =<< parseFromFile geniDerivations overgensF
                return . Just $ (subdir, os)
        else return Nothing
  where
-  overgensF  = parentdir /// subdir /// "responses"
+  overgensF = parentdir /// subdir /// "derivations"
 
 getParse :: (Show a) => Either a b -> IO b
 getParse = either exitShowing return

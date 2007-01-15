@@ -146,10 +146,12 @@ instance GeniShow TestCase where
                     , tcSem = sem }) =
   unlines $ [ name, semS ]
             ++ map (geniShowKeyword "sentence" . squares) sentences
-            ++ map (geniShowKeyword "output"   . squares) outputs
+            ++ (concatMap outStuff) outputs
   where
    semS = if null semStr then geniShowSemInput sem "" else semStr
-
+   outStuff (o,ds) =
+     [ "", (geniShowKeyword "output"   . squares $ o) ]
+     ++ map (geniShowKeyword "trace" . squares) ds
 
 
 parens, squares :: String -> String
