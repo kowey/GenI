@@ -186,7 +186,7 @@ runOnSemInput pstRef args semInput =
      oWrite . unlines . map fst $ results
      -- print out derivation information
      let showWithDerivation (s,d) =
-           "sentence:[" ++ s ++ "]\n"
+           "output:[" ++ s ++ "]\n"
            ++ (unlines $ map showTraceElement d)
          showTraceElement t =
            "trace:[" ++ trimName t ++ "\t! " ++ (unwords $ getTraces pst t) ++ "]"
