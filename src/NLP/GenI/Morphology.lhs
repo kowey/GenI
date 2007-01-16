@@ -182,8 +182,8 @@ sentences.  This is used when the morphological generator is
 unavailable, doesn't work, etc.
 
 \begin{code}
-sansMorph :: [(String,Flist)] -> String
-sansMorph = unwords . (map fst)
+sansMorph :: [(String,Flist)] -> [String]
+sansMorph = singleton . unwords . (map fst)
 \end{code}
 
 \paragraph{inflectSentences} converts a list of uninflected sentences
@@ -194,23 +194,25 @@ using system calls, we're stuck with an IO monad.
 type MorphLexicon = [(String, String, Flist)]
 type UninflectedDisjunction = (String, Flist)
 
--- | Note that GenI expects you have to one result for each sentence
-inflectSentencesUsingLex :: MorphLexicon -> [[UninflectedDisjunction]] -> [String]
+-- | Return a list of results for each sentence
+inflectSentencesUsingLex :: MorphLexicon -> [[UninflectedDisjunction]] -> [[String]]
 inflectSentencesUsingLex mlex = map (inflectSentenceUsingLex mlex)
 
-inflectSentenceUsingLex :: MorphLexicon -> [UninflectedDisjunction] -> String
-inflectSentenceUsingLex mlex = unwords . map (inflectWordUsingLex mlex)
+inflectSentenceUsingLex :: MorphLexicon -> [UninflectedDisjunction] -> [String]
+inflectSentenceUsingLex mlex = map unwords . mapM (inflectWordUsingLex mlex)
 
--- | Return only one match, but note any ambiguities or missing matches
-inflectWordUsingLex :: MorphLexicon -> UninflectedDisjunction -> String
+-- | Return only n matches, but note any excessive ambiguities or missing matches
+inflectWordUsingLex :: MorphLexicon -> UninflectedDisjunction -> [String]
 inflectWordUsingLex mlex (lem,fs)
-   | null matches       = lem ++ "-" -- no matches = lemma plus little icon
-   | length matches > 1 = lem ++ "*" -- too many matches!
-   | otherwise          = head matches
+   | null matches       = [ lem ++ "-" ] -- no matches = lemma plus little icon
+   | length matches > 2 = [ lem ++ "*" ] -- too many matches!
+   | otherwise          = matches
   where
    matches = [ word | (word, mLem, mFs) <- mlex, lem == mLem, isJust $ fs `unifyFeat` mFs ]
 
-inflectSentencesUsingCmd :: String -> [[UninflectedDisjunction]] -> IO [String]
+-- FIXME: this doesn't actually support lists-of-results per input
+-- will need to work it out
+inflectSentencesUsingCmd :: String -> [[UninflectedDisjunction]] -> IO [[String]]
 inflectSentencesUsingCmd morphcmd sentences =
   do -- add intersential delimiters
      let delim    = [("----",[])]
@@ -224,11 +226,13 @@ inflectSentencesUsingCmd morphcmd sentences =
      hClose toP
      waitForProcess pid 
      -- read the inflector output back as a list of strings
-     (map trim . lines) `fmap` hGetContents fromP
+     (map singleton . map trim . lines) `fmap` hGetContents fromP
   `catch` \e -> do ePutStrLn "Error calling morphological generator"
                    ePutStrLn $ show e
                    return $ map sansMorph sentences
 \end{code}
 
-
-
+\begin{code}
+singleton :: a -> [a]
+singleton x = [x]
+\end{code}

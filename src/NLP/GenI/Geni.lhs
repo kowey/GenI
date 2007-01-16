@@ -435,8 +435,10 @@ morphological generator, but there could conceivably be more involved.
 finaliseResults :: ProgStateRef -> [B.Output] -> IO [GeniResult]
 finaliseResults pstRef os =
  do mss <- runMorph pstRef ss
-    return $ zip mss ds
- where (ss,ds) = unzip os
+    return . concat $ zipWith merge mss ds
+ where
+    (ss,ds) = unzip os
+    merge ms d = map (\m -> (m,d)) ms
 \end{code}
 
 % --------------------------------------------------------------------
@@ -1021,7 +1023,7 @@ readPreAnchored pst =
 has been specified.  If not, it returns the sentences as lemmas.
 
 \begin{code}
-runMorph :: ProgStateRef -> [[(String,Flist)]] -> IO [String]
+runMorph :: ProgStateRef -> [[(String,Flist)]] -> IO [[String]]
 runMorph pstRef sentences = 
   do pst <- readIORef pstRef
      case morphlex pst of
