@@ -1029,9 +1029,8 @@ runMorph pstRef sentences =
      case morphlex pst of
        Just  m -> return (inflectSentencesUsingLex m sentences)
        Nothing -> case getFlagP MorphCmdFlg (pa pst) of
-                  Nothing  -> return (map sansMorph sentences)
+                  Nothing  -> return $ map sansMorph sentences
                   Just cmd -> inflectSentencesUsingCmd cmd sentences
-
 \end{code}
 
 

@@ -30,6 +30,7 @@ import NLP.GenI.General (basename, comparing, (///), ePutStrLn, readFile', toAlp
 import NLP.GenI.GeniParsers(geniSemanticInput, geniDerivations)
 import NLP.GenI.GeniShow (GeniShow(geniShow))
 
+import Control.Monad (when)
 import Data.List (sortBy, intersperse)
 import qualified Data.Map as Map
 import Data.Maybe(catMaybes)
@@ -39,34 +40,65 @@ import System.Exit(exitFailure)
 import System.IO
 import Text.ParserCombinators.Parsec
 
+import System.Console.GetOpt
+
+
 main :: IO ()
 main =
- do (eDir, rDir) <- readArgv
+ do (Settings { testDir = eDir, responseDir = rDir, showTraces = showT }) <- readArgv
+    when (null eDir) $ fail "Must specify a tests directory"
+    when (null rDir) $ fail "Must specify a responses directory"
     cases     <- readSubDirsWith readExtracted eDir
     responses <- readSubDirsWith readResponses rDir
     let responseMap = Map.fromList responses
         showCase = geniShow.getExtra
+        -- delete the traces unless the showTrace flag is specified
+        tweakTraces = if showT then id else map (\(t,_) -> (t,[]))
         getExtra c = case Map.lookup (tcName c) responseMap of
                         Nothing -> c
-                        Just rs -> c { tcOutputs = rs }
+                        Just rs -> c { tcOutputs = tweakTraces rs }
         sortAlphaNum = sortBy (comparing $ toAlphaNum.tcName)
     putStrLn . unlines . intersperse comment . map showCase . sortAlphaNum $ cases
  where
   comment =
      "\n% ------------------------------------------------------------------------\n"
 
-  readArgv =
-    do argv <- getArgs
-       case argv of
-         [x1,x2] -> return (x1, x2)
-         _    -> showUsage
-  showUsage =
-    do pname <- getProgName
-       ePutStrLn  $ "usage: " ++ pname ++ " testDir responsesDir"
-       exitFailure
   readSubDirsWith r d =
     do subdirs <- getDirectoryContents d
        catMaybes `fmap` mapM (r d) subdirs
+
+-- ---------------------------------------------------------------------
+-- command line arguments
+-- ---------------------------------------------------------------------
+
+data Settings = Settings
+       { testDir     :: FilePath
+       , responseDir :: FilePath
+       , showTraces  :: Bool
+       }
+
+emptySettings :: Settings
+emptySettings = Settings { testDir = "", responseDir = "", showTraces = False }
+
+options :: [OptDescr (Settings -> Settings)]
+options =
+ [ Option ['t']  ["traces"]      (NoArg $ \s -> s { showTraces = True }) "output trace information"
+ , Option []     ["tests"]       (ReqArg (\f s -> s { testDir = f })     "DIR") "output FILE"
+ , Option []     ["responses"]   (ReqArg (\f s -> s { responseDir = f }) "DIR") "library directory"
+ ]
+
+readArgv :: IO Settings
+readArgv =
+  do pname <- getProgName
+     argv  <- getArgs
+     case getOpt Permute options argv of
+      (os,_,[]  ) -> return (foldr ($) emptySettings os)
+      (_,_,errs)  -> ioError (userError (concat errs ++ usageInfo header options))
+                     where header = "Usage: " ++ pname ++ " [OPTION...]"
+
+-- ---------------------------------------------------------------------
+-- reading in the input files
+-- ---------------------------------------------------------------------
 
 readExtracted :: FilePath -> FilePath -> IO (Maybe TestCase)
 readExtracted parentdir subdir =
