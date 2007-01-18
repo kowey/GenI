@@ -146,11 +146,12 @@ instance GeniShow TestCase where
                     , tcSem = sem }) =
   unlines $ [ name, semS ]
             ++ map (geniShowKeyword "sentence" . squares) sentences
-            ++ (concatMap outStuff) outputs
+            ++ (concat.prettify.map outStuff $ outputs)
   where
-   semS = if null semStr then geniShowSemInput sem "" else semStr
+   semS     = if null semStr then geniShowSemInput sem "" else semStr
+   prettify = if (all null.map snd) outputs then id else intersperse [""]
    outStuff (o,ds) =
-     [ "", (geniShowKeyword "output"   . squares $ o) ]
+     [ geniShowKeyword "output"   . squares $ o ]
      ++ map (geniShowKeyword "trace" . squares) ds
 
 
