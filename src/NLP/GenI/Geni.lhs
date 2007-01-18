@@ -576,7 +576,8 @@ runLexSelection pst =
     -- trace constraints
     -- this is in case the grammar introduces literals into the
     -- semantics that weren't associated with the lexical entry
-    let subsetSem t = all (`elem` tsem) $ tsemantics t
+    let subsetSem t = foldr (&&) True [ subsumesInput ls | ls <- tsemantics t, not (ls `elem` tsem) ]
+          where subsumesInput l = not $ null $ subsumeSem tsem [l]
         matchesLc t = all (`elem` myTrace) constrs
           where constrs = concat [ cs | (l,cs) <- litConstrs, l `elem` mySem ]
                 mySem   = tsemantics t
