@@ -569,25 +569,18 @@ runLexSelection pst =
               PreAnchored  -> readPreAnchored pst
               _            -> concat `liftM` mapM combineWithGr lexCand
     -- attach any morphological information to the candidates
-    let morphfn  = morphinf pst
-        cand2    = attachMorph morphfn tsem cand 
-    -- filter out candidates which have a semantics that does not
-    -- subsume the input semantics, or which do not fulfill the
-    -- trace constraints
-    -- this is in case the grammar introduces literals into the
-    -- semantics that weren't associated with the lexical entry
-    let subsetSem t = foldr (&&) True [ subsumesInput ls | ls <- tsemantics t, not (ls `elem` tsem) ]
-          where subsumesInput l = not $ null $ subsumeSem tsem [l]
-        matchesLc t = all (`elem` myTrace) constrs
+    let considerMorph = attachMorph (morphinf pst) tsem
+    -- filter out candidates which do not fulfill the trace constraints
+    let matchesLc t = all (`elem` myTrace) constrs
           where constrs = concat [ cs | (l,cs) <- litConstrs, l `elem` mySem ]
                 mySem   = tsemantics t
                 myTrace = ttrace t
-        cand3 = filter matchesLc $ filter subsetSem cand2
-    -- FIXME: should we tell the user that we are doing this?
-    -- assign ids to each candidate
-    let cand4 = setTidnums cand3
+        considerLc = filter matchesLc
+    -- filter out candidates whose semantics has bonus stuff which does
+    -- not occur in the input semantics
+    let considerCoherency = filter (all (`elem` tsem) . tsemantics)
     --
-    let candFinal = cand4
+    let candFinal = setTidnums . considerCoherency . considerLc . considerMorph $ cand
         indent  x = ' ' : x
         unlinesIndentAnd :: (x -> String) -> [x] -> String
         unlinesIndentAnd f = unlines . map (indent . f)
