@@ -22,7 +22,7 @@ module NLP.GenI.Console(consoleGeni, runTestCaseOnly) where
 
 import Control.Monad ( when, unless )
 import Data.IORef(readIORef, modifyIORef)
-import Data.List(find)
+import Data.List(find, sort)
 import Data.Maybe ( isJust, fromMaybe )
 import System.Directory(createDirectoryIfMissing)
 import System.Exit ( exitFailure )
@@ -160,12 +160,13 @@ runOnSemInput pstRef args semInput =
   do modifyIORef pstRef (\x -> x{ts = semInput})
      pst <- readIORef pstRef
      let config = pa pst
-     (results, stats) <- case builderType config of
+     (results', stats) <- case builderType config of
                             NullBuilder   -> helper B.nullBuilder
                             SimpleBuilder -> helper simpleBuilder_2p
                             SimpleOnePhaseBuilder -> helper simpleBuilder_1p
                             CkyBuilder    -> helper ckyBuilder
                             EarleyBuilder -> helper earleyBuilder
+     let results = sort results'
      -- create directory if need be
      case args of
        PartOfSuite n f -> createDirectoryIfMissing False (f///n)
