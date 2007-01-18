@@ -149,7 +149,7 @@ instance GeniShow TestCase where
             ++ (concat.prettify.map outStuff $ outputs)
   where
    semS     = if null semStr then geniShowSemInput sem "" else semStr
-   prettify = if (all null.map snd) outputs then id else intersperse [""]
+   prettify = if (all null.map snd) outputs then id else map ("":)
    outStuff (o,ds) =
      [ geniShowKeyword "output"   . squares $ o ]
      ++ map (geniShowKeyword "trace" . squares) ds
