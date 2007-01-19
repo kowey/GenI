@@ -34,7 +34,9 @@ What we really need is a libgeni.
 > import NLP.GenI.General (ePutStrLn, comparing, equating, geniBug)
 > import NLP.GenI.GeniParsers(geniTestSuite)
 >
+> import Control.Monad (when)
 > import Data.List (groupBy, sortBy, minimum, maximum)
+> import System.Console.GetOpt
 > import System.Environment
 > import System.Exit(exitFailure)
 > import System.IO
@@ -43,21 +45,18 @@ What we really need is a libgeni.
 
 > main :: IO ()
 > main =
->  do (sFile,fType,oFile) <- readArgv
+>  do settings <- readArgv
+>     let Settings { s_suiteFile = sFile
+>                  , s_outputFile = oFile
+>                  , s_ftype = fType
+>                  , s_increments = incr
+>                  , s_cutoffMax = cutoff } = settings
+>     when (null sFile) $ ePutStrLn "Suite file name must be non-empty"
+>     when (null oFile) $ ePutStrLn "Output file name must be non-empty"
 >     suite   <- getParseFromFile geniTestSuite sFile
 >     let points = map toXY . groupAndSort $ suite
 >     putStrLn $ toGnuPlot fType oFile points
 >  where
->   readArgv =
->     do argv <- getArgs
->        case argv of
->          [x1,x2,x3] -> return (x1,x2,x3)
->          _    -> showUsage
->   showUsage =
->     do pname <- getProgName
->        ePutStrLn  $ "Usage: " ++ pname ++ " geni-results image-type image-destination"
->        exitFailure
->
 >   groupAndSort = groupBy (equating numOutputs)
 >                . sortBy  (comparing numOutputs)
 >   toXY g = (numOutputsInGroup g, length g)
@@ -98,6 +97,44 @@ let the program do it.
 >    minmax l = (minimum l - 1, maximum l + 1)
 >    (x0, x1) = minmax . map fst $ ps
 >    (y0, y1) = minmax . map snd $ ps
+
+
+Command line arguments
+----------------------
+
+> data Settings = Settings
+>        { s_suiteFile  :: FilePath
+>        , s_ftype      :: String
+>        , s_outputFile :: FilePath
+>        , s_increments :: Int
+>        , s_cutoffMax  :: Int
+>        }
+>
+> emptySettings :: Settings
+> emptySettings = Settings { s_suiteFile = ""
+>                          , s_ftype = ""
+>                          , s_outputFile = ""
+>                          , s_increments = 1
+>                          , s_cutoffMax = 1
+>                          }
+>
+> options :: [OptDescr (Settings -> Settings)]
+> options =
+>  [ Option []  ["suite"]       (ReqArg (\x s -> s { s_suiteFile = x })   "FILE") "test suite FILE (input)"
+>  , Option []  ["output"]      (ReqArg (\x s -> s { s_outputFile = x })  "FILE") "output FILE"
+>  , Option []  ["type"]        (ReqArg (\x s -> s { s_ftype = x }) "STRING")     "file type STRING (e.g. postscript enhanced')"
+>  , Option []  ["increments"]  (ReqArg (\x s -> s { s_increments = read x}) "INT")    "increments of INT"
+>  , Option []  ["max"]         (ReqArg (\x s -> s { s_cutoffMax = read x}) "INT")     "cut off at max INT"
+>  ]
+>
+> readArgv :: IO Settings
+> readArgv =
+>   do pname <- getProgName
+>      argv  <- getArgs
+>      case getOpt Permute options argv of
+>       (os,_,[]  ) -> return (foldr ($) emptySettings os)
+>       (_,_,errs)  -> ioError (userError (concat errs ++ usageInfo header options))
+>                      where header = "Usage: " ++ pname ++ " [OPTION...]"
 
 Basic bureaucracy
 
