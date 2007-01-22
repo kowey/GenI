@@ -30,7 +30,6 @@ import NLP.GenI.General (basename, comparing, (///), ePutStrLn, readFile', toAlp
 import NLP.GenI.GeniParsers(geniSemanticInput, geniDerivations)
 import NLP.GenI.GeniShow (GeniShow(geniShow))
 
-import Control.Monad (when)
 import Data.List (sortBy, intersperse)
 import qualified Data.Map as Map
 import Data.Maybe(catMaybes)
@@ -46,8 +45,6 @@ import System.Console.GetOpt
 main :: IO ()
 main =
  do (Settings { testDir = eDir, responseDir = rDir, showTraces = showT }) <- readArgv
-    when (null eDir) $ fail "Must specify a tests directory"
-    when (null rDir) $ fail "Must specify a responses directory"
     cases     <- readSubDirsWith readExtracted eDir
     responses <- readSubDirsWith readResponses rDir
     let responseMap = Map.fromList responses
@@ -83,8 +80,8 @@ emptySettings = Settings { testDir = "", responseDir = "", showTraces = False }
 options :: [OptDescr (Settings -> Settings)]
 options =
  [ Option ['t']  ["traces"]      (NoArg $ \s -> s { showTraces = True }) "output trace information"
- , Option []     ["tests"]       (ReqArg (\f s -> s { testDir = f })     "DIR") "output FILE"
- , Option []     ["responses"]   (ReqArg (\f s -> s { responseDir = f }) "DIR") "library directory"
+ , Option []     ["tests"]       (ReqArg (\f s -> s { testDir = f })     "DIR") "tests found in DIR"
+ , Option []     ["responses"]   (ReqArg (\f s -> s { responseDir = f }) "DIR") "responses found in DIR"
  ]
 
 readArgv :: IO Settings
@@ -92,9 +89,19 @@ readArgv =
   do pname <- getProgName
      argv  <- getArgs
      case getOpt Permute options argv of
-      (os,_,[]  ) -> return (foldr ($) emptySettings os)
-      (_,_,errs)  -> ioError (userError (concat errs ++ usageInfo header options))
-                     where header = "Usage: " ++ pname ++ " [OPTION...]"
+      (os,_,[]  )
+        | notSet testDir          -> help pname ["Must specify a tests directory"]
+        | notSet responseDir      -> help pname ["Must specify a responses directory"]
+        | otherwise               -> return settings
+        where
+         notSet x = null (x settings)
+         settings = foldr ($) emptySettings os
+      (_,_,errs)  -> help pname errs
+  where
+   help pname errs =
+     ioError (userError (concat errs ++ usageInfo header options))
+     where header = "Usage: " ++ pname ++ " [OPTION...]"
+
 
 -- ---------------------------------------------------------------------
 -- reading in the input files
