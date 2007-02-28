@@ -29,7 +29,6 @@ import Graphics.UI.WXCore hiding (when)
 import qualified Control.Monad as Monad 
 import Control.Monad (liftM)
 
-import Data.Array ((!), elems)
 import Data.IORef
 import Data.List (intersperse, findIndex, sort)
 import qualified Data.Map as Map 
@@ -210,13 +209,13 @@ ckyItemBar f gvRef updaterFn =
             modifyGvParams gvRef (setDebugWhichDerivation sel)
             gvSt <- readIORef gvRef
             -- update the list of jump choices
-            case (gvitems gvSt ! gvsel gvSt) of
-             Just (s,c) -> do
+            case Map.lookup (gvsel gvSt) (gvitems gvSt) of
+             Just (Just (s,c)) -> do
                let t = selectedDerivation (gvparams gvSt) s c
                    nodes = map show $ sort $ derivationNodes t
                set jumpChoice [ items := nodes, selection := 0 ]
                updaterFn
-             Nothing    -> return ()
+             _ -> return ()
     set derChoice [ on select := onDerChoice ]
     -- show features
     detailsChk <- checkBox ib [ text := "features"
@@ -241,23 +240,23 @@ ckyItemBar f gvRef updaterFn =
     -- update the list of derivations to choose from
     let updateDerTxt t = set derTxt [ text := "Deriviations (" ++ t ++ ")" ]
         handler gvSt = 
-         do case (gvitems gvSt ! gvsel gvSt) of 
-             Nothing    -> 
-               do set derChoice [ enabled := False, items := [] ]
-                  updateDerTxt "n/a"
-             Just (s,c) -> 
+         do case Map.lookup (gvsel gvSt) (gvitems gvSt) of
+             Just (Just (s,c)) ->
                do let derivations = extractDerivations s c 
                       dervLabels  = zipWith (\n _ -> show n) ([1..]::[Int]) derivations
                   set derChoice [ enabled := True, items := dervLabels, selection := 0 ]
                   onDerChoice
                   updateDerTxt $ show $ length derivations
+             _ ->
+               do set derChoice [ enabled := False, items := [] ]
+                  updateDerTxt "n/a"
     addGvHandler gvRef handler
     -- call the handler to react to the first selection
     handler `liftM` readIORef gvRef
     -- pushing and popping between nodes
     let jumpToNode jmpTo =
          do gvSt <- readIORef gvRef
-            let chartItems = elems $ gvitems gvSt
+            let chartItems = Map.elems $ gvitems gvSt
             case findIndex isJmpTo chartItems of
               Nothing -> geniBug $ "Was asked to see node " ++ (show jmpTo) ++ ", which is not in the list"
               Just x  ->
@@ -269,9 +268,9 @@ ckyItemBar f gvRef updaterFn =
                isJmpTo (Just (_,x)) = ciId x == jmpTo
     set jumpBtn [ on command := do
       gvSt <- readIORef gvRef
-      case (gvitems gvSt ! gvsel gvSt) of
-        Nothing -> return ()
-        Just x  -> modifyGvParams gvRef (pushDebugNodeChoice $ (ciId.snd) x)
+      case Map.lookup (gvsel gvSt) (gvitems gvSt) of
+        Just (Just x) -> modifyGvParams gvRef (pushDebugNodeChoice $ (ciId.snd) x)
+        _             -> return ()
       jmpSel  <- get jumpChoice selection
       jmpItms <- get jumpChoice items
       let jmpTo = (read $ jmpItms !! jmpSel)

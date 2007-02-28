@@ -33,7 +33,6 @@ import qualified Control.Monad as Monad
 import Control.Monad.State ( execStateT, runState )
 import qualified Data.Map as Map
 
-import Data.Array
 import Data.IORef
 import Data.List (intersperse)
 import System.Directory 
@@ -523,7 +522,7 @@ the possibility for modifying the contents of the GUI.  The idea is that
 data GraphvizOrder = GvoParams | GvoItems | GvoSel 
      deriving Eq
 data GraphvizGuiSt a b = 
-        GvSt { gvitems   :: Array Int a,
+        GvSt { gvitems   :: Map.Map Int a,
                gvparams  :: b,
                gvlabels  :: [String],
                -- tooltip for the selection box
@@ -538,7 +537,7 @@ type GraphvizRef a b = IORef (GraphvizGuiSt a b)
 newGvRef :: forall a . forall b . b -> [String] -> String -> IO (GraphvizRef a b)
 newGvRef p l t =
   let st = GvSt { gvparams = p,
-                  gvitems  = array (0,0) [],
+                  gvitems  = Map.empty,
                   gvlabels  = l, 
                   gvhandler = Nothing,
                   gvtip    = t,
@@ -565,7 +564,7 @@ modifyGvParams gvref fn  =
 
 setGvDrawables :: GraphvizRef a b -> [a] -> IO ()
 setGvDrawables gvref it =
-  do let fn x = x { gvitems = array (0, length it) (zip [0..] it),
+  do let fn x = x { gvitems = Map.fromList $ zip [0..] it,
                     gvorders = GvoItems : (gvorders x) }
      modifyIORef gvref fn 
 
@@ -581,12 +580,9 @@ gvOnSelect :: IO () -> (a -> IO ()) -> GraphvizGuiSt (Maybe a) b -> IO ()
 gvOnSelect onNothing onJust gvSt =
  let sel    = gvsel gvSt
      things = gvitems gvSt
-     (low, high) = bounds things
- in if sel >= low && sel <= high
-    then case things ! sel of
-         Nothing -> onNothing
-         Just  s -> onJust s
-    else onNothing
+ in case Map.lookup sel things of
+    Just (Just s) -> onJust s
+    _             -> onNothing
 
 setGvHandler :: GraphvizRef a b -> Maybe (GraphvizGuiSt a b -> IO ()) -> IO ()
 setGvHandler gvref mh =
@@ -763,38 +759,33 @@ createAndOpenImage cachedir f gvref openFn = do
                           then openFn graphic
                           else fail (errormsg graphic)
     Nothing      -> return ()
-\end{code}
 
-\paragraph{createImage}
-Creates a graphical visualisation for anything which can be displayed
-by graphviz. Arguments: a cache directory, a WxHaskell window, and index and an
-array of trees.  Returns Just filename if the index is valid or Nothing
-otherwise 
-
-\begin{code}
-createImage :: (GraphvizShow f b) => 
-  FilePath -> Window a -> GraphvizRef b f -> IO (Maybe FilePath) 
+-- | Creates a graphical visualisation for anything which can be displayed
+--   by graphviz.
+createImage :: (GraphvizShow f b)
+            => FilePath          -- ^ cache directory
+            -> Window a          -- ^ parent window
+            -> GraphvizRef b f   -- ^ stuff to display
+            -> IO (Maybe FilePath)
 createImage cachedir f gvref = do
   gvSt <- readIORef gvref
   -- putStrLn $ "creating image via graphviz"
   let drawables = gvitems  gvSt
       sel       = gvsel    gvSt
       config    = gvparams gvSt
-      te = (drawables ! sel)
-      b  = bounds drawables 
   dotFile <- createDotPath cachedir (show sel)
   graphicFile <-  createImagePath cachedir (show sel)
-  let create = do toGraphviz config te dotFile graphicFile
-                  return (Just graphicFile)
+  let create x = do toGraphviz config x dotFile graphicFile
+                    return (Just graphicFile)
       handler err = do errorDialog f "Error calling graphviz" (show err) 
                        return Nothing
   exists <- doesFileExist graphicFile
   -- we only call graphviz if the image is not in the cache
-  if (exists) 
+  if exists
      then return (Just graphicFile)
-     else if (sel >= fst b && sel < snd b)
-             then create `catch` handler 
-             else return Nothing
+     else case Map.lookup sel drawables of
+            Nothing -> return Nothing
+            Just it -> create it `catch` handler
 \end{code}
 
 \subsection{Cache directory}
