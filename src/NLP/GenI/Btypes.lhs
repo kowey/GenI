@@ -591,7 +591,7 @@ data TestCase = TestCase
        , tcSem  :: SemInput
        , tcExpected :: [String] -- ^ expected results (for testing)
        -- | results we actually got, and their traces (for testing)
-       , tcOutputs :: [(String, [String])]
+       , tcOutputs :: [(String, Map.Map (String,String) [String])]
        } deriving Show
 
 emptyPred :: Pred

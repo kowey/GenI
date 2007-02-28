@@ -91,7 +91,7 @@ geniTestSuiteString =
   tillEof (many geniTestCaseString)
 
 -- | This is only used by the script genimakesuite
-geniDerivations :: Parser [(String, [String])]
+geniDerivations :: Parser [TestCaseOutput]
 geniDerivations = tillEof $ many geniOutput
 \end{code}
 
@@ -115,11 +115,25 @@ geniTestCase =
      return $ TestCase name "" seminput sentences outputs
 
 -- note that the keyword is NOT optional
-geniOutput :: Parser (String, [String])
+type TestCaseOutput = (String, Map.Map (String,String) [String])
+geniOutput :: Parser TestCaseOutput
 geniOutput =
  do ws <- keyword OUTPUT >> geniWords
-    ds <- many (keyword TRACE >> geniWords)
+    ds <- Map.fromList `fmap` many geniTraces
     return (ws, ds)
+
+geniTraces :: Parser ((String,String), [String])
+geniTraces =
+ do keyword TRACE
+    squares $ do
+      k1 <- withWhite geniWord
+      k2 <- withWhite geniWord
+      whiteSpace >> char '!' >> whiteSpace
+      traces <- sepEndBy1 geniWord whiteSpace
+      return ((k1,k2), traces)
+
+withWhite :: Parser a -> Parser a
+withWhite p = p >>= (\a -> whiteSpace >> return a)
 
 geniSentence :: Parser String
 geniSentence = optional (keyword SENTENCE) >> geniWords

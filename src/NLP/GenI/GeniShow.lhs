@@ -45,6 +45,7 @@ where
 \begin{code}
 import Data.Tree
 import Data.List(intersperse, isPrefixOf)
+import qualified Data.Map as Map
 
 import NLP.GenI.Tags
  ( TagElem, idname,
@@ -149,10 +150,12 @@ instance GeniShow TestCase where
             ++ (concat.prettify.map outStuff $ outputs)
   where
    semS     = if null semStr then geniShowSemInput sem "" else semStr
-   prettify = if (all null.map snd) outputs then id else map ("":)
+   prettify = if all (Map.null . snd) outputs then id else map ("":)
+   gshowTrace ((k1,k2),ts) =
+     geniShowKeyword "trace" . squares . showString (k1 ++ " " ++  k2 ++ " ! " ++ unwords ts) $ ""
    outStuff (o,ds) =
      [ geniShowKeyword "output"   . squares $ o ]
-     ++ map (geniShowKeyword "trace" . squares) ds
+     ++ (map gshowTrace $ Map.toList ds)
 
 
 parens, squares :: String -> String
