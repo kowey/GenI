@@ -29,7 +29,7 @@ import Graphics.UI.WXCore
 import Data.IORef
 import qualified Data.Map as Map
 
-import Statistics (Statistics)
+import NLP.GenI.Statistics (Statistics)
 
 import NLP.GenI.Btypes (GNode(gnname, gup), emptyGNode, GeniVal(GConst))
 import NLP.GenI.Configuration ( Params(..) )

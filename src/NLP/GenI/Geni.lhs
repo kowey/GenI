@@ -55,7 +55,6 @@ import System.IO.Unsafe (unsafePerformIO)
 import Text.ParserCombinators.Parsec 
 -- import System.Process 
 
-import Statistics (Statistics)
 
 import NLP.GenI.General(filterTree, repAllNode,
     equating, groupAndCount, multiGroupByFM,
@@ -106,6 +105,8 @@ import NLP.GenI.GeniParsers (geniMacros, geniTagElems,
                     geniMorphInfo, geniMorphLexicon,
                     )
 import NLP.GenI.Morphology
+import NLP.GenI.Statistics (Statistics)
+
 -- import CkyBuilder 
 -- import SimpleBuilder (simpleBuilder)
 \end{code}

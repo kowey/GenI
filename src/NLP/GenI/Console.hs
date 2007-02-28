@@ -51,7 +51,7 @@ import NLP.GenI.Configuration
 import qualified NLP.GenI.Builder as B
 import NLP.GenI.CkyEarley.CkyBuilder
 import NLP.GenI.Simple.SimpleBuilder
-import Statistics ( showFinalStats, Statistics )
+import NLP.GenI.Statistics ( showFinalStats, Statistics )
 
 consoleGeni :: ProgStateRef -> IO()
 consoleGeni pstRef = do

@@ -65,13 +65,13 @@ import NLP.GenI.Btypes
     GeniVal(GConst)
   )
 import NLP.GenI.Polarity  (PolResult, buildAutomaton, detectPolPaths)
-import NLP.GenI.Tags ( TagElem(idname,tsemantics,ttree), setTidnums )
-import Statistics (Statistics, incrIntMetric,
+import NLP.GenI.Statistics (Statistics, incrIntMetric,
                    Metric(IntMetric), updateMetrics,
                    mergeMetrics, addIntMetrics,
                    queryMetrics, queryIntMetric,
                    addMetric, emptyStats,
                    )
+import NLP.GenI.Tags ( TagElem(idname,tsemantics,ttree), setTidnums )
 \end{code}
 }
 

@@ -57,7 +57,7 @@ import Data.Bits
 import qualified Data.Map as Map
 import Data.Tree
 
-import Statistics (Statistics)
+import NLP.GenI.Statistics (Statistics)
 
 import NLP.GenI.Automaton ( automatonPaths, NFA(..), addTrans )
 import NLP.GenI.Btypes

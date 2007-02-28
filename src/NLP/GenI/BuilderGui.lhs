@@ -24,7 +24,7 @@ import Graphics.UI.WXCore
 import qualified NLP.GenI.Builder as B
 import NLP.GenI.Geni (ProgStateRef, GeniResult)
 import NLP.GenI.Configuration (Params)
-import Statistics (Statistics)
+import NLP.GenI.Statistics (Statistics)
 \end{code}
 
 \begin{code}

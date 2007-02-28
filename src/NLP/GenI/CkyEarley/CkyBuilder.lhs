@@ -84,7 +84,7 @@ import NLP.GenI.Tags
   ( TagElem, tidnum, ttree, tsemantics, ttype,
     ts_tbUnificationFailure, TagSite(TagSite), detectSites
   )
-import Statistics ( Statistics )
+import NLP.GenI.Statistics ( Statistics )
 
 -- -- Debugging stuff
 -- import Data.List ( intersperse )

@@ -42,7 +42,7 @@ import Text.ParserCombinators.Parsec (parseFromFile)
 
 import NLP.GenI.Graphviz
 import NLP.GenI.Automaton (numStates, numTransitions)
-import Statistics (Statistics, showFinalStats)
+import NLP.GenI.Statistics (Statistics, showFinalStats)
 
 import NLP.GenI.Configuration ( getFlagP, MacrosFlg(..), ViewCmdFlg(..) )
 import NLP.GenI.GeniShow(geniShow)

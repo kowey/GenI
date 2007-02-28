@@ -36,7 +36,7 @@ import qualified Data.Map as Map
 import Data.Maybe (listToMaybe, catMaybes)
 import Data.Tree 
 
-import Statistics (Statistics)
+import NLP.GenI.Statistics (Statistics)
 
 import NLP.GenI.Automaton
  ( NFA(states, transitions, startSt, finalStList)
