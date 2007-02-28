@@ -17,6 +17,5 @@ Building geni
  runhaskell Setup.lhs configure
  runhaskell Setup.lhs build
  runhaskell Setup.lhs install
- macosx-app /usr/local/bin/geni
 
 (Note: blind users or GUI abstainers can do 'make nogui')
