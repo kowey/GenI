@@ -65,6 +65,7 @@ import qualified NLP.GenI.Builder as B
 import NLP.GenI.Builder (queryCounter, num_iterations, chart_size,
     num_comparisons)
 import NLP.GenI.Polarity (PolAut, detectPolFeatures)
+import NLP.GenI.GraphvizShowPolarity ()
 \end{code}
 }
 
