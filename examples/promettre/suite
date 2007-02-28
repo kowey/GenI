@@ -1,5 +1,6 @@
 il_aime_marie
 semantics:[h2:mary(m)
+           h1:il(j)
            e1:love(j m)]
 [ il aimer Marie ]
 
@@ -79,9 +80,6 @@ semantics : [ e1:promise(a e2 b)
 	      h1:book(c)
 	      paul(d)
 	     ]
-
-aimer
-semantics:[mary(m) love(j m)]
 
 promettre_donner_persuader
 semantics : [ e1:promise(a e2 b)

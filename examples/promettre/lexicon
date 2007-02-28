@@ -4,7 +4,7 @@
 %% Canonique, interrogatives, relatives
 
 il pronoun(?H ?X)
-semantics:[?H:il(?X)]
+semantics:[?H:il(+?X)]
 
 se clitic(?H ?X)
 semantics:[]
