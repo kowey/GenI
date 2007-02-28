@@ -16,26 +16,18 @@
 # configuration
 # --------------------------------------------------------------------
 
-# include this file if configure had been run
-# see the $(config_file) target to make it complain
-config_file:=config/config.mk
--include $(config_file)
-
 # i know, i know, i should be using autotools...
 # but *whine* it's so hard!
 OS:=$(shell uname)
 
 SRC      := ./src
 SRC_GENI := ./src/NLP/GenI
-SRC_DIRS := $(SRC) $(SRC_GENI) $(SRC_GENI)/CkyEarley $(SRC_GENI)/Simple $(SRC_GENI)/Converter
+SRC_DIRS := $(SRC) $(SRC_GENI) $(SRC_GENI)/CkyEarley $(SRC_GENI)/Simple
 DOC_DIRS := doc
 
 GHC             = ghc
-#-O
 GHCINCLUDE      = -i$(SRC)
-#:$(HXMLDIR)/hparser:$(HXMLDIR)/hdom
 GHCPACKAGES     =
-GHCPACKAGES_GUI = -package wx $(GHCPACKAGES)
 
 GHCFLAGS        = $(LDFLAGS) -Wall -cpp -fallow-overlapping-instances -fglasgow-exts -threaded -O $(GHCINCLUDE)
 ifdef PROFILE
@@ -46,15 +38,8 @@ SOFTWARE        = Geni
 SOFTVERS        = $(SOFTWARE)-$(VERSION)
 
 ifndef TO_INSTALL
-TO_INSTALL=$(patsubst %, bin/%, tryXtimes geni xmgGeni geni-precompiled)
+TO_INSTALL=$(patsubst %, bin/%, tryXtimes geni geni-precompiled)
 endif
-
-# You should replace the value of this variable with your project
-# directory name.  The default assumption is that the project name
-# is the same as the directory name.
-MYDIR = Geni
-DATE:=$(shell date +%Y-%m-%d)
-DATE2:=$(shell date +%Y-%m-%dT%H%M)
 
 # --------------------------------------------------------------------
 # options for profiling
@@ -112,7 +97,6 @@ DVIPDF_CMD=dvips `basename $< .tex`.dvi -o `basename $< .tex`.ps;\
 # --------------------------------------------------------------------
 
 SCRIPT_FILES = bin/tryXtimes\
-	       bin/cutXMG\
 	       etc/stupidmorph.pl\
 	       etc/tommorph.pl\
 	       etc/quickcheck.py\
@@ -124,60 +108,11 @@ SCRIPT_FILES = bin/tryXtimes\
 GENI := bin/geni
 GENI_PRECOMPILED := bin/geni-precompiled
 GENI_MAIN := $(SRC)/MainGeni.lhs
-GENI_DEPS = $(call getdeps,$(GENI_MAIN))
-GENI_HELPERS = $(EXTRACTOR)  $(SELECT) $(CONVERTER) $(MAKESUITE) $(COUNT_OUTPUTS)
-
-EXTRACTOR := bin/geniExtractCases
-EXTRACTOR_MAIN := $(SRC)/ExtractTestCases.lhs
-EXTRACTOR_DEPS = $(call getdeps,$(EXTRACTOR_MAIN))
-
-CONVERTER := bin/geniconvert
-CONVERTER_MAIN := $(SRC)/Converter.hs
-CONVERTER_DEPS = $(call getdeps,$(CONVERTER_MAIN))
 
 PROFGENI := bin/debugger-geni
 
-SERVER := bin/geniserver
-SERVER_MAIN := $(SRC)/Server.hs
-SERVER_DEPS := $(call getdeps,$(CLIENT_MAIN))
-
-CLIENT := bin/geniclient
-CLIENT_MAIN := $(SRC)/Client.hs
-CLIENT_DEPS := $(call getdeps,$(CLIENT_MAIN))
-
-SELECT := bin/geniselect
-SELECT_MAIN := $(SRC)/Select.hs
-SELECT_DEPS := $(call getdeps,$(SELECT_MAIN))
-
-MAKESUITE := bin/genimakesuite
-MAKESUITE_MAIN := $(SRC)/MakeSuite.hs
-MAKESUITE_DEPS = $(call getdeps,$(MAKESUITE_MAIN))
-
-COUNT_OUTPUTS:= bin/genicount
-COUNT_OUTPUTS_MAIN:= $(SRC)/CountOutputs.lhs
-COUNT_OUTPUTS_DEPS = $(call getdeps,$(MAKESUITE_MAIN))
-
-
-
-# dependencies
-COMPILE_TARGETS:=$(GENI_MAIN) $(EXTRACTOR_MAIN) $(CONVERTER_MAIN) $(SELECT_MAIN)\
-		 $(MAKESUITE_MAIN)\
-		 $(SERVER_MAIN) $(CLIENT_MAIN)
-DEPENDS:=$(patsubst %,.depends/%.dep,$(COMPILE_TARGETS))
-
-# if make deps has been called, use the dependencies file
-# otherwise, default to a safer, but more annoying definition
-getdeps = $(if $(wildcard .depends/$(1).dep),\
-	   $(shell grep -E \.l?hs .depends/$(1).dep | sed -e 's/.* : //' | xargs),\
-	   $(SOURCE_FILES))
-
 DOC_DIR = doc
 HADDOCK_OUT = $(DOC_DIR)/api
-
-ifeq ($(OS),Darwin)
-OS_SPECIFIC_STUFF = cd bin; ../etc/macstuff/macosx-app geni
-endif
-
 
 SOURCE_FILES_1 := $(foreach d, $(SRC_DIRS), $(wildcard $(d)/*.lhs))
 SOURCE_FILES_2 := $(foreach d, $(SRC_DIRS), $(wildcard $(d)/*.hs))
@@ -201,7 +136,7 @@ SOURCE_HSD  := $(SOURCE_HSD_1) $(SOURCE_HSD_2)
 
 normal: compile
 all: compile docs tidy
-release: compile docs html tidy tarball
+release: build docs html tidy tarball
 
 doc:  init maindoc haddock
 
@@ -209,13 +144,6 @@ maindoc: $(MAKE_DOCS)
 
 docs: doc
 html: $(MAKE_HTML)
-
-tarball:
-	sed -e "s/^Geni/$(MYDIR)/" etc/geniexclude > /tmp/geniexclude
-	rm -f $(MYDIR)*.tar.gz;\
-	cd .. ;\
-	tar --exclude-from /tmp/geniexclude -czf $(MYDIR)_$(DATE).tar.gz $(MYDIR);\
-	mv $(MYDIR)_$(DATE).tar.gz $(MYDIR)
 
 clean: tidy
 	rm -f bin/debugger-geni
@@ -256,31 +184,16 @@ $(DEPENDS): .depends/%.dep : %
 # compilation
 # --------------------------------------------------------------------
 
-compile: init $(GENI) $(GENI_HELPERS) $(SERVER) $(CLIENT)
+compile: build
 
-converter: $(CONVERTER)
-extractor: $(EXTRACTOR)
-clientserver: $(SERVER) $(CLIENT)
+.setup-config:
+	$(error Please runhaskell Setup.lhs configure first)
 
-define ghc-make
-	$(GHC) $(GHCFLAGS) --make $(GHCPACKAGES) $(1) $< -o $@
-endef
+build: .setup-config
+	runhaskell Setup.lhs build
 
-$(GENI) : $(GENI_MAIN) $(GENI_DEPS)
-	$(call ghc-make, $(GHCPACKAGES_GUI) -package HUnit)
-	$(OS_SPECIFIC_STUFF)
-
-$(CONVERTER): $(CONVERTER_MAIN) $(CONVERTER_DEPS)
-	$(call ghc-make, -package HaXml)
-
-$(EXTRACTOR) : $(EXTRACTOR_MAIN) $(EXTRACTOR_DEPS)
-	$(call ghc-make)
-
-$(MAKESUITE) : $(MAKESUITE_MAIN) $(MAKESUITE_DEPS)
-	$(call ghc-make)
-
-$(COUNT_OUTPUTS) : $(COUNT_OUTPUTS_MAIN) $(CONVERTER_DEPS)
-	$(call ghc-make)
+install:
+	runhaskell Setup.lhs install
 
 nogui : $(GENI_MAIN) $(GENI_DEPS) permissions
 	$(GHC) $(GHCFLAGS) --make -DDISABLE_GUI $(GHCPACKAGES) $< -o $(GENI)
@@ -289,15 +202,6 @@ debugger:
 	make $(PROFGENI) PROFILE=1
 
 $(PROFGENI): $(GENI_MAIN) $(GENI_DEPS) permissions
-	$(call ghc-make)
-
-$(SERVER): $(SERVER_MAIN) $(SERVER_DEPS)
-	$(call ghc-make)
-
-$(CLIENT): $(CLIENT_MAIN) $(CLIENT_DEPS)
-	$(call ghc-make)
-
-$(SELECT): $(SELECT_MAIN) $(SELECT_DEPS)
 	$(call ghc-make)
 
 # sometimes you have stuff that doesn't get built with ghc --make
@@ -315,26 +219,6 @@ $(SELECT): $(SELECT_MAIN) $(SELECT_DEPS)
 precompiled: $(GENI_MAIN) init
 	time $(GHC) $(GHCFLAGS) -igrammars --make -DPRECOMPILED_GRAMMAR +RTS -K100m -RTS $(GHCPACKAGES) $< -o $(GENI_PRECOMPILED)
 	#$(OS_SPECIFIC_STUFF)
-
-# --------------------------------------------------------------------
-# installing
-# --------------------------------------------------------------------
-
-# FIXME handling of macosx stuff very ugly?
-
-install: $(TO_INSTALL)
-	$(foreach file,$^, $(INSTALL) $(file) $(BINDIR) &&)\
-	:
-ifeq ($(OS),Darwin)
-	#$(CP) -R bin/geni.app $(BINDIR)
-endif
-
-uninstall:
-	$(foreach file,$(patsubst bin/%, %, $(TO_INSTALL)), $(RM) $(BINDIR)/$(file) &&)\
-	:
-ifeq ($(OS),Darwin)
-	#$(RM) -R $(BINDIR)/geni.app
-endif
 
 # --------------------------------------------------------------------
 # testing
@@ -393,7 +277,11 @@ DOC_SRC=$(SOURCE_FILES)
 
 haddock: $(SOURCE_HSD)
 	mkdir -p $(HADDOCK_OUT)
-	haddock -h $(SOURCE_HSD) -o $(HADDOCK_OUT)
+	haddock -o $(HADDOCK_OUT)\
+	  --source-module http://trac.loria.fr/darcs/geni/GenI/src/%{MODULE/.//}.lhs\
+	  -h $(SOURCE_HSD_1)\
+	  --source-base http://trac.loria.fr/darcs/geni/GenI/src/%M.hs\
+	  -h $(SOURCE_HSD_2)\
 
 $(SOURCE_HSD_1): %.hsd: %.lhs
 	ghc -cpp -E -optP-P -ignore-scc -D__HADDOCK__ $< -o $@
