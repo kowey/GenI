@@ -76,7 +76,7 @@ import NLP.GenI.Btypes
    iinterface, ifilters,
    isempols,
    toKeys,
-   showLexeme, showPairs,
+   showLexeme,
    pidname, pfamily, pinterface, ptype, psemantics, ptrace,
    setAnchor, setLexeme, tree, unifyFeat,
    alphaConvert,
@@ -532,10 +532,7 @@ runLexSelection pst =
     -- then anchor these lexical items to trees
     let grammar = gr pst
         combineWithGr l =
-         do let (errs, res) = combineList grammar l
-                isEnrichErr (EnrichError _ _ _) = True
-                isEnrichErr _ = False
-                (enrichEs, otherEs) = partition isEnrichErr errs
+         do let (_, res) = combineList grammar l
                 familyMembers = [ p | p <- grammar, pfamily p == ifamname l ]
             -- snippets of error message
             let lexeme = showLexeme.iword $ l
