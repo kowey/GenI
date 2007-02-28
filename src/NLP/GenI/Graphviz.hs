@@ -198,6 +198,7 @@ graphviz dot dotFile outputFile = do
    let dotArgs' = ["-Gfontname=courier", 
                    "-Nfontname=courier", 
                    "-Efontname=courier", 
+                   "-Gcharset=latin1", -- FIXME: should really output UTF-8 instead
                    "-Tpng", "-o" ++ outputFile ]
        dotArgs = dotArgs' ++ (if (null dotFile) then [] else [dotFile])
    -- putStrLn ("sending to graphviz:\n" ++ dot) 
