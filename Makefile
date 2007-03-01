@@ -11,6 +11,8 @@
 # configuration
 # --------------------------------------------------------------------
 
+include cabal-make.inc
+
 # i know, i know, i should be using autotools...
 # but *whine* it's so hard!
 OS:=$(shell uname)
@@ -100,8 +102,8 @@ SCRIPT_FILES = bin/tryXtimes\
 	       etc/macstuff/macosx-app\
 
 
-GENI := bin/geni
-GENI_PRECOMPILED := bin/geni-precompiled
+GENI := dist/build/geni
+GENI_PRECOMPILED := dist/build/geni-precompiled
 GENI_MAIN := $(SRC)/MainGeni.lhs
 
 PROFGENI := bin/debugger-geni
@@ -118,7 +120,7 @@ SOURCE_FILES := $(SOURCE_FILES_1) $(SOURCE_FILES_2)
 SOURCE_HSD  := $(SOURCE_HSD_1) $(SOURCE_HSD_2)
 
 # Phony targets do not keep track of file modification times
-.PHONY: all nogui deps $(DEPENDS)\
+.PHONY: all normal build nogui deps $(DEPENDS)\
 	clean docs doc maindoc html release optimize\
        	init permissions install\
 	extractor\
@@ -129,23 +131,21 @@ SOURCE_HSD  := $(SOURCE_HSD_1) $(SOURCE_HSD_2)
 # main targets
 # --------------------------------------------------------------------
 
-normal: compile
-all: compile docs tidy
+normal: build
+all: build docs tidy
 release: build docs html tidy tarball
 
-doc:  init maindoc haddock
+doc2:  init maindoc haddock
 
 maindoc: $(MAKE_DOCS)
 
-docs: doc
+docs2: doc2
 html: $(MAKE_HTML)
 
-clean: tidy
+clean2: tidy
 	rm -f bin/debugger-geni
 	rm -f $(foreach d, $(DOC_DIRS), $(d)/*.{ps,pdf})
 	rm -f $(MAKE_HTML)
-	rm -rf $(GENI) $(GENI).app $(PROFGENI)
-	rm -rf $(GENI_HELPERS)
 	rm -rf $(SOURCE_HSD_1) $(HADDOCK_OUT)
 	rm -rf .depends
 
@@ -181,15 +181,6 @@ $(DEPENDS): .depends/%.dep : %
 
 compile: build
 
-.setup-config:
-	$(error Please runhaskell Setup.lhs configure first)
-
-build: .setup-config
-	runhaskell Setup.lhs build
-
-install:
-	runhaskell Setup.lhs install
-
 nogui : $(GENI_MAIN) $(GENI_DEPS) permissions
 	$(GHC) $(GHCFLAGS) --make -DDISABLE_GUI $(GHCPACKAGES) $< -o $(GENI)
 
@@ -213,7 +204,6 @@ $(PROFGENI): $(GENI_MAIN) $(GENI_DEPS) permissions
 
 precompiled: $(GENI_MAIN) init
 	time $(GHC) $(GHCFLAGS) -igrammars --make -DPRECOMPILED_GRAMMAR +RTS -K100m -RTS $(GHCPACKAGES) $< -o $(GENI_PRECOMPILED)
-	#$(OS_SPECIFIC_STUFF)
 
 # --------------------------------------------------------------------
 # testing
@@ -270,7 +260,7 @@ clean-profiler:
 
 DOC_SRC=$(SOURCE_FILES)
 
-haddock: $(SOURCE_HSD)
+haddock2: $(SOURCE_HSD)
 	mkdir -p $(HADDOCK_OUT)
 	haddock -o $(HADDOCK_OUT)\
 	  --source-module http://trac.loria.fr/darcs/geni/GenI/src/%{MODULE/.//}.lhs\
