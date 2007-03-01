@@ -71,7 +71,7 @@ import NLP.GenI.Statistics (Statistics, incrIntMetric,
                    queryMetrics, queryIntMetric,
                    addMetric, emptyStats,
                    )
-import NLP.GenI.Tags ( TagElem(idname,tsemantics,ttree), setTidnums )
+import NLP.GenI.Tags ( TagElem(idname,tsemantics,ttree), setTidnums, TagDerivation )
 \end{code}
 }
 
@@ -103,7 +103,7 @@ data Builder st it pa = Builder
   , unpack   :: st -> [Output] }
 
 type Output = (UninflectedSentence, Derivation)
-type Derivation = [String]
+type Derivation = TagDerivation
 \end{code}
 
 To simplify interaction with the backend, we provide a single data

@@ -374,7 +374,7 @@ The generator state is mostly useful for debugging via the graphical interface.
 --   it is only used for instances of GenI where the grammar is compiled
 --   directly into GenI.
 type Selector = ProgState -> IO ([TagElem],[ILexEntry])
-type GeniResult = (String, [String])
+type GeniResult = (String, B.Derivation)
 
 runGeni :: ProgStateRef -> B.Builder st it Params -> IO ([GeniResult], Statistics, st)
 runGeni pstRef builder =
