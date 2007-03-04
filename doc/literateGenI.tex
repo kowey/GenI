@@ -165,27 +165,26 @@ interface documentation just be the users manual, \`a la darcs.
 % future literate notes
 % -------------------------------------------------------------------------
 
-\input{../src/MainGeni.lhs}
+\input{../geniprog/MainGeni.lhs}
 
 \part{Core files}
 
-\input{../src/NLP/GenI/Geni.lhs}
-\input{../src/NLP/GenI/Btypes.lhs}
-\input{../src/NLP/GenI/Tags.lhs}
-\input{../src/NLP/GenI/Automaton.lhs}
+\input{../libgeni/NLP/GenI/Geni.lhs}
+\input{../libgeni/NLP/GenI/Btypes.lhs}
+\input{../libgeni/NLP/GenI/Tags.lhs}
+\input{../libgeni/NLP/GenI/Automaton.lhs}
 
 \part{Builders}
 \label{prt:builders}
 
-\input{../src/NLP/GenI/Builder.lhs}
-\input{../src/NLP/GenI/Simple/SimpleBuilder.lhs}
-\input{../src/NLP/GenI/CkyEarley/CkyBuilder.lhs}
+\input{../libgeni/NLP/GenI/Builder.lhs}
+\input{../libgeni/NLP/GenI/Simple/SimpleBuilder.lhs}
+\input{../libgeni/NLP/GenI/CkyEarley/CkyBuilder.lhs}
 
 \part{Optional}
 
-\input{../src/NLP/GenI/Morphology.lhs}
-\input{../src/NLP/GenI/Polarity.lhs}
-% \input{Predictors.lhs}
+\input{../libgeni/NLP/GenI/Morphology.lhs}
+\input{../libgeni/NLP/GenI/Polarity.lhs}
 
 \chapter{Other optimisations}
 \label{chp:other_optimisations}
@@ -207,7 +206,7 @@ See section \ref{sec:foot_constraint}
 
 \part{Miscellaneous}
 
-\input{../src/NLP/GenI/GeniParsers.lhs}
+\input{../libgeni/NLP/GenI/GeniParsers.lhs}
 %\input{GrammarXml.lhs}
 %\input{Converter.lhs}
 
@@ -223,9 +222,8 @@ literate programming style: they are not included in this document.
 \item{Console.hs}
 \item{Gui.lhs}
 \item{GuiHelper.lhs}
-\item{simple/SimpleGui.lhs}
-\item{cky/CkyGui.lhs}
-\item{Treeprint.lhs}
+\item{Simple/SimpleGui.lhs}
+\item{Cky/CkyGui.lhs}
 \item{Graphviz.hs}
 \end{enumerate}
 
