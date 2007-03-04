@@ -53,7 +53,13 @@ module NLP.GenI.Configuration
   , rootcatfiltered, semfiltered
   , isIaf
   , emptyParams
-  , treatArgs, treatArgsWithParams,
+  , treatArgs, treatStandardArgs, treatArgsWithParams, treatStandardArgsWithParams
+  , optionsForStandardGenI
+  , optionsForBasicStuff, optionsForOptimisation, optionsForMorphology
+  , noArg, reqArg, optArg
+  -- re-exports
+  , module System.Console.GetOpt
+  , Typeable
   )
 where
 \end{code}
@@ -142,8 +148,8 @@ short switch is available.  For more information, type \texttt{geni
 \begin{code}
 -- | Uses the GetOpt library to process the command line arguments.
 -- Note that we divide them into basic and advanced usage.
-options, optionsAdvanced :: [OptDescr Flag]
-options = nubBySwitches $ optionsForBasicStuff ++ optionsAdvanced
+optionsForStandardGenI, optionsAdvanced :: [OptDescr Flag]
+optionsForStandardGenI = nubBySwitches $ optionsForBasicStuff ++ optionsAdvanced
           ++ -- FIXME: weird mac stuff
           [ Option ['p']    []  (reqArg WeirdFlg id "CMD") "" ]
 
@@ -210,11 +216,17 @@ usage adv =
                 ++ usageForOptimisations
  in header ++ body ++ "\n\n" ++ example
 
-treatArgs :: [String] -> IO Params
-treatArgs argv = treatArgsWithParams argv emptyParams
+treatStandardArgs :: [String] -> IO Params
+treatStandardArgs argv = treatStandardArgsWithParams argv emptyParams
 
-treatArgsWithParams :: [String] -> Params -> IO Params
-treatArgsWithParams argv initParams =
+treatStandardArgsWithParams :: [String] -> Params -> IO Params
+treatStandardArgsWithParams = treatArgsWithParams optionsForStandardGenI
+
+treatArgs :: [OptDescr Flag] -> [String] -> IO Params
+treatArgs options argv = treatArgsWithParams options argv emptyParams
+
+treatArgsWithParams :: [OptDescr Flag] -> [String] -> Params -> IO Params
+treatArgsWithParams options argv initParams =
    case getOpt Permute options argv of
      (os,_,[]  )
        | hasFlag HelpFlg os ->

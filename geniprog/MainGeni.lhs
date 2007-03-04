@@ -34,7 +34,7 @@ import System(getArgs)
 import NLP.GenI.Btypes(Macros)
 import NLP.GenI.Geni(emptyProgState, ProgState(gr))
 import NLP.GenI.Console(consoleGeni)
-import NLP.GenI.Configuration (treatArgs,
+import NLP.GenI.Configuration (treatStandardArgs,
                                hasFlagP, BatchDirFlg(..), DisableGuiFlg(..),
                                RegressionTestModeFlg(..),
                                grammarType, GrammarType(PreCompiled),
@@ -87,7 +87,7 @@ step.
 main :: IO ()
 main = do       
   args     <- getArgs
-  confArgs <- treatArgs args
+  confArgs <- treatStandardArgs args
   let pst = case mPreGrammar of
             Nothing -> emptyProgState confArgs
             Just g  -> let cargs = confArgs { grammarType = PreCompiled }
