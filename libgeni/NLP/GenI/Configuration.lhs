@@ -49,10 +49,11 @@ module NLP.GenI.Configuration
   --
   , mainBuilderTypes
   , getFlagP, getListFlagP, setFlagP, hasFlagP, deleteFlagP, hasOpt, polarised
+  , hasFlag
   , Optimisation(..)
   , rootcatfiltered, semfiltered
   , isIaf
-  , emptyParams
+  , emptyParams, defineParams
   , treatArgs, treatStandardArgs, treatArgsWithParams, treatStandardArgsWithParams
   , optionsForStandardGenI
   , optionsForBasicStuff, optionsForOptimisation, optionsForMorphology
