@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 module Main (main) where
 
+import Data.Binary (encodeFile)
 import Data.IORef (newIORef, modifyIORef, readIORef)
 import Data.List (intersperse)
 import System (ExitCode(ExitFailure), exitWith, getArgs, getProgName)
@@ -31,6 +32,7 @@ import System.IO.Unsafe(unsafeInterleaveIO)
 import Text.ParserCombinators.Parsec
 
 import NLP.GenI.Btypes (Macros,pfamily,MTtree)
+import NLP.GenI.BtypesBinary ()
 import NLP.GenI.General (ePutStrLn, toUpperHead)
 import NLP.GenI.GeniParsers (geniMacros)
 import NLP.GenI.GeniShow (geniShow)
@@ -42,7 +44,7 @@ data Flag = FromFlg String | ToFlg String | OutputFlg String
 options :: [OptDescr Flag]
 options =
   [ Option "f" ["from"] (ReqArg FromFlg "TYPE") "tagml|geni"
-  , Option "t" ["to"]   (ReqArg ToFlg "TYPE")   "haskell|geni"
+  , Option "t" ["to"]   (ReqArg ToFlg "TYPE")   "haskell|geni|genib"
   , Option "o" ["output"]  (ReqArg OutputFlg "STRING")  "output file, or -t haskell, prefix for output files"
   ]
 
@@ -69,6 +71,7 @@ main =
                         then ePutStrLn $ "Can't write haskell to stdout (Please provide a stem)."
                         else doHaskell fTy f fs
            "geni"    -> readAndWriteMacros fTy fs (geniWriter f)
+           "genib"   -> readAndWriteMacros fTy fs (encodeFile f)
            _         -> do ePutStrLn $ "Unkwown output type : " ++ tTy
                            exitWith (ExitFailure 1)
      _         -> showUsage progname
@@ -76,7 +79,7 @@ main =
   mInitialiseFile "" = return ()
   mInitialiseFile f  = writeFile f ""
   showUsage p =
-    do let header = "usage: " ++ p ++ " -f [tagml|geni] -t [haskell|geni] < input > output"
+    do let header = "usage: " ++ p ++ " -f [tagml|geni] -t [haskell|geni|genib] < input > output"
        ePutStrLn $ usageInfo header options
        exitWith (ExitFailure 1)
   doHaskell fromType f fs =
