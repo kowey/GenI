@@ -11,13 +11,14 @@
 # configuration
 # --------------------------------------------------------------------
 
+-include user-settings.inc
 include cabal-make.inc
 
 # i know, i know, i should be using autotools...
 # but *whine* it's so hard!
 OS:=$(shell uname)
 
-SRC      := ./src
+SRC      := ./libgeni
 SRC_GENI := ./src/NLP/GenI
 SRC_DIRS := $(SRC) $(SRC_GENI) $(SRC_GENI)/CkyEarley $(SRC_GENI)/Simple
 DOC_DIRS := doc

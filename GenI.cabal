@@ -1,5 +1,5 @@
 Name:           GenI
-Version:        0.11
+Version:        0.12
 License:        GPL
 License-file:   LICENSE
 Author:         Carlos Areces and Eric Kow
@@ -16,21 +16,20 @@ Exposed-Modules:
                 NLP.GenI.Morphology,
                 NLP.GenI.Polarity, NLP.GenI.Automaton,
                 NLP.GenI.Statistics,
-                NLP.GenI.SysGeni,
                 NLP.GenI.Builder,
                 NLP.GenI.Simple.SimpleBuilder, NLP.GenI.CkyEarley.CkyBuilder,
-                NLP.GenI.Geni, NLP.GenI.Console, NLP.GenI.Configuration
-Hs-Source-Dirs: src
+                NLP.GenI.Geni, NLP.GenI.Configuration
+Hs-Source-Dirs: libgeni
 Extensions:     CPP, Rank2Types, OverlappingInstances, MultiParamTypeClasses
 
 Executable:     geni
 Main-Is:        MainGeni.lhs
-Hs-Source-Dirs: src
+Hs-Source-Dirs: libgeni, geniprog
 Extensions:     CPP, Rank2Types, OverlappingInstances, MultiParamTypeClasses
 Ghc-options:    -Wall
 
 Executable:     geniconvert
-Hs-Source-Dirs: src
+Hs-Source-Dirs: libgeni, geniconvert
 Main-Is:        Converter.hs
 Extensions:     CPP, Rank2Types, OverlappingInstances
 Ghc-options:    -Wall

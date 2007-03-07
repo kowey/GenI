@@ -19,6 +19,6 @@ Exposed-Modules:
                 NLP.GenI.Builder,
                 NLP.GenI.Simple.SimpleBuilder, NLP.GenI.CkyEarley.CkyBuilder,
                 NLP.GenI.Geni, NLP.GenI.Configuration
-Hs-Source-Dirs: . 
+Hs-Source-Dirs: .
 Extensions:     CPP, Rank2Types, OverlappingInstances, MultiParamTypeClasses
 Ghc-options:    -Wall
