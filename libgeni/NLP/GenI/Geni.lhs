@@ -44,6 +44,7 @@ import Control.Arrow (first)
 import Control.Monad.Error
 import Control.Monad (unless)
 
+import Data.Binary (Binary, decodeFile)
 import Data.IORef (IORef, readIORef, modifyIORef)
 import Data.List (group, intersperse, sort, nub, nubBy, partition)
 import qualified Data.Map as Map
@@ -81,6 +82,7 @@ import NLP.GenI.Btypes
    setAnchor, setLexeme, tree, unifyFeat,
    alphaConvert,
    )
+import NLP.GenI.BtypesBinary ()
 
 import NLP.GenI.Tags (Tags, TagElem, emptyTE,
              idname, ttreename,
@@ -227,14 +229,16 @@ loadLexicon pstRef =
            sorter l  = l { isemantics = (sortSem . getSem) l }
            cleanup   = mapBySemKeys isemantics . map sorter
        loadThingOrDie LexiconFlg "lexicon" pstRef
-         (parseFromFileOrFail geniLexicon)
+         (parseFromFileOrTryBinary geniLexicon)
          (\l p -> p { le = cleanup l })
 
 -- | The macros are stored as a hashing function in the monad.
 loadGeniMacros pstRef =
   loadThingOrDie MacrosFlg "trees" pstRef parser updater
-  where parser = parseFromFileOrFail geniMacros
+  where parser = parseFromFileOrTryBinary geniMacros
         updater g p = p { gr = g }
+
+
 
 -- | The results are stored as a lookup function in the monad.
 loadMorphInfo pstRef =
@@ -348,6 +352,13 @@ loadThing filename description pstRef parser job =
 
 parseFromFileOrFail :: Parser a -> FilePath -> IO a
 parseFromFileOrFail p f = parseFromFile p f >>= either (fail.show) (return)
+
+parseFromFileOrTryBinary :: Binary a
+                         => Parser a
+                         -> FilePath
+                         -> IO a
+parseFromFileOrTryBinary p f =
+ parseFromFile p f >>= either (\_ -> decodeFile f) (return)
 \end{code}
 
 % --------------------------------------------------------------------
