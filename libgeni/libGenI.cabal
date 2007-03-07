@@ -1,0 +1,24 @@
+Name:           GenI
+Version:        0.12
+License:        GPL
+License-file:   LICENSE
+Author:         Carlos Areces and Eric Kow
+Build-Depends:  base, binary, haskell98, mtl, parsec, QuickCheck, HUnit
+Description:    Natural language generator for TAG
+Maintainer:     eric.kow@loria.fr
+Exposed-Modules:
+                NLP.GenI.Btypes,
+                NLP.GenI.BtypesBinary,
+                NLP.GenI.General,
+                NLP.GenI.GeniParsers,
+                NLP.GenI.GeniShow,
+                NLP.GenI.Tags,
+                NLP.GenI.Morphology,
+                NLP.GenI.Polarity, NLP.GenI.Automaton,
+                NLP.GenI.Statistics,
+                NLP.GenI.Builder,
+                NLP.GenI.Simple.SimpleBuilder, NLP.GenI.CkyEarley.CkyBuilder,
+                NLP.GenI.Geni, NLP.GenI.Configuration
+Hs-Source-Dirs: . 
+Extensions:     CPP, Rank2Types, OverlappingInstances, MultiParamTypeClasses
+Ghc-options:    -Wall
