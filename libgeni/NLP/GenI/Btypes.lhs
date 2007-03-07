@@ -68,6 +68,8 @@ module NLP.GenI.Btypes(
 import Control.Monad (liftM)
 import Data.List
 import Data.Maybe (fromMaybe, isJust, mapMaybe)
+import Data.Generics (Data)
+import Data.Typeable (Typeable)
 import qualified Data.Map as Map
 import qualified Data.Set as Set 
 import Data.Tree
@@ -102,10 +104,10 @@ data Ttree a = TT
   , psemantics :: Maybe Sem
   , ptrace :: [String]
   , tree :: Tree a } 
-  deriving Show
+  deriving (Show, Data, Typeable)
 
 data Ptype = Initial | Auxiliar | Unspecified   
-             deriving (Show, Eq)
+             deriving (Show, Eq, Data, Typeable)
 
 instance (Replacable a) => Replacable (Ttree a) where
   replaceMap s mt =
@@ -149,7 +151,7 @@ data ILexEntry = ILE
     , iptype      :: Ptype
     , isemantics  :: Sem
     , isempols    :: [SemPols] }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Data, Typeable)
 
 instance Replacable ILexEntry where
   replaceMap s i =
@@ -196,11 +198,11 @@ data GNode = GN{gnname :: NodeName,
                 gorigin  :: String  -- ^ for TAG, this would be the elementary tree
                                     --   that this node originally came from
                 }
-           deriving Eq
+           deriving (Eq, Data, Typeable)
 
 -- Node type used during parsing of the grammar 
 data GType = Subs | Foot | Lex | Other
-           deriving (Show, Eq)
+           deriving (Show, Eq, Data, Typeable)
 
 type NodeName = String
 
@@ -391,7 +393,7 @@ type AvPair  = (String,GeniVal)
 data GeniVal = GConst [String]
              | GVar   !String
              | GAnon
-  deriving (Eq,Ord)
+  deriving (Eq,Ord, Data, Typeable)
 
 instance Show GeniVal where
   show (GConst x) = concat $ intersperse "|" x

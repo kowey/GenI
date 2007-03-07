@@ -3,11 +3,12 @@ Version:        0.11
 License:        GPL
 License-file:   LICENSE
 Author:         Carlos Areces and Eric Kow
-Build-Depends:  base,  haskell98, mtl, parsec, wxcore, wx, QuickCheck, HUnit, HaXml >=1.16
+Build-Depends:  base, binary, wx, wxcore, haskell98, mtl, parsec, QuickCheck, HUnit, HaXml >=1.16
 Description:    Natural language generator for TAG
 Maintainer:     eric.kow@loria.fr
 Exposed-Modules:
                 NLP.GenI.Btypes,
+                NLP.GenI.BtypesBinary,
                 NLP.GenI.General,
                 NLP.GenI.GeniParsers,
                 NLP.GenI.GeniShow,
