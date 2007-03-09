@@ -49,14 +49,15 @@ module NLP.GenI.Configuration
   --
   , mainBuilderTypes
   , getFlagP, getListFlagP, setFlagP, hasFlagP, deleteFlagP, hasOpt, polarised
-  , hasFlag
+  , getFlag, setFlag, hasFlag
   , Optimisation(..)
   , rootcatfiltered, semfiltered
   , isIaf
   , emptyParams, defineParams
   , treatArgs, treatStandardArgs, treatArgsWithParams, treatStandardArgsWithParams
   , optionsForStandardGenI
-  , optionsForBasicStuff, optionsForOptimisation, optionsForMorphology
+  , optionsForBasicStuff, optionsForOptimisation, optionsForMorphology, optionsForInputFiles
+  , nubBySwitches
   , noArg, reqArg, optArg
   -- re-exports
   , module System.Console.GetOpt
