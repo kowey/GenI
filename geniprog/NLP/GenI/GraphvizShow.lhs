@@ -29,7 +29,7 @@ where
 import Data.List(intersperse,nub)
 
 import NLP.GenI.Tags
- ( TagElem, idname,
+ ( TagElem, TagDerivation, idname,
    tsemantics, ttree,
  )
 import NLP.GenI.Btypes (GeniVal(GConst), AvPair,
@@ -178,7 +178,7 @@ graphvizShow_ = graphvizShow ()
 % ----------------------------------------------------------------------
 
 \begin{code}
-graphvizShowDerivation :: [(Char, String, String)] -> String
+graphvizShowDerivation :: TagDerivation -> String
 graphvizShowDerivation deriv =
   if (null histNodes)
      then ""
@@ -189,12 +189,12 @@ graphvizShowDerivation deriv =
         label n = case wordsBy ':' n of
                   name:fam:tree:_ -> name ++ ":" ++ fam ++ gvNewline ++ tree
                   _               -> n ++ " (geni/gv ERROR)"
-        histNodes       = reverse $ nub $ concatMap (\ (_,c,p) -> [c,p]) deriv
+        histNodes       = reverse $ nub $ concatMap (\ (_,c,(p,_)) -> [c,p]) deriv
 \end{code}
 
 \begin{code}
-graphvizShowDerivation' :: (Char, String, String) -> String
-graphvizShowDerivation' (substadj, child, parent) =
+graphvizShowDerivation' :: (Char, String, (String, String)) -> String
+graphvizShowDerivation' (substadj, child, (parent,_)) =
   gvEdge (gvDerivationLab parent) (gvDerivationLab child) "" p
   where p = if substadj == 'a' then [("style","dashed")] else []
 \end{code}

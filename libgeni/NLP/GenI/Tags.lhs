@@ -120,10 +120,10 @@ data TagElem = TE {
 
 A TAG derivation history consists of a list of 3-tuples representing the
 operation (s for substitution, a for adjunction), the name of the child tree,
-and the name of the parent tree.
+the name of the parent tree and the node affected.
 
 \begin{code}
-type TagDerivation = [ (Char, String, String) ]
+type TagDerivation = [ (Char, String, (String, String)) ]
 \end{code}
 
 \begin{code}

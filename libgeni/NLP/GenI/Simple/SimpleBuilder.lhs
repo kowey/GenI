@@ -654,7 +654,7 @@ iapplySubst twophase item1 item2 | siInitial item1 && closed item1 = {-# SCC "ap
                      item2 { siSubstnodes = stail ++ (siSubstnodes item1)
                            , siAdjnodes   = adj2 ++ adj1
                            , siDerived    = plugTree (siDerived item1) n (siDerived item2)
-                           , siDerivation = addToDerivation 's' (item1g,rOrigin) (item2,nOrigin)
+                           , siDerivation = addToDerivation 's' (item1g,rOrigin) (item2,nOrigin,n)
                            , siLeaves     = (siLeaves item1) ++ (siLeaves item2)
                            , siPendingTb  = pending
                            }
@@ -799,7 +799,7 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
                { siAdjnodes = newadjnodes
                , siLeaves  = siLeaves aItem ++ siLeaves pItem
                , siDerived = spliceTree f_name (siDerived aItem) an_name (siDerived pItem)
-               , siDerivation = addToDerivation 'a' (aItem,rOrigin) (pItem,nOrigin)
+               , siDerivation = addToDerivation 'a' (aItem,rOrigin) (pItem,nOrigin,an_name)
                -- , siAdjlist = (n, (tidnum te1)):(siAdjlist item2)
                -- if we adjoin into the root, the new root is that of the aux
                -- tree (affects 1p only)
@@ -894,12 +894,12 @@ since we do not actually allow such a thing, we're ok.
 \begin{code}
 addToDerivation :: Char
                 -> (SimpleItem,String)
-                -> (SimpleItem,String)
+                -> (SimpleItem,String,String)
                 -> TagDerivation
-addToDerivation op (tc,tcOrigin) (tp,tpOrigin) =
+addToDerivation op (tc,tcOrigin) (tp,tpOrigin,tpSite) =
   let hp = siDerivation tp
       hc = siDerivation tc
-      newnode = (op, tcOrigin, tpOrigin)
+      newnode = (op, tcOrigin, (tpOrigin, tpSite))
   in newnode:hp++hc
 \end{code}
 
