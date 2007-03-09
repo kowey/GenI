@@ -186,7 +186,7 @@ loadEverything pstRef =
      -- grammar type
          isNotPreanchored = grammarType config /= PreAnchored
          isNotPrecompiled = grammarType config /= PreCompiled
-         noLoadTestSuite = isMissing NoLoadTestSuiteFlg
+         useTestSuite = isMissing NoLoadTestSuiteFlg
      -- display 
      let errormsg =
            concat $ intersperse ", " [ msg | (con, msg) <- errorlst, con ]
@@ -195,7 +195,7 @@ loadEverything pstRef =
                 "a tree file")
               , (isNotPreanchored && isMissing LexiconFlg,
                 "a lexicon file")
-              , (noLoadTestSuite && isMissing TestSuiteFlg,
+              , (useTestSuite && isMissing TestSuiteFlg,
                 "a test suite") ]
      unless (null errormsg) $ fail ("Please specify: " ++ errormsg)
      -- we only have to read in grammars from the simple format
@@ -207,7 +207,7 @@ loadEverything pstRef =
      when isNotPreanchored $ loadLexicon pstRef
      -- in any case, we have to...
      loadMorphInfo pstRef
-     when noLoadTestSuite $ loadTestSuite pstRef
+     when useTestSuite $ loadTestSuite pstRef
      -- the morphological lexicon
      loadMorphLexicon pstRef
      -- the trace filter file
