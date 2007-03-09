@@ -588,8 +588,10 @@ runLexSelection pst =
     -- filter out candidates whose semantics has bonus stuff which does
     -- not occur in the input semantics
     let considerCoherency = filter (all (`elem` tsem) . tsemantics)
+        considerHasSem    = filter (not . null . tsemantics)
     --
-    let candFinal = setTidnums . considerCoherency . considerLc . considerMorph $ cand
+    let candFinal = setTidnums . considerCoherency . considerHasSem
+                  . considerLc . considerMorph $ cand
         indent  x = ' ' : x
         unlinesIndentAnd :: (x -> String) -> [x] -> String
         unlinesIndentAnd f = unlines . map (indent . f)
