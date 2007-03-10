@@ -122,6 +122,7 @@ We add some buttons for loading files and running the generator.
            hasSem     = hasFlagP TestSuiteFlg config
            ignoreSem  = hasFlagP IgnoreSemanticsFlg config
        -- Target Semantics
+       testSuiteChoice <- choice f [ selection := 0, enabled := hasSem ]
        tsTextBox <- textCtrl f [ wrap := WrapWord
                                , clientSize := sz 400 80
                                , enabled := hasSem 
@@ -132,7 +133,6 @@ We add some buttons for loading files and running the generator.
        -- Box and Frame for files loaded 
        macrosFileLabel  <- staticText f [ text := getListFlagP MacrosFlg config  ]
        lexiconFileLabel <- staticText f [ text := getListFlagP LexiconFlg config ]
-       tsFileLabel      <- staticText f [ text := getListFlagP TestSuiteFlg config ]
        -- Generate and Debug 
        let genfn = doGenerate f pstRef tsTextBox
        pauseOnLexChk <- checkBox f [ text := "Inspect lex", tooltip := "Affects debugger only"  ]
@@ -189,16 +189,16 @@ Pack it all together, perform the layout operation.
 
 \begin{code}
        -- set any last minute handlers, run any last minute functions
-       let onLoad = readConfig f pstRef macrosFileLabel lexiconFileLabel tsFileLabel tsTextBox testCaseChoice 
+       let onLoad = readConfig f pstRef macrosFileLabel lexiconFileLabel testSuiteChoice tsTextBox testCaseChoice
        set loadMenIt [ on command := do configGui pstRef onLoad ]
        onLoad
        togglePolStuff
        --
+       let labeledRow l w = row 1 [ label l, hfill (widget w) ]
        let gramsemBox = boxed "Files last loaded" $ 
                    hfill $ column 1 
-                     [ row 1 [ label "trees:", hfill $ widget macrosFileLabel  ]
-                     , row 1 [ label "lexicon:", hfill $ widget lexiconFileLabel ] 
-                     , row 1 [ label "test suite:", hfill $ widget tsFileLabel ] 
+                     [ labeledRow "trees:"   macrosFileLabel
+                     , labeledRow "lexicon:" lexiconFileLabel
                      ]
            optimBox =  --boxed "Optimisations " $ -- can't used boxed with wxwidgets 2.6 -- bug?
                     column 5 [ label "Algorithm"
@@ -215,7 +215,8 @@ Pack it all together, perform the layout operation.
        set f [layout := column 5 [ gramsemBox
                    , row 5 [ fill $ -- boxed "Input Semantics" $ 
                              hfill $ column 5 
-                               [ hfill $ row 1 [ label "Test case", hfill $ widget testCaseChoice ]
+                               [ labeledRow "test suite: " testSuiteChoice
+                               , labeledRow "test case: "  testCaseChoice
                                , fill  $ widget tsTextBox ]
                            , vfill optimBox ]
                     -- ----------------------------- Generate and quit 
@@ -300,15 +301,15 @@ the GUI
 
 \begin{code}
 readConfig :: (Textual l, Textual t, Able ch, Items ch String, Selection ch, Selecting ch)
-           => Window w -> ProgStateRef -> l -> l -> l -> t -> ch -> IO ()
-readConfig f pstRef macrosFileLabel lexiconFileLabel tsFileLabel tsBox tsChoice = 
+           => Window w -> ProgStateRef -> l -> l -> ch -> t -> ch -> IO ()
+readConfig f pstRef macrosFileLabel lexiconFileLabel testSuiteChoice tsBox tsChoice =
   do pst <- readIORef pstRef
      let errhandler title err = errorDialog f title (show err)
      let config = pa pst
          -- errHandler title err = errorDialog f title (show err)
      set macrosFileLabel  [ text := getListFlagP MacrosFlg config ]
      set lexiconFileLabel [ text := getListFlagP LexiconFlg config ]
-     set tsFileLabel      [ text := getListFlagP TestSuiteFlg config ]
+     -- set tsFileLabel      [ text := getListFlagP TestSuiteFlg config ]
      -- read the test suite if there is one
      if hasFlagP TestSuiteFlg config
        then do loadTestSuite pstRef
