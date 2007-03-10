@@ -40,27 +40,8 @@ import NLP.GenI.Configuration (treatStandardArgs, processInstructions,
                                grammarType, GrammarType(PreCompiled),
                               )
 
-#ifndef PRECOMPILED_GRAMMAR
 #ifndef DISABLE_GUI
 import NLP.GenI.Gui(guiGeni)
-#endif
-#endif
-
-#ifdef PRECOMPILED_GRAMMAR
-import MyGeniGrammar
-#endif
-
-mPreGrammar :: Maybe Macros
-#ifdef PRECOMPILED_GRAMMAR
-mPreGrammar = Just myGeniGrammar
-#else
-mPreGrammar = Nothing
-#endif
-
-#ifdef PRECOMPILED_GRAMMAR
-guiGeni = consoleGeni
-#endif
-#ifdef DISABLE_GUI
 guiGeni = consoleGeni
 #endif
 \end{code}
@@ -88,10 +69,7 @@ main :: IO ()
 main = do       
   args     <- getArgs
   confArgs <- treatStandardArgs args >>= processInstructions
-  let pst = case mPreGrammar of
-            Nothing -> emptyProgState confArgs
-            Just g  -> let cargs = confArgs { grammarType = PreCompiled }
-                       in  (emptyProgState cargs) { gr = g }
+  let pst = emptyProgState confArgs
   pstRef <- newIORef pst
   let batch   = hasFlagP BatchDirFlg confArgs
       console = hasFlagP DisableGuiFlg confArgs
