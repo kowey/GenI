@@ -19,7 +19,7 @@
 
 \begin{code}
 module NLP.GenI.Configuration
-  ( Params(..), GrammarType(..), BuilderType(..), Flag
+  ( Params(..), GrammarType(..), BuilderType(..), Instruction, Flag
   -- flags
   , BatchDirFlg(..)
   , DisableGuiFlg(..)
@@ -41,6 +41,7 @@ module NLP.GenI.Configuration
   , RootCategoriesFlg(..)
   , StatsFileFlg(..)
   , TestCaseFlg(..)
+  , TestInstructionsFlg(..)
   , TestSuiteFlg(..)
   , TimeoutFlg(..)
   , TracesFlg(..)
@@ -55,6 +56,7 @@ module NLP.GenI.Configuration
   , isIaf
   , emptyParams, defineParams
   , treatArgs, treatStandardArgs, treatArgsWithParams, treatStandardArgsWithParams
+  , processInstructions
   , optionsForStandardGenI
   , optionsForBasicStuff, optionsForOptimisation, optionsForMorphology, optionsForInputFiles
   , nubBySwitches
@@ -72,6 +74,7 @@ import qualified Data.Map as Map
 
 import Control.Monad ( liftM )
 import Data.Char ( toLower )
+import Data.Maybe ( mapMaybe )
 import Data.Typeable ( Typeable, typeOf, cast )
 import System.Console.GetOpt
 import System.Exit ( exitFailure, exitWith, ExitCode(..) )
@@ -664,9 +667,37 @@ data GrammarType = GeniHand    -- ^ geni's text format
      deriving (Show, Eq, Typeable)
 \end{code}
 
-% --------------------------------------------------------------------
+% ====================================================================
+\section{Scripting GenI}
+% ====================================================================
+
+Any input that you give to GenI will be interpreted as a list of test
+suites (and test cases that you want to run).  Each line has the format
+\texttt{path/to/test-suite case1 case2 .. caseN}.   You can omit the
+test cases, which is interpreted as you wanting to run the entire test
+suite.  Also, the \verb!%! character and anything after is treated as
+a comment.
+
+\begin{code}
+type Instruction = (FilePath, Maybe [String])
+
+processInstructions :: Params -> IO Params
+processInstructions config =
+ do is <- instructionsFile `fmap` getContents
+    return $ setFlagP TestInstructionsFlg is config
+
+instructionsFile :: String -> [Instruction]
+instructionsFile = mapMaybe inst . lines
+ where
+  inst l = case words (takeWhile (/= '%') l) of
+           []     -> Nothing
+           [f]    -> Just (f, Nothing)
+           (f:cs) -> Just (f, Just cs)
+\end{code}
+
+% ====================================================================
 % Flags
-% --------------------------------------------------------------------
+% ====================================================================
 
 \begin{code}
 {-
@@ -734,6 +765,7 @@ FLAG (RootCategoriesFlg, [String])
 FLAG (NoLoadTestSuiteFlg, ())
 FLAG (StatsFileFlg, FilePath)
 FLAG (TestCaseFlg, String)
+FLAG (TestInstructionsFlg, [Instruction])
 FLAG (TestSuiteFlg, FilePath)
 FLAG (TimeoutFlg, Integer)
 FLAG (VerboseModeFlg, ())
