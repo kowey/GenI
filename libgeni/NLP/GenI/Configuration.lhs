@@ -74,7 +74,7 @@ import qualified Data.Map as Map
 
 import Control.Monad ( liftM )
 import Data.Char ( toLower )
-import Data.Maybe ( mapMaybe )
+import Data.Maybe ( listToMaybe, mapMaybe )
 import Data.Typeable ( Typeable, typeOf, cast )
 import System.Console.GetOpt
 import System.Exit ( exitFailure, exitWith, ExitCode(..) )
@@ -683,8 +683,29 @@ type Instruction = (FilePath, Maybe [String])
 
 processInstructions :: Params -> IO Params
 processInstructions config =
- do is <- instructionsFile `fmap` getContents
-    return $ setFlagP TestInstructionsFlg is config
+ do let is0 = case getFlagP TestSuiteFlg config of
+              Just ts -> case getFlagP TestCaseFlg config of
+                         Just c  -> [ (ts, Just [c]) ]
+                         Nothing -> [ (ts, Nothing)  ]
+              Nothing -> []
+    is <- instructionsFile `fmap` getContents
+    -- basically set the test suite/case flag to the first instruction
+    -- note that with the above code (which sets the first instruction
+    -- to the test suite/case flag), this should work out to identity
+    -- when those flags are provided.
+    let instructions = is0 ++ is
+        updateInstructions =
+          setFlagP TestInstructionsFlg instructions
+        updateTestCase =
+          case (listToMaybe instructions >>= snd >>= listToMaybe) of
+            Just c   -> setFlagP TestCaseFlg c
+            Nothing  -> id
+        updateTestSuite =
+          case (fst `fmap` listToMaybe instructions) of
+            Just s  -> setFlagP TestSuiteFlg s
+            Nothing -> id
+        updateFlags = updateInstructions . updateTestSuite . updateTestCase
+    return $ updateFlags config
 
 instructionsFile :: String -> [Instruction]
 instructionsFile = mapMaybe inst . lines
