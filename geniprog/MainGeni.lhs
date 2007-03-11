@@ -31,17 +31,16 @@ module Main (main) where
 import Data.IORef(newIORef)
 import System(getArgs)
 
-import NLP.GenI.Btypes(Macros)
-import NLP.GenI.Geni(emptyProgState, ProgState(gr))
+import NLP.GenI.Geni(emptyProgState)
 import NLP.GenI.Console(consoleGeni)
 import NLP.GenI.Configuration (treatStandardArgs, processInstructions,
                                hasFlagP, BatchDirFlg(..), DisableGuiFlg(..),
                                RegressionTestModeFlg(..),
-                               grammarType, GrammarType(PreCompiled),
                               )
 
 #ifndef DISABLE_GUI
 import NLP.GenI.Gui(guiGeni)
+#else
 guiGeni = consoleGeni
 #endif
 \end{code}
