@@ -46,7 +46,7 @@ import NLP.GenI.Btypes (ILexEntry(isemantics), TestCase(..))
 import NLP.GenI.Tags (idname, tpolarities, tsemantics, TagElem)
 import NLP.GenI.GeniShow (geniShow)
 import NLP.GenI.Configuration
-  ( Params(..), hasOpt
+  ( Params(..), Instruction, hasOpt
   , hasFlagP, deleteFlagP, setFlagP, getFlagP, getListFlagP
     --
   , ExtraPolaritiesFlg(..)
@@ -59,6 +59,8 @@ import NLP.GenI.Configuration
   , OptimisationsFlg(..)
   , RootCategoriesFlg(..)
   , TestSuiteFlg(..)
+  , TestCaseFlg(..)
+  , TestInstructionsFlg(..)
   , ViewCmdFlg(..)
   --
   , Optimisation(..)
@@ -298,36 +300,52 @@ the GUI
 \begin{code}
 readConfig :: (Textual l, Textual t, Able ch, Items ch String, Selection ch, Selecting ch)
            => Window w -> ProgStateRef -> l -> l -> ch -> t -> ch -> IO ()
-readConfig f pstRef macrosFileLabel lexiconFileLabel testSuiteChoice tsBox tsChoice =
+readConfig f pstRef macrosFileLabel lexiconFileLabel suiteChoice tsBox caseChoice =
   do pst <- readIORef pstRef
-     let errhandler title err = errorDialog f title (show err)
      let config = pa pst
          -- errHandler title err = errorDialog f title (show err)
      set macrosFileLabel  [ text := getListFlagP MacrosFlg config ]
      set lexiconFileLabel [ text := getListFlagP LexiconFlg config ]
      -- set tsFileLabel      [ text := getListFlagP TestSuiteFlg config ]
      -- read the test suite if there is one
-     if hasFlagP TestSuiteFlg config
-       then do loadTestSuite pstRef
-               readTestSuite pstRef tsBox tsChoice
-               set tsChoice [ enabled := True ]
-            `catch` errhandler "Error reading test suite"
-       else set tsChoice [ enabled := False, items := [] ]
+     case getListFlagP TestInstructionsFlg config of
+       [] ->
+         do set suiteChoice [ enabled := False, items := [] ]
+            set caseChoice  [ enabled := False, items := [] ]
+       is ->
+         do -- handler for selecting a test suite
+            let imap = Map.fromList $ zip [0..] is
+                onTestSuiteChoice = do
+                  sel <- get suiteChoice selection
+                  case Map.lookup sel imap of
+                    Nothing -> geniBug $ "No such index in test suite selector (gui): " ++ show sel
+                    Just t  -> loadTestSuiteAndRefresh f pstRef t tsBox caseChoice
+            set suiteChoice [ enabled := True, items := map fst is
+                            , on select := onTestSuiteChoice, selection := 0 ]
+            set caseChoice  [ enabled := True ]
+            onTestSuiteChoice -- load the first suite
 
-\end{code}
-
-\paragraph{readTestSuite} is used to update the graphical interface after
-calling \fnref{loadTestSuite}.  This used when you first start the 
-graphical interface or when you load a new test suite.
-
-\begin{code}
-readTestSuite :: (Textual a, Selecting b, Selection b, Items b String) 
-              => ProgStateRef -> a -> b -> IO ()
-readTestSuite pstRef tsBox tsChoice = 
-  do pst <- readIORef pstRef
+-- | Load the given test suite and update the GUI accordingly.
+--   This is used when you first start the graphical interface
+--   or when you run the configuration menu.
+loadTestSuiteAndRefresh :: (Textual a, Selecting b, Selection b, Items b String) 
+              => Window w -> ProgStateRef -> Instruction -> a -> b -> IO ()
+loadTestSuiteAndRefresh f pstRef (suitePath,mcs) tsBox caseChoice =
+  do modifyIORef pstRef $ \pst ->
+       pst { pa = setFlagP TestSuiteFlg suitePath
+                $ deleteFlagP TestCaseFlg -- shouldn't change anything
+                $ pa pst }
+     catch
+       (loadTestSuite pstRef)
+       (\e -> errorDialog f ("Error reading test suite " ++ suitePath) (show e))
+     pst <- readIORef pstRef
      let suite   = tsuite pst
          theCase = tcase pst
-         suiteCases = map tcName suite
+         filterCases =
+           case mcs of
+             Nothing -> id
+             Just cs -> filter (`elem` cs)
+         suiteCases = filterCases (map tcName suite)
      -- we number the cases for easy identification, putting 
      -- a star to highlight the selected test case (if available)
      let numfn :: Int -> String -> String
@@ -346,14 +364,14 @@ readTestSuite pstRef tsBox tsChoice =
      let displaySemInput (TestCase { tcSem = si, tcSemString = str }) =
            geniShow $ toSemInputString si str
      let onTestCaseChoice = do
-         csel <- get tsChoice selection
+         csel <- get caseChoice selection
          if (boundsCheck csel suite)
            then do let s = (suite !! csel)
                    set tsBox [ text :~ (\_ -> displaySemInput s) ]
            else geniBug $ "Gui: test case selector bounds check error: " ++
                           show csel ++ " of " ++ show suite ++ "\n" 
      ----------------------------------------------------
-     set tsChoice [ items := tcaseLabels 
+     set caseChoice [ items := tcaseLabels 
                   , selection := caseSel
                   , on select := onTestCaseChoice ]
      when (not $ null suite) onTestCaseChoice -- run this once
