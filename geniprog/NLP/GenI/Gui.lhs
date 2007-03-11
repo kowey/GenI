@@ -81,8 +81,13 @@ guiGeni :: ProgStateRef -> IO()
 guiGeni pstRef = start $ mainGui pstRef
 \end{code}
 
-This is the first screen that the user sees in the GenI interface.
-We start things off by creating a frame and some menus.
+When you first start GenI, you will see this screen:
+[[FIXME:screenshot wanted]]
+
+It allows you to type in an input semantics (or to modify the one that was
+automatically loaded up), twiddle some optimisations and run the realiser.  You
+can also opt to run the debugger instead of the realiser; see page
+\pageref{sec:gui:debugger}.
 
 \begin{code}
 mainGui :: ProgStateRef -> IO ()
@@ -113,11 +118,9 @@ mainGui pstRef
              -- event handler for the tree browser
              , on (menu gbrowserMenIt) := do { loadEverything pstRef; treeBrowserGui pstRef }  
              ]
-\end{code}
-
-We add some buttons for loading files and running the generator.
-
-\begin{code}
+       -- -----------------------------------------------------------------
+       -- buttons
+       -- -----------------------------------------------------------------
        let config     = pa pst 
            hasSem     = hasFlagP TestSuiteFlg config
            ignoreSem  = hasFlagP IgnoreSemanticsFlg config
@@ -141,12 +144,9 @@ We add some buttons for loading files and running the generator.
        genBt  <- button f  [text := "Generate", on command := genfn False False ]
        quitBt <- button f  [ text := "Quit",
                  on command := close f]
-                  
-\end{code}
-
-Let's not forget the optimisations...
-
-\begin{code}
+       -- -----------------------------------------------------------------
+       -- optimisations
+       -- -----------------------------------------------------------------
        algoChoiceBox <- radioBox f Vertical (map show mainBuilderTypes)
                         [ selection := case builderType config of
                                        SimpleBuilder -> 0
@@ -183,11 +183,9 @@ Let's not forget the optimisations...
        let togglePolStuff = do c <- get polChk checked
                                set extrapolText [ enabled := c ]
        set polChk [on command :~ (>> togglePolStuff) ]
-\end{code}
-
-Pack it all together, perform the layout operation.
-
-\begin{code}
+       -- -----------------------------------------------------------------
+       -- layout; packing it all together
+       -- -----------------------------------------------------------------
        -- set any last minute handlers, run any last minute functions
        let onLoad = readConfig f pstRef macrosFileLabel lexiconFileLabel testSuiteChoice tsTextBox testCaseChoice
        set loadMenIt [ on command := do configGui pstRef onLoad ]
@@ -231,8 +229,6 @@ Pack it all together, perform the layout operation.
        windowShow f
        windowRaise f 
 \end{code}
-
-Don't forget all the helper functions!
 
 \subsection{Configuration}
 
