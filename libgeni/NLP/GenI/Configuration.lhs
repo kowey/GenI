@@ -27,6 +27,7 @@ module NLP.GenI.Configuration
   , ExtraPolaritiesFlg(..)
   , HelpFlg(..)
   , IgnoreSemanticsFlg(..)
+  , InstructionsFileFlg(..)
   , LexiconFlg(..)
   , MacrosFlg(..)
   , MaxTreesFlg(..)
@@ -309,6 +310,8 @@ optionsForInputFiles =
   , testSuiteOption
   , morphInfoOption
   , outputOption
+  , Option [] ["instructions"] (reqArg InstructionsFileFlg id "FILE")
+      "instructions file FILE"
   , Option []    ["preselected"] (NoArg (Flag GrammarTypeFlg PreAnchored))
       "do NOT perform lexical selection - treat the grammar as the selection"
   ]
@@ -330,7 +333,6 @@ tracesOption =
 outputOption =
   Option ['o'] ["output"] (reqArg OutputFileFlg id "FILE")
     "output file FILE (stdout if unset)"
-
 \end{code}
 
 % --------------------------------------------------------------------
@@ -702,7 +704,9 @@ processInstructions config =
                          Just c  -> [ (ts, Just [c]) ]
                          Nothing -> [ (ts, Nothing)  ]
               Nothing -> []
-    is <- instructionsFile `fmap` getContents
+    is <- case getFlagP InstructionsFileFlg config of
+            Nothing -> return []
+            Just f  -> instructionsFile `fmap` readFile f
     -- basically set the test suite/case flag to the first instruction
     -- note that with the above code (which sets the first instruction
     -- to the test suite/case flag), this should work out to identity
@@ -785,6 +789,7 @@ FLAG (EarlyDeathFlg, ())
 FLAG (ExtraPolaritiesFlg, (Map.Map String Interval))
 FLAG (HelpFlg, ())
 FLAG (IgnoreSemanticsFlg, ())
+FLAG (InstructionsFileFlg, FilePath)
 FLAG (LexiconFlg, FilePath)
 FLAG (MacrosFlg, FilePath)
 FLAG (TracesFlg, FilePath)
