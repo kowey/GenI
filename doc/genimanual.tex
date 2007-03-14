@@ -45,6 +45,20 @@
 \renewcommand\FrameHeightAdjust{1pt}
 
 \newenvironment{code}{\comment}{\endcomment}
+\newenvironment{includecodeinmanual}
+{\renewenvironment{code}
+  {\VerbatimEnvironment
+   \footnotesize
+   %\begin{framedcode}
+   \begin{Verbatim}
+  }
+  {\end{Verbatim}
+   %\end{framedcode}
+   \normalsize }
+}
+{
+  \renewenvironment{code}{\comment}{\endcomment}
+}
 
 \begin{document}
 \title{Geni manual}

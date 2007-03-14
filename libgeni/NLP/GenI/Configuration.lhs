@@ -383,6 +383,7 @@ verboseOption = Option ['v'] ["verbose"] (noArg VerboseModeFlg)
   No results?  Make sure your rootfeat are set correctly.  GenI
   will reject all sentences whose root category does not unify
   with the rootfeat, the default of which is:
+\begin{includecodeinmanual}
 \begin{code}
 defaultRootFeat :: Flist
 defaultRootFeat =
@@ -391,6 +392,7 @@ defaultRootFeat =
   , ("wh"  , GConst ["-"])
   ]
 \end{code}
+\end{includecodeinmanual}
 
   You can set rootfeat to be empty (\verb![]!) if you want, in
   which case the realiser proper will return all results; but
