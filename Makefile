@@ -222,7 +222,7 @@ regression: $(GENI) etc/SumHUnit
 	etc/regression
 
 unit:
-	etc/quickcheck.py src/NLP/GenI/Btypes.lhs | ghci $(GHCI_FLAGS)
+	etc/quickcheck.py libgeni/NLP/GenI/Btypes.lhs | ghci $(GHCI_FLAGS)
 
 etc/SumHUnit : etc/SumHUnit.hs
 	ghc --make -o $@ $<
