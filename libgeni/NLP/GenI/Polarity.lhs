@@ -746,7 +746,7 @@ Notes
 \begin{code}
 assignIndex :: GeniVal -> TagElem -> TagElem 
 assignIndex i te =
-  let idxfs = [ ("idx", i) ]
+  let idxfs = [ (__idx__, i) ]
       oldt  = ttree te
       oldr  = root oldt
       tfup  = gup oldr
@@ -838,7 +838,7 @@ detectSansIdx =
       feats  t | ttype t == Initial = concat $ (rfeats t) : (substTops t)
       feats  t = concat $ substTops t
       attrs avs = [ a | (a,v) <- avs, isConst v ]
-      hasIdx t = "idx" `elem` (attrs.feats $ t) || (ttype t /= Initial && (null $ substTops t))
+      hasIdx t = __idx__ `elem` (attrs.feats $ t) || (ttype t /= Initial && (null $ substTops t))
   in filter (not.hasIdx)
 \end{code}
 
@@ -870,7 +870,7 @@ detectPols = map detectPols'
 
 detectPols' :: TagElem -> TagElem
 detectPols' te =
-  let otherFeats = [] --, "idx" ]
+  let otherFeats = [] --, __idx__ ]
       feats = __cat__ : otherFeats
       --
       rootdown  = (gdown.root.ttree) te
@@ -895,8 +895,9 @@ detectPols' te =
       oldfm = tpolarities te
   in te { tpolarities = foldr addPol oldfm pols }
 
-__cat__  :: String
+__cat__, __idx__  :: String
 __cat__  = "cat"
+__idx__  = "idx"
 
 getval :: String -> Flist -> [[String]]
 getval att fl =
