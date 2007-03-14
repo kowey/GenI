@@ -126,11 +126,11 @@ setFlagP    :: (Eq f, Show f, Show x, Typeable f, Typeable x) => (x -> f) -> x -
 getFlagP    :: (Show f, Show x, Typeable f, Typeable x) => (x -> f) -> Params -> Maybe x
 getListFlagP :: (Show f, Show x, Typeable f, Typeable x) => ([x] -> f) -> Params -> [x]
 
-hasFlagP f      = (hasFlag f) . geniFlags
+hasFlagP f      = hasFlag f . geniFlags
 deleteFlagP f p = p { geniFlags = deleteFlag f (geniFlags p) }
 setFlagP f v p  = p { geniFlags = setFlag f v (geniFlags p) }
-getFlagP f     = (getFlag f) . geniFlags
-getListFlagP f = (fromMaybe []) . (getFlagP f)
+getFlagP f     = getFlag f . geniFlags
+getListFlagP f = fromMaybe [] . getFlagP f
 -- | The default parameters configuration
 emptyParams :: Params
 emptyParams = Prms {
