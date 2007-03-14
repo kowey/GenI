@@ -51,8 +51,8 @@ import Control.Monad (when, liftM2)
 import Control.Monad.State
   (get, put, modify, gets, runState, execStateT)
 
-import Data.List (intersect, partition, delete, foldl')
-import Data.Maybe (isJust, isNothing, fromMaybe)
+import Data.List (partition, delete, foldl')
+import Data.Maybe (isJust, isNothing)
 import Data.Bits
 import qualified Data.Map as Map
 import Data.Tree
@@ -63,8 +63,7 @@ import NLP.GenI.Automaton ( automatonPaths, NFA(..), addTrans )
 import NLP.GenI.Btypes
   ( Ptype(Initial,Auxiliar)
   , Replacable(..), replaceOneAsMap
-  , GNode(..), gCategory, NodeName
-  , GeniVal(GConst)
+  , GNode(..), NodeName
   , root, foot
   , plugTree, spliceTree
   , unifyFeat, Flist, Subst, mergeSubst
@@ -82,7 +81,7 @@ import NLP.GenI.Tags (TagElem, TagSite(TagSite),
              tagLeaves, tidnum,
              ttree, ttype, tsemantics,
              detectSites,
-             ts_noRootCategory, ts_wrongRootCategory,
+             ts_rootFeatureMismatch,
             )
 import NLP.GenI.Configuration
 import NLP.GenI.General
@@ -534,7 +533,7 @@ switchToAux = do
   -- the root cat filter by Claire
   let switchFilter =
         if rootcatfiltered config
-        then dpRootCatFailure2 >--> dpToAgenda
+        then dpRootFeatFailure2 >--> dpToAgenda
         else dpToAgenda
   mapM switchFilter compT
   -- toss the syntactically incomplete stuff in the trash
@@ -919,12 +918,12 @@ type SimpleDispatchFilter = DispatchFilter SimpleState SimpleItem
 
 simpleDispatch_2p :: SimpleDispatchFilter
 simpleDispatch_2p =
- simpleDispatch (dpRootCatFailure >--> dpToResults)
+ simpleDispatch (dpRootFeatFailure >--> dpToResults)
                 (dpAux >--> dpToAgenda)
 
 simpleDispatch_1p :: Bool -> SimpleDispatchFilter
 simpleDispatch_1p iaf =
- simpleDispatch (dpRootCatFailure >--> dpTbFailure >--> dpToResults)
+ simpleDispatch (dpRootFeatFailure >--> dpTbFailure >--> dpToResults)
                 (maybeDpIaf >--> dpToAgenda)
  where maybeDpIaf = if iaf then dpIafFailure else nullFilter
 
@@ -937,7 +936,7 @@ simpleDispatch resFilter nonResFilter item =
     condFilter isResult resFilter nonResFilter item
 
 dpAux, dpToAgenda :: SimpleDispatchFilter
-dpTbFailure, dpRootCatFailure, dpRootCatFailure2, dpToResults :: SimpleDispatchFilter
+dpTbFailure, dpRootFeatFailure, dpRootFeatFailure2, dpToResults :: SimpleDispatchFilter
 dpToTrash :: String -> SimpleDispatchFilter
 
 dpToAgenda x  = addToAgenda x  >> return Nothing
@@ -974,21 +973,20 @@ dpTbFailure item =
 
 -- | If the item (ostensibly a result) does not have the correct root
 --   category, return Nothing; otherwise return Just item
-dpRootCatFailure  = dpRootCatFailure_ False
-dpRootCatFailure2 = dpRootCatFailure_ True
+dpRootFeatFailure  = dpRootFeatFailure_ False
+dpRootFeatFailure2 = dpRootFeatFailure_ True
 
-dpRootCatFailure_ :: Bool -> SimpleDispatchFilter
-dpRootCatFailure_ count item =
+dpRootFeatFailure_ :: Bool -> SimpleDispatchFilter
+dpRootFeatFailure_ count item =
  do config <- gets genconfig
-    let rootCats = fromMaybe [] $ getFlagP RootCategoriesFlg config
+    let rootFeat = getListFlagP RootFeatureFlg config
         (TagSite _ top _ _) = siRoot item
-    case gCategory top of
-     Just (GConst c) ->
-      if null $! intersect c rootCats
-         then do when count $ incrCounter "root_cat_discards" 1
-                 dpToTrash (ts_wrongRootCategory c rootCats) item
-         else return $ Just item
-     _ -> do dpToTrash ts_noRootCategory item
+    case unifyFeat rootFeat top of
+      Nothing ->
+        do when count $ incrCounter "root_feat_discards" 1
+           dpToTrash (ts_rootFeatureMismatch rootFeat) item
+      Just (_, s) ->
+        return . Just $ replace s item
 \end{code}
 % --------------------------------------------------------------------
 \subsection{Top and bottom unification}

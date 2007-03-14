@@ -38,7 +38,7 @@ module NLP.GenI.Configuration
   , OptimisationsFlg(..)
   , OutputFileFlg(..)
   , RegressionTestModeFlg(..)
-  , RootCategoriesFlg(..)
+  , RootFeatureFlg(..)
   , StatsFileFlg(..)
   , TestCaseFlg(..)
   , TestInstructionsFlg(..)
@@ -61,6 +61,7 @@ module NLP.GenI.Configuration
   , optionsForBasicStuff, optionsForOptimisation, optionsForMorphology, optionsForInputFiles
   , nubBySwitches
   , noArg, reqArg, optArg
+  , parseFlagWithParsec
   -- re-exports
   , module System.Console.GetOpt
   , Typeable
@@ -80,10 +81,11 @@ import System.Console.GetOpt
 import System.Exit ( exitFailure, exitWith, ExitCode(..) )
 import Data.List  ( find, intersperse, nubBy )
 import Data.Maybe ( catMaybes, fromMaybe, isNothing, fromJust )
-import Text.ParserCombinators.Parsec ( runParser )
+import Text.ParserCombinators.Parsec ( runParser, CharParser )
 
+import NLP.GenI.Btypes ( GeniVal(GConst), Flist, showFlist, )
 import NLP.GenI.General ( geniBug, fst3, snd3, Interval )
-import NLP.GenI.GeniParsers ( geniPolarities )
+import NLP.GenI.GeniParsers ( geniFeats, geniPolarities )
 \end{code}
 }
 
@@ -137,7 +139,7 @@ emptyParams = Prms {
   builderType   = SimpleBuilder,
   grammarType   = GeniHand,
   geniFlags     = [ Flag ViewCmdFlg "ViewTAG"
-                  , Flag RootCategoriesFlg ["s"] ]
+                  , Flag RootFeatureFlg defaultRootFeat ]
 }
 \end{code}
 
@@ -377,19 +379,27 @@ verboseOption = Option ['v'] ["verbose"] (noArg VerboseModeFlg)
   polarity-related, and all the adjunction-related
   optimisations respectively.
 
-\item[rootcats]
-  This flag is quite important if you enable the polarites
-  optimisation.  Polarity filtering only works if you tell GenI what are
-  the root categories in your grammar.  The default is \texttt{s} for
-  sentences.  But if your grammar stops working just because of
-  polarities, maybe it's because you're using some weird convention
-  like \texttt{p} for the French ``phrase''?  Note that you can have
-  more than one root cat, for example, \texttt{s np} if you want both
-  sentences and noun phrases as output.
+\item[rootfeat]
+  No results?  Make sure your rootfeat are set correctly.  GenI
+  will reject all sentences whose root category does not unify
+  with the rootfeat, the default of which is:
+\begin{code}
+defaultRootFeat :: Flist
+defaultRootFeat =
+  [ ("cat" , GConst ["s"])
+  , ("mode", GConst ["ind","subj"])
+  , ("wh"  , GConst ["-"])
+  ]
+\end{code}
+
+  You can set rootfeat to be empty (\verb![]!) if you want, in
+  which case the realiser proper will return all results; but
+  note that if you want to use polarity filtering, you must at
+  least specify a value for the \verb!cat! feature.
 
 \item[extrapols]
   Allows to to preset some polarities.  There's not very much use for
-  this, in my opinion.  Most likely, what you really want is rootcats.
+  this, in my opinion.  Most likely, what you really want is rootfeat.
 \end{description}
 
 \begin{code}
@@ -398,15 +408,18 @@ optionsForOptimisation =
    [ Option [] ["opts"]
          (reqArg OptimisationsFlg readOptimisations "LIST")
          "optimisations 'LIST' (--help for details)"
-   , Option [] ["rootcats"]
-         (reqArg RootCategoriesFlg words "LIST")
-         ("root categories 'LIST' (for polarities, default:"
-          ++ (unwords defaultRootCats) ++ ")")
+   , Option [] ["rootfeat"]
+         (reqArg RootFeatureFlg readRF "FEATURE")
+         ("root features 'FEATURE' (for polarities, default:"
+          ++ showFlist defaultRF ++ ")")
   , Option [] ["extrapols"]
          (reqArg ExtraPolaritiesFlg readPolarities "STRING")
-         "preset polarities (normally, you should use rootcats instead)"
+         "preset polarities (normally, you should use rootfeat instead)"
   ]
-  where defaultRootCats = fromMaybe [] (getFlagP RootCategoriesFlg emptyParams)
+  where
+   defaultRF = getListFlagP RootFeatureFlg emptyParams
+   readRF = parseFlagWithParsec "root feature" geniFeats
+   readPolarities = parseFlagWithParsec "polarity string" geniPolarities
 
 data Optimisation =
   PolOpts | AdjOpts | Polarised | NoConstraints |
@@ -494,12 +507,11 @@ lookupOptimisation :: String -> Maybe Optimisation
 lookupOptimisation code =
   liftM fst3 $ find (\x -> snd3 x == code) optimisationCodes
 
--- | Note: error if fails
-readPolarities :: String -> Map.Map String Interval
-readPolarities polStr =
-  case runParser geniPolarities () "" polStr of
-  Left err -> error (show err)
-  Right p2 -> p2
+parseFlagWithParsec :: String -> CharParser () b -> String -> b
+parseFlagWithParsec description p str =
+ case runParser p () "" str of
+ Left  err -> error $ "Couldn't parse " ++ description ++ " because " ++ show err
+ Right res -> res
 \end{code}
 
 % --------------------------------------------------------------------
@@ -782,7 +794,7 @@ FLAG (MorphLexiconFlg, FilePath)
 FLAG (OptimisationsFlg, [Optimisation])
 FLAG (OutputFileFlg, String)
 FLAG (RegressionTestModeFlg, ())
-FLAG (RootCategoriesFlg, [String])
+FLAG (RootFeatureFlg, Flist)
 FLAG (NoLoadTestSuiteFlg, ())
 FLAG (StatsFileFlg, FilePath)
 FLAG (TestCaseFlg, String)

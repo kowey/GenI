@@ -53,9 +53,9 @@ import Prelude hiding ( init )
 
 import NLP.GenI.Automaton (NFA, automatonPaths, automatonPathSets, numStates, numTransitions)
 import NLP.GenI.Configuration
-  ( getFlagP, hasFlagP, Params,
+  ( getListFlagP, getFlagP, hasFlagP, Params,
     ExtraPolaritiesFlg(..), MetricsFlg(..),
-    IgnoreSemanticsFlg(..), RootCategoriesFlg(..),
+    IgnoreSemanticsFlg(..), RootFeatureFlg(..),
     polarised )
 import NLP.GenI.General (geniBug, BitVector, multiGroupByFM, fst3, snd3, thd3)
 import NLP.GenI.Btypes
@@ -167,11 +167,11 @@ preInit input config =
      seminput = inSemInput input
      --
      extraPol = fromMaybe (Map.empty) $ getFlagP ExtraPolaritiesFlg config
-     rootCats = fromMaybe [] $ getFlagP RootCategoriesFlg config
+     rootFeat = getListFlagP RootFeatureFlg config
      -- do any optimisations
      isPol      = polarised config
      -- polarity optimisation (if enabled)
-     autstuff = buildAutomaton seminput cand rootCats extraPol
+     autstuff = buildAutomaton seminput cand rootFeat extraPol
      (_, seedAut, aut, sem2) = autstuff
      autpaths = map concat $ automatonPathSets aut
      combosPol = if isPol then autpaths else [cand]

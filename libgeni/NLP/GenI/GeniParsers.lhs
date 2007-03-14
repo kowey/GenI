@@ -36,8 +36,8 @@ module NLP.GenI.GeniParsers (
   geniMacros,
   -- lexicons
   geniLexicon, geniMorphLexicon, geniMorphInfo,
-  -- polarities
-  geniPolarities,
+  -- features and polarities
+  geniFeats, geniPolarities,
   -- TagElem,
   geniTagElems,
 ) where

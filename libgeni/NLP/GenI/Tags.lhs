@@ -29,7 +29,7 @@ module NLP.GenI.Tags(
    Tags, TagElem(..), TagItem(..), TagSite(..),
    TagDerivation, emptyTE,
    ts_synIncomplete, ts_semIncomplete, ts_tbUnificationFailure,
-   ts_noRootCategory, ts_wrongRootCategory,
+   ts_rootFeatureMismatch,
 
    -- Functions from Tags
    addToTags, tagLeaves,
@@ -58,7 +58,7 @@ import NLP.GenI.Btypes (Ptype(Initial, Auxiliar), SemPols,
                Collectable(..), Idable(..),
                Sem, Pred, emptyPred, 
                emptyGNode,
-               showPairs, showSem, lexemeAttributes,
+               showFlist, showPairs, showSem, lexemeAttributes,
                )
 import NLP.GenI.General (groupByFM, preTerminals)
 \end{code}
@@ -362,13 +362,12 @@ Whenever GenI decides to discard a tree, it sets the tdiagnostic field of
 the TagElem so that the person using a debugger can find out what went wrong.
 
 \begin{code}
-ts_synIncomplete, ts_tbUnificationFailure, ts_noRootCategory :: String
+ts_synIncomplete, ts_tbUnificationFailure :: String
 ts_synIncomplete = "syntactically incomplete"
 ts_tbUnificationFailure = "top/bot unification failure"
-ts_noRootCategory = "root category unset?!"
 
-ts_wrongRootCategory :: [String] -> [String] -> String
-ts_wrongRootCategory c cats = "wrong root category(ies): " ++ unwords c ++ " (should be: " ++ unwords cats ++ ")"
+ts_rootFeatureMismatch :: Flist -> String
+ts_rootFeatureMismatch good = "root feature does not unify with " ++ showFlist good
 
 ts_semIncomplete :: [Pred] -> String
 ts_semIncomplete sem = "semantically incomplete - missing:  " ++ showSem sem

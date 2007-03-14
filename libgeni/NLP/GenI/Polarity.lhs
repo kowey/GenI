@@ -68,7 +68,6 @@ module NLP.GenI.Polarity(PolAut, PolState(PolSt), AutDebug, PolResult,
                 makePolAut,
                 fixPronouns,
                 detectSansIdx, detectPolFeatures, detectPols, detectPolPaths,
-                prefixRootCat,
                 declareIdxConstraints, detectIdxConstraints,
                 showLite, showLitePm, showPolPaths, showPolPaths',
 
@@ -110,23 +109,16 @@ returns all the intermediate automata produced by the construction
 algorithm.
 
 \begin{code}
-buildAutomaton :: SemInput -> [TagElem] -> [String] -> PolMap ->  
-  PolResult
+buildAutomaton :: SemInput -> [TagElem] -> Flist -> PolMap -> PolResult
 
 -- | intermediate auts, seed aut, final aut, potentially modified sem
 type PolResult = ([AutDebug], PolAut, PolAut, Sem)
 type AutDebug  = (String, PolAut, PolAut)
 
-buildAutomaton (tsem,tres,_) candRaw rootCats extrapol  =
+buildAutomaton (tsem,tres,_) candRaw rootFeat extrapol  =
   let -- root catogories, index constraints, and external polarities
       rcatPol :: Map.Map String Interval
-      rcatPol = 
-        case rootCats of
-        []  -> Map.empty
-        [r] -> Map.singleton (prefixRootCat r) (ival (-1))
-        -- if there is more than one root category, we use
-        -- polarity intervals (which may be a bit less effective)
-        rs  -> Map.fromList $ map (\r -> (prefixRootCat r, (-1,0))) rs
+      rcatPol = Map.fromList $ polarise (-1) $ getval __cat__ rootFeat
       allExtraPols = Map.unionsWith (!+!) [ extrapol, inputRest, rcatPol ]
       -- index constraints on candidate trees
       detect      = detectIdxConstraints tres
@@ -878,61 +870,59 @@ detectPols = map detectPols'
 
 detectPols' :: TagElem -> TagElem
 detectPols' te =
-  let cat_  = "cat"
-      otherFeats = [] --, "idx" ]
-      feats = cat_ : otherFeats
+  let otherFeats = [] --, "idx" ]
+      feats = __cat__ : otherFeats
       --
       rootdown  = (gdown.root.ttree) te
       rootup    = (gup.root.ttree) te
       rstuff   :: [[String]]
-      rstuff   = getval cat_ rootup -- cat is special, see below
+      rstuff   = getval __cat__ rootup -- cat is special, see below
                  ++ (concatMap (\v -> getval v rootdown) otherFeats)
       -- re:above, cat it is considered global to the whole tree
       -- to be robust, we grab it from the top feature
       substuff :: [[String]]
       substuff = concatMap (\v -> concatMap (getval v) (substTops te)) feats
       --
-      getval :: String -> Flist -> [[String]]
-      getval att fl =
-        if all isConst values
-        then map (addPrefix.fromGConst) values
-        else error ("Not all values for feature " ++ att ++
-                    " are instantiated for polarity automata.")
-        where values = [ v | (a,v) <- fl, a == att ]
-              addPrefix :: [String] -> [String]
-              addPrefix = map (\x -> att ++ ('_' : x))
       -- substs nodes only
       commonPols :: [ (String,Interval) ]
-      commonPols = concatMap fn substuff 
-        where interval = (-1, 0)
-              fn []  = error "null GConst detected in detectPols':commonPols!"
-              fn [x] = [ (x, (-1,-1)) ]
-              fn amb = map (\x -> (x,interval)) amb
+      commonPols = polarise (-1) substuff
       -- substs and roots
-      ipols :: [ (String,Interval) ]
-      ipols = commonPols ++ concatMap fn rstuff 
-        where interval = (0, 1)
-              fn []  = error "null GConst detected in detectPols':iPols!"
-              fn [x] = [ (x, (1,1)) ]
-              fn amb = map (\x -> (x,interval)) amb
       pols :: [ (String,Interval) ]
-      pols  = if ttype te == Initial then ipols else commonPols 
+      pols  = case ttype te of
+                Initial -> commonPols ++ polarise 1 rstuff
+                _       -> commonPols
       --
       oldfm = tpolarities te
   in te { tpolarities = foldr addPol oldfm pols }
 
+__cat__  :: String
+__cat__  = "cat"
+
+getval :: String -> Flist -> [[String]]
+getval att fl =
+  let values = [ v | (a,v) <- fl, a == att ]
+  in if all isConst values
+     then map (prefixWith att . fromGConst) values
+     else error ("Not all values for feature " ++ att ++ " are instantiated for polarity automata.")
+
+toZero :: Int -> Interval
+toZero x | x < 0     = (x, 0)
+         | otherwise = (0, x)
+
+prefixWith :: String -> [String] -> [String]
+prefixWith att = map (\x -> att ++ ('_' : x))
+
+polarise :: Int -> [[String]] -> [ (String, Interval) ]
+polarise i = concatMap fn
+ where
+  fn [x] = [ (x, ival i) ]
+  fn amb = for amb $ \x -> (x, toZero i)
+
+for :: [a] -> (a -> b) -> [b]
+for = flip map
+
 substTops :: TagElem -> [Flist]
 substTops t = [ gup gn | gn <- (flatten.ttree) t, gtype gn == Subs ]
-\end{code}
-
-
-\paragraph{prefixRootCat} converts a category like ``s'' into an negative
-polarity like ``cat\_s''.  This is to offset the extra polarity that comes from
-automatically assigning a $+$ polarity to every root node category.
-
-\begin{code}
-prefixRootCat :: String -> String
-prefixRootCat cat = "cat_" ++ cat
 \end{code}
 
 \subsection{Chart sharing}

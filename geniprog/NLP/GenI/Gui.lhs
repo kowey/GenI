@@ -34,7 +34,6 @@ import Data.List (isPrefixOf, nub, delete, (\\), find)
 import Data.Maybe (isJust)
 import System.Directory 
 import System.Exit (exitWith, ExitCode(ExitSuccess))
-import Text.ParserCombinators.Parsec ( runParser )
 
 import qualified NLP.GenI.Builder as B
 import qualified NLP.GenI.BuilderGui as BG
@@ -42,12 +41,13 @@ import NLP.GenI.Geni
   ( ProgState(..), ProgStateRef, combine, initGeni
   , loadEverything, loadTestSuite, loadTargetSemStr)
 import NLP.GenI.General (boundsCheck, geniBug, trim, fst3)
-import NLP.GenI.Btypes (ILexEntry(isemantics), TestCase(..))
+import NLP.GenI.Btypes (ILexEntry(isemantics), TestCase(..), showFlist,)
 import NLP.GenI.Tags (idname, tpolarities, tsemantics, TagElem)
 import NLP.GenI.GeniShow (geniShow)
 import NLP.GenI.Configuration
   ( Params(..), Instruction, hasOpt
   , hasFlagP, deleteFlagP, setFlagP, getFlagP, getListFlagP
+  , parseFlagWithParsec
     --
   , ExtraPolaritiesFlg(..)
   , IgnoreSemanticsFlg(..)
@@ -57,7 +57,7 @@ import NLP.GenI.Configuration
   , MorphCmdFlg(..)
   , MorphInfoFlg(..)
   , OptimisationsFlg(..)
-  , RootCategoriesFlg(..)
+  , RootFeatureFlg(..)
   , TestSuiteFlg(..)
   , TestCaseFlg(..)
   , TestInstructionsFlg(..)
@@ -423,9 +423,9 @@ The first tab contains only the basic options:
   macrosBrowseBt  <- button pbas [ text := browseTxt ]
   lexiconBrowseBt <- button pbas [ text := browseTxt ]
   tsBrowseBt      <- button pbas [ text := browseTxt ]
-  -- root category 
-  rootCatsTxt <- entry pbas
-    [ text := maybe "" unwords $ getFlagP RootCategoriesFlg config
+  -- root feature
+  rootFeatTxt <- entry pbas
+    [ text := showFlist $ getListFlagP RootFeatureFlg config
     , size := longSize ]
   let layFiles = [ row 1 [ label "trees:" 
                          , fill $ widget macrosFileLabel
@@ -438,9 +438,9 @@ The first tab contains only the basic options:
                          , widget tsBrowseBt ]
                  , hspace 5
                  , hfill $ vrule 1
-                 , row 3 [ label "root categories (space delimited)"
+                 , row 3 [ label "root features"
                          , hglue
-                         , rigid $ widget rootCatsTxt ]  
+                         , rigid $ widget rootFeatTxt ]  
                  ] 
     -- the layout for the basic stuff
   let layBasic = dynamic $ container pbas $ -- boxed "Basic options" $ 
@@ -531,16 +531,14 @@ Let's not forget the layout which puts the whole configGui together and the
 command that makes everything ``work'':
 
 \begin{code}
-  let parsePol polStr
-       = case runParser geniPolarities () "" polStr of
-           Left err  -> error (show err)
-           Right pol -> pol
+  let parsePol = parseFlagWithParsec "polarities"    geniPolarities
+      parseRF  = parseFlagWithParsec "root features" geniFeats
       onLoad 
        = do macrosVal <- get macrosFileLabel text
             lexconVal <- get lexiconFileLabel text
             tsVal     <- get tsFileLabel text
             --
-            rootCatVal  <- get rootCatsTxt  text
+            rootCatVal  <- get rootFeatTxt  text
             extraPolVal <- get extraPolsTxt text
             --
             viewVal   <- get viewCmdTxt text 
@@ -561,7 +559,7 @@ command that makes everything ``work'':
                   . (maybeSetStr   MacrosFlg macrosVal)
                   . (maybeSetStr LexiconFlg lexconVal)
                   . (maybeSetStr TestSuiteFlg tsVal)
-                  . (maybeSet RootCategoriesFlg words rootCatVal)
+                  . (maybeSet RootFeatureFlg parseRF rootCatVal)
                   . (maybeSet ExtraPolaritiesFlg parsePol extraPolVal)
                   . (maybeSetStr ViewCmdFlg viewVal)
                   . (maybeSetStr MorphCmdFlg morphCmdVal)
