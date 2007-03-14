@@ -218,7 +218,7 @@ inflectSentencesUsingCmd morphcmd sentences =
      let delim    = [("----",[])]
          morphlst = concat (intersperse delim sentences)
      -- format the stuff as input to the inflector
-     let fn (lem,fs) = lem ++ " [" ++ showPairs fs ++ "]"
+     let fn (lem,fs) = lem ++ " " ++ showFlist fs
          order = unlines $ map fn morphlst 
      -- run the inflector
      (toP, fromP, _, pid) <- runInteractiveCommand morphcmd

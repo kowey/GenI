@@ -224,7 +224,7 @@ data SemInputString = SemInputString String Flist
 instance GeniShow SemInputString where
  geniShow (SemInputString semStr idxC) =
    SEMANTICS ++ ":" ++ semStr ++ (if null idxC then "" else r)
-   where r = "\n" ++ IDXCONSTRAINTS ++ ": [" ++ showPairs idxC ++ "]"
+   where r = "\n" ++ IDXCONSTRAINTS ++ ": " ++ showFlist idxC
 
 toSemInputString :: SemInput -> String -> SemInputString
 toSemInputString (_,lc,_) s = SemInputString s lc

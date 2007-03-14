@@ -46,7 +46,7 @@ module NLP.GenI.Btypes(
 
    -- Functions from Flist
    sortFlist, unify, unifyFeat, mergeSubst,
-   showPairs, showAv,
+   showFlist, showPairs, showAv,
 
    -- Other functions
    Replacable(..), replaceOneAsMap,
@@ -566,6 +566,9 @@ alphaConvert suffix x = {-# SCC "alphaConvert" #-}
 -- | Sort an Flist according with its attributes
 sortFlist :: Flist -> Flist
 sortFlist = sortBy (comparing fst)
+
+showFlist :: Flist -> String
+showFlist f = "[" ++ showPairs f ++ "]"
 
 showPairs :: Flist -> String
 showPairs = unwords . map showAv
