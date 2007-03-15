@@ -390,6 +390,7 @@ verboseOption = Option ['v'] ["verbose"] (noArg VerboseModeFlg)
 defaultRootFeat :: Flist
 defaultRootFeat =
   [ ("cat" , GConst ["s"])
+  , ("inv" , GConst ["-"])
   , ("mode", GConst ["ind","subj"])
   , ("wh"  , GConst ["-"])
   ]
