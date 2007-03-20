@@ -10,5 +10,5 @@ Maintainer:     eric.kow@loria.fr
 Executable:     geniconvert
 Hs-Source-Dirs: .
 Main-Is:        Converter.hs
-Extensions:     CPP, Rank2Types, OverlappingInstances, BangPatterns
-Ghc-options:    -Wall -O2 -funfolding-use-threshold=20
+Extensions:     CPP, Rank2Types, OverlappingInstances
+Ghc-options:    -Wall -O2

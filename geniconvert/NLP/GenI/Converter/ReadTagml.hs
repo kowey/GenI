@@ -21,7 +21,6 @@ module NLP.GenI.Converter.ReadTagml where
 
 import Data.Char
 import Data.List (sort,delete,find)
-import Data.Maybe (mapMaybe)
 import Data.Tree
 import Control.Monad.State (State, runState, get, put)
 import Text.XML.HaXml.XmlContent
@@ -35,7 +34,6 @@ import NLP.GenI.Btypes
   , GeniVal(GConst, GVar, GAnon), fromGConst, lexemeAttributes
   , emptyMacro, Ptype(..), Pred, Sem)
 -- import NLP.GenI.Tags(emptyTE,TagElem(..),Tags,TagSite,addToTags)
-import NLP.GenI.General (map')
 import qualified NLP.GenI.Converter.XmgTagml as X 
 
 -- ======================================================================
@@ -52,17 +50,16 @@ readTagmlMacros g =
 
 translateEntry :: X.Entry -> MTree
 translateEntry (X.Entry (X.Entry_Attrs tname) (X.Family family) (X.Trace trace) t sem (X.Interface iface)) =
- let !ifeats = case iface of
+ let ifeats = case iface of
               Nothing  -> []
               Just ifs -> translateFlatFs ifs
+     fromClass (X.Class s) = s
  in (translateTree t) { pfamily = family
                       , pidname = tname
                       , params  = []
                       , pinterface = ifeats
-                      , ptrace  = map' fromClass trace
+                      , ptrace  = map fromClass trace
                       , psemantics = Just $ translateSemantics sem }
-
-fromClass (X.Class s) = s
 
 -- | From HaXmL
 --   Read a fully-typed XML document from a string.
@@ -85,8 +82,8 @@ data TreeInfo = TI {
 -- some information which is global to the tree.
 translateTree :: X.Tree -> MTree
 translateTree (X.Tree _ root) =
-  let !initTi = TI { tiNum = 0, tiHasFoot = False }
-      !(tr,info) = runState (translateNode root) initTi
+  let initTi = TI { tiNum = 0, tiHasFoot = False }
+      (tr,info) = runState (translateNode root) initTi
   in emptyMacro { tree = tr
                 , ptype = if tiHasFoot info then Auxiliar else Initial
                 }
@@ -102,8 +99,8 @@ translateNode :: X.Node -> State TreeInfo (Tree GNode)
 translateNode node@(X.Node _ _ kids) = do
   st <- get
   -- update the monadic state
-  let !idnum = tiNum st
-      !gn    = translateNodeHelper idnum node
+  let idnum = tiNum st
+      gn    = translateNodeHelper idnum node
   put $ st { tiNum = idnum + 1,
              -- tiLex = if ntype == Lex then lex else (tiLex st),
              tiHasFoot = tiHasFoot st || gtype gn == Foot }
@@ -113,30 +110,29 @@ translateNode node@(X.Node _ _ kids) = do
   return $! Node gn kidsOut
 
 translateNodeHelper :: Int -> X.Node -> GNode
-translateNodeHelper !idnum (X.Node nattrs mnargs _) = gn where
-      !allFs = case mnargs of
-               Nothing         -> []
-               Just (X.Narg n) -> translateFs n
+translateNodeHelper idnum (X.Node nattrs mnargs _) = gn where
+      allFs = case mnargs of
+              Nothing         -> []
+              Just (X.Narg n) -> translateFs n
       --
       recursiveNamed x (Node (Left n) _) = n == x
       recursiveNamed _ _ = False
-      !topF_ = find (recursiveNamed "top") allFs
-      !botF_ = find (recursiveNamed "bot") allFs
-      !gloF_ = case topF_ of
-               Nothing -> gloF_'
-               Just t  -> delete t gloF_'
-       where !gloF_' = case botF_ of
-                       Nothing -> allFs
-                       Just b  -> delete b allFs
+      topF_ = find (recursiveNamed "top") allFs
+      botF_ = find (recursiveNamed "bot") allFs
+      gloF_ = case topF_ of
+              Nothing -> gloF_'
+              Just t  -> delete t gloF_'
+       where gloF_' = case botF_ of
+                      Nothing -> allFs
+                      Just b  -> delete b allFs
       --
       mflattenFs mfs = case mfs of Nothing -> []
                                    Just fs -> flattenFs fs
-      !topF = mflattenFs topF_
-      !botF = mflattenFs botF_
-      !gloF = concatMap flattenFs gloF_
+      topF = mflattenFs topF_
+      botF = mflattenFs botF_
+      gloF = concatMap flattenFs gloF_
       -- reading the node type
-      !xntype = X.nodeType nattrs
-      ntype = case xntype of
+      ntype = case X.nodeType nattrs of
                  X.Node_type_subst    -> Subs
                  X.Node_type_foot     -> Foot
                  X.Node_type_anchor   -> Lex
@@ -146,21 +142,21 @@ translateNodeHelper !idnum (X.Node nattrs mnargs _) = gn where
                  X.Node_type_nadj     -> Other
       -- figuring out what the lexeme might be
       -- (we a list of distinguished attributes, in order of preference)
-      lexL = concat $ map' (\la -> [ v | (a,v) <- gloF, a == la ])
+      lexL = concat $ map (\la -> [ v | (a,v) <- gloF, a == la ])
                       lexemeAttributes
       lexeme = case (ntype,lexL) of
                (Lex,h:_) -> fromGConst h
                _         -> []
-      !anchor = xntype == X.Node_type_anchor
-      !aconstr = case xntype of
+      anchor = X.nodeType nattrs == X.Node_type_anchor
+      aconstr = case X.nodeType nattrs of
                 X.Node_type_subst -> True
                 X.Node_type_foot  -> True
                 X.Node_type_nadj  -> True
                 _                 -> False
       -- the node name is either the counter or something hardset
-      !name = case X.nodeName nattrs of
-              Nothing     -> 'n' : (show idnum)
-              Just n      -> n
+      name = case X.nodeName nattrs of
+             Nothing     -> 'n' : (show idnum)
+             Just n      -> n
       -- saving the results in a Gnode
       gn = GN { gnname  = name,
                 gup     = sort $ topF ++ gloF,
@@ -176,7 +172,7 @@ translateNodeHelper !idnum (X.Node nattrs mnargs _) = gn where
 -- ----------------------------------------------------------------------
 
 translateSemantics :: X.Semantics -> Sem
-translateSemantics (X.Semantics ls) = map' translateSemantics_ ls
+translateSemantics (X.Semantics ls) = map translateSemantics_ ls
 
 translateSemantics_ :: X.Semantics_ -> Pred
 translateSemantics_ (X.Semantics_Literal l) = translateLiteral l
@@ -184,9 +180,9 @@ translateSemantics_ _ = geniXmlError "fancy semantics not supported"
 
 translateLiteral :: X.Literal -> Pred
 translateLiteral (X.Literal _ mlabel (X.Predicate pr) args) =
- let !label = case mlabel of
-              Nothing          -> GAnon
-              Just (X.Label s) -> translateSym s
+ let label = case mlabel of
+             Nothing          -> GAnon
+             Just (X.Label s) -> translateSym s
  in (label, translateSym pr, map translateArg args)
 
 translateArg :: X.Arg -> GeniVal
@@ -200,7 +196,7 @@ translateArg (X.ArgFs _) = geniXmlError "complex semantic arguments not supporte
 type FsTreeNode = Either String AvPair
 
 translateFs :: X.Fs -> Forest FsTreeNode 
-translateFs (X.Fs _ fs) = map' translateF fs
+translateFs (X.Fs _ fs) = map translateF fs
 
 translateF :: X.F -> Tree FsTreeNode
 translateF (X.FFs attr fs)  = Node (Left (X.fName attr)) (translateFs fs)
@@ -208,12 +204,12 @@ translateF (X.FSym attr s)  = Node (Right (X.fName attr, translateSym s))  []
 translateF (X.FVAlt attr d) = Node (Right (X.fName attr, translateVAlt d)) []
 
 flattenFs :: Tree FsTreeNode -> [AvPair]
-flattenFs = mapMaybe fromRight . flatten
+flattenFs = catMaybes . (map fromRight) . flatten
  where fromRight (Right r) = Just r
        fromRight _         = Nothing
 
 translateFlatFs :: X.Fs -> Flist
-translateFlatFs (X.Fs _ fs) = map' translateFlatF fs
+translateFlatFs (X.Fs _ fs) = map translateFlatF fs
 
 translateFlatF :: X.F -> AvPair
 translateFlatF (X.FFs _ _)      = error "translateFlatF called on recursive F"
@@ -231,7 +227,7 @@ translateSym s =
 
 -- atomic disjunction
 translateVAlt :: X.VAlt -> GeniVal
-translateVAlt (X.VAlt _ (NonEmpty ss)) = GConst $ map' (fromJ.(X.symValue)) ss
+translateVAlt (X.VAlt _ (NonEmpty ss)) = GConst $ map (fromJ.(X.symValue)) ss 
   where fromJ (Just n) = n
         fromJ _ = geniXmlError "atomic disjunction with non atomic component"
 
