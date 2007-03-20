@@ -24,7 +24,8 @@ import Data.List (sort,delete,find)
 import Data.Tree
 import Control.Monad.State (State, runState, get, put)
 import Text.XML.HaXml.XmlContent
-
+import Text.XML.HaXml.ParseLazy (xmlParse)
+import Text.XML.HaXml.Posn     (posInNewCxt)
 
 import NLP.GenI.Btypes
   ( AvPair, Flist
@@ -43,7 +44,7 @@ type MTree = Ttree GNode
 
 readTagmlMacros :: String -> Either String Macros
 readTagmlMacros g = 
- case readXml g of
+ case readXmlLazy g of
  Right (X.GrammarEntry es) -> Right $ map translateEntry es
  _ -> Left "Not a TAGML grammar entry"
 
@@ -60,6 +61,13 @@ translateEntry (X.Entry (X.Entry_Attrs tname) (X.Family family) (X.Trace trace) 
                       , ptrace  = map fromClass trace
                       , psemantics = Just $ translateSemantics sem }
 
+-- | From HaXmL
+--   Read a fully-typed XML document from a string.
+readXmlLazy :: XmlContent a => String -> Either String a
+readXmlLazy s =
+    let (Document _ _ y _) = xmlParse "string input" s in
+    fst (runParser parseContents
+                   [CElem y (posInNewCxt "string input" Nothing)])
 -- ----------------------------------------------------------------------
 -- Syntax
 -- ----------------------------------------------------------------------
