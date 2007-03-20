@@ -1,0 +1,14 @@
+Name:           geniconvert
+Version:        0.14
+License:        GPL
+License-file:   LICENSE
+Author:         Carlos Areces and Eric Kow
+Build-Depends:  GenI >=0.14, base, binary, haskell98, mtl, parsec, QuickCheck, HUnit, HaXml >=1.16
+Description:    Conversion utility for the GenI generator
+Maintainer:     eric.kow@loria.fr
+
+Executable:     geniconvert
+Hs-Source-Dirs: .
+Main-Is:        Converter.hs
+Extensions:     CPP, Rank2Types, OverlappingInstances
+Ghc-options:    -Wall -O2
