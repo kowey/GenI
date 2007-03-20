@@ -1,4 +1,11 @@
 #!/bin/sh
 
+PROG=geniconvert
+VIEW=open
+
 runhaskell Setup.lhs build
-dist/build/geniconvert/geniconvert -f tagml -t genib -o /tmp/toy.genib profiling/toy.xml +RTS -sstderr
+dist/build/${PROG}/${PROG} -f tagml -t genib -o /tmp/toy.genib profiling/toy.xml +RTS  -p -hm -sstdout | grep total
+rm -f ${PROG}.{ps,pdf}
+hp2ps ${PROG}.hp
+#${VIEW} ${PROG}.ps
+head ${PROG}.prof
