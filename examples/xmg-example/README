@@ -1,0 +1,8 @@
+This is a small demo using GenI with the rest of the SemTAG toolkit.
+You'll need to install:
+ XMG
+ the various XMG-TOOLS (namely CHECKER)
+ lexConverter
+
+But otherwise, it should just be a matter of running:
+ make

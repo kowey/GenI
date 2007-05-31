@@ -1,0 +1,6 @@
+Jean aime Marie.
+Jean est appelé par Marie.
+Marie aime Jean.
+Marie appelle.
+Jean qui appelle aime Marie.
+ils appellent.
