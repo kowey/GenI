@@ -86,7 +86,10 @@ instance GeniShow Pred where
 
 instance GeniShow GNode where
  geniShow x =
-  let gtypestr n = case (gtype n) of
+  let gaconstrstr = case (gaconstr x, gtype x) of
+                    (True, Other) -> "aconstr:noadj"
+                    _             ->  ""
+      gtypestr n = case (gtype n) of
                      Subs -> "type:subst"
                      Foot -> "type:foot"
                      Lex  -> if ganchor n && (null.glexeme) n
@@ -98,7 +101,7 @@ instance GeniShow GNode where
         where quote s = "\"" ++ s ++ "\""
               ls = glexeme n
       tbFeats n = (geniShow $ gup n) ++ "!" ++ (geniShow $ gdown n)
-  in unwords $ filter (not.null) $ [ gnname x, gtypestr x, glexstr x, tbFeats x ]
+  in unwords $ filter (not.null) $ [ gnname x, gaconstrstr, gtypestr x, glexstr x, tbFeats x ]
 
 instance (GeniShow a) => GeniShow [a] where
  geniShow = squares . unwords . (map geniShow)
