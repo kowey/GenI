@@ -42,7 +42,7 @@ import NLP.GenI.General
 import NLP.GenI.Geni
 import NLP.GenI.Configuration
   ( Params
-  , DisableGuiFlg(..), BatchDirFlg(..), EarlyDeathFlg(..), OutputFileFlg(..)
+  , DisableGuiFlg(..), BatchDirFlg(..), EarlyDeathFlg(..), FromStdinFlg(..), OutputFileFlg(..)
   , MetricsFlg(..), RegressionTestModeFlg(..), StatsFileFlg(..)
   , TestCaseFlg(..), TimeoutFlg(..),  VerboseModeFlg(..)
   , hasFlagP, getFlagP
@@ -132,7 +132,10 @@ runTestCaseOnly pstRef =
         pstOutfile = fromMaybe "" $ getFlagP OutputFileFlg config
         sFile      = fromMaybe "" $ getFlagP StatsFileFlg  config
     semInput <- case getFlagP TestCaseFlg config of
-                   Nothing -> getFirstCase pst
+                   Nothing -> if hasFlagP FromStdinFlg config
+                                 then do getContents >>= loadTargetSemStr pstRef
+                                         ts `fmap` readIORef pstRef
+                                 else getFirstCase pst
                    Just c  -> findCase pst c
     runOnSemInput pstRef (Standalone pstOutfile sFile) semInput
  where

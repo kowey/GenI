@@ -34,7 +34,7 @@ import System(getArgs)
 import NLP.GenI.Geni(emptyProgState)
 import NLP.GenI.Console(consoleGeni)
 import NLP.GenI.Configuration (treatStandardArgs, processInstructions,
-                               hasFlagP, BatchDirFlg(..), DisableGuiFlg(..),
+                               hasFlagP, BatchDirFlg(..), DisableGuiFlg(..), FromStdinFlg(..),
                                RegressionTestModeFlg(..),
                               )
 
@@ -72,8 +72,9 @@ main = do
   pstRef <- newIORef pst
   let batch   = hasFlagP BatchDirFlg confArgs
       console = hasFlagP DisableGuiFlg confArgs
+      fromstdin = hasFlagP FromStdinFlg confArgs
       regression = hasFlagP RegressionTestModeFlg confArgs
-  if (console || batch || regression)
+  if (fromstdin || console || batch || regression)
      then consoleGeni pstRef
      else guiGeni pstRef
 \end{code}
