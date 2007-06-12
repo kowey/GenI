@@ -25,6 +25,7 @@ module NLP.GenI.Configuration
   , DisableGuiFlg(..)
   , EarlyDeathFlg(..)
   , ExtraPolaritiesFlg(..)
+  , FromStdinFlg(..)
   , HelpFlg(..)
   , IgnoreSemanticsFlg(..)
   , InstructionsFileFlg(..)
@@ -243,9 +244,10 @@ treatArgsWithParams options argv initParams =
        | hasFlag DisableGuiFlg os
          && notHasFlag TestCaseFlg os
          && notHasFlag RegressionTestModeFlg os
-         && notHasFlag BatchDirFlg os ->
+         && notHasFlag BatchDirFlg os
+         && notHasFlag FromStdinFlg os ->
            do putStrLn $ "GenI must either be run in graphical mode, "
-                         ++ "in regression mode, with a test case specified "
+                         ++ "in regression mode, with a test case specified, with --from-stdin,"
                          ++ "or with a batch directory specified"
               exitFailure
        | otherwise ->
@@ -308,6 +310,7 @@ optionsForInputFiles =
   , lexiconOption
   , tracesOption
   , testSuiteOption
+  , fromStdinOption
   , morphInfoOption
   , outputOption
   , Option [] ["instructions"] (reqArg InstructionsFileFlg id "FILE")
@@ -579,6 +582,10 @@ readBuilderType b =
 % --------------------------------------------------------------------
 
 \begin{code}
+fromStdinOption :: OptDescr Flag
+fromStdinOption =
+  Option [] ["from-stdin"] (noArg FromStdinFlg) "get testcase from stdin"
+
 testSuiteOption :: OptDescr Flag
 testSuiteOption =
   Option ['s'] ["testsuite"] (reqArg TestSuiteFlg id "FILE") "test suite FILE"
@@ -586,6 +593,7 @@ testSuiteOption =
 optionsForTesting :: [OptDescr Flag]
 optionsForTesting =
   [ testSuiteOption
+  , fromStdinOption
   , Option []    ["testcase"]   (reqArg TestCaseFlg id "STRING")
       "run test case STRING"
   , Option []    ["timeout"] (reqArg TimeoutFlg read "SECONDS")
@@ -788,6 +796,7 @@ FLAG (BatchDirFlg, FilePath)
 FLAG (DisableGuiFlg, ())
 FLAG (EarlyDeathFlg, ())
 FLAG (ExtraPolaritiesFlg, (Map.Map String Interval))
+FLAG (FromStdinFlg, ())
 FLAG (HelpFlg, ())
 FLAG (IgnoreSemanticsFlg, ())
 FLAG (InstructionsFileFlg, FilePath)
