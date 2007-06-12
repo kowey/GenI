@@ -20,7 +20,7 @@
 
 module NLP.GenI.Console(consoleGeni, runTestCaseOnly) where
 
-import Control.Monad ( when, unless )
+import Control.Monad
 import Data.IORef(readIORef, modifyIORef)
 import Data.List(find, sort)
 import Data.Maybe ( isJust, fromMaybe )
@@ -42,7 +42,7 @@ import NLP.GenI.General
 import NLP.GenI.Geni
 import NLP.GenI.Configuration
   ( Params
-  , DisableGuiFlg(..), BatchDirFlg(..), EarlyDeathFlg(..), FromStdinFlg(..), OutputFileFlg(..)
+  , BatchDirFlg(..), EarlyDeathFlg(..), FromStdinFlg(..), OutputFileFlg(..)
   , MetricsFlg(..), RegressionTestModeFlg(..), StatsFileFlg(..)
   , TestCaseFlg(..), TimeoutFlg(..),  VerboseModeFlg(..)
   , hasFlagP, getFlagP
@@ -56,10 +56,6 @@ import NLP.GenI.Statistics ( showFinalStats, Statistics )
 consoleGeni :: ProgStateRef -> IO()
 consoleGeni pstRef = do
   pst <- readIORef pstRef
-  let config = pa pst
-  unless (hasFlagP DisableGuiFlg config) $
-    ePutStrLn "GUI not available"
-  --
   loadEverything pstRef
   case getFlagP TimeoutFlg (pa pst) of
     Nothing -> runSuite pstRef
