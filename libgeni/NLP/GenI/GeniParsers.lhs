@@ -329,17 +329,20 @@ geniTreeDef =
      theTtype  <- (initType <|> auxType)
      theTree  <- geniTree
      -- sanity checks?
+     let treeFail x =
+          do setPosition sourcePos -- FIXME does not do what I expect
+             fail $ "In tree " ++ family ++ ":" ++ tname ++ " " ++ show sourcePos ++ ": " ++ x
      let theNodes = T.flatten theTree
          numFeet    = length [ x | x <- theNodes, gtype x == Foot ]
          numAnchors = length [ x | x <- theNodes, ganchor x ]
      when (not $ any ganchor theNodes) $
-       fail "At least one node in an LTAG tree must be an anchor"
+       treeFail "At least one node in an LTAG tree must be an anchor"
      when (numAnchors > 1) $
-       fail "There can be no more than 1 anchor node in a tree"
+       treeFail "There can be no more than 1 anchor node in a tree"
      when (numFeet > 1) $
-       fail "There can be no more than 1 foot node in a tree"
+       treeFail "There can be no more than 1 foot node in a tree"
      when (theTtype == Initial && numFeet > 0) $
-       fail "Initial trees may not have foot nodes"
+       treeFail "Initial trees may not have foot nodes"
      --
      psem     <- option Nothing $ do { keywordSemantics; liftM Just (squares geniSemantics) }
      ptrc     <- option [] $ do { keyword TRACE; squares (many identifier) }
