@@ -532,9 +532,9 @@ geniMorphLexicon = tillEof $ many morphLexiconEntry
 
 morphLexiconEntry :: Parser (String, String, Flist)
 morphLexiconEntry =
- do inflected <- geniWord
+ do inflected <- geniWord <|> stringLiteral
     whiteSpace
-    lemma     <- geniWord
+    lemma     <- geniWord <|> stringLiteral
     whiteSpace
     feats     <- geniFeats
     return (inflected, lemma, feats)
