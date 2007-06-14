@@ -81,8 +81,6 @@ n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p]
   n2 type:anchor [cat:v idx:?E]![]
 }
 
-begin initial 
-
 % infinitive: le donner un livre (je promets de le donner un livre)
 vArity3:cl2vinfn0(?E ?X ?Y ?Z) initial 
 n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p]
@@ -93,7 +91,7 @@ n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p]
 }  
 
   %1 declarative	gn promet gn sp_a
-vArity3:n0vn1sp2(?E ?X ?Y ?Z)  
+vArity3:n0vn1sp2(?E ?X ?Y ?Z) initial
 n1[cat:p mode:FIXME]![]
 {
   n2 type:subst [cat:n pers:?Pers num:?Num idx:?X det:plus qu:minus]![cat:n idx:?X]
@@ -113,7 +111,7 @@ n1[cat:p mode:FIXME]![]
 
 
   %2 infinitive	?V GN SP_a
-vArity3:vinfn1sp2(?E ?X ?Y ?Z) 
+vArity3:vinfn1sp2(?E ?X ?Y ?Z) initial
 n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p]
 {
   n2 type:anchor [cat:v idx:?E]![]
@@ -127,7 +125,7 @@ n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p]
   }
 }
 
-vArity3:n0vn1inf2(?E ?X ?Y ?Z) 
+vArity3:n0vn1inf2(?E ?X ?Y ?Z) initial
 n1[cat:p mode:FIXME]![]
 {
   n2 type:subst [cat:n idx:?X pers:?Pers num:?Num det:plus qu:minus]![cat:n idx:?X]
@@ -145,8 +143,6 @@ n1[cat:p mode:FIXME]![]
   }
   n9 type:subst [cat:p idx:?Y mode:inf]![cat:p idx:?Y] 
 }
-
-end initial
 
 %8 relative objet indirect
 vArity3:rel2n0vn1(?E ?X ?Y ?Z) auxiliary
@@ -171,9 +167,8 @@ n0[cat:n idx:?Z det:plus]![cat:n idx:?Z]
   }
 }
 
-begin initial
   %9 declarative	GN V GN_a Pinf_de
-vArity3control:n0vsp2pinf1(?E ?X ?Y ?Z) 
+vArity3control:n0vsp2pinf1(?E ?X ?Y ?Z) initial
 n1[cat:p mode:FIXME]![]
 {
   n2 type:subst [cat:n pers:?Pers num:?Num idx:?X det:plus qu:minus]![cat:n idx:?X]
@@ -198,7 +193,7 @@ n1[cat:p mode:FIXME]![]
 }
 
   %10 infinitive	V SP_a Inf_de
-vArity3control:vinfsp2pinf1(?E ?X ?Y ?Z) 
+vArity3control:vinfsp2pinf1(?E ?X ?Y ?Z)  initial
 n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p] 
 {
   n2 type:anchor [cat:v idx:?E]![]
@@ -221,7 +216,7 @@ n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p]
 }
 
   % kowey: promettre a marie de faire...
-vArity3control:vinfn2pinf1(?E ?X ?Y ?Z) 
+vArity3control:vinfn2pinf1(?E ?X ?Y ?Z) initial
 n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p] 
 {
   n2 type:anchor [cat:v idx:?E]![]
@@ -242,11 +237,9 @@ n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p]
     n13 type:subst [cat:p idx:?Y mode:inf sujidx:?X]![cat:p idx:?Y]
   }
 }
-end initial
 
-begin auxiliary
   %13 relative sujet	qui V sp_a pinf_de
-vArity3control:rel0vsp2pinf1(?E ?X ?Y ?Z) 
+vArity3control:rel0vsp2pinf1(?E ?X ?Y ?Z) auxiliary
 n0[cat:n idx:?X det:plus]![cat:n idx:?X]
 {
   n1 type:foot [cat:n idx:?X]![cat:n idx:?X]
@@ -300,7 +293,7 @@ n0[cat:n idx:?Y det:plus]![cat:n idx:?Y]
   }}
 
 
-vArity3control:rel0vn2pinf1(?E ?X ?Y ?Z) 
+vArity3control:rel0vn2pinf1(?E ?X ?Y ?Z) auxiliary
 n0[cat:n idx:?X det:plus]![cat:n idx:?X]
 {
   n1 type:foot [cat:n idx:?X]![cat:n idx:?X]
@@ -318,8 +311,8 @@ n0[cat:n idx:?X det:plus]![cat:n idx:?X]
       n10 type:subst [cat:p idx:?Z mode:inf sujidx:?X]![cat:p idx:?Z]
     }}}
 
-  % relative sujet
-vArity3control:rel0vn1sp2(?E ?X ?Y ?Z) 
+% relative sujet
+vArity3control:rel0vn1sp2(?E ?X ?Y ?Z) auxiliary
 n0[cat:n idx:?X det:plus]![cat:n idx:?X]
 {
   n1 type:foot [cat:n idx:?X]![cat:n idx:?X]
@@ -359,7 +352,7 @@ n0[cat:n idx:?X det:plus]![cat:n idx:?X]
 }
 
   % relative objet indirect
-rel2vn0n1(?E ?X ?Y ?Z) 
+rel2vn0n1(?E ?X ?Y ?Z) auxiliary
 n0[cat:n idx:?Y det:plus]![cat:n idx:?Y]
 {
   n1 type:foot [cat:n idx:?Y]![cat:n idx:?Y]
@@ -380,12 +373,10 @@ n0[cat:n idx:?Y det:plus]![cat:n idx:?Y]
     }
   }
 }
-end auxiliary
 
-begin initial
   % kowey: for persuader instead of promettre
   % (sujidx is set differently)
-vArity3controlObj:n0vsp2pinf1b(?E ?X ?Y ?Z) 
+vArity3controlObj:n0vsp2pinf1b(?E ?X ?Y ?Z) initial
 n1[cat:p mode:FIXME]![]
 {
   n2 type:subst [cat:n idx:?X det:plus qu:minus]![cat:n idx:?X]
@@ -407,7 +398,7 @@ n1[cat:p mode:FIXME]![]
 }
 
   %15 declarative gn0 persuade gn2 pinf_de1	n0vn2pinf1 
-vArity3controlObj:n0vn2pinf1b(?E ?X ?Y ?Z) 
+vArity3controlObj:n0vn2pinf1b(?E ?X ?Y ?Z) initial
 n1[cat:p mode:FIXME]![]
 {
   n2 type:subst [cat:n idx:?X det:plus qu:minus]![cat:n idx:?X]
@@ -423,7 +414,7 @@ n1[cat:p mode:FIXME]![]
 }
 
   %15 infinitive persuader gn  pinf_de	vinfn2pinf1
-vArity3controlObj:vinfn2pinf1b(?E ?X ?Y ?Z) 
+vArity3controlObj:vinfn2pinf1b(?E ?X ?Y ?Z) initial
 n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p] 
 {
   n2 type:anchor [cat:v idx:?E]![]
@@ -438,7 +429,7 @@ n1[cat:p idx:?E mode:inf sujidx:?X]![cat:p]
 }
 
   %18 rel-sjt	 n qui persuade gn  pinf_de	rel0vn2pinf1
-vArity3controlObj:n0vn1sp2(?E ?X ?Y ?Z) 
+vArity3controlObj:n0vn1sp2(?E ?X ?Y ?Z) initial
 n1[cat:p mode:FIXME]![]
 {
   n2 type:subst [cat:n idx:?X det:plus qu:minus]![cat:n idx:?X]
@@ -453,8 +444,6 @@ n1[cat:p mode:FIXME]![]
     ] 
   }
 }
-
-end initial
 
 % vi: set cinoptions=0,p0:
 
