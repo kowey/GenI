@@ -299,27 +299,9 @@ geniLexicalEntry =
 
 A macro library is basically a list of trees.
 
-Trees may be defined individually or in anonymous groups.  Definining a
-tree as a group does not have any effect other than saving you from
-typing ``initial'' or ``auxiliary'' all the time, because if you define a
-tree group, you can leave those definitions out.  (Note: you may also
-leave them in, but the definition must match the group type)
-
 \begin{code}
 geniMacros :: Parser [MTtree]
-geniMacros = tillEof $ concat `fmap` many geniTreeGroup
-
-geniTreeGroup :: Parser [MTtree]
-geniTreeGroup = 
-  do     many1 (try $ geniTreeDef $ initType <|> auxType)
-     <|> group initType Initial  
-     <|> group auxType  Auxiliar
-  where 
-    group key ty =
-      do try $ do { reserved BEGIN; key }
-         t <- many (try $ geniTreeDef $ option ty key)
-         reserved END ; key
-         return t
+geniMacros = tillEof $ many geniTreeDef
 
 initType, auxType :: Parser Ptype
 initType = do { reserved INITIAL ; return Initial  }
@@ -338,12 +320,13 @@ A tree definition consists of
 \end{enumerate}
 
 \begin{code}
-geniTreeDef :: Parser Ptype -> Parser MTtree
-geniTreeDef ttypeP =
-  do family   <- identifier 
+geniTreeDef :: Parser MTtree
+geniTreeDef =
+  do sourcePos <- getPosition
+     family   <- identifier
      tname    <- option "" $ do { colon; identifier }
      (pars,iface)   <- geniParams 
-     theTtype  <- ttypeP
+     theTtype  <- (initType <|> auxType)
      theTree  <- geniTree
      -- sanity checks?
      let theNodes = T.flatten theTree
