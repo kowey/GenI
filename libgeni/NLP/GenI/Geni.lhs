@@ -46,7 +46,7 @@ import Control.Monad (unless)
 
 import Data.Binary (Binary, decodeFile)
 import Data.IORef (IORef, readIORef, modifyIORef)
-import Data.List (group, intersperse, sort, nub, nubBy, partition)
+import Data.List
 import qualified Data.Map as Map
 import Data.Maybe (mapMaybe, fromMaybe, isJust)
 import Data.Tree (Tree(Node))
@@ -229,13 +229,13 @@ loadLexicon pstRef =
            sorter l  = l { isemantics = (sortSem . getSem) l }
            cleanup   = mapBySemKeys isemantics . map sorter
        loadThingOrDie LexiconFlg "lexicon" pstRef
-         (parseFromFileOrTryBinary geniLexicon)
+         (parseFromFileOrFail geniLexicon)
          (\l p -> p { le = cleanup l })
 
 -- | The macros are stored as a hashing function in the monad.
 loadGeniMacros pstRef =
   loadThingOrDie MacrosFlg "trees" pstRef parser updater
-  where parser = parseFromFileOrTryBinary geniMacros
+  where parser = parseFromMaybeBinaryOrFail geniMacros
         updater g p = p { gr = g }
 
 
@@ -353,12 +353,14 @@ loadThing filename description pstRef parser job =
 parseFromFileOrFail :: Parser a -> FilePath -> IO a
 parseFromFileOrFail p f = parseFromFile p f >>= either (fail.show) (return)
 
-parseFromFileOrTryBinary :: Binary a
+parseFromMaybeBinaryOrFail :: Binary a
                          => Parser a
                          -> FilePath
                          -> IO a
-parseFromFileOrTryBinary p f =
- parseFromFile p f >>= either (\_ -> decodeFile f) (return)
+parseFromMaybeBinaryOrFail p f =
+ if (".genib" `isSuffixOf` f)
+    then decodeFile f
+    else parseFromFileOrFail p f
 \end{code}
 
 % --------------------------------------------------------------------
