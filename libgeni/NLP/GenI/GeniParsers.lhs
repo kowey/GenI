@@ -732,16 +732,10 @@ geniValue =   ((try $ anonymous) <?> "_ or ?_")
           <|> (variable   <?> "a variable")
   where 
     question = "?"
-    geniId =
-      -- we don't use identifiers because we don't respect any
-      -- notion of reserved words
-      do v <- many1 (alphaNum <|> oneOf "+-_")
-         whiteSpace
-         return v
     --
     constants :: Parser GeniVal 
     constants = 
-      do c <- sepBy1 (geniId <|> stringLiteral) (symbol "|")
+      do c <- sepBy1 (looseIdentifier <|> stringLiteral) (symbol "|")
          return (GConst c)
     variable :: Parser GeniVal
     variable = 
