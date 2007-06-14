@@ -567,7 +567,7 @@ geniLanguageDef = emptyDef
          , identLetter = identStuff
          , identStart  = identStuff
          }
-  where identStuff = alphaNum <|> oneOf "_'-."
+  where identStuff = alphaNum <|> oneOf "_'+-."
 
 whiteSpace :: CharParser () ()
 whiteSpace = P.whiteSpace lexer
