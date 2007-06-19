@@ -821,7 +821,7 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
               myRes = modifyGuiStuff (constrainAdj an_name anf_tb) res'
 #endif
           -- apply the substitutions
-              res' = replace (mergeSubst subst12 subst3) rawCombined
+              res' = replace subst3 $ replace subst12 rawCombined
           return myRes
   -- ---------------
   if twophase then finalRes2p else finalRes1p
