@@ -788,7 +788,7 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
       subst12 = mergeSubst subst1 subst2
       -- the result of unifying the t1 root and the t2 an
       anr = TagSite r_name (replace subst2 anr_up') r_down rOrigin
-  let anf_up = replace subst2 f_up
+  let anf_up = replace subst12 f_up
       -- the new adjunction nodes
       auxlite = delete r $ siAdjnodes aItem
       newadjnodes = anr : (atail ++ auxlite)
