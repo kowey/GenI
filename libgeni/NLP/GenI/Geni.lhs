@@ -495,32 +495,6 @@ readPidname n =
   _         -> geniBug "readPidname or combineName are broken"
 \end{code}
 
-%\paragraph{describeOpts} concisely describes the optimisations used
-%by GenI in a short string.  Each optimisation is described as a one
-%to three letter code:
-%
-%\begin{code}
-%describeOpts :: Params -> String
-%describeOpts config =
-%  let polkey = "pol"
-%      polplus  = ""
-%       ++ "A" -- always detects polarities
-%       ++ (if polsig  config then "S" else "")
-%       ++ (if chartsharing config then "C" else "")
-%      --
-%      adjkey = "adj"
-%      adjplus  = ""   
-%       ++ (if semfiltered config then "S" else "")
-%       ++ "O" -- always uses ordered adjunction
-%       ++ (if footconstr  config then "F" else "")
-%      --
-%      optPol = if polarised config then polkey ++ polStuff else ""
-%        where polStuff = if null polplus then "" else ":" ++ polplus
-%      optAdj = if null adjplus then "" else " " ++ adjkey ++ ":" ++ adjplus
-%      optAll = optPol ++ optAdj
-% in if null optAll then "none" else optAll
-%\end{code}
-
 % --------------------------------------------------------------------
 \section{Lexical selection}
 \label{sec:candidate_selection} \label{sec:lexical_selecetion} \label{par:lexSelection}
