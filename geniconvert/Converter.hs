@@ -25,54 +25,94 @@ module Main (main) where
 import Data.Binary (encodeFile)
 import Data.IORef (newIORef, modifyIORef, readIORef)
 import Data.List (intersperse)
+import Data.Maybe
 import System (ExitCode(ExitFailure), exitWith, getArgs, getProgName)
-import System.Console.GetOpt(OptDescr(Option), ArgDescr(ReqArg), usageInfo, getOpt, ArgOrder(Permute))
+import System.Console.GetOpt(OptDescr(Option), ArgDescr(..), usageInfo, getOpt, ArgOrder(Permute))
 import System.IO(getContents)
 import System.IO.Unsafe(unsafeInterleaveIO)
 import Text.ParserCombinators.Parsec
 
 import NLP.GenI.Btypes (Macros,pfamily,MTtree)
 import NLP.GenI.BtypesBinary ()
-import NLP.GenI.General (ePutStrLn, toUpperHead)
+import NLP.GenI.General
 import NLP.GenI.GeniParsers (geniMacros)
 import NLP.GenI.GeniShow (geniShow)
 import NLP.GenI.HsShow (hsShow)
 import NLP.GenI.Converter.ReadTagml (readTagmlMacros)
 
 data Flag = FromFlg String | ToFlg String | OutputFlg String
+          | MacrosFlg | LexiconFlg | MorphLexiconFlg
+ deriving (Eq)
 
 options :: [OptDescr Flag]
 options =
   [ Option "f" ["from"] (ReqArg FromFlg "TYPE") "tagml|geni"
   , Option "t" ["to"]   (ReqArg ToFlg "TYPE")   "haskell|geni|genib"
   , Option "o" ["output"]  (ReqArg OutputFlg "STRING")  "output file, or -t haskell, prefix for output files"
+  --
+  , Option "m" ["--macros"]  (NoArg MacrosFlg)"input file is a macros file (default)"
+  , Option "l" ["--lexicon"] (NoArg LexiconFlg) "input file is a lexicon file"
+  , Option ""  ["--morphlexicon"] (NoArg MorphLexiconFlg) "input file is a morphological lexicon"
   ]
+
+type Mutex = ([Flag],String)
+
+mutexes :: [Mutex]
+mutexes =
+  [ ( [MacrosFlg, LexiconFlg, MorphLexiconFlg], "--macros, --lexicon and --morphlexicon")
+  ]
+
+-- | Return all failures mutually exclusive options
+getMutexFailures :: [Flag] -> [String]
+getMutexFailures fs = mapMaybe getMf mutexes
+ where
+  getMf (mfs,d) = if length [ f | f <- fs, f `elem` mfs ] > 1
+                     then Nothing
+                     else Just d
+
+hasMutexFailures :: [Flag] -> Bool
+hasMutexFailures = not . null . getMutexFailures
+
+data InputType = MacrosItype | LexiconItype | MorphLexiconItype
 
 data InputParams = InputParams { fromArg :: String
                                , toArg   :: String
-                               , stemArg :: String }
+                               , stemArg :: String
+                               , itype   :: InputType
+                               }
+
+defaultParams :: InputParams
+defaultParams = InputParams "" "" "" MacrosItype
 
 toInputParams :: [Flag] -> InputParams
-toInputParams [] = InputParams "" "" ""
-toInputParams (FromFlg x : n)    = (toInputParams n) { fromArg = x }
-toInputParams (ToFlg x : n)      = (toInputParams n) { toArg = x }
-toInputParams (OutputFlg x : n)  = (toInputParams n) { stemArg = x }
+toInputParams fs = foldr ($) defaultParams $ map processFlag fs
+
+processFlag :: Flag -> InputParams -> InputParams
+processFlag (FromFlg x)     = \p -> p { fromArg = x }
+processFlag (ToFlg x)       = \p -> p { toArg = x }
+processFlag (OutputFlg x)   = \p -> p { stemArg = x }
+processFlag MacrosFlg       = \p -> p { itype = MacrosItype }
+processFlag LexiconFlg      = \p -> p { itype = LexiconItype }
+processFlag MorphLexiconFlg = \p -> p { itype = MorphLexiconItype }
 
 main :: IO ()
 main =
  do args <- getArgs
     progname <- getProgName
     case getOpt Permute options args of
+     (o, _, _) | hasMutexFailures o ->
+       do ePutStr $ unlines [ d ++ " are mutually exclusive" | d <- getMutexFailures o ]
+          exitWith (ExitFailure 1)
      (o,fs,[]  ) ->
-       let (InputParams fTy tTy f) = toInputParams o in
+       let (InputParams iFormat oFormat f iTy) = toInputParams o in
        do mInitialiseFile f
-          case tTy of
+          case oFormat of
            "haskell" -> if null f
                         then ePutStrLn $ "Can't write haskell to stdout (Please provide a stem)."
-                        else doHaskell fTy f fs
-           "geni"    -> readAndWriteMacros fTy fs (geniWriter f)
-           "genib"   -> readAndWriteMacros fTy fs (encodeFile f)
-           _         -> do ePutStrLn $ "Unkwown output type : " ++ tTy
+                        else doHaskell iFormat f fs
+           "geni"    -> readAndWriteMacros iFormat fs (geniWriter f)
+           "genib"   -> readAndWriteMacros iFormat fs (encodeFile f)
+           _         -> do ePutStrLn $ "Unkwown output format: " ++ oFormat
                            exitWith (ExitFailure 1)
      _         -> showUsage progname
  where
