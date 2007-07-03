@@ -48,25 +48,27 @@ main =
      _           -> showUsage progname
  where
   showUsage p = do
-    let header = "usage: " ++ p ++ " [--macros|--lexicon|--morphlexicon] -f [tagml|geni] -t [haskell|geni|genib] < input > output"
+    let header = "usage: " ++ p ++ " [--macros|--lexicon|--morphlexicon] -f [tagml|geni] -t [haskell|geni|genib] -o output < input"
     ePutStrLn $ usageInfo header options
     exitWith (ExitFailure 1)
 
 convert :: InputParams -> [FilePath] -> IO ()
 convert (InputParams iForm oForm f iType) fs =
- do when (not (null f)) $
-      writeFile f ""
-    iFormat <- case getFormat iForm of
+ do iFormat <- case getFormat iForm of
                  Nothing -> fail $ "Unknown input format: " ++ iForm
                  Just fo -> return fo
     oFormat <- case getFormat oForm of
                  Nothing -> fail $ "Unknown output format: " ++ oForm
                  Just fo -> return fo
+    when (null f) $
+      fail $ "Sorry, you must specify an output file with -o"
+    when (oFormat == genibFormat && null fs) $
+      fail $ "Sorry, I can't convert more than one file to genib format at a time"
     let getParser p = maybe     (oops iFormat "parse") textReader $ p iFormat
         getReader r = fromMaybe (oops iFormat "read")             $ r iFormat
         getWriter w = fromMaybe (oops oFormat "write")            $ w oFormat
         oops format d =
-           fail $ unwords [ "Sorry, I don't know how to", d, show iType, "in the", showFormat format, "format." ]
+           fail $ unwords [ "Sorry, I don't know how to", d, show iType, "in the", showFormat format, "format" ]
     let convertString x = case iType of
                             MacrosItype       -> getParser parseMacros x       >>= (getWriter writeMacros f)
                             LexiconItype      -> getParser parseLexicon x      >>= (getWriter writeLexicon f)
@@ -99,8 +101,8 @@ options =
   , Option "t" ["to"]   (ReqArg ToFlg "TYPE")   "haskell|geni|genib"
   , Option "o" ["output"]  (ReqArg OutputFlg "STRING")  "output file, or -t haskell, prefix for output files"
   --
-  , Option "m" ["macros"]  (NoArg MacrosFlg)"input file is a macros file (default)"
-  , Option "l" ["lexicon"] (NoArg LexiconFlg) "input file is a lexicon file"
+  , Option ""  ["macros"]  (NoArg MacrosFlg)"input file is a macros file (default)"
+  , Option ""  ["lexicon"] (NoArg LexiconFlg) "input file is a lexicon file"
   , Option ""  ["morphlexicon"] (NoArg MorphLexiconFlg) "input file is a morphological lexicon"
   ]
 
@@ -132,7 +134,7 @@ processFlag LexiconFlg      = \p -> p { itype = LexiconItype }
 processFlag MorphLexiconFlg = \p -> p { itype = MorphLexiconItype }
 
 -- -------------------------------------------------------------------
--- conversions
+-- formats
 -- -------------------------------------------------------------------
 
 type TextParser a = String -> Either String a
@@ -155,6 +157,19 @@ data FileFormat = FileFormat
       , writeMorphLexicon :: Maybe (FileWriter [MorphLexEntry])
       }
 
+instance Eq FileFormat where
+  a == b = showFormat a == showFormat b
+
+wrapParsec :: CharParser () a -> (String -> Either String a)
+wrapParsec p lf = either (Left . show) (Right) (parse p "" lf)
+
+textReader :: (String -> Either String a) -> String -> IO a
+textReader p lf = either fail return (p lf)
+
+-- -------------------------------------------------------------------
+-- tagml format
+-- -------------------------------------------------------------------
+
 tagmlFormat, geniFormat, genibFormat :: FileFormat
 tagmlFormat = FileFormat
   { showFormat   = "tagml"
@@ -174,6 +189,10 @@ tagmlFormat = FileFormat
   pMacros   = Just $ readTagmlMacros
   pLex      = Nothing
   pMorphLex = Nothing
+
+-- -------------------------------------------------------------------
+-- geni format
+-- -------------------------------------------------------------------
 
 geniFormat = FileFormat
   { showFormat   = "geni"
@@ -195,6 +214,13 @@ geniFormat = FileFormat
   pLex      = Just $ wrapParsec geniLexicon
   pMorphLex = Just $ wrapParsec geniMorphLexicon
 
+geniWriter :: GeniShow a => FilePath -> [a] -> IO ()
+geniWriter mf ms = appendFile mf $ unlines $ map geniShow ms
+
+-- -------------------------------------------------------------------
+-- genib format
+-- -------------------------------------------------------------------
+
 genibFormat = FileFormat
   { showFormat   = "genib"
   --
@@ -210,20 +236,6 @@ genibFormat = FileFormat
   , readMorphLexicon  = Just decodeFile
   , writeMorphLexicon = Just encodeFile
   }
-
-wrapParsec :: CharParser () a -> (String -> Either String a)
-wrapParsec p lf = either (Left . show) (Right) (parse p "" lf)
-
-textReader :: (String -> Either String a) -> String -> IO a
-textReader p lf = either fail return (p lf)
-
--- geniReader :: Convert a => String -> IO a
--- geniReader lf = either (fail.show) return (parse geniParser "" lf)
-
-geniWriter :: GeniShow a => FilePath -> [a] -> IO ()
-geniWriter mf ms =
- write $ unlines $ map geniShow ms
- where write = if null mf then putStrLn else appendFile mf
 
 {-
 -- -------------------------------------------------------------------
