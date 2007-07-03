@@ -22,9 +22,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 module Main (main) where
 
-import Data.Binary (encodeFile)
-import Data.IORef (newIORef, modifyIORef, readIORef)
-import Data.List (intersperse)
+import Control.Monad
+import Data.Binary (decodeFile, encodeFile)
 import Data.Maybe
 import System (ExitCode(ExitFailure), exitWith, getArgs, getProgName)
 import System.Console.GetOpt(OptDescr(Option), ArgDescr(..), usageInfo, getOpt, ArgOrder(Permute))
@@ -32,13 +31,63 @@ import System.IO(getContents)
 import System.IO.Unsafe(unsafeInterleaveIO)
 import Text.ParserCombinators.Parsec
 
-import NLP.GenI.Btypes (Macros,pfamily,MTtree)
+import NLP.GenI.Btypes
 import NLP.GenI.BtypesBinary ()
 import NLP.GenI.General
-import NLP.GenI.GeniParsers (geniMacros)
-import NLP.GenI.GeniShow (geniShow)
-import NLP.GenI.HsShow (hsShow)
+import NLP.GenI.GeniParsers
+import NLP.GenI.GeniShow
+-- import NLP.GenI.HsShow (hsShow)
 import NLP.GenI.Converter.ReadTagml (readTagmlMacros)
+
+main :: IO ()
+main =
+ do args <- getArgs
+    progname <- getProgName
+    case getOpt Permute options args of
+     (o,fs,[]  ) -> convert (toInputParams o) fs
+     _           -> showUsage progname
+ where
+  showUsage p = do
+    let header = "usage: " ++ p ++ " [--macros|--lexicon|--morphlexicon] -f [tagml|geni] -t [haskell|geni|genib] < input > output"
+    ePutStrLn $ usageInfo header options
+    exitWith (ExitFailure 1)
+
+convert :: InputParams -> [FilePath] -> IO ()
+convert (InputParams iForm oForm f iType) fs =
+ do when (not (null f)) $
+      writeFile f ""
+    iFormat <- case getFormat iForm of
+                 Nothing -> fail $ "Unknown input format: " ++ iForm
+                 Just fo -> return fo
+    oFormat <- case getFormat oForm of
+                 Nothing -> fail $ "Unknown output format: " ++ oForm
+                 Just fo -> return fo
+    let getParser p = maybe     (oops iFormat "parse") textReader $ p iFormat
+        getReader r = fromMaybe (oops iFormat "read")             $ r iFormat
+        getWriter w = fromMaybe (oops oFormat "write")            $ w oFormat
+        oops format d =
+           fail $ unwords [ "Sorry, I don't know how to", d, show iType, "in the", showFormat format, "format." ]
+    let convertString x = case iType of
+                            MacrosItype       -> getParser parseMacros x       >>= (getWriter writeMacros f)
+                            LexiconItype      -> getParser parseLexicon x      >>= (getWriter writeLexicon f)
+                            MorphLexiconItype -> getParser parseMorphLexicon x >>= (getWriter writeMorphLexicon f)
+        convertFile x = case iType of
+                            MacrosItype       -> getReader readMacros x       >>= (getWriter writeMacros f)
+                            LexiconItype      -> getReader readLexicon x      >>= (getWriter writeLexicon f)
+                            MorphLexiconItype -> getReader readMorphLexicon x >>= (getWriter writeMorphLexicon f)
+    if null fs
+       then getContents >>= convertString
+       else forM_ fs $ (\x -> unsafeInterleaveIO (readFile x) >>= convertFile)
+
+getFormat :: String -> Maybe FileFormat
+getFormat x = listToMaybe [ f | f <- formats, x == showFormat f ]
+
+formats :: [FileFormat]
+formats = [ tagmlFormat, geniFormat, genibFormat ]
+
+-- -------------------------------------------------------------------
+-- command line arguments
+-- -------------------------------------------------------------------
 
 data Flag = FromFlg String | ToFlg String | OutputFlg String
           | MacrosFlg | LexiconFlg | MorphLexiconFlg
@@ -50,30 +99,17 @@ options =
   , Option "t" ["to"]   (ReqArg ToFlg "TYPE")   "haskell|geni|genib"
   , Option "o" ["output"]  (ReqArg OutputFlg "STRING")  "output file, or -t haskell, prefix for output files"
   --
-  , Option "m" ["--macros"]  (NoArg MacrosFlg)"input file is a macros file (default)"
-  , Option "l" ["--lexicon"] (NoArg LexiconFlg) "input file is a lexicon file"
-  , Option ""  ["--morphlexicon"] (NoArg MorphLexiconFlg) "input file is a morphological lexicon"
+  , Option "m" ["macros"]  (NoArg MacrosFlg)"input file is a macros file (default)"
+  , Option "l" ["lexicon"] (NoArg LexiconFlg) "input file is a lexicon file"
+  , Option ""  ["morphlexicon"] (NoArg MorphLexiconFlg) "input file is a morphological lexicon"
   ]
-
-type Mutex = ([Flag],String)
-
-mutexes :: [Mutex]
-mutexes =
-  [ ( [MacrosFlg, LexiconFlg, MorphLexiconFlg], "--macros, --lexicon and --morphlexicon")
-  ]
-
--- | Return all failures mutually exclusive options
-getMutexFailures :: [Flag] -> [String]
-getMutexFailures fs = mapMaybe getMf mutexes
- where
-  getMf (mfs,d) = if length [ f | f <- fs, f `elem` mfs ] > 1
-                     then Nothing
-                     else Just d
-
-hasMutexFailures :: [Flag] -> Bool
-hasMutexFailures = not . null . getMutexFailures
 
 data InputType = MacrosItype | LexiconItype | MorphLexiconItype
+
+instance Show InputType where
+  show MacrosItype       = "macros"
+  show LexiconItype      = "lexicons"
+  show MorphLexiconItype = "morphological lexicons"
 
 data InputParams = InputParams { fromArg :: String
                                , toArg   :: String
@@ -95,68 +131,107 @@ processFlag MacrosFlg       = \p -> p { itype = MacrosItype }
 processFlag LexiconFlg      = \p -> p { itype = LexiconItype }
 processFlag MorphLexiconFlg = \p -> p { itype = MorphLexiconItype }
 
-main :: IO ()
-main =
- do args <- getArgs
-    progname <- getProgName
-    case getOpt Permute options args of
-     (o, _, _) | hasMutexFailures o ->
-       do ePutStr $ unlines [ d ++ " are mutually exclusive" | d <- getMutexFailures o ]
-          exitWith (ExitFailure 1)
-     (o,fs,[]  ) ->
-       let (InputParams iFormat oFormat f iTy) = toInputParams o in
-       do mInitialiseFile f
-          case oFormat of
-           "haskell" -> if null f
-                        then ePutStrLn $ "Can't write haskell to stdout (Please provide a stem)."
-                        else doHaskell iFormat f fs
-           "geni"    -> readAndWriteMacros iFormat fs (geniWriter f)
-           "genib"   -> readAndWriteMacros iFormat fs (encodeFile f)
-           _         -> do ePutStrLn $ "Unkwown output format: " ++ oFormat
-                           exitWith (ExitFailure 1)
-     _         -> showUsage progname
+-- -------------------------------------------------------------------
+-- conversions
+-- -------------------------------------------------------------------
+
+type TextParser a = String -> Either String a
+type FileReader a = FilePath -> IO a
+type FileWriter a = FilePath -> a -> IO ()
+
+data FileFormat = FileFormat
+      { showFormat   :: String
+      --
+      , parseMacros  :: Maybe (TextParser Macros)
+      , readMacros   :: Maybe (FileReader Macros)
+      , writeMacros  :: Maybe (FileWriter Macros)
+      --
+      , parseLexicon :: Maybe (TextParser [ILexEntry])
+      , readLexicon  :: Maybe (FileReader [ILexEntry])
+      , writeLexicon :: Maybe (FileWriter [ILexEntry])
+      --
+      , parseMorphLexicon :: Maybe (TextParser [MorphLexEntry])
+      , readMorphLexicon  :: Maybe (FileReader [MorphLexEntry])
+      , writeMorphLexicon :: Maybe (FileWriter [MorphLexEntry])
+      }
+
+tagmlFormat, geniFormat, genibFormat :: FileFormat
+tagmlFormat = FileFormat
+  { showFormat   = "tagml"
+  , parseMacros  = pMacros
+  , readMacros   = fmap textReader pMacros
+  , writeMacros  = Nothing
+  --
+  , parseLexicon = pLex
+  , readLexicon  = fmap textReader pLex
+  , writeLexicon = Nothing
+  --
+  , parseMorphLexicon = pMorphLex
+  , readMorphLexicon  = fmap textReader pMorphLex
+  , writeMorphLexicon = Nothing
+  }
  where
-  mInitialiseFile "" = return ()
-  mInitialiseFile f  = writeFile f ""
-  showUsage p =
-    do let header = "usage: " ++ p ++ " -f [tagml|geni] -t [haskell|geni|genib] < input > output"
-       ePutStrLn $ usageInfo header options
-       exitWith (ExitFailure 1)
-  doHaskell fromType f fs =
-   do mref <- newIORef []
-      readAndWriteMacros fromType fs (\m -> modifyIORef mref (++ m))
-      macros <- readIORef mref
-      writeHaskell f macros
+  pMacros   = Just $ readTagmlMacros
+  pLex      = Nothing
+  pMorphLex = Nothing
 
-readAndWriteMacros :: String -> [FilePath] -> (Macros -> IO ()) -> IO ()
-readAndWriteMacros f fs writer =
- let reader = case f of
-             "tagml" -> tagmlReader
-             "geni"  -> geniReader
-             _       -> fail ("Unknown -f type: " ++ f)
- in if null fs then getContents >>= reader >>= writer
-    else do mapM (\x -> unsafeInterleaveIO (readFile x) >>= reader >>= writer) fs
-            return ()
+geniFormat = FileFormat
+  { showFormat   = "geni"
+  --
+  , parseMacros  = pMacros
+  , readMacros   = fmap textReader pMacros
+  , writeMacros  = Just geniWriter
+  --
+  , parseLexicon = pLex
+  , readLexicon  = fmap textReader pLex
+  , writeLexicon = Nothing
+  --
+  , parseMorphLexicon = pMorphLex
+  , readMorphLexicon  = fmap textReader pMorphLex
+  , writeMorphLexicon = Nothing
+  }
+ where
+  pMacros   = Just $ wrapParsec geniMacros
+  pLex      = Just $ wrapParsec geniLexicon
+  pMorphLex = Just $ wrapParsec geniMorphLexicon
 
-tagmlReader :: String -> IO Macros
-tagmlReader lf =
-  case readTagmlMacros lf of
-  Left err -> fail err
-  Right  c -> return c
+genibFormat = FileFormat
+  { showFormat   = "genib"
+  --
+  , parseMacros  = Nothing
+  , readMacros   = Just decodeFile
+  , writeMacros  = Just encodeFile
+  --
+  , parseLexicon = Nothing
+  , readLexicon  = Just decodeFile
+  , writeLexicon = Just encodeFile
+  --
+  , parseMorphLexicon = Nothing
+  , readMorphLexicon  = Just decodeFile
+  , writeMorphLexicon = Just encodeFile
+  }
 
-geniReader :: String -> IO Macros
-geniReader lf =
-  case parse geniMacros "" lf of
-  Left err -> fail (show err)
-  Right  c -> return c
+wrapParsec :: CharParser () a -> (String -> Either String a)
+wrapParsec p lf = either (Left . show) (Right) (parse p "" lf)
 
-geniWriter :: FilePath -> Macros -> IO ()
+textReader :: (String -> Either String a) -> String -> IO a
+textReader p lf = either fail return (p lf)
+
+-- geniReader :: Convert a => String -> IO a
+-- geniReader lf = either (fail.show) return (parse geniParser "" lf)
+
+geniWriter :: GeniShow a => FilePath -> [a] -> IO ()
 geniWriter mf ms =
  write $ unlines $ map geniShow ms
  where write = if null mf then putStrLn else appendFile mf
 
-writeHaskell :: String -> Macros -> IO ()
-writeHaskell rawStem ms =
+{-
+-- -------------------------------------------------------------------
+-- haskell macros file
+-- -------------------------------------------------------------------
+
+writeHaskellMacros :: String -> Macros -> IO ()
+writeHaskellMacros rawStem ms =
  do let tpairs = zip [1::Integer ..] ms
         stem   = toUpperHead rawStem
     -- write the sub files
@@ -200,3 +275,4 @@ everyN n xs = take n xs : (everyN n $ drop n xs)
 
 uncommas :: [String] -> String
 uncommas = concat . (intersperse ", ")
+-}
