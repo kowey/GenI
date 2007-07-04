@@ -30,7 +30,7 @@ module NLP.GenI.Btypes(
    Ttree(..), MTtree, SemPols, TestCase(..),
    Ptype(Initial,Auxiliar,Unspecified), 
    Pred, Flist, AvPair, GeniVal(..),
-   Lexicon, ILexEntry(..), Macros, Sem, LitConstr, SemInput, Subst,
+   Lexicon, ILexEntry(..), MorphLexEntry, Macros, Sem, LitConstr, SemInput, Subst,
    emptyLE, emptyGNode, emptyMacro, 
 
    -- GNode stuff 
@@ -176,6 +176,10 @@ emptyLE = ILE { iword = [],
                 isemantics = [],
                 iequations = [],
                 isempols   = [] }
+\end{code}
+
+\begin{code}
+type MorphLexEntry = (String,String,Flist)
 \end{code}
 
 % ----------------------------------------------------------------------

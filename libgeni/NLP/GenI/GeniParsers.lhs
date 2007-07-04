@@ -527,7 +527,7 @@ entry is an inflected form followed by the lemma and the feature
 structure to which it is associated.  The table is whitespace-delimited.
 
 \begin{code}
-geniMorphLexicon :: Parser [(String,String,Flist)]
+geniMorphLexicon :: Parser [MorphLexEntry]
 geniMorphLexicon = tillEof $ many morphLexiconEntry
 
 morphLexiconEntry :: Parser (String, String, Flist)
