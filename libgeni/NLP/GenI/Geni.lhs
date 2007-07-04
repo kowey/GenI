@@ -235,7 +235,7 @@ loadLexicon pstRef =
 -- | The macros are stored as a hashing function in the monad.
 loadGeniMacros pstRef =
   loadThingOrDie MacrosFlg "trees" pstRef parser updater
-  where parser = parseFromMaybeBinaryOrFail geniMacros
+  where parser = parseFromFileMaybeBinary geniMacros
         updater g p = p { gr = g }
 
 
@@ -353,11 +353,11 @@ loadThing filename description pstRef parser job =
 parseFromFileOrFail :: Parser a -> FilePath -> IO a
 parseFromFileOrFail p f = parseFromFile p f >>= either (fail.show) (return)
 
-parseFromMaybeBinaryOrFail :: Binary a
+parseFromFileMaybeBinary :: Binary a
                          => Parser a
                          -> FilePath
                          -> IO a
-parseFromMaybeBinaryOrFail p f =
+parseFromFileMaybeBinary p f =
  if (".genib" `isSuffixOf` f)
     then decodeFile f
     else parseFromFileOrFail p f
