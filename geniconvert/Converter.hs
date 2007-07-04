@@ -24,6 +24,7 @@ module Main (main) where
 
 import Control.Monad
 import Data.Binary (decodeFile, encodeFile)
+import Data.List
 import Data.Maybe
 import System (ExitCode(ExitFailure), exitWith, getArgs, getProgName)
 import System.Console.GetOpt(OptDescr(Option), ArgDescr(..), usageInfo, getOpt, ArgOrder(Permute))
@@ -36,7 +37,7 @@ import NLP.GenI.BtypesBinary ()
 import NLP.GenI.General
 import NLP.GenI.GeniParsers
 import NLP.GenI.GeniShow
--- import NLP.GenI.HsShow (hsShow)
+import NLP.GenI.HsShow (hsShow)
 import NLP.GenI.Converter.ReadTagml (readTagmlMacros)
 
 main :: IO ()
@@ -62,8 +63,8 @@ convert (InputParams iForm oForm f iType) fs =
                  Just fo -> return fo
     when (null f) $
       fail $ "Sorry, you must specify an output file with -o"
-    when (oFormat == genibFormat && null fs) $
-      fail $ "Sorry, I can't convert more than one file to genib format at a time"
+    when (oFormat `elem` [ haskellFormat, genibFormat ] && length fs > 1) $
+      fail $ "Sorry, I can't convert more than one file to " ++ showFormat oFormat ++ " at a time"
     let getParser p = maybe     (oops iFormat "parse") textReader $ p iFormat
         getReader r = fromMaybe (oops iFormat "read")             $ r iFormat
         getWriter w = fromMaybe (oops oFormat "write")            $ w oFormat
@@ -80,12 +81,6 @@ convert (InputParams iForm oForm f iType) fs =
     if null fs
        then getContents >>= convertString
        else forM_ fs $ (\x -> unsafeInterleaveIO (readFile x) >>= convertFile)
-
-getFormat :: String -> Maybe FileFormat
-getFormat x = listToMaybe [ f | f <- formats, x == showFormat f ]
-
-formats :: [FileFormat]
-formats = [ tagmlFormat, geniFormat, genibFormat ]
 
 -- -------------------------------------------------------------------
 -- command line arguments
@@ -166,11 +161,17 @@ wrapParsec p lf = either (Left . show) (Right) (parse p "" lf)
 textReader :: (String -> Either String a) -> String -> IO a
 textReader p lf = either fail return (p lf)
 
+getFormat :: String -> Maybe FileFormat
+getFormat x = listToMaybe [ f | f <- formats, x == showFormat f ]
+
+formats :: [FileFormat]
+formats = [ tagmlFormat, geniFormat, genibFormat, haskellFormat ]
+
 -- -------------------------------------------------------------------
 -- tagml format
 -- -------------------------------------------------------------------
 
-tagmlFormat, geniFormat, genibFormat :: FileFormat
+tagmlFormat :: FileFormat
 tagmlFormat = FileFormat
   { showFormat   = "tagml"
   , parseMacros  = pMacros
@@ -194,6 +195,7 @@ tagmlFormat = FileFormat
 -- geni format
 -- -------------------------------------------------------------------
 
+geniFormat :: FileFormat
 geniFormat = FileFormat
   { showFormat   = "geni"
   --
@@ -221,6 +223,7 @@ geniWriter mf ms = appendFile mf $ unlines $ map geniShow ms
 -- genib format
 -- -------------------------------------------------------------------
 
+genibFormat :: FileFormat
 genibFormat = FileFormat
   { showFormat   = "genib"
   --
@@ -237,10 +240,26 @@ genibFormat = FileFormat
   , writeMorphLexicon = Just encodeFile
   }
 
-{-
 -- -------------------------------------------------------------------
 -- haskell macros file
 -- -------------------------------------------------------------------
+
+haskellFormat :: FileFormat
+haskellFormat = FileFormat
+  { showFormat   = "haskell"
+  --
+  , parseMacros  = Nothing
+  , readMacros   = Nothing
+  , writeMacros  = Just writeHaskellMacros
+  --
+  , parseLexicon = Nothing
+  , readLexicon  = Nothing
+  , writeLexicon = Nothing
+  --
+  , parseMorphLexicon = Nothing
+  , readMorphLexicon  = Nothing
+  , writeMorphLexicon = Nothing
+  }
 
 writeHaskellMacros :: String -> Macros -> IO ()
 writeHaskellMacros rawStem ms =
@@ -287,4 +306,3 @@ everyN n xs = take n xs : (everyN n $ drop n xs)
 
 uncommas :: [String] -> String
 uncommas = concat . (intersperse ", ")
--}
