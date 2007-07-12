@@ -65,6 +65,9 @@ convert (InputParams iForm oForm f iType) fs =
       fail $ "Sorry, you must specify an output file with -o"
     when (oFormat `elem` [ haskellFormat, genibFormat ] && length fs > 1) $
       fail $ "Sorry, I can't convert more than one file to " ++ showFormat oFormat ++ " at a time"
+    -- empty out the file first! (there might be an old one lying around)
+    writeFile f ""
+    --
     let getParser p = maybe     (oops iFormat "parse") textReader $ p iFormat
         getReader r = fromMaybe (oops iFormat "read")             $ r iFormat
         getWriter w = fromMaybe (oops oFormat "write")            $ w oFormat
