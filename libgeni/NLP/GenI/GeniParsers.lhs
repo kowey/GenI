@@ -40,6 +40,8 @@ module NLP.GenI.GeniParsers (
   geniFeats, geniPolarities,
   -- TagElem,
   geniTagElems,
+  -- things used by external scripts
+  geniSemantics, geniValue, geniWords, geniLanguageDef, tillEof,
 ) where
 
 import NLP.GenI.General ((!+!), Interval, ival)
@@ -118,7 +120,7 @@ geniTestCase =
 type TestCaseOutput = (String, Map.Map (String,String) [String])
 geniOutput :: Parser TestCaseOutput
 geniOutput =
- do ws <- keyword OUTPUT >> geniWords
+ do ws <- keyword OUTPUT >> (squares geniWords)
     ds <- Map.fromList `fmap` many geniTraces
     return (ws, ds)
 
@@ -136,11 +138,11 @@ withWhite :: Parser a -> Parser a
 withWhite p = p >>= (\a -> whiteSpace >> return a)
 
 geniSentence :: Parser String
-geniSentence = optional (keyword SENTENCE) >> geniWords
+geniSentence = optional (keyword SENTENCE) >> squares geniWords
 
 geniWords :: Parser String
 geniWords =
- unwords `fmap` squares (sepEndBy1 geniWord whiteSpace <?> "a sentence")
+ unwords `fmap` (sepEndBy1 geniWord whiteSpace <?> "a sentence")
 
 geniWord :: Parser String
 geniWord = many1 (noneOf "[]\v\f\t\r\n ")
