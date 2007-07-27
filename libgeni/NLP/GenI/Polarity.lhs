@@ -91,7 +91,7 @@ import NLP.GenI.Btypes(Pred, SemInput, Sem, Flist, AvPair, showAv,
               GeniVal(GAnon), fromGConst, isConst,
               Replacable(..),
               emptyPred, Ptype(Initial), 
-              showSem, sortSem, 
+              showFlist, showSem, sortSem,
               root, gup, gdown, gtype, GType(Subs),
               SemPols, unifyFeat, rootUpd)
 import NLP.GenI.General(
@@ -901,10 +901,11 @@ __idx__  = "idx"
 
 getval :: String -> Flist -> [[String]]
 getval att fl =
-  let values = [ v | (a,v) <- fl, a == att ]
-  in if all isConst values
-     then map (prefixWith att . fromGConst) values
-     else error ("Not all values for feature " ++ att ++ " are instantiated for polarity automata.")
+  case [ v | (a,v) <- fl, a == att ] of
+    [] -> error $ "[polarities] No instances of " ++ att ++ " in " ++ showFlist fl ++ "."
+    vs -> if all isConst vs
+          then map (prefixWith att . fromGConst) vs
+          else error $ "[polarities] Not all values for feature " ++ att ++ " are instantiated."
 
 toZero :: Int -> Interval
 toZero x | x < 0     = (x, 0)
