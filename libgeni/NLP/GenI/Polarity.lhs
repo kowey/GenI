@@ -917,8 +917,10 @@ prefixWith att = map (\x -> att ++ ('_' : x))
 polarise :: Int -> [[String]] -> [ (String, Interval) ]
 polarise i = concatMap fn
  where
-  fn [x] = [ (x, ival i) ]
-  fn amb = for amb $ \x -> (x, toZero i)
+  fn [x] = [ (x, one) ]
+  fn amb = for amb $ \x -> (x, oneZero)
+  one = ival i
+  oneZero = toZero i
 
 for :: [a] -> (a -> b) -> [b]
 for = flip map
