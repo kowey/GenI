@@ -27,7 +27,7 @@ involve some messy IO performance tricks.
 \begin{code}
 module NLP.GenI.Geni (ProgState(..), ProgStateRef, emptyProgState,
              showRealisations, groupAndCount,
-             initGeni, runGeni, getTraces, GeniResult, Selector,
+             initGeni, runGeni, runGeniWithSelector, getTraces, GeniResult, Selector,
              loadEverything, loadLexicon, 
              loadTestSuite, loadTargetSemStr,
              combine,
@@ -383,18 +383,17 @@ It returns a list of sentences, a set of Statistics, and the generator state.
 The generator state is mostly useful for debugging via the graphical interface.
 
 \begin{code}
--- | If in doubt about the Maybe Selector argument, just pass in Nothing;
---   it is only used for instances of GenI where the grammar is compiled
---   directly into GenI.
-type Selector = ProgState -> IO ([TagElem],[ILexEntry])
 type GeniResult = (String, B.Derivation)
 
 runGeni :: ProgStateRef -> B.Builder st it Params -> IO ([GeniResult], Statistics, st)
-runGeni pstRef builder =
+runGeni pstRef builder = runGeniWithSelector pstRef defaultSelector builder
+
+runGeniWithSelector :: ProgStateRef -> Selector -> B.Builder st it Params -> IO ([GeniResult], Statistics, st)
+runGeniWithSelector pstRef  selector builder =
   do let run    = B.run builder
          unpack = B.unpack builder
      -- step 1
-     initStuff <- initGeni pstRef
+     initStuff <- initGeniWithSelector pstRef selector
      --
      pst <- readIORef pstRef
      let config  = pa pst
@@ -421,7 +420,10 @@ any morpohological literals
 
 \begin{code}
 initGeni :: ProgStateRef -> IO (B.Input)
-initGeni pstRef =
+initGeni pstRef = initGeniWithSelector pstRef defaultSelector
+
+initGeniWithSelector :: ProgStateRef -> Selector -> IO (B.Input)
+initGeniWithSelector pstRef lexSelector =
  do -- disable constraints if the NoConstraintsFlg anti-optimisation is active
     modifyIORef pstRef
       (\p -> if hasOpt NoConstraints (pa p)
@@ -429,7 +431,7 @@ initGeni pstRef =
              else p)
     -- lexical selection
     pstLex <- readIORef pstRef
-    (cand, lexonly) <- runLexSelection pstLex
+    (cand, lexonly) <- lexSelector pstLex
     -- strip morphological predicates
     let (tsem,tres,lc) = ts pstLex
         tsem2 = stripMorphSem (morphinf pstLex) tsem
@@ -979,9 +981,21 @@ setOrigin t = fmap (\g -> g { gorigin = t })
 \end{code}
 
 % --------------------------------------------------------------------
-\subsection{Pre-anchoring}
+\subsection{Pre-selection and pre-anchoring}
 \label{sec:pre-anchor}
 % --------------------------------------------------------------------
+
+For testing purposes, we can perform lexical selection ahead of time and store
+it somewhere else.
+
+\begin{code}
+-- | Only used for instances of GenI where the grammar is compiled
+--   directly into GenI.
+type Selector = ProgState -> IO ([TagElem],[ILexEntry])
+
+defaultSelector :: Selector
+defaultSelector = runLexSelection
+\end{code}
 
 For debugging purposes, it is often useful to perform lexical selection and
 surface realisation separately.  Pre-anchored mode allows the user to just
