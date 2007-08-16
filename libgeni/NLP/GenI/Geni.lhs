@@ -95,6 +95,7 @@ import NLP.GenI.Configuration
   , MacrosFlg(..), LexiconFlg(..), TestSuiteFlg(..), TestCaseFlg(..)
   , MorphInfoFlg(..), MorphCmdFlg(..), MorphLexiconFlg(..)
   , IgnoreSemanticsFlg(..), FromStdinFlg(..), VerboseModeFlg(..)
+  , NoLoadTestSuiteFlg(..)
   , TracesFlg(..)
   , grammarType
   , GrammarType(..) )
@@ -186,7 +187,8 @@ loadEverything pstRef =
      -- grammar type
          isNotPreanchored = grammarType config /= PreAnchored
          isNotPrecompiled = grammarType config /= PreCompiled
-         useTestSuite = isMissing FromStdinFlg
+         useTestSuite =  isMissing FromStdinFlg
+                      && isMissing NoLoadTestSuiteFlg
      -- display 
      let errormsg =
            concat $ intersperse ", " [ msg | (con, msg) <- errorlst, con ]
