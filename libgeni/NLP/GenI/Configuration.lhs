@@ -61,6 +61,7 @@ module NLP.GenI.Configuration
   , processInstructions
   , optionsForStandardGenI
   , optionsForBasicStuff, optionsForOptimisation, optionsForMorphology, optionsForInputFiles
+  , optionsForBuilder, optionsForTesting
   , nubBySwitches
   , noArg, reqArg, optArg
   , parseFlagWithParsec
@@ -312,14 +313,17 @@ optionsForInputFiles =
   , testSuiteOption
   , fromStdinOption
   , morphInfoOption
+  , instructionsOption
   , outputOption
-  , Option [] ["instructions"] (reqArg InstructionsFileFlg id "FILE")
-      "instructions file FILE"
   , Option []    ["preselected"] (NoArg (Flag GrammarTypeFlg PreAnchored))
       "do NOT perform lexical selection - treat the grammar as the selection"
   ]
 
-macrosOption, lexiconOption, tracesOption, outputOption :: OptDescr Flag
+instructionsOption, macrosOption, lexiconOption, tracesOption, outputOption :: OptDescr Flag
+
+instructionsOption =
+  Option [] ["instructions"] (reqArg InstructionsFileFlg id "FILE")
+      "instructions file FILE"
 
 macrosOption =
   Option ['m'] ["macros"] (reqArg MacrosFlg id "FILE")
