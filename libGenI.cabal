@@ -3,7 +3,7 @@ Version:        0.15
 License:        GPL
 License-file:   LICENSE
 Author:         Carlos Areces and Eric Kow
-Build-Depends:  base, binary, wx, wxcore, haskell98, mtl, parsec, QuickCheck, HUnit, HaXml >=1.16
+Build-Depends:  base, binary, haskell98, mtl, parsec, QuickCheck, HUnit
 Description:    Natural language generator for TAG
 Maintainer:     eric.kow@loria.fr
 Exposed-Modules:
@@ -21,15 +21,4 @@ Exposed-Modules:
                 NLP.GenI.Geni, NLP.GenI.Configuration
 Hs-Source-Dirs: libgeni
 Extensions:     CPP, Rank2Types, OverlappingInstances, MultiParamTypeClasses
-
-Executable:     geni
-Main-Is:        MainGeni.lhs
-Hs-Source-Dirs: libgeni, geniprog
-Extensions:     CPP, Rank2Types, OverlappingInstances, MultiParamTypeClasses
-Ghc-options:    -Wall
-
-Executable:     geniconvert
-Hs-Source-Dirs: libgeni, geniconvert
-Main-Is:        Converter.hs
-Extensions:     CPP, Rank2Types, OverlappingInstances
-Ghc-options:    -Wall
+Ghc-options:    -Wall -O2

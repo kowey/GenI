@@ -12,7 +12,6 @@
 # --------------------------------------------------------------------
 
 -include user-settings.inc
-include cabal-make.inc
 
 # i know, i know, i should be using autotools...
 # but *whine* it's so hard!
@@ -131,6 +130,38 @@ SOURCE_HSD  := $(SOURCE_HSD_1) $(SOURCE_HSD_2)
 # --------------------------------------------------------------------
 # main targets
 # --------------------------------------------------------------------
+
+PROGRAMS=geniprog geniconvert
+VERSION=$(shell grep Version libGenI.cabal | sed -e "s/Version: *//")
+
+all: build
+
+configure:
+	make -f Submakefile configure
+
+clean:
+	make -f Submakefile clean
+	$(foreach p,$(PROGRAMS), cd $(p); make clean; cd ..;)
+
+build: configure
+	make -f Submakefile build
+
+install: build
+	make -f Submakefile install
+	@echo --------------------------------------------------
+	@echo Not done yet!
+	@echo
+	@echo Now do "make build2; make install2"
+	@echo --------------------------------------------------
+
+configure2:
+	$(foreach p,$(PROGRAMS), cd $(p); make configure; cd ..;)
+
+build2: dist/build/HSGenI-$(VERSION).o configure2
+	$(foreach p,$(PROGRAMS), cd $(p); make build; cd ..;)
+
+install2: dist/build/HSGenI-$(VERSION).o build2
+	$(foreach p,$(PROGRAMS), cd $(p); make install; cd ..;)
 
 normal: build
 all: build docs tidy
