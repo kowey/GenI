@@ -680,7 +680,9 @@ debugGui builderGui pstRef pauseOnLex =
                 (input2, _, autstuff) = B.preInit newInitStuff config
             -- automata tab
             let (auts, _, finalaut, _) = autstuff
-            autPnl <- fst3 `Monad.liftM` polarityGui nb auts finalaut
+            autPnl <- if hasOpt Polarised config
+                         then fst3 `fmap` polarityGui nb auts finalaut
+                         else messageGui nb "polarity filtering disabled"
             -- generation step 2.B (start the generator for each path)
             debugPnl <- BG.debuggerPnl builderGui nb config input2 btype
             let autTab   = tab "automata" autPnl
