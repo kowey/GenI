@@ -28,7 +28,7 @@ involve some messy IO performance tricks.
 module NLP.GenI.Geni (ProgState(..), ProgStateRef, emptyProgState,
              showRealisations, groupAndCount,
              initGeni, runGeni, runGeniWithSelector, getTraces, GeniResult, Selector,
-             loadEverything, loadLexicon, 
+             loadEverything, loadLexicon, loadGeniMacros,
              loadTestSuite, loadTargetSemStr,
              combine,
 
