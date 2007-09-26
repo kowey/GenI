@@ -51,8 +51,10 @@ import Control.Monad (when, liftM2)
 import Control.Monad.State
   (get, put, modify, gets, runState, execStateT)
 
-import Data.List (partition, delete, foldl')
+import Data.List
+  (partition, delete, foldl', unfoldr, sortBy)
 import Data.Maybe (isJust, isNothing)
+import Data.Ord (comparing)
 import Data.Bits
 import qualified Data.Map as Map
 import Data.Tree
@@ -115,7 +117,9 @@ simpleBuilder twophase = B.Builder
   , B.step     = if twophase then generateStep_2p else generateStep_1p
   , B.stepAll  = B.defaultStepAll (simpleBuilder twophase)
   , B.finished = \s -> (null.theAgenda) s && (not twophase || step s == Auxiliar)
-  , B.unpack   = unpackResults.theResults }
+  , B.unpack   = unpackResults.theResults
+  , B.partial  = unpackResults.partialResults
+  }
 \end{code}
 
 % --------------------------------------------------------------------
@@ -1145,3 +1149,41 @@ listToSentenceAut nodes =
       --
   in foldr helper emptyAut (zip theStates nodes)
 \end{code}
+
+% --------------------------------------------------------------------
+\section{Partial results}
+% --------------------------------------------------------------------
+
+The user may ask for partial results when realisation fails.  We implement this
+using a greedy, full-commitment algorithm.  Find the discarded result that
+matches the largest part of the semantics and output that fragment.  If there
+are parts of the input semantics not covered by that fragment, search for the
+largest chunk that covers the missing semantics.  Recurse until there are no
+more eligible items.
+
+\begin{code}
+partialResults :: SimpleStatus -> [SimpleItem]
+#ifndef DISABLE_GUI
+partialResults st = unfoldr getNext 0
+ where
+  inputsem = tsem st
+  trash  = theTrash st
+  trashC = sortBy (comparing $ negate . fst) $
+           map (\t -> (coverage inputsem t, t)) trash
+  getNext sem = case getItems sem of
+                     []     -> Nothing
+                     (it:_) -> Just (it, siSemantics it .|. sem)
+  getItems sem = [ i | (_,i) <- trashC, siSemantics i .&. sem == 0 ]
+
+coverage :: BitVector -> SimpleItem -> Int
+coverage sem it = countBits (sem .&. siSemantics it)
+
+countBits :: Bits a => a -> Int
+countBits 0  = 0
+countBits bs = if testBit bs 0 then 1 + next else next
+  where next = countBits (shiftR bs 1)
+#else
+partialResults = return []
+#endif
+\end{code}
+

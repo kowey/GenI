@@ -94,6 +94,7 @@ import NLP.GenI.Configuration
   ( Params, getFlagP, hasFlagP, hasOpt, Optimisation(NoConstraints)
   , MacrosFlg(..), LexiconFlg(..), TestSuiteFlg(..), TestCaseFlg(..)
   , MorphInfoFlg(..), MorphCmdFlg(..), MorphLexiconFlg(..)
+  , PartialFlg(..)
   , IgnoreSemanticsFlg(..), FromStdinFlg(..), VerboseModeFlg(..)
   , NoLoadTestSuiteFlg(..)
   , TracesFlg(..)
@@ -394,6 +395,7 @@ runGeniWithSelector :: ProgStateRef -> Selector -> B.Builder st it Params -> IO 
 runGeniWithSelector pstRef  selector builder =
   do let run    = B.run builder
          unpack = B.unpack builder
+         getPartial = B.partial builder
      -- step 1
      initStuff <- initGeniWithSelector pstRef selector
      --
@@ -403,9 +405,14 @@ runGeniWithSelector pstRef  selector builder =
          (finalSt, stats) = run initStuff config
          -- step 3
          uninflected = unpack finalSt
+         partial = getPartial finalSt
      -- step 4
-     sentences <- finaliseResults pstRef uninflected 
+     sentences <- if null uninflected && hasFlagP PartialFlg config
+                     then map (first star) `fmap` finaliseResults pstRef partial
+                     else finaliseResults pstRef uninflected
      return (sentences, stats, finalSt)
+ where star :: String -> String
+       star s = '*' : s
 \end{code}
 
 % --------------------------------------------------------------------

@@ -100,7 +100,8 @@ data Builder st it pa = Builder
   , stepAll  :: BuilderState st ()
   --
   , finished :: st -> Bool
-  , unpack   :: st -> [Output] }
+  , unpack   :: st -> [Output]
+  , partial  :: st -> [Output] }
 
 type Output = (UninflectedSentence, Derivation)
 type Derivation = TagDerivation
@@ -442,7 +443,9 @@ nullBuilder = Builder
   , step         = return ()
   , stepAll      = return ()
   , finished     = \_ -> True
-  , unpack       = return [] }
+  , unpack       = return []
+  , partial      = return []
+  }
 
 type NullState a = BuilderState () a
 

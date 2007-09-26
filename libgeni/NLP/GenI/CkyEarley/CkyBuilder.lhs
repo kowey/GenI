@@ -123,6 +123,7 @@ ckyOrEarleyBuilder isEarley = B.Builder
   , B.stepAll  = B.defaultStepAll (ckyOrEarleyBuilder isEarley)
   , B.finished = null.theAgenda
   , B.unpack   = \s -> concatMap (unpackItem s) $ theResults s
+  , B.partial  = const [] -- FIXME: not implemented
   }
 \end{code}
 
