@@ -1,3 +1,4 @@
+{-# OPTIONS -fno-warn-orphans #-}
 module NLP.GenI.BtypesBinary where
 
 import Data.Binary
