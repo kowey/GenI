@@ -143,11 +143,11 @@ clean:
 	make -f Submakefile clean
 	$(foreach p,$(PROGRAMS), cd $(p); make clean; cd ..;)
 
-build: configure
+build:
 	make -f Submakefile build
 
 install: build
-	make -f Submakefile install
+	./setup install
 	@echo --------------------------------------------------
 	@echo Not done yet!
 	@echo
