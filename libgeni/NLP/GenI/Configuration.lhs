@@ -39,6 +39,7 @@ module NLP.GenI.Configuration
   , NoLoadTestSuiteFlg(..)
   , OptimisationsFlg(..)
   , OutputFileFlg(..)
+  , PartialFlg(..)
   , RegressionTestModeFlg(..)
   , RootFeatureFlg(..)
   , StatsFileFlg(..)
@@ -166,6 +167,7 @@ optionsForStandardGenI = nubBySwitches $ optionsForBasicStuff ++ optionsAdvanced
 optionsAdvanced = nubBySwitches $
         optionsForUserInterface
      ++ optionsForInputFiles
+     ++ optionsForOutput
      ++ optionsForOptimisation
      ++ optionsForBuilder
      ++ optionsForTesting
@@ -340,6 +342,19 @@ tracesOption =
 outputOption =
   Option ['o'] ["output"] (reqArg OutputFileFlg id "FILE")
     "output file FILE (stdout if unset)"
+\end{code}
+
+% --------------------------------------------------------------------
+\subsection{Output}
+% --------------------------------------------------------------------
+
+\begin{code}
+optionsForOutput :: [OptDescr Flag]
+optionsForOutput =
+  [ outputOption
+  , Option []    ["partial"] (noArg PartialFlg)
+      "return partial result(s) if no complete solution is found"
+  ]
 \end{code}
 
 % --------------------------------------------------------------------
@@ -814,6 +829,7 @@ FLAG (MorphInfoFlg, FilePath)
 FLAG (MorphLexiconFlg, FilePath)
 FLAG (OptimisationsFlg, [Optimisation])
 FLAG (OutputFileFlg, String)
+FLAG (PartialFlg, ())
 FLAG (RegressionTestModeFlg, ())
 FLAG (RootFeatureFlg, Flist)
 FLAG (NoLoadTestSuiteFlg, ())
