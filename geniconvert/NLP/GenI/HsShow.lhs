@@ -22,6 +22,7 @@ need to be linked against GenI in order to produce a generator.  This might make
 lexical selection thing og a lot faster.
 
 \begin{code}
+{-# LANGUAGE TypeSynonymInstances #-}
 module NLP.GenI.HsShow
 where
 \end{code}

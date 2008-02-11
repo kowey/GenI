@@ -36,6 +36,3 @@ enableGUI = alloca $ \psn -> do
     cpsEnableForegroundOperation psn
     cpsSignalAppReady psn
     cpsSetFrontProcess psn
-
-
-

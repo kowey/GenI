@@ -3,9 +3,20 @@ Version:        0.16
 License:        GPL
 License-file:   LICENSE
 Author:         Carlos Areces and Eric Kow
-Build-Depends:  base, binary, wx, wxcore, haskell98, mtl, parsec, QuickCheck, HUnit, HaXml >=1.16, GenI
+Build-Depends:  base, binary, wx, wxcore, haskell98, mtl, parsec, QuickCheck, HUnit, HaXml >=1.16, libGenI
+build-type:     Custom
+Category:       Natural-language Processing
+Homepage:       http://wiki.loria.fr/wiki/GenI
 Description:    Natural language generator for TAG
 Maintainer:     eric.kow@loria.fr
+
+extra-source-files: EnableGUI.hs, NLP/GenI/SysGeni.lhs
+                    NLP/GenI/CkyEarley/CkyGui.lhs
+                    NLP/GenI/Simple/SimpleGui.lhs, NLP/GenI/Gui.lhs
+                    NLP/GenI/GraphvizShow.lhs, NLP/GenI/GuiHelper.lhs
+                    NLP/GenI/Console.hs, NLP/GenI/Graphviz.hs
+                    NLP/GenI/BuilderGui.lhs, NLP/GenI/unused/Predictors.lhs
+                    NLP/GenI/GraphvizShowPolarity.lhs
 
 Executable:     geni
 Main-Is:        MainGeni.lhs

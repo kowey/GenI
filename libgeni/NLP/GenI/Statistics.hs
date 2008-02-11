@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 ----------------------------------------------------
 --                                                --
 -- Statistics.hs:                                 --
@@ -64,7 +65,7 @@ updateMetrics f stat = stat{metrics           = map f (metrics stat),
                             inspectionMetrics = map f (inspectionMetrics stat)}
 
 queryMetrics :: (Metric -> Maybe a) -> Statistics -> [a]
-queryMetrics f stat =  (mapMaybe f (metrics stat)) 
+queryMetrics f stat =  (mapMaybe f (metrics stat))
                     ++ (mapMaybe f (inspectionMetrics stat))
 
 mergeMetrics :: (Metric -> Metric -> Metric) -> Statistics -> Statistics -> Statistics

@@ -18,6 +18,7 @@
 \chapter{Command line arguments}
 
 \begin{code}
+{-# LANGUAGE ExistentialQuantification #-}
 module NLP.GenI.Configuration
   ( Params(..), GrammarType(..), BuilderType(..), Instruction, Flag
   -- flags

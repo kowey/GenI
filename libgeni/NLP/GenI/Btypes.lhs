@@ -24,16 +24,17 @@ low-level and primitive (well, with the exception of feature structure
 unification, that is).
 
 \begin{code}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, DeriveDataTypeable #-}
 module NLP.GenI.Btypes(
-   -- Datatypes 
+   -- Datatypes
    GNode(..), GType(Subs, Foot, Lex, Other), NodeName,
    Ttree(..), MTtree, SemPols, TestCase(..),
-   Ptype(Initial,Auxiliar,Unspecified), 
+   Ptype(Initial,Auxiliar,Unspecified),
    Pred, Flist, AvPair, GeniVal(..),
    Lexicon, ILexEntry(..), MorphLexEntry, Macros, Sem, LitConstr, SemInput, Subst,
-   emptyLE, emptyGNode, emptyMacro, 
+   emptyLE, emptyGNode, emptyMacro,
 
-   -- GNode stuff 
+   -- GNode stuff
    gCategory, showLexeme, lexemeAttributes, gnnameIs,
 
    -- Functions from Tree GNode
@@ -58,7 +59,7 @@ module NLP.GenI.Btypes(
    -- Polarities
 
    -- Tests
-   prop_unify_anon, prop_unify_self, prop_unify_sym 
+   prop_unify_anon, prop_unify_self, prop_unify_sym
 ) where
 \end{code}
 
@@ -71,7 +72,7 @@ import Data.Maybe (fromMaybe, isJust, mapMaybe)
 import Data.Generics (Data)
 import Data.Typeable (Typeable)
 import qualified Data.Map as Map
-import qualified Data.Set as Set 
+import qualified Data.Set as Set
 import Data.Tree
 import Test.QuickCheck hiding (collect) -- needed for testing via ghci
 
@@ -103,10 +104,10 @@ data Ttree a = TT
   , ptype :: Ptype
   , psemantics :: Maybe Sem
   , ptrace :: [String]
-  , tree :: Tree a } 
+  , tree :: Tree a }
   deriving (Show, Data, Typeable)
 
-data Ptype = Initial | Auxiliar | Unspecified   
+data Ptype = Initial | Auxiliar | Unspecified
              deriving (Show, Eq, Data, Typeable)
 
 instance (Replacable a) => Replacable (Ttree a) where
@@ -124,7 +125,7 @@ instance (Collectable a) => Collectable (Ttree a) where
 -- | A null tree which you can use for various debugging or display purposes.
 emptyMacro :: MTtree
 emptyMacro = TT { params  = [],
-                  pidname = "", 
+                  pidname = "",
                   pfamily = "",
                   pinterface = [],
                   ptype = Unspecified,
@@ -141,7 +142,7 @@ emptyMacro = TT { params  = [],
 type Lexicon = Map.Map String [ILexEntry]
 type SemPols  = [Int]
 data ILexEntry = ILE
-    { -- normally just a singleton, useful for merging synonyms 
+    { -- normally just a singleton, useful for merging synonyms
       iword       :: [String]
     , ifamname    :: String
     , iparams     :: [GeniVal]
@@ -166,9 +167,9 @@ instance Collectable ILexEntry where
               (collect $ ifilters l) . (collect $ iequations l) .
               (collect $ isemantics l)
 
-emptyLE :: ILexEntry  
+emptyLE :: ILexEntry
 emptyLE = ILE { iword = [],
-                ifamname = "", 
+                ifamname = "",
                 iparams = [],
                 iinterface   = [],
                 ifilters = [],
@@ -187,8 +188,8 @@ type MorphLexEntry = (String,String,Flist)
 % ----------------------------------------------------------------------
 
 A GNode is a single node of a syntactic tree. It has a name (gnname),
-top and bottom feature structures (gup, gdown), a lexeme 
-(ganchor, glexeme: False and empty string if n/a),  and some flags 
+top and bottom feature structures (gup, gdown), a lexeme
+(ganchor, glexeme: False and empty string if n/a),  and some flags
 information (gtype, gaconstr).
 
 \begin{code}
@@ -204,7 +205,7 @@ data GNode = GN{gnname :: NodeName,
                 }
            deriving (Eq, Data, Typeable)
 
--- Node type used during parsing of the grammar 
+-- Node type used during parsing of the grammar
 data GType = Subs | Foot | Lex | Other
            deriving (Show, Eq, Data, Typeable)
 
@@ -215,7 +216,7 @@ emptyGNode :: GNode
 emptyGNode = GN { gnname = "",
                   gup = [], gdown = [],
                   ganchor = False,
-                  glexeme = [], 
+                  glexeme = [],
                   gtype = Other,
                   gaconstr = False,
                   gorigin = "" }
@@ -225,10 +226,10 @@ gnnameIs n = (== n) . gnname
 \end{code}
 
 A TAG node may have a category.  In the core GenI algorithm, there is nothing
-which distinguishes the category from any other attributes.  But for some 
+which distinguishes the category from any other attributes.  But for some
 other uses, such as checking if it is a result or for display purposes, we
 do treat this attribute differently.  We take here the convention that the
-category of a node is associated to the attribute ``cat''.  
+category of a node is associated to the attribute ``cat''.
 \begin{code}
 -- | Return the value of the "cat" attribute, if available
 gCategory :: Flist -> Maybe GeniVal
@@ -249,7 +250,7 @@ lexemeAttributes = [ "lex", "phon", "cat" ]
 \end{code}
 
 \paragraph{show (GNode)} the default show for GNode tries to
-be very compact; it only shows the value for cat attribute 
+be very compact; it only shows the value for cat attribute
 and any flags which are marked on that node.
 
 \begin{code}
@@ -272,7 +273,7 @@ instance Show GNode where
 showLexeme :: [String] -> String
 showLexeme []   = ""
 showLexeme [l]  = l
-showLexeme xs   = concat $ intersperse "|" xs 
+showLexeme xs   = concat $ intersperse "|" xs
 \end{code}
 
 A Replacement on a GNode consists of replacements on its top and bottom
@@ -281,7 +282,7 @@ feature structures
 \begin{code}
 instance Replacable GNode where
   replaceOne s gn =
-    gn { gup = replaceOne s (gup gn) 
+    gn { gup = replaceOne s (gup gn)
        , gdown = replaceOne s (gdown gn) }
   replaceMap s gn =
     gn { gup = replaceMap s (gup gn)
@@ -430,11 +431,11 @@ fromGVar x = error ("fromGVar on " ++ show x)
 \subsection{Collectable}
 
 A Collectable is something which can return its variables as a set.
-By variables, what I most had in mind was the GVar values in a 
+By variables, what I most had in mind was the GVar values in a
 GeniVal.  This notion is probably not very useful outside the context of
 alpha-conversion task, but it seems general enough that I'll keep it
 around for a good bit, until either some use for it creeps up, or I find
-a more general notion that I can transform this into.  
+a more general notion that I can transform this into.
 
 \begin{code}
 class Collectable a where
@@ -450,10 +451,10 @@ instance (Collectable a => Collectable [a]) where
 instance (Collectable a => Collectable (Tree a)) where
   collect = collect.flatten
 
--- Pred is what I had in mind here 
-instance ((Collectable a, Collectable b, Collectable c) 
+-- Pred is what I had in mind here
+instance ((Collectable a, Collectable b, Collectable c)
            => Collectable (a,b,c)) where
-  collect (a,b,c) = collect a . collect b . collect c 
+  collect (a,b,c) = collect a . collect b . collect c
 
 instance Collectable GeniVal where
   collect (GVar v) s = Set.insert v s
@@ -512,8 +513,8 @@ instance Replacable GeniVal where
   replaceOne _ v = {-# SCC "replaceOne" #-} v
 \end{code}
 
-Substitution on list consists of performing substitution on 
-each item.  Each item, is independent of the other, 
+Substitution on list consists of performing substitution on
+each item.  Each item, is independent of the other,
 of course.
 
 \begin{code}
@@ -537,7 +538,7 @@ instance Replacable (String, ([String], Flist)) where
 
 \subsection{Idable}
 
-An Idable is something that can be mapped to a unique id.  
+An Idable is something that can be mapped to a unique id.
 You might consider using this to implement Ord, but I won't.
 Note that the only use I have for this so far (20 dec 2005)
 is in alpha-conversion.
@@ -610,7 +611,7 @@ emptyPred = (GAnon,GAnon,[])
 A replacement on a predicate is just a replacement on its parameters
 
 \begin{code}
-instance Replacable Pred where 
+instance Replacable Pred where
   replaceMap s (h, n, lp) = (replaceMap s h, replaceMap s n, replaceMap s lp)
   replaceOne s (h, n, lp) = (replaceOne s h, replaceOne s n, replaceOne s lp)
 \end{code}
@@ -622,8 +623,8 @@ showSem l =
 
 showPred :: Pred -> String
 showPred (h, p, l) = showh ++ show p ++ "(" ++ unwords (map show l) ++ ")"
-  where 
-    hideh (GConst [x]) = "genihandle" `isPrefixOf` x 
+  where
+    hideh (GConst [x]) = "genihandle" `isPrefixOf` x
     hideh _ = False
     --
     showh = if (hideh h) then "" else (show h) ++ ":"
@@ -632,19 +633,19 @@ showPred (h, p, l) = showh ++ show p ++ "(" ++ unwords (map show l) ++ ")"
 \begin{code}
 -- | Given a Semantics, return the string with the proper keys
 --   (propsymbol+arity) to access the agenda
-toKeys :: Sem -> [String] 
+toKeys :: Sem -> [String]
 toKeys l = map (\(_,prop,par) -> show prop ++ (show $ length par)) l
 \end{code}
 
-\subsection{Semantic subsumption} 
+\subsection{Semantic subsumption}
 \label{fn:subsumeSem}
 
 FIXME: comment fix
 
 Given tsem the input semantics, and lsem the semantics of a potential
 lexical candidate, returns a list of possible ways that the lexical
-semantics could subsume the input semantics.  We return a pair with 
-the semantics that would result from unification\footnote{We need to 
+semantics could subsume the input semantics.  We return a pair with
+the semantics that would result from unification\footnote{We need to
 do this because there may be anonymous variables}, and the
 substitutions that need to be propagated throughout the rest of the
 lexical item later on.
@@ -667,7 +668,7 @@ the help of accumulators to keep things from getting confused.
 
 \begin{code}
 subsumeSemHelper :: (Sem,Subst) -> Sem -> Sem -> [(Sem,Subst)]
-subsumeSemHelper _ [] _  = 
+subsumeSemHelper _ [] _  =
   error "input semantics is non-empty in subsumeSemHelper"
 subsumeSemHelper acc _ []      = [acc]
 subsumeSemHelper acc tsem (hd:tl) =
@@ -694,7 +695,7 @@ to s1.  Note: we treat the handle as if it were a parameter.
 \begin{code}
 subsumePred :: Sem -> Pred -> [([GeniVal],Subst)]
 subsumePred [] _ = []
-subsumePred ((h1, p1, la1):l) (pred2@(h2,p2,la2)) = 
+subsumePred ((h1, p1, la1):l) (pred2@(h2,p2,la2)) =
     -- if we found the proper predicate
     if ((p1 == p2) && (length la1 == length la2))
     then let mrs  = unify (h1:la1) (h2:la2)
@@ -702,7 +703,7 @@ subsumePred ((h1, p1, la1):l) (pred2@(h2,p2,la2)) =
          in maybe next (:next) mrs
     else if (p1 < p2) -- note that the semantics have to be reversed!
          then []
-         else subsumePred l pred2 
+         else subsumePred l pred2
 \end{code}
 
 \subsection{Other semantic stuff}
@@ -710,13 +711,13 @@ subsumePred ((h1, p1, la1):l) (pred2@(h2,p2,la2)) =
 \begin{code}
 -- | Sort semantics first according to its predicate, and then to its handles.
 sortSem :: Sem -> Sem
-sortSem = sortBy (\(h1,p1,a1) (h2,p2,a2) -> compare (p1, h1:a1) (p2, h2:a2))  
+sortSem = sortBy (\(h1,p1,a1) (h2,p2,a2) -> compare (p1, h1:a1) (p2, h2:a2))
 \end{code}
 
-% --------------------------------------------------------------------  
+% --------------------------------------------------------------------
 \subsection{Unification}
 \label{sec:fs_unification}
-% --------------------------------------------------------------------  
+% --------------------------------------------------------------------
 
 Feature structure unification takes two feature lists as input.  If it
 fails, it returns Nothing.  Otherwise, it returns a tuple with:
@@ -770,7 +771,7 @@ unification. It makes the following assumptions:
 \item Features are ordered
 
 \item The Flists do not share variables!!!
-      
+
       More precisely, if the two Flists have the same variable, they
       will have the same value. Though this behaviour may not be
       desirable, we don't really care because we never encounter the
@@ -779,7 +780,7 @@ unification. It makes the following assumptions:
 
 \begin{code}
 unifyFeat :: (Monad m) => Flist -> Flist -> m (Flist, Subst)
-unifyFeat f1 f2 = 
+unifyFeat f1 f2 =
   {-# SCC "unification" #-}
   let (att, val1, val2) = alignFeat f1 f2
   in att `seq`
@@ -799,15 +800,15 @@ alphabetically sorted beforehand!
 alignFeat :: Flist -> Flist -> ([String], [GeniVal], [GeniVal])
 alignFeat [] [] = ([], [], [])
 
-alignFeat [] ((f,v):x) = 
+alignFeat [] ((f,v):x) =
   case alignFeat [] x of
   (att, left, right) -> (f:att, GAnon:left, v:right)
 
-alignFeat x [] = 
+alignFeat x [] =
   case alignFeat [] x of
   (att, left, right) -> (att, right, left)
 
-alignFeat fs1@((f1, v1):l1) fs2@((f2, v2):l2) 
+alignFeat fs1@((f1, v1):l1) fs2@((f2, v2):l2)
    | f1 == f2  = case alignFeat l1 l2 of
                  (att, left, right) -> (f1:att, v1:left,    v2:right)
    | f1 <  f2  = case alignFeat l1 fs2 of
@@ -820,11 +821,11 @@ alignFeat fs1@((f1, v1):l1) fs2@((f2, v2):l2)
 \subsection{Unification}
 
 \fnlabel{unify} performs unification on two lists of GeniVal.  If
-unification succeeds, it returns \verb!Just (r,s)! where \verb!r! is 
+unification succeeds, it returns \verb!Just (r,s)! where \verb!r! is
 the result of unification and \verb!s! is a list of substitutions that this
-unification results in.  
+unification results in.
 
-Notes: 
+Notes:
 \begin{itemize}
 \item there may be multiple results because of disjunction
 \item we need to return \verb!r! because of anonymous variables
@@ -840,7 +841,7 @@ The core unification algorithm follows these rules in order:
 \item if h1 is a variable then we replace it by h2,
       regardless of whether or not h2 is a variable
 \item if h2 is a variable then we replace it by h1
-\item if neither h1 and h2 are variables, but they match, we arbitarily 
+\item if neither h1 and h2 are variables, but they match, we arbitarily
       add one of them to the result, but we don't add any replacements.
 \item if neither are variables and they do \emph{not} match, we fail
 \end{enumerate}
@@ -923,21 +924,21 @@ Unifying something with only anonymous variables should succeed.
 
 \begin{code}
 prop_unify_anon :: [GeniVal] -> Bool
-prop_unify_anon x = 
+prop_unify_anon x =
   case (unify x y) of
     Nothing  -> False
     Just unf -> (fst unf == x)
-  where -- 
+  where --
     y  = take (length x) $ repeat GAnon
 \end{code}
 
 Unification should be symmetrical.  We can't guarantee these if there
 are cases where there are variables in the same place on both sides, so we
 normalise the sides so that this doesn't happen.
-         
+
 \begin{code}
 prop_unify_sym :: [GeniVal] -> [GeniVal] -> Property
-prop_unify_sym x y = 
+prop_unify_sym x y =
   let u1 = (unify x y) :: Maybe ([GeniVal],Subst)
       u2 = unify y x
       --
@@ -974,7 +975,7 @@ instance Arbitrary GTestString2 where
   coarbitrary = error "no implementation of coarbitrary for GTestString2"
 
 instance Arbitrary GeniVal where
-  arbitrary = oneof [ return $ GAnon, 
+  arbitrary = oneof [ return $ GAnon,
                       liftM (GVar . fromGTestString2) arbitrary,
                       liftM (GConst . nub . sort . map fromGTestString) arbitrary ]
   coarbitrary = error "no implementation of coarbitrary for GeniVal"
@@ -984,4 +985,3 @@ qc_not_empty_GConst (GConst []) = False
 qc_not_empty_GConst _ = True
 \end{code}
 }
-

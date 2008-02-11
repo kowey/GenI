@@ -12,7 +12,7 @@ looking pretty.
 > import System.Info (os)
 >
 > import Distribution.PackageDescription
-> import Distribution.Setup
+> import Distribution.Simple.Setup
 > import Distribution.Simple
 > import Distribution.Simple.LocalBuildInfo
 
@@ -42,6 +42,7 @@ on other operating systems.
 >      "darwin" -> defaultMainWithHooks (defaultUserHooks { postInst = macifyHook })
 >      _        -> defaultMain
 
+> macifyHook :: t -> t1 -> PackageDescription -> InstallDirs FilePath -> IO ExitCode
 > macifyHook _ _ pkg localb =
 >   foldM (next $ macify.binPath) ExitSuccess guiExes
 >  where
@@ -49,8 +50,8 @@ on other operating systems.
 >   guiExes = case mRestrictTo of
 >               Nothing -> allExes
 >               Just rs -> filter (`elem` rs) allExes
->   next f x@(ExitFailure _) _ = return x
->   next f _ b = macify (binPath b)
+>   next _ x@(ExitFailure _) _ = return x
+>   next _ _ b = macify (binPath b)
 >   binPath x = prefix localb /// bindir localb /// x
 
 > macify :: FilePath -> IO ExitCode

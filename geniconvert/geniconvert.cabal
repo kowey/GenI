@@ -3,12 +3,15 @@ Version:        0.15
 License:        GPL
 License-file:   LICENSE
 Author:         Carlos Areces and Eric Kow
-Build-Depends:  GenI >=0.14, base, binary, haskell98, mtl, parsec, QuickCheck, HUnit, HaXml >=1.16
+Build-Depends:  libGenI >=0.14, base, binary, haskell98, containers, mtl, parsec, QuickCheck, HUnit, HaXml >=1.16
+build-type:     Simple
+Category:       Natural-language Processing
+Homepage:       http://wiki.loria.fr/wiki/GenI
 Description:    Conversion utility for the GenI generator
 Maintainer:     eric.kow@loria.fr
+extra-source-files: NLP/GenI/HsShow.lhs, NLP/GenI/Converter/ReadTagml.hs, NLP/GenI/Converter/XmgTagml.hs
 
 Executable:     geniconvert
-Hs-Source-Dirs: .
 Main-Is:        Converter.hs
-Extensions:     CPP, Rank2Types, OverlappingInstances
+Extensions:     CPP, Rank2Types, OverlappingInstances, TypeSynonymInstances
 Ghc-options:    -Wall -O2
