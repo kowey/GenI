@@ -4,7 +4,7 @@ License:        GPL
 License-file:   LICENSE
 Author:         Carlos Areces and Eric Kow
 Build-Depends:  base, binary, haskell98, mtl, containers, process, parsec, QuickCheck, HUnit
-Build-Type:     Custom
+Build-Type:     Simple
 Category:       Natural-language Processing
 Description:    Natural language generator for TAG
 Homepage:       http://wiki.loria.fr/wiki/GenI
