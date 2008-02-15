@@ -18,6 +18,7 @@
 \chapter{CKY Gui}
 
 \begin{code}
+{-# LANGUAGE FlexibleInstances, TypeSynonymInstances #-}
 module NLP.GenI.CkyEarley.CkyGui where
 \end{code}
 

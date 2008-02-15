@@ -18,6 +18,7 @@
 \chapter{Graphical User Interface} 
 
 \begin{code}
+{-# LANGUAGE FlexibleContexts #-}
 module NLP.GenI.Gui(guiGeni) where
 \end{code}
 

@@ -1,3 +1,5 @@
+{-# OPTIONS -fglasgow-exts #-}
+
 {-
  GenI surface realiser
  Copyright (C) 2005 Carlos Areces and Eric Kow

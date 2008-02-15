@@ -20,6 +20,7 @@
 Outputting core GenI data to graphviz.
 
 \begin{code}
+{-# LANGUAGE FlexibleInstances, TypeSynonymInstances, FlexibleContexts #-}
 module NLP.GenI.GraphvizShow
 where
 \end{code}

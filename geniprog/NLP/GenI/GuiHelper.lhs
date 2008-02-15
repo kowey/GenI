@@ -21,6 +21,7 @@ This module provides helper functions for building the GenI graphical
 user interface
 
 \begin{code}
+{-# LANGUAGE FlexibleContexts #-}
 module NLP.GenI.GuiHelper where
 \end{code}
 

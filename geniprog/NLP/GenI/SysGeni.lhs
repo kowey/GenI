@@ -23,6 +23,7 @@ are in a MacOS X application bundle, then we add \verb!../Resources/bin!
 to the path for all the random crap that we ship with with GenI.
 
 \begin{code}
+{-# LANGUAGE ForeignFunctionInterface #-}
 module NLP.GenI.SysGeni
 where
 \end{code}
