@@ -6,7 +6,7 @@ process each GUI with the 'macosx-app' shell script (from wxhaskell) so
 that it actually responds to user input instead of just sitting there
 looking pretty.
 
-> import Control.Monad (foldM)
+> import Control.Monad (foldM_)
 > import System.Cmd
 > import System.Exit
 > import System.Info (os)
@@ -39,11 +39,11 @@ on other operating systems.
 > main :: IO ()
 > main =
 >  do case os of
->      "darwin" -> defaultMainWithHooks (defaultUserHooks { postInst = macifyHook })
+>      "darwin" -> defaultMainWithHooks (simpleUserHooks { postBuild = macifyHook })
 >      _        -> defaultMain
 
 > macifyHook _ _ pkg localb =
->   foldM (next $ macify.binPath) ExitSuccess guiExes
+>   foldM_ (next $ macify.binPath) ExitSuccess guiExes
 >  where
 >   allExes = map exeName $ executables pkg
 >   guiExes = case mRestrictTo of
@@ -51,10 +51,11 @@ on other operating systems.
 >               Just rs -> filter (`elem` rs) allExes
 >   next _ x@(ExitFailure _) _ = return x
 >   next _ _ b = macify (binPath b)
->   binPath x = prefix localb /// bindir localb /// x
+>   binPath x = buildDir localb /// x /// x
 
 > macify :: FilePath -> IO ExitCode
-> macify x = system $ macosxApp ++ " " ++ x
+> macify x = system $ unwords $ [ "chmod u+x",  macosxApp,  ";"
+>                               ,  macosxApp, x ]
 
 This handly little FilePath concatenation function was stolen from
 darcs. Note that darcs is GPL; if this bothers you, ask David Roundy.
