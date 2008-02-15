@@ -27,7 +27,7 @@ contain a GUI (or you don't really care that much), just put Nothing
 Normally, this should just be "macosx-app"
 
 > macosxApp :: String
-> macosxApp = "etc/macstuff/macosx-app"
+> macosxApp = "macstuff/macosx-app"
 
 Nothing to configure from here on
 ---------------------------------

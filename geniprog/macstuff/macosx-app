@@ -1,6 +1,6 @@
 #!/bin/sh
-icnsfile=etc/macstuff/wxmac.icns
-infofile=etc/macstuff/Info.plist
+icnsfile=macstuff/wxmac.icns
+infofile=macstuff/Info.plist
 bundlename=GenI
 rezcomp="/Developer/Tools/Rez -t APPL Carbon.r $rezfile -o"
 
