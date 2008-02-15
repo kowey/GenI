@@ -3,27 +3,14 @@ Version:        0.16
 License:        GPL
 License-file:   LICENSE
 Author:         Carlos Areces and Eric Kow
-Build-Depends:  base, binary, haskell98, mtl, containers, process, parsec, QuickCheck, HUnit
-Build-Type:     Simple
-Category:       Natural-language Processing
-Description:    Natural language generator for TAG
-Homepage:       http://wiki.loria.fr/wiki/GenI
+Category:       Natural Language Processing
+Synopsis:       A natural language generator (specifically, an FB-LTAG surface realiser)
+Description:    A natural language generator (specifically, an FB-LTAG surface realiser)
+Homepage:       http://trac.loria.fr/~geni
 Maintainer:     eric.kow@loria.fr
-Exposed-Modules:
-                NLP.GenI.Btypes,
-                NLP.GenI.BtypesBinary,
-                NLP.GenI.General,
-                NLP.GenI.GeniParsers,
-                NLP.GenI.GeniShow,
-                NLP.GenI.Tags,
-                NLP.GenI.Morphology,
-                NLP.GenI.Polarity, NLP.GenI.Automaton,
-                NLP.GenI.Statistics,
-                NLP.GenI.Builder,
-                NLP.GenI.Simple.SimpleBuilder, NLP.GenI.CkyEarley.CkyBuilder,
-                NLP.GenI.Geni, NLP.GenI.Configuration
-
-data-files: AUTHORS, INSTALL, README,
+Build-Type:     Simple
+Cabal-Version: >=1.2
+data-files: AUTHORS, INSTALL, README, libGenI.cabal
    doc/lingmacros.sty, doc/framed.sty, doc/covington.sty
    doc/images/geni_polaut.pdf, doc/images/zeroaut-noun.pdf
    doc/images/zeroliteralaut-sans.pdf, doc/images/variableCollection-01-04.pdf
@@ -59,8 +46,27 @@ data-files: AUTHORS, INSTALL, README,
    grammars/README
 -- etc/ is omitted because it's just tests
 
--- extra-sources-files:
 
-Hs-Source-Dirs: libgeni
-Extensions:     CPP, Rank2Types, OverlappingInstances, MultiParamTypeClasses, FlexibleContexts, TypeSynonymInstances,  FlexibleInstances, DeriveDataTypeable, ExistentialQuantification, LiberalTypeSynonyms
-Ghc-options:    -Wall -O2
+Flag splitBase
+  description: Choose the new smaller, split-up base package.
+
+Library
+  Build-depends: base, binary, haskell98, mtl, containers, process, parsec, QuickCheck, HUnit
+  Exposed-Modules:
+                NLP.GenI.Btypes,
+                NLP.GenI.BtypesBinary,
+                NLP.GenI.General,
+                NLP.GenI.GeniParsers,
+                NLP.GenI.GeniShow,
+                NLP.GenI.Tags,
+                NLP.GenI.Morphology,
+                NLP.GenI.Polarity, NLP.GenI.Automaton,
+                NLP.GenI.Statistics,
+                NLP.GenI.Builder,
+                NLP.GenI.Simple.SimpleBuilder, NLP.GenI.CkyEarley.CkyBuilder,
+                NLP.GenI.Geni, NLP.GenI.Configuration
+
+  -- extra-sources-files:
+  Hs-Source-Dirs: libgeni
+  Extensions:     CPP, Rank2Types, OverlappingInstances, MultiParamTypeClasses, FlexibleContexts, TypeSynonymInstances,  FlexibleInstances, DeriveDataTypeable, ExistentialQuantification, LiberalTypeSynonyms
+  Ghc-options:    -Wall -O2

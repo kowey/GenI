@@ -3,11 +3,12 @@ Version:        0.16
 License:        GPL
 License-file:   LICENSE
 Author:         Carlos Areces and Eric Kow
-Build-Depends:  base, binary, wx, wxcore, haskell98, mtl, parsec, QuickCheck, HUnit, HaXml >=1.16, libGenI
+Cabal-version: >=1.2
 build-type:     Custom
-Category:       Natural-language Processing
-Homepage:       http://wiki.loria.fr/wiki/GenI
-Description:    Natural language generator for TAG
+Category:       Natural Language Processing
+Homepage:       http://trac.loria.fr/~geni
+Synopsis:       A natural language generator (specifically, an FB-LTAG surface realiser)
+Description:    A natural language generator (specifically, an FB-LTAG surface realiser)
 Maintainer:     eric.kow@loria.fr
 
 extra-source-files: EnableGUI.hs, NLP/GenI/SysGeni.lhs
@@ -18,8 +19,20 @@ extra-source-files: EnableGUI.hs, NLP/GenI/SysGeni.lhs
                     NLP/GenI/BuilderGui.lhs, NLP/GenI/unused/Predictors.lhs
                     NLP/GenI/GraphvizShowPolarity.lhs
 
-Executable:     geni
-Main-Is:        MainGeni.lhs
-Hs-Source-Dirs: .
-Extensions:     CPP, Rank2Types, OverlappingInstances, MultiParamTypeClasses
-Ghc-options:    -Wall -O2
+data-files: GenI.cabal macstuff/macosx-app
+
+Flag splitBase
+  description: Choose the new smaller, split-up base package.
+
+Executable     geni
+ Main-Is:        MainGeni.lhs
+ Hs-Source-Dirs: .
+ Extensions:     CPP, Rank2Types, OverlappingInstances, MultiParamTypeClasses
+ Ghc-options:    -Wall
+ if flag(splitBase)
+    Build-Depends: base >= 3, binary, wx, wxcore, haskell98, mtl, parsec,
+                   QuickCheck, HUnit, HaXml >=1.16, libGenI,
+                   process > 1, directory > 1, containers >= 0.1
+ else
+    Build-Depends: base < 3, binary, wx, wxcore, haskell98, mtl, parsec,
+                   QuickCheck, HUnit, HaXml >=1.16, libGenI
