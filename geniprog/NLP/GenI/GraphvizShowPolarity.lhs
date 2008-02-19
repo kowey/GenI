@@ -17,6 +17,7 @@
 
 \begin{code}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module NLP.GenI.GraphvizShowPolarity
 where
 

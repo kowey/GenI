@@ -29,7 +29,7 @@ module Main (main) where
 \ignore{
 \begin{code}
 import Data.IORef(newIORef)
-import System(getArgs)
+import System.Environment(getArgs)
 
 import NLP.GenI.Geni(emptyProgState)
 import NLP.GenI.Console(consoleGeni)

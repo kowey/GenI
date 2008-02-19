@@ -18,6 +18,7 @@
 \chapter{Simple GUI}
 
 \begin{code}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module NLP.GenI.Simple.SimpleGui where
 \end{code}
 

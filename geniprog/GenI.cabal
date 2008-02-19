@@ -1,5 +1,5 @@
 Name:           GenI
-Version:        0.16
+Version:        0.16.1
 License:        GPL
 License-file:   LICENSE
 Author:         Carlos Areces and Eric Kow
@@ -30,9 +30,9 @@ Executable     geni
  Extensions:     CPP, Rank2Types, OverlappingInstances, MultiParamTypeClasses
  Ghc-options:    -Wall
  if flag(splitBase)
-    Build-Depends: base >= 3, binary, wx, wxcore, haskell98, mtl, parsec,
+    Build-Depends: base >= 3, binary, wx, wxcore, mtl, parsec,
                    QuickCheck, HUnit, HaXml >=1.16, libGenI,
                    process > 1, directory > 1, containers >= 0.1
  else
-    Build-Depends: base < 3, binary, wx, wxcore, haskell98, mtl, parsec,
+    Build-Depends: base < 3, binary, wx, wxcore, mtl, parsec,
                    QuickCheck, HUnit, HaXml >=1.16, libGenI

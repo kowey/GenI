@@ -19,6 +19,7 @@
 
 \begin{code}
 {-# LANGUAGE FlexibleInstances, TypeSynonymInstances #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module NLP.GenI.CkyEarley.CkyGui where
 \end{code}
 

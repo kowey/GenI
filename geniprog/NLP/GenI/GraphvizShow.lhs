@@ -21,6 +21,7 @@ Outputting core GenI data to graphviz.
 
 \begin{code}
 {-# LANGUAGE FlexibleInstances, TypeSynonymInstances, FlexibleContexts #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module NLP.GenI.GraphvizShow
 where
 \end{code}

@@ -32,11 +32,13 @@ where
 \begin{code}
 import qualified System.Process as S
 
+#ifdef darwin_TARGET_OS
 import Data.List(isSuffixOf)
-import System.Exit (ExitCode)
-import System.IO (Handle)
-
 import NLP.GenI.General((///))
+#endif
+
+import System.IO (Handle)
+import System.Exit (ExitCode)
 
 #ifdef __GLASGOW_HASKELL__
 import Foreign
@@ -59,11 +61,11 @@ running from an application bundle.  If we are, we assume that any
 processes we want to run are in \texttt{../Resources/bin}.
 
 \begin{code}
-#ifdef darwin_TARGET_OS 
 runInteractiveProcess :: String -> [String]
                       -> Maybe FilePath
                       -> Maybe [(String, String)]
                       -> IO (Handle, Handle, Handle, S.ProcessHandle)
+#ifdef darwin_TARGET_OS
 runInteractiveProcess cmd args x y = do
   dirname <- getProgDirName
   -- detect if we're in an .app bundle, i.e. if 
