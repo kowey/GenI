@@ -73,7 +73,7 @@ trim = reverse . (dropWhile isSpace) . reverse . (dropWhile isSpace)
 
 -- | Drop all characters up to and including the one in question
 dropTillIncluding :: Char -> String -> String
-dropTillIncluding c = tail_ . (dropWhile (/= c))
+dropTillIncluding c = drop 1 . (dropWhile (/= c))
 \end{code}
 
 \fnlabel{toUpperHead and toLowerHead} make the first character of a
@@ -141,11 +141,6 @@ comparing f a b = compare (f a) (f b)
 \end{code}
 
 \begin{code}
--- | A forgiving version of tail : if you give it the empty list, it returns the empty list
-tail_ :: [a] -> [a]
-tail_ [] = []
-tail_ (_:t) = t
-
 -- | A strict version of 'map'
 map' :: (a->b) -> [a] -> [b]
 map' _ [] = []
