@@ -102,8 +102,8 @@ SCRIPT_FILES = bin/tryXtimes\
 	       etc/macstuff/macosx-app\
 
 
-GENI := dist/build/geni
-GENI_PRECOMPILED := dist/build/geni-precompiled
+GENI := geniprog/dist/build/geni
+GENI_PRECOMPILED := geniprog/dist/build/geni-precompiled
 GENI_MAIN := $(SRC)/MainGeni.lhs
 
 PROFGENI := bin/debugger-geni
