@@ -45,6 +45,7 @@ whatever aconstr-with-anchor () semantics:[aconstr-with-anchor()]
 
 tb-unification-noadj tb-unification-noadj () semantics:[tb-unification-noadj()]
 tb-unification-bot   tb-unification-bot () semantics:[tb-unification-bot()]
+tb-unification-adj   tb-unification-adj () semantics:[tb-unification-adj()]
 
 no-thing   no-thing   () semantics:[no-thing()]
 thing-good thing-good () semantics:[thing-good()]

@@ -100,8 +100,12 @@ M [cat:a]![] {
 }
 
 tb-unification-bot() initial
+M anchor [cat:a]![]
+
+tb-unification-adj() auxiliary
 M [cat:a]![idx:b] {
- Y anchor [cat:b]![]
+ X anchor [cat:b]![]
+ Y type:foot [cat:a]![]
 }
 
 no-thing () initial
