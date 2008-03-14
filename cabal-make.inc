@@ -18,7 +18,8 @@ build:
 # Pass to "./setup configure"
 configure-args ?= \
 	$(configure-dirs) \
-        --haddock-args="$(foreach iface,$(haddock-interfaces),--read-interface=$(iface)) $(source-args) $(comments-args)"
+
+        #--haddock-args="$(foreach iface,$(haddock-interfaces),--read-interface=$(iface)) $(source-args) $(comments-args)"
 show-configure-args:
 	@echo $(configure-args)
 
