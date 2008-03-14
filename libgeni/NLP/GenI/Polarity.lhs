@@ -116,7 +116,7 @@ type PolResult = ([AutDebug], PolAut, PolAut, Sem)
 type AutDebug  = (String, PolAut, PolAut)
 
 buildAutomaton (tsem,tres,_) candRaw rootFeat extrapol  =
-  let -- root catogories, index constraints, and external polarities
+  let -- root categories, index constraints, and external polarities
       rcatPol :: Map.Map String Interval
       rcatPol = Map.fromList $ polarise (-1) $ getval __cat__ rootFeat
       allExtraPols = Map.unionsWith (!+!) [ extrapol, inputRest, rcatPol ]
