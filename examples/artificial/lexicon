@@ -44,6 +44,8 @@ iaf-g iaf-killer-good (?X) semantics:[iaf(?X)]
 whatever aconstr-with-anchor () semantics:[aconstr-with-anchor()]
 
 tb-unification-noadj tb-unification-noadj () semantics:[tb-unification-noadj()]
+tb-unification-bot   tb-unification-bot () semantics:[tb-unification-bot()]
+
 no-thing   no-thing   () semantics:[no-thing()]
 thing-good thing-good () semantics:[thing-good()]
 thing-bad  thing-bad  () semantics:[thing-bad()]

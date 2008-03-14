@@ -99,6 +99,11 @@ M [cat:a]![] {
   Y anchor [cat:b]![]
 }
 
+tb-unification-bot() initial
+M [cat:a]![idx:b] {
+ Y anchor [cat:b]![]
+}
+
 no-thing () initial
 X anchor [cat:x]![]
 
