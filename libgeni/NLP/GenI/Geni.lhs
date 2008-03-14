@@ -77,7 +77,7 @@ import NLP.GenI.Btypes
    iinterface, ifilters,
    isempols,
    toKeys,
-   showLexeme,
+   showLexeme, showSem,
    pidname, pfamily, pinterface, ptype, psemantics, ptrace,
    setAnchor, setLexeme, tree, unifyFeat,
    alphaConvert,
@@ -585,7 +585,19 @@ runLexSelection pst =
     when verbose $
       do ePutStrLn $ "Lexical items selected:\n" ++ (unlinesIndentAnd (showLexeme.iword) lexCand)
          ePutStrLn $ "Trees anchored (family) :\n" ++ (unlinesIndentAnd idname candFinal)
+    -- lexical selection failures
+    let missedSem  = tsem \\ (nub $ concatMap tsemantics candFinal)
+        hasTree l = isJust $ find (\t -> tsemantics t == lsem) cand
+          where lsem = isemantics l
+        missedLex = filter (not.hasTree) lexCand
+    unless (null missedSem) $
+        ePutStrLn $ "WARNING: no lexical selection for " ++ showSem missedSem
+    unless (null missedLex) $
+        ePutStrLn $ "WARNING: '" ++ (concat $ intersperse ", " $ map showLex missedLex)
+                        ++ "' were lexically selected, but are not anchored to"
+                        ++ " any trees"
     return (candFinal, lexCand)
+ where showLex l = (showLexeme $ iword l) ++ "-" ++ (ifamname l)
 
 -- | Select and returns the set of entries from the lexicon whose semantics
 --   subsumes the input semantics.
