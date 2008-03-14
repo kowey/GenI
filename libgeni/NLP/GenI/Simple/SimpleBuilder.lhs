@@ -799,7 +799,7 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
       newadjnodes = anr : (atail ++ auxlite)
       --
       rawCombined =
-        combineSimpleItems [r_name, f_name] aItem $ pItem
+        combineSimpleItems [r_name, an_name] aItem $ pItem
                { siAdjnodes = newadjnodes
                , siLeaves  = siLeaves aItem ++ siLeaves pItem
                , siDerived = spliceTree f_name (siDerived aItem) an_name (siDerived pItem)
