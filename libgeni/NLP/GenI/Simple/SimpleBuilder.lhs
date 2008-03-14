@@ -798,8 +798,22 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
       auxlite = delete r $ siAdjnodes aItem
       newadjnodes = anr : (atail ++ auxlite)
       --
+#ifdef DISABLE_GUI
+      aItem2 = aItem
+#else
+      -- Ugh, this is horrible: this is just to make sure the GUI gets
+      -- updated accordingly.  The code used to be a lot simpler, but
+      -- I started trying to move stuff out of the way in the interests
+      -- of efficiency, and to pack as much gui-related stuff as possible
+      -- into a single tuple.
+      aItem2 = aItem { siGuiStuff = fixNodes $ siGuiStuff aItem }
+        where fixNodes g = g { siNodes = map (setSites anr) (siNodes g) }
+              setSites (TagSite n u d _) gn =
+                if gnname gn == n then gn { gup = u, gdown = d }
+                                  else gn
+#endif
       rawCombined =
-        combineSimpleItems [r_name, an_name] aItem $ pItem
+        combineSimpleItems [r_name, an_name] aItem2 $ pItem
                { siAdjnodes = newadjnodes
                , siLeaves  = siLeaves aItem ++ siLeaves pItem
                , siDerived = spliceTree f_name (siDerived aItem) an_name (siDerived pItem)
