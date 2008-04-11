@@ -31,8 +31,8 @@ Executable     geni
  Ghc-options:    -Wall
  if flag(splitBase)
     Build-Depends: base >= 3, binary, wx, wxcore, mtl, parsec,
-                   QuickCheck, HUnit, HaXml >=1.16, libGenI,
+                   QuickCheck, HUnit, libGenI,
                    process > 1, directory > 1, containers >= 0.1
  else
     Build-Depends: base < 3, binary, wx, wxcore, mtl, parsec,
-                   QuickCheck, HUnit, HaXml >=1.16, libGenI
+                   QuickCheck, HUnit, libGenI
