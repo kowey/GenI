@@ -556,7 +556,7 @@ also propagates up the assignemnt $?Y \leftarrow a$
 \begin{code}
 -- | CKY parent rule
 parentRule item chart | ciComplete item =
- do (leftS,rightS,p)  <- Map.lookup (gnname node) (ciRouting item)
+ do (leftS,rightS,p)  <- maybeToList $ Map.lookup (gnname node) (ciRouting item)
     let mergePoints kids =
          case mapMaybe ciAdjPoint (item:kids) of
           []  -> Nothing
