@@ -51,12 +51,15 @@ Flag splitBase
   description: Choose the new smaller, split-up base package.
 
 Library
+  Build-depends: parsec >= 2 && < 3,
+                 QuickCheck >= 1.2 && < 2,
+                 HUnit > 1 && < 1.3,
+                 mtl > 1.0 && < 1.2,
+                 binary > 0.2 && < 0.5
   if flag(splitBase)
-    Build-depends: base >= 3, binary, mtl, containers, process,
-                   parsec, QuickCheck, HUnit
+    Build-depends: base >= 3 && < 4, containers, process
   else
-    Build-Depends: base >= 3, binary, mtl,
-                   parsec, QuickCheck, HUnit
+    Build-Depends: base <  3
   Exposed-Modules:
                 NLP.GenI.Btypes,
                 NLP.GenI.BtypesBinary,
