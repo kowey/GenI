@@ -688,20 +688,14 @@ instance Show LexCombineError where
  show (EnrichError t l _)  = show (OtherError t l "enrichment error")
 \end{code}
 
-\fnlabel{combine}: Given 
-\begin{itemize}
-\item the Macros 
-\item a list of ILexEntry (read from the Lexicon.in file) 
-\end{itemize}
-
-It creates the Tags repository combining lexical entries and
-un-anchored trees from the grammar. It also unifies the parameters
-used to specialize un-anchored trees and propagates additional features
-given in the ILexEntry. 
-
-We start by collecting all the features and parameters we want to combine.
+The first step in lexical selection is to collect all the features and
+parameters that we want to combine.
 
 \begin{code}
+-- | 'combine' @macros lex@ creates the 'Tags' repository combining lexical
+--   entries and un-anchored trees from the grammar. It also unifies the
+--   parameters used to specialize un-anchored trees and propagates additional
+--   features given in the 'ILexEntry'.
 combine :: Macros -> Lexicon -> Tags
 combine gram lexicon =
   let helper li = mapEither (combineOne li) macs
