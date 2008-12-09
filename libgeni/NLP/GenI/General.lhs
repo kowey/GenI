@@ -325,21 +325,6 @@ geniBug s = error $ "Bug in GenI!\n" ++ s ++
                     "\nPlease file a report on http://wiki.loria.fr/wiki/GenI/Complaints" 
 \end{code}
 
-\section{Files}
-
-\begin{code}
-basename :: FilePath -> FilePath
-basename x
- | '.' `elem` x = reverse . tail . dropWhile (/= '.') . reverse $ x
- | otherwise    = x
-
--- from darcs
-(///) :: FilePath -> FilePath -> FilePath
-""///b = b
-a///"" = a
-a///b  = a ++ "/" ++ b
-\end{code}
-
 \section{Intervals}
 
 We represent polarities as intervals $(x,y)$, meaning from $x$ to $y$ including
