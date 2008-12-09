@@ -37,6 +37,7 @@ import qualified Data.Map as Map
 import Data.IORef
 import Data.List (intersperse)
 import System.Directory 
+import System.FilePath ((<.>),(</>),dropExtensions)
 import System.Process (runProcess)
 import Text.ParserCombinators.Parsec (parseFromFile)
 
@@ -52,7 +53,7 @@ import NLP.GenI.Geni
   ( ProgState(..), showRealisations )
 import NLP.GenI.GeniParsers ( geniTagElems )
 import NLP.GenI.General
-  (geniBug, boundsCheck, (///), dropTillIncluding, basename, ePutStrLn)
+  (geniBug, boundsCheck, dropTillIncluding, ePutStrLn)
 import NLP.GenI.Btypes
   ( showAv, showPred, showSem, showLexeme, Sem, ILexEntry(iword, ifamname), )
 import NLP.GenI.Tags
@@ -295,7 +296,7 @@ runViewTag params drName =
   Nothing -> ePutStrLn "Warning: No macros files specified (runViewTag)"
   Just f  -> do
      -- figure out what grammar file to use
-     let gramfile = basename f ++ ".rec"
+     let gramfile = dropExtensions f <.> "rec"
          treenameOnly = takeWhile (/= ':') . dropTillIncluding ':' . dropTillIncluding ':'
      -- run the viewer
      case getFlagP ViewCmdFlg params of
@@ -802,7 +803,7 @@ initCacheDir cachesubdir = do
   cmainExists  <- doesDirectoryExist mainCacheDir 
   Monad.when (not cmainExists) $ createDirectory mainCacheDir 
   -- 
-  let cachedir = mainCacheDir /// cachesubdir
+  let cachedir = mainCacheDir </> cachesubdir
   cExists    <- doesDirectoryExist cachedir
   if (cExists)
     then do let notdot x = (x /= "." && x /= "..")
@@ -842,17 +843,17 @@ messageGui f msg = do
 gv_CACHEDIR :: IO String
 gv_CACHEDIR = do
   home <- getHomeDirectory
-  return $ home /// ".gvcache"
+  return $ home </> ".gvcache"
 
 createImagePath :: String -> String -> IO String
 createImagePath subdir name = do
   cdir <- gv_CACHEDIR
-  return $ cdir /// subdir /// name ++ ".png"
+  return $ cdir </> subdir </> name <.> "png"
 
 createDotPath :: String -> String -> IO String
 createDotPath subdir name = do 
   cdir <- gv_CACHEDIR
-  return $ cdir /// subdir /// name ++ ".dot"
+  return $ cdir </> subdir </> name <.> "dot"
 \end{code}
 
 

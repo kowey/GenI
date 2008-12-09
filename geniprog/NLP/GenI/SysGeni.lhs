@@ -88,15 +88,6 @@ getProgDirName =
      getProgArgv p_argc p_argv
      argv <- peek p_argv
      s <- peekElemOff argv 0 >>= peekCString
-     return $ dirname s
-  where
-   dirname :: String -> String
-   dirname f = reverse $ dropWhile (not.isPathSeparator) $ reverse f
-   isPathSeparator :: Char -> Bool
-   isPathSeparator '/'  = True
-#ifdef mingw32_TARGET_OS 
-   isPathSeparator '\\' = True
-#endif
-   isPathSeparator _    = False
+     return $ takeDirectory s
 \end{code}
 

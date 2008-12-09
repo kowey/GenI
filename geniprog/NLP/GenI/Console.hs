@@ -26,6 +26,7 @@ import Data.List(find, sort)
 import Data.Maybe ( isJust, fromMaybe )
 import System.Directory(createDirectoryIfMissing)
 import System.Exit ( exitFailure )
+import System.FilePath ( (</>) )
 import Test.HUnit.Text (runTestTT)
 import qualified Test.HUnit.Base as H
 import Test.HUnit.Base ((@?))
@@ -36,7 +37,7 @@ import NLP.GenI.Btypes
    )
 import qualified NLP.GenI.Btypes as G
 import NLP.GenI.General
-  ( ePutStrLn, withTimeout, exitTimeout, (///)
+  ( ePutStrLn, withTimeout, exitTimeout
   , fst3,
   )
 import NLP.GenI.Geni
@@ -168,17 +169,17 @@ runOnSemInput pstRef args semInput =
      let results = sort results'
      -- create directory if need be
      case args of
-       PartOfSuite n f -> createDirectoryIfMissing False (f///n)
+       PartOfSuite n f -> createDirectoryIfMissing False (f </> n)
        _               -> return ()
      let oWrite = case args of
                      Standalone "" _ -> putStrLn
                      Standalone f  _ -> writeFile f
-                     PartOfSuite n f -> writeFile $ f /// n /// "responses"
+                     PartOfSuite n f -> writeFile $ f </> n </> "responses"
                      InRegressionTest -> const $ return ()
          soWrite = case args of
                      Standalone _ "" -> putStrLn
                      Standalone _ f  -> writeFile f
-                     PartOfSuite n f -> writeFile $ f /// n /// "stats"
+                     PartOfSuite n f -> writeFile $ f </> n </> "stats"
                      InRegressionTest -> const $ return ()
      oWrite . unlines . map fst $ results
      -- print out statistical data (if available)
