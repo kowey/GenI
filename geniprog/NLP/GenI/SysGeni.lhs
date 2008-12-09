@@ -32,11 +32,8 @@ where
 \begin{code}
 import qualified System.Process as S
 
-#ifdef darwin_TARGET_OS
-import Data.List(isSuffixOf)
-import NLP.GenI.General((///))
-#endif
-
+import Data.List (isSuffixOf)
+import System.FilePath
 import System.IO (Handle)
 import System.Exit (ExitCode)
 
@@ -65,22 +62,17 @@ runInteractiveProcess :: String -> [String]
                       -> Maybe FilePath
                       -> Maybe [(String, String)]
                       -> IO (Handle, Handle, Handle, S.ProcessHandle)
-#ifdef darwin_TARGET_OS
 runInteractiveProcess cmd args x y = do
   dirname <- getProgDirName
   -- detect if we're in an .app bundle, i.e. if 
   -- we are running from something.app/Contents/MacOS
   let appBundle = ".app/Contents/MacOS/"
-      resBinCmd = "../Resources/bin" /// cmd
+      resBinCmd = "../Resources/bin" </> cmd
   -- if we're in an .app bundle, we should prefix the
   -- path with ../Resources/bin
   let cmd2 = if appBundle `isSuffixOf` dirname 
              then resBinCmd else cmd
   S.runInteractiveProcess cmd2 args x y 
-#else 
--- if not on a Mac
-runInteractiveProcess = S.runInteractiveProcess
-#endif
 \end{code}
 
 \paragraph{Process helpers}
