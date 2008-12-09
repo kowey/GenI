@@ -29,10 +29,17 @@ Executable     geni
  Hs-Source-Dirs: .
  Extensions:     CPP, Rank2Types, OverlappingInstances, MultiParamTypeClasses
  Ghc-options:    -Wall
+ Build-Depends: filepath > 1.0 && < 1.2,
+                parsec >= 2.1 && < 3,
+                QuickCheck >= 1.2 && < 2,
+                HUnit >= 1 && < 1.3,
+                mtl >= 1.0 && < 1.2,
+                binary >= 0.2 && < 0.5,
+                wx >= 0.10.3 && < 0.12,
+                wxcore >= 0.10.3 && < 0.12,
+                libGenI >= 0.16 && < 0.18
  if flag(splitBase)
-    Build-Depends: base >= 3, binary, wx, wxcore, mtl, parsec,
-                   QuickCheck, HUnit, libGenI,
+    Build-Depends: base >= 3,
                    process > 1, directory > 1, containers >= 0.1
  else
-    Build-Depends: base < 3, binary, wx, wxcore, mtl, parsec,
-                   QuickCheck, HUnit, libGenI
+    Build-Depends: base < 3
