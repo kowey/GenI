@@ -125,29 +125,20 @@ myEMPTY = "MYEMPTY"
 \section{ProgState}
 % --------------------------------------------------------------------
 
-Data types for keeping track of the program state.  
-
-\begin{description}
-\item[pa] the current configuration being processed
-\item[batchPa] the list of possible configurations.  This list is
-               never empty.  If we are doing batch processing, 
-               then its only item is pa
-\item 
-\end{description}
-
 \begin{code}
-data ProgState = ST{pa     :: Params,
+data ProgState = ST{ -- | the current configuration being processed
+                    pa     :: Params,
                     --
                     gr       :: Macros,
                     le       :: Lexicon,
                     morphinf :: MorphFn,
                     morphlex :: Maybe [(String,String,Flist)],
                     ts       :: SemInput, 
-                    -- names of test case to run
+                    -- | names of test case to run
                     tcase    :: String, 
-                    -- name, original string (for gui), sem
+                    -- | name, original string (for gui), sem
                     tsuite   :: [TestCase],
-                    -- simplified traces (optional)
+                    -- | simplified traces (optional)
                     traces   :: [String]
                }
 
@@ -370,9 +361,8 @@ parseFromFileMaybeBinary p f =
 \subsection{Surface realisation - entry point}
 % --------------------------------------------------------------------
 
-\fnlabel{runGeni} is what you call if the only thing you want to do is run the
-surface realiser.  It assumes that you have already loaded in your grammar and
-parsed your input semantics, and performs the following four steps:
+This is your basic entry point.  You call this if the only thing you want to do
+is run the surface realiser.
 
 \begin{enumerate}
 \item It initialises the realiser (lexical selection, among other things),
@@ -382,12 +372,13 @@ parsed your input semantics, and performs the following four steps:
 \item It finalises the results (morphological generation)
 \end{enumerate}
 
-It returns a list of sentences, a set of Statistics, and the generator state.
-The generator state is mostly useful for debugging via the graphical interface.
-
 \begin{code}
 type GeniResult = (String, B.Derivation)
 
+-- | Returns a list of sentences, a set of Statistics, and the generator state.
+--   The generator state is mostly useful for debugging via the graphical interface.
+--   Note that we assumes that you have already loaded in your grammar and
+--   parsed your input semantics.
 runGeni :: ProgStateRef -> B.Builder st it Params -> IO ([GeniResult], Statistics, st)
 runGeni pstRef builder = runGeniWithSelector pstRef defaultSelector builder
 
@@ -424,10 +415,9 @@ are seperated out so that they may be individually called from the graphical
 debugger.  The middle steps (running and unpacking the builder) depend on your
 builder implementation.
 
-\fnlabel{initGeni} performs lexical selection and strips the input semantics of
-any morpohological literals
-
 \begin{code}
+-- | 'initGeni' performs lexical selection and strips the input semantics of
+--   any morpohological literals
 initGeni :: ProgStateRef -> IO (B.Input)
 initGeni pstRef = initGeniWithSelector pstRef defaultSelector
 
@@ -453,10 +443,9 @@ initGeniWithSelector pstRef lexSelector =
     return initStuff 
 \end{code}
 
-\fnlabel{finaliseResults} for the moment consists only of running the
-morphological generator, but there could conceivably be more involved.
-
 \begin{code}
+-- | 'finaliseResults' for the moment consists only of running the
+--   morphological generator, but there could conceivably be more involved.
 finaliseResults :: ProgStateRef -> [B.Output] -> IO [GeniResult]
 finaliseResults pstRef os =
  do mss <- runMorph pstRef ss
@@ -483,13 +472,12 @@ showRealisations sentences =
      else unlines sentencesGrouped
 \end{code}
 
-\paragraph{getTraces} is most likely useful for grammars produced by a
-metagrammar system.  Given a tree name, we retrieve the ``trace''
-information from the grammar for all trees that have this name.  We
-assume the tree name was constructed by GenI; see the source code for
-details.
-
 \begin{code}
+-- | 'getTraces' is most likely useful for grammars produced by a
+--   metagrammar system.  Given a tree name, we retrieve the ``trace''
+--   information from the grammar for all trees that have this name.  We
+--   assume the tree name was constructed by GenI; see the source code for
+--   details.
 getTraces :: ProgState -> String -> [String]
 getTraces pst tname =
   filt $ concat [ ptrace t | t <- gr pst, pidname t == readPidname tname ]
@@ -635,16 +623,14 @@ chooseCandI tsem cand =
   in nub $ concatMap helper cand 
 \end{code}
 
-\paragraph{mapBySemKeys} organises items by their semantic key.  A
-semantic key is a semantic literal boiled down to predicate plus arity
-(see section \ref{btypes_semantics}).  Given \texttt{xs} a list of items
-and \texttt{fn} a function which retrieves the item's semantics, we
-return a Map from semantic key to a list of items with that key.
-An item may have multiple keys.
+A semantic key is a semantic literal boiled down to predicate plus arity
+(see section \ref{btypes_semantics}).
 
-This is used to organise the lexicon by its semantics.
 
 \begin{code}
+-- | 'mapBySemKeys' @xs fn@ organises items (@xs@) by their semantic key
+--   (retrieved by @fn@).  An item may have multiple keys.
+---  This is used to organise the lexicon by its semantics.
 mapBySemKeys :: (a -> Sem) -> [a] -> Map.Map String [a]
 mapBySemKeys semfn xs = 
   let gfn t = if (null s) then [myEMPTY] else toKeys s 
@@ -744,8 +730,6 @@ unzipEither es = helper ([],[]) es where
  helper (eAcc, rAcc) (Left e : next)  = helper (e:eAcc,rAcc) next
  helper (eAcc, rAcc) (Right r : next) = helper (eAcc,r:rAcc) next
 \end{code}
-
-\label{fn:combineOne}
 
 \begin{code}
 -- | Combine a single tree with its lexical item to form a bonafide TagElem.
@@ -1035,10 +1019,9 @@ readPreAnchored pst =
 \section{Morphology} 
 % --------------------------------------------------------------------
 
-\paragraph{runMorph} inflects a list of sentences if a morphlogical generator
-has been specified.  If not, it returns the sentences as lemmas.
-
 \begin{code}
+-- | 'runMorph' inflects a list of sentences if a morphlogical generator
+-- has been specified.  If not, it returns the sentences as lemmas.
 runMorph :: ProgStateRef -> [[(String,Flist)]] -> IO [[String]]
 runMorph pstRef sentences = 
   do pst <- readIORef pstRef
