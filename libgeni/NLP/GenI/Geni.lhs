@@ -594,7 +594,7 @@ chooseLexCand slex tsem =
   let keys = toKeys tsem
       -- we choose candidates that match keys
       lookuplex t = Map.findWithDefault [] t slex
-      cand  = concatMap lookuplex keys
+      cand  = concatMap lookuplex $ myEMPTY : keys
       -- and refine the selection... 
       cand2 = chooseCandI tsem cand
       -- treat synonyms as a single lexical entry
