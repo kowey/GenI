@@ -444,9 +444,9 @@ debuggerPanel builder gvInitial stateToGv itemBar f config input cachedir =
     -- ------------------------------------------- 
     db <- panel p []
     restartBt <- button db [text := "Start over"]
-    nextBt    <- button db [text := "Leap by..."]
+    nextBt    <- button db [text := "Step by..."]
     leapVal   <- entry  db [ text := "1", clientSize := sz 30 25 ]
-    finishBt  <- button db [text := "Continue"]
+    finishBt  <- button db [text := "Leap to end"]
     statsTxt  <- staticText db []
     -- dashboard commands
     let showQuery c gs = case queryCounter c gs of
