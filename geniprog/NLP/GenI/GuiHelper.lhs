@@ -345,7 +345,7 @@ pauseOnLexGui pst f xs missedSem missedLex job = do
                 case parsed of
                  Left err -> errorDialog f "" (show err)
                  Right c  -> do varSet candV c
-                                setGvDrawables2 ref (unzip $ sectionsBySem c)
+                                setGvDrawables2 ref (sectionsBySem c)
                                 updater
   --
   saveBt <- button p [ text := "Save to file", on command := saveCmd ]
@@ -408,7 +408,7 @@ type DebuggerItemBar flg itm
 debuggerPanel :: (GraphvizShow flg itm) 
   => B.Builder st itm2 Params -- ^ builder to use
   -> flg -- ^ initial value for the flag argument in GraphvizShow
-  -> (st -> ([Maybe itm], [String])) 
+  -> (st -> [(Maybe itm, String)])
      -- ^ function to convert a Builder state into lists of items
      --   and their labels, the way graphvizGui likes it
   -> (DebuggerItemBar flg itm)
@@ -427,7 +427,7 @@ debuggerPanel builder gvInitial stateToGv itemBar f config input cachedir =
         --
     let (initS, initStats) = initBuilder input config2
         config2 = setFlagP MetricsFlg (B.defaultMetricNames) config
-        (theItems,labels) = stateToGv initS
+        (theItems,labels) = unzip $ stateToGv initS
     p <- panel f []      
     -- ---------------------------------------------------------
     -- item viewer: select and display an item
@@ -570,9 +570,10 @@ setGvDrawables gvref it =
                     gvorders = GvoItems : (gvorders x) }
      modifyIORef gvref fn 
 
-setGvDrawables2 :: GraphvizRef a b -> ([a],[String]) -> IO ()
-setGvDrawables2 gvref (it,lb) =
-  do let fn x = x { gvlabels = lb }
+setGvDrawables2 :: GraphvizRef a b -> [(a,String)] -> IO ()
+setGvDrawables2 gvref itlb =
+  do let (it,lb) = unzip itlb
+         fn x = x { gvlabels = lb }
      modifyIORef gvref fn 
      setGvDrawables gvref it
 

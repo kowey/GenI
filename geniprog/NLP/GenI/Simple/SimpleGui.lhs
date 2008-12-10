@@ -114,7 +114,7 @@ simpleDebuggerTab twophase x1 (pa@x2) =
   debuggerPanel (simpleBuilder twophase) False stToGraphviz (simpleItemBar pa)
    x1 x2
  
-stToGraphviz :: SimpleStatus -> ([Maybe SimpleItem], [String])
+stToGraphviz :: SimpleStatus -> [(Maybe SimpleItem, String)]
 stToGraphviz st = 
   let agenda    = section "AGENDA"    $ theAgenda    st
       auxAgenda = section "AUXILIARY" $ theAuxAgenda st
@@ -126,7 +126,7 @@ stToGraphviz st =
         where hd = (Nothing, "___" ++ n ++ "___")
               tlFn x = (Just x, siToSentence x ++ (showPaths $ siPolpaths x))
       showPaths t = " (" ++ showPolPaths t ++ ")"
-  in unzip $ agenda ++ auxAgenda ++ chart ++ trash ++ results 
+  in concat [ agenda, auxAgenda, chart, trash, results ]
 
 simpleItemBar :: Params -> DebuggerItemBar Bool SimpleItem
 simpleItemBar pa f gvRef updaterFn =

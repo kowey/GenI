@@ -162,7 +162,7 @@ ckyDebuggerTab :: B.Builder CkyStatus CkyItem Params
                -> (Window a) -> Params -> B.Input -> String -> IO Layout
 ckyDebuggerTab builder = debuggerPanel builder initCkyDebugParams stateToGv ckyItemBar
  where 
-  stateToGv :: CkyStatus -> ([(Maybe (CkyStatus,CkyItem))], [String])
+  stateToGv :: CkyStatus -> [(Maybe (CkyStatus,CkyItem), String)]
   stateToGv st = 
    let agenda  = section "AGENDA"  $ theAgenda  st
        trash   = section "TRASH"   $ theTrash   st
@@ -195,7 +195,7 @@ ckyDebuggerTab builder = debuggerPanel builder initCkyDebugParams stateToGv ckyI
          where idStr       = show $ ciId i
                completeStr = if isComplete i then ">" else ""
                gornStr     = if isComplete i then "" else " g" ++ (gorn i)
-   in unzip $ agenda ++ chart ++ results ++ trash
+   in agenda ++ chart ++ results ++ trash
 
 ckyItemBar :: DebuggerItemBar CkyDebugParams (CkyStatus, CkyItem)
 ckyItemBar f gvRef updaterFn =
