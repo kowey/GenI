@@ -299,7 +299,7 @@ ckyItemBar f gvRef updaterFn =
 
 gornAddressStr :: Tree GNode -> GNode -> Maybe String
 gornAddressStr t target =
-  (concat . (intersperse ".") . (map show)) `liftM` gornAddress t target
+  (concat . intersperse "." . map show) `liftM` gornAddress t target
 
 gornAddress :: Tree GNode -> GNode -> Maybe [Int]
 gornAddress tr target = reverse `liftM` helper [] tr
