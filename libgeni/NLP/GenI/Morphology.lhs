@@ -226,7 +226,7 @@ inflectSentencesUsingCmd morphcmd sentences =
      hClose toP
      waitForProcess pid 
      -- read the inflector output back as a list of strings
-     (map singleton . map trim . lines) `fmap` hGetContents fromP
+     (map (singleton . trim) . lines) `fmap` hGetContents fromP
   `catch` \e -> do ePutStrLn "Error calling morphological generator"
                    ePutStrLn $ show e
                    return $ map sansMorph sentences
