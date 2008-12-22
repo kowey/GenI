@@ -442,7 +442,7 @@ nullBuilder = Builder
   { NLP.GenI.Builder.init = initNullBuilder
   , step         = return ()
   , stepAll      = return ()
-  , finished     = \_ -> True
+  , finished     = const True
   , unpack       = return []
   , partial      = return []
   }
