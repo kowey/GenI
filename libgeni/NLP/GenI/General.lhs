@@ -370,37 +370,6 @@ showBitVector min_ 0 = replicate min_ '0'
 showBitVector min_ x = showBitVector (min_ - 1) (shiftR x 1) ++ (show $ x .&. 1)
 \end{code}
 
-\paragraph{showTable} pretty-prints an ASCII table from a list of items.
-More precisely, it builds this from 
-\begin{enumerate}
-\item \fnparam{header} a list of headers, 
-\item \fnparam{items}  a list of items and
-\item \fnparam{displayfn} which converts the items to list of pretty-printed strings.
-\end{enumerate}
-Each item corresponds to a row.  The list returned by \fnparam{displayfn} ought
-to be the same length as \fnparam{header}, since each item in the list
-corresponds to a column.  Note that this function tries to make the table
-pretty by padding each column to be same length as the header 
-(so to adjust the size of columns, just pad the header with spaces).
-
-\begin{code}
-showTable :: [String] -> [a] -> (a -> [String]) -> String
-showTable header items displayfn = 
-  let showIt l = concat $ intersperse " | " $ l
-      showLine = concat $ intersperse "-+-" $ map linestr header
-      resStr r = zipWith pad (displayfn r) header
-      -- a list of "-" with the same length as l 
-      linestr str2 = map (const '-') str2
-      -- pad str to be as long as str2
-      pad str str2 = if (diff > 0) then padding ++ str else str
-                     where padding = map (const ' ') [1..diff]
-                           diff = (length str2) - (length str)   
-      --
-      headerStr = showIt header ++ "\n" ++ showLine ++ "\n" 
-      bodyStr   = concat $ intersperse "\n" $ map (showIt.resStr) items 
-  in headerStr ++ bodyStr
-\end{code}
-
 \section{Non-lazy IO}
 
 Simon Marlow wrote this code on the Haskell mailing list 2005-08-02.
