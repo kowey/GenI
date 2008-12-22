@@ -366,7 +366,7 @@ type BitVector = Integer
 
 -- | displays a bit vector, using a minimum number of bits
 showBitVector :: Int -> BitVector -> String
-showBitVector min_ 0 = take min_ $ repeat '0'
+showBitVector min_ 0 = replicate min_ '0'
 showBitVector min_ x = showBitVector (min_ - 1) (shiftR x 1) ++ (show $ x .&. 1)
 \end{code}
 
