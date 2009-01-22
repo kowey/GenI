@@ -75,6 +75,6 @@ Library
                 NLP.GenI.Geni, NLP.GenI.Configuration
 
   -- extra-sources-files:
-  Hs-Source-Dirs: libgeni
+  Hs-Source-Dirs: .
   Extensions:     CPP, Rank2Types, OverlappingInstances, MultiParamTypeClasses, FlexibleContexts, TypeSynonymInstances,  FlexibleInstances, DeriveDataTypeable, ExistentialQuantification, LiberalTypeSynonyms
   Ghc-options:    -Wall -O2

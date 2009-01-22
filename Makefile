@@ -17,7 +17,7 @@
 # but *whine* it's so hard!
 OS:=$(shell uname)
 
-SRC      := ./libgeni
+SRC      := ./libGenI
 SRC_GENI := ./src/NLP/GenI
 SRC_DIRS := $(SRC) $(SRC_GENI) $(SRC_GENI)/CkyEarley $(SRC_GENI)/Simple
 DOC_DIRS := doc
@@ -131,50 +131,32 @@ SOURCE_HSD  := $(SOURCE_HSD_1) $(SOURCE_HSD_2)
 # main targets
 # --------------------------------------------------------------------
 
-PROGRAMS=geniprog geniconvert
-VERSION=$(shell grep Version libGenI.cabal | sed -e "s/Version: *//")
+PROGRAMS=libGenI GenI geniconvert
+VERSION=$(shell grep Version libGenI/libGenI.cabal | sed -e "s/Version: *//")
 
 all: build
 
 configure:
-	make -f Submakefile configure
-
-clean:
-	make -f Submakefile clean
-	$(foreach p,$(PROGRAMS), cd $(p); make clean; cd ..;)
-
-build:
-	make -f Submakefile build
-
-install: build
-	./setup install
-	@echo --------------------------------------------------
-	@echo Not done yet!
-	@echo
-	@echo Now do "make build2; make install2"
-	@echo --------------------------------------------------
-
-configure2:
 	$(foreach p,$(PROGRAMS), cd $(p); make configure; cd ..;)
 
-build2: dist/build/HSGenI-$(VERSION).o configure2
+build:
 	$(foreach p,$(PROGRAMS), cd $(p); make build; cd ..;)
 
-install2: dist/build/HSGenI-$(VERSION).o build2
+install:
 	$(foreach p,$(PROGRAMS), cd $(p); make install; cd ..;)
 
 normal: build
 all: build docs tidy
 release: build docs html tidy tarball
 
-doc2:  init maindoc haddock
+doc:  init maindoc haddock
 
 maindoc: $(MAKE_DOCS)
 
-docs2: doc2
+docs: doc
 html: $(MAKE_HTML)
 
-clean2: tidy
+clean: tidy
 	rm -f bin/debugger-geni
 	rm -f $(foreach d, $(DOC_DIRS), $(d)/*.{ps,pdf})
 	rm -f $(MAKE_HTML)
@@ -253,7 +235,7 @@ regression: $(GENI) etc/SumHUnit
 	etc/regression
 
 unit:
-	etc/quickcheck.py libgeni/NLP/GenI/Btypes.lhs | ghci $(GHCI_FLAGS)
+	etc/quickcheck.py libGenI/NLP/GenI/Btypes.lhs | ghci $(GHCI_FLAGS)
 
 etc/SumHUnit : etc/SumHUnit.hs
 	ghc --make -o $@ $<
