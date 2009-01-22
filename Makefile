@@ -99,7 +99,7 @@ SCRIPT_FILES = bin/tryXtimes\
 	       etc/quickcheck.py\
 	       etc/perf-latest.sh\
 	       etc/perf-save.sh\
-	       etc/macstuff/macosx-app\
+	       GenI/macstuff/macosx-app\
 
 
 GENI := geniprog/dist/build/geni
