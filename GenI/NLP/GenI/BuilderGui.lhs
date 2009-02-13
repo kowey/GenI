@@ -19,7 +19,7 @@
 module NLP.GenI.BuilderGui
 where
 
-import Graphics.UI.WXCore
+import Graphics.UI.WX
 
 import qualified NLP.GenI.Builder as B
 import NLP.GenI.Geni (ProgStateRef, GeniResult)

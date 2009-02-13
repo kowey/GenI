@@ -25,7 +25,6 @@ module NLP.GenI.Simple.SimpleGui where
 \ignore{
 \begin{code}
 import Graphics.UI.WX
-import Graphics.UI.WXCore
 
 import Data.IORef
 import qualified Data.Map as Map

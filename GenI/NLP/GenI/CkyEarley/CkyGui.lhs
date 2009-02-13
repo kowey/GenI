@@ -26,7 +26,6 @@ module NLP.GenI.CkyEarley.CkyGui where
 \ignore{
 \begin{code}
 import Graphics.UI.WX hiding (when)
-import Graphics.UI.WXCore hiding (when)
 
 import qualified Control.Monad as Monad 
 import Control.Monad (liftM)

@@ -25,7 +25,6 @@ module NLP.GenI.Gui(guiGeni) where
 \ignore{
 \begin{code}
 import Graphics.UI.WX
-import Graphics.UI.WXCore
 
 import qualified Control.Monad as Monad 
 import qualified Data.Map as Map
@@ -226,11 +225,6 @@ mainGui pstRef
             , clientSize := sz 525 325
             , on closing := exitWith ExitSuccess 
             ]
-       -- this is to make the menubar appear on OS X (in app bundles)
-       -- don't know why we need to do this though, bug?
-       windowHide f
-       windowShow f
-       windowRaise f 
 \end{code}
 
 \subsection{Configuration}

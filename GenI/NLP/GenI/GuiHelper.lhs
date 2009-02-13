@@ -28,7 +28,7 @@ module NLP.GenI.GuiHelper where
 \ignore{
 \begin{code}
 import Graphics.UI.WX
-import Graphics.UI.WXCore
+-- import Graphics.UI.WXCore
 
 import qualified Control.Monad as Monad 
 import Control.Monad.State ( execStateT, runState )
