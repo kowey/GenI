@@ -36,7 +36,6 @@ Executable     geni
                 mtl >= 1.0 && < 1.2,
                 binary >= 0.2 && < 0.5,
                 wx >= 0.10.3 && < 0.12,
-                wxcore >= 0.10.3 && < 0.12,
                 libGenI >= 0.16 && < 0.18
  if flag(splitBase)
     Build-Depends: base >= 3,
