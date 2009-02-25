@@ -1,0 +1,18 @@
+Name:           GenIClientServer
+Version:        0.1
+License:        GPL
+License-file:   LICENSE
+Author:         Carlos Areces and Eric Kow
+Build-Depends:  base,  haskell98, mtl, network, HUnit, GenI >= 0.14
+Description:    Utilities that use the GenI lib
+Maintainer:     eric.kow@loria.fr
+
+Executable:     geniclient
+Hs-Source-Dirs: src
+Main-Is:        Client.hs
+Ghc-options:    -Wall -O2
+
+Executable:     geniserver
+Hs-Source-Dirs: src
+Main-Is:        Server.hs
+Ghc-options:    -Wall -O2
