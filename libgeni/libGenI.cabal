@@ -6,8 +6,8 @@ Author:         Carlos Areces and Eric Kow
 Category:       Natural Language Processing
 Synopsis:       A natural language generator (specifically, an FB-LTAG surface realiser)
 Description:    A natural language generator (specifically, an FB-LTAG surface realiser)
-Homepage:       http://trac.loria.fr/~geni
-Maintainer:     eric.kow@loria.fr
+Homepage:       http://projects.haskell.org/GenI
+Maintainer:     geni-users@loria.fr
 Build-Type:     Simple
 Cabal-Version: >=1.2
 data-files: AUTHORS, INSTALL, README, libGenI.cabal
