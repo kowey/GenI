@@ -30,7 +30,7 @@ where
 import Control.Monad (liftM)
 import Data.Bits (shiftR, (.&.))
 import Data.Char (isSpace, toUpper, toLower)
-import Data.List (intersect, groupBy, group, sort, intersperse)
+import Data.List (intersect, groupBy, group, sort)
 import Data.Tree
 import System.IO (hPutStrLn, hPutStr, hFlush, stderr)
 import qualified Data.Map as Map
