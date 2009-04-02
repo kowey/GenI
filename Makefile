@@ -63,7 +63,7 @@ permissions: $(config_file)
 	chmod u+x $(SCRIPT_FILES)
 
 tags:
-	hasktags -c src
+	hasktags -c $(shell find src -name '*.*hs')
 	sort $@ > $@.tmp
 	mv $@.tmp $@
 
