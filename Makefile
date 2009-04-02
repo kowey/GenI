@@ -131,24 +131,6 @@ SOURCE_HSD  := $(SOURCE_HSD_1) $(SOURCE_HSD_2)
 # main targets
 # --------------------------------------------------------------------
 
-PROGRAMS=libGenI GenI geniconvert
-VERSION=$(shell grep Version libGenI/libGenI.cabal | sed -e "s/Version: *//")
-
-all: build
-
-configure:
-	$(foreach p,$(PROGRAMS), cd $(p); make configure; cd ..;)
-
-build:
-	$(foreach p,$(PROGRAMS), cd $(p); make build; cd ..;)
-
-install:
-	$(foreach p,$(PROGRAMS), cd $(p); make install; cd ..;)
-
-normal: build
-all: build docs tidy
-release: build docs html tidy tarball
-
 doc:  init maindoc haddock
 
 maindoc: $(MAKE_DOCS)
