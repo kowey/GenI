@@ -10,7 +10,52 @@ Homepage:       http://projects.haskell.org/GenI
 Maintainer:     geni-users@loria.fr
 Build-Type:     Simple
 Cabal-Version: >=1.2
-data-files: AUTHORS, INSTALL, README, GenI.cabal
+data-files: AUTHORS, INSTALL, README, GenI.cabal,
+            examples/artificial/lexicon,
+            examples/artificial/macros,
+            examples/artificial/suite,
+            examples/artificial/suite-bad,
+            examples/chatnoir/lexicon,
+            examples/chatnoir/macros,
+            examples/chatnoir/suite,
+            examples/demo/lexicon,
+            examples/demo/macros,
+            examples/demo/README,
+            examples/demo/suite,
+            examples/ej/lexicon,
+            examples/ej/macros,
+            examples/ej/suite,
+            examples/nosemantics/lexicon,
+            examples/nosemantics/macros,
+            examples/nosemantics/README.txt,
+            examples/promettre/lexicon,
+            examples/promettre/macros,
+            examples/promettre/morphinfo,
+            examples/promettre/suite,
+            examples/xmg-example/grammar/Arguments.mg,
+            examples/xmg-example/grammar/demo-corpus-latin1.txt,
+            examples/xmg-example/grammar/Entete.mg,
+            examples/xmg-example/grammar/Evaluations.mg,
+            examples/xmg-example/grammar/Misc.mg,
+            examples/xmg-example/grammar/parse-corpus.sh,
+            examples/xmg-example/grammar/Sem.mg,
+            examples/xmg-example/grammar/VerbMorph.mg,
+            examples/xmg-example/lexicon/demo-lemma-latin1.lex,
+            examples/xmg-example/lexicon/demo-morph-latin1.mph,
+            examples/xmg-example/Makefile,
+            examples/xmg-example/README,
+            examples/xmg-example/suite,
+            etc/macstuff/macosx-app, etc/macstuff/Info.plist, etc/macstuff/wxmac.icns
+
+extra-source-files: src/EnableGUI.hs
+                    src/NLP/GenI/SysGeni.lhs
+                    src/NLP/GenI/CkyEarley/CkyGui.lhs
+                    src/NLP/GenI/Simple/SimpleGui.lhs, src/NLP/GenI/Gui.lhs
+                    src/NLP/GenI/GraphvizShow.lhs, src/NLP/GenI/GuiHelper.lhs
+                    src/NLP/GenI/Console.hs, src/NLP/GenI/Graphviz.hs
+                    src/NLP/GenI/BuilderGui.lhs, src/NLP/GenI/unused/Predictors.lhs
+                    src/NLP/GenI/GraphvizShowPolarity.lhs
+
 
 Flag gui
   description: Build with a graphical user interface
@@ -46,14 +91,13 @@ Library
                 NLP.GenI.Simple.SimpleBuilder, NLP.GenI.CkyEarley.CkyBuilder,
                 NLP.GenI.Geni, NLP.GenI.Configuration
 
-  -- extra-sources-files:
-  Hs-Source-Dirs: libGenI
+  Hs-Source-Dirs: src
   Extensions:     CPP, Rank2Types, OverlappingInstances, MultiParamTypeClasses, FlexibleContexts, TypeSynonymInstances,  FlexibleInstances, DeriveDataTypeable, ExistentialQuantification, LiberalTypeSynonyms
   Ghc-options:    -Wall -O2
 
 Executable     geni
  Main-Is:        MainGeni.lhs
- Hs-Source-Dirs: libGenI GenI
+ Hs-Source-Dirs: src
  Extensions:     CPP, Rank2Types, OverlappingInstances, MultiParamTypeClasses, FlexibleContexts, TypeSynonymInstances,  FlexibleInstances, DeriveDataTypeable, ExistentialQuantification, LiberalTypeSynonyms
 
  Ghc-options:    -Wall
