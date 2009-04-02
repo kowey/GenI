@@ -10,14 +10,6 @@ Building GenI
 --------------
 1. obtain cabal-install
 
-2. cd libGenI
-   cabal configure
+2. cabal configure
    cabal build
    cabal install
-
-3. cd GenI
-   cabal configure
-   cabal build
-   cabal install
-
-You could also try the makefile
