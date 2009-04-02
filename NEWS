@@ -1,0 +1,9 @@
+GenI 0.17.3, 3 Apr 2009
+-----------------------
+* Simplified build method
+  * one single cabal package instead of two
+  * cabal configure -f-gui to disable GUI
+  * makefile stripped out
+
+* Lexical selection on empty semantics now allowed
+  * This is so that the zero-literal semantics mechanism can work again
