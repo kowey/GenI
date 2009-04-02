@@ -84,6 +84,7 @@ import NLP.GenI.Tags (TagElem, TagSite(TagSite),
              tagLeaves, tidnum,
              ttree, ttype, tsemantics,
              detectSites,
+             TagDerivation,
              ts_rootFeatureMismatch,
             )
 import NLP.GenI.Configuration
@@ -93,7 +94,7 @@ import NLP.GenI.General
 #ifndef DISABLE_GUI
 import NLP.GenI.Btypes ( GType(Other), sortSem, Sem, gnnameIs )
 import NLP.GenI.General ( repList, )
-import NLP.GenI.Tags ( TagDerivation, idname,
+import NLP.GenI.Tags ( idname,
     ts_synIncomplete, ts_semIncomplete, ts_tbUnificationFailure,
     )
 #endif
