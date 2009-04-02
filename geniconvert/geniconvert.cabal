@@ -3,7 +3,7 @@ Version:        0.17
 License:        GPL
 License-file:   LICENSE
 Author:         Carlos Areces and Eric Kow
-Build-Depends:  GenI >=0.17.2, base, binary, haskell98, containers, mtl, parsec, QuickCheck, HUnit, HaXml >=1.16
+Build-Depends:  GenI >=0.17.2, base, binary, haskell98, containers, mtl, parsec < 3, QuickCheck, HUnit, HaXml >=1.16
 build-type:     Simple
 Category:       Natural Language Processing
 Homepage:       http://wiki.loria.fr/wiki/GenI
