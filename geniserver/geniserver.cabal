@@ -6,6 +6,7 @@ Author:         Carlos Areces and Eric Kow
 Build-Depends:  base,  haskell98, mtl, network, HUnit, GenI >= 0.17.2, unix
 Description:    Utilities that use the GenI lib
 Maintainer:     eric.kow@loria.fr
+Build-type:     Simple
 
 Executable:     geniclient
 Hs-Source-Dirs: src
