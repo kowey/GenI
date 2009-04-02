@@ -13,3 +13,5 @@ Building GenI
 2. cabal configure
    cabal build
    cabal install
+
+For more details, see http://trac.haskell.org/GenI
