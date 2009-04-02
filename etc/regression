@@ -1,4 +1,4 @@
-GENI_CMD=geniprog/dist/build/geni/geni
+GENI_CMD=dist/build/geni/geni
 GENI_FLAGS="$* --opts=f-sem"
 
 TMP_GARBAGE_P=tmp-garbage-p-$$
