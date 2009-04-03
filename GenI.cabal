@@ -8,8 +8,8 @@ Synopsis:       A natural language generator (specifically, an FB-LTAG surface r
 Description:    A natural language generator (specifically, an FB-LTAG surface realiser)
 Homepage:       http://projects.haskell.org/GenI
 Maintainer:     geni-users@loria.fr
-Build-Type:     Simple
-Cabal-Version: >=1.2
+Build-Type:     Custom
+Cabal-Version: >=1.2.3
 data-files: AUTHORS, INSTALL, README, NEWS, GenI.cabal,
             examples/artificial/lexicon,
             examples/artificial/macros,
