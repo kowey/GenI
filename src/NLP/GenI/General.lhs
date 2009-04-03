@@ -29,7 +29,7 @@ where
 \begin{code}
 import Control.Monad (liftM)
 import Data.Bits (shiftR, (.&.))
-import Data.Char (isSpace, toUpper, toLower)
+import Data.Char (isDigit, isSpace, toUpper, toLower)
 import Data.List (intersect, groupBy, group, sort)
 import Data.Tree
 import System.IO (hPutStrLn, hPutStr, hFlush, stderr)
@@ -104,17 +104,11 @@ instance Ord AlphaNum where
  compare (N _)   (A _)  = LT
 
 toAlphaNum :: String -> [AlphaNum]
-toAlphaNum = map readOne . groupBy (equating isNumber)
+toAlphaNum = map readOne . groupBy (equating isDigit)
  where
    readOne s
-     | all isNumber s = N (read s)
+     | all isDigit s = N (read s)
      | otherwise      = A s
-\end{code}
-
-\begin{code}
--- Crappy version until GHC 6.6 becomes the norm
-isNumber :: Char -> Bool
-isNumber c = c `elem` "1234567890"
 \end{code}
 
 \section{Three-tuples}
