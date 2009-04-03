@@ -38,7 +38,7 @@ module NLP.GenI.Tags(
    setTidnums, 
 
    -- General functions
-   mapBySem, drawTagTrees, subsumedBy, showTagSites,
+   mapBySem, subsumedBy, showTagSites,
    collect, detectSites
 ) where
 \end{code}
@@ -328,22 +328,6 @@ firstMaybe fn = listToMaybe . mapMaybe fn
 % ----------------------------------------------------------------------
 \section{Drawings TAG Tree}
 % ----------------------------------------------------------------------
-
-This provides a convenient wrapper for drawing a TAG tree or list of
-trees in String form.  
-
-\begin{code}
-drawTagTrees :: [TagElem] -> String
-drawTagTrees tes = unlines . map drawTagTree $ tes
-
-drawTagTree :: TagElem -> String 
-drawTagTree te = idname te ++ ":\n"
--- FIXME : BROKEN!
--- ++ (drawTree $ ttree te)
-\end{code}
-
-\paragraph{showTagSites} is useful for debugging adjunction and
-substitution nodes
 
 \begin{code}
 showTagSites :: [TagSite] -> String
