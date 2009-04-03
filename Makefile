@@ -27,6 +27,8 @@ DVIPDF_CMD=dvips `basename $< .tex`.dvi -o `basename $< .tex`.ps;\
 # source stuff
 # --------------------------------------------------------------------
 
+SOURCE_FILES=$(shell find src -name '*.*hs')
+
 SCRIPT_FILES = bin/tryXtimes\
 	       etc/stupidmorph.pl\
 	       etc/tommorph.pl\
