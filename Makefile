@@ -45,6 +45,13 @@ DOC_DIR = doc
 # main targets
 # --------------------------------------------------------------------
 
+all: build doc
+
+build: dist/build/geni/geni
+
+dist/build/geni/geni: $(SOURCE_FILES)
+	cabal build
+
 doc:  init maindoc
 
 maindoc: $(MAKE_DOCS)
