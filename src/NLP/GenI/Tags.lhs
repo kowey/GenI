@@ -21,7 +21,7 @@
 This module provides basic datatypes specific to Tree Adjoining Grammar
 (TAG) and some low-level operations. Note that we don't handle
 substitution and adjunction here; see sections \ref{sec:substitution}
-and \ref{sec:adjunction} instead.  
+and \ref{sec:adjunction} instead.
 
 \begin{code}
 module NLP.GenI.Tags(
@@ -68,17 +68,13 @@ import NLP.GenI.General (groupByFM, preTerminals)
 \section{Tags}
 % ----------------------------------------------------------------------
 
-Tags is the datatype for an anchored grammar. The grammar associates
-a set of semantic predicates to a list of trees each.
-
 \begin{code}
+-- | An anchored grammar.
+--   The grammar associates a set of semantic predicates to a list of trees each.
 type Tags = Map.Map String [TagElem]                            
-\end{code}
 
-\paragraph{addToTags} Given a Tags (a FM), a key (a String) and a TagElem 
-it adds the elem to the list of elements associated to the key.
-
-\begin{code}
+-- | 'addTags' @tags key elem@ adds @elem@ to the the list of elements associated
+--   to the key
 addToTags :: Tags -> String -> TagElem -> Tags
 addToTags t k e = Map.insertWith (++) k [e] t
 \end{code}
@@ -93,7 +89,6 @@ work, we assign each tree with a unique id during the process of
 combining macros with lexicon (see section \ref{sec:combine_macros}).
 
 \begin{code}
--- type TPredictors = Map.Map AvPair Int 
 data TagSite = TagSite { tsName :: !String
                        , tsUp   :: !Flist
                        , tsDown :: !Flist
@@ -213,16 +208,13 @@ setOrigin te = te { ttree = fmap setLabel . ttree $ te }
 \section{TAG Item}
 % ----------------------------------------------------------------------
 
-TagItem is a generalisation of TagElem.  
-
 \begin{code}
+-- | 'TagItem' is a generalisation of 'TagElem'.
 class TagItem t where 
   tgIdName    :: t -> String
   tgIdNum     :: t -> Integer
   tgSemantics :: t -> Sem
-\end{code}
 
-\begin{code}
 instance TagItem TagElem where
   tgIdName = idname
   tgIdNum  = tidnum
@@ -233,36 +225,32 @@ instance TagItem TagElem where
 \section{Map by sem}
 % ----------------------------------------------------------------------
 
-The mapBySem function sorts trees into a Map.Map organised by the
-first literal of their semantics.  This is useful in at least three
-places: the polarity optimisation, the gui display code, and code for
-measuring the efficiency of Geni.  Note: trees with a null semantics
-are filed under an empty predicate, if any.
-
 \begin{code}
+-- | Sorts trees into a Map.Map organised by the first literal of their
+--   semantics.  This is useful in at least three places: the polarity
+--   optimisation, the gui display code, and code for measuring the efficiency
+--   of GenI.  Note: trees with a null semantics are filed under an empty
+--   predicate, if any.
 mapBySem :: (TagItem t) => [t] -> Map.Map Pred [t]
 mapBySem ts = 
   let gfn t = case tgSemantics t of
               []    -> emptyPred
               (x:_) -> x
   in groupByFM gfn ts
-\end{code}
 
-\texttt{subsumedBy} \texttt{cs} \texttt{ts} determines if the 
-candidate semantics \texttt{cs} is subsumed by the proposition
-semantics \texttt{ts}.  Notice how the proposition semantics
-is only a single item where as the candidate semantics is a 
-list.
-
-We assume that 
-\begin{itemize}
-\item most importantly that cs has already its semantics
-      instatiated (all variables assigned)
-\item cs and ts are sorted 
-\item the list in each element of cs and ts is itself sorted 
-\end{itemize}
-
-\begin{code}
+-- | 'subsumedBy' @cs ts@ determines if the candidate semantics @cs@ is
+--   subsumed by the proposition semantics @ts@.  Notice how the proposition
+--   semantics is only a single item where as the candidate semantics is a
+--   list.
+--
+--  We assume
+--
+--  * most importantly that @cs@ has already its semantics instatiated
+--    (all variables assigned)
+--
+--  * @cs@ and @ts@ are sorted
+--
+--  * the list in each element of cs and ts is itself sorted 
 subsumedBy :: Sem -> Pred -> Bool 
 subsumedBy [] _ = False 
 subsumedBy ((ch, cp, cla):cl) (th, tp,tla)
@@ -271,20 +259,6 @@ subsumedBy ((ch, cp, cla):cl) (th, tp,tla)
     | cp  < tp                   = subsumedBy cl (th, tp, tla)
     | otherwise                  = False
 \end{code}
-
-%% ----------------------------------------------------------------------
-%\section{Predictors}
-%% ----------------------------------------------------------------------
-%
-%\paragraph{sumPredictors} merges two tree predictors together.
-%The idea is that if one tree has $-2np$ and the other $+np$, then
-%this will merge to $-np$.  
-%
-%\begin{code}
-%sumPredictors :: TPredictors -> TPredictors -> TPredictors
-%sumPredictors tp1 tp2 = 
-%  filterFM (\_ e -> e /= 0) $ plusFM_C (+) tp1 tp2
-%\end{code}
 
 % ----------------------------------------------------------------------
 \section{Extracting sentences}
@@ -324,12 +298,12 @@ firstMaybe fn = listToMaybe . mapMaybe fn
 
 \end{code}
 
-
 % ----------------------------------------------------------------------
-\section{Drawings TAG Tree}
+\section{Debugging}
 % ----------------------------------------------------------------------
 
 \begin{code}
+-- Useful for debugging adjunction and substitution nodes
 showTagSites :: [TagSite] -> String
 showTagSites sites = concat $ intersperse "\n  " $ map fn sites
   where
