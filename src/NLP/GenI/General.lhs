@@ -52,10 +52,12 @@ import Data.Char (chr)
 
 \section{IO}
 
-\fnlabel{stderr} PutStr and PutStrLn an stderr
 \begin{code}
-ePutStr, ePutStrLn :: String -> IO()
+-- | putStr on stderr
+ePutStr :: String -> IO ()
 ePutStr   = hPutStr stderr
+
+ePutStrLn :: String -> IO()
 ePutStrLn = hPutStrLn stderr
 
 eFlush :: IO()
@@ -74,26 +76,22 @@ trim = reverse . (dropWhile isSpace) . reverse . (dropWhile isSpace)
 -- | Drop all characters up to and including the one in question
 dropTillIncluding :: Char -> String -> String
 dropTillIncluding c = drop 1 . (dropWhile (/= c))
-\end{code}
 
-\fnlabel{toUpperHead and toLowerHead} make the first character of a
-string upper and lower case, respectively.  
-
-\begin{code}
-toUpperHead, toLowerHead :: String -> String
+-- | Make the first character of a string upper case
+toUpperHead :: String -> String
 toUpperHead []    = []
 toUpperHead (h:t) = (toUpper h):t
+
+-- | Make the first character of a string lower case
+toLowerHead :: String -> String
 toLowerHead []    = []
 toLowerHead(h:t)  = (toLower h):t
 \end{code}
 
-An alphanumeric sort is one where you treat the numbers in the string
-as actual numbers.  An alphanumeric sort would put x2 before x100,
-because 2 < 10, wheraeas a naive sort would put it the other way
-around because the characters 1 < 2.  To sort alphanumerically, just
-use \fnreflite{toAlphanum} as in \verb!sortBy (comparing toAlphanum)!
+\subsection{Alphanumeric sort}
 
 \begin{code}
+-- | Intermediary type used for alphanumeric sort
 data AlphaNum = A String | N Int deriving Eq
 
 -- we don't derive this, because we want num < alpha
@@ -103,6 +101,11 @@ instance Ord AlphaNum where
  compare (A _)   (N _)  = GT
  compare (N _)   (A _)  = LT
 
+-- | An alphanumeric sort is one where you treat the numbers in the string
+--   as actual numbers.  An alphanumeric sort would put x2 before x100,
+--   because 2 < 10, wheraeas a naive sort would put it the other way
+--   around because the characters 1 < 2.  To sort alphanumerically, just
+--   'sortBy (comparing toAlphaNum)'
 toAlphaNum :: String -> [AlphaNum]
 toAlphaNum = map readOne . groupBy (equating isDigit)
  where
@@ -132,18 +135,14 @@ equating f a b = f a == f b
 
 comparing :: Ord b => (a -> b) -> (a -> a -> Ordering)
 comparing f a b = compare (f a) (f b)
-\end{code}
 
-\begin{code}
 -- | A strict version of 'map'
 map' :: (a->b) -> [a] -> [b]
 map' _ [] = []
 map' f (x:xs) = let a = f x in a `seq` (a:(map' f xs))
-\end{code}
 
-A generic version of the Data.List.words
-
-\begin{code}
+-- | A generic version of the Data.List.words
+--   TODO: replace by version from split
 wordsBy :: (Eq a) => a -> [a] -> [[a]]
 wordsBy c xs = filter (/= [c]) $ groupBy (\x y -> x /= c && y /= c) xs
 
@@ -151,12 +150,8 @@ wordsBy c xs = filter (/= [c]) $ groupBy (\x y -> x /= c && y /= c) xs
 --   Surely there must be some more intelligent way to deal with this.
 boundsCheck :: Int -> [a] -> Bool
 boundsCheck s l = s >= 0 && s < length l
-\end{code}
 
-\fnlabel{isEmptyIntersect} is true if the intersection of two lists is
-empty.
-
-\begin{code}
+-- | True if the intersection of two lists is empty.
 isEmptyIntersect :: (Eq a) => [a] -> [a] -> Bool
 isEmptyIntersect a b = null $ intersect a b
 \end{code}
@@ -188,28 +183,20 @@ insertToListMap k i m =
   case Map.lookup k m of
   Nothing -> Map.insert k [i] m
   Just p  -> Map.insert k (i:p) m
-\end{code}
 
-\fnlabel{groupAndCount} is a generic list-processing function.
-It converts a list of items into a list of tuples (a,b) where 
-a is an item in the list and b is the number of times a in occurs 
-in the list.
-
-\begin{code}
+-- | Convert a list of items into a list of tuples (a,b) where
+--   a is an item in the list and b is the number of times a
+--   in occurs in the list.
 groupAndCount :: (Eq a, Ord a) => [a] -> [(a, Int)]
 groupAndCount xs = 
   map (\x -> (head x, length x)) grouped
   where grouped = (group.sort) xs
-\end{code}
 
-\begin{code}
 -- Given a list of lists, return all lists such that one item from each sublist is chosen.
 -- If returns the empty list if there are any empty sublists.
 combinations :: [[a]] -> [[a]]
 combinations = sequence
-\end{code}
 
-\begin{code}
 mapMaybeM :: (Monad m) => (a -> m (Maybe b)) -> [a] -> m [b]
 mapMaybeM _ [] = return []
 mapMaybeM f (x:xs) =
@@ -217,9 +204,7 @@ mapMaybeM f (x:xs) =
  (\my -> case my of
           Nothing -> mapMaybeM f xs
 	  Just y  -> liftM (y:) (mapMaybeM f xs))
-\end{code}
 
-\begin{code}
 -- | Return the list, modifying only the first matching item.
 repList :: (a->Bool) -> (a->a) -> [a] -> [a]
 repList _ _ [] = []
@@ -239,18 +224,13 @@ mapTree' fn (Node a l)  = let b = fn a
                           in b `seq` bs `seq` Node b bs
 \end{code}
 
-\fnlabel{filterTree} is like filter, except on Trees.  Filter 
-might not be a good name, though, because we return a list of 
-nodes, not a tree.
-
 \begin{code}
+-- | Like 'filter', except on Trees.  Filter might not be a good name, though,
+--   because we return a list of nodes, not a tree.
 filterTree :: (a->Bool) -> Tree a -> [a]
 filterTree fn = (filter fn) . flatten
-\end{code}
 
-\fnlabel{treeLeaves} returns the leaf nodes of a Tree.
-
-\begin{code}
+-- | The leaf nodes of a Tree
 treeLeaves :: Tree a -> [a]
 treeLeaves (Node n []) = [n]
 treeLeaves (Node _ l ) = concatMap treeLeaves l
@@ -260,16 +240,11 @@ preTerminals :: Tree a -> [(a,a)]
 preTerminals (Node _ []) = []
 preTerminals (Node x ks) =
  [ (x,y) | (Node y ys) <- ks, null ys ] ++ concatMap preTerminals ks
-\end{code}
 
-\paragraph{repNode and listRepNode} are a generic tree-walking/editing
-function and its equivalent for lists of trees.  It
-takes a replacement function, a filtering function and a tree.  It
-returns the tree, except that the first node for which the filtering
-function returns True is transformed with the replacement function.
-
-\begin{code}
-repNode :: (Tree a -> Tree a) -> (Tree a -> Bool)
+-- | 'repNode' @fn filt t@ returns a version of @t@ in which the first
+--   node which @filt@ matches is transformed using @fn@.
+repNode :: (Tree a -> Tree a) -- ^ replacement function
+        -> (Tree a -> Bool)   -- ^ filtering function
         -> Tree a -> Maybe (Tree a)
 repNode fn filt t =
  case listRepNode fn filt [t] of
@@ -285,8 +260,11 @@ repAllNode :: (Tree a -> Tree a) -> (Tree a -> Bool)
 repAllNode fn filt n | filt n = fn n
 repAllNode fn filt (Node p ks) = Node p $ map (repAllNode fn filt) ks
 
-listRepNode :: (Tree a -> Tree a) -> (Tree a -> Bool) 
-              -> [Tree a] -> ([Tree a], Bool)
+-- | Like 'repNode' but on a list of tree nodes
+listRepNode :: (Tree a -> Tree a) -- ^ replacement function
+            -> (Tree a -> Bool)   -- ^ filtering function
+            -> [Tree a]           -- ^ nodes
+            -> ([Tree a], Bool)
 listRepNode _ _ [] = ([], False)
 listRepNode fn filt (n:l2) | filt n = (fn n : l2, True)
 listRepNode fn filt ((n@(Node a l1)):l2) =
@@ -326,24 +304,15 @@ both $x$ and $y$.
 
 \begin{code}
 type Interval = (Int,Int)
-\end{code}
 
-\fnlabel{(!+!)} adds two intervals
-
-\begin{code}
+-- | Add two intervals
 (!+!) :: Interval -> Interval -> Interval
 (!+!) (a1,a2) (b1,b2) = (a1+b1, a2+b2)
-\end{code}
 
-\fnlabel{ival} builds a (trivial) interval from $x$ to $x$
-\begin{code}
+-- | 'ival' @x@ builds a trivial interval from 'x' to 'x'
 ival :: Int -> Interval
 ival i = (i,i)
-\end{code}
 
-Hmm... do i really feel like instantiating a datatype for this?
-
-\begin{code}
 showInterval :: Interval -> String
 showInterval (x,y) =
  let sign i = if i > 0 then "+" else ""
