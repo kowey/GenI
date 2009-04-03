@@ -1,32 +1,69 @@
-% GenI surface realiser
-% Copyright (C) 2005 Carlos Areces and Eric Kow
-%
-% This program is free software; you can redistribute it and/or
-% modify it under the terms of the GNU General Public License
-% as published by the Free Software Foundation; either version 2
-% of the License, or (at your option) any later version.
-%
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-%
-% You should have received a copy of the GNU General Public License
-% along with this program; if not, write to the Free Software
-% Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+-- GenI surface realiser
+-- Copyright (C) 2005 Carlos Areces and Eric Kow
+--
+-- This program is free software; you can redistribute it and/or
+-- modify it under the terms of the GNU General Public License
+-- as published by the Free Software Foundation; either version 2
+-- of the License, or (at your option) any later version.
+--
+-- This program is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with this program; if not, write to the Free Software
+-- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-\chapter{General}
+-- | This module provides some very generic, non-GenI specific functions on strings,
+--   trees and other miscellaneous odds and ends.  Whenever possible, one should try
+--   to replace these functions with versions that are available in the standard
+--   libraries, or the Haskell platform ones, or on hackage.
 
-This module provides some very generic, non-Geni specific functions on strings,
-trees and other miscellaneous odds and ends.
+module NLP.GenI.General (
+        -- * IO
+        ePutStr, ePutStrLn, eFlush,
+        -- ** Strict readFile
+        readFile',
+        lazySlurp,
+        -- ** Timeouts
+        withTimeout,
+        exitTimeout,
+        -- * Strings
+        dropTillIncluding,
+        trim,
+        toUpperHead, toLowerHead,
+        toAlphaNum,
+        -- * Triples
+        fst3, snd3, thd3,
+        -- * Lists
+        equating, comparing,
+        map',
+        wordsBy,
+        boundsCheck,
+        isEmptyIntersect,
+        groupByFM,
+        multiGroupByFM,
+        insertToListMap,
+        groupAndCount,
+        combinations,
+        mapMaybeM,
+        repList,
+        -- * Trees
+        mapTree', filterTree,
+        treeLeaves, preTerminals,
+        repNode, repAllNode, listRepNode, repNodeByNode,
+        -- * Intervals
+        Interval,
+        (!+!), ival, showInterval,
+        -- * Bit vectors
+        BitVector,
+        showBitVector,
+       -- * Bugs
+        geniBug,
+        )
+        where
 
-\begin{code}
-module NLP.GenI.General
-where
-\end{code}
-
-\ignore{
-\begin{code}
 import Control.Monad (liftM)
 import Data.Bits (shiftR, (.&.))
 import Data.Char (isDigit, isSpace, toUpper, toLower)
@@ -47,12 +84,11 @@ import System.IO (openFile, IOMode(ReadMode), hFileSize, hGetBuf)
 import System.IO.Unsafe (unsafeInterleaveIO)
 import Foreign (mallocForeignPtrBytes, withForeignPtr, ForeignPtr, Ptr, peekElemOff, plusPtr, Word8)
 import Data.Char (chr)
-\end{code}
-}
 
-\section{IO}
+-- ----------------------------------------------------------------------
+-- IO
+-- ----------------------------------------------------------------------
 
-\begin{code}
 -- | putStr on stderr
 ePutStr :: String -> IO ()
 ePutStr   = hPutStr stderr
@@ -62,14 +98,11 @@ ePutStrLn = hPutStrLn stderr
 
 eFlush :: IO()
 eFlush    = hFlush stderr
-\end{code}
 
-\section{Strings}
+-- ----------------------------------------------------------------------
+-- Strings
+-- ----------------------------------------------------------------------
 
-Haskell seems to be missing a string library.  Here are some functions I had to
-implement.
-
-\begin{code}
 trim :: String -> String
 trim = reverse . (dropWhile isSpace) . reverse . (dropWhile isSpace) 
 
@@ -86,11 +119,11 @@ toUpperHead (h:t) = (toUpper h):t
 toLowerHead :: String -> String
 toLowerHead []    = []
 toLowerHead(h:t)  = (toLower h):t
-\end{code}
 
-\subsection{Alphanumeric sort}
+-- ----------------------------------------------------------------------
+-- Alphanumeric sort
+-- ----------------------------------------------------------------------
 
-\begin{code}
 -- | Intermediary type used for alphanumeric sort
 data AlphaNum = A String | N Int deriving Eq
 
@@ -112,11 +145,11 @@ toAlphaNum = map readOne . groupBy (equating isDigit)
    readOne s
      | all isDigit s = N (read s)
      | otherwise      = A s
-\end{code}
 
-\section{Three-tuples}
+-- ----------------------------------------------------------------------
+-- Triples
+-- ----------------------------------------------------------------------
 
-\begin{code}
 fst3 :: (a,b,c) -> a
 fst3 (x,_,_) = x
 
@@ -125,11 +158,11 @@ snd3 (_,x,_) = x
 
 thd3 :: (a,b,c) -> c
 thd3 (_,_,x) = x
-\end{code}
 
-\section{Lists}
+-- ----------------------------------------------------------------------
+-- Lists
+-- ----------------------------------------------------------------------
 
-\begin{code}
 equating :: Eq b => (a -> b) -> (a -> a -> Bool)
 equating f a b = f a == f b
 
@@ -154,11 +187,11 @@ boundsCheck s l = s >= 0 && s < length l
 -- | True if the intersection of two lists is empty.
 isEmptyIntersect :: (Eq a) => [a] -> [a] -> Bool
 isEmptyIntersect a b = null $ intersect a b
-\end{code}
 
-\paragraph{Grouping things together}
+-- ----------------------------------------------------------------------
+-- Grouping
+-- ----------------------------------------------------------------------
 
-\begin{code}
 -- | Serves the same function as 'Data.List.groupBy'.  It groups together
 --   items by some property they have in common. The difference is that the
 --   property is used as a key to a Map that you can lookup.
@@ -211,20 +244,18 @@ repList _ _ [] = []
 repList pr fn (x:xs)
   | pr x = fn x : xs
   | otherwise = x : (repList pr fn xs)
-\end{code}
 
-\section{Trees}
+-- ----------------------------------------------------------------------
+-- Trees
+-- ----------------------------------------------------------------------
 
-\begin{code}
 -- | Strict version of 'mapTree' (for non-strict, just use fmap)
 mapTree' :: (a->b) -> Tree a -> Tree b
 mapTree' fn (Node a []) = let b = fn a in b `seq` Node b []
 mapTree' fn (Node a l)  = let b = fn a
                               bs = map' (mapTree' fn) l
                           in b `seq` bs `seq` Node b bs
-\end{code}
 
-\begin{code}
 -- | Like 'filter', except on Trees.  Filter might not be a good name, though,
 --   because we return a list of nodes, not a tree.
 filterTree :: (a->Bool) -> Tree a -> [a]
@@ -286,23 +317,20 @@ repNodeByNode nfilt rep t =
     ([t2], True) -> t2
     (_ ,  False) -> geniBug "Node not found in repNode"
     _            -> geniBug "Unexpected result in repNode"
-\end{code}
 
-\section{Errors}
+-- ----------------------------------------------------------------------
+-- Errors
+-- ----------------------------------------------------------------------
 
-\begin{code}
 -- | errors specifically in GenI, which is very likely NOT the user's fault.
 geniBug :: String -> a
 geniBug s = error $ "Bug in GenI!\n" ++ s ++
                     "\nPlease file a report on http://wiki.loria.fr/wiki/GenI/Complaints" 
-\end{code}
 
-\section{Intervals}
+-- ----------------------------------------------------------------------
+-- Intervals
+-- ----------------------------------------------------------------------
 
-We represent polarities as intervals $(x,y)$, meaning from $x$ to $y$ including
-both $x$ and $y$.
-
-\begin{code}
 type Interval = (Int,Int)
 
 -- | Add two intervals
@@ -320,27 +348,26 @@ showInterval (x,y) =
  in if (x==y) 
     then (sign x) ++ (show x) 
     else show (x,y)
-\end{code}
 
-\section{Other}
+-- ----------------------------------------------------------------------
+-- Bit vectors
+-- ----------------------------------------------------------------------
 
-\begin{code}
 type BitVector = Integer
 
 -- | displays a bit vector, using a minimum number of bits
 showBitVector :: Int -> BitVector -> String
 showBitVector min_ 0 = replicate min_ '0'
 showBitVector min_ x = showBitVector (min_ - 1) (shiftR x 1) ++ (show $ x .&. 1)
-\end{code}
 
-\section{Non-lazy IO}
+-- ----------------------------------------------------------------------
+-- Strict readfile
+-- Simon Marlow wrote this code on the Haskell mailing list 2005-08-02.
+-- ----------------------------------------------------------------------
 
-Simon Marlow wrote this code on the Haskell mailing list 2005-08-02.
-Using readFile' can be a good idea if you're dealing with not-so-huge
-files (i.e. where you don't want lazy evaluation), because it ensures
-that the handles are closed. No more ``too many open files''
-
-\begin{code}
+-- | Using readFile' can be a good idea if you're dealing with not-so-huge
+-- files (i.e. where you don't want lazy evaluation), because it ensures
+-- that the handles are closed. No more ``too many open files''
 readFile' :: FilePath -> IO String
 readFile' f = do
   h <- openFile f ReadMode
@@ -369,14 +396,11 @@ lazySlurp fp ix len
     | otherwise = do
        w <- peekElemOff p sublen
        loop (sublen-1) p (chr (fromIntegral w):acc)
-\end{code}
 
-\section{Timeouts}
+-- ----------------------------------------------------------------------
+-- Timeouts
+-- ----------------------------------------------------------------------
 
-This code is taken directly from HyLoRes.  I have just reformatted it to be a bit more
-readable (in my eyes).
-
-\begin{code}
 data TimeOut = TimeOut Unique
 
 timeOutTc :: TyCon
@@ -409,4 +433,3 @@ withTimeout secs on_timeout action =
 -- | Like 'exitFailure', except that we return with a code that we reserve for timing out
 exitTimeout :: IO ()
 exitTimeout = exitWith $ ExitFailure 2
-\end{code}
