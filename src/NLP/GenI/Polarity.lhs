@@ -63,8 +63,12 @@ like $(-2,-2)n$!  But for the most part, the intervals are zero length,
 and you can just think of $-2n$ as shorthand for $(-2,-2)n$.
 
 \begin{code}
-module NLP.GenI.Polarity(PolAut, PolState(PolSt), AutDebug, PolResult,
+module NLP.GenI.Polarity(
+                -- * Entry point
+                PolAut, PolState(PolSt), AutDebug, PolResult,
                 buildAutomaton,
+
+                -- * Inner stuff (exported for debugging?)
                 makePolAut,
                 fixPronouns,
                 detectSansIdx, detectPolFeatures, detectPols, detectPolPaths,
@@ -102,19 +106,16 @@ import NLP.GenI.Tags(TagElem(..), TagItem(..), setTidnums)
 
 \section{Interface}
 
-\paragraph{buildAutomaton} constructs a polarity automaton from the
-surface realiser's input: input semantics, lexical selection, 
-extra polarities and index constraints.  For debugging purposes, it
-returns all the intermediate automata produced by the construction
-algorithm.
-
 \begin{code}
-buildAutomaton :: SemInput -> [TagElem] -> Flist -> PolMap -> PolResult
-
 -- | intermediate auts, seed aut, final aut, potentially modified sem
 type PolResult = ([AutDebug], PolAut, PolAut, Sem)
 type AutDebug  = (String, PolAut, PolAut)
 
+-- | Constructs a polarity automaton from the surface realiser's input: input
+--   semantics, lexical selection, extra polarities and index constraints.  For
+--   debugging purposes, it returns all the intermediate automata produced by
+--   the construction algorithm.
+buildAutomaton :: SemInput -> [TagElem] -> Flist -> PolMap -> PolResult
 buildAutomaton (tsem,tres,_) candRaw rootFeat extrapol  =
   let -- root categories, index constraints, and external polarities
       rcatPol :: Map.Map String Interval
@@ -644,9 +645,7 @@ of a pronoun, and does not need one in its lexical combination.
 \label{fig:polarity_automaton_zerolit_promise}
 \end{figure}
 
-\paragraph{fixPronouns} returns a modified input semantics and lexical
-selection in which pronouns are properly accounted for.  The steps in
-this process are
+We insert pronouns into the input semantics using the following process:
 \begin{enumerate}
 \item For each literal in the input semantics, establish the
       smallest charge for each of its semantic indices.
@@ -664,6 +663,8 @@ this process are
 type PredLite = (String,[GeniVal]) -- handle is head of arg list 
 type SemWeightMap = Map.Map PredLite SemPols
 
+-- | Returns a modified input semantics and lexical selection in which pronouns
+--   are properly accounted for.
 fixPronouns :: (Sem,[TagElem]) -> (Sem,[TagElem])
 fixPronouns (tsem,cands) = 
   let -- part 1 (for each literal get smallest charge for each idx)
@@ -703,20 +704,13 @@ fixPronouns (tsem,cands) =
               extra = map indexPred $ concatMap comparePron (getpols c)
       cands3 = map addextra cands2
   in (tsem2, cands3)
-\end{code}
 
-\paragraph{indexPred} builds a fake semantic predicate that the index
-counting mechanism uses to represent extra columns.
-
-\begin{code}
+-- | Builds a fake semantic predicate that the index counting mechanism uses to
+--   represent extra columns.
 indexPred :: GeniVal -> Pred
 indexPred x = (x, GAnon, [])
-\end{code}
 
-\paragraph{isExtraCol} returns True if the given literal was introduced
-by the index counting mechanism
-
-\begin{code}
+-- Returns True if the given literal was introduced by the index counting mechanism
 isExtraCol :: Pred -> Bool
 isExtraCol (_,GAnon,[]) = True
 isExtraCol _            = False
@@ -939,11 +933,10 @@ same paths to be compared only if they are on the same path.
 Note: chart sharing involves some mucking around with the generation
 engine (see page \pageref{fn:Builder:preInit})
 
-\paragraph{detectPolPaths} Given a list of paths 
-(i.e. a list of list of trees), we return a list of trees such that each
-tree is annotated with the paths it belongs to.
-
 \begin{code}
+-- | Given a list of paths (i.e. a list of list of trees)
+--   return a list of trees such that each tree is annotated with the paths it
+--   belongs to.
 detectPolPaths :: [[TagElem]] -> [(TagElem,BitVector)]
 detectPolPaths paths = 
   let pathFM     = detectPolPaths' Map.empty 0 paths
@@ -960,12 +953,8 @@ detectPolPaths' accFM counter (path:ps) =
       fn f (t:ts) = fn (Map.insertWith (.|.) t currentBits f) ts 
       newFM       = fn accFM path
   in detectPolPaths' newFM (counter+1) ps
-\end{code}
 
-\paragraph{showPolPaths} displays the list of polarity automaton paths
-that the tree is on
-
-\begin{code}
+-- | Render the list of polarity automaton paths as a string
 showPolPaths :: BitVector -> String
 showPolPaths paths =
   let pathlist = showPolPaths' paths 1
@@ -1043,22 +1032,17 @@ sortSemByFreq tsem cands =
 \begin{code}
 type SemMap = Map.Map Pred [TagElem]
 type PolMap = Map.Map String Interval 
-\end{code}
 
-\paragraph{addToPol} adds a new polarity item to a PolMap.  If there
-already is a polarity for that item, it is summed with the new polarity.
-
-\begin{code}
+-- | Adds a new polarity item to a 'PolMap'.  If there already is a polarity
+--  for that item, it is summed with the new polarity.
 addPol :: (String,Interval) -> PolMap -> PolMap
 addPol (p,c) m = Map.insertWith (!+!) p c m
-\end{code}
 
-\paragraph{nubAut} ensures that all states and transitions in the polarity automaton 
-are unique.  This is a slight optimisation so that we don't have to repeatedly check
-the automaton for state uniqueness during its construction, but it is essential that
-this check be done after construction
-
-\begin{code}
+-- | Ensures that all states and transitions in the polarity automaton
+--   are unique.  This is a slight optimisation so that we don't have to
+--   repeatedly check the automaton for state uniqueness during its
+--   construction, but it is essential that this check be done after
+--   construction
 nubAut :: (Ord ab, Ord st) => NFA st ab -> NFA st ab 
 nubAut aut = 
   aut {
@@ -1105,15 +1089,11 @@ data PolState = PolSt Int [Pred] [(Int,Int)]
 type PolTrans = TagElem
 type PolAut   = NFA PolState PolTrans
 type PolTransFn = Map.Map PolState (Map.Map PolState [Maybe PolTrans])
-\end{code}
 
-\begin{code}
 instance Show PolState
   where show (PolSt pr ex po) = show pr ++ " " ++ showSem ex ++ show po
 -- showPred pr ++ " " ++ showSem ex ++ show po
-\end{code}
 
-\begin{code}
 instance Ord PolState where
   compare (PolSt pr1 ex1 po1) (PolSt pr2 ex2 po2) = 
     let prC   = compare pr1 pr2
@@ -1127,7 +1107,8 @@ housekeeping during the main algortihms.
 \begin{code}
 fakestate :: Int -> [Interval] -> PolState
 fakestate s pol = PolSt s [] pol --PolSt (0, s, [""]) [] pol
--- an initial state for polarity automata
+
+-- | an initial state for polarity automata
 polstart :: [Interval] -> PolState
 polstart pol = fakestate 0 pol -- fakestate "START" pol
 \end{code}
@@ -1137,17 +1118,9 @@ polstart pol = fakestate 0 pol -- fakestate "START" pol
 \label{sec:display_pol}
 % ----------------------------------------------------------------------
 
-\subsection{showLite}
-
-The showLite functions could be used to replace the default instances of
-show, but with some nervousness on my part because we deliberatly cut out
-information that could useful.  Mostly, whenever we have trees, we try
-to print the treenames instead of the entire tree.
-
-\paragraph{showLite} can be used to display a Polarity automaton as
-human readable text.
-
 \begin{code}
+-- | 'showLite' is like Show but it's only used for debugging
+--   TODO: is this true?
 class ShowLite a where
   showLite :: a -> String
 
@@ -1173,12 +1146,9 @@ instance ShowLite Char where showLite = show
 \begin{code}
 instance ShowLite TagElem where
   showLite = idname 
-\end{code}
 
-\paragraph{showLiteSm} can be used to display a SemMap in human readable text.
-
-\begin{code}
 {-
+-- | Display a SemMap in human readable text.
 showLiteSm :: SemMap -> String
 showLiteSm sm = 
   concatMap showPair $ toList sm 
@@ -1187,11 +1157,9 @@ showLiteSm sm =
         showPair' (te:cs) = tlIdname te ++ "[" ++ showLitePm (tpolarities te) ++ "]"
                                         ++ " " ++ showPair' cs 
 -}
-\end{code}
 
-\paragraph{showLitePm} can be used to display a PolMap in human-friendly text.
-The advantage is that it displays fewer quotation marks.
-\begin{code}
+-- | Display a PolMap in human-friendly text.
+--   The advantage is that it displays fewer quotation marks.
 showLitePm :: PolMap -> String
 showLitePm pm = 
   let showPair (f, pol) = showInterval pol ++ f 
