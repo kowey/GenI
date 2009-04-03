@@ -57,11 +57,9 @@ doc:  init maindoc
 maindoc: $(MAKE_DOCS)
 
 docs: doc
-html: $(MAKE_HTML)
 
 clean: tidy
 	rm -f $(foreach d, $(DOC_DIRS), $(d)/*.{ps,pdf})
-	rm -f $(MAKE_HTML)
 
 tidy:
 	rm -f $(foreach d, $(DOC_DIRS), $(d)/*.{dvi,aux,log,bbl,blg,out,toc})
