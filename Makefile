@@ -84,8 +84,8 @@ regression: etc/SumHUnit
 	@chmod u+x etc/regression
 	etc/regression
 
-unit:
-	etc/quickcheck.py libGenI/NLP/GenI/Btypes.lhs | ghci $(GHCI_FLAGS)
+unit: dist/build/geni/geni
+	dist/build/geni/geni --unit
 
 etc/SumHUnit : etc/SumHUnit.hs
 	ghc --make -o $@ $<
