@@ -160,20 +160,29 @@ short switch is available.  For more information, type \texttt{geni
 \begin{code}
 -- | Uses the GetOpt library to process the command line arguments.
 -- Note that we divide them into basic and advanced usage.
-optionsForStandardGenI, optionsAdvanced :: [OptDescr Flag]
-optionsForStandardGenI = nubBySwitches $ optionsForBasicStuff ++ optionsAdvanced
-          ++ -- FIXME: weird mac stuff
-          [ Option ['p']    []  (reqArg WeirdFlg id "CMD") "" ]
+optionsForStandardGenI :: [OptDescr Flag]
+optionsForStandardGenI =
+  nubBySwitches $ concatMap snd3 optionsSections
+                  ++ -- FIXME: weird mac stuff
+                  [ Option ['p']    []  (reqArg WeirdFlg id "CMD") "" ]
 
-optionsAdvanced = nubBySwitches $
-        optionsForUserInterface
-     ++ optionsForInputFiles
-     ++ optionsForOutput
-     ++ optionsForOptimisation
-     ++ optionsForBuilder
-     ++ optionsForTesting
-     ++ optionsForMorphology
-     ++ optionsForIgnoreSem
+optionsSections :: [(String,[OptDescr Flag],[String])]
+optionsSections =
+ [ ("Core options", optionsForBasicStuff, example)
+ , ("Input", optionsForInputFiles, [])
+ , ("Output", optionsForOutput, [])
+ , ("Algorithm",
+     (nubBySwitches $ optionsForBuilder ++ optionsForOptimisation),
+     usageForOptimisations)
+ , ("Morphology", optionsForMorphology, [])
+ , ("User interface", optionsForUserInterface, [])
+ , ("Batch processing", optionsForTesting, [])
+ , ("Miscellaneous", nubBySwitches $ optionsForIgnoreSem, [])
+ ]
+ where
+  example  = [ "Example:"
+             , " geni -m examples/ej/mac -l examples/ej/lexicon -s examples/ej/suite"
+             ]
 
 getSwitches :: OptDescr a -> ([Char],[String])
 getSwitches (Option s l _ _) = (s,l)
@@ -220,14 +229,20 @@ optArg s def fn desc = OptArg (\x -> Flag s (maybe def fn x)) desc
 usage :: Bool -- ^ advanced
       -> String
 usage adv =
- let header   = "Usage: geni [OPTION...]"
-     body     = basic ++ if adv then ("\n\n" ++ advanced) else ""
-     example  = "Example:\n" ++
-       " geni -m examples/ej/mac -l examples/ej/lexicon -s examples/ej/suite\n"
-     basic    = usageInfo header optionsForBasicStuff
-     advanced = usageInfo "Advanced options (note: all LIST are space delimited)" optionsAdvanced
-                ++ usageForOptimisations
- in header ++ body ++ "\n\n" ++ example
+ let header   = "Usage: geni [OPTION...]\n"
+     tweakBasic (x,y,z) = (x,y,z ++ ["See geni --help for more details"])
+     sections = if adv
+                then optionsSections
+                else map tweakBasic $ take 1 optionsSections
+     body     = unlines $ map usageSection sections
+ in header ++ body
+
+usageSection :: (String, [OptDescr Flag],[String]) -> String
+usageSection (name, opts, comments) =
+ usageInfo (unlines $ [bar,name, bar]) opts ++ mcomments
+ where
+  bar = replicate 72 '='
+  mcomments = if null comments then [] else "\n" ++ unlines comments
 
 treatStandardArgs :: [String] -> IO Params
 treatStandardArgs argv = treatStandardArgsWithParams argv emptyParams
@@ -496,13 +511,14 @@ describeOpt (_,k,d) = k ++ " - " ++ d
 
 -- | Displays the usage text for optimisations.
 --   It shows a table of optimisation codes and their meaning.
-usageForOptimisations :: String
-usageForOptimisations = "\n"
-     ++ "List of optimisations.\n"
-     ++ "(ex: --opt='p f-sem' for polarities and semantic filtering)\n"
-     ++ "\n"
-     ++ "Optimisations:\n"
-     ++ "  " ++ unlinesTab (map describeOpt coreOptimisationCodes) ++ "\n"
+usageForOptimisations :: [String]
+usageForOptimisations =
+     [ "Optimisations must be passed in as a space-delimited list"
+     , "(ex: --opt='p f-sem' for polarities and semantic filtering)"
+     , ""
+     , "Optimisations:"
+     , "  " ++ unlinesTab (map describeOpt coreOptimisationCodes)
+     ]
  where unlinesTab l = concat (intersperse "\n  " l)
 \end{code}
 
