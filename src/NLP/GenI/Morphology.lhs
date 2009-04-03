@@ -53,37 +53,29 @@ user specifies morphological input through the input semantics.  Our job
 is to identify morphological predicates like \semexpr{plural(x)} and 
 apply features like \fs{\it num:pl} on the relevant trees.
 
-\paragraph{readMorph} converts information from a morphological
-information file into GenI's internal format.
-
 \begin{code}
+-- | Converts information from a morphological information file into GenI's
+--   internal format.
 readMorph :: [(String,[AvPair])] -> MorphFn
 readMorph minfo pred_ = Map.lookup key fm
   where fm = Map.fromList minfo
         key = show $ snd3 pred_
-\end{code}
 
-\fnlabel{stripMorphSem} filters away from an input semantics any
-literals whose realisation is strictly morphological.  The first
-argument tells us helps identify the morphological literals --
-it associates literals with morphological stuff; if it returns
-Nothing, then it is non-morphological 
-
-\begin{code}
+-- | Filters away from an input semantics any literals whose realisation is
+--   strictly morphological.  The first argument tells us helps identify the
+--   morphological literals -- it associates literals with morphological stuff;
+--   if it returns 'Nothing', then it is non-morphological
 stripMorphSem :: MorphFn -> Sem -> Sem
 stripMorphSem morphfn tsem = 
   [ l | l <- tsem, (isNothing.morphfn) l ]
-\end{code}
 
-\paragraph{attachMorph} does the bulk of the morphological input. We use
-\fnparam{morphfn} to determine which literals in \fnparam{sem} contain
-morphological information and what information they contain.  Then we
-attach this morphological information to the relevant trees in
-\fnparam{cand}.  A tree is considered relevant w.r.t to a morphological
-literal if its semantics contains at least one literal whose first index
-is the same as the first index of the morphological literal.
-
-\begin{code}
+-- | 'attachMorph' @morphfn sem cands@ does the bulk of the morphological
+--   input processing.  We use @morphfn@ to determine which literals in
+--   @sem@ contain morphological information and what information they contain.
+--   Then we attach this morphological information to the relevant trees in
+--   @cand@.  A tree is considered relevant w.r.t to a morphological
+--   literal if its semantics contains at least one literal whose first index
+--   is the same as the first index of the morphological literal.
 attachMorph :: MorphFn -> Sem -> [TagElem] -> [TagElem]
 attachMorph morphfn sem cands = 
   let -- relevance of a tree wrt to an index
@@ -104,15 +96,11 @@ attachMorph morphfn sem cands =
         where i = if null args then GAnon else head args
               args = thd3 l 
   in foldr attach cands sem 
-\end{code}
 
-\paragraph{attachMorphHelper} performs the morphological attachment
-proper.  
-
-FIXME: we'll need to make sure this still works as promised 
-       when we implement co-anchors.
-
-\begin{code}
+-- | Actually unify the morphological features into the anchor node
+--
+--   FIXME: we'll need to make sure this still works as promised 
+--   when we implement co-anchors.
 attachMorphHelper :: Flist -> TagElem -> TagElem
 attachMorphHelper mfs te = 
   let -- unification with anchor
@@ -177,20 +165,12 @@ c'est les garcons que la fille detestait
 If your morphological software does not do this, you could wrap it
 with a simple shell or Perl script.
 
-\paragraph{sansMorph} extracts the lemmas from a list of uninflected
-sentences.  This is used when the morphological generator is 
-unavailable, doesn't work, etc.
-
 \begin{code}
+-- | Extracts the lemmas from a list of uninflected sentences.  This is used
+--   when the morphological generator is unavailable, doesn't work, etc.
 sansMorph :: [(String,Flist)] -> [String]
 sansMorph = singleton . unwords . (map fst)
-\end{code}
 
-\paragraph{inflectSentences} converts a list of uninflected sentences
-into inflected ones by calling the third party software.  Since we're
-using system calls, we're stuck with an IO monad. 
-
-\begin{code}
 type MorphLexicon = [(String, String, Flist)]
 type UninflectedDisjunction = (String, Flist)
 
@@ -210,6 +190,8 @@ inflectWordUsingLex mlex (lem,fs)
   where
    matches = [ word | (word, mLem, mFs) <- mlex, lem == mLem, isJust $ fs `unifyFeat` mFs ]
 
+-- | Converts a list of uninflected sentences into inflected ones by calling
+---  the third party software.
 -- FIXME: this doesn't actually support lists-of-results per input
 -- will need to work it out
 inflectSentencesUsingCmd :: String -> [[UninflectedDisjunction]] -> IO [[String]]
@@ -230,9 +212,7 @@ inflectSentencesUsingCmd morphcmd sentences =
   `catch` \e -> do ePutStrLn "Error calling morphological generator"
                    ePutStrLn $ show e
                    return $ map sansMorph sentences
-\end{code}
 
-\begin{code}
 singleton :: a -> [a]
 singleton x = [x]
 \end{code}
