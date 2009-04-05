@@ -60,6 +60,7 @@ extra-source-files: src/EnableGUI.hs
 
 Flag gui
   description: Build with a graphical user interface
+  default: False
 
 Flag splitBase
   description: Choose the new smaller, split-up base package.
