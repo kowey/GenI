@@ -65,6 +65,10 @@ Flag gui
 Flag splitBase
   description: Choose the new smaller, split-up base package.
 
+Flag static
+  Description: Build a static binary
+  Default:     False
+
 Library
   Build-depends: parsec >= 2 && < 3,
                  QuickCheck >= 1.2 && < 2,
@@ -78,6 +82,9 @@ Library
 
   if !flag(gui)
     cpp-options:      -DDISABLE_GUI
+
+  if flag(static)
+    ghc-options: -static -optl-static
 
   Exposed-Modules:
                 NLP.GenI.Btypes,
@@ -120,3 +127,5 @@ Executable     geni
  else
     cpp-options:      -DDISABLE_GUI
 
+ if flag(static)
+    ghc-options: -static -optl-static
