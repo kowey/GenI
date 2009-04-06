@@ -1,3 +1,9 @@
+GenI 0.17.4, 6 Apr 2009
+-----------------------
+* GHC 6.6 support
+
+* GUI disabled by default
+
 GenI 0.17.3, 3 Apr 2009
 -----------------------
 * Simplified build method
