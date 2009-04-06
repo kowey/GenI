@@ -24,7 +24,8 @@ before adjunction).  There is no packing strategy whatsoever; each chart
 item is a derived tree.
 
 \begin{code}
-{-# LANGUAGE LiberalTypeSynonyms #-}
+{-# OPTIONS_GHC -fglasgow-exts #-}
+-- {-# LANGUAGE LiberalTypeSynonyms #-}
 module NLP.GenI.Simple.SimpleBuilder (
    -- Types
    Agenda, AuxAgenda, Chart, SimpleStatus, SimpleState,

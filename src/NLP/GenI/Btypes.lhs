@@ -24,7 +24,8 @@ low-level and primitive (well, with the exception of feature structure
 unification, that is).
 
 \begin{code}
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, DeriveDataTypeable #-}
+{-# GHC_OPTIONS -fglasgow-exts #-}
+-- {-# LANGUAGE TypeSynonymInstances, FlexibleInstances, DeriveDataTypeable #-}
 module NLP.GenI.Btypes(
    -- Datatypes
    GNode(..), GType(Subs, Foot, Lex, Other), NodeName,

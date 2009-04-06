@@ -26,7 +26,8 @@ TAGs, and at the very end, we unpack the results directly into an
 automaton.  No derived trees here!
 
 \begin{code}
-{-# LANGUAGE LiberalTypeSynonyms #-}
+{-# OPTIONS_GHC -fglasgow-exts #-}
+-- {-# LANGUAGE LiberalTypeSynonyms #-}
 module NLP.GenI.CkyEarley.CkyBuilder
  ( -- builder
    ckyBuilder, earleyBuilder,
