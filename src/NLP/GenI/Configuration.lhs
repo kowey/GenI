@@ -687,7 +687,7 @@ optionsForMorphology =
 
 morphInfoOption :: OptDescr Flag
 morphInfoOption = Option [] ["morphinfo"] (reqArg MorphInfoFlg id "FILE")
-  "morphological lexicon FILE (default: unset)"
+  "morphological features FILE (default: unset)"
 \end{code}
 
 % --------------------------------------------------------------------
