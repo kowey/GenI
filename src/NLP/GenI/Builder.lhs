@@ -209,6 +209,24 @@ unlessEmptySem input config =
 
 \begin{code}
 -- | Performs surface realisation from an input semantics and a lexical selection.
+--
+--   Statistics tracked
+--
+--    * pol_used_bundles - number of bundled paths through the polarity automaton.
+--                         see 'NLP.GenI.Automaton.automatonPathSets'
+--
+--    * pol_used_paths - number of paths through the final automaton
+--
+--    * pol_seed_paths - number of paths through the seed automaton (i.e. with no polarities).
+--                       This is normally just 1, unless you have multi-literal semantics
+--
+--    * pol_total_states - combined number of states in the all the polarity automata
+--
+--    * pol_total_tras - combined number of transitions in all polarity automata
+--
+--    * pol_max_states - number of states in the polarity automaton with the most states
+--
+--    * pol_total_tras - number of transitions in the polarity automata with the most transitions
 run :: Builder st it Params -> Input -> Params -> (st, Statistics)
 run builder input config =
   let -- 1 run the setup stuff
