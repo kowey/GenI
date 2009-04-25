@@ -107,7 +107,9 @@ automatonPathSets aut = helper (startSt aut)
                 []  -> [[tr]]
                 res -> map (tr :) res
 
-numStates, numTransitions :: NFA st ab ->  Int
+numStates :: NFA st ab ->  Int
 numStates = sum . (map length) . states
+
+numTransitions :: NFA st ab ->  Int
 numTransitions = sum . (map subTotal) . (Map.elems) . transitions
   where subTotal = sum . (map length) . (Map.elems)
