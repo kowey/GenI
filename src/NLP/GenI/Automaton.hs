@@ -99,13 +99,13 @@ automatonPaths aut = concatMap combinations $ map (filter (not.null)) $ automato
 automatonPathSets :: (Ord st, Ord ab) => (NFA st ab) -> [[ [ab] ]]
 automatonPathSets aut = helper (startSt aut)
  where
-  transFor st = Map.lookup st (transitions aut)
-  helper st = case transFor st of
-              Nothing   -> []
-              Just subT -> concat [ (next (catMaybes tr) st2) | (st2, tr) <- Map.toList subT ]
-  next tr st2 = case helper st2 of
-                []  -> [[tr]]
-                res -> map (tr :) res
+  transFor st = Map.toList `fmap` Map.lookup st (transitions aut)
+  helper st = maybe [] (concatMap next) $ transFor st
+  next (st2, mtr) =
+   case helper st2 of
+     []  -> [[labels]]
+     res -> map (labels :) res
+   where labels = catMaybes mtr
 
 numStates :: NFA st ab ->  Int
 numStates = sum . (map length) . states
