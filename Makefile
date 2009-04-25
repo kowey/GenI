@@ -32,7 +32,6 @@ SOURCE_FILES=$(shell find src -name '*.*hs')
 SCRIPT_FILES = bin/tryXtimes\
 	       etc/stupidmorph.pl\
 	       etc/tommorph.pl\
-	       etc/quickcheck.py\
 	       etc/perf-latest.sh\
 	       etc/perf-save.sh\
 
