@@ -57,6 +57,8 @@ data NFA st ab = NFA
   , finalStList :: [st]   -- ^ can be ignored if 'isFinalSt' is defined
   -- 
   , transitions :: Map.Map st (Map.Map st [Maybe ab])
+                -- ^ there can be more than one transition between any two states
+                --   and a transition could be the empty symbol
   , states      :: [[st]] -- ^ if you don't care about grouping states into columns
                           --   you can just dump everything in one big list
   }
@@ -86,7 +88,9 @@ addTrans aut st1 ab st2 =
         oldSubT  = Map.findWithDefault Map.empty st1 oldT 
         newSubT  = Map.insertWith (++) st2 [ab] oldSubT
 
--- | Returns all possible paths through an automaton.
+-- | Returns all possible paths through an automaton from the
+--   start state to any dead-end.
+--
 --   Each path is represented as a list of labels.
 --
 --   We assume that the automaton does not have any loops
@@ -94,12 +98,29 @@ addTrans aut st1 ab st2 =
 automatonPaths :: (Ord st, Ord ab) => (NFA st ab) -> [[ab]]
 automatonPaths aut = concatMap combinations $ map (filter (not.null)) $ automatonPathSets aut
 
--- | Not quite the set of all paths, but the sets of all transitions
----  FIXME: explain later
+-- | The set of all bundled paths.  A bundled path is a sequence of
+--   states through the automaton from the start state to any dead
+--   end.  Any two neighbouring states can have more than one
+--   possible transition between them, so the bundles can multiply
+--   out to a lot of different possible paths.
+--
+--   The output is a list of lists of lists:
+--
+--   * Each item in the outer list is a bundled path through the
+--   automaton, i.e. without distinguishing between the possible
+--   transitions from any two neighbouring states
+--
+--   * Each item in the middle list is represents the set of
+--   transitions between two given neighbouring states
+--
+--   * Each item in the inner list represents a transition
+--   between two given states
 automatonPathSets :: (Ord st, Ord ab) => (NFA st ab) -> [[ [ab] ]]
 automatonPathSets aut = helper (startSt aut)
  where
   transFor st = Map.toList `fmap` Map.lookup st (transitions aut)
+  -- all the states you can get to from @st@ (and how to get there)
+  -- (one item per state)
   helper st = maybe [] (concatMap next) $ transFor st
   next (st2, mtr) =
    case helper st2 of
