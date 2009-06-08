@@ -84,12 +84,15 @@ guiGeni pstRef = start $ mainGui pstRef
 \end{code}
 
 When you first start GenI, you will see this screen:
-[[FIXME:screenshot wanted]]
+
+\begin{center}
+\includegraphics[width=0.47\textwidth]{hcar/GenI-main-screenshot.jpg}
+\end{center}
 
 It allows you to type in an input semantics (or to modify the one that was
-automatically loaded up), twiddle some optimisations and run the realiser.  You
-can also opt to run the debugger instead of the realiser; see page
-\pageref{sec:gui:debugger}.
+automatically loaded up), select some optimisations and run the realiser.  You
+can also opt to run the debugger instead of the realiser (section
+\ref{sec:gui:debugger}).
 
 \begin{code}
 mainGui :: ProgStateRef -> IO ()
@@ -225,20 +228,14 @@ mainGui pstRef
             , clientSize := sz 525 325
             , on closing := exitWith ExitSuccess 
             ]
-\end{code}
 
-\subsection{Configuration}
-
-Most of the optimisations are availalable as checkboxes.  Note the following
-point about anti-optimisations: An anti-optimisation disables a default
-behaviour which is assumed to be ``optimisation''.  But of course we don't
-want to confuse the GUI user, so we confuse the programmer instead:
-Given an anti-optimisation DisableFoo, we have a check box UseFoo.  If UseFoo
-is checked, we remove DisableFoo from the list; if it is unchecked, we add
-it to the list.  This is the opposite of the default behaviour, but the
-result, I hope, is intuitive for the user.
-
-\begin{code}
+-- Note the following point about anti-optimisations: An anti-optimisation
+-- disables a default behaviour which is assumed to be "optimisation".  But of
+-- course we don't want to confuse the GUI user, so we confuse the programmer
+-- instead: Given an anti-optimisation DisableFoo, we have a check box UseFoo.  If
+-- UseFoo is checked, we remove DisableFoo from the list; if it is unchecked, we
+-- add it to the list.  This is the opposite of the default behaviour, but the
+-- result, I hope, is intuitive for the user.
 toggleAlgo :: (Selection a, Items a String) => ProgStateRef -> a -> IO ()
 toggleAlgo pstRef box =
  do asel   <- get box selection
@@ -282,13 +279,11 @@ optCheckBoxHelper idOrNot o pstRef f as =
            modopt  = if idOrNot isChecked then (o:) else delete o
            newopts = nub.modopt $ getListFlagP OptimisationsFlg config
        modifyIORef pstRef (\x -> x{pa = setFlagP OptimisationsFlg newopts (pa x)})
-\end{code}
 
-% --------------------------------------------------------------------
-\section{Loading files}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Loading files
+-- --------------------------------------------------------------------
 
-\begin{code}
 -- | 'readConfig' is used to update the graphical interface after
 --    you run the  'configGui'.
 --    It is also called when you first launch the GUI
@@ -376,18 +371,19 @@ loadTestSuiteAndRefresh f pstRef (suitePath,mcs) tsBox caseChoice =
 \section{Configuration}
 % --------------------------------------------------------------------
 
-\paragraph{configGui}\label{fn:configGui} provides a graphical interface which
-aims to be a complete substitute for the command line switches.  In addition to
-the program state \fnparam{pstRef}, it takes a continuation \fnparam{loadFn}
-which tells what to do when the user closes the window.
+The configuration GUI aims to a provide a graphical substitute for the command
+line switches.  Note you cannot yet select optimisations and test cases from
+this window; use the main window instead.  Note also that changes to GenI tend
+to start from the command line switches and only percolate to the GUI when time
+permits.  For full control of GenI, see \verb!geni --help!.
 
-The only thing which are not provided in this GUI are a list of optimisations
-and a test case selector (which are already handled by the main interface).
-This GUI is a standalone window with two tabbed sections.  Note: one thing
-you may want to note is that we do not divide the same way between basic
-and advanced options as with the console interface.
+\begin{center}
+\emph{TODO: screenshot wanted}
+\end{center}
 
 \begin{code}
+-- | 'configGui' @pstRef loadFn@ provides the configuration GUI. The continuation
+--   @loadFn@ tells us what to do when the user closes this window.
 configGui ::  ProgStateRef -> IO () -> IO () 
 configGui pstRef loadFn = do 
   pst <- readIORef pstRef
@@ -403,11 +399,9 @@ configGui pstRef loadFn = do
         ++ map hfill lst
   let shortSize = sz 10 25
   let longSize  = sz 20 25
-\end{code}
-
-The first tab contains only the basic options:
-
-\begin{code}
+  -- -----------------------------------------------------------------
+  -- basic options tab
+  -- -----------------------------------------------------------------
   pbas <- panel nb []
   -- files loaded (labels)
   macrosFileLabel  <- staticText pbas [ text := getListFlagP MacrosFlg config  ]
@@ -439,12 +433,9 @@ The first tab contains only the basic options:
     -- the layout for the basic stuff
   let layBasic = dynamic $ container pbas $ -- boxed "Basic options" $ 
                    hfloatLeft $ dynamic $ fill $ column 4 $ map (dynamic.hfill) $ layFiles 
-\end{code}
-
-The second tab contains more advanced options.  Maybe we should split this
-into more tabs?
-
-\begin{code}
+  -- -----------------------------------------------------------------
+  -- advanced options tab
+  -- -----------------------------------------------------------------
   padv <- panel nb []
   -- XMG tools 
   viewCmdTxt <- entry padv 
@@ -488,13 +479,13 @@ into more tabs?
   -- put the whole darn thing together
   let layAdvanced = hfloatLeft $ container padv $ column 10 
         $ [ layXMG, layPolarities, layMorph, layIgnoreSem ]
-\end{code}
-
-When the user clicks on a Browse button, an open file dialogue should pop up.
-It gets its value from the file label on its left (passed in as an argument),
-and updates said label when the user has made a selection.
-
-\begin{code}
+  -- -----------------------------------------------------------------
+  -- browse button action
+  --
+  -- When the user clicks on a Browse button, an open file dialogue should pop up.
+  -- It gets its value from the file label on its left (passed in as an argument),
+  -- and updates said label when the user has made a selection.
+  -- -----------------------------------------------------------------
   -- helper functions
   curDir <- getCurrentDirectory
   let curDir2 = curDir ++ "/"
@@ -519,12 +510,9 @@ and updates said label when the user has made a selection.
   setBrowse lexiconBrowseBt lexiconFileLabel 
   setBrowse tsBrowseBt tsFileLabel
   setBrowse morphFileBrowseBt morphFileLabel
-\end{code}
-
-Let's not forget the layout which puts the whole configGui together and the
-command that makes everything ``work'':
-
-\begin{code}
+  -- -----------------------------------------------------------------
+  -- config GUI layout
+  -- -----------------------------------------------------------------
   let parsePol = parseFlagWithParsec "polarities"    geniPolarities
       parseRF  = parseFlagWithParsec "root features" geniFeats
       onLoad 
@@ -579,13 +567,12 @@ command that makes everything ``work'':
 \end{code}
  
 % --------------------------------------------------------------------
-\section{Running the generator}
+\section{Generation}
 % --------------------------------------------------------------------
 
-\paragraph{doGenerate} parses the target semantics, then calls the
-generator and displays the result in a results gui (below).
-
 \begin{code}
+-- | 'doGenerate' parses the target semantics, then calls the generator and
+-- displays the result in a results gui (below).
 doGenerate :: Textual b => Window a -> ProgStateRef -> b -> Bool -> Bool -> IO ()
 doGenerate f pstRef sembox useDebugger pauseOnLex =
  do loadEverything pstRef
@@ -613,9 +600,14 @@ doGenerate f pstRef sembox useDebugger pauseOnLex =
    handler title err = errorDialog f title (show err)
 \end{code}
 
-\paragraph{resultsGui} displays generation result in a window.  The window
-consists of various tabs for intermediary results in lexical
-selection, derived trees, derivation trees and generation statistics.
+When surface realisation is complete, we display a results window with various
+tabs for intermediary results in lexical selection, derived trees, derivation
+trees and generation statistics.
+
+\begin{center}
+\emph{TODO: screenshot wanted}
+\end{center}
+
 
 \begin{code}
 resultsGui :: BG.BuilderGui -> ProgStateRef -> IO ()
@@ -644,14 +636,21 @@ resultsGui builderGui pstRef =
     return ()
 \end{code}
 
-\paragraph{debuggerGui} All GenI builders can make use of an interactive
-graphical debugger.  We provide here a universal debugging interface,
-which makes use of some parameterisable bits as defined in the BuilderGui
-module.  This window shows a seperate tab for each surface realisation
-task (lexical selection, filtering, building).  We also rely heavily on
-helper code defined in \ref{sec:debugger_helpers}.
+\label{sec:gui:debugger}
+Instead of going directly to the results window, you could instead use the
+interactive debugger which GenI provides.  The debugger shows a separate tab
+for each phase in surfuce realisation (lexical selection, filtering, building).
+The building phase has a parameterisable GUI, which means that if you wanted to
+develop a new surface realisation algorithm for GenI, you could also extend the
+debugger GUI to go with it.
+
+\begin{center}
+\includegraphics[width=0.47\textwidth]{hcar/GenI-debugger-screenshot.jpg}
+\end{center}
 
 \begin{code}
+-- | We provide here a universal debugging interface, which makes use of some
+--   parameterisable bits as defined in the BuilderGui module.
 debugGui :: BG.BuilderGui -> ProgStateRef -> Bool -> IO ()
 debugGui builderGui pstRef pauseOnLex =
  do pst <- readIORef pstRef
@@ -706,21 +705,19 @@ debugGui builderGui pstRef pauseOnLex =
     -- display all tabs if we are not told to pause on lex selection
     when (not pauseOnLex) (step2 cand)
 \end{code}
-
-
  
 % --------------------------------------------------------------------
 \section{Tree browser}
 \label{sec:treebrowser_gui}
 % --------------------------------------------------------------------
 
-This is a very simple semantically-separated browser for all the
-trees in the grammar.  Note that we can't just reuse candidateGui's
-code because we label and sort the trees differently.  Here we 
-ignore the arguments in tree semantics, and we display the tree
-polarities in its label.
+The GenI tree browser displays all the TAG trees in the grammar grouped
+according to the semantics with which they are associated.
 
 \begin{code}
+-- Note that we can't just reuse candidateGui's code because we label and sort
+-- the trees differently.  Here we ignore the arguments in tree semantics, and
+-- we display the tree polarities in its label.
 treeBrowserGui :: ProgStateRef -> IO () 
 treeBrowserGui pstRef = do
   pst <- readIORef pstRef
