@@ -553,6 +553,7 @@ command that makes everything ``work'':
                   . (maybeSetStr   MacrosFlg macrosVal)
                   . (maybeSetStr LexiconFlg lexconVal)
                   . (maybeSetStr TestSuiteFlg tsVal)
+                  . (maybeSetStr TestInstructionsFlg [(tsVal,Nothing)])
                   . (maybeSet RootFeatureFlg parseRF rootCatVal)
                   . (maybeSet ExtraPolaritiesFlg parsePol extraPolVal)
                   . (maybeSetStr ViewCmdFlg viewVal)
