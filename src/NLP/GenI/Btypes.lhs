@@ -23,6 +23,7 @@ on trees, nodes and semantics.  Things here are meant to be relatively
 low-level and primitive (well, with the exception of feature structure
 unification, that is).
 
+\ignore{
 \begin{code}
 {-# GHC_OPTIONS -fglasgow-exts #-}
 -- {-# LANGUAGE TypeSynonymInstances, FlexibleInstances, DeriveDataTypeable #-}
@@ -62,10 +63,7 @@ module NLP.GenI.Btypes(
    -- Tests
    prop_unify_anon, prop_unify_self, prop_unify_sym
 ) where
-\end{code}
 
-\ignore{
-\begin{code}
 -- import Debug.Trace -- for test stuff
 import Control.Monad (liftM)
 import Data.List
@@ -300,8 +298,6 @@ instance (Replacable a) => Replacable (Tree a) where
   replaceMap s t = fmap (replaceMap s) t
 \end{code}
 
-Projector and Update function for Tree
-
 \begin{code}
 root :: Tree a -> a
 root (Node a _) = a
@@ -341,7 +337,7 @@ setLexeme _ _ = geniBug "impossible case in setLexeme - subtree with kids"
 
 \subsection{Substitution and Adjunction}
 
-This module handles the strictly syntactic part of the TAG substitution and
+This module handles just the tree-cutting aspects of TAG substitution and
 adjunction.  We do substitution with a very general \fnreflite{plugTree}
 function, whose only job is to plug two trees together at a specified node.
 Note that this function is also used to implement adjunction.
