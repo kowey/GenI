@@ -288,11 +288,10 @@ optCheckBoxHelper idOrNot o pstRef f as =
 \section{Loading files}
 % --------------------------------------------------------------------
 
-\paragraph{readConfig} is used to update the graphical interface after
-you run the \fnref{configGui}.  It is also called when you first launch
-the GUI
-
 \begin{code}
+-- | 'readConfig' is used to update the graphical interface after
+--    you run the  'configGui'.
+--    It is also called when you first launch the GUI
 readConfig :: (Textual l, Textual t, Able ch, Items ch String, Selection ch, Selecting ch)
            => Window w -> ProgStateRef -> l -> l -> ch -> t -> ch -> IO ()
 readConfig f pstRef macrosFileLabel lexiconFileLabel suiteChoice tsBox caseChoice =
