@@ -118,8 +118,10 @@ type AutDebug  = (String, PolAut, PolAut)
 buildAutomaton :: SemInput -> [TagElem] -> Flist -> PolMap -> PolResult
 buildAutomaton (tsem,tres,_) candRaw rootFeat extrapol  =
   let -- root categories, index constraints, and external polarities
+      pFeats = __cat__ : otherPolarityAttributes ++ map rpkAtt restrictedPolarityKeys
       rcatPol :: Map.Map String Interval
-      rcatPol = Map.fromList $ polarise (-1) $ getval __cat__ rootFeat
+      rcatPol = Map.fromList $ polarise (-1) $
+                 concatMap (\v -> getval v rootFeat) pFeats
       allExtraPols = Map.unionsWith (!+!) [ extrapol, inputRest, rcatPol ]
       -- index constraints on candidate trees
       detect      = detectIdxConstraints tres
@@ -862,29 +864,40 @@ time.  It would be nice to have some kind of mutual exclusion working.
 -- | 'RestrictedPolarityKey' @c att@ is a polarity key in which we only pay
 --   attention to nodes that have the category @c@.  This makes it possible
 --   to have polarities for a just a small subset of nodes
-data RestrictedPolarityKey = RestrictedPolarityKey String String
+data RestrictedPolarityKey = RestrictedPolarityKey { rpkCat :: String
+                                                   , rpkAtt :: String }
+
+-- | FIXME: this isn't easy to parameterise right now
+--   but if you want to do polarity filtering on things other
+--   than categories, you specify the attributes here.
+--
+--   Note that restrictedPolarityKeys is more likely what you're
+--   interested in
+otherPolarityAttributes :: [String]
+otherPolarityAttributes = []
+
+restrictedPolarityKeys :: [RestrictedPolarityKey]
+restrictedPolarityKeys = []
 
 detectPols :: [TagElem] -> [TagElem]
 detectPols = map detectPols'
 
 detectPols' :: TagElem -> TagElem
 detectPols' te =
-  let otherFeats = [] --, __idx__ ]
-      restrictedFeats = []
-      feats = __cat__ : otherFeats
+  let feats = __cat__ : otherPolarityAttributes
       --
       rootNode = root .ttree $ te
       rstuff   :: [[String]]
       rstuff   = getval __cat__ (gup rootNode) -- cat is special, see below
-               :  (map (\v -> getval v $ gdown rootNode) otherFeats)
-               ++ (map (\v -> getRestrictedVal v rootNode) restrictedFeats)
+               :  (map (\v -> getval v $ gdown rootNode) otherPolarityAttributes)
+               ++ (map (\v -> getRestrictedVal v rootNode) restrictedPolarityKeys)
       -- re:above, cat it is considered global to the whole tree
       -- to be robust, we grab it from the top feature
       substuff :: [[String]]
       substuff = let nodes = substNodes te
                      tops  = substTops te
                  in concatMap (\v -> map (getval v) tops) feats ++
-                    concatMap (\v -> map (getRestrictedVal v) nodes) restrictedFeats
+                    concatMap (\v -> map (getRestrictedVal v) nodes) restrictedPolarityKeys
       --
       -- substs nodes only
       commonPols :: [ (String,Interval) ]
