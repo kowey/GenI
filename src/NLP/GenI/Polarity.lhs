@@ -886,18 +886,18 @@ detectPols' :: TagElem -> TagElem
 detectPols' te =
   let feats = __cat__ : otherPolarityAttributes
       --
-      rootNode = root .ttree $ te
+      rup   = gup . root .ttree $ te
+      rdown = gdown . root . ttree $ te
       rstuff   :: [[String]]
-      rstuff   = getval __cat__ (gup rootNode) -- cat is special, see below
-               :  (map (\v -> getval v $ gdown rootNode) otherPolarityAttributes)
-               ++ (map (\v -> getRestrictedVal v rootNode) restrictedPolarityKeys)
+      rstuff   = getval __cat__ rup -- cat is special, see below
+               :  (map (\v -> getval v rdown) otherPolarityAttributes)
+               ++ (map (\v -> getRestrictedVal v rup rdown) restrictedPolarityKeys)
       -- re:above, cat it is considered global to the whole tree
       -- to be robust, we grab it from the top feature
       substuff :: [[String]]
-      substuff = let nodes = substNodes te
-                     tops  = substTops te
+      substuff = let tops = substTops te
                  in concatMap (\v -> map (getval v) tops) feats ++
-                    concatMap (\v -> map (getRestrictedVal v) nodes) restrictedPolarityKeys
+                    concatMap (\v -> map (getRestrictedVal v) tops tops) restrictedPolarityKeys
       --
       -- substs nodes only
       commonPols :: [ (String,Interval) ]
@@ -916,15 +916,16 @@ __cat__  = "cat"
 __idx__  = "idx"
 
 getRestrictedVal :: RestrictedPolarityKey
-                 -> GNode -- ^ we want both the top and bottom feature
+                 -> Flist -- ^ feature structure to filter on
+                 -> Flist -- ^ feature structure to get value from
                  -> [String]
-getRestrictedVal (RestrictedPolarityKey cat att) x =
-  case [ v | (a,v) <- gup x, a == __cat__ ] of
-    []  -> error $ "[polarities] No category " ++ cat ++ " in:" ++ show x
+getRestrictedVal (RestrictedPolarityKey cat att) filterFl fl =
+  case [ v | (a,v) <- filterFl, a == __cat__ ] of
+    []  -> error $ "[polarities] No category " ++ cat ++ " in:" ++ showFlist filterFl
     [v] -> if isJust (unify [GConst [cat]] [v])
-              then getval att (gdown x)
+              then getval att fl
               else []
-    _   -> error $ "[polarities] More than one category " ++ " in:" ++ show x
+    _   -> error $ "[polarities] More than one category " ++ " in:" ++ showFlist filterFl
 
 getval :: String -> Flist -> [String]
 getval att fl =
