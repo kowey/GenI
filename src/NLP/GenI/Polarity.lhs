@@ -897,7 +897,7 @@ detectPols' te =
       substuff :: [[String]]
       substuff = let tops = substTops te
                  in concatMap (\v -> map (getval v) tops) feats ++
-                    concatMap (\v -> map (getRestrictedVal v) tops tops) restrictedPolarityKeys
+                    concatMap (\v -> zipWith (getRestrictedVal v) tops tops) restrictedPolarityKeys
       --
       -- substs nodes only
       commonPols :: [ (String,Interval) ]
