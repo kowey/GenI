@@ -86,18 +86,18 @@ where
 import Data.Bits
 import qualified Data.Map as Map
 import Data.List
-import Data.Maybe (isNothing)
+import Data.Maybe (isNothing, isJust)
 import Data.Tree (flatten)
 import qualified Data.Set as Set
 
 import NLP.GenI.Automaton
 import NLP.GenI.Btypes(Pred, SemInput, Sem, Flist, AvPair, showAv,
-              GeniVal(GAnon), fromGConst, isConst,
+              GeniVal(..), fromGConst, isConst,
               Replacable(..),
               emptyPred, Ptype(Initial), 
               showFlist, showSem, sortSem,
-              root, gup, gdown, gtype, GType(Subs),
-              SemPols, unifyFeat, rootUpd)
+              GNode, root, gup, gdown, gtype, GType(Subs),
+              SemPols, unify, unifyFeat, rootUpd)
 import NLP.GenI.General(
     BitVector, isEmptyIntersect, thd3,
     Interval, ival, (!+!), showInterval)
@@ -859,23 +859,32 @@ the filter because it allows for both cl and n to be $-1$ (or $0$) at the same
 time.  It would be nice to have some kind of mutual exclusion working.
 
 \begin{code}
+-- | 'RestrictedPolarityKey' @c att@ is a polarity key in which we only pay
+--   attention to nodes that have the category @c@.  This makes it possible
+--   to have polarities for a just a small subset of nodes
+data RestrictedPolarityKey = RestrictedPolarityKey String String
+
 detectPols :: [TagElem] -> [TagElem]
 detectPols = map detectPols'
 
 detectPols' :: TagElem -> TagElem
 detectPols' te =
   let otherFeats = [] --, __idx__ ]
+      restrictedFeats = []
       feats = __cat__ : otherFeats
       --
-      rootdown  = (gdown.root.ttree) te
-      rootup    = (gup.root.ttree) te
+      rootNode = root .ttree $ te
       rstuff   :: [[String]]
-      rstuff   = getval __cat__ rootup -- cat is special, see below
-               : (map (\v -> getval v rootdown) otherFeats)
+      rstuff   = getval __cat__ (gup rootNode) -- cat is special, see below
+               :  (map (\v -> getval v $ gdown rootNode) otherFeats)
+               ++ (map (\v -> getRestrictedVal v rootNode) restrictedFeats)
       -- re:above, cat it is considered global to the whole tree
       -- to be robust, we grab it from the top feature
       substuff :: [[String]]
-      substuff = concatMap (\v -> map (getval v) (substTops te)) feats
+      substuff = let nodes = substNodes te
+                     tops  = substTops te
+                 in concatMap (\v -> map (getval v) tops) feats ++
+                    concatMap (\v -> map (getRestrictedVal v) nodes) restrictedFeats
       --
       -- substs nodes only
       commonPols :: [ (String,Interval) ]
@@ -892,6 +901,17 @@ detectPols' te =
 __cat__, __idx__  :: String
 __cat__  = "cat"
 __idx__  = "idx"
+
+getRestrictedVal :: RestrictedPolarityKey
+                 -> GNode -- ^ we want both the top and bottom feature
+                 -> [String]
+getRestrictedVal (RestrictedPolarityKey cat att) x =
+  case [ v | (a,v) <- gup x, a == __cat__ ] of
+    []  -> error $ "[polarities] No category " ++ cat ++ " in:" ++ show x
+    [v] -> if isJust (unify [GConst [cat]] [v])
+              then getval att (gdown x)
+              else []
+    _   -> error $ "[polarities] More than one category " ++ " in:" ++ show x
 
 getval :: String -> Flist -> [String]
 getval att fl =
@@ -916,8 +936,11 @@ polarise i amb = for amb $ \x -> (x, toZero i)
 for :: [a] -> (a -> b) -> [b]
 for = flip map
 
+substNodes :: TagElem -> [GNode]
+substNodes t = [ gn | gn <- (flatten.ttree) t, gtype gn == Subs ]
+
 substTops :: TagElem -> [Flist]
-substTops t = [ gup gn | gn <- (flatten.ttree) t, gtype gn == Subs ]
+substTops = map gup . substNodes
 \end{code}
 
 \subsection{Chart sharing}
