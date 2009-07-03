@@ -86,7 +86,7 @@ where
 import Data.Bits
 import qualified Data.Map as Map
 import Data.List
-import Data.Maybe (isNothing, isJust)
+import Data.Maybe (isNothing, isJust, mapMaybe, catMaybes)
 import Data.Tree (flatten)
 import qualified Data.Set as Set
 
@@ -118,10 +118,10 @@ type AutDebug  = (String, PolAut, PolAut)
 buildAutomaton :: SemInput -> [TagElem] -> Flist -> PolMap -> PolResult
 buildAutomaton (tsem,tres,_) candRaw rootFeat extrapol  =
   let -- root categories, index constraints, and external polarities
-      pFeats = __cat__ : otherPolarityAttributes ++ map rpkAtt restrictedPolarityKeys
+      pAtts = __cat__ : otherPolarityAttributes ++ map rpkAtt restrictedPolarityKeys
       rcatPol :: Map.Map String Interval
-      rcatPol = Map.fromList $ polarise (-1) $
-                 concatMap (\v -> getval v rootFeat) pFeats
+      rcatPol = Map.fromList $ concatMap (polarise (-1))
+                             $ map (\v -> getval v rootFeat) pAtts
       allExtraPols = Map.unionsWith (!+!) [ extrapol, inputRest, rcatPol ]
       -- index constraints on candidate trees
       detect      = detectIdxConstraints tres
@@ -888,16 +888,17 @@ detectPols' te =
       --
       rup   = gup . root .ttree $ te
       rdown = gdown . root . ttree $ te
-      rstuff   :: [[String]]
+      rstuff   :: [PolarityValue]
       rstuff   = getval __cat__ rup -- cat is special, see below
                :  (map (\v -> getval v rdown) otherPolarityAttributes)
-               ++ (map (\v -> getRestrictedVal v rup rdown) restrictedPolarityKeys)
+               ++ (mapMaybe (\v -> getRestrictedVal v rup rdown) restrictedPolarityKeys)
       -- re:above, cat it is considered global to the whole tree
       -- to be robust, we grab it from the top feature
-      substuff :: [[String]]
+      substuff :: [PolarityValue]
       substuff = let tops = substTops te
+                     getRestV v = catMaybes $ zipWith (getRestrictedVal v) tops tops
                  in concatMap (\v -> map (getval v) tops) feats ++
-                    concatMap (\v -> zipWith (getRestrictedVal v) tops tops) restrictedPolarityKeys
+                    concatMap getRestV restrictedPolarityKeys
       --
       -- substs nodes only
       commonPols :: [ (String,Interval) ]
@@ -915,24 +916,26 @@ __cat__, __idx__  :: String
 __cat__  = "cat"
 __idx__  = "idx"
 
+newtype PolarityValue = PolarityValue [String]
+
 getRestrictedVal :: RestrictedPolarityKey
                  -> Flist -- ^ feature structure to filter on
                  -> Flist -- ^ feature structure to get value from
-                 -> [String]
+                 -> Maybe PolarityValue
 getRestrictedVal (RestrictedPolarityKey cat att) filterFl fl =
   case [ v | (a,v) <- filterFl, a == __cat__ ] of
     []  -> error $ "[polarities] No category " ++ cat ++ " in:" ++ showFlist filterFl
     [v] -> if isJust (unify [GConst [cat]] [v])
-              then getval att fl
-              else []
+              then Just $ getval att fl
+              else Nothing
     _   -> error $ "[polarities] More than one category " ++ " in:" ++ showFlist filterFl
 
-getval :: String -> Flist -> [String]
+getval :: String -> Flist -> PolarityValue
 getval att fl =
   case [ v | (a,v) <- fl, a == att ] of
     []  -> error $ "[polarities] No value for attribute: " ++ att ++ " in:" ++ showFlist fl
     [v] -> if isConst v
-              then prefixWith att . fromGConst $ v
+              then PolarityValue . prefixWith att . fromGConst $ v
               else error $ "[polarities] Non-constant value for attribute: " ++ att ++ " in:" ++ showFlist fl
     _   -> error $ "[polarities] More than one value for attribute: " ++ att ++ " in:" ++ showFlist fl
 
@@ -943,9 +946,10 @@ toZero x | x < 0     = (x, 0)
 prefixWith :: String -> [String] -> [String]
 prefixWith att = map (\x -> att ++ ('_' : x))
 
-polarise :: Int -> [String] -> [ (String, Interval) ]
-polarise i [x] = [ (x, ival i) ]
-polarise i amb = for amb $ \x -> (x, toZero i)
+-- | Polarise a single feature
+polarise :: Int -> PolarityValue -> [ (String, Interval) ]
+polarise i (PolarityValue [x]) = [ (x, ival i) ]
+polarise i (PolarityValue amb) = for amb $ \x -> (x, toZero i)
 
 for :: [a] -> (a -> b) -> [b]
 for = flip map
