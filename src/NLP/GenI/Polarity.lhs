@@ -871,19 +871,19 @@ detectPols' te =
       rootup    = (gup.root.ttree) te
       rstuff   :: [[String]]
       rstuff   = getval __cat__ rootup -- cat is special, see below
-                 ++ (concatMap (\v -> getval v rootdown) otherFeats)
+               : (map (\v -> getval v rootdown) otherFeats)
       -- re:above, cat it is considered global to the whole tree
       -- to be robust, we grab it from the top feature
       substuff :: [[String]]
-      substuff = concatMap (\v -> concatMap (getval v) (substTops te)) feats
+      substuff = concatMap (\v -> map (getval v) (substTops te)) feats
       --
       -- substs nodes only
       commonPols :: [ (String,Interval) ]
-      commonPols = polarise (-1) substuff
+      commonPols = concatMap (polarise (-1)) substuff
       -- substs and roots
       pols :: [ (String,Interval) ]
       pols  = case ttype te of
-                Initial -> commonPols ++ polarise 1 rstuff
+                Initial -> commonPols ++ concatMap (polarise 1) rstuff
                 _       -> commonPols
       --
       oldfm = tpolarities te
@@ -893,13 +893,14 @@ __cat__, __idx__  :: String
 __cat__  = "cat"
 __idx__  = "idx"
 
-getval :: String -> Flist -> [[String]]
+getval :: String -> Flist -> [String]
 getval att fl =
   case [ v | (a,v) <- fl, a == att ] of
-    [] -> error $ "[polarities] No instances of " ++ att ++ " in " ++ showFlist fl ++ "."
-    vs -> if all isConst vs
-          then map (prefixWith att . fromGConst) vs
-          else error $ "[polarities] Not all values for feature " ++ att ++ " are instantiated."
+    []  -> error $ "[polarities] No value for attribute: " ++ att ++ " in:" ++ showFlist fl
+    [v] -> if isConst v
+              then prefixWith att . fromGConst $ v
+              else error $ "[polarities] Non-constant value for attribute: " ++ att ++ " in:" ++ showFlist fl
+    _   -> error $ "[polarities] More than one value for attribute: " ++ att ++ " in:" ++ showFlist fl
 
 toZero :: Int -> Interval
 toZero x | x < 0     = (x, 0)
@@ -908,13 +909,9 @@ toZero x | x < 0     = (x, 0)
 prefixWith :: String -> [String] -> [String]
 prefixWith att = map (\x -> att ++ ('_' : x))
 
-polarise :: Int -> [[String]] -> [ (String, Interval) ]
-polarise i = concatMap fn
- where
-  fn [x] = [ (x, one) ]
-  fn amb = for amb $ \x -> (x, oneZero)
-  one = ival i
-  oneZero = toZero i
+polarise :: Int -> [String] -> [ (String, Interval) ]
+polarise i [x] = [ (x, ival i) ]
+polarise i amb = for amb $ \x -> (x, toZero i)
 
 for :: [a] -> (a -> b) -> [b]
 for = flip map
