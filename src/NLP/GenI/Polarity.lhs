@@ -86,6 +86,7 @@ where
 import Data.Bits
 import qualified Data.Map as Map
 import Data.List
+import Data.Either (rights)
 import Data.Maybe (isNothing, isJust, mapMaybe, catMaybes)
 import Data.Tree (flatten)
 import qualified Data.Set as Set
@@ -121,6 +122,7 @@ buildAutomaton (tsem,tres,_) candRaw rootFeat extrapol  =
       pAtts = __cat__ : otherPolarityAttributes ++ map rpkAtt restrictedPolarityKeys
       rcatPol :: Map.Map String Interval
       rcatPol = Map.fromList $ concatMap (polarise (-1))
+                             $ rights
                              $ map (\v -> getval v rootFeat) pAtts
       allExtraPols = Map.unionsWith (!+!) [ extrapol, inputRest, rcatPol ]
       -- index constraints on candidate trees
@@ -885,19 +887,21 @@ detectPols = map detectPols'
 detectPols' :: TagElem -> TagElem
 detectPols' te =
   let feats = __cat__ : otherPolarityAttributes
+      getvalOrBoom c = either (\e -> error $ e ++ " in " ++ tgIdName te) id
+                     . getval c
       --
       rup   = gup . root .ttree $ te
       rdown = gdown . root . ttree $ te
       rstuff   :: [PolarityValue]
-      rstuff   = getval __cat__ rup -- cat is special, see below
-               :  (map (\v -> getval v rdown) otherPolarityAttributes)
+      rstuff   = getvalOrBoom __cat__ rup -- cat is special, see below
+               :  (map (\v -> getvalOrBoom v rdown) otherPolarityAttributes)
                ++ (mapMaybe (\v -> getRestrictedVal v rup rdown) restrictedPolarityKeys)
       -- re:above, cat it is considered global to the whole tree
       -- to be robust, we grab it from the top feature
       substuff :: [PolarityValue]
       substuff = let tops = substTops te
                      getRestV v = catMaybes $ zipWith (getRestrictedVal v) tops tops
-                 in concatMap (\v -> map (getval v) tops) feats ++
+                 in concatMap (\v -> map (getvalOrBoom v) tops) feats ++
                     concatMap getRestV restrictedPolarityKeys
       --
       -- substs nodes only
@@ -926,18 +930,18 @@ getRestrictedVal (RestrictedPolarityKey cat att) filterFl fl =
   case [ v | (a,v) <- filterFl, a == __cat__ ] of
     []  -> error $ "[polarities] No category " ++ cat ++ " in:" ++ showFlist filterFl
     [v] -> if isJust (unify [GConst [cat]] [v])
-              then Just $ getval att fl
+              then either error Just $ getval att fl
               else Nothing
     _   -> error $ "[polarities] More than one category " ++ " in:" ++ showFlist filterFl
 
-getval :: String -> Flist -> PolarityValue
+getval :: String -> Flist -> Either String PolarityValue
 getval att fl =
   case [ v | (a,v) <- fl, a == att ] of
-    []  -> error $ "[polarities] No value for attribute: " ++ att ++ " in:" ++ showFlist fl
+    []  -> Left $ "[polarities] No value for attribute: " ++ att ++ " in:" ++ showFlist fl
     [v] -> if isConst v
-              then PolarityValue . prefixWith att . fromGConst $ v
-              else error $ "[polarities] Non-constant value for attribute: " ++ att ++ " in:" ++ showFlist fl
-    _   -> error $ "[polarities] More than one value for attribute: " ++ att ++ " in:" ++ showFlist fl
+              then Right $ PolarityValue . prefixWith att . fromGConst $ v
+              else Left $ "[polarities] Non-constant value for attribute: " ++ att ++ " in:" ++ showFlist fl
+    _   -> Left $ "[polarities] More than one value for attribute: " ++ att ++ " in:" ++ showFlist fl
 
 toZero :: Int -> Interval
 toZero x | x < 0     = (x, 0)
