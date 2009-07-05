@@ -84,10 +84,10 @@ where
 
 \begin{code}
 import Data.Bits
+import qualified Data.Set as Set
 import qualified Data.Map as Map
 import Data.List
-import Data.Either (rights)
-import Data.Maybe (isNothing, isJust, mapMaybe, catMaybes)
+import Data.Maybe (isNothing, isJust)
 import Data.Tree (flatten)
 import qualified Data.Set as Set
 
@@ -102,6 +102,7 @@ import NLP.GenI.Btypes(Pred, SemInput, Sem, Flist, AvPair, showAv,
 import NLP.GenI.General(
     BitVector, isEmptyIntersect, thd3,
     Interval, ival, (!+!), showInterval)
+import NLP.GenI.PolarityTypes
 import NLP.GenI.Tags(TagElem(..), TagItem(..), setTidnums)
 \end{code}
 
@@ -110,7 +111,7 @@ import NLP.GenI.Tags(TagElem(..), TagItem(..), setTidnums)
 \begin{code}
 -- | intermediate auts, seed aut, final aut, potentially modified sem
 type PolResult = ([AutDebug], PolAut, PolAut, Sem)
-type AutDebug  = (String, PolAut, PolAut)
+type AutDebug  = (PolarityKey, PolAut, PolAut)
 
 -- | Constructs a polarity automaton from the surface realiser's input: input
 --   semantics, lexical selection, extra polarities and index constraints.  For
@@ -119,11 +120,13 @@ type AutDebug  = (String, PolAut, PolAut)
 buildAutomaton :: SemInput -> [TagElem] -> Flist -> PolMap -> PolResult
 buildAutomaton (tsem,tres,_) candRaw rootFeat extrapol  =
   let -- root categories, index constraints, and external polarities
-      pAtts = __cat__ : otherPolarityAttributes ++ map rpkAtt restrictedPolarityKeys
-      rcatPol :: Map.Map String Interval
-      rcatPol = Map.fromList $ concatMap (polarise (-1))
-                             $ rights
-                             $ map (\v -> getval v rootFeat) pAtts
+      rcatPol :: Map.Map PolarityKey Interval
+      rcatPol = Map.fromList . pdJusts
+              $ map (\v -> detectPolarityForAttr (-1) (pAttr v) rootFeat)
+              $ Set.toList polarityAttrs
+      pAttr p@(SimplePolarityAttr _)       = spkAtt p
+      pAttr p@(RestrictedPolarityAttr _ _) = rpkAtt p
+      --
       allExtraPols = Map.unionsWith (!+!) [ extrapol, inputRest, rcatPol ]
       -- index constraints on candidate trees
       detect      = detectIdxConstraints tres
@@ -190,7 +193,7 @@ makePolAut candsRaw tsemRaw extraPol =
      build k xs = (k,aut,prune aut):xs
        where aut   = buildPolAut k initK (thd3 $ head xs)
              initK = Map.findWithDefault (ival 0) k extraPol
-     res = foldr build [("(seed)",seed,prune seed)] ks
+     res = foldr build [(PolarityKey "(seed)",seed,prune seed)] ks
  in (reverse res, seed, thd3 $ head res, tsem)
 \end{code}
 
@@ -344,7 +347,7 @@ automaton.  See also section \ref{sec:seed_automaton} for the seed
 automaton that you can use when there is no ``previous automaton''.
 
 \begin{code}
-buildPolAut :: String -> Interval -> PolAut -> PolAut 
+buildPolAut :: PolarityKey -> Interval -> PolAut -> PolAut
 buildPolAut k initK skelAut =
   let concatPol p (PolSt pr b pol) = PolSt pr b (p:pol)
       newStart = concatPol initK $ startSt skelAut
@@ -368,7 +371,7 @@ polarity effects for the new key will make them diverge in the new
 automaton.  
 
 \begin{code}
-buildPolAut' :: String -> PolTransFn -> PolAut -> PolAut
+buildPolAut' :: PolarityKey -> PolTransFn -> PolAut -> PolAut
 -- for each literal... (this is implicit in the automaton state grouping)
 buildPolAut' fk skeleton aut = 
   let -- previously created candidates 
@@ -383,7 +386,7 @@ buildPolAut' fk skeleton aut =
      else buildPolAut' fk skeleton (newAut { states = next })
 
 -- given a previously created state...
-buildPolAutHelper :: String -> PolTransFn -> PolState -> (PolAut,Set.Set PolState) -> (PolAut,Set.Set PolState)
+buildPolAutHelper :: PolarityKey -> PolTransFn -> PolState -> (PolAut,Set.Set PolState) -> (PolAut,Set.Set PolState)
 buildPolAutHelper fk skeleton st (aut,prev) =
   let -- reconstruct the skeleton state used to build st 
       PolSt pr ex (po1:skelpo1) = st
@@ -402,7 +405,7 @@ buildPolAutHelper fk skeleton st (aut,prev) =
       newSt t skel2 = PolSt pr2 ex2 (po2:skelPo2)
         where 
          PolSt pr2 ex2 skelPo2 = skel2 
-         po2 = po1 !+! (Map.findWithDefault (ival 0) fk pol)
+         po2 = po1 !+! Map.findWithDefault (ival 0) fk pol
          pol = case t of Nothing -> Map.empty 
                          Just t2 -> tpolarities t2
   in result 
@@ -789,16 +792,16 @@ be very powerful filters and we would like them to be used first.
 detectIdxConstraints :: Flist -> Flist -> PolMap 
 detectIdxConstraints cs interface =
   let matches  = intersect cs interface
-      matchStr = map showIdxConstraint matches
+      matchStr = map idxConstraintKey matches
   in Map.fromList $ zip matchStr ((repeat.ival) 1)
 
 declareIdxConstraints :: Flist -> PolMap
 declareIdxConstraints = Map.fromList . (map declare) where
-   declare c = (showIdxConstraint c, minusone)
+   declare c = (idxConstraintKey c, minusone)
    minusone = ival (-1)
 
-showIdxConstraint :: AvPair -> String
-showIdxConstraint = ('.' :) . showAv
+idxConstraintKey :: AvPair -> PolarityKey
+idxConstraintKey = PolarityKey . ('.' :) . showAv
 \end{code}
 
 \subsection{Automatic detection}
@@ -863,54 +866,53 @@ the filter because it allows for both cl and n to be $-1$ (or $0$) at the same
 time.  It would be nice to have some kind of mutual exclusion working.
 
 \begin{code}
--- | 'RestrictedPolarityKey' @c att@ is a polarity key in which we only pay
---   attention to nodes that have the category @c@.  This makes it possible
---   to have polarities for a just a small subset of nodes
-data RestrictedPolarityKey = RestrictedPolarityKey { rpkCat :: String
-                                                   , rpkAtt :: String }
+data PolarityAttr = SimplePolarityAttr { spkAtt :: String }
+ -- | 'RestrictedPolarityKey' @c att@ is a polarity key in which we only pay
+ --   attention to nodes that have the category @c@.  This makes it possible
+ --   to have polarities for a just a small subset of nodes
+ | RestrictedPolarityAttr { rpkCat :: String, rpkAtt :: String }
+ deriving (Eq, Ord)
 
--- | FIXME: this isn't easy to parameterise right now
---   but if you want to do polarity filtering on things other
---   than categories, you specify the attributes here.
---
---   Note that restrictedPolarityKeys is more likely what you're
---   interested in
-otherPolarityAttributes :: [String]
-otherPolarityAttributes = []
+defaultPolarityAttrs :: Set.Set PolarityAttr
+defaultPolarityAttrs = Set.fromList [ SimplePolarityAttr "cat" ]
 
-restrictedPolarityKeys :: [RestrictedPolarityKey]
-restrictedPolarityKeys = []
+polarityAttrs :: Set.Set PolarityAttr
+polarityAttrs = defaultPolarityAttrs
 
 detectPols :: [TagElem] -> [TagElem]
 detectPols = map detectPols'
 
 detectPols' :: TagElem -> TagElem
 detectPols' te =
-  let feats = __cat__ : otherPolarityAttributes
-      getvalOrBoom c = either (\e -> error $ e ++ " in " ++ tgIdName te) id
-                     . getval c
+  let detectOrBust x1 x2 x3 x4 =
+        case detectPolarity x1 x2 x3 x4 of
+        PD_UserError e -> error $ e ++ " in " ++ tgIdName te -- ideally we'd propagate this
+        PD_Nothing     -> []
+        PD_Just p      -> p
       --
       rup   = gup . root .ttree $ te
       rdown = gdown . root . ttree $ te
-      rstuff   :: [PolarityValue]
-      rstuff   = getvalOrBoom __cat__ rup -- cat is special, see below
-               :  (map (\v -> getvalOrBoom v rdown) otherPolarityAttributes)
-               ++ (mapMaybe (\v -> getRestrictedVal v rup rdown) restrictedPolarityKeys)
-      -- re:above, cat it is considered global to the whole tree
-      -- to be robust, we grab it from the top feature
-      substuff :: [PolarityValue]
+      --
+      catAttr = SimplePolarityAttr "cat"
+      rstuffLite  = concatMap (\v -> detectOrBust 1 v rup rdown)
+                  $ Set.toList $ Set.delete catAttr polarityAttrs
+      rstuff :: [(PolarityKey,Interval)]
+      rstuff   = if Set.member catAttr polarityAttrs
+                    then -- cat is considered global to the whole tree to be
+                         -- robust, we grab it from the top feature
+                         detectOrBust 1 catAttr rup rup ++ rstuffLite
+                    else rstuffLite
+      substuff :: [(PolarityKey,Interval)]
       substuff = let tops = substTops te
-                     getRestV v = catMaybes $ zipWith (getRestrictedVal v) tops tops
-                 in concatMap (\v -> map (getvalOrBoom v) tops) feats ++
-                    concatMap getRestV restrictedPolarityKeys
+                     detect :: PolarityAttr -> [(PolarityKey,Interval)]
+                     detect v = concat $ zipWith (detectOrBust (-1) v) tops tops
+                 in concatMap detect $ Set.toList polarityAttrs
       --
       -- substs nodes only
-      commonPols :: [ (String,Interval) ]
-      commonPols = concatMap (polarise (-1)) substuff
+      commonPols = substuff
       -- substs and roots
-      pols :: [ (String,Interval) ]
       pols  = case ttype te of
-                Initial -> commonPols ++ concatMap (polarise 1) rstuff
+                Initial -> commonPols ++ rstuff
                 _       -> commonPols
       --
       oldfm = tpolarities te
@@ -920,28 +922,44 @@ __cat__, __idx__  :: String
 __cat__  = "cat"
 __idx__  = "idx"
 
-newtype PolarityValue = PolarityValue [String]
 
-getRestrictedVal :: RestrictedPolarityKey
-                 -> Flist -- ^ feature structure to filter on
-                 -> Flist -- ^ feature structure to get value from
-                 -> Maybe PolarityValue
-getRestrictedVal (RestrictedPolarityKey cat att) filterFl fl =
+data PolarityDetectionResult = PD_UserError String
+                             | PD_Nothing
+                             | PD_Just [ (PolarityKey, Interval) ]
+
+-- | Careful, this completely ignores any user errors
+pdJusts :: [PolarityDetectionResult] -> [(PolarityKey,Interval)]
+pdJusts = concatMap helper
+ where helper (PD_Just x) = x
+       helper _           = []
+
+detectPolarity :: Int          -- ^ polarity to assign
+               -> PolarityAttr -- ^ attribute to look for
+               -> Flist        -- ^ feature structure to filter on
+               -> Flist        -- ^ feature structure to get value from
+               -> PolarityDetectionResult
+detectPolarity i (RestrictedPolarityAttr cat att) filterFl fl =
   case [ v | (a,v) <- filterFl, a == __cat__ ] of
-    []  -> error $ "[polarities] No category " ++ cat ++ " in:" ++ showFlist filterFl
+    []  -> PD_UserError $ "[polarities] No category " ++ cat ++ " in:" ++ showFlist filterFl
     [v] -> if isJust (unify [GConst [cat]] [v])
-              then either error Just $ getval att fl
-              else Nothing
-    _   -> error $ "[polarities] More than one category " ++ " in:" ++ showFlist filterFl
+              then detectPolarityForAttr i att fl
+              else PD_Nothing
+    _   -> PD_UserError $ "[polarities] More than one category " ++ " in:" ++ showFlist filterFl
+detectPolarity i (SimplePolarityAttr att) _ fl = detectPolarityForAttr i att fl
 
-getval :: String -> Flist -> Either String PolarityValue
-getval att fl =
+detectPolarityForAttr :: Int -- ^ polarity to assign
+                      -> String
+                      -> Flist
+                      -> PolarityDetectionResult
+detectPolarityForAttr i att fl =
   case [ v | (a,v) <- fl, a == att ] of
-    []  -> Left $ "[polarities] No value for attribute: " ++ att ++ " in:" ++ showFlist fl
+    []  -> PD_UserError $ "[polarities] No value for attribute: " ++ att ++ " in:" ++ showFlist fl
     [v] -> if isConst v
-              then Right $ PolarityValue . prefixWith att . fromGConst $ v
-              else Left $ "[polarities] Non-constant value for attribute: " ++ att ++ " in:" ++ showFlist fl
-    _   -> Left $ "[polarities] More than one value for attribute: " ++ att ++ " in:" ++ showFlist fl
+              then PD_Just $ case prefixWith att (fromGConst v) of
+                             [x] -> [ (PolarityKey x, ival i) ]                -- singleton
+                             xs  -> map (\x -> (PolarityKey x, toZero i)) xs   -- interval if ambiguous
+              else PD_UserError $ "[polarities] Non-constant value for attribute: " ++ att ++ " in:" ++ showFlist fl
+    _   -> PD_UserError $ "[polarities] More than one value for attribute: " ++ att ++ " in:" ++ showFlist fl
 
 toZero :: Int -> Interval
 toZero x | x < 0     = (x, 0)
@@ -949,14 +967,6 @@ toZero x | x < 0     = (x, 0)
 
 prefixWith :: String -> [String] -> [String]
 prefixWith att = map (\x -> att ++ ('_' : x))
-
--- | Polarise a single feature
-polarise :: Int -> PolarityValue -> [ (String, Interval) ]
-polarise i (PolarityValue [x]) = [ (x, ival i) ]
-polarise i (PolarityValue amb) = for amb $ \x -> (x, toZero i)
-
-for :: [a] -> (a -> b) -> [b]
-for = flip map
 
 substNodes :: TagElem -> [GNode]
 substNodes t = [ gn | gn <- (flatten.ttree) t, gtype gn == Subs ]
@@ -1073,11 +1083,11 @@ sortSemByFreq tsem cands =
 
 \begin{code}
 type SemMap = Map.Map Pred [TagElem]
-type PolMap = Map.Map String Interval 
+type PolMap = Map.Map PolarityKey Interval
 
 -- | Adds a new polarity item to a 'PolMap'.  If there already is a polarity
 --  for that item, it is summed with the new polarity.
-addPol :: (String,Interval) -> PolMap -> PolMap
+addPol :: (PolarityKey,Interval) -> PolMap -> PolMap
 addPol (p,c) m = Map.insertWith (!+!) p c m
 
 -- | Ensures that all states and transitions in the polarity automaton
@@ -1204,6 +1214,6 @@ showLiteSm sm =
 --   The advantage is that it displays fewer quotation marks.
 showLitePm :: PolMap -> String
 showLitePm pm = 
-  let showPair (f, pol) = showInterval pol ++ f 
+  let showPair (f, pol) = showInterval pol ++ fromPolarityKey f
   in concat $ intersperse " " $ map showPair $ Map.toList pm
 \end{code}
