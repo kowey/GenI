@@ -91,7 +91,7 @@ import Data.List  ( find, intersperse, nubBy )
 import Data.Maybe ( catMaybes, fromMaybe, isNothing, fromJust )
 import Text.ParserCombinators.Parsec ( runParser, CharParser )
 
-import NLP.GenI.Btypes ( GeniVal(GConst), Flist, showFlist, )
+import NLP.GenI.Btypes ( Flist, showFlist, )
 import NLP.GenI.General ( geniBug, fst3, snd3, Interval )
 import NLP.GenI.GeniParsers ( geniFeats, geniPolarities )
 import NLP.GenI.PolarityTypes ( PolarityKey(..), PolarityAttr(..), readPolarityAttrs )
@@ -148,9 +148,11 @@ emptyParams = Prms {
   builderType   = SimpleBuilder,
   grammarType   = GeniHand,
   geniFlags     = [ Flag ViewCmdFlg "ViewTAG"
-                  , Flag DetectPolaritiesFlg defaultPolarityAttrs
-                  , Flag RootFeatureFlg defaultRootFeat ]
+                  , Flag DetectPolaritiesFlg (readPolarityAttrs defaultPolarityAttrs)
+                  , Flag RootFeatureFlg (readRF defaultRootFeat)
+                  ]
 }
+ where readRF = parseFlagWithParsec "default root feature" geniFeats
 \end{code}
 
 % --------------------------------------------------------------------
@@ -427,16 +429,10 @@ verboseOption = Option ['v'] ["verbose"] (noArg VerboseModeFlg)
   optimisations respectively.
 
 \item[detect-pols]
-  The \verb!--detect-polarities! switch tells GenI how to detect
-  polarities in your grammar.
-
-  By default, GenI uses the 'cat' attribute as the basis for polarity
-  filtering; it assigns a polarity key for each constant value that is
-  associated with the cat attribute.
-
-  You can change this behaviour by supplying a space-delimited string,
-  where each word is either an attributed or a ``restricted'' attribute.
-  As an example, the string ``cat idx V.tense D.c'' tells GenI that
+  This tells GenI how to detect polarities in your grammar.  You pass
+  this in in the form of a space-delimited string, where each word is either
+  an attribute or a ``restricted'' attribute.  In lieu of an explanation,
+  here is an example: the string ``cat idx V.tense D.c'' tells GenI that
   we should detect polarities on the ``cat'' and ``idx'' attribute
   for all nodes and also on the ``tense'' attribute for all nodes
   with the category ``V'' and the ``c'' attribute for all nodes with the
@@ -444,10 +440,14 @@ verboseOption = Option ['v'] ["verbose"] (noArg VerboseModeFlg)
 
   If your grammar comes with its own hand-written polarities, you can
   suppress polarity detection altogether by supplying the empty string.
+
+  Also, if you do not use this switch, the following defaults will be
+  used:
+
 \begin{includecodeinmanual}
 \begin{code}
-defaultPolarityAttrs :: Set.Set PolarityAttr
-defaultPolarityAttrs = readPolarityAttrs "cat"
+defaultPolarityAttrs :: String
+defaultPolarityAttrs = "cat"
 \end{code}
 \end{includecodeinmanual}
 
@@ -457,13 +457,8 @@ defaultPolarityAttrs = readPolarityAttrs "cat"
   with the rootfeat, the default of which is:
 \begin{includecodeinmanual}
 \begin{code}
-defaultRootFeat :: Flist
-defaultRootFeat =
-  [ ("cat" , GConst ["s"])
-  , ("inv" , GConst ["-"])
-  , ("mode", GConst ["ind","subj"])
-  , ("wh"  , GConst ["-"])
-  ]
+defaultRootFeat :: String
+defaultRootFeat = "[cat:s inv:- mode:ind|subj wh:-]"
 \end{code}
 \end{includecodeinmanual}
 
