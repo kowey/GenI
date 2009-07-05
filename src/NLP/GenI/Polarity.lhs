@@ -133,7 +133,7 @@ buildAutomaton (tsem,tres,_) candRaw rootFeat extrapol  =
       constrain t = t { tpolarities = Map.unionWith (!+!) p r
                       } --, tinterface  = [] }
                    where p  = tpolarities t
-                         r  = (detect . tinterface) t
+                         r  = detect . tinterface $ t
       candRest  = map constrain candRaw
       inputRest = declareIdxConstraints tres
       -- polarity detection 
@@ -907,13 +907,10 @@ detectPols' te =
                      detect :: PolarityAttr -> [(PolarityKey,Interval)]
                      detect v = concat $ zipWith (detectOrBust (-1) v) tops tops
                  in concatMap detect $ Set.toList polarityAttrs
-      --
-      -- substs nodes only
-      commonPols = substuff
       -- substs and roots
       pols  = case ttype te of
-                Initial -> commonPols ++ rstuff
-                _       -> commonPols
+                Initial -> substuff ++ rstuff
+                _       -> substuff
       --
       oldfm = tpolarities te
   in te { tpolarities = foldr addPol oldfm pols }
