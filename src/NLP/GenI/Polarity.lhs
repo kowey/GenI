@@ -1,5 +1,5 @@
 % GenI surface realiser
-% Copyright (C) 2005 Carlos Areces and Eric Kow
+% Copyright (C) 2009 Eric Kow
 %
 % This program is free software; you can redistribute it and/or
 % modify it under the terms of the GNU General Public License
