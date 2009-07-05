@@ -172,7 +172,7 @@ preInit input config =
      -- do any optimisations
      isPol      = polarised config
      -- polarity optimisation (if enabled)
-     autstuff = buildAutomaton seminput cand rootFeat extraPol
+     autstuff = buildAutomaton (Set.empty) rootFeat extraPol seminput cand
      (_, seedAut, aut, sem2) = autstuff
      autpaths = map concat $ automatonPathSets aut
      combosPol = if isPol then autpaths else [cand]

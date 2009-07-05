@@ -113,12 +113,15 @@ import NLP.GenI.Tags(TagElem(..), TagItem(..), setTidnums)
 type PolResult = ([AutDebug], PolAut, PolAut, Sem)
 type AutDebug  = (PolarityKey, PolAut, PolAut)
 
--- | Constructs a polarity automaton from the surface realiser's input: input
---   semantics, lexical selection, extra polarities and index constraints.  For
---   debugging purposes, it returns all the intermediate automata produced by
---   the construction algorithm.
-buildAutomaton :: SemInput -> [TagElem] -> Flist -> PolMap -> PolResult
-buildAutomaton (tsem,tres,_) candRaw rootFeat extrapol  =
+-- | Constructs a polarity automaton.  For debugging purposes, it returns
+--   all the intermediate automata produced by the construction algorithm.
+buildAutomaton :: Set.Set PolarityAttr -- ^ polarities to detect
+               -> Flist                -- ^ root features to compensate for
+               -> PolMap               -- ^ explicit extra polarities
+               -> SemInput             -- ^ input semantics
+               -> [TagElem]            -- ^ lexical selection
+               -> PolResult
+buildAutomaton polarityAttrs rootFeat extrapol (tsem,tres,_) candRaw =
   let -- root categories, index constraints, and external polarities
       rcatPol :: Map.Map PolarityKey Interval
       rcatPol = Map.fromList . pdJusts
@@ -137,7 +140,7 @@ buildAutomaton (tsem,tres,_) candRaw rootFeat extrapol  =
       candRest  = map constrain candRaw
       inputRest = declareIdxConstraints tres
       -- polarity detection 
-      cand = detectPols candRest
+      cand = detectPols polarityAttrs candRest
       -- building the automaton
   in makePolAut cand tsem allExtraPols
 \end{code}
@@ -866,24 +869,11 @@ the filter because it allows for both cl and n to be $-1$ (or $0$) at the same
 time.  It would be nice to have some kind of mutual exclusion working.
 
 \begin{code}
-data PolarityAttr = SimplePolarityAttr { spkAtt :: String }
- -- | 'RestrictedPolarityKey' @c att@ is a polarity key in which we only pay
- --   attention to nodes that have the category @c@.  This makes it possible
- --   to have polarities for a just a small subset of nodes
- | RestrictedPolarityAttr { rpkCat :: String, rpkAtt :: String }
- deriving (Eq, Ord)
+detectPols :: Set.Set PolarityAttr -> [TagElem] -> [TagElem]
+detectPols attrs = map (detectPolsH attrs)
 
-defaultPolarityAttrs :: Set.Set PolarityAttr
-defaultPolarityAttrs = Set.fromList [ SimplePolarityAttr "cat" ]
-
-polarityAttrs :: Set.Set PolarityAttr
-polarityAttrs = defaultPolarityAttrs
-
-detectPols :: [TagElem] -> [TagElem]
-detectPols = map detectPols'
-
-detectPols' :: TagElem -> TagElem
-detectPols' te =
+detectPolsH :: Set.Set PolarityAttr -> TagElem -> TagElem
+detectPolsH polarityAttrs te =
   let detectOrBust x1 x2 x3 x4 =
         case detectPolarity x1 x2 x3 x4 of
         PD_UserError e -> error $ e ++ " in " ++ tgIdName te -- ideally we'd propagate this

@@ -17,6 +17,18 @@
 
 module NLP.GenI.PolarityTypes where
 
+import qualified Data.Set as Set
 import Data.Typeable ( Typeable )
 
 newtype PolarityKey = PolarityKey { fromPolarityKey :: String } deriving (Show, Eq, Ord, Typeable)
+
+-- | 'PolarityAttr' is something you want to perform detect polarities on.
+data PolarityAttr = SimplePolarityAttr { spkAtt :: String }
+ -- | 'RestrictedPolarityKey' @c att@ is a polarity key in which we only pay
+ --   attention to nodes that have the category @c@.  This makes it possible
+ --   to have polarities for a just a small subset of nodes
+ | RestrictedPolarityAttr { _rpkCat :: String, rpkAtt :: String }
+ deriving (Eq, Ord)
+
+defaultPolarityAttrs :: Set.Set PolarityAttr
+defaultPolarityAttrs = Set.fromList [ SimplePolarityAttr "cat" ]
