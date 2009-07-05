@@ -178,7 +178,7 @@ Note:
 makePolAut :: [TagElem] -> Sem -> PolMap -> PolResult
 makePolAut candsRaw tsemRaw extraPol =
  let -- polarity items
-     ksCands = concatMap ((Map.keys).tpolarities) cands
+     ksCands = concatMap (Map.keys . tpolarities) cands
      ksExtra = Map.keys extraPol
      ks      = sortBy (flip compare) $ nub $ ksCands ++ ksExtra
      -- perform index counting
@@ -296,7 +296,7 @@ buildSeedAut' cands (l:ls) i aut =
       -- create the next batch of states
       fn st ap             = buildSeedAutHelper tcands l i st ap
       (newAut,newStates)   = foldr fn (aut,[]) prev
-      next                 = (nub newStates):(states aut)
+      next                 = nub newStates : states aut
       -- recursive step to the next literal
   in buildSeedAut' cands ls (i+1) (newAut { states = next })
 
@@ -379,7 +379,7 @@ buildPolAut' fk skeleton aut =
       -- create the next batch of states
       fn st ap            = buildPolAutHelper fk skeleton st ap
       (newAut,newStates)  = foldr fn (aut,Set.empty) prev
-      next                = (Set.toList $ newStates):(states aut)
+      next                = Set.toList newStates : states aut
       -- recursive step to the next literal
   in if Set.null newStates
      then aut
@@ -687,20 +687,20 @@ fixPronouns (tsem,cands) =
         where clump ((_,is),ps) = zip is ps
       -- part 3 (adding extra semantics)
       indices = concatMap fn (Map.toList chargemap) 
-        where fn (i,c) = replicate (0-c) i
+        where fn (i,c) = replicate (negate c) i
       -- the extra columns 
       extraSem = map indexPred indices
       tsem2    = sortSem (tsem ++ extraSem)
       -- zero-literal semantic items to realise the extra columns 
       zlit = filter (null.tsemantics) cands
-      cands2 = (cands \\ zlit) ++ (concatMap fn indices)
+      cands2 = (cands \\ zlit) ++ concatMap fn indices
         where fn i = map (tweak i) zlit
               tweak i x = assignIndex i $ x { tsemantics = [indexPred i] }
       -- part 4 (insert excess pronouns in tree sem)
       comparefn :: GeniVal -> Int -> Int -> [GeniVal]
-      comparefn i ct cm = if (cm < ct) then extra else []
+      comparefn i ct cm = if cm < ct then extra else []
         where maxNeeded = Map.findWithDefault 0 i chargemap -- cap the number added
-              extra = replicate (min (0 - maxNeeded) (ct - cm)) i
+              extra = replicate (min (negate maxNeeded) (ct - cm)) i
       comparePron :: (PredLite,SemPols) -> [GeniVal]
       comparePron (lit,c1) = concat $ zipWith3 comparefn idxs c1 c2
         where idxs = snd lit
@@ -836,7 +836,7 @@ detectPolFeatures tes =
 detectSansIdx :: [TagElem] -> [TagElem]
 detectSansIdx =
   let rfeats t = (gdown.root.ttree) t
-      feats  t | ttype t == Initial = concat $ (rfeats t) : (substTops t)
+      feats  t | ttype t == Initial = concat $ rfeats t : substTops t
       feats  t = concat $ substTops t
       attrs avs = [ a | (a,v) <- avs, isConst v ]
       hasIdx t = __idx__ `elem` (attrs.feats $ t) || (ttype t /= Initial && (null $ substTops t))
