@@ -54,6 +54,7 @@ import Prelude hiding ( init )
 import NLP.GenI.Automaton (NFA, automatonPaths, automatonPathSets, numStates, numTransitions)
 import NLP.GenI.Configuration
   ( getListFlagP, getFlagP, hasFlagP, Params,
+    DetectPolaritiesFlg(..),
     ExtraPolaritiesFlg(..), MetricsFlg(..),
     IgnoreSemanticsFlg(..), RootFeatureFlg(..),
     polarised )
@@ -168,11 +169,13 @@ preInit input config =
      seminput = inSemInput input
      --
      extraPol = fromMaybe (Map.empty) $ getFlagP ExtraPolaritiesFlg config
+     polsToDetect = fromMaybe (error "there should be a default for --detect-pols")
+                  $ getFlagP DetectPolaritiesFlg config
      rootFeat = getListFlagP RootFeatureFlg config
      -- do any optimisations
      isPol      = polarised config
      -- polarity optimisation (if enabled)
-     autstuff = buildAutomaton (Set.empty) rootFeat extraPol seminput cand
+     autstuff = buildAutomaton polsToDetect rootFeat extraPol seminput cand
      (_, seedAut, aut, sem2) = autstuff
      autpaths = map concat $ automatonPathSets aut
      combosPol = if isPol then autpaths else [cand]

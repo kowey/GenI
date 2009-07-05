@@ -17,6 +17,7 @@
 
 module NLP.GenI.PolarityTypes where
 
+import Data.List ( break )
 import qualified Data.Set as Set
 import Data.Typeable ( Typeable )
 
@@ -28,7 +29,15 @@ data PolarityAttr = SimplePolarityAttr { spkAtt :: String }
  --   attention to nodes that have the category @c@.  This makes it possible
  --   to have polarities for a just a small subset of nodes
  | RestrictedPolarityAttr { _rpkCat :: String, rpkAtt :: String }
- deriving (Eq, Ord)
+ deriving (Eq, Ord, Typeable)
 
-defaultPolarityAttrs :: Set.Set PolarityAttr
-defaultPolarityAttrs = Set.fromList [ SimplePolarityAttr "cat" ]
+readPolarityAttrs :: String -> Set.Set PolarityAttr
+readPolarityAttrs = Set.fromList . map helper . words
+ where
+  helper s = case break (== '.') s of
+             (a,"") -> SimplePolarityAttr a
+             (c,a)  -> RestrictedPolarityAttr c (drop 1 a)
+
+instance Show PolarityAttr where
+ show (SimplePolarityAttr a) = a
+ show (RestrictedPolarityAttr c a) = c ++ "." ++ a

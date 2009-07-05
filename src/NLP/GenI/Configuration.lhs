@@ -23,6 +23,7 @@ module NLP.GenI.Configuration
   ( Params(..), GrammarType(..), BuilderType(..), Instruction, Flag
   -- flags
   , BatchDirFlg(..)
+  , DetectPolaritiesFlg(..)
   , DisableGuiFlg(..)
   , EarlyDeathFlg(..)
   , ExtraPolaritiesFlg(..)
@@ -78,6 +79,7 @@ where
 \ignore{
 \begin{code}
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 
 import Control.Monad ( liftM )
 import Data.Char ( toLower )
@@ -92,7 +94,7 @@ import Text.ParserCombinators.Parsec ( runParser, CharParser )
 import NLP.GenI.Btypes ( GeniVal(GConst), Flist, showFlist, )
 import NLP.GenI.General ( geniBug, fst3, snd3, Interval )
 import NLP.GenI.GeniParsers ( geniFeats, geniPolarities )
-import NLP.GenI.PolarityTypes ( PolarityKey(..) )
+import NLP.GenI.PolarityTypes ( PolarityKey(..), PolarityAttr(..), readPolarityAttrs )
 \end{code}
 }
 
@@ -146,6 +148,7 @@ emptyParams = Prms {
   builderType   = SimpleBuilder,
   grammarType   = GeniHand,
   geniFlags     = [ Flag ViewCmdFlg "ViewTAG"
+                  , Flag DetectPolaritiesFlg defaultPolarityAttrs
                   , Flag RootFeatureFlg defaultRootFeat ]
 }
 \end{code}
@@ -423,6 +426,31 @@ verboseOption = Option ['v'] ["verbose"] (noArg VerboseModeFlg)
   polarity-related, and all the adjunction-related
   optimisations respectively.
 
+\item[detect-pols]
+  The \verb!--detect-polarities! switch tells GenI how to detect
+  polarities in your grammar.
+
+  By default, GenI uses the 'cat' attribute as the basis for polarity
+  filtering; it assigns a polarity key for each constant value that is
+  associated with the cat attribute.
+
+  You can change this behaviour by supplying a space-delimited string,
+  where each word is either an attributed or a ``restricted'' attribute.
+  As an example, the string ``cat idx V.tense D.c'' tells GenI that
+  we should detect polarities on the ``cat'' and ``idx'' attribute
+  for all nodes and also on the ``tense'' attribute for all nodes
+  with the category ``V'' and the ``c'' attribute for all nodes with the
+  category ``D''.
+
+  If your grammar comes with its own hand-written polarities, you can
+  suppress polarity detection altogether by supplying the empty string.
+\begin{includecodeinmanual}
+\begin{code}
+defaultPolarityAttrs :: Set.Set PolarityAttr
+defaultPolarityAttrs = readPolarityAttrs "cat"
+\end{code}
+\end{includecodeinmanual}
+
 \item[rootfeat]
   No results?  Make sure your rootfeat are set correctly.  GenI
   will reject all sentences whose root category does not unify
@@ -455,6 +483,9 @@ optionsForOptimisation =
    [ Option [] ["opts"]
          (reqArg OptimisationsFlg readOptimisations "LIST")
          "optimisations 'LIST' (--help for details)"
+   , Option [] ["detect-pols"]
+         (reqArg DetectPolaritiesFlg readPolarityAttrs "LIST")
+         ("attributes 'LIST' (eg. \"cat idx V.tense\", default:" ++ show defaultPolarityAttrs ++ ")")
    , Option [] ["rootfeat"]
          (reqArg RootFeatureFlg readRF "FEATURE")
          ("root features 'FEATURE' (for polarities, default:"
@@ -834,6 +865,7 @@ data type code.
 
 FLAG (BatchDirFlg, FilePath)
 FLAG (DisableGuiFlg, ())
+FLAG (DetectPolaritiesFlg, (Set.Set PolarityAttr))
 FLAG (EarlyDeathFlg, ())
 FLAG (ExtraPolaritiesFlg, (Map.Map PolarityKey Interval))
 FLAG (FromStdinFlg, ())
