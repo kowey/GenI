@@ -56,6 +56,7 @@ import NLP.GenI.General
   (geniBug, boundsCheck, dropTillIncluding, ePutStrLn)
 import NLP.GenI.Btypes
   ( showAv, showPred, showSem, showLexeme, Sem, ILexEntry(iword, ifamname), )
+import NLP.GenI.PolarityTypes ( PolarityKey(..) )
 import NLP.GenI.Tags
   ( idname, mapBySem, TagElem(ttrace, tinterface) )
 
@@ -156,12 +157,12 @@ A browser to see the automata constructed during the polarity optimisation
 step.
 
 \begin{code}
-polarityGui :: (Window a) -> [(String,PolAut,PolAut)] -> PolAut
+polarityGui :: (Window a) -> [(PolarityKey,PolAut,PolAut)] -> PolAut
             -> GvIO () PolAut
 polarityGui   f xs final = do
   let stats a = " (" ++ (show $ numStates a) ++ "st " ++ (show $ numTransitions a) ++ "tr)"
       aut2  (_ , a1, a2)  = [ a1, a2 ]
-      autLabel (fv,a1,a2) = [ fv ++ stats a1, fv ++ " pruned" ++ stats a2]
+      autLabel (PolarityKey fv,a1,a2) = [ fv ++ stats a1, fv ++ " pruned" ++ stats a2]
       autlist = (concatMap aut2 xs) ++ [ final ]
       labels  = (concatMap autLabel xs) ++ [ "final" ++ stats final ]
       --
