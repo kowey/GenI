@@ -467,6 +467,19 @@ nullBuilder = Builder
 
 type NullState a = BuilderState () a
 
+-- | Running the null builder allows you to track certain statistics
+--
+--    * sem_literals    - number of literals in the input semantics
+--
+--    * lex_trees       - total number of lexically selected trees
+
+--    * lex_foot_nodes  - total number of nodes of any sort in lexically selected trees
+--
+--    * lex_subst_nodes - total number of sustitution nodes in lexically selected trees
+--
+--    * lex_foot_nodes  - total number of foot nodes in lexically selected trees
+--
+--    * plex_...        - same as the lex_ equivalent, but after polarity filtering
 initNullBuilder ::  Input -> Params -> ((), Statistics)
 initNullBuilder input config =
   let countsFor ts = (length ts, length nodes, length sn, length an)
