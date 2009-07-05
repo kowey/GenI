@@ -61,6 +61,7 @@ import NLP.GenI.Btypes (Ptype(Initial, Auxiliar), SemPols,
                showFlist, showPairs, showSem, lexemeAttributes,
                )
 import NLP.GenI.General (groupByFM, preTerminals)
+import NLP.GenI.PolarityTypes (PolarityKey(..))
 \end{code}
 }
 
@@ -105,7 +106,7 @@ data TagElem = TE {
                    tsemantics   :: Sem,
                    -- optimisation stuff
                    -- (polarity key to charge interval)
-                   tpolarities  :: Map.Map String (Int,Int), 
+                   tpolarities  :: Map.Map PolarityKey (Int,Int),
                    tinterface   :: Flist,  -- for idxconstraints (pol)
                    ttrace       :: [String],
                    tsempols     :: [SemPols]

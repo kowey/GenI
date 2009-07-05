@@ -92,6 +92,7 @@ import Text.ParserCombinators.Parsec ( runParser, CharParser )
 import NLP.GenI.Btypes ( GeniVal(GConst), Flist, showFlist, )
 import NLP.GenI.General ( geniBug, fst3, snd3, Interval )
 import NLP.GenI.GeniParsers ( geniFeats, geniPolarities )
+import NLP.GenI.PolarityTypes ( PolarityKey(..) )
 \end{code}
 }
 
@@ -834,7 +835,7 @@ data type code.
 FLAG (BatchDirFlg, FilePath)
 FLAG (DisableGuiFlg, ())
 FLAG (EarlyDeathFlg, ())
-FLAG (ExtraPolaritiesFlg, (Map.Map String Interval))
+FLAG (ExtraPolaritiesFlg, (Map.Map PolarityKey Interval))
 FLAG (FromStdinFlg, ())
 FLAG (HelpFlg, ())
 FLAG (IgnoreSemanticsFlg, ())

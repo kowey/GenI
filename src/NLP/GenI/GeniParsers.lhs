@@ -48,6 +48,8 @@ import NLP.GenI.General ((!+!), Interval, ival)
 import NLP.GenI.Btypes
 import NLP.GenI.Tags (TagElem(..), emptyTE, setTidnums)
 import NLP.GenI.GeniShow (GeniShow(geniShow))
+import NLP.GenI.PolarityTypes
+
 import Control.Monad (liftM, when)
 import Data.List (sort)
 import qualified Data.Map  as Map 
@@ -483,13 +485,13 @@ The polarities parser is used for parsing extra polarity input from the
 user. For more information, see chapter \ref{cha:Polarity}.
 
 \begin{code}
-geniPolarities :: Parser (Map.Map String Interval)
+geniPolarities :: Parser (Map.Map PolarityKey Interval)
 geniPolarities = tillEof $ toMap `fmap` many pol
   where 
     toMap = Map.fromListWith (!+!)
-    pol = do p <- geniPolarity 
+    pol = do p <- geniPolarity
              i <- identifier
-             return (i,ival p)
+             return (PolarityKey i,ival p)
 \end{code}
 
 \fnlabel{geniPolarity} associates a numerical value to a polarity symbol,
