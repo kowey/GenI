@@ -264,7 +264,7 @@ modifyGuiStuff fn i = i { siGuiStuff = fn . siGuiStuff $ i }
 type ChartId = Integer
 
 instance Replacable SimpleItem where
-  replaceMap s i =
+  replaceMap s i = s `seq` i `seq`
     i { siSubstnodes = replaceMap s (siSubstnodes i)
       , siAdjnodes   = replaceMap s (siAdjnodes i)
       , siLeaves  = replaceMap s (siLeaves i)
