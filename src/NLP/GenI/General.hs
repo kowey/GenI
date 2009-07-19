@@ -67,7 +67,7 @@ module NLP.GenI.General (
 import Control.Monad (liftM)
 import Data.Bits (shiftR, (.&.))
 import Data.Char (isDigit, isSpace, toUpper, toLower)
-import Data.List (intersect, groupBy, group, sort)
+import Data.List (foldl', intersect, groupBy, group, sort)
 import Data.Tree
 import System.IO (hPutStrLn, hPutStr, hFlush, stderr)
 import qualified Data.Map as Map
@@ -199,7 +199,7 @@ groupByFM :: (Ord b) => (a -> b) -> [a] -> (Map.Map b [a])
 groupByFM fn list = 
   let addfn  x acc key = insertToListMap key x acc
       helper acc x = addfn x acc (fn x)
-  in foldl helper Map.empty list
+  in foldl' helper Map.empty list
 
 -- | Same as 'groupByFM', except that we let an item appear in
 --   multiple groups.  The fn extracts the property from the item,
@@ -207,8 +207,8 @@ groupByFM fn list =
 multiGroupByFM :: (Ord b) => (a -> [b]) -> [a] -> (Map.Map b [a])
 multiGroupByFM fn list = 
   let addfn  x acc key = insertToListMap key x acc
-      helper acc x = foldl (addfn x) acc (fn x)
-  in foldl helper Map.empty list
+      helper acc x = foldl' (addfn x) acc (fn x)
+  in foldl' helper Map.empty list
 
 {-# INLINE insertToListMap #-}
 insertToListMap :: (Ord b) => b -> a -> Map.Map b [a] -> Map.Map b [a]

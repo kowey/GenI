@@ -484,7 +484,7 @@ class Replacable a where
   -- | Here it is safe to say (X -> Y; Y -> Z) because this would be crushed
   --   down into a final value of (X -> Z; Y -> Z)
   replaceList :: [(String,GeniVal)] -> a -> a
-  replaceList = replaceMap . foldl update Map.empty
+  replaceList = replaceMap . foldl' update Map.empty
     where
      update m (s1,s2) = Map.insert s1 s2 $ Map.map (replaceOne (s1,s2)) m
 
