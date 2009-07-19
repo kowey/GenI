@@ -53,8 +53,6 @@ import Data.List (intersperse)
 import Data.Tree
 
 import Control.Parallel.Strategies
-import Data.DeriveTH
-import Data.Derive.NFData
 
 import NLP.GenI.Btypes (Ptype(Initial, Auxiliar), SemPols,
                GeniVal(GConst),
@@ -101,7 +99,7 @@ data TagSite = TagSite { tsName :: !String
                        , tsDown :: !Flist
                        , tsOrigin :: !String
                        }
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord {-! NFData !-})
 
 data TagElem = TE {
                    idname       :: String,
@@ -343,7 +341,11 @@ ts_semIncomplete sem = "semantically incomplete - missing:  " ++ showSem sem
 % ----------------------------------------------------------------------
 
 \begin{code}
-$( derive makeNFData ''TagSite )
+instance NFData TagSite
+    where rnf (TagSite x1
+                       x2
+                       x3
+                       x4) = seq (rnf x1) (seq (rnf x2) (seq (rnf x3) (rnf x4)))
 \end{code}
 
 
