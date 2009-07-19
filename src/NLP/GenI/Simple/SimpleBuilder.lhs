@@ -1027,7 +1027,7 @@ graphical interface, I decided not to bother.
 type TbEither = Either String Subst
 tbUnifyTree :: SimpleItem -> Bool
 tbUnifyTree item = {-# SCC "tbUnifyTree" #-}
-  case foldl tbUnifyNode (Right Map.empty) (siPendingTb item) of
+  case foldl' tbUnifyNode (Right Map.empty) (siPendingTb item) of
     Left  _ -> False
     Right _ -> True
 \end{code}
