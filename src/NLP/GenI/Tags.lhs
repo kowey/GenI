@@ -24,6 +24,8 @@ substitution and adjunction here; see sections \ref{sec:substitution}
 and \ref{sec:adjunction} instead.
 
 \begin{code}
+{-# LANGUAGE TemplateHaskell #-}
+
 module NLP.GenI.Tags(
    -- Main Datatypes
    Tags, TagElem(..), TagItem(..), TagSite(..),
@@ -49,6 +51,10 @@ import qualified Data.Map as Map
 import Data.Maybe (fromMaybe, listToMaybe, mapMaybe)
 import Data.List (intersperse)
 import Data.Tree
+
+import Control.Parallel.Strategies
+import Data.DeriveTH
+import Data.Derive.NFData
 
 import NLP.GenI.Btypes (Ptype(Initial, Auxiliar), SemPols,
                GeniVal(GConst),
@@ -331,3 +337,13 @@ ts_rootFeatureMismatch good = "root feature does not unify with " ++ showFlist g
 ts_semIncomplete :: [Pred] -> String
 ts_semIncomplete sem = "semantically incomplete - missing:  " ++ showSem sem
 \end{code}
+
+% ----------------------------------------------------------------------
+% Performance
+% ----------------------------------------------------------------------
+
+\begin{code}
+$( derive makeNFData ''TagSite )
+\end{code}
+
+

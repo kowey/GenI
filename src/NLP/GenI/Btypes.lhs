@@ -25,8 +25,8 @@ unification, that is).
 
 \ignore{
 \begin{code}
-{-# GHC_OPTIONS -fglasgow-exts #-}
--- {-# LANGUAGE TypeSynonymInstances, FlexibleInstances, DeriveDataTypeable #-}
+-- {-# GHC_OPTIONS -fglasgow-exts #-}
+{-# LANGUAGE TemplateHaskell, TypeSynonymInstances, FlexibleInstances, DeriveDataTypeable #-}
 module NLP.GenI.Btypes(
    -- Datatypes
    GNode(..), GType(Subs, Foot, Lex, Other), NodeName,
@@ -74,6 +74,10 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Tree
 import Test.QuickCheck hiding (collect) -- needed for testing via ghci
+
+import Control.Parallel.Strategies
+import Data.DeriveTH
+import Data.Derive.NFData
 
 import NLP.GenI.General(map', filterTree, listRepNode, snd3, geniBug, comparing)
 --instance Show (IO()) where
@@ -982,3 +986,9 @@ qc_not_empty_GConst (GConst []) = False
 qc_not_empty_GConst _ = True
 \end{code}
 }
+
+
+\begin{code}
+$( derive makeNFData ''GeniVal )
+\end{code}
+

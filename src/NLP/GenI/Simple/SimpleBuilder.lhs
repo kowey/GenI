@@ -25,7 +25,7 @@ item is a derived tree.
 
 \begin{code}
 {-# OPTIONS_GHC -fglasgow-exts #-}
--- {-# LANGUAGE LiberalTypeSynonyms #-}
+{-# LANGUAGE LiberalTypeSynonyms, TemplateHaskell #-}
 module NLP.GenI.Simple.SimpleBuilder (
    -- Types
    Agenda, AuxAgenda, Chart, SimpleStatus, SimpleState,
@@ -60,6 +60,11 @@ import Data.Ord (comparing)
 import Data.Bits
 import qualified Data.Map as Map
 import Data.Tree
+
+import Control.Parallel.Strategies
+import Data.DeriveTH
+import Data.Derive.Eq
+import Data.Derive.NFData
 
 import NLP.GenI.Statistics (Statistics)
 
@@ -1202,5 +1207,13 @@ countBits bs = if testBit bs 0 then 1 + next else next
 #else
 partialResults = return []
 #endif
+\end{code}
+
+% --------------------------------------------------------------------
+% Performance
+% --------------------------------------------------------------------
+
+\begin{code}
+$( derive makeNFData ''SimpleItem )
 \end{code}
 
