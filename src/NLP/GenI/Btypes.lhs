@@ -535,12 +535,11 @@ instance Replacable (String, ([String], Flist)) where
 
 \subsection{Idable}
 
-An Idable is something that can be mapped to a unique id.
-You might consider using this to implement Ord, but I won't.
-Note that the only use I have for this so far (20 dec 2005)
-is in alpha-conversion.
-
 \begin{code}
+-- | An Idable is something that can be mapped to a unique id.
+--   You might consider using this to implement Ord, but I won't.
+--   Note that the only use I have for this so far (20 dec 2005)
+--  is in alpha-conversion.
 class Idable a where
   idOf :: a -> Integer
 \end{code}
