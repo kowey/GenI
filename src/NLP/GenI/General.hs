@@ -37,7 +37,6 @@ module NLP.GenI.General (
         -- * Triples
         fst3, snd3, thd3,
         -- * Lists
-        equating, comparing,
         map',
         wordsBy,
         boundsCheck,
@@ -67,6 +66,7 @@ module NLP.GenI.General (
 import Control.Monad (liftM)
 import Data.Bits (shiftR, (.&.))
 import Data.Char (isDigit, isSpace, toUpper, toLower)
+import Data.Function ( on )
 import Data.List (foldl', intersect, groupBy, group, sort)
 import Data.Tree
 import System.IO (hPutStrLn, hPutStr, hFlush, stderr)
@@ -140,7 +140,7 @@ instance Ord AlphaNum where
 --   around because the characters 1 < 2.  To sort alphanumerically, just
 --   'sortBy (comparing toAlphaNum)'
 toAlphaNum :: String -> [AlphaNum]
-toAlphaNum = map readOne . groupBy (equating isDigit)
+toAlphaNum = map readOne . groupBy ((==) `on` isDigit)
  where
    readOne s
      | all isDigit s = N (read s)
@@ -162,12 +162,6 @@ thd3 (_,_,x) = x
 -- ----------------------------------------------------------------------
 -- Lists
 -- ----------------------------------------------------------------------
-
-equating :: Eq b => (a -> b) -> (a -> a -> Bool)
-equating f a b = f a == f b
-
-comparing :: Ord b => (a -> b) -> (a -> a -> Ordering)
-comparing f a b = compare (f a) (f b)
 
 -- | A strict version of 'map'
 map' :: (a->b) -> [a] -> [b]

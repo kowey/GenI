@@ -68,6 +68,7 @@ module NLP.GenI.Btypes(
 import Control.Monad (liftM)
 import Data.List
 import Data.Maybe (fromMaybe, isJust, mapMaybe)
+import Data.Function ( on )
 import Data.Generics (Data)
 import Data.Typeable (Typeable)
 import qualified Data.Map as Map
@@ -79,7 +80,7 @@ import Control.Parallel.Strategies
 import Data.DeriveTH
 import Data.Derive.NFData
 
-import NLP.GenI.General(map', filterTree, listRepNode, snd3, geniBug, comparing)
+import NLP.GenI.General(map', filterTree, listRepNode, snd3, geniBug)
 --instance Show (IO()) where
 --  show _ = ""
 \end{code}
@@ -571,7 +572,7 @@ alphaConvert suffix x = {-# SCC "alphaConvert" #-}
 \begin{code}
 -- | Sort an Flist according with its attributes
 sortFlist :: Flist -> Flist
-sortFlist = sortBy (comparing fst)
+sortFlist = sortBy (compare `on` fst)
 
 showFlist :: Flist -> String
 showFlist f = "[" ++ showPairs f ++ "]"

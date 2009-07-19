@@ -45,6 +45,7 @@ import Control.Monad.Error
 import Control.Monad (unless)
 
 import Data.Binary (Binary, decodeFile)
+import Data.Function ( on )
 import Data.IORef (IORef, readIORef, modifyIORef)
 import Data.List
 import qualified Data.Map as Map
@@ -58,7 +59,7 @@ import Text.ParserCombinators.Parsec
 
 
 import NLP.GenI.General(filterTree, repAllNode,
-    equating, groupAndCount, multiGroupByFM,
+    groupAndCount, multiGroupByFM,
     geniBug,
     repNodeByNode,
     wordsBy,
@@ -869,7 +870,7 @@ pathEqName = fst3.fst
 missingCoanchors :: ILexEntry -> MTtree -> [String]
 missingCoanchors lexEntry t =
   -- list monad
-  do eq <- nubBy (equating pathEqName) $ snd $ lexEquations lexEntry
+  do eq <- nubBy ((==) `on` pathEqName) $ snd $ lexEquations lexEntry
      let name = pathEqName eq
      case seekCoanchor name t of
        Nothing -> [name]
