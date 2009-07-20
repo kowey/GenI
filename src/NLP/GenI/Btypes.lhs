@@ -173,6 +173,15 @@ data ILexEntry = ILE
     , isempols    :: [SemPols] }
   deriving (Show, Eq, Data, Typeable)
 
+instance Biplate ILexEntry GeniVal where
+  biplate (ILE x1 x2 zps zint zfilts zeq x3 zsem x4) =
+    plate ILE |- x1 |- x2
+              ||* zps
+              ||+ zint
+              ||+ zfilts
+              ||+ zeq  |- x3
+              ||+ zsem |- x4
+
 instance Replacable ILexEntry where
   replaceMap s i =
     i { iinterface  = replaceMap s (iinterface i)
@@ -417,6 +426,9 @@ data AvPair  = AvPair { avAtt :: String
 
 instance Biplate AvPair GeniVal where
   biplate (AvPair a v) = plate AvPair |- a |* v
+
+instance Biplate Flist GeniVal where
+  biplate = uniplateOnList biplate
 \end{code}
 
 \subsection{GeniVal}
@@ -429,6 +441,9 @@ data GeniVal = GConst [String]
 
 instance Uniplate GeniVal where
   uniplate x = (Zero, \Zero -> x)
+
+instance Biplate [GeniVal] GeniVal where
+  biplate = uniplateOnList uniplate
 
 instance Show GeniVal where
   show (GConst x) = concat $ intersperse "|" x
@@ -639,6 +654,9 @@ instance Biplate Pred GeniVal where
 instance Biplate (Maybe Sem) GeniVal where
   biplate (Just s) = plate Just ||+ s
   biplate Nothing  = plate Nothing
+
+instance Biplate Sem GeniVal where
+  biplate = uniplateOnList biplate
 
 data TestCase = TestCase
        { tcName :: String
