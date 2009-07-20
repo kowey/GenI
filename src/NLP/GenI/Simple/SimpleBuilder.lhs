@@ -181,37 +181,37 @@ data SimpleStatus = S
 
 \begin{code}
 addToAgenda :: SimpleItem -> SimpleState ()
-addToAgenda te = do
-  modify $ \s -> s{theAgenda = te:(theAgenda s) }
+addToAgenda te =
+  modify $ \s -> s{theAgenda = te : theAgenda s }
 
 updateAgenda :: Agenda -> SimpleState ()
-updateAgenda a = do
+updateAgenda a =
   modify $ \s -> s{theAgenda = a}
 
 addToAuxAgenda :: SimpleItem -> SimpleState ()
 addToAuxAgenda te = do
   s <- get
   -- each new tree gets a unique id... this makes comparisons faster
-  let counter = (gencounter s) + 1
+  let counter = gencounter s + 1
       te2 = te { siId = counter }
   put s{gencounter = counter,
-        theAuxAgenda = te2:(theAuxAgenda s) }
+        theAuxAgenda = te2 : theAuxAgenda s }
 
 addToChart :: SimpleItem -> SimpleState ()
 addToChart te = do
-  modify $ \s -> s { theChart = te:(theChart s) }
+  modify $ \s -> s { theChart = te:theChart s }
   incrCounter chart_size 1
 
 #ifndef DISABLE_GUI
 addToTrash :: SimpleItem -> String -> SimpleState ()
 addToTrash te err = do
-  let te2 = modifyGuiStuff (\g -> g { siDiagnostic = err:(siDiagnostic g) }) te
-  modify $ \s -> s { theTrash = te2 : (theTrash s) }
+  let te2 = modifyGuiStuff (\g -> g { siDiagnostic = err:siDiagnostic g }) te
+  modify $ \s -> s { theTrash = te2 : theTrash s }
 #endif
 
 addToResults :: SimpleItem -> SimpleState ()
-addToResults te = do
-  modify $ \s -> s { theResults = te : (theResults s) }
+addToResults te =
+  modify $ \s -> s { theResults = te : theResults s }
 \end{code}
 
 \subsection{SimpleItem}
@@ -297,7 +297,7 @@ aux = isJust . siFoot
 
 -- | True if both 'closed' and 'aux' are True
 closedAux :: SimpleItem -> Bool
-closedAux x = (aux x) && (closed x)
+closedAux x = aux x && closed x
 
 adjdone :: SimpleItem -> Bool
 adjdone = null.siAdjnodes
@@ -473,7 +473,7 @@ generateStep_2p' =
      -- (monadic state) and which should go in the result (res')
      mapM_ simpleDispatch_2p res
      -- put the given into the chart untouched
-     if (curStep == Initial)
+     if curStep == Initial
         then addToChart given
         else when (adjdone given) $ trashIt given
 \end{code}
@@ -502,7 +502,7 @@ selectGiven :: SimpleState SimpleItem
 selectGiven = do
   agenda <- gets theAgenda
   case agenda of
-   []        -> geniBug "null agenda in selectGiven"
+   [] -> geniBug "null agenda in selectGiven"
    (a:atail) -> updateAgenda atail >> return a
 \end{code}
 
@@ -655,7 +655,7 @@ iapplySubst twophase item1 item2 | siInitial item1 && closed item1 = {-# SCC "ap
               newRoot g = g { gup = newU, gdown = newD, gtype = Other }
 #endif
           let pending = if twophase then []
-                        else nr : ((siPendingTb item1) ++ (siPendingTb item2))
+                        else nr : (siPendingTb item1 ++ siPendingTb item2)
           return $! replace subst $ combineSimpleItems [rn] item1g $
                      item2 { siSubstnodes = stail ++ (siSubstnodes item1)
                            , siAdjnodes   = adj2 ++ adj1
@@ -881,8 +881,8 @@ lookupChart given = do
 combineSimpleItems :: [NodeName] -- ^ nodes to highlight
                    -> SimpleItem -> SimpleItem -> SimpleItem
 combineSimpleItems hi item1 item2 = {-# SCC "combineSimpleItems" #-}
-  item2 { siSemantics = (siSemantics item1) .|. (siSemantics item2)
-        , siPolpaths  = (siPolpaths  item1) .&. (siPolpaths  item2)
+  item2 { siSemantics = siSemantics item1 .|. siSemantics item2
+        , siPolpaths  = siPolpaths  item1 .&. siPolpaths  item2
 #ifndef DISABLE_GUI
         , siGuiStuff  = combineSimpleGuiItems hi (siGuiStuff item1) (siGuiStuff item2)
 #endif
@@ -892,9 +892,9 @@ combineSimpleItems hi item1 item2 = {-# SCC "combineSimpleItems" #-}
 combineSimpleGuiItems :: [NodeName]
                       -> SimpleGuiItem -> SimpleGuiItem -> SimpleGuiItem
 combineSimpleGuiItems hi item1 item2 =
- item2 { siFullSem = sortSem $ (siFullSem item1) ++ (siFullSem item2)
-       , siNodes = (siNodes item1) ++ (siNodes item2)
-       , siDiagnostic = (siDiagnostic item1) ++ (siDiagnostic item2)
+ item2 { siFullSem = sortSem $ siFullSem item1 ++ siFullSem item2
+       , siNodes = siNodes item1 ++ siNodes item2
+       , siDiagnostic = siDiagnostic item1 ++ siDiagnostic item2
        , siHighlight = hi
        }
 
@@ -1146,7 +1146,7 @@ atomic disjunction.
 listToSentenceAut :: [ B.UninflectedDisjunction ] -> B.SentenceAut
 listToSentenceAut nodes =
   let theStart  = 0
-      theEnd = (length nodes) - 1
+      theEnd = length nodes - 1
       theStates = [theStart..theEnd]
       --
       emptyAut = NFA
