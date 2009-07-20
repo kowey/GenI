@@ -398,7 +398,7 @@ type AvPair  = (String,GeniVal)
 
 \begin{code}
 data GeniVal = GConst [String]
-             | GVar   !String
+             | GVar   String
              | GAnon
   deriving (Eq,Ord, Data, Typeable)
 

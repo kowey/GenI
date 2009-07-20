@@ -225,11 +225,11 @@ addToResults te =
 data SimpleItem = SimpleItem
  { siId        :: ChartId
  --
- , siSubstnodes :: ![TagSite]
- , siAdjnodes   :: ![TagSite]
+ , siSubstnodes :: [TagSite]
+ , siAdjnodes   :: [TagSite]
  --
- , siSemantics :: !BitVector
- , siPolpaths  :: !BitVector
+ , siSemantics :: BitVector
+ , siPolpaths  :: BitVector
  -- for generation sans semantics
  -- , siAdjlist :: [(String,Integer)] -- (node name, auxiliary tree id)
  -- for index accesibility filtering (one-phase only)
