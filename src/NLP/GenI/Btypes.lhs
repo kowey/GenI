@@ -74,6 +74,7 @@ import Data.Typeable (Typeable)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Tree
+import qualified Data.DList as DL
 import Test.QuickCheck hiding (collect) -- needed for testing via ghci
 
 import Control.Parallel.Strategies
@@ -520,6 +521,11 @@ of course.
 instance (Replacable a => Replacable [a]) where
   replaceMap s = {-# SCC "replaceMap" #-} map' (replaceMap s)
   replaceOne s = {-# SCC "replaceOne" #-} map' (replaceOne s)
+
+-- should perhaps try a strict version of this
+instance Replacable a => Replacable (DL.DList a) where
+  replaceMap s = {-# SCC "replaceMap" #-} DL.map (replaceMap s)
+  replaceOne s = {-# SCC "replaceOne" #-} DL.map (replaceOne s)
 \end{code}
 
 Substitution on an attribute/value pairs consists of ignoring
