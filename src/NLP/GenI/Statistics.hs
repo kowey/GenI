@@ -165,7 +165,3 @@ queryIntMetric _ _ = Nothing
 addIntMetrics :: Metric -> Metric -> Metric
 addIntMetrics (IntMetric s1 c1) (IntMetric s2 c2) | s1 == s2 = IntMetric s1 (c1 + c2)
 addIntMetrics s1 _ = s1
-
--- ratio :: Int -> Int -> Float
--- ratio x y = (fromIntegral x) / (fromIntegral y)
-
