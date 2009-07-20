@@ -633,7 +633,7 @@ geniAttVal :: Parser AvPair
 geniAttVal = do
   att <- identifier <?> "an attribute"; colon 
   val <- geniValue <?> "a GenI value"
-  return (att, val)
+  return $ AvPair att val
 \end{code}
 
 \fnlabel{geniParams} recognises a list of parameters optionally followed by a

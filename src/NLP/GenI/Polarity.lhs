@@ -92,7 +92,7 @@ import Data.Tree (flatten)
 import qualified Data.Set as Set
 
 import NLP.GenI.Automaton
-import NLP.GenI.Btypes(Pred, SemInput, Sem, Flist, AvPair, showAv,
+import NLP.GenI.Btypes(Pred, SemInput, Sem, Flist, AvPair(..), showAv,
               GeniVal(..), fromGConst, isConst,
               Replacable(..),
               emptyPred, Ptype(Initial), 
@@ -750,7 +750,7 @@ Notes
 \begin{code}
 assignIndex :: GeniVal -> TagElem -> TagElem 
 assignIndex i te =
-  let idxfs = [ (__idx__, i) ]
+  let idxfs = [ AvPair __idx__ i ]
       oldt  = ttree te
       oldr  = root oldt
       tfup  = gup oldr
@@ -827,7 +827,7 @@ detectPolFeatures tes =
       sfeats = [ concat s | s <- map substTops tes, (not.null) s ]
       --
       attrs :: Flist -> [String]
-      attrs avs = [ a | (a,v) <- avs, isConst v ]
+      attrs avs = [ a | AvPair a v <- avs, isConst v ]
       theAttributes = map attrs $ rfeats ++ sfeats
   in if null tes then [] else foldr1 intersect theAttributes
 
@@ -841,7 +841,7 @@ detectSansIdx =
   let rfeats t = (gdown.root.ttree) t
       feats  t | ttype t == Initial = concat $ rfeats t : substTops t
       feats  t = concat $ substTops t
-      attrs avs = [ a | (a,v) <- avs, isConst v ]
+      attrs avs = [ a | AvPair a v <- avs, isConst v ]
       hasIdx t = __idx__ `elem` (attrs.feats $ t) || (ttype t /= Initial && (null $ substTops t))
   in filter (not.hasIdx)
 \end{code}
@@ -926,7 +926,7 @@ detectPolarity :: Int          -- ^ polarity to assign
                -> Flist        -- ^ feature structure to get value from
                -> PolarityDetectionResult
 detectPolarity i (RestrictedPolarityAttr cat att) filterFl fl =
-  case [ v | (a,v) <- filterFl, a == __cat__ ] of
+  case [ v | AvPair a v <- filterFl, a == __cat__ ] of
     []  -> PD_UserError $ "[polarities] No category " ++ cat ++ " in:" ++ showFlist filterFl
     [v] -> if isJust (unify [GConst [cat]] [v])
               then detectPolarityForAttr i att fl
@@ -939,7 +939,7 @@ detectPolarityForAttr :: Int -- ^ polarity to assign
                       -> Flist
                       -> PolarityDetectionResult
 detectPolarityForAttr i att fl =
-  case [ v | (a,v) <- fl, a == att ] of
+  case [ v | AvPair a v <- fl, a == att ] of
     []  -> PD_UserError $ "[polarities] No value for attribute: " ++ att ++ " in:" ++ showFlist fl
     [v] -> if isConst v
               then PD_Just $ case prefixWith att (fromGConst v) of

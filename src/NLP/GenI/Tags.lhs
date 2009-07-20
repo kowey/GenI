@@ -55,7 +55,7 @@ import Data.Tree
 import Control.Parallel.Strategies
 
 import NLP.GenI.Btypes (Ptype(Initial, Auxiliar), SemPols,
-               GeniVal(GConst),
+               GeniVal(GConst), AvPair(..),
                GNode(gup, glexeme, gnname, gaconstr, gdown, gtype, gorigin),
                GType(Subs), Flist,
                Replacable(..), replaceOneAsMap,
@@ -293,7 +293,7 @@ getLexeme node =
     lexs -> lexs
   where
    grab la =
-     let match (a, (GConst v)) | a == la = Just v
+     let match (AvPair a (GConst v)) | a == la = Just v
          match _ = Nothing
      in firstMaybe match guppy
    guppy      = gup node
@@ -339,13 +339,3 @@ ts_semIncomplete sem = "semantically incomplete - missing:  " ++ showSem sem
 % ----------------------------------------------------------------------
 % Performance
 % ----------------------------------------------------------------------
-
-\begin{code}
-instance NFData TagSite
-    where rnf (TagSite x1
-                       x2
-                       x3
-                       x4) = seq (rnf x1) (seq (rnf x2) (seq (rnf x3) (rnf x4)))
-\end{code}
-
-

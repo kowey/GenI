@@ -51,7 +51,7 @@ import NLP.GenI.Tags
  ( TagElem, idname,
    tsemantics, ttree, tinterface, ttype, ttreename,
  )
-import NLP.GenI.Btypes (GeniVal(GConst), AvPair, Ptype(..),
+import NLP.GenI.Btypes (GeniVal(GConst), AvPair(..), Ptype(..),
                Ttree(params, pidname, pfamily, pinterface, ptype, tree, psemantics, ptrace),
                GNode(..), GType(..),
                SemInput, Pred,
@@ -70,7 +70,7 @@ instance GeniShow Ptype where
  geniShow _        = ""
 
 instance GeniShow AvPair where
- geniShow (a,v) = a ++ ":" ++ geniShow v
+ geniShow (AvPair a v) = a ++ ":" ++ geniShow v
 
 instance GeniShow GeniVal where
  geniShow (GConst xs) = concat $ intersperse "|" xs

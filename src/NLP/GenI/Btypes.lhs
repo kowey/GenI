@@ -31,7 +31,7 @@ module NLP.GenI.Btypes(
    GNode(..), GType(Subs, Foot, Lex, Other), NodeName,
    Ttree(..), MTtree, SemPols, TestCase(..),
    Ptype(Initial,Auxiliar,Unspecified),
-   Pred, Flist, AvPair, GeniVal(..),
+   Pred, Flist, AvPair(..), GeniVal(..),
    Lexicon, ILexEntry(..), MorphLexEntry, Macros, Sem, LitConstr, SemInput, Subst,
    emptyLE, emptyGNode, emptyMacro,
 
@@ -232,7 +232,7 @@ category of a node is associated to the attribute ``cat''.
 -- | Return the value of the "cat" attribute, if available
 gCategory :: Flist -> Maybe GeniVal
 gCategory top =
-  case [ v | (a,v) <- top, a == "cat" ] of
+  case [ v | AvPair "cat" v <- top ] of
   []  -> Nothing
   [c] -> Just c
   _   -> geniBug $ "Impossible case: node with more than one category"
@@ -385,7 +385,9 @@ findSubTree n n2@(Node x ks)
 
 \begin{code}
 type Flist   = [AvPair]
-type AvPair  = (String,GeniVal)
+data AvPair  = AvPair { avAtt :: String
+                      , avVal ::  GeniVal }
+  deriving (Ord, Eq, Data, Typeable)
 \end{code}
 
 \subsection{GeniVal}
@@ -456,8 +458,8 @@ instance Collectable GeniVal where
   collect (GVar v) s = Set.insert v s
   collect _ s = s
 
-instance Collectable (String,GeniVal) where
-  collect (_,b) = collect b
+instance Collectable AvPair where
+  collect (AvPair _ b) = collect b
 
 instance Collectable GNode where
   collect n = (collect $ gdown n) . (collect $ gup n)
@@ -525,8 +527,8 @@ the attribute and performing substitution on the value.
 
 \begin{code}
 instance Replacable AvPair where
-  replaceMap s (a,v) = {-# SCC "replaceMap" #-} (a, replaceMap s v)
-  replaceOne s (a,v) = {-# SCC "replaceOne" #-} (a, replaceOne s v)
+  replaceMap s (AvPair a v) = {-# SCC "replaceMap" #-} AvPair a (replaceMap s v)
+  replaceOne s (AvPair a v) = {-# SCC "replaceOne" #-} AvPair a (replaceOne s v)
 
 instance Replacable (String, ([String], Flist)) where
   replaceMap s (n,(a,v)) = {-# SCC "replaceMap" #-} (n,(a, replaceMap s v))
@@ -566,7 +568,7 @@ alphaConvert suffix x = {-# SCC "alphaConvert" #-}
 \begin{code}
 -- | Sort an Flist according with its attributes
 sortFlist :: Flist -> Flist
-sortFlist = sortBy (compare `on` fst)
+sortFlist = sortBy (compare `on` avAtt)
 
 showFlist :: Flist -> String
 showFlist f = "[" ++ showPairs f ++ "]"
@@ -575,7 +577,10 @@ showPairs :: Flist -> String
 showPairs = unwords . map showAv
 
 showAv :: AvPair -> String
-showAv (y,z) = y ++ ":" ++ show z
+showAv (AvPair y z) = y ++ ":" ++ show z
+
+instance Show AvPair where
+  show = showAv
 \end{code}
 
 % ----------------------------------------------------------------------
@@ -781,7 +786,7 @@ unifyFeat f1 f2 =
   let (att, val1, val2) = alignFeat f1 f2
   in att `seq`
      do (res, subst) <- unify val1 val2
-        return (zip att res, subst)
+        return (zipWith AvPair att res, subst)
 \end{code}
 
 \fnlabel{alignFeat}
@@ -796,7 +801,7 @@ alphabetically sorted beforehand!
 alignFeat :: Flist -> Flist -> ([String], [GeniVal], [GeniVal])
 alignFeat [] [] = ([], [], [])
 
-alignFeat [] ((f,v):x) =
+alignFeat [] (AvPair f v :x) =
   case alignFeat [] x of
   (att, left, right) -> (f:att, GAnon:left, v:right)
 
@@ -804,7 +809,7 @@ alignFeat x [] =
   case alignFeat [] x of
   (att, left, right) -> (att, right, left)
 
-alignFeat fs1@((f1, v1):l1) fs2@((f2, v2):l2)
+alignFeat fs1@(AvPair f1 v1:l1) fs2@(AvPair f2 v2:l2)
    | f1 == f2  = case alignFeat l1 l2 of
                  (att, left, right) -> (f1:att, v1:left,    v2:right)
    | f1 <  f2  = case alignFeat l1 fs2 of

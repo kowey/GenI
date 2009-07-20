@@ -71,7 +71,7 @@ import NLP.GenI.Btypes
   (Macros, MTtree, ILexEntry, Lexicon,
    Replacable(..),
    Sem, SemInput, TestCase(..), sortSem, subsumeSem, params,
-   GeniVal(GConst), fromGVar,
+   GeniVal(GConst), fromGVar, AvPair(..),
    GNode(ganchor, gnname, gup, gdown, gaconstr, gtype, gorigin), Flist,
    GType(Subs, Other),
    isemantics, ifamname, iword, iparams, iequations,
@@ -833,7 +833,7 @@ enrich l t =
     -- enrich everything else
     foldM (enrichBy l) t2 namedE
  where
-  toAvPair ((_,_,a),v) = (a,v)
+  toAvPair ((_,_,a),v) = AvPair a v
   enrichInterface tx en =
     do (i2, isubs) <- unifyFeat [toAvPair en] (pinterface tx)
          `catchError` (\_ -> throwError $ ifaceEnrichErr en)
@@ -852,7 +852,7 @@ enrichBy lexEntry t (eqLhs, eqVal) =
  Nothing -> return t -- to be robust, we accept if the node isn't there
  Just a  ->
         do let tfeat = (if eqTop then gup else gdown) a
-           (newfeat, sub) <- unifyFeat [(eqAtt,eqVal)] tfeat
+           (newfeat, sub) <- unifyFeat [AvPair eqAtt eqVal] tfeat
                               `catchError` (\_ -> throwError enrichErr)
            let newnode = if eqTop then a {gup   = newfeat}
                                   else a {gdown = newfeat}
@@ -880,7 +880,7 @@ missingCoanchors lexEntry t =
 --   or (co-)anchor modifiers
 lexEquations :: ILexEntry -> ([PathEqPair], [PathEqPair])
 lexEquations =
-  partition (nameIs "interface") . map (first parsePathEq) . iequations
+  partition (nameIs "interface") . map (\(AvPair a v) -> (parsePathEq a, v)) . iequations
   where nameIs n x = pathEqName x == n
 
 seekCoanchor :: String -> MTtree -> Maybe GNode
@@ -961,7 +961,7 @@ setLemAnchors t =
     Just l  -> l
   lemAnchor :: GNode -> Maybe [String]
   lemAnchor n =
-    case [ v | (a,v) <- gdown n, a == _lemanchor ] of
+    case [ v | AvPair a v <- gdown n, a == _lemanchor ] of
     [GConst l] -> Just l
     _          -> Nothing
 

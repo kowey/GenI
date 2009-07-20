@@ -48,6 +48,11 @@ instance (Binary a) => Binary (NLP.GenI.Btypes.Ttree a) where
   put (TT a b c d e f g h) = put a >> put b >> put c >> put d >> put e >> put f >> put g >> put h
   get = get >>= \a -> get >>= \b -> get >>= \c -> get >>= \d -> get >>= \e -> get >>= \f -> get >>= \g -> get >>= \h -> return (TT a b c d e f g h)
 
+
+instance Binary NLP.GenI.Btypes.AvPair where
+  put (AvPair a b)  = put a >> put b
+  get = get >>= \a -> get >>= \b -> return (AvPair a b)
+
 instance Binary NLP.GenI.Btypes.ILexEntry where
   put (ILE a b c d e f g h i) = put a >> put b >> put c >> put d >> put e >> put f >> put g >> put h >> put i
   get = get >>= \a -> get >>= \b -> get >>= \c -> get >>= \d -> get >>= \e -> get >>= \f -> get >>= \g -> get >>= \h -> get >>= \i -> return (ILE a b c d e f g h i)

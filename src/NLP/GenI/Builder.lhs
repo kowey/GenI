@@ -61,7 +61,7 @@ import NLP.GenI.Configuration
 import NLP.GenI.General (geniBug, BitVector, multiGroupByFM, fst3, snd3, thd3)
 import NLP.GenI.Btypes
   ( ILexEntry, SemInput, Sem, Pred, showPred, showSem,
-    Flist, gtype, GType(Subs, Foot),
+    AvPair(..), Flist, gtype, GType(Subs, Foot),
     Collectable(collect), alphaConvertById,
     GeniVal(GConst)
   )
@@ -311,7 +311,7 @@ fromUniConst (GConst [x]) = return x
 fromUniConst _ = fail "not a unique constant" -- we don't actually expect this failure msg to be used
 
 getIdx :: Flist -> [GeniVal]
-getIdx fs = [ v | (a,v) <- fs, a == "idx" ]
+getIdx fs = [ v | AvPair "idx" v <- fs ]
 
 ts_iafFailure :: [String] -> [Pred] -> String
 ts_iafFailure is sem = "index accesibility failure -" ++ (unwords is) ++ "- blocked: " ++ showSem sem
