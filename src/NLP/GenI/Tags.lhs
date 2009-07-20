@@ -52,6 +52,10 @@ import Data.Maybe (fromMaybe, listToMaybe, mapMaybe)
 import Data.List (intersperse)
 import Data.Tree
 
+import Data.Generics (Data)
+import Data.Generics.PlateDirect
+import Data.Typeable (Typeable)
+
 import Control.Parallel.Strategies
 
 import NLP.GenI.Btypes (Ptype(Initial, Auxiliar), SemPols,
@@ -94,18 +98,25 @@ work, we assign each tree with a unique id during the process of
 combining macros with lexicon (see section \ref{sec:combine_macros}).
 
 \begin{code}
-data TagSite = TagSite { tsName :: !String
-                       , tsUp   :: !Flist
-                       , tsDown :: !Flist
-                       , tsOrigin :: !String
+data TagSite = TagSite { tsName :: String
+                       , tsUp   :: Flist
+                       , tsDown :: Flist
+                       , tsOrigin :: String
                        }
-  deriving (Show, Eq, Ord {-! NFData !-})
+  deriving (Show, Eq, Ord, Data, Typeable)
+
+instance Biplate TagSite GeniVal where
+  biplate (TagSite x1 zu zd x2) = plate TagSite |- x1 ||+ zu ||+ zd |- x2
+
+instance Biplate (Maybe TagSite) GeniVal where
+  biplate (Just x1) = plate Just |+ x1
+  biplate Nothing   = plate Nothing
 
 data TagElem = TE {
                    idname       :: String,
                    ttreename    :: String,
                    tidnum       :: Integer,
-                   ttype        :: !Ptype,
+                   ttype        :: Ptype,
                    ttree        :: Tree GNode,
                    tsemantics   :: Sem,
                    -- optimisation stuff
@@ -115,7 +126,14 @@ data TagElem = TE {
                    ttrace       :: [String],
                    tsempols     :: [SemPols]
                 }
-             deriving (Show, Eq)
+             deriving (Show, Eq, Data, Typeable)
+
+instance Biplate TagElem GeniVal where
+  biplate (TE x1 x2 x3 x4 zt zsem x5 zint x6 x7) =
+     plate TE |- x1 |- x2 |- x3 |- x4
+              |+ zt
+              ||+ zsem |- x5
+              ||+ zint |- x6 |- x7
 \end{code}
 
 A TAG derivation history consists of a list of 3-tuples representing the

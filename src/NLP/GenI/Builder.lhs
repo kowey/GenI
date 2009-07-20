@@ -51,6 +51,10 @@ import qualified Data.Set as Set
 import Data.Tree ( flatten )
 import Prelude hiding ( init )
 
+import Data.Generics.PlateDirect
+import Data.Generics ( Data )
+import Data.Typeable ( Typeable )
+
 import NLP.GenI.Automaton (NFA, automatonPaths, automatonPathSets, numStates, numTransitions)
 import NLP.GenI.Configuration
   ( getListFlagP, getFlagP, hasFlagP, Params,

@@ -63,6 +63,10 @@ import Data.Bits
 import qualified Data.Map as Map
 import Data.Tree
 
+import Data.Generics ( Data )
+import Data.Generics.PlateDirect
+import Data.Typeable ( Typeable, Typeable1 )
+
 import Control.Parallel.Strategies
 
 import NLP.GenI.Statistics (Statistics)
@@ -240,11 +244,24 @@ data SimpleItem = SimpleItem
  , siDerivation :: TagDerivation
  -- for the debugger only
  , siGuiStuff :: SimpleGuiItem
- } deriving (Show, Data, Typeable)
+ } deriving (Show)
+
+instance Biplate SimpleItem GeniVal where
+  biplate (SimpleItem x1 zss zas x2 x3 x4 x5 zls x6 zr zf zp x7 zg) =
+    plate SimpleItem            |- x1
+            ||+ zss ||+ zas     |- x2 |- x3 |- x4 |- x5
+            |+ zls              |- x6
+            |+ zr  |+ zf ||+ zp |- x7
+            |+ zg
 
 instance Show (DL.DList (String, B.UninflectedDisjunction)) where
  show = show . DL.toList
 
+instance Biplate (String, B.UninflectedDisjunction) GeniVal where
+  biplate (s,d) = plate (,) |- s |+ d
+
+instance Biplate (DL.DList (String, B.UninflectedDisjunction)) GeniVal where
+  biplate d = plate DL.fromList ||+ (DL.toList d)
 
 -- | Things whose only use is within the graphical debugger
 data SimpleGuiItem = SimpleGuiItem
@@ -255,6 +272,12 @@ data SimpleGuiItem = SimpleGuiItem
  , siFullSem :: Sem
  , siIdname  :: String
  } deriving (Show, Data, Typeable)
+
+instance Biplate SimpleGuiItem GeniVal where
+  biplate (SimpleGuiItem x1 zns x2 zsem x3) =
+     plate SimpleGuiItem |- x1
+                         ||+ zns  |- x2
+                         ||+ zsem |- x3
 
 emptySimpleGuiItem :: SimpleGuiItem
 emptySimpleGuiItem = SimpleGuiItem [] [] [] [] ""

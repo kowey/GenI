@@ -77,6 +77,9 @@ import Data.Tree
 import qualified Data.DList as DL
 import Test.QuickCheck hiding (collect) -- needed for testing via ghci
 
+import Data.Generics.Biplate
+import Data.Generics.PlateDirect
+
 import Control.Parallel.Strategies
 
 import NLP.GenI.General(map', filterTree, listRepNode, snd3, geniBug)
@@ -112,6 +115,19 @@ data Ttree a = TT
 
 data Ptype = Initial | Auxiliar | Unspecified
              deriving (Show, Eq, Data, Typeable)
+
+instance Biplate (Ttree String) GeniVal where
+  biplate (TT zps x1 x2 zint x3 zsem x4 x5) =
+     plate TT ||* zps  |- x1 |- x2
+              ||+ zint |- x3
+              |+ zsem |- x4 |- x5
+
+instance Biplate (Ttree GNode) GeniVal where
+  biplate (TT zps x1 x2 zint x3 zsem x4 zt) =
+     plate TT ||* zps  |- x1 |- x2
+              ||+ zint |- x3
+              |+ zsem |- x4
+              |+ zt
 
 instance (Replacable a) => Replacable (Ttree a) where
   replaceMap s mt =
@@ -203,6 +219,15 @@ data GNode = GN{gnname :: NodeName,
                                     --   that this node originally came from
                 }
            deriving (Eq, Data, Typeable)
+
+instance Biplate GNode GeniVal where
+  biplate (GN x1 zu zd x2 x3 x4 x5 x6) =
+     plate GN |- x1
+              ||+ zu
+              ||+ zd |- x2 |- x3 |- x4 |- x5 |- x6
+
+instance Biplate (Tree GNode) GeniVal where
+  biplate (Node zn zkids) = plate Node |+ zn ||+ zkids
 
 -- Node type used during parsing of the grammar
 data GType = Subs | Foot | Lex | Other
@@ -389,6 +414,9 @@ type Flist   = [AvPair]
 data AvPair  = AvPair { avAtt :: String
                       , avVal ::  GeniVal }
   deriving (Ord, Eq, Data, Typeable)
+
+instance Biplate AvPair GeniVal where
+  biplate (AvPair a v) = plate AvPair |- a |* v
 \end{code}
 
 \subsection{GeniVal}
@@ -398,6 +426,9 @@ data GeniVal = GConst [String]
              | GVar   String
              | GAnon
   deriving (Eq,Ord, Data, Typeable)
+
+instance Uniplate GeniVal where
+  uniplate x = (Zero, \Zero -> x)
 
 instance Show GeniVal where
   show (GConst x) = concat $ intersperse "|" x
@@ -601,6 +632,13 @@ type Sem = [Pred]
 type LitConstr = (Pred, [String])
 type SemInput  = (Sem,Flist,[LitConstr])
 type Subst = Map.Map String GeniVal
+
+instance Biplate Pred GeniVal where
+  biplate (g1, g2, g3) = plate (,,) |* g1 |* g2 ||* g3
+
+instance Biplate (Maybe Sem) GeniVal where
+  biplate (Just s) = plate Just ||+ s
+  biplate Nothing  = plate Nothing
 
 data TestCase = TestCase
        { tcName :: String
