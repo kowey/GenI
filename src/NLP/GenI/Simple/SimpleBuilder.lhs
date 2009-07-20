@@ -62,9 +62,6 @@ import qualified Data.Map as Map
 import Data.Tree
 
 import Control.Parallel.Strategies
-import Data.DeriveTH
-import Data.Derive.Eq
-import Data.Derive.NFData
 
 import NLP.GenI.Statistics (Statistics)
 
@@ -1214,6 +1211,18 @@ partialResults = return []
 % --------------------------------------------------------------------
 
 \begin{code}
-$( derive makeNFData ''SimpleItem )
+{-
+instance NFData SimpleItem where
+  rnf (SimpleItem x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13
+#ifndef DISABLE_GUI
+        x14
+#endif
+      ) = rnf x1 `seq` rnf x2 `seq` rnf x3 `seq` rnf x4 `seq` rnf x5 `seq` rnf x6
+                 `seq` rnf x7 `seq` rnf x8 `seq` rnf x9 `seq` rnf x10 `seq` rnf x11
+                 `seq` rnf x11 `seq` rnf x12 `seq` rnf x13
+#ifndef DISABLE_GUI
+                 `seq` rnf x14
+#endif
+-}
 \end{code}
 
