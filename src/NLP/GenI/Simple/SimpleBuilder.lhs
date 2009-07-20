@@ -37,10 +37,11 @@ module NLP.GenI.Simple.SimpleBuilder (
    initSimpleBuilder,
    addToAgenda, addToChart,
    genconfig,
+   SimpleGuiItem(..),
+   theTrash,
 
 #ifndef DISABLE_GUI
-   SimpleGuiItem(..),
-   theTrash, unpackResult,
+   unpackResult,
 #endif
    )
 where
@@ -95,13 +96,11 @@ import NLP.GenI.Configuration
 import NLP.GenI.General
  ( BitVector, mapMaybeM, mapTree', geniBug, preTerminals, )
 
-#ifndef DISABLE_GUI
 import NLP.GenI.Btypes ( GType(Other), sortSem, Sem, gnnameIs )
 import NLP.GenI.General ( repList, )
 import NLP.GenI.Tags ( idname,
     ts_synIncomplete, ts_semIncomplete, ts_tbUnificationFailure,
     )
-#endif
 \end{code}
 }
 
@@ -136,9 +135,7 @@ simpleBuilder twophase = B.Builder
 type Agenda = [SimpleItem]
 type AuxAgenda  = [SimpleItem]
 type Chart  = [SimpleItem]
-#ifndef DISABLE_GUI
 type Trash = [SimpleItem]
-#endif
 \end{code}
 
 \subsection{SimpleState and SimpleStatus}
@@ -165,9 +162,7 @@ data SimpleStatus = S
   { theAgenda    :: Agenda
   , theAuxAgenda :: AuxAgenda
   , theChart     :: Chart
-#ifndef DISABLE_GUI
   , theTrash   :: Trash
-#endif
   , theResults :: [SimpleItem]
   , theIafMap  :: IafMap -- for index accessibility filtering
   , tsem       :: BitVector
@@ -243,16 +238,14 @@ data SimpleItem = SimpleItem
  , siPendingTb :: [ TagSite ] -- only for one-phase
  -- how was this item produced?
  , siDerivation :: TagDerivation
-#ifndef DISABLE_GUI
  -- for the debugger only
  , siGuiStuff :: SimpleGuiItem
-#endif
- } deriving (Show)
+ } deriving (Show, Data, Typeable)
 
 instance Show (DL.DList (String, B.UninflectedDisjunction)) where
  show = show . DL.toList
 
-#ifndef DISABLE_GUI
+
 -- | Things whose only use is within the graphical debugger
 data SimpleGuiItem = SimpleGuiItem
  { siHighlight :: [String] -- ^ nodes to highlight
@@ -261,11 +254,13 @@ data SimpleGuiItem = SimpleGuiItem
  , siDiagnostic :: [String]
  , siFullSem :: Sem
  , siIdname  :: String
- } deriving Show
+ } deriving (Show, Data, Typeable)
+
+emptySimpleGuiItem :: SimpleGuiItem
+emptySimpleGuiItem = SimpleGuiItem [] [] [] [] ""
 
 modifyGuiStuff :: (SimpleGuiItem -> SimpleGuiItem) -> SimpleItem -> SimpleItem
 modifyGuiStuff fn i = i { siGuiStuff = fn . siGuiStuff $ i }
-#endif
 
 type ChartId = Integer
 
@@ -277,17 +272,13 @@ instance Replacable SimpleItem where
       , siRoot    = replaceMap s (siRoot i)
       , siFoot    = replaceMap s (siFoot i)
       , siPendingTb = replaceMap s (siPendingTb i)
-#ifndef DISABLE_GUI
       , siGuiStuff = replaceMap s (siGuiStuff i)
-#endif
      }
   replaceOne = replaceOneAsMap
 
-#ifndef DISABLE_GUI
 instance Replacable SimpleGuiItem where
  replaceMap s i = i { siNodes = replaceMap s (siNodes i) }
  replaceOne = replaceOneAsMap
-#endif
 \end{code}
 
 \begin{code}
@@ -334,9 +325,7 @@ initSimpleBuilder twophase input config =
       initS = S{ theAgenda    = []
                , theAuxAgenda = []
                , theChart     = []
-#ifndef DISABLE_GUI
                , theTrash     = []
-#endif
                , theResults   = []
                , semBitMap = bmap
                , tsem      = semToBitVector bmap sem
@@ -373,7 +362,9 @@ initSimpleItem bmap (teRaw,pp) =
   -- note: see comment in initSimpleBuilder re: tb unification
   , siPendingTb = nullAdjNodes
   --
-#ifndef DISABLE_GUI
+#ifdef DISABLE_GUI
+  , siGuiStuff = emptySimpleGuiItem
+#else
   , siGuiStuff = initSimpleGuiItem te
 #endif
   }
