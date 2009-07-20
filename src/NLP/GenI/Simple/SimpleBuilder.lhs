@@ -467,7 +467,7 @@ generateStep_2p' =
      -- do either substitution or adjunction
      res <- if (curStep == Initial)
             then applySubstitution given
-            else liftM2 (++) (sansAdjunction2p given) (applyAdjunction2p given)
+            else liftM2 (++) (applyAdjunction2p given) (sansAdjunction2p given)
 
      -- determine which of the res should go in the agenda
      -- (monadic state) and which should go in the result (res')
