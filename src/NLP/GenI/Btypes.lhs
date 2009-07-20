@@ -475,7 +475,8 @@ making a type class out of it.
 \begin{code}
 class Replacable a where
   replace :: Subst -> a -> a
-  replace = replaceMap
+  replace m | Map.null m = id
+  replace m = replaceMap m
 
   replaceMap :: Map.Map String GeniVal -> a -> a
 
