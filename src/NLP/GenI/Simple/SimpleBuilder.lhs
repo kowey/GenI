@@ -542,11 +542,11 @@ switchToAux = do
         if rootcatfiltered config
         then dpRootFeatFailure2 >--> dpToAgenda
         else dpToAgenda
-  mapM switchFilter compT
+  mapM_ switchFilter compT
   -- toss the syntactically incomplete stuff in the trash
 #ifndef DISABLE_GUI
-  mapM (\t -> addToTrash t ts_synIncomplete) incompT1
-  mapM (\t -> addToTrash t "sem-filtered") incompT2
+  mapM_ (\t -> addToTrash t ts_synIncomplete) incompT1
+  mapM_ (\t -> addToTrash t "sem-filtered") incompT2
 #endif
   return ()
 \end{code}
