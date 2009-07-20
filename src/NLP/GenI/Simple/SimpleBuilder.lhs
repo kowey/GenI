@@ -471,7 +471,7 @@ generateStep_2p' =
 
      -- determine which of the res should go in the agenda
      -- (monadic state) and which should go in the result (res')
-     mapM simpleDispatch_2p res
+     mapM_ simpleDispatch_2p res
      -- put the given into the chart untouched
      if (curStep == Initial)
         then addToChart given
