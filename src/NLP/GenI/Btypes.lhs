@@ -51,7 +51,7 @@ module NLP.GenI.Btypes(
    showFlist, showPairs, showAv,
 
    -- Other functions
-   Replacable(..), replaceOneAsMap,
+   replace, Replacable(..), replaceOneG,
    Collectable(..), Idable(..),
    alphaConvert, alphaConvertById,
    fromGConst, fromGVar,
