@@ -73,7 +73,7 @@ import NLP.GenI.Automaton ( automatonPaths, NFA(..), addTrans )
 import NLP.GenI.Btypes
   ( Ptype(Initial,Auxiliar)
   , GeniVal
-  , replace, replace, Replacable(..), replaceOneG
+  , replace, replace, Replacable(..), replaceOneG, replaceOneAsMap
   , GNode(..), NodeName
   , root, foot
   , plugTree, spliceTree
