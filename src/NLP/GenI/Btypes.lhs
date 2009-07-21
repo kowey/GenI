@@ -188,7 +188,7 @@ type MorphLexEntry = (String,String,Flist)
 \end{code}
 
 % ----------------------------------------------------------------------
-\section{GNode}
+\section{TAG nodes (GNode)}
 % ----------------------------------------------------------------------
 
 \begin{code}
@@ -713,7 +713,7 @@ sortSem = sortBy (\(h1,p1,a1) (h2,p2,a2) -> compare (p1, h1:a1) (p2, h2:a2))
 \end{code}
 
 % --------------------------------------------------------------------
-\subsection{Unification}
+\subsection{Feature structure unification}
 \label{sec:fs_unification}
 % --------------------------------------------------------------------
 
