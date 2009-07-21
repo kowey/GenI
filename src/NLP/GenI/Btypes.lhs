@@ -765,21 +765,17 @@ $\rightarrow$
 \fs{\it cat:np\\ \it case:nom\\ \it number:3\\},
 \end{quotation}
 
-\fnlabel{unifyFeat} is an implementation of feature structure
-unification. It makes the following assumptions:
-
-\begin{itemize}
-\item Features are ordered
-
-\item The Flists do not share variables!!!
-
-      More precisely, if the two Flists have the same variable, they
-      will have the same value. Though this behaviour may not be
-      desirable, we don't really care because we never encounter the
-      situation  (see page \pageref{par:lexSelection}).
-\end{itemize}
-
 \begin{code}
+-- | 'unifyFeat' performs feature structure unification, under the
+--   these assumptions about the input:
+--
+--    * Features are ordered
+--
+--    * The Flists do not share variables (renaming has already
+--      been done.
+--
+--   The features are allowed to have different sets of attributes,
+--   beacuse we use 'alignFeat' to realign them.
 unifyFeat :: (Monad m) => Flist -> Flist -> m (Flist, Subst)
 unifyFeat f1 f2 =
   {-# SCC "unification" #-}
@@ -787,17 +783,12 @@ unifyFeat f1 f2 =
   in att `seq`
      do (res, subst) <- unify val1 val2
         return (zipWith AvPair att res, subst)
-\end{code}
 
-\fnlabel{alignFeat}
-
-The less trivial case is when neither list is empty.  If we are looking
-at the same attribute, then we transfer control to the helper function.
-Otherwise, we remove the (alphabetically) smaller att-val pair, add it
-to the results, and move on.  This only works if the lists are
-alphabetically sorted beforehand!
-
-\begin{code}
+-- | 'alignFeat' is a pre-procesing step used to ensure that feature structures
+--   have the same set of keys.  If a key is missing in one, we copy it to the
+--   other with an anonymous value.
+--
+--   The two feature structures must be sorted for this to work
 alignFeat :: Flist -> Flist -> ([String], [GeniVal], [GeniVal])
 alignFeat [] [] = ([], [], [])
 
