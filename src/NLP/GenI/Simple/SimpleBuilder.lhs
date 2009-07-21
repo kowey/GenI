@@ -263,6 +263,10 @@ instance Biplate (String, B.UninflectedDisjunction) GeniVal where
 instance Biplate (DL.DList (String, B.UninflectedDisjunction)) GeniVal where
   biplate d = plate DL.fromList ||+ (DL.toList d)
 
+instance Replacable (String, B.UninflectedDisjunction) where
+  replaceMap m (s,d) = (s, replaceMap m d)
+  replaceOne = replaceOneAsMap
+
 -- | Things whose only use is within the graphical debugger
 data SimpleGuiItem = SimpleGuiItem
  { siHighlight :: [String] -- ^ nodes to highlight
