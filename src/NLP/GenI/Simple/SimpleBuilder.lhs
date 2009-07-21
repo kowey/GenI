@@ -48,6 +48,7 @@ where
 
 \ignore{
 \begin{code}
+import Control.Arrow ( second )
 import Control.Monad (when, liftM2)
 import Control.Monad.State
   (get, put, modify, gets, runState, execStateT)
@@ -375,7 +376,7 @@ initSimpleItem bmap (teRaw,pp) =
   , siInaccessible = []
   -- for generation sans semantics
   -- , siAdjlist = []
-  , siLeaves  = DL.fromList $ tagLeaves te
+  , siLeaves  = DL.fromList $ map (second (uncurry B.UninflectedDisjunction)) $ tagLeaves te
   , siDerived = tlite
   , siRoot = ncopy.root $ theTree
   , siFoot = if ttype te == Initial then Nothing
@@ -1175,7 +1176,7 @@ listToSentenceAut nodes =
       -- create a transition for each lexeme in the node to the
       -- next state...
       helper :: (Int, B.UninflectedDisjunction) -> B.SentenceAut -> B.SentenceAut
-      helper (current, (lemmas, features)) aut =
+      helper (current, B.UninflectedDisjunction lemmas features) aut =
         foldl' addT aut lemmas
         where
           addT a t = addTrans a current (Just (t, features)) next

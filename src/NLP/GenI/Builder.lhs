@@ -66,7 +66,7 @@ import NLP.GenI.General (geniBug, BitVector, multiGroupByFM, fst3, snd3, thd3)
 import NLP.GenI.Btypes
   ( ILexEntry, SemInput, Sem, Pred, showPred, showSem,
     AvPair(..), Flist, gtype, GType(Subs, Foot),
-    Collectable(collect), alphaConvertById,
+    Replacable(..), Collectable(collect), alphaConvertById,
     GeniVal(GConst)
   )
 import NLP.GenI.Polarity  (PolResult, buildAutomaton, detectPolPaths)
@@ -138,8 +138,19 @@ only requirement being that each one, naturally enough, is unique.
 \begin{code}
 type UninflectedWord        = (String, Flist)
 type UninflectedSentence    = [ UninflectedWord ] 
-type UninflectedDisjunction = ([String], Flist)
 type SentenceAut            = NFA Int UninflectedWord 
+
+data UninflectedDisjunction = UninflectedDisjunction [String] Flist deriving (Show, Data, Typeable)
+
+instance Biplate UninflectedDisjunction GeniVal where
+  biplate (UninflectedDisjunction a v) = plate UninflectedDisjunction |- a ||+ v
+
+instance Replacable UninflectedDisjunction where
+  replaceMap s (UninflectedDisjunction a v) = {-# SCC "replaceMap" #-} UninflectedDisjunction a (replaceMap s v)
+  replaceOne s (UninflectedDisjunction a v) = {-# SCC "replaceOne" #-} UninflectedDisjunction a (replaceOne s v)
+
+instance Collectable UninflectedDisjunction where
+  collect (UninflectedDisjunction _ b) = collect b
 \end{code}
 
 \section{BuilderState}
