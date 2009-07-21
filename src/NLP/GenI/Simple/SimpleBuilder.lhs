@@ -40,9 +40,7 @@ module NLP.GenI.Simple.SimpleBuilder (
    SimpleGuiItem(..),
    theTrash,
 
-#ifndef DISABLE_GUI
    unpackResult,
-#endif
    )
 where
 \end{code}
