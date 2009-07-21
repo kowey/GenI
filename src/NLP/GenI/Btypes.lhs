@@ -909,19 +909,20 @@ prop_unify_self x =
   (all qc_not_empty_GConst) x ==>
     case unify x x of
     Nothing  -> False
-    Just unf -> (fst unf == x)
+    Just unf -> fst unf == x
 \end{code}
 
-Unifying something with only anonymous variables should succeed.
+Unifying something with only anonymous variables should succeed and return
+the same result.
 
 \begin{code}
 prop_unify_anon :: [GeniVal] -> Bool
 prop_unify_anon x =
-  case (unify x y) of
+  case unify x y of
     Nothing  -> False
-    Just unf -> (fst unf == x)
+    Just unf -> fst unf == x
   where --
-    y  = take (length x) $ repeat GAnon
+    y  = replicate (length x) GAnon
 \end{code}
 
 Unification should be symmetrical.  We can't guarantee these if there
