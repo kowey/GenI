@@ -552,11 +552,16 @@ substitution on
 
 \begin{code}
 instance Replacable GeniVal where
-  replaceMap m v@(GVar v_) = {-# SCC "replaceMap" #-} Map.findWithDefault v v_ m
-  replaceMap _ v = {-# SCC "replaceMap" #-} v
+  replaceMap = replaceMapG
+  replaceOne = replaceOneG
 
-  replaceOne (s1, s2) (GVar v_) | v_ == s1 = {-# SCC "replaceOne" #-} s2
-  replaceOne _ v = {-# SCC "replaceOne" #-} v
+replaceMapG :: Subst -> GeniVal -> GeniVal
+replaceMapG m v@(GVar v_) = {-# SCC "replaceMapG" #-} Map.findWithDefault v v_ m
+replaceMapG _ v = {-# SCC "replaceMapG" #-} v
+
+replaceOneG :: (String, GeniVal) -> GeniVal -> GeniVal
+replaceOneG (s1, s2) (GVar v_) | v_ == s1 = {-# SCC "replaceOneG" #-} s2
+replaceOneG _ v = {-# SCC "replaceOneG" #-} v
 \end{code}
 
 Substitution on list consists of performing substitution on
