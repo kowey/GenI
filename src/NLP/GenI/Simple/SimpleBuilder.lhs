@@ -795,13 +795,7 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
   (anf_down, subst2)  <- unifyFeat (replace subst1 f_down) (replace subst1 an_down)
   let -- combined substitution list and success condition
       subst12 = mergeSubst subst1 subst2
-      -- the result of unifying the t1 root and the t2 an
-      anr = TagSite r_name (replace subst2 anr_up') r_down rOrigin
   let anf_up = replace subst12 f_up
-      -- the new adjunction nodes
-      auxlite = delete r $ siAdjnodes aItem
-      newadjnodes = anr : (atail ++ auxlite)
-      --
 #ifdef DISABLE_GUI
       aItem2 = aItem
 #else
@@ -818,7 +812,7 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
 #endif
       rawCombined =
         combineSimpleItems [r_name, an_name] aItem2 $ pItem
-               { siAdjnodes = newadjnodes
+               { siAdjnodes = atail ++ siAdjnodes aItem
                , siLeaves  = siLeaves aItem ++ siLeaves pItem
                , siDerived = spliceTree f_name (siDerived aItem) an_name (siDerived pItem)
                , siDerivation = addToDerivation 'a' (aItem,rOrigin) (pItem,nOrigin,an_name)
