@@ -521,11 +521,11 @@ appears all over the place in GenI.  So we try to smooth out its use by
 making a type class out of it.
 
 \begin{code}
-class Replacable a where
-  replace :: Subst -> a -> a
-  replace m | Map.null m = id
-  replace m = replaceMap m
+replace :: Biplate a GeniVal => Subst -> a -> a
+replace m | Map.null m = id
+replace m = transformBi (replaceMapG m)
 
+class Replacable a where
   replaceMap :: Map.Map String GeniVal -> a -> a
 
   replaceOne :: (String,GeniVal) -> a -> a
