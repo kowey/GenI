@@ -62,7 +62,7 @@ import Data.Tree
 import NLP.GenI.Btypes
   ( unify, collect
   , Flist
-  , Replacable(..), Subst
+  , replace, Replacable(..), Subst
   , GNode(..), GType(Subs, Foot, Other)
   , GeniVal(GVar), fromGVar
   , Ptype(Auxiliar)

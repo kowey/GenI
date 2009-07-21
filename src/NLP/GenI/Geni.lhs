@@ -69,7 +69,7 @@ import NLP.GenI.General(filterTree, repAllNode,
 
 import NLP.GenI.Btypes
   (Macros, MTtree, ILexEntry, Lexicon,
-   Replacable(..),
+   replace, Replacable(..),
    Sem, SemInput, TestCase(..), sortSem, subsumeSem, params,
    GeniVal(GConst), fromGVar, AvPair(..),
    GNode(ganchor, gnname, gup, gdown, gaconstr, gtype, gorigin), Flist,

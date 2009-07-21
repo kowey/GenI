@@ -94,7 +94,7 @@ import qualified Data.Set as Set
 import NLP.GenI.Automaton
 import NLP.GenI.Btypes(Pred, SemInput, Sem, Flist, AvPair(..), showAv,
               GeniVal(..), fromGConst, isConst,
-              Replacable(..),
+              replace, Replacable(..),
               emptyPred, Ptype(Initial), 
               showFlist, showSem, sortSem,
               GNode, root, gup, gdown, gtype, GType(Subs),
