@@ -74,7 +74,8 @@ import NLP.GenI.Statistics (Statistics)
 import NLP.GenI.Automaton ( automatonPaths, NFA(..), addTrans )
 import NLP.GenI.Btypes
   ( Ptype(Initial,Auxiliar)
-  , Replacable(..), replaceOneAsMap
+  , GeniVal
+  , replace, replace, Replacable(..), replaceOneG
   , GNode(..), NodeName
   , root, foot
   , plugTree, spliceTree
