@@ -19,9 +19,10 @@ module NLP.GenI.PolarityTypes where
 
 import Data.List ( break )
 import qualified Data.Set as Set
+import Data.Generics ( Data )
 import Data.Typeable ( Typeable )
 
-newtype PolarityKey = PolarityKey { fromPolarityKey :: String } deriving (Show, Eq, Ord, Typeable)
+newtype PolarityKey = PolarityKey { fromPolarityKey :: String } deriving (Show, Eq, Ord, Data, Typeable)
 
 -- | 'PolarityAttr' is something you want to perform detect polarities on.
 data PolarityAttr = SimplePolarityAttr { spkAtt :: String }
