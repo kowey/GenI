@@ -191,17 +191,13 @@ type MorphLexEntry = (String,String,Flist)
 \section{GNode}
 % ----------------------------------------------------------------------
 
-A GNode is a single node of a syntactic tree. It has a name (gnname),
-top and bottom feature structures (gup, gdown), a lexeme
-(ganchor, glexeme: False and empty string if n/a),  and some flags
-information (gtype, gaconstr).
-
 \begin{code}
+-- | A single node of a TAG tree.
 data GNode = GN{gnname :: NodeName,
-                gup    :: Flist,
-                gdown  :: Flist,
-                ganchor  :: Bool,
-                glexeme  :: [String],
+                gup    :: Flist,      -- ^ top feature structure
+                gdown  :: Flist,      -- ^ bottom feature structure
+                ganchor  :: Bool,     -- ^ @False@ for na nodes
+                glexeme  :: [String], -- ^ @[]@ for na nodes
                 gtype    :: GType,
                 gaconstr :: Bool,
                 gorigin  :: String  -- ^ for TAG, this would be the elementary tree
