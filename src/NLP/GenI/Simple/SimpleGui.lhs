@@ -116,7 +116,7 @@ simpleDebuggerTab twophase x1 (pa@x2) =
 stToGraphviz :: SimpleStatus -> [(Maybe SimpleItem, String)]
 stToGraphviz st = 
   let agenda    = section "AGENDA"    $ theAgenda    st
-      auxAgenda = section "AUXILIARY" $ theHoldingPen st
+      auxAgenda = section "HOLDING"   $ theHoldingPen st
       trash     = section "TRASH"     $ theTrash     st
       chart     = section "CHART"     $ theChart     st
       results   = section "RESULTS"   $ theResults   st
