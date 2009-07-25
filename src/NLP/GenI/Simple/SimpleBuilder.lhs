@@ -33,7 +33,7 @@ module NLP.GenI.Simple.SimpleBuilder (
 
    -- From SimpleStatus
    simpleBuilder_1p, simpleBuilder_2p, simpleBuilder,
-   theAgenda, theAuxAgenda, theChart, theResults,
+   theAgenda, theHoldingPen, theChart, theResults,
    initSimpleBuilder,
    addToAgenda, addToChart,
    genconfig,
@@ -172,7 +172,7 @@ type SimpleState a = B.BuilderState SimpleStatus a
 
 data SimpleStatus = S
   { theAgenda    :: Agenda
-  , theAuxAgenda :: AuxAgenda
+  , theHoldingPen :: AuxAgenda
   , theChart     :: Chart
   , theTrash   :: Trash
   , theResults :: [SimpleItem]
@@ -205,7 +205,7 @@ addToAuxAgenda te = do
   let counter = gencounter s + 1
       te2 = te { siId = counter }
   put s{gencounter = counter,
-        theAuxAgenda = te2 : theAuxAgenda s }
+        theHoldingPen = te2 : theHoldingPen s }
 
 addToChart :: SimpleItem -> SimpleState ()
 addToChart te = do
@@ -355,7 +355,7 @@ initSimpleBuilder twophase input config =
       initialDp = dpTbFailure >--> simpleDp
       --
       initS = S{ theAgenda    = []
-               , theAuxAgenda = []
+               , theHoldingPen = []
                , theChart     = []
                , theTrash     = []
                , theResults   = []
@@ -555,7 +555,7 @@ switchToAux = do
       res1@(compT1, incompT1) =
          partition (null.siSubstnodes) initialT
       --
-      auxAgenda = theAuxAgenda st
+      auxAgenda = theHoldingPen st
       (compT2, incompT2) =
         if semfiltered config
         then semfilter (tsem st) auxAgenda compT1
@@ -563,7 +563,7 @@ switchToAux = do
       --
       compT = compT2
   put st{ theAgenda = []
-        , theAuxAgenda = []
+        , theHoldingPen = []
         , theChart = auxAgenda
         , step = AdjunctionPhase }
   -- the root cat filter by Claire

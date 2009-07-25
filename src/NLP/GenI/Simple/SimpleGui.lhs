@@ -50,7 +50,7 @@ import NLP.GenI.Polarity
 import NLP.GenI.Simple.SimpleBuilder
   ( simpleBuilder, SimpleStatus, SimpleItem(..), SimpleGuiItem(..)
   , unpackResult
-  , theResults, theAgenda, theAuxAgenda, theChart, theTrash)
+  , theResults, theAgenda, theHoldingPen, theChart, theTrash)
 \end{code}
 }
 
@@ -116,7 +116,7 @@ simpleDebuggerTab twophase x1 (pa@x2) =
 stToGraphviz :: SimpleStatus -> [(Maybe SimpleItem, String)]
 stToGraphviz st = 
   let agenda    = section "AGENDA"    $ theAgenda    st
-      auxAgenda = section "AUXILIARY" $ theAuxAgenda st
+      auxAgenda = section "AUXILIARY" $ theHoldingPen st
       trash     = section "TRASH"     $ theTrash     st
       chart     = section "CHART"     $ theChart     st
       results   = section "RESULTS"   $ theResults   st
