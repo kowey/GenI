@@ -209,7 +209,7 @@ preInit input config =
 -- | Equivalent to 'id' unless the input contains an empty or uninstatiated
 --   semantics
 unlessEmptySem :: Input -> Params -> a -> a
-unlessEmptySem input config =
+unlessEmptySem input _ =
  let (cands,_) = unzip $ inCands input
      nullSemCands   = [ idname t | t <- cands, (null.tsemantics) t ]
      unInstSemCands = [ idname t | t <- cands, not $ Set.null $ collect (tsemantics t) Set.empty ]
