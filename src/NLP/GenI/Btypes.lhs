@@ -859,6 +859,7 @@ unifyFeat f1 f2 =
 alignFeat :: Flist -> Flist -> [(String,GeniVal,GeniVal)]
 alignFeat f1 f2 = alignFeatH f1 f2 []
 
+alignFeatH :: Flist -> Flist -> [(String,GeniVal,GeniVal)] -> [(String,GeniVal,GeniVal)]
 alignFeatH [] [] acc = reverse acc
 alignFeatH [] (AvPair f v :x) acc = alignFeatH [] x ((f,GAnon,v) : acc)
 alignFeatH x [] acc = alignFeatH [] x acc
