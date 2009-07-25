@@ -68,9 +68,6 @@ import NLP.GenI.GuiHelper
 
 import NLP.GenI.Polarity
 import NLP.GenI.Simple.SimpleGui
-import NLP.GenI.CkyEarley.CkyGui
-
-
 \end{code}
 }
 
@@ -152,8 +149,6 @@ mainGui pstRef
                         [ selection := case builderType config of
                                        SimpleBuilder -> 0
                                        SimpleOnePhaseBuilder -> 1
-                                       CkyBuilder    -> 2
-                                       EarleyBuilder -> 3
                                        NullBuilder   -> 0 ]
        set algoChoiceBox [ on select := toggleAlgo pstRef algoChoiceBox ]
        polChk <- optCheckBox Polarised pstRef f
@@ -562,8 +557,6 @@ doGenerate f pstRef sembox useDebugger pauseOnLex =
           NullBuilder   -> error "No gui available for NullBuilder"
           SimpleBuilder         -> a simpleGui_2p
           SimpleOnePhaseBuilder -> a simpleGui_1p
-          CkyBuilder    -> a ckyGui
-          EarleyBuilder -> a earleyGui
     --
     let doDebugger bg = debugGui bg pstRef pauseOnLex
         doResults  bg = resultsGui bg pstRef

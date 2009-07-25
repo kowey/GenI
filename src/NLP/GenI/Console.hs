@@ -50,7 +50,6 @@ import NLP.GenI.Configuration
   , builderType , BuilderType(..)
   )
 import qualified NLP.GenI.Builder as B
-import NLP.GenI.CkyEarley.CkyBuilder
 import NLP.GenI.Simple.SimpleBuilder
 import NLP.GenI.Statistics ( showFinalStats, Statistics )
 import NLP.GenI.Test (runTests)
@@ -168,8 +167,6 @@ runOnSemInput pstRef args semInput =
                             NullBuilder   -> helper B.nullBuilder
                             SimpleBuilder -> helper simpleBuilder_2p
                             SimpleOnePhaseBuilder -> helper simpleBuilder_1p
-                            CkyBuilder    -> helper ckyBuilder
-                            EarleyBuilder -> helper earleyBuilder
      let results = sort results'
      -- create directory if need be
      case args of

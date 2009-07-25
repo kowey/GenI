@@ -595,16 +595,13 @@ parseFlagWithParsec description p str =
 
 \begin{code}
 data BuilderType = NullBuilder |
-                   SimpleBuilder | SimpleOnePhaseBuilder |
-                   CkyBuilder | EarleyBuilder
+                   SimpleBuilder | SimpleOnePhaseBuilder
      deriving (Eq, Typeable)
 
 instance Show BuilderType where
   show NullBuilder           = "null"
   show SimpleBuilder         = "simple-2p"
   show SimpleOnePhaseBuilder = "simple-1p"
-  show CkyBuilder            = "CKY"
-  show EarleyBuilder         = "Earley"
 
 optionsForBuilder :: [OptDescr Flag]
 optionsForBuilder =
@@ -615,13 +612,11 @@ optionsForBuilder =
 mainBuilderTypes :: [BuilderType]
 mainBuilderTypes =
  [ SimpleBuilder, SimpleOnePhaseBuilder
- , CkyBuilder, EarleyBuilder]
+ ]
 
 -- | Hint: compose with (map toLower) to make it case-insensitive
 mReadBuilderType :: String -> Maybe BuilderType
 mReadBuilderType "null"      = Just NullBuilder
-mReadBuilderType "cky"       = Just CkyBuilder
-mReadBuilderType "earley"    = Just EarleyBuilder
 mReadBuilderType "simple"    = Just SimpleBuilder
 mReadBuilderType "simple-2p" = Just SimpleBuilder
 mReadBuilderType "simple-1p" = Just SimpleOnePhaseBuilder
