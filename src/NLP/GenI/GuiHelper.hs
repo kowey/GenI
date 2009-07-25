@@ -67,7 +67,7 @@ import NLP.GenI.GraphvizShowPolarity ()
 -- | 'candidateGui' displays the lexically selected items, grouped by the
 --   semantics they subsume.
 candidateGui :: ProgState
-             -> (Window a)
+             -> Window a
              -> [TagElem]
              -> [Pred]      -- ^ nothing lexically selected
              -> [ILexEntry] -- ^ lexically selected but not anchored
