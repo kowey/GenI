@@ -428,7 +428,7 @@ instance Biplate AvPair GeniVal where
   biplate (AvPair a v) = plate AvPair |- a |* v
 
 instance Biplate Flist GeniVal where
-  biplate = uniplateOnList biplate
+  biplate x = plate id ||+ x
 \end{code}
 
 \subsection{GeniVal}
@@ -443,7 +443,7 @@ instance Uniplate GeniVal where
   uniplate x = (Zero, \Zero -> x)
 
 instance Biplate [GeniVal] GeniVal where
-  biplate = uniplateOnList uniplate
+  biplate x = plate id ||* x
 
 instance Show GeniVal where
   show (GConst x) = concat $ intersperse "|" x
@@ -523,7 +523,7 @@ making a type class out of it.
 \begin{code}
 replace :: Biplate a GeniVal => Subst -> a -> a
 replace m | Map.null m = id
-replace m = transformBi (replaceMapG m)
+replace m = descendBi (replaceMapG m)
 
 class Replacable a where
   replaceMap :: Map.Map String GeniVal -> a -> a
@@ -661,7 +661,7 @@ instance Biplate (Maybe Sem) GeniVal where
   biplate Nothing  = plate Nothing
 
 instance Biplate Sem GeniVal where
-  biplate = uniplateOnList biplate
+  biplate x = plate id ||+ x
 
 data TestCase = TestCase
        { tcName :: String
