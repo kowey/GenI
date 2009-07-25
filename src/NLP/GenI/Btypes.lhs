@@ -426,9 +426,6 @@ data AvPair  = AvPair { avAtt :: String
 
 instance Biplate AvPair GeniVal where
   biplate (AvPair a v) = plate AvPair |- a |* v
-
-instance Biplate Flist GeniVal where
-  biplate x = plate id ||+ x
 \end{code}
 
 \subsection{GeniVal}
@@ -441,9 +438,6 @@ data GeniVal = GConst [String]
 
 instance Uniplate GeniVal where
   uniplate x = (Zero, \Zero -> x)
-
-instance Biplate [GeniVal] GeniVal where
-  biplate x = plate id ||* x
 
 instance Show GeniVal where
   show (GConst x) = concat $ intersperse "|" x
@@ -659,9 +653,6 @@ instance Biplate Pred GeniVal where
 instance Biplate (Maybe Sem) GeniVal where
   biplate (Just s) = plate Just ||+ s
   biplate Nothing  = plate Nothing
-
-instance Biplate Sem GeniVal where
-  biplate x = plate id ||+ x
 
 data TestCase = TestCase
        { tcName :: String
