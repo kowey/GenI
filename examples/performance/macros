@@ -3,6 +3,21 @@ n1 [cat:x]![idx:?X] {
  n2 anchor [cat:y]![]
 }
 
+% for the substitution tests: copy idx to top so that we can have
+% unification failures early on
+init2:x(?X) initial
+n1 [cat:x idx:?X]![] {
+ n2 anchor [cat:y]![]
+}
+
+
+% see init2
+sub2:x(?X ?Y) initial
+n1 [cat:x idx:?Y]![] {
+ n2 anchor [cat:y]![]
+ n3 type:subst [cat:x idx:?X]![]
+}
+
 aux:x(?X ?Y) auxiliary
 n1 [cat:x]![idx:?Y] {
  n2 anchor [cat:y]![]

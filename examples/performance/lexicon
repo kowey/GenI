@@ -1,5 +1,11 @@
 i init(?I)
 semantics:[init(?I)]
 
+i init2(?I)
+semantics:[init2(?I)]
+
 a aux(?I ?J)
-semantics:[next(?I ?J)]
+semantics:[adj(?I ?J)]
+
+s sub2(?I ?J)
+semantics:[sub(?I ?J)]
