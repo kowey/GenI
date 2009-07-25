@@ -74,7 +74,7 @@ import NLP.GenI.Automaton ( automatonPaths, NFA(..), addTrans )
 import NLP.GenI.Btypes
   ( Ptype(Initial,Auxiliar)
   , GeniVal
-  , replace, replace, Replacable(..), replaceOneG, replaceOneAsMap
+  , replace, DescendGeniVal(..)
   , GNode(..), NodeName
   , root, foot
   , plugTree, spliceTree
@@ -271,9 +271,8 @@ instance Biplate (String, B.UninflectedDisjunction) GeniVal where
 instance Biplate (DL.DList (String, B.UninflectedDisjunction)) GeniVal where
   biplate d = plate DL.fromList ||+ (DL.toList d)
 
-instance Replacable (String, B.UninflectedDisjunction) where
-  replaceMap m (s,d) = (s, replaceMap m d)
-  replaceOne = replaceOneAsMap
+instance DescendGeniVal (String, B.UninflectedDisjunction) where
+  descendGeniVal m (s,d) = (s, descendGeniVal m d)
 
 -- | Things whose only use is within the graphical debugger
 data SimpleGuiItem = SimpleGuiItem
@@ -299,21 +298,19 @@ modifyGuiStuff fn i = i { siGuiStuff = fn . siGuiStuff $ i }
 
 type ChartId = Integer
 
-instance Replacable SimpleItem where
-  replaceMap s i = s `seq` i `seq`
-    i { siSubstnodes = replaceMap s (siSubstnodes i)
-      , siAdjnodes   = replaceMap s (siAdjnodes i)
-      , siLeaves  = replaceMap s (siLeaves i)
-      , siRoot    = replaceMap s (siRoot i)
-      , siFoot    = replaceMap s (siFoot i)
-      , siPendingTb = replaceMap s (siPendingTb i)
-      , siGuiStuff = replaceMap s (siGuiStuff i)
+instance DescendGeniVal SimpleItem where
+  descendGeniVal s i = s `seq` i `seq`
+    i { siSubstnodes = descendGeniVal s (siSubstnodes i)
+      , siAdjnodes   = descendGeniVal s (siAdjnodes i)
+      , siLeaves  = descendGeniVal s (siLeaves i)
+      , siRoot    = descendGeniVal s (siRoot i)
+      , siFoot    = descendGeniVal s (siFoot i)
+      , siPendingTb = descendGeniVal s (siPendingTb i)
+      , siGuiStuff = descendGeniVal s (siGuiStuff i)
      }
-  replaceOne = replaceOneAsMap
 
-instance Replacable SimpleGuiItem where
- replaceMap s i = i { siNodes = replaceMap s (siNodes i) }
- replaceOne = replaceOneAsMap
+instance DescendGeniVal SimpleGuiItem where
+ descendGeniVal s i = i { siNodes = descendGeniVal s (siNodes i) }
 \end{code}
 
 \begin{code}

@@ -51,7 +51,7 @@ module NLP.GenI.Btypes(
    showFlist, showPairs, showAv,
 
    -- Other functions
-   replace, Replacable(..), replaceOneG, replaceOneAsMap, replaceList,
+   replace, DescendGeniVal(..), replaceList,
    Collectable(..), Idable(..),
    alphaConvert, alphaConvertById,
    fromGConst, fromGVar,
@@ -65,24 +65,21 @@ module NLP.GenI.Btypes(
 
 
 -- import Debug.Trace -- for test stuff
-import Control.Monad (liftM)
 import Data.List
-import Data.Maybe (fromMaybe, isJust, mapMaybe)
+import Data.Maybe ( mapMaybe )
 import Data.Function ( on )
 import Data.Generics (Data)
 import Data.Typeable (Typeable)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Tree
-import qualified Data.DList as DL
-import Test.QuickCheck hiding (collect) -- needed for testing via ghci
 
 import Data.Generics.Biplate
 import Data.Generics.PlateDirect
 
-import Control.Parallel.Strategies
+import NLP.GenI.General(filterTree, listRepNode, snd3, geniBug)
+import NLP.GenI.GeniVal
 
-import NLP.GenI.General(map', filterTree, listRepNode, snd3, geniBug)
 --instance Show (IO()) where
 --  show _ = ""
 \end{code}
@@ -129,13 +126,12 @@ instance Biplate (Ttree GNode) GeniVal where
               |+ zsem |- x4
               |+ zt
 
-instance (Replacable a) => Replacable (Ttree a) where
-  replaceMap s mt =
-    mt { params = replaceMap s (params mt)
-       , tree   = replaceMap s (tree mt)
-       , pinterface  = replaceMap s (pinterface mt)
-       , psemantics = replaceMap s (psemantics mt) }
-  replaceOne = replaceOneAsMap
+instance DescendGeniVal (Ttree GNode) where
+  descendGeniVal s mt =
+    mt { params = descendGeniVal s (params mt)
+       , tree   = descendGeniVal s (tree mt)
+       , pinterface  = descendGeniVal s (pinterface mt)
+       , psemantics = descendGeniVal s (psemantics mt) }
 
 instance (Collectable a) => Collectable (Ttree a) where
   collect mt = (collect $ params mt) . (collect $ tree mt) .
@@ -182,13 +178,12 @@ instance Biplate ILexEntry GeniVal where
               ||+ zeq  |- x3
               ||+ zsem |- x4
 
-instance Replacable ILexEntry where
-  replaceMap s i =
-    i { iinterface  = replaceMap s (iinterface i)
-      , iequations  = replaceMap s (iequations i)
-      , isemantics  = replaceMap s (isemantics i)
-      , iparams = replaceMap s (iparams i) }
-  replaceOne = replaceOneAsMap
+instance DescendGeniVal ILexEntry where
+  descendGeniVal s i =
+    i { iinterface  = descendGeniVal s (iinterface i)
+      , iequations  = descendGeniVal s (iequations i)
+      , isemantics  = descendGeniVal s (isemantics i)
+      , iparams = descendGeniVal s (iparams i) }
 
 instance Collectable ILexEntry where
   collect l = (collect $ iinterface l) . (collect $ iparams l) .
@@ -313,24 +308,15 @@ A Replacement on a GNode consists of replacements on its top and bottom
 feature structures
 
 \begin{code}
-instance Replacable GNode where
-  replaceOne s gn =
-    gn { gup = replaceOne s (gup gn)
-       , gdown = replaceOne s (gdown gn) }
-  replaceMap s gn =
-    gn { gup = replaceMap s (gup gn)
-       , gdown = replaceMap s (gdown gn) }
+instance DescendGeniVal GNode where
+  descendGeniVal s gn =
+    gn { gup = descendGeniVal s (gup gn)
+       , gdown = descendGeniVal s (gdown gn) }
 \end{code}
 
 % ----------------------------------------------------------------------
 \section{Tree manipulation}
 % ----------------------------------------------------------------------
-
-\begin{code}
-instance (Replacable a) => Replacable (Tree a) where
-  replaceOne s t = fmap (replaceOne s) t
-  replaceMap s t = fmap (replaceMap s) t
-\end{code}
 
 \begin{code}
 root :: Tree a -> a
@@ -428,45 +414,6 @@ instance Biplate AvPair GeniVal where
   biplate (AvPair a v) = plate AvPair |- a |* v
 \end{code}
 
-\subsection{GeniVal}
-
-\begin{code}
-data GeniVal = GConst [String]
-             | GVar   String
-             | GAnon
-  deriving (Eq,Ord, Data, Typeable)
-
-instance Uniplate GeniVal where
-  uniplate x = (Zero, \Zero -> x)
-
-instance Show GeniVal where
-  show (GConst x) = concat $ intersperse "|" x
-  show (GVar x)   = '?':x
-  show GAnon      = "?_"
-
-isConst :: GeniVal -> Bool
-isConst (GConst _) = True
-isConst _ = False
-
-isVar :: GeniVal -> Bool
-isVar (GVar _) = True
-isVar _        = False
-
-isAnon :: GeniVal -> Bool
-isAnon GAnon = True
-isAnon _     = False
-
--- | (assumes that it's a GConst!)
-fromGConst :: GeniVal -> [String]
-fromGConst (GConst x) = x
-fromGConst x = error ("fromGConst on " ++ show x)
-
--- | (assumes that it's a GVar!)
-fromGVar :: GeniVal -> String
-fromGVar (GVar x) = x
-fromGVar x = error ("fromGVar on " ++ show x)
-\end{code}
-
 \subsection{Collectable}
 
 A Collectable is something which can return its variables as a set.
@@ -506,7 +453,7 @@ instance Collectable GNode where
   collect n = (collect $ gdown n) . (collect $ gup n)
 \end{code}
 
-\subsection{Replacable}
+\subsection{DescendGeniVal}
 \label{sec:replacable}
 \label{sec:replacements}
 
@@ -515,47 +462,7 @@ appears all over the place in GenI.  So we try to smooth out its use by
 making a type class out of it.
 
 \begin{code}
-replace :: Biplate a GeniVal => Subst -> a -> a
-replace m | Map.null m = id
-replace m = descendBi (replaceMapG m)
 
--- | Here it is safe to say (X -> Y; Y -> Z) because this would be crushed
---   down into a final value of (X -> Z; Y -> Z)
-replaceList :: Replacable a => [(String,GeniVal)] -> a -> a
-replaceList = replaceMap . foldl' update Map.empty
-  where
-   update m (s1,s2) = Map.insert s1 s2 $ Map.map (replaceOne (s1,s2)) m
-
-class Replacable a where
-  replaceMap :: Map.Map String GeniVal -> a -> a
-
-  replaceOne :: (String,GeniVal) -> a -> a
-
--- | Default implementation for replaceOne but not a good idea for the
---   core stuff; which is why it is not a typeclass default
-replaceOneAsMap :: Replacable a => (String, GeniVal) -> a -> a
-replaceOneAsMap s = replaceMap (uncurry Map.singleton s)
-
-instance (Replacable a => Replacable (Maybe a)) where
-  replaceMap s = liftM (replaceMap s)
-  replaceOne s = liftM (replaceOne s)
-\end{code}
-
-GeniVal is probably the simplest thing you would one to apply a
-substitution on
-
-\begin{code}
-instance Replacable GeniVal where
-  replaceMap = replaceMapG
-  replaceOne = replaceOneG
-
-replaceMapG :: Subst -> GeniVal -> GeniVal
-replaceMapG m v@(GVar v_) = {-# SCC "replaceMapG" #-} Map.findWithDefault v v_ m
-replaceMapG _ v = {-# SCC "replaceMapG" #-} v
-
-replaceOneG :: (String, GeniVal) -> GeniVal -> GeniVal
-replaceOneG (s1, s2) (GVar v_) | v_ == s1 = {-# SCC "replaceOneG" #-} s2
-replaceOneG _ v = {-# SCC "replaceOneG" #-} v
 \end{code}
 
 Substitution on list consists of performing substitution on
@@ -563,27 +470,17 @@ each item.  Each item, is independent of the other,
 of course.
 
 \begin{code}
-instance (Replacable a => Replacable [a]) where
-  replaceMap s = {-# SCC "replaceMap" #-} map' (replaceMap s)
-  replaceOne s = {-# SCC "replaceOne" #-} map' (replaceOne s)
+instance DescendGeniVal a => DescendGeniVal (Map.Map k a) where
+  descendGeniVal s = {-# SCC "descendGeniVal" #-} Map.map (descendGeniVal s)
 
--- should perhaps try a strict version of this
-instance Replacable a => Replacable (DL.DList a) where
-  replaceMap s = {-# SCC "replaceMap" #-} DL.map (replaceMap s)
-  replaceOne s = {-# SCC "replaceOne" #-} DL.map (replaceOne s)
-\end{code}
+instance DescendGeniVal AvPair where
+  descendGeniVal s (AvPair a v) = {-# SCC "descendGeniVal" #-} AvPair a (descendGeniVal s v)
 
-Substitution on an attribute/value pairs consists of ignoring
-the attribute and performing substitution on the value.
+instance DescendGeniVal a => DescendGeniVal (String, a) where
+  descendGeniVal s (n,v) = {-# SCC "descendGeniVal" #-} (n,descendGeniVal s v)
 
-\begin{code}
-instance Replacable AvPair where
-  replaceMap s (AvPair a v) = {-# SCC "replaceMap" #-} AvPair a (replaceMap s v)
-  replaceOne s (AvPair a v) = {-# SCC "replaceOne" #-} AvPair a (replaceOne s v)
-
-instance Replacable (String, ([String], Flist)) where
-  replaceMap s (n,(a,v)) = {-# SCC "replaceMap" #-} (n,(a, replaceMap s v))
-  replaceOne s (n,(a,v)) = {-# SCC "replaceOne" #-} (n,(a, replaceOne s v))
+instance DescendGeniVal ([String], Flist) where
+  descendGeniVal s (a,v) = {-# SCC "descendGeniVal" #-} (a, descendGeniVal s v)
 \end{code}
 
 \subsection{Idable}
@@ -604,16 +501,16 @@ to all variables in an object.  See section \ref{sec:fs_unification} for
 why we want this.
 
 \begin{code}
-alphaConvertById :: (Collectable a, Replacable a, Idable a) => a -> a
+alphaConvertById :: (Collectable a, DescendGeniVal a, Idable a) => a -> a
 alphaConvertById x = {-# SCC "alphaConvertById" #-}
   alphaConvert ('-' : (show . idOf $ x)) x
 
-alphaConvert :: (Collectable a, Replacable a) => String -> a -> a
+alphaConvert :: (Collectable a, DescendGeniVal a) => String -> a -> a
 alphaConvert suffix x = {-# SCC "alphaConvert" #-}
   let vars   = Set.elems $ collect x Set.empty
       convert v = GVar (v ++ suffix)
       subst = Map.fromList $ map (\v -> (v, convert v)) vars
-  in replaceMap subst x
+  in replace subst x
 \end{code}
 
 \begin{code}
@@ -645,7 +542,6 @@ type Pred = (GeniVal, GeniVal, [GeniVal])
 type Sem = [Pred]
 type LitConstr = (Pred, [String])
 type SemInput  = (Sem,Flist,[LitConstr])
-type Subst = Map.Map String GeniVal
 
 instance Biplate Pred GeniVal where
   biplate (g1, g2, g3) = plate (,,) |* g1 |* g2 ||* g3
@@ -670,9 +566,8 @@ emptyPred = (GAnon,GAnon,[])
 A replacement on a predicate is just a replacement on its parameters
 
 \begin{code}
-instance Replacable Pred where
-  replaceMap s (h, n, lp) = (replaceMap s h, replaceMap s n, replaceMap s lp)
-  replaceOne s (h, n, lp) = (replaceOne s h, replaceOne s n, replaceOne s lp)
+instance DescendGeniVal Pred where
+  descendGeniVal s (h, n, lp) = (descendGeniVal s h, descendGeniVal s n, descendGeniVal s lp)
 \end{code}
 
 \begin{code}
@@ -834,7 +729,7 @@ $\rightarrow$
 --
 --   The features are allowed to have different sets of attributes,
 --   beacuse we use 'alignFeat' to realign them.
-unifyFeat :: (Monad m) => Flist -> Flist -> m (Flist, Subst)
+unifyFeat :: Monad m => Flist -> Flist -> m (Flist, Subst)
 unifyFeat f1 f2 =
   {-# SCC "unification" #-}
   let (att, val1, val2) = unzip3 $ alignFeat f1 f2
@@ -861,180 +756,4 @@ alignFeatH fs1@(AvPair f1 v1:l1) fs2@(AvPair f2 v2:l2) acc =
      GT -> alignFeatH fs1 l2 ((f2, GAnon, v2) : acc)
 \end{code}
 
-\subsection{Unification}
-
-\fnlabel{unify} performs unification on two lists of GeniVal.  If
-unification succeeds, it returns \verb!Just (r,s)! where \verb!r! is
-the result of unification and \verb!s! is a list of substitutions that this
-unification results in.
-
-Notes:
-\begin{itemize}
-\item there may be multiple results because of disjunction
-\item we need to return \verb!r! because of anonymous variables
-\item the lists need not be same length; we just assume you want
-      the longer of the two
-\end{itemize}
-
-The core unification algorithm follows these rules in order:
-
-\begin{enumerate}
-\item if either h1 or h2 are anonymous, we add the other to the result,
-      and we don't add any replacements.
-\item if h1 is a variable then we replace it by h2,
-      regardless of whether or not h2 is a variable
-\item if h2 is a variable then we replace it by h1
-\item if neither h1 and h2 are variables, but they match, we arbitarily
-      add one of them to the result, but we don't add any replacements.
-\item if neither are variables and they do \emph{not} match, we fail
-\end{enumerate}
-
-\begin{code}
-unify :: (Monad m) => [GeniVal] -> [GeniVal] -> m ([GeniVal], Subst)
-unify [] l2 = {-# SCC "unification" #-} return (l2, Map.empty)
-unify l1 [] = {-# SCC "unification" #-} return (l1, Map.empty)
-unify (h1:t1) (h2:t2) | h1 == h2 = {-# SCC "unification" #-} unifySansRep h1 t1 t2
-unify (GAnon:t1) (h2:t2) = {-# SCC "unification" #-} unifySansRep h2 t1 t2
-unify (h1:t1) (GAnon:t2) = {-# SCC "unification" #-} unifySansRep h1 t1 t2
-unify (h1@(GVar _):t1) (h2:t2) = {-# SCC "unification" #-} unifyWithRep h1 h2 t1 t2
-unify (h1:t1) (h2@(GVar _):t2) = {-# SCC "unification" #-} unifyWithRep h2 h1 t1 t2
--- special cases for efficiency only
-unify ((GConst [_]):_) ((GConst [_]):_) = {-# SCC "unification" #-}
-  fail "unification failure"
--- end special efficiency-only cases
-unify ((GConst h1v):t1) ((GConst h2v):t2) = {-# SCC "unification" #-}
-  case h1v `intersect` h2v of
-  []   -> fail "unification failure"
-  newH -> unifySansRep (GConst newH) t1 t2
-{-# INLINE unifySansRep #-}
-{-# INLINE unifyWithRep #-}
-unifySansRep :: (Monad m) => GeniVal -> [GeniVal] -> [GeniVal] -> m ([GeniVal], Subst)
-unifySansRep x2 t1 t2 = {-# SCC "unification" #-}
- do (res,subst) <- unify t1 t2
-    return (x2:res, subst)
-
-unifyWithRep :: (Monad m) => GeniVal -> GeniVal -> [GeniVal] -> [GeniVal] -> m ([GeniVal], Subst)
-unifyWithRep (GVar h1) x2 t1 t2 = {-# SCC "unification" #-}
- let s = (h1,x2)
-     t1_ = replaceOne s t1
-     t2_ = replaceOne s t2
-     ustep = unify t1_ t2_
- in s `seq` t1_ `seq` t2_ `seq` ustep `seq`
-    (ustep >>= \(res,subst) -> return (x2:res, prependToSubst s subst))
-unifyWithRep _ _ _ _ = geniBug "unification error"
-\end{code}
-
-\begin{code}
--- | Note that the first Subst is assumed to come chronologically
---   before the second one; so merging @{ X -> Y }@ and @{ Y -> 3 }@
---   should give us @{ X -> 3; Y -> 3 }@;
---
---   See 'prependToSubst' for a warning!
-mergeSubst :: Subst -> Subst -> Subst
-mergeSubst sm1 sm2 = Map.foldWithKey (curry prependToSubst) sm2 sm1
-
--- | Add to variable replacement to a 'Subst' that logical comes before
---   the other stuff in it.  So for example, if we have @Y -> foo@
---   and we want to insert @X -> Y@, we notice that, in fact, @Y@ has
---   already been replaced by @foo@, so we add @X -> foo@ instead
---
---   Note that it is undefined if you try to append something like
---   @Y -> foo@ to @Y -> bar@, because that would mean that unification
---   is broken
-prependToSubst :: (String,GeniVal) -> Subst -> Subst
-prependToSubst (v, gr@(GVar r)) sm
-  | isJust $ Map.lookup v sm = geniBug $ "prependToSubst: Eric broke unification.  Prepending " ++ v ++ " twice."
-  | otherwise = Map.insert v gr2 sm
-  where gr2 = fromMaybe gr $ Map.lookup r sm
-prependToSubst (v, gr) sm = Map.insert v gr sm
-\end{code}
-
-\subsubsection{Unification tests} The unification algorithm should satisfy
-the following properties:
-
-Unifying something with itself should always succeed
-
-\begin{code}
-prop_unify_self :: [GeniVal] -> Property
-prop_unify_self x =
-  (all qc_not_empty_GConst) x ==>
-    case unify x x of
-    Nothing  -> False
-    Just unf -> fst unf == x
-\end{code}
-
-Unifying something with only anonymous variables should succeed and return
-the same result.
-
-\begin{code}
-prop_unify_anon :: [GeniVal] -> Bool
-prop_unify_anon x =
-  case unify x y of
-    Nothing  -> False
-    Just unf -> fst unf == x
-  where --
-    y  = replicate (length x) GAnon
-\end{code}
-
-Unification should be symmetrical.  We can't guarantee these if there
-are cases where there are variables in the same place on both sides, so we
-normalise the sides so that this doesn't happen.
-
-\begin{code}
-prop_unify_sym :: [GeniVal] -> [GeniVal] -> Property
-prop_unify_sym x y =
-  let u1 = (unify x y) :: Maybe ([GeniVal],Subst)
-      u2 = unify y x
-      --
-      notOverlap (GVar _, GVar _) = False
-      notOverlap _ = True
-  in (all qc_not_empty_GConst) x &&
-     (all qc_not_empty_GConst) y &&
-     all (notOverlap) (zip x y) ==> u1 == u2
-\end{code}
-
-\ignore{
-\begin{code}
--- Definition of Arbitrary GeniVal for QuickCheck
-newtype GTestString = GTestString String
-newtype GTestString2 = GTestString2 String
-
-fromGTestString :: GTestString -> String
-fromGTestString (GTestString s) = s
-
-fromGTestString2 :: GTestString2 -> String
-fromGTestString2 (GTestString2 s) = s
-
-instance Arbitrary GTestString where
-  arbitrary =
-    oneof $ map (return . GTestString) $
-    [ "a", "apple" , "b", "banana", "c", "carrot", "d", "durian"
-    , "e", "eggplant", "f", "fennel" , "g", "grape" ]
-  coarbitrary = error "no implementation of coarbitrary for GTestString"
-
-instance Arbitrary GTestString2 where
-  arbitrary =
-    oneof $ map (return . GTestString2) $
-    [ "X", "Y", "Z", "H", "I", "J", "P", "Q", "R", "S", "T", "U"  ]
-  coarbitrary = error "no implementation of coarbitrary for GTestString2"
-
-instance Arbitrary GeniVal where
-  arbitrary = oneof [ return $ GAnon,
-                      liftM (GVar . fromGTestString2) arbitrary,
-                      liftM (GConst . nub . sort . map fromGTestString) arbitrary ]
-  coarbitrary = error "no implementation of coarbitrary for GeniVal"
-
-qc_not_empty_GConst :: GeniVal -> Bool
-qc_not_empty_GConst (GConst []) = False
-qc_not_empty_GConst _ = True
-\end{code}
-}
-
-
-\begin{code}
-instance NFData GeniVal
-    where rnf (GConst x1) = rnf x1
-          rnf (GVar x1) = rnf x1
-          rnf (GAnon) = ()
-\end{code}
 

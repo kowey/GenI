@@ -66,7 +66,7 @@ import NLP.GenI.General (geniBug, BitVector, multiGroupByFM, fst3, snd3, thd3)
 import NLP.GenI.Btypes
   ( ILexEntry, SemInput, Sem, Pred, showPred, showSem,
     AvPair(..), Flist, gtype, GType(Subs, Foot),
-    Replacable(..), Collectable(collect), alphaConvertById,
+    DescendGeniVal(..), Collectable(collect), alphaConvertById,
     GeniVal(GConst)
   )
 import NLP.GenI.Polarity  (PolResult, buildAutomaton, detectPolPaths)
@@ -145,9 +145,8 @@ data UninflectedDisjunction = UninflectedDisjunction [String] Flist deriving (Sh
 instance Biplate UninflectedDisjunction GeniVal where
   biplate (UninflectedDisjunction a v) = plate UninflectedDisjunction |- a ||+ v
 
-instance Replacable UninflectedDisjunction where
-  replaceMap s (UninflectedDisjunction a v) = {-# SCC "replaceMap" #-} UninflectedDisjunction a (replaceMap s v)
-  replaceOne s (UninflectedDisjunction a v) = {-# SCC "replaceOne" #-} UninflectedDisjunction a (replaceOne s v)
+instance DescendGeniVal UninflectedDisjunction where
+  descendGeniVal s (UninflectedDisjunction a v) = {-# SCC "descendGeniVal" #-} UninflectedDisjunction a (descendGeniVal s v)
 
 instance Collectable UninflectedDisjunction where
   collect (UninflectedDisjunction _ b) = collect b

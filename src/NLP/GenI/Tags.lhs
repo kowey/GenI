@@ -62,7 +62,7 @@ import NLP.GenI.Btypes (Ptype(Initial, Auxiliar), SemPols,
                GeniVal(GConst), AvPair(..),
                GNode(gup, glexeme, gnname, gaconstr, gdown, gtype, gorigin),
                GType(Subs), Flist,
-               replace, Replacable(..), replaceOneG, replaceOneAsMap,
+               DescendGeniVal(..),
                Collectable(..), Idable(..),
                Sem, Pred, emptyPred, 
                emptyGNode,
@@ -155,16 +155,14 @@ instance Ord TagElem where
          _                    -> error "TagElem compare not exhaustively defined"
     where compareId  = compare (tidnum t1) (tidnum t2)
 
-instance Replacable TagElem where
-  replaceMap s te =
-    te { tinterface = replaceMap s (tinterface te)
-       , ttree      = replaceMap s (ttree te)
-       , tsemantics = replaceMap s (tsemantics te) }
-  replaceOne = replaceOneAsMap
+instance DescendGeniVal TagElem where
+  descendGeniVal s te =
+    te { tinterface = descendGeniVal s (tinterface te)
+       , ttree      = descendGeniVal s (ttree te)
+       , tsemantics = descendGeniVal s (tsemantics te) }
 
-instance Replacable TagSite where
-  replaceMap s (TagSite n fu fd o) = TagSite n (replaceMap s fu) (replaceMap s fd) o
-  replaceOne s (TagSite n fu fd o) = TagSite n (replaceOne s fu) (replaceOne s fd) o
+instance DescendGeniVal TagSite where
+  descendGeniVal s (TagSite n fu fd o) = TagSite n (descendGeniVal s fu) (descendGeniVal s fd) o
 
 instance Collectable TagElem where
   collect t = (collect $ tinterface t) . (collect $ ttree t) 
