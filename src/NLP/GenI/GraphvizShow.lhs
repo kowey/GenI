@@ -29,12 +29,13 @@ where
 \ignore{
 \begin{code}
 import Data.List(intersperse,nub)
+import Data.Maybe(listToMaybe)
 
 import NLP.GenI.Tags
  ( TagElem, TagDerivation, idname,
    tsemantics, ttree,
  )
-import NLP.GenI.Btypes (GeniVal(GConst), AvPair,
+import NLP.GenI.Btypes (GeniVal(GConst), AvPair(..),
                GNode(..), GType(..), Flist,
                isConst,
                showSem,
@@ -128,7 +129,7 @@ instance GraphvizShowString () GNode where
     in stub ++ maybeShow_ " " extra
 
 instance GraphvizShowString () AvPair where
-  graphvizShow () (a,v) = a ++ ":" ++ (graphvizShow_ v)
+  graphvizShow () (AvPair a v) = a ++ ":" ++ graphvizShow_ v
 
 instance GraphvizShowString () GeniVal where
   graphvizShow () (GConst x) = concat $ intersperse " ! " x
@@ -160,9 +161,7 @@ showGnStub gn =
 
 getGnVal :: (GNode -> Flist) -> String -> GNode -> Maybe GeniVal
 getGnVal getFeat attr gn =
-  case [ av | av <- getFeat gn, fst av == attr ] of
-  []     -> Nothing
-  (av:_) -> Just (snd av)
+  listToMaybe [ v | AvPair a v <- getFeat gn, a == attr ]
 
 -- | Apply fn to s if s is not null
 maybeShow :: ([a] -> String) -> [a] -> String
