@@ -786,8 +786,6 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
  case siAdjnodes pItem of
  [] -> Nothing
  (TagSite an_name an_up an_down nOrigin : atail) -> do
-  -- block repeated adjunctions of the same SimpleItem (for ignore semantics mode)
-  -- guard $ not $ (an_name, siId aItem) `elem` (siAdjlist pItem)
   -- let's go!
   let r@(TagSite r_name r_up r_down rOrigin) = siRoot aItem -- auxiliary tree, eh?
   (TagSite f_name f_up f_down _) <- siFoot aItem -- should really be an error if fails

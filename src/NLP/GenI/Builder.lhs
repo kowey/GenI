@@ -56,7 +56,7 @@ import NLP.GenI.Configuration
   ( getListFlagP, getFlagP, hasFlagP, Params,
     DetectPolaritiesFlg(..),
     ExtraPolaritiesFlg(..), MetricsFlg(..),
-    IgnoreSemanticsFlg(..), RootFeatureFlg(..),
+    RootFeatureFlg(..),
     polarised )
 import NLP.GenI.General (geniBug, BitVector, multiGroupByFM, fst3, snd3, thd3)
 import NLP.GenI.Btypes
@@ -203,7 +203,7 @@ unlessEmptySem input config =
      unInstSemErr   = "The following trees have an uninstantiated semantics: " ++ (unwords unInstSemCands)
      semanticsErr   = (if null nullSemCands then "" else nullSemErr ++ "\n") ++
                       (if null unInstSemCands then "" else unInstSemErr)
-  in if (null semanticsErr || hasFlagP IgnoreSemanticsFlg config)
+  in if null semanticsErr
      then id
      else error semanticsErr
 \end{code}

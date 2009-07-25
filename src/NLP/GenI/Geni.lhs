@@ -96,7 +96,7 @@ import NLP.GenI.Configuration
   , MacrosFlg(..), LexiconFlg(..), TestSuiteFlg(..), TestCaseFlg(..)
   , MorphInfoFlg(..), MorphCmdFlg(..), MorphLexiconFlg(..)
   , PartialFlg(..)
-  , IgnoreSemanticsFlg(..), FromStdinFlg(..), VerboseModeFlg(..)
+  , FromStdinFlg(..), VerboseModeFlg(..)
   , NoLoadTestSuiteFlg(..)
   , TracesFlg(..)
   , grammarType
@@ -219,8 +219,7 @@ loadLexicon, loadGeniMacros, loadMorphInfo, loadMorphLexicon, loadTraces :: Prog
 
 loadLexicon pstRef =
     do config <- pa `fmap` readIORef pstRef
-       let getSem l  = if hasFlagP IgnoreSemanticsFlg config
-                       then [] else isemantics l
+       let getSem l  = isemantics l
            sorter l  = l { isemantics = (sortSem . getSem) l }
            cleanup   = mapBySemKeys isemantics . map sorter
        loadThingOrDie LexiconFlg "lexicon" pstRef
@@ -267,19 +266,18 @@ user will format it the way s/he wants.
 loadTestSuite :: ProgStateRef -> IO ()
 loadTestSuite pstRef = do
   config <- pa `fmap` readIORef pstRef
-  unless (hasFlagP IgnoreSemanticsFlg config) $
-    let parser f = do
-           sem   <- parseFromFileOrFail geniTestSuite f
-           mStrs <- parseFromFileOrFail geniTestSuiteString f
-           return $ zip sem mStrs
-        updater s x =
-          x { tsuite = map cleanup s
-            , tcase  = fromMaybe "" $ getFlagP TestCaseFlg config}
-        cleanup (tc,str) =
-          tc { tcSem = (sortSem sm, sort sr, lc)
-             , tcSemString = str }
-          where (sm, sr, lc) = tcSem tc
-    in loadThingOrDie TestSuiteFlg "test suite" pstRef parser updater
+  let parser f = do
+         sem   <- parseFromFileOrFail geniTestSuite f
+         mStrs <- parseFromFileOrFail geniTestSuiteString f
+         return $ zip sem mStrs
+      updater s x =
+        x { tsuite = map cleanup s
+          , tcase  = fromMaybe "" $ getFlagP TestCaseFlg config}
+      cleanup (tc,str) =
+        tc { tcSem = (sortSem sm, sort sr, lc)
+           , tcSemString = str }
+        where (sm, sr, lc) = tcSem tc
+  loadThingOrDie TestSuiteFlg "test suite" pstRef parser updater
 \end{code}
 
 Sometimes, the target semantics does not come from a file, but from
@@ -291,7 +289,7 @@ arbitrary string as the semantics.
 loadTargetSemStr :: ProgStateRef -> String -> IO ()
 loadTargetSemStr pstRef str = 
     do pst <- readIORef pstRef
-       if hasFlagP IgnoreSemanticsFlg (pa pst) then return () else parseSem
+       parseSem
     where
        parseSem = do
          let sem = runParser geniSemanticInput () "" str

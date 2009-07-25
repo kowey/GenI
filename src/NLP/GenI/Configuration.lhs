@@ -29,7 +29,6 @@ module NLP.GenI.Configuration
   , ExtraPolaritiesFlg(..)
   , FromStdinFlg(..)
   , HelpFlg(..)
-  , IgnoreSemanticsFlg(..)
   , InstructionsFileFlg(..)
   , LexiconFlg(..)
   , MacrosFlg(..)
@@ -184,7 +183,6 @@ optionsSections =
  , ("Morphology", optionsForMorphology, [])
  , ("User interface", optionsForUserInterface, [])
  , ("Batch processing", optionsForTesting, [])
- , ("Miscellaneous", nubBySwitches $ optionsForIgnoreSem, [])
  ]
  where
   example  = [ "Example:"
@@ -284,7 +282,6 @@ treatArgsWithParams options argv initParams =
 defineParams :: [Flag] -> Params -> Params
 defineParams flgs prms =
   (\p -> foldr setDefault p $ geniFlags prms)
-  . maybeSetMaxTrees
   . (mergeFlagsP OptimisationsFlg)
   . (mergeFlagsP MetricsFlg)
   $ prms
@@ -301,9 +298,6 @@ defineParams flgs prms =
     else p
   fromFlags default_ t fs =
     fromMaybe (default_ prms) (getFlag t fs)
-  maybeSetMaxTrees p =
-    if hasFlagP IgnoreSemanticsFlg p && (not $ hasFlagP MaxTreesFlg p)
-    then setFlagP MaxTreesFlg 5 p else p
 \end{code}
 
 \section{Options by theme}
@@ -718,36 +712,6 @@ morphInfoOption = Option [] ["morphinfo"] (reqArg MorphInfoFlg id "FILE")
 \end{code}
 
 % --------------------------------------------------------------------
-\subsection{Ignore semantics mode}
-% --------------------------------------------------------------------
-
-\begin{description}
-\item[ignoresem] is a special generation mode for systematically
-churning out any sentences that the grammar can produce, without
-using an input semantics.  \textbf{Note}: This was implemented by Jackie
-Lai (see patches around 2005-06-16), but has been horribly broken by
-Eric sometime before 2006-08.  Please let us know if you actually use
-this thing, so that we can fix it.
-\item[maxtrees] limits ignoresem mode by restricting the size of its
-derivation trees (in number of elementary trees).  Otherwise, GenI
-would just spin around exploring an infinite number of sentences.
-If you don't specify a maxtrees under ignoresem mode, we'll use a
-default of 5.  Note that maxtrees also works in normal generation
-mode.  It could be a useful way of saying ``give me only really
-small sentences''.
-\end{description}
-
-\begin{code}
-optionsForIgnoreSem :: [OptDescr Flag]
-optionsForIgnoreSem =
-  [ Option []    ["ignoresem"]   (noArg IgnoreSemanticsFlg)
-      "ignore all semantic information"
-  , Option []    ["maxtrees"]   (reqArg MaxTreesFlg read "INT")
-      "max tree size INT by number of elementary trees"
-  ]
-\end{code}
-
-% --------------------------------------------------------------------
 \subsection{Other options}
 % --------------------------------------------------------------------
 
@@ -865,7 +829,6 @@ FLAG (EarlyDeathFlg, ())
 FLAG (ExtraPolaritiesFlg, (Map.Map PolarityKey Interval))
 FLAG (FromStdinFlg, ())
 FLAG (HelpFlg, ())
-FLAG (IgnoreSemanticsFlg, ())
 FLAG (InstructionsFileFlg, FilePath)
 FLAG (LexiconFlg, FilePath)
 FLAG (MacrosFlg, FilePath)
