@@ -125,7 +125,7 @@ simpleBuilder twophase = B.Builder
   { B.init     = initSimpleBuilder twophase
   , B.step     = if twophase then generateStep_2p else generateStep_1p
   , B.stepAll  = B.defaultStepAll (simpleBuilder twophase)
-  , B.finished = \s -> (null.theAgenda) s && (not twophase || step s == Auxiliar)
+  , B.finished = \s -> (null.theAgenda) s && (not twophase || isAdjunctionPhase (step s))
   , B.unpack   = unpackResults.theResults
   , B.partial  = unpackResults.partialResults
   }
@@ -140,6 +140,14 @@ type Agenda = [SimpleItem]
 type AuxAgenda  = [SimpleItem]
 type Chart  = [SimpleItem]
 type Trash = [SimpleItem]
+
+data GenerationPhase = SubstitutionPhase
+                     | AdjunctionPhase
+ deriving (Show)
+
+isAdjunctionPhase :: GenerationPhase -> Bool
+isAdjunctionPhase AdjunctionPhase = True
+isAdjunctionPhase _ = False
 \end{code}
 
 \subsection{SimpleState and SimpleStatus}
@@ -170,7 +178,7 @@ data SimpleStatus = S
   , theResults :: [SimpleItem]
   , theIafMap  :: IafMap -- for index accessibility filtering
   , tsem       :: BitVector
-  , step       :: Ptype
+  , step       :: GenerationPhase
   , gencounter :: Integer
   , genconfig  :: Params
   -- we keep a SemBitMap strictly to help display the semantics
@@ -357,7 +365,7 @@ initSimpleBuilder twophase input config =
                , semBitMap = bmap
                , tsem      = semToBitVector bmap sem
                , theIafMap = semToIafMap sem
-               , step     = Initial
+               , step     =  SubstitutionPhase
                , gencounter = toInteger $ length cands
                , genconfig  = config }
       --
@@ -474,7 +482,7 @@ generateStep_2p = do
   -- this check may seem redundant with generate, but it's needed
   -- to protect against a user who calls generateStep_2p on a finished
   -- state
-  if (nir && curStep == Auxiliar)
+  if (nir && isAdjunctionPhase curStep)
     then return ()
     else do incrCounter num_iterations 1
             -- this triggers exactly once in the whole process
@@ -489,17 +497,17 @@ generateStep_2p' =
      -- have we triggered the switch to aux yet?
      curStep <- gets step
      -- do either substitution or adjunction
-     res <- if (curStep == Initial)
-            then applySubstitution given
-            else liftM2 (++) (applyAdjunction2p given) (sansAdjunction2p given)
+     res <- if isAdjunctionPhase curStep
+            then liftM2 (++) (applyAdjunction2p given) (sansAdjunction2p given)
+            else applySubstitution given
 
      -- determine which of the res should go in the agenda
      -- (monadic state) and which should go in the result (res')
      mapM_ simpleDispatch_2p res
      -- put the given into the chart untouched
-     if curStep == Initial
-        then addToChart given
-        else when (adjdone given) $ trashIt given
+     if isAdjunctionPhase curStep
+        then when (adjdone given) $ trashIt given
+        else addToChart given
 \end{code}
 
 \subsection{Helpers for the generateSteps}
@@ -560,7 +568,7 @@ switchToAux = do
   put st{ theAgenda = []
         , theAuxAgenda = []
         , theChart = auxAgenda
-        , step = Auxiliar}
+        , step = AdjunctionPhase }
   -- the root cat filter by Claire
   let switchFilter =
         if rootcatfiltered config
