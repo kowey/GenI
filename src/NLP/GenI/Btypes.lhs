@@ -779,7 +779,7 @@ $\rightarrow$
 unifyFeat :: (Monad m) => Flist -> Flist -> m (Flist, Subst)
 unifyFeat f1 f2 =
   {-# SCC "unification" #-}
-  let (att, val1, val2) = alignFeat f1 f2
+  let (att, val1, val2) = unzip3 $ alignFeat f1 f2
   in att `seq`
      do (res, subst) <- unify val1 val2
         return (zipWith AvPair att res, subst)
@@ -789,25 +789,17 @@ unifyFeat f1 f2 =
 --   other with an anonymous value.
 --
 --   The two feature structures must be sorted for this to work
-alignFeat :: Flist -> Flist -> ([String], [GeniVal], [GeniVal])
-alignFeat [] [] = ([], [], [])
+alignFeat :: Flist -> Flist -> [(String,GeniVal,GeniVal)]
+alignFeat f1 f2 = alignFeatH f1 f2 []
 
-alignFeat [] (AvPair f v :x) =
-  case alignFeat [] x of
-  (att, left, right) -> (f:att, GAnon:left, v:right)
-
-alignFeat x [] =
-  case alignFeat [] x of
-  (att, left, right) -> (att, right, left)
-
-alignFeat fs1@(AvPair f1 v1:l1) fs2@(AvPair f2 v2:l2)
-   | f1 == f2  = case alignFeat l1 l2 of
-                 (att, left, right) -> (f1:att, v1:left,    v2:right)
-   | f1 <  f2  = case alignFeat l1 fs2 of
-                 (att, left, right) -> (f1:att, v1:left, GAnon:right)
-   | f1 >  f2  = case alignFeat fs1 l2 of
-                 (att, left, right) -> (f2:att, GAnon:left, v2:right)
-   | otherwise = error "Feature structure unification is badly broken"
+alignFeatH [] [] acc = reverse acc
+alignFeatH [] (AvPair f v :x) acc = alignFeatH [] x ((f,GAnon,v) : acc)
+alignFeatH x [] acc = alignFeatH [] x acc
+alignFeatH fs1@(AvPair f1 v1:l1) fs2@(AvPair f2 v2:l2) acc =
+   case compare f1 f2 of
+     EQ -> alignFeatH l1 l2  ((f1, v1, v2) : acc)
+     LT -> alignFeatH l1 fs2 ((f1, v1, GAnon) : acc)
+     GT -> alignFeatH fs1 l2 ((f2, GAnon, v2) : acc)
 \end{code}
 
 \subsection{Unification}
