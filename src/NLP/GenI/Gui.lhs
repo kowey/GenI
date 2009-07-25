@@ -50,10 +50,8 @@ import NLP.GenI.Configuration
   , parseFlagWithParsec
     --
   , ExtraPolaritiesFlg(..)
-  , IgnoreSemanticsFlg(..)
   , LexiconFlg(..)
   , MacrosFlg(..)
-  , MaxTreesFlg(..)
   , MorphCmdFlg(..)
   , MorphInfoFlg(..)
   , OptimisationsFlg(..)
@@ -128,14 +126,12 @@ mainGui pstRef
        -- -----------------------------------------------------------------
        let config     = pa pst 
            hasSem     = hasFlagP TestSuiteFlg config
-           ignoreSem  = hasFlagP IgnoreSemanticsFlg config
        -- Target Semantics
        testSuiteChoice <- choice f [ selection := 0, enabled := hasSem ]
        tsTextBox <- textCtrl f [ wrap := WrapWord
                                , clientSize := sz 400 80
                                , enabled := hasSem 
-                               , text := if ignoreSem
-                                         then "% --ignoresemantics set" else "" ]
+                               , text := "" ]
        testCaseChoice <- choice f [ selection := 0 
                                   , enabled := hasSem ]
        -- Box and Frame for files loaded 
@@ -462,23 +458,9 @@ configGui pstRef loadFn = do
                            , widget morphFileBrowseBt ]
                    , row 3 [ label "morph command"
                            , (marginRight.hfill) $ widget morphCmdTxt ] ]
-  -- ignore semantics
-  ignoreSemChk <- checkBox padv 
-     [ text    := "Ignore semantics"
-     , tooltip := "Useful as a corpus generator"
-     , checked := hasFlagP IgnoreSemanticsFlg config ]
-  let maxTreesStr = maybe "" show $ getFlagP MaxTreesFlg config
-  maxTreesText <- entry padv 
-     [ text    := maxTreesStr 
-     , tooltip := "Limit number of elementary trees in a derived tree" 
-     , size    := shortSize ]
-  let layIgnoreSem = fakeBoxed "Ignore Semantics Mode" 
-          [ row 3 [ widget ignoreSemChk 
-                  , hspace 5 
-                  , label "max trees", rigid $ widget maxTreesText ] ]
   -- put the whole darn thing together
   let layAdvanced = hfloatLeft $ container padv $ column 10 
-        $ [ layXMG, layPolarities, layMorph, layIgnoreSem ]
+        $ [ layXMG, layPolarities, layMorph]
   -- -----------------------------------------------------------------
   -- browse button action
   --
@@ -528,16 +510,10 @@ configGui pstRef loadFn = do
             morphCmdVal  <- get morphCmdTxt text
             morphInfoVal <- get morphFileLabel text
             --
-            ignoreVal   <- get ignoreSemChk checked 
-            maxTreesVal <- get maxTreesText text
-            --
             let maybeSet fl fn x =
                    if null x then deleteFlagP fl else setFlagP fl (fn x)
                 maybeSetStr fl x = maybeSet fl id x
-                toggleFlag fl b = if b then setFlagP fl () else deleteFlagP fl
             let setConfig = id
-                  . (maybeSet   MaxTreesFlg read maxTreesVal)
-                  . (toggleFlag IgnoreSemanticsFlg ignoreVal)
                   . (maybeSetStr   MacrosFlg macrosVal)
                   . (maybeSetStr LexiconFlg lexconVal)
                   . (maybeSetStr TestSuiteFlg tsVal)
