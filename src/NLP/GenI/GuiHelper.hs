@@ -1,32 +1,23 @@
-% GenI surface realiser
-% Copyright (C) 2005 Carlos Areces and Eric Kow
-%
-% This program is free software; you can redistribute it and/or
-% modify it under the terms of the GNU General Public License
-% as published by the Free Software Foundation; either version 2
-% of the License, or (at your option) any later version.
-%
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-%
-% You should have received a copy of the GNU General Public License
-% along with this program; if not, write to the Free Software
-% Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+-- GenI surface realiser
+-- Copyright (C) 2005 Carlos Areces and Eric Kow
+--
+-- This program is free software; you can redistribute it and/or
+-- modify it under the terms of the GNU General Public License
+-- as published by the Free Software Foundation; either version 2
+-- of the License, or (at your option) any later version.
+--
+-- This program is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with this program; if not, write to the Free Software
+-- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-\chapter{GUI Helper} 
-
-This module provides helper functions for building the GenI graphical
-user interface
-
-\begin{code}
 {-# LANGUAGE FlexibleContexts #-}
 module NLP.GenI.GuiHelper where
-\end{code}
 
-\ignore{
-\begin{code}
 import Graphics.UI.WX
 -- import Graphics.UI.WXCore
 
@@ -55,7 +46,7 @@ import NLP.GenI.GeniParsers ( geniTagElems )
 import NLP.GenI.General
   (geniBug, boundsCheck, dropTillIncluding, ePutStrLn)
 import NLP.GenI.Btypes
-  ( showAv, showPred, showSem, showLexeme, Sem, ILexEntry(iword, ifamname), )
+  ( showAv, showPred, showSem, showLexeme, Pred, Sem, ILexEntry(iword, ifamname), )
 import NLP.GenI.PolarityTypes ( PolarityKey(..) )
 import NLP.GenI.Tags
   ( idname, mapBySem, TagElem(ttrace, tinterface) )
@@ -68,22 +59,18 @@ import NLP.GenI.Builder (queryCounter, num_iterations, chart_size,
     num_comparisons)
 import NLP.GenI.Polarity (PolAut, detectPolFeatures)
 import NLP.GenI.GraphvizShowPolarity ()
-\end{code}
-}
 
-\subsection{Lexically selected items}
+-- ----------------------------------------------------------------------
+-- Lexically selected items
+-- ----------------------------------------------------------------------
 
-We have a browser for the lexically selected items.  We group the lexically
-selected items by the semantics they subsume, inserting along the way some
-fake trees and labels for the semantics.
-
-The arguments \fnparam{missedSem} and \fnparam{missedLex} are used to 
-indicate to the user respectively if any bits of the input semantics
-have not been accounted for, or if there have been lexically selected
-items for which no tree has been found.
-
-\begin{code}
-candidateGui :: ProgState -> (Window a) -> [TagElem] -> Sem -> [ILexEntry]
+-- | 'candidateGui' displays the lexically selected items, grouped by the
+--   semantics they subsume.
+candidateGui :: ProgState
+             -> (Window a)
+             -> [TagElem]
+             -> [Pred]      -- ^ nothing lexically selected
+             -> [ILexEntry] -- ^ lexically selected but not anchored
              -> GvIO Bool (Maybe TagElem)
 candidateGui pst f xs missedSem missedLex = do
   p  <- panel f []      
@@ -149,14 +136,13 @@ sectionsBySem tsem =
                   where header = "___" ++ showPred k ++ "___"
                         tlab t = (Just t, tgIdName t)
  in concatMap section sem
-\end{code}
-      
-\subsection{Polarity Automata}
 
-A browser to see the automata constructed during the polarity optimisation
-step.
+-- ----------------------------------------------------------------------
+-- Polarity Automata
+-- ----------------------------------------------------------------------
 
-\begin{code}
+-- | A browser to see the automata constructed during the polarity optimisation
+--   step.
 polarityGui :: (Window a) -> [(PolarityKey,PolAut,PolAut)] -> PolAut
             -> GvIO () PolAut
 polarityGui   f xs final = do
@@ -169,12 +155,13 @@ polarityGui   f xs final = do
   gvRef   <- newGvRef () labels "automata"
   setGvDrawables gvRef autlist
   graphvizGui f "polarity" gvRef
-\end{code}
-      
-\paragraph{statsGui} displays the generation statistics and provides a
-handy button for saving results to a text file.
 
-\begin{code}
+-- ----------------------------------------------------------------------
+-- Results
+-- ----------------------------------------------------------------------
+
+-- 'statsGui' displays the generation statistics and provides a
+-- handy button for saving results to a text file.
 statsGui :: (Window a) -> [String] -> Statistics -> IO Layout
 statsGui f sentences stats =
   do let msg = showRealisations sentences
@@ -191,15 +178,11 @@ statsGui f sentences stats =
               , hfill $ label "Realisations"
               , fill  $ widget t
               , hfloatRight $ widget saveBt ]
-\end{code}
 
-\subsection{TAG trees}
-
-Our graphical interfaces have to display a great variety of items.  To
-keep things nicely factorised, we define some type classes to describe
-the things that these items may have in common.
-
-\begin{code}
+-- ----------------------------------------------------------------------
+-- Helpers
+-- ----------------------------------------------------------------------
+      
 -- | Any data structure which has corresponds to a TAG tree and which
 --   has some notion of derivation
 class XMGDerivation a where
@@ -207,28 +190,23 @@ class XMGDerivation a where
 
 instance XMGDerivation TagElem where
   getSourceTrees te = [idname te]
-\end{code}
 
-\fnlabel{toSentence} almost displays a TagElem as a sentence, but only
-good enough for debugging needs.  The problem is that each leaf may be
-an atomic disjunction. Our solution is just to display each choice and
-use some delimiter to seperate them.  We also do not do any
-morphological processing.
-
-\begin{code}
+-- | 'toSentence' almost displays a 'TagElem' as a sentence, but only good
+-- enough for debugging needs.  The problem is that each leaf may be
+-- an atomic disjunction. Our solution is just to display each choice and
+-- use some delimiter to seperate them.  We also do not do any
+-- morphological processing.
 toSentence :: TagElem -> String
 toSentence = unwords . map squishLeaf . tagLeaves
 
 squishLeaf :: (a,([String], b)) -> String
 squishLeaf = showLexeme.fst.snd
-\end{code}
 
-\subsection{TAG viewer}
+-- ----------------------------------------------------------------------
+-- TAG viewer
+-- ----------------------------------------------------------------------
 
-A TAG viewer is a graphvizGui that lets the user toggle the display
-of TAG feature structures.
-
-\begin{code}
+-- | Variant of 'graphvizGui' with a toggle to view feature structures
 tagViewerGui :: (GraphvizShow Bool t, TagItem t, XMGDerivation t)
              => ProgState -> (Window a) -> String -> String -> [(Maybe t,String)]
              -> GvIO Bool (Maybe t)
@@ -254,16 +232,13 @@ tagViewerGui pst f tip cachedir itNlab = do
                 , viewTagLay ]
       lay2   = fill $ container p $ column 5 [ fill lay, cmdBar ]
   return (lay2,ref,updaterFn)
-\end{code}
 
-\subsection{XMG Metagrammar stuff}
+-- ----------------------------------------------------------------------
+-- XMG Metagrammar stuff.
+-- See <http://sourcesup.cru.fr/xmg/>
+-- ----------------------------------------------------------------------
 
-XMG trees are produced by the XMG metagrammar system
-(\url{http://sourcesup.cru.fr/xmg/}). To debug these grammars, it is useful,
-given a TAG tree, to see what its metagrammar origins are.  We provide here an
-interface to Yannick Parmentier's handy visualisation tool ViewTAG.
-
-\begin{code}
+-- | Calls Yannick Parmentier's handy visualisation tool ViewTAG.
 viewTagWidgets :: (GraphvizShow Bool t, TagItem t, XMGDerivation t)
                => Window a -> GraphvizRef (Maybe t) Bool -> Params
                -> IO Layout
@@ -306,24 +281,13 @@ runViewTag params drName =
                      runProcess c [gramfile, treenameOnly drName]
                        Nothing Nothing Nothing Nothing Nothing
                      return ()
-\end{code}
 
-% --------------------------------------------------------------------
-\section{Graphical debugger}
-\label{sec:debugger_helpers}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Graphical debugger (helper functions)
+-- --------------------------------------------------------------------
 
-All GenI builders can make use of an interactive graphical debugger.  In
-this section, we provide some helper code to build such a debugger.  
-
-\paragraph{pauseOnLexGui} sometimes it is useful for the user to see the
-lexical selection only and either dump it to file or read replace it by
-the contents of some other file.  We provide an optional wrapper around
-\fnref{candidateGui} which adds this extra functionality.  The wrapper
-also includes a "Begin" button which runs your continuation on the new
-lexical selection.
-
-\begin{code}
+-- | 'pauseOnLexGui' allows the user to see lexical selection only and either
+--   dump it to file or read replace it by the contents of some other file
 pauseOnLexGui :: ProgState -> (Window a) -> [TagElem] -> Sem -> [ILexEntry]
               -> ([TagElem] -> IO ()) -- ^ continuation
               -> GvIO Bool (Maybe TagElem)
@@ -361,37 +325,22 @@ pauseOnLexGui pst f xs missedSem missedLex job = do
             , row 0 [ row 5 [ widget saveBt, widget loadBt ]
                     , hfloatRight $ widget nextBt ] ]
   return (lay, ref, updater)
-\end{code}
 
-\paragraph{debuggerTab} is potentially the most useful part of the
-debugger.  It shows you the contents of chart, agenda and other
-such structures used during the actual surface realisation process.
-This may be a bit complicated to use because there is lots of extra
-stuff you need to pass in order to parameterise the whole deal.
-
-The function \fnreflite{debuggerTab} fills the parent window with the
-standard components of a graphical debugger:
-\begin{itemize}
-\item An item viewer which allows the user to select one of the items
-      in the builder state.
-\item An item bar which provides some options on how to view the 
-      currently selected item, for example, if you want to display the
-      features or not.  
-\item A dashboard which lets the user do things like ``go ahead 6
-      steps''.
-\end{itemize}
-
-See the API for more details.
-
-\begin{code}
 type DebuggerItemBar flg itm 
-      =  (Panel ())            -- ^ parent panel
-      -> GraphvizRef (Maybe itm) flg   
-      -- ^ gv ref to use
+      =  Panel ()                     -- ^ parent panel
+      -> GraphvizRef (Maybe itm) flg  -- ^ gv ref to use
       -> GvUpdater -- ^ updaterFn
       -> IO Layout
 
--- | A generic graphical debugger widget for GenI
+-- | A generic graphical debugger widget for GenI, including
+--
+--   * item viewer which allows the user to select one of the items in the
+--     builder state.
+--
+--   * item bar which provides some options on how to view the currently
+--     selected item, for example, if you want to display the features or not.
+--
+--   * A dashboard which lets the user do things like ``go ahead 6 steps''.
 -- 
 --   Besides the Builder, there are two functions you need to pass in make this
 --   work: 
@@ -454,9 +403,10 @@ debuggerPanel builder gvInitial stateToGv itemBar f config input cachedir =
                          Nothing -> "???"
                          Just q  -> show q
         updateStatsTxt gs = set statsTxt [ text :~ (\_ -> txtStats gs) ]
-        txtStats   gs =  "itr " ++ (showQuery num_iterations gs) ++ " "
-                      ++ "chart sz: " ++ (showQuery chart_size gs)
-                      ++ "\ncomparisons: " ++ (showQuery num_comparisons gs)
+        txtStats   gs =  unwords [ "itr",  showQuery num_iterations gs
+                                 , "chart sz", showQuery chart_size gs
+                                 ]
+                      ++ "\ncomparisons: " ++ showQuery num_comparisons gs
     let genStep _ (st,stats) = runState (execStateT nextStep st) stats
     let showNext s_stats = 
           do leapTxt <- get leapVal text
@@ -494,34 +444,12 @@ debuggerPanel builder gvInitial stateToGv itemBar f config input cachedir =
     -- overall layout
     -- ------------------------------------------- 
     return $ fill $ container p $ column 5 [ layItemViewer, layItemBar, hfill (vrule 1), layCmdBar ] 
-\end{code}
 
-% --------------------------------------------------------------------
-\section{Graphviz GUI}
-\label{sec:graphviz_gui}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Graphviz GUI
+-- --------------------------------------------------------------------
 
-A general-purpose GUI for displaying a list of items graphically via
-AT\&T's excellent Graphviz utility.  We have a list box where we display
-all the labels the user provided.  If the user selects an entry from
-this box, then the item corresponding to that label will be displayed.
-See section \ref{sec:draw_item}.
 
-\paragraph{gvRef}
-
-We use IORef as a way to keep track of the gui state and to provide you
-the possibility for modifying the contents of the GUI.  The idea is that 
-
-\begin{enumerate}
-\item you create a GvRef with newGvRef
-\item you call graphvizGui and get back an updater function
-\item whenever you want to modify something, you use setGvWhatever
-      and call the updater function
-\item if you want to react to the selection being changed,
-      you should set gvhandler
-\end{enumerate}
-
-\begin{code}
 data GraphvizOrder = GvoParams | GvoItems | GvoSel 
      deriving Eq
 data GraphvizGuiSt a b = 
@@ -535,6 +463,18 @@ data GraphvizGuiSt a b =
                gvhandler :: Maybe (GraphvizGuiSt a b -> IO ()),
                gvsel     :: Int,
                gvorders  :: [GraphvizOrder] }
+
+-- | This provides a mechanism for communicating with the GUI.  The basic idea:
+--
+--  1. you create a GvRef with newGvRef
+--
+--  2. you call 'graphvizGui' and get back an updater function
+--
+--  3. whenever you want to modify something, you use setGvWhatever and call
+--     the updater function
+--
+--  4. if you want to react to the selection being changed, you should set
+--     gvhandler
 type GraphvizRef a b = IORef (GraphvizGuiSt a b)
 
 newGvRef :: forall a . forall b . b -> [String] -> String -> IO (GraphvizRef a b)
@@ -605,32 +545,28 @@ addGvHandler gvref h =
                 Nothing   -> Just h
                 Just oldH -> Just (\g -> oldH g >> h g)
      setGvHandler gvref newH
-\end{code}
 
-\paragraph{graphvizGui} returns a layout (wxhaskell container) and a
-function for updating the contents of this GUI.
-
-Arguments:
-\begin{enumerate}
-\item f - (parent window) the GUI is provided as a panel within the parent.
-          Note: we use window in the WxWidget's sense, meaning it could be
-          anything as simple as a another panel, or a notebook tab.
-\item glab - (gui labels) a tuple of strings (tooltip, next button text)
-\item cachedir - the cache subdirectory.  We intialise this by creating a cache
-          directory for images which will be generated from the results
-\item gvRef - see above
-\end{enumerate}
-
-Returns: a function for updating the GUI.  FIXME: it's not entirely clear
-what the updater function is for; note that it's not the same as the 
-handler function!
-
-\begin{code}
-graphvizGui :: (GraphvizShow f d) => 
-  (Window a) -> String -> GraphvizRef d f -> GvIO f d
 type GvIO f d  = IO (Layout, GraphvizRef d f, GvUpdater)
 type GvUpdater = IO ()
 
+-- |'graphvizGui' @f glab cachedir gvRef@ is a general-purpose GUI for
+-- displaying a list of items graphically via AT&T's excellent Graphviz
+-- utility.  We have a list box where we display all the labels the user
+-- provided.  If the user selects an entry from this box, then the item
+-- corresponding to that label will be displayed.
+--
+-- This returns a layout (wxhaskell container) and a function that you're
+-- expected to call whever something changes that would require the GUI to
+-- refresh itself (for example, you create a new chart item)
+--
+--  * @f@ - (parent window) the GUI is provided as a panel within the parent.
+--    Note: we use window in the WxWidget's sense, meaning it could be
+--    anything as simple as a another panel, or a notebook tab.
+--  * @glab@ - (gui labels) a tuple of strings (tooltip, next button text)
+--  * @cachedir@ - the cache subdirectory.  We intialise this by creating a cache
+--    directory for images which will be generated from the results
+--  * @gvRef@ - see above
+graphvizGui :: (GraphvizShow f d) => (Window a) -> String -> GraphvizRef d f -> GvIO f d
 graphvizGui f cachedir gvRef = do
   initGvSt <- readIORef gvRef
   -- widgets
@@ -689,13 +625,12 @@ graphvizGui f cachedir gvRef = do
   -- state of the gui.  Here, it's trivial, but when people combine guis
   -- together, it might be easier to keep track of when returned
   return (lay, gvRef, updaterFn)
-\end{code}
 
-\subsection{Scroll bitmap}
+-- ---------------------------------------------------------------------- 
+-- Bitmap stuff
+-- ---------------------------------------------------------------------- 
 
-Bitmap with a scrollbar
-
-\begin{code}
+-- | Bitmap with a scrollbar
 scrolledBitmap :: Window a -> IO(VarBitmap, ScrolledWindow ())
 scrolledBitmap p = do
   dtBitmap <- variable [value := Nothing]
@@ -703,14 +638,7 @@ scrolledBitmap p = do
                                 on paint := onPaint dtBitmap,
                                 fullRepaintOnResize := False ]       
   return (dtBitmap, sw)
-\end{code}
 
-\subsection{Bitmap functions}
-
-The following helper functions were taken directly from the WxHaskell
-sample code.
-
-\begin{code}
 type OpenImageFn = FilePath -> IO ()
 type VarBitmap   = Var (Maybe (Bitmap ())) 
 
@@ -740,17 +668,10 @@ onPaint vbitmap dc _ = do
       Nothing -> return () 
       Just bm -> do dcClear dc
                     drawBitmap dc bm pointZero False []
-\end{code}
 
-\subsection{Drawing stuff}
-\label{sec:draw_item}
-
-\paragraph{createAndOpenImage} Attempts to draw an image 
-(or retrieve it from cache) and opens it if we succeed.  Otherwise, it
-does nothing at all; the creation function will display an error message
-if it fails.
-
-\begin{code}
+-- | 'createAndOpenImage' attempts to draw an image (or retrieve it from cache)
+-- and opens it if we succeed.  Otherwise, it does nothing at all; the creation
+-- function will display an error message if it fails.
 createAndOpenImage :: (GraphvizShow f b) => 
   FilePath -> Window a -> GraphvizRef b f -> OpenImageFn -> IO ()
 createAndOpenImage cachedir f gvref openFn = do 
@@ -790,15 +711,9 @@ createImage cachedir f gvref = do
      else case Map.lookup sel drawables of
             Nothing -> return Nothing
             Just it -> create it `catch` handler
-\end{code}
 
-\subsection{Cache directory}
-
-We create a directory to put image files in so that we can avoid regenerating
-images.  If the directory already exists, we can just delete all the files
-in it.
-
-\begin{code}
+-- | Directory to dump image files in so that we can avoid regenerating them.
+--   If the directory already exists, we can just delete all the files in it.
 initCacheDir :: String -> IO()
 initCacheDir cachesubdir = do 
   mainCacheDir <- gv_CACHEDIR
@@ -816,12 +731,11 @@ initCacheDir cachesubdir = do
             setCurrentDirectory olddir
             return ()
     else createDirectory cachedir
-\end{code}
 
-\section{Miscellaneous}
-\label{sec:gui_misc}
+-- ----------------------------------------------------------------------
+-- Miscellaneous
+-- ----------------------------------------------------------------------
 
-\begin{code}
 -- | Save the given string to a file, if the user selets one via the file save
 --   dialog. Otherwise, don't do anything.
 maybeSaveAsFile :: (Window a) -> String -> IO ()
@@ -839,9 +753,7 @@ messageGui f msg = do
   -- sw <- scrolledWindow p [scrollRate := sz 10 10 ]
   t  <- textCtrl p [ text := msg, enabled := False ]
   return (fill $ container p $ column 1 $ [ fill $ widget t ]) 
-\end{code}
 
-\begin{code}
 gv_CACHEDIR :: IO String
 gv_CACHEDIR = do
   home <- getHomeDirectory
@@ -856,6 +768,3 @@ createDotPath :: String -> String -> IO String
 createDotPath subdir name = do 
   cdir <- gv_CACHEDIR
   return $ cdir </> subdir </> name <.> "dot"
-\end{code}
-
-
