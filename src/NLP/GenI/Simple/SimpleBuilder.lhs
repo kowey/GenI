@@ -53,7 +53,6 @@ import Control.Monad (when, liftM2)
 import Control.Monad.State
   (get, put, modify, gets, runState, execStateT)
 
-import qualified Data.DList as DL
 import Data.List
   (partition, delete, foldl', unfoldr, sortBy)
 import Data.Maybe (isJust, isNothing)
@@ -242,7 +241,7 @@ data SimpleItem = SimpleItem
  , siInaccessible :: [ String ] -- that's why you want both
  --
  -- | actually: a set of pre-terminals and their leaves
- , siLeaves  :: DL.DList (String, B.UninflectedDisjunction)
+ , siLeaves  :: [(String, B.UninflectedDisjunction)]
  , siDerived :: Tree String
  , siRoot    :: TagSite
  , siFoot    :: Maybe TagSite
@@ -258,18 +257,12 @@ instance Biplate SimpleItem GeniVal where
   biplate (SimpleItem x1 zss zas x2 x3 x4 x5 zls x6 zr zf zp x7 zg) =
     plate SimpleItem            |- x1
             ||+ zss ||+ zas     |- x2 |- x3 |- x4 |- x5
-            |+ zls              |- x6
+            ||+ zls             |- x6
             |+ zr  |+ zf ||+ zp |- x7
             |+ zg
 
-instance Show (DL.DList (String, B.UninflectedDisjunction)) where
- show = show . DL.toList
-
 instance Biplate (String, B.UninflectedDisjunction) GeniVal where
   biplate (s,d) = plate (,) |- s |+ d
-
-instance Biplate (DL.DList (String, B.UninflectedDisjunction)) GeniVal where
-  biplate d = plate DL.fromList ||+ (DL.toList d)
 
 instance DescendGeniVal (String, B.UninflectedDisjunction) where
   descendGeniVal m (s,d) = (s, descendGeniVal m d)
@@ -385,7 +378,7 @@ initSimpleItem bmap (teRaw,pp) =
   , siInaccessible = []
   -- for generation sans semantics
   -- , siAdjlist = []
-  , siLeaves  = DL.fromList $ map (second (uncurry B.UninflectedDisjunction)) $ tagLeaves te
+  , siLeaves  = map (second (uncurry B.UninflectedDisjunction)) $ tagLeaves te
   , siDerived = tlite
   , siRoot = ncopy.root $ theTree
   , siFoot = if ttype te == Initial then Nothing
@@ -690,7 +683,7 @@ iapplySubst twophase item1 item2 | siInitial item1 && closed item1 = {-# SCC "ap
                            , siAdjnodes   = adj2 ++ adj1
                            , siDerived    = plugTree (siDerived item1) n (siDerived item2)
                            , siDerivation = addToDerivation 's' (item1g,rOrigin) (item2,nOrigin,n)
-                           , siLeaves     = DL.append (siLeaves item1) (siLeaves item2)
+                           , siLeaves     = (siLeaves item1) ++ (siLeaves item2)
                            , siPendingTb  = pending
                            }
   in case doIt of
@@ -844,7 +837,7 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
       rawCombined =
         combineSimpleItems [r_name, an_name] aItem2 $ pItem
                { siAdjnodes = newadjnodes
-               , siLeaves  = DL.append (siLeaves aItem) (siLeaves pItem)
+               , siLeaves  = siLeaves aItem ++ siLeaves pItem
                , siDerived = spliceTree f_name (siDerived aItem) an_name (siDerived pItem)
                , siDerivation = addToDerivation 'a' (aItem,rOrigin) (pItem,nOrigin,an_name)
                -- , siAdjlist = (n, (tidnum te1)):(siAdjlist item2)
@@ -1150,7 +1143,7 @@ unpackResults = concatMap unpackResult
 unpackResult :: SimpleItem -> [B.Output]
 unpackResult item =
   let leafMap :: Map.Map String B.UninflectedDisjunction
-      leafMap = Map.fromList . DL.toList . siLeaves $ item
+      leafMap = Map.fromList . siLeaves $ item
       lookupOrBug :: NodeName -> B.UninflectedDisjunction
       lookupOrBug k = case Map.lookup k leafMap of
                       Nothing -> geniBug $ "unpackResult : could not find node " ++ k
