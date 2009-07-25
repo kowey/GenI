@@ -1,0 +1,5 @@
+i init(?I)
+semantics:[init(?I)]
+
+a aux(?I ?J)
+semantics:[next(?I ?J)]

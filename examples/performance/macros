@@ -1,0 +1,10 @@
+init:x(?X) initial
+n1 [cat:x]![idx:?X] {
+ n2 anchor [cat:y]![]
+}
+
+aux:x(?X ?Y) auxiliary
+n1 [cat:x]![idx:?Y] {
+ n2 anchor [cat:y]![]
+ n3 type:foot [cat:x]![idx:?X]
+}
