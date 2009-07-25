@@ -51,7 +51,7 @@ module NLP.GenI.Btypes(
    showFlist, showPairs, showAv,
 
    -- Other functions
-   replace, Replacable(..), replaceOneG, replaceOneAsMap,
+   replace, Replacable(..), replaceOneG, replaceOneAsMap, replaceList,
    Collectable(..), Idable(..),
    alphaConvert, alphaConvertById,
    fromGConst, fromGVar,
@@ -525,17 +525,17 @@ replace :: Biplate a GeniVal => Subst -> a -> a
 replace m | Map.null m = id
 replace m = descendBi (replaceMapG m)
 
+-- | Here it is safe to say (X -> Y; Y -> Z) because this would be crushed
+--   down into a final value of (X -> Z; Y -> Z)
+replaceList :: Replacable a => [(String,GeniVal)] -> a -> a
+replaceList = replaceMap . foldl' update Map.empty
+  where
+   update m (s1,s2) = Map.insert s1 s2 $ Map.map (replaceOne (s1,s2)) m
+
 class Replacable a where
   replaceMap :: Map.Map String GeniVal -> a -> a
 
   replaceOne :: (String,GeniVal) -> a -> a
-
-  -- | Here it is safe to say (X -> Y; Y -> Z) because this would be crushed
-  --   down into a final value of (X -> Z; Y -> Z)
-  replaceList :: [(String,GeniVal)] -> a -> a
-  replaceList = replaceMap . foldl' update Map.empty
-    where
-     update m (s1,s2) = Map.insert s1 s2 $ Map.map (replaceOne (s1,s2)) m
 
 -- | Default implementation for replaceOne but not a good idea for the
 --   core stuff; which is why it is not a typeclass default
