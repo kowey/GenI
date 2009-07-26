@@ -72,7 +72,6 @@ import NLP.GenI.Btypes
 import NLP.GenI.Polarity  (PolResult, buildAutomaton, detectPolPaths)
 import NLP.GenI.Statistics (Statistics, incrIntMetric,
                    Metric(IntMetric), updateMetrics,
-                   mergeMetrics, addIntMetrics,
                    queryMetrics, queryIntMetric,
                    addMetric, emptyStats,
                    )
@@ -413,9 +412,6 @@ condFilter cond f1 f2 = \x -> if cond x then f1 x else f2 x
 \subsection{Statistics}
 
 \begin{code}
-addCounters :: Statistics -> Statistics -> Statistics
-addCounters = mergeMetrics addIntMetrics
-
 modifyStats :: (Metric -> Metric) -> BuilderState st ()
 modifyStats fn = lift $ modify $ updateMetrics fn
 
