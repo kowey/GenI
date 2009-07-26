@@ -211,8 +211,10 @@ addToChart te = do
   modify $ \s -> s { theChart = te:theChart s }
   incrCounter chart_size 1
 
-#ifndef DISABLE_GUI
 addToTrash :: SimpleItem -> String -> SimpleState ()
+#ifdef DISABLE_GUI
+addToTrash _ _ = return ()
+#else
 addToTrash te err = do
   let te2 = modifyGuiStuff (\g -> g { siDiagnostic = err:siDiagnostic g }) te
   modify $ \s -> s { theTrash = te2 : theTrash s }
@@ -759,10 +761,8 @@ sansAdjunction2p item | closed item =
   -- do top/bottom unification on the node
   case unifyFeat t b of
    Nothing ->
-#ifndef DISABLE_GUI
      do addToTrash (modifyGuiStuff (\g -> g { siHighlight = [gn] }) item)
                    ts_tbUnificationFailure
-#endif
         return []
    Just (tb,s) ->
      let item1 = if isRootOf item gn
@@ -982,11 +982,7 @@ dpToTrash :: String -> SimpleDispatchFilter
 
 dpToAgenda x  = addToAgenda x  >> return Nothing
 dpToResults x = addToResults x >> return Nothing
-#ifdef DISABLE_GUI
-dpToTrash _ _ = return Nothing
-#else
 dpToTrash m x = addToTrash x m >> return Nothing
-#endif
 
 dpAux item =
   if closedAux item
