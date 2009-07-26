@@ -50,7 +50,7 @@ where
 \begin{code}
 import Control.Arrow ( second )
 import Control.Monad (when, liftM2)
-import Control.Monad.State
+import Control.Monad.State.Strict
   (get, put, modify, gets, runState, execStateT)
 
 import Data.List

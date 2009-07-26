@@ -42,7 +42,7 @@ UML might help.  See figure \ref{fig:builderUml}.
 module NLP.GenI.Builder
 where
 
-import Control.Monad.State
+import Control.Monad.State.Strict
 import Data.Bits ( (.&.), (.|.), bit, xor )
 import Data.List ( (\\), maximum )
 import qualified Data.Map as Map
