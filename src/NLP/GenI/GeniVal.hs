@@ -33,7 +33,7 @@ import Data.Generics.PlateDirect
 
 import Control.Parallel.Strategies
 
-import NLP.GenI.General (map', geniBug)
+import NLP.GenI.General (geniBug)
 
 data GeniVal = GConst [String]
              | GVar   String
@@ -195,7 +195,7 @@ instance (Functor f, DescendGeniVal a) => DescendGeniVal (f a) where
 
 instance (DescendGeniVal a => DescendGeniVal [a]) where
   descendGeniVal _ [] = []
-  descendGeniVal f xs = map' (descendGeniVal f) xs
+  descendGeniVal f xs = map (descendGeniVal f) xs
 
 -- ----------------------------------------------------------------------
 -- Testing
