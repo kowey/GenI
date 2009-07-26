@@ -471,35 +471,60 @@ generateStep_2p :: SimpleState ()
 generateStep_2p = do
   nir     <- gets (null.theAgenda)
   curStep <- gets step
-  -- this check may seem redundant with generate, but it's needed
-  -- to protect against a user who calls generateStep_2p on a finished
-  -- state
-  if (nir && isAdjunctionPhase curStep)
-    then return ()
-    else do incrCounter num_iterations 1
-            -- this triggers exactly once in the whole process
-            if nir
-               then switchToAux
-               else generateStep_2p'
+  case curStep of
+   SubstitutionPhase -> if nir then switchToAux else generateStep_2p_sub
+   AdjunctionPhase   -> if nir then return ()   else generateStep_2p_adj
 
-generateStep_2p' :: SimpleState ()
-generateStep_2p' =
-  do -- choose an item from the agenda
+generateStep_2p_sub :: SimpleState ()
+generateStep_2p_sub =
+  do incrCounter num_iterations 1
+     -- choose an item from the agenda
      given <- selectGiven
-     -- have we triggered the switch to aux yet?
-     curStep <- gets step
-     -- do either substitution or adjunction
-     res <- if isAdjunctionPhase curStep
-            then liftM2 (++) (applyAdjunction2p given) (sansAdjunction2p given)
-            else applySubstitution given
-
-     -- determine which of the res should go in the agenda
-     -- (monadic state) and which should go in the result (res')
+     res <- applySubstitution given
      mapM_ simpleDispatch_2p res
      -- put the given into the chart untouched
-     if isAdjunctionPhase curStep
-        then when (adjdone given) $ trashIt given
-        else addToChart given
+     addToChart given
+
+generateStep_2p_adj :: SimpleState ()
+generateStep_2p_adj =
+  do incrCounter num_iterations 1
+     -- choose an item from the agenda
+     given <- selectGiven
+     res <- liftM2 (++) (applyAdjunction2p given) (sansAdjunction2p given)
+     mapM_ simpleDispatch_2p res
+     when (adjdone given) $ trashIt given
+
+generateStep_3p :: SimpleState ()
+generateStep_3p = do
+  nir     <- gets (null.theAgenda)
+  curStep <- gets step
+  case curStep of
+    AdjunctionPhase   -> if nir then return ()   else generateStep_3p_adj
+    SubstitutionPhase -> if nir then switchToAux else generateStep_3p_sub
+
+generateStep_3p_sub :: SimpleState ()
+generateStep_3p_sub =
+  do incrCounter num_iterations 1
+     given <- selectGiven
+     -- choose an item from the agenda
+     res <- applySubstitution given
+     -- determine which of the res should go in the agenda
+     -- (monadic state) and which should go in the result (res')
+     mapM_ simpleDispatch_3p res
+     -- put the given into the chart untouched
+     addToChart given
+
+generateStep_3p_adj :: SimpleState ()
+generateStep_3p_adj =
+  do incrCounter num_iterations 1
+     given <- selectGiven
+     -- choose an item from the agenda
+     res <- liftM2 (++) (applyAdjunction2p given) (sansAdjunction2p given)
+     -- determine which of the res should go in the agenda
+     -- (monadic state) and which should go in the result (res')
+     mapM_ simpleDispatch_3p res
+     -- put the given into the chart untouched
+     when (adjdone given) $ trashIt given
 \end{code}
 
 \subsection{Helpers for the generateSteps}
@@ -532,35 +557,55 @@ selectGiven = do
 
 \subsection{Switching phases}
 
-\fnlabel{switchToAux} When all substitutions has been done, tags with
-substitution nodes still open are deleted, then the auxiliars tags are put in
-Chart and the (initial) tags in the repository are moved into the Agenda. The
-step is then changed to Auxiliary
+\begin{code}
+switchToNaConstraint :: SimpleState ()
+switchToNaConstraint = do
+  st <- get
+  let chart  = theChart st
+      auxAgenda = theHoldingPen st
+  put st{ theAgenda = auxAgenda -- yes we deliberately copy the aux trees to the agenda
+        , theHoldingPen = []
+        , theChart = auxAgenda
+        , step = AdjunctionPhase }
+  triageAfterSubstitutionPhase chart
+  return ()
+\end{code}
+
+After the substitution and na-constraint phases are complete, we switch to the
+final adjunction phase.  We do this by deleting junk from the agenda
+(particularly, trees with open substitution sites remaining), transfering trees
+from the holding pen to the chart and setting the phase to AdjunctionPhase
 
 \begin{code}
 switchToAux :: SimpleState ()
 switchToAux = do
   st <- get
   let chart  = theChart st
-      config = genconfig st
-      -- You might be wondering why we ignore the auxiliary trees in the
-      -- chart; this is because all the syntactically complete auxiliary
-      -- trees have already been filtered away by calls to classifyNew
-      initialT  = filter siInitial chart
-      res1@(compT1, incompT1) =
-         partition (null.siSubstnodes) initialT
-      --
       auxAgenda = theHoldingPen st
-      (compT2, incompT2) =
-        if semfiltered config
-        then semfilter (tsem st) auxAgenda compT1
-        else res1
-      --
-      compT = compT2
   put st{ theAgenda = []
         , theHoldingPen = []
         , theChart = auxAgenda
         , step = AdjunctionPhase }
+  triageAfterSubstitutionPhase chart
+
+triageAfterSubstitutionPhase :: [SimpleItem] -> SimpleState ()
+triageAfterSubstitutionPhase oldChart = do
+  st <- get
+  let config = genconfig st
+      -- You might be wondering why we ignore the auxiliary trees in the
+      -- chart; this is because all the syntactically complete auxiliary
+      -- trees have already been filtered away by calls to classifyNew
+      initialT  = filter siInitial oldChart
+      res1@(compT1, incompT1) =
+         partition (null.siSubstnodes) initialT
+      --
+      auxTrees = theChart st
+      (compT2, incompT2) =
+        if semfiltered config
+        then semfilter (tsem st) auxTrees compT1
+        else res1
+      --
+      compT = compT2
   -- the root cat filter by Claire
   let switchFilter =
         if rootcatfiltered config
@@ -965,6 +1010,11 @@ unification on it.  See \ref{sec:dispatching} for more details.
 
 \begin{code}
 type SimpleDispatchFilter = DispatchFilter SimpleState SimpleItem
+
+simpleDispatch_3p :: SimpleDispatchFilter
+simpleDispatch_3p =
+ simpleDispatch (dpRootFeatFailure >--> dpToResults)
+                (dpAux >--> dpToAgenda)
 
 simpleDispatch_2p :: SimpleDispatchFilter
 simpleDispatch_2p =
