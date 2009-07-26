@@ -88,7 +88,7 @@ import NLP.GenI.Builder (
     )
 import qualified NLP.GenI.Builder as B
 
-import NLP.GenI.Tags (TagElem, TagSite(TagSite),
+import NLP.GenI.Tags (TagElem, TagSite(..),
              tagLeaves, tidnum,
              ttree, ttype, tsemantics,
              detectSites,
@@ -805,17 +805,12 @@ iapplyAdjNode :: Bool -> SimpleItem -> SimpleItem -> Maybe SimpleItem
 iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
  case siAdjnodes pItem of
  [] -> Nothing
- (TagSite an_name an_up an_down nOrigin : atail) -> do
+ (aSite : atail) -> do
   -- let's go!
-  let r@(TagSite r_name r_up r_down rOrigin) = siRoot aItem -- auxiliary tree, eh?
-  (TagSite f_name f_up f_down _) <- siFoot aItem -- should really be an error if fails
-  (anr_up',  subst1)  <- unifyFeat r_up an_up
-  (anf_down, subst2)  <- unifyFeat (replace subst1 f_down) (replace subst1 an_down)
-  let -- combined substitution list and success condition
-      subst12 = mergeSubst subst1 subst2
-      -- the result of unifying the t1 root and the t2 an
-      anr = TagSite r_name (replace subst2 anr_up') r_down rOrigin
-  let anf_up = replace subst12 f_up
+  (anr, anf, subst12) <- canAdjoin aItem aSite pItem
+  let r = siRoot aItem
+  f <- siFoot aItem
+  let an_name = tsName aSite
       -- the new adjunction nodes
       auxlite = delete r $ siAdjnodes aItem
       newadjnodes = anr : (atail ++ auxlite)
@@ -835,25 +830,25 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
                                   else gn
 #endif
       rawCombined =
-        combineSimpleItems [r_name, an_name] aItem2 $ pItem
+        combineSimpleItems [tsName r, an_name] aItem2 $ pItem
                { siAdjnodes = newadjnodes
                , siLeaves  = siLeaves aItem ++ siLeaves pItem
-               , siDerived = spliceTree f_name (siDerived aItem) an_name (siDerived pItem)
-               , siDerivation = addToDerivation 'a' (aItem,rOrigin) (pItem,nOrigin,an_name)
+               , siDerived = spliceTree (tsName f) (siDerived aItem) an_name (siDerived pItem)
+               , siDerivation = addToDerivation 'a' (aItem,tsOrigin r) (pItem,tsOrigin aSite,an_name)
                -- , siAdjlist = (n, (tidnum te1)):(siAdjlist item2)
                -- if we adjoin into the root, the new root is that of the aux
                -- tree (affects 1p only)
                , siRoot = if isRootOf pItem an_name then r else siRoot pItem
                , siPendingTb =
                   if twophase then []
-                  else (TagSite an_name anf_up anf_down nOrigin) : (siPendingTb pItem) ++ (siPendingTb aItem)
+                  else anf : (siPendingTb pItem) ++ (siPendingTb aItem)
                }
       -- one phase = postpone tb unification
       -- two phase = do tb unification on the fly
       finalRes1p = return $ replace subst12 rawCombined
       finalRes2p =
        do -- tb on the former foot
-          tbRes <- unifyFeat anf_up anf_down
+          tbRes <- unifyFeat (tsUp anf) (tsDown anf)
 #ifdef DISABLE_GUI
           let (_, subst3) = tbRes
               myRes = res'
@@ -866,6 +861,20 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
           return myRes
   -- ---------------
   if twophase then finalRes2p else finalRes1p
+
+-- Note that we do not propagate variable substitutions in the nodes we return
+canAdjoin :: SimpleItem -> TagSite -> SimpleItem -> Maybe (TagSite, TagSite, Subst)
+canAdjoin aItem aSite pItem = do
+  -- let's go!
+  let r = siRoot aItem -- auxiliary tree, eh?
+  f <- siFoot aItem -- should really be an error if fails
+  (anr_up',  subst1)  <- unifyFeat (tsUp r) (tsUp aSite)
+  (anf_down, subst2)  <- unifyFeat (replace subst1 $ tsDown f) (replace subst1 $ tsDown aSite)
+  let -- combined substitution list and success condition
+      subst12 = mergeSubst subst1 subst2
+      anr = r     { tsUp   = anr_up' }
+      anf = aSite { tsDown = anf_down }
+  return (anr, anf, subst12)
 \end{code}
 
 % --------------------------------------------------------------------
