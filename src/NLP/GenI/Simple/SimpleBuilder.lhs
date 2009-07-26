@@ -38,7 +38,7 @@ module NLP.GenI.Simple.SimpleBuilder (
    addToAgenda, addToChart,
    genconfig,
    SimpleGuiItem(..),
-   theTrash,
+   theTrash, step,
 
    unpackResult,
    )

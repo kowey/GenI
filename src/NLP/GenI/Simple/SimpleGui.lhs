@@ -38,7 +38,7 @@ import NLP.GenI.Geni ( ProgStateRef, runGeni, GeniResult )
 import NLP.GenI.Graphviz ( GraphvizShow(..), gvNewline, gvUnlines )
 import NLP.GenI.GuiHelper
   ( messageGui, tagViewerGui,
-    debuggerPanel, DebuggerItemBar, setGvParams, GvIO, newGvRef,
+    debuggerPanel, DebuggerItemBar, setGvParams, GvIO, newGvRef, GraphvizGuiSt(..),
     viewTagWidgets, XMGDerivation(getSourceTrees),
   )
 import NLP.GenI.Tags (tsemantics, TagElem(idname, ttree), TagItem(..), emptyTE)
@@ -50,7 +50,7 @@ import NLP.GenI.Polarity
 import NLP.GenI.Simple.SimpleBuilder
   ( simpleBuilder, SimpleStatus, SimpleItem(..), SimpleGuiItem(..)
   , unpackResult
-  , theResults, theAgenda, theHoldingPen, theChart, theTrash)
+  , step, theResults, theAgenda, theHoldingPen, theChart, theTrash)
 \end{code}
 }
 
@@ -87,10 +87,10 @@ message box
 
 \begin{code}
 realisationsGui :: ProgStateRef -> (Window a) -> [SimpleItem]
-                -> GvIO Bool (Maybe SimpleItem)
+                -> GvIO () Bool (Maybe SimpleItem)
 realisationsGui _   f [] =
   do m <- messageGui f "No results found"
-     g <- newGvRef False [] ""
+     g <- newGvRef () False [] ""
      return (m, g, return ())
 realisationsGui pstRef f resultsRaw =
   do let tip = "result"
@@ -127,9 +127,10 @@ stToGraphviz st =
       showPaths t = " (" ++ showPolPaths t ++ ")"
   in concat [ agenda, auxAgenda, chart, trash, results ]
 
-simpleItemBar :: Params -> DebuggerItemBar Bool SimpleItem
+simpleItemBar :: Params -> DebuggerItemBar SimpleStatus Bool SimpleItem
 simpleItemBar pa f gvRef updaterFn =
  do ib <- panel f []
+    phaseTxt   <- staticText ib [ text := "" ]
     detailsChk <- checkBox ib [ text := "Show features"
                               , checked := False ]
     viewTagLay <- viewTagWidgets ib gvRef pa
@@ -140,12 +141,18 @@ simpleItemBar pa f gvRef updaterFn =
             updaterFn
     set detailsChk [ on command := onDetailsChk ]
     --
-    return . hfloatCentre . (container ib) . row 5 $
+    let lay = hfloatCentre . container ib . row 5 $
                [ hspace 5
+               , widget phaseTxt
+               , hglue
                , widget detailsChk
                , hglue
                , viewTagLay
                , hspace 5 ]
+    let onUpdate =
+          do status <- gvcore `fmap` readIORef gvRef
+             set phaseTxt [ text := show (step status) ]
+    return (lay, onUpdate)
 \end{code}
 
 % --------------------------------------------------------------------

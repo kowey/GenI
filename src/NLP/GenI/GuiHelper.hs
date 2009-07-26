@@ -215,7 +215,7 @@ tagViewerGui pst f tip cachedir itNlab = do
   let (tagelems,labels) = unzip itNlab
   gvRef <- newGvRef () False labels tip
   setGvDrawables gvRef tagelems 
-  (lay,ref,updaterFn) <- graphvizGui p cachedir gvRef
+  (lay,ref,onUpdate) <- graphvizGui p cachedir gvRef
   -- button bar widgets
   detailsChk <- checkBox p [ text := "Show features"
                            , checked := False ]
@@ -224,14 +224,14 @@ tagViewerGui pst f tip cachedir itNlab = do
   let onDetailsChk =
         do isDetailed <- get detailsChk checked
            setGvParams gvRef isDetailed
-           updaterFn
+           onUpdate
   set detailsChk [ on command := onDetailsChk ]
   -- pack it all in      
   let cmdBar = hfill $ row 5 
                 [ dynamic $ widget detailsChk
                 , viewTagLay ]
       lay2   = fill $ container p $ column 5 [ fill lay, cmdBar ]
-  return (lay2,ref,updaterFn)
+  return (lay2,ref,onUpdate)
 
 -- ----------------------------------------------------------------------
 -- XMG Metagrammar stuff.
@@ -329,8 +329,8 @@ pauseOnLexGui pst f xs missedSem missedLex job = do
 type DebuggerItemBar st flg itm
       =  Panel ()                     -- ^ parent panel
       -> GraphvizGuiRef st (Maybe itm) flg  -- ^ gv ref to use
-      -> GvUpdater -- ^ updaterFn
-      -> IO Layout
+      -> GvUpdater -- ^ onUpdate
+      -> IO (Layout, GvUpdater)
 
 -- | A generic graphical debugger widget for GenI, including
 --
@@ -384,14 +384,15 @@ debuggerPanel builder gvInitial stateToGv itemBar f config input cachedir =
     -- ---------------------------------------------------------
     gvRef <- newGvRef initS gvInitial labels "debugger session"
     setGvDrawables gvRef theItems
-    (layItemViewer,_,updaterFn) <- graphvizGui p cachedir gvRef
+    (layItemViewer,_,onUpdateMain) <- graphvizGui p cachedir gvRef
     -- ----------------------------------------------------------
     -- item bar: controls for how an individual item is displayed
     -- ----------------------------------------------------------
-    layItemBar <- itemBar p gvRef updaterFn
+    (layItemBar,onUpdateItemBar) <- itemBar p gvRef onUpdateMain
     -- ------------------------------------------- 
     -- dashboard: controls for the debugger itself 
     -- ------------------------------------------- 
+    let onUpdate = onUpdateMain >> onUpdateItemBar
     db <- panel p []
     restartBt <- button db [text := "Start over"]
     nextBt    <- button db [text := "Step by..."]
@@ -413,23 +414,24 @@ debuggerPanel builder gvInitial stateToGv itemBar f config input cachedir =
              let leapInt :: Integer
                  leapInt = read leapTxt
                  (s2,stats2) = foldr genStep s_stats [1..leapInt]
+             modifyIORef gvRef $ \g -> g { gvcore = s2 }
              setGvDrawables2 gvRef (stateToGv s2)
              setGvSel gvRef 1
-             updaterFn
+             onUpdate
              updateStatsTxt stats2
              set nextBt [ on command :~ (\_ -> showNext (s2,stats2) ) ]
     let showLast = 
           do -- redo generation from scratch
              let (s2, stats2) = runState (execStateT allSteps initS) initStats 
              setGvDrawables2 gvRef (stateToGv s2)
-             updaterFn
+             onUpdate
              updateStatsTxt stats2
     let showReset = 
           do set nextBt   [ on command  := showNext (initS, initStats) ]
              updateStatsTxt initStats 
              setGvDrawables2 gvRef (stateToGv initS)
              setGvSel gvRef 1
-             updaterFn
+             onUpdate
     -- dashboard handlers
     set finishBt  [ on command := showLast ]
     set restartBt [ on command := showReset ]
@@ -480,8 +482,9 @@ data GraphvizGuiSt st a b =
 type GraphvizGuiRef st a b = IORef (GraphvizGuiSt st a b)
 
 newGvRef :: st -> b -> [String] -> String -> IO (GraphvizGuiRef st a b)
-newGvRef coreSt p l t =
-  let st = GvSt { gvparams = p,
+newGvRef initSt p l t =
+  let st = GvSt { gvcore = initSt,
+                  gvparams = p,
                   gvitems  = Map.empty,
                   gvlabels  = l, 
                   gvhandler = Nothing,
@@ -588,7 +591,7 @@ graphvizGui f cachedir gvRef = do
   ------------------------------------------------
   -- create an updater function
   ------------------------------------------------
-  let updaterFn = do 
+  let onUpdate = do 
         gvSt <- readIORef gvRef
         let orders = gvorders gvSt 
             labels = gvlabels gvSt
@@ -599,7 +602,7 @@ graphvizGui f cachedir gvRef = do
         Monad.when (GvoSel `elem` orders) $
           set rchoice [ selection :~ (\_ -> sel) ]
         modifyIORef gvRef (\x -> x { gvorders = []})
-        -- putStrLn "updaterFn called" 
+        -- putStrLn "onUpdate called" 
         showItem 
   ------------------------------------------------
   -- enable the tree selector
@@ -616,17 +619,17 @@ graphvizGui f cachedir gvRef = do
           Nothing -> return ()
           Just h  -> h gvSt
         -- now do the update
-        updaterFn
+        onUpdate
   ------------------------------------------------
   set rchoice [ on select := selectAndShow ]
   -- call the updater function for the first time
   -- setGvSel gvRef 1
-  updaterFn 
+  onUpdate 
   -- return the layout, the gvRef, and an updater function
   -- The gvRef is to make it easier for users to muck around with the
   -- state of the gui.  Here, it's trivial, but when people combine guis
   -- together, it might be easier to keep track of when returned
-  return (lay, gvRef, updaterFn)
+  return (lay, gvRef, onUpdate)
 
 -- ---------------------------------------------------------------------- 
 -- Bitmap stuff
