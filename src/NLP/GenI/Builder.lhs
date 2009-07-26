@@ -57,7 +57,7 @@ import Data.Typeable ( Typeable )
 
 import NLP.GenI.Automaton (NFA, automatonPaths, automatonPathSets, numStates, numTransitions)
 import NLP.GenI.Configuration
-  ( getListFlagP, getFlagP, hasFlagP, Params,
+  ( getListFlagP, getFlagP, Params,
     DetectPolaritiesFlg(..),
     ExtraPolaritiesFlg(..), MetricsFlg(..),
     RootFeatureFlg(..),

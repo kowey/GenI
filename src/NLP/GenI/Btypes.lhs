@@ -74,7 +74,6 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Tree
 
-import Data.Generics.Biplate
 import Data.Generics.PlateDirect
 
 import NLP.GenI.General(filterTree, listRepNode, snd3, geniBug)
