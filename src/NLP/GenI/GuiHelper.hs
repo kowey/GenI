@@ -240,7 +240,7 @@ tagViewerGui pst f tip cachedir itNlab = do
 
 -- | Calls Yannick Parmentier's handy visualisation tool ViewTAG.
 viewTagWidgets :: (GraphvizShow Bool t, TagItem t, XMGDerivation t)
-               => Window a -> GraphvizRef st (Maybe t) Bool -> Params
+               => Window a -> GraphvizGuiRef st (Maybe t) Bool -> Params
                -> IO Layout
 viewTagWidgets p gvRef config =
  do viewTagBtn <- button p [ text := "ViewTAG" ]
@@ -328,7 +328,7 @@ pauseOnLexGui pst f xs missedSem missedLex job = do
 
 type DebuggerItemBar st flg itm
       =  Panel ()                     -- ^ parent panel
-      -> GraphvizRef st (Maybe itm) flg  -- ^ gv ref to use
+      -> GraphvizGuiRef st (Maybe itm) flg  -- ^ gv ref to use
       -> GvUpdater -- ^ updaterFn
       -> IO Layout
 
@@ -477,9 +477,9 @@ data GraphvizGuiSt st a b =
 --
 --  4. if you want to react to the selection being changed, you should set
 --     gvhandler
-type GraphvizRef st a b = IORef (GraphvizGuiSt st a b)
+type GraphvizGuiRef st a b = IORef (GraphvizGuiSt st a b)
 
-newGvRef :: st -> b -> [String] -> String -> IO (GraphvizRef st a b)
+newGvRef :: st -> b -> [String] -> String -> IO (GraphvizGuiRef st a b)
 newGvRef coreSt p l t =
   let st = GvSt { gvparams = p,
                   gvitems  = Map.empty,
@@ -490,30 +490,30 @@ newGvRef coreSt p l t =
                   gvorders = [] }
   in newIORef st
 
-setGvSel :: GraphvizRef st a b  -> Int -> IO ()
+setGvSel :: GraphvizGuiRef st a b  -> Int -> IO ()
 setGvSel gvref s  =
   do let fn x = x { gvsel = s,
                     gvorders = GvoSel : (gvorders x) }
      modifyIORef gvref fn 
   
-setGvParams :: GraphvizRef st a b -> b -> IO ()
+setGvParams :: GraphvizGuiRef st a b -> b -> IO ()
 setGvParams gvref c  =
   do let fn x = x { gvparams = c,
                     gvorders = GvoParams : (gvorders x) }
      modifyIORef gvref fn 
 
-modifyGvParams :: GraphvizRef st a b -> (b -> b) -> IO ()
+modifyGvParams :: GraphvizGuiRef st a b -> (b -> b) -> IO ()
 modifyGvParams gvref fn  =
   do gvSt <- readIORef gvref
      setGvParams gvref (fn $ gvparams gvSt)
 
-setGvDrawables :: GraphvizRef st a b -> [a] -> IO ()
+setGvDrawables :: GraphvizGuiRef st a b -> [a] -> IO ()
 setGvDrawables gvref it =
   do let fn x = x { gvitems = Map.fromList $ zip [0..] it,
                     gvorders = GvoItems : (gvorders x) }
      modifyIORef gvref fn 
 
-setGvDrawables2 :: GraphvizRef st a b -> [(a,String)] -> IO ()
+setGvDrawables2 :: GraphvizGuiRef st a b -> [(a,String)] -> IO ()
 setGvDrawables2 gvref itlb =
   do let (it,lb) = unzip itlb
          fn x = x { gvlabels = lb }
@@ -530,7 +530,7 @@ gvOnSelect onNothing onJust gvSt =
     Just (Just s) -> onJust s
     _             -> onNothing
 
-setGvHandler :: GraphvizRef st a b -> Maybe (GraphvizGuiSt st a b -> IO ()) -> IO ()
+setGvHandler :: GraphvizGuiRef st a b -> Maybe (GraphvizGuiSt st a b -> IO ()) -> IO ()
 setGvHandler gvref mh =
   do gvSt <- readIORef gvref
      modifyIORef gvref (\x -> x { gvhandler = mh })
@@ -540,7 +540,7 @@ setGvHandler gvref mh =
 
 -- | add a selection handler - if there already is a handler
 --   this handler will be called before the new one
-addGvHandler :: GraphvizRef st a b -> (GraphvizGuiSt st a b -> IO ()) -> IO ()
+addGvHandler :: GraphvizGuiRef st a b -> (GraphvizGuiSt st a b -> IO ()) -> IO ()
 addGvHandler gvref h =
   do gvSt <- readIORef gvref
      let newH = case gvhandler gvSt of 
@@ -548,7 +548,7 @@ addGvHandler gvref h =
                 Just oldH -> Just (\g -> oldH g >> h g)
      setGvHandler gvref newH
 
-type GvIO st f d  = IO (Layout, GraphvizRef st d f, GvUpdater)
+type GvIO st f d  = IO (Layout, GraphvizGuiRef st d f, GvUpdater)
 type GvUpdater = IO ()
 
 -- |'graphvizGui' @f glab cachedir gvRef@ is a general-purpose GUI for
@@ -568,7 +568,7 @@ type GvUpdater = IO ()
 --  * @cachedir@ - the cache subdirectory.  We intialise this by creating a cache
 --    directory for images which will be generated from the results
 --  * @gvRef@ - see above
-graphvizGui :: (GraphvizShow f d) => (Window a) -> String -> GraphvizRef st d f -> GvIO st f d
+graphvizGui :: (GraphvizShow f d) => (Window a) -> String -> GraphvizGuiRef st d f -> GvIO st f d
 graphvizGui f cachedir gvRef = do
   initGvSt <- readIORef gvRef
   -- widgets
@@ -675,7 +675,7 @@ onPaint vbitmap dc _ = do
 -- and opens it if we succeed.  Otherwise, it does nothing at all; the creation
 -- function will display an error message if it fails.
 createAndOpenImage :: (GraphvizShow f b) => 
-  FilePath -> Window a -> GraphvizRef st b f -> OpenImageFn -> IO ()
+  FilePath -> Window a -> GraphvizGuiRef st b f -> OpenImageFn -> IO ()
 createAndOpenImage cachedir f gvref openFn = do 
   let errormsg g = "The file " ++ g ++ " was not created!\n"
                    ++ "Is graphviz installed?"
@@ -692,7 +692,7 @@ createAndOpenImage cachedir f gvref openFn = do
 createImage :: (GraphvizShow f b)
             => FilePath            -- ^ cache directory
             -> Window a            -- ^ parent window
-            -> GraphvizRef st b f  -- ^ stuff to display
+            -> GraphvizGuiRef st b f  -- ^ stuff to display
             -> IO (Maybe FilePath)
 createImage cachedir f gvref = do
   gvSt <- readIORef gvref
