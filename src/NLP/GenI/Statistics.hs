@@ -71,10 +71,10 @@ initialStatisticsStateFor f = flip f emptyStats
 -- | Adds a metric at the beginning of the list
 --   (note we reverse the order whene we want to print the metrics)
 addMetric :: Metric -> StatisticsState ()
-addMetric newMetric  = modify (\stat -> stat{metrics = (metrics stat)++[newMetric]})
+addMetric newMetric  = modify (\stat -> stat{metrics = newMetric : metrics stat } )
 
 showFinalStats :: Statistics -> String
-showFinalStats stats = unlines $ map show $ metrics stats
+showFinalStats stats = unlines $ map show $ reverse $ metrics stats
 
 --------------------------------------------
 -- Metrics
