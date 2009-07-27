@@ -61,7 +61,8 @@ import NLP.GenI.Configuration
     DetectPolaritiesFlg(..),
     ExtraPolaritiesFlg(..), MetricsFlg(..),
     RootFeatureFlg(..),
-    polarised )
+    Optimisation(..), hasOpt,
+  )
 import NLP.GenI.General (geniBug, BitVector, multiGroupByFM, fst3, snd3, thd3)
 import NLP.GenI.Btypes
   ( ILexEntry, SemInput, Sem, Pred, showPred, showSem,
@@ -186,7 +187,7 @@ preInit input config =
                   $ getFlagP DetectPolaritiesFlg config
      rootFeat = getListFlagP RootFeatureFlg config
      -- do any optimisations
-     isPol      = polarised config
+     isPol = hasOpt Polarised config
      -- polarity optimisation (if enabled)
      autstuff = buildAutomaton polsToDetect rootFeat extraPol seminput cand
      (_, seedAut, aut, sem2) = autstuff

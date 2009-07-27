@@ -346,7 +346,7 @@ initSimpleBuilder twophase input config =
       -- need an initial tb step that only addresses the
       -- nodes with null adjunction constraints
       simpleDp = if twophase then simpleDispatch_2p
-                 else simpleDispatch_1p (isIaf config)
+                 else simpleDispatch_1p (hasOpt Iaf config)
       initialDp = dpTbFailure >--> simpleDp
       --
       initS = S{ theAgenda    = []
@@ -432,7 +432,7 @@ elements from the chart.
 generateStep_1p :: SimpleState ()
 generateStep_1p =
  do isDone <- gets (null.theAgenda)
-    iaf <- gets (isIaf.genconfig)
+    iaf <- gets (hasOpt Iaf .genconfig)
     let dispatch = mapM (simpleDispatch_1p iaf)
     if isDone
        then return ()
@@ -550,7 +550,7 @@ switchToAux = do
         else ( oldAuxTrees, compT1 )
       --
       (compT3, incompT3) =
-        if semfiltered config
+        if hasOpt SemFiltered config
         then semfilter (tsem st) auxTrees compT2
         else (compT2, [])
       --

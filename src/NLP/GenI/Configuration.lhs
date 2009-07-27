@@ -53,11 +53,9 @@ module NLP.GenI.Configuration
   , ViewCmdFlg(..)
   --
   , mainBuilderTypes
-  , getFlagP, getListFlagP, setFlagP, hasFlagP, deleteFlagP, hasOpt, polarised
+  , getFlagP, getListFlagP, setFlagP, hasFlagP, deleteFlagP, hasOpt
   , getFlag, setFlag, hasFlag
   , Optimisation(..)
-  , semfiltered
-  , isIaf
   , emptyParams, defineParams
   , treatArgs, treatStandardArgs, treatArgsWithParams, treatStandardArgsWithParams
   , processInstructions
@@ -121,15 +119,6 @@ data Params = Prms{
 
 hasOpt :: Optimisation -> Params -> Bool
 hasOpt o p = maybe False (elem o) $ getFlagP OptimisationsFlg p
-
-polarised :: Params -> Bool
-polarised    = hasOpt Polarised
-
-isIaf :: Params -> Bool
-isIaf        = hasOpt Iaf
-
-semfiltered :: Params -> Bool
-semfiltered  = hasOpt SemFiltered
 
 hasFlagP    :: (Typeable f, Typeable x) => (x -> f) -> Params -> Bool
 deleteFlagP :: (Typeable f, Typeable x) => (x -> f) -> Params -> Params
