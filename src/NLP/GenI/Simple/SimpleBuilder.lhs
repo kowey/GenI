@@ -493,38 +493,6 @@ generateStep_2p_adj =
      res <- liftM2 (++) (applyAdjunction2p given) (sansAdjunction2p given)
      mapM_ simpleDispatch_2p res
      when (adjdone given) $ trashIt given
-
-generateStep_3p :: SimpleState ()
-generateStep_3p = do
-  nir     <- gets (null.theAgenda)
-  curStep <- gets step
-  case curStep of
-    AdjunctionPhase   -> if nir then return ()   else generateStep_3p_adj
-    SubstitutionPhase -> if nir then switchToAux else generateStep_3p_sub
-
-generateStep_3p_sub :: SimpleState ()
-generateStep_3p_sub =
-  do incrCounter num_iterations 1
-     given <- selectGiven
-     -- choose an item from the agenda
-     res <- applySubstitution given
-     -- determine which of the res should go in the agenda
-     -- (monadic state) and which should go in the result (res')
-     mapM_ simpleDispatch_3p res
-     -- put the given into the chart untouched
-     addToChart given
-
-generateStep_3p_adj :: SimpleState ()
-generateStep_3p_adj =
-  do incrCounter num_iterations 1
-     given <- selectGiven
-     -- choose an item from the agenda
-     res <- liftM2 (++) (applyAdjunction2p given) (sansAdjunction2p given)
-     -- determine which of the res should go in the agenda
-     -- (monadic state) and which should go in the result (res')
-     mapM_ simpleDispatch_3p res
-     -- put the given into the chart untouched
-     when (adjdone given) $ trashIt given
 \end{code}
 
 \subsection{Helpers for the generateSteps}
@@ -556,20 +524,6 @@ selectGiven = do
 \end{code}
 
 \subsection{Switching phases}
-
-\begin{code}
-switchToNaConstraint :: SimpleState ()
-switchToNaConstraint = do
-  st <- get
-  let chart  = theChart st
-      auxAgenda = theHoldingPen st
-  put st{ theAgenda = auxAgenda -- yes we deliberately copy the aux trees to the agenda
-        , theHoldingPen = []
-        , theChart = auxAgenda
-        , step = AdjunctionPhase }
-  triageAfterSubstitutionPhase chart
-  return ()
-\end{code}
 
 After the substitution and na-constraint phases are complete, we switch to the
 final adjunction phase.  We do this by deleting junk from the agenda
