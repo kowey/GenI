@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307,
 USA.
 -}
 
-module NLP.GenI.Statistics(Statistics, StatisticsState, StatisticsStateIO,
+module NLP.GenI.Statistics(Statistics, StatisticsState,
     emptyStats,
 
     showFinalStats,
