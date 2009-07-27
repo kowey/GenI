@@ -193,10 +193,6 @@ instance DescendGeniVal GeniVal where
 instance (Functor f, DescendGeniVal a) => DescendGeniVal (f a) where
   descendGeniVal = fmap . descendGeniVal
 
-instance (DescendGeniVal a => DescendGeniVal [a]) where
-  descendGeniVal _ [] = []
-  descendGeniVal f xs = map (descendGeniVal f) xs
-
 -- ----------------------------------------------------------------------
 -- Testing
 -- ----------------------------------------------------------------------
