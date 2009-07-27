@@ -159,6 +159,10 @@ mainGui pstRef
          [ text := "Sem constraints"
          , tooltip := "Use any sem constraints the user provides"
          ]
+       earlyNaChk <- optCheckBox EarlyNa pstRef f
+          [ text := "NA detection"
+          , tooltip := "Early detection of nodes that cannot be adjoined to"
+          ]
        iafChk <- optCheckBox Iaf pstRef f
           [ text := "Idx acc filter"
           , tooltip := "Only available in CKY/Earley for now"
@@ -204,6 +208,7 @@ mainGui pstRef
                              , dynamic $ widget useSemConstraintsChk
                              , dynamic $ widget semfilterChk 
                              , dynamic $ widget rootfilterChk
+                             , dynamic $ widget earlyNaChk
                              , dynamic $ widget iafChk
                              ]
        set f [layout := column 5 [ gramsemBox
