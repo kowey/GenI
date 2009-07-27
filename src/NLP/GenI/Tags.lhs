@@ -56,8 +56,6 @@ import Data.Generics (Data)
 import Data.Generics.PlateDirect
 import Data.Typeable (Typeable)
 
-import Control.Parallel.Strategies
-
 import NLP.GenI.Btypes (Ptype(Initial, Auxiliar), SemPols,
                GeniVal(GConst), AvPair(..),
                GNode(gup, glexeme, gnname, gaconstr, gdown, gtype, gorigin),
