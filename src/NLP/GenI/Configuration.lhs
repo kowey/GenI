@@ -56,7 +56,7 @@ module NLP.GenI.Configuration
   , getFlagP, getListFlagP, setFlagP, hasFlagP, deleteFlagP, hasOpt, polarised
   , getFlag, setFlag, hasFlag
   , Optimisation(..)
-  , rootcatfiltered, semfiltered
+  , semfiltered
   , isIaf
   , emptyParams, defineParams
   , treatArgs, treatStandardArgs, treatArgsWithParams, treatStandardArgsWithParams
@@ -122,12 +122,14 @@ data Params = Prms{
 hasOpt :: Optimisation -> Params -> Bool
 hasOpt o p = maybe False (elem o) $ getFlagP OptimisationsFlg p
 
-polarised, isIaf :: Params -> Bool
-rootcatfiltered, semfiltered :: Params -> Bool
+polarised :: Params -> Bool
 polarised    = hasOpt Polarised
+
+isIaf :: Params -> Bool
 isIaf        = hasOpt Iaf
+
+semfiltered :: Params -> Bool
 semfiltered  = hasOpt SemFiltered
-rootcatfiltered = hasOpt RootCatFiltered
 
 hasFlagP    :: (Typeable f, Typeable x) => (x -> f) -> Params -> Bool
 deleteFlagP :: (Typeable f, Typeable x) => (x -> f) -> Params -> Params
@@ -491,7 +493,6 @@ data Optimisation = PolOpts
                   | AdjOpts
                   | Polarised
                   | NoConstraints
-                  | RootCatFiltered
                   | SemFiltered
                   | Iaf -- ^ one phase only!
                   | EarlyNa
@@ -502,7 +503,6 @@ coreOptimisationCodes =
  [ (Polarised        , "p",      "polarity filtering")
  , (EarlyNa          , "e-na",   "detect null adjunction at earliest opportunity")
  , (SemFiltered      , "f-sem",  "semantic filtering (two-phase only)")
- , (RootCatFiltered  , "f-root", "filtering on root node (two-phase only)")
  , (Iaf              , "i",      "index accesibility filtering (one-phase only)")
  , (NoConstraints    , "nc",     "disable semantic constraints (anti-optimisation!)")
  ]
@@ -518,7 +518,7 @@ optimisationCodes =
 
 polOpts, adjOpts :: [Optimisation]
 polOpts = [Polarised]
-adjOpts = [RootCatFiltered, SemFiltered]
+adjOpts = [EarlyNa, SemFiltered]
 \end{code}
 
 \begin{code}
