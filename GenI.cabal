@@ -99,7 +99,8 @@ Library
                 NLP.GenI.Polarity, NLP.GenI.Automaton,
                 NLP.GenI.Statistics,
                 NLP.GenI.Builder,
-                NLP.GenI.Simple.SimpleBuilder, NLP.GenI.CkyEarley.CkyBuilder,
+                NLP.GenI.Simple.SimpleBuilder,
+                -- NLP.GenI.CkyEarley.CkyBuilder,
                 NLP.GenI.Geni, NLP.GenI.Configuration
 
   Hs-Source-Dirs: src
