@@ -55,7 +55,7 @@ import Control.Monad.State.Strict
 
 import Data.List
   (partition, delete, foldl', unfoldr, sortBy)
-import Data.Maybe (isJust, isNothing)
+import Data.Maybe (isJust, isNothing, mapMaybe)
 import Data.Ord (comparing)
 import Data.Bits
 import qualified Data.Map as Map
@@ -534,33 +534,33 @@ from the holding pen to the chart and setting the phase to AdjunctionPhase
 switchToAux :: SimpleState ()
 switchToAux = do
   st <- get
-  let chart  = theChart st
-      auxAgenda = theHoldingPen st
-  put st{ theAgenda = []
-        , theHoldingPen = []
-        , theChart = auxAgenda
-        , step = AdjunctionPhase }
-  triageAfterSubstitutionPhase chart
-
-triageAfterSubstitutionPhase :: [SimpleItem] -> SimpleState ()
-triageAfterSubstitutionPhase oldChart = do
-  st <- get
-  let config = genconfig st
+  let oldAuxTrees = theHoldingPen st
+      config = genconfig st
       -- You might be wondering why we ignore the auxiliary trees in the
       -- chart; this is because all the syntactically complete auxiliary
       -- trees have already been filtered away by calls to classifyNew
-      initialT  = filter siInitial oldChart
+      initialT  = filter siInitial (theChart st)
       res1@(compT1, incompT1) =
          partition (null.siSubstnodes) initialT
       --
-      auxTrees = theChart st
-      (compT2, incompT2) =
-        if semfiltered config
-        then semfilter (tsem st) auxTrees compT1
-        else res1
+      (auxTrees, compT2) =
+        if hasOpt EarlyNa config
+        then ( mapMaybe (detectNa oldAuxTrees) oldAuxTrees
+             , mapMaybe (detectNa auxTrees) compT1 )
+        else ( oldAuxTrees, compT1 )
+      incompT2 = incompT1
       --
-      compT = compT2
+      (compT3, incompT3) =
+        if semfiltered config
+        then semfilter (tsem st) auxTrees compT2
+        else (compT2, incompT2)
+      --
+      compT = compT3
   -- the root cat filter by Claire
+  put st{ theAgenda = []
+        , theHoldingPen = []
+        , theChart = auxTrees
+        , step = AdjunctionPhase }
   let switchFilter =
         if rootcatfiltered config
         then dpRootFeatFailure2 >--> dpToAgenda
@@ -569,7 +569,7 @@ triageAfterSubstitutionPhase oldChart = do
   -- toss the syntactically incomplete stuff in the trash
 #ifndef DISABLE_GUI
   mapM_ (\t -> addToTrash t ts_synIncomplete) incompT1
-  mapM_ (\t -> addToTrash t "sem-filtered") incompT2
+  mapM_ (\t -> addToTrash t "sem-filtered") incompT3
 #endif
   return ()
 \end{code}
@@ -876,6 +876,25 @@ canAdjoin aItem aSite pItem = do
   return (anr, anf, subst12)
 \end{code}
 
+\begin{code}
+detectNa :: [SimpleItem] -- ^ aux trees
+         -> SimpleItem   -- ^ me
+         -> Maybe SimpleItem
+detectNa rawAux i = helper (siAdjnodes i) Map.empty []
+ where
+  aux = filterCompatible i rawAux
+  helper []     s acc = Just $ replace s $ i { siAdjnodes = acc }
+  helper (t:ts) s acc =
+    let hasAdj = any isJust $ map (\a -> canAdjoin a t i) aux
+    in case (snd `fmap` unifyFeat (tsUp t) (tsDown t)) of
+        Just s2 -> if hasAdj
+                   then helper ts s (t : acc)
+                   else helper (replace s2 ts) (mergeSubst s s2) acc
+        Nothing -> if hasAdj
+                   then helper ts s (t : acc)
+                   else Nothing
+\end{code}
+
 % --------------------------------------------------------------------
 \subsection{Helper functions for operations}
 % --------------------------------------------------------------------
@@ -894,16 +913,19 @@ isRootOf item n = n == rname
 --  * are on the some of the same polarity automaton paths as the
 --    current agenda item
 lookupChart :: SimpleItem -> SimpleState [SimpleItem]
-lookupChart given = do
-  chart <- gets theChart
-  let gpaths = siPolpaths given
-      gsem   = siSemantics given
-  return [ i | i <- chart
-             -- should be on the same polarity path (chart sharing)
-             , (siPolpaths i) .&. gpaths /= 0
-             -- semantics should not be overlapping
-             && (siSemantics i .&. gsem ) == 0
-         ]
+lookupChart given = gets (filterCompatible given . theChart)
+
+filterCompatible :: SimpleItem -> [SimpleItem] -> [SimpleItem]
+filterCompatible given chart =
+  [ i | i <- chart
+      -- should be on the same polarity path (chart sharing)
+      , (siPolpaths i) .&. gpaths /= 0
+      -- semantics should not be overlapping
+      && (siSemantics i .&. gsem ) == 0
+  ]
+ where
+  gpaths = siPolpaths given
+  gsem   = siSemantics given
 
 -- | Helper function for when chart operations succeed.
 combineSimpleItems :: [NodeName] -- ^ nodes to highlight
