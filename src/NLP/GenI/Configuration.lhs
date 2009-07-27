@@ -487,14 +487,20 @@ optionsForOptimisation =
    readRF = parseFlagWithParsec "root feature" geniFeats
    readPolarities = parseFlagWithParsec "polarity string" geniPolarities
 
-data Optimisation =
-  PolOpts | AdjOpts | Polarised | NoConstraints |
-  RootCatFiltered | SemFiltered | Iaf {- one phase only! -}
+data Optimisation = PolOpts
+                  | AdjOpts
+                  | Polarised
+                  | NoConstraints
+                  | RootCatFiltered
+                  | SemFiltered
+                  | Iaf -- ^ one phase only!
+                  | EarlyNa
   deriving (Show,Eq,Typeable)
 
 coreOptimisationCodes :: [(Optimisation,String,String)]
 coreOptimisationCodes =
  [ (Polarised        , "p",      "polarity filtering")
+ , (EarlyNa          , "e-na",   "detect null adjunction at earliest opportunity")
  , (SemFiltered      , "f-sem",  "semantic filtering (two-phase only)")
  , (RootCatFiltered  , "f-root", "filtering on root node (two-phase only)")
  , (Iaf              , "i",      "index accesibility filtering (one-phase only)")
