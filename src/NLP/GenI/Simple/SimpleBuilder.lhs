@@ -491,7 +491,7 @@ generateStep_2p_adj =
      -- choose an item from the agenda
      given <- selectGiven
      res <- liftM2 (++) (applyAdjunction2p given) (sansAdjunction2p given)
-     mapM_ simpleDispatch_2p res
+     mapM_ simpleDispatch_2p_adjphase res
      when (adjdone given) $ trashIt given
 \end{code}
 
@@ -560,17 +560,12 @@ switchToAux = do
         , theHoldingPen = []
         , theChart = auxTrees
         , step = AdjunctionPhase }
-  let switchFilter =
-        if rootcatfiltered config
-        then dpRootFeatFailure2 >--> dpToAgenda
-        else dpToAgenda
-  mapM_ switchFilter compT
+  mapM_ simpleDispatch_2p_adjphase compT
   -- toss the syntactically incomplete stuff in the trash
 #ifndef DISABLE_GUI
   mapM_ (\t -> addToTrash t ts_synIncomplete) incompT1
   mapM_ (\t -> addToTrash t "sem-filtered") incompT3
 #endif
-  return ()
 \end{code}
 
 \subsubsection{SemFilter Optimisation}
@@ -991,6 +986,11 @@ simpleDispatch_2p =
  simpleDispatch (dpRootFeatFailure >--> dpToResults)
                 (dpAux >--> dpToAgenda)
 
+simpleDispatch_2p_adjphase :: SimpleDispatchFilter
+simpleDispatch_2p_adjphase =
+ simpleDispatch (dpRootFeatFailure >--> dpToResults)
+                dpToAgenda
+
 simpleDispatch_1p :: Bool -> SimpleDispatchFilter
 simpleDispatch_1p iaf =
  simpleDispatch (dpRootFeatFailure >--> dpTbFailure >--> dpToResults)
@@ -1006,7 +1006,7 @@ simpleDispatch resFilter nonResFilter item =
     condFilter isResult resFilter nonResFilter item
 
 dpAux, dpToAgenda :: SimpleDispatchFilter
-dpTbFailure, dpRootFeatFailure, dpRootFeatFailure2, dpToResults :: SimpleDispatchFilter
+dpTbFailure, dpToResults :: SimpleDispatchFilter
 dpToTrash :: String -> SimpleDispatchFilter
 
 dpToAgenda x  = addToAgenda x  >> return Nothing
@@ -1039,18 +1039,14 @@ dpTbFailure item =
 
 -- | If the item (ostensibly a result) does not have the correct root
 --   category, return Nothing; otherwise return Just item
-dpRootFeatFailure  = dpRootFeatFailure_ False
-dpRootFeatFailure2 = dpRootFeatFailure_ True
-
-dpRootFeatFailure_ :: Bool -> SimpleDispatchFilter
-dpRootFeatFailure_ count item =
+dpRootFeatFailure :: SimpleDispatchFilter
+dpRootFeatFailure item =
  do config <- gets genconfig
     let rootFeat = getListFlagP RootFeatureFlg config
         (TagSite _ top _ _) = siRoot item
     case unifyFeat rootFeat top of
       Nothing ->
-        do when count $ incrCounter "root_feat_discards" 1
-           dpToTrash (ts_rootFeatureMismatch rootFeat) item
+        dpToTrash (ts_rootFeatureMismatch rootFeat) item
       Just (_, s) ->
         return . Just $ replace s item
 \end{code}
