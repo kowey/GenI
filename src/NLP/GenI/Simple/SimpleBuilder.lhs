@@ -548,12 +548,11 @@ switchToAux = do
         then ( mapMaybe (detectNa oldAuxTrees) oldAuxTrees
              , mapMaybe (detectNa auxTrees) compT1 )
         else ( oldAuxTrees, compT1 )
-      incompT2 = incompT1
       --
       (compT3, incompT3) =
         if semfiltered config
         then semfilter (tsem st) auxTrees compT2
-        else (compT2, incompT2)
+        else (compT2, [])
       --
       compT = compT3
   -- the root cat filter by Claire
