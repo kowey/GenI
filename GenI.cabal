@@ -106,13 +106,15 @@ Library
   Hs-Source-Dirs: src
   Extensions:     CPP, Rank2Types, OverlappingInstances, MultiParamTypeClasses, FlexibleContexts, TypeSynonymInstances,  FlexibleInstances, DeriveDataTypeable, ExistentialQuantification, LiberalTypeSynonyms
   Ghc-options:    -Wall -O2
+  Ghc-prof-options: -auto-all
 
 Executable     geni
  Main-Is:        MainGeni.lhs
  Hs-Source-Dirs: src
  Extensions:     CPP, Rank2Types, OverlappingInstances, MultiParamTypeClasses, FlexibleContexts, TypeSynonymInstances,  FlexibleInstances, DeriveDataTypeable, ExistentialQuantification, LiberalTypeSynonyms
 
- Ghc-options:    -Wall
+ Ghc-options:    -Wall -O2
+ Ghc-prof-options: -auto-all
  Build-Depends: filepath > 1.0 && < 1.2,
                 parsec >= 2.1 && < 3,
                 QuickCheck >= 1.2 && < 2,
