@@ -171,10 +171,6 @@ mainGui pstRef
          [ text := "Semantic filters"
          , tooltip := "(2p only) Filter away semantically incomplete structures before adjunction phase"
          ]
-       rootfilterChk <- optCheckBox RootCatFiltered pstRef f
-         [ text := "Root filters"
-         , tooltip := "(2p only) Filter away non-root structures before adjunction phase"
-         ]
        extrapolText <- staticText f 
          [ text := maybe "" showLitePm $ getFlagP ExtraPolaritiesFlg config
          , tooltip := "Use the following additional polarities" 
@@ -207,7 +203,6 @@ mainGui pstRef
                                      [ dynamic $ row 5 [ label "Extra: ", widget extrapolText ] ] ]
                              , dynamic $ widget useSemConstraintsChk
                              , dynamic $ widget semfilterChk 
-                             , dynamic $ widget rootfilterChk
                              , dynamic $ widget earlyNaChk
                              , dynamic $ widget iafChk
                              ]
