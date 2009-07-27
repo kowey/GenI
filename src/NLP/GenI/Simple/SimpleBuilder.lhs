@@ -986,11 +986,6 @@ unification on it.  See \ref{sec:dispatching} for more details.
 \begin{code}
 type SimpleDispatchFilter = DispatchFilter SimpleState SimpleItem
 
-simpleDispatch_3p :: SimpleDispatchFilter
-simpleDispatch_3p =
- simpleDispatch (dpRootFeatFailure >--> dpToResults)
-                (dpAux >--> dpToAgenda)
-
 simpleDispatch_2p :: SimpleDispatchFilter
 simpleDispatch_2p =
  simpleDispatch (dpRootFeatFailure >--> dpToResults)
