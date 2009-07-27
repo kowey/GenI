@@ -49,24 +49,15 @@ import Data.Maybe (mapMaybe)
 -- Statistics are collections of Metrics
 -- which can be printed out (at regular intervals)
 -------------------------------------------
-data Statistics = Stat{ metrics::[Metric] }
+newtype Statistics = Stat{ metrics::[Metric] }
 
 type StatisticsState a   = forall m. (MonadState Statistics m) => m a
-type StatisticsStateIO a = forall m. (MonadState Statistics m, MonadIO m) => m a
 
 updateMetrics :: (Metric -> Metric) -> Statistics -> Statistics
 updateMetrics f stat = stat{metrics           = map f (metrics stat) }
 
 queryMetrics :: (Metric -> Maybe a) -> Statistics -> [a]
 queryMetrics f stat =  mapMaybe f (metrics stat)
-
-mergeMetrics :: (Metric -> Metric -> Metric) -> Statistics -> Statistics -> Statistics
-mergeMetrics f s1 s2 = s1 { metrics           = zipWith f (metrics s1) (metrics s2) }
-
---updateStep :: Statistics -> Statistics
---updateStep s@(Stat _ [] _     _)         = s
---updateStep s@(Stat _ _  _     Nothing)   = s
---updateStep stat                          = stat{count = (count stat)+1}
 
 emptyStats :: Statistics
 emptyStats = Stat []
@@ -77,8 +68,8 @@ emptyStats = Stat []
 initialStatisticsStateFor :: (MonadState Statistics m) => (m a -> Statistics -> b) -> m a -> b
 initialStatisticsStateFor f = flip f emptyStats
 
-{- | Adds a metric at the end of the list (thus,
-   metrics are printed out in the order in which they were added -}
+-- | Adds a metric at the beginning of the list
+--   (note we reverse the order whene we want to print the metrics)
 addMetric :: Metric -> StatisticsState ()
 addMetric newMetric  = modify (\stat -> stat{metrics = (metrics stat)++[newMetric]})
 
