@@ -15,6 +15,8 @@ looking pretty.
 > import Distribution.Simple.Setup
 > import Distribution.Simple
 > import Distribution.Simple.LocalBuildInfo
+>
+> import System.FilePath
 
 Configure this stuff
 --------------------
@@ -37,10 +39,13 @@ also that this script is equivalent to the vanilla one if you're running
 on other operating systems.
 
 > main :: IO ()
-> main =
->  do case os of
->      "darwin" -> defaultMainWithHooks (simpleUserHooks { postBuild = macifyHook })
->      _        -> defaultMain
+> main = defaultMainWithHooks $ addMacHook $ simpleUserHooks { runTests = runTests' }
+>  where
+>   addMacHook h =
+>    case os of
+>     "darwin" -> h { postBuild = macifyHook }
+>     _        -> h
+>
 
 > macifyHook _ _ pkg localb =
 >   foldM_ (next $ macify.binPath) ExitSuccess guiExes
@@ -51,18 +56,15 @@ on other operating systems.
 >               Just rs -> filter (`elem` rs) allExes
 >   next _ x@(ExitFailure _) _ = return x
 >   next _ _ b = macify (binPath b)
->   binPath x = buildDir localb /// x /// x
+>   binPath x = buildDir localb </> x </> x
 
 > macify :: FilePath -> IO ExitCode
 > macify x = system $ unwords $ [ "chmod u+x",  macosxApp,  ";"
 >                               ,  macosxApp, x ]
 
-This handly little FilePath concatenation function was stolen from
-darcs. Note that darcs is GPL; if this bothers you, ask David Roundy.
+Running the test suite
+----------------------
 
-> (///) :: FilePath -> FilePath -> FilePath
-> ""///b = b
-> a///"" = a
-> a///b  = a ++ "/" ++ b
-
-
+> runTests' :: Args -> Bool -> PackageDescription -> LocalBuildInfo -> IO ()
+> runTests' _ _ _ lbi = system testprog >> return ()
+>  where testprog = (buildDir lbi) </> "geni" </> "geni --unit-tests"
