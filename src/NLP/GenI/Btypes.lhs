@@ -59,8 +59,6 @@ module NLP.GenI.Btypes(
 
    -- Polarities
 
-   -- Tests
-   prop_unify_anon, prop_unify_self, prop_unify_sym
 ) where
 
 
