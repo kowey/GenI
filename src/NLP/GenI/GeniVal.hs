@@ -27,6 +27,7 @@ import Data.Generics (Data)
 import Data.Typeable (Typeable)
 import qualified Data.Map as Map
 
+import Test.HUnit
 import Test.QuickCheck hiding (collect)
 import Test.Framework
 import Test.Framework.Providers.HUnit
@@ -207,6 +208,7 @@ testSuite = testGroup "unification"
  [ testProperty "self" prop_unify_sym
  , testProperty "anonymous variables" prop_unify_anon
  , testProperty "symmetry" prop_unify_sym
+ , testBackPropagation
  ]
 
 -- | Unifying something with itself should always succeed
@@ -240,6 +242,21 @@ prop_unify_sym x y =
   in (all qc_not_empty_GConst) x &&
      (all qc_not_empty_GConst) y &&
      all (notOverlap) (zip x y) ==> u1 == u2
+
+testBackPropagation =
+  testGroup "back propagation"
+   [ testCase "unify left/right" $ assertEqual "" expected $ unify left right
+   , testCase "unify right/left" $ assertEqual "" expected $ unify right left
+   ]
+ where
+  n = 3
+  cx = GConst ["X"]
+  leftStrs = map show [1..n]
+  left  = map GVar leftStrs
+  right = drop 1 left ++ [cx]
+  expected = Just (expectedResult, expectedSubst)
+  expectedResult = replicate n cx
+  expectedSubst  = Map.fromList $ zip leftStrs (repeat cx)
 
 -- ----------------------------------------------------------------------
 -- Testing
