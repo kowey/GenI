@@ -17,20 +17,15 @@
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 -- ----------------------------------------------------------------------
 
--- TODO: use somebody else's test framework... do not let this grow into a
--- custom monstrosity.
-
 module NLP.GenI.Test where
 
-import Test.QuickCheck ( quickCheck )
-import NLP.GenI.Btypes
+import System.Environment ( getArgs )
+import Test.Framework
+import NLP.GenI.GeniVal ( testSuite )
 
 runTests :: IO ()
 runTests =
- do putStrLn $ header "unification"
-    putStrLn "unification is symmetrical"         >> quickCheck prop_unify_sym
-    putStrLn "everything unifies with underscore" >> quickCheck prop_unify_anon
-    putStrLn "everything unifies with itself"     >> quickCheck prop_unify_self
- where
-  bar = replicate 72 '='
-  header x = unlines [bar,x,bar]
+ do args <- filter (/= "--unit-tests") `fmap` getArgs
+    flip defaultMainWithArgs args
+     [ NLP.GenI.GeniVal.testSuite
+     ]

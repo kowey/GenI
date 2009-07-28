@@ -27,7 +27,10 @@ import Data.Generics (Data)
 import Data.Typeable (Typeable)
 import qualified Data.Map as Map
 
-import Test.QuickCheck hiding (collect) -- needed for testing via ghci
+import Test.QuickCheck hiding (collect)
+import Test.Framework
+import Test.Framework.Providers.HUnit
+import Test.Framework.Providers.QuickCheck
 
 import Data.Generics.PlateDirect
 
@@ -196,6 +199,12 @@ instance (Functor f, DescendGeniVal a) => DescendGeniVal (f a) where
 -- ----------------------------------------------------------------------
 -- Testing
 -- ----------------------------------------------------------------------
+
+testSuite = testGroup "unification"
+ [ testProperty "self" prop_unify_sym
+ , testProperty "anonymous variables" prop_unify_anon
+ , testProperty "symmetry" prop_unify_sym
+ ]
 
 -- | Unifying something with itself should always succeed
 prop_unify_self :: [GeniVal] -> Property
