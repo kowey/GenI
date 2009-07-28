@@ -25,7 +25,7 @@ unification, that is).
 
 \ignore{
 \begin{code}
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, DeriveDataTypeable #-}
+{-# LANGUAGE MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances, DeriveDataTypeable #-}
 module NLP.GenI.Btypes(
    -- Datatypes
    GNode(..), GType(Subs, Foot, Lex, Other), NodeName,
