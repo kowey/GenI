@@ -17,3 +17,32 @@ GenI 0.17.3, 3 Apr 2009
 * Better help text
 
 * Baked-in unit testing (geni --unit-test)
+
+GenI 0.10, 11 Dec 2006
+----------------------
+* Performance much improved after Haskell profiling
+* Pre-compiled grammars option, geniserver (buggy)
+
+GenI 0.9, 8 Dec 2006
+--------------------
+* Switched to new syntax: variables now must be prefixed with '?'
+* Switched from Alex/Happy to Parsec
+* Added API documentation via haddock
+
+GenI 0.8, 16 Sep 2005
+---------------------
+* Support for latin-1 characters using Unicode wxhaskell
+* Added a configure script and an install target in Makefile
+* Changed from use of configuration files to use of command line switches
+* Full configuration GUI
+* Implementation of atomic disjunction
+* --ignore-semantics mode (Jackie Lai)
+
+GenI 0.7, 8 June 2005
+---------------------
+* Upgraded to ghc 6.4, wxwidgets 2.6, wxhaskell 0.9.4
+
+GenI 0.6, 3 May 2005
+---------------------
+* User interface fixes (Window size bugs)
+* Interface with Yannick Parmientier's selection module
