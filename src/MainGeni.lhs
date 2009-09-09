@@ -37,7 +37,7 @@ import NLP.GenI.Configuration (treatStandardArgs, processInstructions,
                                hasFlagP, BatchDirFlg(..), DisableGuiFlg(..), FromStdinFlg(..),
                                RegressionTestModeFlg(..), RunUnitTestFlg(..),
                               )
-
+import NLP.GenI.Test (runTests)
 #ifndef DISABLE_GUI
 import NLP.GenI.Gui(guiGeni)
 #else
@@ -75,9 +75,9 @@ main = do
       fromstdin = hasFlagP FromStdinFlg confArgs
       regression = hasFlagP RegressionTestModeFlg confArgs
       unit = hasFlagP RunUnitTestFlg confArgs
-  if (fromstdin || console || batch || regression || unit)
-     then consoleGeni pstRef
-     else guiGeni pstRef
+  case () of _ | unit -> runTests
+               | fromstdin || console || batch || regression -> consoleGeni pstRef
+               | otherwise -> guiGeni pstRef
 \end{code}
 
 % TODO

@@ -44,7 +44,7 @@ import NLP.GenI.Geni
 import NLP.GenI.Configuration
   ( Params
   , BatchDirFlg(..), EarlyDeathFlg(..), FromStdinFlg(..), OutputFileFlg(..)
-  , MetricsFlg(..), RegressionTestModeFlg(..), RunUnitTestFlg(..), StatsFileFlg(..)
+  , MetricsFlg(..), RegressionTestModeFlg(..), StatsFileFlg(..)
   , TestCaseFlg(..), TimeoutFlg(..),  VerboseModeFlg(..)
   , hasFlagP, getFlagP
   , builderType , BuilderType(..)
@@ -52,14 +52,10 @@ import NLP.GenI.Configuration
 import qualified NLP.GenI.Builder as B
 import NLP.GenI.Simple.SimpleBuilder
 import NLP.GenI.Statistics ( showFinalStats, Statistics )
-import NLP.GenI.Test (runTests)
 
 consoleGeni :: ProgStateRef -> IO()
 consoleGeni pstRef = do
   pst <- readIORef pstRef
-  if hasFlagP RunUnitTestFlg (pa pst)
-     then runTests
-     else do
   loadEverything pstRef
   case getFlagP TimeoutFlg (pa pst) of
     Nothing -> runSuite pstRef
