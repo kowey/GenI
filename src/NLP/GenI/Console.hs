@@ -27,9 +27,6 @@ import Data.Maybe ( isJust, fromMaybe )
 import System.Directory(createDirectoryIfMissing)
 import System.Exit ( exitFailure )
 import System.FilePath ( (</>) )
-import Test.HUnit.Text (runTestTT)
-import qualified Test.HUnit.Base as H
-import Test.HUnit.Base ((@?))
 
 import NLP.GenI.Btypes
    ( SemInput, showSem
@@ -76,11 +73,9 @@ runSuite pstRef =
          config = pa pst
          verbose = hasFlagP VerboseModeFlg config
          earlyDeath = hasFlagP EarlyDeathFlg config
-     if hasFlagP RegressionTestModeFlg config
-        then runRegressionSuite pstRef >> return ()
-        else case getFlagP BatchDirFlg config of
-              Nothing   -> runTestCaseOnly pstRef >> return ()
-              Just bdir -> runBatch earlyDeath verbose bdir suite
+     case getFlagP BatchDirFlg config of
+       Nothing   -> runTestCaseOnly pstRef >> return ()
+       Just bdir -> runBatch earlyDeath verbose bdir suite
   where
   runBatch earlyDeath verbose bdir suite =
     if any null $ map tcName suite
@@ -95,29 +90,6 @@ runSuite pstRef =
       when (null res && earlyDeath) $ do
         ePutStrLn $ "Exiting early because test case " ++ n ++ " failed."
         exitFailure
-
--- | Run a test suite, but in HUnit regression testing mode,
---   treating each GenI test case as an HUnit test.  Obviously
---   we need a test suite, grammar, etc as input
-runRegressionSuite :: ProgStateRef -> IO (H.Counts)
-runRegressionSuite pstRef =
- do pst <- readIORef pstRef
-    tests <- (mapM toTest) . tsuite $ pst
-    runTestTT . (H.TestList) . concat $ tests
- where
-  toTest :: G.TestCase -> IO [H.Test] -- ^ GenI test case to HUnit Tests
-  toTest tc = -- run the case, and return a test case for each expected result
-   do (res , _) <- runOnSemInput pstRef InRegressionTest (tcSem tc)
-      let sentences = fst (unzip res)
-          name = tcName tc
-          semStr = showSem . fst3 . tcSem $ tc
-          mainMsg  = "for " ++ semStr ++ ",  got no results"
-          mainCase = H.TestLabel name
-            $ H.TestCase $ (not.null $ sentences) @? mainMsg
-          subMsg e = "for " ++ semStr ++ ", failed to get (" ++ e ++ ")"
-          subCase e = H.TestLabel name
-            $ H.TestCase $ (e `elem` sentences) @? subMsg e
-      return $ (mainCase :) $ map subCase (tcExpected tc)
 
 -- | Run the specified test case, or failing that, the first test
 --   case in the suite
@@ -146,7 +118,6 @@ runTestCaseOnly pstRef =
 
 data RunAs = Standalone  FilePath FilePath
            | PartOfSuite String FilePath
-           | InRegressionTest
 
 -- | Runs a case in the test suite.  If the user does not specify any test
 --   cases, we run the first one.  If the user specifies a non-existing
@@ -172,12 +143,10 @@ runOnSemInput pstRef args semInput =
                      Standalone "" _ -> putStrLn
                      Standalone f  _ -> writeFile f
                      PartOfSuite n f -> writeFile $ f </> n </> "responses"
-                     InRegressionTest -> const $ return ()
          soWrite = case args of
                      Standalone _ "" -> putStrLn
                      Standalone _ f  -> writeFile f
                      PartOfSuite n f -> writeFile $ f </> n </> "stats"
-                     InRegressionTest -> const $ return ()
      oWrite . unlines . map fst $ results
      -- print out statistical data (if available)
      when (isJust $ getFlagP MetricsFlg config) $

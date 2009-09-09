@@ -31,16 +31,18 @@ module Main (main) where
 import Data.IORef(newIORef)
 import System.Environment(getArgs)
 
-import NLP.GenI.Geni(emptyProgState)
+import NLP.GenI.Geni(ProgStateRef,emptyProgState)
 import NLP.GenI.Console(consoleGeni)
 import NLP.GenI.Configuration (treatStandardArgs, processInstructions,
                                hasFlagP, BatchDirFlg(..), DisableGuiFlg(..), FromStdinFlg(..),
                                RegressionTestModeFlg(..), RunUnitTestFlg(..),
                               )
+import NLP.GenI.Regression (regressionGeni)
 import NLP.GenI.Test (runTests)
 #ifndef DISABLE_GUI
 import NLP.GenI.Gui(guiGeni)
 #else
+guiGeni :: ProgStateRef -> IO ()
 guiGeni = consoleGeni
 #endif
 \end{code}
@@ -75,8 +77,9 @@ main = do
       fromstdin = hasFlagP FromStdinFlg confArgs
       regression = hasFlagP RegressionTestModeFlg confArgs
       unit = hasFlagP RunUnitTestFlg confArgs
-  case () of _ | unit -> runTests
-               | fromstdin || console || batch || regression -> consoleGeni pstRef
+  case () of _ | unit       -> runTests
+               | regression -> regressionGeni pstRef
+               | fromstdin || console || batch -> consoleGeni pstRef
                | otherwise -> guiGeni pstRef
 \end{code}
 
