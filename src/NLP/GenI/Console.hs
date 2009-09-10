@@ -30,26 +30,24 @@ import System.Exit ( exitFailure )
 import System.FilePath ( (</>) )
 
 import NLP.GenI.Btypes
-   ( SemInput, showSem
-   , TestCase(tcSem, tcName, tcExpected)
+   ( SemInput, TestCase(tcSem, tcName)
    )
 import qualified NLP.GenI.Btypes as G
 import NLP.GenI.General
   ( ePutStr, ePutStrLn, withTimeout, exitTimeout
-  , fst3,
   )
 import NLP.GenI.Geni
 import NLP.GenI.Configuration
   ( Params
   , BatchDirFlg(..), EarlyDeathFlg(..), FromStdinFlg(..), OutputFileFlg(..)
-  , MetricsFlg(..), RegressionTestModeFlg(..), StatsFileFlg(..)
+  , MetricsFlg(..), StatsFileFlg(..)
   , TestCaseFlg(..), TimeoutFlg(..),  VerboseModeFlg(..)
   , hasFlagP, getFlagP
   , builderType , BuilderType(..)
   )
 import qualified NLP.GenI.Builder as B
 import NLP.GenI.Simple.SimpleBuilder
-import NLP.GenI.Statistics ( showFinalStats, Statistics )
+import NLP.GenI.Statistics ( Statistics )
 import NLP.GenI.Tags ( DerivationStep(..) )
 
 import Text.JSON
@@ -176,6 +174,7 @@ runOnSemInput pstRef args semInput =
       do (results, stats, _) <- runGeni pstRef builder
          return (results, stats)
 
+toNiceResult :: ProgState -> (String, B.Derivation) -> NiceResult
 toNiceResult pst (s,d) =
  NiceResult { nrSentence     = s
             , nrDerivation   = d
