@@ -20,9 +20,10 @@
 
 module NLP.GenI.Console(consoleGeni, runTestCaseOnly) where
 
+import Control.Applicative ( (<$>), (<*>) )
 import Control.Monad
 import Data.IORef(readIORef, modifyIORef)
-import Data.List(find, sort)
+import Data.List(find, nub, sort)
 import Data.Maybe ( isJust, fromMaybe )
 import System.Directory(createDirectoryIfMissing)
 import System.Exit ( exitFailure )
@@ -49,6 +50,10 @@ import NLP.GenI.Configuration
 import qualified NLP.GenI.Builder as B
 import NLP.GenI.Simple.SimpleBuilder
 import NLP.GenI.Statistics ( showFinalStats, Statistics )
+import NLP.GenI.Tags ( DerivationStep(..) )
+
+import Text.JSON
+import Text.JSON.Pretty ( render, pp_value )
 
 consoleGeni :: ProgStateRef -> IO()
 consoleGeni pstRef = do
@@ -143,16 +148,68 @@ runOnSemInput pstRef args semInput =
                      Standalone "" _ -> putStrLn
                      Standalone f  _ -> writeFile f
                      PartOfSuite n f -> writeFile $ f </> n </> "responses"
+         doWrite = case args of
+                     Standalone _  _ -> const (return ())
+                     PartOfSuite n f -> writeFile $ f </> n </> "derivations"
          soWrite = case args of
                      Standalone _ "" -> putStrLn
                      Standalone _ f  -> writeFile f
                      PartOfSuite n f -> writeFile $ f </> n </> "stats"
      oWrite . unlines . map fst $ results
+     doWrite . ppJSON $ map (toNiceResult pst) results
      -- print out statistical data (if available)
-     when (isJust $ getFlagP MetricsFlg config) $
-       do soWrite $ "begin stats\n" ++ showFinalStats stats ++ "end"
+     when (isJust $ getFlagP MetricsFlg config) $ soWrite (ppJSON stats)
      return (results, stats)
   where
+    ppJSON :: JSON a => a -> String
+    ppJSON = render . pp_value . showJSON 
     helper builder =
       do (results, stats, _) <- runGeni pstRef builder
          return (results, stats)
+
+toNiceResult pst (s,d) =
+ NiceResult { nrSentence     = s
+            , nrDerivation   = d
+            , nrLexSelection = map (\x -> NiceLexSel x (getTraces pst x))
+                                (lexicalSelection d)
+            }
+
+data NiceResult = NiceResult
+ { nrSentence     :: String
+ , nrDerivation   :: B.Derivation
+ , nrLexSelection :: [ NiceLexSel ]
+ }
+
+data NiceLexSel = NiceLexSel
+ { nlTree  :: String
+ , nlTrace :: [String]
+ }
+
+instance JSON NiceResult where
+ readJSON j =
+    do jo <- fromJSObject `fmap` readJSON j
+       let field x = maybe (fail $ "Could not find: " ++ x) readJSON
+                   $ lookup x jo
+       NiceResult <$> field "sentence"
+                  <*> field "derivation"
+                  <*> field "lexical-selection"
+ showJSON nr =
+     JSObject . toJSObject $ [ ("sentence", showJSON $ nrSentence nr)
+                             , ("derivation", showJSONs $ nrDerivation nr)
+                             , ("lexical-selection", showJSONs $ nrLexSelection nr)
+                             ]
+
+instance JSON NiceLexSel where
+ readJSON j =
+    do jo <- fromJSObject `fmap` readJSON j
+       let field x = maybe (fail $ "Could not find: " ++ x) readJSON
+                   $ lookup x jo
+       NiceLexSel <$> field "lex-item"
+                  <*> field "trace"
+ showJSON x =
+     JSObject . toJSObject $ [ ("lex-item", showJSON  $ nlTree x)
+                             , ("trace",    showJSONs $ nlTrace x)
+                             ]
+
+lexicalSelection :: B.Derivation -> [String]
+lexicalSelection = sort . nub . concatMap (\d -> [dsChild d, dsParent d])
