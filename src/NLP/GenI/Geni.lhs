@@ -140,7 +140,10 @@ data ProgState = ST{ -- | the current configuration being processed
                     -- | name, original string (for gui), sem
                     tsuite   :: [TestCase],
                     -- | simplified traces (optional)
-                    traces   :: [String]
+                    traces   :: [String],
+                    -- | any warnings accumulated during realisation
+                    --   (most recent first)
+                    warnings :: [String]
                }
 
 type ProgStateRef = IORef ProgState
@@ -157,7 +160,12 @@ emptyProgState args =
     , tcase = []
     , tsuite = []
     , traces = []
+    , warnings = []
     }
+
+-- | Log another warning in our internal program state
+addWarning :: ProgStateRef -> String -> IO ()
+addWarning pstRef s = modifyIORef pstRef $ \p -> p { warnings = s : warnings p }
 \end{code}
 
 % --------------------------------------------------------------------
@@ -428,11 +436,11 @@ initGeniWithSelector pstRef lexSelector =
              then p { ts = (fst3 (ts p),[],[]) }
              else p)
     -- lexical selection
-    pstLex <- readIORef pstRef
-    (cand, lexonly) <- lexSelector pstLex
+    (cand, lexonly) <- lexSelector pstRef
+    pst <- readIORef pstRef
     -- strip morphological predicates
-    let (tsem,tres,lc) = ts pstLex
-        tsem2 = stripMorphSem (morphinf pstLex) tsem
+    let (tsem,tres,lc) = ts pst
+        tsem2 = stripMorphSem (morphinf pst) tsem
             --
     let initStuff = B.Input 
           { B.inSemInput = (tsem2, tres, lc)
@@ -506,9 +514,10 @@ it lets us know if GenI managed to lexically select something, but did not
 succeed in anchoring it.
 
 \begin{code}
-runLexSelection :: ProgState -> IO ([TagElem], [ILexEntry])
-runLexSelection pst =
- do -- select lexical items first 
+runLexSelection :: ProgStateRef -> IO ([TagElem], [ILexEntry])
+runLexSelection pstRef =
+ do pst <- readIORef pstRef
+    -- select lexical items first
     let (tsem,_,litConstrs) = ts pst
         lexicon  = le pst
         lexCand   = chooseLexCand lexicon tsem
@@ -517,7 +526,7 @@ runLexSelection pst =
     -- then anchor these lexical items to trees
     let grammar = gr pst
         combineWithGr l =
-         do let (_, res) = combineList grammar l
+         do let (lexCombineErrors, res) = combineList grammar l
                 familyMembers = [ p | p <- grammar, pfamily p == ifamname l ]
             -- snippets of error message
             let lexeme = showLexeme.iword $ l
@@ -528,10 +537,7 @@ runLexSelection pst =
               [] -> return ()
               cs -> mapM_ showWarning . group . sort $ cs
                     where showWarning [] = geniBug "silly error in Geni.runLexSelection"
-                          showWarning xs =
-                           ePutStrLn $
-                             "Warning: Missing co-anchor '" ++ head xs ++ "'"
-                             ++ " in " ++ (_outOfFamily $ length xs) ++ "."
+                          showWarning xs@(x0:_) = addWarning pstRef $ "Missing co-anchor '" ++ x0 ++ "'" ++ " in " ++ _outOfFamily (length xs) ++ "."
             -- print out enrichment errors
 {-
             unless (null enrichEs) $ do
@@ -577,12 +583,9 @@ runLexSelection pst =
         hasTree l = isJust $ find (\t -> tsemantics t == lsem) cand
           where lsem = isemantics l
         missedLex = filter (not.hasTree) lexCand
-    unless (null missedSem) $
-        ePutStrLn $ "WARNING: no lexical selection for " ++ showSem missedSem
-    unless (null missedLex) $
-        ePutStrLn $ "WARNING: '" ++ (concat $ intersperse ", " $ map showLex missedLex)
-                        ++ "' were lexically selected, but are not anchored to"
-                        ++ " any trees"
+    unless (null missedSem) $ addWarning pstRef $ "no lexical selection for " ++ showSem missedSem
+    unless (null missedLex) $ forM_ missedLex $ \l -> addWarning pstRef $
+        "'" ++ showLex l ++ "' was lexically selected, but not anchored to any trees"
     return (candFinal, lexCand)
  where showLex l = (showLexeme $ iword l) ++ "-" ++ (ifamname l)
 
@@ -681,9 +684,8 @@ instance Error LexCombineError where
   strMsg s = BoringError s
 
 instance Show LexCombineError where
- show (BoringError s)    = "Warning: " ++ s
- show (OtherError t l s) =
-   "Warning: " ++ s ++ " on " ++ (pidname t) ++ "-" ++ (pfamily t) ++ " (" ++ (showLexeme $ iword l) ++ ")"
+ show (BoringError s)    = s
+ show (OtherError t l s) = s ++ " on " ++ (pidname t) ++ "-" ++ (pfamily t) ++ " (" ++ (showLexeme $ iword l) ++ ")"
  show (EnrichError t l _)  = show (OtherError t l "enrichment error")
 \end{code}
 
@@ -989,7 +991,7 @@ it somewhere else.
 \begin{code}
 -- | Only used for instances of GenI where the grammar is compiled
 --   directly into GenI.
-type Selector = ProgState -> IO ([TagElem],[ILexEntry])
+type Selector = ProgStateRef -> IO ([TagElem],[ILexEntry])
 
 defaultSelector :: Selector
 defaultSelector = runLexSelection
