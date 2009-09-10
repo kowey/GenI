@@ -226,8 +226,7 @@ an IORef.
 loadLexicon, loadGeniMacros, loadMorphInfo, loadMorphLexicon, loadTraces :: ProgStateRef -> IO ()
 
 loadLexicon pstRef =
-    do config <- pa `fmap` readIORef pstRef
-       let getSem l  = isemantics l
+    do let getSem l  = isemantics l
            sorter l  = l { isemantics = (sortSem . getSem) l }
            cleanup   = mapBySemKeys isemantics . map sorter
        loadThingOrDie LexiconFlg "lexicon" pstRef
@@ -296,8 +295,7 @@ arbitrary string as the semantics.
 -- | Updates program state the same way as 'loadTestSuite'
 loadTargetSemStr :: ProgStateRef -> String -> IO ()
 loadTargetSemStr pstRef str = 
-    do pst <- readIORef pstRef
-       parseSem
+    do parseSem
     where
        parseSem = do
          let sem = runParser geniSemanticInput () "" str
