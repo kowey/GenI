@@ -657,15 +657,9 @@ debugGui builderGui pstRef pauseOnLex =
                   , clientSize := sz 700 600 ]
             return ()
     -- candidate selection tab
-    let missedSem  = tsem \\ (nub $ concatMap tsemantics cand)
-        -- we assume that for a tree to correspond to a lexical item,
-        -- it must have the same semantics
-        hasTree l = isJust $ find (\t -> tsemantics t == lsem) cand
-          where lsem = isemantics l
-        missedLex = [ l | l <- lexonly, (not.hasTree) l ]
     (canPnl,_,_) <- if pauseOnLex
-                    then pauseOnLexGui pst nb cand missedSem missedLex step2
-                    else candidateGui  pst nb cand missedSem missedLex
+                    then pauseOnLexGui pst nb cand step2
+                    else candidateGui  pst nb cand
     -- basic tabs
     let basicTabs = [ tab "lexical selection" canPnl ]
     --

@@ -26,7 +26,6 @@ import Control.Monad.State.Strict ( execStateT, runState )
 import qualified Data.Map as Map
 
 import Data.IORef
-import Data.List (intersperse)
 import System.Directory 
 import System.FilePath ((<.>),(</>),dropExtensions)
 import System.Process (runProcess)
@@ -46,7 +45,7 @@ import NLP.GenI.GeniParsers ( geniTagElems )
 import NLP.GenI.General
   (geniBug, boundsCheck, dropTillIncluding, ePutStrLn)
 import NLP.GenI.Btypes
-  ( showAv, showPred, showSem, showLexeme, Pred, Sem, ILexEntry(iword, ifamname), )
+  ( showAv, showPred, showLexeme, )
 import NLP.GenI.PolarityTypes ( PolarityKey(..) )
 import NLP.GenI.Tags
   ( idname, mapBySem, TagElem(ttrace, tinterface) )
@@ -69,23 +68,13 @@ import NLP.GenI.GraphvizShowPolarity ()
 candidateGui :: ProgState
              -> Window a
              -> [TagElem]
-             -> [Pred]      -- ^ nothing lexically selected
-             -> [ILexEntry] -- ^ lexically selected but not anchored
              -> GvIO () Bool (Maybe TagElem)
-candidateGui pst f xs missedSem missedLex = do
+candidateGui pst f xs = do
   p  <- panel f []      
   (tb,gvRef,updater) <- tagViewerGui pst p "lexically selected item" "candidates"
                         $ sectionsBySem xs
-  let warningSem = if null missedSem then ""
-                   else "WARNING: no lexical selection for " ++ showSem missedSem
-      warningLex = if null missedLex then ""
-                   else "WARNING: '" ++ (concat $ intersperse ", " $ map showLex missedLex)
-                        ++ "' were lexically selected, but are not anchored to"
-                        ++ " any trees"
-                   where showLex l = (showLexeme $ iword l) ++ "-" ++ (ifamname l)
-      --
-      polFeats = "Polarity attributes detected: " ++ (unwords.detectPolFeatures) xs
-      warning = unlines $ filter (not.null) [ warningSem, warningLex, polFeats ]
+  let polFeats = "Polarity attributes detected: " ++ (unwords.detectPolFeatures) xs
+      warning = unlines $ filter (not.null) (polFeats : warnings pst)
   -- side panel
   sidePnl <- panel p []
   ifaceLst <- singleListBox sidePnl [ tooltip := "interface for this tree (double-click me!)" ]
@@ -288,13 +277,13 @@ runViewTag params drName =
 
 -- | 'pauseOnLexGui' allows the user to see lexical selection only and either
 --   dump it to file or read replace it by the contents of some other file
-pauseOnLexGui :: ProgState -> (Window a) -> [TagElem] -> Sem -> [ILexEntry]
+pauseOnLexGui :: ProgState -> (Window a) -> [TagElem]
               -> ([TagElem] -> IO ()) -- ^ continuation
               -> GvIO () Bool (Maybe TagElem)
-pauseOnLexGui pst f xs missedSem missedLex job = do
+pauseOnLexGui pst f xs job = do
   p <- panel f []
   candV <- varCreate xs
-  (tb, ref, updater) <- candidateGui pst p xs missedSem missedLex
+  (tb, ref, updater) <- candidateGui pst p xs
   -- supplementary button bar
   let saveCmd =
        do c <- varGet candV
