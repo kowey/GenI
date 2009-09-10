@@ -44,6 +44,7 @@ module NLP.GenI.Statistics(Statistics, StatisticsState,
 
 import Control.Monad.State
 import Data.Maybe (mapMaybe)
+import Text.JSON
 
 -------------------------------------------
 -- Statistics are collections of Metrics
@@ -91,3 +92,14 @@ incrIntMetric _ _ m = m
 queryIntMetric :: String -> Metric -> Maybe Int
 queryIntMetric key (IntMetric s c) | s == key = Just c
 queryIntMetric _ _ = Nothing
+
+--------------------------- JSON Output ------------------------------
+
+instance JSON Statistics where
+ readJSON j =
+    error "can't read GenI statistics from JSON yet; sorry"
+ showJSON x =
+     JSObject . toJSObject . map metricToJSON . metrics $ x
+
+-- not quite showJSON here
+metricToJSON (IntMetric s i) = (s, showJSON i)
