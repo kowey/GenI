@@ -44,7 +44,7 @@ where
 
 import Control.Monad.State.Strict
 import Data.Bits ( (.&.), (.|.), bit, xor )
-import Data.List ( (\\), maximum )
+import Data.List ( (\\), maximum, delete )
 import qualified Data.Map as Map
 import Data.Maybe ( mapMaybe, fromMaybe  )
 import qualified Data.Set as Set
@@ -432,9 +432,9 @@ queryCounter key s =
 \begin{code}
 initStats :: Params -> Statistics
 initStats pa =
- let identifyMs :: [String] -> [Metric]
-     identifyMs ["default"] = identifyMs defaultMetricNames
-     identifyMs ms = map namedMetric ms
+ let mdefault ms = if "default" `elem` ms then defaultMetricNames else []
+     identifyMs :: [String] -> [Metric]
+     identifyMs ms = map namedMetric $ mdefault ms ++ delete "default" ms
      metrics = identifyMs $ fromMaybe [] $ getFlagP MetricsFlg pa
  in execState (mapM addMetric metrics) emptyStats
 
