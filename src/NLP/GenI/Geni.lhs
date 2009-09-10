@@ -528,6 +528,7 @@ runLexSelection pstRef =
         combineWithGr l =
          do let (lexCombineErrors, res) = combineList grammar l
                 familyMembers = [ p | p <- grammar, pfamily p == ifamname l ]
+            mapM_ (addWarning pstRef . show) lexCombineErrors
             -- snippets of error message
             let lexeme = showLexeme.iword $ l
                 _outOfFamily n = show n ++ "/" ++ (show $ length familyMembers)
