@@ -35,7 +35,7 @@ import NLP.GenI.Btypes
    )
 import qualified NLP.GenI.Btypes as G
 import NLP.GenI.General
-  ( ePutStrLn, withTimeout, exitTimeout
+  ( ePutStr, ePutStrLn, withTimeout, exitTimeout
   , fst3,
   )
 import NLP.GenI.Geni
@@ -132,7 +132,7 @@ runOnSemInput :: ProgStateRef
               -> SemInput
               -> IO ([GeniResult], Statistics)
 runOnSemInput pstRef args semInput =
-  do modifyIORef pstRef (\x -> x{ts = semInput})
+  do modifyIORef pstRef (\x -> x{ts = semInput, warnings = []})
      pst <- readIORef pstRef
      let config = pa pst
      (results', stats) <- case builderType config of
@@ -140,6 +140,7 @@ runOnSemInput pstRef args semInput =
                             SimpleBuilder -> helper simpleBuilder_2p
                             SimpleOnePhaseBuilder -> helper simpleBuilder_1p
      let results = sort results'
+     warningsOut <- warnings `fmap` readIORef pstRef
      -- create directory if need be
      case args of
        PartOfSuite n f -> createDirectoryIfMissing False (f </> n)
@@ -157,8 +158,16 @@ runOnSemInput pstRef args semInput =
                      PartOfSuite n f -> writeFile $ f </> n </> "stats"
      oWrite . unlines . map fst $ results
      doWrite . ppJSON $ map (toNiceResult pst) results
+     -- print any warnings we picked up along the way
+     when (not $ null warningsOut) $
+      do let ws = reverse warningsOut
+         ePutStr $ "Warnings:\n" ++ (unlines $ map (\x -> " - " ++ x) ws)
+         case args of
+          PartOfSuite n f -> writeFile (f </> n </> "warnings") $ unlines ws
+          _ -> return ()
      -- print out statistical data (if available)
      when (isJust $ getFlagP MetricsFlg config) $ soWrite (ppJSON stats)
+     --
      return (results, stats)
   where
     ppJSON :: JSON a => a -> String
