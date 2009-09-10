@@ -34,6 +34,7 @@ import Data.Maybe(listToMaybe)
 import NLP.GenI.Tags
  ( TagElem, TagDerivation, idname,
    tsemantics, ttree,
+   DerivationStep(..),
  )
 import NLP.GenI.Btypes (GeniVal(GConst), AvPair(..),
                GNode(..), GType(..), Flist,
@@ -190,12 +191,12 @@ graphvizShowDerivation deriv =
         label n = case wordsBy ':' n of
                   name:fam:tree:_ -> name ++ ":" ++ fam ++ gvNewline ++ tree
                   _               -> n ++ " (geni/gv ERROR)"
-        histNodes       = reverse $ nub $ concatMap (\ (_,c,(p,_)) -> [c,p]) deriv
+        histNodes = reverse $ nub $ concatMap (\ (DerivationStep _ c p _) -> [c,p]) deriv
 \end{code}
 
 \begin{code}
-graphvizShowDerivation' :: (Char, String, (String, String)) -> String
-graphvizShowDerivation' (substadj, child, (parent,_)) =
+graphvizShowDerivation' :: DerivationStep -> String
+graphvizShowDerivation' (DerivationStep substadj child parent _) =
   gvEdge (gvDerivationLab parent) (gvDerivationLab child) "" p
   where p = if substadj == 'a' then [("style","dashed")] else []
 \end{code}

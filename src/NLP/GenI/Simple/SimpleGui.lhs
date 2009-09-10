@@ -33,7 +33,6 @@ import NLP.GenI.Statistics (Statistics)
 
 import NLP.GenI.Btypes (GNode(gnname, gup), AvPair(..), emptyGNode, GeniVal(GConst))
 import NLP.GenI.Configuration ( Params(..) )
-import NLP.GenI.General ( snd3 )
 import NLP.GenI.Geni ( ProgStateRef, runGeni, GeniResult )
 import NLP.GenI.Graphviz ( GraphvizShow(..), gvNewline, gvUnlines )
 import NLP.GenI.GuiHelper
@@ -41,7 +40,7 @@ import NLP.GenI.GuiHelper
     debuggerPanel, DebuggerItemBar, setGvParams, GvIO, newGvRef, GraphvizGuiSt(..),
     viewTagWidgets, XMGDerivation(getSourceTrees),
   )
-import NLP.GenI.Tags (tsemantics, TagElem(idname, ttree), TagItem(..), emptyTE)
+import NLP.GenI.Tags (tsemantics, DerivationStep(dsChild), TagElem(idname, ttree), TagItem(..), emptyTE)
 import NLP.GenI.GraphvizShow ( graphvizShowDerivation )
 
 import qualified NLP.GenI.Builder    as B
@@ -167,7 +166,7 @@ instance TagItem SimpleItem where
 
 instance XMGDerivation SimpleItem where
  -- Note: this is XMG-related stuff
- getSourceTrees it = tgIdName it : (map snd3 . siDerivation $ it)
+ getSourceTrees it = tgIdName it : (map dsChild . siDerivation $ it)
 \end{code}
 
 \begin{code}
