@@ -92,7 +92,7 @@ import NLP.GenI.Tags (TagElem, TagSite(..),
              tagLeaves, tidnum,
              ttree, ttype, tsemantics,
              detectSites,
-             TagDerivation,
+             TagDerivation, DerivationStep(..),
              ts_rootFeatureMismatch,
             )
 import NLP.GenI.Configuration
@@ -963,7 +963,7 @@ addToDerivation :: Char
 addToDerivation op (tc,tcOrigin) (tp,tpOrigin,tpSite) =
   let hp = siDerivation tp
       hc = siDerivation tc
-      newnode = (op, tcOrigin, (tpOrigin, tpSite))
+      newnode = DerivationStep op tcOrigin tpOrigin tpSite
   in newnode:hp++hc
 \end{code}
 

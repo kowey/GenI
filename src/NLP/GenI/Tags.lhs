@@ -29,7 +29,7 @@ and \ref{sec:adjunction} instead.
 module NLP.GenI.Tags(
    -- Main Datatypes
    Tags, TagElem(..), TagItem(..), TagSite(..),
-   TagDerivation, emptyTE,
+   TagDerivation, DerivationStep(..), emptyTE,
    ts_synIncomplete, ts_semIncomplete, ts_tbUnificationFailure,
    ts_rootFeatureMismatch,
 
@@ -47,6 +47,7 @@ module NLP.GenI.Tags(
 
 \ignore{
 \begin{code}
+import Control.Applicative ( (<$>), (<*>) )
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe, listToMaybe, mapMaybe)
 import Data.List (intersperse)
@@ -55,6 +56,7 @@ import Data.Tree
 import Data.Generics (Data)
 import Data.Generics.PlateDirect
 import Data.Typeable (Typeable)
+import Text.JSON
 
 import NLP.GenI.Btypes (Ptype(Initial, Auxiliar), SemPols,
                GeniVal(GConst), AvPair(..),
@@ -139,7 +141,30 @@ operation (s for substitution, a for adjunction), the name of the child tree,
 the name of the parent tree and the node affected.
 
 \begin{code}
-type TagDerivation = [ (Char, String, (String, String)) ]
+type TagDerivation = [ DerivationStep ]
+
+data DerivationStep = DerivationStep
+ { dsOp         :: Char
+ , dsChild      :: String
+ , dsParent     :: String
+ , dsParentSite :: String
+ } deriving (Show, Ord, Eq)
+
+instance JSON DerivationStep where
+ readJSON j =
+    do jo <- fromJSObject `fmap` readJSON j
+       let field x = maybe (fail $ "Could not find: " ++ x) readJSON
+                   $ lookup x jo
+       DerivationStep <$> field "op"
+                      <*> field "child"
+                      <*> field "parent"
+                      <*> field "parent-node"
+ showJSON x =
+     JSObject . toJSObject $ [ ("op",     showJSON  $ dsOp x)
+                             , ("child",  showJSON  $ dsChild x)
+                             , ("parent", showJSON  $ dsParent x)
+                             , ("parent-node", showJSON $ dsParentSite x)
+                             ]
 \end{code}
 
 \begin{code}
