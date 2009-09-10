@@ -40,9 +40,9 @@ import Control.Parallel.Strategies
 
 import NLP.GenI.General (geniBug)
 
-data GeniVal = GConst [String]
-             | GVar   String
-             | GAnon
+data GeniVal = GConst [String] -- ^ atomic disjunction - constant x | y | z
+             | GVar   String   -- ^ variable
+             | GAnon           -- ^ anonymous
   deriving (Eq,Ord, Data, Typeable)
 
 instance Uniplate GeniVal where
