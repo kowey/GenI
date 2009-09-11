@@ -45,7 +45,7 @@ data-files: AUTHORS, INSTALL, README, NEWS, GenI.cabal,
             examples/xmg-example/Makefile,
             examples/xmg-example/README,
             examples/xmg-example/suite,
-            etc/macstuff/macosx-app, etc/macstuff/Info.plist, etc/macstuff/wxmac.icns
+            etc/macstuff/Info.plist, etc/macstuff/wxmac.icns
 
 extra-source-files: src/EnableGUI.hs
                     src/NLP/GenI/SysGeni.lhs
