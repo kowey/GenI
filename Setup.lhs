@@ -6,7 +6,8 @@ process each GUI with the 'macosx-app' shell script (from wxhaskell) so
 that it actually responds to user input instead of just sitting there
 looking pretty.
 
-> import Control.Monad (foldM_)
+> import Control.Monad (foldM_, forM_)
+> import Data.Maybe ( fromMaybe )
 > import System.Cmd
 > import System.Exit
 > import System.Info (os)
@@ -17,6 +18,7 @@ looking pretty.
 > import Distribution.Simple.LocalBuildInfo
 >
 > import System.FilePath
+> import System.Directory ( doesFileExist, copyFile, removeFile, createDirectoryIfMissing )
 
 Configure this stuff
 --------------------
@@ -26,10 +28,28 @@ contain a GUI (or you don't really care that much), just put Nothing
 > mRestrictTo :: Maybe [String]
 > mRestrictTo = Just ["geni"]
 
-Normally, this should just be "macosx-app"
+Put here IO actions needed to add any fancy things (eg icons)
+you want to your application bundle.
 
-> macosxApp :: String
-> macosxApp = "etc/macstuff/macosx-app"
+> customiseAppBundle :: FilePath -- ^ app bundle path
+>                    -> FilePath -- ^ full path to original binary
+>                    -> IO ()
+> customiseAppBundle bundleDir p =
+>  case takeFileName p of
+>   "geni" ->
+>     do hasRez <- doesFileExist "/Developer/Tools/Rez"
+>        if hasRez
+>           then do -- set the icon
+>                   copyFile "etc/macstuff/Info.plist" (bundleDir </> "Contents/Info.plist")
+>                   copyFile "etc/macstuff/wxmac.icns" (bundleDir </> "Contents/Resources/wxmac.icns")
+>                   -- no idea what this does
+>                   system ("/Developer/Tools/Rez -t APPL Carbon.r -o " ++ bundleDir </> "Contents/MacOS/geni")
+>                   writeFile (bundleDir </> "PkgInfo") "APPL????"
+>                   -- tell Finder about the icon
+>                   system ("/Developer/Tools/SetFile -a C " ++ bundleDir </> "Contents")
+>                   return ()
+>           else putStrLn "Developer Tools not found.  Too bad; no fancy icons for you."
+>   ""     -> return ()
 
 Nothing to configure from here on
 ---------------------------------
@@ -43,24 +63,49 @@ on other operating systems.
 >  where
 >   addMacHook h =
 >    case os of
->     "darwin" -> h { postBuild = macifyHook }
+>     "darwin" -> h { postInst = appBundleHook }
 >     _        -> h
 >
 
-> macifyHook _ _ pkg localb =
->   foldM_ (next $ macify.binPath) ExitSuccess guiExes
->  where
->   allExes = map exeName $ executables pkg
->   guiExes = case mRestrictTo of
->               Nothing -> allExes
->               Just rs -> filter (`elem` rs) allExes
->   next _ x@(ExitFailure _) _ = return x
->   next _ _ b = macify (binPath b)
->   binPath x = buildDir localb </> x </> x
+Creating app bundles on installation
+------------------------------------
 
-> macify :: FilePath -> IO ExitCode
-> macify x = system $ unwords $ [ "chmod u+x",  macosxApp,  ";"
->                               ,  macosxApp, x ]
+> appBundleHook :: Args -> InstallFlags -> PackageDescription -> LocalBuildInfo -> IO ()
+> appBundleHook _ _ pkg localb =
+>  forM_ exes $ \app ->
+>    do createAppBundle theBindir (buildDir localb </> app </> app)
+>       customiseAppBundle (appBundlePath theBindir app) app
+>         `catch` \err -> putStrLn $ "Warning: could not customise bundle for " ++ app ++ ": " ++ show err
+>       removeFile (theBindir </> app)
+>       createAppBundleWrapper theBindir app
+>  where
+>   theBindir = bindir $ absoluteInstallDirs pkg localb NoCopyDest
+>   exes = fromMaybe (map exeName $ executables pkg) mRestrictTo
+
+> -- | 'createAppBundle' @d p@ - creates an application bundle in @d@
+> --   for program @p@, assuming that @d@ already exists and is a directory.
+> --   Note that only the filename part of @p@ is used.
+> createAppBundle :: FilePath -> FilePath -> IO ()
+> createAppBundle dir p =
+>  do createDirectoryIfMissing False $ bundle
+>     createDirectoryIfMissing True  $ bundleBin
+>     createDirectoryIfMissing True  $ bundleRsrc
+>     copyFile p (bundleBin </> takeFileName p)
+>  where
+>   bundle     = appBundlePath dir p
+>   bundleBin  = bundle </> "Contents/MacOS"
+>   bundleRsrc = bundle </> "Contents/Resources"
+
+> -- | 'createAppBundleWrapper' @d p@ - creates a script in @d@ that calls
+> --   @p@ from the application bundle @d </> takeFileName p <.> "app"@
+> createAppBundleWrapper :: FilePath -> FilePath -> IO ()
+> createAppBundleWrapper bindir p =
+>   writeFile (bindir </> takeFileName p) scriptTxt
+>  where
+>   scriptTxt = "`dirname $0`" </> appBundlePath "." p </> "Contents/MacOS" </> takeFileName p ++ " \"$@\""
+
+> appBundlePath :: FilePath -> FilePath -> FilePath
+> appBundlePath dir p = dir </> takeFileName p <.> "app"
 
 Running the test suite
 ----------------------
