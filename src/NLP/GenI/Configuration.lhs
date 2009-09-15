@@ -50,6 +50,7 @@ module NLP.GenI.Configuration
   , TimeoutFlg(..)
   , TracesFlg(..)
   , VerboseModeFlg(..)
+  , VersionFlg(..)
   , ViewCmdFlg(..)
   --
   , mainBuilderTypes
@@ -371,7 +372,7 @@ optionsForOutput =
 \begin{code}
 optionsForUserInterface :: [OptDescr Flag]
 optionsForUserInterface =
-  [ noguiOption, helpOption
+  [ noguiOption, helpOption, versionOption
   , Option []    ["regression"] (noArg RegressionTestModeFlg)
       "Run in regression testing mode (needs grammar, etc)"
   , Option []    ["unit-tests"] (noArg RunUnitTestFlg)
@@ -380,11 +381,19 @@ optionsForUserInterface =
       "XMG tree-view command"
   ]
 
-verboseOption, noguiOption, helpOption :: OptDescr Flag
+noguiOption :: OptDescr Flag
 noguiOption = Option [] ["nogui"] (noArg DisableGuiFlg)
                 "disable graphical user interface"
+
+helpOption :: OptDescr Flag
 helpOption  = Option [] ["help"] (noArg HelpFlg)
                 "show full list of command line switches"
+
+versionOption :: OptDescr Flag
+versionOption  = Option [] ["version"] (noArg VersionFlg)
+                "display the version"
+
+verboseOption :: OptDescr Flag
 verboseOption = Option ['v'] ["verbose"] (noArg VerboseModeFlg)
                 "verbose mode"
 \end{code}
@@ -839,6 +848,7 @@ FLAG (TestInstructionsFlg, [Instruction])
 FLAG (TestSuiteFlg, FilePath)
 FLAG (TimeoutFlg, Integer)
 FLAG (VerboseModeFlg, ())
+FLAG (VersionFlg, ())
 FLAG (ViewCmdFlg, String)
 -- not to be exported (defaults)
 -- the WeirdFlg exists strictly to please OS X when you launch
