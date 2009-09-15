@@ -319,7 +319,7 @@ repNodeByNode nfilt rep t =
 -- | errors specifically in GenI, which is very likely NOT the user's fault.
 geniBug :: String -> a
 geniBug s = error $ "Bug in GenI!\n" ++ s ++
-                    "\nPlease file a report on http://wiki.loria.fr/wiki/GenI/Complaints" 
+                    "\nPlease file a report on http://trac.haskell.org/GenI/newticket"
 
 -- ----------------------------------------------------------------------
 -- Intervals
