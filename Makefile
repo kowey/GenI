@@ -70,7 +70,7 @@ permissions: $(config_file)
 
 tags:
 	hasktags -c $(shell find src -name '*.*hs')
-	sort $@ > $@.tmp
+	LC_ALL=C sort $@ > $@.tmp
 	mv $@.tmp $@
 
 # --------------------------------------------------------------------
