@@ -21,7 +21,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 module NLP.GenI.Configuration
   ( Params(..), GrammarType(..), BuilderType(..), Instruction, Flag
-  -- flags
+  -- * flags
   , BatchDirFlg(..)
   , DetectPolaritiesFlg(..)
   , DisableGuiFlg(..)
