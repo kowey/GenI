@@ -709,6 +709,10 @@ data GrammarType = GeniHand    -- ^ geni's text format
 \section{Scripting GenI}
 % ====================================================================
 
+\begin{description}
+\item[instructions] An instructions file can be used to run GenI on
+a list of test suites and cases.
+
 Any input that you give to GenI will be interpreted as a list of test
 suites (and test cases that you want to run).  Each line has the format
 \texttt{path/to/test-suite case1 case2 .. caseN}.   You can omit the
@@ -716,36 +720,53 @@ test cases, which is interpreted as you wanting to run the entire test
 suite.  Also, the \verb!%! character and anything after is treated as
 a comment.
 
+Interaction with \verb!--testsuite! and \verb!--testcase!:
+\begin{itemize}
+\item If only \verb!--instructions! is set, then the first test suite
+      and or test case from the instructions file is used.
+\item If only \verb!--testsuite! and \verb!--testcase! are set, we
+      pretend that an instructions file was supplied saying that we
+      want to run the entirety of the test suite specified in
+      \verb!--testsuite!.
+\item If both \verb!--instructions! and \verb!--testsuite!/
+      \verb!--testcase! are set then the latter are used to
+      select from within the instructions.
+\end{itemize}
+\end{description}
+
+
 \begin{code}
 type Instruction = (FilePath, Maybe [String])
 
+-- | Update the internal instructions list, test suite and case
+--   according to the contents of an instructions file.
 processInstructions :: Params -> IO Params
 processInstructions config =
- do let is0 = case getFlagP TestSuiteFlg config of
-              Just ts -> case getFlagP TestCaseFlg config of
-                         Just c  -> [ (ts, Just [c]) ]
-                         Nothing -> [ (ts, Nothing)  ]
-              Nothing -> []
-    is <- case getFlagP InstructionsFileFlg config of
-            Nothing -> return []
-            Just f  -> instructionsFile `fmap` readFile f
+ do instructions <- case getFlagP InstructionsFileFlg config of
+                      Nothing -> return fakeInstructions
+                      Just f  -> instructionsFile `fmap` readFile f
     -- basically set the test suite/case flag to the first instruction
     -- note that with the above code (which sets the first instruction
     -- to the test suite/case flag), this should work out to identity
     -- when those flags are provided.
-    let instructions = is0 ++ is
-        updateInstructions =
+    let updateInstructions =
           setFlagP TestInstructionsFlg instructions
-        updateTestCase =
-          case (listToMaybe instructions >>= snd >>= listToMaybe) of
-            Just c   -> setFlagP TestCaseFlg c
-            Nothing  -> id
-        updateTestSuite =
-          case (fst `fmap` listToMaybe instructions) of
-            Just s  -> setFlagP TestSuiteFlg s
-            Nothing -> id
-        updateFlags = updateInstructions . updateTestSuite . updateTestCase
-    return $ updateFlags config
+        updateTestCase p =
+          if hasFlagP TestCaseFlg p then p
+             else case (listToMaybe instructions >>= snd >>= listToMaybe) of
+                   Just c   -> setFlagP TestCaseFlg c p 
+                   Nothing  -> p
+        updateTestSuite p =
+          if hasFlagP TestSuiteFlg p then p
+             else case (fst `fmap` listToMaybe instructions) of
+                   Just s  -> setFlagP TestSuiteFlg s p
+                   Nothing -> p
+    return . updateInstructions . updateTestSuite . updateTestCase $ config
+ where
+  fakeInstructions =
+     case getFlagP TestSuiteFlg config of
+       Just ts -> [ (ts, Nothing) ]
+       Nothing -> []
 
 instructionsFile :: String -> [Instruction]
 instructionsFile = mapMaybe inst . lines

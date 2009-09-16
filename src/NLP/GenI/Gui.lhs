@@ -30,8 +30,8 @@ import qualified Control.Monad as Monad
 import qualified Data.Map as Map
 
 import Data.IORef
-import Data.List (isPrefixOf, nub, delete, (\\), find)
-import Data.Maybe (isJust)
+import Data.List (isPrefixOf, nub, delete, findIndex)
+import Data.Maybe ( fromMaybe )
 import System.Directory 
 import System.Exit (exitWith, ExitCode(ExitSuccess))
 
@@ -41,8 +41,8 @@ import NLP.GenI.Geni
   ( ProgState(..), ProgStateRef, combine, initGeni
   , loadEverything, loadTestSuite, loadTargetSemStr)
 import NLP.GenI.General (boundsCheck, geniBug, trim, fst3)
-import NLP.GenI.Btypes (ILexEntry(isemantics), TestCase(..), showFlist,)
-import NLP.GenI.Tags (idname, tpolarities, tsemantics, TagElem)
+import NLP.GenI.Btypes (TestCase(..), showFlist,)
+import NLP.GenI.Tags (idname, tpolarities, TagElem)
 import NLP.GenI.GeniShow (geniShow)
 import NLP.GenI.Configuration
   ( Params(..), Instruction, hasOpt
@@ -57,7 +57,6 @@ import NLP.GenI.Configuration
   , OptimisationsFlg(..)
   , RootFeatureFlg(..)
   , TestSuiteFlg(..)
-  , TestCaseFlg(..)
   , TestInstructionsFlg(..)
   , ViewCmdFlg(..)
   --
@@ -311,13 +310,8 @@ readConfig f pstRef macrosFileLabel lexiconFileLabel suiteChoice tsBox caseChoic
 loadTestSuiteAndRefresh :: (Textual a, Selecting b, Selection b, Items b String) 
               => Window w -> ProgStateRef -> Instruction -> a -> b -> IO ()
 loadTestSuiteAndRefresh f pstRef (suitePath,mcs) tsBox caseChoice =
-  do modifyIORef pstRef $ \pst ->
-       pst { pa = setFlagP TestSuiteFlg suitePath
-                $ deleteFlagP TestCaseFlg -- shouldn't change anything
-                $ pa pst }
-     catch
-       (loadTestSuite pstRef)
-       (\e -> errorDialog f ("Error reading test suite " ++ suitePath) (show e))
+  do loadTestSuite pstRef
+       `catch` \e -> errorDialog f ("Error reading test suite " ++ suitePath) (show e)
      pst <- readIORef pstRef
      let suite   = tsuite pst
          theCase = tcase pst
