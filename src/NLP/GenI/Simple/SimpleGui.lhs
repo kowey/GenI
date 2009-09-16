@@ -26,6 +26,7 @@ module NLP.GenI.Simple.SimpleGui where
 \begin{code}
 import Graphics.UI.WX
 
+import Control.Arrow ( (&&&) )
 import Data.IORef
 import qualified Data.Map as Map
 
@@ -89,11 +90,11 @@ realisationsGui :: ProgStateRef -> (Window a) -> [SimpleItem]
                 -> GvIO () Bool (Maybe SimpleItem)
 realisationsGui _   f [] =
   do m <- messageGui f "No results found"
-     g <- newGvRef () False [] ""
+     g <- newGvRef () False ""
      return (m, g, return ())
 realisationsGui pstRef f resultsRaw =
   do let tip = "result"
-         itNlabl = map (\t -> (Just t, siToSentence t)) resultsRaw
+         itNlabl = map (Just &&& siToSentence) resultsRaw
      --
      pst     <- readIORef pstRef
      -- FIXME: have to show the semantics again

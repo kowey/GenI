@@ -21,6 +21,7 @@ module NLP.GenI.GuiHelper where
 import Graphics.UI.WX
 -- import Graphics.UI.WXCore
 
+import Control.Arrow ( (&&&), (***) )
 import qualified Control.Monad as Monad 
 import Control.Monad.State.Strict ( execStateT, runState )
 import qualified Data.Map as Map
@@ -138,12 +139,14 @@ polarityGui   f xs final = do
   let stats a = " (" ++ (show $ numStates a) ++ "st " ++ (show $ numTransitions a) ++ "tr)"
       aut2  (_ , a1, a2)  = [ a1, a2 ]
       autLabel (PolarityKey fv,a1,a2) = [ fv ++ stats a1, fv ++ " pruned" ++ stats a2]
-      autlist = (concatMap aut2 xs) ++ [ final ]
-      labels  = (concatMap autLabel xs) ++ [ "final" ++ stats final ]
-      --
-  gvRef   <- newGvRef () () labels "automata"
-  setGvDrawables gvRef autlist
+      finalAutLab = ( final, "final" ++ stats final )
+      autslabs = concatBoth (map (aut2 &&& autLabel) xs) ++ [ finalAutLab ]
+  gvRef   <- newGvRef () () "automata"
+  setGvDrawables gvRef autslabs
   graphvizGui f "polarity" gvRef
+
+concatBoth :: [ ([a],[b]) ] -> [ (a,b) ]
+concatBoth = uncurry zip . (concat *** concat) . unzip -- is there a simpler way?
 
 -- ----------------------------------------------------------------------
 -- Results
@@ -201,9 +204,8 @@ tagViewerGui :: (GraphvizShow Bool t, TagItem t, XMGDerivation t)
              -> GvIO () Bool (Maybe t)
 tagViewerGui pst f tip cachedir itNlab = do
   p <- panel f []      
-  let (tagelems,labels) = unzip itNlab
-  gvRef <- newGvRef () False labels tip
-  setGvDrawables gvRef tagelems 
+  gvRef <- newGvRef () False tip
+  setGvDrawables gvRef itNlab
   (lay,ref,onUpdate) <- graphvizGui p cachedir gvRef
   -- button bar widgets
   detailsChk <- checkBox p [ text := "Show features"
@@ -299,7 +301,7 @@ pauseOnLexGui pst f xs job = do
                 case parsed of
                  Left err -> errorDialog f "" (show err)
                  Right c  -> do varSet candV c
-                                setGvDrawables2 ref (sectionsBySem c)
+                                setGvDrawables ref (sectionsBySem c)
                                 updater
   --
   saveBt <- button p [ text := "Save to file", on command := saveCmd ]
@@ -366,13 +368,12 @@ debuggerPanel builder gvInitial stateToGv itemBar f config input cachedir =
         --
     let (initS, initStats) = initBuilder input config2
         config2 = setFlagP MetricsFlg (B.defaultMetricNames) config
-        (theItems,labels) = unzip $ stateToGv initS
     p <- panel f []      
     -- ---------------------------------------------------------
     -- item viewer: select and display an item
     -- ---------------------------------------------------------
-    gvRef <- newGvRef initS gvInitial labels "debugger session"
-    setGvDrawables gvRef theItems
+    gvRef <- newGvRef initS gvInitial "debugger session"
+    setGvDrawables gvRef (stateToGv initS)
     (layItemViewer,_,onUpdateMain) <- graphvizGui p cachedir gvRef
     -- ----------------------------------------------------------
     -- item bar: controls for how an individual item is displayed
@@ -404,7 +405,7 @@ debuggerPanel builder gvInitial stateToGv itemBar f config input cachedir =
                  leapInt = read leapTxt
                  (s2,stats2) = foldr genStep s_stats [1..leapInt]
              modifyIORef gvRef $ \g -> g { gvcore = s2 }
-             setGvDrawables2 gvRef (stateToGv s2)
+             setGvDrawables gvRef (stateToGv s2)
              setGvSel gvRef 1
              onUpdate
              updateStatsTxt stats2
@@ -412,13 +413,13 @@ debuggerPanel builder gvInitial stateToGv itemBar f config input cachedir =
     let showLast = 
           do -- redo generation from scratch
              let (s2, stats2) = runState (execStateT allSteps initS) initStats 
-             setGvDrawables2 gvRef (stateToGv s2)
+             setGvDrawables gvRef (stateToGv s2)
              onUpdate
              updateStatsTxt stats2
     let showReset = 
           do set nextBt   [ on command  := showNext (initS, initStats) ]
              updateStatsTxt initStats 
-             setGvDrawables2 gvRef (stateToGv initS)
+             setGvDrawables gvRef (stateToGv initS)
              setGvSel gvRef 1
              onUpdate
     -- dashboard handlers
@@ -470,12 +471,12 @@ data GraphvizGuiSt st a b =
 --     gvhandler
 type GraphvizGuiRef st a b = IORef (GraphvizGuiSt st a b)
 
-newGvRef :: st -> b -> [String] -> String -> IO (GraphvizGuiRef st a b)
-newGvRef initSt p l t =
+newGvRef :: st -> b -> String -> IO (GraphvizGuiRef st a b)
+newGvRef initSt p t =
   let st = GvSt { gvcore = initSt,
                   gvparams = p,
                   gvitems  = Map.empty,
-                  gvlabels  = l, 
+                  gvlabels  = [], 
                   gvhandler = Nothing,
                   gvtip    = t,
                   gvsel    = 0,
@@ -499,18 +500,16 @@ modifyGvParams gvref fn  =
   do gvSt <- readIORef gvref
      setGvParams gvref (fn $ gvparams gvSt)
 
-setGvDrawables :: GraphvizGuiRef st a b -> [a] -> IO ()
-setGvDrawables gvref it =
-  do let fn x = x { gvitems = Map.fromList $ zip [0..] it,
-                    gvorders = GvoItems : (gvorders x) }
+setGvDrawables :: GraphvizGuiRef st a b -> [(a,String)] -> IO ()
+setGvDrawables gvref itlb =
+  do ePutStrLn "*********************************"
+     ePutStrLn $ unlines $ map (show . snd) itlb
+     let (it,lb) = unzip itlb
+         fn x = x { gvitems = Map.fromList $ zip [0..] it
+                  , gvlabels = lb 
+                  , gvorders = GvoItems : (gvorders x) 
+                  }
      modifyIORef gvref fn 
-
-setGvDrawables2 :: GraphvizGuiRef st a b -> [(a,String)] -> IO ()
-setGvDrawables2 gvref itlb =
-  do let (it,lb) = unzip itlb
-         fn x = x { gvlabels = lb }
-     modifyIORef gvref fn 
-     setGvDrawables gvref it
 
 -- | Helper function for making selection handlers (see 'addGvHandler')
 --   Note that this was designed for cases where the contents is a Maybe
