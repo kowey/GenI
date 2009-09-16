@@ -315,11 +315,10 @@ loadTestSuiteAndRefresh f pstRef (suitePath,mcs) tsBox caseChoice =
      pst <- readIORef pstRef
      let suite   = tsuite pst
          theCase = tcase pst
-         filterCases =
-           case mcs of
-             Nothing -> id
-             Just cs -> filter (\c -> tcName c `elem` cs)
-         suiteCases = filterCases suite
+         suiteCases = case filter (\c -> tcName c `elem` cs) suite of
+                       []  -> suite
+                       res -> res
+           where cs = fromMaybe [] mcs
          suiteCaseNames = map tcName suiteCases
      -- we number the cases for easy identification, putting 
      -- a star to highlight the selected test case (if available)
@@ -328,11 +327,12 @@ loadTestSuiteAndRefresh f pstRef (suitePath,mcs) tsBox caseChoice =
                       ++ (show n) ++ ". " ++ t
          tcaseLabels = zipWith numfn [1..] suiteCaseNames
      -- we select the first case in cases_, if available
-     let fstInCases _ [] = 0 
-         fstInCases n (x:xs) = 
-           if (x == theCase) then n else fstInCases (n+1) xs
-         caseSel = if null theCase then 0 
-                   else fstInCases 0 suiteCaseNames
+     caseSel <- print theCase >> if null theCase
+                   then return 0
+                   else case findIndex (== theCase) suiteCaseNames of
+                               Nothing -> do errorDialog f "" ("No such test case: " ++ theCase)
+                                             return 0
+                               Just i  -> return i
      ----------------------------------------------------
      -- handler for selecting a test case
      ----------------------------------------------------
@@ -340,11 +340,11 @@ loadTestSuiteAndRefresh f pstRef (suitePath,mcs) tsBox caseChoice =
            geniShow $ toSemInputString si str
      let onTestCaseChoice = do
          csel <- get caseChoice selection
-         if (boundsCheck csel suite)
+         if boundsCheck csel suite
            then do let s = (suiteCases !! csel)
                    set tsBox [ text :~ (\_ -> displaySemInput s) ]
            else geniBug $ "Gui: test case selector bounds check error: " ++
-                          show csel ++ " of " ++ show suite ++ "\n" 
+                          show csel ++ " of " ++ show tcaseLabels ++ "\n"
      ----------------------------------------------------
      set caseChoice [ items := tcaseLabels 
                   , selection := caseSel
@@ -627,9 +627,7 @@ debugGui builderGui pstRef pauseOnLex =
     nb   <- notebook p []
     -- generation step 1
     initStuff <- initGeni pstRef
-    let (tsem,_,_) = B.inSemInput initStuff
-        (cand,_)   = unzip $ B.inCands initStuff
-        lexonly    = B.inLex initStuff
+    let (cand,_)   = unzip $ B.inCands initStuff
     -- continuation for candidate selection tab
     let step2 newCands =
          do -- generation step 2.A (run polarity stuff)
