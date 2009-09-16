@@ -1,3 +1,16 @@
+GenI 0.18,
+-----------------------
+* GHC 6.8 or higher now required
+
+* Adding 'default' to metrics always gives you the default metrics
+  in addition to any other statistics you request
+
+* Batch mode now dumps derivations in JSON format
+
+* Statistics now dumped in JSON format
+
+* geni --version now works and reports version from Cabal file
+
 GenI 0.17.4, 6 Apr 2009
 -----------------------
 * GHC 6.6 support
