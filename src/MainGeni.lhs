@@ -31,7 +31,10 @@ module Main (main) where
 import Control.Applicative ((<$>))
 import Data.IORef(newIORef)
 import Data.Typeable( Typeable )
+import Data.Version ( showVersion )
 import System.Environment(getArgs, getProgName)
+
+import Paths_GenI ( version )
 
 import NLP.GenI.General(ePutStr)
 import NLP.GenI.Geni(ProgStateRef,emptyProgState)
@@ -39,7 +42,7 @@ import NLP.GenI.Console(consoleGeni)
 import NLP.GenI.Configuration (treatArgs, optionsForStandardGenI, processInstructions,
                                usage, optionsSections, Params,
                                hasFlagP, setFlagP, BatchDirFlg(..), DisableGuiFlg(..), FromStdinFlg(..),
-                               HelpFlg(..), TestCaseFlg(..),
+                               HelpFlg(..), VersionFlg(..), TestCaseFlg(..),
                                RegressionTestModeFlg(..), RunUnitTestFlg(..),
                               )
 import NLP.GenI.Regression (regressionGeni)
@@ -83,6 +86,7 @@ main = do
       canRunInConsole = has TestCaseFlg || has FromStdinFlg || has BatchDirFlg
   case () of
    _ | has HelpFlg               -> putStrLn (usage optionsSections pname)
+     | has VersionFlg            -> putStrLn ("GenI " ++ showVersion version)
      | has RunUnitTestFlg        -> runTests
      | has RegressionTestModeFlg -> regressionGeni pstRef
      | not (has DisableGuiFlg)   -> guiGeni pstRef
