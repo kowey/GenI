@@ -36,8 +36,7 @@ import System.Environment(getArgs, getProgName)
 
 import Paths_GenI ( version )
 
-import NLP.GenI.General(ePutStr)
-import NLP.GenI.Geni(ProgStateRef,emptyProgState)
+import NLP.GenI.Geni(emptyProgState)
 import NLP.GenI.Console(consoleGeni)
 import NLP.GenI.Configuration (treatArgs, optionsForStandardGenI, processInstructions,
                                usage, optionsSections, Params,
@@ -47,9 +46,14 @@ import NLP.GenI.Configuration (treatArgs, optionsForStandardGenI, processInstruc
                               )
 import NLP.GenI.Regression (regressionGeni)
 import NLP.GenI.Test (runTests)
-#ifndef DISABLE_GUI
-import NLP.GenI.Gui(guiGeni)
+
+#ifdef DISABLE_GUI
+import NLP.GenI.Configuration(setFlagP)
 #else
+import NLP.GenI.Gui(guiGeni)
+#endif
+
+#ifdef DISABLE_GUI
 guiGeni :: ProgStateRef -> IO ()
 guiGeni = consoleGeni
 #endif
@@ -91,7 +95,7 @@ main = do
      | has RegressionTestModeFlg -> regressionGeni pstRef
      | not (has DisableGuiFlg)   -> guiGeni pstRef
      | canRunInConsole           -> consoleGeni pstRef
-     | otherwise                 -> ePutStr $ unlines
+     | otherwise                 -> fail $ unlines
         [ "GenI must either be run..."
         , " - with the graphical interface enabled"
         , " - in regression testing mode"
