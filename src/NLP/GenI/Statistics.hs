@@ -58,7 +58,7 @@ updateMetrics :: (Metric -> Metric) -> Statistics -> Statistics
 updateMetrics f stat = stat{metrics           = map f (metrics stat) }
 
 queryMetrics :: (Metric -> Maybe a) -> Statistics -> [a]
-queryMetrics f stat =  mapMaybe f (metrics stat)
+queryMetrics f =  mapMaybe f . metrics
 
 emptyStats :: Statistics
 emptyStats = Stat []
@@ -75,7 +75,7 @@ addMetric :: Metric -> StatisticsState ()
 addMetric newMetric  = modify (\stat -> stat{metrics = newMetric : metrics stat } )
 
 showFinalStats :: Statistics -> String
-showFinalStats stats = unlines $ map show $ reverse $ metrics stats
+showFinalStats = unlines . map show . reverse . metrics
 
 --------------------------------------------
 -- Metrics
@@ -83,7 +83,7 @@ showFinalStats stats = unlines $ map show $ reverse $ metrics stats
 data Metric = IntMetric String Int
 
 instance Show Metric where
-  show (IntMetric s x)   = s ++ " : " ++ (show x)
+  show (IntMetric s x)   = s ++ " : " ++ show x
 
 incrIntMetric :: String -> Int -> Metric -> Metric
 incrIntMetric key i (IntMetric s c) | s == key = IntMetric s (c+i)
@@ -98,8 +98,7 @@ queryIntMetric _ _ = Nothing
 instance JSON Statistics where
  readJSON j =
     error "can't read GenI statistics from JSON yet; sorry"
- showJSON x =
-     JSObject . toJSObject . map metricToJSON . metrics $ x
+ showJSON = JSObject . toJSObject . map metricToJSON . metrics
 
 -- not quite showJSON here
 metricToJSON (IntMetric s i) = (s, showJSON i)
