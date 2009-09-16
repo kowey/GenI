@@ -28,13 +28,18 @@ module Main (main) where
 
 \ignore{
 \begin{code}
+import Control.Applicative ((<$>))
 import Data.IORef(newIORef)
-import System.Environment(getArgs)
+import Data.Typeable( Typeable )
+import System.Environment(getArgs, getProgName)
 
+import NLP.GenI.General(ePutStr)
 import NLP.GenI.Geni(ProgStateRef,emptyProgState)
 import NLP.GenI.Console(consoleGeni)
-import NLP.GenI.Configuration (treatStandardArgs, processInstructions,
-                               hasFlagP, BatchDirFlg(..), DisableGuiFlg(..), FromStdinFlg(..),
+import NLP.GenI.Configuration (treatArgs, optionsForStandardGenI, processInstructions,
+                               usage, optionsSections, Params,
+                               hasFlagP, setFlagP, BatchDirFlg(..), DisableGuiFlg(..), FromStdinFlg(..),
+                               HelpFlg(..), TestCaseFlg(..),
                                RegressionTestModeFlg(..), RunUnitTestFlg(..),
                               )
 import NLP.GenI.Regression (regressionGeni)
@@ -68,19 +73,36 @@ step.
 \begin{code}
 main :: IO ()
 main = do       
-  args     <- getArgs
-  confArgs <- treatStandardArgs args >>= processInstructions
+  pname <- getProgName
+  args  <- getArgs
+  confArgs <- forceGuiFlag <$> (processInstructions =<< treatArgs optionsForStandardGenI args)
   let pst = emptyProgState confArgs
   pstRef <- newIORef pst
-  let batch   = hasFlagP BatchDirFlg confArgs
-      console = hasFlagP DisableGuiFlg confArgs
-      fromstdin = hasFlagP FromStdinFlg confArgs
-      regression = hasFlagP RegressionTestModeFlg confArgs
-      unit = hasFlagP RunUnitTestFlg confArgs
-  case () of _ | unit       -> runTests
-               | regression -> regressionGeni pstRef
-               | fromstdin || console || batch -> consoleGeni pstRef
-               | otherwise -> guiGeni pstRef
+  let has :: (Typeable f, Typeable x) => (x -> f) -> Bool
+      has = flip hasFlagP confArgs
+      canRunInConsole = has TestCaseFlg || has FromStdinFlg || has BatchDirFlg
+  case () of
+   _ | has HelpFlg               -> putStrLn (usage optionsSections pname)
+     | has RunUnitTestFlg        -> runTests
+     | has RegressionTestModeFlg -> regressionGeni pstRef
+     | not (has DisableGuiFlg)   -> guiGeni pstRef
+     | canRunInConsole           -> consoleGeni pstRef
+     | otherwise                 -> ePutStr $ unlines
+        [ "GenI must either be run..."
+        , " - with the graphical interface enabled"
+        , " - in regression testing mode"
+        , " - in self-diagnostic unit test mode"
+        , " - with a test case specified"
+        , " - with a batch directory specified or"
+        , " - with --from-stdin"
+        ]
+
+forceGuiFlag :: Params -> Params
+#ifdef DISABLE_GUI
+forceGuiFlag = setFlagP DisableGuiFlg ()
+#else
+forceGuiFlag = id
+#endif
 \end{code}
 
 % TODO

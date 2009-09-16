@@ -58,7 +58,7 @@ module NLP.GenI.Configuration
   , getFlag, setFlag, hasFlag
   , Optimisation(..)
   , emptyParams, defineParams
-  , treatArgs, treatStandardArgs, treatArgsWithParams, treatStandardArgsWithParams
+  , treatArgs, treatArgsWithParams, usage, basicSections, optionsSections
   , processInstructions
   , optionsForStandardGenI
   , optionsForBasicStuff, optionsForOptimisation, optionsForMorphology, optionsForInputFiles
@@ -83,7 +83,7 @@ import Data.Char ( toLower )
 import Data.Maybe ( listToMaybe, mapMaybe )
 import Data.Typeable ( Typeable, typeOf, cast )
 import System.Console.GetOpt
-import System.Exit ( exitFailure, exitWith, ExitCode(..) )
+import System.Environment ( getProgName )
 import Data.List  ( find, intersperse, nubBy )
 import Data.Maybe ( catMaybes, fromMaybe, isNothing, fromJust )
 import Text.ParserCombinators.Parsec ( runParser, CharParser )
@@ -155,6 +155,8 @@ short switch is available.  For more information, type \texttt{geni
 --help}.
 
 \begin{code}
+type OptSection = (String,[OptDescr Flag],[String])
+
 -- | Uses the GetOpt library to process the command line arguments.
 -- Note that we divide them into basic and advanced usage.
 optionsForStandardGenI :: [OptDescr Flag]
@@ -163,7 +165,12 @@ optionsForStandardGenI =
                   ++ -- FIXME: weird mac stuff
                   [ Option ['p']    []  (reqArg WeirdFlg id "CMD") "" ]
 
-optionsSections :: [(String,[OptDescr Flag],[String])]
+basicSections :: [OptSection]
+basicSections = map tweakBasic $ take 1 optionsSections
+ where
+  tweakBasic (x,y,z) = (x,y,z ++ ["See --help for more options"])
+
+optionsSections :: [OptSection]
 optionsSections =
  [ ("Core options", optionsForBasicStuff, example)
  , ("Input", optionsForInputFiles, [])
@@ -222,14 +229,12 @@ optArg s def fn desc = OptArg (\x -> Flag s (maybe def fn x)) desc
 -- Parsing command line arguments
 -- -------------------------------------------------------------------
 
-usage :: Bool -- ^ advanced
+-- | Print out a GenI-style usage message with options divided into sections
+usage :: [OptSection] -- ^ options
+      -> String -- ^ prog name
       -> String
-usage adv =
- let header   = "Usage: geni [OPTION...]\n"
-     tweakBasic (x,y,z) = (x,y,z ++ ["See geni --help for more details"])
-     sections = if adv
-                then optionsSections
-                else map tweakBasic $ take 1 optionsSections
+usage sections pname =
+ let header   = "Usage: " ++ pname ++ " [OPTION...]\n"
      body     = unlines $ map usageSection sections
  in header ++ body
 
@@ -240,35 +245,15 @@ usageSection (name, opts, comments) =
   bar = replicate 72 '='
   mcomments = if null comments then [] else "\n" ++ unlines comments
 
-treatStandardArgs :: [String] -> IO Params
-treatStandardArgs argv = treatStandardArgsWithParams argv emptyParams
-
-treatStandardArgsWithParams :: [String] -> Params -> IO Params
-treatStandardArgsWithParams = treatArgsWithParams optionsForStandardGenI
-
 treatArgs :: [OptDescr Flag] -> [String] -> IO Params
 treatArgs options argv = treatArgsWithParams options argv emptyParams
 
 treatArgsWithParams :: [OptDescr Flag] -> [String] -> Params -> IO Params
 treatArgsWithParams options argv initParams =
    case getOpt Permute options argv of
-     (os,_,[]  )
-       | hasFlag HelpFlg os ->
-           do putStrLn $ usage True
-              exitWith ExitSuccess
-       | hasFlag DisableGuiFlg os
-         && notHasFlag TestCaseFlg os
-         && notHasFlag RegressionTestModeFlg os
-         && notHasFlag BatchDirFlg os
-         && notHasFlag FromStdinFlg os ->
-           do putStrLn $ "GenI must either be run in graphical mode, "
-                         ++ "in regression mode, with a test case specified, with --from-stdin,"
-                         ++ "or with a batch directory specified"
-              exitFailure
-       | otherwise ->
-           return $ defineParams os initParams
-     (_,_,errs) -> ioError (userError $ concat errs ++ usage False)
-  where notHasFlag f l = not $ hasFlag f l
+     (os,_,[]  )-> return $ defineParams os initParams
+     (_,_,errs) -> do p <- getProgName
+                      ioError (userError $ concat errs ++ usage basicSections p)
 
 defineParams :: [Flag] -> Params -> Params
 defineParams flgs prms =
