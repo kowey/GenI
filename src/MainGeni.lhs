@@ -49,6 +49,7 @@ import NLP.GenI.Test (runTests)
 
 #ifdef DISABLE_GUI
 import NLP.GenI.Configuration(setFlagP)
+import NLP.GenI.Geni(ProgStateRef)
 #else
 import NLP.GenI.Gui(guiGeni)
 #endif
