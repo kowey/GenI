@@ -101,4 +101,5 @@ instance JSON Statistics where
  showJSON = JSObject . toJSObject . map metricToJSON . metrics
 
 -- not quite showJSON here
+metricToJSON :: Metric -> (String, JSValue)
 metricToJSON (IntMetric s i) = (s, showJSON i)
