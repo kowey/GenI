@@ -96,7 +96,7 @@ queryIntMetric _ _ = Nothing
 --------------------------- JSON Output ------------------------------
 
 instance JSON Statistics where
- readJSON j =
+ readJSON _j =
     error "can't read GenI statistics from JSON yet; sorry"
  showJSON = JSObject . toJSObject . map metricToJSON . metrics
 
