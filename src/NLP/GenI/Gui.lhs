@@ -327,7 +327,7 @@ loadTestSuiteAndRefresh f pstRef (suitePath,mcs) tsBox caseChoice =
                       ++ (show n) ++ ". " ++ t
          tcaseLabels = zipWith numfn [1..] suiteCaseNames
      -- we select the first case in cases_, if available
-     caseSel <- print theCase >> if null theCase
+     caseSel <- if null theCase
                    then return 0
                    else case findIndex (== theCase) suiteCaseNames of
                                Nothing -> do errorDialog f "" ("No such test case: " ++ theCase)
