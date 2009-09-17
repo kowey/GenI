@@ -3,9 +3,13 @@ Version:        0.1
 License:        GPL
 License-file:   LICENSE
 Author:         Carlos Areces and Eric Kow
-Build-Depends:  base,  haskell98, mtl, network, HUnit, GenI >= 0.18.0 && < 0.19, unix
-Description:    Utilities that use the GenI lib
-Maintainer:     eric.kow@loria.fr
+Build-Depends:  base < 4.1,
+                network >= 2.2 && < 2.3,
+                unix >= 2.3 < 2.4,
+                GenI >= 0.18.0 && < 0.19
+
+Description:    Simple server for GenI results
+Maintainer:     geni-users@loria.fr
 Build-type:     Simple
 
 Executable:     geniclient
