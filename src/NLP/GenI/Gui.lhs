@@ -310,7 +310,7 @@ readConfig f pstRef macrosFileLabel lexiconFileLabel suiteChoice tsBox caseChoic
 loadTestSuiteAndRefresh :: (Textual a, Selecting b, Selection b, Items b String) 
               => Window w -> ProgStateRef -> Instruction -> a -> b -> IO ()
 loadTestSuiteAndRefresh f pstRef (suitePath,mcs) tsBox caseChoice =
-  do loadTestSuite pstRef
+  do (loadTestSuite pstRef >> return ())
        `catch` \e -> errorDialog f ("Error reading test suite " ++ suitePath) (show e)
      pst <- readIORef pstRef
      let suite   = tsuite pst
