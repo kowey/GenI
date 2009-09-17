@@ -619,7 +619,7 @@ graphvizGui f cachedir gvRef = do
   ------------------------------------------------
   set rchoice [ on select := selectAndShow ]
   -- call the updater function for the first time
-  -- setGvSel gvRef 1
+  setGvSel gvRef 1
   onUpdate 
   -- return the layout, the gvRef, and an updater function
   -- The gvRef is to make it easier for users to muck around with the
