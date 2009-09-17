@@ -61,6 +61,16 @@ import NLP.GenI.Polarity (PolAut, detectPolFeatures)
 import NLP.GenI.GraphvizShowPolarity ()
 
 -- ----------------------------------------------------------------------
+-- Types
+-- ----------------------------------------------------------------------
+
+data GraphvizStatus = GvError String
+                    | GvNoSuchItem Int
+                    | GvCached
+                    | GvCreated FilePath
+  deriving Show
+
+-- ----------------------------------------------------------------------
 -- Lexically selected items
 -- ----------------------------------------------------------------------
 
@@ -668,13 +678,16 @@ createAndOpenImage :: (GraphvizShow f b) =>
 createAndOpenImage cachedir f gvref openFn = do 
   let errormsg g = "The file " ++ g ++ " was not created!\n"
                    ++ "Is graphviz installed?"
-  r <- createImage cachedir f gvref 
-  case r of 
-    Just graphic -> do exists <- doesFileExist graphic 
-                       if exists 
-                          then openFn graphic
-                          else fail (errormsg graphic)
-    Nothing      -> return ()
+  gvStatus <- createImage cachedir f gvref
+  case gvStatus of
+    GvCreated graphic ->
+      do exists <- doesFileExist graphic
+         if exists
+            then openFn graphic
+            else errorDialog f "" (errormsg graphic)
+    GvError err -> errorDialog f "" err
+    GvNoSuchItem _ -> return ()
+    GvCached    -> return ()
 
 -- | Creates a graphical visualisation for anything which can be displayed
 --   by graphviz.
@@ -682,7 +695,7 @@ createImage :: (GraphvizShow f b)
             => FilePath            -- ^ cache directory
             -> Window a            -- ^ parent window
             -> GraphvizGuiRef st b f  -- ^ stuff to display
-            -> IO (Maybe FilePath)
+            -> IO GraphvizStatus
 createImage cachedir f gvref = do
   gvSt <- readIORef gvref
   -- putStrLn $ "creating image via graphviz"
@@ -692,15 +705,15 @@ createImage cachedir f gvref = do
   dotFile <- createDotPath cachedir (show sel)
   graphicFile <-  createImagePath cachedir (show sel)
   let create x = do toGraphviz config x dotFile graphicFile
-                    return (Just graphicFile)
+                    return . GvCreated $ graphicFile
       handler err = do errorDialog f "Error calling graphviz" (show err) 
-                       return Nothing
+                       return . GvError . show $ err
   exists <- doesFileExist graphicFile
   -- we only call graphviz if the image is not in the cache
   if exists
-     then return (Just graphicFile)
+     then return (GvCreated graphicFile)
      else case Map.lookup sel drawables of
-            Nothing -> return Nothing
+            Nothing -> return . GvNoSuchItem $ sel
             Just it -> create it `catch` handler
 
 -- | Directory to dump image files in so that we can avoid regenerating them.
