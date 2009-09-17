@@ -87,7 +87,7 @@ runInstructions pstRef =
        -- we assume the that the suites have unique filenames
        let bsubdir = bdir </> takeFileName file
        createDirectoryIfMissing False bsubdir
-       fullsuite <- (fst . unzip) `fmap` loadTestSuite pstRef
+       fullsuite <- loadTestSuite pstRef
        let suite = case (mtcs, getFlagP TestCaseFlg config) of
                     (_, Just c) -> filter (\t -> tcName t == c) fullsuite
                     (Nothing,_) -> fullsuite
