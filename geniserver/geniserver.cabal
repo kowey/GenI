@@ -5,7 +5,7 @@ License-file:   LICENSE
 Author:         Carlos Areces and Eric Kow
 Build-Depends:  base < 4.1,
                 network >= 2.2 && < 2.3,
-                unix >= 2.3 < 2.4,
+                unix >= 2.3 && < 2.4,
                 GenI >= 0.18.0 && < 0.19
 
 Description:    Simple server for GenI results
