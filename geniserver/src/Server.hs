@@ -30,7 +30,6 @@ import NLP.GenI.Configuration
 import NLP.GenI.General (fst3)
 import NLP.GenI.Geni
 import NLP.GenI.Simple.SimpleBuilder
-import NLP.GenI.CkyEarley.CkyBuilder
 import qualified NLP.GenI.Builder as B
 
 import ClientServer (hGetBeginEnd, hardCodedPort)
@@ -40,7 +39,7 @@ main = withSocketsDo $
  do -- ignore SIGPIPE so that we don't just die if the client
     -- is available when we try to write back to it
     installHandler sigPIPE Ignore Nothing
-    confArgs <- treatStandardArgs =<< getArgs
+    confArgs <- treatArgs optionsForStandardGenI =<< getArgs
     pstRef <- newIORef (emptyProgState $ setFlagP FromStdinFlg () confArgs)
     loadEverything pstRef
     pst  <- readIORef pstRef
@@ -62,7 +61,7 @@ listen sock pst =
       Left err   -> hPutStrLn stderr (show err)
       Right (params, semStr) ->
        ignoringErrors $
-       do conf <- treatStandardArgsWithParams params (pa pst)
+       do conf <- treatArgsWithParams optionsForStandardGenI params (pa pst)
           modifyIORef pstRef (\p -> p { pa = conf })
           loadTargetSemStr pstRef semStr
           -- do the realisation
@@ -71,8 +70,6 @@ listen sock pst =
                          NullBuilder   -> helper B.nullBuilder
                          SimpleBuilder -> helper simpleBuilder_2p
                          SimpleOnePhaseBuilder -> helper simpleBuilder_1p
-                         CkyBuilder    -> helper ckyBuilder
-                         EarleyBuilder -> helper earleyBuilder
           -- return the results
           hPutStrLn h "begin responses"
           hPutStr h $ unlines $ map fst sentences
