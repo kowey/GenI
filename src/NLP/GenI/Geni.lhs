@@ -210,7 +210,7 @@ loadEverything pstRef =
      when isNotPreanchored $ loadLexicon pstRef
      -- in any case, we have to...
      loadMorphInfo pstRef
-     when useTestSuite $ loadTestSuite pstRef
+     when useTestSuite $ loadTestSuite pstRef >> return ()
      -- the morphological lexicon
      loadMorphLexicon pstRef
      -- the trace filter file
@@ -229,33 +229,31 @@ loadLexicon pstRef =
     do let getSem l  = isemantics l
            sorter l  = l { isemantics = (sortSem . getSem) l }
            cleanup   = mapBySemKeys isemantics . map sorter
-       loadThingOrDie LexiconFlg "lexicon" pstRef
+       xs <- loadThingOrDie LexiconFlg "lexicon" pstRef
          (parseFromFileOrFail geniLexicon)
-         (\l p -> p { le = cleanup l })
+       modifyIORef pstRef (\p -> p { le = cleanup xs })
 
 -- | The macros are stored as a hashing function in the monad.
 loadGeniMacros pstRef =
-  loadThingOrDie MacrosFlg "trees" pstRef parser updater
+  do xs <- loadThingOrDie MacrosFlg "trees" pstRef parser
+     modifyIORef pstRef (\p -> p { gr = xs })
   where parser = parseFromFileMaybeBinary geniMacros
-        updater g p = p { gr = g }
-
-
 
 -- | The results are stored as a lookup function in the monad.
 loadMorphInfo pstRef =
- loadThingOrIgnore MorphInfoFlg "morphological info" pstRef parser updater
+ do xs <- loadThingOrIgnore MorphInfoFlg "morphological info" pstRef parser
+    modifyIORef pstRef (\p -> p { morphinf = readMorph xs } )
  where parser = parseFromFileOrFail geniMorphInfo
-       updater m p = p { morphinf = readMorph m }
 
 loadMorphLexicon pstRef =
- loadThingOrIgnore MorphLexiconFlg "morphological lexicon" pstRef parser updater
+ do xs <- loadThingOrIgnore MorphLexiconFlg "morphological lexicon" pstRef parser
+    modifyIORef pstRef (\p -> p { morphlex = Just xs })
  where parser = parseFromFileOrFail geniMorphLexicon
-       updater m p = p { morphlex = Just m }
 
 loadTraces pstRef =
- loadThingOrIgnore TracesFlg "traces" pstRef
-   (\f -> lines `fmap` readFile f)
-   (\t p -> p {traces = t})
+ do xs <- loadThingOrIgnore TracesFlg "traces" pstRef
+             (\f -> lines `fmap` readFile f)
+    modifyIORef pstRef (\p -> p {traces = xs})
 \end{code}
 
 \subsubsection{Target semantics}
@@ -270,7 +268,7 @@ user will format it the way s/he wants.
 
 \begin{code}
 -- | Stores the results in the tcase and tsuite fields
-loadTestSuite :: ProgStateRef -> IO ()
+loadTestSuite :: ProgStateRef -> IO [TestCase]
 loadTestSuite pstRef = do
   config <- pa `fmap` readIORef pstRef
   let parser f = do
@@ -278,13 +276,15 @@ loadTestSuite pstRef = do
          mStrs <- parseFromFileOrFail geniTestSuiteString f
          return $ zip sem mStrs
       updater s x =
-        x { tsuite = map cleanup s
+        x { tsuite = s
           , tcase  = fromMaybe "" $ getFlagP TestCaseFlg config}
       cleanup (tc,str) =
         tc { tcSem = (sortSem sm, sort sr, lc)
            , tcSemString = str }
         where (sm, sr, lc) = tcSem tc
-  loadThingOrDie TestSuiteFlg "test suite" pstRef parser updater
+  xs <- map cleanup `fmap` loadThingOrDie TestSuiteFlg "test suite" pstRef parser
+  modifyIORef pstRef (updater xs)
+  return xs
 \end{code}
 
 Sometimes, the target semantics does not come from a file, but from
@@ -315,31 +315,28 @@ loadThingOrIgnore, loadThingOrDie :: forall f a . (Eq f, Show f, Typeable f)
            -> String
            -> ProgStateRef
            -> (FilePath -> IO [a])
-           -> UpdateFn [a]
-           -> IO ()
+           -> IO [a]
+
+-- | Load the file if the relevant option is set, otherwise ignore
+loadThingOrIgnore flag description pstRef parser =
+ do config <- pa `fmap` readIORef pstRef
+    case getFlagP flag config of
+      Nothing -> return []
+      Just f  -> loadThing f description pstRef parser
+
+-- | Load the file if the relevant option is set, otherwise complain and die
+loadThingOrDie flag description pstRef parser =
+ do config <- pa `fmap` readIORef pstRef
+    case getFlagP flag config of
+      Nothing -> fail $ "Please specify a " ++ description ++ "!"
+      Just f  -> loadThing f description pstRef parser
 
 loadThing :: FilePath             -- ^ file to load
           -> String               -- ^ description
           -> ProgStateRef
           -> (FilePath -> IO [a]) -- ^ parsing cmd
-          -> UpdateFn [a]         -- ^ update fn
-          -> IO ()
-
--- | Load the file if the relevant option is set, otherwise ignore
-loadThingOrIgnore flag description pstRef parser job =
- do config <- pa `fmap` readIORef pstRef
-    case getFlagP flag config of
-      Nothing -> return ()
-      Just f  -> loadThing f description pstRef parser job
-
--- | Load the file if the relevant option is set, otherwise complain and die
-loadThingOrDie flag description pstRef parser job =
- do config <- pa `fmap` readIORef pstRef
-    case getFlagP flag config of
-      Nothing -> fail $ "Please specify a " ++ description ++ "!"
-      Just f  -> loadThing f description pstRef parser job
-
-loadThing filename description pstRef parser job =
+          -> IO [a]
+loadThing filename description pstRef parser =
  do config <- pa `fmap` readIORef pstRef
     let verbose = hasFlagP VerboseModeFlg config
     when verbose $ do
@@ -347,7 +344,7 @@ loadThing filename description pstRef parser job =
        eFlush
     theTs <- parser filename
     when verbose $ ePutStr $ (show $ length theTs) ++ " entries\n"
-    modifyIORef pstRef (job theTs)
+    return theTs
 
 parseFromFileOrFail :: Parser a -> FilePath -> IO a
 parseFromFileOrFail p f = parseFromFile p f >>= either (fail.show) (return)
