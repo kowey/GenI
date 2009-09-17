@@ -3,7 +3,7 @@ Version:        0.1
 License:        GPL
 License-file:   LICENSE
 Author:         Carlos Areces and Eric Kow
-Build-Depends:  base,  haskell98, mtl, network, HUnit, GenI >= 0.17.2, unix
+Build-Depends:  base,  haskell98, mtl, network, HUnit, GenI >= 0.18.0 && < 0.19, unix
 Description:    Utilities that use the GenI lib
 Maintainer:     eric.kow@loria.fr
 Build-type:     Simple
