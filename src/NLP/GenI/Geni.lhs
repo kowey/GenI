@@ -40,7 +40,7 @@ where
 
 \ignore{
 \begin{code}
-import Control.Arrow (first)
+import Control.Arrow (first,(&&&))
 import Control.Monad.Error
 import Control.Monad (unless)
 
@@ -526,7 +526,8 @@ runLexSelection pstRef =
         combineWithGr l =
          do let (lexCombineErrors, res) = combineList grammar l
                 familyMembers = [ p | p <- grammar, pfamily p == ifamname l ]
-            mapM_ (addWarning pstRef . show) lexCombineErrors
+            mapM_ (addWarning pstRef . showErr) $ compressLexCombineErrors
+                                                $ lexCombineErrors
             -- snippets of error message
             let lexeme = showLexeme.iword $ l
                 _outOfFamily n = show n ++ "/" ++ (show $ length familyMembers)
@@ -587,6 +588,14 @@ runLexSelection pstRef =
         "'" ++ showLex l ++ "' was lexically selected, but not anchored to any trees"
     return (candFinal, lexCand)
  where showLex l = (showLexeme $ iword l) ++ "-" ++ (ifamname l)
+       showErr (c, e) = show e ++ " (" ++ show c ++ " times)"
+
+compressLexCombineErrors :: [LexCombineError] -> [(Int, LexCombineError)]
+compressLexCombineErrors = map (length &&& head) . groupBy h
+ where
+  h (EnrichError m1 l1 _) (EnrichError m2 l2 _) = pfamily m1 == pfamily m2 &&
+                                                  iword l1 == iword l2
+  h _ _ = False
 
 -- | Select and returns the set of entries from the lexicon whose semantics
 --   subsumes the input semantics.
@@ -684,8 +693,8 @@ instance Error LexCombineError where
 
 instance Show LexCombineError where
  show (BoringError s)    = s
- show (OtherError t l s) = s ++ " on " ++ (pidname t) ++ "-" ++ (pfamily t) ++ " (" ++ (showLexeme $ iword l) ++ ")"
- show (EnrichError t l _)  = show (OtherError t l "enrichment error")
+ show (OtherError t l s) = s ++ " on " ++ pfamily t ++ " (" ++ (showLexeme $ iword l) ++ ")"
+ show (EnrichError t l _) = show (OtherError t l "enrichment error")
 \end{code}
 
 The first step in lexical selection is to collect all the features and
