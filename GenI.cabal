@@ -49,7 +49,6 @@ data-files: AUTHORS, INSTALL, README, NEWS, GenI.cabal,
 
 extra-source-files: src/NLP/GenI/SysGeni.lhs
                     src/NLP/GenI/Test.hs
-                    src/NLP/GenI/CkyEarley/CkyGui.lhs
                     src/NLP/GenI/Simple/SimpleGui.lhs, src/NLP/GenI/Gui.lhs
                     src/NLP/GenI/GraphvizShow.lhs, src/NLP/GenI/GuiHelper.lhs
                     src/NLP/GenI/Console.hs, src/NLP/GenI/Graphviz.hs
