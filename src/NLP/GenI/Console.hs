@@ -83,13 +83,15 @@ runInstructions pstRef =
        mapM_ (runSuite bdir) $ getListFlagP TestInstructionsFlg config
   runSuite bdir (file, mtcs) =
     do modifyIORef pstRef $ \p -> p { pa = setFlagP TestSuiteFlg file (pa p) }
+       config <- pa `fmap` readIORef pstRef
        -- we assume the that the suites have unique filenames
        let bsubdir = bdir </> takeFileName file
        createDirectoryIfMissing False bsubdir
        fullsuite <- (fst . unzip) `fmap` loadTestSuite pstRef
-       let suite = case mtcs of
-                     Nothing -> fullsuite
-                     Just cs -> filter (\t -> tcName t `elem` cs) fullsuite
+       let suite = case (mtcs, getFlagP TestCaseFlg config) of
+                    (_, Just c) -> filter (\t -> tcName t == c) fullsuite
+                    (Nothing,_) -> fullsuite
+                    (Just cs,_) -> filter (\t -> tcName t `elem` cs) fullsuite
        if any null $ map tcName suite
           then    fail $ "Can't do batch processing. The test suite " ++ file ++ " has cases with no name."
           else do ePutStrLn "Batch processing mode"
