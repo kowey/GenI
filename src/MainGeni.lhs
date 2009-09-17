@@ -88,12 +88,14 @@ main = do
   pstRef <- newIORef pst
   let has :: (Typeable f, Typeable x) => (x -> f) -> Bool
       has = flip hasFlagP confArgs
-      canRunInConsole = has TestCaseFlg || has FromStdinFlg || has BatchDirFlg
+      mustRunInConsole = has FromStdinFlg || has BatchDirFlg
+      canRunInConsole  = has TestCaseFlg
   case () of
    _ | has HelpFlg               -> putStrLn (usage optionsSections pname)
      | has VersionFlg            -> putStrLn ("GenI " ++ showVersion version)
      | has RunUnitTestFlg        -> runTests
      | has RegressionTestModeFlg -> regressionGeni pstRef
+     | mustRunInConsole          -> consoleGeni pstRef
      | not (has DisableGuiFlg)   -> guiGeni pstRef
      | canRunInConsole           -> consoleGeni pstRef
      | otherwise                 -> fail $ unlines
