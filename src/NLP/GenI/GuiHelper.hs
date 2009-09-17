@@ -502,12 +502,10 @@ modifyGvParams gvref fn  =
 
 setGvDrawables :: GraphvizGuiRef st a b -> [(a,String)] -> IO ()
 setGvDrawables gvref itlb =
-  do ePutStrLn "*********************************"
-     ePutStrLn $ unlines $ map (show . snd) itlb
-     let (it,lb) = unzip itlb
+  do let (it,lb) = unzip itlb
          fn x = x { gvitems = Map.fromList $ zip [0..] it
-                  , gvlabels = lb 
-                  , gvorders = GvoItems : (gvorders x) 
+                  , gvlabels = lb
+                  , gvorders = GvoItems : (gvorders x)
                   }
      modifyIORef gvref fn 
 
