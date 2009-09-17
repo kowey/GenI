@@ -22,7 +22,7 @@ module Main (main) where
 import Data.List
 import Data.IORef (newIORef, readIORef, modifyIORef)
 import Network (withSocketsDo, listenOn, accept, Socket)
-import System (getArgs)
+import System.Environment (getArgs)
 import System.IO
 import System.Posix.Signals (installHandler, sigPIPE, Handler(Ignore))
 

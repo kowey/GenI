@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 module Main (main) where
 
 import Network (connectTo, withSocketsDo)
-import System (getArgs)
+import System.Environment (getArgs)
 import System.IO
 
 import ClientServer (hardCodedPort, hGetBeginEnd)
