@@ -27,7 +27,7 @@ import Data.List(find, nub, sort)
 import Data.Maybe ( isJust, fromMaybe )
 import System.Directory(createDirectoryIfMissing)
 import System.Exit ( exitFailure )
-import System.FilePath ( (</>) )
+import System.FilePath ( (</>), takeFileName )
 
 import NLP.GenI.Btypes
    ( SemInput, TestCase(tcSem, tcName)
@@ -41,8 +41,9 @@ import NLP.GenI.Configuration
   ( Params
   , BatchDirFlg(..), EarlyDeathFlg(..), FromStdinFlg(..), OutputFileFlg(..)
   , MetricsFlg(..), StatsFileFlg(..)
-  , TestCaseFlg(..), TimeoutFlg(..),  VerboseModeFlg(..)
-  , hasFlagP, getFlagP
+  , TestCaseFlg(..), TestSuiteFlg(..), TestInstructionsFlg(..)
+  , TimeoutFlg(..),  VerboseModeFlg(..)
+  , hasFlagP, getListFlagP, getFlagP, setFlagP
   , builderType , BuilderType(..)
   )
 import qualified NLP.GenI.Builder as B
@@ -58,35 +59,46 @@ consoleGeni pstRef = do
   pst <- readIORef pstRef
   loadEverything pstRef
   case getFlagP TimeoutFlg (pa pst) of
-    Nothing -> runSuite pstRef
-    Just t  -> withTimeout t (timeoutErr t) $ runSuite pstRef
+    Nothing -> runInstructions pstRef
+    Just t  -> withTimeout t (timeoutErr t) $ runInstructions pstRef
   where
    timeoutErr t = do ePutStrLn $ "GenI timed out after " ++ (show t) ++ "s"
                      exitTimeout
 
--- | Runs a test suite.
---   We assume that the grammar and target semantics are already
+-- | Runs the tests specified in our instructions list.
+--   We assume that the grammar and lexicon are already
 --   loaded into the monadic state.
 --   If batch processing is enabled, save the results to the batch output
---   directory with one subdirectory per case.
-runSuite :: ProgStateRef -> IO ()
-runSuite pstRef =
+--   directory with one subdirectory per suite and per case within that suite.
+runInstructions :: ProgStateRef -> IO ()
+runInstructions pstRef =
   do pst <- readIORef pstRef
-     let suite  = tsuite pst
-         config = pa pst
-         verbose = hasFlagP VerboseModeFlg config
-         earlyDeath = hasFlagP EarlyDeathFlg config
+     let config = pa pst
      case getFlagP BatchDirFlg config of
        Nothing   -> runTestCaseOnly pstRef >> return ()
-       Just bdir -> runBatch earlyDeath verbose bdir suite
+       Just bdir -> runBatch bdir
   where
-  runBatch earlyDeath verbose bdir suite =
-    if any null $ map tcName suite
-    then    ePutStrLn "Can't do batch processing. The test suite has cases with no name."
-    else do ePutStrLn "Batch processing mode"
-            mapM_ (runCase earlyDeath verbose bdir) suite
-  runCase earlyDeath verbose bdir (G.TestCase { tcName = n, tcSem = s }) =
-   do when verbose $
+  runBatch bdir =
+    do config <- pa `fmap` readIORef pstRef
+       mapM_ (runSuite bdir) $ getListFlagP TestInstructionsFlg config
+  runSuite bdir (file, mtcs) =
+    do modifyIORef pstRef $ \p -> p { pa = setFlagP TestSuiteFlg file (pa p) }
+       -- we assume the that the suites have unique filenames
+       let bsubdir = bdir </> takeFileName file
+       createDirectoryIfMissing False bsubdir
+       fullsuite <- (fst . unzip) `fmap` loadTestSuite pstRef
+       let suite = case mtcs of
+                     Nothing -> fullsuite
+                     Just cs -> filter (\t -> tcName t `elem` cs) fullsuite
+       if any null $ map tcName suite
+          then    fail $ "Can't do batch processing. The test suite " ++ file ++ " has cases with no name."
+          else do ePutStrLn "Batch processing mode"
+                  mapM_ (runCase bsubdir) suite
+  runCase bdir (G.TestCase { tcName = n, tcSem = s }) =
+   do config <- pa `fmap` readIORef pstRef
+      let verbose = hasFlagP VerboseModeFlg config
+          earlyDeath = hasFlagP EarlyDeathFlg config
+      when verbose $
         ePutStrLn "======================================================"
       (res , _) <- runOnSemInput pstRef (PartOfSuite n bdir) s
       ePutStrLn $ " " ++ n ++ " - " ++ (show $ length res) ++ " results"
