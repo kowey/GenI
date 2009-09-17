@@ -581,9 +581,6 @@ graphvizGui f cachedir gvRef = do
   let lay = fill $ container p $ margin 1 $ fill $ 
             vsplit split 5 200 (widget rchoice) (widget sw) 
   set p [ on closing := closeImage dtBitmap ]
-  -- bind an action to rchoice
-  let showItem = do createAndOpenImage cachedir p gvRef openFn
-                 `catch` \e -> errorDialog f "" (show e)
   ------------------------------------------------
   -- create an updater function
   ------------------------------------------------
@@ -595,17 +592,14 @@ graphvizGui f cachedir gvRef = do
       -- indirectly by setting the selection
   let onUpdate = withoutSelector $ do
         gvSt <- readIORef gvRef
-        let orders = gvorders gvSt 
-            labels = gvlabels gvSt
-            sel    = gvsel    gvSt
-        initCacheDir cachedir 
-        Monad.when (GvoItems `elem` orders) $ 
-          set rchoice [ items :~ (\_ -> labels) ]
+        let orders = gvorders gvSt
+        initCacheDir cachedir
+        Monad.when (GvoItems `elem` orders) $
+          set rchoice [ items := gvlabels gvSt ]
         Monad.when (GvoSel `elem` orders) $
-          set rchoice [ selection :~ (\_ -> sel) ]
+          set rchoice [ selection := gvsel gvSt ]
         modifyIORef gvRef (\x -> x { gvorders = []})
-        -- putStrLn "onUpdate called" 
-        showItem 
+        createAndOpenImage cachedir p gvRef openFn
   ------------------------------------------------
   -- enable the tree selector
   -- FIXME: not sure that this is correct
