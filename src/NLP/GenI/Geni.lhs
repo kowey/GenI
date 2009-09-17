@@ -879,8 +879,14 @@ missingCoanchors lexEntry t =
 --   or (co-)anchor modifiers
 lexEquations :: ILexEntry -> ([PathEqPair], [PathEqPair])
 lexEquations =
-  partition (nameIs "interface") . map (\(AvPair a v) -> (parsePathEq a, v)) . iequations
-  where nameIs n x = pathEqName x == n
+  partition (nameIs "interface") . map parseAv . iequations
+  where
+   parseAv (AvPair a v) =
+    case parsePathEq a of
+      Left (err,peq) -> unsafePerformIO $ do putStrLn err
+                                             return (peq,v)
+      Right peq -> (peq, v)
+   nameIs n x = pathEqName x == n
 
 seekCoanchor :: String -> MTtree -> Maybe GNode
 seekCoanchor eqName t =
@@ -896,25 +902,25 @@ matchNodeName "anchor" = ganchor
 matchNodeName n        = (== n) . gnname
 
 -- | Parse a path equation using the GenI conventions
-parsePathEq :: String -> PathEqLhs
+--   This always succeeds, but can return @Just warning@
+--   if anything anomalous comes up
+parsePathEq :: String -> Either (String,PathEqLhs) (PathEqLhs)
 parsePathEq e =
- case wordsBy '.' e of
- (n:"top":r) -> (n, True, rejoin r)
- (n:"bot":r) -> (n, False, rejoin r)
- ("top":r) -> ("anchor", True, rejoin r)
- ("bot":r) -> ("anchor", False, rejoin r)
- ("anc":r) -> parsePathEq $ rejoin $ "anchor":r
- ("anchor":r)    -> ("anchor", False, rejoin r)
- ("interface":r) -> ("interface", False, rejoin r)
- (n:r) -> unsafePerformIO $ do
-           ePutStrLn $ "Warning: Interpreting path equation " ++ e ++
+  case wordsBy '.' e of
+  (n:"top":r) -> Right (n, True, rejoin r)
+  (n:"bot":r) -> Right (n, False, rejoin r)
+  ("top":r) -> Right ("anchor", True, rejoin r)
+  ("bot":r) -> Right ("anchor", False, rejoin r)
+  ("anc":r) -> parsePathEq $ rejoin $ "anchor":r
+  ("anchor":r)    -> Right ("anchor", False, rejoin r)
+  ("interface":r) -> Right ("interface", False, rejoin r)
+  (n:r) -> Left (err, (n, True, rejoin r))
+           where err = "Warning: Interpreting path equation " ++ e ++
                        " as applying to top of " ++ n ++ "."
-           return (n, True, rejoin r)
- _ -> unsafePerformIO $ do
-        ePutStrLn $ "Warning: could not interpret path equation " ++ e
-        return ("", True, e) -- unknown
+  _ -> Left (err, ("", True, e))
+       where err = "Warning: could not interpret path equation " ++ e
  where
-  rejoin = concat . (intersperse ".")
+  rejoin = concat . intersperse "."
 \end{code}
 
 \subsubsection{Lemanchor mechanism}
