@@ -587,7 +587,13 @@ graphvizGui f cachedir gvRef = do
   ------------------------------------------------
   -- create an updater function
   ------------------------------------------------
-  let onUpdate = do 
+  let withoutSelector job =
+        bracket ( swap rchoice (on select) (return ()) )
+                ( \fn -> set rchoice [ on select := fn ] )
+                ( const job )
+      -- the selector calls onUpdate which calls the selector
+      -- indirectly by setting the selection
+  let onUpdate = withoutSelector $ do
         gvSt <- readIORef gvRef
         let orders = gvorders gvSt 
             labels = gvlabels gvSt
