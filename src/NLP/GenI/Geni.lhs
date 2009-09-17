@@ -784,11 +784,18 @@ combineOne lexRaw eRaw = -- Maybe monad
        return (l,e2)
 \end{code}
 
-\subsubsection{CGM Enrichement}
+\subsubsection{Enrichment}
 
-Enrichment is a concept introduced by the common grammar manifesto
-\cite{kow05CGM}, the idea being that during lexical selection, you sometimes
-want to add feature structures to specific nodes in a tree.
+Enrichment is a process which adds features to either the interface, an
+explicitly named node or the co-anchor of a lexically selected tree.  The
+enrichement information comes from the lexicon in the form of a path equations
+which specify
+\begin{enumerate}
+\item the location
+\item top or bottom
+\item the attribute
+\item what value to associate with it
+\end{enumerate}
 
 The conventions taken by GenI for path equations are:
 
