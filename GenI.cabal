@@ -95,6 +95,7 @@ Library
                 NLP.GenI.GeniVal,
                 NLP.GenI.Tags,
                 NLP.GenI.Morphology,
+                NLP.GenI.OptimalityTheory,
                 NLP.GenI.Polarity,
                 NLP.GenI.PolarityTypes,
                 NLP.GenI.Automaton,
