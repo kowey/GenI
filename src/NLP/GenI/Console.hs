@@ -193,7 +193,7 @@ toNiceResult pst (s,d) =
  NiceResult { nrSentence     = s
             , nrDerivation   = d
             , nrLexSelection = map (\x -> NiceLexSel x (getTraces pst x))
-                                (lexicalSelection d)
+                                (B.lexicalSelection d)
             }
 
 data NiceResult = NiceResult
@@ -233,5 +233,4 @@ instance JSON NiceLexSel where
                              , ("trace",    showJSONs $ nlTrace x)
                              ]
 
-lexicalSelection :: B.Derivation -> [String]
-lexicalSelection = sort . nub . concatMap (\d -> [dsChild d, dsParent d])
+

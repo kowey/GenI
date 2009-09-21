@@ -44,7 +44,7 @@ where
 
 import Control.Monad.State.Strict
 import Data.Bits ( (.&.), (.|.), bit, xor )
-import Data.List ( (\\), maximum, delete )
+import Data.List ( (\\), maximum, delete, sort, nub )
 import qualified Data.Map as Map
 import Data.Maybe ( mapMaybe, fromMaybe  )
 import qualified Data.Set as Set
@@ -76,7 +76,7 @@ import NLP.GenI.Statistics (Statistics, incrIntMetric,
                    queryMetrics, queryIntMetric,
                    addMetric, emptyStats,
                    )
-import NLP.GenI.Tags ( TagElem(idname,tsemantics,ttree), setTidnums, TagDerivation )
+import NLP.GenI.Tags ( TagElem(idname,tsemantics,ttree), setTidnums, TagDerivation, DerivationStep(..) )
 \end{code}
 }
 
@@ -522,4 +522,14 @@ initNullBuilder input config =
   in runState (execStateT countUp ()) (initStats config)
 \end{code}
 
+% ----------------------------------------------------------------------
+% strictly API-ish bits
+% ----------------------------------------------------------------------
 
+\ignore{
+\begin{code}
+-- | The names of lexically selected chart items used in a derivation
+lexicalSelection :: Derivation -> [String]
+lexicalSelection = sort . nub . concatMap (\d -> [dsChild d, dsParent d])
+\end{code}
+}
