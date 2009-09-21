@@ -38,7 +38,6 @@ module NLP.GenI.General (
         fst3, snd3, thd3,
         -- * Lists
         map',
-        wordsBy,
         boundsCheck,
         isEmptyIntersect,
         groupByFM,
@@ -167,11 +166,6 @@ thd3 (_,_,x) = x
 map' :: (a->b) -> [a] -> [b]
 map' _ [] = []
 map' f (x:xs) = let a = f x in a `seq` (a:(map' f xs))
-
--- | A generic version of the Data.List.words
---   TODO: replace by version from split
-wordsBy :: (Eq a) => a -> [a] -> [[a]]
-wordsBy c xs = filter (/= [c]) $ groupBy (\x y -> x /= c && y /= c) xs
 
 -- | Makes sure that index s is in the bounds of list l.  
 --   Surely there must be some more intelligent way to deal with this.

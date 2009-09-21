@@ -48,6 +48,7 @@ import Data.Binary (Binary, decodeFile)
 import Data.Function ( on )
 import Data.IORef (IORef, readIORef, modifyIORef)
 import Data.List
+import Data.List.Split ( wordsBy )
 import qualified Data.Map as Map
 import Data.Maybe (mapMaybe, fromMaybe, isJust)
 import Data.Tree (Tree(Node))
@@ -62,7 +63,6 @@ import NLP.GenI.General(filterTree, repAllNode,
     groupAndCount, multiGroupByFM,
     geniBug,
     repNodeByNode,
-    wordsBy,
     fst3,
     ePutStr, ePutStrLn, eFlush,
     )
@@ -491,7 +491,7 @@ getTraces pst tname =
 -- | We assume the name was constructed by 'combineName'
 readPidname :: String -> String
 readPidname n =
-  case wordsBy ':' n of
+  case wordsBy (== ':') n of
   (_:_:p:_) -> p
   _         -> geniBug "readPidname or combineName are broken"
 \end{code}
@@ -919,7 +919,7 @@ matchNodeName n        = (== n) . gnname
 --   if anything anomalous comes up
 parsePathEq :: String -> Either (String,PathEqLhs) (PathEqLhs)
 parsePathEq e =
-  case wordsBy '.' e of
+  case wordsBy (== '.') e of
   (n:"top":r) -> Right (n, True, rejoin r)
   (n:"bot":r) -> Right (n, False, rejoin r)
   ("top":r) -> Right ("anchor", True, rejoin r)

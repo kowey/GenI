@@ -74,6 +74,7 @@ Library
                  mtl > 1.0 && < 1.2,
                  parallel >= 1.1 && < 1.2,
                  binary > 0.2 && < 0.5,
+                 split >= 0.1.1 && < 0.2,
                  test-framework-hunit >= 0.2.4 && < 0.3,
                  test-framework-quickcheck >= 0.2.4 && < 0.3,
                  test-framework >= 0.2.4 && < 0.3,
