@@ -23,7 +23,24 @@ data RankedOtConstraint = RankedOtConstraint Int OtConstraint
 instance Ord RankedOtConstraint where
  compare (RankedOtConstraint r1 _) (RankedOtConstraint r2 _) = compare r1 r2
 
+-- | Same as 'RankedOtConstraint' with the sorting inverted
+newtype RankedOtConstraint2 = RankedOtConstraint2 RankedOtConstraint deriving Eq
+
+instance Ord RankedOtConstraint2 where
+ compare (RankedOtConstraint2 x) (RankedOtConstraint2 y) = compare y x
+
+
 type OtRanking = [[OtConstraint]]
+
+-- | positive violations, negative violations which
+--   are linked to one specific lexical item
+type Violations = ([RankedOtConstraint],[LexViolation])
+type LexViolation = (LexItem, [RankedOtConstraint])
+
+data LexItem = LexItem
+       { lLexname :: String
+       , lTraces :: [String]
+       } deriving (Ord, Eq, Show)
 
 -- ------------------------------------------------------------------------
 -- ----------------------------------------------------------------------
@@ -46,11 +63,6 @@ sortByViolations pst cs = sortResults . map (second getViolations)
 -- ---------------------------------------------------------------------
 -- detecting violations
 -- ---------------------------------------------------------------------
-
--- | positive violations, negative violations which
---   are linked to one specific lexical item
-type Violations = ([RankedOtConstraint],[LexViolation])
-type LexViolation = (LexItem, [RankedOtConstraint])
 
 violations :: [RankedOtConstraint] -> [LexItem] -> Violations
 violations cs ls = (posVs ls, negVs ls)
@@ -81,12 +93,6 @@ negViolations cs ss =
 concatViolations :: Violations -> [RankedOtConstraint]
 concatViolations (pVs,lexVs) = pVs ++ concatMap snd lexVs
 
--- | Same as 'RankedOtConstraint' with the sorting inverted
-newtype RankedOtConstraint2 = RankedOtConstraint2 RankedOtConstraint deriving Eq
-
-instance Ord RankedOtConstraint2 where
- compare (RankedOtConstraint2 x) (RankedOtConstraint2 y) = compare y x
-
 -- | Violations sorted so that the highest ranking constraint
 --   (smallest number) goes first
 sortedViolations :: (String, Violations) -> [RankedOtConstraint2]
@@ -102,12 +108,6 @@ sortResults = sortAndGroupByDecoration compare sortedViolations
 --
 -- ---------------------------------------------------------------------
 
-data LexItem = LexItem
-       { lLexeme :: String
-       , lFamily :: (String,Int)
-       , lTraces :: [String]
-       } deriving (Ord, Eq, Show)
-
 
 showViolations :: Bool -> Int -> (String, Violations) -> String
 showViolations noisy rank (str, (posVs, negVs)) =
@@ -119,8 +119,7 @@ showViolations noisy rank (str, (posVs, negVs)) =
   --
   showPosVs  = unwords . map prettyRankedConstraint
   showLexVs (itm, vs) =
-    let (f,i)   = lFamily itm
-        itmName = "(" ++ lLexeme itm ++ " " ++ f ++ "-" ++ show i ++ ")"
+    let itmName = "(" ++ lLexname itm ++ ")"
     in (indented 2 75 . unwords $ itmName : map prettyRankedConstraint vs)
        ++ (if noisy then "\n" ++ (indented 4 75 . unwords . lTraces $ itm)
                     else "")
@@ -141,16 +140,8 @@ lexTraces pst = map (toLexItem pst) . B.lexicalSelection
 
 toLexItem :: ProgState -> String -> LexItem
 toLexItem pst t =
- LexItem { lLexeme = l
-         , lFamily = (f,i)
-         , lTraces = getTraces pst t }
- where (l,f,i) = splitLexFam t
-
-splitLexFam :: String -> (String, String, Int)
-splitLexFam n =
- case wordsBy (== ':') n of
- [l2,_,ft,_] -> let (f,t) = spanChar '-' ft in  (l2, f, read t)
- _           -> error $ "error parsing derivation rule... has GenI changed?"
+ LexItem { lLexname = t
+         , lTraces  = getTraces pst t }
 
 -- ---------------------------------------------------------------------
 -- detecting impossible constraints or other potential errors
