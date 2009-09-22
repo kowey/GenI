@@ -299,6 +299,14 @@ optionsForBasicStuff =
 \subsection{Input files}
 % --------------------------------------------------------------------
 
+\begin{description}
+\item[ranking]
+  The \verb!ranking! switch allows you to specify a file containing
+  Optimality Theory style constraints which GenI will use to rank
+  its output.  See Chapter \ref{cha:ranking} for more details on the format
+  and use of this file.
+\end{description}
+
 \begin{code}
 optionsForInputFiles :: [OptDescr Flag]
 optionsForInputFiles =
@@ -309,6 +317,7 @@ optionsForInputFiles =
   , fromStdinOption
   , morphInfoOption
   , instructionsOption
+  , rankingOption
   , Option []    ["preselected"] (NoArg (Flag GrammarTypeFlg PreAnchored))
       "do NOT perform lexical selection - treat the grammar as the selection"
   ]
@@ -331,6 +340,10 @@ tracesOption =
   Option [] ["traces"] (reqArg TracesFlg id "FILE")
     "traces file FILE (list of traces to display)"
 
+rankingOption :: OptDescr Flag
+rankingOption =
+  Option [] ["ranking"] (reqArg RankingConstraintsFlg id "FILE")
+    "ranking constraints FILE (using Optimality Theory)"
 \end{code}
 
 % --------------------------------------------------------------------
@@ -845,6 +858,7 @@ FLAG (MorphLexiconFlg, FilePath)
 FLAG (OptimisationsFlg, [Optimisation])
 FLAG (OutputFileFlg, String)
 FLAG (PartialFlg, ())
+FLAG (RankingConstraintsFlg, FilePath)
 FLAG (RegressionTestModeFlg, ())
 FLAG (RootFeatureFlg, Flist)
 FLAG (RunUnitTestFlg, ())
