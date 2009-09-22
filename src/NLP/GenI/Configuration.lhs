@@ -309,12 +309,11 @@ optionsForInputFiles =
   , fromStdinOption
   , morphInfoOption
   , instructionsOption
-  , outputOption
   , Option []    ["preselected"] (NoArg (Flag GrammarTypeFlg PreAnchored))
       "do NOT perform lexical selection - treat the grammar as the selection"
   ]
 
-instructionsOption, macrosOption, lexiconOption, tracesOption, outputOption :: OptDescr Flag
+instructionsOption, macrosOption, lexiconOption, tracesOption :: OptDescr Flag
 
 instructionsOption =
   Option [] ["instructions"] (reqArg InstructionsFileFlg id "FILE")
@@ -332,9 +331,6 @@ tracesOption =
   Option [] ["traces"] (reqArg TracesFlg id "FILE")
     "traces file FILE (list of traces to display)"
 
-outputOption =
-  Option ['o'] ["output"] (reqArg OutputFileFlg id "FILE")
-    "output file FILE (stdout if unset)"
 \end{code}
 
 % --------------------------------------------------------------------
@@ -348,6 +344,11 @@ optionsForOutput =
   , Option []    ["partial"] (noArg PartialFlg)
       "return partial result(s) if no complete solution is found"
   ]
+
+outputOption :: OptDescr Flag
+outputOption =
+  Option ['o'] ["output"] (reqArg OutputFileFlg id "FILE")
+    "output file FILE (stdout if unset)"
 \end{code}
 
 % --------------------------------------------------------------------
