@@ -73,7 +73,7 @@ import NLP.GenI.General(filterTree, repAllNode,
 
 import NLP.GenI.Btypes
   (Macros, MTtree, ILexEntry, Lexicon,
-   replace, replaceList, DescendGeniVal(..),
+   replace, replaceList,
    Sem, SemInput, TestCase(..), sortSem, subsumeSem, params,
    GeniVal(GConst), fromGVar, AvPair(..),
    GNode(ganchor, gnname, gup, gdown, gaconstr, gtype, gorigin), Flist,
@@ -338,8 +338,6 @@ loadTargetSemStr pstRef str =
 \subsubsection{Helpers for loading files}
 
 \begin{code}
-type UpdateFn a = (a -> ProgState -> ProgState)
-
 loadThingOrIgnore, loadThingOrDie :: forall f a . (Eq f, Show f, Typeable f)
            => (FilePath -> f) -- ^ flag
            -> String
