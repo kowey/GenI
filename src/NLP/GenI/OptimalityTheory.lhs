@@ -26,18 +26,36 @@ import Data.Function (on)
 import Data.Char ( isSpace )
 import Data.List (nub, sort, sortBy, groupBy, intersperse, (\\), unfoldr )
 import Data.List.Split ( wordsBy )
+import Text.JSON
 
 import NLP.GenI.Btypes ( Macros, ptrace )
 import NLP.GenI.Geni
    ( ProgState, getTraces, )
 
 import qualified NLP.GenI.Builder as B
+\end{code}
 
+If your tree schemata are annotated with traces (TODO link to traces and
+metagrammars), you can re-use them as a basis for ranking the output produced
+by GenI.  The basic idea is to supply a list of either positive, negative or
+negative conjunction constraints.
+
+For users familiar with Haskell, the constraints are described with the
+following type:
+\begin{includecodeinmanual}
+\begin{code}
 data OtConstraint = PositiveC String -- ^ the trace must appear
                   | NegativeC String -- ^ the trace must NOT appear
                   | NegativeConjC [String] -- ^ these traces must not appear AT THE SAME TIME
  deriving (Show, Eq)
+\end{code}
+\end{includecodeinmanual}
 
+Roughly speaking the more highly ranked the constraint, the greater the impact
+of a violation of that constraint will be.  See section
+\ref{sec:ranking-procedure} for more details on the ranking procedure.
+
+\begin{code}
 data RankedOtConstraint = RankedOtConstraint Int OtConstraint
  deriving (Show, Eq)
 
@@ -62,25 +80,64 @@ data LexItem = LexItem
        { lLexname :: String
        , lTraces :: [String]
        } deriving (Ord, Eq, Show)
+\end{code}
 
--- ------------------------------------------------------------------------
--- ----------------------------------------------------------------------
+\section{Input format}
 
-otWarnings gram ranking blocks =
-    addWarning neTraces neTracesW
-  . addWarning nvConstraints nvConstraintsW
-  $ []
- where
-  addWarning xs w = if null xs then id else (w xs :)
-  neTracesW xs = "these traces never appear in the grammar: " ++ unwords xs
-  neTraces  = nonExistentTraces gram ranking
-  nvConstraintsW xs = "these constraints are never violated: " ++ unwords (map prettyConstraint xs)
-  nvConstraints = neverViolated blocks ranking
+Constraints are expressed in JSON as a list of \jargon{ranking levels}.  A
+ranking level is a list of constraints that should be assigned the same rank.
+Each constraint is a expressed as JSON object.  In lieu of a formal description,
+we provide an example below.
 
-sortByViolations pst cs = sortResults . map (second getViolations)
- where
-   getViolations = violations cs . lexTraces pst
+\begin{verbatim}
+[
+ [{"neg-constraint": "dian0Vn1dePassive"},
+  {"pos-constraint": "CanonicalSubject"}],
 
+ [{"neg-conj-constraint": ["InvertedNominalSubject", "CanonicalSententialObjectFinite"]}],
+
+ [{"neg-conj-constraint": ["InvertedNominalSubject", "UnboundedCleft"]},
+  {"neg-constraint": "CleftSubject"}]
+]
+\end{verbatim}
+
+This example constraints file has three ranking levels:
+\begin{enumerate}
+\item A negative constraint saying that \verb!dian0Vn1dePassive! should
+      not appear, and a positive one saying that \verb!CanonicalSubject!
+      \emph{should} appear.  There is no relationship between these constraints
+      other than the fact that we consider them to have the same rank.
+\item A single negative conjunction constraint saying that
+      \verb!InvertedNominalSubject! and \verb!CanonicalSententialObjectFinite!
+      should not appear together.
+\item A negative conjunction constraint saying tat
+      \verb!InvertedNominalSubject! and \verb!UnboundedCleft! should not
+      appear together; and also a negative constraints saying that
+      \verb!CleftSubject! should not appear.  As with the first ranking
+      level, there is no relationship between these two constraints.  We
+      just put them on the same level to give them the same rank
+\end{enumerate}
+
+\begin{code}
+instance JSON OtConstraint where
+ readJSON j =
+    do jv <- fromJSObject `fmap` readJSON j
+       case lookup "pos-constraint" jv of
+        Just v    -> PositiveC `fmap` readJSON v
+        Nothing   -> case lookup "neg-constraint" jv of
+         Just v   -> NegativeC `fmap` readJSON v
+         Nothing  -> case lookup "neg-conj-constraint" jv of
+          Just v  -> NegativeConjC `fmap` readJSONs v
+          Nothing -> fail $ "Could not read OtConstraint"
+ showJSON (PositiveC c) =
+     JSObject . toJSObject $ [ ("pos-constraint", showJSON c ) ]
+ showJSON (NegativeC c) =
+     JSObject . toJSObject $ [ ("neg-constraint", showJSON c ) ]
+ showJSON (NegativeConjC cs) =
+     JSObject . toJSObject $ [ ("neg-conj-constraint", showJSONs cs ) ]
+\end{code}
+
+\begin{code}
 -- ---------------------------------------------------------------------
 -- detecting violations
 -- ---------------------------------------------------------------------
@@ -106,10 +163,30 @@ negViolations :: [RankedOtConstraint] -> [String] -> [RankedOtConstraint]
 negViolations cs ss =
  [ c | c@(RankedOtConstraint _ (NegativeC s)) <- cs, s `elem` ss ] ++
  [ c | c@(RankedOtConstraint _ (NegativeConjC xs)) <- cs, all (`elem` ss) xs ]
+\end{code}
 
+\section{Ranking procedure}
+\label{sec:ranking-procedure}
+
+\begin{code}
 -- ---------------------------------------------------------------------
--- sorting violations
+-- ranking violations
 -- ---------------------------------------------------------------------
+
+otWarnings gram ranking blocks =
+    addWarning neTraces neTracesW
+  . addWarning nvConstraints nvConstraintsW
+  $ []
+ where
+  addWarning xs w = if null xs then id else (w xs :)
+  neTracesW xs = "these traces never appear in the grammar: " ++ unwords xs
+  neTraces  = nonExistentTraces gram ranking
+  nvConstraintsW xs = "these constraints are never violated: " ++ unwords (map prettyConstraint xs)
+  nvConstraints = neverViolated blocks ranking
+
+sortByViolations pst cs = sortResults . map (second getViolations)
+ where
+   getViolations = violations cs . lexTraces pst
 
 concatViolations :: Violations -> [RankedOtConstraint]
 concatViolations (pVs,lexVs) = pVs ++ concatMap snd lexVs
