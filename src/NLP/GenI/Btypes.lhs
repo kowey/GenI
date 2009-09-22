@@ -25,6 +25,7 @@ unification, that is).
 
 \ignore{
 \begin{code}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances, DeriveDataTypeable #-}
 module NLP.GenI.Btypes(
    -- Datatypes
