@@ -29,6 +29,7 @@ where
 \ignore{
 \begin{code}
 import Data.List(intersperse,nub)
+import Data.List.Split (wordsBy)
 import Data.Maybe(listToMaybe)
 
 import NLP.GenI.Tags
@@ -41,7 +42,6 @@ import NLP.GenI.Btypes (GeniVal(GConst), AvPair(..),
                isConst,
                showSem,
                )
-import NLP.GenI.General (wordsBy)
 import NLP.GenI.Graphviz
   ( gvUnlines, gvNewline
   , GraphvizShow(graphvizShowAsSubgraph, graphvizLabel, graphvizParams)
@@ -188,7 +188,7 @@ graphvizShowDerivation deriv =
           ++ (concatMap showHistNode histNodes)
           ++ (concatMap graphvizShowDerivation' deriv)
   where showHistNode n  = gvNode (gvDerivationLab n) (label n) []
-        label n = case wordsBy ':' n of
+        label n = case wordsBy (== ':') n of
                   name:fam:tree:_ -> name ++ ":" ++ fam ++ gvNewline ++ tree
                   _               -> n ++ " (geni/gv ERROR)"
         histNodes = reverse $ nub $ concatMap (\ (DerivationStep _ c p _) -> [c,p]) deriv
