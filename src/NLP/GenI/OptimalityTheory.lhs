@@ -25,13 +25,9 @@ import Control.Arrow ( second )
 import Data.Function (on)
 import Data.Char ( isSpace )
 import Data.List (nub, sort, sortBy, groupBy, intersperse, (\\), unfoldr )
-import Data.List.Split ( wordsBy )
 import Text.JSON
 
 import NLP.GenI.Btypes ( Macros, ptrace )
-import NLP.GenI.Geni
-   ( ProgState, getTraces, )
-
 import qualified NLP.GenI.Builder as B
 \end{code}
 
@@ -184,9 +180,12 @@ otWarnings gram ranking blocks =
   nvConstraintsW xs = "these constraints are never violated: " ++ unwords (map prettyConstraint xs)
   nvConstraints = neverViolated blocks ranking
 
-sortByViolations pst cs = sortResults . map (second getViolations)
+type GetTrace = String -> [String]
+
+sortByViolations :: GetTrace -> [RankedOtConstraint] -> [(String,B.Derivation)] -> [[(String,Violations)]]
+sortByViolations getTraces cs = sortResults . map (second getViolations)
  where
-   getViolations = violations cs . lexTraces pst
+   getViolations = violations cs . lexTraces getTraces
 
 concatViolations :: Violations -> [RankedOtConstraint]
 concatViolations (pVs,lexVs) = pVs ++ concatMap snd lexVs
@@ -201,6 +200,14 @@ sortedViolations = map RankedOtConstraint2 . sort . concatViolations . snd
 --   Note that we return in groups for the sake of ties.
 sortResults :: [(String, Violations)] -> [[(String, Violations)]]
 sortResults = sortAndGroupByDecoration compare sortedViolations
+
+lexTraces :: GetTrace -> B.Derivation -> [LexItem]
+lexTraces getTraces = map (toLexItem getTraces) . B.lexicalSelection
+
+toLexItem :: GetTrace -> String -> LexItem
+toLexItem getTraces t =
+ LexItem { lLexname = t
+         , lTraces  = getTraces t }
 
 -- ---------------------------------------------------------------------
 --
@@ -232,14 +239,6 @@ prettyConstraint (NegativeConjC strs) = "*(" ++ (concat $ intersperse " & " strs
 
 prettyRank :: Int -> String
 prettyRank r = "(r" ++ show r ++ ")"
-
-lexTraces :: ProgState -> B.Derivation -> [LexItem]
-lexTraces pst = map (toLexItem pst) . B.lexicalSelection
-
-toLexItem :: ProgState -> String -> LexItem
-toLexItem pst t =
- LexItem { lLexname = t
-         , lTraces  = getTraces pst t }
 
 -- ---------------------------------------------------------------------
 -- detecting impossible constraints or other potential errors
