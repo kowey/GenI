@@ -40,6 +40,7 @@ module NLP.GenI.Configuration
   , OptimisationsFlg(..)
   , OutputFileFlg(..)
   , PartialFlg(..)
+  , RankingConstraintsFlg(..)
   , RegressionTestModeFlg(..)
   , RootFeatureFlg(..)
   , RunUnitTestFlg(..)
