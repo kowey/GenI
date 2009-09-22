@@ -30,6 +30,7 @@ module NLP.GenI.Geni (ProgState(..), ProgStateRef, emptyProgState,
              initGeni, runGeni, runGeniWithSelector, getTraces, GeniResult, Selector,
              loadEverything, loadLexicon, loadGeniMacros,
              loadTestSuite, loadTargetSemStr,
+             loadRanking, readRanking,
              combine,
 
              -- used by auxiliary tools only
@@ -54,7 +55,10 @@ import Data.Maybe (mapMaybe, fromMaybe, isJust)
 import Data.Tree (Tree(Node))
 import Data.Typeable (Typeable)
 
+import qualified System.IO.UTF8 as UTF8
+
 import System.IO.Unsafe (unsafePerformIO)
+import Text.JSON
 import Text.ParserCombinators.Parsec 
 -- import System.Process 
 
@@ -95,6 +99,7 @@ import NLP.GenI.Configuration
   ( Params, getFlagP, hasFlagP, hasOpt, Optimisation(NoConstraints)
   , MacrosFlg(..), LexiconFlg(..), TestSuiteFlg(..), TestCaseFlg(..)
   , MorphInfoFlg(..), MorphCmdFlg(..), MorphLexiconFlg(..)
+  , RankingConstraintsFlg(..)
   , PartialFlg(..)
   , FromStdinFlg(..), VerboseModeFlg(..)
   , NoLoadTestSuiteFlg(..)
@@ -110,6 +115,7 @@ import NLP.GenI.GeniParsers (geniMacros, geniTagElems,
                     geniMorphInfo, geniMorphLexicon,
                     )
 import NLP.GenI.Morphology
+import NLP.GenI.OptimalityTheory
 import NLP.GenI.Statistics (Statistics)
 
 -- import CkyBuilder 
@@ -139,6 +145,8 @@ data ProgState = ST{ -- | the current configuration being processed
                     tcase    :: String, 
                     -- | name, original string (for gui), sem
                     tsuite   :: [TestCase],
+                    -- | OT constraints (optional)
+                    ranking  :: OtRanking,
                     -- | simplified traces (optional)
                     traces   :: [String],
                     -- | any warnings accumulated during realisation
@@ -160,6 +168,7 @@ emptyProgState args =
     , tcase = []
     , tsuite = []
     , traces = []
+    , ranking = []
     , warnings = []
     }
 
@@ -215,6 +224,8 @@ loadEverything pstRef =
      loadMorphLexicon pstRef
      -- the trace filter file
      loadTraces pstRef
+     -- OT ranking
+     loadRanking pstRef
 \end{code}
 
 The file loading functions all work the same way: we load the file,
@@ -254,6 +265,25 @@ loadTraces pstRef =
  do xs <- loadThingOrIgnore TracesFlg "traces" pstRef
              (\f -> lines `fmap` readFile f)
     modifyIORef pstRef (\p -> p {traces = xs})
+
+loadRanking :: ProgStateRef -> IO ()
+loadRanking pstRef =
+ do config <- pa `fmap` readIORef pstRef
+    let verbose = hasFlagP VerboseModeFlg config
+    case getFlagP RankingConstraintsFlg config of
+      Nothing -> return ()
+      Just f  -> do r <- readRanking verbose f
+                    modifyIORef pstRef (\p -> p { ranking = r })
+
+readRanking :: Bool -- ^ verbose
+            -> FilePath -> IO OtRanking
+readRanking verbose f =
+ do when verbose $ do
+       ePutStr $ unwords [ "Loading OT constraints", f ++ "... " ]
+       eFlush
+    mr <- (resultToEither . decode) `fmap` UTF8.readFile f -- utf-8?
+    when verbose $ ePutStr "done"
+    either fail return mr
 \end{code}
 
 \subsubsection{Target semantics}
