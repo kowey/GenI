@@ -356,6 +356,9 @@ optionsForOutput =
   [ outputOption
   , Option []    ["partial"] (noArg PartialFlg)
       "return partial result(s) if no complete solution is found"
+  -- same as rankingOption but with output-centric help text
+  , Option [] ["ranking"] (reqArg RankingConstraintsFlg id "FILE")
+    "use constraints in FILE to rank output"
   ]
 
 outputOption :: OptDescr Flag
