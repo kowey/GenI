@@ -53,8 +53,7 @@ import Control.Monad (when, liftM2)
 import Control.Monad.State.Strict
   (get, put, modify, gets, runState, execStateT)
 
-import Data.List
-  (partition, delete, foldl', unfoldr, sortBy)
+import Data.List (partition, delete, foldl')
 import Data.Maybe (isJust, isNothing, mapMaybe)
 import Data.Ord (comparing)
 import Data.Bits
@@ -63,9 +62,6 @@ import Data.Tree
 
 import Data.Generics ( Data )
 import Data.Generics.PlateDirect
-import Data.Typeable ( Typeable, Typeable1 )
-
-import Control.Parallel.Strategies
 
 import NLP.GenI.Statistics (Statistics)
 
@@ -104,6 +100,10 @@ import NLP.GenI.General ( repList, )
 import NLP.GenI.Tags ( idname,
     ts_synIncomplete, ts_semIncomplete, ts_tbUnificationFailure,
     )
+
+#ifndef DISABLE_GUI
+import Data.List ( sortBy, unfoldr )
+#endif
 \end{code}
 }
 
