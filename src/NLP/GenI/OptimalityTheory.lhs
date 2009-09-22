@@ -135,6 +135,34 @@ instance JSON OtConstraint where
 
 \begin{code}
 -- ---------------------------------------------------------------------
+-- top level stuff
+-- ---------------------------------------------------------------------
+otWarnings :: Macros -> OtRanking -> [[[(String, Violations)]]] -> [String]
+otWarnings gram ranking blocks =
+    addWarning neTraces neTracesW
+  . addWarning nvConstraints nvConstraintsW
+  $ []
+ where
+  addWarning xs w = if null xs then id else (w xs :)
+  neTracesW xs = "these traces never appear in the grammar: " ++ unwords xs
+  neTraces  = nonExistentTraces gram ranking
+  nvConstraintsW xs = "these constraints are never violated: " ++ unwords (map prettyConstraint xs)
+  nvConstraints = neverViolated blocks ranking
+
+type GetTrace = String -> [String]
+
+sortByViolations :: GetTrace -> OtRanking -> [(String,B.Derivation)] -> [[(String,Violations)]]
+sortByViolations getTraces r = sortResults . map (second getViolations)
+ where
+   getViolations = violations (concatRank r) . lexTraces getTraces
+
+showWithViolations :: Bool -> [[(String,Violations)]] -> String
+showWithViolations noisy = unlines . concat . zipWith (\i vs -> map (showViolations noisy i) vs) [1..]
+\end{code}
+
+
+\begin{code}
+-- ---------------------------------------------------------------------
 -- detecting violations
 -- ---------------------------------------------------------------------
 
@@ -168,24 +196,6 @@ negViolations cs ss =
 -- ---------------------------------------------------------------------
 -- ranking violations
 -- ---------------------------------------------------------------------
-
-otWarnings gram ranking blocks =
-    addWarning neTraces neTracesW
-  . addWarning nvConstraints nvConstraintsW
-  $ []
- where
-  addWarning xs w = if null xs then id else (w xs :)
-  neTracesW xs = "these traces never appear in the grammar: " ++ unwords xs
-  neTraces  = nonExistentTraces gram ranking
-  nvConstraintsW xs = "these constraints are never violated: " ++ unwords (map prettyConstraint xs)
-  nvConstraints = neverViolated blocks ranking
-
-type GetTrace = String -> [String]
-
-sortByViolations :: GetTrace -> [RankedOtConstraint] -> [(String,B.Derivation)] -> [[(String,Violations)]]
-sortByViolations getTraces cs = sortResults . map (second getViolations)
- where
-   getViolations = violations cs . lexTraces getTraces
 
 concatViolations :: Violations -> [RankedOtConstraint]
 concatViolations (pVs,lexVs) = pVs ++ concatMap snd lexVs
