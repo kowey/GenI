@@ -40,13 +40,14 @@ import NLP.GenI.Geni
 import NLP.GenI.Configuration
   ( Params
   , BatchDirFlg(..), EarlyDeathFlg(..), FromStdinFlg(..), OutputFileFlg(..)
-  , MetricsFlg(..), StatsFileFlg(..)
+  , MetricsFlg(..), RankingConstraintsFlg(..), StatsFileFlg(..)
   , TestCaseFlg(..), TestSuiteFlg(..), TestInstructionsFlg(..)
   , TimeoutFlg(..),  VerboseModeFlg(..)
   , hasFlagP, getListFlagP, getFlagP, setFlagP
   , builderType , BuilderType(..)
   )
 import qualified NLP.GenI.Builder as B
+import NLP.GenI.OptimalityTheory ( sortByViolations, showWithViolations )
 import NLP.GenI.Simple.SimpleBuilder
 import NLP.GenI.Statistics ( Statistics )
 import NLP.GenI.Tags ( DerivationStep(..) )
@@ -147,11 +148,11 @@ runOnSemInput pstRef args semInput =
   do modifyIORef pstRef (\x -> x{ts = semInput, warnings = []})
      pst <- readIORef pstRef
      let config = pa pst
-     (results', stats) <- case builderType config of
+         useRanking = hasFlagP RankingConstraintsFlg config
+     (results, stats) <- case builderType config of
                             NullBuilder   -> helper B.nullBuilder
                             SimpleBuilder -> helper simpleBuilder_2p
                             SimpleOnePhaseBuilder -> helper simpleBuilder_1p
-     let results = sort results'
      warningsOut <- warnings `fmap` readIORef pstRef
      -- create directory if need be
      case args of
@@ -168,7 +169,9 @@ runOnSemInput pstRef args semInput =
                      Standalone _ "" -> putStrLn
                      Standalone _ f  -> writeFile f
                      PartOfSuite n f -> writeFile $ f </> n </> "stats"
-     oWrite . unlines . map fst $ results
+     --
+     let rankedResults = sortByViolations (getTraces pst) (ranking pst) results
+     oWrite . showWithViolations True $ rankedResults
      doWrite . ppJSON $ map (toNiceResult pst) results
      -- print any warnings we picked up along the way
      when (not $ null warningsOut) $
