@@ -47,7 +47,7 @@ import NLP.GenI.Configuration
   , builderType , BuilderType(..)
   )
 import qualified NLP.GenI.Builder as B
-import NLP.GenI.OptimalityTheory ( rankResults, prettyViolations )
+import NLP.GenI.OptimalityTheory ( rankResults, prettyViolations, OtResult, OtViolation )
 import NLP.GenI.Simple.SimpleBuilder
 import NLP.GenI.Statistics ( Statistics )
 import NLP.GenI.Tags ( DerivationStep(..) )
@@ -171,9 +171,12 @@ runOnSemInput pstRef args semInput =
                      Standalone _ f  -> writeFile f
                      PartOfSuite n f -> writeFile $ f </> n </> "stats"
      --
-     let rankedResults = rankResults (getTraces pst) (ranking pst) results
+     let tracesFn = getTraces pst
+         rankedResults = rankResults tracesFn (ranking pst) results
+         showWithViolations (rank, (str, _), vs) =
+           show rank ++ ". " ++ str ++ "\n" ++ prettyViolations tracesFn verbose vs
      if useRanking
-        then oWrite . unlines . map (showWithViolations verbose) $ rankedResults
+        then oWrite . unlines . map showWithViolations $ rankedResults
         else oWrite . unlines . sort . map fst $ results
      doWrite . ppJSON $ map (toNiceResult pst) results
      -- print any warnings we picked up along the way

@@ -23,15 +23,17 @@ module NLP.GenI.OptimalityTheory
    ( -- * Input
      OtConstraint(..), OtRanking,
      -- * Output
-     GetTrace, OtResult, rankResults, otWarnings,
+     GetTrace, OtResult, OtViolation, RankedOtConstraint(..),
+     rankResults, otWarnings,
      -- * Display
      prettyViolations,prettyRank
    )
  where
 
+import Control.Arrow ( first )
 import Data.Function (on)
 import Data.Char ( isSpace )
-import Data.List (nub, sort, sortBy, groupBy, intersperse, (\\), unfoldr )
+import Data.List (nub, partition, sort, sortBy, groupBy, intersperse, (\\), unfoldr )
 import Text.JSON
 
 import NLP.GenI.Btypes ( Macros, ptrace )
@@ -74,10 +76,9 @@ instance Ord RankedOtConstraint2 where
 
 type OtRanking = [[OtConstraint]]
 
--- | positive violations, negative violations which
---   are linked to one specific lexical item
-type Violations = ([RankedOtConstraint],[LexViolation])
-type LexViolation = (LexItem, [RankedOtConstraint])
+data OtViolation = OtViolation { otLexName            :: String -- ^ empty for global
+                               , otConstraintViolated :: RankedOtConstraint }
+ deriving (Show, Eq, Ord)
 
 data LexItem = LexItem
        { lLexname :: String
@@ -85,7 +86,7 @@ data LexItem = LexItem
        } deriving (Ord, Eq, Show)
 
 type GetTrace = String -> [String]
-type OtResult x = (Int,x,Violations)
+type OtResult x = (Int,x,[OtViolation])
 \end{code}
 
 \section{Input format}
@@ -153,7 +154,7 @@ instance JSON OtConstraint where
 -- ---------------------------------------------------------------------
 -- top level stuff
 -- ---------------------------------------------------------------------
-otWarnings :: Macros -> OtRanking -> [[[(String, Violations)]]] -> [String]
+otWarnings :: Macros -> OtRanking -> [OtViolation] -> [String]
 otWarnings gram ranking blocks =
     addWarning neTraces neTracesW
   . addWarning nvConstraints nvConstraintsW
@@ -180,16 +181,16 @@ rankResults getTraces r = squish . sortResults . map addViolations
 -- detecting violations
 -- ---------------------------------------------------------------------
 
-violations :: [RankedOtConstraint] -> [LexItem] -> Violations
-violations cs ls = (posVs ls, negVs ls)
+violations :: [RankedOtConstraint] -> [LexItem] -> [OtViolation]
+violations cs ls = posVs ls ++ negVs ls
  where
-  negVs = map (\l -> (l, negViolations cs $ lTraces l))
-  posVs  = posViolations cs     . concatMap lTraces
+  negVs  = concatMap (\l -> negViolations cs (lLexname l) (lTraces l))
+  posVs  = posViolations cs . concatMap lTraces
 
 -- | A positive constraint is violated when a trace is NOT present
-posViolations :: [RankedOtConstraint] -> [String] -> [RankedOtConstraint]
+posViolations :: [RankedOtConstraint] -> [String] -> [OtViolation]
 posViolations cs ss =
- [ c | c@(RankedOtConstraint _ (PositiveC s)) <- cs, not (s `elem` ss) ]
+ [ OtViolation "" c | c@(RankedOtConstraint _ (PositiveC s)) <- cs, not (s `elem` ss) ]
 
 -- | A negative constraint is violated when a trace is present
 --
@@ -197,10 +198,13 @@ posViolations cs ss =
 --   than once.  If you want to count multiple violations, you'll
 --   either need to partition the input strings and map this function
 --   on each sublist or rewrite this code.
-negViolations :: [RankedOtConstraint] -> [String] -> [RankedOtConstraint]
-negViolations cs ss =
- [ c | c@(RankedOtConstraint _ (NegativeC s)) <- cs, s `elem` ss ] ++
- [ c | c@(RankedOtConstraint _ (NegativeConjC xs)) <- cs, all (`elem` ss) xs ]
+negViolations :: [RankedOtConstraint]
+              -> String   -- ^ lex name
+              -> [String] -- ^ traces
+              -> [OtViolation]
+negViolations cs l ss =
+ [ OtViolation l c | c@(RankedOtConstraint _ (NegativeC s)) <- cs, s `elem` ss ] ++
+ [ OtViolation l c | c@(RankedOtConstraint _ (NegativeConjC xs)) <- cs, all (`elem` ss) xs ]
 \end{code}
 
 \section{Ranking procedure}
@@ -214,19 +218,15 @@ of a tie).  The best result appears first.
 -- ---------------------------------------------------------------------
 -- ranking violations
 -- ---------------------------------------------------------------------
-
-concatViolations :: Violations -> [RankedOtConstraint]
-concatViolations (pVs,lexVs) = pVs ++ concatMap snd lexVs
-
 -- | Violations sorted so that the highest ranking constraint
 --   (smallest number) goes first
-sortedViolations :: (a, Violations) -> [RankedOtConstraint2]
-sortedViolations = map RankedOtConstraint2 . sort . concatViolations . snd
+sortedViolations :: (a, [OtViolation]) -> [RankedOtConstraint2]
+sortedViolations = map (RankedOtConstraint2 . otConstraintViolated) . sort . snd
 
 -- | Sort the sentences so that the ones with the *lowest*
 --   ranking violations (biggest number) go first.
 --   Note that we return in groups for the sake of ties.
-sortResults :: [(a, Violations)] -> [[(a, Violations)]]
+sortResults :: [(a, [OtViolation])] -> [[(a, [OtViolation])]]
 sortResults = sortAndGroupByDecoration compare sortedViolations
 
 lexTraces :: GetTrace -> B.Derivation -> [LexItem]
@@ -242,19 +242,21 @@ toLexItem getTraces t =
 -- ---------------------------------------------------------------------
 
 -- TODO: Return as a pretty Doc
-prettyViolations :: Bool -> Violations -> String
-prettyViolations noisy (posVs, negVs) =
+prettyViolations :: GetTrace -> Bool -> [OtViolation] -> String
+prettyViolations getTraces noisy vs =
    unlines $ (if null posVs then []  else [ indented 1 75 . showPosVs $ posVs ])
-           ++ map showLexVs negVs2
+           ++ map showLexVs negBuckets
  where
-  negVs2 = if noisy then negVs else filter (not . null . snd) negVs
+  (posVs, negVs) = partition (null . otLexName) vs
+  negBuckets = buckets otLexName negVs
   --
-  showPosVs  = unwords . map prettyRankedConstraint
-  showLexVs (itm, vs) =
-    let itmName = "(" ++ lLexname itm ++ ")"
-    in (indented 2 75 . unwords $ itmName : map prettyRankedConstraint vs)
-       ++ (if noisy then "\n" ++ (indented 4 75 . unwords . lTraces $ itm)
-                    else "")
+  showPosVs  = unwords . map (prettyRankedConstraint . otConstraintViolated)
+  showLexVs (l,lvs) =
+    let itmName = "(" ++ l ++ ")"
+        constraints = map otConstraintViolated lvs
+        allTraces = indented 4 75 . unwords . getTraces $ l
+    in (indented 2 75 . unwords $ itmName : map prettyRankedConstraint constraints)
+       ++ (if noisy then "\n" ++ allTraces else "")
 
 prettyRankedConstraint :: RankedOtConstraint -> String
 prettyRankedConstraint (RankedOtConstraint r c) = prettyConstraint c ++ " " ++ prettyRank r
@@ -271,10 +273,10 @@ prettyRank r = "(r" ++ show r ++ ")"
 -- detecting impossible constraints or other potential errors
 -- ---------------------------------------------------------------------
 
-neverViolated :: [[[(String,Violations)]]] -> [[OtConstraint]] -> [OtConstraint]
+neverViolated :: [OtViolation] -> [[OtConstraint]] -> [OtConstraint]
 neverViolated vs ranking = concat ranking \\ cs_used
  where
-  cs_used = map noRank . nub . concatMap concatViolations . map snd . concat . concat $ vs
+  cs_used = nub . map (noRank . otConstraintViolated) $ vs
 
 nonExistentTraces :: Macros -> [[OtConstraint]] -> [String]
 nonExistentTraces ms vs = r_traces \\ m_traces
@@ -302,6 +304,12 @@ noRank (RankedOtConstraint _ c) = c
 -- ----------------------------------------------------------------------
 -- odds and ends
 -- ----------------------------------------------------------------------
+
+buckets :: Ord b => (a -> b) -> [a] -> [ (b,[a]) ]
+buckets f = map (first head . unzip)
+          . groupBy ((==) `on` fst)
+          . sortBy (compare `on` fst)
+          . map (\x -> (f x, x))
 
 -- | Results are grouped so that ties can be noticed
 sortAndGroupByDecoration :: Eq b => (b -> b -> Ordering) -> (a -> b) -> [a] -> [[a]]
