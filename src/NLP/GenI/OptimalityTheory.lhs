@@ -23,7 +23,7 @@ module NLP.GenI.OptimalityTheory
    ( -- * Input
      OtConstraint(..), OtRanking,
      -- * Output
-     GetTrace, OtResult, OtViolation, RankedOtConstraint(..),
+     GetTraces, OtResult, OtViolation, RankedOtConstraint(..),
      rankResults, otWarnings,
      -- * Display
      prettyViolations,prettyRank
@@ -86,7 +86,7 @@ data LexItem = LexItem
        , lTraces :: [String]
        } deriving (Ord, Eq, Show)
 
-type GetTrace = String -> [String]
+type GetTraces = String -> [String]
 type OtResult x = (Int,x,[OtViolation])
 \end{code}
 
@@ -167,7 +167,7 @@ otWarnings gram ranking blocks =
   nvConstraintsW xs = "these constraints are never violated: " ++ unwords (map prettyConstraint xs)
   nvConstraints = neverViolated blocks ranking
 
-rankResults :: GetTrace -> OtRanking -> [(String,B.Derivation)] -> [OtResult (String,B.Derivation)]
+rankResults :: GetTraces -> OtRanking -> [(String,B.Derivation)] -> [OtResult (String,B.Derivation)]
 rankResults getTraces r = squish . sortResults . map addViolations
  where
    addViolations (s,d) = ((s,d), getViolations d)
@@ -230,10 +230,10 @@ sortedViolations = map (RankedOtConstraint2 . otConstraintViolated) . sort . snd
 sortResults :: [(a, [OtViolation])] -> [[(a, [OtViolation])]]
 sortResults = sortAndGroupByDecoration compare sortedViolations
 
-lexTraces :: GetTrace -> B.Derivation -> [LexItem]
+lexTraces :: GetTraces -> B.Derivation -> [LexItem]
 lexTraces getTraces = map (toLexItem getTraces) . B.lexicalSelection
 
-toLexItem :: GetTrace -> String -> LexItem
+toLexItem :: GetTraces -> String -> LexItem
 toLexItem getTraces t =
  LexItem { lLexname = t
          , lTraces  = getTraces t }
@@ -291,7 +291,7 @@ instance JSON OtViolation where
 -- ---------------------------------------------------------------------
 
 -- TODO: Return as a pretty Doc
-prettyViolations :: GetTrace -> Bool -> [OtViolation] -> String
+prettyViolations :: GetTraces -> Bool -> [OtViolation] -> String
 prettyViolations getTraces noisy vs =
    unlines $ (if null posVs then []  else [ indented 1 75 . showPosVs $ posVs ])
            ++ map showLexVs negBuckets
