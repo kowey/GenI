@@ -24,7 +24,7 @@ before adjunction).  There is no packing strategy whatsoever; each chart
 item is a derived tree.
 
 \begin{code}
-{-# OPTIONS_GHC -fglasgow-exts #-}
+{-# OPTIONS_GHC -fglasgow-exts -fno-warn-orphans #-}
 {-# LANGUAGE LiberalTypeSynonyms, TemplateHaskell #-}
 module NLP.GenI.Simple.SimpleBuilder (
    -- Types
