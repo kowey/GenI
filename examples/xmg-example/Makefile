@@ -7,8 +7,8 @@ GRAMMAR:=Evaluations
 GRAMMAR_RAW_MG:=$(GRAMMAR_DIR)/$(GRAMMAR).mg
 
 LEXICON_DIR:=lexicon
-FULL_LEXICON_PREFIX:=demo-lemma-latin1
-MORPH_PREFIX:=demo-morph-latin1
+FULL_LEXICON_PREFIX:=demo-lemma-utf8
+MORPH_PREFIX:=demo-morph-utf8
 
 MACROS_FILE:=macros.mac
 
@@ -20,7 +20,7 @@ GENI_LEXICON:=$(LEXICON_DIR)/$(FULL_LEXICON_PREFIX).glex
 GENI_MORPH:=$(LEXICON_DIR)/$(MORPH_PREFIX).gmorph
 GENI_SUITE:=suite
 
-GENI_OPTIMISATIONS:='pol f-sem f-root'
+GENI_OPTIMISATIONS:='pol f-sem'
 
 GENI_LEX_FLAGS:=-l $(GENI_LEXICON) -s $(GENI_SUITE)
 ifdef ENABLE_MORPH
