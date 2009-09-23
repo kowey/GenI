@@ -178,7 +178,7 @@ runOnSemInput pstRef args semInput =
      if useRanking
         then oWrite . unlines . map showWithViolations $ rankedResults
         else oWrite . unlines . sort . map fst $ results
-     doWrite . ppJSON $ map (toNiceResult pst) results
+     doWrite . ppJSON $ map (toNiceResult pst) rankedResults
      -- print any warnings we picked up along the way
      when (not $ null warningsOut) $
       do let ws = reverse warningsOut
@@ -197,21 +197,22 @@ runOnSemInput pstRef args semInput =
       do (results, stats, _) <- runGeni pstRef builder
          return (results, stats)
 
-showWithViolations noisy (rank, (str, _), vs) =
-   show rank ++ ". " ++ str ++ "\n" ++ prettyViolations noisy vs
-
-toNiceResult :: ProgState -> (String, B.Derivation) -> NiceResult
-toNiceResult pst (s,d) =
+toNiceResult :: ProgState -> OtResult (String, B.Derivation) -> NiceResult
+toNiceResult pst (i,(s,d),vs) =
  NiceResult { nrSentence     = s
             , nrDerivation   = d
             , nrLexSelection = map (\x -> NiceLexSel x (getTraces pst x))
                                 (B.lexicalSelection d)
+            , nrRanking = i
+            , nrViolations = vs
             }
 
 data NiceResult = NiceResult
  { nrSentence     :: String
  , nrDerivation   :: B.Derivation
  , nrLexSelection :: [ NiceLexSel ]
+ , nrRanking      :: Int
+ , nrViolations   :: [ OtViolation ]
  }
 
 data NiceLexSel = NiceLexSel
@@ -227,10 +228,14 @@ instance JSON NiceResult where
        NiceResult <$> field "sentence"
                   <*> field "derivation"
                   <*> field "lexical-selection"
+                  <*> field "ranking"
+                  <*> field "violations"
  showJSON nr =
      JSObject . toJSObject $ [ ("sentence", showJSON $ nrSentence nr)
                              , ("derivation", showJSONs $ nrDerivation nr)
                              , ("lexical-selection", showJSONs $ nrLexSelection nr)
+                             , ("ranking", showJSON $ nrRanking nr)
+                             , ("violations", showJSONs $ nrViolations nr)
                              ]
 
 instance JSON NiceLexSel where
