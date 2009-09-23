@@ -1,5 +1,9 @@
-GenI 0.18,
+GenI 0.19,
 -----------------------
+* Note that version numbers now follow the convention where an odd
+  minor number indicates a devel version and an even one a released
+  version.
+
 * GHC 6.8 or higher now required
 
 * Adding 'default' to metrics always gives you the default metrics
@@ -10,6 +14,9 @@ GenI 0.18,
 * Statistics now dumped in JSON format
 
 * geni --version now works and reports version from Cabal file
+
+* geni --ranking foo now ranks outputs according to OT-style
+  constraints expressed in foo
 
 GenI 0.17.4, 6 Apr 2009
 -----------------------
