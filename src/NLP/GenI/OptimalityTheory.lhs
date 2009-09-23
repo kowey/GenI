@@ -216,9 +216,6 @@ violation (moving on to the next-highest ranking violation and so forth in case
 of a tie).  The best result appears first.
 
 \begin{code}
--- ---------------------------------------------------------------------
--- ranking violations
--- ---------------------------------------------------------------------
 -- | Violations sorted so that the highest ranking constraint
 --   (smallest number) goes first
 sortedViolations :: (a, [OtViolation]) -> [RankedOtConstraint2]
