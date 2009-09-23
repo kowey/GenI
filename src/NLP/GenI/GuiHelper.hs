@@ -34,14 +34,13 @@ import Text.ParserCombinators.Parsec (parseFromFile)
 
 import NLP.GenI.Graphviz
 import NLP.GenI.Automaton (numStates, numTransitions)
-import NLP.GenI.Statistics (Statistics, showFinalStats)
 
 import NLP.GenI.Configuration ( getFlagP, MacrosFlg(..), ViewCmdFlg(..) )
 import NLP.GenI.GeniShow(geniShow)
 import NLP.GenI.GraphvizShow ()
 import NLP.GenI.Tags (TagItem(tgIdName), tagLeaves)
 import NLP.GenI.Geni
-  ( ProgState(..), showRealisations )
+  ( ProgState(..) )
 import NLP.GenI.GeniParsers ( geniTagElems )
 import NLP.GenI.General
   (geniBug, boundsCheck, dropTillIncluding, ePutStrLn)
@@ -157,29 +156,6 @@ polarityGui   f xs final = do
 
 concatBoth :: [ ([a],[b]) ] -> [ (a,b) ]
 concatBoth = uncurry zip . (concat *** concat) . unzip -- is there a simpler way?
-
--- ----------------------------------------------------------------------
--- Results
--- ----------------------------------------------------------------------
-
--- 'statsGui' displays the generation statistics and provides a
--- handy button for saving results to a text file.
-statsGui :: (Window a) -> [String] -> Statistics -> IO Layout
-statsGui f sentences stats =
-  do let msg = showRealisations sentences
-     --
-     p <- panel f []
-     t  <- textCtrl p [ text := msg, enabled := False ]
-     statsTxt <- staticText p [ text := showFinalStats stats ]
-     --
-     saveBt <- button p [ text := "Save to file"
-                        , on command := maybeSaveAsFile f msg ]
-     return $ fill $ container p $ column 1 $
-              [ hfill $ label "Performance data"
-              , hfill $ widget statsTxt
-              , hfill $ label "Realisations"
-              , fill  $ widget t
-              , hfloatRight $ widget saveBt ]
 
 -- ----------------------------------------------------------------------
 -- Helpers
