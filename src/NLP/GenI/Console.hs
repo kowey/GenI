@@ -47,7 +47,7 @@ import NLP.GenI.Configuration
   , builderType , BuilderType(..)
   )
 import qualified NLP.GenI.Builder as B
-import NLP.GenI.OptimalityTheory ( sortByViolations, showWithViolations )
+import NLP.GenI.OptimalityTheory ( rankResults, prettyViolations )
 import NLP.GenI.Simple.SimpleBuilder
 import NLP.GenI.Statistics ( Statistics )
 import NLP.GenI.Tags ( DerivationStep(..) )
@@ -149,6 +149,7 @@ runOnSemInput pstRef args semInput =
      pst <- readIORef pstRef
      let config = pa pst
          useRanking = hasFlagP RankingConstraintsFlg config
+         verbose    = hasFlagP VerboseModeFlg config
      (results, stats) <- case builderType config of
                             NullBuilder   -> helper B.nullBuilder
                             SimpleBuilder -> helper simpleBuilder_2p
@@ -170,8 +171,10 @@ runOnSemInput pstRef args semInput =
                      Standalone _ f  -> writeFile f
                      PartOfSuite n f -> writeFile $ f </> n </> "stats"
      --
-     let rankedResults = sortByViolations (getTraces pst) (ranking pst) results
-     oWrite . showWithViolations True $ rankedResults
+     let rankedResults = rankResults (getTraces pst) (ranking pst) results
+     if useRanking
+        then oWrite . unlines . map (showWithViolations verbose) $ rankedResults
+        else oWrite . unlines . sort . map fst $ results
      doWrite . ppJSON $ map (toNiceResult pst) results
      -- print any warnings we picked up along the way
      when (not $ null warningsOut) $
@@ -190,6 +193,9 @@ runOnSemInput pstRef args semInput =
     helper builder =
       do (results, stats, _) <- runGeni pstRef builder
          return (results, stats)
+
+showWithViolations noisy (rank, (str, _), vs) =
+   show rank ++ ". " ++ str ++ "\n" ++ prettyViolations noisy vs
 
 toNiceResult :: ProgState -> (String, B.Derivation) -> NiceResult
 toNiceResult pst (s,d) =

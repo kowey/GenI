@@ -19,9 +19,16 @@
 \label{cha:ranking}
 
 \begin{code}
-module NLP.GenI.OptimalityTheory where
+module NLP.GenI.OptimalityTheory
+   ( -- * input
+     OtConstraint(..), OtRanking,
+     -- * output
+     OtResult, rankResults, otWarnings,
+     -- * display
+     prettyViolations,prettyRank
+   )
+ where
 
-import Control.Arrow ( second )
 import Data.Function (on)
 import Data.Char ( isSpace )
 import Data.List (nub, sort, sortBy, groupBy, intersperse, (\\), unfoldr )
@@ -76,6 +83,9 @@ data LexItem = LexItem
        { lLexname :: String
        , lTraces :: [String]
        } deriving (Ord, Eq, Show)
+
+type GetTrace = String -> [String]
+type OtResult x = (Int,x,Violations)
 \end{code}
 
 \section{Input format}
@@ -149,15 +159,13 @@ otWarnings gram ranking blocks =
   nvConstraintsW xs = "these constraints are never violated: " ++ unwords (map prettyConstraint xs)
   nvConstraints = neverViolated blocks ranking
 
-type GetTrace = String -> [String]
-
-sortByViolations :: GetTrace -> OtRanking -> [(String,B.Derivation)] -> [[(String,Violations)]]
-sortByViolations getTraces r = sortResults . map (second getViolations)
+rankResults :: GetTrace -> OtRanking -> [(String,B.Derivation)] -> [OtResult (String,B.Derivation)]
+rankResults getTraces r = squish . sortResults . map addViolations
  where
-   getViolations = violations (concatRank r) . lexTraces getTraces
-
-showWithViolations :: Bool -> [[(String,Violations)]] -> String
-showWithViolations noisy = unlines . concat . zipWith (\i vs -> map (showViolations noisy i) vs) [1..]
+   addViolations (s,d) = ((s,d), getViolations d)
+   getViolations  = violations (concatRank r) . lexTraces getTraces
+   squish         = concat . zipWith applyRank [1..]
+   applyRank i    = map (\(x,vs) -> (i,x,vs))
 \end{code}
 
 
@@ -202,13 +210,13 @@ concatViolations (pVs,lexVs) = pVs ++ concatMap snd lexVs
 
 -- | Violations sorted so that the highest ranking constraint
 --   (smallest number) goes first
-sortedViolations :: (String, Violations) -> [RankedOtConstraint2]
+sortedViolations :: (a, Violations) -> [RankedOtConstraint2]
 sortedViolations = map RankedOtConstraint2 . sort . concatViolations . snd
 
 -- | Sort the sentences so that the ones with the *lowest*
 --   ranking violations (biggest number) go first.
 --   Note that we return in groups for the sake of ties.
-sortResults :: [(String, Violations)] -> [[(String, Violations)]]
+sortResults :: [(a, Violations)] -> [[(a, Violations)]]
 sortResults = sortAndGroupByDecoration compare sortedViolations
 
 lexTraces :: GetTrace -> B.Derivation -> [LexItem]
@@ -223,11 +231,10 @@ toLexItem getTraces t =
 --
 -- ---------------------------------------------------------------------
 
-
-showViolations :: Bool -> Int -> (String, Violations) -> String
-showViolations noisy rank (str, (posVs, negVs)) =
-   unlines $ (show rank ++ ". " ++ str)
-           :  (if null posVs then []  else [ indented 1 75 . showPosVs $ posVs ])
+-- TODO: Return as a pretty Doc
+prettyViolations :: Bool -> Violations -> String
+prettyViolations noisy (posVs, negVs) =
+   unlines $ (if null posVs then []  else [ indented 1 75 . showPosVs $ posVs ])
            ++ map showLexVs negVs2
  where
   negVs2 = if noisy then negVs else filter (not . null . snd) negVs
