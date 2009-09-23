@@ -20,11 +20,11 @@
 
 \begin{code}
 module NLP.GenI.OptimalityTheory
-   ( -- * input
+   ( -- * Input
      OtConstraint(..), OtRanking,
-     -- * output
-     OtResult, rankResults, otWarnings,
-     -- * display
+     -- * Output
+     GetTrace, OtResult, rankResults, otWarnings,
+     -- * Display
      prettyViolations,prettyRank
    )
  where
