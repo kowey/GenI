@@ -59,7 +59,7 @@ import qualified System.IO.UTF8 as UTF8
 
 import System.IO.Unsafe (unsafePerformIO)
 import Text.JSON
-import Text.ParserCombinators.Parsec 
+import Text.ParserCombinators.Parsec hiding (parseFromFile)
 -- import System.Process 
 
 
@@ -385,6 +385,13 @@ parseFromFileMaybeBinary p f =
  if (".genib" `isSuffixOf` f)
     then decodeFile f
     else parseFromFileOrFail p f
+
+-- stolen from Parsec and adapted to use UTF-8 input
+parseFromFile :: Parser a -> SourceName -> IO (Either ParseError a)
+parseFromFile p fname
+    = do{ input <- UTF8.readFile fname
+        ; return (parse p fname input)
+        }
 \end{code}
 
 % --------------------------------------------------------------------
