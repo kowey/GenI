@@ -92,29 +92,35 @@ type OtResult x = (Int,x,Violations)
 
 Constraints are expressed in JSON as a list of \jargon{ranking levels}.  A
 ranking level is a list of constraints that should be assigned the same rank.
-Each constraint is a expressed as JSON object.  In lieu of a formal description,
-we provide an example below.
+In lieu of a formal description, we provide an example below:
 
 \begin{verbatim}
 [
  [{"neg-constraint": "dian0Vn1dePassive"},
   {"pos-constraint": "CanonicalSubject"}],
 
- [{"neg-conj-constraint": ["InvertedNominalSubject", "CanonicalSententialObjectFinite"]}],
+ [{"neg-conj-constraint": ["InvertedNominalSubject",
+                           "CanonicalSententialObjectFinite"]}],
 
- [{"neg-conj-constraint": ["InvertedNominalSubject", "UnboundedCleft"]},
+ [{"neg-conj-constraint": ["InvertedNominalSubject",
+                           "UnboundedCleft"]},
   {"neg-constraint": "CleftSubject"}]
 ]
 \end{verbatim}
 
-This example constraints file has three ranking levels:
+This example constraints file has three ranking levels.  These levels contain
+following constraints:
+
 \begin{enumerate}
 \item A negative constraint saying that \verb!dian0Vn1dePassive! should
       not appear, and a positive one saying that \verb!CanonicalSubject!
-      \emph{should} appear.  There is no relationship between these constraints
-      other than the fact that we consider them to have the same rank.
+      \emph{should} appear.  These constraints appear together only because
+      the author of the example thinks they should have the same rank,
+      not because there is neccesarily any inherent relationship between
+      them.
 \item A single negative conjunction constraint saying that
-      \verb!InvertedNominalSubject! and \verb!CanonicalSententialObjectFinite!
+      \verb!InvertedNominalSubject! and
+      \verb!CanonicalSententialObjectFinite!
       should not appear together.
 \item A negative conjunction constraint saying tat
       \verb!InvertedNominalSubject! and \verb!UnboundedCleft! should not
@@ -199,6 +205,10 @@ negViolations cs ss =
 
 \section{Ranking procedure}
 \label{sec:ranking-procedure}
+
+Generation results are sorted according to their highest-ranking constraint
+violation (moving on to the next-highest ranking violation and so forth in case
+of a tie).  The best result appears first.
 
 \begin{code}
 -- ---------------------------------------------------------------------
