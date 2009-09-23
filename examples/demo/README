@@ -20,7 +20,7 @@ How to do a live demo of GenI with polarities
      13 - un livre (leap 1 x 3) 
      16 - jean donner livre a paul (leap 1)
      17 - and now this is semantically complete so we output the
-          realisation "Jean donne livre à Paul"
+          realisation "Jean donne livre Ã  Paul"
 
      KEEP THIS DEBUGGER OPEN!
 
