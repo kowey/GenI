@@ -1,5 +1,5 @@
 Jean aime Marie.
-Jean est appelé par Marie.
+Jean est appelÃ© par Marie.
 Marie aime Jean.
 Marie appelle.
 Jean qui appelle aime Marie.

@@ -7,10 +7,10 @@ semantics:[A:aimer(B)  A:agent(B  C)  A:patient(B  D)  E:jean(C)  F:marie(D)]
 sentence:[jean aime marie]
 
 
-%% 2. jean est appelé par marie
+%% 2. jean est appelÃ© par marie
 t20
 semantics:[A:appeler(B)  A:agent(B  C)  A:patient(B  D)  E:marie(C)  F:jean(D)]
-sentence:[jean est appelé par marie]
+sentence:[jean est appelÃ© par marie]
 
 
 %% 3. marie aime jean
