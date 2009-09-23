@@ -309,9 +309,6 @@ indented x len = concat . intersperse "\n" . map (\s -> spaces x ++ s) . unfoldr
 spaces :: Int -> String
 spaces n = replicate n ' '
 
-spanChar :: Char -> String -> (String, String)
-spanChar c s = let (a,b') = span (/= c) s in (a, drop 1 b')
-
 splitAtBefore :: Int -> String -> (String, String)
 splitAtBefore len xs
   | length xs < len = (xs, "")
