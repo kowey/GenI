@@ -48,8 +48,8 @@ semantics:[name(_ ?Entity vincent)]
 Vinny Pn(?Entity ! agr:sg3)
 semantics:[name(_ ?Entity vincent)]
 
-Émilie Pn(?Entity ! agr:sg3)
-semantics:[name(_ ?Entity émilie)]
+Ã‰milie Pn(?Entity ! agr:sg3)
+semantics:[name(_ ?Entity Ã©milie)]
 
 
 %% Verbs
