@@ -39,6 +39,7 @@ import qualified NLP.GenI.Builder as B
 import qualified NLP.GenI.BuilderGui as BG
 import NLP.GenI.Geni
   ( ProgState(..), ProgStateRef, combine, initGeni
+  , getTraces
   , loadEverything, loadTestSuite, loadTargetSemStr
   , showRealisations )
 import NLP.GenI.General (boundsCheck, geniBug, trim, fst3)
@@ -56,6 +57,7 @@ import NLP.GenI.Configuration
   , MorphCmdFlg(..)
   , MorphInfoFlg(..)
   , OptimisationsFlg(..)
+  , RankingConstraintsFlg(..)
   , RootFeatureFlg(..)
   , TestSuiteFlg(..)
   , TestInstructionsFlg(..)
@@ -66,6 +68,7 @@ import NLP.GenI.Configuration
 import NLP.GenI.GeniParsers
 import NLP.GenI.GuiHelper
 
+import NLP.GenI.OptimalityTheory ( rankResults, prettyViolations )
 import NLP.GenI.Polarity
 import NLP.GenI.Simple.SimpleGui
 import NLP.GenI.Statistics (Statistics, showFinalStats)
@@ -587,16 +590,24 @@ resultsGui builderGui pstRef =
     nb   <- notebook p []
     -- realisations tab
     (results,stats,resTab) <- BG.resultsPnl builderGui pstRef nb
-    -- statistics tab
+    -- summary tab
     let sentences = (fst . unzip) results
-    statTab <- statsGui nb sentences stats
+    summTab <- statsGui nb sentences stats
+    -- ranking tab
+    pst <- readIORef pstRef
+    let useRanking = hasFlagP RankingConstraintsFlg (pa pst)
+    let tracesFn = getTraces pst
+        rankedResults = rankResults tracesFn (ranking pst) results
+        showWithViolations (rank, (str, _), vs) =
+           show rank ++ ". " ++ str ++ "\n" ++ prettyViolations tracesFn False vs
+    rankTab <- messageGui nb (unlines . map showWithViolations $ rankedResults)
+    -- tabs
+    let myTabs = [ tab "summary"       summTab
+                 , tab "realisations"  resTab
+                 ] ++
+                 (if useRanking then [ tab "ranking" rankTab ] else [])
     -- pack it all together
-    set f [ layout := container p $ column 0 [ tabs nb
-          -- we put the realisations tab last because of what
-          -- seems to be buggy behaviour wrt to wxhaskell
-          -- or wxWidgets 2.4 and the splitter
-                 [ tab "summary"       statTab
-                 , tab "realisations"  resTab ] ]
+    set f [ layout := container p $ column 0 [ tabs nb myTabs ]
           , clientSize := sz 700 600 ]
     return ()
 
