@@ -30,6 +30,7 @@ module NLP.GenI.OptimalityTheory
    )
  where
 
+import Control.Applicative ( (<$>), (<*>) )
 import Control.Arrow ( first )
 import Data.Function (on)
 import Data.Char ( isSpace )
@@ -236,9 +237,57 @@ toLexItem :: GetTrace -> String -> LexItem
 toLexItem getTraces t =
  LexItem { lLexname = t
          , lTraces  = getTraces t }
+\end{code}
+
+\section{Output format}
+
+Constraint violations can be outputted as JSON objects as the following example
+shows
+
+\begin{verbatim}
+  { "lex-item": "discuter:n0Vn1pn2:Tn0Vn1pn2-5830:22",
+  , "rank": 6,
+  , "violation": {"neg-constraint": "passiveVerbMorphology"}
+  }
+\end{verbatim}
+
+Positive constraint violations are not associated with any lexical items
+so the lex-item field is omitted for them.
+
+\begin{code}
+-- ---------------------------------------------------------------------
+-- output
+-- ---------------------------------------------------------------------
+instance JSON RankedOtConstraint where
+ readJSON j =
+    do jo <- fromJSObject `fmap` readJSON j
+       let field x = maybe (fail $ "Could not find: " ++ x) readJSON
+                   $ lookup x jo
+       RankedOtConstraint <$> field "rank"
+                          <*> field "violation"
+ showJSON = JSObject . toJSObject . rankedOtConstraintToPairs
+
+rankedOtConstraintToPairs :: RankedOtConstraint -> [ (String, JSValue) ]
+rankedOtConstraintToPairs (RankedOtConstraint r c) =
+  [ ("rank", showJSON r), ("violation", showJSON c) ]
+
+instance JSON OtViolation where
+ readJSON j =
+    do jo <- fromJSObject `fmap` readJSON j
+       case lookup "lex-item" jo of
+         Nothing -> OtViolation "" <$> readJSON j
+         Just l  -> OtViolation <$> readJSON l
+                                <*> readJSON j
+
+ showJSON ov = JSObject . toJSObject $ pairs
+  where
+   pairs = case otLexName ov of
+             "" -> basicPairs
+             l  -> ("lex-item", showJSON l) : basicPairs
+   basicPairs = rankedOtConstraintToPairs (otConstraintViolated ov)
 
 -- ---------------------------------------------------------------------
---
+-- pretty printing
 -- ---------------------------------------------------------------------
 
 -- TODO: Return as a pretty Doc
