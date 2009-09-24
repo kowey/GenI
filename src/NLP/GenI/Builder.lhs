@@ -42,6 +42,7 @@ UML might help.  See figure \ref{fig:builderUml}.
 module NLP.GenI.Builder
 where
 
+import Control.Applicative ( (<$>), (<*>) )
 import Control.Monad.State.Strict
 import Data.Bits ( (.&.), (.|.), bit, xor )
 import Data.List ( (\\), maximum, delete, sort, nub )
@@ -50,6 +51,7 @@ import Data.Maybe ( mapMaybe, fromMaybe  )
 import qualified Data.Set as Set
 import Data.Tree ( flatten )
 import Prelude hiding ( init )
+import Text.JSON
 
 import Data.Generics.PlateDirect
 import Data.Generics ( Data )
@@ -66,10 +68,11 @@ import NLP.GenI.Configuration
 import NLP.GenI.General (geniBug, BitVector, multiGroupByFM, fst3, snd3, thd3)
 import NLP.GenI.Btypes
   ( ILexEntry, SemInput, Sem, Pred, showPred, showSem,
-    AvPair(..), Flist, gtype, GType(Subs, Foot),
+    AvPair(..), Flist, showFlist, gtype, GType(Subs, Foot),
     DescendGeniVal(..), Collectable(collect), alphaConvertById,
     GeniVal(GConst)
   )
+import NLP.GenI.GeniParsers ( geniFeats, runParser, CharParser )
 import NLP.GenI.Polarity  (PolResult, buildAutomaton, detectPolPaths)
 import NLP.GenI.Statistics (Statistics, incrIntMetric,
                    Metric(IntMetric), updateMetrics,
@@ -531,5 +534,29 @@ initNullBuilder input config =
 -- | The names of lexically selected chart items used in a derivation
 lexicalSelection :: Derivation -> [String]
 lexicalSelection = sort . nub . concatMap (\d -> [dsChild d, dsParent d])
+
+-- | A lemma plus its morphological features
+data LemmaPlus = LemmaPlus String Flist deriving (Show, Eq, Ord)
+
+-- | A sentence composed of 'LemmaPlus' instead of plain old words
+type LemmaPlusSentence = [LemmaPlus]
+
+instance JSON LemmaPlus where
+ readJSON j =
+    do jo <- fromJSObject `fmap` readJSON j
+       let field x = maybe (fail $ "Could not find: " ++ x) readJSON
+                   $ lookup x jo
+       LemmaPlus <$> field "lemma"
+                 <*> (parsecToJSON "lemma-features" geniFeats =<< field "lemma-features")
+ showJSON (LemmaPlus l fs) =
+     JSObject . toJSObject $ [ ("lemma", showJSON l)
+                             , ("lemma-features", showJSON $ showFlist fs)
+                             ]
+
+parsecToJSON :: Monad m => String -> CharParser () b -> String -> m b
+parsecToJSON description p str =
+ case runParser p () "" str of
+   Left  err -> fail $ "Couldn't parse " ++ description ++ " because " ++ show err
+   Right res -> return res
 \end{code}
 }
