@@ -206,7 +206,6 @@ inflectSentencesUsingCmd morphcmd sentences =
      (toP, fromP, _, pid) <- runInteractiveCommand morphcmd
      hPutStrLn toP order
      hClose toP
-     waitForProcess pid 
      -- read the inflector output back as a list of strings
      (map (singleton . trim) . lines) `fmap` hGetContents fromP
   `catch` \e -> do ePutStrLn "Error calling morphological generator"
