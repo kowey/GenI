@@ -59,7 +59,7 @@ import NLP.GenI.Builder
 type MorphFn = Pred -> Maybe Flist
 \end{code}
 
-\section{Input}
+\section{Morphological input}
 
 Morphological input means attaching morphological features on trees.  The
 user specifies morphological input through the input semantics.  Our job
@@ -138,9 +138,9 @@ setMorphAnchor n t =
   in (head.fst) $ listRepNode fn filt [t]
 \end{code}
 
-\section{Output}
+\section{Morphological realisation}
 
-Output (\jargon{morphological generation}) refers to the actual process
+(\jargon{Morphological realisation}) refers to the actual process
 of converting lemmas and morphological information into inflected forms.
 We do this by calling some third party software specified by the user.
 
