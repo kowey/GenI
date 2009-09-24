@@ -18,12 +18,17 @@
 \chapter{File formats (GeniParsers)}
 \label{cha:GeniParsers}
 
-This chapter is a description of the file format used by GenI.  You
-might also have to look at the LORIA wiki for documentation on this.
-See \url{http://wiki.loria.fr/wiki/GenI/Input_format}.  If the
-descriptions here sound a little weird to you, it's likely because
-they used to be source code comments, and are being converted into
-actual documentation.
+This chapter is a description of the file format used by GenI.
+
+We'll be using EBNFs to describe the GenI format below.   Here are some rules
+and types of rules we leave out, and prefer to describe informally:
+
+\begin{verbatim}
+ <alpha-numeric>
+ <string-literal> (stuff between quotes)
+ <opt-whatever> (systematically... "" | <whatever>)
+ <keyword-whatever> (systematically.. "whatever" ":")
+\end{verbatim}
 
 \ignore{
 \begin{code}
@@ -82,6 +87,78 @@ import qualified System.IO.UTF8 as UTF8
 #define END             "end"
 \end{code}
 }
+
+\section{Variables and constants}
+
+\geni variables and constants can be written as in the following table:
+
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+anonymous variable & \verb!?_! or \verb!_! \\
+variables & \verb!Foo!, \verb!?X! or \verb!?x! \\
+constants & \verb!Foo!, \verb!foo!, \verb!X!, \verb!x! or \verb!Foo|bar! \\
+\hline
+\end{tabular}
+\end{center}
+
+Note that we support atomic disjunction of constants, as in \verb!Foo|bar|baz!.
+
+More formally, here is an EBNF for GenI variables and constants
+\begin{verbatim}
+<value>         ::= <variable> | <anonymous-variable> | <constant-disj>
+<variable>      ::= "?" <identifier>
+<anonymous>     ::= "?_" | "_"
+<constant-disj> ::= <constant> (| <constant>)*
+<constant>      ::= <identifier>
+<identifier>    ::= <alphanumeric> | "+" | "-" | "_"
+\end{verbatim}
+
+\begin{code}
+geniValue :: Parser GeniVal
+geniValue =   ((try $ anonymous) <?> "_ or ?_")
+          <|> (constants  <?> "a constant or atomic disjunction")
+          <|> (variable   <?> "a variable")
+  where
+    question = "?"
+    --
+    constants :: Parser GeniVal
+    constants =
+      do c <- sepBy1 (looseIdentifier <|> stringLiteral) (symbol "|")
+         return (GConst c)
+    variable :: Parser GeniVal
+    variable =
+      do symbol question
+         v <- identifier
+         return (GVar v)
+    anonymous :: Parser GeniVal
+    anonymous =
+      do optional $ symbol question
+         symbol "_"
+         return GAnon
+\end{code}
+
+\section{Feature structures}
+
+In addition to variables and constants, \geni also makes heavy use of flat
+feature structures.  They take the form \verb![foo:bar ping:?Pong]!, or more
+formally,
+
+\begin{verbatim}
+<feature-structure>    ::= "[" <atttribute-value-pair>* "]"
+<attribute-value-pair> ::= <identifier> ":" <value>
+\end{verbatim}
+
+\begin{code}
+geniFeats :: Parser Flist
+geniFeats = option [] $ squares $ many geniAttVal
+
+geniAttVal :: Parser AvPair
+geniAttVal = do
+  att <- identifier <?> "an attribute"; colon
+  val <- geniValue <?> "a GenI value"
+  return $ AvPair att val
+\end{code}
 
 \section{Test suites}
 
@@ -623,23 +700,6 @@ keywordSemantics :: Parser String
 keywordSemantics = keyword SEMANTICS
 \end{code}
 
-\subsection{Feature structures}
-
-Feature structures take the form  \verb!val : att! with only
-whitespace to separate each attval pair.  See \fnref{geniValue} for
-details about what the values look like.
-
-\begin{code}
-geniFeats :: Parser Flist
-geniFeats = option [] $ squares $ many geniAttVal
-
-geniAttVal :: Parser AvPair
-geniAttVal = do
-  att <- identifier <?> "an attribute"; colon 
-  val <- geniValue <?> "a GenI value"
-  return $ AvPair att val
-\end{code}
-
 \fnlabel{geniParams} recognises a list of parameters optionally followed by a
 bang (\verb$!$) and a list of attribute-value pairs.  This whole thing is to
 wrapped in the parens.
@@ -717,45 +777,6 @@ geniPolValue =
      return (v,p)
 \end{code}
 
-
-\subsection{Miscellaneous}
-
-\fnlabel{geniValue} is recognised both in feature structures and in the 
-GenI semantics.
-
-\begin{enumerate}
-\item As of geni 0.8, variables are prefixed with a question
-      mark.
-\item The underscore, \verb!_!, and \verb!?_! are treated as anonymous
-      variables.
-\item Atomic disjunctions are seperated with a pipe, \verb!|!.  Only
-      constants may be separated by atomic disjunction
-\item Anything else is just a constant
-\end{enumerate}
-
-\begin{code}
-geniValue :: Parser GeniVal 
-geniValue =   ((try $ anonymous) <?> "_ or ?_")
-          <|> (constants  <?> "a constant or atomic disjunction")
-          <|> (variable   <?> "a variable")
-  where 
-    question = "?"
-    --
-    constants :: Parser GeniVal 
-    constants = 
-      do c <- sepBy1 (looseIdentifier <|> stringLiteral) (symbol "|")
-         return (GConst c)
-    variable :: Parser GeniVal
-    variable = 
-      do symbol question 
-         v <- identifier 
-         return (GVar v)
-    anonymous :: Parser GeniVal
-    anonymous = 
-      do optional $ symbol question 
-         symbol "_"
-         return GAnon
-\end{code}
 
 \begin{code}
 tillEof :: Parser a -> Parser a
