@@ -19,9 +19,11 @@
 \label{cha:Morphology}
 
 This module handles mostly everything to do with morphology in Geni.
-There are two basic tasks: morphological input and output.  
+There are two basic tasks: morphological input and output.
 GenI farms out morphology to whatever third party program you
-specify in the configuration file.
+specify on the command line.  Note that a simple and stupid
+``sillymorph'' realiser is provided either in the GenI repository
+or on hackage.
 
 \begin{code}
 module NLP.GenI.Morphology
@@ -38,19 +40,16 @@ module NLP.GenI.Morphology
 
 \ignore{
 \begin{code}
-import Data.Maybe (isNothing, isJust)
-import Data.List (intersperse)
+import Data.Maybe (isNothing)
 import Data.Tree
 import qualified Data.Map as Map
 import System.IO
 import System.Process
-import Text.ParserCombinators.Parsec ( runParser )
 import Text.JSON
 import Text.JSON.Pretty
 
 import NLP.GenI.Btypes
 import NLP.GenI.General
-import NLP.GenI.GeniParsers ( geniFeats )
 import NLP.GenI.Tags
 import NLP.GenI.Builder
 \end{code}
@@ -194,7 +193,7 @@ sansMorph = singleton . unwords . map lem
 inflectSentencesUsingCmd :: String -> [LemmaPlusSentence] -> IO [(LemmaPlusSentence,[String])]
 inflectSentencesUsingCmd morphcmd sentences =
   do -- run the inflector
-     (toP, fromP, _, pid) <- runInteractiveCommand morphcmd
+     (toP, fromP, _, _) <- runInteractiveCommand morphcmd
      hPutStrLn toP . render . pp_value . showJSON $ sentences
      hClose toP
      -- read the inflector output back as a list of strings
