@@ -171,25 +171,6 @@ with a simple shell or Perl script.
 sansMorph :: [(String,Flist)] -> [String]
 sansMorph = singleton . unwords . (map fst)
 
-type MorphLexicon = [(String, String, Flist)]
-type UninflectedDisjunction = (String, Flist)
-
--- | Return a list of results for each sentence
-inflectSentencesUsingLex :: MorphLexicon -> [[UninflectedDisjunction]] -> [[String]]
-inflectSentencesUsingLex mlex = map (inflectSentenceUsingLex mlex)
-
-inflectSentenceUsingLex :: MorphLexicon -> [UninflectedDisjunction] -> [String]
-inflectSentenceUsingLex mlex = map unwords . mapM (inflectWordUsingLex mlex)
-
--- | Return only n matches, but note any excessive ambiguities or missing matches
-inflectWordUsingLex :: MorphLexicon -> UninflectedDisjunction -> [String]
-inflectWordUsingLex mlex (lem,fs)
-   | null matches       = [ lem ++ "-" ] -- no matches = lemma plus little icon
-   | length matches > 2 = [ lem ++ "*" ] -- too many matches!
-   | otherwise          = matches
-  where
-   matches = [ word | (word, mLem, mFs) <- mlex, lem == mLem, isJust $ fs `unifyFeat` mFs ]
-
 -- | Converts a list of uninflected sentences into inflected ones by calling
 ---  the third party software.
 -- FIXME: this doesn't actually support lists-of-results per input

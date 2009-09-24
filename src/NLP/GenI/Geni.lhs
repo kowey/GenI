@@ -1073,11 +1073,9 @@ readPreAnchored pst =
 runMorph :: ProgStateRef -> [[(String,Flist)]] -> IO [[String]]
 runMorph pstRef sentences = 
   do pst <- readIORef pstRef
-     case morphlex pst of
-       Just  m -> return (inflectSentencesUsingLex m sentences)
-       Nothing -> case getFlagP MorphCmdFlg (pa pst) of
-                  Nothing  -> return $ map sansMorph sentences
-                  Just cmd -> inflectSentencesUsingCmd cmd sentences
+     case getFlagP MorphCmdFlg (pa pst) of
+       Nothing  -> return $ map sansMorph sentences
+       Just cmd -> inflectSentencesUsingCmd cmd sentences
 \end{code}
 
 
