@@ -1,0 +1,18 @@
+[
+ [{"lemma": "le",       "lemma-features": "[num:sg gen:f]"},
+  {"lemma": "fille",    "lemma-features": "[num:sg]"},
+  {"lemma": "détester", "lemma-features": "[num:sg tense:past]"},
+  {"lemma": "le",       "lemma-features": "[num:pl gen:m]"},
+  {"lemma": "garçon",   "lemma-features": "[num:pl]"}
+ ],
+
+ [{"lemma": "ce",       "lemma-features": "[]"},
+  {"lemma": "être",     "lemma-features": "[]"},
+  {"lemma": "le",       "lemma-features": "[gen:m num:?X]"},
+  {"lemma": "garçon",   "lemma-features": "[num:?X]"},
+  {"lemma": "que",      "lemma-features": "[]"},
+  {"lemma": "le",       "lemma-features": "[num:sg gen:f]"},
+  {"lemma": "fille",    "lemma-features": "[num:sg]"},
+  {"lemma": "détester", "lemma-features": "[num:sg tense:past]"}
+ ]
+]

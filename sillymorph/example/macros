@@ -1,0 +1,21 @@
+Det(?I) auxiliary
+n1[cat:n idx:?I det:plus num:?N gen:?G]![cat:n idx:?I det:plus]
+{
+  n2 anchor [cat:det num:?N gen:?G]![]
+  n4 type:foot [cat:n idx:?I]![cat:n idx:?I det:minus]
+}
+
+% Common Nouns: voyage
+nC(?I) initial
+n1 anchor [cat:n idx:?I]![cat:n idx:?I det:minus]
+
+% declarative
+vArity2:n0vn1(?E ?X ?Y) initial
+n1[cat:s]![]
+{
+  n2 type:subst [cat:n idx:?X]![cat:n idx:?X]
+  n3 anchor [cat:v idx:?E]![]
+  n5 type:subst [cat:n idx:?Y]![cat:n idx:?Y]
+}
+
+% vi: set cinoptions=0,p0:

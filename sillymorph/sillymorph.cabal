@@ -1,0 +1,22 @@
+Name:           sillymorph
+Version:        0.1
+License:        GPL
+License-file:   LICENSE
+Author:         Eric Kow
+Build-Depends:  GenI >=0.19.0 && < 0.20
+             ,  base < 4.1
+             ,  cmdargs >= 0.1 && < 0.2
+             ,  json >= 0.4.3 && < 0.5
+             ,  utf8-string >= 0.3.5 && < 0.4
+
+build-type:     Simple
+Category:       Natural Language Processing
+Homepage:       http://wiki.loria.fr/wiki/GenI
+Description:    Simple and stupid morphological realiser
+Synopsis:       Simple and stupid morphological realiser
+Maintainer:     geni-users@loria.fr
+data-files:     sillymorph.cabal
+
+Executable:     sillymorph
+Main-Is:        sillymorph.hs
+Ghc-options:    -Wall -O2

@@ -1,0 +1,7 @@
+cd example
+
+sillymorph -m morphlex < input
+sillymorph -m morphlex-ascii < input
+
+geni -m macros -l lexicon -s suite
+geni -m macros -l lexicon -s suite --morphcmd 'sillymorph -m morphlex'

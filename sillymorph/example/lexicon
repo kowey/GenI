@@ -1,0 +1,11 @@
+le Det(?I)
+semantics:[def(?I)]
+
+garçon nC(?I)
+semantics:[boy(?I)]
+
+fille nC(?I)
+semantics:[girl(?I)]
+
+détester vArity2(?E ?X ?Y)
+semantics:[hate(?E ?X ?Y)]

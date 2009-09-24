@@ -1,0 +1,7 @@
+1
+semantics : [ boy(b)
+              girl(g)
+	      def(b)
+	      def(g)
+	      hate(e1 g b)
+	     ]
