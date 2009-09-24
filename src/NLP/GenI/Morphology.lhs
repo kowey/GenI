@@ -35,10 +35,15 @@ import Data.Tree
 import qualified Data.Map as Map
 import System.IO
 import System.Process
+import Text.ParserCombinators.Parsec ( runParser )
+import Text.JSON
+import Text.JSON.Pretty
 
 import NLP.GenI.Btypes
 import NLP.GenI.General
+import NLP.GenI.GeniParsers ( geniFeats )
 import NLP.GenI.Tags
+import NLP.GenI.Builder
 \end{code}
 }
 
@@ -168,30 +173,37 @@ with a simple shell or Perl script.
 \begin{code}
 -- | Extracts the lemmas from a list of uninflected sentences.  This is used
 --   when the morphological generator is unavailable, doesn't work, etc.
-sansMorph :: [(String,Flist)] -> [String]
-sansMorph = singleton . unwords . (map fst)
+sansMorph :: LemmaPlusSentence -> [String]
+sansMorph = singleton . unwords . map lem
+ where
+  lem (LemmaPlus l _) = l
 
 -- | Converts a list of uninflected sentences into inflected ones by calling
 ---  the third party software.
 -- FIXME: this doesn't actually support lists-of-results per input
 -- will need to work it out
-inflectSentencesUsingCmd :: String -> [[UninflectedDisjunction]] -> IO [[String]]
+inflectSentencesUsingCmd :: String -> [LemmaPlusSentence] -> IO [(LemmaPlusSentence,[String])]
 inflectSentencesUsingCmd morphcmd sentences =
-  do -- add intersential delimiters
-     let delim    = [("----",[])]
-         morphlst = concat (intersperse delim sentences)
-     -- format the stuff as input to the inflector
-     let fn (lem,fs) = lem ++ " " ++ showFlist fs
-         order = unlines $ map fn morphlst 
-     -- run the inflector
+  do -- run the inflector
      (toP, fromP, _, pid) <- runInteractiveCommand morphcmd
-     hPutStrLn toP order
+     hPutStrLn toP . render . pp_value . showJSON $ sentences
      hClose toP
      -- read the inflector output back as a list of strings
-     (map (singleton . trim) . lines) `fmap` hGetContents fromP
-  `catch` \e -> do ePutStrLn "Error calling morphological generator"
-                   ePutStrLn $ show e
-                   return $ map sansMorph sentences
+     mResults <- (resultToEither . decode) `fmap` hGetContents fromP
+     case mResults of
+       Left err  -> fallback $ "Could not parse morphological generator output: " ++ err
+       Right res -> do let lenResults   = length res
+                           lenSentences = length sentences
+                       if lenResults == lenSentences
+                          then return $ zip sentences res
+                          else fallback $ "Morphological generator returned "
+                                          ++ show lenResults ++ " results for "
+                                          ++ show lenSentences ++ " inputs"
+                    `catch` \e -> fallback $ "Error calling morphological generator:\n" ++ show e
+ where
+  fallback err =
+    do ePutStrLn err
+       return $ map (\x -> (x, sansMorph x)) sentences
 
 singleton :: a -> [a]
 singleton x = [x]

@@ -1073,9 +1073,10 @@ readPreAnchored pst =
 runMorph :: ProgStateRef -> [[(String,Flist)]] -> IO [[String]]
 runMorph pstRef sentences = 
   do pst <- readIORef pstRef
+     let sentences2 = map (map (uncurry B.LemmaPlus)) sentences
      case getFlagP MorphCmdFlg (pa pst) of
-       Nothing  -> return $ map sansMorph sentences
-       Just cmd -> inflectSentencesUsingCmd cmd sentences
+       Nothing  -> return $ map sansMorph sentences2
+       Just cmd -> map snd `fmap` inflectSentencesUsingCmd cmd sentences2
 \end{code}
 
 
