@@ -1,33 +1,32 @@
 GenI 0.19,
 -----------------------
-* HEADS UP!  Input files now *assumed* to be UTF-8 encoded.
-  Previously we assumed they were ISO-8859-1.
+- NEW REQUIREMENTS
 
-  Unfortunately, GenI still outputs ISO-8859-1 by default,
-  except when generating JSON (all non-ASCII characters are
-  escaped).  If you compile GenI with GHC 6.12 the output
-  encoding will be locale-dependent.
+  * GHC 6.8 or higher (GHC 6.10 + Haskell Platform preferred)
 
-* HEADS UP!  Interface between GenI and morphological realiser
-  now uses a JSON format.
+- NON BACKWARD-COMPATIBLE CHANGES:
 
-* Note that version numbers now follow the convention where an odd
-  minor number indicates a devel version and an even one a released
-  version.
+  * Input files now *assumed* to be UTF-8 encoded.
+    Previously we assumed they were ISO-8859-1.
 
-* GHC 6.8 or higher now required
+    Unfortunately, GenI still outputs ISO-8859-1 by default,
+    except when generating JSON (all non-ASCII characters are
+    escaped).  If you compile GenI with GHC 6.12 the output
+    encoding will be locale-dependent.
 
-* Adding 'default' to metrics always gives you the default metrics
-  in addition to any other statistics you request
+  * Interface between GenI and morphological realiser now uses a JSON format.
 
-* Batch mode now dumps derivations in JSON format
+- NEW FUNCTIONALITY
 
-* Statistics now dumped in JSON format
-
-* geni --version now works and reports version from Cabal file
-
-* geni --ranking foo now ranks outputs according to OT-style
-  constraints expressed in foo
+  * --version now works and reports version from Cabal file
+    NB: we now follow the odd-even convention, so eg GenI-0.20 is considered
+    stable, whereas GenI-0.21 is considered to be a development version.
+  * --ranking foo ranks outputs according to OT-style constraints expressed in foo
+  * --batchdir now works with --testcase
+  * --batchdir now dumps derivations and statistics in JSON format
+  * console mode accepts 'instructions' files
+  * --metrics always expands 'default' to the default metrics (in addition to
+    any other statistics you request)
 
 GenI 0.17.4, 6 Apr 2009
 -----------------------
