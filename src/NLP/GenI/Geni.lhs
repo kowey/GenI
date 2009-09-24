@@ -97,7 +97,7 @@ import NLP.GenI.Tags (Tags, TagElem, emptyTE,
 import NLP.GenI.Configuration
   ( Params, getFlagP, hasFlagP, hasOpt, Optimisation(NoConstraints)
   , MacrosFlg(..), LexiconFlg(..), TestSuiteFlg(..), TestCaseFlg(..)
-  , MorphInfoFlg(..), MorphCmdFlg(..), MorphLexiconFlg(..)
+  , MorphInfoFlg(..), MorphCmdFlg(..)
   , RankingConstraintsFlg(..)
   , PartialFlg(..)
   , FromStdinFlg(..), VerboseModeFlg(..)
@@ -111,7 +111,7 @@ import qualified NLP.GenI.Builder as B
 import NLP.GenI.GeniParsers (geniMacros, geniTagElems,
                     geniLexicon, geniTestSuite,
                     geniTestSuiteString, geniSemanticInput,
-                    geniMorphInfo, geniMorphLexicon,
+                    geniMorphInfo,
                     parseFromFile, runParser, Parser,
                     )
 import NLP.GenI.Morphology
@@ -139,7 +139,6 @@ data ProgState = ST{ -- | the current configuration being processed
                     gr       :: Macros,
                     le       :: Lexicon,
                     morphinf :: MorphFn,
-                    morphlex :: Maybe [(String,String,Flist)],
                     ts       :: SemInput, 
                     -- | names of test case to run
                     tcase    :: String, 
@@ -163,7 +162,6 @@ emptyProgState args =
     , gr = []
     , le = Map.empty
     , morphinf = const Nothing
-    , morphlex = Nothing
     , ts = ([],[],[])
     , tcase = []
     , tsuite = []
@@ -220,8 +218,6 @@ loadEverything pstRef =
      -- in any case, we have to...
      loadMorphInfo pstRef
      when useTestSuite $ loadTestSuite pstRef >> return ()
-     -- the morphological lexicon
-     loadMorphLexicon pstRef
      -- the trace filter file
      loadTraces pstRef
      -- OT ranking
@@ -234,8 +230,7 @@ GenI dies.  If we succeed, we update the program state passed in as
 an IORef.
 
 \begin{code}
-loadLexicon, loadGeniMacros, loadMorphInfo, loadMorphLexicon, loadTraces :: ProgStateRef -> IO ()
-
+loadLexicon :: ProgStateRef -> IO ()
 loadLexicon pstRef =
     do let getSem l  = isemantics l
            sorter l  = l { isemantics = (sortSem . getSem) l }
@@ -245,22 +240,20 @@ loadLexicon pstRef =
        modifyIORef pstRef (\p -> p { le = cleanup xs })
 
 -- | The macros are stored as a hashing function in the monad.
+loadGeniMacros :: ProgStateRef -> IO ()
 loadGeniMacros pstRef =
   do xs <- loadThingOrDie MacrosFlg "trees" pstRef parser
      modifyIORef pstRef (\p -> p { gr = xs })
   where parser = parseFromFileMaybeBinary geniMacros
 
 -- | The results are stored as a lookup function in the monad.
+loadMorphInfo :: ProgStateRef -> IO ()
 loadMorphInfo pstRef =
  do xs <- loadThingOrIgnore MorphInfoFlg "morphological info" pstRef parser
     modifyIORef pstRef (\p -> p { morphinf = readMorph xs } )
  where parser = parseFromFileOrFail geniMorphInfo
 
-loadMorphLexicon pstRef =
- do xs <- loadThingOrIgnore MorphLexiconFlg "morphological lexicon" pstRef parser
-    modifyIORef pstRef (\p -> p { morphlex = Just xs })
- where parser = parseFromFileOrFail geniMorphLexicon
-
+loadTraces :: ProgStateRef -> IO ()
 loadTraces pstRef =
  do xs <- loadThingOrIgnore TracesFlg "traces" pstRef
              (\f -> lines `fmap` readFile f)

@@ -35,7 +35,6 @@ module NLP.GenI.Configuration
   , MetricsFlg(..)
   , MorphCmdFlg(..)
   , MorphInfoFlg(..)
-  , MorphLexiconFlg(..)
   , NoLoadTestSuiteFlg(..)
   , OptimisationsFlg(..)
   , OutputFileFlg(..)
@@ -703,8 +702,6 @@ optionsForMorphology =
   [ morphInfoOption
   , Option []    ["morphcmd"]  (reqArg MorphCmdFlg id "CMD")
       "morphological post-processor CMD (default: unset)"
-  , Option []    ["morphlexicon"]  (reqArg MorphLexiconFlg id "FILE")
-      "morphological lexicon FILE (default: unset) - overrides morphcmd!"
   ]
 
 morphInfoOption :: OptDescr Flag
@@ -858,7 +855,6 @@ FLAG (TracesFlg, FilePath)
 FLAG (MetricsFlg, [String])
 FLAG (MorphCmdFlg, String)
 FLAG (MorphInfoFlg, FilePath)
-FLAG (MorphLexiconFlg, FilePath)
 FLAG (OptimisationsFlg, [Optimisation])
 FLAG (OutputFileFlg, String)
 FLAG (PartialFlg, ())
