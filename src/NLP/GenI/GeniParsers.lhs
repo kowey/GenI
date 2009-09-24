@@ -42,6 +42,8 @@ module NLP.GenI.GeniParsers (
   geniTagElems,
   -- things used by external scripts
   geniSemantics, geniValue, geniWords, geniLanguageDef, tillEof,
+  --
+  module Text.ParserCombinators.Parsec
 ) where
 
 import NLP.GenI.General ((!+!), Interval, ival)

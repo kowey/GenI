@@ -65,7 +65,7 @@ import NLP.GenI.Configuration
   --
   , Optimisation(..)
   , BuilderType(..), mainBuilderTypes )
-import NLP.GenI.GeniParsers
+import NLP.GenI.GeniParsers hiding ( choice, label, tab )
 import NLP.GenI.GuiHelper
 
 import NLP.GenI.OptimalityTheory ( rankResults, prettyViolations )
