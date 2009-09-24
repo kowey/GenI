@@ -95,6 +95,8 @@ type OtResult x = (Int,x,[OtViolation])
 Constraints are expressed in JSON as a list of \jargon{ranking levels}.  A
 ranking level is a list of constraints that should be assigned the same rank.
 In lieu of a formal description, we provide an example below:
+\small{NB: Either the JSON format or the JSON parser used by GenI is strict
+enough to refuse initial whitespace in this file.}
 
 \begin{verbatim}
 [
