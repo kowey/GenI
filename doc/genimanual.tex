@@ -35,7 +35,7 @@
 %\input{lambdaTeX}
 
 \pagestyle{fancyplain} 
-\lfoot{GenI source code}
+\lfoot{GenI reference manual}
 \cfoot{\thepage}
 \rfoot{}
 
@@ -61,8 +61,8 @@
 }
 
 \begin{document}
-\title{GenI manual}
-\author{TALARIS\\LORIA}
+\title{GenI reference manual}
+\author{TALARIS\\INRIA}
 
 \maketitle
 \tableofcontents
@@ -74,7 +74,7 @@
 \chapter*{License}
 
 GenI surface realiser\\
-Copyright \copyright 2005-2007 Carlos Areces and Eric Kow
+Copyright \copyright 2005-2009 Carlos Areces and Eric Kow
 
 \bigskip
 
@@ -98,28 +98,22 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 \chapter{Overview}
 
-This document doesn't officially exist yet.  It's just Eric
-experimenting with using Literate Haskell to build the manual
-along with the source code \`a la Darcs.
+This is the GenI reference manual.  You may also be interested in
 
-Some of the text here might be pretty nonsensical in a manual.  It's
-because in the early days of Literate GenI, I was mostly using literate
-programming for writing comments.  Later on, (by reading the darcs
-source code),  I discovered that another good use of literate
-programming is for embedding your user manual right into your code.
-This makes it easier to keep your documentation up to date.  My hope
-is that either I or the person who looks after GenI when I'm gone
-will complete the transition of the user manual stuff into this style.
-
-Note that in addition to the manual, there is \textit{Literate GenI}
-\cite{literateGeni} which actually tries to explain how GenI is
-implemented.
+\begin{itemize}
+\item A ``getting started'' walk-through,
+      see \url{http://trac.haskell.org/GenI/wiki/Walkthrough}
+\item \textit{Literate GenI} which provides details on GenI
+      algorithms and implementation (see \cite{literateGeni}),
+      still not very literate at the time of this writing
+      2009-09-24.
+\end{itemize}
 
 % -------------------------------------------------------------------------
 % Overview
 % -------------------------------------------------------------------------
 
-\part{Manual}
+\part{Basics}
 
 \input{../src/NLP/GenI/Configuration.lhs}
 \input{../src/NLP/GenI/GeniParsers.lhs}
@@ -127,10 +121,8 @@ implemented.
 
 \part{Extras}
 
-\input{../src/NLP/GenI/Polarity.lhs}
 \input{../src/NLP/GenI/OptimalityTheory.lhs}
 \input{../src/NLP/GenI/Morphology.lhs}
-
 
 {
 \bibliographystyle{alpha}
