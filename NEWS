@@ -1,5 +1,13 @@
 GenI 0.19,
 -----------------------
+* HEADS UP!  Input files now *assumed* to be UTF-8 encoded.
+  Previously we assumed they were ISO-8859-1.
+
+  Unfortunately, GenI still outputs ISO-8859-1 by default,
+  except when generating JSON (all non-ASCII characters are
+  escaped).  If you compile GenI with GHC 6.12 the output
+  encoding will be locale-dependent.
+
 * Note that version numbers now follow the convention where an odd
   minor number indicates a devel version and an even one a released
   version.
