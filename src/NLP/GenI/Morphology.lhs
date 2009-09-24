@@ -24,7 +24,16 @@ GenI farms out morphology to whatever third party program you
 specify in the configuration file.
 
 \begin{code}
-module NLP.GenI.Morphology where
+module NLP.GenI.Morphology
+ (
+ MorphFn
+ -- re-export
+ , LemmaPlus(..), LemmaPlusSentence
+ -- * Morphological predicates
+ , readMorph, stripMorphSem, attachMorph, setMorphAnchor
+ -- * Morphological realisation
+ , inflectSentencesUsingCmd, sansMorph
+ ) where
 \end{code}
 
 \ignore{
