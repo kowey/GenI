@@ -45,6 +45,7 @@ import NLP.GenI.Tags (tsemantics, DerivationStep(dsChild), TagElem(idname, ttree
 import NLP.GenI.GraphvizShow ( graphvizShowDerivation )
 
 import qualified NLP.GenI.Builder    as B
+import NLP.GenI.Builder (LemmaPlus(..))
 import qualified NLP.GenI.BuilderGui as BG
 import NLP.GenI.Polarity
 import NLP.GenI.Simple.SimpleBuilder
@@ -203,5 +204,5 @@ toTagElem si =
 siToSentence :: SimpleItem -> String
 siToSentence si = case unpackResult si of
                   []    -> siIdname.siGuiStuff $ si
-                  (h:_) -> unwords . map fst . fst $ h
+                  (h:_) -> unwords . map lpLemma . fst $ h
 \end{code}

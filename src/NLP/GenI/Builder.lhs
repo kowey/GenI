@@ -111,7 +111,7 @@ data Builder st it pa = Builder
   , unpack   :: st -> [Output]
   , partial  :: st -> [Output] }
 
-type Output = (UninflectedSentence, Derivation)
+type Output = (LemmaPlusSentence, Derivation)
 type Derivation = TagDerivation
 \end{code}
 
@@ -139,9 +139,7 @@ structures).  Normally, the states are defined as integers, with the
 only requirement being that each one, naturally enough, is unique.
 
 \begin{code}
-type UninflectedWord        = (String, Flist)
-type UninflectedSentence    = [ UninflectedWord ] 
-type SentenceAut            = NFA Int UninflectedWord 
+type SentenceAut            = NFA Int LemmaPlus
 
 data UninflectedDisjunction = UninflectedDisjunction [String] Flist deriving (Show, Data, Typeable)
 
@@ -536,7 +534,9 @@ lexicalSelection :: Derivation -> [String]
 lexicalSelection = sort . nub . concatMap (\d -> [dsChild d, dsParent d])
 
 -- | A lemma plus its morphological features
-data LemmaPlus = LemmaPlus String Flist deriving (Show, Eq, Ord)
+data LemmaPlus = LemmaPlus { lpLemma :: String
+                           , lpFeats ::  Flist }
+ deriving (Show, Eq, Ord)
 
 -- | A sentence composed of 'LemmaPlus' instead of plain old words
 type LemmaPlusSentence = [LemmaPlus]

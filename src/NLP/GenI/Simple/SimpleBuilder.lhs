@@ -81,6 +81,7 @@ import NLP.GenI.Builder (
     DispatchFilter, (>-->), condFilter, nullFilter,
     semToIafMap, IafAble(..), IafMap, fromUniConst, getIdx,
     recalculateAccesibility, iafBadSem, ts_iafFailure,
+    LemmaPlus(..),
     )
 import qualified NLP.GenI.Builder as B
 
@@ -1202,7 +1203,7 @@ listToSentenceAut nodes =
       helper (current, B.UninflectedDisjunction lemmas features) aut =
         foldl' addT aut lemmas
         where
-          addT a t = addTrans a current (Just (t, features)) next
+          addT a t = addTrans a current (Just (LemmaPlus t features)) next
           next = current + 1
       --
   in foldr helper emptyAut (zip theStates nodes)

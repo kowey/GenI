@@ -1056,13 +1056,12 @@ readPreAnchored pst =
 \begin{code}
 -- | 'runMorph' inflects a list of sentences if a morphlogical generator
 -- has been specified.  If not, it returns the sentences as lemmas.
-runMorph :: ProgStateRef -> [[(String,Flist)]] -> IO [[String]]
+runMorph :: ProgStateRef -> [LemmaPlusSentence] -> IO [[String]]
 runMorph pstRef sentences = 
   do pst <- readIORef pstRef
-     let sentences2 = map (map (uncurry B.LemmaPlus)) sentences
      case getFlagP MorphCmdFlg (pa pst) of
-       Nothing  -> return $ map sansMorph sentences2
-       Just cmd -> map snd `fmap` inflectSentencesUsingCmd cmd sentences2
+       Nothing  -> return $ map sansMorph sentences
+       Just cmd -> map snd `fmap` inflectSentencesUsingCmd cmd sentences
 \end{code}
 
 
