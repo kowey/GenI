@@ -8,6 +8,9 @@ GenI 0.19,
   escaped).  If you compile GenI with GHC 6.12 the output
   encoding will be locale-dependent.
 
+* HEADS UP!  Interface between GenI and morphological realiser
+  now uses a JSON format.
+
 * Note that version numbers now follow the convention where an odd
   minor number indicates a devel version and an even one a released
   version.
