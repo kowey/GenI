@@ -43,6 +43,7 @@ module NLP.GenI.GeniParsers (
   -- things used by external scripts
   geniSemantics, geniValue, geniWords, geniLanguageDef, tillEof,
   --
+  parseFromFile, -- UTF-8 version
   module Text.ParserCombinators.Parsec
 ) where
 
@@ -56,11 +57,12 @@ import Control.Monad (liftM, when)
 import Data.List (sort)
 import qualified Data.Map  as Map 
 import qualified Data.Tree as T
-import Text.ParserCombinators.Parsec
+import Text.ParserCombinators.Parsec hiding (parseFromFile)
 import Text.ParserCombinators.Parsec.Language (emptyDef)
 import Text.ParserCombinators.Parsec.Token (TokenParser, 
     LanguageDef(..), makeTokenParser)
 import qualified Text.ParserCombinators.Parsec.Token as P
+import qualified System.IO.UTF8 as UTF8
 
 -- reserved words
 #define SEMANTICS       "semantics"
@@ -762,6 +764,13 @@ tillEof p =
      r <- p
      eof
      return r
+
+-- stolen from Parsec and adapted to use UTF-8 input
+parseFromFile :: Parser a -> SourceName -> IO (Either ParseError a)
+parseFromFile p fname
+    = do{ input <- UTF8.readFile fname
+        ; return (parse p fname input)
+        }
 \end{code}
 
 
