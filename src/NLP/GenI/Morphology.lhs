@@ -144,39 +144,54 @@ Output (\jargon{morphological generation}) refers to the actual process
 of converting lemmas and morphological information into inflected forms.
 We do this by calling some third party software specified by the user.
 
-The morphological software must accept on stdin a newline delimited list
-of lemmas and features, with \verb$----$ (four hyphens) as an intersentence
-delimiter:
+The morphological software must accept a JSON list of \jargon{lemma sentences}
+where each lemma sentence is itself a list of objects containing a lemma and
+a feature structure.
 
 \begin{verbatim}
-le       [num:sg gen:f]
-fille    [num:sg]
-detester [num:sg tense:past]
-le       [num:pl gen:m]
-garcon   [num:pl]
-----     []
-ce       []
-etre     []
-le       [num:pl]
-garcon   [num:pl]
-que      []
-le       [num:sg gen:f]
-fille    [num:sg] 
-detester [num:sg tense:past]
+[
+ [{"lemma": "le",       "lemma-features": "[num:sg gen:f]"},
+  {"lemma": "fille",    "lemma-features": "[num:sg]"},
+  {"lemma": "detester", "lemma-features": "[num:sg tense:past]"},
+  {"lemma": "le",       "lemma-features": "[num:pl gen:m]"},
+  {"lemma": "garcon",   "lemma-features": "[num:pl]"}
+ ],
+
+ [{"lemma": "ce",       "lemma-features": "[]"},
+  {"lemma": "etre",     "lemma-features": "[]"},
+  {"lemma": "le",       "lemma-features": "[]"},
+  {"lemma": "garcon",   "lemma-features": "[]"},
+  {"lemma": "que",      "lemma-features": "[]"},
+  {"lemma": "le",       "lemma-features": "[num:sg gen:f]"},
+  {"lemma": "fille",    "lemma-features": "[num:sg]"},
+  {"lemma": "detester", "lemma-features": "[num:sg tense:past]"}
+ ]
+]
 \end{verbatim}
 
-It must return inflected forms on stdout, \emph{sentences} delimited by
-newlines. Note also that we expect exactly one result for every input.
-Notice that the morphological generator can choose to delete
-spaces or do other orthographical tricks in between words:
+NB: I recommend using a JSON library instead of parsing and writing this by
+hand.
+
+The morphological realiser may return more than one output per sentence.
+Indeed, we expect a JSON-formatted list (a) of lists (b), where each (b)
+provides a number of candidate morphological realisations for a sentence in
+(a).  The list (a) must have the same length as the input because each item in
+(a) is expected to correspond to a sentence from the input.
+
+Notice that the morphological generator can choose to delete spaces or do other
+orthographical tricks in between words:
 
 \begin{verbatim}
-la fille detestait les garcons
-c'est les garcons que la fille detestait
+[
+ ["la fille detestait les garcons"],
+
+ ["c'est le garcon que la fille detestait"
+ ,"c'est les garcons que la fille detestait"]
+]
 \end{verbatim}
 
-If your morphological software does not do this, you could wrap it
-with a simple shell or Perl script.
+If your morphological software does not do this, you could wrap it with a
+simple script.
 
 \begin{code}
 -- | Extracts the lemmas from a list of uninflected sentences.  This is used
