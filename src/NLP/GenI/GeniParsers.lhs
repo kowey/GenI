@@ -18,16 +18,15 @@
 \chapter{File formats (GeniParsers)}
 \label{cha:GeniParsers}
 
-This chapter is a description of the file format used by GenI.
-
-We'll be using EBNFs to describe the GenI format below.   Here are some rules
-and types of rules we leave out, and prefer to describe informally:
+This chapter is a description of the file formats used by \geni.  We'll be
+using EBNFs to describe the format below.   Here are some rules and types of
+rules we leave out, and prefer to describe informally:
 
 \begin{verbatim}
- <alpha-numeric>
- <string-literal> (stuff between quotes)
- <opt-whatever> (systematically... "" | <whatever>)
- <keyword-whatever> (systematically.. "whatever" ":")
+<alpha-numeric>
+<string-literal> (stuff between quotes)
+<opt-whatever> (systematically... "" | <whatever>)
+<keyword-whatever> (systematically.. "whatever" ":")
 \end{verbatim}
 
 \ignore{
@@ -69,6 +68,24 @@ import Text.ParserCombinators.Parsec.Token (TokenParser,
 import qualified Text.ParserCombinators.Parsec.Token as P
 import qualified System.IO.UTF8 as UTF8
 
+\end{code}
+}
+
+\section{General notes}
+
+\subsection{Comments}
+
+Any \geni format file can include comments.  Comments start \verb!%!.
+There is also the option of using \verb'/* */' for embedded comments.
+
+\subsection{Reserved words}
+
+The following are reserved words.  You should not use them as variable names.
+NB: the reserved words are indicated below between quotes; eg.  ``semantics''.
+You can ignore C pre-processor noise such as \verb!#define SEMANTICS!
+
+\begin{includecodeinmanual}
+\begin{code}
 -- reserved words
 #define SEMANTICS       "semantics"
 #define SENTENCE        "sentence"
@@ -86,33 +103,62 @@ import qualified System.IO.UTF8 as UTF8
 #define BEGIN           "begin"
 #define END             "end"
 \end{code}
-}
+\end{includecodeinmanual}
 
-\section{Variables and constants}
+\subsection{Lexer}
 
-\geni variables and constants can be written as in the following table:
+For reference, we include the Parsec LanguageDef that we use to implement
+the \geni format.
+
+\begin{includecodeinmanual}
+\begin{code}
+geniLanguageDef :: LanguageDef ()
+geniLanguageDef = emptyDef
+         { commentLine = "%"
+         , commentStart = "/*"
+         , commentEnd = "*/"
+         , opLetter = oneOf ""
+         , reservedOpNames = [""]
+         , reservedNames =
+             [ SEMANTICS , SENTENCE, OUTPUT, IDXCONSTRAINTS, TRACE
+             , ANCHOR , SUBST , FOOT , LEX , TYPE , ACONSTR_NOADJ
+             , INITIAL , AUXILIARY
+             , BEGIN , END ]
+         , identLetter = identStuff
+         , identStart  = identStuff
+         }
+  where identStuff = alphaNum <|> oneOf "_'+-."
+\end{code}
+\end{includecodeinmanual}
+
+\section{The basics}
+
+\subsection{Variables and constants}
+
+Below are some examples of \geni variables and constants.  Note that we support
+atomic disjunction of constants, as in \verb!Foo|bar|baz!, but not variables.
 
 \begin{center}
-\begin{tabular}{|l|l|}
-\hline
+\begin{tabular}{ll}
 anonymous variable & \verb!?_! or \verb!_! \\
 variables & \verb!Foo!, \verb!?X! or \verb!?x! \\
 constants & \verb!Foo!, \verb!foo!, \verb!X!, \verb!x! or \verb!Foo|bar! \\
-\hline
 \end{tabular}
 \end{center}
 
-Note that we support atomic disjunction of constants, as in \verb!Foo|bar|baz!.
+Here is an EBNF for GenI variables and constants
 
-More formally, here is an EBNF for GenI variables and constants
-\begin{verbatim}
+\begin{SaveVerbatim}{KoweyTmp}
 <value>         ::= <variable> | <anonymous-variable> | <constant-disj>
 <variable>      ::= "?" <identifier>
 <anonymous>     ::= "?_" | "_"
 <constant-disj> ::= <constant> (| <constant>)*
 <constant>      ::= <identifier>
 <identifier>    ::= <alphanumeric> | "+" | "-" | "_"
-\end{verbatim}
+\end{SaveVerbatim}
+\begin{center}
+\fbox{\BUseVerbatim{KoweyTmp}}
+\end{center}
 
 \begin{code}
 geniValue :: Parser GeniVal
@@ -138,16 +184,19 @@ geniValue =   ((try $ anonymous) <?> "_ or ?_")
          return GAnon
 \end{code}
 
-\section{Feature structures}
+\subsection{Feature structures}
 
 In addition to variables and constants, \geni also makes heavy use of flat
 feature structures.  They take the form \verb![foo:bar ping:?Pong]!, or more
 formally,
 
-\begin{verbatim}
+\begin{SaveVerbatim}{KoweyTmp}
 <feature-structure>    ::= "[" <atttribute-value-pair>* "]"
 <attribute-value-pair> ::= <identifier> ":" <value>
-\end{verbatim}
+\end{SaveVerbatim}
+\begin{center}
+\fbox{\BUseVerbatim{KoweyTmp}}
+\end{center}
 
 \begin{code}
 geniFeats :: Parser Flist
@@ -160,13 +209,147 @@ geniAttVal = do
   return $ AvPair att val
 \end{code}
 
-\section{Test suites}
+\subsection{Semantics}
+\label{sec:geni-semantics}
 
-The test suite format consists of arbitrarily many test cases:
+A \jargon{semantics} is basically a set of literals.  Semantics are used in
+to provide \geni input (section \ref{sec:geni-input-semantics}) and in the
+definition of lexical entries (section \ref{sec:geni-lexicon}).
+
+Notice that this is a flat semantic representation!  No literals within
+literals, please.  A literal can take one of two forms:
+\begin{verbatim}
+  handle:predicate(arguments)
+         predicate(arguments)
+\end{verbatim}
+
+The arguments are space-delimited.  Not providing a handle is
+equivalent to providing an anonymous one.
+
+\begin{SaveVerbatim}{KoweyTmp}
+<semantics>      ::= <keyword-semantics> "[" <literal>* "]"
+<literal>        ::= <identifier> "(" <value>* ")"
+\end{SaveVerbatim}
+\begin{center}
+\fbox{\BUseVerbatim{KoweyTmp}}
+\end{center}
+
+\begin{code}
+geniSemantics :: Parser Sem
+geniSemantics =
+  do sem <- many (geniLiteral <?> "a literal")
+     return (sortSem sem)
+
+geniLiteral :: Parser Pred
+geniLiteral =
+  do handle    <- option GAnon handleParser <?> "a handle"
+     predicate <- geniValue <?> "a predicate"
+     pars      <- parens (many geniValue) <?> "some parameters"
+     --
+     return (handle, predicate, pars)
+  where handleParser =
+          try $ do { h <- geniValue ; char ':' ; return h }
+\end{code}
+
+\section{Semantic inputs and test suites}
+\label{sec:geni-input-semantics}
+
+\subsection{Semantic input}
+
+The semantic input can either be provided directly in the graphical interface
+or as part of a test suite.
+
+The format for semantic inputs is actually a bit richer than the core
+definition in section \ref{sec:geni-semantics}, but I have not yet written the
+documentation for it.
+
+\textbf{TODO}: The semantics may contain literal based constraints as described
+in section \ref{sec:fixme}.  These constraints are just a space-delimited list
+of String.  When returning the results, we separate them out from the semantics
+proper so that they can be treated separately.  Index constraints are
+represented as feature structures.
+
+\begin{code}
+geniSemanticInput :: Parser (Sem,Flist,[LitConstr])
+geniSemanticInput =
+  do keywordSemantics
+     (sem,litC) <- liftM unzip $ squares $ many literalAndConstraint
+     idxC       <- option [] geniIdxConstraints
+     --
+     let sem2     = createHandles sem
+         semlitC2 = [ (s,c) | (s,c) <- zip sem2 litC, (not.null) c ]
+     return (createHandles sem, idxC, semlitC2)
+  where
+     -- set all anonymous handles to some unique value
+     -- this is to simplify checking if a result is
+     -- semantically complete
+     createHandles :: Sem -> Sem
+     createHandles = zipWith setHandle ([1..] :: [Int])
+     --
+     setHandle i (h, pred_, par) =
+       let h2 = if h /= GAnon then h
+                else GConst ["genihandle" ++ (show i)]
+       in (h2, pred_, par)
+     --
+     literalAndConstraint :: Parser (Pred, [String])
+     literalAndConstraint =
+       do l <- geniLiteral
+          t <- option [] $ squares $ many identifier
+          return (l,t)
+
+-- | The original string representation of the semantics (for gui)
+geniSemanticInputString :: Parser String
+geniSemanticInputString =
+ do keywordSemantics
+    s <- squaresString
+    whiteSpace
+    optional geniIdxConstraints
+    return s
+
+geniIdxConstraints :: Parser Flist
+geniIdxConstraints = keyword IDXCONSTRAINTS >> geniFeats
+
+squaresString :: Parser String
+squaresString =
+ do char '['
+    s <- liftM concat $ many $ (many1 $ noneOf "[]") <|> squaresString
+    char ']'
+    return $ "[" ++ s ++ "]"
+
+-- the output end of things
+-- displaying preformatted semantic input
+
+data SemInputString = SemInputString String Flist
+
+instance GeniShow SemInputString where
+ geniShow (SemInputString semStr idxC) =
+   SEMANTICS ++ ":" ++ semStr ++ (if null idxC then "" else r)
+   where r = "\n" ++ IDXCONSTRAINTS ++ ": " ++ showFlist idxC
+
+toSemInputString :: SemInput -> String -> SemInputString
+toSemInputString (_,lc,_) s = SemInputString s lc
+\end{code}
+
+\subsection{Test suite}
+
+\geni accepts an entire test suite of semantic inputs that you can choose from.
+The test suite entries can be named.  In fact, it is probably a good idea to do
+so, because the names are often shorter than the expected output, and easier to
+read than the semantics.  Note the expected output isn't used by \geni itself,
+but external tools that ``test'' \geni.
+
+\begin{SaveVerbatim}{KoweyTmp}
+<test-suite>       ::= <test-suite-entry>*
+<test-suite-entry> ::= <opt-identifier> <semantics> <expected-output>*
+<expected-output>  ::= <opt-keyword-sentence> "[" <identifier>* "]"
+\end{SaveVerbatim}
+\begin{center}
+\fbox{\BUseVerbatim{KoweyTmp}}
+\end{center}
 
 \begin{code}
 geniTestSuite :: Parser [TestCase]
-geniTestSuite = 
+geniTestSuite =
   tillEof (many geniTestCase)
 
 -- | Just the String representations of the semantics
@@ -178,19 +361,7 @@ geniTestSuiteString =
 -- | This is only used by the script genimakesuite
 geniDerivations :: Parser [TestCaseOutput]
 geniDerivations = tillEof $ many geniOutput
-\end{code}
 
-A test case is composed of an optional test id, some semantic input
-\fnref{geniSemanticInput}, followed by any number of sentences
-and optionally followed by a list of outputs.
-The sentences can either be known good sentences (optionally preceded by the
-keyword 'sentence' -- perhaps this should be mandatory one day).  The outputs
-are used directly by users.  The field is useful for noting what outputs were
-actually produced, say, in a script that generates test suites from GenI
-output.  This field doesn't have much use for GenI per se, just its satellite
-scripts.
-
-\begin{code}
 geniTestCase :: Parser TestCase
 geniTestCase =
   do name  <- option "" (identifier <?> "a test case name")
@@ -240,19 +411,21 @@ geniTestCaseString =
     many geniOutput
     return s
 \end{code}
+% TODO: EBNFise the literal constraints
+\begin{SaveVerbatim}{KoweyTmp}
+<semantics>      ::= <keyword-semantics> "[" <literal>* "]"
+<literal>        ::= <identifier> "(" <value>* ")"
+\end{SaveVerbatim}
+\begin{center}
+\fbox{\BUseVerbatim{KoweyTmp}}
+\end{center}
 
-\section{Semantics}
+The semantics may contain literal based constraints as described in section
+\ref{sec:fixme}.  These constraints are just a space-delimited list of String.
+When returning the results, we separate them out from the semantics proper so
+that they can be treated separately.
 
-\fnlabel{geniSemanticInput} consists of a semantics, and optionally a
-set of index constraints.
-
-The semantics may contain literal based constraints as described in
-section \ref{sec:fixme}.  These constraints are just a space-delimited
-list of String.  When returning the results, we separate them out from
-the semantics proper so that they can be treated separately.
-
-Index constraints are represented as feature structures.  For more
-details about them, see \fnref{detectIdxConstraints}.
+Index constraints are represented as feature structures. (\textbf{TODO})
 
 \begin{code}
 geniSemanticInput :: Parser (Sem,Flist,[LitConstr])
@@ -264,7 +437,7 @@ geniSemanticInput =
      let sem2     = createHandles sem
          semlitC2 = [ (s,c) | (s,c) <- zip sem2 litC, (not.null) c ]
      return (createHandles sem, idxC, semlitC2)
-  where 
+  where
      -- set all anonymous handles to some unique value
      -- this is to simplify checking if a result is
      -- semantically complete
@@ -272,7 +445,7 @@ geniSemanticInput =
      createHandles = zipWith setHandle ([1..] :: [Int])
      --
      setHandle i (h, pred_, par) =
-       let h2 = if h /= GAnon then h 
+       let h2 = if h /= GAnon then h
                 else GConst ["genihandle" ++ (show i)]
        in (h2, pred_, par)
      --
@@ -316,34 +489,85 @@ toSemInputString (_,lc,_) s = SemInputString s lc
 \end{code}
 
 \section{Lexicon}
+\label{sec:geni-lexicon}
 
-A lexicon is just a whitespace seperated list of lexical entries.
-Each lexical entry is 
-\begin{enumerate}
-\item A lemma
-\item The family name of things this lemma anchors to
-\item The interface to the tree.  Here's the compicated bit. 
-      Either you provide :
+The lexicon associates semantic entries with lemmas and trees.
+
+\subsection{Lexicon examples}
+
+There are two ways to write the lexicon.  We show the old (deprecated)
+way first because most of the examples are still written in this style.
+
+\paragraph{Example 1 (deprecated)}
+
+\begin{verbatim}
+le clitic (?I)
+semantics:[]
+
+le Det (?I)
+semantics:[def(?I)]
+
+livre nC (?I)
+semantics:[book(?I)]
+
+persuader vArity3 (?E ?X ?Y ?Z)
+semantics:[?E:convince(?X ?Y ?Z)]
+
+persuader v vArity3controlObj
+semantics:[?E:convince(?X ?Y ?Z)]
+\end{verbatim}
+
+\paragraph{Example 2 (preferred)}
+
+\begin{verbatim}
+detester n0Vn1
+equations:[theta1:agent theta2:patient arg1:?X arg2:?Y evt:?L]
+filters:[family:n0Vn1]
+semantics:[?E:hate(?L) ?E:agent(?L ?X) ?E:patient(?L ?Y)]
+\end{verbatim}
+
+\subsection{Notes about lexicons}
+
 \begin{itemize}
-\item A list of parameters and an interface, as defined in
-      \fnref{geniParams}.  The interface is meant to be unified with
-      the tree interface.
-\item A feature structure which is to be unifed with the tree interface.
-      This is equivalent to the attribute-value pairs above; the only
-      difference is that we don't do any parameters, and we use square
-      brackets instead of parentheses.
-\item Optionally: a set of path equations for enrichmment.
-      This feature structure can consist of
-      path equations of the form node.att:val, because they will be
-      unified with the entire tree and not just the tree interface. To
-      force something to unify with a tree interface in XMG, you should
-      supply ``interface.'' as a node name.
+\item The semantics associated with a lexicali item may have more than one literal
+\begin{verbatim}
+cher adj (?E ?X ?Y)
+semantics:[?E:cost(?X ?Y) ?E:high(?Y)]
+\end{verbatim}
+
+\item A lemma may have more than one distinct semantics
+\begin{verbatim}
+bank n (?X)
+semantics:[bank(?X)]
+
+bank v (?E ?X ?D)
+semantics:[?E:lean(?X,?D)]
+\end{verbatim}
+
+\item A semantics may be realised by more than one lexical entry (e.g.  synonynms)
+\begin{verbatim}
+livre nC (?I)
+semantics:[book(?I)]
+
+bouquin nC (?I)
+semantics:[book(?I)]
+\end{verbatim}
 \end{itemize}
-\item Optionally: a set of filters.  This is to be used in conjunction
-      with XMG's SelectTAG.  Note that you must explicitly include 
-      family as an attribute, even if it's already declared in the 
-      lexical entry.
-\end{enumerate}
+
+\subsection{Lexicon EBNF}
+
+\begin{SaveVerbatim}{KoweyTmp}
+<lexicon>        ::= <lexicon-entry>*
+<lexicon-entry>  ::= <lexicon-header> <opt-filters> <semantics>
+<lexicon-header> ::= <lemma> <family> <parameters>
+                   | <lemma> <family> <keyword-equations> <feature-structure>
+<parameters>     ::= "(" <value>* <opt-interface> ")"
+<interface>      ::= "!" <attribute-value-pairs>*
+<filters>        ::= <keyword-filter> <feature-structure>
+\end{SaveVerbatim}
+\begin{center}
+\fbox{\BUseVerbatim{KoweyTmp}}
+\end{center}
 
 \begin{code}
 geniLexicon :: Parser [ILexEntry]
@@ -376,13 +600,142 @@ geniLexicalEntry =
       interface <- option [] $ do symbol "!"
                                   many geniAttVal
       return (pars, interface)
+
+geniLexSemantics :: Parser (Sem, [[Int]])
+geniLexSemantics =
+  do litpols <- many (geniLexLiteral <?> "a literal")
+     return $ unzip litpols
+
+geniLexLiteral :: Parser (Pred, [Int])
+geniLexLiteral =
+  do (handle, hpol) <- option (GAnon,0) (handleParser <?> "a handle")
+     predicate  <- geniValue <?> "a predicate"
+     paramsPols <- parens (many geniPolValue) <?> "some parameters"
+     --
+     let (pars, pols) = unzip paramsPols
+         literal = (handle, predicate, pars)
+     return (literal, hpol:pols)
+  where handleParser =
+          try $ do { h <- geniPolValue; colon; return h }
+
+geniPolValue :: Parser (GeniVal, Int)
+geniPolValue =
+  do p <- geniPolarity
+     v <- geniValue
+     return (v,p)
 \end{code}
 
-\section{Trees}
+\section{Tree schemata}
 
-\subsection{Macros}
+The tree schemata file (for historical reasons, this is also called the macros
+file) contains a set of unlexicalised trees organised into families.  Such
+``macros'' consist of a
 
-A macro library is basically a list of trees.
+\begin{enumerate}
+\item a family name and (optionally) a macro name
+\item a list of parameters
+\item ''initial'' or ''auxiliary''
+\item a tree.
+\end{enumerate}
+
+\subsection{Trees}
+
+\jargon{Trees} are recursively defined structure of form \verb!node{tree*}!
+For example, in the table below, the  structure on the left should produce the
+tree on the right:
+
+\begin{SaveVerbatim}{KoweyTmp}
+n1{
+   n2
+   n3{
+      n4
+      n5
+     }
+   n6
+}
+\end{SaveVerbatim}
+\begin{tabular}{ll}
+\BUseVerbatim{KoweyTmp} & \includegraphics[scale=0.50]{images/tree-format-example.png} \\
+\end{tabular}
+
+\subsection{Nodes}
+
+\jargon{Nodes} consist of
+\begin{enumerate}
+\item a name
+\item a type (optional)
+\item either a lexeme, or top and bottom feature structures. Here are examples of the five possible kinds of nodes:
+\end{enumerate}
+
+\noindent
+Here are some examples of nodes
+\begin{verbatim}
+ n1 [cat:n idx:?I]![cat:n idx:?I]            % basic
+ n3 type:subst [cat:n idx:?Y]![cat:n idx:?Y] % subst
+ n4 type:foot  [cat:n idx:?Y]![cat:n idx:?Y] % foot
+ n5 type:lex   "de"                        % coanchor
+ n2 anchor                                 % anchor
+ n5 aconstr:noadj % node with a null-adjunction constraint (other than subst or foot)
+\end{verbatim}
+
+\subsection{Example}
+
+\begin{verbatim}
+adj:post(?I)  auxiliary
+n0[cat:n idx:?I det:_]![cat:n idx:?I det:minus ]
+{
+  n1 type:foot [cat:n idx:?I det:minus]![cat:n idx:?I det:minus]
+  n2[cat:a]![]
+  {
+    n3 anchor
+  }
+}
+
+adj:pre(?I)  auxiliary
+n0[cat:n idx:?I det:_ qu:_]![cat:n idx:?I det:minus ]
+{
+  n1[cat:a]![]
+  {
+    n2 anchor
+  }
+  n3 type:foot [cat:n idx:?I det:minus]![cat:n idx:?I det:minus]
+}
+
+vArity2:n0vn1(?E ?X ?Y) initial
+n1[cat:p]![]
+{
+  n2 type:subst [cat:n idx:?X det:plus]![cat:n idx:?X]
+  n3[cat:v idx:?E]![]
+  {
+    n4 anchor
+  }
+  n5 type:subst [cat:n idx:?Y det:plus]![cat:n idx:?Y]
+}
+\end{verbatim}
+
+\subsection{EBNF}
+
+\begin{SaveVerbatim}{KoweyTmp}
+<macros> ::= <macro>*
+<macro>  ::= <family-name> <opt-macro-name> <parameters> <tree-type> <tree>
+             <opt-semantics> <opt-trace>
+
+<parameters>     ::= "(" <value>* <opt-interface> ")"
+<interface>      ::= ! <attribute-value-pair>*
+<macro-name>     ::= <identifier>
+<tree-type>      ::= "initial" | "auxiliary"
+<trace>          ::= <keyword-trace> "[" <identifier>* "]"
+
+<tree>           ::= <node> | <node> "{" <tree>* "}"
+<node>           ::= <node-name> <opt-node-type> <node-payload>
+<node-name>      ::= <identifier>
+<node-type>      ::= <keyword-type> <core-node-type> | "anchor"
+<core-node-type> ::= "foot" | "subst" | "lex"
+<node-payload>   ::= <string-literal> | <feature-structure> "!" <feature-structure>
+\end{SaveVerbatim}
+\begin{center}
+\fbox{\BUseVerbatim{KoweyTmp}}
+\end{center}
 
 \begin{code}
 geniMacros :: Parser [MTtree]
@@ -391,20 +744,7 @@ geniMacros = tillEof $ many geniTreeDef
 initType, auxType :: Parser Ptype
 initType = do { reserved INITIAL ; return Initial  }
 auxType  = do { reserved AUXILIARY ; return Auxiliar }
-\end{code}
 
-\subsection{Tree definitions}
-
-A tree definition consists of 
-\begin{enumerate}
-\item a family name, followed by an optional tree id
-\item the tree parameters/interface as defined in \fnref{geniParams}
-\item (optional) a tree type specification, as parameterised through the
-      \fnparam{ttypeP} argument 
-\item the tree itself
-\end{enumerate}
-
-\begin{code}
 geniTreeDef :: Parser MTtree
 geniTreeDef =
   do sourcePos <- getPosition
@@ -441,37 +781,7 @@ geniTreeDef =
               , ptrace = ptrc
               , psemantics = psem
               }
-\end{code}
 
-\subsection{Tree structure}
-
-A tree is recursively defined as a node followed by an optional list of child
-nodes. If there are any child nodes, they appear between curly brackets.
-
-A node consists of 
-
-\begin{enumerate}
-\item A node name
-\item (optionally) a node type (anchor, lexeme, foot, subst).
-\item (if node type is lexeme) a lexeme
-\item (optionally) an adjunction constraint 
-      (Notes: We only know about null adjunction constraints.
-       If the node has a type, it is assumed as having
-       a null adjunction constraint)
-\end{enumerate}
-
-Example of a tree:
-\begin{verbatim}
-n2 type:subst [cat:np idx:?Agent]![]
-n3[cat:vp idx:?Event]![]
-{
-  n4 aconstr:noadj [cat:v idx:?Event]![]
-  {
-    n5 anchor
-  }
-\end{verbatim}
-
-\begin{code}
 geniTree :: Parser (T.Tree GNode)
 geniTree = 
   do node <- geniNode
@@ -527,19 +837,13 @@ geniNode =
          symbol "!"
          bot <- geniFeats <?> "bot features"
          return (top,bot)
-\end{code}
 
-\subsection{TagElem}
-
-For debugging purposes, it is often useful to be able to read TagElem's
-directly.  Note that this shares a lot of code with the macros above.
-Hopefully, it is reasonably refactored.
-
-FIXME: note that this is very rudimentary; we do not set id numbers,
-parse polarities. You'll have to call
-some of our helper functions if you want that functionality.
-
-\begin{code}
+-- | This makes it possible to read anchored trees, which may be
+--   useful for debugging purposes.
+--
+--   FIXME: note that this is very rudimentary; we do not set id numbers,
+--   parse polarities. You'll have to call
+--   some of our helper functions if you want that functionality.
 geniTagElems :: Parser [TagElem]
 geniTagElems = tillEof $ setTidnums `fmap` many geniTagElem
 
@@ -625,34 +929,15 @@ morphLexiconEntry =
     return (inflected, lemma, feats)
 \end{code}
 
-\section{Generic GenI stuff}
-
 \subsection{Lexer}
 
-Some preliminaries about GenI formats in general - comments start with 
-\verb!%!  There is also the option of using \verb'/* */' for embedded
-comments.  
-
 \begin{code}
+-- ----------------------------------------------------------------------
+-- helpers
+-- ----------------------------------------------------------------------
+
 lexer :: TokenParser ()
 lexer  = makeTokenParser geniLanguageDef
-
-geniLanguageDef :: LanguageDef ()
-geniLanguageDef = emptyDef
-         { commentLine = "%"
-         , commentStart = "/*"
-         , commentEnd = "*/"
-         , opLetter = oneOf ""
-         , reservedOpNames = [""]
-         , reservedNames =
-             [ SEMANTICS , SENTENCE, OUTPUT, IDXCONSTRAINTS, TRACE
-             , ANCHOR , SUBST , FOOT , LEX , TYPE , ACONSTR_NOADJ
-             , INITIAL , AUXILIARY
-             , BEGIN , END ]
-         , identLetter = identStuff
-         , identStart  = identStuff
-         }
-  where identStuff = alphaNum <|> oneOf "_'+-."
 
 whiteSpace :: CharParser () ()
 whiteSpace = P.whiteSpace lexer
@@ -714,67 +999,6 @@ geniParams = parens $ do
   pars <- many geniValue <?> "some parameters"
   interface <- option [] $ do { symbol "!"; many geniAttVal }
   return (pars, interface)
-\end{code}
-
-\subsection{Semantics}
-
-A semantics is simply a list of literals.  A literal can take one of two
-forms:
-\begin{verbatim}
-  handle:predicate(arguments)
-         predicate(arguments)
-\end{verbatim}
-
-The arguments are space-delimited.  Not providing a handle is
-equivalent to providing an anonymous one.
-
-\begin{code}
-geniSemantics :: Parser Sem
-geniSemantics = 
-  do sem <- many (geniLiteral <?> "a literal")
-     return (sortSem sem)
-
-geniLiteral :: Parser Pred
-geniLiteral =  
-  do handle    <- option GAnon handleParser <?> "a handle"
-     predicate <- geniValue <?> "a predicate"
-     pars      <- parens (many geniValue) <?> "some parameters"
-     --
-     return (handle, predicate, pars)
-  where handleParser =  
-          try $ do { h <- geniValue ; char ':' ; return h }
-\end{code}
-
-\subsection{Lexical semantics}
-
-A lexical semantics is almost exactly the same as a regular semantics, 
-except that each variable may be preceded by a polarity symbol.  When
-we figure out how to automate the detection of lexical semantic
-polarities, we can start using a regular semantics again.
-
-\begin{code}
-geniLexSemantics :: Parser (Sem, [[Int]])
-geniLexSemantics = 
-  do litpols <- many (geniLexLiteral <?> "a literal")
-     return $ unzip litpols
-
-geniLexLiteral :: Parser (Pred, [Int])
-geniLexLiteral =  
-  do (handle, hpol) <- option (GAnon,0) (handleParser <?> "a handle")      
-     predicate  <- geniValue <?> "a predicate"
-     paramsPols <- parens (many geniPolValue) <?> "some parameters"
-     --
-     let (pars, pols) = unzip paramsPols
-         literal = (handle, predicate, pars)
-     return (literal, hpol:pols)
-  where handleParser =  
-          try $ do { h <- geniPolValue; colon; return h }
-
-geniPolValue :: Parser (GeniVal, Int)
-geniPolValue = 
-  do p <- geniPolarity
-     v <- geniValue
-     return (v,p)
 \end{code}
 
 
