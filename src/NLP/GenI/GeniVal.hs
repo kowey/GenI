@@ -98,13 +98,13 @@ unify l1 l2 = repropagate `liftM` helper l1 l2
   helper (h1:t1) (h2:t2) =
     case unifyOne h1 h2 of
     Failure -> fail $ "unification failure between " ++ show h1 ++ " and " ++ show h2
-    SuccessRep v g -> prepend `liftM` unify t1b t2b
+    SuccessRep v g -> prepend `liftM` helper t1b t2b
                       where
                        s   = (v,g)
                        t1b = replaceOne s t1
                        t2b = replaceOne s t2
                        prepend = (g:) *** prependToSubst s
-    SuccessSans g  -> first (g:) `liftM` unify t1 t2
+    SuccessSans g  -> first (g:) `liftM` helper t1 t2
 
 -- | Note that the first Subst is assumed to come chronologically
 --   before the second one; so merging @{ X -> Y }@ and @{ Y -> 3 }@
