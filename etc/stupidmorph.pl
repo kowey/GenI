@@ -3,96 +3,83 @@ eval 'exec perl -w -S $0 ${1+"$@"}'
  if 0; 
 
 use strict;
+use JSON;
 
-# --------------------------------------------------------------------  
-# very stupid morphological generator for french
+# --------------------------------------------------------------------
+# idiotic morphological generator
 #
-# Our intention here is not to build a useful (or correct) 
-# morphological generator but to demonstrate what kind of inputs 
-# and outputs GenI expects from third party generators.
-# --------------------------------------------------------------------  
-  
-my $in_sentence = 0;
+# this outputs for each lemma the name of the lemma and its category
+# --------------------------------------------------------------------
 
-while (<STDIN>) {
-  my $lemma = "";
-  my %has = ();
-  my %hasav = ();
-  my %feat = ();
+# --------------------------------------------------------------------
+# from GenI
+# --------------------------------------------------------------------
 
-  if (/(.*?)\s*\[(.*)\]/) {   # parse out values
-    $lemma = $1;
-    my $featstr = $2;
-    # store the features into a hash
-    # note: this is not feature -> attribute but a simple
-    # hash with feat:attr as key
-    %has = ();
-    my $av = "";
-    for (split(/ /, $featstr)) { 
-      $av = $_;
-      my ($attr, $val) = split(/:/,$av);
-      $has{$attr} = 1;
-      $hasav{$av} = 1;
-      $feat{$attr} = $val
-    }
-  }
+# we return a list of lists of hashes
+# - each item in the outer list corresponds to a sentence
+# - each item in the inner list corresponds to a word
+# - each hash represents the features read from GenI plus a special "__lemma__" feature
+#   which holds the lemma
+sub read_morph_request {
+  my $json_str = shift;
+  my $allR = from_json $json_str;
+  my @r_sentences = (); # one request per sentence
 
-  # control of spaces
-  if ($lemma eq "----") { 
-    print "\n"; 
-    $in_sentence = 0;
-    next;
-  } elsif ($in_sentence) {
-    print " ";
-  } else { # start new sentence
-    $in_sentence = 1;
-  }
+  foreach my $sentenceR (@$allR) {
+    my @r_words = ();
+    foreach my $wordR (@$sentenceR) {
+      my $lemma = $wordR->{lemma};
+      my $featstr = $wordR->{"lemma-features"};
+      $featstr =~ s/^\[//;
+      $featstr =~ s/\]$//;
 
-  # determiners
-  if ($lemma eq "le") {
-    if    ($hasav{"num:pl"}) { print "les" }
-    elsif ($hasav{"gen:f"})  { print "la"; }
-    else  { print "le"; }
-  }
-  elsif ($lemma eq "un") {
-    if    ($hasav{"num:pl"}) { print "des"; }
-    elsif ($hasav{"gen:f"})  { print "une"; }
-    else  { print "un"; }
-  }
-  # verbs (-er and -re verbs)
-  elsif ($hasav{"cat:v"}) {
-    my $stem = $lemma;
-    if ($stem =~ s/er$//) {
-      if ($hasav{"num:pl"} and $has{"pers"}) {
-        my $pers = $feat{"pers"};
-        print $stem."ons" if ($pers eq "1");
-        print $stem."ez"  if ($pers eq "2");
-        print $stem."ent" if ($pers eq "3");
-      } else {
-        if ($hasav{"pers:2"}) { print $stem."es" }
-        else { print $stem."e" }
+      my %feat = ();
+      my $av = "";
+      for (split(/ /, $featstr)) {
+        $av = $_;
+        my ($attr, $val) = split(/:/,$av);
+        $feat{$attr} = $val;
       }
+      $feat{"__lemma__"} = $lemma;
+      push @r_words, \%feat;
     }
-    if ($stem =~ s/re$//) {
-      $stem =~ s/tt$/t/;
-      if ($hasav{"num:pl"} and $has{"pers"}) {
-        my $pers = $feat{"pers"};
-        print $stem."ons" if ($pers eq "1");
-        print $stem."ez"  if ($pers eq "2");
-        print $stem."ent" if ($pers eq "3");
-      } else {
-        if ($hasav{"pers:3"}) { print $stem }
-        else { print $stem."s" }
-      }
-    }
+    push @r_sentences, \@r_words;
   }
-  # nouns ˆ l'anglaise
-  elsif ($hasav{"cat:n"}) {
-    my $stem = $lemma;
-    if ($hasav{"num:pl"}) {
-      print $stem."s";
-    } else { print $stem; }
-  }
-  
-  else { print $lemma }
+  return \@r_sentences
 }
+
+# --------------------------------------------------------------------
+# morph
+# --------------------------------------------------------------------
+
+sub morph {
+  my $lemma = shift;
+  my $featsR = shift;
+  my $cat = $featsR->{"cat"};
+  return "$lemma:$cat";
+}
+
+# --------------------------------------------------------------------
+# main
+# --------------------------------------------------------------------
+
+# slurp STDIN to $buf (copied from web)
+my $holdTerminator = $/;
+undef $/;
+my $buf = <STDIN>;
+$/ = $holdTerminator;
+
+my @output = ();
+my $reqsR = read_morph_request $buf;
+foreach my $sentenceR (@$reqsR) {
+  my @output_words = ();
+  foreach my $wordR (@$sentenceR) {
+    my $inflected = morph($wordR->{"__lemma__"}, $wordR);
+    push @output_words, $inflected;
+  }
+  my $output_sentence = join(" ",@output_words);
+  my @singleton = ( $output_sentence );
+  push @output, \@singleton;
+}
+
+print to_json(\@output);
