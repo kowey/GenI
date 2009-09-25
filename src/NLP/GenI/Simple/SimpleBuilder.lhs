@@ -49,7 +49,7 @@ where
 \ignore{
 \begin{code}
 import Control.Arrow ( second )
-import Control.Monad (when, liftM2)
+import Control.Monad (when, unless, liftM2)
 import Control.Monad.State.Strict
   (get, put, modify, gets, runState, execStateT)
 
@@ -102,9 +102,7 @@ import NLP.GenI.Tags ( idname,
     ts_synIncomplete, ts_semIncomplete, ts_tbUnificationFailure,
     )
 
-#ifndef DISABLE_GUI
 import Data.List ( sortBy, unfoldr )
-#endif
 \end{code}
 }
 
@@ -213,13 +211,12 @@ addToChart te = do
   incrCounter chart_size 1
 
 addToTrash :: SimpleItem -> String -> SimpleState ()
-#ifdef DISABLE_GUI
-addToTrash _ _ = return ()
-#else
 addToTrash te err = do
-  let te2 = modifyGuiStuff (\g -> g { siDiagnostic = err:siDiagnostic g }) te
-  modify $ \s -> s { theTrash = te2 : theTrash s }
-#endif
+  disableGui <- gets (hasFlagP DisableGuiFlg . genconfig)
+  unless disableGui $
+    modify $ \s -> s { theTrash = te2 : theTrash s }
+  where
+    te2 = modifyGuiStuff (\g -> g { siDiagnostic = err:siDiagnostic g }) te
 
 addToResults :: SimpleItem -> SimpleState ()
 addToResults te =
@@ -339,7 +336,8 @@ siInitial =  isNothing . siFoot
 -- | Creates an initial SimpleStatus.
 initSimpleBuilder ::  Bool -> B.Input -> Params -> (SimpleStatus, Statistics)
 initSimpleBuilder twophase input config =
-  let cands   = map (initSimpleItem bmap) $ B.inCands input
+  let disableGui = hasFlagP DisableGuiFlg config
+      cands   = map (initSimpleItem disableGui bmap) $ B.inCands input
       (sem,_,_) = B.inSemInput input
       bmap    = defineSemanticBits sem
       -- FIXME: I don't know if this matters for one-phase
@@ -366,8 +364,9 @@ initSimpleBuilder twophase input config =
      runState (execStateT (mapM initialDp cands) initS) (B.initStats config)
 
 
-initSimpleItem :: SemBitMap -> (TagElem, BitVector) -> SimpleItem
-initSimpleItem bmap (teRaw,pp) =
+initSimpleItem :: Bool -- ^ disable gui
+               -> SemBitMap -> (TagElem, BitVector) -> SimpleItem
+initSimpleItem disableGui bmap (teRaw,pp) =
  let (te,tlite) = renameNodesWithTidnum teRaw in
  case detectSites (ttree te) of
  (snodes,anodes,nullAdjNodes) -> setIaf $ SimpleItem
@@ -390,16 +389,11 @@ initSimpleItem bmap (teRaw,pp) =
   -- note: see comment in initSimpleBuilder re: tb unification
   , siPendingTb = nullAdjNodes
   --
-#ifdef DISABLE_GUI
-  , siGuiStuff = emptySimpleGuiItem
-#else
-  , siGuiStuff = initSimpleGuiItem te
-#endif
+  , siGuiStuff = if disableGui then emptySimpleGuiItem else initSimpleGuiItem te
   }
   where setIaf i = i { siAccesible = iafNewAcc i }
         theTree = ttree te
 
-#ifndef DISABLE_GUI
 initSimpleGuiItem :: TagElem -> SimpleGuiItem
 initSimpleGuiItem te = SimpleGuiItem
  { siHighlight = []
@@ -407,7 +401,6 @@ initSimpleGuiItem te = SimpleGuiItem
  , siDiagnostic = []
  , siFullSem = tsemantics te
  , siIdname = idname te }
-#endif
 
 renameNodesWithTidnum :: TagElem -> (TagElem, Tree NodeName)
 renameNodesWithTidnum te =
@@ -500,11 +493,10 @@ generateStep_2p_adj =
 
 \begin{code}
 trashIt :: SimpleItem -> SimpleState ()
-#ifdef DISABLE_GUI
-trashIt _ = return ()
-#else
 trashIt item =
- do s <- get
+ do disableGui <- gets (hasFlagP DisableGuiFlg . genconfig)
+    unless disableGui $ do
+    s <- get
     let bmap = semBitMap s
         itemSem = siSemantics item
         inputSem = tsem s
@@ -512,7 +504,6 @@ trashIt item =
                     then "unknown reason!"
                     else ts_semIncomplete $ bitVectorToSem bmap $ inputSem `xor` itemSem
     addToTrash item reason
-#endif
 
 -- | Arbitrarily selects and removes an element from the agenda and
 --   returns it.
@@ -541,8 +532,7 @@ switchToAux = do
       -- chart; this is because all the syntactically complete auxiliary
       -- trees have already been filtered away by calls to classifyNew
       initialT  = filter siInitial (theChart st)
-      res1@(compT1, incompT1) =
-         partition (null.siSubstnodes) initialT
+      (compT1, incompT1) = partition (null.siSubstnodes) initialT
       --
       (auxTrees, compT2) =
         if hasOpt EarlyNa config
@@ -563,10 +553,8 @@ switchToAux = do
         , step = AdjunctionPhase }
   mapM_ simpleDispatch_2p_adjphase compT
   -- toss the syntactically incomplete stuff in the trash
-#ifndef DISABLE_GUI
   mapM_ (\t -> addToTrash t ts_synIncomplete) incompT1
   mapM_ (\t -> addToTrash t "sem-filtered") incompT3
-#endif
 \end{code}
 
 \subsubsection{SemFilter Optimisation}
@@ -663,15 +651,11 @@ iapplySubst twophase item1 item2 | siInitial item1 && closed item1 = {-# SCC "ap
               nr    = TagSite rn newU newD rOrigin
               adj1  = nr : (delete r $ siAdjnodes item1)
               adj2  = siAdjnodes item2
-#ifdef DISABLE_GUI
-              item1g = item1
-#else
               item1g = item1 { siGuiStuff = g2 }
                 where g2 = g { siNodes = repList (gnnameIs rn) newRoot (siNodes g) }
                       g  = siGuiStuff item1
               -- gui stuff
               newRoot g = g { gup = newU, gdown = newD, gtype = Other }
-#endif
           let pending = if twophase then []
                         else nr : (siPendingTb item1 ++ siPendingTb item2)
           return $! replace subst $ combineSimpleItems [rn] item1g $
@@ -762,11 +746,7 @@ sansAdjunction2p item | closed item =
      let item1 = if isRootOf item gn
                  then item { siRoot = TagSite gn tb [] o }
                  else item
-#ifdef DISABLE_GUI
-         item2 = item1
-#else
          item2 = modifyGuiStuff (constrainAdj gn tb) item1
-#endif
      in return $! [replace s $! item2 { siAdjnodes = atail }]
 sansAdjunction2p _ = return []
 \end{code}
@@ -808,10 +788,6 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
       -- the new adjunction nodes
       auxlite = delete r $ siAdjnodes aItem
       newadjnodes = anr : (atail ++ auxlite)
-      --
-#ifdef DISABLE_GUI
-      aItem2 = aItem
-#else
       -- Ugh, this is horrible: this is just to make sure the GUI gets
       -- updated accordingly.  The code used to be a lot simpler, but
       -- I started trying to move stuff out of the way in the interests
@@ -822,7 +798,6 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
               setSites (TagSite n u d _) gn =
                 if gnname gn == n then gn { gup = u, gdown = d }
                                   else gn
-#endif
       rawCombined =
         combineSimpleItems [tsName r, an_name] aItem2 $ pItem
                { siAdjnodes = newadjnodes
@@ -843,13 +818,8 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
       finalRes2p =
        do -- tb on the former foot
           tbRes <- unifyFeat (tsUp anf) (tsDown anf)
-#ifdef DISABLE_GUI
-          let (_, subst3) = tbRes
-              myRes = res'
-#else
           let (anf_tb, subst3) = tbRes
               myRes = modifyGuiStuff (constrainAdj an_name anf_tb) res'
-#endif
           -- apply the substitutions
               res' = replace (mergeSubst subst12 subst3) rawCombined
           return myRes
@@ -877,10 +847,10 @@ detectNa :: [SimpleItem] -- ^ aux trees
          -> Maybe SimpleItem
 detectNa rawAux i = helper (siAdjnodes i) Map.empty []
  where
-  aux = filterCompatible i rawAux
+  compatAux = filterCompatible i rawAux
   helper []     s acc = Just $ replace s $ i { siAdjnodes = acc }
   helper (t:ts) s acc =
-    let hasAdj = any isJust $ map (\a -> canAdjoin a t i) aux
+    let hasAdj = any isJust $ map (\a -> canAdjoin a t i) compatAux
     in case (snd `fmap` unifyFeat (tsUp t) (tsDown t)) of
         Just s2 -> if hasAdj
                    then helper ts s (t : acc)
@@ -928,12 +898,9 @@ combineSimpleItems :: [NodeName] -- ^ nodes to highlight
 combineSimpleItems hi item1 item2 = {-# SCC "combineSimpleItems" #-}
   item2 { siSemantics = siSemantics item1 .|. siSemantics item2
         , siPolpaths  = siPolpaths  item1 .&. siPolpaths  item2
-#ifndef DISABLE_GUI
         , siGuiStuff  = combineSimpleGuiItems hi (siGuiStuff item1) (siGuiStuff item2)
-#endif
         }
 
-#ifndef DISABLE_GUI
 combineSimpleGuiItems :: [NodeName]
                       -> SimpleGuiItem -> SimpleGuiItem -> SimpleGuiItem
 combineSimpleGuiItems hi item1 item2 =
@@ -947,7 +914,6 @@ constrainAdj :: String -> Flist -> SimpleGuiItem -> SimpleGuiItem
 constrainAdj gn newT g =
   g { siNodes = repList (gnnameIs gn) fixIt (siNodes g) }
   where fixIt n = n { gup = newT, gdown = [], gaconstr = True }
-#endif
 \end{code}
 
 \subsubsection{Derivation trees}
@@ -1222,7 +1188,6 @@ more eligible items.
 
 \begin{code}
 partialResults :: SimpleStatus -> [SimpleItem]
-#ifndef DISABLE_GUI
 partialResults st = unfoldr getNext 0
  where
   inputsem = tsem st
@@ -1241,9 +1206,6 @@ countBits :: Bits a => a -> Int
 countBits 0  = 0
 countBits bs = if testBit bs 0 then 1 + next else next
   where next = countBits (shiftR bs 1)
-#else
-partialResults = return []
-#endif
 \end{code}
 
 % --------------------------------------------------------------------
@@ -1254,15 +1216,10 @@ partialResults = return []
 {-
 instance NFData SimpleItem where
   rnf (SimpleItem x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13
-#ifndef DISABLE_GUI
-        x14
-#endif
       ) = rnf x1 `seq` rnf x2 `seq` rnf x3 `seq` rnf x4 `seq` rnf x5 `seq` rnf x6
                  `seq` rnf x7 `seq` rnf x8 `seq` rnf x9 `seq` rnf x10 `seq` rnf x11
                  `seq` rnf x11 `seq` rnf x12 `seq` rnf x13
-#ifndef DISABLE_GUI
                  `seq` rnf x14
-#endif
 -}
 \end{code}
 
