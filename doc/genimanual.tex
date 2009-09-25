@@ -5,6 +5,7 @@
 \usepackage{url}
 \usepackage{fancybox}
 \usepackage{fancyhdr}
+\usepackage{fancyvrb}
 \usepackage{framed}
 \usepackage{color}
 \usepackage{multirow}
@@ -33,17 +34,11 @@
 % ----------------------------------------
 
 \geometry{verbose,tmargin=40mm,bmargin=40mm,lmargin=25mm,rmargin=25mm}
-%\input{lambdaTeX}
 
 \pagestyle{fancyplain} 
 \lfoot{GenI reference manual}
 \cfoot{\thepage}
 \rfoot{}
-
-%\setlength\parindent{0pt}
-\setlength{\fboxsep}{0.1pt}
-
-\renewcommand\FrameHeightAdjust{1pt}
 
 \newenvironment{code}{\comment}{\endcomment}
 \newenvironment{includecodeinmanual}
@@ -72,47 +67,27 @@
 % Overview
 % -------------------------------------------------------------------------
 
-\chapter*{License}
-
-GenI surface realiser\\
-Copyright \copyright 2005-2009 Carlos Areces and Eric Kow
-
-\bigskip
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-\bigskip
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-\bigskip
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
 \chapter{Overview}
 
-This is the GenI reference manual.  You may also be interested in
+This is the GenI reference manual.  We provide four distinct kinds of
+documentation.  At the time of this writing, 2009-09-25 all four of them
+are woefully incomplete.  In order of most user-oriented to most
+developer-oriented the documentation comes in the form of
 
-\begin{itemize}
-\item A ``getting started'' walk-through,
-      see \url{http://trac.haskell.org/GenI/wiki/Walkthrough}
+\begin{enumerate}
+\item A ``getting started'' page on\\
+      \url{http://trac.haskell.org/GenI/wiki/Walkthrough}
+\item Reference manual (this document)
 \item \textit{Literate GenI} which provides details on GenI
       algorithms and implementation (see \cite{literateGeni}),
       still not very literate at the time of this writing
       2009-09-24.
-\end{itemize}
+\item API: do \verb!cabal haddock!
+\end{enumerate}
 
-% -------------------------------------------------------------------------
-% Overview
-% -------------------------------------------------------------------------
+In addition to the formal documentation, we also provide an FAQ and
+other informal notes on the wiki.  See
+\url{http://trac.haskell.org/GenI} for details.
 
 \part{Basics}
 

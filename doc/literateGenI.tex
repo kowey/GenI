@@ -6,6 +6,7 @@
 \usepackage{url}
 \usepackage{fancybox}
 \usepackage{fancyhdr}
+\usepackage{fancyvrb}
 \usepackage{framed}
 \usepackage{color}
 \usepackage{multirow}
@@ -42,7 +43,7 @@
 \rfoot{}
 
 %\setlength\parindent{0pt}
-\setlength{\fboxsep}{0.1pt}
+%\setlength{\fboxsep}{0.1pt}
 
 \renewcommand\FrameHeightAdjust{1pt}
 
@@ -157,11 +158,6 @@ modules.
 
 \section{Miscellaneous}
 
-For reference, we also include in chapter \label{cha:GeniParsers} the
-parsers for all GenI formats (macros, lexicon, input semantics).  These
-are all written in Parsec.  They used to be written in Happy, but I
-eventually found that hard to maintain and extend.
-
 There are also many modules which I have removed from this document,
 mostly the user interface code.  See chapter \ref{cha:other} for
 details.  One idea which might be interesting is to make the user
@@ -210,10 +206,6 @@ See section \ref{sec:foot_constraint}
 
 \part{Miscellaneous}
 
-\input{../src/NLP/GenI/GeniParsers.lhs}
-%\input{GrammarXml.lhs}
-%\input{Converter.lhs}
-
 \chapter{Other source code}
 \label{cha:other}
 
@@ -234,6 +226,7 @@ literate programming style: they are not included in this document.
 
 \begin{enumerate}
 \item{Configuration.lhs}
+\item{GeniParsers.lhs}
 \item{General.hs}
 \item{SysGeni.hs}
 \end{enumerate}
