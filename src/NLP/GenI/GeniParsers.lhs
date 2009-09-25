@@ -39,13 +39,13 @@ module NLP.GenI.GeniParsers (
   -- macros 
   geniMacros,
   -- lexicons
-  geniLexicon, geniMorphLexicon, geniMorphInfo,
+  geniLexicon, geniMorphInfo,
   -- features and polarities
   geniFeats, geniPolarities,
   -- TagElem,
   geniTagElems,
   -- things used by external scripts
-  geniSemantics, geniValue, geniWords, geniLanguageDef, tillEof,
+  geniSemantics, geniValue, geniWord, geniWords, geniLanguageDef, tillEof,
   --
   parseFromFile, -- UTF-8 version
   module Text.ParserCombinators.Parsec
@@ -843,15 +843,6 @@ structure to which it is associated.  The table is whitespace-delimited.
 geniMorphLexicon :: Parser [MorphLexEntry]
 geniMorphLexicon = tillEof $ many morphLexiconEntry
 
-morphLexiconEntry :: Parser (String, String, Flist)
-morphLexiconEntry =
- do inflected <- try stringLiteral <|> geniWord
-    whiteSpace
-    lemma     <-  try stringLiteral <|> geniWord
-    whiteSpace
-    feats     <- geniFeats
-    return (inflected, lemma, feats)
-\end{code}
 
 \subsection{Lexer}
 
