@@ -32,20 +32,18 @@ rules we leave out, and prefer to describe informally:
 \ignore{
 \begin{code}
 module NLP.GenI.GeniParsers (
-  -- test suite stuff
+  -- * Test suites
   geniTestSuite, geniSemanticInput, geniTestSuiteString,
   geniDerivations,
   toSemInputString,
-  -- macros 
-  geniMacros,
-  -- lexicons
+  -- * Trees
+  geniMacros, geniTagElems,
+  -- * Lexicon and morph
   geniLexicon, geniMorphInfo,
-  -- features and polarities
-  geniFeats, geniPolarities,
-  -- TagElem,
-  geniTagElems,
-  -- things used by external scripts
-  geniSemantics, geniValue, geniWord, geniWords, geniLanguageDef, tillEof,
+  -- * Basics
+  geniFeats, geniPolarities, geniSemantics, geniValue, geniWords,
+  -- * Helpers
+  geniWord, geniLanguageDef, tillEof,
   --
   parseFromFile, -- UTF-8 version
   module Text.ParserCombinators.Parsec
