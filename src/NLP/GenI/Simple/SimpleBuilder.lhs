@@ -837,7 +837,7 @@ canAdjoin aItem pSite = do
   let -- combined substitution list and success condition
       subst12 = mergeSubst subst1 subst2
       anr = r     { tsUp   = anr_up' }
-      anf = aSite { tsDown = anf_down }
+      anf = pSite { tsDown = anf_down }
   return (anr, anf, subst12)
 \end{code}
 
@@ -850,7 +850,7 @@ detectNa rawAux i = helper (siAdjnodes i) Map.empty []
   compatAux = filterCompatible i rawAux
   helper []     s acc = Just $ replace s $ i { siAdjnodes = acc }
   helper (t:ts) s acc =
-    let hasAdj = any isJust $ map (\a -> canAdjoin a t i) compatAux
+    let hasAdj = any isJust $ map (\a -> canAdjoin a t) compatAux
     in case (snd `fmap` unifyFeat (tsUp t) (tsDown t)) of
         Just s2 -> if hasAdj
                    then helper ts s (t : acc)
