@@ -1,0 +1,316 @@
+%\input{images/kelvin-runs-often-in-colorado}
+\def\rulename#1#2{\multicolumn{1}{r#1}{\tiny (#2)}} % for deductive parsing
+\newcommand{\ellyou}{L$_U$\xspace}
+\newcommand{\koweytautree}[1] {$\tau_{#1}$}
+\newcommand{\koweynatlang}[1]{``#1''}
+\newcommand{\koweytuple}[1]{\langle #1 \rangle}
+\newcommand{\koweysemexpr}{\textit}
+
+\chapter{Realisation Algorithm}
+\label{cha:geni}
+
+\textbf{TODO} : This imported from my PhD thesis.  It needs massaging.
+
+\geni uses an FB-LTAG grammar with an \ellyou semantics and a bottom-up
+chart generation algorithm.  Realisation takes place in two broad
+phases: lexical selection, which returns a set of elementary trees, and
+tree assembly, which combines the selected trees in reasonable ways.
+
+\subsection{Lexical selection}
+\label{sec:lexical-selection}
+
+Now, on to the two phases of \geni.
+For a parser, lexical selection might consist of collecting the
+elementary trees that correspond to the words of the input sentence.
+This is similar for realisation except that we collect the elementary
+trees that correspond to literals of the input semantics, more precisely
+those trees whose semantics subsumes part of the input semantics.
+
+The input to lexical selection is thus (i) a flat input semantics and
+(ii) an FB-LTAG grammar.  The grammar consists of a set of lexical items
+consisting of an elementary tree and
+a lexical semantics.  More precisely:
+\begin{definition}[lexical item]\label{def:lexical-item}
+A lexical item consists of a pair $\koweytuple{T,S}$, where $T$ is
+an LTAG elementary tree and
+$S$ is an \ellyou formula.  Unification variables in the lexical item
+are understood to have scope over the whole item, that is $T$ and $S$.
+\end{definition}
+
+In the lexical selection process, we basically retrieve any lexical item
+whose semantics is non-empty and can be unified with some part of the
+input semantics.  The unification variables in the lexical semantics are
+shared with the associated elementary tree.  Via the unification of the
+(subsumed part of the) input and lexical semantics, semantic indices
+from the input are propagated into the feature  structures of the
+elementary tree.  Because the input semantics is saturated, the
+instantiated lexical item also has a saturated semantics.
+
+\subsection{Tree assembly (chart generation)}
+\label{sec:geni-chart}
+
+After the lexical selection phase, we move into tree assembly.  The
+input to this phase is the semantic formula we wish to
+realise, and the set of lexically selected elementary trees.  Our
+objective is to find every derived tree that can be built from these
+parts and which is (i) syntactically complete, meaning it has no empty 
+substitution sites and (ii) semantically complete, meaning that its
+semantics exactly matches the input semantics.  Ultimately, the goal
+of realisation is to produce a set of strings, but this basically
+consists of concatenating the leaves of each derived tree.
+
+To cope with the problem of intersective modifiers, the algorithm uses
+the delayed modification strategy of \cite{carroll1999ecg}.  Realisation
+occurs in two chart generation phases, a substitution phase (where only
+TAG substitutions are performed), and an adjunction phase (likewise, TAG
+adjunctions only).  Separating forces the realiser to only insert
+modifiers into syntactically complete structures.  It also happens to be
+a very natural strategy to use with TAG because adjunction and auxiliary
+trees are part and parcel of the formalism.  This could be seen as a
+potential advantage for TAG as a generation formalism
+\cite{gardent2005gas}.
+
+% \begin{table}
+% \begin{center}
+% \footnotesize
+% \begin{tabular}{|p{4em}|c|}
+% \hline
+% \multicolumn{2}{|l|}{Given an input semantics $\mathbf{sem}$ and lexicon $L$:} \\
+% \hline
+% Axioms    & \genisubinit \\[5ex]
+% Goals     & \genisubgoal \\[3ex]
+% Inference rules& \genisubcomp \\
+%           & \rulename{|}{Sub}\\[2ex]
+% \hline
+% \end{tabular}
+% \end{center}
+% \caption{\label{tbl:genisub-rules}\geni substitution phase (modulo unification)}
+% \end{table}
+% 
+% \begin{table}
+% \begin{center}
+% \footnotesize
+% \begin{tabular}{|p{4em}|c|}
+% \hline
+% \multicolumn{2}{|l|}{Given an input semantics $\mathbf{sem}$, and
+% goal edge items $GS$ from the previous phase}\\
+% \hline
+% Axioms    & \geniadjinit \\[5ex]
+% Goals     & \geniadjgoal \\[3ex]
+% Inference rules& \geniadjcomp \\
+%           & \rulename{|}{Adj}\\[2ex]
+% \hline
+% \end{tabular}
+% \end{center}
+% \caption{\label{tbl:geniadj-rules}\geni adjunction phase (modulo unification)}
+% \end{table}
+
+We can think of the two phases as two successive chart generation
+problems fed to a generic deductive parser.  For clarity, here is a more
+procedural description of the algorithm.  We are using the usual agenda
+based control (Section \ref{sec:agenda-based-control}), where the
+\jargon{agenda} is a data structure for storing unprocessed intermediate
+results.  For convenience, we introduce a new data structure, called an
+\jargon{auxiliary agenda}.  The auxiliary agenda is used to set aside
+any syntactically complete auxiliary trees found during the first phase
+of realisation.  It is not strictly necessary, but it saves the trouble
+of filtering the chart afterwards.  Here are the two phases in detail:
+
+\paragraph{Substitution phase}
+\begin{enumerate}
+\item Store the lexically selected trees in
+  the agenda, except for auxiliary trees which are devoid of
+  substitution nodes (put these in the auxiliary agenda).\\
+\item Loop: Retrieve a tree from the agenda, add it to the chart and try
+  to combine it by substitution with trees present in the chart. Add any
+  resulting derived tree to the agenda. Stop when the agenda is empty.
+\end{enumerate}
+
+\paragraph{Adjunction phase}
+\begin{enumerate}
+\setcounter{enumi}{2}
+\item Move the chart trees to the agenda and the auxiliary agenda trees
+      on to the chart.  Discard all trees which are not syntactically
+      complete (i.e. that still have open substitution nodes), as they
+      will never become complete in this phase.
+\item Loop: Retrieve a tree from the agenda, add it to the chart and try to
+  combine it by adjunction with trees present in the chart. Add any
+  resulting derived tree to the agenda. Stop when the agenda is empty.
+\end{enumerate}
+
+\noindent
+The inner workings of this algorithm might be better illustrated by an
+example or two:
+
+%\subsubsection{Kelvin runs often}
+%\begin{figure}[htpb]
+%\begin{center}
+%\KelvinRunsOften
+%\end{center}
+%\caption{Kelvin runs often}
+%\label{fig:kro}
+%\end{figure}
+
+Let us start with a simple one. Suppose that the input semantics is
+\koweysemexpr{l0:run(r), l0:agent(r,k), l0:often(r), l1:name(k,Kelvin)}.
+Lexical selection gives us a set of elementary
+trees lexicalised with the words \koweynatlang{Kelvin},
+\koweynatlang{often}, \koweynatlang{runs} (Figure \ref{fig:kro}).  The
+trees for \koweynatlang{Kelvin} and \koweynatlang{runs} are placed on
+the agenda, the one for \koweynatlang{often} is placed on the auxiliary
+agenda.
+
+We begin with the \jargon{substitution phase}, which consists of
+systematically exploring the possibility of combining two trees by
+substitution.  Note that in the table below, the letters `k', `r' and
+`o' stand for the elementary trees that correspond to
+\koweynatlang{Kelvin}, \koweynatlang{runs} and \koweynatlang{often},
+respectively.  When the trees combine, we write, for example, `kr' to
+mean a derived tree for \koweynatlang{Kelvin runs}.  We see that here, the
+tree for \koweynatlang{Kelvin} is substituted into the one for
+\koweynatlang{runs}, and the resulting derived tree for
+\koweynatlang{Kelvin runs} is placed on the agenda.  Trees on the agenda
+are processed one by one in this fashion, although in this simple
+example, there is only one substitution to be done.  When the agenda is
+empty, indicating that all combinations have been tried, we prepare for
+the next phase.
+
+\begin{center}
+{\footnotesize
+\begin{tabular}{|p{6em}|p{9em}|p{9em}|p{4em}|}
+\hline
+Combination       & Agenda & Chart  & AgendaA  \\
+\hline
+                  & k,r    &        & o \\
+                  & r,     & k      & o \\
+$\downarrow$(r,k) & kr     & r,k    & o \\
+                  &        & r,k,kr & o \\
+\hline
+\end{tabular}}
+\end{center}
+
+All items containing an open substitution node are erased from the
+chart (here, the tree anchored by \koweynatlang{runs}) as there is
+no hope that they will be made complete in this phase.
+The agenda
+is then reinitialised to the content of the chart and the chart to the
+content of the auxiliary agenda (here \koweynatlang{often}).
+The \textbf{adjunction phase} proceeds much like the previous phase,
+except that now all possible adjunctions are performed.  When
+the agenda is empty once more, the items in the chart whose semantics
+matches the input semantics are selected, and their strings printed
+out, yielding in this case the sentence \koweynatlang{Kelvin runs often}.
+
+\begin{center}
+{\footnotesize
+\begin{tabular}{|p{6em}|p{9em}|p{6em}|p{4em}|}
+\hline
+Combination   & Agenda & Chart  & Results  \\
+\hline
+              & k,kr   & o      &          \\
+              & kr     & o      &          \\
+$\star$(kr,o) & kro    & o      &          \\
+              &        & o      & kro      \\
+\hline
+\end{tabular}}
+\end{center}
+
+Note that the chart never changes during the adjunction phase.  This
+is because we do not store new items onto the chart.  As each tree is
+removed from the agenda, either we notice that it is semantically
+complete and save it as a result, or we perform all adjunction
+operations involving (i) the tree and (ii) a tree from the chart, and
+put any resulting derived trees back onto the agenda.  The tree itself
+is no longer of any use and may be discarded.  We will see more
+implications of this below, when we have more than one auxiliary tree
+that can adjoin into the same node.
+
+\subsubsection{Kelvin runs often in Colorado}
+Now, a slightly more complicated example.  Here, we shall see auxiliary
+tree with substitution nodes, as well as a lexical selection which leads
+to more than one result.  Our new input semantics
+is \koweysemexpr{l1:name(k,Kelvin), l0:often(r), l0:run(r,k), l0:in(r,i),
+l0:place(i,Colorado)}, basically the same as before with two new literals.
+The lexically selected trees (Figure \ref{fig:kroic}) are the same as
+before plus trees for \koweynatlang{in} and \koweynatlang{Colorado}.
+The trees for \koweynatlang{in}, \koweynatlang{Colorado},
+\koweynatlang{Kelvin} and \koweynatlang{runs} are placed on the agenda,
+whereas the tree for \koweynatlang{often} is placed on the auxiliary
+agenda.
+
+%\begin{figure}[htpb]
+%\begin{center}
+%\KelvinRunsOftenInColorado
+%\end{center}
+%\caption{Kelvin runs often in Colorado}
+%\label{fig:kroic}
+%\end{figure}
+
+Again, the substitution phase explores all possible substitutions, of
+which there are two: \koweynatlang{Kelvin} into \koweynatlang{runs} to
+get \koweynatlang{Kelvin runs}, and \koweynatlang{Colorado} into
+\koweynatlang{in} to get \koweynatlang{in Colorado}.  The case of
+\koweynatlang{in Colorado} is particularly interesting because it is a
+syntactically complete auxiliary tree
+\koweytree{V(V*,PP(P(in),NP(Colorado)))}, in the sense that it has no open
+substitution sites.  When we produce such trees, we transfer them to the
+auxiliary agenda, so that they can be used during the adjunction phase.
+
+\begin{center}
+{\footnotesize
+\begin{tabular}{|p{8em}|p{6em}|p{6em}|p{5em}|}
+\hline
+Combination        & Agenda     & Chart      & AgendaA  \\
+                     \hline
+                   & i,c,k,r    &            & o        \\
+                   & c,k,r      & i          & o        \\
+$\downarrow$(i,c)  & ic,k,r     & i,c        & o        \\
+                   & k,r        & i,c        & o,ic     \\
+                   & r          & i,c,k      & o,ic     \\
+$\downarrow$(r,k)  & kr         & i,c,k,r    & o,ic     \\
+                   &            & i,c,k,r,kr & o,ic     \\
+\hline
+\end{tabular}}
+\end{center}
+
+As before, all items containing an empty substitution node are erased
+from the chart (here, the trees anchored by \koweynatlang{runs}
+and by \koweynatlang{in}).  The agenda is then reinitialised to the
+content of the chart and the chart to the content of the auxiliary
+agenda (here \koweynatlang{often} and \koweynatlang{in Colorado}).
+The \textbf{adjunction phase} proceeds, performing all possible
+adjunctions.  When the agenda is empty
+once more, the items in the
+chart whose semantics matches the input semantics are selected, and
+their strings printed out, yielding in this case the sentences
+\koweynatlang{Kelvin runs often in Colorado} and
+\koweynatlang{Kelvin runs in Colorado often}.
+
+\begin{center}
+{\footnotesize
+\begin{tabular}{|p{8em}|p{6em}|p{6em}|p{5em}|}
+\hline
+Combination                   & Agenda     & Chart      & Results  \\
+                                \hline
+                              & c,k,kr     & o, ic      & \\
+                              & k,kr       & o, ic      & \\
+                              & kr         & o, ic      & \\
+$\star$(kr,o), $\star$(kr,ic) & kro,kric   & o, ic      & \\
+$\star$(kro,ic)               & kroic,kric & o, ic      & \\
+                              & kric       & o, ic      & kroic \\
+$\star$(kric,o)               & krico      & o, ic      & kroic \\
+                              &            & o, ic      & kroic, krico \\
+\hline
+\end{tabular}}
+\end{center}
+
+Here, we get more than one result because trees can combine in different
+ways (we could also get more than one result if we had an ambiguous
+lexical selection, but this is not the case here).  Note, by the way, that
+the combinations here are a result of embedded adjunctions and not
+multiple adjunctions.  The fact that \geni supports the former but not
+the latter is a technical detail, and affects the number of outputs it
+produces (allowing for multiple adjunctions introduces more output since
+we cannot forbid embedded adjunctions), as well as the derivation trees
+for the output.
+
