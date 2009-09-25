@@ -140,7 +140,7 @@ setMorphAnchor n t =
 
 \section{Morphological realisation}
 
-(\jargon{Morphological realisation}) refers to the actual process
+\jargon{Morphological realisation} refers to the actual process
 of converting lemmas and morphological information into inflected forms.
 We do this by calling some third party software specified by the user.
 
