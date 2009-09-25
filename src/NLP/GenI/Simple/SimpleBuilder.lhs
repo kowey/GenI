@@ -67,7 +67,7 @@ import NLP.GenI.Statistics (Statistics)
 
 import NLP.GenI.Automaton ( automatonPaths, NFA(..), addTrans )
 import NLP.GenI.Btypes
-  ( Ptype(Initial,Auxiliar)
+  ( Ptype(Initial)
   , GeniVal
   , replace, DescendGeniVal(..)
   , GNode(..), NodeName
