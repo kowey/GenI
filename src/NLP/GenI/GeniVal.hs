@@ -126,9 +126,13 @@ prependToSubst :: (String,GeniVal) -> Subst -> Subst
 prependToSubst (v, gr@(GVar r)) sm =
   case Map.lookup v sm of
     Just v2 -> geniBug . unlines $
-                [ "prependToSubst: GenI just tried to assign a new value " ++ "(" ++ show gr ++ ")"
-                , "to the unification variable " ++ show (GVar v) ++ ", which already has a "
-                , "a value assigned to it (" ++ show v2 ++ ").  This could mean that either"
+                [ "prependToSubst: GenI just tried to prepend the substitution"
+                , "  " ++ show (GVar v) ++ " -> " ++ show gr
+                , "to one where where "
+                , "  " ++ show (GVar v) ++ " -> " ++ show v2
+                , "is slated to occur afterwards."
+                , ""
+                , "This could mean that either"
                 , " (a) the core unification algorithm is broken"
                 , " (b) we failed to propagate a value somewhere or"
                 , " (c) we are attempting unification without renaming."
