@@ -836,8 +836,8 @@ canAdjoin aItem pSite = do
   (anf_down, subst2)  <- unifyFeat (replace subst1 $ tsDown f) (replace subst1 $ tsDown pSite)
   let -- combined substitution list and success condition
       subst12 = mergeSubst subst1 subst2
-      anr = r     { tsUp   = anr_up' }
-      anf = pSite { tsDown = anf_down }
+      anr = replace subst12 $ r { tsUp = anr_up' }
+      anf = replace subst12 $ pSite { tsDown = anf_down }
   return (anr, anf, subst12)
 \end{code}
 
