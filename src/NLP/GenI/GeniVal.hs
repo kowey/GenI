@@ -123,9 +123,17 @@ mergeSubst sm1 sm2 = Map.foldWithKey (curry prependToSubst) sm2 sm1
 --   @Y -> foo@ to @Y -> bar@, because that would mean that unification
 --   is broken
 prependToSubst :: (String,GeniVal) -> Subst -> Subst
-prependToSubst (v, gr@(GVar r)) sm
-  | isJust $ Map.lookup v sm = geniBug $ "prependToSubst: Eric broke unification.  Prepending " ++ v ++ " twice."
-  | otherwise = Map.insert v gr2 sm
+prependToSubst (v, gr@(GVar r)) sm =
+  case Map.lookup v sm of
+    Just v2 -> geniBug . unlines $
+                [ "prependToSubst: GenI just tried to assign a new value " ++ "(" ++ show gr ++ ")"
+                , "to the unification variable " ++ show (GVar v) ++ ", which already has a "
+                , "a value assigned to it (" ++ show v2 ++ ").  This could mean that either"
+                , " (a) the core unification algorithm is broken"
+                , " (b) we failed to propagate a value somewhere or"
+                , " (c) we are attempting unification without renaming."
+                ]
+    Nothing -> Map.insert v gr2 sm
   where gr2 = fromMaybe gr $ Map.lookup r sm
 prependToSubst (v, gr) sm = Map.insert v gr sm
 
