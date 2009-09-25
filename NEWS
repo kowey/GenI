@@ -1,32 +1,31 @@
 GenI 0.19,
 -----------------------
-- NEW REQUIREMENTS
+- NON BACKWARD-COMPATIBLE CHANGES
 
-  * GHC 6.8 or higher (GHC 6.10 + Haskell Platform preferred)
-
-- NON BACKWARD-COMPATIBLE CHANGES:
-
-  * Input files now *assumed* to be UTF-8 encoded.
-    Previously we assumed they were ISO-8859-1.
-
-    Unfortunately, GenI still outputs ISO-8859-1 by default,
-    except when generating JSON (all non-ASCII characters are
-    escaped).  If you compile GenI with GHC 6.12 the output
-    encoding will be locale-dependent.
-
+  * GHC 6.8 or higher now required (GHC 6.10 + Haskell Platform preferred)
+  * Input files now *assumed* to be UTF-8 encoded
+    (output still ISO8859-1; hopefully locale-based in GHC 6.12)
   * Interface between GenI and morphological realiser now uses a JSON format.
 
 - NEW FUNCTIONALITY
 
   * --version now works and reports version from Cabal file
-    NB: we now follow the odd-even convention, so eg GenI-0.20 is considered
-    stable, whereas GenI-0.21 is considered to be a development version.
   * --ranking foo ranks outputs according to OT-style constraints expressed in foo
   * --batchdir now works with --testcase
   * --batchdir now dumps derivations and statistics in JSON format
-  * console mode accepts 'instructions' files
-  * --metrics always expands 'default' to the default metrics (in addition to
-    any other statistics you request)
+  * --batchdir now works with instructions files
+  * --metrics always expands 'default' to the default metrics
+    (in addition to any other statistics you request)
+
+- QUALITY ASSURANCE
+
+  * Reference manual in docs/genimanual.pdf (make docs)
+  * cabal install -fgui and cabal install produce the same underlying library
+    only the executable is different
+  * Easier GUI installation for MacOS X (application bundles now built
+    automatically; no manual intervention required)
+  * Adopted odd/even convention to distinguish devel builds from stable ones
+    (eg. GenI 0.21.x is devel whereas GenI 0.20.x is stable)
 
 GenI 0.17.4, 6 Apr 2009
 -----------------------
