@@ -57,11 +57,11 @@ import NLP.GenI.PolarityTypes
 
 import Control.Monad (liftM, when)
 import Data.List (sort)
-import qualified Data.Map  as Map 
+import qualified Data.Map  as Map
 import qualified Data.Tree as T
 import Text.ParserCombinators.Parsec hiding (parseFromFile)
 import Text.ParserCombinators.Parsec.Language (emptyDef)
-import Text.ParserCombinators.Parsec.Token (TokenParser, 
+import Text.ParserCombinators.Parsec.Token (TokenParser,
     LanguageDef(..), makeTokenParser)
 import qualified Text.ParserCombinators.Parsec.Token as P
 import qualified System.IO.UTF8 as UTF8
@@ -496,7 +496,7 @@ geniLexicon :: Parser [ILexEntry]
 geniLexicon = tillEof $ many1 geniLexicalEntry
 
 geniLexicalEntry :: Parser ILexEntry
-geniLexicalEntry = 
+geniLexicalEntry =
   do lemma  <- (looseIdentifier <|> stringLiteral) <?> "a lemma"
      family <- identifier <?> "a tree family"
      (pars, interface) <- option ([],[]) $ parens paramsParser
@@ -508,14 +508,14 @@ geniLexicalEntry =
      (sem,pols) <- squares geniLexSemantics
      --
      return emptyLE { iword = [lemma]
-                    , ifamname = family 
+                    , ifamname = family
                     , iparams = pars
                     , iinterface = sortFlist interface
                     , iequations = equations
                     , ifilters = filters
                     , isemantics = sem
                     , isempols = pols }
-  where 
+  where
     paramsParser :: Parser ([GeniVal], Flist)
     paramsParser = do
       pars <- many geniValue <?> "some parameters"
@@ -672,7 +672,7 @@ geniTreeDef =
   do sourcePos <- getPosition
      family   <- identifier
      tname    <- option "" $ do { colon; identifier }
-     (pars,iface)   <- geniParams 
+     (pars,iface)   <- geniParams
      theTtype  <- (initType <|> auxType)
      theTree  <- geniTree
      -- sanity checks?
@@ -705,7 +705,7 @@ geniTreeDef =
               }
 
 geniTree :: Parser (T.Tree GNode)
-geniTree = 
+geniTree =
   do node <- geniNode
      kids <- option [] (braces $ many geniTree)
              <?> "child nodes"
@@ -719,14 +719,14 @@ geniTree =
      return (T.Node node kids)
 
 geniNode :: Parser GNode
-geniNode = 
-  do name      <- identifier 
+geniNode =
+  do name      <- identifier
      nodeType  <- option "" ( (keyword TYPE >> typeParser)
                               <|>
                               reserved ANCHOR)
      lex_   <- if nodeType == LEX
-                  then (sepBy (stringLiteral<|>identifier) (symbol "|") <?> "some lexemes") 
-                  else return [] 
+                  then (sepBy (stringLiteral<|>identifier) (symbol "|") <?> "some lexemes")
+                  else return []
      constr <- case nodeType of
                ""     -> adjConstraintParser
                ANCHOR -> adjConstraintParser
@@ -751,11 +751,11 @@ geniNode =
                  , ganchor  = (nodeType == ANCHOR)
                  , gaconstr = constr
                  , gorigin  = "" }
-  where 
+  where
     typeParser = choice $ map (try.symbol) [ ANCHOR, FOOT, SUBST, LEX ]
     adjConstraintParser = option False $ reserved ACONSTR_NOADJ >> return True
     topbotParser =
-      do top <- geniFeats <?> "top features" 
+      do top <- geniFeats <?> "top features"
          symbol "!"
          bot <- geniFeats <?> "bot features"
          return (top,bot)
