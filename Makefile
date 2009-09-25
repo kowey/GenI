@@ -93,7 +93,7 @@ etc/SumHUnit : etc/SumHUnit.hs
 # documentation
 # --------------------------------------------------------------------
 
-DOC_SRC=$(SOURCE_FILES)
+DOC_SRC=$(SOURCE_FILES) doc/realisation.tex
 
 $(MAKE_DOCS): %.pdf: %.tex $(DOC_SRC)
 	cd $(<D) &&\
