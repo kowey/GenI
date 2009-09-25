@@ -779,15 +779,15 @@ iapplyAdjNode :: Bool -> SimpleItem -> SimpleItem -> Maybe SimpleItem
 iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
  case siAdjnodes pItem of
  [] -> Nothing
- (aSite : atail) -> do
+ (pSite : pTail) -> do
   -- let's go!
-  (anr, anf, subst12) <- canAdjoin aItem aSite pItem
+  (anr, anf, subst12) <- canAdjoin aItem pSite
   let r = siRoot aItem
   f <- siFoot aItem
-  let an_name = tsName aSite
+  let an_name = tsName pSite
       -- the new adjunction nodes
       auxlite = delete r $ siAdjnodes aItem
-      newadjnodes = anr : (atail ++ auxlite)
+      newadjnodes = anr : (pTail ++ auxlite)
       -- Ugh, this is horrible: this is just to make sure the GUI gets
       -- updated accordingly.  The code used to be a lot simpler, but
       -- I started trying to move stuff out of the way in the interests
@@ -803,7 +803,7 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
                { siAdjnodes = newadjnodes
                , siLeaves  = siLeaves aItem ++ siLeaves pItem
                , siDerived = spliceTree (tsName f) (siDerived aItem) an_name (siDerived pItem)
-               , siDerivation = addToDerivation 'a' (aItem,tsOrigin r) (pItem,tsOrigin aSite,an_name)
+               , siDerivation = addToDerivation 'a' (aItem,tsOrigin r) (pItem,tsOrigin pSite,an_name)
                -- , siAdjlist = (n, (tidnum te1)):(siAdjlist item2)
                -- if we adjoin into the root, the new root is that of the aux
                -- tree (affects 1p only)
@@ -827,13 +827,13 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
   if twophase then finalRes2p else finalRes1p
 
 -- Note that we do not propagate variable substitutions in the nodes we return
-canAdjoin :: SimpleItem -> TagSite -> SimpleItem -> Maybe (TagSite, TagSite, Subst)
-canAdjoin aItem aSite pItem = do
+canAdjoin :: SimpleItem -> TagSite -> Maybe (TagSite, TagSite, Subst)
+canAdjoin aItem pSite = do
   -- let's go!
   let r = siRoot aItem -- auxiliary tree, eh?
   f <- siFoot aItem -- should really be an error if fails
-  (anr_up',  subst1)  <- unifyFeat (tsUp r) (tsUp aSite)
-  (anf_down, subst2)  <- unifyFeat (replace subst1 $ tsDown f) (replace subst1 $ tsDown aSite)
+  (anr_up',  subst1)  <- unifyFeat (tsUp r) (tsUp pSite)
+  (anf_down, subst2)  <- unifyFeat (replace subst1 $ tsDown f) (replace subst1 $ tsDown pSite)
   let -- combined substitution list and success condition
       subst12 = mergeSubst subst1 subst2
       anr = r     { tsUp   = anr_up' }
