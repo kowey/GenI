@@ -15,7 +15,7 @@
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-\chapter{File formats (GeniParsers)}
+\chapter{File formats}
 \label{cha:GeniParsers}
 
 This chapter is a description of the file formats used by \geni.  We'll be
@@ -786,43 +786,25 @@ geniTagElem =
                      , ttype  = theType
                      , ttree = theTree
                      , tsemantics = sem }
+
+-- | 'geniParams' recognises a list of parameters optionally followed by a
+--  bang (\verb$!$) and a list of attribute-value pairs.  This whole thing is
+--  to wrapped in the parens.
+--
+--  TODO: deprecate
+geniParams :: Parser ([GeniVal], Flist)
+geniParams = parens $ do
+  pars <- many geniValue <?> "some parameters"
+  interface <- option [] $ do { symbol "!"; many geniAttVal }
+  return (pars, interface)
 \end{code}
-
-\section{Polarities}
-
-The polarities parser is used for parsing extra polarity input from the
-user. For more information, see chapter \ref{cha:Polarity}.
-
-\begin{code}
-geniPolarities :: Parser (Map.Map PolarityKey Interval)
-geniPolarities = tillEof $ toMap `fmap` many pol
-  where 
-    toMap = Map.fromListWith (!+!)
-    pol = do p <- geniPolarity
-             i <- identifier
-             return (PolarityKey i,ival p)
-\end{code}
-
-\fnlabel{geniPolarity} associates a numerical value to a polarity symbol,
- that is, '+' or '-'.
-
-\begin{code}
-geniPolarity :: Parser Int
-geniPolarity = option 0 (plus <|> minus)
-  where 
-    plus  = do { char '+'; return  1   }
-    minus = do { char '-'; return (-1) } 
-\end{code}
-
 
 \section{Morphology}
 
-GenI has two types of morphological input.
-
-\paragraph{morphinfo} A morphinfo file associates predicates with
-morphological feature structures.  Each morphological entry consists of
-a predicate followed by a feature structuer.  For more information, see
-chapter \ref{cha:Morphology}.
+A morphinfo file associates predicates with morphological feature structures.
+Each morphological entry consists of a predicate followed by a feature
+structuer.  For more information, see chapter \ref{cha:Morphology}.
+(\textbf{TODO}: describe format)
 
 \begin{code}
 geniMorphInfo :: Parser [(String,Flist)]
@@ -835,20 +817,46 @@ morphEntry =
      return (pred_, feats)
 \end{code}
 
-\paragraph{morphlexicon} A morphological lexicon is a table where each
-entry is an inflected form followed by the lemma and the feature
-structure to which it is associated.  The table is whitespace-delimited.
-
-\begin{code}
-geniMorphLexicon :: Parser [MorphLexEntry]
-geniMorphLexicon = tillEof $ many morphLexiconEntry
-
-
-\subsection{Lexer}
+% ======================================================================
+% everything else
+% ======================================================================
 
 \begin{code}
 -- ----------------------------------------------------------------------
--- helpers
+-- polarities
+-- ----------------------------------------------------------------------
+geniPolarities :: Parser (Map.Map PolarityKey Interval)
+geniPolarities = tillEof $ toMap `fmap` many pol
+  where
+    toMap = Map.fromListWith (!+!)
+    pol = do p <- geniPolarity
+             i <- identifier
+             return (PolarityKey i,ival p)
+
+-- | 'geniPolarity' associates a numerical value to a polarity symbol,
+--  that is, '+' or '-'.
+geniPolarity :: Parser Int
+geniPolarity = option 0 (plus <|> minus)
+  where
+    plus  = do { char '+'; return  1   }
+    minus = do { char '-'; return (-1) }
+
+-- ----------------------------------------------------------------------
+-- keyword
+-- ----------------------------------------------------------------------
+
+{-# INLINE keyword #-}
+keyword :: String -> Parser String
+keyword k =
+  do let helper = try $ do { reserved k; colon; return k }
+     helper <?> k ++ ":"
+
+{-# INLINE keywordSemantics #-}
+keywordSemantics :: Parser String
+keywordSemantics = keyword SEMANTICS
+
+-- ----------------------------------------------------------------------
+-- language def helpers
 -- ----------------------------------------------------------------------
 
 lexer :: TokenParser ()
@@ -881,43 +889,11 @@ parens  = P.parens  lexer
 reserved, symbol :: String -> CharParser () String
 reserved s = P.reserved lexer s >> return s
 symbol = P.symbol lexer
-\end{code}
 
-\subsection{Keyword}
+-- ----------------------------------------------------------------------
+-- parsec helpers
+-- ----------------------------------------------------------------------
 
-A key is nothing simpler than the keyword, followed by a colon.
-We factor this into a seperate function to account for whitespace.
-
-\begin{code}
-{-# INLINE keyword #-}
-keyword :: String -> Parser String 
-keyword k = 
-  do let helper = try $ do { reserved k; colon; return k }
-     helper <?> k ++ ":"
-
-{-# INLINE keywordSemantics #-}
-keywordSemantics :: Parser String
-keywordSemantics = keyword SEMANTICS
-\end{code}
-
-\fnlabel{geniParams} recognises a list of parameters optionally followed by a
-bang (\verb$!$) and a list of attribute-value pairs.  This whole thing is to
-wrapped in the parens.
-
-\textbf{Note:} sometimes people prefer not to use parameters - instead they
-stick to using the interface.  This is fine, but they should not forget the
-bang seperator.
-
-\begin{code}
-geniParams :: Parser ([GeniVal], Flist)
-geniParams = parens $ do
-  pars <- many geniValue <?> "some parameters"
-  interface <- option [] $ do { symbol "!"; many geniAttVal }
-  return (pars, interface)
-\end{code}
-
-
-\begin{code}
 tillEof :: Parser a -> Parser a
 tillEof p =
   do whiteSpace
@@ -932,5 +908,3 @@ parseFromFile p fname
         ; return (parse p fname input)
         }
 \end{code}
-
-
