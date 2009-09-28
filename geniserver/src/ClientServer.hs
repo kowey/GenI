@@ -19,35 +19,55 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 -- Code which is common to both geni client and server
 
-module ClientServer (hardCodedPort, hGetBeginEnd, hGetNonEmptyLine)
+module ClientServer (hardCodedPort, ServerInstruction(..), hGetBlock, hPutBlock)
 where
 
-import System.IO
+import Control.Applicative ( (<$>), (<*>) )
 import Network
+import Text.JSON
+import Text.JSON.Pretty ( render, pp_value )
+import System.IO
+import qualified System.IO.UTF8 as UTF8
+import Text.ParserCombinators.Parsec
 
 hardCodedPort:: PortID
 hardCodedPort = UnixSocket "/tmp/geniserver"
                 -- (PortNumber 2035)
 
--- keep reading a line until we hit a complete task description
--- or run into some error
-hGetBeginEnd :: String -- ^ keyword
-             -> Handle -> IO (Either String [String])
-hGetBeginEnd key h =
- do l <- hGetNonEmptyLine h
-    if l == ("begin " ++ key)
-       then helper []
-       else return $ Left "no begin task"
- where
-  helper acc =
-   do l <- hGetNonEmptyLine h
-      if l == ("end " ++ key)
-         then return $ Right (reverse acc)
-         else helper (l:acc)
+data ServerInstruction = ServerInstruction
+  { gParams    :: [String]
+  , gSemantics :: String
+  }
 
-hGetNonEmptyLine :: Handle -> IO String
-hGetNonEmptyLine h =
- do l <- hGetLine h
-    case l of
-      "" -> hGetNonEmptyLine h
-      _  -> return l
+instance JSON ServerInstruction where
+ readJSON j =
+    do jo <- fromJSObject `fmap` readJSON j
+       let field x = maybe (fail $ "Could not find: " ++ x) readJSON
+                   $ lookup x jo
+       ServerInstruction <$> field "params"
+                         <*> field "semantics"
+ showJSON x =
+     JSObject . toJSObject $ [ ("params", showJSONs $ gParams x)
+                             , ("semantics", showJSON $ gSemantics x)
+                             ]
+
+tween open close =
+ do xo  <- char open
+    str <- many (stuff <|> tween open close)
+    xc  <- char close
+    return $ xo : [xc]
+ where
+   stuff = many1 (noneOf [ open, close ])
+
+block = tween '{' '}' <|> tween '[' ']'
+
+hGetBlock :: JSON a => Handle -> IO (Either String a)
+hGetBlock h =
+ do mp <- parse block "" `fmap` UTF8.hGetContents h
+    return $ case mp of
+               Left err -> Left (show err)
+               Right p  -> resultToEither . decode $ p
+
+-- | See hGetBlock
+hPutBlock :: JSON a => Handle -> a -> IO ()
+hPutBlock h = UTF8.hPutStr h . render . pp_value . showJSON

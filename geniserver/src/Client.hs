@@ -19,24 +19,23 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 module Main (main) where
 
+import Control.Applicative
 import Network (connectTo, withSocketsDo)
 import System.Environment (getArgs)
 import System.IO
-
-import ClientServer (hardCodedPort, hGetBeginEnd)
+import qualified System.IO.UTF8 as UTF8
+import Text.JSON
+import NLP.GenI.Geni ( GeniResult(..) )
+import ClientServer (hardCodedPort, ServerInstruction(..), hGetBlock, hPutBlock)
 
 main :: IO ()
 main = withSocketsDo $
- do args <- getArgs
+ do instructions <- ServerInstruction <$> getArgs <*> UTF8.getContents
     h <- connectTo "" hardCodedPort -- "127.0.0.1" hardCodedPort
-    hSetBuffering h LineBuffering
-    hPutStrLn h "begin params"
-    hPutStrLn h $ unlines args
-    hPutStrLn h "end params"
-    hPutStrLn h "begin semantics"
-    hPutStrLn h =<< getContents
-    hPutStrLn h "end semantics"
-    mres <- hGetBeginEnd "responses" h
+    hSetBuffering h NoBuffering
+    hPutBlock h (encode instructions)
+    hFlush h
+    mres <- (resultToEither . decode) `fmap` hGetBlock h
     case mres of
      Left err  -> hPutStrLn stderr err
-     Right res -> putStr $ unlines res
+     Right res -> UTF8.putStr . unlines . concatMap grRealisations $ res

@@ -19,20 +19,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 module Main (main) where
 
-import Data.List
 import Data.IORef (newIORef, readIORef, modifyIORef)
 import Network (withSocketsDo, listenOn, accept, Socket)
 import System.Environment (getArgs)
 import System.IO
 import System.Posix.Signals (installHandler, sigPIPE, Handler(Ignore))
+import Text.JSON
 
 import NLP.GenI.Configuration
 import NLP.GenI.General (fst3)
 import NLP.GenI.Geni
 import NLP.GenI.Simple.SimpleBuilder
 import qualified NLP.GenI.Builder as B
-
-import ClientServer (hGetBeginEnd, hardCodedPort)
+import ClientServer (hardCodedPort, ServerInstruction(..),hGetBlock,hPutBlock)
 
 main :: IO ()
 main = withSocketsDo $
@@ -50,30 +49,27 @@ listen :: Socket -> ProgState -> IO ()
 listen sock pst =
  do pstRef <- newIORef pst
     (h,_,_) <- accept sock
+    hSetBuffering h NoBuffering
     -- do a task
-    mparams <- hGetBeginEnd "params" h
-    msem    <- hGetBeginEnd "semantics" h
+    contents <- hGetBlock h
+    let minstructions = resultToEither . decode $ contents
     -- any errors? (Left err monad)
-    let mtask = do p <- mparams
-                   s <- msem
-                   return (p, unlines s)
-    case mtask of
+    case minstructions of
       Left err   -> hPutStrLn stderr (show err)
-      Right (params, semStr) ->
+      Right (ServerInstruction params semStr) ->
        ignoringErrors $
        do conf <- treatArgsWithParams optionsForStandardGenI params (pa pst)
           modifyIORef pstRef (\p -> p { pa = conf })
-          loadTargetSemStr pstRef semStr
+          loadTargetSemStr pstRef $ "semantics:[" ++ semStr ++ "]"
           -- do the realisation
-          let helper builder = fmap (sort.fst3) $ runGeni pstRef builder
-          sentences <- case builderType conf of
-                         NullBuilder   -> helper B.nullBuilder
-                         SimpleBuilder -> helper simpleBuilder_2p
-                         SimpleOnePhaseBuilder -> helper simpleBuilder_1p
+          let helper builder = fst3 `fmap` runGeni pstRef builder
+          results <- case builderType conf of
+                       NullBuilder   -> helper B.nullBuilder
+                       SimpleBuilder -> helper simpleBuilder_2p
+                       SimpleOnePhaseBuilder -> helper simpleBuilder_1p
           -- return the results
-          hPutStrLn h "begin responses"
-          hPutStr h $ unlines $ map fst sentences
-          hPutStrLn h "end responses"
+          hPutBlock h $ encode results
+          hFlush h
     -- close shop and start over
     ignoringErrors $ hClose h
     listen sock pst -- the original
