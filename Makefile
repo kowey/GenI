@@ -102,4 +102,6 @@ $(MAKE_DOCS): %.pdf: %.tex $(DOC_SRC)
 	$(DVIPDF)
 
 publish:
+	cabal haddock
 	scp $(MAKE_DOCS) kowey@code.haskell.org:/srv/projects/GenI
+	rsync -av dist/doc/html/GenI/ kowey@code.haskell.org:/srv/projects/GenI/api-doc
