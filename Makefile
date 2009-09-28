@@ -53,7 +53,7 @@ dist/build/geni/geni: $(SOURCE_FILES)
 
 doc:  init maindoc
 
-maindoc: $(MAKE_DOCS)
+maindoc: $(SOURCE_FILES) $(MAKE_DOCS)
 
 docs: doc
 
@@ -68,7 +68,7 @@ init: permissions
 permissions: $(config_file)
 	chmod u+x $(SCRIPT_FILES)
 
-tags:
+tags: $(SOURCE_FILES)
 	hasktags -c $(shell find src -name '*.*hs')
 	LC_ALL=C sort $@ > $@.tmp
 	mv $@.tmp $@
