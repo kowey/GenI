@@ -1,5 +1,5 @@
-GenI 0.19,
------------------------
+GenI 0.20, 29 Sep 2009
+----------------------
 - NON BACKWARD-COMPATIBLE CHANGES
 
   * GHC 6.8 or higher now required (GHC 6.10 + Haskell Platform preferred)
