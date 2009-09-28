@@ -38,7 +38,7 @@ import NLP.GenI.General
 import NLP.GenI.Geni
 import NLP.GenI.Configuration
   ( Params
-  , BatchDirFlg(..), EarlyDeathFlg(..), FromStdinFlg(..), OutputFileFlg(..)
+  , BatchDirFlg(..), DumpDerivationFlg(..), EarlyDeathFlg(..), FromStdinFlg(..), OutputFileFlg(..)
   , MetricsFlg(..), RankingConstraintsFlg(..), StatsFileFlg(..)
   , TestCaseFlg(..), TestSuiteFlg(..), TestInstructionsFlg(..)
   , TimeoutFlg(..),  VerboseModeFlg(..)
@@ -145,6 +145,7 @@ runOnSemInput pstRef args semInput =
   do modifyIORef pstRef (\x -> x{ts = semInput, warnings = []})
      pst <- readIORef pstRef
      let config = pa pst
+         dump = hasFlagP DumpDerivationFlg config
          useRanking = hasFlagP RankingConstraintsFlg config
      (results, stats) <- case builderType config of
                             NullBuilder   -> helper B.nullBuilder
@@ -167,9 +168,11 @@ runOnSemInput pstRef args semInput =
                      Standalone _ f  -> writeFile f
                      PartOfSuite n f -> writeFile $ f </> n </> "stats"
      --
-     if useRanking
-        then oWrite . unlines . map (prettyResult pst) $ results
-        else oWrite . unlines . sort . concatMap grRealisations $ results
+     if dump
+        then oWrite . ppJSON $ results
+        else if useRanking
+                then oWrite . unlines . map (prettyResult pst) $ results
+                else oWrite . unlines . sort . concatMap grRealisations $ results
      doWrite . ppJSON $ results
      -- print any warnings we picked up along the way
      when (not $ null warningsOut) $

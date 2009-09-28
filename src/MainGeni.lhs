@@ -40,7 +40,8 @@ import NLP.GenI.Geni(emptyProgState)
 import NLP.GenI.Console(consoleGeni)
 import NLP.GenI.Configuration (treatArgs, optionsForStandardGenI, processInstructions,
                                usage, optionsSections, Params,
-                               hasFlagP, BatchDirFlg(..), DisableGuiFlg(..), FromStdinFlg(..),
+                               hasFlagP, BatchDirFlg(..), DisableGuiFlg(..),
+                               DumpDerivationFlg(..),  FromStdinFlg(..),
                                HelpFlg(..), VersionFlg(..), TestCaseFlg(..),
                                RegressionTestModeFlg(..), RunUnitTestFlg(..),
                               )
@@ -88,7 +89,7 @@ main = do
   pstRef <- newIORef pst
   let has :: (Typeable f, Typeable x) => (x -> f) -> Bool
       has = flip hasFlagP confArgs
-      mustRunInConsole = has FromStdinFlg || has BatchDirFlg
+      mustRunInConsole = has DumpDerivationFlg || has FromStdinFlg || has BatchDirFlg
       canRunInConsole  = has TestCaseFlg
   case () of
    _ | has HelpFlg               -> putStrLn (usage optionsSections pname)
@@ -105,6 +106,7 @@ main = do
         , " - in self-diagnostic unit test mode"
         , " - with a test case specified"
         , " - with a batch directory specified or"
+        , " - with --dump"
         , " - with --from-stdin"
         ]
 

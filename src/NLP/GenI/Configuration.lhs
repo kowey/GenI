@@ -25,6 +25,7 @@ module NLP.GenI.Configuration
   , BatchDirFlg(..)
   , DetectPolaritiesFlg(..)
   , DisableGuiFlg(..)
+  , DumpDerivationFlg(..)
   , EarlyDeathFlg(..)
   , ExtraPolaritiesFlg(..)
   , FromStdinFlg(..)
@@ -359,6 +360,8 @@ rankingOption =
 optionsForOutput :: [OptDescr Flag]
 optionsForOutput =
   [ outputOption
+  , Option []    ["dump"]    (noArg DumpDerivationFlg)
+      "print derivation information on stdout (JSON)"
   , Option []    ["partial"] (noArg PartialFlg)
       "return partial result(s) if no complete solution is found"
   -- same as rankingOption but with output-centric help text
@@ -848,6 +851,7 @@ data type code.
 FLAG (BatchDirFlg, FilePath)
 FLAG (DisableGuiFlg, ())
 FLAG (DetectPolaritiesFlg, (Set.Set PolarityAttr))
+FLAG (DumpDerivationFlg, ())
 FLAG (EarlyDeathFlg, ())
 FLAG (ExtraPolaritiesFlg, (Map.Map PolarityKey Interval))
 FLAG (FromStdinFlg, ())
