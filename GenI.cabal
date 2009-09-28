@@ -45,7 +45,9 @@ data-files: AUTHORS, INSTALL, README, NEWS, GenI.cabal,
             examples/xmg-example/Makefile,
             examples/xmg-example/README,
             examples/xmg-example/suite,
-            etc/macstuff/Info.plist, etc/macstuff/wxmac.icns
+            etc/stupidmorph.pl,
+            etc/macstuff/Info.plist,
+            etc/macstuff/wxmac.icns
 
 extra-source-files: src/NLP/GenI/SysGeni.hs
                     src/NLP/GenI/Test.hs
