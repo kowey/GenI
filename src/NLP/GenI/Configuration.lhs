@@ -154,6 +154,7 @@ Command line arguments can be specified in the GNU style, for example
 short switch is available.  For more information, type \texttt{geni
 --help}.
 
+
 \begin{code}
 type OptSection = (String,[OptDescr Flag],[String])
 
@@ -192,17 +193,7 @@ getSwitches (Option s l _ _) = (s,l)
 
 nubBySwitches :: [OptDescr a] -> [OptDescr a]
 nubBySwitches = nubBy (\x y -> getSwitches x == getSwitches y)
-\end{code}
 
-\subsection{Essential arguments}
-
-See also section \ref{sec:optimisations} for more details on
-optimisations.
-
-% FIXME: what would be great is some special processing of the
-% code below so that the documentation writes itself
-
-\begin{code}
 -- GetOpt wrappers
 noArg :: forall f . (Eq f, Show f, Typeable f)
       => (() -> f) -> ArgDescr Flag
@@ -279,12 +270,16 @@ defineParams flgs prms =
 \section{Options by theme}
 \label{sec:fancy_parameters}
 
+At the time of this writing (2009-09-25), it is highly unlikely that all the
+options are documented here.  See \verb!geni --help!  for more details.
+
 Note that you might see an option described in more than one place
 because it falls into multiple categories.
 
 % --------------------------------------------------------------------
 \subsection{Basic options}
 % --------------------------------------------------------------------
+
 
 \begin{code}
 optionsForBasicStuff :: [OptDescr Flag]
@@ -299,7 +294,17 @@ optionsForBasicStuff =
 \subsection{Input files}
 % --------------------------------------------------------------------
 
+See Chapter \ref{cha:formats} for details on how to write these files.
+
 \begin{description}
+\item[macros]
+  The \verb!macros! switch is used to supply GenI with FB-LTAG tree
+  schemata.
+\item[lexicon]
+  The \verb!lexicon! is used for lexical entries that point to the
+  macros
+\item[suite]
+  The \verb!suite! provides test cases on which to run GenI
 \item[ranking]
   The \verb!ranking! switch allows you to specify a file containing
   Optimality Theory style constraints which GenI will use to rank
@@ -330,7 +335,7 @@ instructionsOption =
 
 macrosOption =
   Option ['m'] ["macros"] (reqArg MacrosFlg id "FILE")
-      "macros file FILE (unanchored trees)"
+      "tree schemata file FILE (unanchored trees)"
 
 lexiconOption =
   Option ['l'] ["lexicon"] (reqArg LexiconFlg id "FILE")
@@ -593,10 +598,9 @@ parseFlagWithParsec description p str =
 
 \begin{description}
 \item[builder]
-  A builder is basically a surface realisation algorithm.  Some
-  builders do not differ by very much.  For example, the Earley and CKY builders
-  are more or less the same from GenI's point of view, except with one little
-  parameter to tweak.
+  A builder is basically a surface realisation algorithm.  \geni has the
+  infrastructure to support different realisation algorithms, but some
+  broken ones have been removed.
 \end{description}
 
 \begin{code}
