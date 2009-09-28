@@ -20,10 +20,9 @@
 
 module NLP.GenI.Console(consoleGeni, runTestCaseOnly) where
 
-import Control.Applicative ( (<$>), (<*>) )
 import Control.Monad
 import Data.IORef(readIORef, modifyIORef)
-import Data.List(find, nub, sort)
+import Data.List(find, sort)
 import Data.Maybe ( isJust, fromMaybe )
 import System.Directory(createDirectoryIfMissing)
 import System.Exit ( exitFailure )
@@ -47,10 +46,8 @@ import NLP.GenI.Configuration
   , builderType , BuilderType(..)
   )
 import qualified NLP.GenI.Builder as B
-import NLP.GenI.OptimalityTheory ( rankResults, prettyViolations, OtResult, OtViolation )
 import NLP.GenI.Simple.SimpleBuilder
 import NLP.GenI.Statistics ( Statistics )
-import NLP.GenI.Tags ( DerivationStep(..) )
 
 import Text.JSON
 import Text.JSON.Pretty ( render, pp_value )
@@ -149,7 +146,6 @@ runOnSemInput pstRef args semInput =
      pst <- readIORef pstRef
      let config = pa pst
          useRanking = hasFlagP RankingConstraintsFlg config
-         verbose    = hasFlagP VerboseModeFlg config
      (results, stats) <- case builderType config of
                             NullBuilder   -> helper B.nullBuilder
                             SimpleBuilder -> helper simpleBuilder_2p
@@ -171,14 +167,10 @@ runOnSemInput pstRef args semInput =
                      Standalone _ f  -> writeFile f
                      PartOfSuite n f -> writeFile $ f </> n </> "stats"
      --
-     let tracesFn = getTraces pst
-         rankedResults = rankResults tracesFn (ranking pst) results
-         showWithViolations (rank, (str, _), vs) =
-           show rank ++ ". " ++ str ++ "\n" ++ prettyViolations tracesFn verbose vs
      if useRanking
-        then oWrite . unlines . map showWithViolations $ rankedResults
-        else oWrite . unlines . sort . map fst $ results
-     doWrite . ppJSON $ map (toNiceResult pst) rankedResults
+        then oWrite . unlines . map (prettyResult pst) $ results
+        else oWrite . unlines . sort . concatMap grRealisations $ results
+     doWrite . ppJSON $ results
      -- print any warnings we picked up along the way
      when (not $ null warningsOut) $
       do let ws = reverse warningsOut
@@ -196,58 +188,4 @@ runOnSemInput pstRef args semInput =
     helper builder =
       do (results, stats, _) <- runGeni pstRef builder
          return (results, stats)
-
-toNiceResult :: ProgState -> OtResult (String, B.Derivation) -> NiceResult
-toNiceResult pst (i,(s,d),vs) =
- NiceResult { nrSentence     = s
-            , nrDerivation   = d
-            , nrLexSelection = map (\x -> NiceLexSel x (getTraces pst x))
-                                (B.lexicalSelection d)
-            , nrRanking = i
-            , nrViolations = vs
-            }
-
-data NiceResult = NiceResult
- { nrSentence     :: String
- , nrDerivation   :: B.Derivation
- , nrLexSelection :: [ NiceLexSel ]
- , nrRanking      :: Int
- , nrViolations   :: [ OtViolation ]
- }
-
-data NiceLexSel = NiceLexSel
- { nlTree  :: String
- , nlTrace :: [String]
- }
-
-instance JSON NiceResult where
- readJSON j =
-    do jo <- fromJSObject `fmap` readJSON j
-       let field x = maybe (fail $ "Could not find: " ++ x) readJSON
-                   $ lookup x jo
-       NiceResult <$> field "sentence"
-                  <*> field "derivation"
-                  <*> field "lexical-selection"
-                  <*> field "ranking"
-                  <*> field "violations"
- showJSON nr =
-     JSObject . toJSObject $ [ ("sentence", showJSON $ nrSentence nr)
-                             , ("derivation", showJSONs $ nrDerivation nr)
-                             , ("lexical-selection", showJSONs $ nrLexSelection nr)
-                             , ("ranking", showJSON $ nrRanking nr)
-                             , ("violations", showJSONs $ nrViolations nr)
-                             ]
-
-instance JSON NiceLexSel where
- readJSON j =
-    do jo <- fromJSObject `fmap` readJSON j
-       let field x = maybe (fail $ "Could not find: " ++ x) readJSON
-                   $ lookup x jo
-       NiceLexSel <$> field "lex-item"
-                  <*> field "trace"
- showJSON x =
-     JSObject . toJSObject $ [ ("lex-item", showJSON  $ nlTree x)
-                             , ("trace",    showJSONs $ nlTrace x)
-                             ]
-
 

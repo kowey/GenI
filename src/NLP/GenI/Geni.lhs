@@ -25,9 +25,16 @@ module also does lexical selection and anchoring because these processes might
 involve some messy IO performance tricks.
 
 \begin{code}
-module NLP.GenI.Geni (ProgState(..), ProgStateRef, emptyProgState,
+module NLP.GenI.Geni (
+             -- * main interface
+             ProgState(..), ProgStateRef, emptyProgState,
+             initGeni,
+             runGeni, runGeniWithSelector,
+             GeniResult(..), ResultType(..),
+             -- * helpers
+             lemmaSentenceString, prettyResult,
              showRealisations, groupAndCount,
-             initGeni, runGeni, runGeniWithSelector, getTraces, GeniResult, Selector,
+             getTraces, Selector,
              loadEverything, loadLexicon, loadGeniMacros,
              loadTestSuite, loadTargetSemStr,
              loadRanking, readRanking,
@@ -41,7 +48,8 @@ where
 
 \ignore{
 \begin{code}
-import Control.Arrow (first,(&&&))
+import Control.Applicative ((<$>),(<*>))
+import Control.Arrow ((&&&))
 import Control.Monad.Error
 import Control.Monad (unless)
 
@@ -75,7 +83,7 @@ import NLP.GenI.Btypes
    replace, replaceList,
    Sem, SemInput, TestCase(..), sortSem, subsumeSem, params,
    GeniVal(GConst), fromGVar, AvPair(..),
-   GNode(ganchor, gnname, gup, gdown, gaconstr, gtype, gorigin), Flist,
+   GNode(ganchor, gnname, gup, gdown, gaconstr, gtype, gorigin),
    GType(Subs, Other),
    isemantics, ifamname, iword, iparams, iequations,
    iinterface, ifilters,
@@ -396,7 +404,22 @@ is run the surface realiser.
 \end{enumerate}
 
 \begin{code}
-type GeniResult = (String, B.Derivation)
+data GeniResult = GeniResult
+ { grLemmaSentence     :: B.LemmaPlusSentence
+ , grRealisations :: [String]
+ , grDerivation   :: B.Derivation
+ , grLexSelection :: [ GeniLexSel ]
+ , grRanking      :: Int
+ , grViolations   :: [ OtViolation ]
+ , grResultType   :: ResultType
+ } deriving (Ord, Eq)
+
+data GeniLexSel = GeniLexSel
+ { nlTree  :: String
+ , nlTrace :: [String]
+ } deriving (Ord, Eq)
+
+data ResultType = CompleteResult | PartialResult deriving (Ord, Eq)
 
 -- | Returns a list of sentences, a set of Statistics, and the generator state.
 --   The generator state is mostly useful for debugging via the graphical interface.
@@ -407,26 +430,22 @@ runGeni pstRef builder = runGeniWithSelector pstRef defaultSelector builder
 
 runGeniWithSelector :: ProgStateRef -> Selector -> B.Builder st it Params -> IO ([GeniResult], Statistics, st)
 runGeniWithSelector pstRef  selector builder =
-  do let run    = B.run builder
+  do pst <- readIORef pstRef
+     let config = pa pst
+         run    = B.run builder
          unpack = B.unpack builder
-         getPartial = B.partial builder
-     -- step 1
+     -- step 1: lexical selection
      initStuff <- initGeniWithSelector pstRef selector
-     --
-     pst <- readIORef pstRef
-     let config  = pa pst
-         -- step 2 
-         (finalSt, stats) = run initStuff config
-         -- step 3
-         uninflected = unpack finalSt
-         partial = getPartial finalSt
-     -- step 4
-     sentences <- if null uninflected && hasFlagP PartialFlg config
-                     then map (first star) `fmap` finaliseResults pstRef partial
-                     else finaliseResults pstRef uninflected
-     return (sentences, stats, finalSt)
- where star :: String -> String
-       star s = '*' : s
+     -- step 2: chart generation
+     let (finalSt, stats) = run initStuff config
+     -- step 3: unpacking
+     let uninflected = unpack finalSt
+         tryPartial  = null uninflected && hasFlagP PartialFlg config
+         rawResults  = if tryPartial then B.partial builder finalSt else uninflected
+         resultTy    = if tryPartial then PartialResult else CompleteResult
+     -- step 4: post-processing
+     results <- finaliseResults pstRef resultTy rawResults
+     return (results, stats, finalSt)
 \end{code}
 
 % --------------------------------------------------------------------
@@ -464,18 +483,33 @@ initGeniWithSelector pstRef lexSelector =
           , B.inCands = map (\c -> (c,-1)) cand
           }
     return initStuff 
-\end{code}
 
-\begin{code}
--- | 'finaliseResults' for the moment consists only of running the
---   morphological generator, but there could conceivably be more involved.
-finaliseResults :: ProgStateRef -> [B.Output] -> IO [GeniResult]
-finaliseResults pstRef os =
- do mss <- runMorph pstRef ss
-    return . concat $ zipWith merge mss ds
+-- | 'finaliseResults' does any post-processing steps that we want to integrate
+--   into mainline GenI.  So far, this consists of morphological realisation and
+--   OT ranking
+finaliseResults :: ProgStateRef -> ResultType -> [B.Output] -> IO [GeniResult]
+finaliseResults pstRef ty os =
+ do pst <- readIORef pstRef
+    -- morph TODO: make this a bit safer
+    mss <- case getFlagP MorphCmdFlg (pa pst) of
+             Nothing  -> return $ map sansMorph sentences
+             Just cmd -> map snd `fmap` inflectSentencesUsingCmd cmd sentences
+    -- OT ranking
+    let unranked = zipWith (sansRanking pst) os mss
+        rank = rankResults (getTraces pst) grDerivation (ranking pst)
+    return . map addRanking . rank $ unranked
  where
-    (ss,ds) = unzip os
-    merge ms d = map (\m -> (m,d)) ms
+  sentences = map fst os
+  sansRanking pst (l,d) rs =
+    GeniResult { grLemmaSentence = l
+               , grRealisations = rs
+               , grDerivation   = d
+               , grLexSelection = map (\x -> GeniLexSel x (getTraces pst x)) (B.lexicalSelection d)
+               , grRanking = -1
+               , grViolations = []
+               , grResultType = ty
+               }
+  addRanking (i,res,vs) = res { grViolations = vs, grRanking = i }
 \end{code}
 
 % --------------------------------------------------------------------
@@ -493,9 +527,21 @@ showRealisations sentences =
   in if null sentences
      then "(none)"
      else unlines sentencesGrouped
-\end{code}
 
-\begin{code}
+-- | No morphology! Pretend the lemma string is a sentence
+lemmaSentenceString :: GeniResult -> String
+lemmaSentenceString = unwords . map lpLemma . grLemmaSentence
+
+prettyResult :: ProgState -> GeniResult -> String
+prettyResult pst nr =
+  concat . intersperse "\n" . map showOne . grRealisations $ nr
+ where
+  showOne str = show theRanking  ++ ". " ++ str ++ "\n" ++ violations
+  violations  = prettyViolations tracesFn verbose (grViolations nr)
+  theRanking  = grRanking nr
+  verbose  = hasFlagP VerboseModeFlg (pa pst)
+  tracesFn = getTraces pst
+
 -- | 'getTraces' is most likely useful for grammars produced by a
 --   metagrammar system.  Given a tree name, we retrieve the ``trace''
 --   information from the grammar for all trees that have this name.  We
@@ -1050,18 +1096,54 @@ readPreAnchored pst =
 \end{code}
 
 % --------------------------------------------------------------------
-\section{Morphology} 
+% Boring utility code
 % --------------------------------------------------------------------
 
+\ignore{
 \begin{code}
--- | 'runMorph' inflects a list of sentences if a morphlogical generator
--- has been specified.  If not, it returns the sentences as lemmas.
-runMorph :: ProgStateRef -> [LemmaPlusSentence] -> IO [[String]]
-runMorph pstRef sentences = 
-  do pst <- readIORef pstRef
-     case getFlagP MorphCmdFlg (pa pst) of
-       Nothing  -> return $ map sansMorph sentences
-       Just cmd -> map snd `fmap` inflectSentencesUsingCmd cmd sentences
-\end{code}
+instance JSON GeniResult where
+ readJSON j =
+    do jo <- fromJSObject `fmap` readJSON j
+       let field x = maybe (fail $ "Could not find: " ++ x) readJSON
+                   $ lookup x jo
+       GeniResult <$> field "raw"
+                  <*> field "realisations"
+                  <*> field "derivation"
+                  <*> field "lexical-selection"
+                  <*> field "ranking"
+                  <*> field "violations"
+                  <*> field "result-type"
+ showJSON nr =
+     JSObject . toJSObject $ [ ("raw", showJSON $ grLemmaSentence nr)
+                             , ("realisations", showJSONs $ grRealisations nr)
+                             , ("derivation", showJSONs $ grDerivation nr)
+                             , ("lexical-selection", showJSONs $ grLexSelection nr)
+                             , ("ranking", showJSON $ grRanking nr)
+                             , ("violations", showJSONs $ grViolations nr)
+                             , ("result-type", showJSON $ grResultType nr)
+                             ]
 
+instance JSON ResultType where
+  readJSON j =
+    do js <- fromJSString `fmap` readJSON j
+       case js of
+         "partial"   -> return PartialResult
+         "complete"  -> return CompleteResult
+         ty          -> fail $ "unknown result type: " ++ ty
+  showJSON CompleteResult = JSString $ toJSString "complete"
+  showJSON PartialResult  = JSString $ toJSString "partial"
+
+instance JSON GeniLexSel where
+ readJSON j =
+    do jo <- fromJSObject `fmap` readJSON j
+       let field x = maybe (fail $ "Could not find: " ++ x) readJSON
+                   $ lookup x jo
+       GeniLexSel <$> field "lex-item"
+                  <*> field "trace"
+ showJSON x =
+     JSObject . toJSObject $ [ ("lex-item", showJSON  $ nlTree x)
+                             , ("trace",    showJSONs $ nlTrace x)
+                             ]
+\end{code}
+}
 

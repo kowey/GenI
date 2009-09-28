@@ -16,6 +16,7 @@
 % Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 \chapter{File formats}
+\label{cha:formats}
 \label{cha:GeniParsers}
 
 This chapter is a description of the file formats used by \geni.  We'll be

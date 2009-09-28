@@ -169,11 +169,11 @@ otWarnings gram ranking blocks =
   nvConstraintsW xs = "these constraints are never violated: " ++ unwords (map prettyConstraint xs)
   nvConstraints = neverViolated blocks ranking
 
-rankResults :: GetTraces -> OtRanking -> [(String,B.Derivation)] -> [OtResult (String,B.Derivation)]
-rankResults getTraces r = squish . sortResults . map addViolations
+rankResults :: GetTraces -> (a -> B.Derivation) -> OtRanking -> [a] -> [OtResult a]
+rankResults getTraces getDerivation r = squish . sortResults . map addViolations
  where
-   addViolations (s,d) = ((s,d), getViolations d)
-   getViolations  = violations (concatRank r) . lexTraces getTraces
+   addViolations x = (x, getViolations x)
+   getViolations  = violations (concatRank r) . lexTraces getTraces . getDerivation
    squish         = concat . zipWith applyRank [1..]
    applyRank i    = map (\(x,vs) -> (i,x,vs))
 \end{code}

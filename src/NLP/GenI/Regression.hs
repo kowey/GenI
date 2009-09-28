@@ -55,7 +55,7 @@ regressionGeni pstRef = do
   toTest :: G.TestCase -> IO [H.Test] -- ^ GenI test case to HUnit Tests
   toTest tc = -- run the case, and return a test case for each expected result
    do res <- runOnSemInput pstRef (tcSem tc)
-      let sentences = fst (unzip res)
+      let sentences = map lemmaSentenceString res
           name = tcName tc
           semStr = showSem . fst3 . tcSem $ tc
           mainMsg  = "for " ++ semStr ++ ",  got no results"

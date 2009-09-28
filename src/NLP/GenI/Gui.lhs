@@ -39,7 +39,7 @@ import qualified NLP.GenI.Builder as B
 import qualified NLP.GenI.BuilderGui as BG
 import NLP.GenI.Geni
   ( ProgState(..), ProgStateRef, combine, initGeni
-  , getTraces
+  , lemmaSentenceString, GeniResult(..), prettyResult
   , loadEverything, loadTestSuite, loadTargetSemStr
   , showRealisations )
 import NLP.GenI.General (boundsCheck, geniBug, trim, fst3)
@@ -68,7 +68,6 @@ import NLP.GenI.Configuration
 import NLP.GenI.GeniParsers hiding ( choice, label, tab )
 import NLP.GenI.GuiHelper
 
-import NLP.GenI.OptimalityTheory ( rankResults, prettyViolations )
 import NLP.GenI.Polarity
 import NLP.GenI.Simple.SimpleGui
 import NLP.GenI.Statistics (Statistics, showFinalStats)
@@ -576,7 +575,6 @@ trees and generation statistics.
 \emph{TODO: screenshot wanted}
 \end{center}
 
-
 \begin{code}
 resultsGui :: BG.BuilderGui -> ProgStateRef -> IO ()
 resultsGui builderGui pstRef =
@@ -591,16 +589,12 @@ resultsGui builderGui pstRef =
     -- realisations tab
     (results,stats,resTab) <- BG.resultsPnl builderGui pstRef nb
     -- summary tab
-    let sentences = (fst . unzip) results
+    let sentences = concatMap grRealisations results
     summTab <- statsGui nb sentences stats
     -- ranking tab
     pst <- readIORef pstRef
     let useRanking = hasFlagP RankingConstraintsFlg (pa pst)
-    let tracesFn = getTraces pst
-        rankedResults = rankResults tracesFn (ranking pst) results
-        showWithViolations (rank, (str, _), vs) =
-           show rank ++ ". " ++ str ++ "\n" ++ prettyViolations tracesFn False vs
-    rankTab <- messageGui nb (unlines . map showWithViolations $ rankedResults)
+    rankTab <- messageGui nb . unlines . map (prettyResult pst) $ results
     -- tabs
     let myTabs = [ tab "summary"       summTab
                  , tab "realisations"  resTab
