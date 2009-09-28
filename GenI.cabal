@@ -47,13 +47,17 @@ data-files: AUTHORS, INSTALL, README, NEWS, GenI.cabal,
             examples/xmg-example/suite,
             etc/macstuff/Info.plist, etc/macstuff/wxmac.icns
 
-extra-source-files: src/NLP/GenI/SysGeni.lhs
+extra-source-files: src/NLP/GenI/SysGeni.hs
                     src/NLP/GenI/Test.hs
-                    src/NLP/GenI/Simple/SimpleGui.lhs, src/NLP/GenI/Gui.lhs
-                    src/NLP/GenI/GraphvizShow.lhs, src/NLP/GenI/GuiHelper.lhs
-                    src/NLP/GenI/Console.hs, src/NLP/GenI/Graphviz.hs
-                    src/NLP/GenI/BuilderGui.lhs, src/NLP/GenI/unused/Predictors.lhs
-                    src/NLP/GenI/GraphvizShowPolarity.lhs
+                    src/NLP/GenI/Simple/SimpleGui.lhs,
+                    src/NLP/GenI/Gui.lhs
+                    src/NLP/GenI/GraphvizShow.lhs,
+                    src/NLP/GenI/GuiHelper.hs
+                    src/NLP/GenI/Console.hs,
+                    src/NLP/GenI/Graphviz.hs
+                    src/NLP/GenI/BuilderGui.lhs,
+                    src/NLP/GenI/GraphvizShowPolarity.lhs,
+                    src/NLP/GenI/Regression.hs
 
 
 Flag gui
