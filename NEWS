@@ -6,7 +6,6 @@ GenI 0.20, 29 Sep 2009
   * Input files now *assumed* to be UTF-8 encoded
     (output still ISO8859-1; hopefully locale-based in GHC 6.12)
   * Interface between GenI and morphological realiser now uses a JSON format.
-  * --macros renamed to --schemata (still -m)
   * Rootfeat optimisation now mandatory (flag no longer recognised)
 
 - NEW FUNCTIONALITY
