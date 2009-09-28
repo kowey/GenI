@@ -16,7 +16,7 @@ chart generation algorithm.  Realisation takes place in two broad
 phases: lexical selection, which returns a set of elementary trees, and
 tree assembly, which combines the selected trees in reasonable ways.
 
-\subsection{Lexical selection}
+\section{Lexical selection}
 \label{sec:lexical-selection}
 
 Now, on to the two phases of \geni.
@@ -46,7 +46,7 @@ from the input are propagated into the feature  structures of the
 elementary tree.  Because the input semantics is saturated, the
 instantiated lexical item also has a saturated semantics.
 
-\subsection{Tree assembly (chart generation)}
+\section{Tree assembly (chart generation)}
 \label{sec:geni-chart}
 
 After the lexical selection phase, we move into tree assembly.  The
@@ -142,7 +142,8 @@ of filtering the chart afterwards.  Here are the two phases in detail:
 The inner workings of this algorithm might be better illustrated by an
 example or two:
 
-%\subsubsection{Kelvin runs often}
+\subsection{Kelvin runs often}
+
 %\begin{figure}[htpb]
 %\begin{center}
 %\KelvinRunsOften
@@ -225,7 +226,7 @@ is no longer of any use and may be discarded.  We will see more
 implications of this below, when we have more than one auxiliary tree
 that can adjoin into the same node.
 
-\subsubsection{Kelvin runs often in Colorado}
+\subsection{Kelvin runs often in Colorado}
 Now, a slightly more complicated example.  Here, we shall see auxiliary
 tree with substitution nodes, as well as a lexical selection which leads
 to more than one result.  Our new input semantics
