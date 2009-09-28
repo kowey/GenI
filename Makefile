@@ -100,3 +100,6 @@ $(MAKE_DOCS): %.pdf: %.tex $(DOC_SRC)
 	$(LATEX) $(<F) && bibtex $(<F:.tex=) &&\
        	$(LATEX) $(<F) && $(LATEX) $(<F)\
 	$(DVIPDF)
+
+publish:
+	scp $(MAKE_DOCS) kowey@code.haskell.org:/srv/projects/GenI
