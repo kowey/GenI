@@ -1,9 +1,9 @@
 Name:           geniconvert
-Version:        0.17.1
+Version:        0.20
 License:        GPL
 License-file:   LICENSE
 Author:         Carlos Areces and Eric Kow
-Build-Depends:  GenI >=0.17.2 && < 0.18, base < 4, binary, haskell98, containers, mtl, parsec
+Build-Depends:  GenI >=0.20 && < 0.21, base < 4, binary, haskell98, containers, mtl, parsec
                 < 3, QuickCheck, HUnit, HaXml >=1.16
 build-type:     Simple
 Category:       Natural Language Processing
