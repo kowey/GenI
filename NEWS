@@ -6,11 +6,14 @@ GenI 0.19,
   * Input files now *assumed* to be UTF-8 encoded
     (output still ISO8859-1; hopefully locale-based in GHC 6.12)
   * Interface between GenI and morphological realiser now uses a JSON format.
+  * --macros renamed to --schemata (still -m)
+  * Rootfeat optimisation now mandatory (flag no longer recognised)
 
 - NEW FUNCTIONALITY
 
-  * --version now works and reports version from Cabal file
-  * --ranking foo ranks outputs according to OT-style constraints expressed in foo
+  * new flag --version now works and reports version from Cabal file
+  * new flag --dump dumps derivation output to stdout in JSON format
+  * new flag --ranking foo ranks outputs according to OT-style constraints expressed in foo
   * --batchdir now works with --testcase
   * --batchdir now dumps derivations and statistics in JSON format
   * --batchdir now works with instructions files
