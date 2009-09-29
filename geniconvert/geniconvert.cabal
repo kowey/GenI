@@ -10,7 +10,7 @@ Category:       Natural Language Processing
 Homepage:       http://wiki.loria.fr/wiki/GenI
 Description:    Conversion utility for the GenI generator
 Synopsis:       Conversion utility for the GenI generator
-Maintainer:     eric.kow@loria.fr
+Maintainer:     geni-users@loria.fr
 extra-source-files: NLP/GenI/HsShow.lhs, NLP/GenI/Converter/ReadTagml.hs, NLP/GenI/Converter/XmgTagml.hs
 data-files:     geniconvert.cabal
 
