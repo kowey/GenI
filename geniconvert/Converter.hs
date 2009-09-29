@@ -28,8 +28,9 @@ import Data.List
 import Data.Maybe
 import System (ExitCode(ExitFailure), exitWith, getArgs, getProgName)
 import System.Console.GetOpt(OptDescr(Option), ArgDescr(..), usageInfo, getOpt, ArgOrder(Permute))
-import System.IO(getContents)
 import System.IO.Unsafe(unsafeInterleaveIO)
+import Prelude hiding (appendFile, getContents, readFile, writeFile, putStrLn)
+import System.IO.UTF8
 
 import NLP.GenI.Btypes
 import NLP.GenI.BtypesBinary ()
