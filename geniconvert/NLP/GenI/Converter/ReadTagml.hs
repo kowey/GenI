@@ -28,7 +28,7 @@ import Text.XML.HaXml.ParseLazy (xmlParse)
 import Text.XML.HaXml.Posn     (posInNewCxt)
 
 import NLP.GenI.Btypes
-  ( AvPair, Flist
+  ( AvPair(..), Flist
   , GType(Subs,Foot,Lex,Other)
   , GNode(..), Macros, Ttree(..)
   , GeniVal(GConst, GVar, GAnon), fromGConst, lexemeAttributes
@@ -142,7 +142,7 @@ translateNodeHelper idnum (X.Node nattrs mnargs _) = gn where
                  X.Node_type_nadj     -> Other
       -- figuring out what the lexeme might be
       -- (we a list of distinguished attributes, in order of preference)
-      lexL = concat $ map (\la -> [ v | (a,v) <- gloF, a == la ])
+      lexL = concat $ map (\la -> [ v | AvPair a v <- gloF, a == la ])
                       lexemeAttributes
       lexeme = case (ntype,lexL) of
                (Lex,h:_) -> fromGConst h
@@ -200,8 +200,8 @@ translateFs (X.Fs _ fs) = map translateF fs
 
 translateF :: X.F -> Tree FsTreeNode
 translateF (X.FFs attr fs)  = Node (Left (X.fName attr)) (translateFs fs)
-translateF (X.FSym attr s)  = Node (Right (X.fName attr, translateSym s))  []
-translateF (X.FVAlt attr d) = Node (Right (X.fName attr, translateVAlt d)) []
+translateF (X.FSym attr s)  = Node (Right $ AvPair (X.fName attr) (translateSym s))  []
+translateF (X.FVAlt attr d) = Node (Right $ AvPair (X.fName attr) (translateVAlt d)) []
 
 flattenFs :: Tree FsTreeNode -> [AvPair]
 flattenFs = catMaybes . (map fromRight) . flatten
@@ -213,8 +213,8 @@ translateFlatFs (X.Fs _ fs) = map translateFlatF fs
 
 translateFlatF :: X.F -> AvPair
 translateFlatF (X.FFs _ _)      = error "translateFlatF called on recursive F"
-translateFlatF (X.FSym attr s)  = (X.fName attr, translateSym s)
-translateFlatF (X.FVAlt attr d) = (X.fName attr, translateVAlt d)
+translateFlatF (X.FSym attr s)  = AvPair (X.fName attr) (translateSym s)
+translateFlatF (X.FVAlt attr d) = AvPair (X.fName attr) (translateVAlt d)
 
 translateSym :: X.Sym -> GeniVal
 translateSym s = 

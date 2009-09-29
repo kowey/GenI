@@ -33,8 +33,9 @@ import NLP.GenI.Tags
  )
 import NLP.GenI.Btypes (GeniVal(GConst, GVar, GAnon), Ptype(..),
                Ttree(TT),
-               GNode(..), GType(..),
+               GNode(..), GType(..), AvPair(..)
                )
+import NLP.GenI.PolarityTypes ( PolarityKey(..) )
 
 class HsShow a where
   hsShow :: a -> String
@@ -66,6 +67,7 @@ instance HsShow Integer where hsShows = shows
 
 instance HsShow Ptype where hsShows = shows
 instance HsShow GType where hsShows = shows
+instance HsShow PolarityKey where hsShows = shows
 
 -- | :-( I wish I could make do this with a default, overridable instance instead
 --   basically, i would like to use hsList everywhere unless there is a specific
@@ -91,6 +93,9 @@ instance (HsShow a, HsShow b) => HsShow (Data.Map.Map a b) where
 instance HsShow a => HsShow (Maybe a) where
  hsShows Nothing  = showString "Nothing"
  hsShows (Just x) = hsConstructor "Just" [hsShows x]
+
+instance HsShow AvPair where
+ hsShows (AvPair a v) = hsConstructor "AvPair" [ hsShows a, hsShows v ]
 
 instance HsShow GeniVal where
  hsShows (GConst xs) = hsConstructor "GConst" [hsShows xs]
