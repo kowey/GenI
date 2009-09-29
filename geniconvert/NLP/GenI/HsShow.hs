@@ -1,34 +1,30 @@
-% GenI surface realiser
-% Copyright (C) 2005 Carlos Areces and Eric Kow
-%
-% This program is free software; you can redistribute it and/or
-% modify it under the terms of the GNU General Public License
-% as published by the Free Software Foundation; either version 2
-% of the License, or (at your option) any later version.
-%
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-%
-% You should have received a copy of the GNU General Public License
-% along with this program; if not, write to the Free Software
-% Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+-- GenI surface realiser
+-- Copyright (C) 2005 Carlos Areces and Eric Kow
+--
+-- This program is free software; you can redistribute it and/or
+-- modify it under the terms of the GNU General Public License
+-- as published by the Free Software Foundation; either version 2
+-- of the License, or (at your option) any later version.
+--
+-- This program is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with this program; if not, write to the Free Software
+-- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-\chapter{HsShow}
+{-
+One idea I'm experimenting with is dumping the grammars into Haskell, haskell
+which will need to be linked against GenI in order to produce a generator.
+This might make the whole lexical selection thing go a lot faster.
+-}
 
-One idea I'm experimenting with is dumping the grammars into Haskell, haskell which will
-need to be linked against GenI in order to produce a generator.  This might make the whole
-lexical selection thing og a lot faster.
-
-\begin{code}
 {-# LANGUAGE TypeSynonymInstances #-}
 module NLP.GenI.HsShow
 where
-\end{code}
 
-\ignore{
-\begin{code}
 import Data.Tree
 import qualified Data.Map
 
@@ -39,10 +35,7 @@ import NLP.GenI.Btypes (GeniVal(GConst, GVar, GAnon), Ptype(..),
                Ttree(TT),
                GNode(..), GType(..),
                )
-\end{code}
-}
 
-\begin{code}
 class HsShow a where
   hsShow :: a -> String
   hsShow x = hsShows x ""
@@ -121,4 +114,3 @@ instance HsShow f => HsShow (Ttree f) where
  hsShows (TT a b c d e f g h) = hsConstructor "TT"
    [ hsShows a, hsShows b, hsShows c, hsShows d
    , hsShows e, hsShows f, hsShows g, hsShows h]
-\end{code}
