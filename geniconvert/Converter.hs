@@ -30,7 +30,6 @@ import System (ExitCode(ExitFailure), exitWith, getArgs, getProgName)
 import System.Console.GetOpt(OptDescr(Option), ArgDescr(..), usageInfo, getOpt, ArgOrder(Permute))
 import System.IO(getContents)
 import System.IO.Unsafe(unsafeInterleaveIO)
-import Text.ParserCombinators.Parsec
 
 import NLP.GenI.Btypes
 import NLP.GenI.BtypesBinary ()
