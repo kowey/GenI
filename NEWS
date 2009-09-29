@@ -18,6 +18,7 @@ GenI 0.20, 29 Sep 2009
   * --batchdir now works with instructions files
   * --metrics always expands 'default' to the default metrics
     (in addition to any other statistics you request)
+  * new optimisation: early null-adjunction detection
 
 - QUALITY ASSURANCE
 
