@@ -49,7 +49,7 @@ main =
      _           -> showUsage progname
  where
   showUsage p = do
-    let header = "usage: " ++ p ++ " [--macros|--lexicon|--morphlexicon] -f [tagml|geni] -t [haskell|geni|genib] -o output < input"
+    let header = "usage: " ++ p ++ " [--macros|--lexicon] -f [tagml|geni] -t [haskell|geni|genib] -o output < input"
     ePutStrLn $ usageInfo header options
     exitWith (ExitFailure 1)
 
@@ -76,11 +76,9 @@ convert (InputParams iForm oForm f iType) fs =
     let convertString x = case iType of
                             MacrosItype       -> getParser parseMacros x       >>= (getWriter writeMacros f)
                             LexiconItype      -> getParser parseLexicon x      >>= (getWriter writeLexicon f)
-                            MorphLexiconItype -> getParser parseMorphLexicon x >>= (getWriter writeMorphLexicon f)
         convertFile x = case iType of
                             MacrosItype       -> getReader readMacros x       >>= (getWriter writeMacros f)
                             LexiconItype      -> getReader readLexicon x      >>= (getWriter writeLexicon f)
-                            MorphLexiconItype -> getReader readMorphLexicon x >>= (getWriter writeMorphLexicon f)
     if null fs
        then getContents >>= convertString
        else forM_ fs $ (\x -> unsafeInterleaveIO (readFile x) >>= convertFile)
@@ -90,7 +88,7 @@ convert (InputParams iForm oForm f iType) fs =
 -- -------------------------------------------------------------------
 
 data Flag = FromFlg String | ToFlg String | OutputFlg String
-          | MacrosFlg | LexiconFlg | MorphLexiconFlg
+          | MacrosFlg | LexiconFlg
  deriving (Eq)
 
 options :: [OptDescr Flag]
@@ -101,15 +99,13 @@ options =
   --
   , Option ""  ["macros"]  (NoArg MacrosFlg)"input file is a macros file (default)"
   , Option ""  ["lexicon"] (NoArg LexiconFlg) "input file is a lexicon file"
-  , Option ""  ["morphlexicon"] (NoArg MorphLexiconFlg) "input file is a morphological lexicon"
   ]
 
-data InputType = MacrosItype | LexiconItype | MorphLexiconItype
+data InputType = MacrosItype | LexiconItype
 
 instance Show InputType where
   show MacrosItype       = "macros"
   show LexiconItype      = "lexicons"
-  show MorphLexiconItype = "morphological lexicons"
 
 data InputParams = InputParams { fromArg :: String
                                , toArg   :: String
@@ -129,7 +125,6 @@ processFlag (ToFlg x)       = \p -> p { toArg = x }
 processFlag (OutputFlg x)   = \p -> p { stemArg = x }
 processFlag MacrosFlg       = \p -> p { itype = MacrosItype }
 processFlag LexiconFlg      = \p -> p { itype = LexiconItype }
-processFlag MorphLexiconFlg = \p -> p { itype = MorphLexiconItype }
 
 -- -------------------------------------------------------------------
 -- formats
@@ -149,10 +144,6 @@ data FileFormat = FileFormat
       , parseLexicon :: Maybe (TextParser [ILexEntry])
       , readLexicon  :: Maybe (FileReader [ILexEntry])
       , writeLexicon :: Maybe (FileWriter [ILexEntry])
-      --
-      , parseMorphLexicon :: Maybe (TextParser [MorphLexEntry])
-      , readMorphLexicon  :: Maybe (FileReader [MorphLexEntry])
-      , writeMorphLexicon :: Maybe (FileWriter [MorphLexEntry])
       }
 
 instance Eq FileFormat where
@@ -184,15 +175,10 @@ tagmlFormat = FileFormat
   , parseLexicon = pLex
   , readLexicon  = fmap textReader pLex
   , writeLexicon = Nothing
-  --
-  , parseMorphLexicon = pMorphLex
-  , readMorphLexicon  = fmap textReader pMorphLex
-  , writeMorphLexicon = Nothing
   }
  where
   pMacros   = Just $ readTagmlMacros
   pLex      = Nothing
-  pMorphLex = Nothing
 
 -- -------------------------------------------------------------------
 -- geni format
@@ -209,15 +195,10 @@ geniFormat = FileFormat
   , parseLexicon = pLex
   , readLexicon  = fmap textReader pLex
   , writeLexicon = Nothing
-  --
-  , parseMorphLexicon = pMorphLex
-  , readMorphLexicon  = fmap textReader pMorphLex
-  , writeMorphLexicon = Nothing
   }
  where
   pMacros   = Just $ wrapParsec geniMacros
   pLex      = Just $ wrapParsec geniLexicon
-  pMorphLex = Just $ wrapParsec geniMorphLexicon
 
 geniWriter :: GeniShow a => FilePath -> [a] -> IO ()
 geniWriter mf ms = appendFile mf $ unlines $ map geniShow ms
@@ -237,10 +218,6 @@ genibFormat = FileFormat
   , parseLexicon = Nothing
   , readLexicon  = Just decodeFile
   , writeLexicon = Just encodeFile
-  --
-  , parseMorphLexicon = Nothing
-  , readMorphLexicon  = Just decodeFile
-  , writeMorphLexicon = Just encodeFile
   }
 
 -- -------------------------------------------------------------------
@@ -258,10 +235,6 @@ haskellFormat = FileFormat
   , parseLexicon = Nothing
   , readLexicon  = Nothing
   , writeLexicon = Nothing
-  --
-  , parseMorphLexicon = Nothing
-  , readMorphLexicon  = Nothing
-  , writeMorphLexicon = Nothing
   }
 
 writeHaskellMacros :: String -> Macros -> IO ()
