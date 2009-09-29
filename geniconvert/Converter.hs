@@ -39,11 +39,16 @@ import NLP.GenI.GeniShow
 import NLP.GenI.HsShow (hsShow)
 import NLP.GenI.Converter.ReadTagml (readTagmlMacros)
 
+import Paths_geniconvert
+import Data.Version
+
 main :: IO ()
 main =
  do args <- getArgs
     progname <- getProgName
     case getOpt Permute options args of
+     (o,_, []  ) | VersionFlg `elem` o ->
+       do putStrLn $ "geniconvert version " ++ showVersion version
      (o,fs,[]  ) -> convert (toInputParams o) fs
      _           -> showUsage progname
  where
@@ -87,7 +92,7 @@ convert (InputParams iForm oForm f iType) fs =
 -- -------------------------------------------------------------------
 
 data Flag = FromFlg String | ToFlg String | OutputFlg String
-          | MacrosFlg | LexiconFlg
+          | MacrosFlg | LexiconFlg | VersionFlg
  deriving (Eq)
 
 options :: [OptDescr Flag]
@@ -95,7 +100,8 @@ options =
   [ Option "f" ["from"] (ReqArg FromFlg "TYPE") "tagml|geni"
   , Option "t" ["to"]   (ReqArg ToFlg "TYPE")   "haskell|geni|genib"
   , Option "o" ["output"]  (ReqArg OutputFlg "STRING")  "output file, or -t haskell, prefix for output files"
-  --
+  , Option "v" ["version"]  (NoArg VersionFlg)  "display version"
+--
   , Option ""  ["macros"]  (NoArg MacrosFlg)"input file is a macros file (default)"
   , Option ""  ["lexicon"] (NoArg LexiconFlg) "input file is a lexicon file"
   ]
@@ -124,6 +130,7 @@ processFlag (ToFlg x)       = \p -> p { toArg = x }
 processFlag (OutputFlg x)   = \p -> p { stemArg = x }
 processFlag MacrosFlg       = \p -> p { itype = MacrosItype }
 processFlag LexiconFlg      = \p -> p { itype = LexiconItype }
+processFlag VersionFlg      = id
 
 -- -------------------------------------------------------------------
 -- formats
