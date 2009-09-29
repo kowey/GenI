@@ -6,6 +6,17 @@ body {
     color: #fafafa;
 }
 
+#thanks {
+  text-align: right;
+  position: absolute;
+  width: 95%;
+  bottom: 100px;
+}
+
+a img {
+  border: 0;
+}
+
 a {
   text-decoration: none;
 }
