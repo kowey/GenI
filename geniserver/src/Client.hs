@@ -35,7 +35,7 @@ main = withSocketsDo $
     hSetBuffering h NoBuffering
     hPutBlock h (encode instructions)
     hFlush h
-    mres <- (resultToEither . decode) `fmap` hGetBlock h
+    mres <- hGetBlock h
     case mres of
      Left err  -> hPutStrLn stderr err
      Right res -> UTF8.putStr . unlines . concatMap grRealisations $ res
