@@ -52,7 +52,7 @@ listen sock pst =
     hSetBuffering h NoBuffering
     -- do a task
     contents <- hGetBlock h
-    let minstructions = resultToEither . decode $ contents
+    let minstructions = contents
     -- any errors? (Left err monad)
     case minstructions of
       Left err   -> hPutStrLn stderr (show err)
