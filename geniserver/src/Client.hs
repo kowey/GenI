@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 {-
 GenIClientServer
 Copyright (C) 2007 Eric Kow
@@ -19,21 +20,45 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 module Main (main) where
 
-import Control.Applicative
-import Network (connectTo, withSocketsDo)
+import Control.Applicative hiding (empty)
+import Network (connectTo, withSocketsDo, PortID(..))
 import System.Environment (getArgs)
 import System.IO
 import qualified System.IO.UTF8 as UTF8
 import Text.JSON
 import NLP.GenI.Geni ( GeniResult(..) )
-import ClientServer (hardCodedPort, ServerInstruction(..), hGetBlock, hPutBlock)
+import ClientServer (ServerInstruction(..), hGetBlock, hPutBlock)
+import System.Console.CmdArgs
+import Data.Version ( showVersion )
+import Paths_geniserver ( version )
+
+data Client = Connect { hostname :: String
+                      , port     :: Int
+                      }
+            | Socket { socket :: String }
+            | Dump
+ deriving (Show, Data, Typeable)
+
+clientCfg :: [ Mode Client ]
+clientCfg = [ mode $ Connect { hostname = def &= text "hostname" & argPos 0
+                             , port     = def &= text "port INT"
+                             }
+            , mode $ Socket { socket = def &= text "Unix socket at PATH" & argPos 0 }
+            , mode $ Dump &= text "Dump request to stdout (for debugging)"
+            ]
 
 main :: IO ()
 main = withSocketsDo $
- do instructions <- ServerInstruction <$> getArgs <*> UTF8.getContents
-    h <- connectTo "" hardCodedPort -- "127.0.0.1" hardCodedPort
-    hSetBuffering h NoBuffering
-    hPutBlock h (encode instructions)
+ do config <- cmdArgs ("geniclient " ++ showVersion version) clientCfg
+    instructions <- ServerInstruction [] <$> UTF8.getContents
+    case config of
+      Dump -> hPutBlock stdout instructions
+      Socket s    -> sendTo instructions =<< connectTo "" (UnixSocket s)
+      Connect h p -> sendTo instructions =<< connectTo h (PortNumber (fromIntegral p))
+
+sendTo instructions h =
+ do hSetBuffering h NoBuffering
+    hPutBlock h instructions
     hFlush h
     mres <- hGetBlock h
     case mres of

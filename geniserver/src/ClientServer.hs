@@ -19,10 +19,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 -- Code which is common to both geni client and server
 
-module ClientServer (hardCodedPort, ServerInstruction(..), hGetBlock, hPutBlock)
+module ClientServer (getPort, ServerInstruction(..), hGetBlock, hPutBlock)
 where
 
 import Control.Applicative ( (<$>), (<*>) )
+import Data.Char ( isDigit )
 import Network
 import Text.JSON
 import Text.JSON.Pretty ( render, pp_value )
@@ -30,9 +31,12 @@ import System.IO
 import qualified System.IO.UTF8 as UTF8
 import Text.ParserCombinators.Parsec
 
-hardCodedPort:: PortID
-hardCodedPort = UnixSocket "/tmp/geniserver"
-                -- (PortNumber 2035)
+getPort :: String -> PortID
+getPort xs | all isDigit xs = PortNumber . fromIntegral . readInt $ xs
+ where
+   readInt :: String -> Int
+   readInt = read
+getPort xs = UnixSocket xs
 
 data ServerInstruction = ServerInstruction
   { gParams    :: [String]
@@ -64,10 +68,19 @@ block = tween '{' '}' <|> tween '[' ']'
 hGetBlock :: JSON a => Handle -> IO (Either String a)
 hGetBlock h =
  do mp <- parse block "" `fmap` UTF8.hGetContents h
-    return $ case mp of
-               Left err -> Left (show err)
-               Right p  -> resultToEither . decode $ p
+    case mp of
+      Left err -> return $ Left (show err)
+      Right p  -> return $ resultToEither . decode $ p
 
 -- | See hGetBlock
 hPutBlock :: JSON a => Handle -> a -> IO ()
 hPutBlock h = UTF8.hPutStr h . render . pp_value . showJSON
+
+instance Eq PortID where
+ (==) (UnixSocket s1) (UnixSocket s2) = s1 == s2
+ (==) (PortNumber n1) (PortNumber n2) = n1 == n2
+ (==) _ _ = False
+
+instance Show PortID where
+ show (UnixSocket s) = "UnixSocket " ++ s
+ show (PortNumber n) = "PortNumber " ++ show n
