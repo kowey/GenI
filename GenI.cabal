@@ -1,5 +1,5 @@
 Name:           GenI
-Version:        0.20
+Version:        0.21
 License:        GPL
 License-file:   LICENSE
 Author:         Carlos Areces and Eric Kow
@@ -97,6 +97,7 @@ Library
   Exposed-Modules:
                 NLP.GenI.Btypes,
                 NLP.GenI.BtypesBinary,
+                NLP.GenI.Flags,
                 NLP.GenI.General,
                 NLP.GenI.GeniParsers,
                 NLP.GenI.GeniShow,
