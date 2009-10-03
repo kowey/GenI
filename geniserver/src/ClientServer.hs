@@ -53,9 +53,9 @@ instance JSON ServerInstruction where
 
 tween open close =
  do xo  <- char open
-    str <- many (stuff <|> tween open close)
+    str <- concat `fmap` many (stuff <|> tween open close)
     xc  <- char close
-    return $ xo : [xc]
+    return $ xo : str ++ [xc]
  where
    stuff = many1 (noneOf [ open, close ])
 
