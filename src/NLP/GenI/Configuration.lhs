@@ -20,44 +20,10 @@
 \begin{code}
 {-# LANGUAGE ExistentialQuantification #-}
 module NLP.GenI.Configuration
-  ( Params(..), GrammarType(..), BuilderType(..), Instruction, Flag
-  -- * flags
-  , BatchDirFlg(..)
-  , DetectPolaritiesFlg(..)
-  , DisableGuiFlg(..)
-  , DumpDerivationFlg(..)
-  , EarlyDeathFlg(..)
-  , ExtraPolaritiesFlg(..)
-  , FromStdinFlg(..)
-  , HelpFlg(..)
-  , InstructionsFileFlg(..)
-  , LexiconFlg(..)
-  , MacrosFlg(..)
-  , MetricsFlg(..)
-  , MorphCmdFlg(..)
-  , MorphInfoFlg(..)
-  , NoLoadTestSuiteFlg(..)
-  , OptimisationsFlg(..)
-  , OutputFileFlg(..)
-  , PartialFlg(..)
-  , RankingConstraintsFlg(..)
-  , RegressionTestModeFlg(..)
-  , RootFeatureFlg(..)
-  , RunUnitTestFlg(..)
-  , StatsFileFlg(..)
-  , TestCaseFlg(..)
-  , TestInstructionsFlg(..)
-  , TestSuiteFlg(..)
-  , TimeoutFlg(..)
-  , TracesFlg(..)
-  , VerboseModeFlg(..)
-  , VersionFlg(..)
-  , ViewCmdFlg(..)
+  ( Params(..)
   --
   , mainBuilderTypes
   , getFlagP, getListFlagP, setFlagP, hasFlagP, deleteFlagP, hasOpt
-  , getFlag, setFlag, hasFlag
-  , Optimisation(..)
   , emptyParams, defineParams
   , treatArgs, treatArgsWithParams, usage, basicSections, optionsSections
   , processInstructions
@@ -69,6 +35,7 @@ module NLP.GenI.Configuration
   , parseFlagWithParsec
   -- re-exports
   , module System.Console.GetOpt
+  , module NLP.GenI.Flags
   , Typeable
   )
 where
@@ -76,23 +43,21 @@ where
 
 \ignore{
 \begin{code}
-import qualified Data.Map as Map
-import qualified Data.Set as Set
-
 import Control.Monad ( liftM )
 import Data.Char ( toLower )
 import Data.Maybe ( listToMaybe, mapMaybe )
-import Data.Typeable ( Typeable, typeOf, cast )
+import Data.Typeable ( Typeable )
 import System.Console.GetOpt
 import System.Environment ( getProgName )
 import Data.List  ( find, intersperse, nubBy )
-import Data.Maybe ( catMaybes, fromMaybe, isNothing, fromJust )
+import Data.Maybe ( fromMaybe, isNothing, fromJust )
 import Text.ParserCombinators.Parsec ( runParser, CharParser )
 
-import NLP.GenI.Btypes ( Flist, showFlist, )
-import NLP.GenI.General ( geniBug, fst3, snd3, Interval )
+import NLP.GenI.Btypes ( showFlist, )
+import NLP.GenI.Flags
+import NLP.GenI.General ( geniBug, fst3, snd3 )
 import NLP.GenI.GeniParsers ( geniFeats, geniPolarities )
-import NLP.GenI.PolarityTypes ( PolarityKey(..), PolarityAttr(..), readPolarityAttrs )
+import NLP.GenI.PolarityTypes ( readPolarityAttrs )
 \end{code}
 }
 
@@ -497,15 +462,6 @@ optionsForOptimisation =
    readRF = parseFlagWithParsec "root feature" geniFeats
    readPolarities = parseFlagWithParsec "polarity string" geniPolarities
 
-data Optimisation = PolOpts
-                  | AdjOpts
-                  | Polarised
-                  | NoConstraints
-                  | SemFiltered
-                  | Iaf -- ^ one phase only!
-                  | EarlyNa
-  deriving (Show,Eq,Typeable)
-
 coreOptimisationCodes :: [(Optimisation,String,String)]
 coreOptimisationCodes =
  [ (Polarised        , "p",      "polarity filtering")
@@ -607,15 +563,6 @@ parseFlagWithParsec description p str =
 \end{description}
 
 \begin{code}
-data BuilderType = NullBuilder |
-                   SimpleBuilder | SimpleOnePhaseBuilder
-     deriving (Eq, Typeable)
-
-instance Show BuilderType where
-  show NullBuilder           = "null"
-  show SimpleBuilder         = "simple-2p"
-  show SimpleOnePhaseBuilder = "simple-1p"
-
 optionsForBuilder :: [OptDescr Flag]
 optionsForBuilder =
   [ Option ['b'] ["builder"]  (reqArg BuilderFlg readBuilderType "BUILDER")
@@ -716,17 +663,6 @@ morphInfoOption = Option [] ["morphinfo"] (reqArg MorphInfoFlg id "FILE")
   "morphological features FILE (default: unset)"
 \end{code}
 
-% --------------------------------------------------------------------
-\subsection{Other options}
-% --------------------------------------------------------------------
-
-\begin{code}
-data GrammarType = GeniHand    -- ^ geni's text format
-                 | PreCompiled -- ^ built into geni, no parsing needed
-                 | PreAnchored -- ^ lexical selection already done
-     deriving (Show, Eq, Typeable)
-\end{code}
-
 % ====================================================================
 \section{Scripting GenI}
 % ====================================================================
@@ -758,8 +694,6 @@ Interaction with \verb!--testsuite! and \verb!--testcase!:
 
 
 \begin{code}
-type Instruction = (FilePath, Maybe [String])
-
 -- | Update the internal instructions list, test suite and case
 --   according to the contents of an instructions file.
 processInstructions :: Params -> IO Params
@@ -798,94 +732,3 @@ instructionsFile = mapMaybe inst . lines
            [f]    -> Just (f, Nothing)
            (f:cs) -> Just (f, Just cs)
 \end{code}
-
-% ====================================================================
-% Flags
-% ====================================================================
-
-\begin{code}
-{-
-Flags are GenI's internal representation of command line arguments.  We
-use phantom existential types (?) for representing GenI flags.  This
-makes it simpler to do things such as ``get the value of the MacrosFlg''
-whilst preserving type safety (we always know that MacrosFlg is
-associated with String).  The alternative would be writing getters and
-setters for each flag, and that gets really boring after a while.
--}
-
-data Flag = forall f x . (Eq f, Show f, Show x, Typeable f, Typeable x) =>
-     Flag (x -> f) x deriving (Typeable)
-
-instance Show Flag where
- show (Flag f x) = "Flag " ++ show (f x)
-
-instance Eq Flag where
- (Flag f1 x1) == (Flag f2 x2)
-   | (typeOf f1 == typeOf f2) && (typeOf x1 == typeOf x2) =
-       (fromJust . cast . f1 $ x1) == (f2 x2)
-   | otherwise = False
-
-isFlag     :: (Typeable f, Typeable x) => (x -> f) -> Flag -> Bool
-hasFlag    :: (Typeable f, Typeable x) => (x -> f) -> [Flag] -> Bool
-deleteFlag :: (Typeable f, Typeable x) => (x -> f) -> [Flag] -> [Flag]
-setFlag    :: (Eq f, Show f, Show x, Typeable f, Typeable x) => (x -> f) -> x -> [Flag] -> [Flag]
-getFlag    :: (Show f, Show x, Typeable f, Typeable x)  => (x -> f) -> [Flag] -> Maybe x
-getAllFlags :: (Show f, Show x, Typeable f, Typeable x) => (x -> f) -> [Flag] -> [x]
-
-isFlag f1 (Flag f2 _) = typeOf f1 == typeOf f2
-hasFlag f       = any (isFlag f)
-deleteFlag f    = filter (not.(isFlag f))
-setFlag f v fs  = (Flag f v) : tl where tl = deleteFlag f fs
-getFlag f fs    = do (Flag _ v) <- find (isFlag f) fs ; cast v
-getAllFlags f fs = catMaybes [ cast v | flg@(Flag _ v) <- fs, isFlag f flg ]
-
-
-{-
-Below are just the individual flags, which unfortunately have to be
-defined as separate data types because of our fancy existential
-data type code.
--}
--- input files
-#define FLAG(x,y) data x = x y deriving (Eq, Show, Typeable)
-
-FLAG (BatchDirFlg, FilePath)
-FLAG (DisableGuiFlg, ())
-FLAG (DetectPolaritiesFlg, (Set.Set PolarityAttr))
-FLAG (DumpDerivationFlg, ())
-FLAG (EarlyDeathFlg, ())
-FLAG (ExtraPolaritiesFlg, (Map.Map PolarityKey Interval))
-FLAG (FromStdinFlg, ())
-FLAG (HelpFlg, ())
-FLAG (InstructionsFileFlg, FilePath)
-FLAG (LexiconFlg, FilePath)
-FLAG (MacrosFlg, FilePath)
-FLAG (TracesFlg, FilePath)
-FLAG (MetricsFlg, [String])
-FLAG (MorphCmdFlg, String)
-FLAG (MorphInfoFlg, FilePath)
-FLAG (OptimisationsFlg, [Optimisation])
-FLAG (OutputFileFlg, String)
-FLAG (PartialFlg, ())
-FLAG (RankingConstraintsFlg, FilePath)
-FLAG (RegressionTestModeFlg, ())
-FLAG (RootFeatureFlg, Flist)
-FLAG (RunUnitTestFlg, ())
-FLAG (NoLoadTestSuiteFlg, ())
-FLAG (StatsFileFlg, FilePath)
-FLAG (TestCaseFlg, String)
-FLAG (TestInstructionsFlg, [Instruction])
-FLAG (TestSuiteFlg, FilePath)
-FLAG (TimeoutFlg, Integer)
-FLAG (VerboseModeFlg, ())
-FLAG (VersionFlg, ())
-FLAG (ViewCmdFlg, String)
--- not to be exported (defaults)
--- the WeirdFlg exists strictly to please OS X when you launch
--- GenI in an application bundle (double-click)... for some
--- reason it wants to pass an argument to -p
-FLAG (BuilderFlg,  BuilderType)
-FLAG (GrammarTypeFlg, GrammarType)
-FLAG (WeirdFlg, String)
-\end{code}
-
-
