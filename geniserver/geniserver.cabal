@@ -4,6 +4,7 @@ License:        GPL
 License-file:   LICENSE
 Author:         Carlos Areces and Eric Kow
 Build-Depends:  base < 4.1,
+                cmdargs >= 0.1 && < 0.2,
                 network >= 2.2 && < 2.3,
                 json >= 0.4.3 && < 0.5,
                 unix >= 2.3 && < 2.4,
