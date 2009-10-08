@@ -89,8 +89,15 @@
 
   <!-- node name -->
   <xsl:value-of select="$indent"/>
-  <xsl:text>n</xsl:text>
-  <xsl:value-of select="$count"/>
+  <xsl:choose>
+    <xsl:when test="@name">
+      <xsl:value-of select="@name"/>
+    </xsl:when>
+    <xsl:otherwise>
+      <xsl:text>n</xsl:text>
+      <xsl:value-of select="$count"/>
+    </xsl:otherwise>
+  </xsl:choose>
   <xsl:text> </xsl:text>
 
   <!-- node type -->
