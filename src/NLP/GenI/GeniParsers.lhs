@@ -190,8 +190,9 @@ feature structures.  They take the form \verb![foo:bar ping:?Pong]!, or more
 formally,
 
 \begin{SaveVerbatim}{KoweyTmp}
-<feature-structure>    ::= "[" <atttribute-value-pair>* "]"
-<attribute-value-pair> ::= <identifier> ":" <value>
+<feature-structure>      ::= "[" <atttribute-value-pair>* "]"
+<attribute-value-pair>   ::= <identifier-or-reserved> ":" <value>
+<identifier-or-reserved> ::= <identifier> | <reserved>
 \end{SaveVerbatim}
 \begin{center}
 \fbox{\BUseVerbatim{KoweyTmp}}
@@ -203,7 +204,7 @@ geniFeats = option [] $ squares $ many geniAttVal
 
 geniAttVal :: Parser AvPair
 geniAttVal = do
-  att <- identifier <?> "an attribute"; colon
+  att <- identifierR <?> "an attribute"; colon
   val <- geniValue <?> "a GenI value"
   return $ AvPair att val
 \end{code}
@@ -892,6 +893,15 @@ symbol = P.symbol lexer
 -- ----------------------------------------------------------------------
 -- parsec helpers
 -- ----------------------------------------------------------------------
+
+-- | identifier, permitting reserved words too
+identifierR :: CharParser () String
+identifierR
+  = do { c <- P.identStart geniLanguageDef
+       ; cs <- many (P.identLetter geniLanguageDef)
+       ; return (c:cs)
+       }
+       <?> "identifier or reserved word"
 
 tillEof :: Parser a -> Parser a
 tillEof p =
