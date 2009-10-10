@@ -172,7 +172,9 @@
 <xsl:template match="sym">
   <xsl:choose>
     <xsl:when test="@value">
+      <xsl:text>"</xsl:text>
       <xsl:value-of select="@value"/>
+      <xsl:text>"</xsl:text>
     </xsl:when>
     <xsl:when test="@varname">
       <xsl:text>?</xsl:text>
