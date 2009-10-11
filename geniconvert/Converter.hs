@@ -28,6 +28,7 @@ import Data.List
 import Data.Maybe
 import System (ExitCode(ExitFailure), exitWith, getArgs, getProgName)
 import System.Console.GetOpt(OptDescr(Option), ArgDescr(..), usageInfo, getOpt, ArgOrder(Permute))
+import System.Directory ( doesFileExist, removeFile )
 import Prelude hiding (appendFile, getContents, readFile, writeFile, putStrLn)
 import System.IO.UTF8
 
@@ -69,8 +70,8 @@ convert (InputParams iForm oForm f iType) fs =
       fail $ "Sorry, you must specify an output file with -o"
     when (oFormat `elem` [ haskellFormat, genibFormat ] && length fs > 1) $
       fail $ "Sorry, I can't convert more than one file to " ++ showFormat oFormat ++ " at a time"
-    -- empty out the file first! (there might be an old one lying around)
-    writeFile f ""
+    exists <- doesFileExist f
+    when exists $ removeFile f
     --
     let getParser p = maybe     (oops iFormat "parse") textReader $ p iFormat
         getReader r = fromMaybe (oops iFormat "read")             $ r iFormat

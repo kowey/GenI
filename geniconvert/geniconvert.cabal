@@ -5,6 +5,7 @@ License-file:   LICENSE
 Author:         Carlos Areces and Eric Kow
 Build-Depends:  GenI >=0.20 && < 0.21
               , base < 4.1
+              , directory >= 1.0 && < 1.1
               , binary, haskell98, containers, mtl
               , parsec < 3, QuickCheck, HUnit, HaXml >=1.16
               , utf8-string >= 0.3.5 && < 0.4
