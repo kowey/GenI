@@ -28,7 +28,6 @@ import Data.List
 import Data.Maybe
 import System (ExitCode(ExitFailure), exitWith, getArgs, getProgName)
 import System.Console.GetOpt(OptDescr(Option), ArgDescr(..), usageInfo, getOpt, ArgOrder(Permute))
-import System.IO.Unsafe(unsafeInterleaveIO)
 import Prelude hiding (appendFile, getContents, readFile, writeFile, putStrLn)
 import System.IO.UTF8
 
@@ -86,7 +85,7 @@ convert (InputParams iForm oForm f iType) fs =
                             LexiconItype      -> getReader readLexicon x      >>= (getWriter writeLexicon f)
     if null fs
        then getContents >>= convertString
-       else forM_ fs $ (\x -> unsafeInterleaveIO (readFile x) >>= convertFile)
+       else forM_ fs $ \x -> readFile x >>= convertFile
 
 -- -------------------------------------------------------------------
 -- command line arguments
