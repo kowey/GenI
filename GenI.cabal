@@ -53,7 +53,7 @@ extra-source-files: src/NLP/GenI/SysGeni.hs
                     src/NLP/GenI/Test.hs
                     src/NLP/GenI/Simple/SimpleGui.lhs,
                     src/NLP/GenI/Gui.lhs
-                    src/NLP/GenI/GraphvizShow.lhs,
+                    src/NLP/GenI/GraphvizShow.hs,
                     src/NLP/GenI/GuiHelper.hs
                     src/NLP/GenI/Console.hs,
                     src/NLP/GenI/Graphviz.hs

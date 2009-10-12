@@ -1,33 +1,26 @@
-% GenI surface realiser
-% Copyright (C) 2005 Carlos Areces and Eric Kow
-%
-% This program is free software; you can redistribute it and/or
-% modify it under the terms of the GNU General Public License
-% as published by the Free Software Foundation; either version 2
-% of the License, or (at your option) any later version.
-%
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-%
-% You should have received a copy of the GNU General Public License
-% along with this program; if not, write to the Free Software
-% Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+--  GenI surface realiser
+--  Copyright (C) 2009 Eric Kow
+--
+--  This program is free software; you can redistribute it and/or
+--  modify it under the terms of the GNU General Public License
+--  as published by the Free Software Foundation; either version 2
+--  of the License, or (at your option) any later version.
+--
+--  This program is distributed in the hope that it will be useful,
+--  but WITHOUT ANY WARRANTY; without even the implied warranty of
+--  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+--  GNU General Public License for more details.
+--
+--  You should have received a copy of the GNU General Public License
+--  along with this program; if not, write to the Free Software
+--  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-\section{GraphvizShow}
-
-Outputting core GenI data to graphviz.
-
-\begin{code}
 {-# LANGUAGE FlexibleInstances, TypeSynonymInstances, FlexibleContexts #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+-- | Outputting core GenI data to graphviz.
 module NLP.GenI.GraphvizShow
 where
-\end{code}
 
-\ignore{
-\begin{code}
 import Data.List(intersperse,nub)
 import Data.List.Split (wordsBy)
 import Data.Maybe(listToMaybe)
@@ -50,14 +43,10 @@ import NLP.GenI.Graphviz
   , gvNode, gvEdge, gvShowTree
   )
 
-\end{code}
-}
+-- ----------------------------------------------------------------------
+-- For GraphViz
+-- ----------------------------------------------------------------------
 
-% ----------------------------------------------------------------------
-\section{For GraphViz}
-% ----------------------------------------------------------------------
-
-\begin{code}
 type GvHighlighter a = a -> (a, Maybe String)
 
 nullHighlighter :: GvHighlighter GNode
@@ -84,13 +73,11 @@ instance GraphvizShow (Bool, GvHighlighter GNode) TagElem where
   [ "fontsize = 10", "ranksep = 0.3"
   , "node [fontsize=10]"
   , "edge [fontsize=10 arrowhead=none]" ]
-\end{code}
 
-Helper functions for the TagElem GraphvizShow instance
+-- ----------------------------------------------------------------------
+-- Helper functions for the TagElem GraphvizShow instance
+-- ----------------------------------------------------------------------
 
-\section{GNode - GraphvizShow}
-
-\begin{code}
 instance GraphvizShowNode (Bool) (GNode, Maybe String) where
  -- compact -> (node, mcolour) -> String
  graphvizShowNode detailed prefix (gn, mcolour) =
@@ -120,9 +107,7 @@ instance GraphvizShowNode (Bool) (GNode, Maybe String) where
         where barAnd x = "|" ++ x
               showFs = gvUnlines . (map graphvizShow_)
    in gvNode prefix body (shapeParams ++ colorParams)
-\end{code}
 
-\begin{code}
 instance GraphvizShowString () GNode where
   graphvizShow () gn =
     let stub  = showGnStub gn
@@ -173,13 +158,11 @@ maybeShow_ prefix s = maybeShow (prefix++) s
 
 graphvizShow_ :: (GraphvizShowString () a) => a -> String
 graphvizShow_ = graphvizShow ()
-\end{code}
 
-% ----------------------------------------------------------------------
-\section{Derivation tree}
-% ----------------------------------------------------------------------
+-- ----------------------------------------------------------------------
+-- Derivation tree
+-- ----------------------------------------------------------------------
 
-\begin{code}
 graphvizShowDerivation :: TagDerivation -> String
 graphvizShowDerivation deriv =
   if (null histNodes)
@@ -192,20 +175,13 @@ graphvizShowDerivation deriv =
                   name:fam:tree:_ -> name ++ ":" ++ fam ++ gvNewline ++ tree
                   _               -> n ++ " (geni/gv ERROR)"
         histNodes = reverse $ nub $ concatMap (\ (DerivationStep _ c p _) -> [c,p]) deriv
-\end{code}
 
-\begin{code}
 graphvizShowDerivation' :: DerivationStep -> String
 graphvizShowDerivation' (DerivationStep substadj child parent _) =
   gvEdge (gvDerivationLab parent) (gvDerivationLab child) "" p
   where p = if substadj == 'a' then [("style","dashed")] else []
-\end{code}
 
-We have a couple of functions to help massage our data into Graphviz input
-format: node names can't have hyphens in them and newlines within the node
-labels should be represented literally as \verb$\n$.
 
-\begin{code}
 gvDerivationLab :: String -> String
 gvDerivationLab xs = "Derivation" ++ gvMunge xs
 
@@ -213,10 +189,11 @@ newlineToSlashN :: Char -> String
 newlineToSlashN '\n' = gvNewline
 newlineToSlashN x = [x]
 
+-- | Node names can't have hyphens in them and newlines within the node
+--   labels should be represented literally as @\\n@.
 gvMunge :: String -> String
 gvMunge = map dot2x . filter (/= ':') . filter (/= '-')
 
 dot2x :: Char -> Char
 dot2x '.' = 'x'
 dot2x c   = c
-\end{code}

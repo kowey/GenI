@@ -1,30 +1,25 @@
-% GenI surface realiser
-% Copyright (C) 2005 Carlos Areces and Eric Kow
-%
-% This program is free software; you can redistribute it and/or
-% modify it under the terms of the GNU General Public License
-% as published by the Free Software Foundation; either version 2
-% of the License, or (at your option) any later version.
-%
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-%
-% You should have received a copy of the GNU General Public License
-% along with this program; if not, write to the Free Software
-% Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+--  GenI surface realiser
+--  Copyright (C) 2005 Carlos Areces and Eric Kow
+--
+--  This program is free software; you can redistribute it and/or
+--  modify it under the terms of the GNU General Public License
+--  as published by the Free Software Foundation; either version 2
+--  of the License, or (at your option) any later version.
+--
+--  This program is distributed in the hope that it will be useful,
+--  but WITHOUT ANY WARRANTY; without even the implied warranty of
+--  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+--  GNU General Public License for more details.
+--
+--  You should have received a copy of the GNU General Public License
+--  along with this program; if not, write to the Free Software
+--  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-The GeniShow module provides specialised functions for visualising tree data.
-
-% ----------------------------------------------------------------------
-\section{GeniShow}
-% ----------------------------------------------------------------------
-
+{-
 We need to be able to dump some of GenI's data structures into a simple
 text format we call GeniHand.
 
-There are at leaste two uses for this, one is that it allows us to
+There are at least two uses for this, one is that it allows us to
 interrupt the debugging process, dump everything to file, muck around
 with the trees and then pick up where we left off.
 
@@ -35,14 +30,12 @@ in the lighter syntax.  It's not that XML is inherently less efficient to parse
 than the handwritten syntax, just that writing an efficient parser for XML
 based format is more annoying, so I stuck with HaXml to make my life easy.
 Unfortunately, HaXml seems to have some kind of space leak.
+-}
 
-\begin{code}
+-- This module provides specialised functions for visualising tree data.
 module NLP.GenI.GeniShow
 where
-\end{code}
 
-\ignore{
-\begin{code}
 import Data.Tree
 import Data.List(intersperse, isPrefixOf)
 import qualified Data.Map as Map
@@ -57,10 +50,7 @@ import NLP.GenI.Btypes (GeniVal(GConst), AvPair(..), Ptype(..),
                SemInput, Pred,
                TestCase(..),
                )
-\end{code}
-}
 
-\begin{code}
 class GeniShow a where
   geniShow :: a -> String
 
@@ -179,7 +169,3 @@ geniShowSemInput (sem,icons,lcons) =
       idxStuff = geniShowKeyword "idxconstraints"
                . (showString . geniShow $ icons) . squares
  in semStuff .  (if null icons then id else showChar '\n' . idxStuff)
-\end{code}
-
-\include{src/NLP/GenI/GraphvizShow.lhs}
-\include{src/NLP/GenI/HsShow.lhs}
