@@ -112,7 +112,7 @@ instance GraphvizShowString () GNode where
   graphvizShow () gn =
     let stub  = showGnStub gn
         extra = showGnDecorations gn
-    in stub ++ maybeShow_ " " extra
+    in stub ++ extra
 
 instance GraphvizShowString () AvPair where
   graphvizShow () (AvPair a v) = a ++ ":" ++ graphvizShow_ v
@@ -124,9 +124,9 @@ instance GraphvizShowString () GeniVal where
 showGnDecorations :: GNode -> String
 showGnDecorations gn =
   case gtype gn of
-  Subs -> "!"
+  Subs -> "↓"
   Foot -> "*"
-  _    -> if (gaconstr gn) then "#"   else ""
+  _    -> if gaconstr gn then "ᴺᴬ"   else ""
 
 showGnStub :: GNode -> String
 showGnStub gn =
