@@ -625,7 +625,11 @@ statsGui f sentences stats =
               , hfloatRight $ widget saveBt ]
 \end{code}
 
+% --------------------------------------------------------------------
+\section{Debugging}
 \label{sec:gui:debugger}
+% --------------------------------------------------------------------
+
 Instead of going directly to the results window, you could instead use the
 interactive debugger which GenI provides.  The debugger shows a separate tab
 for each phase in surfuce realisation (lexical selection, filtering, building).
