@@ -632,10 +632,7 @@ statsGui f sentences stats =
 
 Instead of going directly to the results window, you could instead use the
 interactive debugger which GenI provides.  The debugger shows a separate tab
-for each phase in surfuce realisation (lexical selection, filtering, building).
-The building phase has a parameterisable GUI, which means that if you wanted to
-develop a new surface realisation algorithm for GenI, you could also extend the
-debugger GUI to go with it.
+for each phase in surface realisation (lexical selection, filtering, building).
 
 \begin{center}
 \includegraphics[width=0.47\textwidth]{hcar/GenI-debugger-screenshot.jpg}
@@ -690,7 +687,50 @@ debugGui builderGui pstRef pauseOnLex =
     -- display all tabs if we are not told to pause on lex selection
     when (not pauseOnLex) (step2 cand)
 \end{code}
- 
+
+\subsection{Stepping through the debugger}
+
+The interactive debugger can have a diffrent GUI for each realisation algorithm.
+Here we will discuss the interface for the Simple 2-Phase algorithm which \geni
+uses by default.  The interfaces for other algorithms are likely to very similar.
+
+\begin{center}
+\includegraphics[width=0.47\textwidth]{images/debugger-features.png}
+\end{center}
+
+The debugger allows you to step through chart generation.  Using the 'Step by'
+button, you can walk through an arbitrary number of steps, where each step
+consists in pulling one item of the agenda, combining it with the chart and
+putting some of the results back on to the agenda (or the trash, or results
+pile as the case may be).  New chart items produced on each step typically have
+one of their nodes highlighted in red.  This indicates that the node was the
+site of the most recent ``event''.  For example in the substitution phase, the
+red node indicates where the substitution operation was performed; whereas in
+the adjunction phase, it could either indicate where adjunction was performed
+or where a null-adjunction constraint was applied.
+
+If you select the ``show features'' checkbox, all nodes in the chart item will
+be expanded to reveal the underlying feature structures.  The components of this
+expanded representation are segmented into the following boxes:
+
+\vspace{1em}
+\begin{tabular}{ll}
+\begin{minipage}{0.10\textwidth}
+\includegraphics[width=\textwidth]{images/debugger-features-focus.png}
+\end{minipage} &
+\begin{minipage}{0.70\textwidth}
+\begin{enumerate}
+\item Summary: here, \verb!n:j.m! indicates that the category is \verb!n!,
+      that the top \verb!idx! feature is associated with \verb'j' and the
+      bottom one with \verb!m!.
+\item Decorations: here, $\downarrow$ indicates that this is a TAG substitution
+      node, following the usual conventions in the literature.
+\item The top feature structure
+\item The bottom feature structure
+\end{enumerate}
+\end{minipage} \\
+\end{tabular}
+
 % --------------------------------------------------------------------
 \section{Tree browser}
 \label{sec:treebrowser_gui}
