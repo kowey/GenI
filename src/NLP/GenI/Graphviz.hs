@@ -34,7 +34,9 @@ where
 import Control.Monad(when)
 import Data.List(intersperse)
 import Data.Tree
-import System.IO(hPutStrLn, hClose)
+import System.IO ( hClose )
+import System.IO.UTF8
+import Prelude hiding ( writeFile )
 import System.Exit(ExitCode)
 
 import NLP.GenI.SysGeni(waitForProcess, runInteractiveProcess)
@@ -200,7 +202,7 @@ graphviz dot dotFile outputFile = do
    let dotArgs' = ["-Gfontname=courier", 
                    "-Nfontname=courier", 
                    "-Efontname=courier", 
-                   "-Gcharset=latin1", -- FIXME: should really output UTF-8 instead
+                   "-Gcharset=utf-8",
                    "-Tpng", "-o" ++ outputFile ]
        dotArgs = dotArgs' ++ (if (null dotFile) then [] else [dotFile])
    -- putStrLn ("sending to graphviz:\n" ++ dot) 
