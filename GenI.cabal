@@ -129,7 +129,7 @@ Executable     geni
  Build-Depends: directory > 1,
                 filepath >= 1.1.0 && < 1.2
  if flag(gui)
-    Build-Depends: wx >= 0.10.3 && < 0.12
+    Build-Depends: wx >= 0.10.3 && < 0.13
  else
     cpp-options:      -DDISABLE_GUI
 
