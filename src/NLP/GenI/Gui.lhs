@@ -544,7 +544,8 @@ configGui pstRef loadFn = do
 -- displays the result in a results gui (below).
 doGenerate :: Textual b => Window a -> ProgStateRef -> b -> Bool -> Bool -> IO ()
 doGenerate f pstRef sembox useDebugger pauseOnLex =
- do loadEverything pstRef
+ do modifyIORef pstRef $ \p -> p { warnings = [] }
+    loadEverything pstRef
     sem <- get sembox text
     loadTargetSemStr pstRef sem
     --
