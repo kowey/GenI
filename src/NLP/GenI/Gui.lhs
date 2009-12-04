@@ -644,9 +644,8 @@ for each phase in surface realisation (lexical selection, filtering, building).
 --   parameterisable bits as defined in the BuilderGui module.
 debugGui :: BG.BuilderGui -> ProgStateRef -> Bool -> IO ()
 debugGui builderGui pstRef pauseOnLex =
- do pst <- readIORef pstRef
-    let config = pa pst
-        btype = show $ builderType config
+ do config <- pa `fmap` readIORef pstRef
+    let btype = show $ builderType config
     --
     f <- frame [ text := "GenI Debugger - " ++ btype ++ " edition"
                , fullRepaintOnResize := False
@@ -677,6 +676,7 @@ debugGui builderGui pstRef pauseOnLex =
                   , clientSize := sz 700 600 ]
             return ()
     -- candidate selection tab
+    pst <- readIORef pstRef
     (canPnl,_,_) <- if pauseOnLex
                     then pauseOnLexGui pst nb cand step2
                     else candidateGui  pst nb cand
