@@ -835,7 +835,6 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
   -- ---------------
   if twophase then finalRes2p else finalRes1p
 
--- Note that we do not propagate variable substitutions in the nodes we return
 canAdjoin :: SimpleItem -> TagSite -> Maybe (TagSite, TagSite, Subst)
 canAdjoin aItem pSite = do
   -- let's go!
