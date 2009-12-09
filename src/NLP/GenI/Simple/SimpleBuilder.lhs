@@ -844,8 +844,8 @@ canAdjoin aItem pSite = do
   (anf_down, subst2)  <- unifyFeat (replace subst1 $ tsDown f) (replace subst1 $ tsDown pSite)
   let -- combined substitution list and success condition
       subst12 = mergeSubst subst1 subst2
-      anr = replace subst12 $ r { tsUp = anr_up' }
-      anf = replace subst12 $ pSite { tsDown = anf_down }
+      anr = replace subst12 $ r { tsUp = anr_up' } --  resulting node based on the root node of the aux tree
+      anf = replace subst12 $ f { tsDown = anf_down } --  resulting node based on the foot node of the aux tree
   return (anr, anf, subst12)
 \end{code}
 
