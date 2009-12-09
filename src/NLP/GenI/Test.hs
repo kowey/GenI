@@ -22,10 +22,12 @@ module NLP.GenI.Test where
 import System.Environment ( getArgs )
 import Test.Framework
 import NLP.GenI.GeniVal ( testSuite )
+import NLP.GenI.Simple.SimpleBuilder ( testSuite )
 
 runTests :: IO ()
 runTests =
  do args <- filter (/= "--unit-tests") `fmap` getArgs
     flip defaultMainWithArgs args
      [ NLP.GenI.GeniVal.testSuite
+     , NLP.GenI.Simple.SimpleBuilder.testSuite
      ]

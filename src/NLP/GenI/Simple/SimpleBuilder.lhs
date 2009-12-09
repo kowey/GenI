@@ -41,6 +41,9 @@ module NLP.GenI.Simple.SimpleBuilder (
    theTrash, step,
 
    unpackResult,
+
+   --
+   testSuite,
    )
 where
 \end{code}
@@ -68,12 +71,15 @@ import NLP.GenI.Statistics (Statistics)
 import NLP.GenI.Automaton ( automatonPaths, NFA(..), addTrans )
 import NLP.GenI.Btypes
   ( Ptype(Initial)
-  , GeniVal
+  , AvPair(..)
+  , GeniVal(GConst)
   , replace, DescendGeniVal(..)
-  , GNode(..), NodeName
+  , GNode(..), NodeName, gnnameIs
+  , GType(Other)
   , root, foot
   , plugTree, spliceTree
   , unifyFeat, Flist, Subst, mergeSubst
+  , sortSem, Sem
   )
 import NLP.GenI.Builder (
     incrCounter, num_iterations, num_comparisons, chart_size,
@@ -96,13 +102,16 @@ import NLP.GenI.Configuration
 import NLP.GenI.General
  ( BitVector, mapMaybeM, mapTree', geniBug, preTerminals, )
 
-import NLP.GenI.Btypes ( GType(Other), sortSem, Sem, gnnameIs )
 import NLP.GenI.General ( repList, )
 import NLP.GenI.Tags ( idname,
     ts_synIncomplete, ts_semIncomplete, ts_tbUnificationFailure,
     )
 
 import Data.List ( sortBy, unfoldr )
+
+import Test.HUnit
+import Test.Framework
+import Test.Framework.Providers.HUnit
 \end{code}
 }
 
@@ -1223,3 +1232,87 @@ instance NFData SimpleItem where
 -}
 \end{code}
 
+
+% --------------------------------------------------------------------
+% Testing
+% --------------------------------------------------------------------
+
+\begin{code}
+testSuite = testGroup "simple builder"
+ [ testAdjunction
+ ]
+
+
+testAdjunction =
+  testGroup "adjunction"
+   [ testCase "canAdjoin pos" $ assertBool "" $ isJust    $ canAdjoin ttGoodAux ttAdjSite
+   , testCase "canAdjoin neg" $ assertBool "" $ isNothing $ canAdjoin ttBadAux  ttAdjSite
+   , testCase "iapplyAdjNode pos" $ assertBool "" $ isJust    $ iapplyAdjNode True ttGoodAux ttAdj
+   , testCase "iapplyAdjNode neg" $ assertBool "" $ isNothing $ iapplyAdjNode True ttBadAux  ttAdj
+   , testCase "iapplyAdjNode neg" $ assertBool "" $ isNothing $ iapplyAdjNode True ttAdj ttBadAux
+   ]
+
+-- testing
+ttAdj =
+  ttEmptySimpleItem { siId       = 0
+                    , siRoot     = ttAdjSite
+                    , siAdjnodes = [ ttAdjSite ] }
+
+ttGoodAux =
+  ttEmptySimpleItem { siId   = 0
+                    , siSemantics = 1
+                    , siRoot = ttFootTop
+                    , siFoot = Just ttFootBot }
+
+ttBadAux =
+  ttEmptySimpleItem { siId   = 0
+                    , siSemantics = 1
+                    , siRoot = ttFootBot
+                    , siFoot = Just ttFootTop }
+
+ttEmptySimpleItem
+  = SimpleItem { siId           = 0  -- must set
+               , siSubstnodes   = [] -- must set
+               , siAdjnodes     = [] -- must set
+               , siSemantics    = 0  -- must set
+               , siPolpaths     = 1
+               , siAccesible    = []
+               , siInaccessible = []
+               , siLeaves       = []
+               , siDerived      = Node "" []
+               , siRoot         = ttEmptySite
+               , siFoot         = Nothing
+               , siPendingTb    = []
+               , siDerivation   = []
+               , siGuiStuff     = emptySimpleGuiItem
+               }
+
+ttEmptySite = TagSite { tsName = "empty"
+                      , tsUp   = [ ttCat ttA_ ]
+                      , tsDown = [ ttCat ttA_ ]
+                      , tsOrigin = ""
+                      }
+
+ttAdjSite = TagSite { tsName = "testing-adjsite"
+                    , tsUp   = [ ttCat ttA_, ttDet ttPlus_ ]
+                    , tsDown = [ ttCat ttA_, ttDet ttMinus_ ]
+                    , tsOrigin = ""
+                    }
+
+ttFootTop = TagSite { tsName = "testing-foot-top"
+                    , tsUp   = [ ttCat ttA_, ttDet ttPlus_ ]
+                    , tsDown = [ ttCat ttA_, ttDet ttPlus_ ]
+                    , tsOrigin = "" }
+
+ttFootBot = TagSite { tsName = "testing-foot-top"
+                    , tsUp   = [ ttCat ttA_, ttDet ttMinus_ ]
+                    , tsDown = [ ttCat ttA_, ttDet ttMinus_ ]
+                    , tsOrigin = "" }
+
+ttCat = AvPair "cat"
+ttDet = AvPair "det"
+
+ttA_     = GConst ["a"]
+ttPlus_  = GConst ["+"]
+ttMinus_ = GConst ["-"]
+\end{code}
