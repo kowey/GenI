@@ -412,25 +412,7 @@ instance Biplate AvPair GeniVal where
   biplate (AvPair a v) = plate AvPair |- a |* v
 \end{code}
 
-\subsection{Collectable}
-
-A Collectable is something which can return its variables as a set.
-By variables, what I most had in mind was the GVar values in a
-GeniVal.  This notion is probably not very useful outside the context of
-alpha-conversion task, but it seems general enough that I'll keep it
-around for a good bit, until either some use for it creeps up, or I find
-a more general notion that I can transform this into.
-
 \begin{code}
-class Collectable a where
-  collect :: a -> Set.Set String -> Set.Set String
-
-instance Collectable a => Collectable (Maybe a) where
-  collect Nothing  s = s
-  collect (Just x) s = collect x s
-
-instance (Collectable a => Collectable [a]) where
-  collect l s = foldr collect s l
 
 instance (Collectable a => Collectable (Tree a)) where
   collect = collect.flatten
@@ -439,10 +421,6 @@ instance (Collectable a => Collectable (Tree a)) where
 instance ((Collectable a, Collectable b, Collectable c)
            => Collectable (a,b,c)) where
   collect (a,b,c) = collect a . collect b . collect c
-
-instance Collectable GeniVal where
-  collect (GVar v) s = Set.insert v s
-  collect _ s = s
 
 instance Collectable AvPair where
   collect (AvPair _ b) = collect b

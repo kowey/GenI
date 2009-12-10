@@ -27,6 +27,7 @@ import Data.Maybe (fromMaybe, isJust)
 import Data.Generics (Data)
 import Data.Typeable (Typeable)
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 
 import Test.HUnit
 import Test.QuickCheck hiding (collect)
@@ -190,6 +191,30 @@ replaceMapG _ v = {-# SCC "replaceMapG" #-} v
 replaceOneG :: (String, GeniVal) -> GeniVal -> GeniVal
 replaceOneG (s1, s2) (GVar v_) | v_ == s1 = {-# SCC "replaceOneG" #-} s2
 replaceOneG _ v = {-# SCC "replaceOneG" #-} v
+
+-- ----------------------------------------------------------------------
+-- Variable collection and renaming
+-- ----------------------------------------------------------------------
+
+-- | A 'Collectable' is something which can return its variables as a set.
+--   By variables, what I most had in mind was the GVar values in a
+--   GeniVal.  This notion is probably not very useful outside the context of
+--   alpha-conversion task, but it seems general enough that I'll keep it
+--   around for a good bit, until either some use for it creeps up, or I find
+--   a more general notion that I can transform this into.
+class Collectable a where
+  collect :: a -> Set.Set String -> Set.Set String
+
+instance Collectable a => Collectable (Maybe a) where
+  collect Nothing  s = s
+  collect (Just x) s = collect x s
+
+instance (Collectable a => Collectable [a]) where
+  collect l s = foldr collect s l
+
+instance Collectable GeniVal where
+  collect (GVar v) s = Set.insert v s
+  collect _ s = s
 
 -- ----------------------------------------------------------------------
 -- Performance
