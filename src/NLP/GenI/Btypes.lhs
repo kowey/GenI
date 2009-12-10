@@ -72,24 +72,5 @@ import NLP.GenI.Lexicon
 import NLP.GenI.PolarityTypes (SemPols)
 import NLP.GenI.Semantics
 import NLP.GenI.Tags
+import NLP.GenI.TestSuite
 import NLP.GenI.TreeSchemata
-
---instance Show (IO()) where
---  show _ = ""
-\end{code}
-}
-
-% ----------------------------------------------------------------------
-\section{Test suite}
-% ----------------------------------------------------------------------
-
-\begin{code}
-data TestCase = TestCase
-       { tcName :: String
-       , tcSemString :: String -- ^ for gui
-       , tcSem  :: SemInput
-       , tcExpected :: [String] -- ^ expected results (for testing)
-       , tcOutputs :: [(String, Map.Map (String,String) [String])]
-       -- ^ results we actually got, and their traces (for testing)
-       } deriving Show
-\end{code}

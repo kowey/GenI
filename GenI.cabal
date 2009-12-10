@@ -106,6 +106,7 @@ Library
                 NLP.GenI.Lexicon,
                 NLP.GenI.Semantics,
                 NLP.GenI.Tags,
+                NLP.GenI.TestSuite,
                 NLP.GenI.TreeSchemata,
                 NLP.GenI.Morphology,
                 NLP.GenI.OptimalityTheory,
