@@ -19,11 +19,10 @@
 \label{cha:Tags}
 
 This module provides basic datatypes specific to Tree Adjoining Grammar
-(TAG) and some low-level operations. Note that we don't handle
-substitution and adjunction here; see sections \ref{sec:substitution}
-and \ref{sec:adjunction} instead.
+(TAG) elementary trees and some low-level operations.
 
 \begin{code}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module NLP.GenI.Tags(
@@ -37,7 +36,7 @@ module NLP.GenI.Tags(
    addToTags, tagLeaves,
 
    -- Functions from TagElem
-   setTidnums, 
+   setTidnums, plugTree, spliceTree,
 
    -- General functions
    mapBySem, subsumedBy, showTagSites,
@@ -58,18 +57,15 @@ import Data.Generics.PlateDirect
 import Data.Typeable (Typeable)
 import Text.JSON
 
-import NLP.GenI.Btypes (Ptype(Initial, Auxiliar), SemPols,
-               GeniVal(GConst), AvPair(..),
-               GNode(gup, glexeme, gnname, gaconstr, gdown, gtype, gorigin),
-               GType(Subs), Flist,
-               DescendGeniVal(..),
-               Collectable(..), Idable(..),
-               Sem, Pred, emptyPred, 
-               emptyGNode,
-               showFlist, showPairs, showSem, lexemeAttributes,
-               )
-import NLP.GenI.General (groupByFM, preTerminals)
-import NLP.GenI.PolarityTypes (PolarityKey(..))
+import NLP.GenI.General (listRepNode, groupByFM, preTerminals, geniBug)
+import NLP.GenI.GeniVal ( GeniVal(..), DescendGeniVal(..), Collectable(..), Idable(..),
+                        )
+import NLP.GenI.FeatureStructures ( AvPair(..), Flist, showFlist, showPairs )
+import NLP.GenI.PolarityTypes (PolarityKey(..), SemPols)
+import NLP.GenI.Semantics ( Sem, Pred, emptyPred, showSem )
+import NLP.GenI.TreeSchemata ( Ptype(..),
+                               GNode(..), GType(..), emptyGNode, NodeName,
+                               lexemeAttributes )
 \end{code}
 }
 
@@ -134,6 +130,20 @@ instance Biplate TagElem GeniVal where
               |+ zt
               ||+ zsem |- x5
               ||+ zint |- x6 |- x7
+
+-- | Given a tree(GNode) returns a list of substitution or adjunction
+--   nodes, as well as remaining nodes with a null adjunction constraint.
+detectSites :: Tree GNode -> ([TagSite], [TagSite], [TagSite])
+detectSites t =
+  ( sites isSub           -- for substitution
+  , sites (not.gaconstr)  -- for adjunction
+  , sites constrButNotSub -- for neither
+  )
+ where
+ ns = flatten t
+ sites match = [ TagSite (gnname n) (gup n) (gdown n) (gorigin n) | n <- ns, match n ]
+ isSub n = gtype n == Subs
+ constrButNotSub n = gaconstr n && (not $ isSub n)
 \end{code}
 
 A TAG derivation history consists of a list of 3-tuples representing the
@@ -208,21 +218,48 @@ emptyTE = TE { idname = "",
                tinterface  = [],
                ttrace = []
              }
-
--- | Given a tree(GNode) returns a list of substitution or adjunction
---   nodes, as well as remaining nodes with a null adjunction constraint.
-detectSites :: Tree GNode -> ([TagSite], [TagSite], [TagSite])
-detectSites t =
-  ( sites isSub           -- for substitution
-  , sites (not.gaconstr)  -- for adjunction
-  , sites constrButNotSub -- for neither
-  )
- where
- ns = flatten t
- sites match = [ TagSite (gnname n) (gup n) (gdown n) (gorigin n) | n <- ns, match n ]
- isSub n = gtype n == Subs
- constrButNotSub n = gaconstr n && (not $ isSub n)
 \end{code}
+
+\subsection{Substitution and Adjunction}
+
+\begin{code}
+-- | Plug the first tree into the second tree at the specified node.
+--   Anything below the second node is silently discarded.
+--   We assume the trees are pluggable; it is treated as a bug if
+--   they are not!
+plugTree :: Tree NodeName -> NodeName -> Tree NodeName -> Tree NodeName
+plugTree male n female =
+  case listRepNode (const male) (nmatch n) [female] of
+  ([r], True) -> r
+  _           -> geniBug $ "unexpected plug failure at node " ++ n
+
+-- | Given two trees 'auxt' and 't', splice the tree 'auxt' into
+--   't' via the TAG adjunction rule.
+spliceTree :: NodeName      -- ^ foot node of the aux tree
+           -> Tree NodeName -- ^ aux tree
+           -> NodeName      -- ^ place to adjoin in target tree
+           -> Tree NodeName -- ^ target tree
+           -> Tree NodeName
+spliceTree f auxT n targetT =
+  case findSubTree n targetT of -- excise the subtree at n
+  Nothing -> geniBug $ "Unexpected adjunction failure. " ++
+                       "Could not find node " ++ n ++ " of target tree."
+  Just eT -> -- plug the excised bit into the aux
+             let auxPlus = plugTree eT f auxT
+             -- plug the augmented aux at n
+             in  plugTree auxPlus n targetT
+
+nmatch :: NodeName -> Tree NodeName -> Bool
+nmatch n (Node a _) = a == n
+
+findSubTree :: NodeName -> Tree NodeName -> Maybe (Tree NodeName)
+findSubTree n n2@(Node x ks)
+  | x == n    = Just n2
+  | otherwise = case mapMaybe (findSubTree n) ks of
+                []    -> Nothing
+                (h:_) -> Just h
+\end{code}
+
 
 \subsection{Unique ID}
 
@@ -339,7 +376,6 @@ getLexeme node =
 
 firstMaybe :: (a -> Maybe b) -> [a] -> Maybe b
 firstMaybe fn = listToMaybe . mapMaybe fn
-
 \end{code}
 
 % ----------------------------------------------------------------------

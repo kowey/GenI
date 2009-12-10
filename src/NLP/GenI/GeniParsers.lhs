@@ -662,14 +662,14 @@ n1[cat:p]![]
 \end{center}
 
 \begin{code}
-geniMacros :: Parser [MTtree]
+geniMacros :: Parser [Ttree GNode]
 geniMacros = tillEof $ many geniTreeDef
 
 initType, auxType :: Parser Ptype
 initType = do { reserved INITIAL ; return Initial  }
 auxType  = do { reserved AUXILIARY ; return Auxiliar }
 
-geniTreeDef :: Parser MTtree
+geniTreeDef :: Parser (Ttree GNode)
 geniTreeDef =
   do sourcePos <- getPosition
      family   <- identifier

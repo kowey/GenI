@@ -79,7 +79,7 @@ import NLP.GenI.General(filterTree, repAllNode,
     )
 
 import NLP.GenI.Btypes
-  (Macros, MTtree, ILexEntry, Lexicon,
+  (Macros, ILexEntry, Lexicon,
    replace, replaceList,
    Sem, SemInput, TestCase(..), sortSem, subsumeSem, params,
    GeniVal(GConst), fromGVar, AvPair(..),
@@ -101,6 +101,7 @@ import NLP.GenI.Tags (Tags, TagElem, emptyTE,
              ttype, tsemantics, ttree, tsempols,
              tinterface, ttrace,
              setTidnums) 
+import NLP.GenI.TreeSchemata ( Ttree(..) )
 
 import NLP.GenI.Configuration
   ( Params, getFlagP, hasFlagP, hasOpt, Optimisation(NoConstraints)
@@ -746,10 +747,10 @@ number of reasons, so we try to record the possible failures for book-keeping.
 \begin{code}
 data LexCombineError =
         BoringError String
-      | EnrichError { eeMacro    :: MTtree
+      | EnrichError { eeMacro    :: Ttree GNode
                     , eeLexEntry :: ILexEntry
                     , eeLocation :: PathEqLhs }
-     | OtherError MTtree ILexEntry String
+     | OtherError (Ttree GNode) ILexEntry String
 
 instance Error LexCombineError where
   noMsg    = strMsg "error combining items"
@@ -801,7 +802,7 @@ unzipEither es = helper ([],[]) es where
 \begin{code}
 -- | Combine a single tree with its lexical item to form a bonafide TagElem.
 --   This process can fail, however, because of filtering or enrichement
-combineOne :: ILexEntry -> MTtree -> Either LexCombineError TagElem
+combineOne :: ILexEntry -> Ttree GNode -> Either LexCombineError TagElem
 combineOne lexRaw eRaw = -- Maybe monad
  -- trace ("\n" ++ (show wt)) $
  do let l1 = alphaConvert "-l" lexRaw
@@ -903,7 +904,7 @@ same as \verb!toto.top.foo=bar! (creates a warning) \\
 type PathEqLhs  = (String, Bool, String)
 type PathEqPair = (PathEqLhs, GeniVal)
 
-enrich :: ILexEntry -> MTtree -> Either LexCombineError MTtree
+enrich :: ILexEntry -> Ttree GNode -> Either LexCombineError (Ttree GNode)
 enrich l t =
  do -- separate into interface/anchor/named
     let (intE, namedE) = lexEquations l
@@ -923,9 +924,9 @@ enrich l t =
     , eeLocation = loc }
 
 enrichBy :: ILexEntry -- ^ lexeme (for debugging info)
-         -> MTtree
+         -> Ttree GNode
          -> (PathEqLhs, GeniVal) -- ^ enrichment eq
-         -> Either LexCombineError MTtree
+         -> Either LexCombineError (Ttree GNode)
 enrichBy lexEntry t (eqLhs, eqVal) =
  case seekCoanchor eqName t of
  Nothing -> return t -- to be robust, we accept if the node isn't there
@@ -946,7 +947,7 @@ enrichBy lexEntry t (eqLhs, eqVal) =
 pathEqName :: PathEqPair -> String
 pathEqName = fst3.fst
 
-missingCoanchors :: ILexEntry -> MTtree -> [String]
+missingCoanchors :: ILexEntry -> Ttree GNode -> [String]
 missingCoanchors lexEntry t =
   -- list monad
   do eq <- nubBy ((==) `on` pathEqName) $ snd $ lexEquations lexEntry
@@ -968,7 +969,7 @@ lexEquations =
       Right peq -> (peq, v)
    nameIs n x = pathEqName x == n
 
-seekCoanchor :: String -> MTtree -> Maybe GNode
+seekCoanchor :: String -> Ttree GNode -> Maybe GNode
 seekCoanchor eqName t =
  case filterTree (matchNodeName eqName) (tree t) of
  [a] -> Just a

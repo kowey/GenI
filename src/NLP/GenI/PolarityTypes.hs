@@ -23,6 +23,7 @@ import Data.Generics ( Data )
 import Data.Typeable ( Typeable )
 
 newtype PolarityKey = PolarityKey { fromPolarityKey :: String } deriving (Show, Eq, Ord, Data, Typeable)
+type SemPols  = [Int]
 
 -- | 'PolarityAttr' is something you want to perform detect polarities on.
 data PolarityAttr = SimplePolarityAttr { spkAtt :: String }

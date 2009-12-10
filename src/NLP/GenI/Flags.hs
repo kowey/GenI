@@ -21,7 +21,7 @@ import Data.Maybe ( catMaybes, fromJust )
 import Data.Typeable
 
 import NLP.GenI.General ( Interval )
-import NLP.GenI.Btypes ( Flist )
+import NLP.GenI.FeatureStructures ( Flist )
 import NLP.GenI.PolarityTypes
 
 -- ----------------------------------------------------------------------
