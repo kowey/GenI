@@ -1237,11 +1237,12 @@ instance NFData SimpleItem where
 % --------------------------------------------------------------------
 
 \begin{code}
+testSuite :: Test.Framework.Test
 testSuite = testGroup "simple builder"
  [ testAdjunction
  ]
 
-
+testAdjunction :: Test.Framework.Test
 testAdjunction =
   testGroup "adjunction"
    [ testCase "canAdjoin pos" $ assertBool "" $ isJust    $ canAdjoin ttGoodAux ttAdjSite
@@ -1252,23 +1253,27 @@ testAdjunction =
    ]
 
 -- testing
+ttAdj :: SimpleItem
 ttAdj =
   ttEmptySimpleItem { siId       = 0
                     , siRoot     = ttAdjSite
                     , siAdjnodes = [ ttAdjSite ] }
 
+ttGoodAux :: SimpleItem
 ttGoodAux =
   ttEmptySimpleItem { siId   = 0
                     , siSemantics = 1
                     , siRoot = ttFootTop
                     , siFoot = Just ttFootBot }
 
+ttBadAux :: SimpleItem
 ttBadAux =
   ttEmptySimpleItem { siId   = 0
                     , siSemantics = 1
                     , siRoot = ttFootBot
                     , siFoot = Just ttFootTop }
 
+ttEmptySimpleItem :: SimpleItem
 ttEmptySimpleItem
   = SimpleItem { siId           = 0  -- must set
                , siSubstnodes   = [] -- must set
@@ -1286,31 +1291,37 @@ ttEmptySimpleItem
                , siGuiStuff     = emptySimpleGuiItem
                }
 
+ttEmptySite :: TagSite
 ttEmptySite = TagSite { tsName = "empty"
                       , tsUp   = [ ttCat ttA_ ]
                       , tsDown = [ ttCat ttA_ ]
                       , tsOrigin = ""
                       }
 
+ttAdjSite :: TagSite
 ttAdjSite = TagSite { tsName = "testing-adjsite"
                     , tsUp   = [ ttCat ttA_, ttDet ttPlus_ ]
                     , tsDown = [ ttCat ttA_, ttDet ttMinus_ ]
                     , tsOrigin = ""
                     }
 
+ttFootTop :: TagSite
 ttFootTop = TagSite { tsName = "testing-foot-top"
                     , tsUp   = [ ttCat ttA_, ttDet ttPlus_ ]
                     , tsDown = [ ttCat ttA_, ttDet ttPlus_ ]
                     , tsOrigin = "" }
 
+ttFootBot :: TagSite
 ttFootBot = TagSite { tsName = "testing-foot-top"
                     , tsUp   = [ ttCat ttA_, ttDet ttMinus_ ]
                     , tsDown = [ ttCat ttA_, ttDet ttMinus_ ]
                     , tsOrigin = "" }
 
+ttCat, ttDet  :: GeniVal -> AvPair
 ttCat = AvPair "cat"
 ttDet = AvPair "det"
 
+ttA_, ttPlus_, ttMinus_ :: GeniVal
 ttA_     = GConst ["a"]
 ttPlus_  = GConst ["+"]
 ttMinus_ = GConst ["-"]
