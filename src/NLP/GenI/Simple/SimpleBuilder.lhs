@@ -1232,6 +1232,7 @@ instance NFData SimpleItem where
 \end{code}
 
 
+\ignore{
 % --------------------------------------------------------------------
 % Testing
 % --------------------------------------------------------------------
@@ -1326,3 +1327,4 @@ ttA_     = GConst ["a"]
 ttPlus_  = GConst ["+"]
 ttMinus_ = GConst ["-"]
 \end{code}
+}

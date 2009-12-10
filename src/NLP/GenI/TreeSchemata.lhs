@@ -21,6 +21,7 @@
 This module provides basic datatypes specific to Tree Adjoining Grammar
 tree schemata.
 
+\ignore{
 \begin{code}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -36,10 +37,7 @@ module NLP.GenI.TreeSchemata (
    GNode(..), emptyGNode, gnnameIs, NodeName,
    GType(..), gCategory, showLexeme,
  ) where
-\end{code}
 
-\ignore{
-\begin{code}
 import qualified Data.Map as Map
 import Data.List (intersperse)
 import Data.Tree
