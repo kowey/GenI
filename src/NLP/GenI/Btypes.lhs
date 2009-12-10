@@ -34,7 +34,7 @@ module NLP.GenI.Btypes(
    Ttree(..), SemPols, TestCase(..),
    Ptype(Initial,Auxiliar,Unspecified),
    Pred, Flist, AvPair(..), GeniVal(..),
-   Lexicon, ILexEntry(..), MorphLexEntry, Macros, Sem, LitConstr, SemInput, Subst,
+   Lexicon, ILexEntry(..), Macros, Sem, LitConstr, SemInput, Subst,
    emptyLE, emptyGNode, emptyMacro,
 
    -- GNode stuff
@@ -78,14 +78,6 @@ import NLP.GenI.TreeSchemata
 --  show _ = ""
 \end{code}
 }
-
-% ----------------------------------------------------------------------
-\section{Lexical entries}
-% ----------------------------------------------------------------------
-
-\begin{code}
-type MorphLexEntry = (String,String,Flist)
-\end{code}
 
 % ----------------------------------------------------------------------
 \section{Test suite}
