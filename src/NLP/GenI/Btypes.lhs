@@ -70,7 +70,6 @@ import Data.Maybe ( mapMaybe )
 import Data.Generics (Data)
 import Data.Typeable (Typeable)
 import qualified Data.Map as Map
-import qualified Data.Set as Set
 import Data.Tree
 
 import Data.Generics.PlateDirect
@@ -400,37 +399,21 @@ findSubTree n n2@(Node x ks)
                 (h:_) -> Just h
 \end{code}
 
-% ----------------------------------------------------------------------
-% ----------------------------------------------------------------------
-
 \begin{code}
 instance (Collectable a => Collectable (Tree a)) where
   collect = collect.flatten
 
 instance Collectable GNode where
   collect n = (collect $ gdown n) . (collect $ gup n)
-\end{code}
 
-\subsection{DescendGeniVal}
-\label{sec:replacable}
-\label{sec:replacements}
-
-The idea of replacing one variable value with another is something that
-appears all over the place in GenI.  So we try to smooth out its use by
-making a type class out of it.
-
-\begin{code}
-
-\end{code}
-
-Substitution on list consists of performing substitution on
-each item.  Each item, is independent of the other,
-of course.
-
-\begin{code}
 instance DescendGeniVal a => DescendGeniVal (Map.Map k a) where
   descendGeniVal s = {-# SCC "descendGeniVal" #-} Map.map (descendGeniVal s)
 \end{code}
+
+% ----------------------------------------------------------------------
+\section{Test suite}
+% ----------------------------------------------------------------------
+
 \begin{code}
 data TestCase = TestCase
        { tcName :: String
@@ -441,5 +424,3 @@ data TestCase = TestCase
        -- ^ results we actually got, and their traces (for testing)
        } deriving Show
 \end{code}
-
-
