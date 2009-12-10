@@ -97,11 +97,13 @@ Library
   Exposed-Modules:
                 NLP.GenI.Btypes,
                 NLP.GenI.BtypesBinary,
+                NLP.GenI.FeatureStructures,
                 NLP.GenI.Flags,
                 NLP.GenI.General,
                 NLP.GenI.GeniParsers,
                 NLP.GenI.GeniShow,
                 NLP.GenI.GeniVal,
+                NLP.GenI.Semantics,
                 NLP.GenI.Tags,
                 NLP.GenI.Morphology,
                 NLP.GenI.OptimalityTheory,

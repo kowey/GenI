@@ -18,10 +18,11 @@
 \chapter{Btypes}
 \label{cha:Btypes}
 
-This module provides basic datatypes like GNode, as well as operations
-on trees, nodes and semantics.  Things here are meant to be relatively
-low-level and primitive (well, with the exception of feature structure
-unification, that is).
+This module provides basic datatypes like GNode, as well as operations on trees
+and nodes.
+
+For now, it doubles as a catch-all core module by exposing functions from other
+modules such as NLP.GenI.Semantics.
 
 \ignore{
 \begin{code}
@@ -66,7 +67,6 @@ module NLP.GenI.Btypes(
 -- import Debug.Trace -- for test stuff
 import Data.List
 import Data.Maybe ( mapMaybe )
-import Data.Function ( on )
 import Data.Generics (Data)
 import Data.Typeable (Typeable)
 import qualified Data.Map as Map
@@ -75,8 +75,10 @@ import Data.Tree
 
 import Data.Generics.PlateDirect
 
-import NLP.GenI.General(filterTree, listRepNode, snd3, geniBug)
+import NLP.GenI.FeatureStructures
+import NLP.GenI.General(filterTree, listRepNode, geniBug)
 import NLP.GenI.GeniVal
+import NLP.GenI.Semantics
 
 --instance Show (IO()) where
 --  show _ = ""
@@ -399,31 +401,11 @@ findSubTree n n2@(Node x ks)
 \end{code}
 
 % ----------------------------------------------------------------------
-\section{Features and variables}
 % ----------------------------------------------------------------------
 
 \begin{code}
-type Flist   = [AvPair]
-data AvPair  = AvPair { avAtt :: String
-                      , avVal ::  GeniVal }
-  deriving (Ord, Eq, Data, Typeable)
-
-instance Biplate AvPair GeniVal where
-  biplate (AvPair a v) = plate AvPair |- a |* v
-\end{code}
-
-\begin{code}
-
 instance (Collectable a => Collectable (Tree a)) where
   collect = collect.flatten
-
--- Pred is what I had in mind here
-instance ((Collectable a, Collectable b, Collectable c)
-           => Collectable (a,b,c)) where
-  collect (a,b,c) = collect a . collect b . collect c
-
-instance Collectable AvPair where
-  collect (AvPair _ b) = collect b
 
 instance Collectable GNode where
   collect n = (collect $ gdown n) . (collect $ gup n)
@@ -448,15 +430,6 @@ of course.
 \begin{code}
 instance DescendGeniVal a => DescendGeniVal (Map.Map k a) where
   descendGeniVal s = {-# SCC "descendGeniVal" #-} Map.map (descendGeniVal s)
-
-instance DescendGeniVal AvPair where
-  descendGeniVal s (AvPair a v) = {-# SCC "descendGeniVal" #-} AvPair a (descendGeniVal s v)
-
-instance DescendGeniVal a => DescendGeniVal (String, a) where
-  descendGeniVal s (n,v) = {-# SCC "descendGeniVal" #-} (n,descendGeniVal s v)
-
-instance DescendGeniVal ([String], Flist) where
-  descendGeniVal s (a,v) = {-# SCC "descendGeniVal" #-} (a, descendGeniVal s v)
 \end{code}
 
 \subsection{Idable}
@@ -490,42 +463,6 @@ alphaConvert suffix x = {-# SCC "alphaConvert" #-}
 \end{code}
 
 \begin{code}
--- | Sort an Flist according with its attributes
-sortFlist :: Flist -> Flist
-sortFlist = sortBy (compare `on` avAtt)
-
-showFlist :: Flist -> String
-showFlist f = "[" ++ showPairs f ++ "]"
-
-showPairs :: Flist -> String
-showPairs = unwords . map showAv
-
-showAv :: AvPair -> String
-showAv (AvPair y z) = y ++ ":" ++ show z
-
-instance Show AvPair where
-  show = showAv
-\end{code}
-
-% ----------------------------------------------------------------------
-\section{Semantics}
-\label{btypes_semantics}
-% ----------------------------------------------------------------------
-
-\begin{code}
--- handle, predicate, parameters
-type Pred = (GeniVal, GeniVal, [GeniVal])
-type Sem = [Pred]
-type LitConstr = (Pred, [String])
-type SemInput  = (Sem,Flist,[LitConstr])
-
-instance Biplate Pred GeniVal where
-  biplate (g1, g2, g3) = plate (,,) |* g1 |* g2 ||* g3
-
-instance Biplate (Maybe Sem) GeniVal where
-  biplate (Just s) = plate Just ||+ s
-  biplate Nothing  = plate Nothing
-
 data TestCase = TestCase
        { tcName :: String
        , tcSemString :: String -- ^ for gui
@@ -534,202 +471,6 @@ data TestCase = TestCase
        , tcOutputs :: [(String, Map.Map (String,String) [String])]
        -- ^ results we actually got, and their traces (for testing)
        } deriving Show
-
-emptyPred :: Pred
-emptyPred = (GAnon,GAnon,[])
-\end{code}
-
-A replacement on a predicate is just a replacement on its parameters
-
-\begin{code}
-instance DescendGeniVal Pred where
-  descendGeniVal s (h, n, lp) = (descendGeniVal s h, descendGeniVal s n, descendGeniVal s lp)
-\end{code}
-
-\begin{code}
-showSem :: Sem -> String
-showSem l =
-    "[" ++ (unwords $ map showPred l) ++ "]"
-
-showPred :: Pred -> String
-showPred (h, p, l) = showh ++ show p ++ "(" ++ unwords (map show l) ++ ")"
-  where
-    hideh (GConst [x]) = "genihandle" `isPrefixOf` x
-    hideh _ = False
-    --
-    showh = if (hideh h) then "" else (show h) ++ ":"
-\end{code}
-
-\begin{code}
--- | Given a Semantics, return the string with the proper keys
---   (propsymbol+arity) to access the agenda
-toKeys :: Sem -> [String]
-toKeys l = map (\(_,prop,par) -> show prop ++ (show $ length par)) l
-\end{code}
-
-\subsection{Semantic subsumption}
-\label{fn:subsumeSem}
-
-FIXME: comment fix
-
-Given tsem the input semantics, and lsem the semantics of a potential
-lexical candidate, returns a list of possible ways that the lexical
-semantics could subsume the input semantics.  We return a pair with
-the semantics that would result from unification\footnote{We need to
-do this because there may be anonymous variables}, and the
-substitutions that need to be propagated throughout the rest of the
-lexical item later on.
-
-Note: we return more than one possible substitution because s could be
-different subsets of ts.  Consider, for example, \semexpr{love(j,m),
-  name(j,john), name(m,mary)} and the candidate \semexpr{name(X,Y)}.
-
-TODO WE ASSUME BOTH SEMANTICS ARE ORDERED and that the input semantics is
-non-empty.
-
-\begin{code}
-subsumeSem :: Sem -> Sem -> [(Sem,Subst)]
-subsumeSem tsem lsem =
-  subsumeSemHelper ([],Map.empty) (reverse tsem) (reverse lsem)
-\end{code}
-
-This is tricky because each substep returns multiple results.  We solicit
-the help of accumulators to keep things from getting confused.
-
-\begin{code}
-subsumeSemHelper :: (Sem,Subst) -> Sem -> Sem -> [(Sem,Subst)]
-subsumeSemHelper _ [] _  =
-  error "input semantics is non-empty in subsumeSemHelper"
-subsumeSemHelper acc _ []      = [acc]
-subsumeSemHelper acc tsem (hd:tl) =
-  let (accSem,accSub) = acc
-      -- does the literal hd subsume the input semantics?
-      pRes = subsumePred tsem hd
-      -- toPred reconstructs the literal hd with new parameters p.
-      -- The head of the list is taken to be the handle.
-      toPred p = (head p, snd3 hd, tail p)
-      -- next adds a result from predication subsumption to
-      -- the accumulators and goes to the next recursive step
-      next (p,s) = subsumeSemHelper acc2 tsem2 tl2
-         where tl2   = replace s tl
-               tsem2 = replace s tsem
-               acc2  = (toPred p : accSem, mergeSubst accSub s)
-  in concatMap next pRes
-\end{code}
-
-\fnlabel{subsumePred}
-The first Sem s1 and second Sem s2 are the same when we start we circle on s2
-looking for a match for Pred, and meanwhile we apply the partical substitutions
-to s1.  Note: we treat the handle as if it were a parameter.
-
-\begin{code}
-subsumePred :: Sem -> Pred -> [([GeniVal],Subst)]
-subsumePred [] _ = []
-subsumePred ((h1, p1, la1):l) (pred2@(h2,p2,la2)) =
-    -- if we found the proper predicate
-    if ((p1 == p2) && (length la1 == length la2))
-    then let mrs  = unify (h1:la1) (h2:la2)
-             next = subsumePred l pred2
-         in maybe next (:next) mrs
-    else if (p1 < p2) -- note that the semantics have to be reversed!
-         then []
-         else subsumePred l pred2
-\end{code}
-
-\subsection{Other semantic stuff}
-
-\begin{code}
--- | Sort semantics first according to its predicate, and then to its handles.
-sortSem :: Sem -> Sem
-sortSem = sortBy (\(h1,p1,a1) (h2,p2,a2) -> compare (p1, h1:a1) (p2, h2:a2))
-\end{code}
-
-% --------------------------------------------------------------------
-\subsection{Feature structure unification}
-\label{sec:fs_unification}
-% --------------------------------------------------------------------
-
-Feature structure unification takes two feature lists as input.  If it
-fails, it returns Nothing.  Otherwise, it returns a tuple with:
-
-\begin{enumerate}
-\item a unified feature structure list
-\item a list of variable replacements that will need to be propagated
-      across other feature structures with the same variables
-\end{enumerate}
-
-Unification fails if, at any point during the unification process, the
-two lists have different constant values for the same attribute.
-For example, unification fails on the following inputs because they have
-different values for the \textit{number} attribute:
-
-\begin{quotation}
-\fs{\it cat:np\\ \it number:3\\}
-\fs{\it cat:np\\ \it number:2\\}
-\end{quotation}
-
-Note that the following input should also fail as a result on the
-coreference on \textit{?X}.
-
-\begin{quotation}
-\fs{\it cat:np\\ \it one: 1\\  \it two:2\\}
-\fs{\it cat:np\\ \it one: ?X\\ \it two:?X\\}
-\end{quotation}
-
-On the other hand, any other pair of feature lists should unify
-succesfully, even those that do not share the same attributes.
-Below are some examples of successful unifications:
-
-\begin{quotation}
-\fs{\it cat:np\\ \it one: 1\\  \it two:2\\}
-\fs{\it cat:np\\ \it one: ?X\\ \it two:?Y\\}
-$\rightarrow$
-\fs{\it cat:np\\ \it one: 1\\ \it two:2\\},
-\end{quotation}
-
-\begin{quotation}
-\fs{\it cat:np\\ \it number:3\\}
-\fs{\it cat:np\\ \it case:nom\\}
-$\rightarrow$
-\fs{\it cat:np\\ \it case:nom\\ \it number:3\\},
-\end{quotation}
-
-\begin{code}
--- | 'unifyFeat' performs feature structure unification, under the
---   these assumptions about the input:
---
---    * Features are ordered
---
---    * The Flists do not share variables (renaming has already
---      been done.
---
---   The features are allowed to have different sets of attributes,
---   beacuse we use 'alignFeat' to realign them.
-unifyFeat :: Monad m => Flist -> Flist -> m (Flist, Subst)
-unifyFeat f1 f2 =
-  {-# SCC "unification" #-}
-  let (att, val1, val2) = unzip3 $ alignFeat f1 f2
-  in att `seq`
-     do (res, subst) <- unify val1 val2
-        return (zipWith AvPair att res, subst)
-
--- | 'alignFeat' is a pre-procesing step used to ensure that feature structures
---   have the same set of keys.  If a key is missing in one, we copy it to the
---   other with an anonymous value.
---
---   The two feature structures must be sorted for this to work
-alignFeat :: Flist -> Flist -> [(String,GeniVal,GeniVal)]
-alignFeat f1 f2 = alignFeatH f1 f2 []
-
-alignFeatH :: Flist -> Flist -> [(String,GeniVal,GeniVal)] -> [(String,GeniVal,GeniVal)]
-alignFeatH [] [] acc = reverse acc
-alignFeatH [] (AvPair f v :x) acc = alignFeatH [] x ((f,GAnon,v) : acc)
-alignFeatH x [] acc = alignFeatH [] x acc
-alignFeatH fs1@(AvPair f1 v1:l1) fs2@(AvPair f2 v2:l2) acc =
-   case compare f1 f2 of
-     EQ -> alignFeatH l1 l2  ((f1, v1, v2) : acc)
-     LT -> alignFeatH l1 fs2 ((f1, v1, GAnon) : acc)
-     GT -> alignFeatH fs1 l2 ((f2, GAnon, v2) : acc)
 \end{code}
 
 
