@@ -216,6 +216,28 @@ instance Collectable GeniVal where
   collect (GVar v) s = Set.insert v s
   collect _ s = s
 
+-- | An Idable is something that can be mapped to a unique id.
+--   You might consider using this to implement Ord, but I won't.
+--   Note that the only use I have for this so far (20 dec 2005)
+--  is in alpha-conversion.
+class Idable a where
+  idOf :: a -> Integer
+
+-- 'alphaConvertById' appends a unique suffix to all variables in
+-- an object.  This avoids us having to alpha convert all the time
+-- and relies on the assumption finding that a unique suffix is
+-- possible.
+alphaConvertById :: (Collectable a, DescendGeniVal a, Idable a) => a -> a
+alphaConvertById x = {-# SCC "alphaConvertById" #-}
+  alphaConvert ('-' : (show . idOf $ x)) x
+
+alphaConvert :: (Collectable a, DescendGeniVal a) => String -> a -> a
+alphaConvert suffix x = {-# SCC "alphaConvert" #-}
+  let vars   = Set.elems $ collect x Set.empty
+      convert v = GVar (v ++ suffix)
+      subst = Map.fromList $ map (\v -> (v, convert v)) vars
+  in replace subst x
+
 -- ----------------------------------------------------------------------
 -- Performance
 -- ----------------------------------------------------------------------

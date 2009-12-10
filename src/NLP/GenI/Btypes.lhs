@@ -431,37 +431,6 @@ of course.
 instance DescendGeniVal a => DescendGeniVal (Map.Map k a) where
   descendGeniVal s = {-# SCC "descendGeniVal" #-} Map.map (descendGeniVal s)
 \end{code}
-
-\subsection{Idable}
-
-\begin{code}
--- | An Idable is something that can be mapped to a unique id.
---   You might consider using this to implement Ord, but I won't.
---   Note that the only use I have for this so far (20 dec 2005)
---  is in alpha-conversion.
-class Idable a where
-  idOf :: a -> Integer
-\end{code}
-
-\subsection{Other feature and variable stuff}
-
-Our approach to $\alpha$-conversion works by appending a unique suffix
-to all variables in an object.  See section \ref{sec:fs_unification} for
-why we want this.
-
-\begin{code}
-alphaConvertById :: (Collectable a, DescendGeniVal a, Idable a) => a -> a
-alphaConvertById x = {-# SCC "alphaConvertById" #-}
-  alphaConvert ('-' : (show . idOf $ x)) x
-
-alphaConvert :: (Collectable a, DescendGeniVal a) => String -> a -> a
-alphaConvert suffix x = {-# SCC "alphaConvert" #-}
-  let vars   = Set.elems $ collect x Set.empty
-      convert v = GVar (v ++ suffix)
-      subst = Map.fromList $ map (\v -> (v, convert v)) vars
-  in replace subst x
-\end{code}
-
 \begin{code}
 data TestCase = TestCase
        { tcName :: String
