@@ -39,7 +39,7 @@ module NLP.GenI.Tags(
    setTidnums, plugTree, spliceTree,
 
    -- General functions
-   mapBySem, subsumedBy, showTagSites,
+   mapBySem, showTagSites,
    collect, detectSites
 ) where
 \end{code}
@@ -302,10 +302,6 @@ instance TagItem TagElem where
   tgSemantics = tsemantics
 \end{code}
 
-% ----------------------------------------------------------------------
-\section{Map by sem}
-% ----------------------------------------------------------------------
-
 \begin{code}
 -- | Sorts trees into a Map.Map organised by the first literal of their
 --   semantics.  This is useful in at least three places: the polarity
@@ -318,27 +314,6 @@ mapBySem ts =
               []    -> emptyPred
               (x:_) -> x
   in groupByFM gfn ts
-
--- | 'subsumedBy' @cs ts@ determines if the candidate semantics @cs@ is
---   subsumed by the proposition semantics @ts@.  Notice how the proposition
---   semantics is only a single item where as the candidate semantics is a
---   list.
---
---  We assume
---
---  * most importantly that @cs@ has already its semantics instatiated
---    (all variables assigned)
---
---  * @cs@ and @ts@ are sorted
---
---  * the list in each element of cs and ts is itself sorted 
-subsumedBy :: Sem -> Pred -> Bool 
-subsumedBy [] _ = False 
-subsumedBy ((ch, cp, cla):cl) (th, tp,tla)
-    | (ch == th) && (cp == tp) && (cla == tla) = True 
-    -- if we haven't yet overshot, try for the next one
-    | cp  < tp                   = subsumedBy cl (th, tp, tla)
-    | otherwise                  = False
 \end{code}
 
 % ----------------------------------------------------------------------
