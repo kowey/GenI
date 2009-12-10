@@ -93,13 +93,18 @@ etc/SumHUnit : etc/SumHUnit.hs
 # documentation
 # --------------------------------------------------------------------
 
+.PHONY: depgraph
+
 DOC_SRC=$(SOURCE_FILES) doc/realisation.tex
 
-$(MAKE_DOCS): %.pdf: %.tex $(DOC_SRC)
+$(MAKE_DOCS): %.pdf: %.tex $(DOC_SRC) doc/images/genidep.pdf
 	cd $(<D) &&\
 	$(LATEX) $(<F) && bibtex $(<F:.tex=) &&\
        	$(LATEX) $(<F) && $(LATEX) $(<F)\
 	$(DVIPDF)
+
+doc/images/genidep.pdf :
+	graphmod -i src src/MainGeni.lhs | tred | sed -e 's/style=filled/style=solid/' | dot -Tpdf > $@
 
 publish:
 	cabal haddock
