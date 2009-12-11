@@ -74,6 +74,9 @@ import NLP.GenI.TreeSchemata ( Ttree(..) )
 
 \section{Selecting candidate lemmas}
 
+The lexical selection selects lemmas from the lexicon whose semantics
+subsumes the input semantics.
+
 \begin{code}
 -- | Select and returns the set of entries from the lexicon whose semantics
 --   subsumes the input semantics.
@@ -89,14 +92,10 @@ chooseLexCand slex tsem =
       -- FIXME: disabled see mergeSynonyms for explanation
       -- cand3 = mergeSynonyms cand2
   in cand2
-\end{code}
 
-With a helper function, we refine the candidate selection by
-instatiating the semantics, at the same time filtering those which
-do not stay within the target semantics, and finally eliminating
-the duplicates.
-
-\begin{code}
+-- | 'chooseCandI' @sem l@ attempts to unify the semantics of @l@ with @sem@
+--   If this succeeds, we use return the result(s); if it fails, we reject
+--   @l@ as a lexical selection candidate.
 chooseCandI :: Sem -> [ILexEntry] -> [ILexEntry]
 chooseCandI tsem cand =
   let replaceLex i (sem,sub) =
