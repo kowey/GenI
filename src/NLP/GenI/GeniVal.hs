@@ -296,12 +296,8 @@ prop_unify_sym :: [GeniVal] -> [GeniVal] -> Property
 prop_unify_sym x y =
   let u1 = (unify x y) :: Maybe ([GeniVal],Subst)
       u2 = unify y x
-      --
-      notOverlap (GVar _, GVar _) = False
-      notOverlap _ = True
   in (all qc_not_empty_GConst) x &&
-     (all qc_not_empty_GConst) y &&
-     all (notOverlap) (zip x y) ==> u1 == u2
+     (all qc_not_empty_GConst) y ==> u1 == u2
 
 testBackPropagation =
   testGroup "back propagation"
