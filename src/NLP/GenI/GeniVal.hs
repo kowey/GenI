@@ -161,10 +161,10 @@ unifyOne (GConst v1) (GConst v2) =
   case v1 `intersect` v2 of
     []   -> Failure
     newV -> SuccessSans (GConst newV)
-unifyOne x1@(GVar v1) (GVar v2) =
+unifyOne x1@(GVar v1) x2@(GVar v2) =
   if v1 == v2
      then SuccessSans x1
-     else SuccessRep  v2  x1
+     else SuccessRep  (min v1 v2) (max x1 x2) -- min/max stuff for symmetry
 
 -- ----------------------------------------------------------------------
 -- Variable substitution
