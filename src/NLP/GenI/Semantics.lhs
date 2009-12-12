@@ -23,12 +23,18 @@
 module NLP.GenI.Semantics where
 
 import Data.Generics.PlateDirect
-import Data.List ( isPrefixOf, sortBy )
+import Data.List ( isPrefixOf, nub, sort, sortBy )
 import qualified Data.Map as Map
 
 import NLP.GenI.FeatureStructures
 import NLP.GenI.General(snd3)
 import NLP.GenI.GeniVal
+
+import Test.HUnit
+import Test.QuickCheck hiding (collect)
+import Test.Framework
+import Test.Framework.Providers.HUnit
+import Test.Framework.Providers.QuickCheck
 \end{code}
 }
 
@@ -165,4 +171,46 @@ subsumePred ((h1, p1, la1):l) (pred2@(h2,p2,la2)) =
          else subsumePred l pred2
 \end{code}
 
+\ignore{
+% ----------------------------------------------------------------------
+% Testing
+% ----------------------------------------------------------------------
 
+\begin{code}
+testSuite :: Test.Framework.Test
+testSuite = testGroup "subsumption"
+ [ testSubsumePred
+ , testProperty "reflexive" prop_subsumption_reflexive
+ ]
+
+testSubsumePred :: Test.Framework.Test
+testSubsumePred = testGroup "subsumePred"
+ [ testProperty "reflexive" prop_subsumePred_reflexive ]
+
+prop_subsumption_reflexive lits =
+  not (null s) ==> not . null $ subsumeSem s s
+ where
+  s = map fromGTestPred lits
+
+prop_subsumePred_reflexive pred =
+  not . null $ subsumePred [s] s
+ where
+  s = fromGTestPred pred
+
+fromGTestPred (GTestPred h r as) = (h,r,as)
+
+data GTestPred = GTestPred GeniVal GeniVal [GeniVal]
+
+instance Show GTestPred where
+  show = showPred . fromGTestPred
+
+instance Arbitrary GTestPred where
+ arbitrary =
+  do handle <- arbitrary
+     rel  <- oneof [ fmap (GConst . nub . sort . map fromGTestString) arbitrary ]
+     args <- arbitrary
+     return $ GTestPred handle rel args
+ coarbitrary =
+  error "No instance of coarbitrary for GTestPred"
+\end{code}
+}
