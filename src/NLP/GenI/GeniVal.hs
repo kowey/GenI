@@ -23,7 +23,7 @@ module NLP.GenI.GeniVal where
 import Control.Arrow (first, (***))
 import Control.Monad (liftM, liftM2)
 import Data.List
-import Data.Maybe (fromMaybe, isNothing, isJust)
+import Data.Maybe (fromMaybe)
 import Data.Generics (Data)
 import Data.Typeable (Typeable)
 import qualified Data.Map as Map
@@ -290,18 +290,11 @@ instance (Functor f, DescendGeniVal a) => DescendGeniVal (f a) where
 -- ----------------------------------------------------------------------
 
 testSuite :: Test.Framework.Test
-testSuite =
- testGroup "NLP.GenI.GeniVal"
-  [ testGroup "unification"
-      [ testProperty "self" prop_unify_self
-      , testProperty "anonymous variables" prop_unify_anon
-      , testProperty "symmetry" prop_unify_sym
-      , testBackPropagation
-      ]
-  , testGroup "alphaconvert"
-      [ testCase "simple example" test_alphaconvert_simple
-      , testProperty "constraints are subset of original" prop_alphaconvert_subset
-      , testProperty "idempotent sans suffix" prop_alphaconvert_idempotent ]
+testSuite = testGroup "unification"
+ [ testProperty "self" prop_unify_sym
+ , testProperty "anonymous variables" prop_unify_anon
+ , testProperty "symmetry" prop_unify_sym
+ , testBackPropagation
  ]
 
 test_alphaconvert_simple =
@@ -355,6 +348,10 @@ prop_unify_sym x y =
       u2 = unify y x
   in (all qc_not_empty_GConst) x &&
      (all qc_not_empty_GConst) y ==> u1 == u2
+
+-- | Unifying something with the empty list should always succeed
+prop_unify_empty :: [GeniVal] -> Bool
+prop_unify_empty x = isJust (unify x [])
 
 testBackPropagation :: Test.Framework.Test
 testBackPropagation =
