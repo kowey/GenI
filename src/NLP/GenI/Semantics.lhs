@@ -127,7 +127,7 @@ the help of accumulators to keep things from getting confused.
 \begin{code}
 subsumeSemHelper :: (Sem,Subst) -> Sem -> Sem -> [(Sem,Subst)]
 subsumeSemHelper _ [] _  =
-  error "input semantics is non-empty in subsumeSemHelper"
+  error "input semantics is empty in subsumeSemHelper"
 subsumeSemHelper acc _ []      = [acc]
 subsumeSemHelper acc tsem (hd:tl) =
   let (accSem,accSub) = acc
