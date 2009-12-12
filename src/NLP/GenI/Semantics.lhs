@@ -207,7 +207,7 @@ instance Show GTestPred where
 instance Arbitrary GTestPred where
  arbitrary =
   do handle <- arbitrary
-     rel  <- oneof [ fmap (GConst . nub . sort . map fromGTestString) arbitrary ]
+     rel  <- oneof [ fmap (GConst . nub . sort . map fromGTestString) arbitrary1 ]
      args <- arbitrary
      return $ GTestPred handle rel args
  coarbitrary =
