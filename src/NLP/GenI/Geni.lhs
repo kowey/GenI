@@ -563,19 +563,26 @@ succeed in anchoring it.
 runLexSelection :: ProgStateRef -> IO ([TagElem], [ILexEntry])
 runLexSelection pstRef =
  do pst <- readIORef pstRef
-    -- select lexical items first
     let (tsem,_,litConstrs) = ts pst
         lexicon  = le pst
-        lexCand   = chooseLexCand lexicon tsem
         config   = pa pst
         verbose  = hasFlagP VerboseModeFlg config
-    -- then anchor these lexical items to trees
-    let grammar = gr pst
-        combineWithGr l =
-         do let (lexCombineErrors, res) = combineList grammar l
-                familyMembers = [ p | p <- grammar, pfamily p == ifamname l ]
-            mapM_ (addWarning pstRef . showErr) $ compressLexCombineErrors
-                                                $ lexCombineErrors
+        grammar = gr pst
+    -- perform lexical selection
+    (cand, lexCand, errs) <- case grammarType config of
+                               PreAnchored -> do cs <- readPreAnchored pst
+                                                 return (cs, [], [])
+                               _           -> return $ initialLexSelection tsem lexicon grammar
+    let candFinal = finaliseLexSelection (morphinf pst) tsem litConstrs cand
+    -- status
+    when verbose $
+      do ePutStrLn $ "Lexical items selected:\n" ++ (unlinesIndentAnd (showLexeme.iword) lexCand)
+         ePutStrLn $ "Trees anchored (family) :\n" ++ (unlinesIndentAnd idname candFinal)
+    -- anchoring errors
+    mapM_ (addWarning pstRef . showErr) $ concatMap compressLexCombineErrors errs
+    -- more lexical selection errors
+    forM_ lexCand $ \l ->
+         do let familyMembers = [ p | p <- grammar, pfamily p == ifamname l ]
             -- snippets of error message
             let lexeme = showLexeme.iword $ l
                 _outOfFamily n = show n ++ "/" ++ (show $ length familyMembers)
@@ -599,33 +606,6 @@ runLexSelection pstRef =
                             ++ "[" ++ showPairs badEnrichments ++ "]."
             mapM (ePutStrLn.show) otherEs
 -}
-
-            -- FIXMENOW when (not.null $ errs) $ ePutStrLn (unlines errs)
-            return res
-    cand <- case grammarType config of
-              PreAnchored  -> readPreAnchored pst
-              _            -> concat `liftM` mapM combineWithGr lexCand
-    -- attach any morphological information to the candidates
-    let considerMorph = attachMorph (morphinf pst) tsem
-    -- filter out candidates which do not fulfill the trace constraints
-    let matchesLc t = all (`elem` myTrace) constrs
-          where constrs = concat [ cs | (l,cs) <- litConstrs, l `elem` mySem ]
-                mySem   = tsemantics t
-                myTrace = ttrace t
-        considerLc = filter matchesLc
-    -- filter out candidates whose semantics has bonus stuff which does
-    -- not occur in the input semantics
-    let considerCoherency = filter (all (`elem` tsem) . tsemantics)
-        considerHasSem    = filter (not . null . tsemantics)
-    --
-    let candFinal = setTidnums . considerCoherency . considerHasSem
-                  . considerLc . considerMorph $ cand
-        indent  x = ' ' : x
-        unlinesIndentAnd :: (x -> String) -> [x] -> String
-        unlinesIndentAnd f = unlines . map (indent . f)
-    when verbose $
-      do ePutStrLn $ "Lexical items selected:\n" ++ (unlinesIndentAnd (showLexeme.iword) lexCand)
-         ePutStrLn $ "Trees anchored (family) :\n" ++ (unlinesIndentAnd idname candFinal)
     -- lexical selection failures
     let missedSem  = tsem \\ (nub $ concatMap tsemantics candFinal)
         hasTree l = isJust $ find (\t -> tsemantics t == lsem) cand
@@ -635,8 +615,35 @@ runLexSelection pstRef =
     unless (null missedLex) $ forM_ missedLex $ \l -> addWarning pstRef $
         "'" ++ showLex l ++ "' was lexically selected, but not anchored to any trees"
     return (candFinal, lexCand)
- where showLex l = (showLexeme $ iword l) ++ "-" ++ (ifamname l)
-       showErr (c, e) = show e ++ " (" ++ show c ++ " times)"
+ where
+   showLex l = (showLexeme $ iword l) ++ "-" ++ (ifamname l)
+   showErr (c, e) = show e ++ " (" ++ show c ++ " times)"
+   --
+   indent  x = ' ' : x
+   unlinesIndentAnd :: (x -> String) -> [x] -> String
+   unlinesIndentAnd f = unlines . map (indent . f)
+
+initialLexSelection tsem lexicon grammar =
+  (concat cands, lexCands, errs)
+ where
+  (errs, cands) = unzip $ map (combineList grammar) lexCands
+  lexCands      = chooseLexCand lexicon tsem
+
+finaliseLexSelection morph tsem litConstrs =
+  setTidnums . considerCoherency . considerHasSem . considerLc . considerMorph
+ where
+   -- attach any morphological information to the candidates
+   considerMorph = attachMorph morph tsem
+   -- filter out candidates which do not fulfill the trace constraints
+   matchesLc t = all (`elem` myTrace) constrs
+         where constrs = concat [ cs | (l,cs) <- litConstrs, l `elem` mySem ]
+               mySem   = tsemantics t
+               myTrace = ttrace t
+   considerLc = filter matchesLc
+   -- filter out candidates whose semantics has bonus stuff which does
+   -- not occur in the input semantics
+   considerCoherency = filter (all (`elem` tsem) . tsemantics)
+   considerHasSem    = filter (not . null . tsemantics)
 \end{code}
 
 % --------------------------------------------------------------------
