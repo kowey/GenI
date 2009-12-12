@@ -119,13 +119,12 @@ Note: we return more than one possible substitution because s could be
 different subsets of ts.  Consider, for example, \semexpr{love(j,m),
   name(j,john), name(m,mary)} and the candidate \semexpr{name(X,Y)}.
 
-TODO WE ASSUME BOTH SEMANTICS ARE ORDERED and that the input semantics is
-non-empty.
-
 \begin{code}
 subsumeSem :: Sem -> Sem -> [(Sem,Subst)]
 subsumeSem tsem lsem =
-  subsumeSemHelper ([],Map.empty) (reverse tsem) (reverse lsem)
+  subsumeSemHelper ([],Map.empty) (revsort tsem) (revsort lsem)
+ where
+  revsort = reverse . sortSem
 \end{code}
 
 This is tricky because each substep returns multiple results.  We solicit
@@ -133,8 +132,7 @@ the help of accumulators to keep things from getting confused.
 
 \begin{code}
 subsumeSemHelper :: (Sem,Subst) -> Sem -> Sem -> [(Sem,Subst)]
-subsumeSemHelper _ [] _  =
-  error "input semantics is empty in subsumeSemHelper"
+subsumeSemHelper acc@([], subst) [] [] | Map.null subst  = [acc]
 subsumeSemHelper acc _ []      = [acc]
 subsumeSemHelper acc tsem (hd:tl) =
   let (accSem,accSub) = acc
