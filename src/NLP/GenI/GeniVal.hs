@@ -330,13 +330,11 @@ prop_alphaconvert_subset gs =
 
 -- | Unifying something with itself should always succeed
 prop_unify_self :: [GeniVal] -> Property
-prop_unify_self x_ =
- all qc_not_empty_GVar x ==>
-   case unify x x of
-     Nothing  -> False
-     Just unf -> fst unf == x
- where
-   x = alphaConvert "" x_
+prop_unify_self x =
+  (all qc_not_empty_GConst) x ==>
+    case unify x x of
+    Nothing  -> False
+    Just unf -> fst unf == x
 
 -- | Unifying something with only anonymous variables should succeed and return
 --   the same result.
@@ -352,11 +350,11 @@ prop_unify_anon x =
 --   are cases where there are variables in the same place on both sides, so we
 --   normalise the sides so that this doesn't happen.
 prop_unify_sym :: [GeniVal] -> [GeniVal] -> Property
-prop_unify_sym x_ y_ =
-  let (TestPair x y) = alphaConvert "" (TestPair x_ y_)
-      u1 = (unify x y) :: Maybe ([GeniVal],Subst)
+prop_unify_sym x y =
+  let u1 = (unify x y) :: Maybe ([GeniVal],Subst)
       u2 = unify y x
-  in all qc_not_empty_GVar x && all qc_not_empty_GVar y ==> u1 == u2
+  in (all qc_not_empty_GConst) x &&
+     (all qc_not_empty_GConst) y ==> u1 == u2
 
 testBackPropagation :: Test.Framework.Test
 testBackPropagation =
@@ -413,11 +411,11 @@ instance Arbitrary GTestString2 where
   coarbitrary = error "no implementation of coarbitrary for GTestString2"
 
 instance Arbitrary GeniVal where
-  arbitrary = oneof [ return mkGAnon
-                    , liftM2 mkGVar (fromGTestString2 `fmap` arbitrary)
-                                    (fmap (map fromGTestString) `fmap` arbitrary)
-                    , liftM2 mkGConst (fromGTestString `fmap` arbitrary)
-                                      (map fromGTestString `fmap` arbitrary)
-                    ]
+  arbitrary = oneof [ return $ GAnon,
+                      fmap (GVar . fromGTestString2) arbitrary,
+                      fmap (GConst . nub . sort . map fromGTestString) arbitrary ]
   coarbitrary = error "no implementation of coarbitrary for GeniVal"
 
+qc_not_empty_GConst :: GeniVal -> Bool
+qc_not_empty_GConst (GConst []) = False
+qc_not_empty_GConst _ = True
