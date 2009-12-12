@@ -23,7 +23,7 @@ module NLP.GenI.GeniVal where
 import Control.Arrow (first, (***))
 import Control.Monad (liftM)
 import Data.List
-import Data.Maybe (fromMaybe, isJust)
+import Data.Maybe (fromMaybe)
 import Data.Generics (Data)
 import Data.Typeable (Typeable)
 import qualified Data.Map as Map
@@ -91,7 +91,7 @@ type Subst = Map.Map String GeniVal
 --   the result of unification and \verb!s! is a list of substitutions that
 --   this unification results in.
 unify :: Monad m => [GeniVal] -> [GeniVal] -> m ([GeniVal], Subst)
-unify l1 l2 = repropagate `liftM` helper l1 l2
+unify ll1 ll2 = repropagate `liftM` helper ll1 ll2
  where
   repropagate (xs, sub) = (replace sub xs, sub)
   helper [] l2 = return (l2, Map.empty)
@@ -264,6 +264,7 @@ instance (Functor f, DescendGeniVal a) => DescendGeniVal (f a) where
 -- Testing
 -- ----------------------------------------------------------------------
 
+testSuite :: Test.Framework.Test
 testSuite = testGroup "unification"
  [ testProperty "self" prop_unify_sym
  , testProperty "anonymous variables" prop_unify_anon
@@ -299,6 +300,7 @@ prop_unify_sym x y =
   in (all qc_not_empty_GConst) x &&
      (all qc_not_empty_GConst) y ==> u1 == u2
 
+testBackPropagation :: Test.Framework.Test
 testBackPropagation =
   testGroup "back propagation"
    [ testCase "unify left/right" $ assertEqual "" expected $ unify left right
