@@ -169,7 +169,7 @@ subsumePred _ [] = []
 subsumePred (pred2@(h2,p2,la2)) ((h1, p1, la1):l) =
     -- if we found the proper predicate
     if ((p1 == p2) && (length la1 == length la2))
-    then let mrs  = unify (h1:la1) (h2:la2)
+    then let mrs  = (h1:la1) `allSubsume` (h2:la2)
              next = pred2 `subsumePred` l
          in maybe next (:next) mrs
     else if (p1 < p2) -- note that the semantics have to be reversed!
