@@ -85,7 +85,7 @@ isAnon _     = False
 type Subst = Map.Map String GeniVal
 
 -- ----------------------------------------------------------------------
--- Unification
+-- Unification and subsumption
 -- ----------------------------------------------------------------------
 
 -- | 'unify' performs unification on two lists of 'GeniVal'.  If
@@ -93,13 +93,26 @@ type Subst = Map.Map String GeniVal
 --   the result of unification and \verb!s! is a list of substitutions that
 --   this unification results in.
 unify :: Monad m => [GeniVal] -> [GeniVal] -> m ([GeniVal], Subst)
-unify ll1 ll2 = repropagate `liftM` helper ll1 ll2
+unify = unifyHelper unifyOne
+
+-- | @l1 `allSubsume` l2@ returns the result of @l1 `unify` l2@ if
+--   doing a simultaneous traversal of both lists, each item in
+--   @l1@ subsumes the corresponding item in @l2@
+allSubsume :: Monad m => [GeniVal] -> [GeniVal] -> m ([GeniVal], Subst)
+allSubsume = unifyHelper subsumeOne
+
+unifyHelper :: Monad m
+            => (GeniVal -> GeniVal -> UnificationResult)
+            -> [GeniVal]
+            -> [GeniVal]
+            -> m ([GeniVal], Subst)
+unifyHelper f ll1 ll2 = repropagate `liftM` helper ll1 ll2
  where
   repropagate (xs, sub) = (replace sub xs, sub)
   helper [] l2 = return (l2, Map.empty)
   helper l1 [] = return (l1, Map.empty)
   helper (h1:t1) (h2:t2) =
-    case unifyOne h1 h2 of
+    case f h1 h2 of
     Failure -> fail $ "unification failure between " ++ show h1 ++ " and " ++ show h2
     SuccessRep v g -> prepend `liftM` helper t1b t2b
                       where
