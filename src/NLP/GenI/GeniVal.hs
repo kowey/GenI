@@ -196,6 +196,20 @@ intersectConstraints (Just v1) (Just v2) =
     newV -> Just (Just newV)
 
 -- ----------------------------------------------------------------------
+-- Core subsumption
+-- ----------------------------------------------------------------------
+
+-- | 'subsumeOne' @x y@ returns the same result as @unifyOne x y@ if @x@
+--   subsumes @y@ or 'Failure' otherwise
+subsumeOne :: GeniVal -> GeniVal -> UnificationResult
+subsumeOne x@(GConst xs) y@(GConst ys)
+  | all (`elem` ys) xs = unifyOne x y
+  | otherwise          = Failure
+subsumeOne x@(GConst _) y = unifyOne x y
+subsumeOne _   (GConst _) = Failure
+subsumeOne x y = unifyOne x y
+
+-- ----------------------------------------------------------------------
 -- Variable substitution
 -- ----------------------------------------------------------------------
 
@@ -352,6 +366,16 @@ prop_unify_sym x y =
 -- | Unifying something with the empty list should always succeed
 prop_unify_empty :: [GeniVal] -> Bool
 prop_unify_empty x = isJust (unify x [])
+
+tt_subsumes x y =
+  case subsumeOne x y of
+    Failure -> False
+    _       -> True
+
+tt_equiv (GConst x) (GConst y) = sort x == sort y
+tt_equiv (GConst _) _ = False
+tt_equiv _ (GConst _) = False
+tt_equiv _ _ = True
 
 testBackPropagation :: Test.Framework.Test
 testBackPropagation =
