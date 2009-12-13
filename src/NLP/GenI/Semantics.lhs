@@ -102,22 +102,25 @@ showPred (h, p, l) = showh ++ show p ++ "(" ++ unwords (map show l) ++ ")"
 
 % ----------------------------------------------------------------------
 \section{Subsumption}
-\label{fn:subsumeSem}
 % ----------------------------------------------------------------------
 
-FIXME: comment fix
+We say that $L \sqsubseteq I$ (or $L$ subsumes $I$; mnemonic: $L$ for lemma,
+and $I$ for input semantics as an example use) if for each literal $l \in L$,
+we can find a \emph{distinct} literal $i \in I$ such that $l \sqsubseteq i$
+(no resuing literals in $I$).
 
-Given tsem the input semantics, and lsem the semantics of a potential
-lexical candidate, returns a list of possible ways that the lexical
-semantics could subsume the input semantics.  We return a pair with
-the semantics that would result from unification\footnote{We need to
-do this because there may be anonymous variables}, and the
-substitutions that need to be propagated throughout the rest of the
-lexical item later on.
-
-Note: we return more than one possible substitution because s could be
-different subsets of ts.  Consider, for example, \semexpr{love(j,m),
-  name(j,john), name(m,mary)} and the candidate \semexpr{name(X,Y)}.
+Notes about the subsumeSem function:
+\begin{enumerate}
+\item We return multiple results because it's important to take into
+      account the possibility that one semantics subsumes different
+      subsets of an another semantics.  For example:
+      \semexpr{name(?X,?Y)} subsumes two different parts of
+      \semexpr{love(j,m), name(j,john), name(m,mary)}
+\item You MUST propagate the substitutions
+      throughout any objects that contain the semantics.
+\item We return the unified semantics and not just the substitutions
+      so that we know to do with anonymous variables.
+\end{enumerate}
 
 \begin{code}
 -- | @lsem `subsumeSem` tsem@ returns the list of ways to unify
@@ -128,12 +131,9 @@ subsumeSem lsem tsem =
   subsumeSemHelper ([],Map.empty) (revsort lsem) (revsort tsem)
  where
   revsort = reverse . sortSem
-\end{code}
 
-This is tricky because each substep returns multiple results.  We solicit
-the help of accumulators to keep things from getting confused.
-
-\begin{code}
+-- This is tricky because each substep returns multiple results.
+-- We solicit the help of accumulators to keep things from getting confused.
 subsumeSemHelper :: (Sem,Subst) -> Sem -> Sem -> [(Sem,Subst)]
 subsumeSemHelper acc@([], subst) [] [] | Map.null subst  = [acc]
 subsumeSemHelper acc [] _      = [acc]
@@ -153,12 +153,17 @@ subsumeSemHelper acc (hd:tl) tsem =
   in concatMap next pRes
 \end{code}
 
-\fnlabel{subsumePred}
-The first Sem s1 and second Sem s2 are the same when we start we circle on s2
-looking for a match for Pred, and meanwhile we apply the partical substitutions
-to s1.  Note: we treat the handle as if it were a parameter.
+As for literals $l$ and $i$, $l \sqsubseteq i$ if
+\begin{enumerate}
+\item For the corresponding relations $lr$ and $ir$, $lr \sqsubseteq ir$
+\item $l$ and $i$ have the same arity
+\item All arguments $l_n \sqsubseteq i_n$
+\end{enumerate}
 
 \begin{code}
+-- The first Sem s1 and second Sem s2 are the same when we start we circle on s2
+-- looking for a match for Pred, and meanwhile we apply the partical substitutions
+-- to s1.  Note: we treat the handle as if it were a parameter.
 subsumePred :: Pred -> Sem -> [([GeniVal],Subst)]
 subsumePred _ [] = []
 subsumePred (pred2@(h2,p2,la2)) ((h1, p1, la1):l) =
