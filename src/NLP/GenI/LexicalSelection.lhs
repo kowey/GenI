@@ -104,7 +104,7 @@ chooseCandI tsem cand =
       helper :: ILexEntry -> [ILexEntry]
       helper l = if null sem then [l]
                  else map (replaceLex l) psubsem
-        where psubsem = subsumeSem tsem sem
+        where psubsem = sem `subsumeSem` tsem
               sem = isemantics l
       --
   in nub $ concatMap helper cand

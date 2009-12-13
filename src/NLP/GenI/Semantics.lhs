@@ -120,9 +120,12 @@ different subsets of ts.  Consider, for example, \semexpr{love(j,m),
   name(j,john), name(m,mary)} and the candidate \semexpr{name(X,Y)}.
 
 \begin{code}
+-- | @lsem `subsumeSem` tsem@ returns the list of ways to unify
+--   the two semantics such that @lsem@ subsumes @tsem@.  If
+--   @lsem@ does NOT subsume @tsem@, we return the empty list.
 subsumeSem :: Sem -> Sem -> [(Sem,Subst)]
-subsumeSem tsem lsem =
-  subsumeSemHelper ([],Map.empty) (revsort tsem) (revsort lsem)
+subsumeSem lsem tsem =
+  subsumeSemHelper ([],Map.empty) (revsort lsem) (revsort tsem)
  where
   revsort = reverse . sortSem
 \end{code}
@@ -133,17 +136,17 @@ the help of accumulators to keep things from getting confused.
 \begin{code}
 subsumeSemHelper :: (Sem,Subst) -> Sem -> Sem -> [(Sem,Subst)]
 subsumeSemHelper acc@([], subst) [] [] | Map.null subst  = [acc]
-subsumeSemHelper acc _ []      = [acc]
-subsumeSemHelper acc tsem (hd:tl) =
+subsumeSemHelper acc [] _      = [acc]
+subsumeSemHelper acc (hd:tl) tsem =
   let (accSem,accSub) = acc
       -- does the literal hd subsume the input semantics?
-      pRes = subsumePred tsem hd
+      pRes = hd `subsumePred` tsem
       -- toPred reconstructs the literal hd with new parameters p.
       -- The head of the list is taken to be the handle.
       toPred p = (head p, snd3 hd, tail p)
       -- next adds a result from predication subsumption to
       -- the accumulators and goes to the next recursive step
-      next (p,s) = subsumeSemHelper acc2 tsem2 tl2
+      next (p,s) = subsumeSemHelper acc2 tl2 tsem2
          where tl2   = replace s tl
                tsem2 = replace s tsem
                acc2  = (toPred p : accSem, mergeSubst accSub s)
@@ -156,17 +159,17 @@ looking for a match for Pred, and meanwhile we apply the partical substitutions
 to s1.  Note: we treat the handle as if it were a parameter.
 
 \begin{code}
-subsumePred :: Sem -> Pred -> [([GeniVal],Subst)]
-subsumePred [] _ = []
-subsumePred ((h1, p1, la1):l) (pred2@(h2,p2,la2)) =
+subsumePred :: Pred -> Sem -> [([GeniVal],Subst)]
+subsumePred _ [] = []
+subsumePred (pred2@(h2,p2,la2)) ((h1, p1, la1):l) =
     -- if we found the proper predicate
     if ((p1 == p2) && (length la1 == length la2))
     then let mrs  = unify (h1:la1) (h2:la2)
-             next = subsumePred l pred2
+             next = pred2 `subsumePred` l
          in maybe next (:next) mrs
     else if (p1 < p2) -- note that the semantics have to be reversed!
          then []
-         else subsumePred l pred2
+         else pred2 `subsumePred` l
 \end{code}
 
 \ignore{
@@ -186,12 +189,12 @@ testSubsumePred = testGroup "subsumePred"
  [ testProperty "reflexive" prop_subsumePred_reflexive ]
 
 prop_subsumption_reflexive lits =
-  not (null s) ==> not . null $ subsumeSem s s
+  not (null s) ==> not . null $ s `subsumeSem` s
  where
   s = map fromGTestPred lits
 
 prop_subsumePred_reflexive pred =
-  not . null $ subsumePred [s] s
+  not . null $ s `subsumePred` [s]
  where
   s = fromGTestPred pred
 
