@@ -22,6 +22,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module NLP.GenI.Semantics where
 
+import Control.Arrow ( first )
 import Data.Generics.PlateDirect
 import Data.List ( isPrefixOf, nub, sort, sortBy )
 import qualified Data.Map as Map
@@ -141,15 +142,12 @@ subsumeSemHelper acc (hd:tl) tsem =
   let (accSem,accSub) = acc
       -- does the literal hd subsume the input semantics?
       pRes = hd `subsumePred` tsem
-      -- toPred reconstructs the literal hd with new parameters p.
-      -- The head of the list is taken to be the handle.
-      toPred p = (head p, snd3 hd, tail p)
       -- next adds a result from predication subsumption to
       -- the accumulators and goes to the next recursive step
       next (p,s) = subsumeSemHelper acc2 tl2 tsem2
          where tl2   = replace s tl
                tsem2 = replace s tsem
-               acc2  = (toPred p : accSem, mergeSubst accSub s)
+               acc2  = (p : accSem, mergeSubst accSub s)
   in concatMap next pRes
 \end{code}
 
@@ -164,17 +162,20 @@ As for literals $l$ and $i$, $l \sqsubseteq i$ if
 -- The first Sem s1 and second Sem s2 are the same when we start we circle on s2
 -- looking for a match for Pred, and meanwhile we apply the partical substitutions
 -- to s1.  Note: we treat the handle as if it were a parameter.
-subsumePred :: Pred -> Sem -> [([GeniVal],Subst)]
+subsumePred :: Pred -> Sem -> [(Pred, Subst)]
 subsumePred _ [] = []
 subsumePred (pred2@(h2,p2,la2)) ((h1, p1, la1):l) =
     -- if we found the proper predicate
     if ((p1 == p2) && (length la1 == length la2))
     then let mrs  = (h1:la1) `allSubsume` (h2:la2)
              next = pred2 `subsumePred` l
-         in maybe next (:next) mrs
+         in maybe next (\x -> first toPred x : next) mrs
     else if (p1 < p2) -- note that the semantics have to be reversed!
          then []
          else pred2 `subsumePred` l
+ where
+   toPred (h:xs) = (h, p2, xs)
+   toPred [] = error "subsumePred.toPred"
 \end{code}
 
 \ignore{
