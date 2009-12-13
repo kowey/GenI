@@ -185,16 +185,23 @@ subsumePred (pred2@(h2,p2,la2)) ((h1, p1, la1):l) =
 
 \begin{code}
 testSuite :: Test.Framework.Test
-testSuite = testGroup "subsumption"
- [ testSubsumePred
- , testProperty "reflexive" prop_subsumption_reflexive
+testSuite = testGroup "NLP.GenI.Semantics"
+ [ testGroup "subsumePred"
+     [ testProperty "reflexive" prop_subsumePred_reflexive ]
+ , testGroup "subsumeSem"
+     [ testProperty "reflexive" prop_subsumeSem_reflexive
+     , testCase "works 1"  $ assertBool "" $ not . null $ sem1 `subsumeSem` sem2
+     , testCase "works 2"  $ assertBool "" $ not . null $ sem1 `subsumeSem` (sem2 ++ sem2)
+     , testCase "distinct" $ assertBool "" $ null $ (sem1 ++ sem1) `subsumeSem` sem2
+     ]
  ]
+ where
+  sem1 = [ lit1 ]
+  sem2 = [ lit2 ]
+  lit1 = (GConst ["a"], GConst ["apple"], [GVar "?X"])
+  lit2 = (GConst ["a"], GConst ["apple"], [GConst ["x"]])
 
-testSubsumePred :: Test.Framework.Test
-testSubsumePred = testGroup "subsumePred"
- [ testProperty "reflexive" prop_subsumePred_reflexive ]
-
-prop_subsumption_reflexive lits =
+prop_subsumeSem_reflexive lits =
   not (null s) ==> not . null $ s `subsumeSem` s
  where
   s = map fromGTestPred lits
