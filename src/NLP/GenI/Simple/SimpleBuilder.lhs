@@ -90,7 +90,7 @@ import NLP.GenI.Builder (
 import qualified NLP.GenI.Builder as B
 
 import NLP.GenI.Tags (TagElem, TagSite(..),
-             tagLeaves, tidnum,
+             getLexeme, tidnum,
              ttree, ttype, tsemantics,
              detectSites,
              TagDerivation, DerivationStep(..),
@@ -242,8 +242,7 @@ data SimpleItem = SimpleItem
  , siPolpaths  :: BitVector
  -- for generation sans semantics
  -- , siAdjlist :: [(String,Integer)] -- (node name, auxiliary tree id)
- -- | actually: a set of pre-terminals and their leaves
- , siLeaves  :: [(String, B.UninflectedDisjunction)]
+ , siNodes   :: [GNode]    -- ^ actually a set
  , siDerived :: Tree String
  , siRoot    :: TagSite
  , siFoot    :: Maybe TagSite
@@ -272,7 +271,6 @@ instance DescendGeniVal (String, B.UninflectedDisjunction) where
 -- | Things whose only use is within the graphical debugger
 data SimpleGuiItem = SimpleGuiItem
  { siHighlight :: [String] -- ^ nodes to highlight
- , siNodes :: [GNode]    -- ^ actually a set
  -- if there are things wrong with this item, what?
  , siDiagnostic :: [String]
  , siFullSem :: Sem
@@ -280,13 +278,12 @@ data SimpleGuiItem = SimpleGuiItem
  } deriving (Show, Data, Typeable)
 
 instance Biplate SimpleGuiItem GeniVal where
-  biplate (SimpleGuiItem x1 zns x2 zsem x3) =
-     plate SimpleGuiItem |- x1
-                         ||+ zns  |- x2
+  biplate (SimpleGuiItem x1 x2 zsem x3) =
+     plate SimpleGuiItem |- x1 |- x2
                          ||+ zsem |- x3
 
 emptySimpleGuiItem :: SimpleGuiItem
-emptySimpleGuiItem = SimpleGuiItem [] [] [] [] ""
+emptySimpleGuiItem = SimpleGuiItem [] [] [] ""
 
 modifyGuiStuff :: (SimpleGuiItem -> SimpleGuiItem) -> SimpleItem -> SimpleItem
 modifyGuiStuff fn i = i { siGuiStuff = fn . siGuiStuff $ i }
@@ -297,15 +294,15 @@ instance DescendGeniVal SimpleItem where
   descendGeniVal s i = s `seq` i `seq`
     i { siSubstnodes = descendGeniVal s (siSubstnodes i)
       , siAdjnodes   = descendGeniVal s (siAdjnodes i)
-      , siLeaves  = descendGeniVal s (siLeaves i)
       , siRoot    = descendGeniVal s (siRoot i)
+      , siNodes   = descendGeniVal s (siNodes i)
       , siFoot    = descendGeniVal s (siFoot i)
       , siPendingTb = descendGeniVal s (siPendingTb i)
       , siGuiStuff = descendGeniVal s (siGuiStuff i)
      }
 
 instance DescendGeniVal SimpleGuiItem where
- descendGeniVal s i = i { siNodes = descendGeniVal s (siNodes i) }
+ descendGeniVal s i = i
 \end{code}
 
 \begin{code}
@@ -377,7 +374,7 @@ initSimpleItem disableGui bmap (teRaw,pp) =
   , siPolpaths  = pp
   -- for generation sans semantics
   -- , siAdjlist = []
-  , siLeaves  = map (second (uncurry B.UninflectedDisjunction)) $ tagLeaves te
+  , siNodes = flatten.ttree $ te
   , siDerived = tlite
   , siRoot = ncopy.root $ theTree
   , siFoot = if ttype te == Initial then Nothing
@@ -393,7 +390,6 @@ initSimpleItem disableGui bmap (teRaw,pp) =
 initSimpleGuiItem :: TagElem -> SimpleGuiItem
 initSimpleGuiItem te = SimpleGuiItem
  { siHighlight = []
- , siNodes = flatten.ttree $ te
  , siDiagnostic = []
  , siFullSem = tsemantics te
  , siIdname = idname te }
@@ -646,19 +642,16 @@ iapplySubst twophase item1 item2 | siInitial item1 && closed item1 = {-# SCC "ap
               nr    = TagSite rn newU newD rOrigin
               adj1  = nr : (delete r $ siAdjnodes item1)
               adj2  = siAdjnodes item2
-              item1g = item1 { siGuiStuff = g2 }
-                where g2 = g { siNodes = repList (gnnameIs rn) newRoot (siNodes g) }
-                      g  = siGuiStuff item1
               -- gui stuff
               newRoot g = g { gup = newU, gdown = newD, gtype = Other }
           let pending = if twophase then []
                         else nr : (siPendingTb item1 ++ siPendingTb item2)
+          let item1g = item1 { siNodes = repList (gnnameIs rn) newRoot (siNodes item1) }
           return $! replace subst $ combineSimpleItems [rn] item1g $
                      item2 { siSubstnodes = stail ++ (siSubstnodes item1)
                            , siAdjnodes   = adj2 ++ adj1
                            , siDerived    = plugTree (siDerived item1) n (siDerived item2)
-                           , siDerivation = addToDerivation 's' (item1g,rOrigin) (item2,nOrigin,n)
-                           , siLeaves     = (siLeaves item1) ++ (siLeaves item2)
+                           , siDerivation = addToDerivation 's' (item1,rOrigin) (item2,nOrigin,n)
                            , siPendingTb  = pending
                            }
   in case doIt of
@@ -741,7 +734,7 @@ sansAdjunction2p item | closed item =
      let item1 = if isRootOf item gn
                  then item { siRoot = TagSite gn tb [] o }
                  else item
-         item2 = modifyGuiStuff (constrainAdj gn tb) item1
+         item2 = constrainAdj gn tb item1
      in return $! [replace s $! item2 { siAdjnodes = atail }]
 sansAdjunction2p _ = return []
 \end{code}
@@ -783,20 +776,13 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
       -- the new adjunction nodes
       auxlite = delete r $ siAdjnodes aItem
       newadjnodes = anr : (pTail ++ auxlite)
-      -- Ugh, this is horrible: this is just to make sure the GUI gets
-      -- updated accordingly.  The code used to be a lot simpler, but
-      -- I started trying to move stuff out of the way in the interests
-      -- of efficiency, and to pack as much gui-related stuff as possible
-      -- into a single tuple.
-      aItem2 = aItem { siGuiStuff = fixNodes $ siGuiStuff aItem }
-        where fixNodes g = g { siNodes = map (setSites anr) (siNodes g) }
-              setSites (TagSite n u d _) gn =
-                if gnname gn == n then gn { gup = u, gdown = d }
-                                  else gn
+      aItem2 = aItem { siNodes = map (setSites anr) (siNodes aItem)  }
+        where
+          setSites (TagSite n u d _) gn =
+            if gnname gn == n then gn { gup = u, gdown = d } else gn
       rawCombined =
         combineSimpleItems [tsName r, an_name] aItem2 $ pItem
                { siAdjnodes = newadjnodes
-               , siLeaves  = siLeaves aItem ++ siLeaves pItem
                , siDerived = spliceTree (tsName f) (siDerived aItem) an_name (siDerived pItem)
                , siDerivation = addToDerivation 'a' (aItem,tsOrigin r) (pItem,tsOrigin pSite,an_name)
                -- , siAdjlist = (n, (tidnum te1)):(siAdjlist item2)
@@ -814,7 +800,7 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
        do -- tb on the former foot
           tbRes <- unifyFeat (tsUp anf) (tsDown anf)
           let (anf_tb, subst3) = tbRes
-              myRes = modifyGuiStuff (constrainAdj an_name anf_tb) res'
+              myRes = constrainAdj an_name anf_tb res'
           -- apply the substitutions
               res' = replace (mergeSubst subst12 subst3) rawCombined
           return myRes
@@ -893,18 +879,18 @@ combineSimpleItems hi item1 item2 = {-# SCC "combineSimpleItems" #-}
   item2 { siSemantics = siSemantics item1 .|. siSemantics item2
         , siPolpaths  = siPolpaths  item1 .&. siPolpaths  item2
         , siGuiStuff  = combineSimpleGuiItems hi (siGuiStuff item1) (siGuiStuff item2)
+        , siNodes     = siNodes item1 ++ siNodes item2
         }
 
 combineSimpleGuiItems :: [NodeName]
                       -> SimpleGuiItem -> SimpleGuiItem -> SimpleGuiItem
 combineSimpleGuiItems hi item1 item2 =
  item2 { siFullSem = sortSem $ siFullSem item1 ++ siFullSem item2
-       , siNodes = siNodes item1 ++ siNodes item2
        , siDiagnostic = siDiagnostic item1 ++ siDiagnostic item2
        , siHighlight = hi
        }
 
-constrainAdj :: String -> Flist -> SimpleGuiItem -> SimpleGuiItem
+constrainAdj :: String -> Flist -> SimpleItem -> SimpleItem
 constrainAdj gn newT g =
   g { siNodes = repList (gnnameIs gn) fixIt (siNodes g) }
   where fixIt n = n { gup = newT, gdown = [], gaconstr = True }
@@ -1089,15 +1075,15 @@ unpackResults = concatMap unpackResult
 
 unpackResult :: SimpleItem -> [B.Output]
 unpackResult item =
-  let leafMap :: Map.Map String B.UninflectedDisjunction
-      leafMap = Map.fromList . siLeaves $ item
-      lookupOrBug :: NodeName -> B.UninflectedDisjunction
-      lookupOrBug k = case Map.lookup k leafMap of
-                      Nothing -> geniBug $ "unpackResult : could not find node " ++ k
-                      Just w  -> w
+  let lookupOrBug k =
+        case filter (gnnameIs k) (siNodes item) of
+          []   -> geniBug $ "unpackResult : could not find node " ++ k 
+          [gn] -> gn
+          _    -> geniBug $ "unpackResult : more than one node named " ++ k
+      toUninflectedDisjunction (pt,t) =
+        B.UninflectedDisjunction (getLexeme (lookupOrBug t)) (gup (lookupOrBug pt))
       derivation = siDerivation item
-      paths = automatonPaths . listToSentenceAut $
-              [ lookupOrBug k | (k,_) <- (preTerminals . siDerived) item ]
+      paths = automatonPaths . listToSentenceAut .  map toUninflectedDisjunction . preTerminals . siDerived $ item
  in zip paths (repeat derivation)
 \end{code}
 
@@ -1232,7 +1218,6 @@ ttEmptySimpleItem
                , siAdjnodes     = [] -- must set
                , siSemantics    = 0  -- must set
                , siPolpaths     = 1
-               , siLeaves       = []
                , siDerived      = Node "" []
                , siRoot         = ttEmptySite
                , siFoot         = Nothing

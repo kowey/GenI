@@ -33,7 +33,7 @@ module NLP.GenI.Tags(
    ts_rootFeatureMismatch,
 
    -- Functions from Tags
-   addToTags, tagLeaves,
+   addToTags, getLexeme,
 
    -- Functions from TagElem
    setTidnums, plugTree, spliceTree,
@@ -332,9 +332,6 @@ possibility.
 
 \begin{code}
 type UninflectedDisjunction = ([String], Flist)
-
-tagLeaves :: TagElem -> [ (String, UninflectedDisjunction) ]
-tagLeaves te = [ (gnname pt, (getLexeme t, gup pt)) | (pt,t) <- preTerminals . ttree $ te ]
 
 -- | Try in order: lexeme, lexeme attributes, node name
 getLexeme :: GNode -> [String]
