@@ -84,9 +84,7 @@ import NLP.GenI.Btypes
 import NLP.GenI.Builder (
     incrCounter, num_iterations, num_comparisons, chart_size,
     SemBitMap, defineSemanticBits, semToBitVector, bitVectorToSem,
-    DispatchFilter, (>-->), condFilter, nullFilter,
-    semToIafMap, IafAble(..), IafMap, fromUniConst, getIdx,
-    recalculateAccesibility, iafBadSem, ts_iafFailure,
+    DispatchFilter, (>-->), condFilter,
     LemmaPlus(..),
     )
 import qualified NLP.GenI.Builder as B
@@ -183,7 +181,6 @@ data SimpleStatus = S
   , theChart     :: Chart
   , theTrash   :: Trash
   , theResults :: [SimpleItem]
-  , theIafMap  :: IafMap -- for index accessibility filtering
   , tsem       :: BitVector
   , step       :: GenerationPhase
   , gencounter :: Integer
@@ -245,10 +242,6 @@ data SimpleItem = SimpleItem
  , siPolpaths  :: BitVector
  -- for generation sans semantics
  -- , siAdjlist :: [(String,Integer)] -- (node name, auxiliary tree id)
- -- for index accesibility filtering (one-phase only)
- , siAccesible    :: [ String ] -- it's acc/inacc/undetermined
- , siInaccessible :: [ String ] -- that's why you want both
- --
  -- | actually: a set of pre-terminals and their leaves
  , siLeaves  :: [(String, B.UninflectedDisjunction)]
  , siDerived :: Tree String
@@ -263,9 +256,9 @@ data SimpleItem = SimpleItem
  } deriving (Show)
 
 instance Biplate SimpleItem GeniVal where
-  biplate (SimpleItem x1 zss zas x2 x3 x4 x5 zls x6 zr zf zp x7 zg) =
+  biplate (SimpleItem x1 zss zas x2 x3 zls x6 zr zf zp x7 zg) =
     plate SimpleItem            |- x1
-            ||+ zss ||+ zas     |- x2 |- x3 |- x4 |- x5
+            ||+ zss ||+ zas     |- x2 |- x3
             ||+ zls             |- x6
             |+ zr  |+ zf ||+ zp |- x7
             |+ zg
@@ -353,8 +346,7 @@ initSimpleBuilder twophase input config =
       -- because of on-the-fly tb unification (in 2p), we
       -- need an initial tb step that only addresses the
       -- nodes with null adjunction constraints
-      simpleDp = if twophase then simpleDispatch_2p
-                 else simpleDispatch_1p (hasOpt Iaf config)
+      simpleDp = if twophase then simpleDispatch_2p else simpleDispatch_1p
       initialDp = dpTbFailure >--> simpleDp
       --
       initS = S{ theAgenda    = []
@@ -364,7 +356,6 @@ initSimpleBuilder twophase input config =
                , theResults   = []
                , semBitMap = bmap
                , tsem      = semToBitVector bmap sem
-               , theIafMap = semToIafMap sem
                , step     =  SubstitutionPhase
                , gencounter = toInteger $ length cands
                , genconfig  = config }
@@ -378,15 +369,12 @@ initSimpleItem :: Bool -- ^ disable gui
 initSimpleItem disableGui bmap (teRaw,pp) =
  let (te,tlite) = renameNodesWithTidnum teRaw in
  case detectSites (ttree te) of
- (snodes,anodes,nullAdjNodes) -> setIaf $ SimpleItem
+ (snodes,anodes,nullAdjNodes) -> SimpleItem
   { siId        = tidnum te
   , siSemantics = semToBitVector bmap (tsemantics te)
   , siSubstnodes = snodes
   , siAdjnodes   = anodes
   , siPolpaths  = pp
-  -- for index accesibility filtering
-  , siAccesible    = [] -- see below
-  , siInaccessible = []
   -- for generation sans semantics
   -- , siAdjlist = []
   , siLeaves  = map (second (uncurry B.UninflectedDisjunction)) $ tagLeaves te
@@ -400,8 +388,7 @@ initSimpleItem disableGui bmap (teRaw,pp) =
   --
   , siGuiStuff = if disableGui then emptySimpleGuiItem else initSimpleGuiItem te
   }
-  where setIaf i = i { siAccesible = iafNewAcc i }
-        theTree = ttree te
+  where theTree = ttree te
 
 initSimpleGuiItem :: TagElem -> SimpleGuiItem
 initSimpleGuiItem te = SimpleGuiItem
@@ -435,8 +422,7 @@ elements from the chart.
 generateStep_1p :: SimpleState ()
 generateStep_1p =
  do isDone <- gets (null.theAgenda)
-    iaf <- gets (hasOpt Iaf .genconfig)
-    let dispatch = mapM (simpleDispatch_1p iaf)
+    let dispatch = mapM simpleDispatch_1p
     if isDone
        then return ()
        else do incrCounter num_iterations 1
@@ -966,11 +952,10 @@ simpleDispatch_2p_adjphase =
  simpleDispatch (dpRootFeatFailure >--> dpToResults)
                 dpToAgenda
 
-simpleDispatch_1p :: Bool -> SimpleDispatchFilter
-simpleDispatch_1p iaf =
+simpleDispatch_1p :: SimpleDispatchFilter
+simpleDispatch_1p =
  simpleDispatch (dpRootFeatFailure >--> dpTbFailure >--> dpToResults)
-                (maybeDpIaf >--> dpToAgenda)
- where maybeDpIaf = if iaf then dpIafFailure else nullFilter
+                dpToAgenda
 
 simpleDispatch :: SimpleDispatchFilter -> SimpleDispatchFilter -> SimpleDispatchFilter
 simpleDispatch resFilter nonResFilter item =
@@ -1089,40 +1074,6 @@ tbUnifyNode (Right pending) rawSite =
 -- if earlier we had a failure, don't even bother
 tbUnifyNode (Left n) _ = Left n
 \end{code}
-
-% --------------------------------------------------------------------
-\subsection{Index accesibility filtering}
-\label{sec:simple:iaf}
-% --------------------------------------------------------------------
-
-Note that index accesibility filtering only makes sense for the one-phase
-algorithm.  See also \ref{sec:iaf} for more details about what this is.
-
-\begin{code}
-instance IafAble SimpleItem where
-  iafAcc   = siAccesible
-  iafInacc = siInaccessible
-  iafSetAcc   a i = i { siAccesible = a }
-  iafSetInacc a i = i { siInaccessible = a }
-  iafNewAcc i =
-    concatMap fromUniConst $
-    concat [ getIdx up | (TagSite _ up _ _) <- siSubstnodes i ]
-
-dpIafFailure :: SimpleDispatchFilter
-dpIafFailure item | aux item = return $ Just item
-dpIafFailure itemRaw =
- do s <- get
-    let bmap = semBitMap s
-        item = recalculateAccesibility itemRaw
-        badSem = iafBadSem (theIafMap s) bmap (tsem s) siSemantics item
-        inAcc = iafInacc item
-    if badSem == 0
-      then -- can't dispatch, but that's good!
-           -- (note that we return the item with its iaf criteria updated)
-           return $ Just item
-      else dpToTrash (ts_iafFailure inAcc $ bitVectorToSem bmap badSem) item
-\end{code}
-
 
 % --------------------------------------------------------------------
 \section{Unpacking the results}
@@ -1281,8 +1232,6 @@ ttEmptySimpleItem
                , siAdjnodes     = [] -- must set
                , siSemantics    = 0  -- must set
                , siPolpaths     = 1
-               , siAccesible    = []
-               , siInaccessible = []
                , siLeaves       = []
                , siDerived      = Node "" []
                , siRoot         = ttEmptySite
