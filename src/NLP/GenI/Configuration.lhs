@@ -467,7 +467,6 @@ coreOptimisationCodes =
  [ (Polarised        , "p",      "polarity filtering")
  , (EarlyNa          , "e-na",   "detect null adjunction at earliest opportunity")
  , (SemFiltered      , "f-sem",  "semantic filtering (two-phase only)")
- , (Iaf              , "i",      "index accesibility filtering (one-phase only)")
  , (NoConstraints    , "nc",     "disable semantic constraints (anti-optimisation!)")
  ]
 

@@ -166,10 +166,6 @@ mainGui pstRef
           [ text := "NA detection"
           , tooltip := "Early detection of nodes that cannot be adjoined to"
           ]
-       iafChk <- optCheckBox Iaf pstRef f
-          [ text := "Idx acc filter"
-          , tooltip := "Only available in CKY/Earley for now"
-          ]
        semfilterChk <- optCheckBox SemFiltered pstRef f
          [ text := "Semantic filters"
          , tooltip := "(2p only) Filter away semantically incomplete structures before adjunction phase"
@@ -207,7 +203,6 @@ mainGui pstRef
                              , dynamic $ widget useSemConstraintsChk
                              , dynamic $ widget semfilterChk 
                              , dynamic $ widget earlyNaChk
-                             , dynamic $ widget iafChk
                              ]
        set f [layout := column 5 [ gramsemBox
                    , row 5 [ fill $ -- boxed "Input Semantics" $ 

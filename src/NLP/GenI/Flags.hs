@@ -35,7 +35,6 @@ data Optimisation = PolOpts
                   | Polarised
                   | NoConstraints
                   | SemFiltered
-                  | Iaf -- ^ one phase only!
                   | EarlyNa
   deriving (Show,Eq,Typeable)
 
