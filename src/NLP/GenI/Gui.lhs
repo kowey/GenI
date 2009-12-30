@@ -609,7 +609,7 @@ statsGui f sentences stats =
      --
      p <- panel f []
      t  <- textCtrl p [ text := msg, enabled := False ]
-     statsTxt <- staticText p [ text := showFinalStats stats ]
+     statsTxt <- textCtrl p [ text := showFinalStats stats ]
      --
      saveBt <- button p [ text := "Save to file"
                         , on command := maybeSaveAsFile f msg ]
