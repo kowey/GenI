@@ -1010,7 +1010,7 @@ tbUnifyTree item = {-# SCC "tbUnifyTree" #-}
     Left  _ -> False
     Right _ -> True
   where
-   pending = map (toTagSite . lookupOrBug "tbUnifyNode" item) (siPendingTb item)
+   pending = map (toTagSite . lookupOrBug "tbUnifyTree" item) (siPendingTb item)
 \end{code}
 
 Our helper function corresponds to the first unification step.  It is
