@@ -235,8 +235,8 @@ addToResults te =
 data SimpleItem = SimpleItem
  { siId        :: ChartId
  --
- , siSubstnodes :: [TagSite]
- , siAdjnodes   :: [TagSite]
+ , siSubstnodes :: [NodeName]
+ , siAdjnodes   :: [NodeName]
  --
  , siSemantics :: BitVector
  , siPolpaths  :: BitVector
@@ -247,7 +247,7 @@ data SimpleItem = SimpleItem
  , siRoot_    :: NodeName
  , siFoot_    :: Maybe NodeName
  --
- , siPendingTb :: [ TagSite ] -- only for one-phase
+ , siPendingTb :: [NodeName] -- only for one-phase
  -- how was this item produced?
  , siDerivation :: TagDerivation
  -- for the debugger only
@@ -265,11 +265,11 @@ siRoot x = toTagSite . lookupOrBug "siRoot" x $ siRoot_ x
 siFoot x = (toTagSite . lookupOrBug "siFoot" x) `fmap` siFoot_ x
 
 instance Biplate SimpleItem GeniVal where
-  biplate (SimpleItem x1 zss zas x2 x3 zls x6 xr xf zp x7 zg) =
+  biplate (SimpleItem x1 xss xas x2 x3 zls x6 xr xf xp x7 zg) =
     plate SimpleItem            |- x1
-            ||+ zss ||+ zas     |- x2 |- x3
+            |- xss |- xas       |- x2 |- x3
             ||+ zls             |- x6
-            |- xr  |- xf ||+ zp |- x7
+            |- xr  |- xf |- xp  |- x7
             |+ zg
 
 instance Biplate (String, B.UninflectedDisjunction) GeniVal where
@@ -302,15 +302,7 @@ type ChartId = Integer
 
 instance DescendGeniVal SimpleItem where
   descendGeniVal s i = s `seq` i `seq`
-    i { siSubstnodes = descendGeniVal s (siSubstnodes i)
-      , siAdjnodes   = descendGeniVal s (siAdjnodes i)
-      , siNodes   = descendGeniVal s (siNodes i)
-      , siPendingTb = descendGeniVal s (siPendingTb i)
-      , siGuiStuff = descendGeniVal s (siGuiStuff i)
-     }
-
-instance DescendGeniVal SimpleGuiItem where
- descendGeniVal s i = i
+    i { siNodes   = descendGeniVal s (siNodes i) }
 \end{code}
 
 \begin{code}
@@ -638,21 +630,21 @@ iapplySubst :: Bool -> SimpleItem -> SimpleItem -> SimpleState [SimpleItem]
 iapplySubst twophase item1 item2 | siInitial item1 && closed item1 = {-# SCC "applySubstitution" #-}
  case siSubstnodes item2 of
  [] -> return []
- ((TagSite n fu fd nOrigin) : stail) ->
+ (shead : stail) ->
   let doIt =
        do -- Maybe monad
-          let r@(TagSite rn ru rd rOrigin) = siRoot item1
+          let (TagSite n fu fd nOrigin)    = toTagSite (lookupOrBug "iapplySubst" item2 shead)
+              r@(TagSite rn ru rd rOrigin) = siRoot item1
           (newU, subst1) <- unifyFeat ru fu
           (newD, subst2) <- unifyFeat (replace subst1 rd)
                                       (replace subst1 fd)
           let subst = mergeSubst subst1 subst2
-              nr    = TagSite rn newU newD rOrigin
-              adj1  = nr : (delete r $ siAdjnodes item1)
+              adj1  = delete rn (siAdjnodes item1)
               adj2  = siAdjnodes item2
               -- gui stuff
               newRoot g = g { gup = newU, gdown = newD, gtype = Other }
           let pending = if twophase then []
-                        else nr : (siPendingTb item1 ++ siPendingTb item2)
+                        else rn : (siPendingTb item1 ++ siPendingTb item2)
           let item1g = item1 { siNodes = repList (gnnameIs rn) newRoot (siNodes item1) }
           return $! replace subst $ combineSimpleItems [rn] item1g $
                      item2 { siSubstnodes = stail ++ (siSubstnodes item1)
@@ -730,7 +722,8 @@ sansAdjunction1p _ = return []
 sansAdjunction2p item | closed item =
  case siAdjnodes item of
  [] -> return []
- (TagSite gn t b o: atail) -> do
+ (ahead : atail) -> do
+  let (TagSite gn t b o) = toTagSite (lookupOrBug "sansAdjunction2p" item ahead)
   -- do top/bottom unification on the node
   case unifyFeat t b of
    Nothing ->
@@ -771,23 +764,22 @@ iapplyAdjNode :: Bool -> SimpleItem -> SimpleItem -> Maybe SimpleItem
 iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
  case siAdjnodes pItem of
  [] -> Nothing
- (pSite : pTail) -> do
+ (pHead : pTail) -> do
   -- let's go!
+  let pSite = toTagSite (lookupOrBug "iapplyAdjNode" pItem pHead)
   (anr, anf, subst12) <- canAdjoin aItem pSite
   let r_name = siRoot_ aItem
       r = siRoot aItem
   f <- siFoot aItem
   let an_name = tsName pSite
       -- the new adjunction nodes
-      auxlite = delete r $ siAdjnodes aItem
-      newadjnodes = anr : (pTail ++ auxlite)
       aItem2 = aItem { siNodes = map (setSites anr) (siNodes aItem)  }
         where
           setSites (TagSite n u d _) gn =
             if gnname gn == n then gn { gup = u, gdown = d } else gn
       rawCombined =
         combineSimpleItems [tsName r, an_name] aItem2 $ pItem
-               { siAdjnodes = newadjnodes
+               { siAdjnodes = pTail ++ siAdjnodes aItem
                , siDerived = spliceTree (tsName f) (siDerived aItem) an_name (siDerived pItem)
                , siDerivation = addToDerivation 'a' (aItem,tsOrigin r) (pItem,tsOrigin pSite,an_name)
                -- , siAdjlist = (n, (tidnum te1)):(siAdjlist item2)
@@ -796,7 +788,7 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
                , siRoot_ = if isRootOf pItem an_name then r_name else siRoot_ pItem
                , siPendingTb =
                   if twophase then []
-                  else anf : (siPendingTb pItem) ++ (siPendingTb aItem)
+                  else tsName f : siPendingTb pItem ++ siPendingTb aItem
                }
       -- one phase = postpone tb unification
       -- two phase = do tb unification on the fly
@@ -830,18 +822,19 @@ canAdjoin aItem pSite = do
 detectNa :: [SimpleItem] -- ^ aux trees
          -> SimpleItem   -- ^ me
          -> Maybe SimpleItem
-detectNa rawAux i = helper (siAdjnodes i) Map.empty []
+detectNa rawAux i = helper (map look (siAdjnodes i)) Map.empty []
  where
+  look = toTagSite . lookupOrBug "detectNa" i
   compatAux = filterCompatible i rawAux
   helper []     s acc = Just $ replace s $ i { siAdjnodes = acc }
   helper (t:ts) s acc =
     let hasAdj = any isJust $ map (\a -> canAdjoin a t) compatAux
     in case (snd `fmap` unifyFeat (tsUp t) (tsDown t)) of
         Just s2 -> if hasAdj
-                   then helper ts s (t : acc)
+                   then helper ts s (tsName t : acc)
                    else helper (replace s2 ts) (mergeSubst s s2) acc
         Nothing -> if hasAdj
-                   then helper ts s (t : acc)
+                   then helper ts s (tsName t : acc)
                    else Nothing
 \end{code}
 
@@ -1015,9 +1008,11 @@ graphical interface, I decided not to bother.
 type TbEither = Either String Subst
 tbUnifyTree :: SimpleItem -> Bool
 tbUnifyTree item = {-# SCC "tbUnifyTree" #-}
-  case foldl' tbUnifyNode (Right Map.empty) (siPendingTb item) of
+  case foldl' tbUnifyNode (Right Map.empty) pending of
     Left  _ -> False
     Right _ -> True
+  where
+   pending = map (toTagSite . lookupOrBug "tbUnifyNode" item) (siPendingTb item)
 \end{code}
 
 Our helper function corresponds to the first unification step.  It is
@@ -1191,8 +1186,10 @@ testAdjunction =
 ttAdj :: SimpleItem
 ttAdj =
   ttEmptySimpleItem { siId       = 0
-                    , siRoot_    = gnname ttAdjNode
-                    , siAdjnodes = [ toTagSite ttAdjNode ] }
+                    , siRoot_    = r
+                    , siAdjnodes = [r] }
+  where
+   r = gnname ttAdjNode
 
 ttGoodAux :: SimpleItem
 ttGoodAux =

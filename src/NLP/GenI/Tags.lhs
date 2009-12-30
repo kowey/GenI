@@ -133,7 +133,7 @@ instance Biplate TagElem GeniVal where
 
 -- | Given a tree(GNode) returns a list of substitution or adjunction
 --   nodes, as well as remaining nodes with a null adjunction constraint.
-detectSites :: Tree GNode -> ([TagSite], [TagSite], [TagSite])
+detectSites :: Tree GNode -> ([NodeName], [NodeName], [NodeName])
 detectSites t =
   ( sites isSub           -- for substitution
   , sites (not.gaconstr)  -- for adjunction
@@ -141,7 +141,7 @@ detectSites t =
   )
  where
  ns = flatten t
- sites match = [ toTagSite n | n <- ns, match n ]
+ sites match = map gnname . filter match $ ns
  isSub n = gtype n == Subs
  constrButNotSub n = gaconstr n && (not $ isSub n)
 
