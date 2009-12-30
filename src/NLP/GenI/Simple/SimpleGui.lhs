@@ -34,6 +34,7 @@ import NLP.GenI.Statistics (Statistics)
 
 import NLP.GenI.Btypes (GNode(gnname, gup), AvPair(..), emptyGNode, GeniVal(GConst))
 import NLP.GenI.Configuration ( Params(..) )
+import NLP.GenI.General ( snd3 )
 import NLP.GenI.Geni ( ProgStateRef, runGeni, GeniResult )
 import NLP.GenI.Graphviz ( GraphvizShow(..), gvNewline, gvUnlines )
 import NLP.GenI.GuiHelper
@@ -204,7 +205,7 @@ toTagElem si =
 siToSentence :: SimpleItem -> String
 siToSentence si = case unpackResult si of
                   []    -> siIdname . siGuiStuff $ si
-                  (h:_) -> unwords ((idstr ++ ".") : (map lpLemma (fst h)))
+                  (h:_) -> unwords ((idstr ++ ".") : (map lpLemma (snd3 h)))
  where
   idstr = show (siId si)
 \end{code}

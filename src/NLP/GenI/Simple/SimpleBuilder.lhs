@@ -1077,7 +1077,7 @@ unpackResult item =
         B.UninflectedDisjunction (getLexeme (look t)) (gup (look pt))
       derivation = siDerivation item
       paths = automatonPaths . listToSentenceAut .  map toUninflectedDisjunction . preTerminals . siDerived $ item
- in zip paths (repeat derivation)
+ in map (\p -> (siId item, p, derivation)) paths
 \end{code}
 
 \subsection{Sentence automata}

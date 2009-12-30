@@ -111,7 +111,7 @@ data Builder st it pa = Builder
   , unpack   :: st -> [Output]
   , partial  :: st -> [Output] }
 
-type Output = (LemmaPlusSentence, Derivation)
+type Output = (Integer, LemmaPlusSentence, Derivation)
 type Derivation = TagDerivation
 \end{code}
 

@@ -68,7 +68,7 @@ import Text.JSON
 import NLP.GenI.General(
     groupAndCount,
     geniBug,
-    fst3,
+    fst3, snd3,
     ePutStr, ePutStrLn, eFlush,
     )
 
@@ -397,6 +397,7 @@ data GeniResult = GeniResult
  , grRanking      :: Int
  , grViolations   :: [ OtViolation ]
  , grResultType   :: ResultType
+ , grOrigin       :: Integer -- normally a chart item id
  } deriving (Ord, Eq)
 
 data GeniLexSel = GeniLexSel
@@ -484,8 +485,8 @@ finaliseResults pstRef ty os =
         rank = rankResults (getTraces pst) grDerivation (ranking pst)
     return . map addRanking . rank $ unranked
  where
-  sentences = map fst os
-  sansRanking pst (l,d) rs =
+  sentences = map snd3 os
+  sansRanking pst (i,l,d) rs =
     GeniResult { grLemmaSentence = l
                , grRealisations = rs
                , grDerivation   = d
@@ -493,6 +494,7 @@ finaliseResults pstRef ty os =
                , grRanking = -1
                , grViolations = []
                , grResultType = ty
+               , grOrigin     = i
                }
   addRanking (i,res,vs) = res { grViolations = vs, grRanking = i }
 \end{code}
@@ -694,6 +696,7 @@ instance JSON GeniResult where
                   <*> field "ranking"
                   <*> field "violations"
                   <*> field "result-type"
+                  <*> field "chart-item"
  showJSON nr =
      JSObject . toJSObject $ [ ("raw", showJSON $ grLemmaSentence nr)
                              , ("realisations", showJSONs $ grRealisations nr)
@@ -702,6 +705,7 @@ instance JSON GeniResult where
                              , ("ranking", showJSON $ grRanking nr)
                              , ("violations", showJSONs $ grViolations nr)
                              , ("result-type", showJSON $ grResultType nr)
+                             , ("chart-item", showJSON $ grOrigin nr)
                              ]
 
 instance JSON ResultType where
