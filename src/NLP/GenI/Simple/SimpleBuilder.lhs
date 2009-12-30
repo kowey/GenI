@@ -194,9 +194,16 @@ data SimpleStatus = S
 \subsubsection{SimpleStatus updaters}
 
 \begin{code}
+assignNewId :: SimpleItem -> SimpleState SimpleItem
+assignNewId item = do
+  modify $ \s -> s{ gencounter = gencounter s + 1 }
+  counter <- gets gencounter
+  return $ item { siId = counter }
+
 addToAgenda :: SimpleItem -> SimpleState ()
-addToAgenda te =
-  modify $ \s -> s{theAgenda = te : theAgenda s }
+addToAgenda te = do
+  te2 <- assignNewId te
+  modify $ \s -> s{theAgenda = te2 : theAgenda s }
 
 updateAgenda :: Agenda -> SimpleState ()
 updateAgenda a =
@@ -204,12 +211,8 @@ updateAgenda a =
 
 addToAuxAgenda :: SimpleItem -> SimpleState ()
 addToAuxAgenda te = do
-  s <- get
-  -- each new tree gets a unique id... this makes comparisons faster
-  let counter = gencounter s + 1
-      te2 = te { siId = counter }
-  put s{gencounter = counter,
-        theHoldingPen = te2 : theHoldingPen s }
+  te2 <- assignNewId te
+  modify $ \s -> s { theHoldingPen = te2 : theHoldingPen s }
 
 addToChart :: SimpleItem -> SimpleState ()
 addToChart te = do
@@ -354,7 +357,7 @@ initSimpleBuilder twophase input config =
                , semBitMap = bmap
                , tsem      = semToBitVector bmap sem
                , step     =  SubstitutionPhase
-               , gencounter = toInteger $ length cands
+               , gencounter = 0
                , genconfig  = config }
       --
   in B.unlessEmptySem input config $
