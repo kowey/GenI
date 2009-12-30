@@ -122,7 +122,7 @@ summaryGui _ f results stats =
          totalResults  = length taggedResults
      p <- panel f []
      statsTxt <- textCtrl p [ text := showFinalStats stats ]
-     t <- textCtrl p [ text := msg, enabled := False ]
+     t <- textCtrl p [ text := msg ]
      saveBt <- button p [ text := "Save to file"
                         , on command := maybeSaveAsFile f msg ]
      return $ fill $ container p $ column 1 $

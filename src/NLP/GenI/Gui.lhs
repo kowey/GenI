@@ -596,25 +596,6 @@ resultsGui builderGui pstRef =
     set f [ layout := container p $ column 0 [ tabs nb myTabs ]
           , clientSize := sz 700 600 ]
     return ()
-
--- | 'statsGui' displays the generation statistics and provides a
--- handy button for saving results to a text file.
-statsGui :: (Window a) -> [String] -> Statistics -> IO Layout
-statsGui f sentences stats =
-  do let msg = showRealisations sentences
-     --
-     p <- panel f []
-     t  <- textCtrl p [ text := msg, enabled := False ]
-     statsTxt <- textCtrl p [ text := showFinalStats stats ]
-     --
-     saveBt <- button p [ text := "Save to file"
-                        , on command := maybeSaveAsFile f msg ]
-     return $ fill $ container p $ column 1 $
-              [ hfill $ label "Performance data"
-              , hfill $ widget statsTxt
-              , hfill $ label "Realisations"
-              , fill  $ widget t
-              , hfloatRight $ widget saveBt ]
 \end{code}
 
 % --------------------------------------------------------------------
