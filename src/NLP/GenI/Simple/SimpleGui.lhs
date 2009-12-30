@@ -203,6 +203,8 @@ toTagElem si =
 \begin{code}
 siToSentence :: SimpleItem -> String
 siToSentence si = case unpackResult si of
-                  []    -> siIdname.siGuiStuff $ si
-                  (h:_) -> unwords . map lpLemma . fst $ h
+                  []    -> siIdname . siGuiStuff $ si
+                  (h:_) -> unwords ((idstr ++ ".") : (map lpLemma (fst h)))
+ where
+  idstr = show (siId si)
 \end{code}
