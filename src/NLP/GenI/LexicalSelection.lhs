@@ -44,7 +44,6 @@ import NLP.GenI.General(filterTree, repAllNode,
     repNodeByNode,
     fst3,
     )
-
 import NLP.GenI.Btypes
   (Macros, ILexEntry, Lexicon,
    replace, replaceList,
@@ -62,6 +61,7 @@ import NLP.GenI.Btypes
    alphaConvert,
    )
 import NLP.GenI.BtypesBinary ()
+import NLP.GenI.GeniVal( unify )
 
 import NLP.GenI.Tags (Tags, TagElem, emptyTE,
              idname, ttreename,
@@ -241,12 +241,13 @@ combineOne lexRaw eRaw = -- Maybe monad
   unifyParamsWithWarning (l,t) =
    -- trace ("unify params " ++ wt) $
    let lp = iparams l
-       tp = map fromGVar $ params t
-       psubst = zip tp lp
-   in if (length lp) /= (length tp)
+       tp = params t
+   in if length lp /= length tp
       then Left $ OtherError t l $ "Parameter length mismatch"
-      else Right $ (replaceList psubst l, replaceList psubst t)
-  --
+      else case unify lp tp of
+             Nothing -> Left $ OtherError t l $ "Paremeter unification error"
+             Just (ps2, subst) -> Right (replace subst l, t2)
+                                  where t2 = (replace subst t) { params = ps2 }
   unifyInterfaceUsing ifn (l,e) =
     -- trace ("unify interface" ++ wt) $
     case unifyFeat (ifn l) (pinterface e) of
