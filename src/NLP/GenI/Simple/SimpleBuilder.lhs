@@ -75,7 +75,7 @@ import NLP.GenI.Btypes
   , GeniVal(GConst)
   , replace, DescendGeniVal(..)
   , GNode(..), NodeName, gnnameIs
-  , GType(Other)
+  , GType(Foot,Other)
   , root, foot
   , plugTree, spliceTree
   , unifyFeat, Flist, Subst, mergeSubst
@@ -90,7 +90,7 @@ import NLP.GenI.Builder (
 import qualified NLP.GenI.Builder as B
 
 import NLP.GenI.Tags (TagElem, TagSite(..),
-             getLexeme, tidnum,
+             getLexeme, toTagSite, tidnum,
              ttree, ttype, tsemantics,
              detectSites,
              TagDerivation, DerivationStep(..),
@@ -244,8 +244,8 @@ data SimpleItem = SimpleItem
  -- , siAdjlist :: [(String,Integer)] -- (node name, auxiliary tree id)
  , siNodes   :: [GNode]    -- ^ actually a set
  , siDerived :: Tree String
- , siRoot    :: TagSite
- , siFoot    :: Maybe TagSite
+ , siRoot_    :: NodeName
+ , siFoot_    :: Maybe NodeName
  --
  , siPendingTb :: [ TagSite ] -- only for one-phase
  -- how was this item produced?
@@ -254,12 +254,22 @@ data SimpleItem = SimpleItem
  , siGuiStuff :: SimpleGuiItem
  } deriving (Show)
 
+
+lookupOrBug fnname item k =
+        case filter (gnnameIs k) (siNodes item) of
+          []   -> geniBug $ fnname ++ ": could not find node " ++ k 
+          [gn] -> gn
+          _    -> geniBug $ fnname ++ ": more than one node named " ++ k
+
+siRoot x = toTagSite . lookupOrBug "siRoot" x $ siRoot_ x
+siFoot x = (toTagSite . lookupOrBug "siFoot" x) `fmap` siFoot_ x
+
 instance Biplate SimpleItem GeniVal where
-  biplate (SimpleItem x1 zss zas x2 x3 zls x6 zr zf zp x7 zg) =
+  biplate (SimpleItem x1 zss zas x2 x3 zls x6 xr xf zp x7 zg) =
     plate SimpleItem            |- x1
             ||+ zss ||+ zas     |- x2 |- x3
             ||+ zls             |- x6
-            |+ zr  |+ zf ||+ zp |- x7
+            |- xr  |- xf ||+ zp |- x7
             |+ zg
 
 instance Biplate (String, B.UninflectedDisjunction) GeniVal where
@@ -294,9 +304,7 @@ instance DescendGeniVal SimpleItem where
   descendGeniVal s i = s `seq` i `seq`
     i { siSubstnodes = descendGeniVal s (siSubstnodes i)
       , siAdjnodes   = descendGeniVal s (siAdjnodes i)
-      , siRoot    = descendGeniVal s (siRoot i)
       , siNodes   = descendGeniVal s (siNodes i)
-      , siFoot    = descendGeniVal s (siFoot i)
       , siPendingTb = descendGeniVal s (siPendingTb i)
       , siGuiStuff = descendGeniVal s (siGuiStuff i)
      }
@@ -376,9 +384,8 @@ initSimpleItem disableGui bmap (teRaw,pp) =
   -- , siAdjlist = []
   , siNodes = flatten.ttree $ te
   , siDerived = tlite
-  , siRoot = ncopy.root $ theTree
-  , siFoot = if ttype te == Initial then Nothing
-             else Just . ncopy.foot $ theTree
+  , siRoot_ = gnname . root $ theTree
+  , siFoot_ = if ttype te == Initial then Nothing else Just . gnname . foot $ theTree
   , siDerivation = []
   -- note: see comment in initSimpleBuilder re: tb unification
   , siPendingTb = nullAdjNodes
@@ -731,11 +738,8 @@ sansAdjunction2p item | closed item =
                    ts_tbUnificationFailure
         return []
    Just (tb,s) ->
-     let item1 = if isRootOf item gn
-                 then item { siRoot = TagSite gn tb [] o }
-                 else item
-         item2 = constrainAdj gn tb item1
-     in return $! [replace s $! item2 { siAdjnodes = atail }]
+     let item1 = constrainAdj gn tb item
+     in return $! [replace s $! item1 { siAdjnodes = atail }]
 sansAdjunction2p _ = return []
 \end{code}
 
@@ -770,7 +774,8 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
  (pSite : pTail) -> do
   -- let's go!
   (anr, anf, subst12) <- canAdjoin aItem pSite
-  let r = siRoot aItem
+  let r_name = siRoot_ aItem
+      r = siRoot aItem
   f <- siFoot aItem
   let an_name = tsName pSite
       -- the new adjunction nodes
@@ -788,7 +793,7 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
                -- , siAdjlist = (n, (tidnum te1)):(siAdjlist item2)
                -- if we adjoin into the root, the new root is that of the aux
                -- tree (affects 1p only)
-               , siRoot = if isRootOf pItem an_name then r else siRoot pItem
+               , siRoot_ = if isRootOf pItem an_name then r_name else siRoot_ pItem
                , siPendingTb =
                   if twophase then []
                   else anf : (siPendingTb pItem) ++ (siPendingTb aItem)
@@ -845,12 +850,8 @@ detectNa rawAux i = helper (siAdjnodes i) Map.empty []
 % --------------------------------------------------------------------
 
 \begin{code}
-ncopy :: GNode -> TagSite
-ncopy x = TagSite (gnname x) (gup x) (gdown x) (gorigin x)
-
 isRootOf :: SimpleItem -> String -> Bool
-isRootOf item n = n == rname
-  where (TagSite rname _ _ _) = siRoot item
+isRootOf item n = n == siRoot_ item
 
 -- | Retrieves a list of trees from the chart which could be combined with the given agenda tree.
 -- The current implementation searches for trees which
@@ -1075,13 +1076,9 @@ unpackResults = concatMap unpackResult
 
 unpackResult :: SimpleItem -> [B.Output]
 unpackResult item =
-  let lookupOrBug k =
-        case filter (gnnameIs k) (siNodes item) of
-          []   -> geniBug $ "unpackResult : could not find node " ++ k 
-          [gn] -> gn
-          _    -> geniBug $ "unpackResult : more than one node named " ++ k
+  let look = lookupOrBug "unpackResult" item
       toUninflectedDisjunction (pt,t) =
-        B.UninflectedDisjunction (getLexeme (lookupOrBug t)) (gup (lookupOrBug pt))
+        B.UninflectedDisjunction (getLexeme (look t)) (gup (look pt))
       derivation = siDerivation item
       paths = automatonPaths . listToSentenceAut .  map toUninflectedDisjunction . preTerminals . siDerived $ item
  in zip paths (repeat derivation)
@@ -1183,8 +1180,8 @@ testSuite = testGroup "simple builder"
 testAdjunction :: Test.Framework.Test
 testAdjunction =
   testGroup "adjunction"
-   [ testCase "canAdjoin pos" $ assertBool "" $ isJust    $ canAdjoin ttGoodAux ttAdjSite
-   , testCase "canAdjoin neg" $ assertBool "" $ isNothing $ canAdjoin ttBadAux  ttAdjSite
+   [ testCase "canAdjoin pos" $ assertBool "" $ isJust    $ canAdjoin ttGoodAux (toTagSite ttAdjNode)
+   , testCase "canAdjoin neg" $ assertBool "" $ isNothing $ canAdjoin ttBadAux  (toTagSite ttAdjNode)
    , testCase "iapplyAdjNode pos" $ assertBool "" $ isJust    $ iapplyAdjNode True ttGoodAux ttAdj
    , testCase "iapplyAdjNode neg" $ assertBool "" $ isNothing $ iapplyAdjNode True ttBadAux  ttAdj
    , testCase "iapplyAdjNode neg" $ assertBool "" $ isNothing $ iapplyAdjNode True ttAdj ttBadAux
@@ -1194,22 +1191,22 @@ testAdjunction =
 ttAdj :: SimpleItem
 ttAdj =
   ttEmptySimpleItem { siId       = 0
-                    , siRoot     = ttAdjSite
-                    , siAdjnodes = [ ttAdjSite ] }
+                    , siRoot_    = gnname ttAdjNode
+                    , siAdjnodes = [ toTagSite ttAdjNode ] }
 
 ttGoodAux :: SimpleItem
 ttGoodAux =
   ttEmptySimpleItem { siId   = 0
                     , siSemantics = 1
-                    , siRoot = ttFootTop
-                    , siFoot = Just ttFootBot }
+                    , siRoot_ = gnname ttFootTop 
+                    , siFoot_ = Just (gnname ttFootBot) }
 
 ttBadAux :: SimpleItem
 ttBadAux =
   ttEmptySimpleItem { siId   = 0
                     , siSemantics = 1
-                    , siRoot = ttFootBot
-                    , siFoot = Just ttFootTop }
+                    , siRoot_ = gnname ttFootBot
+                    , siFoot_ = Just (gnname ttFootTop) }
 
 ttEmptySimpleItem :: SimpleItem
 ttEmptySimpleItem
@@ -1219,38 +1216,44 @@ ttEmptySimpleItem
                , siSemantics    = 0  -- must set
                , siPolpaths     = 1
                , siDerived      = Node "" []
-               , siRoot         = ttEmptySite
-               , siFoot         = Nothing
+               , siRoot_        = gnname ttEmptyNode
+               , siFoot_        = Nothing
+               , siNodes        = [ ttEmptyNode, ttAdjNode, ttFootTop, ttFootBot ]
                , siPendingTb    = []
                , siDerivation   = []
                , siGuiStuff     = emptySimpleGuiItem
                }
+ where
+  
+ttEmptyNode :: GNode
+ttEmptyNode = GN { gnname = "empty"
+                 , gup   = [ ttCat ttA_ ]
+                 , gdown = [ ttCat ttA_ ]
+                 , ganchor = False
+                 , glexeme = []
+                 , gtype   = Other
+                 , gorigin = "test"
+                 }
 
-ttEmptySite :: TagSite
-ttEmptySite = TagSite { tsName = "empty"
-                      , tsUp   = [ ttCat ttA_ ]
-                      , tsDown = [ ttCat ttA_ ]
-                      , tsOrigin = ""
-                      }
+ttAdjNode :: GNode
+ttAdjNode = ttEmptyNode { gnname = "testing-adjsite"
+                        , gup    = [ ttCat ttA_, ttDet ttPlus_ ]
+                        , gdown  = [ ttCat ttA_, ttDet ttMinus_ ]
+                        }
 
-ttAdjSite :: TagSite
-ttAdjSite = TagSite { tsName = "testing-adjsite"
-                    , tsUp   = [ ttCat ttA_, ttDet ttPlus_ ]
-                    , tsDown = [ ttCat ttA_, ttDet ttMinus_ ]
-                    , tsOrigin = ""
-                    }
+ttFootTop :: GNode
+ttFootTop = ttEmptyNode { gnname = "testing-foot-top"
+                        , gup    = [ ttCat ttA_, ttDet ttPlus_ ]
+                        , gdown  = [ ttCat ttA_, ttDet ttPlus_ ]
+                        , gtype  = Foot
+                        }
 
-ttFootTop :: TagSite
-ttFootTop = TagSite { tsName = "testing-foot-top"
-                    , tsUp   = [ ttCat ttA_, ttDet ttPlus_ ]
-                    , tsDown = [ ttCat ttA_, ttDet ttPlus_ ]
-                    , tsOrigin = "" }
-
-ttFootBot :: TagSite
-ttFootBot = TagSite { tsName = "testing-foot-top"
-                    , tsUp   = [ ttCat ttA_, ttDet ttMinus_ ]
-                    , tsDown = [ ttCat ttA_, ttDet ttMinus_ ]
-                    , tsOrigin = "" }
+ttFootBot :: GNode
+ttFootBot = ttEmptyNode { gnname = "testing-foot-bot"
+                        , gup    = [ ttCat ttA_, ttDet ttMinus_ ]
+                        , gdown  = [ ttCat ttA_, ttDet ttMinus_ ]
+                        , gtype  = Foot
+                        }
 
 ttCat, ttDet  :: GeniVal -> AvPair
 ttCat = AvPair "cat"

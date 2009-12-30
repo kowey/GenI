@@ -141,9 +141,12 @@ detectSites t =
   )
  where
  ns = flatten t
- sites match = [ TagSite (gnname n) (gup n) (gdown n) (gorigin n) | n <- ns, match n ]
+ sites match = [ toTagSite n | n <- ns, match n ]
  isSub n = gtype n == Subs
  constrButNotSub n = gaconstr n && (not $ isSub n)
+
+toTagSite :: GNode -> TagSite
+toTagSite n = TagSite (gnname n) (gup n) (gdown n) (gorigin n)
 \end{code}
 
 A TAG derivation history consists of a list of 3-tuples representing the

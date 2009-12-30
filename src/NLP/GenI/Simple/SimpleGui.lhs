@@ -193,7 +193,7 @@ toTagElem si =
           , tsemantics = tgSemantics si
           , ttree = fmap lookupOrBug (siDerived si) }
   where
-   nodes   = siNodes.siGuiStuff $ si
+   nodes   = siNodes si
    nodeMap = Map.fromList $ zip (map gnname nodes) nodes
    lookupOrBug k = case Map.lookup k nodeMap of
                    Nothing -> emptyGNode { gup = [ AvPair "cat" (GConst ["error looking up " ++ k]) ] }
