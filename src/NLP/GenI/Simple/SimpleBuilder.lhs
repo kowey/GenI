@@ -639,8 +639,6 @@ iapplySubst twophase item1 item2 | siInitial item1 && closed item1 = {-# SCC "ap
           (newD, subst2) <- unifyFeat (replace subst1 rd)
                                       (replace subst1 fd)
           let subst = mergeSubst subst1 subst2
-              adj1  = delete rn (siAdjnodes item1)
-              adj2  = siAdjnodes item2
               -- gui stuff
               newRoot g = g { gup = newU, gdown = newD, gtype = Other }
           let pending = if twophase then []
@@ -648,7 +646,7 @@ iapplySubst twophase item1 item2 | siInitial item1 && closed item1 = {-# SCC "ap
           let item1g = item1 { siNodes = repList (gnnameIs rn) newRoot (siNodes item1) }
           return $! replace subst $ combineSimpleItems [rn] item1g $
                      item2 { siSubstnodes = stail ++ (siSubstnodes item1)
-                           , siAdjnodes   = adj2 ++ adj1
+                           , siAdjnodes   = siAdjnodes item1 ++ siAdjnodes item2
                            , siDerived    = plugTree (siDerived item1) n (siDerived item2)
                            , siDerivation = addToDerivation 's' (item1,rOrigin) (item2,nOrigin,n)
                            , siPendingTb  = pending
