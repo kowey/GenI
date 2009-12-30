@@ -208,11 +208,12 @@ sansMorph = singleton . unwords . map lem
 inflectSentencesUsingCmd :: String -> [LemmaPlusSentence] -> IO [(LemmaPlusSentence,[String])]
 inflectSentencesUsingCmd morphcmd sentences =
   do -- run the inflector
-     (toP, fromP, _, _) <- runInteractiveCommand morphcmd
+     (toP, fromP, errP, _) <- runInteractiveCommand morphcmd
      hPutStrLn toP . render . pp_value . showJSON $ sentences
      hClose toP
      -- read the inflector output back as a list of strings
      mResults <- (resultToEither . decode) `fmap` hGetContents fromP
+     hGetContents errP >>= ePutStrLn
      case mResults of
        Left err  -> fallback $ "Could not parse morphological generator output: " ++ err
        Right res -> do let lenResults   = length res
