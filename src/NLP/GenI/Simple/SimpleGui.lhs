@@ -28,17 +28,19 @@ import Graphics.UI.WX
 
 import Control.Arrow ( (&&&) )
 import Data.IORef
+import Data.List ( sort, intersperse )
 import qualified Data.Map as Map
 
-import NLP.GenI.Statistics (Statistics)
+import NLP.GenI.Statistics (Statistics, showFinalStats)
 
 import NLP.GenI.Btypes (GNode(gnname, gup), AvPair(..), emptyGNode, GeniVal(GConst))
 import NLP.GenI.Configuration ( Params(..) )
-import NLP.GenI.General ( snd3 )
-import NLP.GenI.Geni ( ProgStateRef, runGeni, GeniResult )
+import NLP.GenI.General ( snd3, buckets )
+import NLP.GenI.Geni ( ProgStateRef, runGeni, GeniResult(..) )
 import NLP.GenI.Graphviz ( GraphvizShow(..), gvNewline, gvUnlines )
 import NLP.GenI.GuiHelper
   ( messageGui, tagViewerGui,
+    maybeSaveAsFile,
     debuggerPanel, DebuggerItemBar, setGvParams, GvIO, newGvRef, GraphvizGuiSt(..),
     viewTagWidgets, XMGDerivation(getSourceTrees),
   )
@@ -70,11 +72,12 @@ simpleGui twophase = BG.BuilderGui {
       BG.resultsPnl  = resultsPnl twophase
     , BG.debuggerPnl = simpleDebuggerTab twophase }
 
-resultsPnl :: Bool -> ProgStateRef -> Window a -> IO ([GeniResult], Statistics, Layout)
+resultsPnl :: Bool -> ProgStateRef -> Window a -> IO ([GeniResult], Statistics, Layout, Layout)
 resultsPnl twophase pstRef f =
   do (sentences, stats, st) <- runGeni pstRef (simpleBuilder twophase)
-     (lay, _, _) <- realisationsGui pstRef f (theResults st)
-     return (sentences, stats, lay)
+     (resultsL, _, _) <- realisationsGui pstRef f (theResults st)
+     summaryL         <- summaryGui pstRef f sentences stats
+     return (sentences, stats, summaryL, resultsL)
 \end{code}
 
 % --------------------------------------------------------------------
@@ -96,11 +99,38 @@ realisationsGui _   f [] =
      return (m, g, return ())
 realisationsGui pstRef f resultsRaw =
   do let tip = "result"
-         itNlabl = map (Just &&& siToSentence) resultsRaw
+         mkItNLabl = Just &&& siToSentence
+         itNlabl = map mkItNLabl resultsRaw
      --
      pst     <- readIORef pstRef
      -- FIXME: have to show the semantics again
      tagViewerGui pst f tip "derived" itNlabl
+
+summaryGui :: ProgStateRef -> Window a -> [GeniResult] -> Statistics -> IO Layout
+summaryGui _ f results stats =
+  do let taggedResults = concatMap sentences results
+         resultBuckets = buckets snd taggedResults
+         sentences gr  = map (\r -> (grOrigin gr, r)) (grRealisations gr)
+         showBucket (s, xys) = s ++ " (" ++ instances ++ ")"
+           where
+            instances = if length ys == 1
+                           then ys_str
+                           else show (length ys) ++ " instances: " ++ ys_str
+            ys = map fst xys
+            ys_str = concat . intersperse ", " . map show . sort $ ys
+         msg = if null results then "(none)" else unlines (map showBucket resultBuckets)
+         totalResults  = length taggedResults
+     p <- panel f []
+     statsTxt <- textCtrl p [ text := showFinalStats stats ]
+     t <- textCtrl p [ text := msg, enabled := False ]
+     saveBt <- button p [ text := "Save to file"
+                        , on command := maybeSaveAsFile f msg ]
+     return $ fill $ container p $ column 1 $
+              [ hfill $ label "Performance data"
+              , hfill $ widget statsTxt
+              , hfill $ label $ "Realisations (" ++ show totalResults ++ " found)"
+              , fill  $ widget t
+              , hfloatRight $ widget saveBt ]
 \end{code}
 
 % --------------------------------------------------------------------

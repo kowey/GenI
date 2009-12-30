@@ -39,9 +39,9 @@ import qualified NLP.GenI.Builder as B
 import qualified NLP.GenI.BuilderGui as BG
 import NLP.GenI.Geni
   ( ProgState(..), ProgStateRef, combine, initGeni
-  , lemmaSentenceString, GeniResult(..), prettyResult
+  , prettyResult
   , loadEverything, loadTestSuite, loadTargetSemStr
-  , showRealisations )
+  )
 import NLP.GenI.General (boundsCheck, geniBug, trim, fst3)
 import NLP.GenI.Btypes (TestCase(..), showFlist,)
 import NLP.GenI.Tags (idname, tpolarities, TagElem)
@@ -70,7 +70,6 @@ import NLP.GenI.GuiHelper
 
 import NLP.GenI.Polarity
 import NLP.GenI.Simple.SimpleGui
-import NLP.GenI.Statistics (Statistics, showFinalStats)
 \end{code}
 }
 
@@ -583,10 +582,7 @@ resultsGui builderGui pstRef =
     p    <- panel f []
     nb   <- notebook p []
     -- realisations tab
-    (results,stats,resTab) <- BG.resultsPnl builderGui pstRef nb
-    -- summary tab
-    let sentences = concatMap grRealisations results
-    summTab <- statsGui nb sentences stats
+    (results,_,summTab,resTab) <- BG.resultsPnl builderGui pstRef nb
     -- ranking tab
     pst <- readIORef pstRef
     let useRanking = hasFlagP RankingConstraintsFlg (pa pst)
@@ -600,25 +596,6 @@ resultsGui builderGui pstRef =
     set f [ layout := container p $ column 0 [ tabs nb myTabs ]
           , clientSize := sz 700 600 ]
     return ()
-
--- | 'statsGui' displays the generation statistics and provides a
--- handy button for saving results to a text file.
-statsGui :: (Window a) -> [String] -> Statistics -> IO Layout
-statsGui f sentences stats =
-  do let msg = showRealisations sentences
-     --
-     p <- panel f []
-     t  <- textCtrl p [ text := msg, enabled := False ]
-     statsTxt <- textCtrl p [ text := showFinalStats stats ]
-     --
-     saveBt <- button p [ text := "Save to file"
-                        , on command := maybeSaveAsFile f msg ]
-     return $ fill $ container p $ column 1 $
-              [ hfill $ label "Performance data"
-              , hfill $ widget statsTxt
-              , hfill $ label "Realisations"
-              , fill  $ widget t
-              , hfloatRight $ widget saveBt ]
 \end{code}
 
 % --------------------------------------------------------------------

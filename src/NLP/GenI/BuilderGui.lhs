@@ -29,6 +29,6 @@ import NLP.GenI.Statistics (Statistics)
 
 \begin{code}
 data BuilderGui = BuilderGui
-  { resultsPnl  :: forall a . ProgStateRef -> (Window a) -> IO ([GeniResult],Statistics,Layout)
+  { resultsPnl  :: forall a . ProgStateRef -> (Window a) -> IO ([GeniResult],Statistics,Layout,Layout)
   , debuggerPnl :: forall a . (Window a) -> Params -> B.Input -> String -> IO Layout }
 \end{code}
