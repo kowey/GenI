@@ -39,6 +39,7 @@ module NLP.GenI.General (
         -- * Lists
         map',
         boundsCheck,
+        buckets,
         isEmptyIntersect,
         groupByFM,
         multiGroupByFM,
@@ -62,11 +63,12 @@ module NLP.GenI.General (
         )
         where
 
+import Control.Arrow (first)
 import Control.Monad (liftM)
 import Data.Bits (shiftR, (.&.))
 import Data.Char (isDigit, isSpace, toUpper, toLower)
 import Data.Function ( on )
-import Data.List (foldl', intersect, groupBy, group, sort)
+import Data.List (foldl', intersect, groupBy, group, sort, sortBy)
 import Data.Tree
 import System.IO (hPutStrLn, hPutStr, hFlush, stderr)
 import qualified Data.Map as Map
@@ -212,6 +214,12 @@ groupAndCount :: (Eq a, Ord a) => [a] -> [(a, Int)]
 groupAndCount xs = 
   map (\x -> (head x, length x)) grouped
   where grouped = (group.sort) xs
+
+buckets :: Ord b => (a -> b) -> [a] -> [ (b,[a]) ]
+buckets f = map (first head . unzip)
+          . groupBy ((==) `on` fst)
+          . sortBy (compare `on` fst)
+          . map (\x -> (f x, x))
 
 -- Given a list of lists, return all lists such that one item from each sublist is chosen.
 -- If returns the empty list if there are any empty sublists.
