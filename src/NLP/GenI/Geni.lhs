@@ -625,12 +625,14 @@ runLexSelection pstRef =
    unlinesIndentAnd :: (x -> String) -> [x] -> String
    unlinesIndentAnd f = unlines . map (indent . f)
 
+initialLexSelection :: Sem -> Lexicon -> Macros -> ([TagElem], [ILexEntry], [[LexCombineError]])
 initialLexSelection tsem lexicon grammar =
   (concat cands, lexCands, errs)
  where
   (errs, cands) = unzip $ map (combineList grammar) lexCands
   lexCands      = chooseLexCand lexicon tsem
 
+finaliseLexSelection :: MorphFn -> Sem -> [LitConstr] -> [TagElem] -> [TagElem]
 finaliseLexSelection morph tsem litConstrs =
   setTidnums . considerCoherency . considerHasSem . considerLc . considerMorph
  where
