@@ -105,10 +105,8 @@ emptyParams = Prms {
   grammarType   = GeniHand,
   geniFlags     = [ Flag ViewCmdFlg "ViewTAG"
                   , Flag DetectPolaritiesFlg (readPolarityAttrs defaultPolarityAttrs)
-                  , Flag RootFeatureFlg (readRF defaultRootFeat)
                   ]
-}
- where readRF = parseFlagWithParsec "default root feature" geniFeats
+  }
 \end{code}
 
 % --------------------------------------------------------------------
@@ -422,11 +420,11 @@ defaultPolarityAttrs = "cat"
 \item[rootfeat]
   No results?  Make sure your rootfeat are set correctly.  GenI
   will reject all sentences whose root category does not unify
-  with the rootfeat, the default of which is:
+  with the rootfeat. A possible default root feature might be
 \begin{includecodeinmanual}
 \begin{code}
-defaultRootFeat :: String
-defaultRootFeat = "[cat:s inv:- mode:ind|subj wh:-]"
+exampleRootFeat :: String
+exampleRootFeat = "[cat:s inv:- mode:ind|subj wh:-]"
 \end{code}
 \end{includecodeinmanual}
 
@@ -451,14 +449,14 @@ optionsForOptimisation =
          ("attributes 'LIST' (eg. \"cat idx V.tense\", default:" ++ show defaultPolarityAttrs ++ ")")
    , Option [] ["rootfeat"]
          (reqArg RootFeatureFlg readRF "FEATURE")
-         ("root features 'FEATURE' (for polarities, default:"
-          ++ showFlist defaultRF ++ ")")
+         ("root features 'FEATURE' (for polarities, example:"
+          ++ showFlist exampleRF ++ ")")
   , Option [] ["extrapols"]
          (reqArg ExtraPolaritiesFlg readPolarities "STRING")
          "preset polarities (normally, you should use rootfeat instead)"
   ]
   where
-   defaultRF = getListFlagP RootFeatureFlg emptyParams
+   exampleRF = readRF exampleRootFeat
    readRF = parseFlagWithParsec "root feature" geniFeats
    readPolarities = parseFlagWithParsec "polarity string" geniPolarities
 

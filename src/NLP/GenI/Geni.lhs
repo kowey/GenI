@@ -74,7 +74,7 @@ import NLP.GenI.General(
 
 import NLP.GenI.Btypes
   (Macros, ILexEntry, Lexicon,
-   SemInput, TestCase(..), sortSem,
+   SemInput, Sem, LitConstr, TestCase(..), sortSem,
    isemantics, ifamname, iword,
    showLexeme, showSem,
    pidname, pfamily, ptrace,
@@ -96,6 +96,7 @@ import NLP.GenI.Configuration
   , PartialFlg(..)
   , FromStdinFlg(..), VerboseModeFlg(..)
   , NoLoadTestSuiteFlg(..)
+  , RootFeatureFlg(..)
   , TracesFlg(..)
   , grammarType
   , GrammarType(..) )
@@ -109,7 +110,7 @@ import NLP.GenI.GeniParsers (geniMacros, geniTagElems,
                     parseFromFile, runParser, Parser,
                     )
 import NLP.GenI.LexicalSelection
-        ( mapBySemKeys, chooseLexCand, combineList, compressLexCombineErrors
+        ( mapBySemKeys, chooseLexCand, combineList, compressLexCombineErrors, LexCombineError
         , missingCoanchors, combine,
         )
 import NLP.GenI.Morphology
@@ -194,7 +195,9 @@ loadEverything pstRef =
      let errormsg =
            concat $ intersperse ", " [ msg | (con, msg) <- errorlst, con ]
          errorlst =
-              [ (isNotPrecompiled && isMissing MacrosFlg,
+              [ (isMissing RootFeatureFlg,
+                "a root feature [empty feature is fine if you are not using polarity filtering]")
+              , (isNotPrecompiled && isMissing MacrosFlg,
                 "a tree file")
               , (isNotPreanchored && isMissing LexiconFlg,
                 "a lexicon file")
