@@ -40,9 +40,12 @@ module NLP.GenI.Morphology
 
 \ignore{
 \begin{code}
+import Control.Concurrent (forkIO)
+import Control.Exception (evaluate)
 import Data.Maybe (isNothing)
 import Data.Tree
 import qualified Data.Map as Map
+import System.Exit
 import System.IO
 import System.Process
 import Text.JSON
@@ -208,22 +211,36 @@ sansMorph = singleton . unwords . map lem
 inflectSentencesUsingCmd :: String -> [LemmaPlusSentence] -> IO [(LemmaPlusSentence,[String])]
 inflectSentencesUsingCmd morphcmd sentences =
   do -- run the inflector
-     (toP, fromP, errP, _) <- runInteractiveCommand morphcmd
+     (toP, fromP, errP, pid) <- runInteractiveCommand morphcmd
      hPutStrLn toP . render . pp_value . showJSON $ sentences
      hClose toP
-     -- read the inflector output back as a list of strings
-     mResults <- (resultToEither . decode) `fmap` hGetContents fromP
-     hGetContents errP >>= ePutStrLn
-     case mResults of
-       Left err  -> fallback $ "Could not parse morphological generator output: " ++ err
-       Right res -> do let lenResults   = length res
-                           lenSentences = length sentences
-                       if lenResults == lenSentences
-                          then return $ zip sentences res
-                          else fallback $ "Morphological generator returned "
-                                          ++ show lenResults ++ " results for "
-                                          ++ show lenSentences ++ " inputs"
-                    `catch` \e -> fallback $ "Error calling morphological generator:\n" ++ show e
+     -- wait for all the output
+     output <- hGetContents fromP
+     evaluate (length output)
+     -- see http://www.haskell.org/pipermail/haskell-cafe/2008-May/042994.html
+     -- fork off a thread to pull on the stderr
+     -- so if the process writes to stderr we do not block.
+     -- NB. do the hGetContents synchronously, otherwise the outer
+     -- bracket can exit before this thread has run, and hGetContents
+     -- will fail.
+     err <- hGetContents errP
+     forkIO $ do evaluate (length err); ePutStrLn err
+
+     -- wait for the program to terminate
+     exitcode <- waitForProcess pid
+     -- on failure, throw the exit code as an exception
+     if exitcode == ExitSuccess
+        then case resultToEither (decode output) of
+               Left jerr  -> fallback $ "Could not parse morphological generator output: " ++ jerr
+               Right res -> do let lenResults   = length res
+                                   lenSentences = length sentences
+                               if lenResults == lenSentences
+                                  then return $ zip sentences res
+                                  else fallback $ "Morphological generator returned "
+                                                  ++ show lenResults ++ " results for "
+                                                  ++ show lenSentences ++ " inputs"
+                            `catch` \e -> fallback $ "Error calling morphological generator:\n" ++ show e
+        else fallback "Morph generator failed"
  where
   fallback err =
     do ePutStrLn err
