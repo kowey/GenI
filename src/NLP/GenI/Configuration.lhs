@@ -250,6 +250,7 @@ optionsForBasicStuff :: [OptDescr Flag]
 optionsForBasicStuff =
   [ helpOption, verboseOption, noguiOption
   , macrosOption , lexiconOption, testSuiteOption
+  , rootFeatureOption
   , outputOption
   ]
 \end{code}
@@ -447,18 +448,23 @@ optionsForOptimisation =
    , Option [] ["detect-pols"]
          (reqArg DetectPolaritiesFlg readPolarityAttrs "LIST")
          ("attributes 'LIST' (eg. \"cat idx V.tense\", default:" ++ show defaultPolarityAttrs ++ ")")
-   , Option [] ["rootfeat"]
-         (reqArg RootFeatureFlg readRF "FEATURE")
-         ("root features 'FEATURE' (for polarities, example:"
-          ++ showFlist exampleRF ++ ")")
-  , Option [] ["extrapols"]
+   , rootFeatureOption
+   , Option [] ["extrapols"]
          (reqArg ExtraPolaritiesFlg readPolarities "STRING")
          "preset polarities (normally, you should use rootfeat instead)"
   ]
   where
+   readPolarities = parseFlagWithParsec "polarity string" geniPolarities
+
+rootFeatureOption :: OptDescr Flag
+rootFeatureOption =
+  Option [] ["rootfeat"]
+         (reqArg RootFeatureFlg readRF "FEATURE")
+         ("root features 'FEATURE' (for polarities, example:"
+          ++ showFlist exampleRF ++ ")")
+ where
    exampleRF = readRF exampleRootFeat
    readRF = parseFlagWithParsec "root feature" geniFeats
-   readPolarities = parseFlagWithParsec "polarity string" geniPolarities
 
 coreOptimisationCodes :: [(Optimisation,String,String)]
 coreOptimisationCodes =
