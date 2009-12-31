@@ -31,6 +31,8 @@
 module NLP.GenI.Graphviz
 where
 
+import Control.Concurrent (forkIO)
+import Control.Exception (bracket, evaluate)
 import Control.Monad(when)
 import Data.List(intersperse)
 import Data.Tree
@@ -207,8 +209,21 @@ graphviz dot dotFile outputFile = do
        dotArgs = dotArgs' ++ (if (null dotFile) then [] else [dotFile])
    -- putStrLn ("sending to graphviz:\n" ++ dot) 
    when (not $ null dotFile) $ writeFile dotFile dot
-   (_, toGV, _, pid) <- runInteractiveProcess "dot" dotArgs Nothing Nothing
-   when (null dotFile) $ do 
-     hPutStrLn toGV dot 
-     hClose toGV
-   waitForProcess pid
+   bracket
+    (runInteractiveProcess "dot" dotArgs Nothing Nothing)
+    (\(inh,outh,errh,_) -> hClose inh >> hClose outh >> hClose errh)
+    $ \(inh,outh,errh,pid) -> do
+       when (null dotFile) $ hPutStrLn inh dot 
+       hClose inh
+       -- see http://www.haskell.org/pipermail/haskell-cafe/2008-May/042994.html
+       -- wait for all the output
+       output <- hGetContents outh
+       evaluate (length output)
+       -- fork off a thread to pull on the stderr
+       -- so if the process writes to stderr we do not block.
+       -- NB. do the hGetContents synchronously, otherwise the outer
+       -- bracket can exit before this thread has run, and hGetContents
+       -- will fail.
+       err <- hGetContents errh
+       forkIO $ do evaluate (length err); return ()
+       waitForProcess pid
