@@ -181,7 +181,28 @@ mainGui pstRef
        -- layout; packing it all together
        -- -----------------------------------------------------------------
        -- set any last minute handlers, run any last minute functions
-       let onLoad = readConfig f pstRef macrosFileLabel lexiconFileLabel testSuiteChoice tsTextBox testCaseChoice
+       let onLoad =
+            do -- errHandler title err = errorDialog f title (show err)
+               set macrosFileLabel  [ text := getListFlagP MacrosFlg config ]
+               set lexiconFileLabel [ text := getListFlagP LexiconFlg config ]
+               -- set tsFileLabel      [ text := getListFlagP TestSuiteFlg config ]
+               -- read the test suite if there is one
+               case getListFlagP TestInstructionsFlg config of
+                 [] -> do set testSuiteChoice [ enabled := False, items := [] ]
+                          set testCaseChoice  [ enabled := False, items := [] ]
+                 is ->
+                   do -- handler for selecting a test suite
+                      let imap = Map.fromList $ zip [0..] is
+                          onTestSuiteChoice = do
+                            sel <- get testSuiteChoice selection
+                            case Map.lookup sel imap of
+                              Nothing -> geniBug $ "No such index in test suite selector (gui): " ++ show sel
+                              Just t  -> loadTestSuiteAndRefresh f pstRef t tsTextBox testCaseChoice
+                      set testSuiteChoice [ enabled := True, items := map fst is
+                                          , on select := onTestSuiteChoice, selection := 0 ]
+                      set testCaseChoice  [ enabled := True ]
+                      onTestSuiteChoice -- load the first suite
+       --
        set loadMenIt [ on command := do configGui pstRef onLoad ]
        onLoad
        togglePolStuff
@@ -271,36 +292,6 @@ optCheckBoxHelper idOrNot o pstRef f as =
 -- --------------------------------------------------------------------
 -- Loading files
 -- --------------------------------------------------------------------
-
--- | 'readConfig' is used to update the graphical interface after
---    you run the  'configGui'.
---    It is also called when you first launch the GUI
-readConfig :: (Textual l, Textual t, Able ch, Items ch String, Selection ch, Selecting ch)
-           => Window w -> ProgStateRef -> l -> l -> ch -> t -> ch -> IO ()
-readConfig f pstRef macrosFileLabel lexiconFileLabel suiteChoice tsBox caseChoice =
-  do pst <- readIORef pstRef
-     let config = pa pst
-         -- errHandler title err = errorDialog f title (show err)
-     set macrosFileLabel  [ text := getListFlagP MacrosFlg config ]
-     set lexiconFileLabel [ text := getListFlagP LexiconFlg config ]
-     -- set tsFileLabel      [ text := getListFlagP TestSuiteFlg config ]
-     -- read the test suite if there is one
-     case getListFlagP TestInstructionsFlg config of
-       [] ->
-         do set suiteChoice [ enabled := False, items := [] ]
-            set caseChoice  [ enabled := False, items := [] ]
-       is ->
-         do -- handler for selecting a test suite
-            let imap = Map.fromList $ zip [0..] is
-                onTestSuiteChoice = do
-                  sel <- get suiteChoice selection
-                  case Map.lookup sel imap of
-                    Nothing -> geniBug $ "No such index in test suite selector (gui): " ++ show sel
-                    Just t  -> loadTestSuiteAndRefresh f pstRef t tsBox caseChoice
-            set suiteChoice [ enabled := True, items := map fst is
-                            , on select := onTestSuiteChoice, selection := 0 ]
-            set caseChoice  [ enabled := True ]
-            onTestSuiteChoice -- load the first suite
 
 -- | Load the given test suite and update the GUI accordingly.
 --   This is used when you first start the graphical interface
