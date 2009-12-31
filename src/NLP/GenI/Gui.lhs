@@ -731,11 +731,11 @@ treeBrowserGui pstRef = do
       itNlabl  = zip trees (concatMap labsfor sem)
   (browser,_,_) <- tagViewerGui pst f "tree browser" "grambrowser" itNlabl
   -- the button panel
-  let count = length trees - length sem
+  let numTrees = length trees - length sem
   quitBt <- button f [ text := "Close", on command := close f ]
   -- pack it all together 
   set f [ layout := column 5 [ browser, 
-                       row 5 [ label ("number of trees: " ++ show count)
+                       row 5 [ label ("number of trees: " ++ show numTrees)
                              , hfloatRight $ widget quitBt ] ]
         , clientSize := sz 700 600 ]
   return ()
