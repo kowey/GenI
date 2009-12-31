@@ -41,7 +41,7 @@ module NLP.GenI.Morphology
 \ignore{
 \begin{code}
 import Control.Concurrent (forkIO)
-import Control.Exception (evaluate)
+import Control.Exception (bracket, evaluate)
 import Data.Maybe (isNothing)
 import Data.Tree
 import qualified Data.Map as Map
@@ -210,8 +210,10 @@ sansMorph = singleton . unwords . map lem
 -- will need to work it out
 inflectSentencesUsingCmd :: String -> [LemmaPlusSentence] -> IO [(LemmaPlusSentence,[String])]
 inflectSentencesUsingCmd morphcmd sentences =
-  do -- run the inflector
-     (toP, fromP, errP, pid) <- runInteractiveCommand morphcmd
+ bracket
+   (runInteractiveCommand morphcmd)
+   (\(inh,outh,errh,_) -> hClose inh >> hClose outh >> hClose errh)
+    $ \(toP,fromP,errP,pid) -> do
      hPutStrLn toP . render . pp_value . showJSON $ sentences
      hClose toP
      -- wait for all the output
