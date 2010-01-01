@@ -30,11 +30,11 @@ import NLP.GenI.Tags
    tsemantics, ttree,
    DerivationStep(..),
  )
-import NLP.GenI.Btypes (GeniVal(GConst), AvPair(..),
+import NLP.GenI.Btypes (AvPair(..),
                GNode(..), GType(..), Flist,
-               isConst,
                showSem,
                )
+import NLP.GenI.GeniVal (GeniVal(..),isConst)
 import NLP.GenI.Graphviz
   ( gvUnlines, gvNewline
   , GraphvizShow(graphvizShowAsSubgraph, graphvizLabel, graphvizParams)
@@ -118,8 +118,10 @@ instance GraphvizShowString () AvPair where
   graphvizShow () (AvPair a v) = a ++ ":" ++ graphvizShow_ v
 
 instance GraphvizShowString () GeniVal where
-  graphvizShow () (GConst x) = concat $ intersperse " ! " x
-  graphvizShow () x = show x
+  graphvizShow () (GeniVal Nothing Nothing)    = "?_"
+  graphvizShow () (GeniVal Nothing (Just cs))  = concat (intersperse "!" cs)
+  graphvizShow () (GeniVal (Just l) Nothing)   = '?':l
+  graphvizShow () (GeniVal (Just l) (Just cs)) = '?':concat (l : "/" : intersperse "!" cs)
 
 showGnDecorations :: GNode -> String
 showGnDecorations gn =

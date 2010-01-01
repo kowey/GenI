@@ -33,10 +33,11 @@ import qualified Data.Map as Map
 
 import NLP.GenI.Statistics (Statistics, showFinalStats)
 
-import NLP.GenI.Btypes (GNode(gnname, gup), AvPair(..), emptyGNode, GeniVal(GConst))
+import NLP.GenI.Btypes (GNode(gnname, gup), AvPair(..), emptyGNode)
 import NLP.GenI.Configuration ( Params(..) )
 import NLP.GenI.General ( snd3, buckets )
 import NLP.GenI.Geni ( ProgStateRef, runGeni, GeniResult(..) )
+import NLP.GenI.GeniVal (mkGConst, GeniVal)
 import NLP.GenI.Graphviz ( GraphvizShow(..), gvNewline, gvUnlines )
 import NLP.GenI.GuiHelper
   ( messageGui, tagViewerGui,
@@ -227,7 +228,7 @@ toTagElem si =
    nodes   = siNodes si
    nodeMap = Map.fromList $ zip (map gnname nodes) nodes
    lookupOrBug k = case Map.lookup k nodeMap of
-                   Nothing -> emptyGNode { gup = [ AvPair "cat" (GConst ["error looking up " ++ k]) ] }
+                   Nothing -> emptyGNode { gup = [ AvPair "cat" (mkGConst ("error looking up " ++ k) []) ] }
                    Just x  -> x
 \end{code}
 
