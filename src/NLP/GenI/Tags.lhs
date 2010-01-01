@@ -125,13 +125,6 @@ data TagElem = TE {
                 }
              deriving (Show, Eq, Data, Typeable)
 
-instance Biplate TagElem GeniVal where
-  biplate (TE x1 x2 x3 x4 zt zsem x5 zint x6 x7) =
-     plate TE |- x1 |- x2 |- x3 |- x4
-              |+ zt
-              ||+ zsem |- x5
-              ||+ zint |- x6 |- x7
-
 -- | Given a tree(GNode) returns a list of substitution or adjunction
 --   nodes, as well as remaining nodes with a null adjunction constraint.
 detectSites :: Tree GNode -> ([NodeName], [NodeName], [NodeName])

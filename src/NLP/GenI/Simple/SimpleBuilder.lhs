@@ -266,17 +266,6 @@ lookupOrBug fnname item k =
 siRoot x = toTagSite . lookupOrBug "siRoot" x $ siRoot_ x
 siFoot x = (toTagSite . lookupOrBug "siFoot" x) `fmap` siFoot_ x
 
-instance Biplate SimpleItem GeniVal where
-  biplate (SimpleItem x1 xss xas x2 x3 zls x6 xr xf xp x7 zg) =
-    plate SimpleItem            |- x1
-            |- xss |- xas       |- x2 |- x3
-            ||+ zls             |- x6
-            |- xr  |- xf |- xp  |- x7
-            |+ zg
-
-instance Biplate (String, B.UninflectedDisjunction) GeniVal where
-  biplate (s,d) = plate (,) |- s |+ d
-
 instance DescendGeniVal (String, B.UninflectedDisjunction) where
   descendGeniVal m (s,d) = (s, descendGeniVal m d)
 

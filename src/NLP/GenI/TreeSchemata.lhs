@@ -43,7 +43,6 @@ import Data.List (intersperse)
 import Data.Tree
 
 import Data.Generics (Data)
-import Data.Generics.PlateDirect
 import Data.Typeable (Typeable)
 
 import NLP.GenI.GeniVal ( GeniVal(..), DescendGeniVal(..), Collectable(..),
@@ -81,19 +80,6 @@ data Ttree a = TT
 data Ptype = Initial | Auxiliar | Unspecified
              deriving (Show, Eq, Data, Typeable)
 
-instance Biplate (Ttree String) GeniVal where
-  biplate (TT zps x1 x2 zint x3 zsem x4 x5) =
-     plate TT ||* zps  |- x1 |- x2
-              ||+ zint |- x3
-              |+ zsem |- x4 |- x5
-
-instance Biplate (Ttree GNode) GeniVal where
-  biplate (TT zps x1 x2 zint x3 zsem x4 zt) =
-     plate TT ||* zps  |- x1 |- x2
-              ||+ zint |- x3
-              |+ zsem |- x4
-              |+ zt
-
 instance DescendGeniVal (Ttree GNode) where
   descendGeniVal s mt =
     mt { params = descendGeniVal s (params mt)
@@ -130,9 +116,6 @@ instance DescendGeniVal a => DescendGeniVal (Map.Map k a) where
 
 instance (Collectable a => Collectable (Tree a)) where
   collect = collect.flatten
-
-instance Biplate (Tree GNode) GeniVal where
-  biplate (Node zn zkids) = plate Node |+ zn ||+ zkids
 \end{code}
 
 \subsection{Utility functions}
@@ -200,12 +183,6 @@ type NodeName = String
 \subsection{Traversal}
 
 \begin{code}
-instance Biplate GNode GeniVal where
-  biplate (GN x1 zu zd x2 x3 x4 x5 x6) =
-     plate GN |- x1
-              ||+ zu
-              ||+ zd |- x2 |- x3 |- x4 |- x5 |- x6
-
 instance Collectable GNode where
   collect n = (collect $ gdown n) . (collect $ gup n)
 
