@@ -51,6 +51,7 @@ module NLP.GenI.GeniParsers (
 ) where
 
 import NLP.GenI.General ((!+!), Interval, ival)
+import NLP.GenI.GeniVal (mkGConst, mkGVar, mkGAnon)
 import NLP.GenI.Btypes
 import NLP.GenI.Tags (TagElem(..), emptyTE, setTidnums)
 import NLP.GenI.GeniShow (GeniShow(geniShow))
@@ -169,18 +170,18 @@ geniValue =   ((try $ anonymous) <?> "_ or ?_")
     --
     constants :: Parser GeniVal
     constants =
-      do c <- sepBy1 (looseIdentifier <|> stringLiteral) (symbol "|")
-         return (GConst c)
+      do (c:cs) <- sepBy1 (looseIdentifier <|> stringLiteral) (symbol "|")
+         return (mkGConst c cs)
     variable :: Parser GeniVal
     variable =
       do symbol question
          v <- identifier
-         return (GVar v)
+         return (mkGVar v Nothing) --FIXME
     anonymous :: Parser GeniVal
     anonymous =
       do optional $ symbol question
          symbol "_"
-         return GAnon
+         return mkGAnon
 \end{code}
 
 \subsection{Feature structures}
@@ -242,7 +243,7 @@ geniSemantics =
 
 geniLiteral :: Parser Pred
 geniLiteral =
-  do handle    <- option GAnon handleParser <?> "a handle"
+  do handle    <- option mkGAnon handleParser <?> "a handle"
      predicate <- geniValue <?> "a predicate"
      pars      <- parens (many geniValue) <?> "some parameters"
      --
@@ -287,8 +288,9 @@ geniSemanticInput =
      createHandles = zipWith setHandle ([1..] :: [Int])
      --
      setHandle i (h, pred_, par) =
-       let h2 = if h /= GAnon then h
-                else GConst ["genihandle" ++ (show i)]
+       let h2 = if isAnon h
+                then mkGConst ("genihandle" ++ show i) []
+                else h
        in (h2, pred_, par)
      --
      literalAndConstraint :: Parser (Pred, [String])
@@ -532,7 +534,7 @@ geniLexSemantics =
 
 geniLexLiteral :: Parser (Pred, [Int])
 geniLexLiteral =
-  do (handle, hpol) <- option (GAnon,0) (handleParser <?> "a handle")
+  do (handle, hpol) <- option (mkGAnon,0) (handleParser <?> "a handle")
      predicate  <- geniValue <?> "a predicate"
      paramsPols <- parens (many geniPolValue) <?> "some parameters"
      --

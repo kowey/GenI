@@ -93,15 +93,16 @@ import qualified Data.Set as Set
 
 import NLP.GenI.Automaton
 import NLP.GenI.Btypes(Pred, SemInput, Sem, Flist, AvPair(..), showAv,
-              GeniVal(..), fromGConst, isConst,
               replace,
               emptyPred, Ptype(Initial), 
               showFlist, showSem, sortSem,
               GNode, root, gup, gdown, gtype, GType(Subs),
               SemPols, unify, unifyFeat, rootUpd)
 import NLP.GenI.General(
+    geniBug,
     BitVector, isEmptyIntersect, thd3,
     Interval, ival, (!+!), showInterval)
+import NLP.GenI.GeniVal ( GeniVal(gConstraints), mkGConst, mkGAnon, isAnon, isConst ) 
 import NLP.GenI.PolarityTypes
 import NLP.GenI.Tags(TagElem(..), TagItem(..), setTidnums)
 \end{code}
@@ -718,12 +719,12 @@ fixPronouns (tsem,cands) =
 -- | Builds a fake semantic predicate that the index counting mechanism uses to
 --   represent extra columns.
 indexPred :: GeniVal -> Pred
-indexPred x = (x, GAnon, [])
+indexPred x = (x, mkGAnon, [])
 
 -- Returns True if the given literal was introduced by the index counting mechanism
 isExtraCol :: Pred -> Bool
-isExtraCol (_,GAnon,[]) = True
-isExtraCol _            = False
+isExtraCol (_,p,[]) = isAnon p
+isExtraCol _        = False
 \end{code}
 
 \paragraph{assignIndex} is a useful way to restrict the behaviour of
@@ -928,7 +929,7 @@ detectPolarity :: Int          -- ^ polarity to assign
 detectPolarity i (RestrictedPolarityAttr cat att) filterFl fl =
   case [ v | AvPair a v <- filterFl, a == __cat__ ] of
     []  -> PD_UserError $ "[polarities] No category " ++ cat ++ " in:" ++ showFlist filterFl
-    [v] -> if isJust (unify [GConst [cat]] [v])
+    [v] -> if isJust (unify [mkGConst cat []] [v])
               then detectPolarityForAttr i att fl
               else PD_Nothing
     _   -> PD_UserError $ "[polarities] More than one category " ++ " in:" ++ showFlist filterFl
@@ -942,11 +943,15 @@ detectPolarityForAttr i att fl =
   case [ v | AvPair a v <- fl, a == att ] of
     []  -> PD_UserError $ "[polarities] No value for attribute: " ++ att ++ " in:" ++ showFlist fl
     [v] -> if isConst v
-              then PD_Just $ case prefixWith att (fromGConst v) of
+              then PD_Just $ case prefixWith att (values v) of
                              [x] -> [ (PolarityKey x, ival i) ]                -- singleton
                              xs  -> map (\x -> (PolarityKey x, toZero i)) xs   -- interval if ambiguous
               else PD_UserError $ "[polarities] Non-constant value for attribute: " ++ att ++ " in:" ++ showFlist fl
     _   -> PD_UserError $ "[polarities] More than one value for attribute: " ++ att ++ " in:" ++ showFlist fl
+ where
+  values v = case gConstraints v of
+               Nothing -> geniBug $ "detectPolarityForAttr: no constraints for constant?! " ++ show v
+               Just x  -> x
 
 toZero :: Int -> Interval
 toZero x | x < 0     = (x, 0)

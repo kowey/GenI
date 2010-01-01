@@ -52,7 +52,7 @@ instance ((Collectable a, Collectable b, Collectable c)
   collect (a,b,c) = collect a . collect b . collect c
 
 emptyPred :: Pred
-emptyPred = (GAnon,GAnon,[])
+emptyPred = (mkGAnon,mkGAnon,[])
 \end{code}
 
 \section{Utility functions}
@@ -87,8 +87,9 @@ showSem l =
 showPred :: Pred -> String
 showPred (h, p, l) = showh ++ show p ++ "(" ++ unwords (map show l) ++ ")"
   where
-    hideh (GConst [x]) = "genihandle" `isPrefixOf` x
-    hideh _ = False
+    hideh g = case gConstraints g of
+                Just [c] -> "genihandle" `isPrefixOf` c
+                _        -> False
     --
     showh = if (hideh h) then "" else (show h) ++ ":"
 \end{code}

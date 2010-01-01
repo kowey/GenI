@@ -21,14 +21,13 @@ module NLP.GenI.GeniVal where
 
 -- import Debug.Trace -- for test stuff
 import Control.Arrow (first, (***))
-import Control.Monad (liftM)
+import Control.Monad (liftM, liftM2)
 import Data.List
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, isNothing, isJust)
 import Data.Generics (Data)
 import Data.Typeable (Typeable)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
-
 import Test.HUnit
 import Test.QuickCheck hiding (collect)
 import Test.Framework
@@ -41,40 +40,43 @@ import Control.Parallel.Strategies
 
 import NLP.GenI.General (geniBug)
 
-data GeniVal = GConst [String] -- ^ atomic disjunction - constant x | y | z
-             | GVar   String   -- ^ variable
-             | GAnon           -- ^ anonymous
+-- | constant : no label, just constraints
+--   variable : label, with or without constraints
+--   anonymous : no label, no constraints
+data GeniVal = GeniVal { gLabel       :: Maybe String
+                       , gConstraints :: Maybe [String]
+                       }
   deriving (Eq,Ord, Data, Typeable)
+
+-- | 'mkGConst' @x []@ creates a single constant.  'mkGConst' @x xs@
+--   creates an atomic disjunction.  It makes no difference which of the values
+--   you supply for @x@ and @xs@ as they will be sorted and nubed anyway.  We
+--   divide these only to enforce a non-empty list.
+mkGConst :: String   -- ^ one value
+         -> [String] -- ^ any additional values (atomic disjunction)
+         -> GeniVal
+mkGConst x xs = GeniVal Nothing (Just . sort . nub $ x:xs)
+mkGVar x mxs  = GeniVal (Just x) ((sort . nub) `fmap` mxs)
+mkGAnon       = GeniVal Nothing Nothing
 
 instance Uniplate GeniVal where
   uniplate x = (Zero, \Zero -> x)
 
 instance Show GeniVal where
-  show (GConst x) = concat $ intersperse "|" x
-  show (GVar x)   = '?':x
-  show GAnon      = "?_"
+  show (GeniVal Nothing Nothing)    = "?_"
+  show (GeniVal Nothing (Just cs))  = concat (intersperse "|" cs)
+  show (GeniVal (Just l) Nothing)   = '?':l
+  show (GeniVal (Just l) (Just cs)) = '?':concat (l : "/" : intersperse "|" cs)
 
 isConst :: GeniVal -> Bool
-isConst (GConst _) = True
-isConst _ = False
+isConst = isNothing . gLabel
 
 isVar :: GeniVal -> Bool
-isVar (GVar _) = True
-isVar _        = False
+isVar = isJust . gConstraints
 
 isAnon :: GeniVal -> Bool
-isAnon GAnon = True
+isAnon (GeniVal Nothing Nothing) = True
 isAnon _     = False
-
--- | (assumes that it's a GConst!)
-fromGConst :: GeniVal -> [String]
-fromGConst (GConst x) = x
-fromGConst x = error ("fromGConst on " ++ show x)
-
--- | (assumes that it's a GVar!)
-fromGVar :: GeniVal -> String
-fromGVar (GVar x) = x
-fromGVar x = error ("fromGVar on " ++ show x)
 
 -- ----------------------------------------------------------------------
 -- Helper types
@@ -105,6 +107,13 @@ unify ll1 ll2 = repropagate `liftM` helper ll1 ll2
                        t1b = replaceOne s t1
                        t2b = replaceOne s t2
                        prepend = (g:) *** prependToSubst s
+    SuccessRep2 v1 v2 g -> prepend `liftM` helper t1b t2b
+                      where
+                       s1  = (v1,g)
+                       s2  = (v2,g)
+                       t1b = replaceOne s2 . replaceOne s1 $ t1
+                       t2b = replaceOne s2 . replaceOne s1 $ t2
+                       prepend = (g:) *** (prependToSubst s1 . prependToSubst s2)
     SuccessSans g  -> first (g:) `liftM` helper t1 t2
 
 -- | Note that the first Subst is assumed to come chronologically
@@ -124,13 +133,13 @@ mergeSubst sm1 sm2 = Map.foldWithKey (curry prependToSubst) sm2 sm1
 --   @Y -> foo@ to @Y -> bar@, because that would mean that unification
 --   is broken
 prependToSubst :: (String,GeniVal) -> Subst -> Subst
-prependToSubst (v, gr@(GVar r)) sm =
+prependToSubst (v, gr@(GeniVal (Just r) _)) sm =
   case Map.lookup v sm of
     Just v2 -> geniBug . unlines $
                 [ "prependToSubst: GenI just tried to prepend the substitution"
-                , "  " ++ show (GVar v) ++ " -> " ++ show gr
+                , "  " ++ show (mkGVar v Nothing) ++ " -> " ++ show gr
                 , "to one where where "
-                , "  " ++ show (GVar v) ++ " -> " ++ show v2
+                , "  " ++ show (mkGVar v Nothing) ++ " -> " ++ show v2
                 , "is slated to occur afterwards."
                 , ""
                 , "This could mean that either"
@@ -149,22 +158,42 @@ prependToSubst (v, gr) sm = Map.insert v gr sm
 
 data UnificationResult = SuccessSans GeniVal
                        | SuccessRep  String GeniVal
+                       | SuccessRep2 String String GeniVal
                        | Failure
 
 -- | See source code for details
+--
+--   Note that we assume that it's acceptable to generate new
+--   variable names by appending an 'x' to them; this assumption
+--   is only safe if the variables have gone through the function
+--   'alphaConvertById' or have been pre-processed and rewritten
+--   with some kind of common suffix to avoid an accidental match
 unifyOne :: GeniVal -> GeniVal -> UnificationResult
-unifyOne g GAnon = SuccessSans g
-unifyOne GAnon g = SuccessSans g
-unifyOne (GVar v) gc@(GConst _) = SuccessRep v gc
-unifyOne gc@(GConst _) (GVar v) = SuccessRep v gc
-unifyOne (GConst v1) (GConst v2) =
+unifyOne (GeniVal Nothing Nothing) g = SuccessSans g
+unifyOne g (GeniVal Nothing Nothing) = SuccessSans g
+unifyOne g1 g2 =
+ case intersectConstraints gc1 gc2 of
+   Nothing -> Failure
+   Just cs -> case (gLabel g1, gLabel g2) of
+                (Nothing, Nothing) -> SuccessSans  (GeniVal Nothing cs)
+                (Nothing, Just v)  -> SuccessRep v (GeniVal Nothing cs)
+                (Just v, Nothing)  -> SuccessRep v (GeniVal Nothing cs)
+                (Just v1, Just v2) | v1 == v2 && gc1 /= gc2 -> geniBug $ "I just tried to unify variable with itself, but it has mismatching constraints: " ++ show g1 ++ " vs. "++ show g2
+                                   | v1 == v2   -> SuccessSans g1
+                                   | gc1 == gc2 -> let gv = GeniVal (Just (max v1 v2)) cs
+                                                   in  SuccessRep (min v1 v2) gv
+                                   | otherwise  -> let gv = GeniVal (Just (max v1 v2 ++ "-g")) cs
+                                                   in  SuccessRep2 (min v1 v2) (max v1 v2) gv -- min/max stuff for symmetry
+ where
+  gc1 = gConstraints g1
+  gc2 = gConstraints g2
+
+intersectConstraints Nothing cs = Just cs
+intersectConstraints cs Nothing = Just cs
+intersectConstraints (Just v1) (Just v2) =
   case v1 `intersect` v2 of
-    []   -> Failure
-    newV -> SuccessSans (GConst newV)
-unifyOne x1@(GVar v1) x2@(GVar v2) =
-  if v1 == v2
-     then SuccessSans x1
-     else SuccessRep  (min v1 v2) (max x1 x2) -- min/max stuff for symmetry
+    []   -> Nothing
+    newV -> Just (Just newV)
 
 -- ----------------------------------------------------------------------
 -- Variable substitution
@@ -185,16 +214,18 @@ replaceList = replace . foldl' update Map.empty
    update m (s1,s2) = Map.insert s1 s2 $ Map.map (replaceOne (s1,s2)) m
 
 replaceMapG :: Subst -> GeniVal -> GeniVal
-replaceMapG m v@(GVar v_) = {-# SCC "replaceMapG" #-} Map.findWithDefault v v_ m
+replaceMapG m v@(GeniVal (Just v_) _) = {-# SCC "replaceMapG" #-} Map.findWithDefault v v_ m
 replaceMapG _ v = {-# SCC "replaceMapG" #-} v
 
 replaceOneG :: (String, GeniVal) -> GeniVal -> GeniVal
-replaceOneG (s1, s2) (GVar v_) | v_ == s1 = {-# SCC "replaceOneG" #-} s2
+replaceOneG (s1, s2) (GeniVal (Just v_) _) | v_ == s1 = {-# SCC "replaceOneG" #-} s2
 replaceOneG _ v = {-# SCC "replaceOneG" #-} v
 
 -- ----------------------------------------------------------------------
 -- Variable collection and renaming
 -- ----------------------------------------------------------------------
+
+type CollectedVar = (String, Maybe [String])
 
 -- | A 'Collectable' is something which can return its variables as a set.
 --   By variables, what I most had in mind was the GVar values in a
@@ -203,7 +234,7 @@ replaceOneG _ v = {-# SCC "replaceOneG" #-} v
 --   around for a good bit, until either some use for it creeps up, or I find
 --   a more general notion that I can transform this into.
 class Collectable a where
-  collect :: a -> Set.Set String -> Set.Set String
+  collect :: a -> Set.Set CollectedVar -> Set.Set CollectedVar
 
 instance Collectable a => Collectable (Maybe a) where
   collect Nothing  s = s
@@ -213,7 +244,7 @@ instance (Collectable a => Collectable [a]) where
   collect l s = foldr collect s l
 
 instance Collectable GeniVal where
-  collect (GVar v) s = Set.insert v s
+  collect (GeniVal (Just v) cs) s = Set.insert (v,cs) s
   collect _ s = s
 
 -- | An Idable is something that can be mapped to a unique id.
@@ -233,19 +264,13 @@ alphaConvertById x = {-# SCC "alphaConvertById" #-}
 
 alphaConvert :: (Collectable a, DescendGeniVal a) => String -> a -> a
 alphaConvert suffix x = {-# SCC "alphaConvert" #-}
-  let vars   = Set.elems $ collect x Set.empty
-      convert v = GVar (v ++ suffix)
-      subst = Map.fromList $ map (\v -> (v, convert v)) vars
-  in replace subst x
-
--- ----------------------------------------------------------------------
--- Performance
--- ----------------------------------------------------------------------
-
-instance NFData GeniVal
-    where rnf (GConst x1) = rnf x1
-          rnf (GVar x1) = rnf x1
-          rnf (GAnon) = ()
+  replace subst x
+ where
+  subst :: Subst
+  subst = Map.mapWithKey convert vars
+  vars  = Map.fromListWith isect . Set.elems $ collect x Set.empty
+  isect x y = fromMaybe (Just []) $ intersectConstraints x y
+  convert v = GeniVal (Just (v ++ suffix))
 
 -- ----------------------------------------------------------------------
 -- Genericity
@@ -273,9 +298,8 @@ testSuite = testGroup "unification"
  ]
 
 -- | Unifying something with itself should always succeed
-prop_unify_self :: [GeniVal] -> Property
+prop_unify_self :: [GeniVal] -> Bool
 prop_unify_self x =
-  (all qc_not_empty_GConst) x ==>
     case unify x x of
     Nothing  -> False
     Just unf -> fst unf == x
@@ -288,17 +312,16 @@ prop_unify_anon x =
     Nothing  -> False
     Just unf -> fst unf == x
   where --
-    y  = replicate (length x) GAnon
+    y  = replicate (length x) mkGAnon
 
 -- | Unification should be symmetrical.  We can't guarantee these if there
 --   are cases where there are variables in the same place on both sides, so we
 --   normalise the sides so that this doesn't happen.
-prop_unify_sym :: [GeniVal] -> [GeniVal] -> Property
+prop_unify_sym :: [GeniVal] -> [GeniVal] -> Bool
 prop_unify_sym x y =
   let u1 = (unify x y) :: Maybe ([GeniVal],Subst)
       u2 = unify y x
-  in (all qc_not_empty_GConst) x &&
-     (all qc_not_empty_GConst) y ==> u1 == u2
+  in u1 == u2
 
 testBackPropagation :: Test.Framework.Test
 testBackPropagation =
@@ -308,9 +331,9 @@ testBackPropagation =
    ]
  where
   n = 3
-  cx = GConst ["X"]
+  cx = mkGConst "X" []
   leftStrs = map show [1..n]
-  left  = map GVar leftStrs
+  left  = map (flip mkGVar Nothing) leftStrs
   right = drop 1 left ++ [cx]
   expected = Just (expectedResult, expectedSubst)
   expectedResult = replicate n cx
@@ -344,11 +367,11 @@ instance Arbitrary GTestString2 where
   coarbitrary = error "no implementation of coarbitrary for GTestString2"
 
 instance Arbitrary GeniVal where
-  arbitrary = oneof [ return $ GAnon,
-                      fmap (GVar . fromGTestString2) arbitrary,
-                      fmap (GConst . nub . sort . map fromGTestString) arbitrary ]
+  arbitrary = oneof [ return mkGAnon
+                    , liftM2 mkGVar (fromGTestString2 `fmap` arbitrary)
+                                    (fmap (map fromGTestString) `fmap` arbitrary)
+                    , liftM2 mkGConst (fromGTestString `fmap` arbitrary)
+                                      (map fromGTestString `fmap` arbitrary)
+                    ]
   coarbitrary = error "no implementation of coarbitrary for GeniVal"
 
-qc_not_empty_GConst :: GeniVal -> Bool
-qc_not_empty_GConst (GConst []) = False
-qc_not_empty_GConst _ = True

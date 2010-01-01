@@ -169,11 +169,11 @@ alignFeat f1 f2 = alignFeatH f1 f2 []
 
 alignFeatH :: Flist -> Flist -> [(String,GeniVal,GeniVal)] -> [(String,GeniVal,GeniVal)]
 alignFeatH [] [] acc = reverse acc
-alignFeatH [] (AvPair f v :x) acc = alignFeatH [] x ((f,GAnon,v) : acc)
+alignFeatH [] (AvPair f v :x) acc = alignFeatH [] x ((f,mkGAnon,v) : acc)
 alignFeatH x [] acc = alignFeatH [] x acc
 alignFeatH fs1@(AvPair f1 v1:l1) fs2@(AvPair f2 v2:l2) acc =
    case compare f1 f2 of
      EQ -> alignFeatH l1 l2  ((f1, v1, v2) : acc)
-     LT -> alignFeatH l1 fs2 ((f1, v1, GAnon) : acc)
-     GT -> alignFeatH fs1 l2 ((f2, GAnon, v2) : acc)
+     LT -> alignFeatH l1 fs2 ((f1, v1, mkGAnon) : acc)
+     GT -> alignFeatH fs1 l2 ((f2, mkGAnon, v2) : acc)
 \end{code}

@@ -44,7 +44,7 @@ import NLP.GenI.Tags
  ( TagElem, idname,
    tsemantics, ttree, tinterface, ttype, ttreename,
  )
-import NLP.GenI.Btypes (GeniVal(GConst), AvPair(..), Ptype(..),
+import NLP.GenI.Btypes (GeniVal(..), AvPair(..), Ptype(..),
                Ttree(params, pidname, pfamily, pinterface, ptype, tree, psemantics, ptrace),
                GNode(..), GType(..),
                SemInput, Pred,
@@ -63,15 +63,15 @@ instance GeniShow AvPair where
  geniShow (AvPair a v) = a ++ ":" ++ geniShow v
 
 instance GeniShow GeniVal where
- geniShow (GConst xs) = concat $ intersperse "|" xs
  geniShow x = show  x
 
 instance GeniShow Pred where
  geniShow (h, p, l) =
    showh ++ geniShow p ++ "(" ++ unwords (map geniShow l) ++ ")"
    where
-    hideh (GConst [x]) = "genihandle" `isPrefixOf` x
-    hideh _ = False
+    hideh g = case gConstraints g of
+                Just [c] -> "genihandle" `isPrefixOf` c
+                _        -> False
     showh = if hideh h then "" else geniShow h ++ ":"
 
 instance GeniShow GNode where

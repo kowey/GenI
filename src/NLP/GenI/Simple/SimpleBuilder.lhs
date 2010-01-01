@@ -72,7 +72,6 @@ import NLP.GenI.Automaton ( automatonPaths, NFA(..), addTrans )
 import NLP.GenI.Btypes
   ( Ptype(Initial)
   , AvPair(..)
-  , GeniVal(GConst)
   , replace, DescendGeniVal(..)
   , GNode(..), NodeName, gnnameIs
   , GType(Foot,Other)
@@ -81,6 +80,7 @@ import NLP.GenI.Btypes
   , unifyFeat, Flist, Subst, mergeSubst
   , sortSem, Sem
   )
+import NLP.GenI.GeniVal ( GeniVal, mkGConst )
 import NLP.GenI.Builder (
     incrCounter, num_iterations, num_comparisons, chart_size,
     SemBitMap, defineSemanticBits, semToBitVector, bitVectorToSem,
@@ -1258,8 +1258,8 @@ ttCat = AvPair "cat"
 ttDet = AvPair "det"
 
 ttA_, ttPlus_, ttMinus_ :: GeniVal
-ttA_     = GConst ["a"]
-ttPlus_  = GConst ["+"]
-ttMinus_ = GConst ["-"]
+ttA_     = mkGConst "a" []
+ttPlus_  = mkGConst "+" []
+ttMinus_ = mkGConst "-" []
 \end{code}
 }

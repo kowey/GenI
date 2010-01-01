@@ -51,6 +51,7 @@ import System.Process
 import Text.JSON
 import Text.JSON.Pretty
 
+import NLP.GenI.GeniVal ( mkGAnon )
 import NLP.GenI.Btypes
 import NLP.GenI.General
 import NLP.GenI.Tags
@@ -109,7 +110,7 @@ attachMorph morphfn sem cands =
         case morphfn l of 
           Nothing  -> cs
           Just mfs -> map (attachHelper i mfs) cs
-        where i = if null args then GAnon else head args
+        where i = if null args then mkGAnon else head args
               args = thd3 l 
   in foldr attach cands sem 
 

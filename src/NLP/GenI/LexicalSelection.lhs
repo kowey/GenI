@@ -48,7 +48,7 @@ import NLP.GenI.Btypes
   (Macros, ILexEntry, Lexicon,
    replace, replaceList,
    Sem, sortSem, subsumeSem, params,
-   GeniVal(GConst), fromGVar, AvPair(..),
+   AvPair(..),
    GNode(ganchor, gnname, gup, gdown, gaconstr, gtype, gorigin),
    GType(Subs, Other),
    isemantics, ifamname, iword, iparams, iequations,
@@ -61,7 +61,7 @@ import NLP.GenI.Btypes
    alphaConvert,
    )
 import NLP.GenI.BtypesBinary ()
-import NLP.GenI.GeniVal( unify )
+import NLP.GenI.GeniVal( unify, GeniVal(gConstraints), isConst )
 
 import NLP.GenI.Tags (Tags, TagElem, emptyTE,
              idname, ttreename,
@@ -460,8 +460,8 @@ setLemAnchors t =
   lemAnchor :: GNode -> Maybe [String]
   lemAnchor n =
     case [ v | AvPair a v <- gdown n, a == _lemanchor ] of
-    [GConst l] -> Just l
-    _          -> Nothing
+    [l] | isConst l -> gConstraints l
+    _               -> Nothing
 
 _lemanchor :: String
 _lemanchor = "lemanchor"

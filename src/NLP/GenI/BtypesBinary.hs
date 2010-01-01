@@ -21,16 +21,8 @@ instance Binary NLP.GenI.TreeSchemata.Ptype where
       _ -> fail "no parse"
 
 instance Binary NLP.GenI.GeniVal.GeniVal where
-  put (GConst a) = putWord8 0 >> put a
-  put (GVar a) = putWord8 1 >> put a
-  put GAnon = putWord8 2
-  get = do
-    tag_ <- getWord8
-    case tag_ of
-      0 -> get >>= \a -> return (GConst a)
-      1 -> get >>= \a -> return (GVar a)
-      2 -> return GAnon
-      _ -> fail "no parse"
+  put (GeniVal a b) = put a >> put b
+  get = get >>= \a -> get >>= \b -> return (GeniVal a b)
 
 instance Binary NLP.GenI.TreeSchemata.GNode where
   put (GN a b c d e f g h) = put a >> put b >> put c >> put d >> put e >> put f >> put g >> put h
