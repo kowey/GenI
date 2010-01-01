@@ -584,7 +584,7 @@ doGenerate f pstRef sembox detectPolsTxt rootFeatTxt useDebugger pauseOnLex =
              (handler "Error during realisation")
   -- FIXME: it would be nice to distinguish between generation and ts
   -- parsing errors
- `catch` (handler "Error parsing with your input")
+ `catch` (handler "Please give me better input")
  where
    handler title err = errorDialog f title (prettyException err)
 \end{code}
