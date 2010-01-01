@@ -52,9 +52,9 @@ data ILexEntry = ILE
       iword       :: [String]
     , ifamname    :: String
     , iparams     :: [GeniVal]
-    , iinterface  :: Flist
-    , ifilters    :: Flist
-    , iequations  :: Flist
+    , iinterface  :: Flist GeniVal
+    , ifilters    :: Flist GeniVal
+    , iequations  :: Flist GeniVal
     , iptype      :: Ptype
     , isemantics  :: Sem
     , isempols    :: [SemPols] }

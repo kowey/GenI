@@ -117,7 +117,7 @@ type AutDebug  = (PolarityKey, PolAut, PolAut)
 -- | Constructs a polarity automaton.  For debugging purposes, it returns
 --   all the intermediate automata produced by the construction algorithm.
 buildAutomaton :: Set.Set PolarityAttr -- ^ polarities to detect
-               -> Flist                -- ^ root features to compensate for
+               -> Flist GeniVal        -- ^ root features to compensate for
                -> PolMap               -- ^ explicit extra polarities
                -> SemInput             -- ^ input semantics
                -> [TagElem]            -- ^ lexical selection
@@ -793,18 +793,18 @@ prefix the index constraint polarities with a ``.'' because they are likely to
 be very powerful filters and we would like them to be used first.
 
 \begin{code}
-detectIdxConstraints :: Flist -> Flist -> PolMap 
+detectIdxConstraints :: Flist GeniVal -> Flist GeniVal -> PolMap
 detectIdxConstraints cs interface =
   let matches  = intersect cs interface
       matchStr = map idxConstraintKey matches
   in Map.fromList $ zip matchStr ((repeat.ival) 1)
 
-declareIdxConstraints :: Flist -> PolMap
+declareIdxConstraints :: Flist GeniVal -> PolMap
 declareIdxConstraints = Map.fromList . (map declare) where
    declare c = (idxConstraintKey c, minusone)
    minusone = ival (-1)
 
-idxConstraintKey :: AvPair -> PolarityKey
+idxConstraintKey :: AvPair GeniVal -> PolarityKey
 idxConstraintKey = PolarityKey . ('.' :) . showAv
 \end{code}
 
@@ -823,11 +823,11 @@ detectPolFeatures :: [TagElem] -> [String]
 detectPolFeatures tes =
   let -- only initial trees need be counted; in aux trees, the
       -- root node is implicitly canceled by the foot node
-      rfeats, sfeats :: [Flist]
+      rfeats, sfeats :: [Flist GeniVal]
       rfeats = map (gdown.root.ttree) $ filter (\t -> ttype t == Initial) tes
       sfeats = [ concat s | s <- map substTops tes, (not.null) s ]
       --
-      attrs :: Flist -> [String]
+      attrs :: Flist GeniVal -> [String]
       attrs avs = [ a | AvPair a v <- avs, isConst v ]
       theAttributes = map attrs $ rfeats ++ sfeats
   in if null tes then [] else foldr1 intersect theAttributes
@@ -923,8 +923,8 @@ pdJusts = concatMap helper
 
 detectPolarity :: Int          -- ^ polarity to assign
                -> PolarityAttr -- ^ attribute to look for
-               -> Flist        -- ^ feature structure to filter on
-               -> Flist        -- ^ feature structure to get value from
+               -> Flist GeniVal -- ^ feature structure to filter on
+               -> Flist GeniVal -- ^ feature structure to get value from
                -> PolarityDetectionResult
 detectPolarity i (RestrictedPolarityAttr cat att) filterFl fl =
   case [ v | AvPair a v <- filterFl, a == __cat__ ] of
@@ -937,7 +937,7 @@ detectPolarity i (SimplePolarityAttr att) _ fl = detectPolarityForAttr i att fl
 
 detectPolarityForAttr :: Int -- ^ polarity to assign
                       -> String
-                      -> Flist
+                      -> Flist GeniVal
                       -> PolarityDetectionResult
 detectPolarityForAttr i att fl =
   case [ v | AvPair a v <- fl, a == att ] of
@@ -963,7 +963,7 @@ prefixWith att = map (\x -> att ++ ('_' : x))
 substNodes :: TagElem -> [GNode]
 substNodes t = [ gn | gn <- (flatten.ttree) t, gtype gn == Subs ]
 
-substTops :: TagElem -> [Flist]
+substTops :: TagElem -> [Flist GeniVal]
 substTops = map gup . substNodes
 \end{code}
 

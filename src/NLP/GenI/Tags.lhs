@@ -96,8 +96,8 @@ combining macros with lexicon (see section \ref{sec:combine_macros}).
 
 \begin{code}
 data TagSite = TagSite { tsName :: String
-                       , tsUp   :: Flist
-                       , tsDown :: Flist
+                       , tsUp   :: Flist GeniVal
+                       , tsDown :: Flist GeniVal
                        , tsOrigin :: String
                        }
   deriving (Show, Eq, Ord, Data, Typeable)
@@ -119,7 +119,7 @@ data TagElem = TE {
                    -- optimisation stuff
                    -- (polarity key to charge interval)
                    tpolarities  :: Map.Map PolarityKey (Int,Int),
-                   tinterface   :: Flist,  -- for idxconstraints (pol)
+                   tinterface   :: Flist GeniVal,  -- for idxconstraints (pol)
                    ttrace       :: [String],
                    tsempols     :: [SemPols]
                 }
@@ -328,7 +328,7 @@ just return a String lemma but a list of String, one for each
 possibility.
 
 \begin{code}
-type UninflectedDisjunction = ([String], Flist)
+type UninflectedDisjunction = ([String], Flist GeniVal)
 
 tagLeaves :: TagElem -> [ (String, UninflectedDisjunction) ]
 tagLeaves te = [ (gnname pt, (getLexeme t, gup pt)) | (pt,t) <- preTerminals . ttree $ te ]
@@ -376,7 +376,7 @@ ts_synIncomplete, ts_tbUnificationFailure :: String
 ts_synIncomplete = "syntactically incomplete"
 ts_tbUnificationFailure = "top/bot unification failure"
 
-ts_rootFeatureMismatch :: Flist -> String
+ts_rootFeatureMismatch :: Flist GeniVal -> String
 ts_rootFeatureMismatch good = "root feature does not unify with " ++ showFlist good
 
 ts_semIncomplete :: [Pred] -> String

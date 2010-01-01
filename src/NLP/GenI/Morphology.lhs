@@ -60,7 +60,7 @@ import NLP.GenI.Builder
 }
 
 \begin{code}
-type MorphFn = Pred -> Maybe Flist
+type MorphFn = Pred -> Maybe (Flist GeniVal)
 \end{code}
 
 \section{Morphological input}
@@ -73,7 +73,7 @@ apply features like \fs{\it num:pl} on the relevant trees.
 \begin{code}
 -- | Converts information from a morphological information file into GenI's
 --   internal format.
-readMorph :: [(String,[AvPair])] -> MorphFn
+readMorph :: [(String,[AvPair GeniVal])] -> MorphFn
 readMorph minfo pred_ = Map.lookup key fm
   where fm = Map.fromList minfo
         key = show $ snd3 pred_
@@ -101,7 +101,7 @@ attachMorph morphfn sem cands =
       relLit i l = if null args then False else (head args == i)
         where args = thd3 l
       -- perform the attachment for a tree if it is relevant
-      attachHelper :: GeniVal -> Flist -> TagElem -> TagElem  
+      attachHelper :: GeniVal -> Flist GeniVal -> TagElem -> TagElem
       attachHelper i mfs t = 
         if relTree i t then attachMorphHelper mfs t else t 
       -- perform all attachments for a literal
@@ -118,7 +118,7 @@ attachMorph morphfn sem cands =
 --
 --   FIXME: we'll need to make sure this still works as promised 
 --   when we implement co-anchors.
-attachMorphHelper :: Flist -> TagElem -> TagElem
+attachMorphHelper :: Flist GeniVal -> TagElem -> TagElem
 attachMorphHelper mfs te = 
   let -- unification with anchor
       tt     = ttree te 

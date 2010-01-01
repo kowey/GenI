@@ -114,7 +114,7 @@ instance GraphvizShowString () GNode where
         extra = showGnDecorations gn
     in stub ++ extra
 
-instance GraphvizShowString () AvPair where
+instance GraphvizShowString () (AvPair GeniVal) where
   graphvizShow () (AvPair a v) = a ++ ":" ++ graphvizShow_ v
 
 instance GraphvizShowString () GeniVal where
@@ -147,7 +147,7 @@ showGnStub gn =
      lexeme  = concat $ intersperse "!" $ glexeme gn
  in concat $ intersperse ":" $ filter (not.null) [ cat, idx, lexeme ]
 
-getGnVal :: (GNode -> Flist) -> String -> GNode -> Maybe GeniVal
+getGnVal :: (GNode -> Flist GeniVal) -> String -> GNode -> Maybe GeniVal
 getGnVal getFeat attr gn =
   listToMaybe [ v | AvPair a v <- getFeat gn, a == attr ]
 

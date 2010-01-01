@@ -873,7 +873,7 @@ combineSimpleGuiItems hi item1 item2 =
        , siHighlight = hi
        }
 
-constrainAdj :: String -> Flist -> SimpleItem -> SimpleItem
+constrainAdj :: String -> Flist GeniVal -> SimpleItem -> SimpleItem
 constrainAdj gn newT g =
   g { siNodes = repList (gnnameIs gn) fixIt (siNodes g) }
   where fixIt n = n { gup = newT, gdown = [], gaconstr = True }
@@ -1242,7 +1242,7 @@ ttFootBot = ttEmptyNode { gnname = "testing-foot-bot"
                         , gtype  = Foot
                         }
 
-ttCat, ttDet  :: GeniVal -> AvPair
+ttCat, ttDet  :: GeniVal -> AvPair GeniVal
 ttCat = AvPair "cat"
 ttDet = AvPair "det"
 

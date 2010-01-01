@@ -28,7 +28,7 @@ tree schemata.
 
 module NLP.GenI.TreeSchemata (
    Macros, emptyMacro,
-   Ttree(..), Ptype(..),
+   MTtree, Ttree(..), Ptype(..),
 
    -- Functions from Tree GNode
    root, rootUpd, foot, setLexeme, setAnchor, lexemeAttributes,
@@ -70,7 +70,7 @@ data Ttree a = TT
   { params  :: [GeniVal]
   , pfamily :: String
   , pidname :: String
-  , pinterface :: Flist
+  , pinterface :: Flist GeniVal
   , ptype :: Ptype
   , psemantics :: Maybe Sem
   , ptrace :: [String]
@@ -162,8 +162,8 @@ setLexeme _ _ = geniBug "impossible case in setLexeme - subtree with kids"
 \begin{code}
 -- | A single node of a TAG tree.
 data GNode = GN{gnname :: NodeName,
-                gup    :: Flist,      -- ^ top feature structure
-                gdown  :: Flist,      -- ^ bottom feature structure
+                gup    :: Flist GeniVal,      -- ^ top feature structure
+                gdown  :: Flist GeniVal,      -- ^ bottom feature structure
                 ganchor  :: Bool,     -- ^ @False@ for na nodes
                 glexeme  :: [String], -- ^ @[]@ for na nodes
                 gtype    :: GType,
@@ -216,7 +216,7 @@ do treat this attribute differently.  We take here the convention that the
 category of a node is associated to the attribute ``cat''.
 \begin{code}
 -- | Return the value of the "cat" attribute, if available
-gCategory :: Flist -> Maybe GeniVal
+gCategory :: Flist GeniVal -> Maybe GeniVal
 gCategory top =
   case [ v | AvPair "cat" v <- top ] of
   []  -> Nothing

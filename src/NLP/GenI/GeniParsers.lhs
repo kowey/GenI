@@ -204,10 +204,10 @@ formally,
 \end{center}
 
 \begin{code}
-geniFeats :: Parser Flist
+geniFeats :: Parser (Flist GeniVal)
 geniFeats = option [] $ squares $ many geniAttVal
 
-geniAttVal :: Parser AvPair
+geniAttVal :: Parser (AvPair GeniVal)
 geniAttVal = do
   att <- identifierR <?> "an attribute"; colon
   val <- geniValue <?> "a GenI value"
@@ -275,7 +275,7 @@ proper so that they can be treated separately.  Index constraints are
 represented as feature structures.
 
 \begin{code}
-geniSemanticInput :: Parser (Sem,Flist,[LitConstr])
+geniSemanticInput :: Parser (Sem,Flist GeniVal,[LitConstr])
 geniSemanticInput =
   do keywordSemantics
      (sem,litC) <- liftM unzip $ squares $ many literalAndConstraint
@@ -312,7 +312,7 @@ geniSemanticInputString =
     optional geniIdxConstraints
     return s
 
-geniIdxConstraints :: Parser Flist
+geniIdxConstraints :: Parser (Flist GeniVal)
 geniIdxConstraints = keyword IDXCONSTRAINTS >> geniFeats
 
 squaresString :: Parser String
@@ -325,7 +325,7 @@ squaresString =
 -- the output end of things
 -- displaying preformatted semantic input
 
-data SemInputString = SemInputString String Flist
+data SemInputString = SemInputString String (Flist GeniVal)
 
 instance GeniShow SemInputString where
  geniShow (SemInputString semStr idxC) =
@@ -524,7 +524,7 @@ geniLexicalEntry =
                     , isemantics = sem
                     , isempols = pols }
   where
-    paramsParser :: Parser ([GeniVal], Flist)
+    paramsParser :: Parser ([GeniVal], Flist GeniVal)
     paramsParser = do
       pars <- many geniValue <?> "some parameters"
       interface <- option [] $ do symbol "!"
@@ -798,7 +798,7 @@ geniTagElem =
 --  to wrapped in the parens.
 --
 --  TODO: deprecate
-geniParams :: Parser ([GeniVal], Flist)
+geniParams :: Parser ([GeniVal], Flist GeniVal)
 geniParams = parens $ do
   pars <- many geniValue <?> "some parameters"
   interface <- option [] $ do { symbol "!"; many geniAttVal }
@@ -813,10 +813,10 @@ structuer.  For more information, see chapter \ref{cha:Morphology}.
 (\textbf{TODO}: describe format)
 
 \begin{code}
-geniMorphInfo :: Parser [(String,Flist)]
+geniMorphInfo :: Parser [(String,Flist GeniVal)]
 geniMorphInfo = tillEof $ many morphEntry
 
-morphEntry :: Parser (String,Flist)
+morphEntry :: Parser (String,Flist GeniVal)
 morphEntry =
   do pred_ <- identifier
      feats <- geniFeats

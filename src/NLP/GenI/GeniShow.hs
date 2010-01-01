@@ -59,7 +59,7 @@ instance GeniShow Ptype where
  geniShow Auxiliar = "auxiliary"
  geniShow _        = ""
 
-instance GeniShow AvPair where
+instance GeniShow (AvPair GeniVal) where
  geniShow (AvPair a v) = a ++ ":" ++ geniShow v
 
 instance GeniShow GeniVal where

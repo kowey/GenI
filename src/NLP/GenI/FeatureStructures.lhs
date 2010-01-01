@@ -39,9 +39,9 @@ import NLP.GenI.GeniVal
 A feature structure is a list of attribute-value pairs.
 
 \begin{code}
-type Flist   = [AvPair]
-data AvPair  = AvPair { avAtt :: String
-                      , avVal ::  GeniVal }
+type Flist a  = [AvPair a]
+data AvPair a = AvPair { avAtt :: String
+                       , avVal :: a }
   deriving (Ord, Eq, Data, Typeable)
 \end{code}
 
@@ -51,42 +51,42 @@ data AvPair  = AvPair { avAtt :: String
 
 \begin{code}
 -- | Sort an Flist according with its attributes
-sortFlist :: Flist -> Flist
+sortFlist :: Flist a -> Flist a
 sortFlist = sortBy (compare `on` avAtt)
 \end{code}
 
 \subsection{Traversal}
 
 \begin{code}
-instance Biplate AvPair GeniVal where
+instance Biplate (AvPair GeniVal) GeniVal where
   biplate (AvPair a v) = plate AvPair |- a |* v
 
-instance DescendGeniVal AvPair where
+instance DescendGeniVal (AvPair GeniVal) where
   descendGeniVal s (AvPair a v) = {-# SCC "descendGeniVal" #-} AvPair a (descendGeniVal s v)
 
 instance DescendGeniVal a => DescendGeniVal (String, a) where
   descendGeniVal s (n,v) = {-# SCC "descendGeniVal" #-} (n,descendGeniVal s v)
 
-instance DescendGeniVal ([String], Flist) where
+instance DescendGeniVal ([String], Flist GeniVal) where
   descendGeniVal s (a,v) = {-# SCC "descendGeniVal" #-} (a, descendGeniVal s v)
 
-instance Collectable AvPair where
+instance Collectable a => Collectable (AvPair a) where
   collect (AvPair _ b) = collect b
 \end{code}
 
 \subsection{Pretty printing}
 
 \begin{code}
-showFlist :: Flist -> String
+showFlist :: Flist GeniVal -> String
 showFlist f = "[" ++ showPairs f ++ "]"
 
-showPairs :: Flist -> String
+showPairs :: Flist GeniVal -> String
 showPairs = unwords . map showAv
 
-showAv :: AvPair -> String
+showAv :: AvPair GeniVal -> String
 showAv (AvPair y z) = y ++ ":" ++ show z
 
-instance Show AvPair where
+instance Show (AvPair GeniVal) where
   show = showAv
 \end{code}
 
@@ -151,7 +151,7 @@ $\rightarrow$
 --
 --   The features are allowed to have different sets of attributes,
 --   beacuse we use 'alignFeat' to realign them.
-unifyFeat :: Monad m => Flist -> Flist -> m (Flist, Subst)
+unifyFeat :: Monad m => Flist GeniVal -> Flist GeniVal -> m (Flist GeniVal, Subst)
 unifyFeat f1 f2 =
   {-# SCC "unification" #-}
   let (att, val1, val2) = unzip3 $ alignFeat f1 f2
@@ -164,10 +164,10 @@ unifyFeat f1 f2 =
 --   other with an anonymous value.
 --
 --   The two feature structures must be sorted for this to work
-alignFeat :: Flist -> Flist -> [(String,GeniVal,GeniVal)]
+alignFeat :: Flist GeniVal -> Flist GeniVal -> [(String,GeniVal,GeniVal)]
 alignFeat f1 f2 = alignFeatH f1 f2 []
 
-alignFeatH :: Flist -> Flist -> [(String,GeniVal,GeniVal)] -> [(String,GeniVal,GeniVal)]
+alignFeatH :: Flist GeniVal -> Flist GeniVal -> [(String,GeniVal,GeniVal)] -> [(String,GeniVal,GeniVal)]
 alignFeatH [] [] acc = reverse acc
 alignFeatH [] (AvPair f v :x) acc = alignFeatH [] x ((f,mkGAnon,v) : acc)
 alignFeatH x [] acc = alignFeatH [] x acc

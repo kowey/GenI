@@ -47,7 +47,7 @@ instance (Binary a) => Binary (NLP.GenI.TreeSchemata.Ttree a) where
   get = get >>= \a -> get >>= \b -> get >>= \c -> get >>= \d -> get >>= \e -> get >>= \f -> get >>= \g -> get >>= \h -> return (TT a b c d e f g h)
 
 
-instance Binary NLP.GenI.FeatureStructures.AvPair where
+instance Binary a => Binary (NLP.GenI.FeatureStructures.AvPair a) where
   put (AvPair a b)  = put a >> put b
   get = get >>= \a -> get >>= \b -> return (AvPair a b)
 

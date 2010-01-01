@@ -44,7 +44,7 @@ import Test.Framework.Providers.QuickCheck
 type Pred = (GeniVal, GeniVal, [GeniVal])
 type Sem = [Pred]
 type LitConstr = (Pred, [String])
-type SemInput  = (Sem,Flist,[LitConstr])
+type SemInput  = (Sem,Flist GeniVal,[LitConstr])
 
 instance Biplate Pred GeniVal where
   biplate (g1, g2, g3) = plate (,,) |* g1 |* g2 ||* g3

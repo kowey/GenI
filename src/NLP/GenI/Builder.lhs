@@ -141,7 +141,7 @@ only requirement being that each one, naturally enough, is unique.
 \begin{code}
 type SentenceAut            = NFA Int LemmaPlus
 
-data UninflectedDisjunction = UninflectedDisjunction [String] Flist deriving (Show, Data, Typeable)
+data UninflectedDisjunction = UninflectedDisjunction [String] (Flist GeniVal) deriving (Show, Data, Typeable)
 
 instance Biplate UninflectedDisjunction GeniVal where
   biplate (UninflectedDisjunction a v) = plate UninflectedDisjunction |- a ||+ v
@@ -462,7 +462,7 @@ lexicalSelection = sort . nub . concatMap (\d -> [dsChild d, dsParent d])
 
 -- | A lemma plus its morphological features
 data LemmaPlus = LemmaPlus { lpLemma :: String
-                           , lpFeats ::  Flist }
+                           , lpFeats :: Flist GeniVal }
  deriving (Show, Eq, Ord)
 
 -- | A sentence composed of 'LemmaPlus' instead of plain old words
