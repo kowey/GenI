@@ -161,6 +161,13 @@
 </xsl:template>
 
 <xsl:template match="vAlt">
+  <xsl:choose>
+    <xsl:when test="@coref">
+      <xsl:text>?</xsl:text>
+      <xsl:value-of select="substring(@coref,2)"/>
+      <xsl:text>/</xsl:text>
+    </xsl:when>
+  </xsl:choose>
   <xsl:for-each select="sym">
     <xsl:apply-templates select="."/>
     <xsl:if test="position() != last()">
