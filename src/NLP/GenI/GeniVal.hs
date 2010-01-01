@@ -290,19 +290,53 @@ instance (Functor f, DescendGeniVal a) => DescendGeniVal (f a) where
 -- ----------------------------------------------------------------------
 
 testSuite :: Test.Framework.Test
-testSuite = testGroup "unification"
- [ testProperty "self" prop_unify_sym
- , testProperty "anonymous variables" prop_unify_anon
- , testProperty "symmetry" prop_unify_sym
- , testBackPropagation
+testSuite =
+ testGroup "NLP.GenI.GeniVal"
+  [ testGroup "unification"
+      [ testProperty "self" prop_unify_self
+      , testProperty "anonymous variables" prop_unify_anon
+      , testProperty "symmetry" prop_unify_sym
+      , testBackPropagation
+      ]
+  , testGroup "alphaconvert"
+      [ testCase "simple example" test_alphaconvert_simple
+      , testProperty "constraints are subset of original" prop_alphaconvert_subset
+      , testProperty "idempotent sans suffix" prop_alphaconvert_idempotent ]
  ]
 
+test_alphaconvert_simple =
+  assertEqual "" [v1n2, v1n2] $ alphaConvert "" [v1, v2]
+ where
+  v1 = mkGVar "X" (Just ["x","y"])
+  v2 = mkGVar "X" (Just ["y","z"])
+  v1n2 = mkGVar "X" (Just ["y"])
+
+prop_alphaconvert_idempotent :: [GeniVal] -> Bool
+prop_alphaconvert_idempotent xs =
+  alphaConvert "" xs2 == xs2
+ where
+  xs2 = alphaConvert "" xs
+
+prop_alphaconvert_subset :: [GeniVal] -> Bool
+prop_alphaconvert_subset gs =
+  and $ zipWith csubset gs2 gs
+ where
+  gs2 = alphaConvert "" gs
+  csubset x y = csubsetH (gConstraints x) (gConstraints y)
+  csubsetH Nothing Nothing     = True
+  csubsetH Nothing (Just _)    = False
+  csubsetH (Just xs) Nothing   = True
+  csubsetH (Just xs) (Just ys) = all (`elem` ys) xs
+
 -- | Unifying something with itself should always succeed
-prop_unify_self :: [GeniVal] -> Bool
-prop_unify_self x =
-    case unify x x of
-    Nothing  -> False
-    Just unf -> fst unf == x
+prop_unify_self :: [GeniVal] -> Property
+prop_unify_self x_ =
+ all qc_not_empty_GVar x ==>
+   case unify x x of
+     Nothing  -> False
+     Just unf -> fst unf == x
+ where
+   x = alphaConvert "" x_
 
 -- | Unifying something with only anonymous variables should succeed and return
 --   the same result.
@@ -317,11 +351,12 @@ prop_unify_anon x =
 -- | Unification should be symmetrical.  We can't guarantee these if there
 --   are cases where there are variables in the same place on both sides, so we
 --   normalise the sides so that this doesn't happen.
-prop_unify_sym :: [GeniVal] -> [GeniVal] -> Bool
-prop_unify_sym x y =
-  let u1 = (unify x y) :: Maybe ([GeniVal],Subst)
+prop_unify_sym :: [GeniVal] -> [GeniVal] -> Property
+prop_unify_sym x_ y_ =
+  let (TestPair x y) = alphaConvert "" (TestPair x_ y_)
+      u1 = (unify x y) :: Maybe ([GeniVal],Subst)
       u2 = unify y x
-  in u1 == u2
+  in all qc_not_empty_GVar x && all qc_not_empty_GVar y ==> u1 == u2
 
 testBackPropagation :: Test.Framework.Test
 testBackPropagation =
@@ -339,6 +374,10 @@ testBackPropagation =
   expectedResult = replicate n cx
   expectedSubst  = Map.fromList $ zip leftStrs (repeat cx)
 
+qc_not_empty_GVar :: GeniVal -> Bool
+qc_not_empty_GVar (GeniVal (Just _) (Just [])) = False
+qc_not_empty_GVar _ = True
+
 -- ----------------------------------------------------------------------
 -- Testing
 -- ----------------------------------------------------------------------
@@ -346,6 +385,13 @@ testBackPropagation =
 -- Definition of Arbitrary GeniVal for QuickCheck
 newtype GTestString = GTestString String
 newtype GTestString2 = GTestString2 String
+data TestPair = TestPair [GeniVal] [GeniVal]
+
+instance Collectable TestPair where
+  collect (TestPair x y) = collect x . collect y
+
+instance DescendGeniVal TestPair where
+  descendGeniVal f (TestPair x y) = TestPair (descendGeniVal f x) (descendGeniVal f y)
 
 fromGTestString :: GTestString -> String
 fromGTestString (GTestString s) = s
