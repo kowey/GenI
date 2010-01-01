@@ -46,7 +46,7 @@ import NLP.GenI.General(filterTree, repAllNode,
     )
 import NLP.GenI.Btypes
   (Macros, ILexEntry, Lexicon,
-   replace, replaceList,
+   replace,
    Sem, sortSem, subsumeSem, params,
    AvPair(..),
    GNode(ganchor, gnname, gup, gdown, gaconstr, gtype, gorigin),
