@@ -29,9 +29,11 @@ import Graphics.UI.WX
 import qualified Control.Monad as Monad 
 import qualified Data.Map as Map
 
+import Control.Exception
 import Data.IORef
 import Data.List (isPrefixOf, nub, delete, findIndex)
 import Data.Maybe ( fromMaybe )
+import Prelude hiding ( catch )
 import System.Directory 
 import System.Exit (exitWith, ExitCode(ExitSuccess))
 
@@ -42,7 +44,7 @@ import NLP.GenI.Geni
   , prettyResult
   , loadEverything, loadTestSuite, loadTargetSemStr
   )
-import NLP.GenI.General (boundsCheck, geniBug, trim, fst3)
+import NLP.GenI.General (boundsCheck, geniBug, trim, fst3, prettyException)
 import NLP.GenI.Btypes (TestCase(..), showFlist,)
 import NLP.GenI.Tags (idname, tpolarities, TagElem)
 import NLP.GenI.GeniShow (geniShow)
@@ -577,7 +579,7 @@ doGenerate f pstRef sembox detectPolsTxt rootFeatTxt useDebugger pauseOnLex =
   -- parsing errors
  `catch` (handler "Error parsing with your input")
  where
-   handler title err = errorDialog f title (show err)
+   handler title err = errorDialog f title (prettyException err)
 \end{code}
 
 When surface realisation is complete, we display a results window with various
