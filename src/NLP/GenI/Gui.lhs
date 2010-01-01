@@ -26,7 +26,6 @@ module NLP.GenI.Gui(guiGeni) where
 \begin{code}
 import Graphics.UI.WX
 
-import qualified Control.Monad as Monad 
 import qualified Data.Map as Map
 
 import Control.Exception
