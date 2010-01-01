@@ -51,7 +51,6 @@ where
 
 \ignore{
 \begin{code}
-import Control.Arrow ( second )
 import Control.Monad (when, unless, liftM2)
 import Control.Monad.State.Strict
   (get, put, modify, gets, runState, execStateT)
