@@ -1231,6 +1231,7 @@ ttEmptyNode = GN { gnname = "empty"
                  , glexeme = []
                  , gtype   = Other
                  , gorigin = "test"
+                 , gaconstr = False
                  }
 
 ttAdjNode :: GNode
