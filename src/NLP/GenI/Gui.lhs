@@ -51,6 +51,7 @@ import NLP.GenI.Configuration
   , hasFlagP, deleteFlagP, setFlagP, getFlagP, getListFlagP
   , parseFlagWithParsec
     --
+  , DetectPolaritiesFlg(..)
   , ExtraPolaritiesFlg(..)
   , LexiconFlg(..)
   , MacrosFlg(..)
@@ -69,6 +70,7 @@ import NLP.GenI.GeniParsers hiding ( choice, label, tab )
 import NLP.GenI.GuiHelper
 
 import NLP.GenI.Polarity
+import NLP.GenI.PolarityTypes ( readPolarityAttrs, showPolarityAttrs )
 import NLP.GenI.Simple.SimpleGui
 \end{code}
 }
@@ -133,11 +135,16 @@ mainGui pstRef
                                , text := "" ]
        testCaseChoice <- choice f [ selection := 0 
                                   , enabled := hasSem ]
+       -- Detect polarities and root feature
+       let initialDP = maybe "" showPolarityAttrs (getFlagP DetectPolaritiesFlg config)
+           initialRF = maybe "" showFlist (getFlagP RootFeatureFlg config)
+       detectPolsTxt <- entry f [ text := initialDP ]
+       rootFeatTxt   <- entry f [ text := initialRF ]
        -- Box and Frame for files loaded 
        macrosFileLabel  <- staticText f [ text := getListFlagP MacrosFlg config  ]
        lexiconFileLabel <- staticText f [ text := getListFlagP LexiconFlg config ]
        -- Generate and Debug 
-       let genfn = doGenerate f pstRef tsTextBox
+       let genfn = doGenerate f pstRef tsTextBox detectPolsTxt rootFeatTxt
        pauseOnLexChk <- checkBox f [ text := "Inspect lex", tooltip := "Affects debugger only"  ]
        debugBt <- button f [ text := "Debug"
                            , on command := get pauseOnLexChk checked >>= genfn True ]
@@ -229,7 +236,14 @@ mainGui pstRef
                              hfill $ column 5 
                                [ labeledRow "test suite: " testSuiteChoice
                                , labeledRow "test case: "  testCaseChoice
-                               , fill  $ widget tsTextBox ]
+                               , fill  $ widget tsTextBox
+                               , row 1 [ label "detect pols: "
+                                       , hfill (widget detectPolsTxt)
+                                       , glue
+                                       , label "root feature: "
+                                       , hfill (widget rootFeatTxt)
+                                       ]
+                               ]
                            , vfill optimBox ]
                     -- ----------------------------- Generate and quit 
                    , row 1 [ widget quitBt 
@@ -527,9 +541,22 @@ configGui pstRef loadFn = do
 \begin{code}
 -- | 'doGenerate' parses the target semantics, then calls the generator and
 -- displays the result in a results gui (below).
-doGenerate :: Textual b => Window a -> ProgStateRef -> b -> Bool -> Bool -> IO ()
-doGenerate f pstRef sembox useDebugger pauseOnLex =
- do modifyIORef pstRef $ \p -> p { warnings = [] }
+doGenerate :: Textual tb => Window a -> ProgStateRef
+                         -> tb -- ^ sem
+                         -> tb -- ^ polarities to detect
+                         -> tb -- ^ root feature
+                         -> Bool -> Bool -> IO ()
+doGenerate f pstRef sembox detectPolsTxt rootFeatTxt useDebugger pauseOnLex =
+ do let parseRF  = parseFlagWithParsec "root features" geniFeats
+    rootCatVal    <- get rootFeatTxt text
+    detectPolsVal <- get detectPolsTxt text
+    --
+    let maybeSet fl fn x =
+           if null x then deleteFlagP fl else setFlagP fl (fn x)
+    let setConfig = id
+          . (maybeSet RootFeatureFlg parseRF rootCatVal)
+          . (setFlagP DetectPolaritiesFlg (readPolarityAttrs detectPolsVal))
+    modifyIORef pstRef $ \p -> p { pa = setConfig (pa p), warnings = [] }
     loadEverything pstRef
     sem <- get sembox text
     loadTargetSemStr pstRef sem
@@ -548,7 +575,7 @@ doGenerate f pstRef sembox useDebugger pauseOnLex =
              (handler "Error during realisation")
   -- FIXME: it would be nice to distinguish between generation and ts
   -- parsing errors
- `catch` (handler "Error parsing the input semantics")
+ `catch` (handler "Error parsing with your input")
  where
    handler title err = errorDialog f title (show err)
 \end{code}

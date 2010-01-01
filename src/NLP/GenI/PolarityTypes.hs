@@ -40,6 +40,9 @@ readPolarityAttrs = Set.fromList . map helper . words
              (a,"") -> SimplePolarityAttr a
              (c,a)  -> RestrictedPolarityAttr c (drop 1 a)
 
+showPolarityAttrs :: Set.Set PolarityAttr -> String
+showPolarityAttrs = unwords . map show . Set.toList
+
 instance Show PolarityAttr where
  show (SimplePolarityAttr a) = a
  show (RestrictedPolarityAttr c a) = c ++ "." ++ a
