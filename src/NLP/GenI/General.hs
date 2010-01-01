@@ -58,8 +58,9 @@ module NLP.GenI.General (
         -- * Bit vectors
         BitVector,
         showBitVector,
-       -- * Bugs
+       -- * Errors and exceptions
         geniBug,
+        prettyException,
         )
         where
 
@@ -71,6 +72,7 @@ import Data.Function ( on )
 import Data.List (foldl', intersect, groupBy, group, sort, sortBy)
 import Data.Tree
 import System.IO (hPutStrLn, hPutStr, hFlush, stderr)
+import System.IO.Error (isUserError, ioeGetErrorString)
 import qualified Data.Map as Map
 
 -- for timeout
@@ -315,13 +317,18 @@ repNodeByNode nfilt rep t =
     _            -> geniBug "Unexpected result in repNode"
 
 -- ----------------------------------------------------------------------
--- Errors
+-- Errors and exceptions
 -- ----------------------------------------------------------------------
 
 -- | errors specifically in GenI, which is very likely NOT the user's fault.
 geniBug :: String -> a
 geniBug s = error $ "Bug in GenI!\n" ++ s ++
                     "\nPlease file a report on http://trac.haskell.org/GenI/newticket"
+
+-- stolen from Darcs
+prettyException :: Exception -> String
+prettyException (IOException e) | isUserError e = ioeGetErrorString e
+prettyException e = show e
 
 -- ----------------------------------------------------------------------
 -- Intervals
