@@ -136,12 +136,14 @@ geniLanguageDef = emptyDef
 \subsection{Variables and constants}
 
 Below are some examples of \geni variables and constants.  Note that we support
-atomic disjunction of constants, as in \verb!Foo|bar|baz!, but not variables.
+atomic disjunction of constants, as in \verb!Foo|bar|baz! and of constraints to
+variable values, but not of variables themselves.
 
 \begin{center}
 \begin{tabular}{ll}
 anonymous variable & \verb!?_! or \verb!_! \\
-variables & \verb!Foo!, \verb!?X! or \verb!?x! \\
+variables & \verb!?X! or \verb!?x! \\
+constrained variables & \verb!?X/foo|bar! or \verb!?x/foo|Bar! \\
 constants & \verb!Foo!, \verb!foo!, \verb!X!, \verb!x! or \verb!Foo|bar! \\
 \end{tabular}
 \end{center}
@@ -150,7 +152,8 @@ Here is an EBNF for GenI variables and constants
 
 \begin{SaveVerbatim}{KoweyTmp}
 <value>         ::= <variable> | <anonymous-variable> | <constant-disj>
-<variable>      ::= "?" <identifier>
+<variable>      ::= "?" <identifier> <opt-constraints>
+<constraints>   ::= "/" <constraints-disj>
 <anonymous>     ::= "?_" | "_"
 <constant-disj> ::= <constant> (| <constant>)*
 <constant>      ::= <identifier>
@@ -167,16 +170,17 @@ geniValue =   ((try $ anonymous) <?> "_ or ?_")
           <|> (variable   <?> "a variable")
   where
     question = "?"
-    --
+    disjunction = sepBy1 (looseIdentifier <|> stringLiteral) (symbol "|")
     constants :: Parser GeniVal
     constants =
-      do (c:cs) <- sepBy1 (looseIdentifier <|> stringLiteral) (symbol "|")
+      do (c:cs) <- disjunction
          return (mkGConst c cs)
     variable :: Parser GeniVal
     variable =
       do symbol question
          v <- identifier
-         return (mkGVar v Nothing) --FIXME
+         mcs <- option Nothing $ (symbol "/" >> Just `liftM` disjunction)
+         return (mkGVar v mcs)
     anonymous :: Parser GeniVal
     anonymous =
       do optional $ symbol question
