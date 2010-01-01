@@ -402,8 +402,11 @@ configGui pstRef loadFn = do
   lexiconBrowseBt <- button pbas [ text := browseTxt ]
   tsBrowseBt      <- button pbas [ text := browseTxt ]
   -- root feature
+  detectPolsTxt <- entry pbas
+    [ text := maybe "" showPolarityAttrs (getFlagP DetectPolaritiesFlg config)
+    , size := longSize ]
   rootFeatTxt <- entry pbas
-    [ text := showFlist $ getListFlagP RootFeatureFlg config
+    [ text := maybe "" showFlist (getFlagP RootFeatureFlg config)
     , size := longSize ]
   let layFiles = [ row 1 [ label "trees:" 
                          , fill $ widget macrosFileLabel
@@ -416,6 +419,9 @@ configGui pstRef loadFn = do
                          , widget tsBrowseBt ]
                  , hspace 5
                  , hfill $ vrule 1
+                 , row 3 [ label "detect polarities"
+                         , hglue
+                         , rigid $ widget detectPolsTxt ]
                  , row 3 [ label "root features"
                          , hglue
                          , rigid $ widget rootFeatTxt ]  
@@ -496,6 +502,7 @@ configGui pstRef loadFn = do
             lexconVal <- get lexiconFileLabel text
             tsVal     <- get tsFileLabel text
             --
+            detectPolsVal <- get detectPolsTxt text
             rootCatVal  <- get rootFeatTxt  text
             extraPolVal <- get extraPolsTxt text
             --
@@ -512,6 +519,7 @@ configGui pstRef loadFn = do
                   . (maybeSetStr LexiconFlg lexconVal)
                   . (maybeSetStr TestSuiteFlg tsVal)
                   . (maybeSetStr TestInstructionsFlg [(tsVal,Nothing)])
+                  . (setFlagP DetectPolaritiesFlg (readPolarityAttrs detectPolsVal))
                   . (maybeSet RootFeatureFlg parseRF rootCatVal)
                   . (maybeSet ExtraPolaritiesFlg parsePol extraPolVal)
                   . (maybeSetStr ViewCmdFlg viewVal)
