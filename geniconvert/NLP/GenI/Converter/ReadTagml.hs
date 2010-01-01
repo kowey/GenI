@@ -21,6 +21,7 @@ module NLP.GenI.Converter.ReadTagml where
 
 import Data.Char
 import Data.List (sort,delete,find)
+import Data.Maybe ( fromMaybe )
 import Data.Tree
 import Control.Monad.State (State, runState, get, put)
 import Text.XML.HaXml.XmlContent
@@ -31,9 +32,10 @@ import NLP.GenI.Btypes
   ( AvPair(..), Flist
   , GType(Subs,Foot,Lex,Other)
   , GNode(..), Macros, Ttree(..)
-  , GeniVal(GConst, GVar, GAnon), fromGConst, lexemeAttributes
+  , GeniVal, lexemeAttributes
   , emptyMacro, Ptype(..), Pred, Sem)
 -- import NLP.GenI.Tags(emptyTE,TagElem(..),Tags,TagSite,addToTags)
+import NLP.GenI.GeniVal
 import qualified NLP.GenI.Converter.XmgTagml as X 
 
 -- ======================================================================
@@ -145,7 +147,7 @@ translateNodeHelper idnum (X.Node nattrs mnargs _) = gn where
       lexL = concat $ map (\la -> [ v | AvPair a v <- gloF, a == la ])
                       lexemeAttributes
       lexeme = case (ntype,lexL) of
-               (Lex,h:_) -> fromGConst h
+               (Lex,h:_) -> fromMaybe (geniXmlError "non-constant?") (gConstraints h)
                _         -> []
       anchor = X.nodeType nattrs == X.Node_type_anchor
       aconstr = case X.nodeType nattrs of
@@ -181,7 +183,7 @@ translateSemantics_ _ = geniXmlError "fancy semantics not supported"
 translateLiteral :: X.Literal -> Pred
 translateLiteral (X.Literal _ mlabel (X.Predicate pr) args) =
  let label = case mlabel of
-             Nothing          -> GAnon
+             Nothing          -> mkGAnon
              Just (X.Label s) -> translateSym s
  in (label, translateSym pr, map translateArg args)
 
@@ -219,17 +221,20 @@ translateFlatF (X.FVAlt attr d) = AvPair (X.fName attr) (translateVAlt d)
 translateSym :: X.Sym -> GeniVal
 translateSym s = 
  case X.symValue s of 
- Just c  -> GConst [c]
+ Just c  -> mkGConst c []
  Nothing -> 
    case X.symVarname s of
-   Just v  -> GVar $ drop 1 v -- drop the '@'
+   Just v  -> mkGVar (drop 1 v) Nothing -- drop the '@'
    Nothing -> geniXmlError "translateSym on sym which is neither value nor varname"
 
 -- atomic disjunction
 translateVAlt :: X.VAlt -> GeniVal
-translateVAlt (X.VAlt _ (NonEmpty ss)) = GConst $ map (fromJ.(X.symValue)) ss 
-  where fromJ (Just n) = n
-        fromJ _ = geniXmlError "atomic disjunction with non atomic component"
+translateVAlt (X.VAlt _ (NonEmpty [])) = geniXmlError "not really non-empty"
+translateVAlt (X.VAlt _ (NonEmpty ss)) = mkGConst (head s2s) (tail s2s)
+  where
+   s2s = map (fromJ.(X.symValue)) ss
+   fromJ (Just n) = n
+   fromJ _ = geniXmlError "atomic disjunction with non atomic component"
 
 geniXmlError :: String -> a
 geniXmlError s = error $ "GenI XML error: " ++ s

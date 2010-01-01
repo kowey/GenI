@@ -1,9 +1,9 @@
 Name:           geniconvert
-Version:        0.20.1
+Version:        0.21
 License:        GPL
 License-file:   LICENSE
 Author:         Carlos Areces and Eric Kow
-Build-Depends:  GenI >=0.20 && < 0.21
+Build-Depends:  GenI >=0.21 && < 0.22
               , base < 4.1
               , directory >= 1.0 && < 1.1
               , binary, haskell98, containers, mtl

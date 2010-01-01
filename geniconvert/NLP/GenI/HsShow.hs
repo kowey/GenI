@@ -31,7 +31,7 @@ import qualified Data.Map
 import NLP.GenI.Tags
  ( TagElem(TE),
  )
-import NLP.GenI.Btypes (GeniVal(GConst, GVar, GAnon), Ptype(..),
+import NLP.GenI.Btypes (GeniVal(..), Ptype(..),
                Ttree(TT),
                GNode(..), GType(..), AvPair(..)
                )
@@ -98,9 +98,7 @@ instance HsShow AvPair where
  hsShows (AvPair a v) = hsConstructor "AvPair" [ hsShows a, hsShows v ]
 
 instance HsShow GeniVal where
- hsShows (GConst xs) = hsConstructor "GConst" [hsShows xs]
- hsShows (GVar xs)   = hsConstructor "GVar" [hsShows xs]
- hsShows GAnon       = showString "GAnon"
+ hsShows (GeniVal  ml mcs) = hsConstructor "GeniVal" [ hsShows ml . hsShows mcs ]
 
 instance HsShow GNode where
  hsShows (GN a b c d e f g h) =

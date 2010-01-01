@@ -39,6 +39,7 @@ import NLP.GenI.GeniParsers
 import NLP.GenI.GeniShow
 import NLP.GenI.HsShow (hsShow)
 import NLP.GenI.Converter.ReadTagml (readTagmlMacros)
+import NLP.GenI.TreeSchemata
 
 import Paths_geniconvert
 import Data.Version
