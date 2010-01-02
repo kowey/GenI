@@ -61,13 +61,13 @@ sortFlist = sortBy (compare `on` avAtt)
 instance Biplate (AvPair GeniVal) GeniVal where
   biplate (AvPair a v) = plate AvPair |- a |* v
 
-instance DescendGeniVal (AvPair GeniVal) where
+instance DescendGeniVal v => DescendGeniVal (AvPair v) where
   descendGeniVal s (AvPair a v) = {-# SCC "descendGeniVal" #-} AvPair a (descendGeniVal s v)
 
 instance DescendGeniVal a => DescendGeniVal (String, a) where
   descendGeniVal s (n,v) = {-# SCC "descendGeniVal" #-} (n,descendGeniVal s v)
 
-instance DescendGeniVal ([String], Flist GeniVal) where
+instance DescendGeniVal v => DescendGeniVal ([String], Flist v) where
   descendGeniVal s (a,v) = {-# SCC "descendGeniVal" #-} (a, descendGeniVal s v)
 
 instance Collectable a => Collectable (AvPair a) where

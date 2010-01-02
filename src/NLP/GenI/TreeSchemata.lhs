@@ -81,7 +81,7 @@ data Ttree a = TT
 data Ptype = Initial | Auxiliar | Unspecified
              deriving (Show, Eq, Data, Typeable)
 
-instance DescendGeniVal (Ttree (GNode GeniVal)) where
+instance DescendGeniVal v => DescendGeniVal (Ttree v) where
   descendGeniVal s mt =
     mt { params = descendGeniVal s (params mt)
        , tree   = descendGeniVal s (tree mt)
@@ -188,7 +188,7 @@ type NodeName = String
 instance Collectable gv => Collectable (GNode gv) where
   collect n = (collect $ gdown n) . (collect $ gup n)
 
-instance DescendGeniVal (GNode GeniVal) where
+instance DescendGeniVal v => DescendGeniVal (GNode v) where
   descendGeniVal s gn =
     gn { gup = descendGeniVal s (gup gn)
        , gdown = descendGeniVal s (gdown gn) }

@@ -24,7 +24,7 @@ instance Binary NLP.GenI.GeniVal.GeniVal where
   put (GeniVal a b) = put a >> put b
   get = get >>= \a -> get >>= \b -> return (GeniVal a b)
 
-instance Binary (NLP.GenI.TreeSchemata.GNode NLP.GenI.GeniVal.GeniVal) where
+instance Binary gv => Binary (NLP.GenI.TreeSchemata.GNode gv) where
   put (GN a b c d e f g h) = put a >> put b >> put c >> put d >> put e >> put f >> put g >> put h
   get = get >>= \a -> get >>= \b -> get >>= \c -> get >>= \d -> get >>= \e -> get >>= \f -> get >>= \g -> get >>= \h -> return (GN a b c d e f g h)
 

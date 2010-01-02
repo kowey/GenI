@@ -349,7 +349,7 @@ enrichBy lexEntry t (eqLhs, eqVal) =
                            , eeLexEntry = lexEntry
                            , eeLocation = eqLhs }
 
-enrichFeat :: AvPair GeniVal -> Flist GeniVal -> Maybe (Flist GeniVal, Subst)
+enrichFeat :: AvPair GeniVal -> Flist [GeniVal] -> Maybe (Flist [GeniVal], Subst)
 enrichFeat av@(AvPair a v) fs =
   case span (< av) fs of
     (before,here:after) | avMatch here ->
