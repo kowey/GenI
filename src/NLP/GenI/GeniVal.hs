@@ -23,7 +23,7 @@ module NLP.GenI.GeniVal where
 import Control.Arrow (first, (***))
 import Control.Monad (liftM, liftM2)
 import Data.List
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, isNothing, isJust)
 import Data.Generics (Data)
 import Data.Typeable (Typeable)
 import qualified Data.Map as Map
@@ -215,12 +215,12 @@ intersectConstraints (Just v1) (Just v2) =
 -- | 'subsumeOne' @x y@ returns the same result as @unifyOne x y@ if @x@
 --   subsumes @y@ or 'Failure' otherwise
 subsumeOne :: GeniVal -> GeniVal -> UnificationResult
-subsumeOne x@(GConst xs) y@(GConst ys)
-  | all (`elem` ys) xs = unifyOne x y
-  | otherwise          = Failure
-subsumeOne x@(GConst _) y = unifyOne x y
-subsumeOne _   (GConst _) = Failure
-subsumeOne x y = unifyOne x y
+subsumeOne g1@(GeniVal _ (Just cs1)) g2@ (GeniVal _ (Just cs2)) =
+   if cs1 `subset` cs2 then unifyOne g1 g2 else Failure
+ where
+   subset x y = all (`elem` y) x
+subsumeOne (GeniVal _ (Just cs1)) (GeniVal _ Nothing) = Failure
+subsumeOne g1@(GeniVal _ Nothing) g2 = unifyOne g1 g2
 
 -- ----------------------------------------------------------------------
 -- Variable substitution
@@ -317,12 +317,25 @@ instance (Functor f, DescendGeniVal a) => DescendGeniVal (f a) where
 -- ----------------------------------------------------------------------
 
 testSuite :: Test.Framework.Test
-testSuite = testGroup "unification"
- [ testProperty "self" prop_unify_sym
- , testProperty "anonymous variables" prop_unify_anon
- , testProperty "symmetry" prop_unify_sym
- , testBackPropagation
- ]
+testSuite =
+ testGroup "NLP.GenI.GeniVal"
+  [ testGroup "alphaconvert"
+      [ testCase "simple example" test_alphaconvert_simple
+      , testProperty "constraints are subset of original" prop_alphaconvert_subset
+      , testProperty "idempotent sans suffix" prop_alphaconvert_idempotent ]
+  , testGroup "unification"
+      [ testProperty "self" prop_unify_self
+      , testProperty "anonymous variables" prop_unify_anon
+      , testProperty "symmetry" prop_unify_sym
+      , testBackPropagation
+      ]
+  , testGroup "subsumption"
+     [ testProperty "subsumeOne reflexive"
+         (\x -> qc_not_empty_GVar x ==> tt_subsumes x x)
+     , testProperty "subsumeOne antisymmetric" prop_subsume_antisymmetric
+     , testProperty "subsumeOne transitive"    prop_subsume_transitive
+     ]
+  ]
 
 test_alphaconvert_simple =
   assertEqual "" [v1n2, v1n2] $ alphaConvert "" [v1, v2]
@@ -350,11 +363,13 @@ prop_alphaconvert_subset gs =
 
 -- | Unifying something with itself should always succeed
 prop_unify_self :: [GeniVal] -> Property
-prop_unify_self x =
-  (all qc_not_empty_GConst) x ==>
-    case unify x x of
-    Nothing  -> False
-    Just unf -> fst unf == x
+prop_unify_self x_ =
+ all qc_not_empty_GVar x ==>
+   case unify x x of
+     Nothing  -> False
+     Just unf -> fst unf == x
+ where
+   x = alphaConvert "" x_
 
 -- | Unifying something with only anonymous variables should succeed and return
 --   the same result.
@@ -370,25 +385,43 @@ prop_unify_anon x =
 --   are cases where there are variables in the same place on both sides, so we
 --   normalise the sides so that this doesn't happen.
 prop_unify_sym :: [GeniVal] -> [GeniVal] -> Property
-prop_unify_sym x y =
-  let u1 = (unify x y) :: Maybe ([GeniVal],Subst)
+prop_unify_sym x_ y_ =
+  let (TestPair x y) = alphaConvert "" (TestPair x_ y_)
+      u1 = (unify x y) :: Maybe ([GeniVal],Subst)
       u2 = unify y x
-  in (all qc_not_empty_GConst) x &&
-     (all qc_not_empty_GConst) y ==> u1 == u2
+  in all qc_not_empty_GVar x && all qc_not_empty_GVar y ==> u1 == u2
 
 -- | Unifying something with the empty list should always succeed
 prop_unify_empty :: [GeniVal] -> Bool
 prop_unify_empty x = isJust (unify x [])
+
+prop_subsume_antisymmetric x_ y_ =
+ all qc_not_empty_GVar [ x, y ] && tt_subsumes x y ==>
+   x `tt_equiv` y || not (tt_subsumes y x)
+ where
+   (x, y) = case alphaConvert "" [ x_, y_ ] of
+             [n1,n2] -> (n1,n2)
+             _ -> error "huh? alphaConvert length mismatch"
+
+prop_subsume_transitive x_ y_ z_ =
+ all qc_not_empty_GVar [ x, y, z ] && tt_subsumes x y && tt_subsumes y z ==>
+   tt_subsumes x z
+ where
+   (x, y, z) = case alphaConvert "" [ x_, y_, z_ ] of
+                [n1,n2,n3] -> (n1,n2,n3)
+                _ -> error "huh? alphaConvert length mismatch"
 
 tt_subsumes x y =
   case subsumeOne x y of
     Failure -> False
     _       -> True
 
-tt_equiv (GConst x) (GConst y) = sort x == sort y
-tt_equiv (GConst _) _ = False
-tt_equiv _ (GConst _) = False
-tt_equiv _ _ = True
+tt_equiv (GeniVal _ xc) (GeniVal _ yc) =
+ case (xc, yc) of
+   (Just xs, Just ys) -> xs == ys
+   (Just _, Nothing)  -> False
+   (Nothing, Just _)  -> False
+   (Nothing, Nothing) -> True
 
 testBackPropagation :: Test.Framework.Test
 testBackPropagation =
@@ -445,11 +478,13 @@ instance Arbitrary GTestString2 where
   coarbitrary = error "no implementation of coarbitrary for GTestString2"
 
 instance Arbitrary GeniVal where
-  arbitrary = oneof [ return $ GAnon,
-                      fmap (GVar . fromGTestString2) arbitrary,
-                      fmap (GConst . nub . sort . map fromGTestString) arbitrary ]
+  arbitrary = oneof [ return mkGAnon
+                    , liftM2 mkGVar (fromGTestString2 `fmap` arbitrary)
+                                    (fmap (map fromGTestString) `fmap` arbitrary)
+                    , liftM2 mkGConst (fromGTestString `fmap` arbitrary)
+                                      (map fromGTestString `fmap` arbitrary)
+                    ]
   coarbitrary = error "no implementation of coarbitrary for GeniVal"
 
-qc_not_empty_GConst :: GeniVal -> Bool
-qc_not_empty_GConst (GConst []) = False
-qc_not_empty_GConst _ = True
+arbitrary1 :: Arbitrary a => Gen [a]
+arbitrary1 = sized (\n -> choose (1,n+1) >>= vector)

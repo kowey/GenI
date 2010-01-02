@@ -24,7 +24,8 @@ module NLP.GenI.Semantics where
 
 import Control.Arrow ( first )
 import Data.Generics.PlateDirect
-import Data.List ( isPrefixOf, nub, sort, sortBy )
+import Data.List ( permutations, isPrefixOf, nub, sort, sortBy )
+import Data.Maybe ( isJust, catMaybes )
 import qualified Data.Map as Map
 
 import NLP.GenI.FeatureStructures
@@ -129,26 +130,20 @@ Notes about the subsumeSem function:
 --   @lsem@ does NOT subsume @tsem@, we return the empty list.
 subsumeSem :: Sem -> Sem -> [(Sem,Subst)]
 subsumeSem lsem tsem =
-  subsumeSemHelper ([],Map.empty) (revsort lsem) (revsort tsem)
- where
-  revsort = reverse . sortSem
+  catMaybes $ map ( subsumeSemHelper . zip lsem )
+            $ permutations tsem
 
--- This is tricky because each substep returns multiple results.
--- We solicit the help of accumulators to keep things from getting confused.
-subsumeSemHelper :: (Sem,Subst) -> Sem -> Sem -> [(Sem,Subst)]
-subsumeSemHelper acc@([], subst) [] [] | Map.null subst  = [acc]
-subsumeSemHelper acc [] _      = [acc]
-subsumeSemHelper acc (hd:tl) tsem =
-  let (accSem,accSub) = acc
-      -- does the literal hd subsume the input semantics?
-      pRes = hd `subsumePred` tsem
-      -- next adds a result from predication subsumption to
-      -- the accumulators and goes to the next recursive step
-      next (p,s) = subsumeSemHelper acc2 tl2 tsem2
-         where tl2   = replace s tl
-               tsem2 = replace s tsem
-               acc2  = (p : accSem, mergeSubst accSub s)
-  in concatMap next pRes
+-- subsumeSemHelper :: [ (Pred, Pred) ] -> Maybe (Sem, Subst)
+subsumeSemHelper lts =
+  case next lts of
+    Nothing          -> Nothing
+    Just (xs, subst) -> Just (replace subst xs, subst)
+ where
+  next [] = Just ([], Map.empty)
+  next ((l,t):lts) =
+    do (nlt, subst)   <- l `subsumePred` t
+       (lts2, subst2) <- subsumeSemHelper (replace subst lts)
+       return (nlt:lts2, mergeSubst subst subst2)
 \end{code}
 
 As for literals $l$ and $i$, $l \sqsubseteq i$ if
@@ -159,23 +154,18 @@ As for literals $l$ and $i$, $l \sqsubseteq i$ if
 \end{enumerate}
 
 \begin{code}
--- The first Sem s1 and second Sem s2 are the same when we start we circle on s2
--- looking for a match for Pred, and meanwhile we apply the partical substitutions
--- to s1.  Note: we treat the handle as if it were a parameter.
-subsumePred :: Pred -> Sem -> [(Pred, Subst)]
-subsumePred _ [] = []
-subsumePred (pred2@(h2,p2,la2)) ((h1, p1, la1):l) =
-    -- if we found the proper predicate
-    if ((p1 == p2) && (length la1 == length la2))
-    then let mrs  = (h1:la1) `allSubsume` (h2:la2)
-             next = pred2 `subsumePred` l
-         in maybe next (\x -> first toPred x : next) mrs
-    else if (p1 < p2) -- note that the semantics have to be reversed!
-         then []
-         else pred2 `subsumePred` l
+-- | @p1 `subsumePred` p2@... FIXME
+subsumePred :: Pred -> Pred -> Maybe (Pred, Subst)
+subsumePred (h1, p1, la1) (h2, p2, la2) =
+  if length la1 == length la2
+  then do let hpla1 = h1:p1:la1
+              hpla2 = h2:p2:la2
+          (hpla, sub) <- hpla1 `allSubsume` hpla2
+          return (toPred hpla, sub)
+  else Nothing
  where
-   toPred (h:xs) = (h, p2, xs)
-   toPred [] = error "subsumePred.toPred"
+  toPred (h:p:xs) = (h, p, xs)
+  toPred _ = error "subsumePred.toPred"
 \end{code}
 
 \ignore{
@@ -198,8 +188,8 @@ testSuite = testGroup "NLP.GenI.Semantics"
  where
   sem1 = [ lit1 ]
   sem2 = [ lit2 ]
-  lit1 = (GConst ["a"], GConst ["apple"], [GVar "?X"])
-  lit2 = (GConst ["a"], GConst ["apple"], [GConst ["x"]])
+  lit1 = (mkGConst "a" [], mkGConst "apple" [], [mkGVar "X" Nothing])
+  lit2 = (mkGConst "a" [], mkGConst "apple" [], [mkGConst "x" []])
 
 prop_subsumeSem_reflexive lits =
   not (null s) ==> not . null $ s `subsumeSem` s
@@ -207,7 +197,7 @@ prop_subsumeSem_reflexive lits =
   s = map fromGTestPred lits
 
 prop_subsumePred_reflexive pred =
-  not . null $ s `subsumePred` [s]
+  isJust $ s `subsumePred` s
  where
   s = fromGTestPred pred
 
@@ -221,7 +211,8 @@ instance Show GTestPred where
 instance Arbitrary GTestPred where
  arbitrary =
   do handle <- arbitrary
-     rel  <- oneof [ fmap (GConst . nub . sort . map fromGTestString) arbitrary1 ]
+     first  <- fromGTestString `fmap` arbitrary
+     rel  <- oneof [ (mkGConst first . map fromGTestString) `fmap` arbitrary ]
      args <- arbitrary
      return $ GTestPred handle rel args
  coarbitrary =
