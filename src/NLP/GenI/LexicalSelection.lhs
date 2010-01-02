@@ -32,7 +32,7 @@ import Data.Function ( on )
 import Data.List
 import Data.List.Split ( wordsBy )
 import qualified Data.Map as Map
-import Data.Maybe (mapMaybe, isJust)
+import Data.Maybe (isJust)
 import Data.Tree (Tree(Node))
 
 import System.IO.Unsafe (unsafePerformIO)
@@ -63,7 +63,7 @@ import NLP.GenI.Btypes
 import NLP.GenI.BtypesBinary ()
 import NLP.GenI.GeniVal( unify, GeniVal(gConstraints), isConst )
 
-import NLP.GenI.Tags (Tags, TagElem, emptyTE,
+import NLP.GenI.Tags (TagElem, emptyTE,
              idname, ttreename,
              ttype, tsemantics, ttree, tsempols,
              tinterface, ttrace,
@@ -175,22 +175,6 @@ instance Show LexCombineError where
 
 The first step in lexical selection is to collect all the features and
 parameters that we want to combine.
-
-\begin{code}
--- | 'combine' @macros lex@ creates the 'Tags' repository combining lexical
---   entries and un-anchored trees from the grammar. It also unifies the
---   parameters used to specialize un-anchored trees and propagates additional
---   features given in the 'ILexEntry'.
-combine :: Macros -> Lexicon -> Tags
-combine gram lexicon =
-  let helper li = mapEither (combineOne li) macs
-       where tn   = ifamname li
-             macs = [ t | t <- gram, pfamily t == tn ]
-  in Map.map (\e -> concatMap helper e) lexicon
-
-mapEither :: (a -> Either l r) -> [a] -> [r]
-mapEither fn = mapMaybe (\x -> either (const Nothing) Just $ fn x)
-\end{code}
 
 \begin{code}
 -- | Given a lexical item, looks up the tree families for that item, and

@@ -38,7 +38,6 @@ module NLP.GenI.Geni (
              loadEverything, loadLexicon, loadGeniMacros,
              loadTestSuite, loadTargetSemStr,
              loadRanking, readRanking,
-             combine,
 
              -- used by auxiliary tools only
              chooseLexCand,
@@ -111,7 +110,7 @@ import NLP.GenI.GeniParsers (geniMacros, geniTagElems,
                     )
 import NLP.GenI.LexicalSelection
         ( mapBySemKeys, chooseLexCand, combineList, compressLexCombineErrors, LexCombineError
-        , missingCoanchors, combine,
+        , missingCoanchors,
         )
 import NLP.GenI.Morphology
 import NLP.GenI.OptimalityTheory
