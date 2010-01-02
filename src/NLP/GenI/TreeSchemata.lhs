@@ -32,10 +32,12 @@ module NLP.GenI.TreeSchemata (
 
    -- Functions from Tree GNode
    root, rootUpd, foot, setLexeme, setAnchor, lexemeAttributes,
+   crushTreeGNode,
 
    -- GNode
    GNode(..), emptyGNode, gnnameIs, NodeName,
    GType(..), gCategory, showLexeme,
+   crushGNode,
  ) where
 
 import qualified Data.Map as Map
@@ -47,7 +49,7 @@ import Data.Typeable (Typeable)
 
 import NLP.GenI.GeniVal ( GeniVal(..), DescendGeniVal(..), Collectable(..),
                         )
-import NLP.GenI.FeatureStructures ( AvPair(..), Flist )
+import NLP.GenI.FeatureStructures ( AvPair(..), Flist, crushFlist )
 import NLP.GenI.Semantics ( Sem )
 
 import NLP.GenI.General (filterTree, listRepNode, geniBug,)
@@ -261,4 +263,27 @@ showLexeme :: [String] -> String
 showLexeme []   = ""
 showLexeme [l]  = l
 showLexeme xs   = concat $ intersperse "|" xs
+\end{code}
+
+\subsection{Fancy disjunction}
+
+\begin{code}
+crushTreeGNode :: Tree (GNode [GeniVal]) -> Maybe (Tree (GNode GeniVal))
+crushTreeGNode (Node x xs) =
+ do x2  <- crushGNode x
+    xs2 <- mapM crushTreeGNode xs
+    return $ Node x2 xs2
+
+crushGNode :: GNode [GeniVal] -> Maybe (GNode GeniVal)
+crushGNode gn =
+  do gup2   <- crushFlist (gup gn)
+     gdown2 <- crushFlist (gdown gn)
+     return $ GN { gnname = gnname gn
+                 , gup = gup2
+                 , gdown = gdown2
+                 , ganchor = ganchor gn
+                 , glexeme = glexeme gn
+                 , gtype = gtype gn
+                 , gaconstr = gaconstr gn
+                 , gorigin = gorigin gn}
 \end{code}

@@ -177,3 +177,15 @@ alignFeatH fs1@(AvPair f1 v1:l1) fs2@(AvPair f2 v2:l2) acc =
      LT -> alignFeatH l1 fs2 ((f1, v1, mkGAnon) : acc)
      GT -> alignFeatH fs1 l2 ((f2, mkGAnon, v2) : acc)
 \end{code}
+
+% --------------------------------------------------------------------
+\section{Fancy disjunction}
+% --------------------------------------------------------------------
+
+\begin{code}
+crushAvPair :: AvPair [GeniVal] -> Maybe (AvPair GeniVal)
+crushAvPair (AvPair a v) = AvPair a `fmap` crushOne v
+
+crushFlist :: Flist [GeniVal] -> Maybe (Flist GeniVal)
+crushFlist = mapM crushAvPair
+\end{code}

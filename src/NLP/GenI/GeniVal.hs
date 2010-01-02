@@ -23,7 +23,7 @@ module NLP.GenI.GeniVal where
 import Control.Arrow (first, (***))
 import Control.Monad (liftM, liftM2)
 import Data.List
-import Data.Maybe (fromMaybe, isNothing, isJust)
+import Data.Maybe (catMaybes, fromMaybe, isNothing, isJust)
 import Data.Generics (Data)
 import Data.Typeable (Typeable)
 import qualified Data.Map as Map
@@ -300,6 +300,24 @@ alphaConvert suffix x = {-# SCC "alphaConvert" #-}
   vars  = Map.fromListWith isect . Set.elems $ collect x Set.empty
   isect x y = fromMaybe (Just []) $ intersectConstraints x y
   convert v = GeniVal (Just (v ++ suffix))
+
+-- ----------------------------------------------------------------------
+-- Fancy disjunction
+-- ----------------------------------------------------------------------
+
+crushOne :: [GeniVal] -> Maybe GeniVal
+crushOne []   = Nothing
+crushOne [gs] = Just gs
+crushOne gs   =
+  if any isNothing gcs
+     then Nothing
+     else case concat (catMaybes gcs) of
+            []     -> Nothing
+            (c:cs) -> Just (mkGConst c cs)
+  where
+   gcs = map gConstraints gs
+
+crushList = mapM crushOne
 
 -- ----------------------------------------------------------------------
 -- Genericity
