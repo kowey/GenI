@@ -129,6 +129,7 @@ Notes about the subsumeSem function:
 --   the two semantics such that @lsem@ subsumes @tsem@.  If
 --   @lsem@ does NOT subsume @tsem@, we return the empty list.
 subsumeSem :: Sem -> Sem -> [(Sem,Subst)]
+subsumeSem lsem tsem | length tsem < length lsem = []
 subsumeSem lsem tsem =
   catMaybes $ map ( subsumeSemHelper . zip lsem )
             $ permutations tsem
