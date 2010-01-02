@@ -189,6 +189,24 @@ geniValue =   ((try $ anonymous) <?> "_ or ?_")
          return mkGAnon
 \end{code}
 
+\paragraph{Fancy disjunctions}
+
+TODO: explain the difference between atomic disjunction and fancy disjunction.
+TODO: update EBNF to point to fancy disjunction
+\begin{code}
+geniFancyDisjunction :: Parser [GeniVal]
+geniFancyDisjunction = geniValue `sepBy1` symbol ";"
+
+class GeniValLike v where
+  geniValueLike :: Parser v
+
+instance GeniValLike GeniVal where
+  geniValueLike = geniValue
+
+instance GeniValLike [GeniVal] where
+  geniValueLike = geniFancyDisjunction
+\end{code}
+
 \subsection{Feature structures}
 
 In addition to variables and constants, \geni also makes heavy use of flat
@@ -205,13 +223,13 @@ formally,
 \end{center}
 
 \begin{code}
-geniFeats :: Parser (Flist GeniVal)
+geniFeats :: GeniValLike v => Parser (Flist v)
 geniFeats = option [] $ squares $ many geniAttVal
 
-geniAttVal :: Parser (AvPair GeniVal)
+geniAttVal :: GeniValLike v => Parser (AvPair v)
 geniAttVal = do
   att <- identifierR <?> "an attribute"; colon
-  val <- geniValue <?> "a GenI value"
+  val <- geniValueLike <?> "a GenI value"
   return $ AvPair att val
 \end{code}
 
@@ -713,7 +731,7 @@ geniTreeDef =
               , psemantics = psem
               }
 
-geniTree :: Parser (T.Tree (GNode GeniVal))
+geniTree :: (Ord v, GeniValLike v) => Parser (T.Tree (GNode v))
 geniTree =
   do node <- geniNode
      kids <- option [] (braces $ many geniTree)
@@ -727,7 +745,7 @@ geniTree =
      --
      return (T.Node node kids)
 
-geniNode :: Parser (GNode GeniVal)
+geniNode :: (Ord v, GeniValLike v) => Parser (GNode v)
 geniNode =
   do name      <- identifier
      nodeType  <- option "" ( (keyword TYPE >> typeParser)
