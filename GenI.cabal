@@ -70,6 +70,10 @@ Flag static
   Description: Build a static binary
   Default:     False
 
+Flag test
+  description: Compile standalone unit tests binary
+  default:     False
+
 Library
   Build-depends: parsec >= 2 && < 3,
                  base >= 3 && < 4,
@@ -141,3 +145,10 @@ Executable     geni
 
  if flag(static)
     ghc-options: -static -optl-static
+
+Executable geni-test
+ Main-Is:       MainTest.hs
+ Hs-Source-Dirs: src
+ Extensions:     CPP, Rank2Types, OverlappingInstances, MultiParamTypeClasses, FlexibleContexts, TypeSynonymInstances,  FlexibleInstances, DeriveDataTypeable, ExistentialQuantification, LiberalTypeSynonyms
+ if flag(test)
+    Buildable: True
