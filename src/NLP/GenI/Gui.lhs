@@ -39,13 +39,12 @@ import System.Exit (exitWith, ExitCode(ExitSuccess))
 import qualified NLP.GenI.Builder as B
 import qualified NLP.GenI.BuilderGui as BG
 import NLP.GenI.Geni
-  ( ProgState(..), ProgStateRef, combine, initGeni
+  ( ProgState(..), ProgStateRef, initGeni
   , prettyResult
   , loadEverything, loadTestSuite, loadTargetSemStr
   )
 import NLP.GenI.General (boundsCheck, geniBug, trim, fst3, prettyException)
 import NLP.GenI.Btypes (TestCase(..), showFlist,)
-import NLP.GenI.Tags (idname, tpolarities, TagElem)
 import NLP.GenI.GeniShow (geniShow)
 import NLP.GenI.Configuration
   ( Params(..), Instruction, hasOpt
@@ -108,20 +107,16 @@ mainGui pstRef
        loadMenIt <- menuItem fileMen [text := "&Open files or configure GenI"]
        quitMenIt <- menuQuit fileMen [text := "&Quit"]
        set quitMenIt [on command := close f ]
-       -- create the tools menu
-       toolsMen      <- menuPane [text := "&Tools"]
-       gbrowserMenIt <- menuItem toolsMen [ text := "&Inspect grammar" 
-                                          , help := "Displays the trees in the grammar" ]
        -- create the help menu
        helpMen   <- menuPane [text := "&Help"]
        aboutMeIt <- menuAbout helpMen [help := "About"]
        -- Tie the menu to this window
        set f [ statusBar := [status] 
-             , menuBar := [fileMen, toolsMen, helpMen]
+             , menuBar := [fileMen, helpMen]
              -- put the menu event handler for an about box on the frame.
              , on (menu aboutMeIt) := infoDialog f "About GenI" "The GenI generator.\nhttp://wiki.loria.fr/wiki/GenI" 
              -- event handler for the tree browser
-             , on (menu gbrowserMenIt) := do { loadEverything pstRef; treeBrowserGui pstRef }  
+             -- , on (menu gbrowserMenIt) := do { loadEverything pstRef; treeBrowserGui pstRef }  
              ]
        -- -----------------------------------------------------------------
        -- buttons
@@ -730,49 +725,3 @@ expanded representation are segmented into the following boxes:
 \end{enumerate}
 \end{minipage} \\
 \end{tabular}
-
-% --------------------------------------------------------------------
-\section{Tree browser}
-\label{sec:treebrowser_gui}
-% --------------------------------------------------------------------
-
-The GenI tree browser displays all the TAG trees in the grammar grouped
-according to the semantics with which they are associated.
-
-\begin{code}
--- Note that we can't just reuse candidateGui's code because we label and sort
--- the trees differently.  Here we ignore the arguments in tree semantics, and
--- we display the tree polarities in its label.
-treeBrowserGui :: ProgStateRef -> IO () 
-treeBrowserGui pstRef = do
-  pst <- readIORef pstRef
-  -- ALL THE TREES in the grammar... muahahaha!
-  let semmap = combine (gr pst) (le pst)
-  -- browser window
-  f <- frame [ text := "Tree Browser" 
-             , fullRepaintOnResize := False 
-             ] 
-  -- the heavy GUI artillery
-  let sem      = Map.keys semmap
-      --
-      lookupTr k = Map.findWithDefault [] k semmap
-      treesfor k = Nothing : (map Just $ lookupTr k)
-      labsfor  k = ("___" ++ k ++ "___") : (map fn $ lookupTr k)
-                   where fn    t = idname t ++ polfn (tpolarities t)
-                         polfn p = if Map.null p 
-                                   then "" 
-                                   else " (" ++ showLitePm p ++ ")"
-      --
-      trees    = concatMap treesfor sem
-      itNlabl  = zip trees (concatMap labsfor sem)
-  (browser,_,_) <- tagViewerGui pst f "tree browser" "grambrowser" itNlabl
-  -- the button panel
-  let numTrees = length trees - length sem
-  quitBt <- button f [ text := "Close", on command := close f ]
-  -- pack it all together 
-  set f [ layout := column 5 [ browser, 
-                       row 5 [ label ("number of trees: " ++ show numTrees)
-                             , hfloatRight $ widget quitBt ] ]
-        , clientSize := sz 700 600 ]
-  return ()
-\end{code}
