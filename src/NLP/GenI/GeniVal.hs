@@ -478,13 +478,15 @@ instance Arbitrary GTestString2 where
   coarbitrary = error "no implementation of coarbitrary for GTestString2"
 
 instance Arbitrary GeniVal where
-  arbitrary = oneof [ return mkGAnon
-                    , liftM2 mkGVar (fromGTestString2 `fmap` arbitrary)
-                                    (fmap (map fromGTestString) `fmap` arbitrary)
-                    , liftM2 mkGConst (fromGTestString `fmap` arbitrary)
-                                      (map fromGTestString `fmap` arbitrary)
-                    ]
+  arbitrary = oneof [ arbitraryGConst, arbitraryGVar, return mkGAnon ]
   coarbitrary = error "no implementation of coarbitrary for GeniVal"
+
+arbitraryGConst = liftM2 mkGConst (fromGTestString `fmap` arbitrary)
+                                  (map fromGTestString `fmap` arbitrary)
+
+arbitraryGVar = liftM2 mkGVar (fromGTestString2 `fmap` arbitrary)
+                              (fmap (map fromGTestString) `fmap` arbitrary)
+
 
 arbitrary1 :: Arbitrary a => Gen [a]
 arbitrary1 = sized (\n -> choose (1,n+1) >>= vector)

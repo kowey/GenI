@@ -192,14 +192,17 @@ testSuite = testGroup "NLP.GenI.Semantics"
   lit2 = (mkGConst "a" [], mkGConst "apple" [], [mkGConst "x" []])
 
 prop_subsumeSem_reflexive lits =
-  not (null s) ==> not . null $ s `subsumeSem` s
+  not (null s) && all qc_not_empty_GVar_Pred s ==> not . null $ s `subsumeSem` s
  where
-  s = map fromGTestPred lits
+  s = alphaConvert "" $ map fromGTestPred lits
 
 prop_subsumePred_reflexive pred =
-  isJust $ s `subsumePred` s
+  qc_not_empty_GVar_Pred s ==> isJust $ s `subsumePred` s
  where
-  s = fromGTestPred pred
+  s = alphaConvert "" $ fromGTestPred pred
+
+qc_not_empty_GVar_Pred :: Pred -> Bool
+qc_not_empty_GVar_Pred (h,r,as) = all qc_not_empty_GVar (h:r:as)
 
 fromGTestPred (GTestPred h r as) = (h,r,as)
 
@@ -210,9 +213,8 @@ instance Show GTestPred where
 
 instance Arbitrary GTestPred where
  arbitrary =
-  do handle <- arbitrary
-     first  <- fromGTestString `fmap` arbitrary
-     rel  <- oneof [ (mkGConst first . map fromGTestString) `fmap` arbitrary ]
+  do handle <- arbitraryGConst
+     rel  <- oneof [ arbitraryGConst ]
      args <- arbitrary
      return $ GTestPred handle rel args
  coarbitrary =
