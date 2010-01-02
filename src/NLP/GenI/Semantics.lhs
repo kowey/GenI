@@ -22,14 +22,14 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module NLP.GenI.Semantics where
 
-import Control.Arrow ( first )
+import Control.Arrow ( first, (***) )
+import Control.Monad ( guard )
 import Data.Generics.PlateDirect
-import Data.List ( permutations, isPrefixOf, nub, sort, sortBy )
+import Data.List ( permutations, isPrefixOf, nub, sort, sortBy, delete, insert )
 import Data.Maybe ( isJust, catMaybes )
 import qualified Data.Map as Map
 
 import NLP.GenI.FeatureStructures
-import NLP.GenI.General(snd3)
 import NLP.GenI.GeniVal
 
 import Test.HUnit
@@ -169,6 +169,57 @@ subsumePred (h1, p1, la1) (h2, p2, la2) =
   toPred _ = error "subsumePred.toPred"
 \end{code}
 
+% ----------------------------------------------------------------------
+\section{Unification}
+% ----------------------------------------------------------------------
+
+We say that $X \sqcup Y$ if...
+TODO
+
+\begin{code}
+-- We return the list of minimal ways to unify two semantics.
+-- By minimal, I mean that any literals that are not the product of a
+-- succesful unification really do not unify with anything else.
+unifySem :: Sem -> Sem -> [(Sem,Subst)]
+unifySem xs_ ys_ = 
+ map (first sortSem) $
+ if length xs_ < length ys_
+    then unifySemH xs ys
+    else unifySemH ys xs
+ where
+  xs = sort xs_
+  ys = sort ys_
+
+-- list monad for Prolog-style backtracking.
+unifySemH :: Sem -> Sem -> [(Sem,Subst)]
+unifySemH [] [] = return ([], Map.empty)
+unifySemH [] xs = return (xs, Map.empty)
+unifySemH xs [] = error $ "unifySem: shorter list should always be in front: " ++ showSem xs
+unifySemH (x:xs) ys = nub $ do
+ let attempts = zip ys $ map (unifyPred x) ys
+ if all (null . snd) attempts
+    then first (x:) `fmap` unifySemH xs ys -- only include x unmolested if no unification succeeds
+    else do (y, results) <- attempts
+            guard . not . null $ results
+            (x2, subst)  <- results
+            let next_xs = replace subst xs
+                next_ys = replace subst $ delete y ys
+                prepend = insert x2 *** mergeSubst subst
+            prepend `fmap` unifySemH next_xs next_ys
+
+unifyPred :: Pred -> Pred -> [ (Pred, Subst) ]
+unifyPred (h1, p1, la1) (h2, p2, la2) =
+  if length la1 == length la2
+  then do let hpla1 = h1:p1:la1
+              hpla2 = h2:p2:la2
+          (hpla, sub) <- hpla1 `unify` hpla2
+          return (toPred hpla, sub)
+  else []
+ where
+  toPred (h:p:xs) = (h, p, xs)
+  toPred _ = error "unifyPred.toPred"
+\end{code}
+
 \ignore{
 % ----------------------------------------------------------------------
 % Testing
@@ -187,12 +238,27 @@ testSuite = testGroup "NLP.GenI.Semantics"
      , testCase "works 2"  $ assertBool "" $ not . null $ sem1 `subsumeSem` (sem2 ++ sem2)
      , testCase "distinct" $ assertBool "" $ null $ (sem1 ++ sem1) `subsumeSem` sem2
      ]
+ , testGroup "unifySem"
+     [ testCase "works x"    $ assertMatchSem [ sem_x  ] $ unifySem sem1 sem_x
+     , testCase "works xy"   $ assertMatchSem [ sem_xy ] $ unifySem sem_x sem_y
+     , testCase "works xV"   $ assertMatchSem [ sem_xy, sem_xy ] $ unifySem sem1 sem_xy
+     ]
+{-
+     [ testProperty "reflexive"     prop_unifyPred_reflexive
+     , testProperty "antisymmetric" prop_unifyPred_antisymmetric
+     ]
+-}
  ]
  where
-  sem1 = [ lit1 ]
-  sem2 = [ lit2 ]
-  lit1 = (mkGConst "a" [], mkGConst "apple" [], [mkGVar "X" Nothing])
-  lit2 = (mkGConst "a" [], mkGConst "apple" [], [mkGConst "x" []])
+  assertMatchSem sems xs = assertEqual "" (map sortSem sems) $ map fst xs
+  sem1  = [ lit1 ]
+  sem2  = sem_x
+  sem_x  = [ lit_x ]
+  sem_y  = [ lit_y ]
+  sem_xy = [ lit_x, lit_y ]
+  lit1 = (mkGConst "a" [], mkGConst "apple" [], [mkGVar "A" Nothing])
+  lit_x = (mkGConst "a" [], mkGConst "apple" [], [mkGConst "x" []])
+  lit_y = (mkGConst "a" [], mkGConst "apple" [], [mkGConst "y" []])
 
 prop_subsumeSem_reflexive lits =
   not (null s) && all qc_not_empty_GVar_Pred s ==> not . null $ s `subsumeSem` s
