@@ -411,10 +411,11 @@ prop_subsume_transitive x_ y_ z_ =
                 [n1,n2,n3] -> (n1,n2,n3)
                 _ -> error "huh? alphaConvert length mismatch"
 
-tt_subsumes x y =
-  case subsumeOne x y of
-    Failure -> False
-    _       -> True
+unificationSuccesful :: UnificationResult -> Bool
+unificationSuccesful Failure = False
+unificationSuccesful _ = True
+
+tt_subsumes x y = unificationSuccesful (subsumeOne x y)
 
 tt_equiv (GeniVal _ xc) (GeniVal _ yc) =
  case (xc, yc) of

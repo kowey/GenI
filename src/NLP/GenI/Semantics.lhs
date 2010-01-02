@@ -143,7 +143,7 @@ subsumeSemHelper lts =
   next [] = Just ([], Map.empty)
   next ((l,t):lts) =
     do (nlt, subst)   <- l `subsumePred` t
-       (lts2, subst2) <- subsumeSemHelper (replace subst lts)
+       (lts2, subst2) <- next (replace subst lts)
        return (nlt:lts2, mergeSubst subst subst2)
 \end{code}
 
@@ -178,7 +178,9 @@ subsumePred (h1, p1, la1) (h2, p2, la2) =
 testSuite :: Test.Framework.Test
 testSuite = testGroup "NLP.GenI.Semantics"
  [ testGroup "subsumePred"
-     [ testProperty "reflexive" prop_subsumePred_reflexive ]
+     [ testProperty "reflexive"     prop_subsumePred_reflexive
+     , testProperty "antisymmetric" prop_subsumePred_antisymmetric
+     ]
  , testGroup "subsumeSem"
      [ testProperty "reflexive" prop_subsumeSem_reflexive
      , testCase "works 1"  $ assertBool "" $ not . null $ sem1 `subsumeSem` sem2
@@ -198,9 +200,21 @@ prop_subsumeSem_reflexive lits =
   s = alphaConvert "" $ map fromGTestPred lits
 
 prop_subsumePred_reflexive pred =
-  qc_not_empty_GVar_Pred s ==> isJust $ s `subsumePred` s
+  qc_not_empty_GVar_Pred s ==> s `tt_subsumePred` s
  where
   s = alphaConvert "" $ fromGTestPred pred
+
+prop_subsumePred_antisymmetric x_ y_ =
+ all qc_not_empty_GVar_Pred [ x, y ] && x `tt_subsumePred` y ==>
+   x `tt_pred_equiv` y || not (y `tt_subsumePred` x)
+ where
+   (x, y) = case alphaConvert "" [ x_, y_ ] of
+             [n1,n2] -> (n1,n2)
+             _ -> error "huh? alphaConvert length mismatch"
+
+tt_subsumePred x y = isJust (subsumePred x y)
+tt_pred_equiv (h1,p1,as1) (h2,p2,as2) =
+  and $ zipWith tt_equiv (h1 : p1 : as1) (h2 : p2 : as2)
 
 qc_not_empty_GVar_Pred :: Pred -> Bool
 qc_not_empty_GVar_Pred (h,r,as) = all qc_not_empty_GVar (h:r:as)
@@ -215,7 +229,7 @@ instance Show GTestPred where
 instance Arbitrary GTestPred where
  arbitrary =
   do handle <- arbitraryGConst
-     rel  <- oneof [ arbitraryGConst ]
+     rel  <- arbitrary
      args <- arbitrary
      return $ GTestPred handle rel args
  coarbitrary =
