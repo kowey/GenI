@@ -68,7 +68,7 @@ import NLP.GenI.Tags (TagElem, emptyTE,
              ttype, tsemantics, ttree, tsempols,
              tinterface, ttrace,
              )
-import NLP.GenI.TreeSchemata ( Ttree(..), SchemaTree, SchemaNode )
+import NLP.GenI.TreeSchemata ( Ttree(..), SchemaTree, SchemaNode, crushTreeGNode )
 \end{code}
 }
 
@@ -206,13 +206,17 @@ combineOne lexRaw eRaw = -- Maybe monad
              >>= unifyInterfaceUsing iinterface
              >>= unifyInterfaceUsing ifilters -- filtering
              >>= enrichWithWarning -- enrichment
+    tree2 <- case crushTreeGNode (tree e) of
+               Nothing -> do lexTell $ OtherError e l $ "Could not flatten disjunction"
+                             fail ""
+               Just x  -> return x
     let name = concat $ intersperse ":" $ filter (not.null)
                  [ head (iword l) , pfamily e , pidname e ]
         template = emptyTE
               { idname = name
               , ttreename = pfamily e
               , ttype = ptype e
-              , ttree = setOrigin name . setLemAnchors . setAnchor (iword l) $ tree e
+              , ttree = setOrigin name . setLemAnchors . setAnchor (iword l) $ tree2
               , tsemantics  = []
               , tsempols    = isempols l
               , tinterface  = pinterface e
@@ -350,16 +354,17 @@ enrichBy lexEntry t (eqLhs, eqVal) =
                            , eeLocation = eqLhs }
 
 enrichFeat :: AvPair GeniVal -> Flist [GeniVal] -> Maybe (Flist [GeniVal], Subst)
-enrichFeat av@(AvPair a v) fs =
-  case span (< av) fs of
+enrichFeat (AvPair a v) fs =
+  case span (\x -> avAtt x < a) fs of
     (before,here:after) | avMatch here ->
       do let (AvPair _ fv) = here
-         ([v2],sub) <- unify [v] [fv]
+         (v2,sub) <- unify fv (replicate (length fv) v)
          let av2 = AvPair a v2
              fs2 = replace sub before ++ (av2 : replace sub after)
-         return (fs, sub)
+         return (fs2, sub)
     (before,after) ->
-      let fs2 = before ++ (av : after) in  Just (fs2, Map.empty)
+      let av2 = AvPair a [v]
+          fs2 = before ++ (av2 : after) in  Just (fs2, Map.empty)
   where
    avMatch (AvPair fa _) = fa == a
 
@@ -479,7 +484,7 @@ likely the name and id of its elementary tree.  This is useful for
 building derivation trees
 
 \begin{code}
-setOrigin :: String -> Tree SchemaNode -> Tree SchemaNode
+setOrigin :: String -> Tree (GNode v) -> Tree (GNode v)
 setOrigin t = fmap (\g -> g { gorigin = t })
 \end{code}
 

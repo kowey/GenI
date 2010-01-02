@@ -66,7 +66,7 @@ We are working to phase out this name in favour of the more standard
 
 \begin{code}
 type SchemaTree = Ttree SchemaNode
-type SchemaNode = GNode GeniVal
+type SchemaNode = GNode [GeniVal]
 type Macros = [SchemaTree]
 
 data Ttree a = TT
