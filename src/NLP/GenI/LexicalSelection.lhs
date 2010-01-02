@@ -33,7 +33,7 @@ import Data.Function ( on )
 import Data.List
 import Data.List.Split ( wordsBy )
 import qualified Data.Map as Map
-import Data.Maybe (catMaybes, isJust)
+import Data.Maybe (catMaybes, fromMaybe, isJust)
 import Data.Tree (Tree(Node))
 
 import NLP.GenI.General(filterTree, repAllNode,
@@ -45,7 +45,7 @@ import NLP.GenI.General(filterTree, repAllNode,
 import NLP.GenI.Btypes
   (Macros, ILexEntry, Lexicon,
    replace,
-   Sem, sortSem, subsumeSem, params,
+   params,
    AvPair(..),
    GNode(ganchor, gnname, gup, gdown, gaconstr, gtype, gorigin),
    GType(Subs, Other),
@@ -61,6 +61,7 @@ import NLP.GenI.Btypes
 import NLP.GenI.BtypesBinary ()
 import NLP.GenI.GeniVal( unify, GeniVal(gConstraints), isConst )
 
+import NLP.GenI.Semantics ( subsumeSem, unifySem, Sem )
 import NLP.GenI.Tags (TagElem, emptyTE,
              idname, ttreename,
              ttype, tsemantics, ttree, tsempols,
@@ -185,15 +186,17 @@ combineList :: Macros -> ILexEntry
 combineList gram lexitem =
   case [ t | t <- gram, pfamily t == tn ] of
        []   -> ([BoringError $ "Family " ++ tn ++ " not found in Macros"],[])
-       macs -> (concat *** catMaybes) . swap . unzip $ map (\m -> runWriter . runMaybeT $ combineOne lexitem m) macs
-  where tn = ifamname lexitem
-        swap (x,y) = (y,x)
+       macs -> squish . swap . unzip $ map (\m -> runWriter . runMaybeT $ combineOne lexitem m) macs
+  where
+   tn = ifamname lexitem
+   swap (x,y) = (y,x)
+   squish = concat *** (concat . catMaybes)
 \end{code}
 
 \begin{code}
 -- | Combine a single tree with its lexical item to form a bonafide TagElem.
 --   This process can fail, however, because of filtering or enrichement
-combineOne :: ILexEntry -> Ttree GNode -> LexCombineMonad TagElem
+combineOne :: ILexEntry -> Ttree GNode -> LexCombineMonad [TagElem]
 combineOne lexRaw eRaw = -- Maybe monad
  -- trace ("\n" ++ (show wt)) $
  do let l1 = alphaConvert "-l" lexRaw
@@ -204,19 +207,21 @@ combineOne lexRaw eRaw = -- Maybe monad
              >>= enrichWithWarning -- enrichment
     let name = concat $ intersperse ":" $ filter (not.null)
                  [ head (iword l) , pfamily e , pidname e ]
-    return $ emptyTE
+        template = emptyTE
               { idname = name
               , ttreename = pfamily e
               , ttype = ptype e
               , ttree = setOrigin name . setLemAnchors . setAnchor (iword l) $ tree e
-              , tsemantics  =
-                 sortSem $ case psemantics e of
-                           Nothing -> isemantics l
-                           Just s  -> s
+              , tsemantics  = []
               , tsempols    = isempols l
               , tinterface  = pinterface e
               , ttrace      = ptrace e
               }
+    semUnifications <- case unifySem (isemantics l) (fromMaybe [] $ psemantics e) of
+                         [] -> do lexTell $ OtherError e l "could not unify lemma and schema semantics"
+                                  fail ""
+                         xs -> return xs
+    return $ map (\(sem,sub) -> replace sub $ template { tsemantics = sem }) semUnifications
  where
   unifyParamsWithWarning (l,t) =
    -- trace ("unify params " ++ wt) $
