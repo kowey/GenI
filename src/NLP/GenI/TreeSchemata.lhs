@@ -28,7 +28,7 @@ tree schemata.
 
 module NLP.GenI.TreeSchemata (
    Macros, emptyMacro,
-   MTtree, Ttree(..), Ptype(..),
+   SchemaTree, Ttree(..), Ptype(..),
 
    -- Functions from Tree GNode
    root, rootUpd, foot, setLexeme, setAnchor, lexemeAttributes,
@@ -63,8 +63,9 @@ We are working to phase out this name in favour of the more standard
 `tree schema(ta)'.
 
 \begin{code}
-type MTtree = Ttree GNode
-type Macros = [MTtree]
+type SchemaTree = Ttree SchemaNode
+type SchemaNode = GNode GeniVal
+type Macros = [SchemaTree]
 
 data Ttree a = TT
   { params  :: [GeniVal]
@@ -92,7 +93,7 @@ instance (Collectable a) => Collectable (Ttree a) where
                (collect $ psemantics mt) . (collect $ pinterface mt)
 
 -- | A null tree which you can use for various debugging or display purposes.
-emptyMacro :: MTtree
+emptyMacro :: SchemaTree
 emptyMacro = TT { params  = [],
                   pidname = "",
                   pfamily = "",
