@@ -25,18 +25,16 @@ This module performs the core of lexical selection and anchoring.
 module NLP.GenI.LexicalSelection
 where
 
-import Control.Arrow ((&&&))
-import Control.Monad.Error
+import Control.Arrow ((***),(&&&))
+import Control.Monad.Maybe
+import Control.Monad.Writer
 
 import Data.Function ( on )
 import Data.List
 import Data.List.Split ( wordsBy )
 import qualified Data.Map as Map
-import Data.Maybe (isJust)
+import Data.Maybe (catMaybes, isJust)
 import Data.Tree (Tree(Node))
-
-import System.IO.Unsafe (unsafePerformIO)
-
 
 import NLP.GenI.General(filterTree, repAllNode,
     multiGroupByFM,
@@ -156,16 +154,19 @@ a macro or a list of macros.  This is a process that can go fail for any
 number of reasons, so we try to record the possible failures for book-keeping.
 
 \begin{code}
+-- | The 'LexCombineMonad' supports warnings during lexical selection
+--   and also failure via Maybe
+type LexCombineMonad a = MaybeT (Writer [LexCombineError]) a
+
+lexTell :: LexCombineError -> LexCombineMonad ()
+lexTell x = lift (tell [x])
+
 data LexCombineError =
         BoringError String
       | EnrichError { eeMacro    :: Ttree GNode
                     , eeLexEntry :: ILexEntry
                     , eeLocation :: PathEqLhs }
      | OtherError (Ttree GNode) ILexEntry String
-
-instance Error LexCombineError where
-  noMsg    = strMsg "error combining items"
-  strMsg s = BoringError s
 
 instance Show LexCombineError where
  show (BoringError s)    = s
@@ -184,20 +185,15 @@ combineList :: Macros -> ILexEntry
 combineList gram lexitem =
   case [ t | t <- gram, pfamily t == tn ] of
        []   -> ([BoringError $ "Family " ++ tn ++ " not found in Macros"],[])
-       macs -> unzipEither $ map (combineOne lexitem) macs
+       macs -> (concat *** catMaybes) . swap . unzip $ map (\m -> runWriter . runMaybeT $ combineOne lexitem m) macs
   where tn = ifamname lexitem
-
-unzipEither :: (Error e, Show b) => [Either e b] -> ([e], [b])
-unzipEither es = helper ([],[]) es where
- helper accs [] = accs
- helper (eAcc, rAcc) (Left e : next)  = helper (e:eAcc,rAcc) next
- helper (eAcc, rAcc) (Right r : next) = helper (eAcc,r:rAcc) next
+        swap (x,y) = (y,x)
 \end{code}
 
 \begin{code}
 -- | Combine a single tree with its lexical item to form a bonafide TagElem.
 --   This process can fail, however, because of filtering or enrichement
-combineOne :: ILexEntry -> Ttree GNode -> Either LexCombineError TagElem
+combineOne :: ILexEntry -> Ttree GNode -> LexCombineMonad TagElem
 combineOne lexRaw eRaw = -- Maybe monad
  -- trace ("\n" ++ (show wt)) $
  do let l1 = alphaConvert "-l" lexRaw
@@ -227,16 +223,19 @@ combineOne lexRaw eRaw = -- Maybe monad
    let lp = iparams l
        tp = params t
    in if length lp /= length tp
-      then Left $ OtherError t l $ "Parameter length mismatch"
+      then do lexTell $ OtherError t l $ "Parameter length mismatch"
+              fail ""
       else case unify lp tp of
-             Nothing -> Left $ OtherError t l $ "Paremeter unification error"
-             Just (ps2, subst) -> Right (replace subst l, t2)
+             Nothing -> do lexTell $ OtherError t l $ "Paremeter unification error"
+                           fail ""
+             Just (ps2, subst) -> return (replace subst l, t2)
                                   where t2 = (replace subst t) { params = ps2 }
   unifyInterfaceUsing ifn (l,e) =
     -- trace ("unify interface" ++ wt) $
     case unifyFeat (ifn l) (pinterface e) of
-    Nothing             -> Left $ OtherError e l $ "Interface unification error"
-    Just (int2, fsubst) -> Right $ (replace fsubst l, e2)
+    Nothing             -> do lexTell $ OtherError e l $ "Interface unification error"
+                              fail ""
+    Just (int2, fsubst) -> return (replace fsubst l, e2)
                            where e2 = (replace fsubst e) { pinterface = int2 }
   --
   enrichWithWarning (l,e) =
@@ -300,10 +299,10 @@ same as \verb!toto.top.foo=bar! (creates a warning) \\
 type PathEqLhs  = (String, Bool, String)
 type PathEqPair = (PathEqLhs, GeniVal)
 
-enrich :: ILexEntry -> Ttree GNode -> Either LexCombineError (Ttree GNode)
+enrich :: ILexEntry -> Ttree GNode -> LexCombineMonad (Ttree GNode)
 enrich l t =
  do -- separate into interface/anchor/named
-    let (intE, namedE) = lexEquations l
+    (intE, namedE) <- lift $ lexEquations l
     -- enrich the interface and everything else
     t2 <- foldM enrichInterface t intE
     -- enrich everything else
@@ -311,9 +310,9 @@ enrich l t =
  where
   toAvPair ((_,_,a),v) = AvPair a v
   enrichInterface tx en =
-    do (i2, isubs) <- unifyFeat [toAvPair en] (pinterface tx)
-         `catchError` (\_ -> throwError $ ifaceEnrichErr en)
-       return $ (replace isubs tx) { pinterface = i2 }
+    case unifyFeat [toAvPair en] (pinterface tx) of
+      Nothing -> lexTell (ifaceEnrichErr en) >> fail ""
+      Just (i2, isubs) -> return $ (replace isubs tx) { pinterface = i2 }
   ifaceEnrichErr (loc,_) = EnrichError
     { eeMacro    = t
     , eeLexEntry = l
@@ -322,14 +321,15 @@ enrich l t =
 enrichBy :: ILexEntry -- ^ lexeme (for debugging info)
          -> Ttree GNode
          -> (PathEqLhs, GeniVal) -- ^ enrichment eq
-         -> Either LexCombineError (Ttree GNode)
+         -> LexCombineMonad (Ttree GNode)
 enrichBy lexEntry t (eqLhs, eqVal) =
  case seekCoanchor eqName t of
  Nothing -> return t -- to be robust, we accept if the node isn't there
  Just a  ->
         do let tfeat = (if eqTop then gup else gdown) a
-           (newfeat, sub) <- unifyFeat [AvPair eqAtt eqVal] tfeat
-                              `catchError` (\_ -> throwError enrichErr)
+           (newfeat, sub) <- case unifyFeat [AvPair eqAtt eqVal] tfeat of
+                               Nothing -> lexTell enrichErr >> fail ""
+                               Just x  -> return x
            let newnode = if eqTop then a {gup   = newfeat}
                                   else a {gdown = newfeat}
            return $ fixNode newnode $ replace sub t
@@ -346,23 +346,22 @@ pathEqName = fst3.fst
 missingCoanchors :: ILexEntry -> Ttree GNode -> [String]
 missingCoanchors lexEntry t =
   -- list monad
-  do eq <- nubBy ((==) `on` pathEqName) $ snd $ lexEquations lexEntry
+  do eq <- nubBy ((==) `on` pathEqName) (snd justEquations)
      let name = pathEqName eq
      case seekCoanchor name t of
        Nothing -> [name]
        Just _  -> []
+  where
+   justEquations = fst . runWriter $ lexEquations lexEntry
 
 -- | Split a lex entry's path equations into interface enrichement equations
 --   or (co-)anchor modifiers
-lexEquations :: ILexEntry -> ([PathEqPair], [PathEqPair])
+lexEquations :: ILexEntry -> Writer [LexCombineError] ([PathEqPair],[PathEqPair])
 lexEquations =
-  partition (nameIs "interface") . map parseAv . iequations
+  fmap myPartition . mapM parseAv . iequations
   where
-   parseAv (AvPair a v) =
-    case parsePathEq a of
-      Left (err,peq) -> unsafePerformIO $ do putStrLn err
-                                             return (peq,v)
-      Right peq -> (peq, v)
+   myPartition = partition (nameIs "interface")
+   parseAv (AvPair a v) = fmap (\a2 -> (a2,v)) (parsePathEq a)
    nameIs n x = pathEqName x == n
 
 seekCoanchor :: String -> Ttree GNode -> Maybe GNode
@@ -381,21 +380,20 @@ matchNodeName n        = (== n) . gnname
 -- | Parse a path equation using the GenI conventions
 --   This always succeeds, but can return @Just warning@
 --   if anything anomalous comes up
-parsePathEq :: String -> Either (String,PathEqLhs) (PathEqLhs)
+parsePathEq :: String -> Writer [LexCombineError] PathEqLhs
 parsePathEq e =
   case wordsBy (== '.') e of
-  (n:"top":r) -> Right (n, True, rejoin r)
-  (n:"bot":r) -> Right (n, False, rejoin r)
-  ("top":r) -> Right ("anchor", True, rejoin r)
-  ("bot":r) -> Right ("anchor", False, rejoin r)
+  (n:"top":r) -> return (n, True, rejoin r)
+  (n:"bot":r) -> return (n, False, rejoin r)
+  ("top":r) -> return ("anchor", True, rejoin r)
+  ("bot":r) -> return ("anchor", False, rejoin r)
   ("anc":r) -> parsePathEq $ rejoin $ "anchor":r
-  ("anchor":r)    -> Right ("anchor", False, rejoin r)
-  ("interface":r) -> Right ("interface", False, rejoin r)
-  (n:r) -> Left (err, (n, True, rejoin r))
-           where err = "Warning: Interpreting path equation " ++ e ++
-                       " as applying to top of " ++ n ++ "."
-  _ -> Left (err, ("", True, e))
-       where err = "Warning: could not interpret path equation " ++ e
+  ("anchor":r)    -> return ("anchor", False, rejoin r)
+  ("interface":r) -> return ("interface", False, rejoin r)
+  (n:r) -> do tell [ BoringError $ "Interpreting path equation " ++ e ++ " as applying to top of " ++ n ++ "." ]
+              return (n, True, rejoin r)
+  _ -> do tell [ BoringError $ "Could not interpret path equation " ++ e ]
+          return ("", True, e)
  where
   rejoin = concat . intersperse "."
 \end{code}
