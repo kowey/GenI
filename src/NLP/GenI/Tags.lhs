@@ -114,7 +114,7 @@ data TagElem = TE {
                    ttreename    :: String,
                    tidnum       :: Integer,
                    ttype        :: Ptype,
-                   ttree        :: Tree GNode,
+                   ttree        :: Tree (GNode GeniVal),
                    tsemantics   :: Sem,
                    -- optimisation stuff
                    -- (polarity key to charge interval)
@@ -127,7 +127,7 @@ data TagElem = TE {
 
 -- | Given a tree(GNode) returns a list of substitution or adjunction
 --   nodes, as well as remaining nodes with a null adjunction constraint.
-detectSites :: Tree GNode -> ([NodeName], [NodeName], [NodeName])
+detectSites :: Tree (GNode GeniVal) -> ([NodeName], [NodeName], [NodeName])
 detectSites t =
   ( sites isSub           -- for substitution
   , sites (not.gaconstr)  -- for adjunction
@@ -139,7 +139,7 @@ detectSites t =
  isSub n = gtype n == Subs
  constrButNotSub n = gaconstr n && (not $ isSub n)
 
-toTagSite :: GNode -> TagSite
+toTagSite :: GNode GeniVal -> TagSite
 toTagSite n = TagSite (gnname n) (gup n) (gdown n) (gorigin n)
 \end{code}
 
@@ -334,7 +334,7 @@ tagLeaves :: TagElem -> [ (String, UninflectedDisjunction) ]
 tagLeaves te = [ (gnname pt, (getLexeme t, gup pt)) | (pt,t) <- preTerminals . ttree $ te ]
 
 -- | Try in order: lexeme, lexeme attributes, node name
-getLexeme :: GNode -> [String]
+getLexeme :: GNode GeniVal -> [String]
 getLexeme node =
   case glexeme node of
     []   -> fromMaybe [gnname node] $ firstMaybe grab lexemeAttributes

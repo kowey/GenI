@@ -244,7 +244,7 @@ data SimpleItem = SimpleItem
  , siPolpaths  :: BitVector
  -- for generation sans semantics
  -- , siAdjlist :: [(String,Integer)] -- (node name, auxiliary tree id)
- , siNodes   :: [GNode]    -- ^ actually a set
+ , siNodes   :: [GNode GeniVal]    -- ^ actually a set
  , siDerived :: Tree String
  , siRoot_    :: NodeName
  , siFoot_    :: Maybe NodeName
@@ -1211,7 +1211,7 @@ ttEmptySimpleItem
                }
  where
   
-ttEmptyNode :: GNode
+ttEmptyNode :: GNode GeniVal
 ttEmptyNode = GN { gnname = "empty"
                  , gup   = [ ttCat ttA_ ]
                  , gdown = [ ttCat ttA_ ]
@@ -1222,20 +1222,20 @@ ttEmptyNode = GN { gnname = "empty"
                  , gaconstr = False
                  }
 
-ttAdjNode :: GNode
+ttAdjNode :: GNode GeniVal
 ttAdjNode = ttEmptyNode { gnname = "testing-adjsite"
                         , gup    = [ ttCat ttA_, ttDet ttPlus_ ]
                         , gdown  = [ ttCat ttA_, ttDet ttMinus_ ]
                         }
 
-ttFootTop :: GNode
+ttFootTop :: GNode GeniVal
 ttFootTop = ttEmptyNode { gnname = "testing-foot-top"
                         , gup    = [ ttCat ttA_, ttDet ttPlus_ ]
                         , gdown  = [ ttCat ttA_, ttDet ttPlus_ ]
                         , gtype  = Foot
                         }
 
-ttFootBot :: GNode
+ttFootBot :: GNode GeniVal
 ttFootBot = ttEmptyNode { gnname = "testing-foot-bot"
                         , gup    = [ ttCat ttA_, ttDet ttMinus_ ]
                         , gdown  = [ ttCat ttA_, ttDet ttMinus_ ]

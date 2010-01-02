@@ -74,7 +74,7 @@ instance GeniShow Pred where
                 _        -> False
     showh = if hideh h then "" else geniShow h ++ ":"
 
-instance GeniShow GNode where
+instance GeniShow (GNode GeniVal) where
  geniShow x =
   let gaconstrstr = case (gaconstr x, gtype x) of
                     (True, Other) -> "aconstr:noadj"

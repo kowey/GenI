@@ -135,7 +135,7 @@ attachMorphHelper mfs te =
           newa = anchor { gup = unf, gdown = newgdown }
       in te2 { ttree = setMorphAnchor newa tt2 }
 
-setMorphAnchor :: GNode -> Tree GNode -> Tree GNode
+setMorphAnchor :: GNode GeniVal -> Tree (GNode GeniVal) -> Tree (GNode GeniVal)
 setMorphAnchor n t =
   let filt (Node a _) = (gtype a == Lex && ganchor a)
       fn (Node _ l)   = Node n l

@@ -67,7 +67,7 @@ import NLP.GenI.Tags (TagElem, emptyTE,
              ttype, tsemantics, ttree, tsempols,
              tinterface, ttrace,
              )
-import NLP.GenI.TreeSchemata ( Ttree(..) )
+import NLP.GenI.TreeSchemata ( Ttree(..), SchemaTree, SchemaNode )
 \end{code}
 }
 
@@ -164,10 +164,10 @@ lexTell x = lift (tell [x])
 
 data LexCombineError =
         BoringError String
-      | EnrichError { eeMacro    :: Ttree GNode
+      | EnrichError { eeMacro    :: SchemaTree
                     , eeLexEntry :: ILexEntry
                     , eeLocation :: PathEqLhs }
-     | OtherError (Ttree GNode) ILexEntry String
+     | OtherError SchemaTree ILexEntry String
 
 instance Show LexCombineError where
  show (BoringError s)    = s
@@ -196,8 +196,8 @@ combineList tsem gram lexitem =
 \begin{code}
 -- | Combine a single tree with its lexical item to form a bonafide TagElem.
 --   This process can fail, however, because of filtering or enrichement
-combineOne :: Sem -> ILexEntry -> Ttree GNode -> LexCombineMonad [TagElem]
-combineOne tsem lexRaw eRaw = -- Maybe monad
+combineOne :: ILexEntry -> Ttree GNode -> LexCombineMonad TagElem
+combineOne lexRaw eRaw = -- Maybe monad
  -- trace ("\n" ++ (show wt)) $
  do let l1 = alphaConvert "-l" lexRaw
         e1 = alphaConvert "-t" eRaw
@@ -211,7 +211,7 @@ combineOne tsem lexRaw eRaw = -- Maybe monad
               { idname = name
               , ttreename = pfamily e
               , ttype = ptype e
-              , ttree = setOrigin name . setLemAnchors . setAnchor (iword l) $ tree e
+              , ttree = undefined -- setOrigin name . setLemAnchors . setAnchor (iword l) $ tree e
               , tsemantics  = []
               , tsempols    = isempols l
               , tinterface  = pinterface e
@@ -307,7 +307,7 @@ same as \verb!toto.top.foo=bar! (creates a warning) \\
 type PathEqLhs  = (String, Bool, String)
 type PathEqPair = (PathEqLhs, GeniVal)
 
-enrich :: ILexEntry -> Ttree GNode -> LexCombineMonad (Ttree GNode)
+enrich :: ILexEntry -> SchemaTree -> LexCombineMonad SchemaTree
 enrich l t =
  do -- separate into interface/anchor/named
     (intE, namedE) <- lift $ lexEquations l
@@ -327,9 +327,9 @@ enrich l t =
     , eeLocation = loc }
 
 enrichBy :: ILexEntry -- ^ lexeme (for debugging info)
-         -> Ttree GNode
+         -> SchemaTree
          -> (PathEqLhs, GeniVal) -- ^ enrichment eq
-         -> LexCombineMonad (Ttree GNode)
+         -> LexCombineMonad SchemaTree
 enrichBy lexEntry t (eqLhs, eqVal) =
  case seekCoanchor eqName t of
  Nothing -> return t -- to be robust, we accept if the node isn't there
@@ -351,7 +351,7 @@ enrichBy lexEntry t (eqLhs, eqVal) =
 pathEqName :: PathEqPair -> String
 pathEqName = fst3.fst
 
-missingCoanchors :: ILexEntry -> Ttree GNode -> [String]
+missingCoanchors :: ILexEntry -> SchemaTree -> [String]
 missingCoanchors lexEntry t =
   -- list monad
   do eq <- nubBy ((==) `on` pathEqName) (snd justEquations)
@@ -372,7 +372,7 @@ lexEquations =
    parseAv (AvPair a v) = fmap (\a2 -> (a2,v)) (parsePathEq a)
    nameIs n x = pathEqName x == n
 
-seekCoanchor :: String -> Ttree GNode -> Maybe GNode
+seekCoanchor :: String -> SchemaTree -> Maybe SchemaNode
 seekCoanchor eqName t =
  case filterTree (matchNodeName eqName) (tree t) of
  [a] -> Just a
@@ -381,7 +381,7 @@ seekCoanchor eqName t =
                   "\nTree: " ++ pidname t ++ "\nFamily: " ++ pfamily t ++
                   "\nMatching on: " ++ eqName
 
-matchNodeName :: String -> GNode -> Bool
+matchNodeName :: String -> SchemaNode -> Bool
 matchNodeName "anchor" = ganchor
 matchNodeName n        = (== n) . gnname
 
@@ -433,7 +433,7 @@ GenI will convert these into non-substitution sites with a lexical item
 leaf node.
 
 \begin{code}
-setLemAnchors :: Tree GNode -> Tree GNode
+-- setLemAnchors :: Tree SchemaNode -> Tree SchemaNode
 setLemAnchors t =
  repAllNode fn filt t
  where
@@ -442,12 +442,12 @@ setLemAnchors t =
   fn (Node x k) = setLexeme (lemAnchorMaybeFake x) $
                     Node (x { gtype = Other, gaconstr = False }) k
   --
-  lemAnchorMaybeFake :: GNode -> [String]
+  lemAnchorMaybeFake :: GNode GeniVal -> [String]
   lemAnchorMaybeFake n =
     case lemAnchor n of
     Nothing -> ["ERR_UNSET_LEMMANCHOR"]
     Just l  -> l
-  lemAnchor :: GNode -> Maybe [String]
+  lemAnchor :: GNode GeniVal -> Maybe [String]
   lemAnchor n =
     case [ v | AvPair a v <- gdown n, a == _lemanchor ] of
     [l] | isConst l -> gConstraints l
@@ -464,7 +464,7 @@ likely the name and id of its elementary tree.  This is useful for
 building derivation trees
 
 \begin{code}
-setOrigin :: String -> Tree GNode -> Tree GNode
+setOrigin :: String -> Tree SchemaNode -> Tree SchemaNode
 setOrigin t = fmap (\g -> g { gorigin = t })
 \end{code}
 

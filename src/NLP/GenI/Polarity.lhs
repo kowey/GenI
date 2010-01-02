@@ -960,7 +960,7 @@ toZero x | x < 0     = (x, 0)
 prefixWith :: String -> [String] -> [String]
 prefixWith att = map (\x -> att ++ ('_' : x))
 
-substNodes :: TagElem -> [GNode]
+substNodes :: TagElem -> [GNode GeniVal]
 substNodes t = [ gn | gn <- (flatten.ttree) t, gtype gn == Subs ]
 
 substTops :: TagElem -> [Flist GeniVal]

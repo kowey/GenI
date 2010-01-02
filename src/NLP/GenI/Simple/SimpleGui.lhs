@@ -213,8 +213,10 @@ instance GraphvizShow Bool SimpleItem where
    let isHiglight n = gnname n `elem` (siHighlight.siGuiStuff) it
        info n | isHiglight n = (n, Just "red")
               | otherwise    = (n, Nothing)
+       gvSub :: (Bool, GNode GeniVal -> (GNode GeniVal, Maybe String)) -> String -> TagElem -> String
+       gvSub = graphvizShowAsSubgraph
    in    "\n// ------------------- elementary tree --------------------------\n"
-      ++ graphvizShowAsSubgraph (f, info) (p ++ "TagElem") (toTagElem it)
+      ++ gvSub (f, info) (p ++ "TagElem") (toTagElem it)
       ++ "\n// ------------------- derivation tree --------------------------\n"
       -- derivation tree is displayed without any decoration
       ++ (graphvizShowDerivation . siDerivation $ it)

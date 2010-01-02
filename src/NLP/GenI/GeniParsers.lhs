@@ -54,6 +54,7 @@ import NLP.GenI.General ((!+!), Interval, ival)
 import NLP.GenI.GeniVal (mkGConst, mkGVar, mkGAnon)
 import NLP.GenI.Btypes
 import NLP.GenI.Tags (TagElem(..), emptyTE, setTidnums)
+import NLP.GenI.TreeSchemata (SchemaTree)
 import NLP.GenI.GeniShow (GeniShow(geniShow))
 import NLP.GenI.PolarityTypes
 
@@ -668,14 +669,14 @@ n1[cat:p]![]
 \end{center}
 
 \begin{code}
-geniMacros :: Parser [Ttree GNode]
+geniMacros :: Parser [SchemaTree]
 geniMacros = tillEof $ many geniTreeDef
 
 initType, auxType :: Parser Ptype
 initType = do { reserved INITIAL ; return Initial  }
 auxType  = do { reserved AUXILIARY ; return Auxiliar }
 
-geniTreeDef :: Parser (Ttree GNode)
+geniTreeDef :: Parser SchemaTree
 geniTreeDef =
   do sourcePos <- getPosition
      family   <- identifier
@@ -712,7 +713,7 @@ geniTreeDef =
               , psemantics = psem
               }
 
-geniTree :: Parser (T.Tree GNode)
+geniTree :: Parser (T.Tree (GNode GeniVal))
 geniTree =
   do node <- geniNode
      kids <- option [] (braces $ many geniTree)
@@ -726,7 +727,7 @@ geniTree =
      --
      return (T.Node node kids)
 
-geniNode :: Parser GNode
+geniNode :: Parser (GNode GeniVal)
 geniNode =
   do name      <- identifier
      nodeType  <- option "" ( (keyword TYPE >> typeParser)

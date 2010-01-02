@@ -24,11 +24,11 @@ tree schemata.
 \ignore{
 \begin{code}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE OverlappingInstances #-}
 
 module NLP.GenI.TreeSchemata (
    Macros, emptyMacro,
-   SchemaTree, Ttree(..), Ptype(..),
+   SchemaTree, SchemaNode, Ttree(..), Ptype(..),
 
    -- Functions from Tree GNode
    root, rootUpd, foot, setLexeme, setAnchor, lexemeAttributes,
@@ -81,7 +81,7 @@ data Ttree a = TT
 data Ptype = Initial | Auxiliar | Unspecified
              deriving (Show, Eq, Data, Typeable)
 
-instance DescendGeniVal (Ttree GNode) where
+instance DescendGeniVal (Ttree (GNode GeniVal)) where
   descendGeniVal s mt =
     mt { params = descendGeniVal s (params mt)
        , tree   = descendGeniVal s (tree mt)
@@ -128,14 +128,14 @@ root (Node a _) = a
 rootUpd :: Tree a -> a -> Tree a
 rootUpd (Node _ l) b = (Node b l)
 
-foot :: Tree GNode -> GNode
+-- foot :: SchemaTree -> GNode [GeniVal]
 foot t = case filterTree (\n -> gtype n == Foot) t of
          [x] -> x
          _   -> geniBug $ "foot returned weird result"
 
 -- | Given a lexical item @s@ and a Tree GNode t, returns the tree t'
 --   where l has been assigned to the anchor node in t'
-setAnchor :: [String] -> Tree GNode -> Tree GNode
+-- setAnchor :: [String] -> SchemaTree -> SchemaTree
 setAnchor s t =
   let filt (Node a []) = (gtype a == Lex && ganchor a)
       filt _ = False
@@ -148,7 +148,7 @@ setAnchor s t =
 --   its unique child.  The idea is that it converts terminal lexeme nodes
 --   into preterminal nodes where the actual terminal is the given lexical
 --   item
-setLexeme :: [String] -> Tree GNode -> Tree GNode
+-- setLexeme :: [String] -> SchemaTree -> SchemaTree
 setLexeme l (Node a []) = Node a [ Node subanc [] ]
   where subanc = emptyGNode { gnname = '_' : ((gnname a) ++ ('.' : (concat l)))
                             , gaconstr = True
@@ -162,9 +162,10 @@ setLexeme _ _ = geniBug "impossible case in setLexeme - subtree with kids"
 
 \begin{code}
 -- | A single node of a TAG tree.
-data GNode = GN{gnname :: NodeName,
-                gup    :: Flist GeniVal,      -- ^ top feature structure
-                gdown  :: Flist GeniVal,      -- ^ bottom feature structure
+data GNode gv =
+             GN{gnname :: NodeName,
+                gup    :: Flist gv,   -- ^ top feature structure
+                gdown  :: Flist gv,   -- ^ bottom feature structure
                 ganchor  :: Bool,     -- ^ @False@ for na nodes
                 glexeme  :: [String], -- ^ @[]@ for na nodes
                 gtype    :: GType,
@@ -184,10 +185,10 @@ type NodeName = String
 \subsection{Traversal}
 
 \begin{code}
-instance Collectable GNode where
+instance Collectable gv => Collectable (GNode gv) where
   collect n = (collect $ gdown n) . (collect $ gup n)
 
-instance DescendGeniVal GNode where
+instance DescendGeniVal (GNode GeniVal) where
   descendGeniVal s gn =
     gn { gup = descendGeniVal s (gup gn)
        , gdown = descendGeniVal s (gdown gn) }
@@ -197,7 +198,7 @@ instance DescendGeniVal GNode where
 
 \begin{code}
 -- | A null 'GNode' which you can use for various debugging or display purposes.
-emptyGNode :: GNode
+emptyGNode :: GNode gv
 emptyGNode = GN { gnname = "",
                   gup = [], gdown = [],
                   ganchor = False,
@@ -206,7 +207,7 @@ emptyGNode = GN { gnname = "",
                   gaconstr = False,
                   gorigin = "" }
 
-gnnameIs :: NodeName -> GNode -> Bool
+gnnameIs :: NodeName -> GNode gv -> Bool
 gnnameIs n = (== n) . gnname
 \end{code}
 
@@ -240,7 +241,7 @@ The default show for GNode tries to be very compact; it only shows the value
 for cat attribute and any flags which are marked on that node.
 
 \begin{code}
-instance Show GNode where
+instance Show (GNode GeniVal) where
   show gn =
     let cat_ = case gCategory.gup $ gn of
                Nothing -> []

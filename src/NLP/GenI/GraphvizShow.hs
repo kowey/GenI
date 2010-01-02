@@ -49,7 +49,7 @@ import NLP.GenI.Graphviz
 
 type GvHighlighter a = a -> (a, Maybe String)
 
-nullHighlighter :: GvHighlighter GNode
+nullHighlighter :: GvHighlighter (GNode GeniVal)
 nullHighlighter a = (a,Nothing)
 
 instance GraphvizShow Bool TagElem where
@@ -58,7 +58,7 @@ instance GraphvizShow Bool TagElem where
  graphvizParams sf = graphvizParams (sf, nullHighlighter)
 
 
-instance GraphvizShow (Bool, GvHighlighter GNode) TagElem where
+instance GraphvizShow (Bool, GvHighlighter (GNode GeniVal)) TagElem where
  graphvizShowAsSubgraph (sf,hfn) prefix te =
     (gvShowTree (\_->[]) sf (prefix ++ "DerivedTree0") $
      fmap hfn $ ttree te)
@@ -78,7 +78,7 @@ instance GraphvizShow (Bool, GvHighlighter GNode) TagElem where
 -- Helper functions for the TagElem GraphvizShow instance
 -- ----------------------------------------------------------------------
 
-instance GraphvizShowNode (Bool) (GNode, Maybe String) where
+instance GraphvizShowNode (Bool) (GNode GeniVal, Maybe String) where
  -- compact -> (node, mcolour) -> String
  graphvizShowNode detailed prefix (gn, mcolour) =
    let -- attributes
@@ -108,7 +108,7 @@ instance GraphvizShowNode (Bool) (GNode, Maybe String) where
               showFs = gvUnlines . (map graphvizShow_)
    in gvNode prefix body (shapeParams ++ colorParams)
 
-instance GraphvizShowString () GNode where
+instance GraphvizShowString () (GNode GeniVal) where
   graphvizShow () gn =
     let stub  = showGnStub gn
         extra = showGnDecorations gn
@@ -123,14 +123,14 @@ instance GraphvizShowString () GeniVal where
   graphvizShow () (GeniVal (Just l) Nothing)   = '?':l
   graphvizShow () (GeniVal (Just l) (Just cs)) = '?':concat (l : "/" : intersperse "!" cs)
 
-showGnDecorations :: GNode -> String
+showGnDecorations :: GNode GeniVal -> String
 showGnDecorations gn =
   case gtype gn of
   Subs -> "↓"
   Foot -> "*"
   _    -> if gaconstr gn then "ᴺᴬ"   else ""
 
-showGnStub :: GNode -> String
+showGnStub :: GNode GeniVal -> String
 showGnStub gn =
  let cat = case getGnVal gup "cat" gn of
            Nothing -> ""
@@ -147,7 +147,7 @@ showGnStub gn =
      lexeme  = concat $ intersperse "!" $ glexeme gn
  in concat $ intersperse ":" $ filter (not.null) [ cat, idx, lexeme ]
 
-getGnVal :: (GNode -> Flist GeniVal) -> String -> GNode -> Maybe GeniVal
+getGnVal :: (GNode GeniVal -> Flist GeniVal) -> String -> GNode GeniVal -> Maybe GeniVal
 getGnVal getFeat attr gn =
   listToMaybe [ v | AvPair a v <- getFeat gn, a == attr ]
 
