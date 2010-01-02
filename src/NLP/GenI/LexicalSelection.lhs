@@ -45,7 +45,7 @@ import NLP.GenI.General(filterTree, repAllNode,
 import NLP.GenI.Btypes
   (Macros, ILexEntry, Lexicon,
    replace,
-   params,
+   Sem, sortSem, subsumeSem, params,
    AvPair(..),
    GNode(ganchor, gnname, gup, gdown, gaconstr, gtype, gorigin),
    GType(Subs, Other),
@@ -55,11 +55,12 @@ import NLP.GenI.Btypes
    toKeys,
    showLexeme,
    pidname, pfamily, pinterface, ptype, psemantics, ptrace,
-   setAnchor, setLexeme, tree, unifyFeat,
+   setAnchor, setLexeme, tree,
    alphaConvert,
    )
 import NLP.GenI.BtypesBinary ()
-import NLP.GenI.GeniVal( unify, GeniVal(gConstraints), isConst )
+import NLP.GenI.FeatureStructures (Flist, AvPair(..), unifyFeat)
+import NLP.GenI.GeniVal( unify, GeniVal(gConstraints), isConst, Subst )
 
 import NLP.GenI.Semantics ( subsumeSem, unifySem, Sem )
 import NLP.GenI.Tags (TagElem, emptyTE,
@@ -335,7 +336,7 @@ enrichBy lexEntry t (eqLhs, eqVal) =
  Nothing -> return t -- to be robust, we accept if the node isn't there
  Just a  ->
         do let tfeat = (if eqTop then gup else gdown) a
-           (newfeat, sub) <- case unifyFeat [AvPair eqAtt eqVal] tfeat of
+           (newfeat, sub) <- case enrichFeat (AvPair eqAtt eqVal) tfeat of
                                Nothing -> lexTell enrichErr >> fail ""
                                Just x  -> return x
            let newnode = if eqTop then a {gup   = newfeat}
@@ -347,6 +348,20 @@ enrichBy lexEntry t (eqLhs, eqVal) =
    enrichErr = EnrichError { eeMacro    = t
                            , eeLexEntry = lexEntry
                            , eeLocation = eqLhs }
+
+enrichFeat :: AvPair GeniVal -> Flist GeniVal -> Maybe (Flist GeniVal, Subst)
+enrichFeat av@(AvPair a v) fs =
+  case span (< av) fs of
+    (before,here:after) | avMatch here ->
+      do let (AvPair _ fv) = here
+         ([v2],sub) <- unify [v] [fv]
+         let av2 = AvPair a v2
+             fs2 = replace sub before ++ (av2 : replace sub after)
+         return (fs, sub)
+    (before,after) ->
+      let fs2 = before ++ (av : after) in  Just (fs2, Map.empty)
+  where
+   avMatch (AvPair fa _) = fa == a
 
 pathEqName :: PathEqPair -> String
 pathEqName = fst3.fst
