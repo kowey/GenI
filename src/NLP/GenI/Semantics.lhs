@@ -130,7 +130,7 @@ Notes about the subsumeSem function:
 --   @lsem@ does NOT subsume @tsem@, we return the empty list.
 subsumeSem :: Sem -> Sem -> [(Sem,Subst)]
 subsumeSem lsem tsem | length tsem < length lsem = []
-subsumeSem lsem tsem =
+subsumeSem lsem tsem = nub $ map (first sortSem) $
   catMaybes $ map ( subsumeSemHelper . zip lsem )
             $ permutations tsem
 
