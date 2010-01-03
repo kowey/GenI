@@ -181,12 +181,12 @@ parameters that we want to combine.
 \begin{code}
 -- | Given a lexical item, looks up the tree families for that item, and
 --   anchor the item to the trees.
-combineList :: Macros -> ILexEntry
+combineList :: Sem -> Macros -> ILexEntry
             -> ([LexCombineError],[TagElem]) -- ^ any warnings, plus the results
-combineList gram lexitem =
+combineList tsem gram lexitem =
   case [ t | t <- gram, pfamily t == tn ] of
        []   -> ([BoringError $ "Family " ++ tn ++ " not found in Macros"],[])
-       macs -> squish . swap . unzip $ map (\m -> runWriter . runMaybeT $ combineOne lexitem m) macs
+       macs -> squish . swap . unzip $ map (\m -> runWriter . runMaybeT $ combineOne tsem lexitem m) macs
   where
    tn = ifamname lexitem
    swap (x,y) = (y,x)
@@ -196,8 +196,8 @@ combineList gram lexitem =
 \begin{code}
 -- | Combine a single tree with its lexical item to form a bonafide TagElem.
 --   This process can fail, however, because of filtering or enrichement
-combineOne :: ILexEntry -> Ttree GNode -> LexCombineMonad [TagElem]
-combineOne lexRaw eRaw = -- Maybe monad
+combineOne :: Sem -> ILexEntry -> Ttree GNode -> LexCombineMonad [TagElem]
+combineOne tsem lexRaw eRaw = -- Maybe monad
  -- trace ("\n" ++ (show wt)) $
  do let l1 = alphaConvert "-l" lexRaw
         e1 = alphaConvert "-t" eRaw
@@ -221,8 +221,11 @@ combineOne lexRaw eRaw = -- Maybe monad
                          [] -> do lexTell $ OtherError e l "could not unify lemma and schema semantics"
                                   fail ""
                          xs -> return xs
-    return $ map (\(sem,sub) -> replace sub $ template { tsemantics = sem }) semUnifications
+    return $ concatMap (finaliseSemantics template) semUnifications
  where
+  finaliseSemantics template (sem,sub) =
+    do (sem2,sub2) <- sem `subsumeSem` replace sub tsem
+       return $ replace sub2 $ template { tsemantics = sem2 }
   unifyParamsWithWarning (l,t) =
    -- trace ("unify params " ++ wt) $
    let lp = iparams l
