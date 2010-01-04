@@ -266,9 +266,10 @@ treeLeaves (Node _ l ) = concatMap treeLeaves l
 
 -- | Return pairs of (parent, terminal)
 preTerminals :: Tree a -> [(a,a)]
-preTerminals (Node _ []) = []
-preTerminals (Node x ks) =
- [ (x,y) | (Node y ys) <- ks, null ys ] ++ concatMap preTerminals ks
+preTerminals (Node r xs) = concatMap (helper r) xs
+ where
+  helper p (Node k []) = [ (p,k) ]
+  helper _ (Node p xs) = concatMap (helper p) xs
 
 -- | 'repNode' @fn filt t@ returns a version of @t@ in which the first
 --   node which @filt@ matches is transformed using @fn@.
