@@ -458,7 +458,7 @@ optionsForOptimisation =
 
 rootFeatureOption :: OptDescr Flag
 rootFeatureOption =
-  Option [] ["rootfeat"]
+  Option ['r'] ["rootfeat"]
          (reqArg RootFeatureFlg readRF "FEATURE")
          ("root features 'FEATURE' (for polarities, example:"
           ++ showFlist exampleRF ++ ")")
