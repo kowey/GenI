@@ -23,10 +23,9 @@
 module NLP.GenI.Semantics where
 
 import Control.Arrow ( first, (***) )
-import Control.Monad ( guard )
 import Data.Generics.PlateDirect
-import Data.List ( permutations, isPrefixOf, nub, sort, sortBy, delete, insert )
-import Data.Maybe ( isJust, catMaybes )
+import Data.List ( isPrefixOf, nub, sort, sortBy, delete, insert )
+import Data.Maybe ( isJust, isNothing )
 import qualified Data.Map as Map
 
 import NLP.GenI.FeatureStructures
@@ -197,24 +196,22 @@ unifySemH [] xs = return (xs, Map.empty)
 unifySemH xs [] = error $ "unifySem: shorter list should always be in front: " ++ showSem xs
 unifySemH (x:xs) ys = nub $ do
  let attempts = zip ys $ map (unifyPred x) ys
- if all (null . snd) attempts
+ if all (isNothing . snd) attempts
     then first (x:) `fmap` unifySemH xs ys -- only include x unmolested if no unification succeeds
-    else do (y, results) <- attempts
-            guard . not . null $ results
-            (x2, subst)  <- results
+    else do (y, Just (x2, subst)) <- attempts
             let next_xs = replace subst xs
                 next_ys = replace subst $ delete y ys
                 prepend = insert x2 *** mergeSubst subst
             prepend `fmap` unifySemH next_xs next_ys
 
-unifyPred :: Pred -> Pred -> [ (Pred, Subst) ]
+unifyPred :: Pred -> Pred -> Maybe (Pred, Subst)
 unifyPred (h1, p1, la1) (h2, p2, la2) =
   if length la1 == length la2
   then do let hpla1 = h1:p1:la1
               hpla2 = h2:p2:la2
           (hpla, sub) <- hpla1 `unify` hpla2
           return (toPred hpla, sub)
-  else []
+  else Nothing
  where
   toPred (h:p:xs) = (h, p, xs)
   toPred _ = error "unifyPred.toPred"
