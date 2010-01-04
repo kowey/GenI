@@ -281,13 +281,13 @@ prop_subsumePred_reflexive pred =
  where
   s = alphaConvert "" $ fromGTestPred pred
 
+prop_subsumePred_antisymmetric :: GTestPred -> GTestPred -> Property
 prop_subsumePred_antisymmetric x_ y_ =
  all qc_not_empty_GVar_Pred [ x, y ] && x `tt_subsumePred` y ==>
    x `tt_pred_equiv` y || not (y `tt_subsumePred` x)
  where
-   (x, y) = case alphaConvert "" [ x_, y_ ] of
-             [n1,n2] -> (n1,n2)
-             _ -> error "huh? alphaConvert length mismatch"
+   x = alphaConvert "-1" (fromGTestPred x_)
+   y = alphaConvert "-2" (fromGTestPred y_)
 
 tt_subsumePred x y = isJust (subsumePred x y)
 tt_pred_equiv (h1,p1,as1) (h2,p2,as2) =
