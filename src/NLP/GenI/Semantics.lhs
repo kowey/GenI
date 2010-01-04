@@ -128,22 +128,25 @@ Notes about the subsumeSem function:
 --   the two semantics such that @lsem@ subsumes @tsem@.  If
 --   @lsem@ does NOT subsume @tsem@, we return the empty list.
 subsumeSem :: Sem -> Sem -> [(Sem,Subst)]
-subsumeSem lsem tsem | length tsem < length lsem = []
-subsumeSem lsem tsem = nub $ map (first sortSem) $
-  catMaybes $ map ( subsumeSemHelper . zip lsem )
-            $ permutations tsem
-
--- subsumeSemHelper :: [ (Pred, Pred) ] -> Maybe (Sem, Subst)
-subsumeSemHelper lts =
-  case next lts of
-    Nothing          -> Nothing
-    Just (xs, subst) -> Just (replace subst xs, subst)
+subsumeSem x y | length x < length y = []
+subsumeSem x_ y_ = map (first sortSem) $ subsumeSemH x y
  where
-  next [] = Just ([], Map.empty)
-  next ((l,t):lts) =
-    do (nlt, subst)   <- l `subsumePred` t
-       (lts2, subst2) <- next (replace subst lts)
-       return (nlt:lts2, mergeSubst subst subst2)
+  -- the sorting is just to ensure that we get results in the same order
+  -- not sure if it's really needed
+  x = sort x_
+  y = sort y_
+
+subsumeSemH :: Sem -> Sem -> [(Sem,Subst)]
+subsumeSemH [] [] = [ ([], Map.empty) ]
+subsumeSemH _ []  = error "subsumeSemH: got longer list in front"
+subsumeSemH []     ys = [ (ys, Map.empty) ]
+subsumeSemH (x:xs) ys = nub $
+ do let attempts = zip ys $ map (subsumePred x) ys
+    (y, Just (x2, subst)) <- attempts
+    let next_xs = replace subst xs
+        next_ys = replace subst $ delete y ys
+        prepend = insert x2 *** mergeSubst subst
+    prepend `fmap` subsumeSemH next_xs next_ys
 \end{code}
 
 As for literals $l$ and $i$, $l \sqsubseteq i$ if
