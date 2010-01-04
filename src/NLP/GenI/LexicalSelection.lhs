@@ -195,8 +195,8 @@ combineList tsem gram lexitem =
 \begin{code}
 -- | Combine a single tree with its lexical item to form a bonafide TagElem.
 --   This process can fail, however, because of filtering or enrichement
-combineOne :: ILexEntry -> Ttree GNode -> LexCombineMonad TagElem
-combineOne lexRaw eRaw = -- Maybe monad
+combineOne :: Sem -> ILexEntry -> SchemaTree -> LexCombineMonad [TagElem]
+combineOne tsem lexRaw eRaw = -- Maybe monad
  -- trace ("\n" ++ (show wt)) $
  do let l1 = alphaConvert "-l" lexRaw
         e1 = alphaConvert "-t" eRaw
