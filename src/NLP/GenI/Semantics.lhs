@@ -128,7 +128,7 @@ Notes about the subsumeSem function:
 --   the two semantics such that @lsem@ subsumes @tsem@.  If
 --   @lsem@ does NOT subsume @tsem@, we return the empty list.
 subsumeSem :: Sem -> Sem -> [(Sem,Subst)]
-subsumeSem x y | length x < length y = []
+subsumeSem x y | length x > length y = []
 subsumeSem x_ y_ = map (first sortSem) $ subsumeSemH x y
  where
   -- the sorting is just to ensure that we get results in the same order
