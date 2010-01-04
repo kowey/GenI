@@ -54,3 +54,5 @@ thing-bad  thing-bad  () semantics:[thing-bad()]
 "string-literal-in-lemma" term () semantics:["string-lit'+!|"(foo)]
 
 lemanchor lemanchor() semantics:[lemanchor()]
+
+preterminal preterminal() semantics:[preterminal()]

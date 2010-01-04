@@ -124,3 +124,8 @@ M [cat:x]![] {
   Z type:subst [cat:y]![lemanchor:world]
 }
 
+preterminal () initial
+M [cat:x]![] {
+ X anchor [cat:x]![]
+ Y [cat:y]![lemanchor:hello]
+}

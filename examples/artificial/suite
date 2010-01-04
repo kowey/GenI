@@ -27,3 +27,4 @@ tb-unification-1 semantics:[tb-unification-bot()]
 tb-unification-2 semantics:[tb-unification-bot() tb-unification-adj()]
 
 lemanchor semantics:[lemanchor()]
+preterminal semantics:[preterminal()]
