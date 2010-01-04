@@ -129,3 +129,7 @@ M [cat:x]![] {
  X anchor [cat:x]![]
  Y [cat:y]![lemanchor:hello]
 }
+
+
+disjunction(?X ?Y ?Z) initial
+X anchor [cat:?X;?Y;?Z x:?X y:?Y z:?Z foo:?X/x|y|z;?Z;a]![]

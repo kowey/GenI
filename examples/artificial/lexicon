@@ -56,3 +56,5 @@ thing-bad  thing-bad  () semantics:[thing-bad()]
 lemanchor lemanchor() semantics:[lemanchor()]
 
 preterminal preterminal() semantics:[preterminal()]
+
+disjunction disjunction(x y z) semantics:[disjunction()]
