@@ -55,8 +55,10 @@ data GeniVal = GeniVal { gLabel       :: Maybe String
 mkGConst :: String   -- ^ one value
          -> [String] -- ^ any additional values (atomic disjunction)
          -> GeniVal
-mkGConst x xs = GeniVal Nothing (Just . sort . nub $ x:xs)
+mkGConst x xs  = GeniVal Nothing (Just . sort . nub $ x:xs)
+mkGConstNone x = mkGConst x []
 mkGVar x mxs  = GeniVal (Just x) ((sort . nub) `fmap` mxs)
+mkGVarNone x  = mkGVar x Nothing
 mkGAnon       = GeniVal Nothing Nothing
 
 instance Uniplate GeniVal where
