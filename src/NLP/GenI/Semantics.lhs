@@ -124,9 +124,9 @@ Notes about the subsumeSem function:
 \end{enumerate}
 
 \begin{code}
--- | @lsem `subsumeSem` tsem@ returns the list of ways to unify
---   the two semantics such that @lsem@ subsumes @tsem@.  If
---   @lsem@ does NOT subsume @tsem@, we return the empty list.
+-- | @x `subsumeSem` y@ returns all the possible ways to unify
+--   @x@ with some SUBSET of @y@ so that @x@ subsumes @y@.
+--   If @x@ does NOT subsume @y@, we return the empty list.
 subsumeSem :: Sem -> Sem -> [(Sem,Subst)]
 subsumeSem x y | length x > length y = []
 subsumeSem x_ y_ = map (first sortSem) $ subsumeSemH x y
@@ -139,7 +139,7 @@ subsumeSem x_ y_ = map (first sortSem) $ subsumeSemH x y
 subsumeSemH :: Sem -> Sem -> [(Sem,Subst)]
 subsumeSemH [] [] = [ ([], Map.empty) ]
 subsumeSemH _ []  = error "subsumeSemH: got longer list in front"
-subsumeSemH []     ys = [ (ys, Map.empty) ]
+subsumeSemH []     ys = [ ([], Map.empty) ]
 subsumeSemH (x:xs) ys = nub $
  do let attempts = zip ys $ map (subsumePred x) ys
     (y, Just (x2, subst)) <- attempts
@@ -233,7 +233,8 @@ testSuite = testGroup "NLP.GenI.Semantics"
      , testProperty "antisymmetric" prop_subsumePred_antisymmetric
      ]
  , testGroup "subsumeSem"
-     [ testProperty "reflexive" prop_subsumeSem_reflexive
+     [ testProperty "reflexive"    prop_subsumeSem_reflexive
+     , testProperty "only return matching portion" prop_subsumeSem_length
      , testCase "works 1"  $ assertBool "" $ not . null $ sem1 `subsumeSem` sem2
      , testCase "works 2"  $ assertBool "" $ not . null $ sem1 `subsumeSem` (sem2 ++ sem2)
      , testCase "distinct" $ assertBool "" $ null $ (sem1 ++ sem1) `subsumeSem` sem2
@@ -259,6 +260,16 @@ testSuite = testGroup "NLP.GenI.Semantics"
   lit1 = (mkGConst "a" [], mkGConst "apple" [], [mkGVar "A" Nothing])
   lit_x = (mkGConst "a" [], mkGConst "apple" [], [mkGConst "x" []])
   lit_y = (mkGConst "a" [], mkGConst "apple" [], [mkGConst "y" []])
+
+prop_subsumeSem_length :: [GTestPred] -> [GTestPred] -> Property
+prop_subsumeSem_length lits1 lits2 =
+  all qc_not_empty_GVar_Pred s1 && all qc_not_empty_GVar_Pred s2 && not (null sboth) ==>
+    all (\x -> length (fst x) == s1_len) sboth
+ where
+  sboth = s1 `subsumeSem` s2
+  s1_len = length s1
+  s1 = alphaConvert "-1" $ map fromGTestPred lits1
+  s2 = alphaConvert "-2" $ map fromGTestPred lits2
 
 prop_subsumeSem_reflexive lits =
   not (null s) && all qc_not_empty_GVar_Pred s ==> not . null $ s `subsumeSem` s
