@@ -121,8 +121,11 @@ candidateGui pst f xs = do
     updateTrace gvSt
   --
   let layMain = fill $ row 2 [ fill tb, vfill laySide ]
-      theItems = if null warning then [ layMain ] else [ hfill (label warning) , layMain ]
-      lay  = fill $ container p $ column 5 theItems
+  theItems <- if null warning
+                 then return [ layMain ]
+                 else do warningTxt <- textCtrl p [ text := warning ]
+                         return [ hfill (widget warningTxt), layMain ]
+  let lay  = fill $ container p $ column 5 theItems
   return (lay, gvRef, updater)
 
 sectionsBySem :: (TagItem t) => [t] -> [ (Maybe t, String) ]
