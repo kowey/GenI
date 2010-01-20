@@ -41,7 +41,6 @@ import NLP.GenI.Configuration
   ( Params
   , builderType , BuilderType(..)
   )
-import qualified NLP.GenI.Builder as B
 import NLP.GenI.Simple.SimpleBuilder
 
 regressionGeni :: ProgStateRef -> IO ()
@@ -75,7 +74,6 @@ runOnSemInput pstRef semInput =
      pst <- readIORef pstRef
      let config = pa pst
          go = case builderType config of
-                NullBuilder   -> helper B.nullBuilder
                 SimpleBuilder -> helper simpleBuilder_2p
                 SimpleOnePhaseBuilder -> helper simpleBuilder_1p
      sort `fmap` go

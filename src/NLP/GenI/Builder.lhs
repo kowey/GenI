@@ -242,6 +242,18 @@ unlessEmptySem input _ =
 --    * pol_max_states - number of states in the polarity automaton with the most states
 --
 --    * pol_total_tras - number of transitions in the polarity automata with the most transitions
+--
+--    * sem_literals    - number of literals in the input semantics
+--
+--    * lex_trees       - total number of lexically selected trees
+
+--    * lex_foot_nodes  - total number of nodes of any sort in lexically selected trees
+--
+--    * lex_subst_nodes - total number of sustitution nodes in lexically selected trees
+--
+--    * lex_foot_nodes  - total number of foot nodes in lexically selected trees
+--
+--    * plex_...        - same as the lex_ equivalent, but after polarity filtering
 run :: Builder st it Params -> Input -> Params -> (st, Statistics)
 run builder input config =
   let -- 1 run the setup stuff
@@ -406,42 +418,6 @@ num_iterations, chart_size, num_comparisons :: String
 num_iterations  = "iterations"
 chart_size      = "chart_size"
 num_comparisons = "comparisons"
-\end{code}
-
-\section{The null builder}
-
-For the purposes of tracking certain statistics without interfering with the
-lazy evaluation of the real builders.  For example, one we would like to be
-able to do is count the number of substitution and foot nodes in the lexical
-selection.  Doing so would in a real builder might cause it to walk entire
-trees for ptoentially no good reason.
-
-\begin{code}
-nullBuilder :: Builder () (NullState ()) Params
-nullBuilder = Builder
-  { NLP.GenI.Builder.init = \_ c -> ((), initStats c)
-  , step         = return ()
-  , stepAll      = return ()
-  , finished     = const True
-  , unpack       = return []
-  , partial      = return []
-  }
-
-type NullState a = BuilderState () a
-
--- | Running the null builder allows you to track certain statistics
---
---    * sem_literals    - number of literals in the input semantics
---
---    * lex_trees       - total number of lexically selected trees
-
---    * lex_foot_nodes  - total number of nodes of any sort in lexically selected trees
---
---    * lex_subst_nodes - total number of sustitution nodes in lexically selected trees
---
---    * lex_foot_nodes  - total number of foot nodes in lexically selected trees
---
---    * plex_...        - same as the lex_ equivalent, but after polarity filtering
 \end{code}
 
 % ----------------------------------------------------------------------

@@ -148,7 +148,6 @@ runOnSemInput pstRef args semInput =
          dump = hasFlagP DumpDerivationFlg config
          useRanking = hasFlagP RankingConstraintsFlg config
      (results, stats) <- case builderType config of
-                            NullBuilder   -> helper B.nullBuilder
                             SimpleBuilder -> helper simpleBuilder_2p
                             SimpleOnePhaseBuilder -> helper simpleBuilder_1p
      warningsOut <- warnings `fmap` readIORef pstRef

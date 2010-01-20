@@ -153,8 +153,7 @@ mainGui pstRef
        algoChoiceBox <- radioBox f Vertical (map show mainBuilderTypes)
                         [ selection := case builderType config of
                                        SimpleBuilder -> 0
-                                       SimpleOnePhaseBuilder -> 1
-                                       NullBuilder   -> 0 ]
+                                       SimpleOnePhaseBuilder -> 1 ]
        set algoChoiceBox [ on select := toggleAlgo pstRef algoChoiceBox ]
        polChk <- optCheckBox Polarised pstRef f
           [ text := "Polarities"
@@ -569,7 +568,6 @@ doGenerate f pstRef sembox detectPolsTxt rootFeatTxt useDebugger pauseOnLex =
     let config = pa pst
         withBuilderGui a =
           case builderType config of
-          NullBuilder   -> error "No gui available for NullBuilder"
           SimpleBuilder         -> a simpleGui_2p
           SimpleOnePhaseBuilder -> a simpleGui_1p
     --

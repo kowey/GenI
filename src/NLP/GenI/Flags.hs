@@ -41,8 +41,7 @@ data Optimisation = PolOpts
 
 type Instruction = (FilePath, Maybe [String])
 
-data BuilderType = NullBuilder |
-                   SimpleBuilder | SimpleOnePhaseBuilder
+data BuilderType = SimpleBuilder | SimpleOnePhaseBuilder
      deriving (Eq, Typeable)
 
 data GrammarType = GeniHand    -- ^ geni's text format
@@ -51,7 +50,6 @@ data GrammarType = GeniHand    -- ^ geni's text format
      deriving (Show, Eq, Typeable)
 
 instance Show BuilderType where
-  show NullBuilder           = "null"
   show SimpleBuilder         = "simple-2p"
   show SimpleOnePhaseBuilder = "simple-1p"
 

@@ -579,7 +579,6 @@ mainBuilderTypes =
 
 -- | Hint: compose with (map toLower) to make it case-insensitive
 mReadBuilderType :: String -> Maybe BuilderType
-mReadBuilderType "null"      = Just NullBuilder
 mReadBuilderType "simple"    = Just SimpleBuilder
 mReadBuilderType "simple-2p" = Just SimpleBuilder
 mReadBuilderType "simple-1p" = Just SimpleOnePhaseBuilder
