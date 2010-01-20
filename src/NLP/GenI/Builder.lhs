@@ -268,8 +268,8 @@ run builder input config =
               sn = [ n | n <- nodes, gtype n == Subs  ]
               an = [ n | n <- nodes, gtype n == Foot  ]
       (tsem,_,_) = inSemInput input
-      cands = map fst $ inCands input
-      cands2 = concatMap concat . automatonPathSets . prFinal $ autstuff
+      cands = nub . map fst $ inCands input
+      cands2 = nub . concatMap concat . automatonPathSets . prFinal $ autstuff
       countUp = do incrCounter "sem_literals"  $ length tsem
                    --
                    incrCounter "lex_subst_nodes" snl
