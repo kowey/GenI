@@ -253,8 +253,30 @@ run builder input config =
       auts = map snd3 (prIntermediate autstuff)
       -- 2 call the init stuff
       (iSt, iStats) = init builder input2 config
+      -- 2b extra statistics
+      countsFor ts = (length ts, length nodes, length sn, length an)
+        where nodes = concatMap (flatten.ttree) ts
+              sn = [ n | n <- nodes, gtype n == Subs  ]
+              an = [ n | n <- nodes, gtype n == Foot  ]
+      (tsem,_,_) = inSemInput input
+      cands = map fst $ inCands input
+      cands2 = concatMap concat . automatonPathSets . prFinal $ autstuff
+      countUp = do incrCounter "sem_literals"  $ length tsem
+                   --
+                   incrCounter "lex_subst_nodes" snl
+                   incrCounter "lex_foot_nodes"  anl
+                   incrCounter "lex_nodes"        nl
+                   incrCounter "lex_trees"        tl
+                   -- node count after polarities are taken into account
+                   incrCounter "plex_subst_nodes" snl2
+                   incrCounter "plex_foot_nodes"  anl2
+                   incrCounter "plex_nodes"        nl2
+                   incrCounter "plex_trees"        tl2
+                where (tl , nl , snl , anl ) = countsFor cands
+                      (tl2, nl2, snl2, anl2) = countsFor cands2
       -- 3 step through the whole thing
-      stepAll_ = do incrCounter "pol_used_bundles" $ fst3 polcount
+      stepAll_ = do countUp
+                    incrCounter "pol_used_bundles" $ fst3 polcount
                     incrCounter "pol_used_paths"   $ snd3 polcount
                     incrCounter "pol_seed_paths"   $ thd3 polcount
                     incrCounter "pol_total_states" $ sum $ map numStates auts
@@ -400,7 +422,7 @@ trees for ptoentially no good reason.
 \begin{code}
 nullBuilder :: Builder () (NullState ()) Params
 nullBuilder = Builder
-  { NLP.GenI.Builder.init = initNullBuilder
+  { NLP.GenI.Builder.init = \_ c -> ((), initStats c)
   , step         = return ()
   , stepAll      = return ()
   , finished     = const True
@@ -423,32 +445,6 @@ type NullState a = BuilderState () a
 --    * lex_foot_nodes  - total number of foot nodes in lexically selected trees
 --
 --    * plex_...        - same as the lex_ equivalent, but after polarity filtering
-initNullBuilder ::  Input -> Params -> ((), Statistics)
-initNullBuilder input config =
-  let countsFor ts = (length ts, length nodes, length sn, length an)
-        where nodes = concatMap (flatten.ttree) ts
-              sn = [ n | n <- nodes, gtype n == Subs  ]
-              an = [ n | n <- nodes, gtype n == Foot  ]
-      --
-      (tsem,_,_) = inSemInput input
-      cands = map fst $ inCands input
-      (_,_,autstuff) = preInit input config
-      cands2 = concatMap concat . automatonPathSets . prFinal $ autstuff
-      --
-      countUp = do incrCounter "sem_literals"  $ length tsem
-                   --
-                   incrCounter "lex_subst_nodes" snl
-                   incrCounter "lex_foot_nodes"  anl
-                   incrCounter "lex_nodes"        nl
-                   incrCounter "lex_trees"        tl
-                   -- node count after polarities are taken into account
-                   incrCounter "plex_subst_nodes" snl2
-                   incrCounter "plex_foot_nodes"  anl2
-                   incrCounter "plex_nodes"        nl2
-                   incrCounter "plex_trees"        tl2
-                where (tl , nl , snl , anl ) = countsFor cands
-                      (tl2, nl2, snl2, anl2) = countsFor cands2
-  in runState (execStateT countUp ()) (initStats config)
 \end{code}
 
 % ----------------------------------------------------------------------
@@ -480,7 +476,6 @@ instance JSON LemmaPlus where
      JSObject . toJSObject $ [ ("lemma", showJSON l)
                              , ("lemma-features", showJSON $ showFlist fs)
                              ]
-
 parsecToJSON :: Monad m => String -> CharParser () b -> String -> m b
 parsecToJSON description p str =
  case runParser p () "" str of
