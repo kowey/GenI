@@ -65,7 +65,7 @@ import NLP.GenI.Configuration
     RootFeatureFlg(..),
     Optimisation(..), hasOpt,
   )
-import NLP.GenI.General (geniBug, BitVector, fst3, snd3, thd3)
+import NLP.GenI.General (geniBug, BitVector, snd3, thd3)
 import NLP.GenI.Btypes
   ( ILexEntry, SemInput, Sem, Pred, showPred,
     Flist, showFlist, gtype, GType(Subs, Foot),
@@ -178,7 +178,7 @@ alpha conversion so that unification does not do the wrong thing when two trees
 have the same variables.
 
 \begin{code}
-preInit :: Input -> Params -> (Input, (Int,Int,Int), PolResult)
+preInit :: Input -> Params -> (Input, PolResult)
 preInit input config =
  let (cand,_) = unzip $ inCands input
      seminput = inSemInput input
@@ -195,16 +195,12 @@ preInit input config =
      combosPol = if isPol then autpaths else [cand]
      -- chart sharing optimisation
      (cands2, pathIds) = unzip $ detectPolPaths combosPol
-     -- the number of paths explored vs possible
-     polcount = ( length autpaths
-                , length . automatonPaths . prFinal   $ autstuff
-                , length . automatonPaths . prInitial $ autstuff)
      --
      fixate ts ps = zip (map alphaConvertById $ setTidnums ts) ps
      input2 = input { inCands    = fixate cands2 pathIds
                     , inSemInput = (prSem autstuff, snd3 seminput, thd3 seminput) }
      -- note: autstuff is only useful for the graphical debugger
-  in (input2, polcount, autstuff)
+  in (input2, autstuff)
 \end{code}
 
 \begin{code}
@@ -249,11 +245,12 @@ unlessEmptySem input _ =
 run :: Builder st it Params -> Input -> Params -> (st, Statistics)
 run builder input config =
   let -- 1 run the setup stuff
-      (input2, polcount, autstuff) = preInit input config
+      (input2, autstuff) = preInit input config
       auts = map snd3 (prIntermediate autstuff)
       -- 2 call the init stuff
       (iSt, iStats) = init builder input2 config
       -- 2b extra statistics
+      autpaths = map concat . automatonPathSets . prFinal $ autstuff
       countsFor ts = (length ts, length nodes, length sn, length an)
         where nodes = concatMap (flatten.ttree) ts
               sn = [ n | n <- nodes, gtype n == Subs  ]
@@ -276,9 +273,9 @@ run builder input config =
                       (tl2, nl2, snl2, anl2) = countsFor cands2
       -- 3 step through the whole thing
       stepAll_ = do countUp
-                    incrCounter "pol_used_bundles" $ fst3 polcount
-                    incrCounter "pol_used_paths"   $ snd3 polcount
-                    incrCounter "pol_seed_paths"   $ thd3 polcount
+                    incrCounter "pol_used_bundles" $ length autpaths
+                    incrCounter "pol_used_paths"   $ length . automatonPaths . prFinal   $ autstuff
+                    incrCounter "pol_seed_paths"   $ length . automatonPaths . prInitial $ autstuff
                     incrCounter "pol_total_states" $ sum $ map numStates auts
                     incrCounter "pol_total_trans"  $ sum $ map numTransitions auts
                     incrCounter "pol_max_states"   $ maximum $ map numStates auts

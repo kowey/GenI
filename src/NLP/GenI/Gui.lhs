@@ -653,7 +653,7 @@ debugGui builderGui pstRef pauseOnLex =
     let step2 newCands =
          do -- generation step 2.A (run polarity stuff)
             let newInitStuff = initStuff { B.inCands = map (\x -> (x, -1)) newCands }
-                (input2, _, autstuff) = B.preInit newInitStuff config
+                (input2, autstuff) = B.preInit newInitStuff config
             -- automata tab
             autPnl <- if hasOpt Polarised config
                          then fst3 `fmap` polarityGui nb (prIntermediate autstuff) (prFinal autstuff)
