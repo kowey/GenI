@@ -65,7 +65,7 @@ and you can just think of $-2n$ as shorthand for $(-2,-2)n$.
 \begin{code}
 module NLP.GenI.Polarity(
                 -- * Entry point
-                PolAut, PolState(PolSt), AutDebug, PolResult,
+                PolAut, PolState(PolSt), AutDebug, PolResult(..),
                 buildAutomaton,
 
                 -- * Inner stuff (exported for debugging?)
@@ -111,7 +111,10 @@ import NLP.GenI.Tags(TagElem(..), TagItem(..), setTidnums)
 
 \begin{code}
 -- | intermediate auts, seed aut, final aut, potentially modified sem
-type PolResult = ([AutDebug], PolAut, PolAut, Sem)
+data PolResult = PolResult { prIntermediate :: [AutDebug]
+                           , prInitial      :: PolAut
+                           , prFinal        :: PolAut
+                           , prSem          :: Sem }
 type AutDebug  = (PolarityKey, PolAut, PolAut)
 
 -- | Constructs a polarity automaton.  For debugging purposes, it returns
@@ -198,7 +201,10 @@ makePolAut candsRaw tsemRaw extraPol =
        where aut   = buildPolAut k initK (thd3 $ head xs)
              initK = Map.findWithDefault (ival 0) k extraPol
      res = foldr build [(PolarityKey "(seed)",seed,prune seed)] ks
- in (reverse res, seed, thd3 $ head res, tsem)
+ in PolResult { prIntermediate = reverse res
+              , prInitial      = seed
+              , prFinal        = thd3 $ head res
+              , prSem          = tsem }
 \end{code}
 
 % ====================================================================

@@ -73,7 +73,7 @@ import NLP.GenI.Btypes
     GeniVal
   )
 import NLP.GenI.GeniParsers ( geniFeats, runParser, CharParser )
-import NLP.GenI.Polarity  (PolResult, buildAutomaton, detectPolPaths)
+import NLP.GenI.Polarity  (PolResult(..), buildAutomaton, detectPolPaths)
 import NLP.GenI.Statistics (Statistics, incrIntMetric,
                    Metric(IntMetric), updateMetrics,
                    queryMetrics, queryIntMetric,
@@ -191,17 +191,18 @@ preInit input config =
      isPol = hasOpt Polarised config
      -- polarity optimisation (if enabled)
      autstuff = buildAutomaton polsToDetect rootFeat extraPol seminput cand
-     (_, seedAut, aut, sem2) = autstuff
-     autpaths = map concat $ automatonPathSets aut
+     autpaths = map concat . automatonPathSets . prFinal $ autstuff
      combosPol = if isPol then autpaths else [cand]
      -- chart sharing optimisation
      (cands2, pathIds) = unzip $ detectPolPaths combosPol
      -- the number of paths explored vs possible
-     polcount = (length autpaths, length $ automatonPaths aut, length $ automatonPaths seedAut)
+     polcount = ( length autpaths
+                , length . automatonPaths . prFinal   $ autstuff
+                , length . automatonPaths . prInitial $ autstuff)
      --
      fixate ts ps = zip (map alphaConvertById $ setTidnums ts) ps
      input2 = input { inCands    = fixate cands2 pathIds
-                    , inSemInput = (sem2, snd3 seminput, thd3 seminput) }
+                    , inSemInput = (prSem autstuff, snd3 seminput, thd3 seminput) }
      -- note: autstuff is only useful for the graphical debugger
   in (input2, polcount, autstuff)
 \end{code}
@@ -249,7 +250,7 @@ run :: Builder st it Params -> Input -> Params -> (st, Statistics)
 run builder input config =
   let -- 1 run the setup stuff
       (input2, polcount, autstuff) = preInit input config
-      auts = (\(x,_,_,_) -> map snd3 x) autstuff
+      auts = map snd3 (prIntermediate autstuff)
       -- 2 call the init stuff
       (iSt, iStats) = init builder input2 config
       -- 3 step through the whole thing
@@ -431,8 +432,8 @@ initNullBuilder input config =
       --
       (tsem,_,_) = inSemInput input
       cands = map fst $ inCands input
-      (_,_,(_,_,aut,_)) = preInit input config
-      cands2 = concatMap concat $ automatonPathSets aut
+      (_,_,autstuff) = preInit input config
+      cands2 = concatMap concat . automatonPathSets . prFinal $ autstuff
       --
       countUp = do incrCounter "sem_literals"  $ length tsem
                    --
