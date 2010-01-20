@@ -55,7 +55,7 @@ import Control.Monad (when, unless, liftM2)
 import Control.Monad.State.Strict
   (get, put, modify, gets, runState, execStateT)
 
-import Data.List (partition, delete, foldl')
+import Data.List (partition, foldl')
 import Data.Maybe (isJust, isNothing, mapMaybe)
 import Data.Ord (comparing)
 import Data.Bits
@@ -257,13 +257,17 @@ data SimpleItem = SimpleItem
  } deriving (Show)
 
 
+lookupOrBug :: String -> SimpleItem -> NodeName -> GNode GeniVal
 lookupOrBug fnname item k =
         case filter (gnnameIs k) (siNodes item) of
           []   -> geniBug $ fnname ++ ": could not find node " ++ k 
           [gn] -> gn
           _    -> geniBug $ fnname ++ ": more than one node named " ++ k
 
+siRoot :: SimpleItem -> TagSite
 siRoot x = toTagSite . lookupOrBug "siRoot" x $ siRoot_ x
+
+siFoot :: SimpleItem -> Maybe TagSite
 siFoot x = (toTagSite . lookupOrBug "siFoot" x) `fmap` siFoot_ x
 
 instance DescendGeniVal (String, B.UninflectedDisjunction) where
