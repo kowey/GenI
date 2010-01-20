@@ -62,6 +62,7 @@ not use simple integers, but polarities intervals, so more something
 like $(-2,-2)n$!  But for the most part, the intervals are zero length,
 and you can just think of $-2n$ as shorthand for $(-2,-2)n$.
 
+\ignore{
 \begin{code}
 module NLP.GenI.Polarity(
                 -- * Entry point
@@ -106,6 +107,7 @@ import NLP.GenI.GeniVal ( GeniVal(gConstraints), mkGConst, mkGAnon, isAnon, isCo
 import NLP.GenI.PolarityTypes
 import NLP.GenI.Tags(TagElem(..), TagItem(..), setTidnums)
 \end{code}
+}
 
 \section{Interface}
 
