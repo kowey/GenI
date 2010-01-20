@@ -154,11 +154,11 @@ a macro or a list of macros.  This is a process that can go fail for any
 number of reasons, so we try to record the possible failures for book-keeping.
 
 \begin{code}
--- | The 'LexCombineMonad' supports warnings during lexical selection
+-- | The 'LexCombine' supports warnings during lexical selection
 --   and also failure via Maybe
-type LexCombineMonad a = MaybeT (Writer [LexCombineError]) a
+type LexCombine a = MaybeT (Writer [LexCombineError]) a
 
-lexTell :: LexCombineError -> LexCombineMonad ()
+lexTell :: LexCombineError -> LexCombine ()
 lexTell x = lift (tell [x])
 
 data LexCombineError =
@@ -195,7 +195,7 @@ combineList tsem gram lexitem =
 \begin{code}
 -- | Combine a single tree with its lexical item to form a bonafide TagElem.
 --   This process can fail, however, because of filtering or enrichement
-combineOne :: Sem -> ILexEntry -> SchemaTree -> LexCombineMonad [TagElem]
+combineOne :: Sem -> ILexEntry -> SchemaTree -> LexCombine [TagElem]
 combineOne tsem lexRaw eRaw = -- Maybe monad
  -- trace ("\n" ++ (show wt)) $
  do let l1 = alphaConvert "-l" lexRaw
@@ -310,7 +310,7 @@ same as \verb!toto.top.foo=bar! (creates a warning) \\
 type PathEqLhs  = (String, Bool, String)
 type PathEqPair = (PathEqLhs, GeniVal)
 
-enrich :: ILexEntry -> SchemaTree -> LexCombineMonad SchemaTree
+enrich :: ILexEntry -> SchemaTree -> LexCombine SchemaTree
 enrich l t =
  do -- separate into interface/anchor/named
     (intE, namedE) <- lift $ lexEquations l
@@ -332,7 +332,7 @@ enrich l t =
 enrichBy :: ILexEntry -- ^ lexeme (for debugging info)
          -> SchemaTree
          -> (PathEqLhs, GeniVal) -- ^ enrichment eq
-         -> LexCombineMonad SchemaTree
+         -> LexCombine SchemaTree
 enrichBy lexEntry t (eqLhs, eqVal) =
  case seekCoanchor eqName t of
  Nothing -> return t -- to be robust, we accept if the node isn't there
