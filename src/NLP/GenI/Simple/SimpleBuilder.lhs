@@ -628,8 +628,8 @@ iapplySubst twophase item1 item2 | siInitial item1 && closed item1 = {-# SCC "ap
  (shead : stail) ->
   let doIt =
        do -- Maybe monad
-          let (TagSite n fu fd nOrigin)    = toTagSite (lookupOrBug "iapplySubst" item2 shead)
-              r@(TagSite rn ru rd rOrigin) = siRoot item1
+          let (TagSite n  fu fd nOrigin) = toTagSite (lookupOrBug "iapplySubst" item2 shead)
+              (TagSite rn ru rd rOrigin) = siRoot item1
           (newU, subst1) <- unifyFeat ru fu
           (newD, subst2) <- unifyFeat (replace subst1 rd)
                                       (replace subst1 fd)
@@ -716,7 +716,7 @@ sansAdjunction2p item | closed item =
  case siAdjnodes item of
  [] -> return []
  (ahead : atail) -> do
-  let (TagSite gn t b o) = toTagSite (lookupOrBug "sansAdjunction2p" item ahead)
+  let (TagSite gn t b _) = toTagSite (lookupOrBug "sansAdjunction2p" item ahead)
   -- do top/bottom unification on the node
   case unifyFeat t b of
    Nothing ->
