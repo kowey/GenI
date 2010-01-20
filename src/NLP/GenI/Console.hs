@@ -45,7 +45,6 @@ import NLP.GenI.Configuration
   , hasFlagP, getListFlagP, getFlagP, setFlagP
   , builderType , BuilderType(..)
   )
-import qualified NLP.GenI.Builder as B
 import NLP.GenI.Simple.SimpleBuilder
 import NLP.GenI.Statistics ( Statistics )
 
