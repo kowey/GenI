@@ -68,10 +68,11 @@ import NLP.GenI.Configuration
 import NLP.GenI.General (geniBug, BitVector, snd3, thd3)
 import NLP.GenI.Btypes
   ( ILexEntry, SemInput, Sem, Pred, showPred,
-    Flist, showFlist, gtype, GType(Subs, Foot),
+    gtype, GType(Subs, Foot),
     DescendGeniVal(..), Collectable(collect), alphaConvertById,
     GeniVal
   )
+import NLP.GenI.FeatureStructures ( Flist, showFlist, sortFlist )
 import NLP.GenI.GeniParsers ( geniFeats, runParser, CharParser )
 import NLP.GenI.Polarity  (PolResult(..), buildAutomaton, detectPolPaths)
 import NLP.GenI.Statistics (Statistics, incrIntMetric,
@@ -186,7 +187,7 @@ preInit input config =
      extraPol = fromMaybe (Map.empty) $ getFlagP ExtraPolaritiesFlg config
      polsToDetect = fromMaybe (error "there should be a default for --detect-pols")
                   $ getFlagP DetectPolaritiesFlg config
-     rootFeat = getListFlagP RootFeatureFlg config
+     rootFeat = sortFlist $ getListFlagP RootFeatureFlg config
      -- do any optimisations
      isPol = hasOpt Polarised config
      -- polarity optimisation (if enabled)
@@ -255,8 +256,10 @@ unlessEmptySem input _ =
 --
 --    * plex_...        - same as the lex_ equivalent, but after polarity filtering
 run :: Builder st it Params -> Input -> Params -> (st, Statistics)
-run builder input config =
-  let -- 1 run the setup stuff
+run builder input config_ =
+  let -- 0 normalise the config
+      config = modifyFlagP RootFeatureFlg sortFlist config_
+      -- 1 run the setup stuff
       (input2, autstuff) = preInit input config
       auts = map snd3 (prIntermediate autstuff)
       -- 2 call the init stuff
