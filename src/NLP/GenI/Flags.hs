@@ -86,6 +86,13 @@ hasFlag = any . isFlag
 deleteFlag :: (Typeable f, Typeable x) => (x -> f) -> [Flag] -> [Flag]
 deleteFlag f = filter (not.(isFlag f))
 
+-- | This only has an effect if the flag is set
+modifyFlag :: (Eq f, Show f, Show x, Typeable f, Typeable x) => (x -> f) -> (x -> x) -> [Flag] -> [Flag]
+modifyFlag f m fs =
+  case getFlag f fs of
+    Nothing -> fs
+    Just v  -> setFlag f (m v) fs
+
 setFlag :: (Eq f, Show f, Show x, Typeable f, Typeable x) => (x -> f) -> x -> [Flag] -> [Flag]
 setFlag f v fs = (Flag f v) : tl where tl = deleteFlag f fs
 

@@ -23,7 +23,7 @@ module NLP.GenI.Configuration
   ( Params(..)
   --
   , mainBuilderTypes
-  , getFlagP, getListFlagP, setFlagP, hasFlagP, deleteFlagP, hasOpt
+  , getFlagP, getListFlagP, modifyFlagP, setFlagP, hasFlagP, deleteFlagP, hasOpt
   , emptyParams, defineParams
   , treatArgs, treatArgsWithParams, usage, basicSections, optionsSections
   , processInstructions
@@ -89,12 +89,14 @@ hasOpt o p = maybe False (elem o) $ getFlagP OptimisationsFlg p
 
 hasFlagP    :: (Typeable f, Typeable x) => (x -> f) -> Params -> Bool
 deleteFlagP :: (Typeable f, Typeable x) => (x -> f) -> Params -> Params
+modifyFlagP :: (Eq f, Show f, Show x, Typeable f, Typeable x) => (x -> f) -> (x -> x) -> Params -> Params
 setFlagP    :: (Eq f, Show f, Show x, Typeable f, Typeable x) => (x -> f) -> x -> Params -> Params
 getFlagP    :: (Show f, Show x, Typeable f, Typeable x) => (x -> f) -> Params -> Maybe x
 getListFlagP :: (Show f, Show x, Typeable f, Typeable x) => ([x] -> f) -> Params -> [x]
 
 hasFlagP f      = hasFlag f . geniFlags
 deleteFlagP f p = p { geniFlags = deleteFlag f (geniFlags p) }
+modifyFlagP f m p = p { geniFlags = modifyFlag f m (geniFlags p) }
 setFlagP f v p  = p { geniFlags = setFlag f v (geniFlags p) }
 getFlagP f     = getFlag f . geniFlags
 getListFlagP f = fromMaybe [] . getFlagP f
