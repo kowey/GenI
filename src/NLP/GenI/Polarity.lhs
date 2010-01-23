@@ -103,7 +103,7 @@ import NLP.GenI.General(
     geniBug,
     BitVector, isEmptyIntersect, thd3,
     Interval, ival, (!+!), showInterval)
-import NLP.GenI.GeniVal ( GeniVal(gConstraints), mkGConst, mkGAnon, isAnon, isConst ) 
+import NLP.GenI.GeniVal ( GeniVal(gConstraints), mkGConst, mkGAnon, isAnon )
 import NLP.GenI.PolarityTypes
 import NLP.GenI.Tags(TagElem(..), TagItem(..), setTidnums)
 \end{code}
@@ -836,7 +836,7 @@ detectPolFeatures tes =
       sfeats = [ concat s | s <- map substTops tes, (not.null) s ]
       --
       attrs :: Flist GeniVal -> [String]
-      attrs avs = [ a | AvPair a v <- avs, isConst v ]
+      attrs avs = [ a | AvPair a v <- avs, isJust (gConstraints v) ]
       theAttributes = map attrs $ rfeats ++ sfeats
   in if null tes then [] else foldr1 intersect theAttributes
 
@@ -850,7 +850,7 @@ detectSansIdx =
   let rfeats t = (gdown.root.ttree) t
       feats  t | ttype t == Initial = concat $ rfeats t : substTops t
       feats  t = concat $ substTops t
-      attrs avs = [ a | AvPair a v <- avs, isConst v ]
+      attrs avs = [ a | AvPair a v <- avs, isJust (gConstraints v) ]
       hasIdx t = __idx__ `elem` (attrs.feats $ t) || (ttype t /= Initial && (null $ substTops t))
   in filter (not.hasIdx)
 \end{code}
@@ -950,11 +950,11 @@ detectPolarityForAttr :: Int -- ^ polarity to assign
 detectPolarityForAttr i att fl =
   case [ v | AvPair a v <- fl, a == att ] of
     []  -> PD_UserError $ "[polarities] No value for attribute: " ++ att ++ " in:" ++ showFlist fl
-    [v] -> if isConst v
-              then PD_Just $ case prefixWith att (values v) of
-                             [x] -> [ (PolarityKey x, ival i) ]                -- singleton
-                             xs  -> map (\x -> (PolarityKey x, toZero i)) xs   -- interval if ambiguous
-              else PD_UserError $ "[polarities] Non-constant value for attribute: " ++ att ++ " in:" ++ showFlist fl
+    [v] -> case gConstraints v of
+             Just cs -> PD_Just $ case prefixWith att (values v) of
+                                    [x] -> [ (PolarityKey x, ival i) ]                -- singleton
+                                    xs  -> map (\x -> (PolarityKey x, toZero i)) xs   -- interval if ambiguous
+             Nothing -> PD_UserError $ "[polarities] Non-constrained value for attribute: " ++ att ++ " in:" ++ showFlist fl
     _   -> PD_UserError $ "[polarities] More than one value for attribute: " ++ att ++ " in:" ++ showFlist fl
  where
   values v = case gConstraints v of
