@@ -83,7 +83,7 @@ import NLP.GenI.GeniVal ( GeniVal, mkGConst )
 import NLP.GenI.Builder (
     incrCounter, num_iterations, num_comparisons, chart_size,
     SemBitMap, defineSemanticBits, semToBitVector, bitVectorToSem,
-    DispatchFilter, (>-->), condFilter,
+    DispatchFilter, (>-->), condFilter, FilterStatus(Filtered, NotFiltered),
     LemmaPlus(..),
     )
 import qualified NLP.GenI.Builder as B
@@ -942,14 +942,14 @@ dpAux, dpToAgenda :: SimpleDispatchFilter
 dpTbFailure, dpToResults :: SimpleDispatchFilter
 dpToTrash :: String -> SimpleDispatchFilter
 
-dpToAgenda x  = addToAgenda x  >> return Nothing
-dpToResults x = addToResults x >> return Nothing
-dpToTrash m x = addToTrash x m >> return Nothing
+dpToAgenda x  = addToAgenda x  >> return Filtered
+dpToResults x = addToResults x >> return Filtered
+dpToTrash m x = addToTrash x m >> return Filtered
 
 dpAux item =
   if closedAux item
-  then addToAuxAgenda item >> return Nothing
-  else return $ Just item
+  then addToAuxAgenda item >> return Filtered
+  else return (NotFiltered item)
 
 {-
 -- | Dispatches to the trash and returns Nothing if there is a tree
@@ -968,7 +968,7 @@ dpTreeLimit item =
 
 -- | This is only used for the one-phase algorithm
 dpTbFailure item =
- return $ if tbUnifyTree item then Just item else Nothing
+ return (if tbUnifyTree item then NotFiltered item else Filtered)
 
 -- | If the item (ostensibly a result) does not have the correct root
 --   category, return Nothing; otherwise return Just item
@@ -981,7 +981,7 @@ dpRootFeatFailure item =
       Nothing ->
         dpToTrash (ts_rootFeatureMismatch rootFeat) item
       Just (_, s) ->
-        return . Just $ replace s item
+        return . NotFiltered $ replace s item
 \end{code}
 % --------------------------------------------------------------------
 \subsection{Top and bottom unification}

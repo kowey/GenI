@@ -342,28 +342,24 @@ defaultStepAll b =
 
 Dispatching consists of assigning a chart item to the right part of the
 chart (agenda, trash, results list, etc).  This is implemented as a
-series of filters which can either fail or succeed.
-
-Counter-intuitively, success is defined as returning \verb!Nothing!.
-Failure is defined as return \verb!Just!, because if a filter fails, it
-has the right to modify the item for the next filter.  For example, the
-top and bottom unification filter succeeds if it \emph{cannot} unify
-the top and bottom features of a node.  It suceeds by putting the item
-into the trash and returning Nothing.  If it \emph{can} perform top and
-bottom unification, we want to return the item where the top and bottom
-nodes are unified.  Failure is success, war is peace, freedom is
-slavery, erase is backspace.
+series of filters which can either fail or succeed.  If a filter fails,
+it may modify the item before passing it on to future filters.
 
 \begin{code}
-type DispatchFilter s a = a -> s (Maybe a)
+type DispatchFilter s a = a -> s (FilterStatus a)
+
+data FilterStatus a = Filtered | NotFiltered a
 
 -- | Sequence two dispatch filters.
 (>-->) :: (Monad s) => DispatchFilter s a -> DispatchFilter s a -> DispatchFilter s a
-f >--> f2 = \x -> f x >>= maybe (return Nothing) f2
+f >--> f2 = \x -> f x >>= next
+ where
+  next y@Filtered = return y
+  next (NotFiltered x2) = f2 x2
 
 -- | A filter that always fails (i.e. no filtering)
 nullFilter :: (Monad s) => DispatchFilter s a
-nullFilter = return.Just
+nullFilter = return.NotFiltered
 
 -- | If the item meets some condition, use the first filter, otherwise
 --   use the second one.
