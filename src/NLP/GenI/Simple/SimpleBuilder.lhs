@@ -51,6 +51,7 @@ where
 
 \ignore{
 \begin{code}
+import Control.Arrow (first)
 import Control.Monad (when, unless, liftM2)
 import Control.Monad.State.Strict
   (get, put, modify, gets, runState, execStateT)
@@ -339,7 +340,7 @@ initSimpleBuilder twophase input config =
       -- need an initial tb step that only addresses the
       -- nodes with null adjunction constraints
       simpleDp = if twophase then simpleDispatch_2p else simpleDispatch_1p
-      initialDp = dpTbFailure >--> simpleDp
+      initialDp = dpTbNaFailure >--> dpTbFailure >--> simpleDp
       --
       initS = S{ theAgenda    = []
                , theHoldingPen = []
@@ -966,6 +967,12 @@ dpTreeLimit item =
    where ts_overnumTrees l = "Over derivation size of " ++ (show l)
 -}
 
+dpTbNaFailure :: SimpleDispatchFilter
+dpTbNaFailure item =
+ case tbUnifyNaNodes (siNodes item) of
+   Nothing      -> dpToTrash ("top-bottem unification failure in NA nodes") item
+   Just (ns2,s) -> return . NotFiltered . replace s $ item { siNodes = ns2 }
+
 -- | This is only used for the one-phase algorithm
 dpTbFailure item =
  return (if tbUnifyTree item then NotFiltered item else Filtered)
@@ -986,6 +993,20 @@ dpRootFeatFailure item =
 % --------------------------------------------------------------------
 \subsection{Top and bottom unification}
 % --------------------------------------------------------------------
+
+During initialisation of the chart, any nodes which can never receive
+adjunction should be top-bottom unified to start with.
+
+\begin{code}
+tbUnifyNaNodes [] = Just ([], Map.empty)
+tbUnifyNaNodes (n:ns) =
+ if gaconstr n
+    then do (ud, sub) <- unifyFeat (gup n) (gdown n)
+            let n2 = n { gup = ud, gdown = [] }
+            (ns2, sub2) <- tbUnifyNaNodes (replace sub ns)
+            return (n2:ns2, sub `mergeSubst` sub2)
+    else first (n:) `fmap` tbUnifyNaNodes ns
+\end{code}
 
 \paragraph{tbUnifyTree} unifies the top and bottom feature structures
 of each node on each tree.  Note: this only determines if it is
