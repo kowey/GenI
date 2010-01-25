@@ -77,7 +77,7 @@ import NLP.GenI.Btypes
   , GType(Foot,Other)
   , root, foot
   , plugTree, spliceTree
-  , unifyFeat, Flist, Subst, mergeSubst
+  , unifyFeat, Flist, Subst, appendSubst
   , sortSem, Sem
   )
 import NLP.GenI.GeniVal ( GeniVal, mkGConst )
@@ -634,7 +634,7 @@ iapplySubst twophase item1 item2 | siInitial item1 && closed item1 = {-# SCC "ap
           (newU, subst1) <- unifyFeat ru fu
           (newD, subst2) <- unifyFeat (replace subst1 rd)
                                       (replace subst1 fd)
-          let subst = mergeSubst subst1 subst2
+          let subst = appendSubst subst1 subst2
               -- gui stuff
               newRoot g = g { gup = newU, gdown = newD, gtype = Other }
           let pending = if twophase then []
@@ -793,7 +793,7 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
           let (anf_tb, subst3) = tbRes
               myRes = constrainAdj an_name anf_tb res'
           -- apply the substitutions
-              res' = replace (mergeSubst subst12 subst3) rawCombined
+              res' = replace (appendSubst subst12 subst3) rawCombined
           return myRes
   -- ---------------
   if twophase then finalRes2p else finalRes1p
@@ -806,7 +806,7 @@ canAdjoin aItem pSite = do
   (anr_up',  subst1)  <- unifyFeat (tsUp r) (tsUp pSite)
   (anf_down, subst2)  <- unifyFeat (replace subst1 $ tsDown f) (replace subst1 $ tsDown pSite)
   let -- combined substitution list and success condition
-      subst12 = mergeSubst subst1 subst2
+      subst12 = appendSubst subst1 subst2
       anr = replace subst12 $ r { tsUp = anr_up' } --  resulting node based on the root node of the aux tree
       anf = replace subst12 $ f { tsDown = anf_down } --  resulting node based on the foot node of the aux tree
   return (anr, anf, subst12)
@@ -826,7 +826,7 @@ detectNa rawAux i = helper (map look (siAdjnodes i)) Map.empty []
     in case (snd `fmap` unifyFeat (tsUp t) (tsDown t)) of
         Just s2 -> if hasAdj
                    then helper ts s (tsName t : acc)
-                   else helper (replace s2 ts) (mergeSubst s s2) acc
+                   else helper (replace s2 ts) (appendSubst s s2) acc
         Nothing -> if hasAdj
                    then helper ts s (tsName t : acc)
                    else Nothing
@@ -1004,7 +1004,7 @@ tbUnifyNaNodes (n:ns) =
     then do (ud, sub) <- unifyFeat (gup n) (gdown n)
             let n2 = n { gup = ud, gdown = [] }
             (ns2, sub2) <- tbUnifyNaNodes (replace sub ns)
-            return (n2:ns2, sub `mergeSubst` sub2)
+            return (n2:ns2, sub `appendSubst` sub2)
     else first (n:) `fmap` tbUnifyNaNodes ns
 \end{code}
 
@@ -1065,7 +1065,7 @@ tbUnifyNode (Right pending) rawSite =
     -- stop all future iterations
     Nothing -> Left name
     -- apply any new substutions to the whole tree
-    Just (_,sb) -> Right (mergeSubst pending sb)
+    Just (_,sb) -> Right (appendSubst pending sb)
 
 -- if earlier we had a failure, don't even bother
 tbUnifyNode (Left n) _ = Left n

@@ -145,7 +145,7 @@ subsumeSemH (x:xs) ys = nub $
     (y, Just (x2, subst)) <- attempts
     let next_xs = replace subst xs
         next_ys = replace subst $ delete y ys
-        prepend = insert x2 *** mergeSubst subst
+        prepend = insert x2 *** appendSubst subst
     prepend `fmap` subsumeSemH next_xs next_ys
 \end{code}
 
@@ -204,7 +204,7 @@ unifySemH (x:xs) ys = nub $ do
     else do (y, Just (x2, subst)) <- attempts
             let next_xs = replace subst xs
                 next_ys = replace subst $ delete y ys
-                prepend = insert x2 *** mergeSubst subst
+                prepend = insert x2 *** appendSubst subst
             prepend `fmap` unifySemH next_xs next_ys
 
 unifyPred :: Pred -> Pred -> Maybe (Pred, Subst)

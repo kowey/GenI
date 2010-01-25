@@ -136,8 +136,8 @@ unifyHelper f ll1 ll2 = repropagate `liftM` helper ll1 ll2
 --   should give us @{ X -> 3; Y -> 3 }@;
 --
 --   See 'prependToSubst' for a warning!
-mergeSubst :: Subst -> Subst -> Subst
-mergeSubst sm1 sm2 = Map.foldWithKey (curry prependToSubst) sm2 sm1
+appendSubst :: Subst -> Subst -> Subst
+appendSubst sm1 sm2 = Map.foldWithKey (curry prependToSubst) sm2 sm1
 
 -- | Add to variable replacement to a 'Subst' that logical comes before
 --   the other stuff in it.  So for example, if we have @Y -> foo@

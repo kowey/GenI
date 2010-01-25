@@ -40,7 +40,7 @@ module NLP.GenI.Btypes (
    emptyPred,
 
    -- Functions from Flist
-   sortFlist, unify, unifyFeat, mergeSubst,
+   sortFlist, unify, unifyFeat, appendSubst,
    showFlist, showPairs, showAv,
 
    -- Other functions
