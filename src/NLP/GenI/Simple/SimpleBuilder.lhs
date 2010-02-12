@@ -1091,15 +1091,12 @@ unpackResult item =
   let look = lookupOrBug "unpackResult" item
       toUninflectedDisjunction (pt,t) =
         --B.UninflectedDisjunction (getLexeme (look t)) (gup (look pt)) 
-        B.UninflectedDisjunction (getLexeme (look t)) (if emptyFeatureStr (look t) then gup (look pt) else localUnifyFeat (gdown (look t)) (gup (look t)))
+        B.UninflectedDisjunction (getLexeme (look t))
+                                 (gup . look $ if emptyFeatureStr (look t) then pt else t)
 
       derivation = siDerivation item
       paths = automatonPaths . listToSentenceAut .  map toUninflectedDisjunction . preTerminals . siDerived $ item
  in map (\p -> (siId item, p, derivation)) paths
-
-localUnifyFeat :: Flist GeniVal -> Flist GeniVal -> Flist GeniVal
-localUnifyFeat u d = maybe u id (fst `fmap` unifyFeat u d) 
-
 
 emptyFeatureStr :: GNode GeniVal -> Bool
 emptyFeatureStr n= null (gdown n) && null (gup n)
