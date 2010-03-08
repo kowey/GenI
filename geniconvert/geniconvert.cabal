@@ -6,7 +6,7 @@ Author:         Carlos Areces and Eric Kow
 Build-Depends:  GenI >=0.21 && < 0.22
               , base < 4.1
               , directory >= 1.0 && < 1.1
-              , binary, haskell98, containers, mtl
+              , binary, containers, mtl
               , parsec < 3, QuickCheck, HUnit, HaXml >=1.16
               , utf8-string >= 0.3.5 && < 0.4
 build-type:     Simple

@@ -26,7 +26,8 @@ import Control.Monad
 import Data.Binary (decodeFile, encodeFile)
 import Data.List
 import Data.Maybe
-import System (ExitCode(ExitFailure), exitWith, getArgs, getProgName)
+import System.Exit (ExitCode(ExitFailure), exitWith)
+import System.Environment (getArgs, getProgName)
 import System.Console.GetOpt(OptDescr(Option), ArgDescr(..), usageInfo, getOpt, ArgOrder(Permute))
 import System.Directory ( doesFileExist, removeFile )
 import Prelude hiding (appendFile, getContents, readFile, writeFile, putStrLn)
