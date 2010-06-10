@@ -25,7 +25,7 @@ tree schemata.
 \begin{code}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE OverlappingInstances #-}
-
+{-# LANGUAGE TemplateHaskell #-}
 module NLP.GenI.TreeSchemata (
    Macros, emptyMacro,
    SchemaTree, SchemaNode, Ttree(..), Ptype(..),
@@ -53,6 +53,10 @@ import NLP.GenI.FeatureStructures ( AvPair(..), Flist, crushFlist )
 import NLP.GenI.Semantics ( Sem )
 
 import NLP.GenI.General (filterTree, listRepNode, geniBug,)
+
+import Control.Parallel.Strategies
+import Data.DeriveTH
+
 \end{code}
 }
 
@@ -286,4 +290,9 @@ crushGNode gn =
                  , gtype = gtype gn
                  , gaconstr = gaconstr gn
                  , gorigin = gorigin gn}
+
+-- NFData derivations
+$( derive makeNFData ''Ptype )
+$( derive makeNFData ''GNode )
+$( derive makeNFData ''GType )
 \end{code}

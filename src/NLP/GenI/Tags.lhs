@@ -67,6 +67,10 @@ import NLP.GenI.Semantics ( Sem, Pred, emptyPred, showSem )
 import NLP.GenI.TreeSchemata ( Ptype(..),
                                GNode(..), GType(..), emptyGNode, NodeName,
                                lexemeAttributes )
+
+import Control.Parallel.Strategies
+import Data.DeriveTH
+
 \end{code}
 }
 
@@ -386,3 +390,10 @@ ts_semIncomplete sem = "semantically incomplete - missing:  " ++ showSem sem
 % ----------------------------------------------------------------------
 % Performance
 % ----------------------------------------------------------------------
+
+\begin{code}
+
+-- NFData derivations
+$( derive makeNFData ''TagElem )
+$( derive makeNFData ''DerivationStep )
+\end{code}

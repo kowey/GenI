@@ -25,6 +25,7 @@ module also does lexical selection and anchoring because these processes might
 involve some messy IO performance tricks.
 
 \begin{code}
+{-# LANGUAGE TemplateHaskell #-}
 module NLP.GenI.Geni (
              -- * main interface
              ProgState(..), ProgStateRef, emptyProgState,
@@ -58,6 +59,11 @@ import Data.List.Split ( wordsBy )
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe, isJust)
 import Data.Typeable (Typeable)
+
+import System.CPUTime( getCPUTime )
+import NLP.GenI.Statistics
+import Control.Parallel.Strategies
+import Data.DeriveTH --used for NFData derivations with 'derive' tool
 
 import qualified System.IO.UTF8 as UTF8
 
@@ -394,7 +400,7 @@ is run the surface realiser.
 data GeniResult = GeniResult
  { grLemmaSentence     :: B.LemmaPlusSentence
  , grRealisations :: [String]
- , grDerivation   :: B.Derivation
+ , grDerivation   :: B.TagDerivation --type definition changed in Builder.hs 
  , grLexSelection :: [ GeniLexSel ]
  , grRanking      :: Int
  , grViolations   :: [ OtViolation ]
@@ -423,7 +429,9 @@ runGeniWithSelector pstRef  selector builder =
          run    = B.run builder
          unpack = B.unpack builder
      -- step 1: lexical selection
-     initStuff <- initGeniWithSelector pstRef selector
+     initStuff <- initGeniWithSelector pstRef selector 
+     start <- ( rnf initStuff ) `seq` getCPUTime  --force evaluation before measuring start time to avoid including grammar/lexicon parsing.
+
      -- step 2: chart generation
      let (finalSt, stats) = run initStuff config
      -- step 3: unpacking
@@ -433,7 +441,13 @@ runGeniWithSelector pstRef  selector builder =
          resultTy    = if tryPartial then PartialResult else CompleteResult
      -- step 4: post-processing
      results <- finaliseResults pstRef resultTy rawResults
-     return (results, stats, finalSt)
+     end <-  ( rnf results ) `seq` getCPUTime --force evaluation before measuring end time to account for all the work that should be done.
+     let elapsedTime = picosToMillis $! end - start
+     let diff = round (elapsedTime :: Double)     
+     let stats2 = updateMetrics (incrIntMetric "gen_time"  (fromIntegral diff) ) stats
+
+     return (results, stats2, finalSt)
+
 \end{code}
 
 % --------------------------------------------------------------------
@@ -733,6 +747,15 @@ instance JSON GeniLexSel where
      JSObject . toJSObject $ [ ("lex-item", showJSON  $ nlTree x)
                              , ("trace",    showJSONs $ nlTrace x)
                              ]
+
+-- Converts picoseconds to milliseconds.
+picosToMillis :: Integer -> Double
+picosToMillis t = realToFrac t / (10^(9 :: Int))
+
+-- NFData derivations
+$( derive makeNFData ''GeniResult )
+$( derive makeNFData ''ResultType )
+$( derive makeNFData ''GeniLexSel )
 \end{code}
 }
 

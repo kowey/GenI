@@ -19,6 +19,7 @@
 \label{cha:ranking}
 
 \begin{code}
+{-# LANGUAGE TemplateHaskell #-}
 module NLP.GenI.OptimalityTheory
    ( -- * Input
      OtConstraint(..), OtRanking,
@@ -39,6 +40,10 @@ import Text.JSON
 
 import NLP.GenI.Btypes ( Macros, ptrace )
 import qualified NLP.GenI.Builder as B
+
+import Control.Parallel.Strategies
+import Data.DeriveTH
+
 \end{code}
 
 If your tree schemata are annotated with traces (TODO link to traces and
@@ -169,7 +174,7 @@ otWarnings gram ranking blocks =
   nvConstraintsW xs = "these constraints are never violated: " ++ unwords (map prettyConstraint xs)
   nvConstraints = neverViolated blocks ranking
 
-rankResults :: GetTraces -> (a -> B.Derivation) -> OtRanking -> [a] -> [OtResult a]
+rankResults :: GetTraces -> (a -> B.TagDerivation) -> OtRanking -> [a] -> [OtResult a] --changed type Derivation
 rankResults getTraces getDerivation r = squish . sortResults . map addViolations
  where
    addViolations x = (x, getViolations x)
@@ -229,7 +234,7 @@ sortedViolations = map (RankedOtConstraint2 . otConstraintViolated) . sort . snd
 sortResults :: [(a, [OtViolation])] -> [[(a, [OtViolation])]]
 sortResults = sortAndGroupByDecoration compare sortedViolations
 
-lexTraces :: GetTraces -> B.Derivation -> [LexItem]
+lexTraces :: GetTraces -> B.TagDerivation -> [LexItem] --changed type Derivation
 lexTraces getTraces = map (toLexItem getTraces) . B.lexicalSelection
 
 toLexItem :: GetTraces -> String -> LexItem
@@ -387,4 +392,9 @@ splitAtBefore len xs
   upToSpace = takeWhile isNotSpace xs
   isNotSpace = not . isSpace
   trim = drop 1
+
+-- NFData derivations
+$( derive makeNFData ''OtViolation )
+$( derive makeNFData ''RankedOtConstraint )
+$( derive makeNFData ''OtConstraint )
 \end{code}

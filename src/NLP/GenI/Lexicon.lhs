@@ -20,6 +20,7 @@
 
 \ignore{
 \begin{code}
+{-# LANGUAGE TemplateHaskell #-}
 module NLP.GenI.Lexicon (
    Lexicon, ILexEntry(..), emptyLE,
 ) where
@@ -36,6 +37,9 @@ import NLP.GenI.GeniVal
 import NLP.GenI.Semantics
 import NLP.GenI.PolarityTypes (SemPols)
 import NLP.GenI.TreeSchemata
+
+import Control.Parallel.Strategies
+import Data.DeriveTH
 
 --instance Show (IO()) where
 --  show _ = ""
@@ -94,5 +98,9 @@ instance Collectable ILexEntry where
   collect l = (collect $ iinterface l) . (collect $ iparams l) .
               (collect $ ifilters l) . (collect $ iequations l) .
               (collect $ isemantics l)
+
+-- NFData derivations
+$( derive makeNFData ''ILexEntry )
+
 \end{code}
 }

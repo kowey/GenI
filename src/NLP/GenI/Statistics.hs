@@ -29,7 +29,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307,
 USA.
 -}
-
+{-# LANGUAGE TemplateHaskell #-}
 module NLP.GenI.Statistics(Statistics, StatisticsState,
     emptyStats,
 
@@ -45,6 +45,9 @@ module NLP.GenI.Statistics(Statistics, StatisticsState,
 import Control.Monad.State
 import Data.Maybe (mapMaybe)
 import Text.JSON
+
+import Control.Parallel.Strategies
+import Data.DeriveTH
 
 -------------------------------------------
 -- Statistics are collections of Metrics
@@ -103,3 +106,9 @@ instance JSON Statistics where
 -- not quite showJSON here
 metricToJSON :: Metric -> (String, JSValue)
 metricToJSON (IntMetric s i) = (s, showJSON i)
+
+
+-- NFData derivations
+$( derive makeNFData ''Statistics )
+$( derive makeNFData ''Metric )
+

@@ -15,12 +15,17 @@
 -- along with this program; if not, write to the Free Software
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+{-# LANGUAGE TemplateHaskell #-}
+
 module NLP.GenI.PolarityTypes where
 
 import Data.List ( break )
 import qualified Data.Set as Set
 import Data.Generics ( Data )
 import Data.Typeable ( Typeable )
+
+import Control.Parallel.Strategies 
+import Data.DeriveTH
 
 newtype PolarityKey = PolarityKey { fromPolarityKey :: String } deriving (Show, Eq, Ord, Data, Typeable)
 type SemPols  = [Int]
@@ -46,3 +51,8 @@ showPolarityAttrs = unwords . map show . Set.toList
 instance Show PolarityAttr where
  show (SimplePolarityAttr a) = a
  show (RestrictedPolarityAttr c a) = c ++ "." ++ a
+
+-- NFData derivations
+$( derive makeNFData ''PolarityKey )
+$( derive makeNFData ''PolarityAttr )
+

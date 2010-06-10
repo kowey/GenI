@@ -16,7 +16,7 @@
 -- along with this program; if not, write to the Free Software
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-{-# LANGUAGE OverlappingInstances, FlexibleInstances, DeriveDataTypeable #-}
+{-# LANGUAGE OverlappingInstances, FlexibleInstances, DeriveDataTypeable, TemplateHaskell #-}
 module NLP.GenI.GeniVal where
 
 -- import Debug.Trace -- for test stuff
@@ -37,6 +37,7 @@ import Test.Framework.Providers.QuickCheck
 import Data.Generics.PlateDirect
 
 import Control.Parallel.Strategies
+import Data.DeriveTH
 
 import NLP.GenI.General (geniBug)
 
@@ -511,3 +512,6 @@ arbitraryGVar = liftM2 mkGVar (fromGTestString2 `fmap` arbitrary)
 
 arbitrary1 :: Arbitrary a => Gen [a]
 arbitrary1 = sized (\n -> choose (1,n+1) >>= vector)
+
+-- NFData derivations
+$( derive makeNFData ''GeniVal )

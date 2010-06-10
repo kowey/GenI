@@ -39,7 +39,14 @@ UML might help.  See figure \ref{fig:builderUml}.
 
 \ignore{
 \begin{code}
-module NLP.GenI.Builder
+{-# LANGUAGE TemplateHaskell #-}
+
+module NLP.GenI.Builder (
+TagDerivation, Builder(..), LemmaPlusSentence, LemmaPlus(..), lexicalSelection, FilterStatus(..),incrCounter, num_iterations, (>-->),
+num_comparisons, chart_size, SemBitMap, defineSemanticBits, semToBitVector, bitVectorToSem, DispatchFilter, condFilter, init, step,
+stepAll, defaultStepAll, finished, unpack, partial, BuilderState, UninflectedDisjunction(..), Input(..), inCands, inSemInput, unlessEmptySem,
+initStats, Output, SentenceAut, run, inLex, queryCounter, defaultMetricNames, preInit
+)
 where
 
 import Control.Applicative ( (<$>), (<*>) )
@@ -52,6 +59,10 @@ import qualified Data.Set as Set
 import Data.Tree ( flatten )
 import Prelude hiding ( init )
 import Text.JSON
+
+import System.CPUTime( getCPUTime )
+import Control.Parallel.Strategies
+import Data.DeriveTH --this is for template way of generation.
 
 import Data.Generics.PlateDirect
 import Data.Generics ( Data )
@@ -112,8 +123,8 @@ data Builder st it pa = Builder
   , unpack   :: st -> [Output]
   , partial  :: st -> [Output] }
 
-type Output = (Integer, LemmaPlusSentence, Derivation)
-type Derivation = TagDerivation
+type Output = (Integer, LemmaPlusSentence, TagDerivation)
+
 \end{code}
 
 To simplify interaction with the backend, we provide a single data
@@ -403,7 +414,7 @@ namedMetric n = IntMetric n 0
 
 -- Note that the strings here are command-line strings, not metric names!
 defaultMetricNames :: [ String ]
-defaultMetricNames = [ num_iterations, chart_size, num_comparisons ]
+defaultMetricNames = [ num_iterations, chart_size, num_comparisons, gen_time ]
 \end{code}
 
 \subsection{Common counters}
@@ -412,11 +423,12 @@ These numbers allow us to keep track of how efficient our generator is
 and where we are in the process (how many steps we've taken, etc)
 
 \begin{code}
-num_iterations, chart_size, num_comparisons :: String
+num_iterations, chart_size, num_comparisons, gen_time :: String
 
 num_iterations  = "iterations"
 chart_size      = "chart_size"
 num_comparisons = "comparisons"
+gen_time = "gen_time"
 \end{code}
 
 % ----------------------------------------------------------------------
@@ -426,7 +438,7 @@ num_comparisons = "comparisons"
 \ignore{
 \begin{code}
 -- | The names of lexically selected chart items used in a derivation
-lexicalSelection :: Derivation -> [String]
+lexicalSelection :: TagDerivation -> [String]
 lexicalSelection = sort . nub . concatMap (\d -> [dsChild d, dsParent d])
 
 -- | A lemma plus its morphological features
@@ -453,5 +465,10 @@ parsecToJSON description p str =
  case runParser p () "" str of
    Left  err -> fail $ "Couldn't parse " ++ description ++ " because " ++ show err
    Right res -> return res
+
+-- NFData derivations
+$( derive makeNFData ''Input )
+$( derive makeNFData ''LemmaPlus )
+
 \end{code}
 }
