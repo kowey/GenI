@@ -134,14 +134,14 @@ root (Node a _) = a
 rootUpd :: Tree a -> a -> Tree a
 rootUpd (Node _ l) b = (Node b l)
 
--- foot :: SchemaTree -> GNode [GeniVal]
+foot :: Tree (GNode a) -> GNode a
 foot t = case filterTree (\n -> gtype n == Foot) t of
          [x] -> x
          _   -> geniBug $ "foot returned weird result"
 
 -- | Given a lexical item @s@ and a Tree GNode t, returns the tree t'
 --   where l has been assigned to the anchor node in t'
--- setAnchor :: [String] -> SchemaTree -> SchemaTree
+setAnchor :: [String] -> Tree (GNode a) -> Tree (GNode a)
 setAnchor s t =
   let filt (Node a []) = (gtype a == Lex && ganchor a)
       filt _ = False
@@ -154,7 +154,7 @@ setAnchor s t =
 --   its unique child.  The idea is that it converts terminal lexeme nodes
 --   into preterminal nodes where the actual terminal is the given lexical
 --   item
--- setLexeme :: [String] -> SchemaTree -> SchemaTree
+setLexeme :: [String] -> Tree (GNode a) -> Tree (GNode a)
 setLexeme l (Node a []) = Node a [ Node subanc [] ]
   where subanc = emptyGNode { gnname = '_' : ((gnname a) ++ ('.' : (concat l)))
                             , gaconstr = True

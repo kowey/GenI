@@ -25,7 +25,7 @@ module NLP.GenI.Semantics where
 import Control.Arrow ( first, (***) )
 import Data.Generics.PlateDirect
 import Data.List ( isPrefixOf, nub, sort, sortBy, delete, insert )
-import Data.Maybe ( isJust, isNothing )
+import Data.Maybe ( isNothing )
 import qualified Data.Map as Map
 
 import NLP.GenI.FeatureStructures
@@ -133,7 +133,7 @@ subsumeSem x_ y_ = map (first sortSem) $ subsumeSemH x y
 subsumeSemH :: Sem -> Sem -> [(Sem,Subst)]
 subsumeSemH [] [] = [ ([], Map.empty) ]
 subsumeSemH _ []  = error "subsumeSemH: got longer list in front"
-subsumeSemH []     ys = [ ([], Map.empty) ]
+subsumeSemH []     _  = [ ([], Map.empty) ]
 subsumeSemH (x:xs) ys = nub $
  do let attempts = zip ys $ map (subsumePred x) ys
     (y, Just (x2, subst)) <- attempts
