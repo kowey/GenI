@@ -59,6 +59,8 @@ import NLP.GenI.TreeSchemata (SchemaTree)
 import NLP.GenI.GeniShow (GeniShow(geniShow))
 import NLP.GenI.PolarityTypes
 
+import BoolExp
+
 import Control.Monad (liftM, when)
 import Data.List (sort)
 import qualified Data.Map  as Map
@@ -68,6 +70,7 @@ import Text.ParserCombinators.Parsec.Language (emptyDef)
 import Text.ParserCombinators.Parsec.Token (TokenParser,
     LanguageDef(..), makeTokenParser)
 import qualified Text.ParserCombinators.Parsec.Token as P
+import qualified Text.ParserCombinators.Parsec.Expr  as P
 import qualified System.IO.UTF8 as UTF8
 
 \end{code}
@@ -289,10 +292,7 @@ definition in section \ref{sec:geni-semantics}, but I have not yet written the
 documentation for it.
 
 \textbf{TODO}: The semantics may contain literal based constraints as described
-in section \ref{sec:fixme}.  These constraints are just a space-delimited list
-of String.  When returning the results, we separate them out from the semantics
-proper so that they can be treated separately.  Index constraints are
-represented as feature structures.
+in section \ref{sec:fixme}.
 
 \begin{code}
 geniSemanticInput :: Parser (Sem,Flist GeniVal,[LitConstr])
@@ -334,6 +334,18 @@ geniSemanticInputString =
 
 geniIdxConstraints :: Parser (Flist GeniVal)
 geniIdxConstraints = keyword IDXCONSTRAINTS >> geniFeats
+
+geniLitConstraints :: Parser (BoolExp String)
+geniLitConstraints =
+   P.buildExpressionParser table piece
+ where
+   piece =  (Cond `liftM` identifier)
+       <|> do { string "~"; Not `liftM` geniLitConstraints }
+       <|> parens geniLitConstraints
+   table = [ [ op "&" And P.AssocLeft ]
+           , [ op "|" Or  P.AssocLeft ]
+           ]
+   op s f assoc = P.Infix (do { string s ; return f }) assoc
 
 squaresString :: Parser String
 squaresString =
