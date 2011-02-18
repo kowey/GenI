@@ -35,7 +35,7 @@ import Test.HUnit
 import Test.QuickCheck hiding (collect)
 import Test.Framework
 import Test.Framework.Providers.HUnit
-import Test.Framework.Providers.QuickCheck
+import Test.Framework.Providers.QuickCheck2
 \end{code}
 }
 
@@ -309,7 +309,5 @@ instance Arbitrary GTestPred where
      rel  <- arbitrary
      args <- arbitrary
      return $ GTestPred handle rel args
- coarbitrary =
-  error "No instance of coarbitrary for GTestPred"
 \end{code}
 }

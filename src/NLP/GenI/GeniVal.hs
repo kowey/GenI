@@ -30,10 +30,10 @@ import Data.Typeable (Typeable)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Test.HUnit
-import Test.QuickCheck hiding (collect)
+import Test.QuickCheck hiding (collect, Failure)
 import Test.Framework
 import Test.Framework.Providers.HUnit
-import Test.Framework.Providers.QuickCheck
+import Test.Framework.Providers.QuickCheck2
 
 import Data.Generics.PlateDirect
 
@@ -492,17 +492,14 @@ instance Arbitrary GTestString where
     oneof $ map (return . GTestString) $
     [ "a", "apple" , "b", "banana", "c", "carrot", "d", "durian"
     , "e", "eggplant", "f", "fennel" , "g", "grape" ]
-  coarbitrary = error "no implementation of coarbitrary for GTestString"
 
 instance Arbitrary GTestString2 where
   arbitrary =
     oneof $ map (return . GTestString2) $
     [ "X", "Y", "Z", "H", "I", "J", "P", "Q", "R", "S", "T", "U"  ]
-  coarbitrary = error "no implementation of coarbitrary for GTestString2"
 
 instance Arbitrary GeniVal where
   arbitrary = oneof [ arbitraryGConst, arbitraryGVar, return mkGAnon ]
-  coarbitrary = error "no implementation of coarbitrary for GeniVal"
 
 arbitraryGConst = liftM2 mkGConst (fromGTestString `fmap` arbitrary)
                                   (map fromGTestString `fmap` arbitrary)
