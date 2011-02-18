@@ -91,9 +91,9 @@ Library
                  test-framework-quickcheck2 >= 0.2.4 && < 0.3,
                  test-framework == 0.3.*,
                  utf8-string >= 0.3.5 && < 0.4,
-                 uniplate == 1.4.*,
-                 derive == 2.3.0.1,
-                 time == 1.1.2.4
+                 uniplate == 1.6.*
+                 , derive == 2.4.*
+                 , time == 1.1.2.4
                  , syb
 
   if !flag(gui)
