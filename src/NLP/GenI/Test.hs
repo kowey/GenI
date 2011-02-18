@@ -22,15 +22,15 @@ module NLP.GenI.Test where
 import Data.List ( isPrefixOf )
 import System.Environment ( getArgs )
 import Test.Framework
-import NLP.GenI.GeniVal ( testSuite )
-import NLP.GenI.Semantics ( testSuite )
-import NLP.GenI.Simple.SimpleBuilder ( testSuite )
+import NLP.GenI.Test.GeniVal ( suite )
+import NLP.GenI.Test.Semantics ( suite )
+import NLP.GenI.Test.Simple.SimpleBuilder ( suite )
 
 runTests :: IO ()
 runTests =
  do args <- filter (not . (`isPrefixOf` "--unit-tests")) `fmap` getArgs
     flip defaultMainWithArgs args
-     [ NLP.GenI.GeniVal.testSuite
-     , NLP.GenI.Semantics.testSuite
-     , NLP.GenI.Simple.SimpleBuilder.testSuite
+     [ NLP.GenI.Test.GeniVal.suite
+     , NLP.GenI.Test.Semantics.suite
+     , NLP.GenI.Test.Simple.SimpleBuilder.suite
      ]

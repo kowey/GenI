@@ -42,8 +42,8 @@ module NLP.GenI.Simple.SimpleBuilder (
 
    unpackResult,
 
-   --
-   testSuite,
+   -- * Aliases to non-exported functions
+   testCanAdjoin, testIapplyAdjNode, testEmptySimpleGuiItem
    )
 where
 \end{code}
@@ -71,16 +71,15 @@ import NLP.GenI.Statistics (Statistics)
 import NLP.GenI.Automaton ( automatonPaths, NFA(..), addTrans )
 import NLP.GenI.Btypes
   ( Ptype(Initial)
-  , AvPair(..)
   , replace, DescendGeniVal(..)
   , GNode(..), NodeName, gnnameIs
-  , GType(Foot,Other)
+  , GType(Other)
   , root, foot
   , plugTree, spliceTree
   , unifyFeat, Flist, Subst, appendSubst
   , sortSem, Sem
   )
-import NLP.GenI.GeniVal ( GeniVal, mkGConst )
+import NLP.GenI.GeniVal ( GeniVal )
 import NLP.GenI.Builder (
     incrCounter, num_iterations, num_comparisons, chart_size,
     SemBitMap, defineSemanticBits, semToBitVector, bitVectorToSem,
@@ -106,10 +105,6 @@ import NLP.GenI.Tags ( idname,
     )
 
 import Data.List ( sortBy, unfoldr )
-
-import Test.HUnit
-import Test.Framework
-import Test.Framework.Providers.HUnit
 \end{code}
 }
 
@@ -290,6 +285,9 @@ instance Biplate SimpleGuiItem GeniVal where
 
 emptySimpleGuiItem :: SimpleGuiItem
 emptySimpleGuiItem = SimpleGuiItem [] [] [] ""
+
+testEmptySimpleGuiItem :: SimpleGuiItem
+testEmptySimpleGuiItem = emptySimpleGuiItem
 
 modifyGuiStuff :: (SimpleGuiItem -> SimpleGuiItem) -> SimpleItem -> SimpleItem
 modifyGuiStuff fn i = i { siGuiStuff = fn . siGuiStuff $ i }
@@ -798,6 +796,9 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
   -- ---------------
   if twophase then finalRes2p else finalRes1p
 
+testIapplyAdjNode :: Bool -> SimpleItem -> SimpleItem -> Maybe SimpleItem
+testIapplyAdjNode = iapplyAdjNode
+
 canAdjoin :: SimpleItem -> TagSite -> Maybe (TagSite, TagSite, Subst)
 canAdjoin aItem pSite = do
   -- let's go!
@@ -810,6 +811,9 @@ canAdjoin aItem pSite = do
       anr = replace subst12 $ r { tsUp = anr_up' } --  resulting node based on the root node of the aux tree
       anf = replace subst12 $ f { tsDown = anf_down } --  resulting node based on the foot node of the aux tree
   return (anr, anf, subst12)
+
+testCanAdjoin :: SimpleItem -> TagSite -> Maybe (TagSite, TagSite, Subst)
+testCanAdjoin = canAdjoin
 \end{code}
 
 \begin{code}
@@ -1182,108 +1186,5 @@ instance NFData SimpleItem where
                  `seq` rnf x11 `seq` rnf x12 `seq` rnf x13
                  `seq` rnf x14
 -}
-\end{code}
-
-
-\ignore{
-% --------------------------------------------------------------------
-% Testing
-% --------------------------------------------------------------------
-
-\begin{code}
-testSuite :: Test.Framework.Test
-testSuite = testGroup "simple builder"
- [ testAdjunction
- ]
-
-testAdjunction :: Test.Framework.Test
-testAdjunction =
-  testGroup "adjunction"
-   [ testCase "canAdjoin pos" $ assertBool "" $ isJust    $ canAdjoin ttGoodAux (toTagSite ttAdjNode)
-   , testCase "canAdjoin neg" $ assertBool "" $ isNothing $ canAdjoin ttBadAux  (toTagSite ttAdjNode)
-   , testCase "iapplyAdjNode pos" $ assertBool "" $ isJust    $ iapplyAdjNode True ttGoodAux ttAdj
-   , testCase "iapplyAdjNode neg" $ assertBool "" $ isNothing $ iapplyAdjNode True ttBadAux  ttAdj
-   , testCase "iapplyAdjNode neg" $ assertBool "" $ isNothing $ iapplyAdjNode True ttAdj ttBadAux
-   ]
-
--- testing
-ttAdj :: SimpleItem
-ttAdj =
-  ttEmptySimpleItem { siId       = 0
-                    , siRoot_    = r
-                    , siAdjnodes = [r] }
-  where
-   r = gnname ttAdjNode
-
-ttGoodAux :: SimpleItem
-ttGoodAux =
-  ttEmptySimpleItem { siId   = 0
-                    , siSemantics = 1
-                    , siRoot_ = gnname ttFootTop 
-                    , siFoot_ = Just (gnname ttFootBot) }
-
-ttBadAux :: SimpleItem
-ttBadAux =
-  ttEmptySimpleItem { siId   = 0
-                    , siSemantics = 1
-                    , siRoot_ = gnname ttFootBot
-                    , siFoot_ = Just (gnname ttFootTop) }
-
-ttEmptySimpleItem :: SimpleItem
-ttEmptySimpleItem
-  = SimpleItem { siId           = 0  -- must set
-               , siSubstnodes   = [] -- must set
-               , siAdjnodes     = [] -- must set
-               , siSemantics    = 0  -- must set
-               , siPolpaths     = 1
-               , siDerived      = Node "" []
-               , siRoot_        = gnname ttEmptyNode
-               , siFoot_        = Nothing
-               , siNodes        = [ ttEmptyNode, ttAdjNode, ttFootTop, ttFootBot ]
-               , siPendingTb    = []
-               , siDerivation   = []
-               , siGuiStuff     = emptySimpleGuiItem
-               }
- where
-  
-ttEmptyNode :: GNode GeniVal
-ttEmptyNode = GN { gnname = "empty"
-                 , gup   = [ ttCat ttA_ ]
-                 , gdown = [ ttCat ttA_ ]
-                 , ganchor = False
-                 , glexeme = []
-                 , gtype   = Other
-                 , gorigin = "test"
-                 , gaconstr = False
-                 }
-
-ttAdjNode :: GNode GeniVal
-ttAdjNode = ttEmptyNode { gnname = "testing-adjsite"
-                        , gup    = [ ttCat ttA_, ttDet ttPlus_ ]
-                        , gdown  = [ ttCat ttA_, ttDet ttMinus_ ]
-                        }
-
-ttFootTop :: GNode GeniVal
-ttFootTop = ttEmptyNode { gnname = "testing-foot-top"
-                        , gup    = [ ttCat ttA_, ttDet ttPlus_ ]
-                        , gdown  = [ ttCat ttA_, ttDet ttPlus_ ]
-                        , gtype  = Foot
-                        }
-
-ttFootBot :: GNode GeniVal
-ttFootBot = ttEmptyNode { gnname = "testing-foot-bot"
-                        , gup    = [ ttCat ttA_, ttDet ttMinus_ ]
-                        , gdown  = [ ttCat ttA_, ttDet ttMinus_ ]
-                        , gtype  = Foot
-                        }
-
-ttCat, ttDet  :: GeniVal -> AvPair GeniVal
-ttCat = AvPair "cat"
-ttDet = AvPair "det"
-
-ttA_, ttPlus_, ttMinus_ :: GeniVal
-ttA_     = mkGConst "a" []
-ttPlus_  = mkGConst "+" []
-ttMinus_ = mkGConst "-" []
 \end{code}
 }
