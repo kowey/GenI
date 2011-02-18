@@ -351,8 +351,6 @@ optionsForUserInterface =
   [ noguiOption, helpOption, versionOption
   , Option []    ["regression"] (noArg RegressionTestModeFlg)
       "Run in regression testing mode (needs grammar, etc)"
-  , Option []    ["unit-tests"] (noArg RunUnitTestFlg)
-      "Run in unit testing mode (no arguments needed)"
   , Option []    ["viewcmd"]  (reqArg ViewCmdFlg id "CMD")
       "XMG tree-view command"
   ]
