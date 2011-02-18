@@ -451,7 +451,7 @@ GenI will convert these into non-substitution sites with a lexical item
 leaf node.
 
 \begin{code}
--- setLemAnchors :: Tree SchemaNode -> Tree SchemaNode
+setLemAnchors :: Tree (GNode GeniVal) -> Tree (GNode GeniVal)
 setLemAnchors t =
  repAllNode fn filt t
  where

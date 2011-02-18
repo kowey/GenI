@@ -90,7 +90,6 @@ import qualified Data.Map as Map
 import Data.List
 import Data.Maybe (isNothing, isJust)
 import Data.Tree (flatten)
-import qualified Data.Set as Set
 
 import NLP.GenI.Automaton
 import NLP.GenI.Btypes(Pred, SemInput, Sem, Flist, AvPair(..), showAv,
@@ -98,7 +97,7 @@ import NLP.GenI.Btypes(Pred, SemInput, Sem, Flist, AvPair(..), showAv,
               emptyPred, Ptype(Initial), 
               showFlist, showSem, sortSem,
               GNode, root, gup, gdown, gtype, GType(Subs),
-              SemPols, unify, unifyFeat, rootUpd)
+              unify, unifyFeat, rootUpd)
 import NLP.GenI.General(
     geniBug,
     BitVector, isEmptyIntersect, thd3,
@@ -951,7 +950,7 @@ detectPolarityForAttr i att fl =
   case [ v | AvPair a v <- fl, a == att ] of
     []  -> PD_UserError $ "[polarities] No value for attribute: " ++ att ++ " in:" ++ showFlist fl
     [v] -> case gConstraints v of
-             Just cs -> PD_Just $ case prefixWith att (values v) of
+             Just _  -> PD_Just $ case prefixWith att (values v) of
                                     [x] -> [ (PolarityKey x, ival i) ]                -- singleton
                                     xs  -> map (\x -> (PolarityKey x, toZero i)) xs   -- interval if ambiguous
              Nothing -> PD_UserError $ "[polarities] Non-constrained value for attribute: " ++ att ++ " in:" ++ showFlist fl

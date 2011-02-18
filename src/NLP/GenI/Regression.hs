@@ -21,7 +21,6 @@
 
 module NLP.GenI.Regression (regressionGeni) where
 
-import Control.Monad
 import Data.IORef(readIORef, modifyIORef)
 import Data.List(sort)
 import Test.HUnit.Text (runTestTT)
@@ -48,7 +47,7 @@ regressionGeni pstRef = do
  do pst <- readIORef pstRef
     loadEverything pstRef
     tests <- (mapM toTest) . tsuite $ pst
-    runTestTT . (H.TestList) . concat $ tests
+    _ <- runTestTT . (H.TestList) . concat $ tests
     return ()
  where
   toTest :: G.TestCase -> IO [H.Test] -- ^ GenI test case to HUnit Tests

@@ -219,7 +219,7 @@ inflectSentencesUsingCmd morphcmd sentences =
      hClose toP
      -- wait for all the output
      output <- hGetContents fromP
-     evaluate (length output)
+     _ <- evaluate (length output)
      -- see http://www.haskell.org/pipermail/haskell-cafe/2008-May/042994.html
      -- fork off a thread to pull on the stderr
      -- so if the process writes to stderr we do not block.
@@ -227,7 +227,7 @@ inflectSentencesUsingCmd morphcmd sentences =
      -- bracket can exit before this thread has run, and hGetContents
      -- will fail.
      err <- hGetContents errP
-     forkIO $ do evaluate (length err); ePutStrLn err
+     _ <- forkIO (evaluate (length err) >> ePutStrLn err)
 
      -- wait for the program to terminate
      exitcode <- waitForProcess pid

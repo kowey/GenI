@@ -50,7 +50,6 @@ where
 \begin{code}
 import Control.Applicative ((<$>),(<*>))
 import Control.Monad.Error
-import Control.Monad (unless)
 
 import Data.Binary (Binary, decodeFile)
 import Data.IORef (IORef, readIORef, modifyIORef)
@@ -91,7 +90,6 @@ import NLP.GenI.Tags (TagElem,
              tsemantics,
              ttrace,
              setTidnums) 
-import NLP.GenI.TreeSchemata ( Ttree(..) )
 
 import NLP.GenI.Configuration
   ( Params, getFlagP, hasFlagP, hasOpt, Optimisation(NoConstraints)
@@ -120,7 +118,6 @@ import NLP.GenI.LexicalSelection
         )
 import NLP.GenI.Morphology
 import NLP.GenI.OptimalityTheory
-import NLP.GenI.Statistics (Statistics)
 
 -- import CkyBuilder 
 -- import SimpleBuilder (simpleBuilder)
@@ -443,7 +440,7 @@ runGeniWithSelector pstRef  selector builder =
      results <- finaliseResults pstRef resultTy rawResults
      end <-  ( rnf results ) `seq` getCPUTime --force evaluation before measuring end time to account for all the work that should be done.
      let elapsedTime = picosToMillis $! end - start
-     let diff = round (elapsedTime :: Double)     
+     let diff = round (elapsedTime :: Double) :: Int
      let stats2 = updateMetrics (incrIntMetric "gen_time"  (fromIntegral diff) ) stats
 
      return (results, stats2, finalSt)
