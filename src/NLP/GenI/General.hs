@@ -20,6 +20,7 @@
 --   to replace these functions with versions that are available in the standard
 --   libraries, or the Haskell platform ones, or on hackage.
 
+{-# LANGUAGE DeriveDataTypeable #-}
 module NLP.GenI.General (
         -- * IO
         ePutStr, ePutStrLn, eFlush,
@@ -77,8 +78,9 @@ import qualified Data.Map as Map
 
 -- for timeout
 import Control.Concurrent
-import Control.Exception
-import Data.Dynamic(Typeable, typeOf, TyCon, mkTyCon, mkTyConApp, toDyn)
+import Control.Exception ( Exception, IOException, catch, throw, block, unblock  )
+import Prelude hiding ( catch )
+import Data.Dynamic(Typeable, typeOf, TyCon, mkTyCon, mkTyConApp)
 import Data.Unique
 import System.Exit(exitWith, ExitCode(ExitFailure))
 
@@ -327,8 +329,8 @@ geniBug s = error $ "Bug in GenI!\n" ++ s ++
                     "\nPlease file a report on http://trac.haskell.org/GenI/newticket"
 
 -- stolen from Darcs
-prettyException :: Exception -> String
-prettyException (IOException e) | isUserError e = ioeGetErrorString e
+prettyException :: IOException -> String
+prettyException e | isUserError e = ioeGetErrorString e
 prettyException e = show e
 
 -- ----------------------------------------------------------------------
@@ -405,13 +407,10 @@ lazySlurp fp ix len
 -- Timeouts
 -- ----------------------------------------------------------------------
 
-data TimeOut = TimeOut Unique
-
-timeOutTc :: TyCon
-timeOutTc = mkTyCon "TimeOut"
-
-instance Typeable TimeOut where
-    typeOf _ = mkTyConApp timeOutTc []
+data TimeOut = TimeOut Unique deriving (Typeable)
+instance Exception TimeOut
+instance Show TimeOut where
+  show _ = "TimeOut"
 
 withTimeout :: Integer
             -> IO a -- ^ action to run upon timing out
@@ -422,17 +421,17 @@ withTimeout secs on_timeout action =
     i       <- newUnique
     block $ do
       timeout <- forkIO (timeout_thread secs parent i)
-      Control.Exception.catchDyn
+      catch
         ( unblock $ do result <- action
                        killThread timeout
                        return result )
         ( \ex -> case ex of
                  TimeOut u | u == i -> unblock on_timeout
-                 _ -> killThread timeout >>= throwDyn ex )
+                 _ -> killThread timeout >>= throw ex )
  where
   timeout_thread secs_ parent i =
    do threadDelay $ (fromInteger secs_) * 1000000
-      throwTo parent (DynException $ toDyn $ TimeOut i)
+      throwTo parent (TimeOut i)
 
 -- | Like 'exitFailure', except that we return with a code that we reserve for timing out
 exitTimeout :: IO ()
