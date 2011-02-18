@@ -39,7 +39,7 @@ UML might help.  See figure \ref{fig:builderUml}.
 
 \ignore{
 \begin{code}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, DeriveDataTypeable #-}
 
 module NLP.GenI.Builder (
 TagDerivation, Builder(..), LemmaPlusSentence, LemmaPlus(..), lexicalSelection, FilterStatus(..),incrCounter, num_iterations, (>-->),

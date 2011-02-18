@@ -16,7 +16,8 @@
 -- along with this program; if not, write to the Free Software
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-{-# LANGUAGE OverlappingInstances, FlexibleInstances, DeriveDataTypeable, TemplateHaskell #-}
+{-# LANGUAGE OverlappingInstances, FlexibleInstances, TemplateHaskell #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 module NLP.GenI.GeniVal where
 
 -- import Debug.Trace -- for test stuff

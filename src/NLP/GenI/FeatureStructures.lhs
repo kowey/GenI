@@ -20,7 +20,7 @@
 \ignore{
 \begin{code}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, DeriveDataTypeable #-}
 module NLP.GenI.FeatureStructures where
 
 import Data.Function (on)

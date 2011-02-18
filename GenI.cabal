@@ -76,7 +76,7 @@ Flag test
 
 Library
   Build-depends: parsec >= 2 && < 3,
-                 base >= 3 && < 4,
+                 base >= 4 && < 5,
                  containers >= 0.1,
                  process > 1,
                  QuickCheck >= 1.2 && < 2,
@@ -94,6 +94,7 @@ Library
                  uniplate == 1.4.*,
                  derive == 2.3.0.1,
                  time == 1.1.2.4
+                 , syb
 
   if !flag(gui)
     cpp-options:      -DDISABLE_GUI
