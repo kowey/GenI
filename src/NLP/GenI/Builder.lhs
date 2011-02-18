@@ -42,17 +42,21 @@ UML might help.  See figure \ref{fig:builderUml}.
 {-# LANGUAGE TemplateHaskell, DeriveDataTypeable #-}
 
 module NLP.GenI.Builder (
-TagDerivation, Builder(..), LemmaPlusSentence, LemmaPlus(..), lexicalSelection, FilterStatus(..),incrCounter, num_iterations, (>-->),
-num_comparisons, chart_size, SemBitMap, defineSemanticBits, semToBitVector, bitVectorToSem, DispatchFilter, condFilter, init, step,
-stepAll, defaultStepAll, finished, unpack, partial, BuilderState, UninflectedDisjunction(..), Input(..), inCands, inSemInput, unlessEmptySem,
-initStats, Output, SentenceAut, run, inLex, queryCounter, defaultMetricNames, preInit
+ TagDerivation, Builder(..), LemmaPlusSentence, LemmaPlus(..),
+ lexicalSelection, FilterStatus(..),incrCounter, num_iterations,
+ (>-->),
+ num_comparisons, chart_size,
+ SemBitMap, defineSemanticBits, semToBitVector, bitVectorToSem, DispatchFilter, condFilter,
+ defaultStepAll,
+ BuilderState, UninflectedDisjunction(..), Input(..), unlessEmptySem,
+initStats, Output, SentenceAut, run, queryCounter, defaultMetricNames, preInit
 )
 where
 
 import Control.Applicative ( (<$>), (<*>) )
 import Control.Monad.State.Strict
 import Data.Bits ( (.&.), (.|.), bit )
-import Data.List ( maximum, delete, sort, nub )
+import Data.List ( delete, sort, nub )
 import qualified Data.Map as Map
 import Data.Maybe ( mapMaybe, fromMaybe  )
 import qualified Data.Set as Set
@@ -60,7 +64,6 @@ import Data.Tree ( flatten )
 import Prelude hiding ( init )
 import Text.JSON
 
-import System.CPUTime( getCPUTime )
 import Control.Parallel.Strategies
 import Data.DeriveTH --this is for template way of generation.
 
@@ -367,10 +370,6 @@ f >--> f2 = \x -> f x >>= next
  where
   next y@Filtered = return y
   next (NotFiltered x2) = f2 x2
-
--- | A filter that always fails (i.e. no filtering)
-nullFilter :: (Monad s) => DispatchFilter s a
-nullFilter = return.NotFiltered
 
 -- | If the item meets some condition, use the first filter, otherwise
 --   use the second one.

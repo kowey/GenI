@@ -417,10 +417,10 @@ generateStep_1p =
        else do incrCounter num_iterations 1
                given <- selectGiven
                -- do both substitution and adjunction
-               applySubstitution1p given >>= dispatch
-               passiveAdjunction1p given >>= dispatch
-               activeAdjunction1p  given >>= dispatch
-               sansAdjunction1p    given >>= dispatch
+               _ <- applySubstitution1p given >>= dispatch
+               _ <- passiveAdjunction1p given >>= dispatch
+               _ <- activeAdjunction1p  given >>= dispatch
+               _ <- sansAdjunction1p    given >>= dispatch
                -- determine which of the res should go in the agenda
                -- (monadic state) and which should go in the result (res')
                addToChart given
@@ -1002,6 +1002,7 @@ During initialisation of the chart, any nodes which can never receive
 adjunction should be top-bottom unified to start with.
 
 \begin{code}
+tbUnifyNaNodes :: [GNode GeniVal] -> Maybe ([GNode GeniVal], Map.Map String GeniVal)
 tbUnifyNaNodes [] = Just ([], Map.empty)
 tbUnifyNaNodes (n:ns) =
  if gaconstr n
