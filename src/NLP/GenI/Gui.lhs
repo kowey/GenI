@@ -19,6 +19,7 @@
 
 \begin{code}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module NLP.GenI.Gui(guiGeni) where
 \end{code}
 
@@ -309,7 +310,7 @@ loadTestSuiteAndRefresh :: (Textual a, Selecting b, Selection b, Items b String)
               => Window w -> ProgStateRef -> Instruction -> a -> b -> IO ()
 loadTestSuiteAndRefresh f pstRef (suitePath,mcs) tsBox caseChoice =
   do (loadTestSuite pstRef >> return ())
-       `catch` \e -> errorDialog f ("Error reading test suite " ++ suitePath) (show e)
+       `catch` (\(e :: SomeException) -> errorDialog f ("Error reading test suite " ++ suitePath) (show e))
      pst <- readIORef pstRef
      let suite   = tsuite pst
          theCase = tcase pst
