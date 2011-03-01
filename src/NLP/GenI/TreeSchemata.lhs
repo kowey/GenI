@@ -289,9 +289,21 @@ crushGNode gn =
                  , gaconstr = gaconstr gn
                  , gorigin = gorigin gn}
 
-{-!
-deriving instance NFData Ptype
-deriving instance NFData GNode
-deriving instance NFData GType
-!-}
+-- Node type used during parsing of the grammar
+instance NFData GType where
+  rnf x = x `seq` ()
+
+instance NFData Ptype where
+  rnf x = x `seq` ()
+
+-- | A single node of a TAG tree.
+instance NFData gv => NFData (GNode gv) where
+  rnf (GN x1 x2 x3 x4 x5 x6 x7 x8)
+          = rnf x1 `seq`
+              rnf x2 `seq`
+                rnf x3 `seq`
+                  rnf x4 `seq`
+                    rnf x5 `seq`
+                      rnf x6 `seq`
+                        rnf x7 `seq` rnf x8 `seq` ()
 \end{code}

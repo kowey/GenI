@@ -328,6 +328,5 @@ instance DescendGeniVal GeniVal where
 instance (Functor f, DescendGeniVal a) => DescendGeniVal (f a) where
   descendGeniVal = fmap . descendGeniVal
 
-{-!
-deriving instance NFData GeniVal
-!-}
+instance NFData GeniVal where
+  rnf (GeniVal x y) = rnf x `seq` rnf y
