@@ -33,7 +33,6 @@ import qualified Data.Set as Set
 import Data.Generics.PlateDirect
 
 import Control.Parallel.Strategies
-import Data.DeriveTH
 
 import NLP.GenI.General (geniBug)
 
@@ -329,5 +328,6 @@ instance DescendGeniVal GeniVal where
 instance (Functor f, DescendGeniVal a) => DescendGeniVal (f a) where
   descendGeniVal = fmap . descendGeniVal
 
--- NFData derivations
-$( derive makeNFData ''GeniVal )
+{-!
+deriving instance NFData GeniVal
+!-}

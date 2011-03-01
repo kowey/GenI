@@ -42,8 +42,6 @@ import NLP.GenI.Btypes ( Macros, ptrace )
 import qualified NLP.GenI.Builder as B
 
 import Control.Parallel.Strategies
-import Data.DeriveTH
-
 \end{code}
 
 If your tree schemata are annotated with traces (TODO link to traces and
@@ -393,8 +391,9 @@ splitAtBefore len xs
   isNotSpace = not . isSpace
   trim = drop 1
 
--- NFData derivations
-$( derive makeNFData ''OtViolation )
-$( derive makeNFData ''RankedOtConstraint )
-$( derive makeNFData ''OtConstraint )
+{-!
+deriving instance NFData OtViolation
+deriving instance NFData RankedOtConstraint
+deriving instance NFData OtConstraint
+!-}
 \end{code}

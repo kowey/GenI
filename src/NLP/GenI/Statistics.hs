@@ -47,7 +47,6 @@ import Data.Maybe (mapMaybe)
 import Text.JSON
 
 import Control.Parallel.Strategies
-import Data.DeriveTH
 
 -------------------------------------------
 -- Statistics are collections of Metrics
@@ -107,8 +106,9 @@ instance JSON Statistics where
 metricToJSON :: Metric -> (String, JSValue)
 metricToJSON (IntMetric s i) = (s, showJSON i)
 
+{-!
+deriving instance NFData Statistics
+deriving instance NFData Metric
+!-}
 
--- NFData derivations
-$( derive makeNFData ''Statistics )
-$( derive makeNFData ''Metric )
 

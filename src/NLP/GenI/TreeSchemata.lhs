@@ -55,8 +55,6 @@ import NLP.GenI.Semantics ( Sem )
 import NLP.GenI.General (filterTree, listRepNode, geniBug,)
 
 import Control.Parallel.Strategies
-import Data.DeriveTH
-
 \end{code}
 }
 
@@ -291,8 +289,9 @@ crushGNode gn =
                  , gaconstr = gaconstr gn
                  , gorigin = gorigin gn}
 
--- NFData derivations
-$( derive makeNFData ''Ptype )
-$( derive makeNFData ''GNode )
-$( derive makeNFData ''GType )
+{-!
+deriving instance NFData Ptype
+deriving instance NFData GNode
+deriving instance NFData GType
+!-}
 \end{code}

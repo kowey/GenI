@@ -26,7 +26,6 @@ import Data.Generics ( Data )
 import Data.Typeable ( Typeable )
 
 import Control.Parallel.Strategies 
-import Data.DeriveTH
 
 newtype PolarityKey = PolarityKey { fromPolarityKey :: String } deriving (Show, Eq, Ord, Data, Typeable)
 type SemPols  = [Int]
@@ -53,7 +52,7 @@ instance Show PolarityAttr where
  show (SimplePolarityAttr a) = a
  show (RestrictedPolarityAttr c a) = c ++ "." ++ a
 
--- NFData derivations
-$( derive makeNFData ''PolarityKey )
-$( derive makeNFData ''PolarityAttr )
-
+{-!
+deriving instance NFData PolarityKey
+deriving instance NFData PolarityAttr
+!-}

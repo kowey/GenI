@@ -62,7 +62,6 @@ import Data.Typeable (Typeable)
 import System.CPUTime( getCPUTime )
 import NLP.GenI.Statistics
 import Control.Parallel.Strategies
-import Data.DeriveTH --used for NFData derivations with 'derive' tool
 
 import qualified System.IO.UTF8 as UTF8
 
@@ -749,10 +748,11 @@ instance JSON GeniLexSel where
 picosToMillis :: Integer -> Double
 picosToMillis t = realToFrac t / (10^(9 :: Int))
 
--- NFData derivations
-$( derive makeNFData ''GeniResult )
-$( derive makeNFData ''ResultType )
-$( derive makeNFData ''GeniLexSel )
+{-!
+deriving instance NFData GeniResult
+deriving instance NFData ResultType
+deriving instance NFData GeniLexSel
+!-}
 \end{code}
 }
 

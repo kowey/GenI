@@ -65,7 +65,6 @@ import Prelude hiding ( init )
 import Text.JSON
 
 import Control.Parallel.Strategies
-import Data.DeriveTH --this is for template way of generation.
 
 import Data.Generics.PlateDirect
 import Data.Generics ( Data )
@@ -465,9 +464,10 @@ parsecToJSON description p str =
    Left  err -> fail $ "Couldn't parse " ++ description ++ " because " ++ show err
    Right res -> return res
 
--- NFData derivations
-$( derive makeNFData ''Input )
-$( derive makeNFData ''LemmaPlus )
+{-!
+deriving instance NFData Input
+deriving instance NFData LemmaPlus
+!-}
 
 \end{code}
 }

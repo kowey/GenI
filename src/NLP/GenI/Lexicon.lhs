@@ -39,7 +39,6 @@ import NLP.GenI.PolarityTypes (SemPols)
 import NLP.GenI.TreeSchemata
 
 import Control.Parallel.Strategies
-import Data.DeriveTH
 
 --instance Show (IO()) where
 --  show _ = ""
@@ -99,8 +98,8 @@ instance Collectable ILexEntry where
               (collect $ ifilters l) . (collect $ iequations l) .
               (collect $ isemantics l)
 
--- NFData derivations
-$( derive makeNFData ''ILexEntry )
-
+{-!
+deriving instance NFData ILexEntry
+!-}
 \end{code}
 }

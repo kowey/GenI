@@ -32,7 +32,6 @@ import Data.Typeable (Typeable)
 import NLP.GenI.GeniVal
 
 import Control.Parallel.Strategies
-import Data.DeriveTH
 
 \end{code}
 }
@@ -194,7 +193,7 @@ crushAvPair (AvPair a v) = AvPair a `fmap` crushOne v
 crushFlist :: Flist [GeniVal] -> Maybe (Flist GeniVal)
 crushFlist = mapM crushAvPair
 
--- NFData derivations
-$( derive makeNFData ''AvPair )
-
+{-!
+deriving instance NFData AvPair
+!-}
 \end{code}
