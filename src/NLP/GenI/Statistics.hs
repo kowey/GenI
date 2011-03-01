@@ -112,3 +112,13 @@ deriving instance NFData Metric
 !-}
 
 
+-- GENERATED START
+
+ 
+instance NFData Statistics where
+        rnf (Stat x1) = rnf x1 `seq` ()
+
+ 
+instance NFData Metric where
+        rnf (IntMetric x1 x2) = rnf x1 `seq` rnf x2 `seq` ()
+-- GENERATED STOP

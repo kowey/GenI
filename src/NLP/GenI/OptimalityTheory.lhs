@@ -396,4 +396,21 @@ deriving instance NFData OtViolation
 deriving instance NFData RankedOtConstraint
 deriving instance NFData OtConstraint
 !-}
+
+-- GENERATED START
+
+ 
+instance NFData OtViolation where
+        rnf (OtViolation x1 x2) = rnf x1 `seq` rnf x2 `seq` ()
+
+ 
+instance NFData RankedOtConstraint where
+        rnf (RankedOtConstraint x1 x2) = rnf x1 `seq` rnf x2 `seq` ()
+
+ 
+instance NFData OtConstraint where
+        rnf (PositiveC x1) = rnf x1 `seq` ()
+        rnf (NegativeC x1) = rnf x1 `seq` ()
+        rnf (NegativeConjC x1) = rnf x1 `seq` ()
+-- GENERATED STOP
 \end{code}

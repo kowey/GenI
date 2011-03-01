@@ -196,4 +196,11 @@ crushFlist = mapM crushAvPair
 {-!
 deriving instance NFData AvPair
 !-}
+
+-- GENERATED START
+
+ 
+instance (NFData a) => NFData (AvPair a) where
+        rnf (AvPair x1 x2) = rnf x1 `seq` rnf x2 `seq` ()
+-- GENERATED STOP
 \end{code}

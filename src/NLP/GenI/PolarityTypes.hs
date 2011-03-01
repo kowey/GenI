@@ -56,3 +56,14 @@ instance Show PolarityAttr where
 deriving instance NFData PolarityKey
 deriving instance NFData PolarityAttr
 !-}
+-- GENERATED START
+
+ 
+instance NFData PolarityKey where
+        rnf (PolarityKey x1) = rnf x1 `seq` ()
+
+ 
+instance NFData PolarityAttr where
+        rnf (SimplePolarityAttr x1) = rnf x1 `seq` ()
+        rnf (RestrictedPolarityAttr x1 x2) = rnf x1 `seq` rnf x2 `seq` ()
+-- GENERATED STOP
