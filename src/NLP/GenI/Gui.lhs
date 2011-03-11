@@ -33,10 +33,13 @@ import Control.Exception
 import Data.IORef
 import Data.List (isPrefixOf, nub, delete, findIndex)
 import Data.Maybe ( fromMaybe )
+import Data.Version ( showVersion )
+
 import Prelude hiding ( catch )
 import System.Directory 
 import System.Exit (exitWith, ExitCode(ExitSuccess))
 
+import Paths_GenI ( version )
 import qualified NLP.GenI.Builder as B
 import qualified NLP.GenI.BuilderGui as BG
 import NLP.GenI.Geni
@@ -115,7 +118,9 @@ mainGui pstRef
        set f [ statusBar := [status] 
              , menuBar := [fileMen, helpMen]
              -- put the menu event handler for an about box on the frame.
-             , on (menu aboutMeIt) := infoDialog f "About GenI" "The GenI generator.\nhttp://wiki.loria.fr/wiki/GenI" 
+             , on (menu aboutMeIt) := infoDialog f "About GenI"
+                ("The GenI generator " ++ showVersion version ++
+                 ".\nhttp://projects.haskell.org/GenI" )
              -- event handler for the tree browser
              -- , on (menu gbrowserMenIt) := do { loadEverything pstRef; treeBrowserGui pstRef }  
              ]
