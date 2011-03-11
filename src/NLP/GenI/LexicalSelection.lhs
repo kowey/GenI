@@ -171,7 +171,7 @@ data LexCombineError =
 instance Show LexCombineError where
  show (BoringError s)    = s
  show (OtherError t l s) = s ++ " on " ++ pfamily t ++ " (" ++ (showLexeme $ iword l) ++ ")"
- show (EnrichError t l _) = show (OtherError t l "enrichment error")
+ show (EnrichError t l p) = show (OtherError t l $ "enrichment error " ++ showPathEqLhs p)
 \end{code}
 
 The first step in lexical selection is to collect all the features and
@@ -422,6 +422,9 @@ parsePathEq e =
           return ("", True, e)
  where
   rejoin = concat . intersperse "."
+
+showPathEqLhs :: PathEqLhs -> String
+showPathEqLhs (x,tb,z) = intercalate "." [x, if tb then "top" else "bot" , z]
 \end{code}
 
 \subsection{Lemanchor mechanism}
