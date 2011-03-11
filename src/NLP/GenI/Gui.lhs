@@ -190,7 +190,8 @@ mainGui pstRef
        -- -----------------------------------------------------------------
        -- set any last minute handlers, run any last minute functions
        let onLoad =
-            do -- errHandler title err = errorDialog f title (show err)
+            do config <- pa `fmap` readIORef pstRef -- we want the latest config!
+               -- errHandler title err = errorDialog f title (show err)
                set macrosFileLabel  [ text := getListFlagP MacrosFlg config ]
                set lexiconFileLabel [ text := getListFlagP LexiconFlg config ]
                -- set tsFileLabel      [ text := getListFlagP TestSuiteFlg config ]
