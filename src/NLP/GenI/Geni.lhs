@@ -120,6 +120,12 @@ import NLP.GenI.OptimalityTheory
 
 -- import CkyBuilder 
 -- import SimpleBuilder (simpleBuilder)
+
+-- -- DEBUG
+-- import Control.Monad.Writer
+-- import NLP.GenI.Lexicon
+-- import NLP.GenI.LexicalSelection
+-- import NLP.GenI.FeatureStructures
 \end{code}
 }
 
@@ -607,12 +613,15 @@ runLexSelection pstRef =
               cs -> mapM_ showWarning . group . sort $ cs
                     where showWarning [] = geniBug "silly error in Geni.runLexSelection"
                           showWarning xs@(x0:_) = addWarning pstRef $ "Missing co-anchor '" ++ x0 ++ "'" ++ " in " ++ _outOfFamily (length xs) ++ "."
-            -- print out enrichment errors
 {-
+            -- print out enrichment errors
+            let isEnrichErr (EnrichError _ _ _) = True
+                isEnrichErr _ = False
+                (otherEs, enrichEs) = partition isEnrichErr (concat errs)
             unless (null enrichEs) $ do
                 let numDiscards = length enrichEs
                     badEnrichments = [ av | av <- iequations l, hasMatch av ]
-                    hasMatch (a,_) = any (== parsePathEq a) errLocs
+                    hasMatch (AvPair a _) = any (== (fst . runWriter $ parsePathEq a)) errLocs
                     errLocs = map eeLocation enrichEs
                 ePutStrLn $      "Warning: Discarded "
                             ++ _outOfFamily numDiscards
