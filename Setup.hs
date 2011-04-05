@@ -13,12 +13,6 @@ import Distribution.Simple.Setup
 import Distribution.Simple
 import Distribution.Simple.LocalBuildInfo
 
-#ifndef WIN32
-import System.Posix.Files (fileMode, getFileStatus, setFileMode,
-                           ownerExecuteMode, groupExecuteMode, otherExecuteMode)
-import Data.Bits ( (.|.) )
-#endif
-
 main :: IO ()
 main = defaultMainWithHooks $ addMacHook simpleUserHooks
  where
@@ -62,28 +56,14 @@ createAppBundle dir p =
 createAppBundleWrapper :: FilePath -> FilePath -> IO ()
 createAppBundleWrapper bindir p =
   do writeFile scriptFile scriptTxt
-     makeExecutable scriptFile
+     system ("chmod u+x " ++ scriptFile)
+     return ()
  where
   scriptFile = bindir </> takeFileName p
   scriptTxt = "`dirname $0`" </> appBundlePath "." p </> "Contents/MacOS" </> takeFileName p ++ " \"$@\""
 
 appBundlePath :: FilePath -> FilePath -> FilePath
 appBundlePath dir p = dir </> takeFileName p <.> "app"
-
--- ----------------------------------------------------------------------
--- utilities
--- ----------------------------------------------------------------------
-
-makeExecutable :: FilePath -> IO ()
-#ifdef WIN32
-makeExecutable = const (return ())
-#else
-makeExecutable f =
-  do st <- getFileStatus f
-     let m  = fileMode st
-         m2 = m .|. ownerExecuteMode .|. groupExecuteMode .|. otherExecuteMode
-     setFileMode f m2
-#endif
 
 -- ----------------------------------------------------------------------
 -- customisations
