@@ -20,7 +20,6 @@
 
 module NLP.GenI.PolarityTypes where
 
-import Data.List ( break )
 import qualified Data.Set as Set
 import Data.Generics ( Data )
 import Data.Typeable ( Typeable )
