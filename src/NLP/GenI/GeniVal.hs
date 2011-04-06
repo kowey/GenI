@@ -313,6 +313,7 @@ crushOne gs   =
   where
    gcs = map gConstraints gs
 
+crushList :: [[GeniVal]] -> Maybe [GeniVal]
 crushList = mapM crushOne
 
 -- ----------------------------------------------------------------------
