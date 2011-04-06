@@ -99,6 +99,7 @@ Library
     ghc-options: -static -optl-static
 
   Exposed-Modules:
+                BoolExp,
                 NLP.GenI.Btypes,
                 NLP.GenI.BtypesBinary,
                 NLP.GenI.FeatureStructures,
