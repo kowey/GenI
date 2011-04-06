@@ -22,10 +22,8 @@ module Main (main) where
 
 import Control.Applicative hiding (empty)
 import Network (connectTo, withSocketsDo, PortID(..))
-import System.Environment (getArgs)
 import System.IO
 import qualified System.IO.UTF8 as UTF8
-import Text.JSON
 import NLP.GenI.Geni ( GeniResult(..) )
 import ClientServer (ServerInstruction(..), hGetBlock, hPutBlock)
 import System.Console.CmdArgs
