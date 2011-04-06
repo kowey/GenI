@@ -36,7 +36,9 @@ module NLP.GenI.Geni (
              lemmaSentenceString, prettyResult,
              showRealisations, groupAndCount,
              getTraces, Selector,
-             loadEverything, loadLexicon, loadGeniMacros,
+             loadEverything,
+             loadLexicon, toLexicon,
+             loadGeniMacros,
              loadTestSuite, loadTargetSemStr,
              loadRanking, readRanking,
 
@@ -235,12 +237,14 @@ an IORef.
 \begin{code}
 loadLexicon :: ProgStateRef -> IO ()
 loadLexicon pstRef =
-    do let getSem l  = isemantics l
-           sorter l  = l { isemantics = (sortSem . getSem) l }
-           cleanup   = mapBySemKeys isemantics . map sorter
-       xs <- loadThingOrDie LexiconFlg "lexicon" pstRef
+    do xs <- loadThingOrDie LexiconFlg "lexicon" pstRef
          (parseFromFileOrFail geniLexicon)
-       modifyIORef pstRef (\p -> p { le = cleanup xs })
+       modifyIORef pstRef (\p -> p { le = toLexicon xs })
+
+toLexicon :: [ILexEntry] -> Lexicon
+toLexicon = mapBySemKeys isemantics . map sorter
+  where
+   sorter l  = l { isemantics = (sortSem . isemantics) l }
 
 -- | The macros are stored as a hashing function in the monad.
 loadGeniMacros :: ProgStateRef -> IO ()
