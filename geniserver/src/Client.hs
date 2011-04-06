@@ -39,17 +39,19 @@ data Client = Connect { hostname :: String
             | Dump
  deriving (Show, Data, Typeable)
 
-clientCfg :: [ Mode Client ]
-clientCfg = [ mode $ Connect { hostname = def &= text "hostname" & argPos 0
-                             , port     = def &= text "port INT"
-                             }
-            , mode $ Socket { socket = def &= text "Unix socket at PATH" & argPos 0 }
-            , mode $ Dump &= text "Dump request to stdout (for debugging)"
-            ]
+clientCfg :: Client
+clientCfg = modes
+            [ Connect { hostname = def &= help "hostname" &= argPos 0
+                      , port     = def &= help "port INT"
+                      }
+            , Socket { socket = def &= help "Unix socket at PATH" &= argPos 0 
+                     }
+            , Dump &= help "Dump request to stdout (for debugging)"
+            ] &= help ("geniclient " ++ showVersion version)
 
 main :: IO ()
 main = withSocketsDo $
- do config <- cmdArgs ("geniclient " ++ showVersion version) clientCfg
+ do config <- cmdArgs clientCfg
     instructions <- ServerInstruction [] <$> UTF8.getContents
     case config of
       Dump -> hPutBlock stdout instructions
