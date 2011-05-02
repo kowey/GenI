@@ -491,7 +491,7 @@ semantics:[?E:hate(?L) ?E:agent(?L ?X) ?E:patient(?L ?Y)]
 \subsection{Notes about lexicons}
 
 \begin{itemize}
-\item The semantics associated with a lexicali item may have more than one literal
+\item The semantics associated with a lexical item may have more than one literal
 \begin{verbatim}
 cher adj (?E ?X ?Y)
 semantics:[?E:cost(?X ?Y) ?E:high(?Y)]
