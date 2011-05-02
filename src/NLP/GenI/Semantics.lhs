@@ -213,4 +213,3 @@ unifyPred (h1, p1, la1) (h2, p2, la2) =
   toPred (h:p:xs) = (h, p, xs)
   toPred _ = error "unifyPred.toPred"
 \end{code}
-}

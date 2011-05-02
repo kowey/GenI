@@ -1178,6 +1178,7 @@ countBits bs = if testBit bs 0 then 1 + next else next
 % Performance
 % --------------------------------------------------------------------
 
+\ignore{
 \begin{code}
 {-
 instance NFData SimpleItem where
