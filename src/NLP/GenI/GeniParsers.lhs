@@ -491,6 +491,12 @@ semantics:[?E:hate(?L) ?E:agent(?L ?X) ?E:patient(?L ?Y)]
 \subsection{Notes about lexicons}
 
 \begin{itemize}
+\item You can have arbitrary strings in your lexical entries if you surround them in quote marks
+\begin{verbatim}
+"Joe \"the Boxer\" Stephens" Pn(?X)
+semantics:[?E:name(_ ?X joe_stephens)]
+\end{verbatim}
+
 \item The semantics associated with a lexical item may have more than one literal
 \begin{verbatim}
 cher adj (?E ?X ?Y)

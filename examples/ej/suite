@@ -18,6 +18,12 @@ semantics: [ name(s1 a vincent)
              name(s2 ex émilie)]
 [Vincent loves Émilie]
 
+v_loves_j
+semantics: [ name(s1 a vincent)
+             love(e a ex)
+             name(s2 ex joe_stephens)]
+[Vincent loves Joe "the Boxer" Stephens]
+
 v_loves_m_f
 semantics : [name(s1 a vincent)
              love(e a ex)

@@ -48,9 +48,13 @@ semantics:[name(_ ?Entity vincent)]
 Vinny Pn(?Entity ! agr:sg3)
 semantics:[name(_ ?Entity vincent)]
 
+% Unicode
 Émilie Pn(?Entity ! agr:sg3)
 semantics:[name(_ ?Entity émilie)]
 
+% string literals
+"Joe \"the Boxer\" Stephens" Pn(?Entity ! agr:sg3)
+semantics:[name(_ ?Entity joe_stephens)]
 
 %% Verbs
 %% intransitive verbs
