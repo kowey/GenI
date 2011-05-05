@@ -25,6 +25,7 @@ module also does lexical selection and anchoring because these processes might
 involve some messy IO performance tricks.
 
 \begin{code}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 module NLP.GenI.Geni (
              -- * main interface
@@ -37,10 +38,10 @@ module NLP.GenI.Geni (
              showRealisations, groupAndCount,
              getTraces, Selector,
              loadEverything,
-             loadLexicon, toLexicon,
+             loadLexicon, Loadable(..),
              loadGeniMacros,
              loadTestSuite, loadTargetSemStr,
-             loadRanking, readRanking,
+             loadRanking,
 
              -- used by auxiliary tools only
              chooseLexCand,
@@ -112,6 +113,7 @@ import NLP.GenI.GeniParsers (geniMacros, geniTagElems,
                     geniTestSuiteString, geniSemanticInput,
                     geniMorphInfo,
                     parseFromFile, runParser, Parser,
+                    ParseError,
                     )
 import NLP.GenI.LexicalSelection
         ( mapBySemKeys, chooseLexCand, combineList, compressLexCombineErrors, LexCombineError
@@ -119,7 +121,6 @@ import NLP.GenI.LexicalSelection
         )
 import NLP.GenI.Morphology
 import NLP.GenI.OptimalityTheory
-
 -- import CkyBuilder 
 -- import SimpleBuilder (simpleBuilder)
 
@@ -217,9 +218,9 @@ loadEverything pstRef =
      case grammarType config of 
         PreAnchored -> return ()
         PreCompiled -> return ()
-        _        -> loadGeniMacros pstRef
+        _        -> loadGeniMacros pstRef >> return ()
      -- we don't have to read in the lexicon if it's already pre-anchored
-     when isNotPreanchored $ loadLexicon pstRef
+     when isNotPreanchored $ loadLexicon pstRef >> return ()
      -- in any case, we have to...
      loadMorphInfo pstRef
      when useTestSuite $ loadTestSuite pstRef >> return ()
@@ -235,55 +236,123 @@ GenI dies.  If we succeed, we update the program state passed in as
 an IORef.
 
 \begin{code}
-loadLexicon :: ProgStateRef -> IO ()
-loadLexicon pstRef =
-    do xs <- loadThingOrDie LexiconFlg "lexicon" pstRef
-         (parseFromFileOrFail geniLexicon)
-       modifyIORef pstRef (\p -> p { le = toLexicon xs })
+class Loadable x where
+  lParse       :: String -> Either ParseError x
+  lSet         :: x -> ProgState -> ProgState
+  lSummarise   :: x -> String
 
-toLexicon :: [ILexEntry] -> Lexicon
-toLexicon = mapBySemKeys isemantics . map sorter
-  where
-   sorter l  = l { isemantics = (sortSem . isemantics) l }
+-- | Note that here we assume the input consists of UTF-8 encoded file
+lParseFromFile :: Loadable x => FilePath -> IO (Either ParseError x)
+lParseFromFile = fmap lParse
+               . UTF8.readFile
+
+-- | Returns the input too (convenient for type checking)
+lSetState :: Loadable x => ProgStateRef -> x -> IO x
+lSetState pstRef x = modifyIORef pstRef (lSet x) >> return x
+
+-- to be phased out
+dieOnParseError :: Either ParseError x -> IO x
+dieOnParseError (Left err) = fail (show err)
+dieOnParseError (Right p)  = return p
+
+data L a = Loadable a => L
+\end{code}
+
+\begin{code}
+-- | Load something, exiting GenI if we have not been given the
+--   appropriate flag
+loadOrDie :: forall f a . (Eq f, Show f, Typeable f, Loadable a)
+          => L a
+          -> (FilePath -> f) -- ^ flag
+          -> String
+          -> ProgStateRef
+          -> IO a
+loadOrDie L flg descr pstRef =
+  withFlagOrDie flg pstRef descr $ \f -> do
+   v <- verbosity pstRef
+   x <- withLoadStatus v f descr lParseFromFile
+     >>= dieOnParseError
+     >>= lSetState pstRef
+   return x
+
+instance Loadable Lexicon where
+  lParse = fmap toLexicon . runParser geniLexicon () ""
+    where
+     toLexicon = mapBySemKeys isemantics . map sorter
+     sorter l  = l { isemantics = (sortSem . isemantics) l }
+  lSet x p = p { le = x }
+  lSummarise x = show (Map.size x) ++ " lemmas"
+
+instance Loadable Macros where
+  lParse   = runParser geniMacros () ""
+  lSet x p = p { gr = x }
+  lSummarise x = show (length x) ++ " schemata"
+
+loadLexicon :: ProgStateRef -> IO Lexicon
+loadLexicon = loadOrDie (L :: L Lexicon) LexiconFlg "lexicon"
 
 -- | The macros are stored as a hashing function in the monad.
-loadGeniMacros :: ProgStateRef -> IO ()
+loadGeniMacros :: ProgStateRef -> IO Macros
 loadGeniMacros pstRef =
-  do xs <- loadThingOrDie MacrosFlg "trees" pstRef parser
-     modifyIORef pstRef (\p -> p { gr = xs })
-  where parser = parseFromFileMaybeBinary geniMacros
+  withFlagOrDie MacrosFlg pstRef descr $ \f -> do
+     v <- verbosity pstRef
+     withLoadStatus v f descr (parseFromFileMaybeBinary lParseFromFile)
+     >>= dieOnParseError
+     >>= lSetState pstRef
+  where
+   descr = "trees"
+\end{code}
 
--- | The results are stored as a lookup function in the monad.
+\begin{code}
+-- | Load something, but only if we are configured to do so
+loadOptional :: forall f a . (Eq f, Show f, Typeable f, Loadable a)
+             => L a
+             -> (FilePath -> f) -- ^ flag
+             -> String
+             -> ProgStateRef
+             -> IO ()
+loadOptional L flg descr pstRef =
+  withFlagOrIgnore flg pstRef $ \f -> do
+   v <- verbosity pstRef
+   x <- withLoadStatus v f descr lParseFromFile
+     >>= dieOnParseError
+     >>= lSetState pstRef
+   let _ = x :: a
+   return () -- ignore
+
+newtype MorphFnL = MorphFnL MorphFn
+
+instance Loadable MorphFnL where
+  lParse = fmap (MorphFnL . readMorph) . runParser geniMorphInfo () ""
+  lSet (MorphFnL x) p = p { morphinf = x }
+  lSummarise _ = "morphinfo"
+
+newtype TracesL = TracesL [String]
+
+instance Loadable TracesL where
+ lParse = Right . TracesL . lines
+ lSet (TracesL xs) p = p { traces = xs }
+ lSummarise (TracesL xs) = show (length xs) ++ " traces"
+
+instance Loadable OtRanking where
+  lParse   = resultToEither2 . decode
+  lSet r p = p { ranking = r }
+  lSummarise _ = "ranking"
+
 loadMorphInfo :: ProgStateRef -> IO ()
-loadMorphInfo pstRef =
- do xs <- loadThingOrIgnore MorphInfoFlg "morphological info" pstRef parser
-    modifyIORef pstRef (\p -> p { morphinf = readMorph xs } )
- where parser = parseFromFileOrFail geniMorphInfo
+loadMorphInfo = loadOptional (L :: L MorphFnL) MorphInfoFlg "morphological info"
 
 loadTraces :: ProgStateRef -> IO ()
-loadTraces pstRef =
- do xs <- loadThingOrIgnore TracesFlg "traces" pstRef
-             (\f -> lines `fmap` readFile f)
-    modifyIORef pstRef (\p -> p {traces = xs})
+loadTraces = loadOptional (L :: L TracesL) TracesFlg "traces"
 
 loadRanking :: ProgStateRef -> IO ()
-loadRanking pstRef =
- do config <- pa `fmap` readIORef pstRef
-    let verbose = hasFlagP VerboseModeFlg config
-    case getFlagP RankingConstraintsFlg config of
-      Nothing -> return ()
-      Just f  -> do r <- readRanking verbose f
-                    modifyIORef pstRef (\p -> p { ranking = r })
+loadRanking = loadOptional (L :: L OtRanking) RankingConstraintsFlg "OT constraints"
 
-readRanking :: Bool -- ^ verbose
-            -> FilePath -> IO OtRanking
-readRanking verbose f =
- do when verbose $ do
-       ePutStr $ unwords [ "Loading OT constraints", f ++ "... " ]
-       eFlush
-    mr <- (resultToEither . decode) `fmap` UTF8.readFile f -- utf-8?
-    when verbose $ ePutStr "done"
-    either fail return mr
+resultToEither2 :: Result a -> Either ParseError a
+resultToEither2 r =
+  case resultToEither r of
+    Left e  -> runParser (fail e) () "" "" -- convoluted way to generate a Parsec error
+    Right x -> Right x
 \end{code}
 
 \subsubsection{Target semantics}
@@ -297,23 +366,30 @@ figuring out how to pretty-print things because we can assume the
 user will format it the way s/he wants.
 
 \begin{code}
+newtype TestSuiteL = TestSuiteL [TestCase]
+
+instance Loadable TestSuiteL where
+ lParse s =
+   case runParser geniTestSuite () "" s of
+     Left e     -> Left e
+     Right sem  -> case runParser geniTestSuiteString () "" s of
+        Left e      -> Left e
+        Right mStrs -> Right (TestSuiteL (zipWith cleanup sem mStrs))
+   where
+    cleanup tc str =
+        tc { tcSem = first3 sortSem (tcSem tc)
+           , tcSemString = str }
+    first3 f (x, y, z) = (f x, y, z)
+ --
+ lSet (TestSuiteL x) p = p { tsuite = x }
+ lSummarise (TestSuiteL x) = show (length x) ++ " cases"
+
 -- | Stores the results in the tcase and tsuite fields
 loadTestSuite :: ProgStateRef -> IO [TestCase]
 loadTestSuite pstRef = do
-  config <- pa `fmap` readIORef pstRef
-  let parser f = do
-         sem   <- parseFromFileOrFail geniTestSuite f
-         mStrs <- parseFromFileOrFail geniTestSuiteString f
-         return $ zip sem mStrs
-      updater s x =
-        x { tsuite = s
-          , tcase  = fromMaybe "" $ getFlagP TestCaseFlg config}
-      cleanup (tc,str) =
-        tc { tcSem = (sortSem sm, sort sr, lc)
-           , tcSemString = str }
-        where (sm, sr, lc) = tcSem tc
-  xs <- map cleanup `fmap` loadThingOrDie TestSuiteFlg "test suite" pstRef parser
-  modifyIORef pstRef (updater xs)
+  TestSuiteL xs <- loadOrDie (L :: L TestSuiteL) TestSuiteFlg "test suite" pstRef
+  mtc <- (getFlagP TestCaseFlg . pa) `fmap` readIORef pstRef
+  modifyIORef pstRef (\p -> p { tcase = fromMaybe "" mtc })
   return xs
 \end{code}
 
@@ -338,53 +414,58 @@ loadTargetSemStr pstRef str =
 \subsubsection{Helpers for loading files}
 
 \begin{code}
-loadThingOrIgnore, loadThingOrDie :: forall f a . (Eq f, Show f, Typeable f)
-           => (FilePath -> f) -- ^ flag
-           -> String
-           -> ProgStateRef
-           -> (FilePath -> IO [a])
-           -> IO [a]
-
--- | Load the file if the relevant option is set, otherwise ignore
-loadThingOrIgnore flag description pstRef parser =
+withFlag :: forall f a . (Eq f, Show f, Typeable f)
+         => (FilePath -> f) -- ^ flag
+         -> ProgStateRef
+         -> IO a               -- ^ null action
+         -> (FilePath -> IO a) -- ^ job
+         -> IO a
+withFlag flag pstRef z job =
  do config <- pa `fmap` readIORef pstRef
     case getFlagP flag config of
-      Nothing -> return []
-      Just f  -> loadThing f description pstRef parser
+      Nothing -> z
+      Just  x -> job x
 
--- | Load the file if the relevant option is set, otherwise complain and die
-loadThingOrDie flag description pstRef parser =
- do config <- pa `fmap` readIORef pstRef
-    case getFlagP flag config of
-      Nothing -> fail $ "Please specify a " ++ description ++ "!"
-      Just f  -> loadThing f description pstRef parser
+withFlagOrIgnore :: forall f . (Eq f, Show f, Typeable f)
+                 => (FilePath -> f) -- ^ flag
+                 -> ProgStateRef
+                 -> (FilePath -> IO ())
+                 -> IO ()
+withFlagOrIgnore flag pstRef = withFlag flag pstRef (return ())
 
-loadThing :: FilePath             -- ^ file to load
-          -> String               -- ^ description
-          -> ProgStateRef
-          -> (FilePath -> IO [a]) -- ^ parsing cmd
-          -> IO [a]
-loadThing filename description pstRef parser =
- do config <- pa `fmap` readIORef pstRef
-    let verbose = hasFlagP VerboseModeFlg config
-    when verbose $ do
-       ePutStr $ unwords [ "Loading",  description, filename ++ "... " ]
-       eFlush
-    theTs <- parser filename
-    when verbose $ ePutStr $ (show $ length theTs) ++ " entries\n"
-    return theTs
+withFlagOrDie :: forall f a . (Eq f, Show f, Typeable f)
+              => (FilePath -> f) -- ^ flag
+              -> ProgStateRef
+              -> String
+              -> (FilePath -> IO a)
+              -> IO a
+withFlagOrDie flag pstRef description = withFlag flag pstRef (fail ("Please specify a " ++ description ++ "!"))
+
+withLoadStatus :: Loadable a
+               => Bool                    -- ^ verbose
+               -> FilePath             -- ^ file to load
+               -> String               -- ^ description
+               -> (FilePath -> IO (Either ParseError a)) -- ^ parsing cmd
+               -> IO (Either ParseError a)
+withLoadStatus False f _ p = p f
+withLoadStatus True  f d p = do
+  ePutStr $ unwords [ "Loading",  d, f ++ "... " ]
+  eFlush
+  mx <- p f
+  ePutStrLn $ either (const "ERROR") (\x -> lSummarise x ++ " loaded") mx
+  return mx
 
 parseFromFileOrFail :: Parser a -> FilePath -> IO a
 parseFromFileOrFail p f = parseFromFile p f >>= either (fail.show) (return)
 
 parseFromFileMaybeBinary :: Binary a
-                         => Parser a
+                         => (FilePath -> IO (Either ParseError a))
                          -> FilePath
-                         -> IO a
+                         -> IO (Either ParseError a)
 parseFromFileMaybeBinary p f =
  if (".genib" `isSuffixOf` f)
-    then decodeFile f
-    else parseFromFileOrFail p f
+    then Right `fmap` decodeFile f
+    else p f
 \end{code}
 
 % --------------------------------------------------------------------
@@ -711,6 +792,10 @@ readPreAnchored pst =
 
 \ignore{
 \begin{code}
+verbosity :: ProgStateRef -> IO Bool
+verbosity = fmap (hasFlagP VerboseModeFlg . pa)
+          . readIORef
+
 instance JSON GeniResult where
  readJSON j =
     do jo <- fromJSObject `fmap` readJSON j
