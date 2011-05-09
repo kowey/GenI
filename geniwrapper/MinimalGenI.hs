@@ -2,6 +2,7 @@
 
 module MinimalGenI where
 
+import Control.Exception
 import Data.IORef ( IORef, newIORef, readIORef, modifyIORef)
 import qualified Data.ByteString.Unsafe as BU
 import qualified Data.ByteString.UTF8   as B8
@@ -26,7 +27,9 @@ import Foreign.C.String
 import Foreign.Ptr
 import Foreign.StablePtr
 
+-- returns NULL pointer if anything goes wrong
 foreign export ccall "geni_init"    cGeniInit    :: CString -> IO (Ptr ())
+-- returns error message on parse errors of input files
 foreign export ccall "geni_realize" cGeniRealize :: Ptr () -> CString -> CString -> IO CString
 foreign export ccall "geni_free"    free         :: Ptr a -> IO ()
 
@@ -36,7 +39,10 @@ peekUTF8_CString = fmap B8.toString . BU.unsafePackCString
 cGeniInit :: CString -> IO (Ptr ())
 cGeniInit cstr = do
   mfile <- peekCString cstr
-  castStablePtrToPtr `fmap` (newStablePtr =<< geniInit mfile)
+  p <- geniInit mfile
+  case p of
+   Left _  -> return nullPtr
+   Right _ -> castStablePtrToPtr `fmap` (newStablePtr =<< geniInit mfile)
 
 cGeniRealize :: Ptr () -> CString -> CString -> IO CString
 cGeniRealize ptr cx cy = do
@@ -45,20 +51,29 @@ cGeniRealize ptr cx cy = do
   y <- peekUTF8_CString cy
   newCString =<< geniRealize pst x y
 
-geniInit :: FilePath -> IO ProgState
+geniInit :: FilePath -> IO (Either BadInputException ProgState)
 geniInit mfile = do
   pstRef <- newIORef
              (emptyProgState (setFlagP MacrosFlg mfile emptyParams))
-  loadGeniMacros pstRef
-  readIORef pstRef
+  try $ do loadGeniMacros pstRef
+           readIORef pstRef
 
-geniRealize :: ProgState    -- ^ GenI handle
-            -> String       -- ^ lexicon contents
-            -> String       -- ^ semantics
-            -> IO String    -- ^ JSON formatted results
+-- | Print any errors in an JSON error object
+geniRealize :: ProgState
+             -> String
+             -> String
+             -> IO String
 geniRealize pst lex sem = do
-  l <- either (fail . show) return (lParse "(str)" lex)
-  pstRef <- newIORef $ pst { le = l }
+  me <- geniRealizeI pst lex sem
+  return $ case me of
+     Left (BadInputException e) -> encode . errorObject . show $ e
+     Right p                    -> encode . fst3 $ p
+
+geniRealizeI pst lex sem = try $ do
+  pstRef <- newIORef pst
+  l <- loadFromString pstRef lex
+  let _ = l :: Lexicon
   loadTargetSemStr pstRef $ "semantics:[" ++ sem ++ "]"
-  --
-  (encode . fst3) `fmap` runGeni pstRef simpleBuilder_2p
+  runGeni pstRef simpleBuilder_2p
+
+errorObject str = toJSObject [ ("error", str) ]

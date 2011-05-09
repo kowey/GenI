@@ -10,5 +10,8 @@ main = do
                   _ -> fail "Usage: test macro-file lex-file sem-file"
   lexStr  <- readFile lex
   testSem <- readFile sem
-  pst     <- geniInit mac
+  pst <- either (fail . showGenIException) return =<< geniInit mac
   putStrLn =<< geniRealize pst lexStr testSem
+
+-- evidence that it was caught in the wrapper
+showGenIException e = "Wrapper caught an exception from GenI:\n" ++ show e
