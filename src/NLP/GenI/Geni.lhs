@@ -464,9 +464,6 @@ withLoadStatus True  f d p = do
   ePutStrLn $ either (const "ERROR") (\x -> lSummarise x ++ " loaded") mx
   return mx
 
-parseFromFileOrFail :: Parser a -> FilePath -> IO a
-parseFromFileOrFail p f = parseFromFile p f >>= either (fail.show) (return)
-
 parseFromFileMaybeBinary :: Binary a
                          => (FilePath -> IO (Either ParseError a))
                          -> FilePath
