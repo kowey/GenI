@@ -27,5 +27,5 @@ test-hs: test-hs.hs MinimalGenI.o
 test-c: test-c.c MinimalGenI.o HsStart.o
 	ghc $^ -o $@ MinimalGenI_stub.o $(PACKAGES)
 
-test-c-win: test-c.hs MinimalGenI.dll
+test-c-win: test-c.c MinimalGenI.dll
 	ghc $^ -o $@
