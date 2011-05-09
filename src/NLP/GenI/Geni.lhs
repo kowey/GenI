@@ -275,6 +275,11 @@ loadOrDie L flg descr pstRef =
      >>= lSetState pstRef
    return x
 
+-- | Load something from a string rather than a file
+loadFromString :: Loadable a => ProgStateRef -> String -> IO a
+loadFromString pstRef s =
+  dieOnParseError (lParse s) >>= lSetState pstRef
+
 instance Loadable Lexicon where
   lParse = fmap toLexicon . runParser geniLexicon () ""
     where
@@ -398,17 +403,21 @@ the graphical interface, so we also provide the ability to parse an
 arbitrary string as the semantics.
 
 \begin{code}
--- | Updates program state the same way as 'loadTestSuite'
+newtype SemL = SemL SemInput
+
+instance Loadable SemL where
+ lParse = fmap (SemL . smooth)
+        . runParser geniSemanticInput () ""
+   where
+    smooth (s,r,l) = (sortSem s, sort r, l)
+ lSet (SemL x) p = p { ts = x }
+ lSummarise (SemL _) = "sem input"
+
 loadTargetSemStr :: ProgStateRef -> String -> IO ()
-loadTargetSemStr pstRef str = 
-    do parseSem
-    where
-       parseSem = do
-         let sem = runParser geniSemanticInput () "" str
-         case sem of
-           Left  err -> fail (show err)
-           Right sr  -> modifyIORef pstRef (\x -> x{ts = smooth sr})
-       smooth (s,r,l) = (sortSem s, sort r, l)
+loadTargetSemStr pstRef s = do
+  x <- loadFromString pstRef s
+  let _ = x :: SemL
+  return ()
 \end{code}
 
 \subsubsection{Helpers for loading files}
