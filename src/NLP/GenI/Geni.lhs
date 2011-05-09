@@ -684,7 +684,7 @@ runLexSelection pstRef =
         grammar = gr pst
     -- perform lexical selection
     (cand, lexCand, errs) <- case grammarType config of
-                               PreAnchored -> do cs <- readPreAnchored pst
+                               PreAnchored -> do cs <- readPreAnchored pstRef
                                                  return (cs, [], [])
                                _           -> return $ initialLexSelection tsem lexicon grammar
     let candFinal = finaliseLexSelection (morphinf pst) tsem litConstrs cand
@@ -788,11 +788,19 @@ pass the lexical selection in as a file of anchored trees associated with a
 semantics.
 
 \begin{code}
-readPreAnchored :: ProgState -> IO [TagElem]
-readPreAnchored pst =
- case getFlagP MacrosFlg (pa pst) of
- Nothing   -> fail "No macros file specified (preanchored mode)"
- Just file -> parseFromFileOrFail geniTagElems file
+newtype PreAnchoredL = PreAnchoredL [TagElem]
+
+instance Loadable PreAnchoredL where
+  lParse   = fmap PreAnchoredL
+           . runParser geniTagElems () ""
+  lSet _ p = p -- this does not update prog state at all
+  lSummarise (PreAnchoredL ts) = show (length ts) ++ " trees"
+
+readPreAnchored :: ProgStateRef -> IO [TagElem]
+readPreAnchored pstRef = do
+  PreAnchoredL ts <- loadOrDie (L :: L PreAnchoredL)
+                        MacrosFlg "preanchored trees" pstRef
+  return ts
 \end{code}
 
 % --------------------------------------------------------------------
