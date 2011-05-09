@@ -1,6 +1,6 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 
-module Wrapper where
+module MinimalGenI where
 
 import Data.IORef ( IORef, newIORef, readIORef, modifyIORef)
 import qualified Data.ByteString.Unsafe as BU

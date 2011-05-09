@@ -1,6 +1,6 @@
 module Main where
 
-import Wrapper
+import MinimalGenI
 import System.Environment ( getArgs )
 
 main = do

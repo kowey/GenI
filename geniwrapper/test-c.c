@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "Wrapper_stub.h"
+#include "MinimalGenI_stub.h"
+#include "HsStart.h"
 
 char* slurp(const char* filename);
 
@@ -16,10 +17,11 @@ int main(int argc, char *argv[]) {
     return 2;
   }
 
+  HsStart();
+  hs_init(&argc, &argv);
   macros_fn=argv[1];
   lexicon=slurp(argv[2]);
   test_sem=slurp(argv[3]);
-  hs_init(&argc, &argv);
 
   // go!
   geni_st=geni_init(macros_fn);
@@ -31,6 +33,7 @@ int main(int argc, char *argv[]) {
   printf("%s", result);
 
   geni_free(result);
+  HsEnd();
   free(test_sem);
   free(lexicon);
 }

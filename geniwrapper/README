@@ -1,0 +1,33 @@
+This is a simple wrapper to demonstrate the possibility of integrating
+GenI as a library in a piece of non-Haskell software.
+
+It provides an example C program showing how such a wrapper might be
+used.
+
+The wrapper is minimalistic.  It only provides functions to start GenI;
+run it on an tree schemata, lexicon and input semantics triplet; and to
+shut it down.
+
+See the foreign exports in MinimalGenI.hs for a list of wrapper
+functions you can call from your C code.
+
+For Windows users, it demonstrates building GenI into a standalone
+Windows DLL and calling it from there.
+
+The Makefile uses tools from MingW, but you could also just run the
+commands by hand.
+
+Basic instructions
+------------------
+1. cabal install GenI utf8-string
+
+2. make
+
+3. ./test-c ../examples/ej/macros ../examples/ej/suite ej-sem
+
+Windows
+-------
+
+4. Windows users: make windows
+
+5. ./test-c-win ../examples/ej/macros ../examples/ej/suite ej-sem

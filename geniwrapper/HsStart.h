@@ -1,0 +1,2 @@
+void HsStart();
+void HsEnd();
