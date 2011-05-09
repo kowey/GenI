@@ -238,14 +238,14 @@ an IORef.
 
 \begin{code}
 class Loadable x where
-  lParse       :: String -> Either ParseError x
+  lParse       :: FilePath -- ^ source (optional)
+               -> String -> Either ParseError x
   lSet         :: x -> ProgState -> ProgState
   lSummarise   :: x -> String
 
 -- | Note that here we assume the input consists of UTF-8 encoded file
 lParseFromFile :: Loadable x => FilePath -> IO (Either ParseError x)
-lParseFromFile = fmap lParse
-               . UTF8.readFile
+lParseFromFile f = lParse f `fmap` UTF8.readFile f
 
 -- | Returns the input too (convenient for type checking)
 lSetState :: Loadable x => ProgStateRef -> x -> IO x
@@ -284,10 +284,10 @@ loadOrDie L flg descr pstRef =
 -- | Load something from a string rather than a file
 loadFromString :: Loadable a => ProgStateRef -> String -> IO a
 loadFromString pstRef s =
-  throwOnParseError (lParse s) >>= lSetState pstRef
+  throwOnParseError (lParse "" s) >>= lSetState pstRef
 
 instance Loadable Lexicon where
-  lParse = fmap toLexicon . runParser geniLexicon () ""
+  lParse f = fmap toLexicon . runParser geniLexicon () f
     where
      toLexicon = mapBySemKeys isemantics . map sorter
      sorter l  = l { isemantics = (sortSem . isemantics) l }
@@ -295,7 +295,7 @@ instance Loadable Lexicon where
   lSummarise x = show (Map.size x) ++ " lemmas"
 
 instance Loadable Macros where
-  lParse   = runParser geniMacros () ""
+  lParse f = runParser geniMacros () f
   lSet x p = p { gr = x }
   lSummarise x = show (length x) ++ " schemata"
 
@@ -334,19 +334,19 @@ loadOptional L flg descr pstRef =
 newtype MorphFnL = MorphFnL MorphFn
 
 instance Loadable MorphFnL where
-  lParse = fmap (MorphFnL . readMorph) . runParser geniMorphInfo () ""
+  lParse f = fmap (MorphFnL . readMorph) . runParser geniMorphInfo () f
   lSet (MorphFnL x) p = p { morphinf = x }
   lSummarise _ = "morphinfo"
 
 newtype TracesL = TracesL [String]
 
 instance Loadable TracesL where
- lParse = Right . TracesL . lines
+ lParse _ = Right . TracesL . lines
  lSet (TracesL xs) p = p { traces = xs }
  lSummarise (TracesL xs) = show (length xs) ++ " traces"
 
 instance Loadable OtRanking where
-  lParse   = resultToEither2 . decode
+  lParse _ = resultToEither2 . decode
   lSet r p = p { ranking = r }
   lSummarise _ = "ranking"
 
@@ -380,10 +380,10 @@ user will format it the way s/he wants.
 newtype TestSuiteL = TestSuiteL [TestCase]
 
 instance Loadable TestSuiteL where
- lParse s =
-   case runParser geniTestSuite () "" s of
+ lParse f s =
+   case runParser geniTestSuite () f s of
      Left e     -> Left e
-     Right sem  -> case runParser geniTestSuiteString () "" s of
+     Right sem  -> case runParser geniTestSuiteString () f s of
         Left e      -> Left e
         Right mStrs -> Right (TestSuiteL (zipWith cleanup sem mStrs))
    where
@@ -412,8 +412,8 @@ arbitrary string as the semantics.
 newtype SemL = SemL SemInput
 
 instance Loadable SemL where
- lParse = fmap (SemL . smooth)
-        . runParser geniSemanticInput () ""
+ lParse f = fmap (SemL . smooth)
+          . runParser geniSemanticInput () f
    where
     smooth (s,r,l) = (sortSem s, sort r, l)
  lSet (SemL x) p = p { ts = x }
@@ -794,8 +794,8 @@ semantics.
 newtype PreAnchoredL = PreAnchoredL [TagElem]
 
 instance Loadable PreAnchoredL where
-  lParse   = fmap PreAnchoredL
-           . runParser geniTagElems () ""
+  lParse f = fmap PreAnchoredL
+           . runParser geniTagElems () f
   lSet _ p = p -- this does not update prog state at all
   lSummarise (PreAnchoredL ts) = show (length ts) ++ " trees"
 
