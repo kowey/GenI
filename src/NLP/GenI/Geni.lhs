@@ -53,6 +53,7 @@ where
 \begin{code}
 import Control.Applicative ((<$>),(<*>))
 import Control.Monad.Error
+import Control.Exception
 
 import Data.Binary (Binary, decodeFile)
 import Data.IORef (IORef, readIORef, modifyIORef)
@@ -251,9 +252,14 @@ lSetState :: Loadable x => ProgStateRef -> x -> IO x
 lSetState pstRef x = modifyIORef pstRef (lSet x) >> return x
 
 -- to be phased out
-dieOnParseError :: Either ParseError x -> IO x
-dieOnParseError (Left err) = fail (show err)
-dieOnParseError (Right p)  = return p
+throwOnParseError :: Either ParseError x -> IO x
+throwOnParseError (Left err) = throwIO (BadInputException err)
+throwOnParseError (Right p)  = return p
+
+data BadInputException = BadInputException ParseError
+  deriving (Show, Typeable)
+
+instance Exception BadInputException
 
 data L a = Loadable a => L
 \end{code}
@@ -271,14 +277,14 @@ loadOrDie L flg descr pstRef =
   withFlagOrDie flg pstRef descr $ \f -> do
    v <- verbosity pstRef
    x <- withLoadStatus v f descr lParseFromFile
-     >>= dieOnParseError
+     >>= throwOnParseError
      >>= lSetState pstRef
    return x
 
 -- | Load something from a string rather than a file
 loadFromString :: Loadable a => ProgStateRef -> String -> IO a
 loadFromString pstRef s =
-  dieOnParseError (lParse s) >>= lSetState pstRef
+  throwOnParseError (lParse s) >>= lSetState pstRef
 
 instance Loadable Lexicon where
   lParse = fmap toLexicon . runParser geniLexicon () ""
@@ -302,7 +308,7 @@ loadGeniMacros pstRef =
   withFlagOrDie MacrosFlg pstRef descr $ \f -> do
      v <- verbosity pstRef
      withLoadStatus v f descr (parseFromFileMaybeBinary lParseFromFile)
-     >>= dieOnParseError
+     >>= throwOnParseError
      >>= lSetState pstRef
   where
    descr = "trees"
@@ -320,7 +326,7 @@ loadOptional L flg descr pstRef =
   withFlagOrIgnore flg pstRef $ \f -> do
    v <- verbosity pstRef
    x <- withLoadStatus v f descr lParseFromFile
-     >>= dieOnParseError
+     >>= throwOnParseError
      >>= lSetState pstRef
    let _ = x :: a
    return () -- ignore
