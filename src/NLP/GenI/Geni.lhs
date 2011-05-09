@@ -41,7 +41,8 @@ module NLP.GenI.Geni (
              loadLexicon, Loadable(..),
              loadGeniMacros,
              loadTestSuite, loadTargetSemStr,
-             loadRanking,
+             loadRanking, BadInputException(..),
+             loadFromString,
 
              -- used by auxiliary tools only
              chooseLexCand,
