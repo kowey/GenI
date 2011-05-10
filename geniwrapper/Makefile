@@ -19,8 +19,8 @@ clean:
 MinimalGenI.o: MinimalGenI.hs
 	ghc --make -fvia-C $<
 
-HsStart.o:
-	ghc -c HsStart.c
+StartEnd.o:
+	ghc -c StartEnd.c
 
 test-hs: test-hs.hs MinimalGenI.o
 	ghc --make $<
@@ -28,12 +28,12 @@ test-hs: test-hs.hs MinimalGenI.o
 test-hs-c: test-hs-c.hs MinimalGenI.o
 	ghc --make $<
 
-test-c: test-c.c MinimalGenI.o HsStart.o
+test-c: test-c.c MinimalGenI.o StartEnd.o
 	ghc $^ -o $@ MinimalGenI_stub.o $(PACKAGES)
 
 # Bundling into a single shared library
 # -------------------------------------
-MinimalGenI.$(SHARED_LIB_EXT): MinimalGenI.o HsStart.o
+MinimalGenI.$(SHARED_LIB_EXT): MinimalGenI.o StartEnd.o
 	ghc -shared -o $@ $^ MinimalGenI_stub.o $(PACKAGES)
 
 test-c-win: test-c.c MinimalGenI.$(SHARED_LIB_EXT)

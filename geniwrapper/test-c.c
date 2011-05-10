@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "MinimalGenI_stub.h"
-#include "HsStart.h"
+#include "StartEnd.h"
 
 char* slurp(const char* filename);
 
