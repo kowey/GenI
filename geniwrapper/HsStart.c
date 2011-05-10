@@ -6,7 +6,7 @@ extern void __stginit_MinimalGenI(void);
 void HsStart()
 {
    int argc = 1;
-   char* argv[] = {"ghcDll", NULL}; // argv must end with NULL
+   char* argv[] = {"sortOfGHC", NULL}; // argv must end with NULL
 
    // Initialize Haskell runtime
    char** args = argv;
