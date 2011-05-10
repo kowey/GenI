@@ -18,7 +18,6 @@ int main(int argc, char *argv[]) {
   }
 
   HsStart();
-  hs_init(&argc, &argv);
   macros_fn=argv[1];
   lexicon=slurp(argv[2]);
   test_sem=slurp(argv[3]);
