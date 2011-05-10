@@ -41,8 +41,8 @@ cGeniInit cstr = do
   mfile <- peekCString cstr
   p <- geniInit mfile
   case p of
-   Left _  -> return nullPtr
-   Right _ -> castStablePtrToPtr `fmap` (newStablePtr =<< geniInit mfile)
+   Left _   -> return nullPtr
+   Right p2 -> castStablePtrToPtr `fmap` newStablePtr p2
 
 cGeniRealize :: Ptr () -> CString -> CString -> IO CString
 cGeniRealize ptr cx cy = do
