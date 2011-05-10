@@ -1,7 +1,7 @@
 PACKAGES=$(patsubst %, -package %,\
 	 GenI utf8-string)
 
-all: test-hs test-c
+all: test-hs test-c test-hs-c
 
 windows: all test-c-win
 
@@ -22,6 +22,9 @@ MinimalGenI.dll: MinimalGenI.o HsStart.o
 	ghc -shared -o $@ $^ MinimalGenI_stub.o $(PACKAGES)
 
 test-hs: test-hs.hs MinimalGenI.o
+	ghc --make $<
+
+test-hs-c: test-hs-c.hs MinimalGenI.o
 	ghc --make $<
 
 test-c: test-c.c MinimalGenI.o HsStart.o
