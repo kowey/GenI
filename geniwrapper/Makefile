@@ -1,3 +1,5 @@
+SHARED_LIB_EXT=dll
+
 PACKAGES=$(patsubst %, -package %,\
 	 GenI utf8-string)
 
@@ -12,14 +14,13 @@ clean:
 	rm -f test-hs test-c
 	rm -f *~
 
+# Exporting a C API
+# -----------------
 MinimalGenI.o: MinimalGenI.hs
 	ghc --make -fvia-C $<
 
 HsStart.o:
 	ghc -c HsStart.c
-
-MinimalGenI.dll: MinimalGenI.o HsStart.o
-	ghc -shared -o $@ $^ MinimalGenI_stub.o $(PACKAGES)
 
 test-hs: test-hs.hs MinimalGenI.o
 	ghc --make $<
@@ -30,5 +31,10 @@ test-hs-c: test-hs-c.hs MinimalGenI.o
 test-c: test-c.c MinimalGenI.o HsStart.o
 	ghc $^ -o $@ MinimalGenI_stub.o $(PACKAGES)
 
-test-c-win: test-c.c MinimalGenI.dll
+# Bundling into a single shared library
+# -------------------------------------
+MinimalGenI.$(SHARED_LIB_EXT): MinimalGenI.o HsStart.o
+	ghc -shared -o $@ $^ MinimalGenI_stub.o $(PACKAGES)
+
+test-c-win: test-c.c MinimalGenI.$(SHARED_LIB_EXT)
 	ghc $^ -o $@
