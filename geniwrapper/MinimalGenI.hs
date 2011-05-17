@@ -51,26 +51,25 @@ cGeniRealize ptr cx cy = do
   y <- peekUTF8_CString cy
   newCString =<< geniRealize pst x y
 
-geniInit :: FilePath -> IO (Either BadInputException ProgState)
+geniInit :: FilePath -> IO (Either BadInputException ProgStateRef)
 geniInit mfile = do
   pstRef <- newIORef
              (emptyProgState (setFlagP MacrosFlg mfile emptyParams))
   try $ do loadGeniMacros pstRef
-           readIORef pstRef
+           return pstRef
 
 -- | Print any errors in an JSON error object
-geniRealize :: ProgState
+geniRealize :: ProgStateRef
              -> String
              -> String
              -> IO String
-geniRealize pst lex sem = do
-  me <- geniRealizeI pst lex sem
+geniRealize pstRef lex sem = do
+  me <- geniRealizeI pstRef lex sem
   return $ case me of
      Left (BadInputException e) -> encode . errorObject . show $ e
      Right p                    -> encode . fst3 $ p
 
-geniRealizeI pst lex sem = try $ do
-  pstRef <- newIORef pst
+geniRealizeI pstRef lex sem = try $ do
   l <- loadFromString pstRef lex
   let _ = l :: Lexicon
   loadTargetSemStr pstRef $ "semantics:[" ++ sem ++ "]"
