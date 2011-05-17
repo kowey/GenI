@@ -46,7 +46,7 @@ import Control.Monad.State
 import Data.Maybe (mapMaybe)
 import Text.JSON
 
-import Control.Parallel.Strategies
+import Control.DeepSeq
 
 -------------------------------------------
 -- Statistics are collections of Metrics

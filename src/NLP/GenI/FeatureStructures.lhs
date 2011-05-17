@@ -31,7 +31,7 @@ import Data.Typeable (Typeable)
 
 import NLP.GenI.GeniVal
 
-import Control.Parallel.Strategies
+import Control.DeepSeq
 
 \end{code}
 }

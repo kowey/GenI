@@ -68,7 +68,7 @@ import NLP.GenI.TreeSchemata ( Ptype(..),
                                GNode(..), GType(..), emptyGNode, NodeName,
                                lexemeAttributes )
 
-import Control.Parallel.Strategies
+import Control.DeepSeq
 \end{code}
 }
 

@@ -32,7 +32,7 @@ import qualified Data.Set as Set
 
 import Data.Generics.PlateDirect
 
-import Control.Parallel.Strategies
+import Control.DeepSeq
 
 import NLP.GenI.General (geniBug)
 

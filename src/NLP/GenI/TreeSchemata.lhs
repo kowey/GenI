@@ -54,7 +54,7 @@ import NLP.GenI.Semantics ( Sem )
 
 import NLP.GenI.General (filterTree, listRepNode, geniBug,)
 
-import Control.Parallel.Strategies
+import Control.DeepSeq
 \end{code}
 }
 

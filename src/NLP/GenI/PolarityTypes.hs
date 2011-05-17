@@ -24,7 +24,7 @@ import qualified Data.Set as Set
 import Data.Generics ( Data )
 import Data.Typeable ( Typeable )
 
-import Control.Parallel.Strategies 
+import Control.DeepSeq
 
 newtype PolarityKey = PolarityKey { fromPolarityKey :: String } deriving (Show, Eq, Ord, Data, Typeable)
 type SemPols  = [Int]

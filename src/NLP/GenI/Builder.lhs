@@ -64,7 +64,7 @@ import Data.Tree ( flatten )
 import Prelude hiding ( init )
 import Text.JSON
 
-import Control.Parallel.Strategies
+import Control.DeepSeq
 
 import Data.Generics.PlateDirect
 import Data.Generics ( Data )

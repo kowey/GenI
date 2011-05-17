@@ -38,7 +38,7 @@ import NLP.GenI.Semantics
 import NLP.GenI.PolarityTypes (SemPols)
 import NLP.GenI.TreeSchemata
 
-import Control.Parallel.Strategies
+import Control.DeepSeq
 
 --instance Show (IO()) where
 --  show _ = ""

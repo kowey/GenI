@@ -41,7 +41,7 @@ import Text.JSON
 import NLP.GenI.Btypes ( Macros, ptrace )
 import qualified NLP.GenI.Builder as B
 
-import Control.Parallel.Strategies
+import Control.DeepSeq
 \end{code}
 
 If your tree schemata are annotated with traces (TODO link to traces and

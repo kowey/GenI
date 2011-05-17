@@ -66,7 +66,7 @@ import Data.Typeable (Typeable)
 
 import System.CPUTime( getCPUTime )
 import NLP.GenI.Statistics
-import Control.Parallel.Strategies
+import Control.DeepSeq
 
 import qualified System.IO.UTF8 as UTF8
 
