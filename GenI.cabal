@@ -82,8 +82,8 @@ Library
                  containers >= 0.1,
                  process > 1,
                  json >= 0.4.3 && < 0.5,
-                 MaybeT == 0.1.*,
-                 mtl > 1.0 && < 1.2
+                 MaybeT == 0.1.*
+               , mtl > 1.0 && < 2.1
                , deepseq == 1.1.*
                ,
                  binary >= 0.5.0.2 && < 0.6,
