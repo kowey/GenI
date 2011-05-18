@@ -1,14 +1,22 @@
-SHARED_LIB_EXT=dll
+OS=$(shell uname)
+
+ifeq ($(OS),Darwin)
+  SHARED_LIB_EXT=dylib
+  SHARED_LIB_FLAGS=-dynamic -shared
+else
+  SHARED_LIB_EXT=dll
+  SHARED_LIB_FLAGS=-shared
+endif
 
 PACKAGES=$(patsubst %, -package %,\
 	 GenI utf8-string)
 
-all: test-hs test-c test-hs-c
+all: test-hs test-c test-c2 test-hs-c
 
 windows: all test-c-win
 
 clean:
-	rm -f *.dll *.dll.a
+	rm -f *.dll *.dll.a *.dylib
 	rm -f *.o *.hi
 	rm -f MinimalGenI_stub.*
 	rm -f test-hs test-c
@@ -34,7 +42,7 @@ test-c: test-c.c MinimalGenI.o StartEnd.o
 # Bundling into a single shared library
 # -------------------------------------
 MinimalGenI.$(SHARED_LIB_EXT): MinimalGenI.o StartEnd.o
-	ghc -shared -o $@ $^ MinimalGenI_stub.o $(PACKAGES)
+	ghc $(SHARED_LIB_FLAGS) -o $@ $^ MinimalGenI_stub.o $(PACKAGES)
 
-test-c-win: test-c.c MinimalGenI.$(SHARED_LIB_EXT)
+test-c2: test-c.c MinimalGenI.$(SHARED_LIB_EXT)
 	ghc $^ -o $@
