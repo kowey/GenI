@@ -67,7 +67,7 @@ for p in\
     uniplate-1.6\
     utf8-string-0.3.6\
     syb-0.3\
-    transformers-0.2.2\
+    transformers-0.2.2.0\
     GenI-0.21\
 ; do cp $LOCAL_DIR/lib/$p/ghc-$GHC_VER/lib*.dylib $DIST_DIR
 done
