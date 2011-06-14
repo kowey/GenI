@@ -4,10 +4,10 @@ License:        GPL
 License-file:   LICENSE
 Author:         Carlos Areces and Eric Kow
 Build-Depends:  GenI >=0.21 && < 0.22
-              , base < 4.1
-              , directory >= 1.0 && < 1.1
+              , base < 5
+              , directory
               , binary, containers, mtl
-              , parsec < 3, QuickCheck, HUnit, HaXml >=1.16
+              , parsec < 3.2
               , utf8-string >= 0.3.5 && < 0.4
 build-type:     Simple
 Category:       Natural Language Processing
