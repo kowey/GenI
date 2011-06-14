@@ -59,7 +59,7 @@ NEW_DERIVATIONS_ORIG:=tmp-derivations
 NEW_DERIVATIONS:=new-derivations
 
 run: $(GENI_GRAMMAR) lexicon morph
-	$(GENI) -m $< $(GENI_FLAGS) --nogui --batchdir=results
+	$(GENI) -m $< $(GENI_FLAGS) --nogui --batchdir=results --rootfeat='[]'
 
 # --------------------------------------------------------------------
 # running GenI
