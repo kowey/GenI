@@ -9,6 +9,7 @@ Build-Depends:  GenI >=0.21 && < 0.22
               , binary, containers, mtl
               , parsec < 3.2
               , utf8-string >= 0.3.5 && < 0.4
+              , HaXml >=1.16
 build-type:     Simple
 Category:       Natural Language Processing
 Homepage:       http://wiki.loria.fr/wiki/GenI
