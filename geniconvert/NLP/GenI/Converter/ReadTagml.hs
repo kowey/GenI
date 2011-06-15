@@ -42,7 +42,7 @@ import qualified NLP.GenI.Converter.XmgTagml as X
 -- Macros
 -- ======================================================================
 
-type MTree = Ttree GNode
+type MTree = Ttree (GNode [GeniVal])
 
 readTagmlMacros :: String -> Either String Macros
 readTagmlMacros g = 
@@ -97,7 +97,7 @@ translateTree (X.Tree _ root) =
 -- lists, top and bottom.   We work around this by simply assuming that
 -- the fs recursion never goes further than that one level, and that
 -- global features belong to both the top and bottom lists.
-translateNode :: X.Node -> State TreeInfo (Tree GNode)
+translateNode :: X.Node -> State TreeInfo (Tree (GNode [GeniVal]))
 translateNode node@(X.Node _ _ kids) = do
   st <- get
   -- update the monadic state
@@ -111,7 +111,7 @@ translateNode node@(X.Node _ _ kids) = do
   -- output the node
   return $! Node gn kidsOut
 
-translateNodeHelper :: Int -> X.Node -> GNode
+translateNodeHelper :: Int -> X.Node -> GNode [GeniVal]
 translateNodeHelper idnum (X.Node nattrs mnargs _) = gn where
       allFs = case mnargs of
               Nothing         -> []
@@ -195,7 +195,7 @@ translateArg (X.ArgFs _) = geniXmlError "complex semantic arguments not supporte
 -- Features
 -- ----------------------------------------------------------------------
 
-type FsTreeNode = Either String AvPair
+type FsTreeNode = Either String (AvPair [GeniVal])
 
 translateFs :: X.Fs -> Forest FsTreeNode 
 translateFs (X.Fs _ fs) = map translateF fs
@@ -205,18 +205,18 @@ translateF (X.FFs attr fs)  = Node (Left (X.fName attr)) (translateFs fs)
 translateF (X.FSym attr s)  = Node (Right $ AvPair (X.fName attr) (translateSym s))  []
 translateF (X.FVAlt attr d) = Node (Right $ AvPair (X.fName attr) (translateVAlt d)) []
 
-flattenFs :: Tree FsTreeNode -> [AvPair]
+flattenFs :: Tree FsTreeNode -> [AvPair [GeniVal]]
 flattenFs = catMaybes . (map fromRight) . flatten
  where fromRight (Right r) = Just r
        fromRight _         = Nothing
 
-translateFlatFs :: X.Fs -> Flist
+translateFlatFs :: X.Fs -> Flist [GeniVal]
 translateFlatFs (X.Fs _ fs) = map translateFlatF fs
 
-translateFlatF :: X.F -> AvPair
+translateFlatF :: X.F -> AvPair [GeniVal]
 translateFlatF (X.FFs _ _)      = error "translateFlatF called on recursive F"
-translateFlatF (X.FSym attr s)  = AvPair (X.fName attr) (translateSym s)
-translateFlatF (X.FVAlt attr d) = AvPair (X.fName attr) (translateVAlt d)
+translateFlatF (X.FSym attr s)  = AvPair (X.fName attr) [translateSym s]
+translateFlatF (X.FVAlt attr d) = AvPair (X.fName attr) [translateVAlt d]
 
 translateSym :: X.Sym -> GeniVal
 translateSym s = 
