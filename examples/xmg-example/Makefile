@@ -109,11 +109,7 @@ $(COMPILED_GRAMMAR_DIR):
 
 %.geni : %.xml
 	$(ECHO_STATUS) "converting to geni text format: $(basename $<)"
-	$(SILENTLY) geniconvert -f tagml -t geni $< -o $@
-
-%.genib : %.geni
-	$(ECHO_STATUS) "converting to geni binary format: $<"
-	$(SILENTLY) geniconvert -f geni -t genib $< -o $@
+	$(SILENTLY) xsltproc  -o $@ xmg2geni.xsl $<
 
 # --------------------------------------------------------------------
 # lexicon
