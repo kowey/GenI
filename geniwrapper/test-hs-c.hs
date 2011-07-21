@@ -15,8 +15,9 @@ main = do
   (mac, lex, sem) <- case args of
                   [x1,x2,x3] -> return (x1, x2, x3)
                   _ -> fail "Usage: test macro-file lex-file sem-file"
-  lexStr  <- readFile lex
   testSem <- readFile sem
-  pst <- cGeniInit =<< newCString mac
-  result <- cGeniRealize pst <$> newCString lexStr <*> newCString testSem
+  cm <- newCString mac
+  cl <- newCString lex
+  pst    <- cGeniInit cm cl
+  result <- cGeniRealize pst <$> newCString testSem
   putStrLn =<< peekCString =<< result

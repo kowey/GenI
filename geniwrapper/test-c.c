@@ -7,7 +7,7 @@ char* slurp(const char* filename);
 
 int main(int argc, char *argv[]) {
   char *macros_fn;
-  char *lexicon;
+  char *lexicon_fn;
   char *test_sem;
   char *result;
   void *geni_st;
@@ -19,22 +19,21 @@ int main(int argc, char *argv[]) {
 
   HsStart();
   macros_fn=argv[1];
-  lexicon=slurp(argv[2]);
+  lexicon_fn=argv[2];
   test_sem=slurp(argv[3]);
 
   // go!
-  geni_st=geni_init(macros_fn);
+  geni_st=geni_init(macros_fn, lexicon_fn);
   if ( geni_st == NULL ) {
     fprintf(stderr, "Could not initialise GenI wrapper");
     exit(1);
   }
-  result=geni_realize(geni_st, lexicon, test_sem);
+  result=geni_realize(geni_st, test_sem);
   printf("%s", result);
 
   geni_free(result);
   HsEnd();
   free(test_sem);
-  free(lexicon);
 }
 
 // this allocates a string you must free
