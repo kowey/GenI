@@ -1,5 +1,4 @@
-{-# OPTIONS -fglasgow-exts #-}
-
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-
  GenI surface realiser
  Copyright (C) 2005 Carlos Areces and Eric Kow
