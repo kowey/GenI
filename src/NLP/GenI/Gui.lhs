@@ -38,6 +38,7 @@ import Data.Version ( showVersion )
 import Prelude hiding ( catch )
 import System.Directory 
 import System.Exit (exitWith, ExitCode(ExitSuccess))
+import System.FilePath ( makeRelative )
 
 import Paths_GenI ( version )
 import qualified NLP.GenI.Builder as B
@@ -470,21 +471,16 @@ configGui pstRef loadFn = do
   -- -----------------------------------------------------------------
   -- helper functions
   curDir <- getCurrentDirectory
-  let curDir2 = curDir ++ "/"
-      trim2 pth = if curDir2 `isPrefixOf` pth2
-                     then drop (length curDir2) pth2
-                     else pth2
-                  where pth2 = trim pth
   let onBrowse theLabel 
        = do rawFilename <- get theLabel text
-            let filename = trim2 rawFilename
+            let filename = makeRelative curDir rawFilename
                 filetypes = [("Any file",["*","*.*"])]
             fsel <- fileOpenDialog f False True
                       "Choose your file..." filetypes "" filename
             case fsel of
               -- if the user does not select any file there are no changes
               Nothing   -> return () 
-              Just file -> set theLabel [ text := trim2 file ]
+              Just file -> set theLabel [ text := makeRelative curDir file ]
   -- end onBrowse
   -- activate those "Browse" buttons
   let setBrowse w l = set w [ on command := onBrowse l ]
