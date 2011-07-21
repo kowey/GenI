@@ -1,0 +1,104 @@
+%%
+%% The LEXICON
+%%
+%% 
+%% Nouns
+%%   common nouns
+%%     (hat, man, rabbit, woman)
+%%   proper names
+%%     (mia, vincent)
+%% Verbs
+%%   intransitive verbs
+%%     (runs, sleeps)
+%%   transitive verbs
+%%     (loves, removes)
+%% Modifiers
+%%   adjectives
+%%     (big, tall, white)
+%%   adverbs
+%%     (fast)
+%% Determiners
+%%   (a, the)
+
+
+%% Nouns
+%% common nouns
+
+hat2 Cn(?Entity ! agr:sg3)
+semantics:[hat(_ ?Entity)]
+
+man2 Cn(?Entity ! agr:sg3)
+semantics:[man(_ ?Entity)]
+
+rabbit2 Cn(?Entity ! agr:sg3)
+semantics:[rabbit(_ ?Entity)]
+
+woman2 Cn(?Entity ! agr:sg3)
+semantics:[woman(_ ?Entity)]
+
+
+%% proper names
+
+Mia2 Pn(?Entity ! agr:sg3)
+semantics:[name(_ ?Entity mia)]
+
+Vincent2 Pn(?Entity ! agr:sg3)
+semantics:[name(_ ?Entity vincent)]
+
+Vinny2 Pn(?Entity ! agr:sg3)
+semantics:[name(_ ?Entity vincent)]
+
+% Unicode
+Émilie Pn(?Entity ! agr:sg3)
+semantics:[name(_ ?Entity émilie)]
+
+% string literals
+"Joe \"the Boxer\" Stephens" Pn(?Entity ! agr:sg3)
+semantics:[name(_ ?Entity joe_stephens)]
+
+%% Verbs
+%% intransitive verbs
+
+runs2 vArity1(?Event ?Agent ! agr:sg3)
+semantics:[run(?Event ?Agent)]
+
+gallops2 vArity1(?Event ?Agent ! agr:sg3)
+semantics:[run(?Event ?Agent)]
+
+sleeps vArity1(?Event ?Agent ! agr:sg3)
+semantics:[sleep(?Event ?Agent)]
+
+%% transitive verbs
+
+loves vArity2(?Event ?Agent ?Experiencer ! agr:sg3)
+semantics:[love(?Event ?Agent ?Experiencer)]
+
+removes vArity3(?Event ?Agent ?Theme ?Loc ! agr:sg3)
+semantics:[remove(?Event ?Agent ?Theme ?Loc)]
+
+
+%% Modifiers
+%% adjectives
+
+big Adj(?Entity)
+semantics:[big(_ ?Entity)]
+
+tall Adj(?Entity)
+semantics:[tall(_ ?Entity)]
+
+white Adj(?Entity)
+semantics:[white(_ ?Entity)]
+
+
+%% adverbs
+
+fast Adv(?Event)
+semantics:[fast(_ ?Event)]
+
+
+%% ?Determiners
+
+%a Dp(?Entity ! agr:sg3)
+
+the Dp(?Entity)
+semantics:[def(?Entity)]

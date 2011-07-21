@@ -12,12 +12,16 @@ import Foreign.StablePtr
 
 main = do
   args <- getArgs
-  (mac, lex, sem) <- case args of
-                  [x1,x2,x3] -> return (x1, x2, x3)
-                  _ -> fail "Usage: test macro-file lex-file sem-file"
+  (mac, lex, lex2, sem) <- case args of
+                  [x1,x2,x3,x4] -> return (x1, x2, x3, x4)
+                  _ -> fail "Usage: test macro-file lex-file lex-file-2 sem-file"
   testSem <- readFile sem
-  cm <- newCString mac
-  cl <- newCString lex
+  lex2Str <- readFile lex2
+  cm  <- newCString mac
+  cl  <- newCString lex
+  cl2 <- newCString lex2Str
   pst    <- cGeniInit cm cl
-  result <- cGeniRealize pst <$> newCString testSem
+  result  <- cGeniRealize pst <$> newCString testSem
   putStrLn =<< peekCString =<< result
+  result2 <- cGeniRealizeWith pst <$> newCString lex2Str <*> newCString testSem
+  putStrLn =<< peekCString =<< result2

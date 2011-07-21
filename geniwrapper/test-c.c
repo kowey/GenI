@@ -8,19 +8,24 @@ char* slurp(const char* filename);
 int main(int argc, char *argv[]) {
   char *macros_fn;
   char *lexicon_fn;
+  char *lexicon2;
   char *test_sem;
   char *result;
+  char *result2;
   void *geni_st;
  
-  if (argc < 4) {
-    printf("Usage: %s <macros-file> <lexicon-file> <sem-file>\n", argv[0]);
+  if (argc < 5) {
+    printf("Usage: %s <macros-file> <lexicon-file> <lexicon-file-2> <sem-file>\n", argv[0]);
+    printf("NB: It's OK for lexicons 1 and 2 to be the same file\n");
+    printf("NB: supplying different files lets us compare the realize/realizeWith functions\n");
     return 2;
   }
 
   HsStart();
   macros_fn=argv[1];
   lexicon_fn=argv[2];
-  test_sem=slurp(argv[3]);
+  lexicon2=slurp(argv[3]);
+  test_sem=slurp(argv[4]);
 
   // go!
   geni_st=geni_init(macros_fn, lexicon_fn);
@@ -29,10 +34,13 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
   result=geni_realize(geni_st, test_sem);
-  printf("%s", result);
+  printf("Static lexicon: %s", result);
+  result2=geni_realize_with(geni_st, lexicon2, test_sem);
+  printf("Dynamic lexicon: %s", result2);
 
   geni_free(result);
   HsEnd();
+  free(lexicon2);
   free(test_sem);
 }
 
