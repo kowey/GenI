@@ -58,3 +58,4 @@ lemanchor lemanchor() semantics:[lemanchor()]
 preterminal preterminal() semantics:[preterminal()]
 
 disjunction disjunction(x y z) semantics:[disjunction()]
+variablecat variablecat(x y z) semantics:[variablecat()]
