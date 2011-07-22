@@ -29,14 +29,14 @@ suite =
 
 test_detectPolarityForAttr :: Assertion 
 test_detectPolarityForAttr =
-  assertEqual "simple detection"
-     (PD_Just [(PolarityKey "foo_vfoo", (1,1))])
+  assertEqual ""
+     (PD_Just [(PolarityKeyAv "foo" "vfoo", (1,1))])
      (detectPolarityForAttr 1 "foo" [ fooAv, barAv ])
 
 test_detectPolarityForAttrNeg :: Assertion 
 test_detectPolarityForAttrNeg =
-  assertEqual "simple detection"
-     (PD_Just [(PolarityKey "foo_vfoo", (-1,-1))])
+  assertEqual ""
+     (PD_Just [(PolarityKeyAv "foo" "vfoo", (-1,-1))])
      (detectPolarityForAttr (-1) "foo" [ fooAv, barAv ])
 
 test_detectPolarityForAttrFP :: Assertion

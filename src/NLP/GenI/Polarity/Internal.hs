@@ -53,6 +53,3 @@ detectPolarityForAttr i att fl =
 toZero :: Int -> Interval
 toZero x | x < 0     = (x, 0)
          | otherwise = (0, x)
-
-prefixWith :: String -> [String] -> [String]
-prefixWith att = map (\x -> att ++ ('_' : x))

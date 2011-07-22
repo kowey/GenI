@@ -150,7 +150,7 @@ polarityGui :: (Window a) -> [(PolarityKey,PolAut,PolAut)] -> PolAut
 polarityGui   f xs final = do
   let stats a = " (" ++ (show $ numStates a) ++ "st " ++ (show $ numTransitions a) ++ "tr)"
       aut2  (_ , a1, a2)  = [ a1, a2 ]
-      autLabel (PolarityKey fv,a1,a2) = [ fv ++ stats a1, fv ++ " pruned" ++ stats a2]
+      autLabel (pkey, a1,a2) = [ show pkey ++ stats a1, show pkey ++ " pruned" ++ stats a2]
       finalAutLab = ( final, "final" ++ stats final )
       autslabs = concatBoth (map (aut2 &&& autLabel) xs) ++ [ finalAutLab ]
   gvRef   <- newGvRef () () "automata"

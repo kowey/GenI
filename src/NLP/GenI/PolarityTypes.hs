@@ -26,7 +26,14 @@ import Data.Typeable ( Typeable )
 
 import Control.DeepSeq
 
-newtype PolarityKey = PolarityKey { fromPolarityKey :: String } deriving (Show, Eq, Ord, Data, Typeable)
+data PolarityKey = PolarityKeyAv   String String
+                 | PolarityKeyStr  String
+ deriving (Eq, Ord, Data, Typeable)
+
+instance Show PolarityKey where
+  show (PolarityKeyAv a v) = a ++ ":" ++ v
+  show (PolarityKeyStr s)  = s
+
 type SemPols  = [Int]
 
 -- | 'PolarityAttr' is something you want to perform detect polarities on.
@@ -59,7 +66,8 @@ deriving instance NFData PolarityAttr
 
  
 instance NFData PolarityKey where
-        rnf (PolarityKey x1) = rnf x1 `seq` ()
+        rnf (PolarityKeyAv x1 x2) = rnf x1 `seq` rnf x2 `seq` ()
+        rnf (PolarityKeyStr x1 )  = rnf x1 `seq` ()
 
  
 instance NFData PolarityAttr where

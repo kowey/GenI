@@ -201,7 +201,7 @@ makePolAut candsRaw tsemRaw extraPol =
      build k xs = (k,aut,prune aut):xs
        where aut   = buildPolAut k initK (thd3 $ head xs)
              initK = Map.findWithDefault (ival 0) k extraPol
-     res = foldr build [(PolarityKey "(seed)",seed,prune seed)] ks
+     res = foldr build [(PolarityKeyStr "(seed)",seed,prune seed)] ks
  in PolResult { prIntermediate = reverse res
               , prInitial      = seed
               , prFinal        = thd3 $ head res
@@ -812,7 +812,7 @@ declareIdxConstraints = Map.fromList . (map declare) where
    minusone = ival (-1)
 
 idxConstraintKey :: AvPair GeniVal -> PolarityKey
-idxConstraintKey = PolarityKey . ('.' :) . showAv
+idxConstraintKey = PolarityKeyStr . ('.' :) . showAv
 \end{code}
 
 \subsection{Automatic detection}
@@ -1184,6 +1184,6 @@ showLiteSm sm =
 --   The advantage is that it displays fewer quotation marks.
 showLitePm :: PolMap -> String
 showLitePm pm = 
-  let showPair (f, pol) = showInterval pol ++ fromPolarityKey f
+  let showPair (f, pol) = showInterval pol ++ show f
   in concat $ intersperse " " $ map showPair $ Map.toList pm
 \end{code}
