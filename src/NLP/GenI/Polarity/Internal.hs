@@ -25,6 +25,7 @@ import NLP.GenI.PolarityTypes
 data PolarityDetectionResult = PD_UserError String
                              | PD_Nothing
                              | PD_Just [ (PolarityKey, Interval) ]
+                             | PD_Unconstrained (String, Interval)
 
 -- ----------------------------------------------------------------------
 -- polarity detection
@@ -36,19 +37,14 @@ detectPolarityForAttr :: Int -- ^ polarity to assign
                       -> PolarityDetectionResult
 detectPolarityForAttr i att fl =
   case [ v | AvPair a v <- fl, a == att ] of
-    []  -> PD_UserError $ "[polarities] No value for attribute: " ++ att ++ " in:" ++ showFlist fl
+    []  -> PD_Unconstrained (withZero att)
     [v] -> case gConstraints v of
-             Just _  -> PD_Just $ case prefixWith att (values v) of
-                                    [x] -> [ (PolarityKey x, ival i) ]                -- singleton
-                                    xs  -> map (\x -> (PolarityKey x, toZero i)) xs   -- interval if ambiguous
-             -- EYK goal is to add unconstrained values here
-             -- how do we ensure that we only receive constants here?
-             Nothing -> PD_UserError $ "[polarities] Non-constrained value for attribute: " ++ att ++ " in:" ++ showFlist fl
+             Just [x] -> PD_Just [ (PolarityKeyAv att x, ival i) ]       -- singleton
+             Just xs  -> PD_Just $ map (withZero . PolarityKeyAv att) xs   -- interval if ambiguous
+             Nothing  -> PD_Unconstrained (withZero att)
     _   -> PD_UserError $ "[polarities] More than one value for attribute: " ++ att ++ " in:" ++ showFlist fl
  where
-  values v = case gConstraints v of
-               Nothing -> geniBug $ "detectPolarityForAttr: no constraints for constant?! " ++ show v
-               Just x  -> x
+   withZero x = (x, toZero i)
 
 toZero :: Int -> Interval
 toZero x | x < 0     = (x, 0)
