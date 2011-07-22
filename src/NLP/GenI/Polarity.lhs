@@ -102,6 +102,7 @@ import NLP.GenI.General(
     BitVector, isEmptyIntersect, thd3,
     Interval, ival, (!+!), showInterval)
 import NLP.GenI.GeniVal ( GeniVal(gConstraints), mkGConst, mkGAnon, isAnon )
+import NLP.GenI.Polarity.Internal
 import NLP.GenI.PolarityTypes
 import NLP.GenI.Tags(TagElem(..), TagItem(..), setTidnums)
 \end{code}
@@ -917,10 +918,6 @@ __cat__  = "cat"
 __idx__  = "idx"
 
 
-data PolarityDetectionResult = PD_UserError String
-                             | PD_Nothing
-                             | PD_Just [ (PolarityKey, Interval) ]
-
 -- | Careful, this completely ignores any user errors
 pdJusts :: [PolarityDetectionResult] -> [(PolarityKey,Interval)]
 pdJusts = concatMap helper
@@ -940,31 +937,6 @@ detectPolarity i (RestrictedPolarityAttr cat att) filterFl fl =
               else PD_Nothing
     _   -> PD_UserError $ "[polarities] More than one category " ++ " in:" ++ showFlist filterFl
 detectPolarity i (SimplePolarityAttr att) _ fl = detectPolarityForAttr i att fl
-
-detectPolarityForAttr :: Int -- ^ polarity to assign
-                      -> String
-                      -> Flist GeniVal
-                      -> PolarityDetectionResult
-detectPolarityForAttr i att fl =
-  case [ v | AvPair a v <- fl, a == att ] of
-    []  -> PD_UserError $ "[polarities] No value for attribute: " ++ att ++ " in:" ++ showFlist fl
-    [v] -> case gConstraints v of
-             Just _  -> PD_Just $ case prefixWith att (values v) of
-                                    [x] -> [ (PolarityKey x, ival i) ]                -- singleton
-                                    xs  -> map (\x -> (PolarityKey x, toZero i)) xs   -- interval if ambiguous
-             Nothing -> PD_UserError $ "[polarities] Non-constrained value for attribute: " ++ att ++ " in:" ++ showFlist fl
-    _   -> PD_UserError $ "[polarities] More than one value for attribute: " ++ att ++ " in:" ++ showFlist fl
- where
-  values v = case gConstraints v of
-               Nothing -> geniBug $ "detectPolarityForAttr: no constraints for constant?! " ++ show v
-               Just x  -> x
-
-toZero :: Int -> Interval
-toZero x | x < 0     = (x, 0)
-         | otherwise = (0, x)
-
-prefixWith :: String -> [String] -> [String]
-prefixWith att = map (\x -> att ++ ('_' : x))
 
 substNodes :: TagElem -> [GNode GeniVal]
 substNodes t = [ gn | gn <- (flatten.ttree) t, gtype gn == Subs ]
