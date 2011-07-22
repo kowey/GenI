@@ -114,7 +114,7 @@ import NLP.GenI.GeniParsers (geniMacros, geniTagElems,
                     geniLexicon, geniTestSuite,
                     geniTestSuiteString, geniSemanticInput,
                     geniMorphInfo,
-                    parseFromFile, runParser, Parser,
+                    runParser,
                     ParseError,
                     )
 import NLP.GenI.LexicalSelection
@@ -391,7 +391,7 @@ instance Loadable TestSuiteL where
     cleanup tc str =
         tc { tcSem = first3 sortSem (tcSem tc)
            , tcSemString = str }
-    first3 f (x, y, z) = (f x, y, z)
+    first3 g (x, y, z) = (g x, y, z)
  --
  lSet (TestSuiteL x) p = p { tsuite = x }
  lSummarise (TestSuiteL x) = show (length x) ++ " cases"
@@ -798,13 +798,13 @@ instance Loadable PreAnchoredL where
   lParse f = fmap PreAnchoredL
            . runParser geniTagElems () f
   lSet _ p = p -- this does not update prog state at all
-  lSummarise (PreAnchoredL ts) = show (length ts) ++ " trees"
+  lSummarise (PreAnchoredL xs) = show (length xs) ++ " trees"
 
 readPreAnchored :: ProgStateRef -> IO [TagElem]
 readPreAnchored pstRef = do
-  PreAnchoredL ts <- loadOrDie (L :: L PreAnchoredL)
+  PreAnchoredL xs <- loadOrDie (L :: L PreAnchoredL)
                         MacrosFlg "preanchored trees" pstRef
-  return ts
+  return xs
 \end{code}
 
 % --------------------------------------------------------------------
