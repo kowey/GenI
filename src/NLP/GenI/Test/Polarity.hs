@@ -22,8 +22,8 @@ suite =
  testGroup "NLP.GenI.Polarity"
   [ testGroup "detecting values"
       [ testCase "simple example" test_detectPolarityForAttr
-      , testCase "simple example (neg)"     test_detectPolarityForAttr
-      , testCase "simple example (false +)" test_detectPolarityForAttr
+      , testCase "simple example (neg)"     test_detectPolarityForAttrNeg
+      , testCase "simple example (false +)" test_detectPolarityForAttrFP
       ]
   ]
 
@@ -39,8 +39,8 @@ test_detectPolarityForAttrNeg =
      (PD_Just [(PolarityKey "foo_vfoo", (-1,-1))])
      (detectPolarityForAttr (-1) "foo" [ fooAv, barAv ])
 
-test_detectPolarityForAttr_FP :: Assertion 
-test_detectPolarityForAttr_FP =
+test_detectPolarityForAttrFP :: Assertion
+test_detectPolarityForAttrFP =
   assertEqual "simple detection (no false +)"
      PD_Nothing
      (detectPolarityForAttr 1 "foo" [ foAv, barAv ])
