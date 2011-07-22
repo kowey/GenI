@@ -217,12 +217,12 @@ graphviz dot dotFile outputFile = do
        -- see http://www.haskell.org/pipermail/haskell-cafe/2008-May/042994.html
        -- wait for all the output
        output <- hGetContents outh
-       evaluate (length output)
+       _ <- evaluate (length output)
        -- fork off a thread to pull on the stderr
        -- so if the process writes to stderr we do not block.
        -- NB. do the hGetContents synchronously, otherwise the outer
        -- bracket can exit before this thread has run, and hGetContents
        -- will fail.
        err <- hGetContents errh
-       forkIO $ do evaluate (length err); return ()
+       _   <- forkIO $ evaluate (length err) >> return ()
        waitForProcess pid
