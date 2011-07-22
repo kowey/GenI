@@ -66,7 +66,7 @@ import qualified Data.Tree as T
 import Text.ParserCombinators.Parsec hiding (parseFromFile)
 import Text.ParserCombinators.Parsec.Language (emptyDef)
 import Text.ParserCombinators.Parsec.Token (TokenParser,
-    LanguageDef(..),
+    LanguageDef,
     commentLine, commentStart, commentEnd, opLetter,
     reservedOpNames, reservedNames, identLetter, identStart, 
     makeTokenParser)

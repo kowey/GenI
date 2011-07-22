@@ -99,7 +99,6 @@ import NLP.GenI.Btypes(Pred, SemInput, Sem, Flist, AvPair(..), showAv,
               GNode, root, gup, gdown, gtype, GType(Subs),
               unify, unifyFeat, rootUpd)
 import NLP.GenI.General(
-    geniBug,
     BitVector, isEmptyIntersect, thd3,
     Interval, ival, (!+!), showInterval)
 import NLP.GenI.GeniVal ( GeniVal(gConstraints), mkGConst, mkGAnon, isAnon )
