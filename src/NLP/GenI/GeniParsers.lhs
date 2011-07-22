@@ -43,7 +43,7 @@ module NLP.GenI.GeniParsers (
   -- * Lexicon and morph
   geniLexicon, geniMorphInfo,
   -- * Basics
-  geniFeats, geniPolarities, geniSemantics, geniValue, geniWords,
+  geniFeats, geniSemantics, geniValue, geniWords,
   -- * Helpers
   geniWord, geniLanguageDef, tillEof,
   --
@@ -51,13 +51,11 @@ module NLP.GenI.GeniParsers (
   module Text.ParserCombinators.Parsec
 ) where
 
-import NLP.GenI.General ((!+!), Interval, ival)
 import NLP.GenI.GeniVal (mkGConst, mkGVar, mkGAnon)
 import NLP.GenI.Btypes
 import NLP.GenI.Tags (TagElem(..), emptyTE, setTidnums)
 import NLP.GenI.TreeSchemata (SchemaTree)
 import NLP.GenI.GeniShow (GeniShow(geniShow))
-import NLP.GenI.PolarityTypes
 
 import BoolExp
 
@@ -872,13 +870,6 @@ morphEntry =
 -- ----------------------------------------------------------------------
 -- polarities
 -- ----------------------------------------------------------------------
-geniPolarities :: Parser (Map.Map PolarityKey Interval)
-geniPolarities = tillEof $ toMap `fmap` many pol
-  where
-    toMap = Map.fromListWith (!+!)
-    pol = do p <- geniPolarity
-             i <- identifier
-             return (PolarityKey i,ival p)
 
 -- | 'geniPolarity' associates a numerical value to a polarity symbol,
 --  that is, '+' or '-'.

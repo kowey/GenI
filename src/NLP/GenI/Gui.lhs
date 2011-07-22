@@ -441,12 +441,6 @@ configGui pstRef loadFn = do
   let layXMG = fakeBoxed "XMG tools" 
                 [ row 3 [ label "XMG view command"
                         , marginRight $ hfill $ widget viewCmdTxt ] ]
-  -- polarities
-  extraPolsTxt <- entry padv 
-    [ text := maybe "" showLitePm $ getFlagP ExtraPolaritiesFlg config
-    , size := shortSize ]
-  let layPolarities = fakeBoxed "Polarities" [ hfill $ row 1 
-          [ label "extra polarities", rigid $ widget extraPolsTxt ] ]
   -- morphology
   morphFileLabel    <- staticText padv [ text := getListFlagP MorphInfoFlg config ]
   morphFileBrowseBt <- button padv [ text := browseTxt ]
@@ -461,7 +455,7 @@ configGui pstRef loadFn = do
                            , (marginRight.hfill) $ widget morphCmdTxt ] ]
   -- put the whole darn thing together
   let layAdvanced = hfloatLeft $ container padv $ column 10 
-        $ [ layXMG, layPolarities, layMorph]
+        $ [ layXMG, layMorph]
   -- -----------------------------------------------------------------
   -- browse button action
   --
@@ -491,8 +485,7 @@ configGui pstRef loadFn = do
   -- -----------------------------------------------------------------
   -- config GUI layout
   -- -----------------------------------------------------------------
-  let parsePol = parseFlagWithParsec "polarities"    geniPolarities
-      parseRF  = parseFlagWithParsec "root features" geniFeats
+  let parseRF  = parseFlagWithParsec "root features" geniFeats
       onLoad 
        = do macrosVal <- get macrosFileLabel text
             lexconVal <- get lexiconFileLabel text
@@ -500,7 +493,6 @@ configGui pstRef loadFn = do
             --
             detectPolsVal <- get detectPolsTxt text
             rootCatVal  <- get rootFeatTxt  text
-            extraPolVal <- get extraPolsTxt text
             --
             viewVal   <- get viewCmdTxt text 
             --
@@ -517,7 +509,6 @@ configGui pstRef loadFn = do
                   . (maybeSetStr TestInstructionsFlg [(tsVal,Nothing)])
                   . (setFlagP DetectPolaritiesFlg (readPolarityAttrs detectPolsVal))
                   . (maybeSet RootFeatureFlg parseRF rootCatVal)
-                  . (maybeSet ExtraPolaritiesFlg parsePol extraPolVal)
                   . (maybeSetStr ViewCmdFlg viewVal)
                   . (maybeSetStr MorphCmdFlg morphCmdVal)
                   . (maybeSetStr MorphInfoFlg morphInfoVal)

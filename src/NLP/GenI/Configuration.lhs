@@ -56,7 +56,7 @@ import Text.ParserCombinators.Parsec ( runParser, CharParser )
 import NLP.GenI.Btypes ( showFlist, )
 import NLP.GenI.Flags
 import NLP.GenI.General ( geniBug, fst3, snd3 )
-import NLP.GenI.GeniParsers ( geniFeats, geniPolarities )
+import NLP.GenI.GeniParsers ( geniFeats )
 import NLP.GenI.PolarityTypes ( readPolarityAttrs )
 \end{code}
 }
@@ -449,12 +449,7 @@ optionsForOptimisation =
          (reqArg DetectPolaritiesFlg readPolarityAttrs "LIST")
          ("attributes 'LIST' (eg. \"cat idx V.tense\", default:" ++ show defaultPolarityAttrs ++ ")")
    , rootFeatureOption
-   , Option [] ["extrapols"]
-         (reqArg ExtraPolaritiesFlg readPolarities "STRING")
-         "preset polarities (normally, you should use rootfeat instead)"
   ]
-  where
-   readPolarities = parseFlagWithParsec "polarity string" geniPolarities
 
 rootFeatureOption :: OptDescr Flag
 rootFeatureOption =
