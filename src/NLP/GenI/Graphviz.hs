@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE MultiParamTypeClasses, ScopedTypeVariables #-}
 {-
  GenI surface realiser
  Copyright (C) 2005 Carlos Areces and Eric Kow
