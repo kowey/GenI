@@ -23,6 +23,7 @@ import Data.List ( isPrefixOf )
 import System.Environment ( getArgs )
 import Test.Framework
 import NLP.GenI.Test.GeniVal ( suite )
+import NLP.GenI.Test.Polarity ( suite )
 import NLP.GenI.Test.Semantics ( suite )
 import NLP.GenI.Test.Simple.SimpleBuilder ( suite )
 
@@ -31,6 +32,7 @@ runTests =
  do args <- filter (not . (`isPrefixOf` "--unit-tests")) `fmap` getArgs
     flip defaultMainWithArgs args
      [ NLP.GenI.Test.GeniVal.suite
+     , NLP.GenI.Test.Polarity.suite
      , NLP.GenI.Test.Semantics.suite
      , NLP.GenI.Test.Simple.SimpleBuilder.suite
      ]
