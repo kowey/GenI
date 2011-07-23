@@ -56,7 +56,7 @@ import Text.ParserCombinators.Parsec ( runParser, CharParser )
 import NLP.GenI.Btypes ( showFlist, )
 import NLP.GenI.Flags
 import NLP.GenI.General ( geniBug, fst3, snd3 )
-import NLP.GenI.GeniParsers ( geniFeats )
+import NLP.GenI.GeniParsers ( geniFeats, tillEof )
 import NLP.GenI.PolarityTypes ( readPolarityAttrs )
 \end{code}
 }
@@ -544,7 +544,7 @@ lookupOptimisation code =
 
 parseFlagWithParsec :: String -> CharParser () b -> String -> b
 parseFlagWithParsec description p str =
- case runParser p () "" str of
+ case runParser (tillEof p) () "" str of
  Left  err -> error $ "Couldn't parse " ++ description ++ " because " ++ show err
  Right res -> res
 \end{code}
