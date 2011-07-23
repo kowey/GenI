@@ -22,7 +22,7 @@ main = do
   cl2 <- newCString lex2Str
   crf <- newCString rf
   pst    <- cGeniInit cm cl
-  result  <- cGeniRealize pst <$> newCString testSem <*> pure crf
+  result  <- cGeniRealize pst <$> newCString ""      <*> newCString testSem <*> pure crf
   putStrLn =<< peekCString =<< result
-  result2 <- cGeniRealizeWith pst <$> newCString lex2Str <*> newCString testSem <*> pure crf
+  result2 <- cGeniRealize pst <$> newCString lex2Str <*> newCString testSem <*> pure crf
   putStrLn =<< peekCString =<< result2

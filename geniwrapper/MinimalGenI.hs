@@ -3,7 +3,7 @@
 module MinimalGenI where
 
 import Control.Exception
-import Control.Monad ( when )
+import Control.Monad ( when, unless )
 import Data.IORef ( IORef, newIORef, readIORef, modifyIORef)
 import qualified Data.ByteString.Unsafe as BU
 import qualified Data.ByteString.UTF8   as B8
@@ -31,8 +31,7 @@ import Foreign.StablePtr
 -- returns NULL pointer if anything goes wrong
 foreign export ccall "geni_init"    cGeniInit    :: CString -> CString -> IO (Ptr ())
 -- returns error message on parse errors of input files
-foreign export ccall "geni_realize"      cGeniRealize     :: Ptr () -> CString -> CString -> IO CString
-foreign export ccall "geni_realize_with" cGeniRealizeWith :: Ptr () -> CString -> CString -> CString -> IO CString
+foreign export ccall "geni_realize" cGeniRealize :: Ptr () -> CString -> CString -> CString -> IO CString
 foreign export ccall "geni_free"    free         :: Ptr a -> IO ()
 
 peekUTF8_CString :: CString -> IO String
@@ -47,20 +46,13 @@ cGeniInit cm cl = do
    Left _   -> return nullPtr
    Right p2 -> castStablePtrToPtr `fmap` newStablePtr p2
 
-cGeniRealize :: Ptr () -> CString -> CString -> IO CString
-cGeniRealize ptr cx cy = do
-  pst <- deRefStablePtr (castPtrToStablePtr ptr)   
-  x <- peekUTF8_CString cx
-  y <- peekUTF8_CString cy
-  newCString =<< geniRealize pst Nothing x y
-
-cGeniRealizeWith :: Ptr () -> CString -> CString -> CString -> IO CString
-cGeniRealizeWith ptr cx cy cz = do
+cGeniRealize :: Ptr () -> CString -> CString -> CString -> IO CString
+cGeniRealize ptr cx cy cz = do
   pst <- deRefStablePtr (castPtrToStablePtr ptr)
   x <- peekUTF8_CString cx
   y <- peekUTF8_CString cy
   z <- peekUTF8_CString cz
-  newCString =<< geniRealize pst (Just x) y z
+  newCString =<< geniRealize pst x y z
 
 geniInit :: FilePath -> FilePath -> IO (Either BadInputException ProgStateRef)
 geniInit mfile lfile = do
@@ -74,22 +66,21 @@ geniInit mfile lfile = do
 
 -- | Print any errors in an JSON error object
 geniRealize :: ProgStateRef
-             -> Maybe String
-             -> String
+             -> String -- ^ lexicon
+             -> String -- ^ semantics
              -> String -- ^ root feature
              -> IO String
-geniRealize pstRef mlex sem rf = do
-  me <- geniRealizeI pstRef mlex sem rf
+geniRealize pstRef lex sem rf = do
+  me <- geniRealizeI pstRef lex sem rf
   return $ case me of
      Left (BadInputException d e) -> encode . errorObject $ d ++ " parse error: " ++ show e
      Right p                      -> encode . fst3 $ p
 
-geniRealizeI pstRef mlex sem rf = try $ do
-  case mlex of
-    Just lex -> do l <- loadFromString pstRef "lexicon" lex
-                   let _ = l :: Lexicon
-                   return ()
-    Nothing -> return () -- use ProgStateRef lexicon
+geniRealizeI pstRef lex sem rf = try $ do
+  unless (null lex) $ do
+     l <- loadFromString pstRef "lexicon" lex
+     let _ = l :: Lexicon
+     return ()
   loadTargetSemStr pstRef $ "semantics:[" ++ sem ++ "]"
   r <- tryParse geniFeats "root feature" rf
   modifyIORef pstRef $ \p -> p { pa = setFlagP RootFeatureFlg r (pa p) }

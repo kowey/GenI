@@ -36,9 +36,9 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "Could not initialise GenI wrapper");
     exit(1);
   }
-  result=geni_realize(geni_st, test_sem, root_ft);
+  result=geni_realize(geni_st, "", test_sem, root_ft);
   printf("Static lexicon: %s\n", result);
-  result2=geni_realize_with(geni_st, lexicon2, test_sem, root_ft);
+  result2=geni_realize(geni_st, lexicon2, test_sem, root_ft);
   printf("Dynamic lexicon: %s\n", result2);
 
   geni_free(result);
