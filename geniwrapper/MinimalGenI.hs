@@ -18,7 +18,7 @@ import Prelude hiding ( getContents, putStrLn )
 import NLP.GenI.Configuration
 import NLP.GenI.General (fst3)
 import NLP.GenI.Geni
-import NLP.GenI.GeniParsers ( geniLexicon, runParser, ParseError )
+import NLP.GenI.GeniParsers ( geniLexicon, geniFeats, runParser, ParseError )
 import NLP.GenI.Lexicon ( Lexicon )
 import NLP.GenI.Simple.SimpleBuilder
 import qualified NLP.GenI.Builder as B
@@ -31,8 +31,8 @@ import Foreign.StablePtr
 -- returns NULL pointer if anything goes wrong
 foreign export ccall "geni_init"    cGeniInit    :: CString -> CString -> IO (Ptr ())
 -- returns error message on parse errors of input files
-foreign export ccall "geni_realize"      cGeniRealize     :: Ptr () -> CString            -> IO CString
-foreign export ccall "geni_realize_with" cGeniRealizeWith :: Ptr () -> CString -> CString -> IO CString
+foreign export ccall "geni_realize"      cGeniRealize     :: Ptr () -> CString -> CString -> IO CString
+foreign export ccall "geni_realize_with" cGeniRealizeWith :: Ptr () -> CString -> CString -> CString -> IO CString
 foreign export ccall "geni_free"    free         :: Ptr a -> IO ()
 
 peekUTF8_CString :: CString -> IO String
@@ -47,18 +47,20 @@ cGeniInit cm cl = do
    Left _   -> return nullPtr
    Right p2 -> castStablePtrToPtr `fmap` newStablePtr p2
 
-cGeniRealize :: Ptr () -> CString -> IO CString
-cGeniRealize ptr cx = do
+cGeniRealize :: Ptr () -> CString -> CString -> IO CString
+cGeniRealize ptr cx cy = do
   pst <- deRefStablePtr (castPtrToStablePtr ptr)   
   x <- peekUTF8_CString cx
-  newCString =<< geniRealize pst Nothing x
+  y <- peekUTF8_CString cy
+  newCString =<< geniRealize pst Nothing x y
 
-cGeniRealizeWith :: Ptr () -> CString -> CString -> IO CString
-cGeniRealizeWith ptr cx cy = do
+cGeniRealizeWith :: Ptr () -> CString -> CString -> CString -> IO CString
+cGeniRealizeWith ptr cx cy cz = do
   pst <- deRefStablePtr (castPtrToStablePtr ptr)
   x <- peekUTF8_CString cx
   y <- peekUTF8_CString cy
-  newCString =<< geniRealize pst (Just x) y
+  z <- peekUTF8_CString cz
+  newCString =<< geniRealize pst (Just x) y z
 
 geniInit :: FilePath -> FilePath -> IO (Either BadInputException ProgStateRef)
 geniInit mfile lfile = do
@@ -74,20 +76,28 @@ geniInit mfile lfile = do
 geniRealize :: ProgStateRef
              -> Maybe String
              -> String
+             -> String -- ^ root feature
              -> IO String
-geniRealize pstRef mlex sem = do
-  me <- geniRealizeI pstRef mlex sem
+geniRealize pstRef mlex sem rf = do
+  me <- geniRealizeI pstRef mlex sem rf
   return $ case me of
      Left (BadInputException d e) -> encode . errorObject $ d ++ " parse error: " ++ show e
      Right p                      -> encode . fst3 $ p
 
-geniRealizeI pstRef mlex sem = try $ do
+geniRealizeI pstRef mlex sem rf = try $ do
   case mlex of
     Just lex -> do l <- loadFromString pstRef "lexicon" lex
                    let _ = l :: Lexicon
                    return ()
     Nothing -> return () -- use ProgStateRef lexicon
   loadTargetSemStr pstRef $ "semantics:[" ++ sem ++ "]"
+  r <- tryParse geniFeats "root feature" rf
+  modifyIORef pstRef $ \p -> p { pa = setFlagP RootFeatureFlg r (pa p) }
   runGeni pstRef simpleBuilder_2p
+
+tryParse p descr str =
+  case runParser p () "" str of
+  Left  err -> throwIO (BadInputException descr err)
+  Right res -> return res
 
 errorObject str = toJSObject [ ("error", str) ]
