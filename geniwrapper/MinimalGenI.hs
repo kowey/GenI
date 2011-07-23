@@ -78,12 +78,12 @@ geniRealize :: ProgStateRef
 geniRealize pstRef mlex sem = do
   me <- geniRealizeI pstRef mlex sem
   return $ case me of
-     Left (BadInputException e) -> encode . errorObject . show $ e
-     Right p                    -> encode . fst3 $ p
+     Left (BadInputException d e) -> encode . errorObject $ d ++ " parse error: " ++ show e
+     Right p                      -> encode . fst3 $ p
 
 geniRealizeI pstRef mlex sem = try $ do
   case mlex of
-    Just lex -> do l <- loadFromString pstRef lex
+    Just lex -> do l <- loadFromString pstRef "lexicon" lex
                    let _ = l :: Lexicon
                    return ()
     Nothing -> return () -- use ProgStateRef lexicon

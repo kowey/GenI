@@ -253,11 +253,11 @@ lSetState :: Loadable x => ProgStateRef -> x -> IO x
 lSetState pstRef x = modifyIORef pstRef (lSet x) >> return x
 
 -- to be phased out
-throwOnParseError :: Either ParseError x -> IO x
-throwOnParseError (Left err) = throwIO (BadInputException err)
-throwOnParseError (Right p)  = return p
+throwOnParseError :: String -> Either ParseError x -> IO x
+throwOnParseError descr (Left err) = throwIO (BadInputException descr err)
+throwOnParseError _ (Right p)  = return p
 
-data BadInputException = BadInputException ParseError
+data BadInputException = BadInputException String ParseError
   deriving (Show, Typeable)
 
 instance Exception BadInputException
@@ -278,14 +278,17 @@ loadOrDie L flg descr pstRef =
   withFlagOrDie flg pstRef descr $ \f -> do
    v <- verbosity pstRef
    x <- withLoadStatus v f descr lParseFromFile
-     >>= throwOnParseError
+     >>= throwOnParseError descr
      >>= lSetState pstRef
    return x
 
 -- | Load something from a string rather than a file
-loadFromString :: Loadable a => ProgStateRef -> String -> IO a
-loadFromString pstRef s =
-  throwOnParseError (lParse "" s) >>= lSetState pstRef
+loadFromString :: Loadable a => ProgStateRef
+               -> String -- ^ description
+               -> String -- ^ string to load
+               -> IO a
+loadFromString pstRef descr s =
+  throwOnParseError descr (lParse "" s) >>= lSetState pstRef
 
 instance Loadable Lexicon where
   lParse f = fmap toLexicon . runParser geniLexicon () f
@@ -309,7 +312,7 @@ loadGeniMacros pstRef =
   withFlagOrDie MacrosFlg pstRef descr $ \f -> do
      v <- verbosity pstRef
      withLoadStatus v f descr (parseFromFileMaybeBinary lParseFromFile)
-     >>= throwOnParseError
+     >>= throwOnParseError "tree schemata"
      >>= lSetState pstRef
   where
    descr = "trees"
@@ -327,7 +330,7 @@ loadOptional L flg descr pstRef =
   withFlagOrIgnore flg pstRef $ \f -> do
    v <- verbosity pstRef
    x <- withLoadStatus v f descr lParseFromFile
-     >>= throwOnParseError
+     >>= throwOnParseError descr
      >>= lSetState pstRef
    let _ = x :: a
    return () -- ignore
@@ -422,7 +425,7 @@ instance Loadable SemL where
 
 loadTargetSemStr :: ProgStateRef -> String -> IO ()
 loadTargetSemStr pstRef s = do
-  x <- loadFromString pstRef s
+  x <- loadFromString pstRef "semantics" s
   let _ = x :: SemL
   return ()
 \end{code}
