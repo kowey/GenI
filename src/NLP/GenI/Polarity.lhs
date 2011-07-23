@@ -887,6 +887,7 @@ detectPolsH polarityAttrs te =
         PD_UserError e -> error $ e ++ " in " ++ tgIdName te -- ideally we'd propagate this
         PD_Nothing     -> []
         PD_Just p      -> p
+        PD_Unconstrained att -> error $ "[polarities] Non-constrained value for attribute: " ++ att
       --
       rup   = gup . root .ttree $ te
       rdown = gdown . root . ttree $ te
