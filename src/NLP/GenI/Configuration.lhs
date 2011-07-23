@@ -542,6 +542,7 @@ lookupOptimisation :: String -> Maybe Optimisation
 lookupOptimisation code =
   liftM fst3 $ find (\x -> snd3 x == code) optimisationCodes
 
+-- | TODO: This is a horrible and abusive use of 'error'
 parseFlagWithParsec :: String -> CharParser () b -> String -> b
 parseFlagWithParsec description p str =
  case runParser (tillEof p) () "" str of

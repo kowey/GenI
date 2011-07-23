@@ -486,6 +486,8 @@ configGui pstRef loadFn = do
   -- config GUI layout
   -- -----------------------------------------------------------------
   let parseRF  = parseFlagWithParsec "root features" geniFeats
+      -- TODO: this is horrible! parseFlagWithParsec should be replaced with
+      -- something safer
       onLoad 
        = do macrosVal <- get macrosFileLabel text
             lexconVal <- get lexiconFileLabel text
