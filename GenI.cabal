@@ -125,6 +125,8 @@ Library
                 NLP.GenI.Simple.SimpleBuilder,
                 -- NLP.GenI.CkyEarley.CkyBuilder,
                 NLP.GenI.Geni, NLP.GenI.Configuration
+  Other-Modules:
+                NLP.GenI.Polarity.Internal
 
   Hs-Source-Dirs: src
   Extensions:     CPP, Rank2Types, OverlappingInstances, MultiParamTypeClasses, FlexibleContexts, TypeSynonymInstances,  FlexibleInstances, DeriveDataTypeable, ExistentialQuantification, LiberalTypeSynonyms
