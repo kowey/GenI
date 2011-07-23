@@ -18,7 +18,7 @@ import Prelude hiding ( getContents, putStrLn )
 import NLP.GenI.Configuration
 import NLP.GenI.General (fst3)
 import NLP.GenI.Geni
-import NLP.GenI.GeniParsers ( geniLexicon, geniFeats, runParser, ParseError )
+import NLP.GenI.GeniParsers ( geniLexicon, geniFeats, runParser, ParseError, tillEof )
 import NLP.GenI.Lexicon ( Lexicon )
 import NLP.GenI.Simple.SimpleBuilder
 import qualified NLP.GenI.Builder as B
@@ -96,7 +96,7 @@ geniRealizeI pstRef mlex sem rf = try $ do
   runGeni pstRef simpleBuilder_2p
 
 tryParse p descr str =
-  case runParser p () "" str of
+  case runParser (tillEof p) () "" str of
   Left  err -> throwIO (BadInputException descr err)
   Right res -> return res
 
