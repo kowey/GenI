@@ -31,7 +31,7 @@ import qualified Data.Map as Map
 
 import Control.Exception
 import Data.IORef
-import Data.List (isPrefixOf, nub, delete, findIndex)
+import Data.List ( nub, delete, findIndex)
 import Data.Maybe ( fromMaybe )
 import Data.Version ( showVersion )
 
@@ -48,7 +48,7 @@ import NLP.GenI.Geni
   , prettyResult
   , loadEverything, loadTestSuite, loadTargetSemStr
   )
-import NLP.GenI.General (boundsCheck, geniBug, trim, fst3, prettyException)
+import NLP.GenI.General (boundsCheck, geniBug, fst3, prettyException)
 import NLP.GenI.Btypes (TestCase(..), showFlist,)
 import NLP.GenI.GeniShow (geniShow)
 import NLP.GenI.Configuration
@@ -191,10 +191,10 @@ mainGui pstRef
        -- -----------------------------------------------------------------
        -- set any last minute handlers, run any last minute functions
        let onLoad =
-            do config <- pa `fmap` readIORef pstRef -- we want the latest config!
+            do cfg <- pa `fmap` readIORef pstRef -- we want the latest config!
                -- errHandler title err = errorDialog f title (show err)
-               set macrosFileLabel  [ text := getListFlagP MacrosFlg config ]
-               set lexiconFileLabel [ text := getListFlagP LexiconFlg config ]
+               set macrosFileLabel  [ text := getListFlagP MacrosFlg cfg ]
+               set lexiconFileLabel [ text := getListFlagP LexiconFlg cfg ]
                -- set tsFileLabel      [ text := getListFlagP TestSuiteFlg config ]
                -- read the test suite if there is one
                case getListFlagP TestInstructionsFlg config of
@@ -388,8 +388,7 @@ configGui pstRef loadFn = do
   let fakeBoxed title lst = hstretch $ column 3 $ map hfill $ 
         [ hrule 1 , alignRight $ label title, vspace 5 ] 
         ++ map hfill lst
-  let shortSize = sz 10 25
-  let longSize  = sz 20 25
+  let longSize  = sz 20 (25 :: Int)
   -- -----------------------------------------------------------------
   -- basic options tab
   -- -----------------------------------------------------------------

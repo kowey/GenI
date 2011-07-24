@@ -257,10 +257,8 @@ runViewTag params drName =
      -- run the viewer
      case getFlagP ViewCmdFlg params of
        Nothing -> ePutStrLn "Warning: No viewcmd specified (runViewTag)"
-       Just c  -> do -- run the viewer
-                     runProcess c [gramfile, treenameOnly drName]
-                       Nothing Nothing Nothing Nothing Nothing
-                     return ()
+       Just c  -> runProcess c [gramfile, treenameOnly drName]
+                       Nothing Nothing Nothing Nothing Nothing >> return ()
 
 -- --------------------------------------------------------------------
 -- Graphical debugger (helper functions)
@@ -297,7 +295,7 @@ pauseOnLexGui pst f xs job = do
   loadBt <- button p [ text := "Load from file", on command := loadCmd ]
   nextBt <- button p [ text := "Begin" ]
   let disableW w = set w [ enabled := False ]
-  set nextBt [ on command := do mapM disableW [ saveBt, loadBt, nextBt ]
+  set nextBt [ on command := do mapM_ disableW [ saveBt, loadBt, nextBt ]
                                 varGet candV >>= job ]
   --
   let lay = fill $ container p $ column 5
@@ -683,7 +681,7 @@ createImage cachedir f gvref = do
       config    = gvparams gvSt
   dotFile <- createDotPath cachedir (show sel)
   graphicFile <-  createImagePath cachedir (show sel)
-  let create x = do toGraphviz config x dotFile graphicFile
+  let create x = do _ <- toGraphviz config x dotFile graphicFile
                     return . GvCreated $ graphicFile
       handler err = do errorDialog f "Error calling graphviz" (show err) 
                        return . GvError . show $ err
@@ -710,7 +708,7 @@ initCacheDir cachesubdir = do
             contents <- getDirectoryContents cachedir
             olddir <- getCurrentDirectory
             setCurrentDirectory cachedir
-            mapM removeFile $ filter notdot contents
+            mapM_ removeFile $ filter notdot contents
             setCurrentDirectory olddir
             return ()
     else createDirectory cachedir
