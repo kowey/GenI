@@ -35,19 +35,19 @@ test_detectPolarityForAttr :: Assertion
 test_detectPolarityForAttr =
   assertEqual ""
      (PD_Just [(PolarityKeyAv "foo" "vfoo", (1,1))])
-     (detectPolarityForAttr 1 "foo" [ fooAv, barAv ])
+     (detectPolarity 1 simpleFoo emptyFeatStruct (barAvAnd fooAv))
 
 test_detectPolarityForAttrNeg :: Assertion 
 test_detectPolarityForAttrNeg =
   assertEqual ""
      (PD_Just [(PolarityKeyAv "foo" "vfoo", (-1,-1))])
-     (detectPolarityForAttr (-1) "foo" [ fooAv, barAv ])
+     (detectPolarity (-1) simpleFoo emptyFeatStruct (barAvAnd fooAv))
 
 test_detectPolarityForAttrDisj :: Assertion
 test_detectPolarityForAttrDisj = do
   assertEqual ""
      (tweak expected)
-     (tweak $ detectPolarityForAttr (-1) "foo" [ fooDisjAv, barAv ])
+     (tweak $ detectPolarity (-1) simpleFoo emptyFeatStruct (barAvAnd fooDisjAv))
  where
   tweak (PD_Just xs) = PD_Just (sort xs)
   tweak pd = pd
@@ -57,20 +57,22 @@ test_detectPolarityForAttrMissing :: Assertion
 test_detectPolarityForAttrMissing =
   assertEqual "simple detection (no false +)"
      unconstrainedFoo
-     (detectPolarityForAttr 1 "foo" [ foAv, barAv ])
+     (detectPolarity 1 simpleFoo emptyFeatStruct (barAvAnd foAv))
 
 test_detectPolarityForAttrVar :: Assertion
 test_detectPolarityForAttrVar =
   assertEqual "simple detection (variable)"
      unconstrainedFoo
-     (detectPolarityForAttr 1 "foo" [ foAv, barAv ])
+     (detectPolarity 1 simpleFoo emptyFeatStruct (barAvAnd foAv))
 
 -- test_detectRestrictedPolarity
 
 
+simpleFoo = SimplePolarityAttr "foo"
 
 unconstrainedFoo = PD_Unconstrained ("foo", (0,1))
 
+barAvAnd x = mkFeatStruct [ x, barAv ]
 
 foAv  = AvPair "fo" (mkGConst "vfo" [])
 fooAv = AvPair "foo" (mkGConst "vfoo" [])
