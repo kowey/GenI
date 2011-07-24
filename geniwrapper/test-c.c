@@ -37,9 +37,9 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
   result=geni_realize(geni_st, "", test_sem, root_ft);
-  printf("Static lexicon: %s\n", result);
+  printf("{\"lexicon1\": %s\n", result);
   result2=geni_realize(geni_st, lexicon2, test_sem, root_ft);
-  printf("Dynamic lexicon: %s\n", result2);
+  printf(",\"lexicon2\": %s}\n", result2);
 
   geni_free(result);
   HsEnd();
