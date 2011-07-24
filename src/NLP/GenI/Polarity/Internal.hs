@@ -53,20 +53,20 @@ detectPolsH polarityAttrs te =
         PD_Just p      -> p
         PD_Unconstrained (att, _) -> error $ "[polarities] Non-constrained value for attribute: " ++ att
       --
-      rup   = gup . root .ttree $ te
-      rdown = gdown . root . ttree $ te
+      rup   = mkFeatStruct . gup . root .ttree $ te
+      rdown = mkFeatStruct . gdown . root . ttree $ te
       --
       catAttr = SimplePolarityAttr "cat"
       rstuffLite  = concatMap (\v -> detectOrBust 1 v rup rdown)
                   $ Set.toList $ Set.delete catAttr polarityAttrs
       rstuff :: [(PolarityKey,Interval)]
       rstuff   = if Set.member catAttr polarityAttrs
-                    then -- cat is considered global to the whole tree to be
-                         -- robust, we grab it from the top feature
+                    then -- cat is considered global to the whole tree,
+                         -- but to be robust, we grab it from the top feature
                          detectOrBust 1 catAttr rup rup ++ rstuffLite
                     else rstuffLite
       substuff :: [(PolarityKey,Interval)]
-      substuff = let tops = substTops te
+      substuff = let tops = map mkFeatStruct (substTops te)
                      detect :: PolarityAttr -> [(PolarityKey,Interval)]
                      detect v = concat $ zipWith (detectOrBust (-1) v) tops tops
                  in concatMap detect $ Set.toList polarityAttrs
@@ -81,24 +81,22 @@ detectPolsH polarityAttrs te =
 
 detectPolarity :: Int          -- ^ polarity to assign
                -> PolarityAttr -- ^ attribute to look for
-               -> Flist GeniVal -- ^ feature structure to filter on ('RestrictedPolarityAttr' only)
-               -> Flist GeniVal -- ^ feature structure to get value from
+               -> FeatStruct GeniVal -- ^ feature structure to filter on ('RestrictedPolarityAttr' only)
+               -> FeatStruct GeniVal -- ^ feature structure to get value from
                -> PolarityDetectionResult
 detectPolarity i (RestrictedPolarityAttr cat att) filterFl fl =
-  case [ v | AvPair a v <- filterFl, a == __cat__ ] of
-    []  -> PD_UserError $ "[polarities] No category " ++ cat ++ " in:" ++ showFlist filterFl
-    [v] -> if isJust (unify [mkGConst cat []] [v])
-              then detectPolarity i (SimplePolarityAttr att) [] fl
+  case Map.lookup __cat__ filterFl of
+    Nothing -> PD_UserError $ "[polarities] No category " ++ cat ++ " in:" ++ showFeatStruct filterFl
+    Just v -> if isJust (unify [mkGConst cat []] [v])
+              then detectPolarity i (SimplePolarityAttr att) emptyFeatStruct fl
               else PD_Nothing
-    _   -> PD_UserError $ "[polarities] More than one category " ++ " in:" ++ showFlist filterFl
 detectPolarity i (SimplePolarityAttr att) _ fl =
-  case [ v | AvPair a v <- fl, a == att ] of
-    []  -> PD_Unconstrained (withZero att)
-    [v] -> case gConstraints v of
+  case Map.lookup att fl of
+    Nothing -> PD_Unconstrained (withZero att)
+    Just v  -> case gConstraints v of
              Just [x] -> PD_Just [ (PolarityKeyAv att x, ival i) ]       -- singleton
              Just xs  -> PD_Just $ map (withZero . PolarityKeyAv att) xs   -- interval if ambiguous
              Nothing  -> PD_Unconstrained (withZero att)
-    _   -> PD_UserError $ "[polarities] More than one value for attribute: " ++ att ++ " in:" ++ showFlist fl
  where
    withZero x = (x, toZero i)
 

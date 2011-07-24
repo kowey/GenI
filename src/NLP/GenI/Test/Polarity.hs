@@ -65,6 +65,9 @@ test_detectPolarityForAttrVar =
      unconstrainedFoo
      (detectPolarityForAttr 1 "foo" [ foAv, barAv ])
 
+-- test_detectRestrictedPolarity
+
+
 
 unconstrainedFoo = PD_Unconstrained ("foo", (0,1))
 

@@ -97,6 +97,7 @@ import NLP.GenI.Btypes(Pred, SemInput, Sem, Flist, AvPair(..), showAv,
               showSem, sortSem,
               GNode, root, gup, gdown,
               unifyFeat, rootUpd)
+import NLP.GenI.FeatureStructures ( emptyFeatStruct, FeatStruct )
 import NLP.GenI.General(
     BitVector, isEmptyIntersect, thd3,
     Interval, ival, (!+!), showInterval)
@@ -120,7 +121,7 @@ type AutDebug  = (PolarityKey, PolAut, PolAut)
 -- | Constructs a polarity automaton.  For debugging purposes, it returns
 --   all the intermediate automata produced by the construction algorithm.
 buildAutomaton :: Set.Set PolarityAttr -- ^ polarities to detect (eg. "cat")
-               -> Flist GeniVal        -- ^ root features to compensate for
+               -> FeatStruct GeniVal   -- ^ root features to compensate for
                -> PolMap               -- ^ explicit extra polarities
                -> SemInput             -- ^ input semantics
                -> [TagElem]            -- ^ lexical selection
@@ -129,7 +130,7 @@ buildAutomaton polarityAttrs rootFeat extrapol (tsem,tres,_) candRaw =
   let -- root categories, index constraints, and external polarities
       rcatPol :: Map.Map PolarityKey Interval
       rcatPol = Map.fromList . pdJusts -- TODO: this will likely do bad things with unconstrained results
-              $ map (\v -> detectPolarity (-1) (SimplePolarityAttr (pAttr v)) [] rootFeat)
+              $ map (\v -> detectPolarity (-1) (SimplePolarityAttr (pAttr v)) emptyFeatStruct rootFeat)
               $ Set.toList polarityAttrs
       pAttr p@(SimplePolarityAttr _)       = spkAtt p
       pAttr p@(RestrictedPolarityAttr _ _) = rpkAtt p

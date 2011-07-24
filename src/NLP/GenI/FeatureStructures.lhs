@@ -27,9 +27,11 @@ import Data.Function (on)
 import Data.Generics (Data)
 import Data.Generics.PlateDirect
 import Data.List (sortBy)
+import qualified Data.Map as Map
 import Data.Typeable (Typeable)
 
 import NLP.GenI.GeniVal
+import NLP.GenI.General ( geniBug )
 
 import Control.DeepSeq
 
@@ -47,6 +49,26 @@ type Flist a  = [AvPair a]
 data AvPair a = AvPair { avAtt :: String
                        , avVal :: a }
   deriving (Ord, Eq, Data, Typeable)
+
+-- experimental, alternative representation of Flist
+-- which guarantees uniqueness of keys
+type FeatStruct a = Map.Map String a
+
+emptyFeatStruct :: FeatStruct a
+emptyFeatStruct = Map.empty
+
+mkFeatStruct :: Flist GeniVal -> FeatStruct GeniVal 
+mkFeatStruct fs = Map.fromListWith oops . map fromPair $ fs
+  where
+   fromPair (AvPair a v) = (a,v)
+   oops _ _ = geniBug $
+     "I've allowed a feature structure with multiple versions of a key"
+     ++ " to sneak through: " ++ showFlist fs
+
+-- if we decide to move over to this representation of feature structures
+-- we can get rid of showFlist, etc and probably just use toAscList
+showFeatStruct :: FeatStruct GeniVal -> String
+showFeatStruct = showFlist . sortFlist . map (uncurry AvPair) . Map.toList
 \end{code}
 
 % ----------------------------------------------------------------------

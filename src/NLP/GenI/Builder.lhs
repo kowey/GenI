@@ -85,7 +85,7 @@ import NLP.GenI.Btypes
     DescendGeniVal(..), Collectable(collect), alphaConvertById,
     GeniVal
   )
-import NLP.GenI.FeatureStructures ( Flist, showFlist, sortFlist )
+import NLP.GenI.FeatureStructures ( Flist, showFlist, sortFlist, mkFeatStruct )
 import NLP.GenI.GeniParsers ( geniFeats, runParser, CharParser )
 import NLP.GenI.Polarity  (PolResult(..), buildAutomaton, detectPolPaths)
 import NLP.GenI.Statistics (Statistics, incrIntMetric,
@@ -200,7 +200,7 @@ preInit input config =
      extraPol = fromMaybe (Map.empty) $ getFlagP ExtraPolaritiesFlg config
      polsToDetect = fromMaybe (error "there should be a default for --detect-pols")
                   $ getFlagP DetectPolaritiesFlg config
-     rootFeat = sortFlist $ getListFlagP RootFeatureFlg config
+     rootFeat = mkFeatStruct $ getListFlagP RootFeatureFlg config
      -- do any optimisations
      isPol = hasOpt Polarised config
      -- polarity optimisation (if enabled)
