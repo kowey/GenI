@@ -120,7 +120,7 @@ type AutDebug  = (PolarityKey, PolAut, PolAut)
 
 -- | Constructs a polarity automaton.  For debugging purposes, it returns
 --   all the intermediate automata produced by the construction algorithm.
-buildAutomaton :: Set.Set PolarityAttr -- ^ polarities to detect
+buildAutomaton :: Set.Set PolarityAttr -- ^ polarities to detect (eg. "cat")
                -> Flist GeniVal        -- ^ root features to compensate for
                -> PolMap               -- ^ explicit extra polarities
                -> SemInput             -- ^ input semantics
@@ -129,7 +129,7 @@ buildAutomaton :: Set.Set PolarityAttr -- ^ polarities to detect
 buildAutomaton polarityAttrs rootFeat extrapol (tsem,tres,_) candRaw =
   let -- root categories, index constraints, and external polarities
       rcatPol :: Map.Map PolarityKey Interval
-      rcatPol = Map.fromList . pdJusts
+      rcatPol = Map.fromList . pdJusts -- TODO: this will likely do bad things with unconstrained results
               $ map (\v -> detectPolarityForAttr (-1) (pAttr v) rootFeat)
               $ Set.toList polarityAttrs
       pAttr p@(SimplePolarityAttr _)       = spkAtt p
@@ -811,6 +811,7 @@ declareIdxConstraints = Map.fromList . (map declare) where
    declare c = (idxConstraintKey c, minusone)
    minusone = ival (-1)
 
+-- TODO: test that index constraints come first
 idxConstraintKey :: AvPair GeniVal -> PolarityKey
 idxConstraintKey = PolarityKeyStr . ('.' :) . showAv
 \end{code}
