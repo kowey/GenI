@@ -129,7 +129,7 @@ buildAutomaton polarityAttrs rootFeat extrapol (tsem,tres,_) candRaw =
   let -- root categories, index constraints, and external polarities
       rcatPol :: Map.Map PolarityKey Interval
       rcatPol = Map.fromList . pdJusts -- TODO: this will likely do bad things with unconstrained results
-              $ map (\v -> detectPolarityForAttr (-1) (pAttr v) rootFeat)
+              $ map (\v -> detectPolarity (-1) (SimplePolarityAttr (pAttr v)) [] rootFeat)
               $ Set.toList polarityAttrs
       pAttr p@(SimplePolarityAttr _)       = spkAtt p
       pAttr p@(RestrictedPolarityAttr _ _) = rpkAtt p

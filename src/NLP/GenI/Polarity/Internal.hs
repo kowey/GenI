@@ -81,24 +81,17 @@ detectPolsH polarityAttrs te =
 
 detectPolarity :: Int          -- ^ polarity to assign
                -> PolarityAttr -- ^ attribute to look for
-               -> Flist GeniVal -- ^ feature structure to filter on
+               -> Flist GeniVal -- ^ feature structure to filter on ('RestrictedPolarityAttr' only)
                -> Flist GeniVal -- ^ feature structure to get value from
                -> PolarityDetectionResult
 detectPolarity i (RestrictedPolarityAttr cat att) filterFl fl =
   case [ v | AvPair a v <- filterFl, a == __cat__ ] of
     []  -> PD_UserError $ "[polarities] No category " ++ cat ++ " in:" ++ showFlist filterFl
     [v] -> if isJust (unify [mkGConst cat []] [v])
-              then detectPolarityForAttr i att fl
+              then detectPolarity i (SimplePolarityAttr att) [] fl
               else PD_Nothing
     _   -> PD_UserError $ "[polarities] More than one category " ++ " in:" ++ showFlist filterFl
-detectPolarity i (SimplePolarityAttr att) _ fl = detectPolarityForAttr i att fl
-
-
-detectPolarityForAttr :: Int -- ^ polarity to assign
-                      -> String
-                      -> Flist GeniVal
-                      -> PolarityDetectionResult
-detectPolarityForAttr i att fl =
+detectPolarity i (SimplePolarityAttr att) _ fl =
   case [ v | AvPair a v <- fl, a == att ] of
     []  -> PD_Unconstrained (withZero att)
     [v] -> case gConstraints v of
