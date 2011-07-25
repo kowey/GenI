@@ -74,7 +74,7 @@ unconstrainedFoo = PD_Unconstrained ("foo", (0,1))
 
 barAvAnd x = mkFeatStruct [ x, barAv ]
 
-foAv  = AvPair "fo" (mkGConst "vfo" [])
-fooAv = AvPair "foo" (mkGConst "vfoo" [])
+foAv  = AvPair "fo" (mkGConstNone "vfo")
+fooAv = AvPair "foo" (mkGConstNone "vfoo")
 fooDisjAv = AvPair "foo" (mkGConst "vfoo" ["vfoo2"])
-barAv = AvPair "bar" (mkGConst "vbar" [])
+barAv = AvPair "bar" (mkGConstNone "vbar")
