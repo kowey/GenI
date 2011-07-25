@@ -14,6 +14,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program; if not, write to the Free Software
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module NLP.GenI.Test.Polarity where
@@ -40,29 +42,29 @@ suite :: Test.Framework.Test
 suite =
  testGroup "NLP.GenI.Polarity"
   [ testGroup "detecting values"
-      [ testCase "simple example" test_detectPolarityForAttr
-      , testCase "simple example (neg)"     test_detectPolarityForAttrNeg
-      , testCase "simple example (disj)"    test_detectPolarityForAttrDisj
-      , testCase "simple example (false +)" test_detectPolarityForAttrMissing
-      , testCase "restricted example (detects)" test_detectRestrictedPolarity
-      , testCase "restricted example (filters)" test_detectRestrictedPolarityFilter
+      [ testCase "simple example" testDetectPolarityForAttr
+      , testCase "simple example (neg)"     testDetectPolarityForAttrNeg
+      , testCase "simple example (disj)"    testDetectPolarityForAttrDisj
+      , testCase "simple example (false +)" testDetectPolarityForAttrMissing
+      , testCase "restricted example (detects)" testDetectedRestrictedPolarity
+      , testCase "restricted example (filters)" testDetectedRestrictedPolarityFilter
       ]
   ]
 
-test_detectPolarityForAttr :: Assertion 
-test_detectPolarityForAttr =
+testDetectPolarityForAttr :: Assertion 
+testDetectPolarityForAttr =
   assertEqual ""
      (foundFoo 1)
      (detectPolarity 1 simpleFoo emptyFeatStruct (barAvAnd fooAv))
 
-test_detectPolarityForAttrNeg :: Assertion 
-test_detectPolarityForAttrNeg =
+testDetectPolarityForAttrNeg :: Assertion 
+testDetectPolarityForAttrNeg =
   assertEqual ""
      (foundFoo (-1))
      (detectPolarity (-1) simpleFoo emptyFeatStruct (barAvAnd fooAv))
 
-test_detectPolarityForAttrDisj :: Assertion
-test_detectPolarityForAttrDisj = do
+testDetectPolarityForAttrDisj :: Assertion
+testDetectPolarityForAttrDisj = do
   assertEqual ""
      (tweak expected)
      (tweak $ detectPolarity (-1) simpleFoo emptyFeatStruct (barAvAnd fooDisjAv))
@@ -71,20 +73,20 @@ test_detectPolarityForAttrDisj = do
   tweak pd = pd
   expected = PD_Just $ map (\x -> (PolarityKeyAv "foo" x, (-1,0))) ["vfoo", "vfoo2"]
 
-test_detectPolarityForAttrMissing :: Assertion
-test_detectPolarityForAttrMissing =
+testDetectPolarityForAttrMissing :: Assertion
+testDetectPolarityForAttrMissing =
   assertEqual "simple detection (no false +)"
      unconstrainedFoo
      (detectPolarity 1 simpleFoo emptyFeatStruct (barAvAnd foAv))
 
-test_detectPolarityForAttrVar :: Assertion
-test_detectPolarityForAttrVar =
+testDetectPolarityForAttrVar :: Assertion
+testDetectPolarityForAttrVar =
   assertEqual "simple detection (variable)"
      unconstrainedFoo
      (detectPolarity 1 simpleFoo emptyFeatStruct (barAvAnd foAv))
 
-test_detectRestrictedPolarity :: Assertion
-test_detectRestrictedPolarity = do
+testDetectedRestrictedPolarity :: Assertion
+testDetectedRestrictedPolarity =
   assertEqual "restricted detection (detects)"
      (foundFoo 1)
      (detectPolarity 1 (restrictedFoo "x") ffs fs) 
@@ -92,8 +94,8 @@ test_detectRestrictedPolarity = do
    ffs = catAvAnd "x" fooAv
    fs  = barAvAnd fooAv
 
-test_detectRestrictedPolarityFilter :: Assertion
-test_detectRestrictedPolarityFilter = do
+testDetectedRestrictedPolarityFilter :: Assertion
+testDetectedRestrictedPolarityFilter =
   assertEqual "restricted detection (filters)"
      PD_Nothing
      (detectPolarity 1 (restrictedFoo "x") ffs fs) 
@@ -110,7 +112,7 @@ unconstrainedFoo = PD_Unconstrained ("foo", (0,1))
 catAvAnd c x = mkFeatStruct [ x, AvPair "cat" (mkGConstNone c) ]
 barAvAnd x = mkFeatStruct [ x, barAv ]
 
-foAv  = AvPair "fo" (mkGConstNone "vfo")
-fooAv = AvPair "foo" (mkGConstNone "vfoo")
+foAv  = AvPair "fo" "vfo"
+fooAv = AvPair "foo" "vfoo"
 fooDisjAv = AvPair "foo" (mkGConst "vfoo" ["vfoo2"])
-barAv = AvPair "bar" (mkGConstNone "vbar")
+barAv = AvPair "bar" "vbar"
