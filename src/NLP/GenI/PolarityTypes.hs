@@ -28,11 +28,13 @@ import Control.DeepSeq
 
 data PolarityKey = PolarityKeyAv   String String
                  | PolarityKeyStr  String
+                 | PolarityKeyVar  String -- ^ attribute
  deriving (Eq, Ord, Data, Typeable)
 
 instance Show PolarityKey where
   show (PolarityKeyAv a v) = a ++ ":" ++ v
   show (PolarityKeyStr s)  = s
+  show (PolarityKeyVar a)  = a ++ ":_"
 
 type SemPols  = [Int]
 
@@ -68,6 +70,7 @@ deriving instance NFData PolarityAttr
 instance NFData PolarityKey where
         rnf (PolarityKeyAv x1 x2) = rnf x1 `seq` rnf x2 `seq` ()
         rnf (PolarityKeyStr x1 )  = rnf x1 `seq` ()
+        rnf (PolarityKeyVar x1 )  = rnf x1 `seq` ()
 
  
 instance NFData PolarityAttr where
