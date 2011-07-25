@@ -20,8 +20,11 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module NLP.GenI.Test.Polarity where
 
+import Control.Monad ( forM_ )
 import Data.List
 import Data.Maybe
+import qualified Data.Map as Map
+import qualified Data.Set as Set
 
 import Test.HUnit
 import Test.QuickCheck hiding (collect, Failure)
@@ -34,6 +37,9 @@ import NLP.GenI.GeniVal
 import NLP.GenI.Polarity
 import NLP.GenI.Polarity.Internal
 import NLP.GenI.PolarityTypes
+import NLP.GenI.Tags
+
+import NLP.GenI.Test.Tags hiding ( suite )
 
 deriving instance Eq   PolarityDetectionResult
 deriving instance Show PolarityDetectionResult
@@ -48,6 +54,10 @@ suite =
       , testCase "simple example (false +)" testDetectPolarityForAttrMissing
       , testCase "restricted example (detects)" testDetectedRestrictedPolarity
       , testCase "restricted example (filters)" testDetectedRestrictedPolarityFilter
+      ]
+  , testGroup "detection on trees"
+      [ testCase "silly TagElem"       testDetectPolarityForSillyTagElem
+      , testCase "silly TagElem (aux)" testDetectPolarityForSillyTagElemAux
       ]
   ]
 
@@ -102,6 +112,43 @@ testDetectedRestrictedPolarityFilter =
   where
    ffs = catAvAnd "y" fooAv
    fs  = barAvAnd fooAv
+
+-- ----------------------------------------------------------------------
+-- TagElem
+-- ----------------------------------------------------------------------
+
+testDetectPolarityForSillyTagElem :: Assertion
+testDetectPolarityForSillyTagElem = do
+   forM_ [ PolarityKeyAv "idx" "rbad"
+         , PolarityKeyAv "idx" "sbad"
+         ] $ \k -> assertEqual "ignored" Nothing $ Map.lookup k pols
+   assertEqual "root" (Just (1,1))
+     $ Map.lookup (PolarityKeyAv "cat" "a") pols
+   assertEqual "subst" (Just (-2,-2))
+     $ Map.lookup (PolarityKeyAv "cat" "b") pols
+  where
+   pols  = tpolarities (detectPols attrs sillyTagElem)
+   attrs = Set.fromList [ SimplePolarityAttr "cat" ]
+
+
+testDetectPolarityForSillyTagElemAux :: Assertion
+testDetectPolarityForSillyTagElemAux = do
+   forM_ [ PolarityKeyAv "cat" "a"
+         , PolarityKeyAv "idx" "r"
+         , PolarityKeyAv "idx" "f"
+         ] $ \k -> assertEqual "ignored" Nothing $ Map.lookup k pols
+   assertEqual "subst" (Just (-1,-1))
+     $ Map.lookup (PolarityKeyAv "cat" "b") pols
+   assertEqual "subst" (Just (-1,-1))
+     $ Map.lookup (PolarityKeyAv "idx" "s") pols
+  where
+   pols  = tpolarities (detectPols attrs sillyTagElemAux)
+   attrs = Set.fromList $ map SimplePolarityAttr [ "cat", "idx" ]
+
+
+-- ----------------------------------------------------------------------
+--
+-- ----------------------------------------------------------------------
 
 simpleFoo = SimplePolarityAttr "foo"
 restrictedFoo c = RestrictedPolarityAttr c "foo"
