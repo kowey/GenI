@@ -55,7 +55,7 @@ detectPolsH polarityAttrs te =
      PD_UserError e -> error $ e ++ " in " ++ tgIdName te -- ideally we'd propagate this
      PD_Nothing     -> []
      PD_Just p      -> p
-     PD_Unconstrained (att, _) -> error $ "[polarities] Non-constrained value for attribute: " ++ att
+     PD_Unconstrained (att, i) -> [ (PolarityKeyVar att, i) ]
    --
    rup   = mkFeatStruct . gup . root .ttree $ te
    rdown = mkFeatStruct . gdown . root . ttree $ te

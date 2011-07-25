@@ -128,9 +128,12 @@ testDetectPolarityForSillyTagElem = do
    forM_ [ PolarityKeyAv "cat" "b"
          , PolarityKeyAv "idx" "s"
          ] $ \k -> assertEqual "root" (Just (-2,-2)) $ Map.lookup k pols
+   --
+   assertEqual "unconstrained" (Just (-2, 1)) $
+     Map.lookup (PolarityKeyVar "other") pols
   where
    pols  = tpolarities (detectPols attrs sillyTagElem)
-   attrs = Set.fromList [ SimplePolarityAttr "cat", SimplePolarityAttr "idx" ]
+   attrs = Set.fromList $ map SimplePolarityAttr [ "cat", "idx", "other" ]
 
 
 testDetectPolarityForSillyTagElemAux :: Assertion
