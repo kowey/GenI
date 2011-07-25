@@ -44,18 +44,26 @@ data PolarityDetectionResult = PD_UserError String
 -- polarity detection
 -- ----------------------------------------------------------------------
 
+-- | Given a description of what the root feature should unify with
+--   return a -1 polarity for all relevant polarity keys. This allows
+--   us to compensate for the root node of any derived tree. 
+detectRootCompensation :: Set.Set PolarityAttr -> FeatStruct GeniVal -> PolMap
+detectRootCompensation polarityAttrs rootFeat =
+  Map.fromListWith (!+!) . pdResults
+    $ map (\v -> detectPolarity (-1) (SimplePolarityAttr (pAttr v)) emptyFeatStruct rootFeat)
+    $ Set.toList polarityAttrs
+  where
+   pAttr p@(SimplePolarityAttr _)       = spkAtt p
+   pAttr p@(RestrictedPolarityAttr _ _) = rpkAtt p
+
 detectPolsH :: Set.Set PolarityAttr -> TagElem -> [(PolarityKey,Interval)]
 detectPolsH polarityAttrs te =
    case ttype te of
     Initial -> substuff ++ rstuff
     _       -> substuff
   where
-   detectOrBust x1 x2 x3 x4 =
-     case detectPolarity x1 x2 x3 x4 of
-     PD_UserError e -> error $ e ++ " in " ++ tgIdName te -- ideally we'd propagate this
-     PD_Nothing     -> []
-     PD_Just p      -> p
-     PD_Unconstrained (att, i) -> [ (PolarityKeyVar att, i) ]
+   pdError e = e ++ " in " ++ tgIdName te -- ideally we'd propagate this
+   detectOrBust x1 x2 x3 x4 = pdToList pdError (detectPolarity x1 x2 x3 x4)
    --
    rup   = mkFeatStruct . gup . root .ttree $ te
    rdown = mkFeatStruct . gdown . root . ttree $ te
@@ -133,8 +141,15 @@ __cat__  = "cat"
 __idx__  = "idx"
 
 
--- | Careful, this completely ignores any user errors
-pdJusts :: [PolarityDetectionResult] -> [(PolarityKey,Interval)]
-pdJusts = concatMap helper
- where helper (PD_Just x) = x
-       helper _           = []
+-- | Note that this will crash if any of the entries are errors
+pdResults :: [PolarityDetectionResult] -> [(PolarityKey, Interval)]
+pdResults = concatMap (pdToList id)
+
+-- | Note that this will crash if any of the entries are errors
+pdToList :: (String -> String) -- ^ on error message
+         -> PolarityDetectionResult
+         -> [(PolarityKey,Interval)]
+pdToList _ (PD_Just x) = x
+pdToList f (PD_UserError e) = error (f e)
+pdToList _ (PD_Unconstrained (k,i)) = [ (PolarityKeyVar k, i) ]
+pdToList _ PD_Nothing = []

@@ -97,7 +97,7 @@ import NLP.GenI.Btypes(Pred, SemInput, Sem, Flist, AvPair(..), showAv,
               showSem, sortSem,
               GNode, root, gup, gdown,
               unifyFeat, rootUpd)
-import NLP.GenI.FeatureStructures ( emptyFeatStruct, FeatStruct )
+import NLP.GenI.FeatureStructures ( FeatStruct )
 import NLP.GenI.General(
     BitVector, isEmptyIntersect, thd3,
     Interval, ival, (!+!), showInterval)
@@ -128,12 +128,8 @@ buildAutomaton :: Set.Set PolarityAttr -- ^ polarities to detect (eg. "cat")
                -> PolResult
 buildAutomaton polarityAttrs rootFeat extrapol (tsem,tres,_) candRaw =
   let -- root categories, index constraints, and external polarities
-      rcatPol :: Map.Map PolarityKey Interval
-      rcatPol = Map.fromList . pdJusts -- TODO: this will likely do bad things with unconstrained results
-              $ map (\v -> detectPolarity (-1) (SimplePolarityAttr (pAttr v)) emptyFeatStruct rootFeat)
-              $ Set.toList polarityAttrs
-      pAttr p@(SimplePolarityAttr _)       = spkAtt p
-      pAttr p@(RestrictedPolarityAttr _ _) = rpkAtt p
+      rcatPol :: PolMap
+      rcatPol = detectRootCompensation polarityAttrs rootFeat
       --
       allExtraPols = Map.unionsWith (!+!) [ extrapol, inputRest, rcatPol ]
       -- index constraints on candidate trees
