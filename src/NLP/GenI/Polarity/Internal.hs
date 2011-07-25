@@ -111,6 +111,7 @@ type PolMap = Map.Map PolarityKey Interval
 -- helpers
 -- ----------------------------------------------------------------------
 
+-- duplicates are a matter of course
 addPols :: [(PolarityKey,Interval)] -> TagElem -> TagElem
 addPols pols te = te { tpolarities = foldr f (tpolarities te) pols }
  where
