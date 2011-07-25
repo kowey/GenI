@@ -1,7 +1,9 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module NLP.GenI.Test.GeniVal where
 
 import Control.Monad ( liftM2 )
+import GHC.Exts ( IsString(..) )
 import Data.Maybe (isJust)
 import qualified Data.Map as Map
 import Test.HUnit
@@ -148,6 +150,10 @@ qc_not_empty_GVar _ = True
 -- ----------------------------------------------------------------------
 --
 -- ----------------------------------------------------------------------
+
+-- for more convenient testing
+instance IsString GeniVal where
+  fromString = mkGConstNone
 
 -- Definition of Arbitrary GeniVal for QuickCheck
 newtype GTestString = GTestString String
