@@ -52,7 +52,7 @@ sillyTree =
      }
    s x = emptyGN
      { gnname = x
-     , gup    = [ catAv "b" ]
+     , gup    = [ catAv "b", idxAv "s" ]
      , gdown  = [ idxAv "sbad" ]
      , gtype  = Subs
      }

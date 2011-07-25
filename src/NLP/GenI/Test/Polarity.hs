@@ -51,7 +51,7 @@ suite =
       [ testCase "simple example" testDetectPolarityForAttr
       , testCase "simple example (neg)"     testDetectPolarityForAttrNeg
       , testCase "simple example (disj)"    testDetectPolarityForAttrDisj
-      , testCase "simple example (false +)" testDetectPolarityForAttrMissing
+      , testCase "simple example (var)"     testDetectPolarityForAttrFree
       , testCase "restricted example (detects)" testDetectedRestrictedPolarity
       , testCase "restricted example (filters)" testDetectedRestrictedPolarityFilter
       ]
@@ -83,17 +83,15 @@ testDetectPolarityForAttrDisj = do
   tweak pd = pd
   expected = PD_Just $ map (\x -> (PolarityKeyAv "foo" x, (-1,0))) ["vfoo", "vfoo2"]
 
-testDetectPolarityForAttrMissing :: Assertion
-testDetectPolarityForAttrMissing =
-  assertEqual "simple detection (no false +)"
-     unconstrainedFoo
-     (detectPolarity 1 simpleFoo emptyFeatStruct (barAvAnd foAv))
-
-testDetectPolarityForAttrVar :: Assertion
-testDetectPolarityForAttrVar =
-  assertEqual "simple detection (variable)"
-     unconstrainedFoo
-     (detectPolarity 1 simpleFoo emptyFeatStruct (barAvAnd foAv))
+testDetectPolarityForAttrFree :: Assertion
+testDetectPolarityForAttrFree =
+  forM_ [ AvPair "fo"   "x"
+        , AvPair "foo"  (mkGVarNone "X")
+        , AvPair "foo"  mkGAnon
+        ] $ \av ->
+    assertEqual "simple detection on missing/free"
+       unconstrainedFoo
+       (detectPolarity 1 simpleFoo emptyFeatStruct (barAvAnd av))
 
 testDetectedRestrictedPolarity :: Assertion
 testDetectedRestrictedPolarity =
@@ -122,13 +120,17 @@ testDetectPolarityForSillyTagElem = do
    forM_ [ PolarityKeyAv "idx" "rbad"
          , PolarityKeyAv "idx" "sbad"
          ] $ \k -> assertEqual "ignored" Nothing $ Map.lookup k pols
-   assertEqual "root" (Just (1,1))
-     $ Map.lookup (PolarityKeyAv "cat" "a") pols
-   assertEqual "subst" (Just (-2,-2))
-     $ Map.lookup (PolarityKeyAv "cat" "b") pols
+   --
+   forM_ [ PolarityKeyAv "cat" "a"
+         , PolarityKeyAv "idx" "r"
+         ] $ \k -> assertEqual "root" (Just (1,1)) $ Map.lookup k pols
+
+   forM_ [ PolarityKeyAv "cat" "b"
+         , PolarityKeyAv "idx" "s"
+         ] $ \k -> assertEqual "root" (Just (-2,-2)) $ Map.lookup k pols
   where
    pols  = tpolarities (detectPols attrs sillyTagElem)
-   attrs = Set.fromList [ SimplePolarityAttr "cat" ]
+   attrs = Set.fromList [ SimplePolarityAttr "cat", SimplePolarityAttr "idx" ]
 
 
 testDetectPolarityForSillyTagElemAux :: Assertion
