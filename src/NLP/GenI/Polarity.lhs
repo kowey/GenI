@@ -145,7 +145,7 @@ buildAutomaton polarityAttrs rootFeat extrapol (tsem,tres,_) candRaw =
       candRest  = map constrain candRaw
       inputRest = declareIdxConstraints tres
       -- polarity detection 
-      cand = detectPols polarityAttrs candRest
+      cand = map (detectPols polarityAttrs) candRest
       -- building the automaton
   in makePolAut cand tsem allExtraPols
 \end{code}
@@ -878,9 +878,8 @@ the filter because it allows for both cl and n to be $-1$ (or $0$) at the same
 time.  It would be nice to have some kind of mutual exclusion working.
 
 \begin{code}
-detectPols :: Set.Set PolarityAttr -> [TagElem] -> [TagElem]
-detectPols attrs = map (detectPolsH attrs)
-
+detectPols :: Set.Set PolarityAttr -> TagElem -> TagElem
+detectPols attrs t = addPols (detectPolsH attrs t) t
 \end{code}
 
 \subsection{Chart sharing}

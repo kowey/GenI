@@ -44,40 +44,34 @@ data PolarityDetectionResult = PD_UserError String
 -- polarity detection
 -- ----------------------------------------------------------------------
 
-detectPolsH :: Set.Set PolarityAttr -> TagElem -> TagElem
+detectPolsH :: Set.Set PolarityAttr -> TagElem -> [(PolarityKey,Interval)]
 detectPolsH polarityAttrs te =
-  let detectOrBust x1 x2 x3 x4 =
-        case detectPolarity x1 x2 x3 x4 of
-        PD_UserError e -> error $ e ++ " in " ++ tgIdName te -- ideally we'd propagate this
-        PD_Nothing     -> []
-        PD_Just p      -> p
-        PD_Unconstrained (att, _) -> error $ "[polarities] Non-constrained value for attribute: " ++ att
-      --
-      rup   = mkFeatStruct . gup . root .ttree $ te
-      rdown = mkFeatStruct . gdown . root . ttree $ te
-      --
-      catAttr = SimplePolarityAttr "cat"
-      rstuffLite  = concatMap (\v -> detectOrBust 1 v rup rdown)
-                  $ Set.toList $ Set.delete catAttr polarityAttrs
-      rstuff :: [(PolarityKey,Interval)]
-      rstuff   = if Set.member catAttr polarityAttrs
-                    then -- cat is considered global to the whole tree,
-                         -- but to be robust, we grab it from the top feature
-                         detectOrBust 1 catAttr rup rup ++ rstuffLite
-                    else rstuffLite
-      substuff :: [(PolarityKey,Interval)]
-      substuff = let tops = map mkFeatStruct (substTops te)
-                     detect :: PolarityAttr -> [(PolarityKey,Interval)]
-                     detect v = concat $ zipWith (detectOrBust (-1) v) tops tops
-                 in concatMap detect $ Set.toList polarityAttrs
-      -- substs and roots
-      pols  = case ttype te of
-                Initial -> substuff ++ rstuff
-                _       -> substuff
-      --
-      oldfm = tpolarities te
-  in te { tpolarities = foldr addPol oldfm pols }
-
+   case ttype te of
+    Initial -> substuff ++ rstuff
+    _       -> substuff
+  where
+   detectOrBust x1 x2 x3 x4 =
+     case detectPolarity x1 x2 x3 x4 of
+     PD_UserError e -> error $ e ++ " in " ++ tgIdName te -- ideally we'd propagate this
+     PD_Nothing     -> []
+     PD_Just p      -> p
+     PD_Unconstrained (att, _) -> error $ "[polarities] Non-constrained value for attribute: " ++ att
+   --
+   rup   = mkFeatStruct . gup . root .ttree $ te
+   rdown = mkFeatStruct . gdown . root . ttree $ te
+   --
+   catAttr = SimplePolarityAttr "cat"
+   rstuffLite  = concatMap (\v -> detectOrBust 1 v rup rdown)
+               $ Set.toList $ Set.delete catAttr polarityAttrs
+   rstuff   = if Set.member catAttr polarityAttrs
+                 then -- cat is considered global to the whole tree,
+                      -- but to be robust, we grab it from the top feature
+                      detectOrBust 1 catAttr rup rup ++ rstuffLite
+                 else rstuffLite
+   substuff = let tops = map mkFeatStruct (substTops te)
+                  detect :: PolarityAttr -> [(PolarityKey,Interval)]
+                  detect v = concat $ zipWith (detectOrBust (-1) v) tops tops
+              in concatMap detect $ Set.toList polarityAttrs
 
 detectPolarity :: Int          -- ^ polarity to assign
                -> PolarityAttr -- ^ attribute to look for
@@ -113,10 +107,14 @@ substTops = map gup . substNodes
 type SemMap = Map.Map Pred [TagElem]
 type PolMap = Map.Map PolarityKey Interval
 
--- | Adds a new polarity item to a 'PolMap'.  If there already is a polarity
---  for that item, it is summed with the new polarity.
-addPol :: (PolarityKey,Interval) -> PolMap -> PolMap
-addPol (p,c) m = Map.insertWith (!+!) p c m
+-- ----------------------------------------------------------------------
+-- helpers
+-- ----------------------------------------------------------------------
+
+addPols :: [(PolarityKey,Interval)] -> TagElem -> TagElem
+addPols pols te = te { tpolarities = foldr f (tpolarities te) pols }
+ where
+  f (p,c) m = Map.insertWith (!+!) p c m
 
 -- | Ensures that all states and transitions in the polarity automaton
 --   are unique.  This is a slight optimisation so that we don't have to
