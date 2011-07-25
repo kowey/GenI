@@ -28,19 +28,21 @@ suite =
       , testCase "simple example (neg)"     test_detectPolarityForAttrNeg
       , testCase "simple example (disj)"    test_detectPolarityForAttrDisj
       , testCase "simple example (false +)" test_detectPolarityForAttrMissing
+      , testCase "restricted example (detects)" test_detectRestrictedPolarity
+      , testCase "restricted example (filters)" test_detectRestrictedPolarityFilter
       ]
   ]
 
 test_detectPolarityForAttr :: Assertion 
 test_detectPolarityForAttr =
   assertEqual ""
-     (PD_Just [(PolarityKeyAv "foo" "vfoo", (1,1))])
+     (foundFoo 1)
      (detectPolarity 1 simpleFoo emptyFeatStruct (barAvAnd fooAv))
 
 test_detectPolarityForAttrNeg :: Assertion 
 test_detectPolarityForAttrNeg =
   assertEqual ""
-     (PD_Just [(PolarityKeyAv "foo" "vfoo", (-1,-1))])
+     (foundFoo (-1))
      (detectPolarity (-1) simpleFoo emptyFeatStruct (barAvAnd fooAv))
 
 test_detectPolarityForAttrDisj :: Assertion
@@ -65,13 +67,31 @@ test_detectPolarityForAttrVar =
      unconstrainedFoo
      (detectPolarity 1 simpleFoo emptyFeatStruct (barAvAnd foAv))
 
--- test_detectRestrictedPolarity
+test_detectRestrictedPolarity :: Assertion
+test_detectRestrictedPolarity = do
+  assertEqual "restricted detection (detects)"
+     (foundFoo 1)
+     (detectPolarity 1 (restrictedFoo "x") ffs fs) 
+  where
+   ffs = catAvAnd "x" fooAv
+   fs  = barAvAnd fooAv
 
+test_detectRestrictedPolarityFilter :: Assertion
+test_detectRestrictedPolarityFilter = do
+  assertEqual "restricted detection (filters)"
+     PD_Nothing
+     (detectPolarity 1 (restrictedFoo "x") ffs fs) 
+  where
+   ffs = catAvAnd "y" fooAv
+   fs  = barAvAnd fooAv
 
 simpleFoo = SimplePolarityAttr "foo"
+restrictedFoo c = RestrictedPolarityAttr c "foo"
 
+foundFoo i = PD_Just [(PolarityKeyAv "foo" "vfoo", (i,i))]
 unconstrainedFoo = PD_Unconstrained ("foo", (0,1))
 
+catAvAnd c x = mkFeatStruct [ x, AvPair "cat" (mkGConstNone c) ]
 barAvAnd x = mkFeatStruct [ x, barAv ]
 
 foAv  = AvPair "fo" (mkGConstNone "vfo")
