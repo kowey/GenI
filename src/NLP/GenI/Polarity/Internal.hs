@@ -116,6 +116,17 @@ type SemMap = Map.Map Pred [TagElem]
 type PolMap = Map.Map PolarityKey Interval
 
 -- ----------------------------------------------------------------------
+-- after polarity detection
+-- ----------------------------------------------------------------------
+
+polarityKeys :: [TagElem] -> PolMap -> [PolarityKey]
+polarityKeys cands extraPol =
+  sortBy (flip compare) $ nub $ ksCands ++ ksExtra
+ where
+  ksCands = concatMap (Map.keys . tpolarities) cands
+  ksExtra = Map.keys extraPol
+
+-- ----------------------------------------------------------------------
 -- helpers
 -- ----------------------------------------------------------------------
 

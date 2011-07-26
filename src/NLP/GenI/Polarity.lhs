@@ -142,8 +142,9 @@ buildAutomaton polarityAttrs rootFeat extrapol (tsem,tres,_) candRaw =
       inputRest = declareIdxConstraints tres
       -- polarity detection 
       cand = map (detectPols polarityAttrs) candRest
+      ks   = polarityKeys cand allExtraPols
       -- building the automaton
-  in makePolAut cand tsem allExtraPols
+  in makePolAut cand tsem allExtraPols ks
 \end{code}
 
 \section{The automaton itself - outline}
@@ -179,13 +180,9 @@ Note:
 \end{itemize}
 
 \begin{code}
-makePolAut :: [TagElem] -> Sem -> PolMap -> PolResult
-makePolAut candsRaw tsemRaw extraPol =
- let -- polarity items
-     ksCands = concatMap (Map.keys . tpolarities) cands
-     ksExtra = Map.keys extraPol
-     ks      = sortBy (flip compare) $ nub $ ksCands ++ ksExtra
-     -- perform index counting
+makePolAut :: [TagElem] -> Sem -> PolMap -> [PolarityKey] -> PolResult
+makePolAut candsRaw tsemRaw extraPol ks =
+ let -- perform index counting
      (tsem, cands') = fixPronouns (tsemRaw,candsRaw)
      cands = setTidnums cands'
      -- sorted semantics (for more efficient construction)
