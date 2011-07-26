@@ -107,6 +107,8 @@ emptyParams = Prms {
   grammarType   = GeniHand,
   geniFlags     = [ Flag ViewCmdFlg "ViewTAG"
                   , Flag DetectPolaritiesFlg (readPolarityAttrs defaultPolarityAttrs)
+                  , Flag RootFeatureFlg
+                      (parseFlagWithParsec "default root feat" geniFeats defaultRootFeat)
                   ]
   }
 \end{code}
@@ -429,14 +431,18 @@ exampleRootFeat = "[cat:s inv:- mode:ind|subj wh:-]"
 \end{code}
 \end{includecodeinmanual}
 
-  You can set rootfeat to be empty (\verb![]!) if you want, in
-  which case the realiser proper will return all results; but
-  note that if you want to use polarity filtering, you must at
-  least specify a value for the \verb!cat! feature.
+  By the default the root feature allows pretty much any
+  result through, but for best results, you should
+  probably constrain it a little more.  Note that an
+  empty root feature is also legal, but would cause
+  polarity filtering to filter the wrong things.
 
-\item[extrapols]
-  Allows to to preset some polarities.  There's not very much use for
-  this, in my opinion.  Most likely, what you really want is rootfeat.
+\begin{includecodeinmanual}
+\begin{code}
+defaultRootFeat :: String
+defaultRootFeat = "[cat:_]"
+\end{code}
+\end{includecodeinmanual}
 \end{description}
 
 \begin{code}
@@ -455,10 +461,12 @@ rootFeatureOption :: OptDescr Flag
 rootFeatureOption =
   Option ['r'] ["rootfeat"]
          (reqArg RootFeatureFlg readRF "FEATURE")
-         ("root features 'FEATURE' (for polarities, example:"
-          ++ showFlist exampleRF ++ ")")
+         ("root features 'FEATURE' (eg. "
+          ++ showFlist exampleRF ++ ", default: "
+          ++ showFlist defaultRF ++ ")")
  where
    exampleRF = readRF exampleRootFeat
+   defaultRF = readRF defaultRootFeat
    readRF = parseFlagWithParsec "root feature" geniFeats
 
 coreOptimisationCodes :: [(Optimisation,String,String)]

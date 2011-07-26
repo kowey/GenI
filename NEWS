@@ -1,3 +1,8 @@
+GenI 0.22, XX
+----------------------
+  * Polarity filtering no longer requires all subst/root nodes to have
+    the feature defined.
+
 GenI 0.20, 29 Sep 2009
 ----------------------
 - NON BACKWARD-COMPATIBLE CHANGES
