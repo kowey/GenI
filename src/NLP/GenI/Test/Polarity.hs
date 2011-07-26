@@ -20,7 +20,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module NLP.GenI.Test.Polarity where
 
-import Control.Monad ( forM_ )
+import Control.Monad ( forM_, liftM, liftM2 )
 import Data.List
 import Data.Maybe
 import qualified Data.Map as Map
@@ -54,6 +54,10 @@ suite =
       , testCase "simple example (var)"     testDetectPolarityForAttrFree
       , testCase "restricted example (detects)" testDetectedRestrictedPolarity
       , testCase "restricted example (filters)" testDetectedRestrictedPolarityFilter
+      ]
+  , testGroup "root feature"
+      [ testCase "root compensation"   testDetectRootCompensation
+      , testCase "unconstrained key expansion"  testConvertUnconstrainedPolarities
       ]
   , testGroup "detection on trees"
       [ testCase "silly TagElem"       testDetectPolarityForSillyTagElem
@@ -112,6 +116,54 @@ testDetectedRestrictedPolarityFilter =
    fs  = barAvAnd fooAv
 
 -- ----------------------------------------------------------------------
+-- Root feature
+-- ----------------------------------------------------------------------
+
+testDetectRootCompensation :: Assertion
+testDetectRootCompensation = do
+   assertEqual "num keys detected" 2 (Map.size detected)
+  where
+   detected = detectRootCompensation attrs rf
+   attrs    = Set.fromList $ map SimplePolarityAttr [ "foo", "quux" ] 
+   rf       = mkFeatStruct [ foAv, fooAv, barAv ]
+
+testConvertUnconstrainedPolarities :: Assertion
+testConvertUnconstrainedPolarities =
+   assertEqual "expansions" pmap2 (convertUnconstrainedPolarities ks pmap)
+  where
+   ax = PolarityKeyAv "a" "x"
+   ay = PolarityKeyAv "a" "y"
+   a_ = PolarityKeyVar "a"
+   bz = PolarityKeyAv "b" "z"
+   b_ = PolarityKeyVar "b"
+   c_ = PolarityKeyVar "c"
+   --
+   ks = [ ax, ay, bz ]
+   pmap  = Map.fromList [ (ax, (1,1))
+                        , (ay, (-1,1))
+                        , (a_, (-2,2))
+                        , (bz, (0,0))
+                        , (b_, (-3,4))
+                        , (c_, (5,5))
+                        ]
+   pmap2 = Map.fromList [ (ax, (-1,3))
+                        , (ay, (-3,3))
+                        , (bz, (-3,4))
+                        ]
+
+-- TODO: I don't know how to make this test useful
+-- right now it just explores too large a space to be
+-- meaningful.  Trivially true QC
+-- propConvertUnconstrainedPolarities ks pm =
+--    not (Map.null pm)
+--   ==>
+--    (null ks || not (Map.null res))
+--    && null [ k | k@(PolarityKeyVar _, _) <- Map.toList res ]
+--  where
+--   res = convertUnconstrainedPolarities ks pm
+
+
+-- ----------------------------------------------------------------------
 -- TagElem
 -- ----------------------------------------------------------------------
 
@@ -154,6 +206,17 @@ testDetectPolarityForSillyTagElemAux = do
 -- ----------------------------------------------------------------------
 --
 -- ----------------------------------------------------------------------
+
+instance Arbitrary PolarityKey where
+  arbitrary = oneof [ pkAv, pkVar, pkStr ]
+   where
+    pkAv  = liftM2 PolarityKeyAv keys arbitrary
+    pkVar = liftM PolarityKeyVar keys
+    pkStr = liftM PolarityKeyStr arbitrary
+    keys  = elements $ map (\x -> [x]) ['a'..'z']
+
+instance Arbitrary PolMap where
+  arbitrary = liftM Map.fromList arbitrary
 
 simpleFoo = SimplePolarityAttr "foo"
 restrictedFoo c = RestrictedPolarityAttr c "foo"

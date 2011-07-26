@@ -126,15 +126,30 @@ polarityKeys cands extraPol =
   ksCands = concatMap (Map.keys . tpolarities) cands
   ksExtra = Map.keys extraPol
 
+-- | Convert any unconstrained polarities in a 'PolMap' to constrained
+--   ones, assuming a global list of known constrained keys.
+convertUnconstrainedPolarities :: [PolarityKey] -> PolMap -> PolMap
+convertUnconstrainedPolarities ks pmap =
+   addPols expansions con
+  where
+   (con, uncon) = Map.partitionWithKey constrained pmap
+   constrained (PolarityKeyVar _) _ = False
+   constrained _   _ = True
+   --
+   expansions =  [ (k,v) | (PolarityKeyVar  a, v)   <- Map.toList uncon
+                         , k@(PolarityKeyAv a2 _) <- ks
+                         , a == a2
+                 ]
+
 -- ----------------------------------------------------------------------
 -- helpers
 -- ----------------------------------------------------------------------
 
 -- duplicates are a matter of course
-addPols :: [(PolarityKey,Interval)] -> TagElem -> TagElem
-addPols pols te = te { tpolarities = foldr f (tpolarities te) pols }
+addPols :: [(PolarityKey,Interval)] -> PolMap -> PolMap 
+addPols pols m = foldr f m pols
  where
-  f (p,c) m = Map.insertWith (!+!) p c m
+  f (p,c) = Map.insertWith (!+!) p c
 
 -- | Ensures that all states and transitions in the polarity automaton
 --   are unique.  This is a slight optimisation so that we don't have to

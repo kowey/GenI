@@ -130,8 +130,6 @@ buildAutomaton polarityAttrs rootFeat extrapol (tsem,tres,_) candRaw =
   let -- root categories, index constraints, and external polarities
       rcatPol :: PolMap
       rcatPol = detectRootCompensation polarityAttrs rootFeat
-      --
-      allExtraPols = Map.unionsWith (!+!) [ extrapol, inputRest, rcatPol ]
       -- index constraints on candidate trees
       detect      = detectIdxConstraints tres
       constrain t = t { tpolarities = Map.unionWith (!+!) p r
@@ -141,10 +139,16 @@ buildAutomaton polarityAttrs rootFeat extrapol (tsem,tres,_) candRaw =
       candRest  = map constrain candRaw
       inputRest = declareIdxConstraints tres
       -- polarity detection 
-      cand = map (detectPols polarityAttrs) candRest
-      ks   = polarityKeys cand allExtraPols
+      cand1   = map (detectPols polarityAttrs) candRest
+      extras1 = Map.unionsWith (!+!) [ extrapol, inputRest, rcatPol ]
+      ks1     = polarityKeys cand1 Map.empty
+      -- expanding unconstrained polarities
+      tconvert t = t { tpolarities = convertUnconstrainedPolarities ks1 (tpolarities t) }
+      cand    = map tconvert cand1
+      extras  = convertUnconstrainedPolarities ks1 extras1
+      ks      = polarityKeys cand extras
       -- building the automaton
-  in makePolAut cand tsem allExtraPols ks
+  in makePolAut cand tsem extras ks
 \end{code}
 
 \section{The automaton itself - outline}
@@ -872,7 +876,8 @@ time.  It would be nice to have some kind of mutual exclusion working.
 
 \begin{code}
 detectPols :: Set.Set PolarityAttr -> TagElem -> TagElem
-detectPols attrs t = addPols (detectPolsH attrs t) t
+detectPols attrs t =
+  t { tpolarities = addPols (detectPolsH attrs t) (tpolarities t) }
 \end{code}
 
 \subsection{Chart sharing}
