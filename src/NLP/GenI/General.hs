@@ -81,7 +81,7 @@ import qualified Data.Map as Map
 import Control.Concurrent
 import Control.Exception ( Exception, IOException, catch, throw, block, unblock  )
 import Prelude hiding ( catch )
-import Data.Dynamic(Typeable, typeOf, TyCon, mkTyCon, mkTyConApp)
+import Data.Dynamic(Typeable)
 import Data.Unique
 import System.Exit(exitWith, ExitCode(ExitFailure))
 
@@ -280,7 +280,7 @@ preTerminals :: Tree a -> [(a,a)]
 preTerminals (Node r xs) = concatMap (helper r) xs
  where
   helper p (Node k []) = [ (p,k) ]
-  helper _ (Node p xs) = concatMap (helper p) xs
+  helper _ (Node p ys) = concatMap (helper p) ys
 
 -- | 'repNode' @fn filt t@ returns a version of @t@ in which the first
 --   node which @filt@ matches is transformed using @fn@.
