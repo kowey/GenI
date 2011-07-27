@@ -192,8 +192,12 @@ arbitraryGConst = liftM2 mkGConst (fromGTestString `fmap` arbitrary)
 
 arbitraryGVar :: Gen GeniVal
 arbitraryGVar = liftM2 mkGVar (fromGTestString2 `fmap` arbitrary)
-                              (fmap (map fromGTestString) `fmap` arbitrary)
+                              (fmap (map fromGTestString . fromList1) `fmap` arbitrary)
 
+data List1 a = List1 { fromList1 :: [a] }
+
+instance Arbitrary a => Arbitrary (List1 a) where
+  arbitrary = List1 `fmap` arbitrary1
 
 arbitrary1 :: Arbitrary a => Gen [a]
 arbitrary1 = sized (\n -> choose (1,n+1) >>= vector)

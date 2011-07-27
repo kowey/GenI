@@ -34,7 +34,7 @@ import Data.Generics.PlateDirect
 
 import Control.DeepSeq
 
-import NLP.GenI.General (geniBug)
+import NLP.GenI.General (geniBug, quoteString)
 
 -- | constant : no label, just constraints
 --   variable : label, with or without constraints
@@ -61,10 +61,21 @@ instance Uniplate GeniVal where
   uniplate x = (Zero, \Zero -> x)
 
 instance Show GeniVal where
-  show (GeniVal Nothing Nothing)    = "?_"
-  show (GeniVal Nothing (Just cs))  = concat (intersperse "|" cs)
-  show (GeniVal (Just l) Nothing)   = '?':l
-  show (GeniVal (Just l) (Just cs)) = '?':concat (l : "/" : intersperse "|" cs)
+  show = showGeniVal
+
+showGeniVal :: GeniVal -> String
+showGeniVal gv =
+  case gv of
+   GeniVal Nothing Nothing    -> "?_"
+   GeniVal Nothing (Just cs)  -> showConstraints cs
+   GeniVal (Just l) Nothing   -> '?':l
+   GeniVal (Just l) (Just cs) -> '?':concat [ l, "/", showConstraints cs ]
+  where
+   showConstraints = intercalate "|" . map maybeQuote
+   maybeQuote "" = quoteString ""
+   maybeQuote x | any naughty x = quoteString x
+   maybeQuote x  = x
+   naughty = (`elem` ['/','|','\\','\"'])
 
 isConst :: GeniVal -> Bool
 isConst = isNothing . gLabel

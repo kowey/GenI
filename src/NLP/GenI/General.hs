@@ -35,6 +35,7 @@ module NLP.GenI.General (
         trim,
         toUpperHead, toLowerHead,
         toAlphaNum,
+        quoteString,
         -- * Triples
         fst3, snd3, thd3,
         -- * Lists
@@ -124,6 +125,14 @@ toUpperHead (h:t) = (toUpper h):t
 toLowerHead :: String -> String
 toLowerHead []    = []
 toLowerHead(h:t)  = (toLower h):t
+
+quoteString :: String -> String
+quoteString xs = "\"" ++ concatMap helper xs ++ "\""
+  where
+   helper '"'  = [ '\\', '\"' ]
+   helper '\\' = [ '\\', '\\' ]
+   helper x    = [ x ]
+
 
 -- ----------------------------------------------------------------------
 -- Alphanumeric sort
