@@ -72,7 +72,7 @@ module NLP.GenI.Polarity(
                 -- * Inner stuff (exported for debugging?)
                 makePolAut,
                 fixPronouns,
-                detectSansIdx, detectPolFeatures, detectPols, detectPolPaths,
+                detectSansIdx, suggestPolFeatures, detectPols, detectPolPaths,
                 declareIdxConstraints, detectIdxConstraints,
                 showLite, showLitePm, showPolPaths, showPolPaths',
 
@@ -821,11 +821,13 @@ make grammar development with polarities more convenient.
 \paragraph{Which attributes should we use?} Our detection process looks for
 attributes which are defined on \emph{all} subst and root nodes of the
 lexically selected items.  Note that this should typically give you the
-\verb!cat! and \verb!idx! polarities.
+\verb!cat! and \verb!idx! polarities.  It is only used to give you hints
+about what features you may want to consider using in the graphical
+interface.
 
 \begin{code}
-detectPolFeatures :: [TagElem] -> [String]
-detectPolFeatures tes =
+suggestPolFeatures :: [TagElem] -> [String]
+suggestPolFeatures tes =
   let -- only initial trees need be counted; in aux trees, the
       -- root node is implicitly canceled by the foot node
       rfeats, sfeats :: [Flist GeniVal]

@@ -56,7 +56,7 @@ import NLP.GenI.Configuration
 import qualified NLP.GenI.Builder as B
 import NLP.GenI.Builder (queryCounter, num_iterations, chart_size,
     num_comparisons)
-import NLP.GenI.Polarity (PolAut, detectPolFeatures)
+import NLP.GenI.Polarity (PolAut, suggestPolFeatures)
 import NLP.GenI.GraphvizShowPolarity ()
 
 -- ----------------------------------------------------------------------
@@ -83,7 +83,7 @@ candidateGui pst f xs = do
   p  <- panel f []      
   (tb,gvRef,updater) <- tagViewerGui pst p "lexically selected item" "candidates"
                         $ sectionsBySem xs
-  let polFeats = "Polarity attributes detected: " ++ (unwords.detectPolFeatures) xs
+  let polFeats = "Polarity attributes detected: " ++ (unwords.suggestPolFeatures) xs
       warning = unlines $ filter (not.null) (polFeats : warnings pst)
   -- side panel
   sidePnl <- panel p []
