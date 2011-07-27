@@ -837,7 +837,7 @@ suggestPolFeatures tes =
       attrs :: Flist GeniVal -> [String]
       attrs avs = [ a | AvPair a v <- avs, isJust (gConstraints v) ]
       theAttributes = map attrs $ rfeats ++ sfeats
-  in if null tes then [] else foldr1 intersect theAttributes
+  in if null theAttributes then [] else foldr1 intersect theAttributes
 
 -- FIXME: temporary HACKY code - delete me as soon as possible (written
 -- 2006-03-30
