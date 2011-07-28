@@ -52,9 +52,17 @@ mkGConst :: String   -- ^ one value
          -> [String] -- ^ any additional values (atomic disjunction)
          -> GeniVal
 mkGConst x xs  = GeniVal Nothing (Just . sort . nub $ x:xs)
+
+mkGConstNone :: String -> GeniVal
 mkGConstNone x = mkGConst x []
+
+mkGVar :: String -> Maybe [String] -> GeniVal
 mkGVar x mxs  = GeniVal (Just x) ((sort . nub) `fmap` mxs)
+
+mkGVarNone :: String -> GeniVal
 mkGVarNone x  = mkGVar x Nothing
+
+mkGAnon :: GeniVal
 mkGAnon       = GeniVal Nothing Nothing
 
 instance Uniplate GeniVal where
@@ -144,7 +152,7 @@ unifyHelper f ll1 ll2 = repropagate `liftM` helper ll1 ll2
 --
 --   See 'prependToSubst' for a warning!
 appendSubst :: Subst -> Subst -> Subst
-appendSubst sm1 sm2 = Map.foldWithKey (curry prependToSubst) sm2 sm1
+appendSubst sm1 sm2 = Map.foldrWithKey (curry prependToSubst) sm2 sm1
 
 -- | Add to variable replacement to a 'Subst' that logical comes before
 --   the other stuff in it.  So for example, if we have @Y -> foo@
@@ -210,6 +218,7 @@ unifyOne g1 g2 =
   gc1 = gConstraints g1
   gc2 = gConstraints g2
 
+intersectConstraints :: Eq a => Maybe [a] -> Maybe [a] -> Maybe (Maybe [a])
 intersectConstraints Nothing cs = Just cs
 intersectConstraints cs Nothing = Just cs
 intersectConstraints (Just v1) (Just v2) =
@@ -228,7 +237,7 @@ subsumeOne g1@(GeniVal _ (Just cs1)) g2@ (GeniVal _ (Just cs2)) =
    if cs1 `subset` cs2 then unifyOne g1 g2 else Failure
  where
    subset x y = all (`elem` y) x
-subsumeOne (GeniVal _ (Just cs1)) (GeniVal _ Nothing) = Failure
+subsumeOne (GeniVal _ (Just _)) (GeniVal _ Nothing) = Failure
 subsumeOne g1@(GeniVal _ Nothing) g2 = unifyOne g1 g2
 
 -- ----------------------------------------------------------------------
@@ -305,7 +314,7 @@ alphaConvert suffix x = {-# SCC "alphaConvert" #-}
   subst :: Subst
   subst = Map.mapWithKey convert vars
   vars  = Map.fromListWith isect . Set.elems $ collect x Set.empty
-  isect x y = fromMaybe (Just []) $ intersectConstraints x y
+  isect xi yi = fromMaybe (Just []) $ intersectConstraints xi yi
   convert v = GeniVal (Just (v ++ suffix))
 
 -- ----------------------------------------------------------------------
