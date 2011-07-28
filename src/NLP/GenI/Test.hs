@@ -27,14 +27,17 @@ import NLP.GenI.Test.GeniVal ( suite )
 import NLP.GenI.Test.Polarity ( suite )
 import NLP.GenI.Test.Semantics ( suite )
 import NLP.GenI.Test.Simple.SimpleBuilder ( suite )
+import NLP.GenI.Regression
 
 runTests :: IO ()
 runTests =
  do args <- filter (not . (`isPrefixOf` "--unit-tests")) `fmap` getArgs
+    funcSuite <- NLP.GenI.Regression.mkSuite
     flip defaultMainWithArgs args
      [ NLP.GenI.Test.GeniVal.suite
      , NLP.GenI.Test.GeniParsers.suite
      , NLP.GenI.Test.Polarity.suite
      , NLP.GenI.Test.Semantics.suite
      , NLP.GenI.Test.Simple.SimpleBuilder.suite
+     , funcSuite
      ]

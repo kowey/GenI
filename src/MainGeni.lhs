@@ -43,9 +43,7 @@ import NLP.GenI.Configuration (treatArgs, optionsForStandardGenI, processInstruc
                                hasFlagP, BatchDirFlg(..), DisableGuiFlg(..),
                                DumpDerivationFlg(..),  FromStdinFlg(..),
                                HelpFlg(..), VersionFlg(..), TestCaseFlg(..),
-                               RegressionTestModeFlg(..),
                               )
-import NLP.GenI.Regression (regressionGeni)
 
 #ifdef DISABLE_GUI
 import NLP.GenI.Configuration(setFlagP)
@@ -93,14 +91,12 @@ main = do
   case () of
    _ | has HelpFlg               -> putStrLn (usage optionsSections pname)
      | has VersionFlg            -> putStrLn ("GenI " ++ showVersion version)
-     | has RegressionTestModeFlg -> regressionGeni pstRef
      | mustRunInConsole          -> consoleGeni pstRef
      | not (has DisableGuiFlg)   -> guiGeni pstRef
      | canRunInConsole           -> consoleGeni pstRef
      | otherwise                 -> fail $ unlines
         [ "GenI must either be run..."
         , " - with the graphical interface enabled"
-        , " - in regression testing mode"
         , " - in self-diagnostic unit test mode"
         , " - with a test case specified"
         , " - with a batch directory specified or"

@@ -19,13 +19,18 @@
 --   This can be seen as regression testing of GenI
 --   and also of grammars using GenI
 
-module NLP.GenI.Regression (regressionGeni) where
+module NLP.GenI.Regression (mkSuite) where
 
-import Data.IORef(readIORef, modifyIORef)
+import Control.Applicative ((<$>))
+import Control.Monad (forM_)
+import Data.IORef (newIORef, readIORef, modifyIORef)
 import Data.List(sort)
-import Test.HUnit.Text (runTestTT)
-import qualified Test.HUnit.Base as H
-import Test.HUnit.Base ((@?))
+import System.FilePath ((</>))
+import Test.HUnit
+import Test.Framework
+import Test.Framework.Providers.HUnit
+import Test.Framework.Providers.QuickCheck2
+
 
 import NLP.GenI.Btypes
    ( SemInput, showSem
@@ -39,34 +44,67 @@ import NLP.GenI.Geni
 import NLP.GenI.Configuration
   ( Params
   , builderType , BuilderType(..)
+  , setFlagP, DisableGuiFlg(..)
+  , processInstructions, treatArgs, optionsForStandardGenI
   )
 import NLP.GenI.Simple.SimpleBuilder
 
-regressionGeni :: ProgStateRef -> IO ()
-regressionGeni pstRef = do
- do pst <- readIORef pstRef
-    loadEverything pstRef
-    tests <- (mapM toTest) . tsuite $ pst
-    _ <- runTestTT . (H.TestList) . concat $ tests
-    return ()
- where
-  toTest :: G.TestCase -> IO [H.Test] -- ^ GenI test case to HUnit Tests
-  toTest tc = -- run the case, and return a test case for each expected result
-   do res <- runOnSemInput pstRef (tcSem tc)
-      let sentences = map lemmaSentenceString res
-          name = tcName tc
-          semStr = showSem . fst3 . tcSem $ tc
-          mainMsg  = "for " ++ semStr ++ ",  got no results"
-          mainCase = H.TestLabel name
-            $ H.TestCase $ (not.null $ sentences) @? mainMsg
-          subMsg e = "for " ++ semStr ++ ", failed to get (" ++ e ++ ")"
-          subCase e = H.TestLabel name
-            $ H.TestCase $ (e `elem` sentences) @? subMsg e
-      return $ (mainCase :) $ map subCase (tcExpected tc)
+mkSuite :: IO Test.Framework.Test
+mkSuite = do
+ goods <- sequence
+  [ goodSuite "ej"        (usualArgs "examples/ej" [])
+  , goodSuite "chatnoir"  (usualArgs "examples/chatnoir" [])
+  , goodSuite "demo"      (usualArgs "examples/demo" [])
+  , goodSuite "promettre" (usualArgs "examples/promettre" ["--opts=pol"])
+  , goodSuite "artificial" (usualArgs "examples/artificial" [])
+  , badSuite  "artificial (bad)" (usualArgsBad "examples/artificial" [])
+  ]
+ return $ testGroup "Functional tests (coarse grained)" goods
 
--- | Runs a case in the test suite.  If the user does not specify any test
---   cases, we run the first one.  If the user specifies a non-existing
---   test case we raise an error.
+usualArgs :: FilePath -> [String] -> [String]
+usualArgs p args =
+  [ "-m", p </> "macros"
+  , "-l", p </> "lexicon"
+  , "-s", p </> "suite"
+  ] ++ args
+
+usualArgsBad :: FilePath -> [String] -> [String]
+usualArgsBad p args =
+  [ "-m", p </> "macros"
+  , "-l", p </> "lexicon"
+  , "-s", p </> "suite-bad"
+  ] ++ args
+
+noGui = setFlagP DisableGuiFlg () 
+
+goodSuite = genSuite goodSuiteCase
+badSuite  = genSuite badSuiteCase
+
+genSuite mkCase name xs = do
+  confArgs <- processInstructions =<< treatArgs optionsForStandardGenI xs
+  let pst = emptyProgState (noGui confArgs)
+  pstRef <- newIORef pst
+  loadEverything pstRef
+  suite <- tsuite <$> readIORef pstRef
+  return . testGroup name $ map (mkCase pstRef) suite
+
+
+-- goodSuiteCase :: ProgStateRef -> G.TestCase -> TestCase
+goodSuiteCase pstRef tc = testCase (tcName tc) $ do
+  res <- runOnSemInput pstRef (tcSem tc)
+  let sentences = map lemmaSentenceString res
+      name = tcName tc
+      semStr = showSem . fst3 . tcSem $ tc
+      mainMsg  = "for " ++ semStr ++ ",  got no results"
+  assertBool "got result" (not (null sentences))
+  forM_ (tcExpected tc) $ \e ->
+      assertBool ("got result: " ++ e) (e `elem` sentences)
+
+badSuiteCase pstRef tc = testCase (tcName tc) $ do
+  res <- runOnSemInput pstRef (tcSem tc)
+  let sentences = map lemmaSentenceString res
+  assertBool "no results" (null sentences)
+
 runOnSemInput :: ProgStateRef -> SemInput -> IO [GeniResult]
 runOnSemInput pstRef semInput =
   do modifyIORef pstRef (\x -> x{ts = semInput})

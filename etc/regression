@@ -1,26 +1,3 @@
-GENI_CMD=dist/build/geni/geni
-GENI_FLAGS="$* --opts=f-sem"
-
-TMP_GARBAGE_P=tmp-garbage-p-$$
-TMP_GARBAGE_F=tmp-garbage-f-$$
-
-do_geni() {
-  do_geni_only $* 2>&1 | tee -a ${TMP_GARBAGE_P}
-}
-
-# for cases we expect to fail
-do_geni_fail() {
-  do_geni_only $* 2>&1 | tee -a ${TMP_GARBAGE_F}
-}
-
-do_geni_only() {
-  echo "--------------------------------"
-  FINAL_CMD="${GENI_CMD} $* --nogui --regression"
-  echo "${FINAL_CMD}"
-  sh -c "${FINAL_CMD}"
-  echo
-}
-
 echo "================================================================"
 echo "Artificial cases"
 echo "================================================================"
@@ -38,32 +15,5 @@ do_geni_fail ${GENI_FLAGS} -m examples/artificial/macros -l examples/artificial/
         ${ARTIFICIAL_FEAT_FLAG}\
         2>&1 | grep -v "got no results" | grep -v "Error in"
 
-echo "================================================================"
-echo "Normal English/French test suites - should pass"
-echo "================================================================"
-echo
-
-CATP_FEAT_FLAG=--rootfeat="'[cat:p|n]'"
-
-do_geni ${GENI_FLAGS} -m examples/ej/macros -l examples/ej/lexicon -s examples/ej/suite
-# note: '' is for the cmd; "" is the for the wrappers provided by this script
-do_geni ${GENI_FLAGS} -m examples/chatnoir/macros -l examples/chatnoir/lexicon -s examples/chatnoir/suite\
- ${CATP_FEAT_FLAG}
-
-DEMO_FLAGS="-m examples/demo/macros -l examples/demo/lexicon -s examples/demo/suite"
-do_geni ${GENI_FLAGS} ${DEMO_FLAGS} ${CATP_FEAT_FLAG}
-
-PROMETTRE_FLAGS="-m examples/promettre/macros -l examples/promettre/lexicon -s examples/promettre/suite --opts=pol"
-do_geni ${GENI_FLAGS} ${PROMETTRE_FLAGS} ${CATP_FEAT_FLAG}
-
-echo "================================================================"
-echo "Summary"
-echo "================================================================"
-echo
-
-SUMHUNIT=`dirname $0`/SumHUnit
-
-(${SUMHUNIT} < ${TMP_GARBAGE_P}\
-;${SUMHUNIT} --invert-pf < ${TMP_GARBAGE_F}) | ${SUMHUNIT}
 
 rm ${TMP_GARBAGE_P} ${TMP_GARBAGE_F}

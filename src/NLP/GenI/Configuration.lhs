@@ -351,8 +351,6 @@ outputOption =
 optionsForUserInterface :: [OptDescr Flag]
 optionsForUserInterface =
   [ noguiOption, helpOption, versionOption
-  , Option []    ["regression"] (noArg RegressionTestModeFlg)
-      "Run in regression testing mode (needs grammar, etc)"
   , Option []    ["viewcmd"]  (reqArg ViewCmdFlg id "CMD")
       "XMG tree-view command"
   ]

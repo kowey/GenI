@@ -127,7 +127,6 @@ data OptimisationsFlg = OptimisationsFlg [Optimisation] deriving (Eq, Show, Type
 data OutputFileFlg = OutputFileFlg String deriving (Eq, Show, Typeable)
 data PartialFlg = PartialFlg () deriving (Eq, Show, Typeable)
 data RankingConstraintsFlg = RankingConstraintsFlg FilePath deriving (Eq, Show, Typeable)
-data RegressionTestModeFlg = RegressionTestModeFlg () deriving (Eq, Show, Typeable)
 data RootFeatureFlg = RootFeatureFlg (Flist GeniVal) deriving (Eq, Show, Typeable)
 data NoLoadTestSuiteFlg = NoLoadTestSuiteFlg () deriving (Eq, Show, Typeable)
 data StatsFileFlg = StatsFileFlg FilePath deriving (Eq, Show, Typeable)
