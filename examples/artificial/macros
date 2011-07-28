@@ -108,6 +108,11 @@ M [cat:a]![idx:b] {
  Y type:foot [cat:a]![]
 }
 
+tb-unification-na(?T) initial
+X aconstr:noadj [cat:X thing:good]![thing:?T] {
+ Y anchor [cat:X]![]
+}
+
 no-thing () initial
 X anchor [cat:x]![]
 
@@ -136,3 +141,4 @@ X anchor [cat:?X;?Y;?Z x:?X y:?Y z:?Z foo:?X/x|y|z;?Z;a]![]
 
 variablecat(?X ?Y ?Z) initial
 X anchor [cat:_ x:?X y:?Y z:?Z foo:?X/x|y|z;?Z;a]![]
+

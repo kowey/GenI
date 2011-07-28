@@ -25,6 +25,7 @@ tb-noadj-good-1 semantics:[tb-unification-noadj() no-thing()]
 tb-noadj-good-2 semantics:[tb-unification-noadj() thing-good()]
 tb-unification-1 semantics:[tb-unification-bot()]
 tb-unification-2 semantics:[tb-unification-bot() tb-unification-adj()]
+tb-unification-na-good semantics:[tb-unification-na-good()]
 
 lemanchor semantics:[lemanchor()]
 preterminal semantics:[preterminal()]
