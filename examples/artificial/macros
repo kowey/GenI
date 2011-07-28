@@ -113,6 +113,12 @@ X aconstr:noadj [cat:X thing:good]![thing:?T] {
  Y anchor [cat:X]![]
 }
 
+tb-unification-anchor(?T) initial
+X [cat:X thing:good]![thing:?T] {
+ Y anchor [cat:X thing:good]![thing:?T]
+}
+
+
 no-thing () initial
 X anchor [cat:x]![]
 
