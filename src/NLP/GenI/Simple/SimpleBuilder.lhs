@@ -974,7 +974,7 @@ dpTreeLimit item =
 dpTbNaFailure :: SimpleDispatchFilter
 dpTbNaFailure item =
  case tbUnifyNaNodes (siNodes item) of
-   Nothing      -> dpToTrash ("top-bottem unification failure in NA nodes") item
+   Nothing      -> dpToTrash ("top-bottom unification failure in NA nodes") item
    Just (ns2,s) -> return . NotFiltered . replace s $ item { siNodes = ns2 }
 
 -- | This is only used for the one-phase algorithm
