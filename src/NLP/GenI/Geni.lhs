@@ -756,7 +756,7 @@ initialLexSelection tsem lexicon grammar =
 
 finaliseLexSelection :: MorphFn -> Sem -> [LitConstr] -> [TagElem] -> [TagElem]
 finaliseLexSelection morph tsem litConstrs =
-  setTidnums . considerCoherency . considerHasSem . considerLc . considerMorph
+  setTidnums . considerCoherency . considerLc . considerMorph
  where
    -- attach any morphological information to the candidates
    considerMorph = attachMorph morph tsem
@@ -769,7 +769,6 @@ finaliseLexSelection morph tsem litConstrs =
    -- filter out candidates whose semantics has bonus stuff which does
    -- not occur in the input semantics
    considerCoherency = filter (all (`elem` tsem) . tsemantics)
-   considerHasSem    = filter (not . null . tsemantics)
 \end{code}
 
 % --------------------------------------------------------------------

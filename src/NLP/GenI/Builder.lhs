@@ -206,7 +206,11 @@ preInit input config =
      -- polarity optimisation (if enabled)
      autstuff = buildAutomaton polsToDetect rootFeat extraPol seminput cand
      autpaths = map concat . automatonPathSets . prFinal $ autstuff
-     combosPol = if isPol then autpaths else [cand]
+     combosPol = if isPol then autpaths else [considerHasSem cand]
+     considerHasSem = filter (not . null . tsemantics)
+     -- polarity automaton construction uses the zero literal semantic
+     -- items, but it may be safer to filter them out now if we are not
+     -- using it
      -- chart sharing optimisation
      (cands2, pathIds) = unzip $ detectPolPaths combosPol
      --
