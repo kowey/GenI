@@ -183,12 +183,14 @@ derivationToGv :: TagDerivation -> Maybe (DotSubGraph String)
 derivationToGv deriv =
  if null histNodes
     then Nothing
-    else Just $ DotSG True Nothing
-              $ DotStmts [ NodeAttrs [ Shape PlainText ]]
-                         []
-                         (map mkNode histNodes)
-                         (map mkEdge deriv)
+    else Just $ DotSG False Nothing $ DotStmts atts [] nodes edges
   where
+    atts = [ NodeAttrs [ Shape PlainText ]
+           , EdgeAttrs [ ArrowHead noArrow ]
+           ]
+    nodes = map mkNode histNodes
+    edges = map mkEdge deriv
+    --
     histNodes = reverse $ nub $ concatMap (\ (DerivationStep _ c p _) -> [c,p]) deriv
     mkNode n  =
       DotNode (gvDerivationLab n) [ Label . StrLabel . label $ n ]
