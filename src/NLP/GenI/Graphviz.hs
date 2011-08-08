@@ -36,7 +36,7 @@ import Control.Monad(when)
 import Data.GraphViz
 import Data.GraphViz.Printing ( printIt )
 
-import Data.List(intersperse)
+import Data.List(intersperse, intercalate)
 import Data.Tree
 import System.IO ( hClose )
 import System.IO.UTF8
@@ -107,7 +107,7 @@ gvNewline :: String
 gvNewline  = "\\n"
 
 gvUnlines :: [String] -> String
-gvUnlines = concat . (intersperse gvNewline)
+gvUnlines = intercalate "\n"
 
 gvSubgraph :: String -> String
 gvSubgraph g = "subgraph {\n" ++ g ++ "}\n"

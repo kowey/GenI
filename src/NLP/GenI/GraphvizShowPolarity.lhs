@@ -66,7 +66,7 @@ gvShowState fin stId st =
   DotNode stId $ decorate [ Label . StrLabel . showSt $ st ]
   where
    showSt (PolSt pr ex po) =
-          unlines . catMaybes $
+          gvUnlines . catMaybes $
             [ Nothing -- Just (snd3 pr)
             , if null ex then Nothing else Just (showSem ex)
             , Just . intercalate "," $ map showInterval po
@@ -87,7 +87,7 @@ gvShowTrans aut stmap idFrom st =
                            where sem_ (PolSt i _ _) = show i
                                  --showSem (PolSt (_,pred,_) _ _) = pred
       drawTrans' idTo x = DotEdge idFrom idTo True [Label (drawLabel x)]
-      drawLabel labels  = StrLabel . unlines $ labs
+      drawLabel labels  = StrLabel . gvUnlines $ labs
         where
           lablen  = length labels
           maxlabs = 6
