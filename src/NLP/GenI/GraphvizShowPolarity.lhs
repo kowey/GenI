@@ -23,11 +23,14 @@ where
 
 import Data.List (intersperse)
 import qualified Data.Map as Map
+import Data.Maybe ( catMaybes )
+import Data.GraphViz
+import Data.GraphViz.Printing ( printIt )
 
 import NLP.GenI.Btypes(showSem)
 import NLP.GenI.General(showInterval, isEmptyIntersect)
 import NLP.GenI.Polarity(PolAut, PolState(PolSt), NFA(states, transitions), finalSt)
-import NLP.GenI.Graphviz(GraphvizShow(..), gvUnlines, gvNewline, gvNode, gvEdge)
+import NLP.GenI.Graphviz(GraphvizShow(..), gvUnlines, gvNode, gvEdge)
 import NLP.GenI.Tags(idname)
 \end{code}
 
@@ -46,51 +49,34 @@ instance GraphvizShow () PolAut where
 
   --
   graphvizShowAsSubgraph _ prefix aut =
-   let st  = (concat.states) aut
+    printIt $ DotGraph False True Nothing
+            $ DotStmts [ NodeAttrs [ Shape Ellipse, Peripheries 1 ] ]
+                       []
+                       (zipWith (gvShowState fin) ids st)
+                       (concat $ zipWith (gvShowTrans aut stmap) ids st)
+    where
+       st  = (concat.states) aut
+       fin = finalSt aut
        ids = map (\x -> prefix ++ show x) ([0..] :: [Int])
        -- map which permits us to assign an id to a state
        stmap = Map.fromList $ zip st ids
-   in --
-      gvShowFinal aut stmap
-      -- any other state should be an ellipse
-      ++ "node [ shape = ellipse, peripheries = 1 ]\n"
-      -- draw the states and transitions
-      ++ (concat $ zipWith gvShowState ids st)
-      ++ (concat $ zipWith (gvShowTrans aut stmap) ids st )
-\end{code}
 
-\begin{code}
-gvShowState :: String -> PolState -> String
-gvShowState stId st =
-  -- note that we pass the label param explicitly to allow for null label
-  gvNode stId "" [ ("label", showSt st) ]
-  where showSt (PolSt pr ex po) = showPr pr ++ showEx ex ++ showPo po
-        showPr _ = "" -- (_,pr,_) = pr ++ gvNewline
-        showPo po = concat $ intersperse "," $ map showInterval po
-        showEx ex = if null ex then "" else showSem ex ++ gvNewline
-\end{code}
+gvShowState :: [PolState] -> String -> PolState -> DotNode String
+gvShowState fin stId st =
+  DotNode stId $ decorate [ Label . StrLabel . showSt $ st ]
+  where
+   showSt (PolSt pr ex po) =
+          unlines . catMaybes $
+            [ Nothing -- Just (snd3 pr)
+            , if null ex then Nothing else Just (showSem ex)
+            , Just . intercalate "," $ map showInterval po
+            ]
+   decorate = if st `elem` fin
+                 then (Peripheries 2 :)
+                 else id
 
-Specify that the final states are drawn with a double circle
-
-\begin{code}
-gvShowFinal :: PolAut -> Map.Map PolState String -> String
-gvShowFinal aut stmap =
-  if isEmptyIntersect (concat $ states aut) fin
-  then ""
-  else "node [ peripheries = 2 ]; "
-  ++ concatMap (\x -> " " ++ lookupId x) fin
-  ++ "\n"
-  where fin = finalSt aut
-        lookupId x = Map.findWithDefault "error_final" x stmap
-\end{code}
-
-Each transition is displayed with the name of the tree.  If there is more
-than one transition to the same state, they are displayed on a single
-label.
-
-\begin{code}
 gvShowTrans :: PolAut -> Map.Map PolState String
-               -> String -> PolState -> String
+               -> String -> PolState -> [DotEdge String]
 gvShowTrans aut stmap idFrom st =
   let -- outgoing transition labels from st
       trans = Map.findWithDefault Map.empty st $ transitions aut
@@ -100,31 +86,16 @@ gvShowTrans aut stmap idFrom st =
                              Just idTo -> drawTrans' idTo x
                            where sem_ (PolSt i _ _) = show i
                                  --showSem (PolSt (_,pred,_) _ _) = pred
-      drawTrans' idTo x = gvEdge idFrom idTo (drawLabel x) []
-      drawLabel labels  = gvUnlines labs
+      drawTrans' idTo x = DotEdge idFrom idTo True [Label (drawLabel x)]
+      drawLabel labels  = StrLabel . unlines $ labs
         where
           lablen  = length labels
           maxlabs = 6
           excess = "...and " ++ (show $ lablen - maxlabs) ++ " more"
           --
-          labstrs = map fn labels
-          fn Nothing  = "EMPTY"
-          fn (Just x) = idname x
-          --
+          labstrs = map (maybe "EMPTY" idname) labels
           labs = if lablen > maxlabs
                  then take maxlabs labstrs ++ [ excess ]
                  else labstrs
-  in unlines $ map drawTrans $ Map.toList trans
+  in map drawTrans (Map.toList trans)
 \end{code}
-
-%gvShowTransPred te =
-%  let p = tpredictors te
-%      charge fv = case () of _ | c == -1   -> "-"
-%                               | c ==  1   -> "+"
-%                               | c  >  0   -> "+" ++ (show c)
-%                               | otherwise -> (show c)
-%                  where c = lookupWithDefaultFM p 0 fv
-%      showfv (f,v) = charge (f,v) ++ f
-%                   ++ (if (null v) then "" else ":" ++ v)
-%  in map showfv $ Map.keys p
-
