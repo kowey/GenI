@@ -26,6 +26,7 @@ import Data.List.Split (wordsBy)
 import Data.Maybe(listToMaybe)
 
 import Data.GraphViz
+import Data.GraphViz.Printing ( printIt )
 
 import NLP.GenI.Tags
  ( TagElem, TagDerivation, idname,
@@ -38,11 +39,11 @@ import NLP.GenI.Btypes (AvPair(..),
                )
 import NLP.GenI.GeniVal (GeniVal(..),isConst)
 import NLP.GenI.Graphviz
-  ( gvUnlines, gvNewline
+  ( gvUnlines
   , GraphvizShow(graphvizShowAsSubgraph, graphvizLabel, graphvizParams)
   , GraphvizShowNode(graphvizShowNode)
   , GraphvizShowString(graphvizShow)
-  , gvNode, gvEdge, gvShowTree
+  , gvNode, gvShowTree
   )
 
 -- ----------------------------------------------------------------------
@@ -174,23 +175,27 @@ graphvizShow_ = graphvizShow ()
 -- ----------------------------------------------------------------------
 
 graphvizShowDerivation :: TagDerivation -> String
-graphvizShowDerivation deriv =
-  if (null histNodes)
-     then ""
-     else " node [ shape = plaintext ];\n"
-          ++ (concatMap showHistNode histNodes)
-          ++ (concatMap graphvizShowDerivation' deriv)
-  where showHistNode n  = gvNode (gvDerivationLab n) (label n) []
-        label n = case wordsBy (== ':') n of
-                  name:fam:tree:_ -> name ++ ":" ++ fam ++ gvNewline ++ tree
-                  _               -> n ++ " (geni/gv ERROR)"
-        histNodes = reverse $ nub $ concatMap (\ (DerivationStep _ c p _) -> [c,p]) deriv
+graphvizShowDerivation = maybe "" printIt . derivationToGv
 
-graphvizShowDerivation' :: DerivationStep -> String
-graphvizShowDerivation' (DerivationStep substadj child parent _) =
-  gvEdge (gvDerivationLab parent) (gvDerivationLab child) "" p
-  where p = if substadj == 'a' then [("style","dashed")] else []
-
+derivationToGv :: TagDerivation -> Maybe (DotGraph String)
+derivationToGv deriv =
+ if null histNodes
+    then Nothing
+    else Just $ DotGraph False True Nothing
+              $ DotStmts [ NodeAttrs [ Shape PlainText ]]
+                         []
+                         (map mkNode histNodes)
+                         (map mkEdge deriv)
+  where
+    histNodes = reverse $ nub $ concatMap (\ (DerivationStep _ c p _) -> [c,p]) deriv
+    mkNode n  =
+      DotNode (gvDerivationLab n) [ Label . StrLabel . label $ n ]
+    mkEdge (DerivationStep substadj child parent _) =
+      DotEdge (gvDerivationLab parent) (gvDerivationLab child) True attrs
+      where attrs = if substadj == 'a' then [Style [SItem Dashed []]] else []
+    label n = case wordsBy (== ':') n of
+              name:fam:tree:_ -> name ++ ":" ++ fam ++ "\n" ++ tree
+              _               -> n ++ " (geni/gv ERROR)"
 
 gvDerivationLab :: String -> String
 gvDerivationLab xs = "Derivation" ++ gvMunge xs
