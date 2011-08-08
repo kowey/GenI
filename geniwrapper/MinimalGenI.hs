@@ -4,7 +4,7 @@ module MinimalGenI where
 
 import Control.Exception
 import Control.Monad ( when, unless )
-import Data.IORef ( IORef, newIORef, readIORef, modifyIORef)
+import Data.IORef ( IORef, newIORef, readIORef, modifyIORef )
 import qualified Data.ByteString.Unsafe as BU
 import qualified Data.ByteString.UTF8   as B8
 
@@ -80,6 +80,10 @@ geniRealize pstRef lex sem rf = do
      Right p                      -> encode . fst3 $ p
 
 geniRealizeI pstRef lex sem rf = try $ do
+  bracket
+    (le `fmap` readIORef pstRef)
+    (\origLe -> modifyIORef pstRef $ \p -> p { le = origLe }) $
+    \origLe -> do
   unless (null lex) $ do
      l <- loadFromString pstRef "lexicon" lex
      let _ = l :: Lexicon
