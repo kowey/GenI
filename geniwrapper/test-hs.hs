@@ -1,6 +1,7 @@
 module Main where
 
 import MinimalGenI
+import Data.List ( intercalate )
 import System.Environment ( getArgs )
 
 main = do
@@ -11,8 +12,11 @@ main = do
   lexStr2 <- readFile lex2
   testSem <- readFile sem
   pst <- either (fail . showGenIException) return =<< geniInit mac lex morphcmd
-  putStrLn =<< geniRealize pst ""      testSem rf
-  putStrLn =<< geniRealize pst lexStr2 testSem rf
+  xs  <- sequence [ geniRealize pst ""      testSem rf
+                  , geniRealize pst lexStr2 testSem rf
+                  , geniRealize pst ""      testSem rf
+                  ]
+  putStrLn $ "[" ++ intercalate "," xs ++ "]"
 
 -- evidence that it was caught in the wrapper
 showGenIException e = "Wrapper caught an exception from GenI:\n" ++ show e
