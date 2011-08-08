@@ -115,7 +115,7 @@ instance GraphvizShowNode (Bool) (GNode GeniVal, Maybe Color) where
                                    , FieldLabel . showFs $ gup gn
                                    ] ++ (maybeFs (gdown gn))
                    ]
-        where showFs = unlines . (map graphvizShow_)
+        where showFs = unlines . map graphvizShow_
               maybeFs fs = if null fs then [] else [FieldLabel (showFs fs)]
    in DotNode prefix (body : shapeParams ++ colorParams)
 
