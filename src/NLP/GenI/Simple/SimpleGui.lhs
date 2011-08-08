@@ -27,6 +27,7 @@ module NLP.GenI.Simple.SimpleGui where
 import Graphics.UI.WX
 
 import Control.Arrow ( (&&&) )
+import qualified Data.GraphViz as GV
 import Data.IORef
 import Data.List ( sort, intersperse )
 import qualified Data.Map as Map
@@ -38,7 +39,7 @@ import NLP.GenI.Configuration ( Params(..) )
 import NLP.GenI.General ( snd3, buckets )
 import NLP.GenI.Geni ( ProgStateRef, runGeni, GeniResult(..) )
 import NLP.GenI.GeniVal (mkGConst, GeniVal)
-import NLP.GenI.Graphviz ( GraphvizShow(..), gvNewline, gvUnlines )
+import NLP.GenI.Graphviz ( GraphvizShow(..) )
 import NLP.GenI.GuiHelper
   ( messageGui, tagViewerGui,
     maybeSaveAsFile,
@@ -212,9 +213,9 @@ instance GraphvizShow Bool SimpleItem where
   graphvizParams f c = graphvizParams f (toTagElem c)
   graphvizShowAsSubgraph f p it =
    let isHiglight n = gnname n `elem` (siHighlight.siGuiStuff) it
-       info n | isHiglight n = (n, Just "red")
+       info n | isHiglight n = (n, Just (GV.X11Color GV.Red))
               | otherwise    = (n, Nothing)
-       gvSub :: (Bool, GNode GeniVal -> (GNode GeniVal, Maybe String)) -> String -> TagElem -> String
+       gvSub :: (Bool, GNode GeniVal -> (GNode GeniVal, Maybe GV.Color)) -> String -> TagElem -> String
        gvSub = graphvizShowAsSubgraph
    in    "\n// ------------------- elementary tree --------------------------\n"
       ++ gvSub (f, info) (p ++ "TagElem") (toTagElem it)

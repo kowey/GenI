@@ -39,18 +39,17 @@ import NLP.GenI.Btypes (AvPair(..),
                )
 import NLP.GenI.GeniVal (GeniVal(..),isConst)
 import NLP.GenI.Graphviz
-  ( gvUnlines
-  , GraphvizShow(graphvizShowAsSubgraph, graphvizLabel, graphvizParams)
+  ( GraphvizShow(graphvizShowAsSubgraph, graphvizLabel, graphvizParams)
   , GraphvizShowNode(graphvizShowNode)
   , GraphvizShowString(graphvizShow)
-  , gvNode, gvShowTree
+  , gvShowTree
   )
 
 -- ----------------------------------------------------------------------
 -- For GraphViz
 -- ----------------------------------------------------------------------
 
-type GvHighlighter a = a -> (a, Maybe String)
+type GvHighlighter a = a -> (a, Maybe Color)
 
 nullHighlighter :: GvHighlighter (GNode GeniVal)
 nullHighlighter a = (a,Nothing)
@@ -87,35 +86,38 @@ instance GraphvizShow (Bool, GvHighlighter (GNode GeniVal)) TagElem where
 -- Helper functions for the TagElem GraphvizShow instance
 -- ----------------------------------------------------------------------
 
-instance GraphvizShowNode (Bool) (GNode GeniVal, Maybe String) where
+instance GraphvizShowNode (Bool) (GNode GeniVal, Maybe Color) where
  -- compact -> (node, mcolour) -> String
  graphvizShowNode detailed prefix (gn, mcolour) =
    let -- attributes
-       filledParam         = ("style", "filled")
-       fillcolorParam      = ("fillcolor", "lemonchiffon")
-       shapeRecordParam    = ("shape", "record")
-       shapePlaintextParam = ("shape", "plaintext")
+       filledParam         = Style [SItem Filled []]
+       fillcolorParam      = FillColor (X11Color LemonChiffon)
+       shapeRecordParam    = Shape Record
+       shapePlaintextParam = Shape PlainText
        --
        colorParams = case mcolour of
                      Nothing -> []
-                     Just c  -> [ ("fontcolor", c) ]
+                     Just c  -> [ FontColor c ]
        shapeParams = if detailed
                      then [ shapeRecordParam, filledParam, fillcolorParam ]
                      else [ shapePlaintextParam ]
        -- content
        stub  = showGnStub gn
        extra = showGnDecorations gn
-       summary = if null extra then stub
-                 else "{" ++ stub ++ "|" ++ extra ++ "}"
-       --
-       body = if not detailed then graphvizShow_ gn
-              else    "{" ++ summary
-                   ++ (barAnd.showFs $ gup gn)
-                   ++ (maybeShow (barAnd.showFs) $ gdown gn)
-                   ++ "}"
-        where barAnd x = "|" ++ x
-              showFs = gvUnlines . (map graphvizShow_)
-   in gvNode prefix body (shapeParams ++ colorParams)
+       summary = if null extra
+                 then FieldLabel stub
+                 else FlipFields [ FieldLabel stub, FieldLabel extra ]
+       body = Label $
+              if not detailed then (StrLabel (graphvizShow_ gn))
+              else RecordLabel [ FlipFields $
+                                   [ summary
+                                   , FieldLabel . showFs $ gup gn
+                                   ] ++ (maybeFs (gdown gn))
+                   ]
+        where showFs = unlines . (map graphvizShow_)
+              maybeFs fs = if null fs then [] else [FieldLabel (showFs fs)]
+   in printIt $
+        DotNode prefix (body : shapeParams ++ colorParams)
 
 instance GraphvizShowString () (GNode GeniVal) where
   graphvizShow () gn =
@@ -191,8 +193,8 @@ derivationToGv deriv =
     mkNode n  =
       DotNode (gvDerivationLab n) [ Label . StrLabel . label $ n ]
     mkEdge (DerivationStep substadj child parent _) =
-      DotEdge (gvDerivationLab parent) (gvDerivationLab child) True attrs
-      where attrs = if substadj == 'a' then [Style [SItem Dashed []]] else []
+      DotEdge (gvDerivationLab parent) (gvDerivationLab child) True xs
+      where xs = if substadj == 'a' then [Style [SItem Dashed []]] else []
     label n = case wordsBy (== ':') n of
               name:fam:tree:_ -> name ++ ":" ++ fam ++ "\n" ++ tree
               _               -> n ++ " (geni/gv ERROR)"
