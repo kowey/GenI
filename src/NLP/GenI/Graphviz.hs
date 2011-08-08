@@ -30,20 +30,14 @@
 module NLP.GenI.Graphviz
 where
 
-import Control.Concurrent (forkIO)
-import Control.Exception (bracket, evaluate)
-import Control.Monad(when)
+import Control.Arrow ( second )
 import Data.GraphViz
 import Data.GraphViz.Printing ( printIt )
 
 import Data.List(intercalate)
 import Data.Tree
-import System.IO ( hClose )
 import System.IO.UTF8
 import Prelude hiding ( writeFile )
-import System.Exit(ExitCode)
-
-import NLP.GenI.SysGeni(waitForProcess, runInteractiveProcess)
 
 {- |
      Data structures which can be visualised with GraphViz should
@@ -153,48 +147,3 @@ gvShowTree f prefix t =
         ps = zipWith (\i _ -> pref ++ "x" ++ show i) [0::Int ..] xs
         es = map (\n -> DotEdge pref n True []) ps
     in (ns, es) : concat (zipWith walk ps xs)
-
--- ---------------------------------------------------------------------
--- invocation 
--- ---------------------------------------------------------------------
-
--- | Calls graphviz. If the second argument is the empty string, then we
--- just send stuff directly to dot's stdin
-
-graphviz :: String -- ^ graphviz's dot format.
-         -> String -- ^ the name of the file graphviz should write the dot 
-         -> String -- ^ the name of the file graphviz should write its output 
-         -> IO ExitCode
-
--- We write the dot String to a temporary file which we then feed to graphviz.
--- This is avoid complications with fork and pipes.  We use png output even
--- though it's uglier, because we don't have a wxhaskell widget that can 
--- display postscript... do we?
-
-graphviz dot dotFile outputFile = do
-   let dotArgs' = ["-Gfontname=courier", 
-                   "-Nfontname=courier", 
-                   "-Efontname=courier", 
-                   "-Gcharset=utf-8",
-                   "-Tpng", "-o" ++ outputFile ]
-       dotArgs = dotArgs' ++ (if (null dotFile) then [] else [dotFile])
-   -- putStrLn ("sending to graphviz:\n" ++ dot) 
-   when (not $ null dotFile) $ writeFile dotFile dot
-   bracket
-    (runInteractiveProcess "dot" dotArgs Nothing Nothing)
-    (\(inh,outh,errh,_) -> hClose inh >> hClose outh >> hClose errh)
-    $ \(inh,outh,errh,pid) -> do
-       when (null dotFile) $ hPutStrLn inh dot 
-       hClose inh
-       -- see http://www.haskell.org/pipermail/haskell-cafe/2008-May/042994.html
-       -- wait for all the output
-       output <- hGetContents outh
-       _ <- evaluate (length output)
-       -- fork off a thread to pull on the stderr
-       -- so if the process writes to stderr we do not block.
-       -- NB. do the hGetContents synchronously, otherwise the outer
-       -- bracket can exit before this thread has run, and hGetContents
-       -- will fail.
-       err <- hGetContents errh
-       _   <- forkIO $ evaluate (length err) >> return ()
-       waitForProcess pid
