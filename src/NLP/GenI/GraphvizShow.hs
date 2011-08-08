@@ -72,7 +72,7 @@ instance GraphvizShow (Bool, GvHighlighter (GNode GeniVal)) TagElem where
       semlist    = "semantics: " ++ (showSem $ tsemantics te)
   in unlines [ treename, semlist ]
 
- graphvizParams _ te =
+ graphvizParams _ _ =
   [ GraphAttrs [ FontSize 10
                , RankSep [0.3]
                ]
