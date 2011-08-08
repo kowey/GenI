@@ -23,10 +23,9 @@ where
 
 import Data.List(intersperse,nub)
 import Data.List.Split (wordsBy)
-import Data.Maybe(listToMaybe)
+import Data.Maybe(listToMaybe, maybeToList)
 
 import Data.GraphViz
-import Data.GraphViz.Printing ( printIt )
 
 import NLP.GenI.Tags
  ( TagElem, TagDerivation, idname,
@@ -62,8 +61,10 @@ instance GraphvizShow Bool TagElem where
 
 instance GraphvizShow (Bool, GvHighlighter (GNode GeniVal)) TagElem where
  graphvizShowAsSubgraph (sf,hfn) prefix te =
-    (gvShowTree (\_->[]) sf (prefix ++ "DerivedTree0") $
-     fmap hfn $ ttree te)
+    [gvShowTree sf
+                (prefix ++ "DerivedTree0")
+                (hfn `fmap` ttree te)
+    ]
 
  graphvizLabel _ te =
   -- we display the tree semantics as the graph label
@@ -116,8 +117,7 @@ instance GraphvizShowNode (Bool) (GNode GeniVal, Maybe Color) where
                    ]
         where showFs = unlines . (map graphvizShow_)
               maybeFs fs = if null fs then [] else [FieldLabel (showFs fs)]
-   in printIt $
-        DotNode prefix (body : shapeParams ++ colorParams)
+   in DotNode prefix (body : shapeParams ++ colorParams)
 
 instance GraphvizShowString () (GNode GeniVal) where
   graphvizShow () gn =
@@ -176,14 +176,14 @@ graphvizShow_ = graphvizShow ()
 -- Derivation tree
 -- ----------------------------------------------------------------------
 
-graphvizShowDerivation :: TagDerivation -> String
-graphvizShowDerivation = maybe "" printIt . derivationToGv
+graphvizShowDerivation :: TagDerivation -> [DotSubGraph String]
+graphvizShowDerivation = maybeToList . derivationToGv
 
-derivationToGv :: TagDerivation -> Maybe (DotGraph String)
+derivationToGv :: TagDerivation -> Maybe (DotSubGraph String)
 derivationToGv deriv =
  if null histNodes
     then Nothing
-    else Just $ DotGraph False True Nothing
+    else Just $ DotSG True Nothing
               $ DotStmts [ NodeAttrs [ Shape PlainText ]]
                          []
                          (map mkNode histNodes)

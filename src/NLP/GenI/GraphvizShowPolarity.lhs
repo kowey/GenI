@@ -21,16 +21,15 @@
 module NLP.GenI.GraphvizShowPolarity
 where
 
-import Data.List (intersperse, intercalate)
+import Data.List (intercalate)
 import qualified Data.Map as Map
 import Data.Maybe ( catMaybes )
 import Data.GraphViz
-import Data.GraphViz.Printing ( printIt )
 
 import NLP.GenI.Btypes(showSem)
-import NLP.GenI.General(showInterval, isEmptyIntersect)
+import NLP.GenI.General(showInterval)
 import NLP.GenI.Polarity(PolAut, PolState(PolSt), NFA(states, transitions), finalSt)
-import NLP.GenI.Graphviz(GraphvizShow(..), gvUnlines, gvNode, gvEdge)
+import NLP.GenI.Graphviz(GraphvizShow(..), gvUnlines)
 import NLP.GenI.Tags(idname)
 \end{code}
 
@@ -38,22 +37,23 @@ import NLP.GenI.Tags(idname)
 instance GraphvizShow () PolAut where
   -- we want a directed graph (arrows)
   graphvizShowGraph f aut =
-     "digraph aut {\n"
-     ++ "rankdir=LR\n"
-     ++ "ranksep = 0.02\n"
-     ++ "pack=1\n"
-     ++ "edge [ fontsize=10 ]\n"
-     ++ "node [ fontsize=10 ]\n"
-     ++ graphvizShowAsSubgraph f "aut" aut
-     ++ "}"
+     DotGraph False True Nothing $ DotStmts
+         [ GraphAttrs [RankDir FromLeft, RankSep [0.02], Pack (PackMargin 1)]
+         , NodeAttrs [FontSize 10]
+         , EdgeAttrs [FontSize 10]
+         ]
+         (graphvizShowAsSubgraph f "aut" aut)
+         [] -- all nodes are in the subgraph
+         []
 
   --
   graphvizShowAsSubgraph _ prefix aut =
-    printIt $ DotGraph False True Nothing
+    [ DotSG False Nothing
             $ DotStmts [ NodeAttrs [ Shape Ellipse, Peripheries 1 ] ]
                        []
                        (zipWith (gvShowState fin) ids st)
                        (concat $ zipWith (gvShowTrans aut stmap) ids st)
+    ]
     where
        st  = (concat.states) aut
        fin = finalSt aut
@@ -65,7 +65,7 @@ gvShowState :: [PolState] -> String -> PolState -> DotNode String
 gvShowState fin stId st =
   DotNode stId $ decorate [ Label . StrLabel . showSt $ st ]
   where
-   showSt (PolSt pr ex po) =
+   showSt (PolSt _ ex po) =
           gvUnlines . catMaybes $
             [ Nothing -- Just (snd3 pr)
             , if null ex then Nothing else Just (showSem ex)

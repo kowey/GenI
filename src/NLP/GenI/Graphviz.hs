@@ -36,7 +36,7 @@ import Control.Monad(when)
 import Data.GraphViz
 import Data.GraphViz.Printing ( printIt )
 
-import Data.List(intersperse, intercalate)
+import Data.List(intercalate)
 import Data.Tree
 import System.IO ( hClose )
 import System.IO.UTF8
@@ -54,22 +54,22 @@ import NLP.GenI.SysGeni(waitForProcess, runInteractiveProcess)
      can hide this by turning off edge arrows.
 -}
 class GraphvizShow flag b where
-  graphvizShowGraph       :: flag -> b -> String
+  graphvizShowGraph       :: flag -> b -> DotGraph String
   graphvizShowAsSubgraph  :: flag   -- ^ flag
                           -> String -- ^ prefix
                           -> b      -- ^ item
-                          -> String -- ^ gv output 
+                          -> [DotSubGraph String] -- ^ gv output
   graphvizLabel           :: flag   -- ^ flag
                           -> b      -- ^ item
                           -> String -- ^ gv output
   graphvizParams          :: flag -> b -> [GlobalAttributes]
 
-  graphvizShowGraph f b  = 
-    "digraph {\n"
-       ++ (unlines . map printIt $ addLabel (graphvizLabel f b)
-                                 $ graphvizParams f b)
-       ++ graphvizShowAsSubgraph f "_" b ++ "\n"
-       ++ "}"
+  graphvizShowGraph f b  =
+    DotGraph False True Nothing $ DotStmts
+       (addLabel (graphvizLabel f b) $ graphvizParams f b)
+       (graphvizShowAsSubgraph f "_" b)
+       []
+       []
     where
       addLabel "" = id
       addLabel l  = (GraphAttrs [Label (StrLabel l)] :)
@@ -81,7 +81,7 @@ class GraphvizShowNode flag b where
   graphvizShowNode :: flag   -- ^ flag 
                    -> String -- ^ prefix 
                    -> b      -- ^ item 
-                   -> String -- ^ gv output
+                   -> DotNode String -- ^ gv output
 
 -- | Things which are meant to be displayed within some other graph
 --   as (part) of a node label
@@ -95,59 +95,27 @@ class GraphvizShowString flag b where
 toGraphviz :: (GraphvizShow f a) => f 
                                  -> a 
                                  -> String -- ^ the 'dotFile'
-                                 -> String -> IO ExitCode 
+                                 -> String -> IO (Either String FilePath)
 toGraphviz p x dotFile outputFile = do
-   graphviz (graphvizShowGraph p x) dotFile outputFile
+   writeFile dotFile (printIt g)
+   runGraphviz g Png outputFile
+ where
+  g = graphvizShowGraph p x
 
 -- ---------------------------------------------------------------------
 -- useful utility functions
 -- ---------------------------------------------------------------------
 
-gvNewline :: String
-gvNewline  = "\\n"
-
 gvUnlines :: [String] -> String
 gvUnlines = intercalate "\n"
-
-gvSubgraph :: String -> String
-gvSubgraph g = "subgraph {\n" ++ g ++ "}\n"
-
--- | The Graphviz string for a node.  Note that we make absolutely no
--- effort to escape any characters for you; so if you need to protect
--- anything from graphviz, you're on your own
-gvNode :: String                 -- ^ the node name
-            -> String            -- ^ the label (may be empty)
-            -> [(String,String)] -- ^ any other parameters
-            -> String
-gvNode name label params =  
-  " " ++ name ++ " " ++ (gvLabelAndParams label params) ++ "\n"
-
--- | The Graphviz string for a connection between two nodes.  
--- Same disclaimer as 'gvNode' applies.
-gvEdge :: String  -- ^ the 'from' node
-            -> String  -- ^ the 'to' node
-            -> String  -- ^ the label (may be empty)
-            -> [(String,String)] -- ^ any other parameters 
-            -> String
-gvEdge from to label params = 
-  " " ++ from ++ " -> " ++ to ++ (gvLabelAndParams label params) ++ "\n"
-
-gvLabelAndParams :: String -> [(String,String)] -> String
-gvLabelAndParams l p = 
-  gvParams $ if null l then p else ("label", l) : p
-
-gvParams :: [(String,String)] -> String
-gvParams [] = ""
-gvParams p  = "[ " ++ (concat $ intersperse ", " $ map showPair p) ++ " ]"
-  where showPair (a,v) = a ++ "=\"" ++ v ++ "\""
 
 -- ---------------------------------------------------------------------
 -- some instances 
 -- ---------------------------------------------------------------------
 
 instance (GraphvizShow f b) => GraphvizShow f (Maybe b) where
-  graphvizShowAsSubgraph _ _ Nothing  = ""
-  graphvizShowAsSubgraph f p (Just b) = graphvizShowAsSubgraph f p b 
+  graphvizShowAsSubgraph _ _ Nothing  = []
+  graphvizShowAsSubgraph f p (Just b) = graphvizShowAsSubgraph f p b
 
   graphvizLabel _ Nothing  = ""
   graphvizLabel f (Just b) = graphvizLabel f b
@@ -170,23 +138,21 @@ instance (GraphvizShow f b) => GraphvizShow f (Maybe b) where
    letter `x' as seperator because graphviz will choke on `.' or `-', even
    underscore. -}
 gvShowTree :: (GraphvizShowNode f n) => 
-     (n->[(String,String)]) -- ^ function to convert a node to a list of graphviz parameters for the edge 
-  -> f                      -- ^ GraphvizShow flag
+     f                      -- ^ GraphvizShow flag
   -> String                 -- ^ node prefix
-  -> (Tree n)               -- ^ the tree
-  -> String
-gvShowTree edgeFn f prefix t = 
-  "edge [ arrowhead = none ]\n" ++ gvShowTreeHelper edgeFn f prefix t  
-
-gvShowTreeHelper :: forall n . forall f . (GraphvizShowNode f n) => (n->[(String,String)]) -> f -> String -> (Tree n) -> String
-gvShowTreeHelper edgeFn f prefix (Node node l) = 
-   let showNode = graphvizShowNode f prefix 
-       showKid :: Integer -> Tree n -> String
-       showKid index kid = 
-         gvShowTreeHelper edgeFn f kidname kid ++ " " 
-         ++ (gvEdge prefix kidname "" (edgeFn node))
-         where kidname = prefix ++ "x" ++ (show index)
-   in showNode node ++ "\n" ++ (concat $ zipWith showKid [0..] l)
+  -> Tree n                 -- ^ the tree
+  -> DotSubGraph String
+gvShowTree f prefix t =
+  DotSG False Nothing $ DotStmts atts [] nodes edges
+ where
+  atts = [ EdgeAttrs [ ArrowHead noArrow ] ] -- should be none
+  (nodes, edges) = second concat . unzip $ walk prefix t
+  --
+  walk pref (Node node xs) =
+    let ns = graphvizShowNode f pref node
+        ps = zipWith (\i _ -> pref ++ "x" ++ show i) [0::Int ..] xs
+        es = map (\n -> DotEdge pref n True []) ps
+    in (ns, es) : concat (zipWith walk ps xs)
 
 -- ---------------------------------------------------------------------
 -- invocation 
