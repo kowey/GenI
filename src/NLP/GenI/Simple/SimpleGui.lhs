@@ -206,7 +206,8 @@ instance XMGDerivation SimpleItem where
 \begin{code}
 instance GraphvizShow Bool SimpleItem where
   graphvizLabel  f c =
-    graphvizLabel f (toTagElem c) ++ gvNewline ++ (gvUnlines $ siDiagnostic $ siGuiStuff c)
+    unlines $ graphvizLabel f (toTagElem c)
+            : siDiagnostic (siGuiStuff c)
 
   graphvizParams f c = graphvizParams f (toTagElem c)
   graphvizShowAsSubgraph f p it =

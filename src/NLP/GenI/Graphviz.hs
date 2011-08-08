@@ -33,6 +33,9 @@ where
 import Control.Concurrent (forkIO)
 import Control.Exception (bracket, evaluate)
 import Control.Monad(when)
+import Data.GraphViz
+import Data.GraphViz.Printing ( printIt )
+
 import Data.List(intersperse)
 import Data.Tree
 import System.IO ( hClose )
@@ -59,15 +62,18 @@ class GraphvizShow flag b where
   graphvizLabel           :: flag   -- ^ flag
                           -> b      -- ^ item
                           -> String -- ^ gv output
-  graphvizParams          :: flag -> b -> [String] 
+  graphvizParams          :: flag -> b -> [GlobalAttributes]
 
   graphvizShowGraph f b  = 
-    let l = graphvizLabel f b
-    in "digraph {\n" 
-       ++ (unlines $ graphvizParams f b)
+    "digraph {\n"
+       ++ (unlines . map printIt $ addLabel (graphvizLabel f b)
+                                 $ graphvizParams f b)
        ++ graphvizShowAsSubgraph f "_" b ++ "\n"
-       ++ (if null l then "" else " label = \"" ++ l ++ "\";\n")
        ++ "}"
+    where
+      addLabel "" = id
+      addLabel l  = (GraphAttrs [Label (StrLabel l)] :)
+
   graphvizLabel _ _ = ""
   graphvizParams _ _ = []
 

@@ -25,6 +25,8 @@ import Data.List(intersperse,nub)
 import Data.List.Split (wordsBy)
 import Data.Maybe(listToMaybe)
 
+import Data.GraphViz
+
 import NLP.GenI.Tags
  ( TagElem, TagDerivation, idname,
    tsemantics, ttree,
@@ -67,12 +69,18 @@ instance GraphvizShow (Bool, GvHighlighter (GNode GeniVal)) TagElem where
   -- we display the tree semantics as the graph label
   let treename   = "name: " ++ (idname te)
       semlist    = "semantics: " ++ (showSem $ tsemantics te)
-  in gvUnlines [ treename, semlist ]
+  in unlines [ treename, semlist ]
 
- graphvizParams _ _ =
-  [ "fontsize = 10", "ranksep = 0.3"
-  , "node [fontsize=10]"
-  , "edge [fontsize=10 arrowhead=none]" ]
+ graphvizParams _ te =
+  [ GraphAttrs [ FontSize 10
+               , RankSep [0.3]
+               ]
+  , NodeAttrs  [ FontSize 10
+               ]
+  , EdgeAttrs  [ FontSize 10
+               , ArrowHead normal
+               ]
+  ]
 
 -- ----------------------------------------------------------------------
 -- Helper functions for the TagElem GraphvizShow instance
