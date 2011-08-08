@@ -202,10 +202,6 @@ derivationToGv deriv =
 gvDerivationLab :: String -> String
 gvDerivationLab xs = "Derivation" ++ gvMunge xs
 
-newlineToSlashN :: Char -> String
-newlineToSlashN '\n' = gvNewline
-newlineToSlashN x = [x]
-
 -- | Node names can't have hyphens in them and newlines within the node
 --   labels should be represented literally as @\\n@.
 gvMunge :: String -> String

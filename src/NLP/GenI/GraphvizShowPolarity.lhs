@@ -21,7 +21,7 @@
 module NLP.GenI.GraphvizShowPolarity
 where
 
-import Data.List (intersperse)
+import Data.List (intersperse, intercalate)
 import qualified Data.Map as Map
 import Data.Maybe ( catMaybes )
 import Data.GraphViz
