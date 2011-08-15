@@ -22,11 +22,7 @@ table.tablesorter thead tr .header {
 table.tablesorter tbody td {
 	color: #3D3D3D;
 	padding: 4px;
-	background-color: #FFF;
 	vertical-align: top;
-}
-table.tablesorter tbody tr.odd td {
-	background-color:#F0F0F6;
 }
 table.tablesorter thead tr .headerSortUp {
 	background-image: url(asc.gif);
@@ -37,3 +33,8 @@ table.tablesorter thead tr .headerSortDown {
 table.tablesorter thead tr .headerSortDown, table.tablesorter thead tr .headerSortUp {
 background-color: #8dbdd8;
 }
+
+.count { color: grey }
+.warnings { background-color: #ffc343; }
+.failure  { background-color: #f99; }
+.success  { background-color: #8f8; }

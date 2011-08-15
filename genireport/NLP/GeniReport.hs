@@ -91,13 +91,6 @@ mkSummary :: [Result] -> Html
 mkSummary res = html $ do
   H.head $ do
     H.link ! rel "stylesheet" ! type_  "text/css" ! href "report.css"
-    H.style . toHtml . unlines $
-      [ "td { border-bottom-style: solid; border-bottom-width: 1px; border-color: #ffffff}"
-      , ".count { color: grey } "
-      , ".warnings { background-color: #ffc343; }"
-      , ".failure  { background-color: #f99; }"
-      , ".success  { background-color: #8f8; }"
-      ]
     H.script "" ! type_ "text/javascript" ! src "jquery-1.6.2.min.js"
     H.script "" ! type_ "text/javascript" ! src "jquery.tablesorter.min.js"
     H.script . toHtml . unlines $
