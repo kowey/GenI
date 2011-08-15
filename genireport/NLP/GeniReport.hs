@@ -41,6 +41,8 @@ import Prelude hiding ( readFile )
 import qualified Prelude as P 
 import Control.Monad
 
+import Paths_genireport
+
 data GeniReport = GeniReport
   { inputDir  :: FilePath
   , outputDir :: FilePath
@@ -61,8 +63,12 @@ instance RecordCommand GeniReport where
 main = do
   opts <- executeR GeniReport {} =<< getArgs
   res  <- readResults (inputDir opts)
-  B.writeFile (outputDir opts </> "report.html")  $ renderHtml (mkSummary res)
-  B.writeFile (outputDir opts </> "details.html") $ renderHtml (mkDetailsSummary res)
+  let odir = outputDir opts
+  B.writeFile (odir </> "report.html")  $ renderHtml (mkSummary res)
+  B.writeFile (odir </> "details.html") $ renderHtml (mkDetailsSummary res)
+  forM dataFiles $ \bn -> do
+    f <- getDataFileName bn
+    copyFile f (odir </> bn)
 
 readResults d = do
   cases <- getRealDirectoryContents d
@@ -83,7 +89,8 @@ data Result = Result
 
 mkSummary :: [Result] -> Html
 mkSummary res = html $ do
-  H.head $
+  H.head $ do
+    H.link ! rel "stylesheet" ! type_  "text/css" ! href "report.css"
     H.style . toHtml . unlines $
       [ "td { border-bottom-style: solid; border-bottom-width: 1px; border-color: #ffffff}"
       , ".count { color: grey } "
@@ -91,15 +98,28 @@ mkSummary res = html $ do
       , ".failure  { background-color: #f99; }"
       , ".success  { background-color: #8f8; }"
       ]
+    H.script "" ! type_ "text/javascript" ! src "jquery-1.6.2.min.js"
+    H.script "" ! type_ "text/javascript" ! src "jquery.tablesorter.min.js"
+    H.script . toHtml . unlines $
+     [ "$(document).ready(function()"
+     , " {"
+     , "   $(\"#resultsTable\").tablesorter();"
+     , " }"
+     , ");"
+     ]
   body $ do
    resultsTable res
 
 resultsTable :: [Result] -> Html
-resultsTable rs = table $ do
-  tr $ do th "case"
-          th "results"
-          th "warnings"
-  forM_ rs resultsRow 
+resultsTable rs =
+  table content ! A.id "resultsTable" ! class_ "tablesorter"
+ where
+  content = do
+   thead . tr $ do
+           th "case"
+           th "results"
+           th "warnings"
+   tbody $ forM_ rs resultsRow
 
 resultsRow :: Result -> Html
 resultsRow (Result {..}) = tr cells ! class_ status 
@@ -125,7 +145,8 @@ mkDetailsSummary res = html $ do
    detailsTable res
 
 detailsTable :: [Result] -> Html
-detailsTable rs = table $ forM_ rs detailsRow
+detailsTable rs =
+ table (forM_ rs detailsRow) ! class_ "tablesorter"
 
 detailsRow :: Result -> Html
 detailsRow (Result {..}) = tr $ do
@@ -159,6 +180,17 @@ unlinesCountHtml = sequence_ . intersperse br . map htmlC . groupAndCount
  where
   htmlC (s, 1) = toHtml s
   htmlC (s, c) = toHtml s >> " " >> H.span ("⨉" >> toHtml c) ! class_ "count"
+
+-- ----------------------------------------------------------------------
+
+dataFiles :: [FilePath]
+dataFiles =
+  [ "jquery-1.6.2.min.js"
+  , "jquery.tablesorter.min.js"
+  , "asc.gif"
+  , "bg.gif"
+  , "desc.gif"
+  ]
 
 -- ----------------------------------------------------------------------
 -- odds and ends
