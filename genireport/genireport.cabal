@@ -50,7 +50,7 @@ Data-files:   jquery-1.6.2.min.js
           ,   asc.gif
           ,   bg.gif
           ,   desc.gif
-
+          ,   report.css
 
 Executable genireport
   -- .hs or .lhs file containing the Main module.
