@@ -49,7 +49,7 @@ import NLP.GenI.Geni
   , loadEverything, loadTestSuite, loadTargetSemStr
   , BadInputException(..)
   )
-import NLP.GenI.General (boundsCheck, geniBug, fst3, prettyException)
+import NLP.GenI.General (boundsCheck, geniBug, fst3, prettyException, trim)
 import NLP.GenI.Btypes (TestCase(..), showFlist,)
 import NLP.GenI.GeniShow (geniShow)
 import NLP.GenI.Configuration
@@ -557,6 +557,7 @@ doGenerate f pstRef sembox detectPolsTxt rootFeatTxt useDebugger pauseOnLex =
           . (setFlagP DetectPolaritiesFlg (readPolarityAttrs detectPolsVal))
     modifyIORef pstRef $ \p -> p { pa = setConfig (pa p), warnings = [] }
     minput <- try $ do
+      set sembox [ text :~ trim ]
       loadEverything   pstRef
       loadTargetSemStr pstRef =<< get sembox text
     case minput of
