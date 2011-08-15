@@ -45,6 +45,12 @@ Build-type:          Simple
 -- Constraint on the version of Cabal needed to build this package.
 Cabal-version:       >=1.2
 
+Data-files:   jquery-1.6.2.min.js
+          ,   jquery.tablesorter.min.js
+          ,   asc.gif
+          ,   bg.gif
+          ,   desc.gif
+
 
 Executable genireport
   -- .hs or .lhs file containing the Main module.
