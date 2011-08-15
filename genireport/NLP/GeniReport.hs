@@ -75,8 +75,8 @@ readResults d = do
   forM cases $ \c -> do
     let dc = d </> c
     Result c <$> (lines `fmap` readFile (dc </> "responses"))
-             <*> (lines `fmap` readFile (dc </> "warnings"))
- 
+             <*> (lines `fmap` readFileIfExists (dc </> "warnings"))
+
 -- ----------------------------------------------------------------------
 -- business
 -- ----------------------------------------------------------------------
@@ -195,6 +195,12 @@ dataFiles =
 -- ----------------------------------------------------------------------
 -- odds and ends
 -- ----------------------------------------------------------------------
+
+readFileIfExists :: FilePath -> IO String
+readFileIfExists f = do
+  x <- doesFileExist f
+  if x then readFile f
+       else return ""
 
 groupAndCount :: (Eq a, Ord a) => [a] -> [(a, Int)]
 groupAndCount xs = 
