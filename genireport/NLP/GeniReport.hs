@@ -100,8 +100,7 @@ mkSummary res = html $ do
      , " }"
      , ");"
      ]
-  body $ do
-   resultsTable res
+  body $ resultsTable res
 
 resultsTable :: [Result] -> Html
 resultsTable rs =
