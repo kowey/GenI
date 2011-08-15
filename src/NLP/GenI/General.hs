@@ -36,6 +36,7 @@ module NLP.GenI.General (
         toUpperHead, toLowerHead,
         toAlphaNum,
         quoteString,
+        clumpBy,
         -- * Triples
         fst3, snd3, thd3,
         -- * Lists
@@ -71,7 +72,7 @@ import Control.Monad (liftM)
 import Data.Bits (shiftR, (.&.))
 import Data.Char (isDigit, isSpace, toUpper, toLower)
 import Data.Function ( on )
-import Data.List (foldl', intersect, groupBy, group, sort, sortBy)
+import Data.List (foldl', intersect, inits, intersperse, groupBy, group, sort, sortBy)
 import Data.Tree
 import System.IO (hPutStrLn, hPutStr, hFlush, stderr)
 import System.IO.Error (isUserError, ioeGetErrorString)
@@ -133,6 +134,26 @@ quoteString xs = "\"" ++ concatMap helper xs ++ "\""
    helper '\\' = [ '\\', '\\' ]
    helper x    = [ x ]
 
+-- | break a list of items into sublists of length < the clump
+--   size, taking into consideration that each item in the clump
+--   will have a single gap of padding interspersed
+--
+--   any item whose length is greater than the clump size
+--   is put into a clump by itself
+--
+--   given a length function
+--   @clumpBy (length.show) 8 ["hello", "this", "is", "a", "list"]@
+clumpBy :: (a -> Int) -> Int -> [a] -> [[a]]
+clumpBy f l items = iter [] items
+ where
+  iter acc [] = reverse acc
+  iter acc cs =
+   case break toobig (drop 1 $ inits cs) of
+        ([],_)    -> next 1           -- first too big
+        (_,[])    -> iter (cs:acc) [] -- none too big
+        (_,(x:_)) -> next (length x - 1)
+   where next n = iter (take n cs : acc) (drop n cs)
+  toobig x = (sum . intersperse 1 . map f) x > l
 
 -- ----------------------------------------------------------------------
 -- Alphanumeric sort

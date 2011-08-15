@@ -36,13 +36,15 @@ import NLP.GenI.Btypes (AvPair(..),
                GNode(..), GType(..), Flist,
                showSem,
                )
+import NLP.GenI.General ( clumpBy )
 import NLP.GenI.GeniVal (GeniVal(..),isConst)
 import NLP.GenI.Graphviz
   ( GraphvizShow(graphvizShowAsSubgraph, graphvizLabel, graphvizParams)
   , GraphvizShowNode(graphvizShowNode)
   , GraphvizShowString(graphvizShow)
-  , gvShowTree
+  , gvUnlines, gvShowTree
   )
+import NLP.GenI.Semantics ( Sem )
 
 -- ----------------------------------------------------------------------
 -- For GraphViz
@@ -69,8 +71,8 @@ instance GraphvizShow (Bool, GvHighlighter (GNode GeniVal)) TagElem where
  graphvizLabel _ te =
   -- we display the tree semantics as the graph label
   let treename   = "name: " ++ (idname te)
-      semlist    = "semantics: " ++ (showSem $ tsemantics te)
-  in unlines [ treename, semlist ]
+      semlist    = "semantics: " ++ gvShowSem (tsemantics te)
+  in gvUnlines [ treename, semlist ]
 
  graphvizParams _ _ =
   [ GraphAttrs [ FontSize 10
@@ -82,6 +84,9 @@ instance GraphvizShow (Bool, GvHighlighter (GNode GeniVal)) TagElem where
                , ArrowHead normal
                ]
   ]
+
+gvShowSem :: Sem -> String
+gvShowSem = gvUnlines . map unwords . clumpBy length 32 . words . showSem 
 
 -- ----------------------------------------------------------------------
 -- Helper functions for the TagElem GraphvizShow instance
