@@ -47,6 +47,7 @@ import NLP.GenI.Geni
   ( ProgState(..), ProgStateRef, initGeni
   , prettyResult
   , loadEverything, loadTestSuite, loadTargetSemStr
+  , BadInputException(..)
   )
 import NLP.GenI.General (boundsCheck, geniBug, fst3, prettyException)
 import NLP.GenI.Btypes (TestCase(..), showFlist,)
@@ -71,7 +72,7 @@ import NLP.GenI.Configuration
   --
   , Optimisation(..)
   , BuilderType(..), mainBuilderTypes )
-import NLP.GenI.GeniParsers hiding ( choice, label, tab )
+import NLP.GenI.GeniParsers hiding ( choice, label, tab, try )
 import NLP.GenI.GuiHelper
 
 import NLP.GenI.Polarity
@@ -555,26 +556,26 @@ doGenerate f pstRef sembox detectPolsTxt rootFeatTxt useDebugger pauseOnLex =
           . (maybeSet RootFeatureFlg parseRF rootCatVal)
           . (setFlagP DetectPolaritiesFlg (readPolarityAttrs detectPolsVal))
     modifyIORef pstRef $ \p -> p { pa = setConfig (pa p), warnings = [] }
-    loadEverything pstRef
-    sem <- get sembox text
-    loadTargetSemStr pstRef sem
-    --
-    pst <- readIORef pstRef
-    let config = pa pst
-        withBuilderGui a =
-          case builderType config of
-          SimpleBuilder         -> a simpleGui_2p
-          SimpleOnePhaseBuilder -> a simpleGui_1p
-    --
-    let doDebugger bg = debugGui bg pstRef pauseOnLex
-        doResults  bg = resultsGui bg pstRef
-    do catch (withBuilderGui $ if useDebugger then doDebugger else doResults)
-             (handler "Error during realisation")
-  -- FIXME: it would be nice to distinguish between generation and ts
-  -- parsing errors
- `catch` (handler "Please give me better input")
+    minput <- try $ do
+      loadEverything   pstRef
+      loadTargetSemStr pstRef =<< get sembox text
+    case minput of
+      Left e -> handler "Please give me better input" fromBadInputException e
+      Right () -> do
+        let doDebugger bg = debugGui bg pstRef pauseOnLex
+            doResults  bg = resultsGui bg pstRef
+        catch
+         (withBuilderGui $ if useDebugger then doDebugger else doResults)
+         (handler "Error during realisation" prettyException)
  where
-   handler title err = errorDialog f title (prettyException err)
+   fromBadInputException (BadInputException d msg) =
+     d ++ ":\n" ++ show msg
+   handler title fn err = errorDialog f title (fn err)
+   withBuilderGui a = do
+     config <- pa `fmap` readIORef pstRef
+     case builderType config of
+       SimpleBuilder         -> a simpleGui_2p
+       SimpleOnePhaseBuilder -> a simpleGui_1p
 \end{code}
 
 When surface realisation is complete, we display a results window with various
