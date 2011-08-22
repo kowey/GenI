@@ -19,6 +19,7 @@
 
 \ignore{
 \begin{code}
+{-# LANGUAGE TypeSynonymInstances, MultiParamTypeClasses, FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module NLP.GenI.Semantics where
 

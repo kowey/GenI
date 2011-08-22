@@ -32,6 +32,7 @@ rules we leave out, and prefer to describe informally:
 
 \ignore{
 \begin{code}
+{-# LANGUAGE CPP, FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 module NLP.GenI.GeniParsers (
   -- * Test suites

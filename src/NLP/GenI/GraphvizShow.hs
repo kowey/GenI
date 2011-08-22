@@ -15,7 +15,7 @@
 --  along with this program; if not, write to the Free Software
 --  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-{-# LANGUAGE FlexibleInstances, TypeSynonymInstances, FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances, TypeSynonymInstances, MultiParamTypeClasses, FlexibleContexts #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 -- | Outputting core GenI data to graphviz.
 module NLP.GenI.GraphvizShow

@@ -23,6 +23,7 @@ action is in Geni and Tags
 (chapters \ref{cha:Geni} and \ref{cha:Tags}).  
 
 \begin{code}
+{-# LANGUAGE CPP #-}
 module Main (main) where
 \end{code}
 

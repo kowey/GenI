@@ -39,7 +39,8 @@ UML might help.  See figure \ref{fig:builderUml}.
 
 \ignore{
 \begin{code}
-{-# LANGUAGE TemplateHaskell, DeriveDataTypeable #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 
 module NLP.GenI.Builder (
  TagDerivation, Builder(..), LemmaPlusSentence, LemmaPlus(..),

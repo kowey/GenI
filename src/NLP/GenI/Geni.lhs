@@ -25,8 +25,8 @@ module also does lexical selection and anchoring because these processes might
 involve some messy IO performance tricks.
 
 \begin{code}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE ScopedTypeVariables, ExistentialQuantification, TypeSynonymInstances #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 module NLP.GenI.Geni (
              -- * main interface
              ProgState(..), ProgStateRef, emptyProgState,

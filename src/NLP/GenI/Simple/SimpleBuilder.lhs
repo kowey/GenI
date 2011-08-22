@@ -25,7 +25,7 @@ item is a derived tree.
 
 \begin{code}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE LiberalTypeSynonyms, TemplateHaskell, DeriveDataTypeable #-}
+{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, LiberalTypeSynonyms, DeriveDataTypeable #-}
 module NLP.GenI.Simple.SimpleBuilder (
    -- Types
    Agenda, AuxAgenda, Chart, SimpleStatus, SimpleState,

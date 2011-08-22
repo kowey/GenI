@@ -23,7 +23,8 @@ This module provides basic datatypes specific to Tree Adjoining Grammar
 
 \begin{code}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE TemplateHaskell, DeriveDataTypeable #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 
 module NLP.GenI.Tags(
    -- Main Datatypes

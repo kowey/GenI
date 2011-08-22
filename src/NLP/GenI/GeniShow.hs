@@ -33,6 +33,7 @@ Unfortunately, HaXml seems to have some kind of space leak.
 -}
 
 -- This module provides specialised functions for visualising tree data.
+{-# LANGUAGE FlexibleInstances, TypeSynonymInstances #-}
 module NLP.GenI.GeniShow
 where
 

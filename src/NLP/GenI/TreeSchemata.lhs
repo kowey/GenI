@@ -24,8 +24,8 @@ tree schemata.
 \ignore{
 \begin{code}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE OverlappingInstances #-}
-{-# LANGUAGE TemplateHaskell, DeriveDataTypeable #-}
+{-# LANGUAGE OverlappingInstances, FlexibleInstances #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 module NLP.GenI.TreeSchemata (
    Macros, emptyMacro,
    SchemaTree, SchemaNode, Ttree(..), Ptype(..),

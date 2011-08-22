@@ -134,14 +134,12 @@ Library
                 NLP.GenI.Polarity.Internal
 
   Hs-Source-Dirs: src
-  Extensions:     CPP, Rank2Types, OverlappingInstances, MultiParamTypeClasses, FlexibleContexts, TypeSynonymInstances,  FlexibleInstances, DeriveDataTypeable, ExistentialQuantification, LiberalTypeSynonyms
   Ghc-options:    -Wall -O2
   Ghc-prof-options: -auto-all
 
 Executable     geni
  Main-Is:        MainGeni.lhs
  Hs-Source-Dirs: src
- Extensions:     CPP, Rank2Types, OverlappingInstances, MultiParamTypeClasses, FlexibleContexts, TypeSynonymInstances,  FlexibleInstances, DeriveDataTypeable, ExistentialQuantification, LiberalTypeSynonyms
 
  Ghc-options:    -Wall -O2
  Ghc-prof-options: -auto-all
@@ -159,7 +157,6 @@ Executable     geni
 Executable geni-test
  Main-Is:       MainTest.hs
  Hs-Source-Dirs: src
- Extensions:     CPP, Rank2Types, OverlappingInstances, MultiParamTypeClasses, FlexibleContexts, TypeSynonymInstances,  FlexibleInstances, DeriveDataTypeable, ExistentialQuantification, LiberalTypeSynonyms
  if flag(test)
     Buildable: True
     Build-Depends: QuickCheck == 2.4.*

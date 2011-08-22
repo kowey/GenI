@@ -20,7 +20,8 @@
 
 \ignore{
 \begin{code}
-{-# LANGUAGE TemplateHaskell, DeriveDataTypeable #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 module NLP.GenI.Lexicon (
    Lexicon, ILexEntry(..), emptyLE,
 ) where

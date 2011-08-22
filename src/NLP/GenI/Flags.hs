@@ -1,4 +1,5 @@
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 -- GenI surface realiser
 -- Copyright (C) 2009 Eric Kow
 --
