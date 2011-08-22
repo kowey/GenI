@@ -3,6 +3,7 @@
 module NLP.GenI.Test.GeniVal where
 
 import Control.Monad ( liftM2 )
+import Data.Char
 import GHC.Exts ( IsString(..) )
 import Data.Maybe (isJust)
 import qualified Data.Map as Map
@@ -173,8 +174,7 @@ fromGTestString2 :: GTestString2 -> String
 fromGTestString2 (GTestString2 s) = s
 
 instance Arbitrary GTestString where
-  arbitrary =
-    oneof $ map (return . GTestString) gTestStrings
+  arbitrary = GTestString `fmap` (listOf1 (arbitrary `suchThat` isPrint))
 
 gTestStrings :: [String]
 gTestStrings =
@@ -203,4 +203,4 @@ instance Arbitrary a => Arbitrary (List1 a) where
   arbitrary = List1 `fmap` arbitrary1
 
 arbitrary1 :: Arbitrary a => Gen [a]
-arbitrary1 = sized (\n -> choose (1,n+1) >>= vector)
+arbitrary1 = listOf1 arbitrary
