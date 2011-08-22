@@ -56,6 +56,7 @@ import NLP.GenI.GeniVal (mkGConst, mkGVar, mkGAnon)
 import NLP.GenI.Btypes
 import NLP.GenI.Tags (TagElem(..), emptyTE, setTidnums)
 import NLP.GenI.TreeSchemata (SchemaTree)
+import NLP.GenI.General (isGeniIdentLetter)
 import NLP.GenI.GeniShow (GeniShow(geniShow))
 
 import BoolExp
@@ -134,7 +135,7 @@ geniLanguageDef = emptyDef
          , identLetter = identStuff
          , identStart  = identStuff
          }
-  where identStuff = alphaNum <|> oneOf "_'+-."
+  where identStuff = satisfy isGeniIdentLetter
 \end{code}
 \end{includecodeinmanual}
 

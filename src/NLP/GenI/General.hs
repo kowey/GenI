@@ -31,6 +31,7 @@ module NLP.GenI.General (
         withTimeout,
         exitTimeout,
         -- * Strings
+        isGeniIdentLetter,
         dropTillIncluding,
         trim,
         toUpperHead, toLowerHead,
@@ -70,7 +71,7 @@ module NLP.GenI.General (
 import Control.Arrow (first)
 import Control.Monad (liftM)
 import Data.Bits (shiftR, (.&.))
-import Data.Char (isDigit, isSpace, toUpper, toLower)
+import Data.Char (isAlphaNum, isDigit, isSpace, toUpper, toLower)
 import Data.Function ( on )
 import Data.List (foldl', intersect, inits, intersperse, groupBy, group, sort, sortBy)
 import Data.Tree
@@ -109,6 +110,9 @@ eFlush    = hFlush stderr
 -- ----------------------------------------------------------------------
 -- Strings
 -- ----------------------------------------------------------------------
+
+isGeniIdentLetter :: Char -> Bool
+isGeniIdentLetter x = isAlphaNum x || x `elem` "_'+-."
 
 trim :: String -> String
 trim = reverse . (dropWhile isSpace) . reverse . (dropWhile isSpace) 

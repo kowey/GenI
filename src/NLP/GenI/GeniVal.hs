@@ -23,6 +23,7 @@ module NLP.GenI.GeniVal where
 -- import Debug.Trace -- for test stuff
 import Control.Arrow (first, (***))
 import Control.Monad (liftM)
+import Data.Char ( isAlphaNum )
 import Data.List
 import Data.Maybe (catMaybes, fromMaybe, isNothing, isJust)
 import Data.Generics (Data)
@@ -34,7 +35,7 @@ import Data.Generics.PlateDirect
 
 import Control.DeepSeq
 
-import NLP.GenI.General (geniBug, quoteString)
+import NLP.GenI.General (geniBug, quoteString, isGeniIdentLetter)
 
 -- | constant : no label, just constraints
 --   variable : label, with or without constraints
@@ -83,7 +84,7 @@ showGeniVal gv =
    maybeQuote "" = quoteString ""
    maybeQuote x | any naughty x = quoteString x
    maybeQuote x  = x
-   naughty = (`elem` ['/','|','\\','\"'])
+   naughty x = not (isGeniIdentLetter x) || x `elem` "_?/"
 
 isConst :: GeniVal -> Bool
 isConst = isNothing . gLabel
