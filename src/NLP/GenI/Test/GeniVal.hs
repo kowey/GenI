@@ -174,7 +174,10 @@ fromGTestString2 (GTestString2 s) = s
 
 instance Arbitrary GTestString where
   arbitrary =
-    oneof $ map (return . GTestString) $
+    oneof $ map (return . GTestString) gTestStrings
+
+gTestStrings :: [String]
+gTestStrings =
     [ "a", "apple" , "b", "banana", "c", "carrot", "d", "durian"
     , "e", "eggplant", "f", "fennel" , "g", "grape" ]
 

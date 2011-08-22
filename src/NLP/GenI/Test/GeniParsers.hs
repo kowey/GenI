@@ -10,8 +10,10 @@ import Test.Framework
 import Test.Framework.Providers.HUnit
 import Test.Framework.Providers.QuickCheck2
 
+import NLP.GenI.FeatureStructures
 import NLP.GenI.GeniVal
 import NLP.GenI.GeniParsers
+import NLP.GenI.Test.FeatureStructures ()
 import NLP.GenI.Test.GeniVal ()
 
 suite :: Test.Framework.Test
@@ -26,6 +28,7 @@ suite =
       ]
   , testGroup "round trips"
       [ testProperty "GeniVal" propRoundTripGeniVal
+      , testProperty "FS"      propRoundTripFeats
       ]
   ]
 
@@ -55,6 +58,12 @@ propRoundTripGeniVal g =
  case testParse geniValue (show g) of
    Left  e  -> False
    Right g2 -> g2 == g
+
+propRoundTripFeats g =
+ case testParse geniFeats (showFlist g) of
+   Left  e  -> False
+   Right g2 -> g2 == g
+
 
 testParse p = runParser (tillEof p) () ""
 
