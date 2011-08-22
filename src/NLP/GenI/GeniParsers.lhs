@@ -102,7 +102,7 @@ You can ignore C pre-processor noise such as \verb!#define SEMANTICS!
 #define FOOT            "foot"
 #define LEX             "lex"
 #define TYPE            "type"
-#define ACONSTR_NOADJ   "aconstr:noadj"
+#define ACONSTR         "aconstr"
 #define INITIAL         "initial"
 #define AUXILIARY       "auxiliary"
 #define IDXCONSTRAINTS  "idxconstraints"
@@ -127,7 +127,7 @@ geniLanguageDef = emptyDef
          , reservedOpNames = [""]
          , reservedNames =
              [ SEMANTICS , SENTENCE, OUTPUT, IDXCONSTRAINTS, TRACE
-             , ANCHOR , SUBST , FOOT , LEX , TYPE , ACONSTR_NOADJ
+             , ANCHOR , SUBST , FOOT , LEX , TYPE , ACONSTR
              , INITIAL , AUXILIARY
              , BEGIN , END ]
          , identLetter = identStuff
@@ -800,7 +800,7 @@ geniNode =
                  , gorigin  = "" }
   where
     typeParser = choice $ map (try.symbol) [ ANCHOR, FOOT, SUBST, LEX ]
-    adjConstraintParser = option False $ reserved ACONSTR_NOADJ >> return True
+    adjConstraintParser = option False $ reserved ACONSTR >> char ':' >> symbol "noadj" >> return True
     topbotParser =
       do top <- geniFeats <?> "top features"
          symbol "!"
