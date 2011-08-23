@@ -29,7 +29,7 @@ import Foreign.Ptr
 import Foreign.StablePtr
 
 -- returns NULL pointer if anything goes wrong
-foreign export ccall "geni_init"    cGeniInit    :: CString -> CString -> IO (Ptr ())
+foreign export ccall "geni_init"    cGeniInit    :: CString -> CString -> CString -> IO (Ptr ())
 -- returns error message on parse errors of input files
 foreign export ccall "geni_realize" cGeniRealize :: Ptr () -> CString -> CString -> CString -> IO CString
 foreign export ccall "geni_free"    free         :: Ptr a -> IO ()
@@ -37,11 +37,12 @@ foreign export ccall "geni_free"    free         :: Ptr a -> IO ()
 peekUTF8_CString :: CString -> IO String
 peekUTF8_CString = fmap B8.toString . BU.unsafePackCString
 
-cGeniInit :: CString -> CString -> IO (Ptr ())
-cGeniInit cm cl = do
+cGeniInit :: CString -> CString -> CString -> IO (Ptr ())
+cGeniInit cm cl cmorph = do
   mfile <- peekCString cm
   lfile <- peekCString cl
-  p <- geniInit mfile lfile
+  morphcmd <- peekCString cmorph
+  p <- geniInit mfile lfile morphcmd
   case p of
    Left _   -> return nullPtr
    Right p2 -> castStablePtrToPtr `fmap` newStablePtr p2
@@ -54,14 +55,16 @@ cGeniRealize ptr cx cy cz = do
   z <- peekUTF8_CString cz
   newCString =<< geniRealize pst x y z
 
-geniInit :: FilePath -> FilePath -> IO (Either BadInputException ProgStateRef)
-geniInit mfile lfile = do
+geniInit :: FilePath -> FilePath -> String -> IO (Either BadInputException ProgStateRef)
+geniInit mfile lfile morphcmd = do
   pstRef <- newIORef . emptyProgState
                      . setFlagP LexiconFlg lfile
                      . setFlagP MacrosFlg  mfile
                      $ emptyParams
   try $ do loadGeniMacros pstRef
-           when (not (null lfile)) $ loadLexicon pstRef >> return ()
+           unless (null lfile) $ loadLexicon pstRef >> return ()
+           unless (null morphcmd) $
+             modifyIORef pstRef $ \pst -> pst { pa = setFlagP MorphCmdFlg morphcmd (pa pst) }
            return pstRef
 
 -- | Print any errors in an JSON error object

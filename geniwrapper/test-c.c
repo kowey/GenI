@@ -11,12 +11,13 @@ int main(int argc, char *argv[]) {
   char *lexicon2;
   char *test_sem;
   char *root_ft;
+  char *morphcmd;
   char *result;
   char *result2;
   void *geni_st;
  
-  if (argc < 6) {
-    printf("Usage: %s <macros-file> <lexicon-file> <lexicon-file-2> <sem-file> <root-feat>\n", argv[0]);
+  if (argc < 7) {
+    printf("Usage: %s <macros-file> <lexicon-file> <lexicon-file-2> <sem-file> <root-feat> <morph-cmd>\n", argv[0]);
     printf("NB: It's OK for lexicons 1 and 2 to be the same file\n");
     printf("NB: supplying different files lets us compare the realize/realizeWith functions\n");
     printf("Root feature can be the empty string\n");
@@ -29,9 +30,10 @@ int main(int argc, char *argv[]) {
   lexicon2=slurp(argv[3]);
   test_sem=slurp(argv[4]);
   root_ft=argv[5];
+  morphcmd=argv[6];
 
   // go!
-  geni_st=geni_init(macros_fn, lexicon_fn);
+  geni_st=geni_init(macros_fn, lexicon_fn, morphcmd);
   if ( geni_st == NULL ) {
     fprintf(stderr, "Could not initialise GenI wrapper");
     exit(1);
