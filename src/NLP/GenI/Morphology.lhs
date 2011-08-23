@@ -217,9 +217,6 @@ inflectSentencesUsingCmd morphcmd sentences =
     $ \(toP,fromP,errP,pid) -> do
      hPutStrLn toP . render . pp_value . showJSON $ sentences
      hClose toP
-     -- wait for all the output
-     output <- hGetContents fromP
-     _ <- evaluate (length output)
      -- see http://www.haskell.org/pipermail/haskell-cafe/2008-May/042994.html
      -- fork off a thread to pull on the stderr
      -- so if the process writes to stderr we do not block.
@@ -228,6 +225,10 @@ inflectSentencesUsingCmd morphcmd sentences =
      -- will fail.
      err <- hGetContents errP
      _ <- forkIO (evaluate (length err) >> ePutStrLn err)
+
+     -- wait for all the output
+     output <- hGetContents fromP
+     _ <- evaluate (length output)
 
      -- wait for the program to terminate
      exitcode <- waitForProcess pid
