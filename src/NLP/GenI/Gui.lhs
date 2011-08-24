@@ -18,6 +18,7 @@
 \chapter{Graphical User Interface} 
 
 \begin{code}
+{-# LANGUAGE NamedFieldPuns, RecordWildCards #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module NLP.GenI.Gui(guiGeni) where
@@ -191,29 +192,15 @@ mainGui pstRef
        -- layout; packing it all together
        -- -----------------------------------------------------------------
        -- set any last minute handlers, run any last minute functions
-       let onLoad =
-            do cfg <- pa `fmap` readIORef pstRef -- we want the latest config!
-               -- errHandler title err = errorDialog f title (show err)
-               set macrosFileLabel  [ text := getListFlagP MacrosFlg cfg ]
-               set lexiconFileLabel [ text := getListFlagP LexiconFlg cfg ]
-               -- set tsFileLabel      [ text := getListFlagP TestSuiteFlg config ]
-               -- read the test suite if there is one
-               case getListFlagP TestInstructionsFlg config of
-                 [] -> do set testSuiteChoice [ enabled := False, items := [] ]
-                          set testCaseChoice  [ enabled := False, items := [] ]
-                 is ->
-                   do -- handler for selecting a test suite
-                      let imap = Map.fromList $ zip [0..] is
-                          onTestSuiteChoice = do
-                            sel <- get testSuiteChoice selection
-                            case Map.lookup sel imap of
-                              Nothing -> geniBug $ "No such index in test suite selector (gui): " ++ show sel
-                              Just t  -> loadTestSuiteAndRefresh f pstRef t tsTextBox testCaseChoice
-                      set testSuiteChoice [ enabled := True, items := map fst is
-                                          , on select := onTestSuiteChoice, selection := 0 ]
-                      set testCaseChoice  [ enabled := True ]
-                      onTestSuiteChoice -- load the first suite
-       --
+       let myWidgets = MainWidgets
+             { f = f
+             , macrosFileLabel  = macrosFileLabel
+             , lexiconFileLabel = lexiconFileLabel
+             , testSuiteChoice  = testSuiteChoice
+             , testCaseChoice   = testCaseChoice
+             , tsTextBox        = tsTextBox
+             }
+           onLoad = mainOnLoad pstRef myWidgets
        set loadMenIt [ on command := do configGui pstRef onLoad ]
        onLoad
        togglePolStuff
@@ -255,6 +242,38 @@ mainGui pstRef
             , clientSize := sz 525 325
             , on closing := exitWith ExitSuccess 
             ]
+
+data MainWidgets = MainWidgets
+        { f                :: Frame ()
+        , macrosFileLabel  :: StaticText ()
+        , lexiconFileLabel :: StaticText ()
+        , testSuiteChoice  :: Choice ()
+        , testCaseChoice   :: Choice ()
+        , tsTextBox        :: TextCtrl ()
+        } 
+
+mainOnLoad :: ProgStateRef -> MainWidgets -> IO ()
+mainOnLoad pstRef (MainWidgets {..}) = do
+  cfg <- pa `fmap` readIORef pstRef -- we want the latest config!
+  -- errHandler title err = errorDialog f title (show err)
+  set macrosFileLabel  [ text := getListFlagP MacrosFlg cfg ]
+  set lexiconFileLabel [ text := getListFlagP LexiconFlg cfg ]
+  -- read the test suite if there is one
+  case getListFlagP TestInstructionsFlg cfg of
+    [] -> do set testSuiteChoice [ enabled := False, items := [] ]
+             set testCaseChoice  [ enabled := False, items := [] ]
+    is ->
+      do -- handler for selecting a test suite
+         let imap = Map.fromList $ zip [0..] is
+             onTestSuiteChoice = do
+               sel <- get testSuiteChoice selection
+               case Map.lookup sel imap of
+                 Nothing -> geniBug $ "No such index in test suite selector (gui): " ++ show sel
+                 Just t  -> loadTestSuiteAndRefresh f pstRef t tsTextBox testCaseChoice
+         set testSuiteChoice [ enabled := True, items := map fst is
+                             , on select := onTestSuiteChoice, selection := 0 ]
+         set testCaseChoice  [ enabled := True ]
+         onTestSuiteChoice -- load the first suite
 
 -- Note the following point about anti-optimisations: An anti-optimisation
 -- disables a default behaviour which is assumed to be "optimisation".  But of
