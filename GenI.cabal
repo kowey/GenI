@@ -9,7 +9,7 @@ Description:    A natural language generator (specifically, an FB-LTAG surface r
 Homepage:       http://projects.haskell.org/GenI
 Maintainer:     geni-users@loria.fr
 Build-Type:     Custom
-Cabal-Version: >=1.2.3
+Cabal-Version: >=1.8
 data-files: AUTHORS, INSTALL, README, NEWS, GenI.cabal,
             examples/artificial/lexicon,
             examples/artificial/macros,
@@ -69,10 +69,6 @@ Flag static
   Description: Build a static binary
   Default:     False
 
-Flag library
-  Description: Build the library
-  Default:     True
-
 Flag test
   description: Compile standalone unit tests binary
   default:     False
@@ -94,9 +90,6 @@ Library
                  uniplate == 1.6.*
                , time >= 1.1 && < 1.3
                  , syb
-
-  if !flag(library)
-    Buildable: False
 
   if !flag(gui)
     cpp-options:      -DDISABLE_GUI
@@ -123,6 +116,7 @@ Library
                 NLP.GenI.Morphology,
                 NLP.GenI.OptimalityTheory,
                 NLP.GenI.Polarity,
+                NLP.GenI.Polarity.Internal,
                 NLP.GenI.PolarityTypes,
                 NLP.GenI.Automaton,
                 NLP.GenI.Statistics,
@@ -131,7 +125,6 @@ Library
                 -- NLP.GenI.CkyEarley.CkyBuilder,
                 NLP.GenI.Geni, NLP.GenI.Configuration
   Other-Modules:
-                NLP.GenI.Polarity.Internal
 
   Hs-Source-Dirs: src
   Ghc-options:    -Wall -O2
@@ -139,12 +132,20 @@ Library
 
 Executable     geni
  Main-Is:        MainGeni.lhs
- Hs-Source-Dirs: src
+ Hs-Source-Dirs: geni
 
  Ghc-options:    -Wall -O2
  Ghc-prof-options: -auto-all
- Build-Depends: directory > 1,
-                filepath >= 1.1.0 && < 1.3
+ Build-Depends: base >= 4 && < 5
+              , GenI
+              , containers  >= 0.1
+              , directory   > 1
+              , filepath    == 1.*
+              , json        == 0.4.*
+              , mtl         > 1.0 && < 2.1
+              , process     > 1
+              , split       == 0.1.*
+              , utf8-string == 0.3.*
  if flag(gui)
     Build-Depends: wx >= 0.10.3 && < 0.13
                  , graphviz == 2999.11.*
@@ -156,10 +157,15 @@ Executable     geni
 
 Executable geni-test
  Main-Is:       MainTest.hs
- Hs-Source-Dirs: src
+ Hs-Source-Dirs: geni-test
  if flag(test)
     Buildable: True
-    Build-Depends: QuickCheck == 2.4.*
+    Build-Depends: GenI
+                 , base >= 4 && < 5
+                 , containers  >= 0.1
+                 , filepath   == 1.*
+                 , parsec >= 2 && < 3.2
+                 , QuickCheck == 2.4.*
                  , HUnit > 1 && < 1.3
                  , test-framework-hunit >= 0.2.4 && < 0.3
                  , test-framework-quickcheck2 >= 0.2.4 && < 0.3

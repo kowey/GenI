@@ -30,7 +30,6 @@ import Data.IORef
 import System.Directory 
 import System.FilePath ((<.>),(</>),dropExtensions)
 import System.Process (runProcess)
-import Text.ParserCombinators.Parsec (parseFromFile)
 
 import NLP.GenI.Graphviz
 import NLP.GenI.Automaton (numStates, numTransitions)
@@ -41,7 +40,7 @@ import NLP.GenI.GraphvizShow ()
 import NLP.GenI.Tags (TagItem(tgIdName), tagLeaves)
 import NLP.GenI.Geni
   ( ProgState(..) )
-import NLP.GenI.GeniParsers ( geniTagElems )
+import NLP.GenI.GeniParsers ( geniTagElems, parseFromFile )
 import NLP.GenI.General
   (geniBug, boundsCheck, dropTillIncluding, ePutStrLn)
 import NLP.GenI.Btypes
