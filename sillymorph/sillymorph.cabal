@@ -21,3 +21,7 @@ data-files:     sillymorph.cabal
 Executable:     sillymorph
 Main-Is:        sillymorph.hs
 Ghc-options:    -Wall -O2
+
+Executable:     nullmorph
+Main-Is:        nullmorph.hs
+Ghc-options:    -Wall -O2
