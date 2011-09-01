@@ -19,7 +19,7 @@
 
 \begin{code}
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, ViewPatterns #-}
 module NLP.GenI.Configuration
   ( Params(..)
   --
@@ -46,6 +46,7 @@ where
 
 \ignore{
 \begin{code}
+import Control.Arrow ( first )
 import Control.Monad ( liftM )
 import qualified Data.ByteString.Char8 as BC
 import Data.Char ( toLower, isSpace )
@@ -55,7 +56,9 @@ import System.Console.GetOpt
 import System.Directory ( getAppUserDataDirectory, doesFileExist )
 import System.Environment ( getProgName )
 import System.FilePath
-import System.Log.Logger ( Priority(..), updateGlobalLogger, setLevel )
+import System.IO ( stderr )
+import System.Log.Logger
+import System.Log.Handler.Simple
 import Data.List  ( find, intersperse, nubBy )
 import qualified Data.Map as Map
 import Data.Maybe ( fromMaybe, isNothing, fromJust )
@@ -762,27 +765,68 @@ readGlobalConfig = do
             else return Nothing
 
 setLoggers :: YamlLight -> IO ()
-setLoggers = maybe (return ()) (mapM_ update)
-              . loggingLevels
-  where
-   update (m,l) = updateGlobalLogger m (setLevel l)
-
-loggingLevels :: YamlLight -> Maybe [(String,Priority)]
-loggingLevels yaml = lookupYL "logging" yaml
-                 >>= lookupYL "level"
-                 >>= fmap Map.toList . unMap
-                 >>= mapM unStrPair
+setLoggers y = do
+   maybeIO (mapM_ update) (loggerConfig y)
  where
-  unStrPair (x,y) = do
-     xs <- BC.unpack `fmap` unStr x
-     ys <- maybeRead =<< BC.unpack `fmap` unStr y
-     return (xs, ys)
+   update lc = do
+     -- may be just for default logger
+     maybeIO (updateL (lcName lc)) (lcPriority lc)
+     -- only if an additional handler is specified
+     let fp = fromMaybe DEBUG (lcPriority lc)
+     maybeIO (updateH (lcName lc) fp) (lcHandler lc)
+   updateH m p x = do
+     h <- toAddHandler x p
+     updateGlobalLogger m h
+   updateL m x = updateGlobalLogger m (setLevel x)
+   maybeIO = maybe (return ())
+
+data LoggerConfig = LoggerConfig { lcName     :: String
+                                 , lcPriority :: Maybe Priority
+                                 , lcHandler  :: Maybe LogTo
+                                 }
+ deriving Show
+
+data LogTo = LogToFile FilePath | LogToErr
+ deriving Show
+
+toAddHandler :: LogTo -> Priority -> IO (Logger -> Logger)
+toAddHandler (LogToFile f) p = addHandler `fmap` fileHandler f p
+toAddHandler LogToErr      p = addHandler `fmap` streamHandler stderr p
+
+instance Read LogTo where
+  readsPrec _ (dropPrefix "stderr"  -> ("", x)) = [ (LogToErr, x) ]
+  readsPrec p (dropPrefix "file"    -> ("", x)) = map (first LogToFile) $
+      case x of
+       (h:_) | isSpace h ->
+        case dropWhile isSpace x of
+         xs@('"':_)                                -> readsPrec p xs
+         (break isSpace -> y) | not (null (fst y)) -> [y]
+         _                                         -> []
+       _                                           -> []
+  readsPrec _ _ = []
+
+loggerConfig :: YamlLight -> Maybe [LoggerConfig]
+loggerConfig yaml = lookupYL "logging" yaml
+                  >>= unSeq
+                  >>= mapM unMap
+                  >>= mapM readOne
+ where
+   readOne :: Map.Map YamlLight YamlLight -> Maybe LoggerConfig 
+   readOne m = do
+     name <- get Just "name" m
+     return $ LoggerConfig name (get maybeRead "level"   m)
+                                (get maybeRead "handler" m)
+   get f x m = Map.lookup x m >>= unStr >>= (f . BC.unpack)
+
+instance IsString YamlLight where
+  fromString = YStr . fromString
 
 maybeRead :: Read a => String -> Maybe a
 maybeRead s = case reads s of
   [(x, rest)] | all isSpace rest -> Just x
   _         -> Nothing
 
-instance IsString YamlLight where
-  fromString = YStr . fromString
+dropPrefix :: Eq a => [a] -> [a] -> ([a],[a])
+dropPrefix (x:xs) (y:ys) | x == y    = dropPrefix xs ys
+dropPrefix left right = (left,right)
 \end{code}
