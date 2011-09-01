@@ -216,12 +216,13 @@ inflectSentencesUsingCmd :: String -> [LemmaPlusSentence] -> IO [(LemmaPlusSente
 inflectSentencesUsingCmd morphcmd sentences =
   doit `catch` (fallback . show)
  where
+  hCloseSloppy h = hClose h `catch` \err -> warningM logname (show err)
   doit = bracket
    (do debugM logname $ "Starting morph generator: " ++ morphcmd 
        runInteractiveCommand morphcmd)
    (\(inh,outh,errh,_) -> do
       debugM logname $ "Closing output handles from morph generator"
-      hClose inh >> hClose outh >> hClose errh)
+      mapM hCloseSloppy [inh, outh, errh])
     $ \(toP,fromP,errP,pid) -> do
      debugM logname $ "Sending " ++ show (length sentences) ++ " sentences to morph generator"
      hPutStrLn toP . render . pp_value . showJSON $ sentences
