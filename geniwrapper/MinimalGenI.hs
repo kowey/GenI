@@ -61,6 +61,7 @@ geniInit mfile lfile morphcmd = do
                      . setFlagP LexiconFlg lfile
                      . setFlagP MacrosFlg  mfile
                      $ emptyParams
+  maybe (return ()) setLoggers =<< readGlobalConfig
   try $ do loadGeniMacros pstRef
            unless (null lfile) $ loadLexicon pstRef >> return ()
            unless (null morphcmd) $
