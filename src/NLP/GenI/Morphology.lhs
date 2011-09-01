@@ -214,7 +214,9 @@ sansMorph = singleton . unwords . map lem
 -- will need to work it out
 inflectSentencesUsingCmd :: String -> [LemmaPlusSentence] -> IO [(LemmaPlusSentence,[String])]
 inflectSentencesUsingCmd morphcmd sentences =
- bracket
+  doit `catch` (fallback . show)
+ where
+  doit = bracket
    (do debugM logname $ "Starting morph generator: " ++ morphcmd 
        runInteractiveCommand morphcmd)
    (\(inh,outh,errh,_) -> do
@@ -255,7 +257,6 @@ inflectSentencesUsingCmd morphcmd sentences =
                                                   ++ show lenSentences ++ " inputs"
                             `catch` \e -> fallback $ "Error calling morphological generator:\n" ++ show e
         else fallback "Morph generator failed"
- where
   fallback err = do
     errorM logname err
     return $ map (\x -> (x, sansMorph x)) sentences
