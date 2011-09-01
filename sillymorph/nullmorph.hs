@@ -46,14 +46,14 @@ main = do
 -- ----------------------------------------------------------------------
 
 expandSentence :: NullMorph -> LemmaPlusSentence -> [String]
-expandSentence config s = unwords `fmap` mapM (expandWord config) s
+expandSentence config s = render `fmap` mapM (expandWord config) s
+ where
+  render = (if reverse config then Prelude.reverse else id)
+         . unwords
+
 
 expandWord :: NullMorph -> LemmaPlus -> [String]
-expandWord config w = pure $ if reverse config
-                                then Prelude.reverse lemma
-                                else lemma
- where
-  lemma = lpLemma w
+expandWord _ = pure . lpLemma
 
 -- ----------------------------------------------------------------------
 -- odds and ends
