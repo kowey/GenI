@@ -223,7 +223,7 @@ inflectSentencesUsingCmd morphcmd sentences =
       debugM logname $ "Closing output handles from morph generator"
       hClose inh >> hClose outh >> hClose errh)
     $ \(toP,fromP,errP,pid) -> do
-     debugM logname $ "Sending to morph generator"
+     debugM logname $ "Sending " ++ show (length sentences) ++ " sentences to morph generator"
      hPutStrLn toP . render . pp_value . showJSON $ sentences
 
      debugM logname $ "Closing input handle to morph generator"
