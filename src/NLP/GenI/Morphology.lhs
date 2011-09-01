@@ -26,6 +26,7 @@ specify on the command line.  Note that a simple and stupid
 or on hackage.
 
 \begin{code}
+{-# LANGUAGE DeriveDataTypeable #-}
 module NLP.GenI.Morphology
  (
  MorphFn
@@ -45,7 +46,9 @@ import Control.Exception (bracket, evaluate)
 import Data.Maybe (isNothing)
 import Data.Tree
 import qualified Data.Map as Map
+import Data.Typeable
 import System.Exit
+import System.Log.Logger
 import System.IO
 import System.Process
 import Text.JSON
@@ -212,10 +215,16 @@ sansMorph = singleton . unwords . map lem
 inflectSentencesUsingCmd :: String -> [LemmaPlusSentence] -> IO [(LemmaPlusSentence,[String])]
 inflectSentencesUsingCmd morphcmd sentences =
  bracket
-   (runInteractiveCommand morphcmd)
-   (\(inh,outh,errh,_) -> hClose inh >> hClose outh >> hClose errh)
+   (do debugM logname $ "Starting morph generator: " ++ morphcmd 
+       runInteractiveCommand morphcmd)
+   (\(inh,outh,errh,_) -> do
+      debugM logname $ "Closing output handles from morph generator"
+      hClose inh >> hClose outh >> hClose errh)
     $ \(toP,fromP,errP,pid) -> do
+     debugM logname $ "Sending to morph generator"
      hPutStrLn toP . render . pp_value . showJSON $ sentences
+
+     debugM logname $ "Closing input handle to morph generator"
      hClose toP
      -- see http://www.haskell.org/pipermail/haskell-cafe/2008-May/042994.html
      -- fork off a thread to pull on the stderr
@@ -224,7 +233,7 @@ inflectSentencesUsingCmd morphcmd sentences =
      -- bracket can exit before this thread has run, and hGetContents
      -- will fail.
      err <- hGetContents errP
-     _ <- forkIO (evaluate (length err) >> ePutStrLn err)
+     _ <- forkIO (evaluate (length err) >> warningM logname err)
 
      -- wait for all the output
      output <- hGetContents fromP
@@ -232,6 +241,7 @@ inflectSentencesUsingCmd morphcmd sentences =
 
      -- wait for the program to terminate
      exitcode <- waitForProcess pid
+     debugM logname $ "Morph command exited"
      -- on failure, throw the exit code as an exception
      if exitcode == ExitSuccess
         then case resultToEither (decode output) of
@@ -246,10 +256,14 @@ inflectSentencesUsingCmd morphcmd sentences =
                             `catch` \e -> fallback $ "Error calling morphological generator:\n" ++ show e
         else fallback "Morph generator failed"
  where
-  fallback err =
-    do ePutStrLn err
-       return $ map (\x -> (x, sansMorph x)) sentences
+  fallback err = do
+    errorM logname err
+    return $ map (\x -> (x, sansMorph x)) sentences
 
 singleton :: a -> [a]
 singleton x = [x]
+
+data MNAME = MNAME deriving Typeable
+logname :: String
+logname = mkLogname MNAME
 \end{code}
