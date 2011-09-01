@@ -62,9 +62,10 @@ module NLP.GenI.General (
         -- * Bit vectors
         BitVector,
         showBitVector,
-       -- * Errors and exceptions
+       -- * Errors, logging and exceptions
         geniBug,
         prettyException,
+        mkLogname,
         )
         where
 
@@ -74,6 +75,7 @@ import Data.Bits (shiftR, (.&.))
 import Data.Char (isAlphaNum, isDigit, isSpace, toUpper, toLower)
 import Data.Function ( on )
 import Data.List (foldl', intersect, inits, intersperse, groupBy, group, sort, sortBy)
+import Data.Typeable ( typeOf )
 import Data.Tree
 import System.IO (hPutStrLn, hPutStr, hFlush, stderr)
 import System.IO.Error (isUserError, ioeGetErrorString)
@@ -354,7 +356,7 @@ repNodeByNode nfilt rep t =
     _            -> geniBug "Unexpected result in repNode"
 
 -- ----------------------------------------------------------------------
--- Errors and exceptions
+-- Errors, exceptions and logging
 -- ----------------------------------------------------------------------
 
 -- | errors specifically in GenI, which is very likely NOT the user's fault.
@@ -367,6 +369,10 @@ prettyException :: IOException -> String
 prettyException e | isUserError e = ioeGetErrorString e
 prettyException e = show e
 
+-- | The module name for an arbitrary data type
+mkLogname :: Typeable a => a -> String
+mkLogname = reverse . drop 1 . dropWhile (/= '.') . reverse
+          . show . typeOf
 -- ----------------------------------------------------------------------
 -- Intervals
 -- ----------------------------------------------------------------------

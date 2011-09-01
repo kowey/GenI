@@ -30,9 +30,17 @@ module Main (main) where
 \ignore{
 \begin{code}
 import Control.Applicative ((<$>))
+import Control.Arrow
+import Control.Monad ( when )
+import Data.Char ( isSpace )
 import Data.IORef(newIORef)
 import Data.Typeable( Typeable )
 import Data.Version ( showVersion )
+import Data.Yaml.YamlLight
+import qualified Data.Map as Map
+import System.Directory ( getAppUserDataDirectory, doesFileExist )
+import System.FilePath
+import System.Log.Logger
 import System.Environment(getArgs, getProgName)
 
 import Paths_GenI ( version )
@@ -44,6 +52,7 @@ import NLP.GenI.Configuration (treatArgs, optionsForStandardGenI, processInstruc
                                hasFlagP, BatchDirFlg(..), DisableGuiFlg(..),
                                DumpDerivationFlg(..),  FromStdinFlg(..),
                                HelpFlg(..), VersionFlg(..), TestCaseFlg(..),
+                               readGlobalConfig, setLoggers
                               )
 
 #ifdef DISABLE_GUI
@@ -82,6 +91,7 @@ main :: IO ()
 main = do       
   pname <- getProgName
   args  <- getArgs
+  maybe (return ()) setLoggers =<< readGlobalConfig
   confArgs <- forceGuiFlag <$> (processInstructions =<< treatArgs optionsForStandardGenI args)
   let pst = emptyProgState confArgs
   pstRef <- newIORef pst

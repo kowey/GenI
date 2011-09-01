@@ -19,6 +19,7 @@
 
 \begin{code}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE OverloadedStrings #-}
 module NLP.GenI.Configuration
   ( Params(..)
   --
@@ -33,6 +34,8 @@ module NLP.GenI.Configuration
   , nubBySwitches
   , noArg, reqArg, optArg
   , parseFlagWithParsec
+  -- * configration files
+  , readGlobalConfig, setLoggers
   -- re-exports
   , module System.Console.GetOpt
   , module NLP.GenI.Flags
@@ -44,14 +47,21 @@ where
 \ignore{
 \begin{code}
 import Control.Monad ( liftM )
-import Data.Char ( toLower )
+import qualified Data.ByteString.Char8 as BC
+import Data.Char ( toLower, isSpace )
 import Data.Maybe ( listToMaybe, mapMaybe )
 import Data.Typeable ( Typeable )
 import System.Console.GetOpt
+import System.Directory ( getAppUserDataDirectory, doesFileExist )
 import System.Environment ( getProgName )
+import System.FilePath
+import System.Log.Logger ( Priority(..), updateGlobalLogger, setLevel )
 import Data.List  ( find, intersperse, nubBy )
+import qualified Data.Map as Map
 import Data.Maybe ( fromMaybe, isNothing, fromJust )
 import Text.ParserCombinators.Parsec ( runParser, CharParser )
+import Data.String ( IsString(..) )
+import Data.Yaml.YamlLight
 
 import NLP.GenI.Btypes ( showFlist, )
 import NLP.GenI.Flags
@@ -735,4 +745,44 @@ instructionsFile = mapMaybe inst . lines
            []     -> Nothing
            [f]    -> Just (f, Nothing)
            (f:cs) -> Just (f, Just cs)
+\end{code}
+
+
+% ====================================================================
+\section{Configuration file}
+% ====================================================================
+
+\begin{code}
+readGlobalConfig :: IO (Maybe YamlLight)
+readGlobalConfig = do
+  geniCfgDir <- getAppUserDataDirectory "geni"
+  let globalCfg = geniCfgDir </> "config.yaml"
+  hasCfg <- doesFileExist globalCfg
+  if hasCfg then Just `fmap` parseYamlFile globalCfg 
+            else return Nothing
+
+setLoggers :: YamlLight -> IO ()
+setLoggers = maybe (return ()) (mapM_ update)
+              . loggingLevels
+  where
+   update (m,l) = updateGlobalLogger m (setLevel l)
+
+loggingLevels :: YamlLight -> Maybe [(String,Priority)]
+loggingLevels yaml = lookupYL "logging" yaml
+                 >>= lookupYL "level"
+                 >>= fmap Map.toList . unMap
+                 >>= mapM unStrPair
+ where
+  unStrPair (x,y) = do
+     xs <- BC.unpack `fmap` unStr x
+     ys <- maybeRead =<< BC.unpack `fmap` unStr y
+     return (xs, ys)
+
+maybeRead :: Read a => String -> Maybe a
+maybeRead s = case reads s of
+  [(x, rest)] | all isSpace rest -> Just x
+  _         -> Nothing
+
+instance IsString YamlLight where
+  fromString = YStr . fromString
 \end{code}
