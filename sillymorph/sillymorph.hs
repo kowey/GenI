@@ -33,7 +33,8 @@ import NLP.GenI.Morphology
 import NLP.GenI.GeniParsers
 import qualified System.IO.UTF8 as UTF8
 
-type MorphLexicon = [(String, String, Flist)]
+type MorphLexicon  = [MorphLexEntry]
+type MorphLexEntry = (String,String,Flist GeniVal)
 
 -- ----------------------------------------------------------------------
 -- args
@@ -43,8 +44,10 @@ data SillyMorph = SillyMorph { morphLexicon :: FilePath
                              }
  deriving (Show, Data, Typeable)
 
-sillymorph :: Mode SillyMorph
-sillymorph = mode $ SillyMorph { morphLexicon = def &= text "Morphological lexicon FILE" }
+sillymorph :: SillyMorph
+sillymorph = SillyMorph { morphLexicon = def &= help "Morphological lexicon FILE" }
+              &= program "sillymorph"
+              &= help ("sillymorph " ++ showVersion version)
 
 -- ----------------------------------------------------------------------
 -- main
@@ -52,7 +55,7 @@ sillymorph = mode $ SillyMorph { morphLexicon = def &= text "Morphological lexic
 
 main :: IO ()
 main =
- do config    <- cmdArgs ("sillymorph " ++ showVersion version) [sillymorph]
+ do config    <- cmdArgs sillymorph
     morphLex  <- either (fail.show) return
                  =<< parseFromFile parseMorphLexicon (morphLexicon config)
     lemSentences <- either fail return =<< (resultToEither . decode) `fmap` UTF8.getContents
@@ -82,7 +85,7 @@ inflectWord mlex (LemmaPlus lem fs) =
 parseMorphLexicon :: Parser [MorphLexEntry]
 parseMorphLexicon = tillEof $ many morphLexiconEntry
 
-morphLexiconEntry :: Parser (String, String, Flist)
+morphLexiconEntry :: Parser MorphLexEntry 
 morphLexiconEntry =
  do inflected <- try stringLiteral <|> geniWord
     whiteSpace
