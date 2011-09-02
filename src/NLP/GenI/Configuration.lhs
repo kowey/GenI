@@ -50,7 +50,7 @@ import Control.Arrow ( first )
 import Control.Monad ( liftM )
 import qualified Data.ByteString.Char8 as BC
 import Data.Char ( toLower, isSpace )
-import Data.Maybe ( listToMaybe, mapMaybe )
+import Data.Maybe ( listToMaybe, mapMaybe, isJust )
 import Data.Typeable ( Typeable )
 import System.Console.GetOpt
 import System.Directory ( getAppUserDataDirectory, doesFileExist )
@@ -70,6 +70,7 @@ import NLP.GenI.Btypes ( showFlist, )
 import NLP.GenI.Flags
 import NLP.GenI.General ( geniBug, fst3, snd3 )
 import NLP.GenI.GeniParsers ( geniFeats, tillEof )
+import NLP.GenI.LemmaPlus ( LemmaPlusSentence )
 import NLP.GenI.PolarityTypes ( readPolarityAttrs )
 \end{code}
 }
@@ -91,11 +92,22 @@ import NLP.GenI.PolarityTypes ( readPolarityAttrs )
 -- | Holds the specification for how Geni should be run, its input
 --   files, etc.  This is the stuff that would normally be found in
 --   the configuration file.
-data Params = Prms{
-  grammarType    :: GrammarType,
-  builderType    :: BuilderType,
-  geniFlags      :: [Flag]
-} deriving (Show)
+data Params = Prms
+   { grammarType    :: GrammarType
+   , builderType    :: BuilderType
+   -- | Can still be overridden with a morph command mind you
+   , customMorph    :: Maybe ([LemmaPlusSentence] -> [[String]])
+   , geniFlags      :: [Flag]
+   }
+
+instance Show Params where
+  show p = unlines
+    [ unwords [ "GenI config :", show (grammarType p), show (builderType p), morph ]
+    , unwords $ "GenI flags  :" : map show (geniFlags p)
+    ]
+   where
+    morph = "custom morph:" ++ show (isJust (customMorph p))
+
 
 hasOpt :: Optimisation -> Params -> Bool
 hasOpt o p = maybe False (elem o) $ getFlagP OptimisationsFlg p
@@ -118,6 +130,7 @@ emptyParams :: Params
 emptyParams = Prms {
   builderType   = SimpleBuilder,
   grammarType   = GeniHand,
+  customMorph   = Nothing,
   geniFlags     = [ Flag ViewCmdFlg "ViewTAG"
                   , Flag DetectPolaritiesFlg (readPolarityAttrs defaultPolarityAttrs)
                   , Flag RootFeatureFlg

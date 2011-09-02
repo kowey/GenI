@@ -96,7 +96,8 @@ import NLP.GenI.Tags (TagElem,
              setTidnums) 
 
 import NLP.GenI.Configuration
-  ( Params, getFlagP, hasFlagP, hasOpt, Optimisation(NoConstraints)
+  ( Params, customMorph
+  , getFlagP, hasFlagP, hasOpt, Optimisation(NoConstraints)
   , MacrosFlg(..), LexiconFlg(..), TestSuiteFlg(..), TestCaseFlg(..)
   , MorphInfoFlg(..), MorphCmdFlg(..)
   , RankingConstraintsFlg(..)
@@ -597,7 +598,8 @@ finaliseResults pstRef ty os =
  do pst <- readIORef pstRef
     -- morph TODO: make this a bit safer
     mss <- case getFlagP MorphCmdFlg (pa pst) of
-             Nothing  -> return $ map sansMorph sentences
+             Nothing  -> let morph = fromMaybe (map sansMorph) (customMorph (pa pst))
+                         in  return (morph sentences)
              Just cmd -> map snd `fmap` inflectSentencesUsingCmd cmd sentences
     -- OT ranking
     let unranked = zipWith (sansRanking pst) os mss
