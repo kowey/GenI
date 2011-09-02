@@ -501,7 +501,7 @@ is run the surface realiser.
 
 \begin{code}
 data GeniResult = GeniResult
- { grLemmaSentence     :: B.LemmaPlusSentence
+ { grLemmaSentence     :: LemmaPlusSentence
  , grRealisations :: [String]
  , grDerivation   :: B.TagDerivation --type definition changed in Builder.hs 
  , grLexSelection :: [ GeniLexSel ]

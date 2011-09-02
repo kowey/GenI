@@ -57,8 +57,8 @@ import Text.JSON.Pretty
 import NLP.GenI.GeniVal ( mkGAnon )
 import NLP.GenI.Btypes
 import NLP.GenI.General
+import NLP.GenI.LemmaPlus
 import NLP.GenI.Tags
-import NLP.GenI.Builder
 \end{code}
 }
 

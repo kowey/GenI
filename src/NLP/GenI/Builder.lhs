@@ -43,7 +43,7 @@ UML might help.  See figure \ref{fig:builderUml}.
 {-# LANGUAGE DeriveDataTypeable #-}
 
 module NLP.GenI.Builder (
- TagDerivation, Builder(..), LemmaPlusSentence, LemmaPlus(..),
+ TagDerivation, Builder(..),
  lexicalSelection, FilterStatus(..),incrCounter, num_iterations,
  (>-->),
  num_comparisons, chart_size,
@@ -54,7 +54,6 @@ initStats, Output, SentenceAut, run, queryCounter, defaultMetricNames, preInit
 )
 where
 
-import Control.Applicative ( (<$>), (<*>) )
 import Control.Monad.State.Strict
 import Data.Bits ( (.&.), (.|.), bit )
 import Data.List ( delete, sort, nub )
@@ -63,7 +62,6 @@ import Data.Maybe ( mapMaybe, fromMaybe  )
 import qualified Data.Set as Set
 import Data.Tree ( flatten )
 import Prelude hiding ( init )
-import Text.JSON
 
 import Control.DeepSeq
 
@@ -86,8 +84,8 @@ import NLP.GenI.Btypes
     DescendGeniVal(..), Collectable(collect), alphaConvertById,
     GeniVal
   )
-import NLP.GenI.FeatureStructures ( Flist, showFlist, sortFlist, mkFeatStruct )
-import NLP.GenI.GeniParsers ( geniFeats, runParser, CharParser )
+import NLP.GenI.FeatureStructures ( Flist, sortFlist, mkFeatStruct )
+import NLP.GenI.LemmaPlus
 import NLP.GenI.Polarity  (PolResult(..), buildAutomaton, detectPolPaths)
 import NLP.GenI.Statistics (Statistics, incrIntMetric,
                    Metric(IntMetric), updateMetrics,
@@ -444,34 +442,8 @@ gen_time = "gen_time"
 lexicalSelection :: TagDerivation -> [String]
 lexicalSelection = sort . nub . concatMap (\d -> [dsChild d, dsParent d])
 
--- | A lemma plus its morphological features
-data LemmaPlus = LemmaPlus { lpLemma :: String
-                           , lpFeats :: Flist GeniVal }
- deriving (Show, Eq, Ord)
-
--- | A sentence composed of 'LemmaPlus' instead of plain old words
-type LemmaPlusSentence = [LemmaPlus]
-
-instance JSON LemmaPlus where
- readJSON j =
-    do jo <- fromJSObject `fmap` readJSON j
-       let field x = maybe (fail $ "Could not find: " ++ x) readJSON
-                   $ lookup x jo
-       LemmaPlus <$> field "lemma"
-                 <*> (parsecToJSON "lemma-features" geniFeats =<< field "lemma-features")
- showJSON (LemmaPlus l fs) =
-     JSObject . toJSObject $ [ ("lemma", showJSON l)
-                             , ("lemma-features", showJSON $ showFlist fs)
-                             ]
-parsecToJSON :: Monad m => String -> CharParser () b -> String -> m b
-parsecToJSON description p str =
- case runParser p () "" str of
-   Left  err -> fail $ "Couldn't parse " ++ description ++ " because " ++ show err
-   Right res -> return res
-
 {-!
 deriving instance NFData Input
-deriving instance NFData LemmaPlus
 !-}
 
 -- GENERATED START
@@ -480,9 +452,6 @@ deriving instance NFData LemmaPlus
 instance NFData Input where
         rnf (Input x1 x2 x3) = rnf x1 `seq` rnf x2 `seq` rnf x3 `seq` ()
 
- 
-instance NFData LemmaPlus where
-        rnf (LemmaPlus x1 x2) = rnf x1 `seq` rnf x2 `seq` ()
 -- GENERATED STOP
 \end{code}
 }

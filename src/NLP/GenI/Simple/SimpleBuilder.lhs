@@ -84,8 +84,8 @@ import NLP.GenI.Builder (
     incrCounter, num_iterations, num_comparisons, chart_size,
     SemBitMap, defineSemanticBits, semToBitVector, bitVectorToSem,
     DispatchFilter, (>-->), condFilter, FilterStatus(Filtered, NotFiltered),
-    LemmaPlus(..),
     )
+import NLP.GenI.LemmaPlus ( LemmaPlus(..) )
 import qualified NLP.GenI.Builder as B
 
 import NLP.GenI.Tags (TagElem, TagSite(..),
