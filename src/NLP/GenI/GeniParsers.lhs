@@ -261,7 +261,8 @@ equivalent to providing an anonymous one.
 
 \begin{SaveVerbatim}{KoweyTmp}
 <semantics>      ::= <keyword-semantics> "[" <literal>* "]"
-<literal>        ::= <identifier> "(" <value>* ")"
+<literal>        ::= <value> : <identifier> "(" <value>* ")"
+                   |           <identifier> "(" <value>* ")"
 \end{SaveVerbatim}
 \begin{center}
 \fbox{\BUseVerbatim{KoweyTmp}}
