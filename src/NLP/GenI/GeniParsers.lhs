@@ -152,7 +152,7 @@ variable values, but not of variables themselves.
 anonymous variable & \verb!?_! or \verb!_! \\
 variables & \verb!?X! or \verb!?x! \\
 constrained variables & \verb!?X/foo|bar! or \verb!?x/foo|Bar! \\
-constants & \verb!Foo!, \verb!foo!, \verb!X!, \verb!x! or \verb!Foo|bar! \\
+constants & \verb!Foo!, \verb!foo!, \verb!"Joe \"Wolfboy\" Smith"!, or \verb!Foo|bar! \\
 \end{tabular}
 \end{center}
 
@@ -164,8 +164,10 @@ Here is an EBNF for GenI variables and constants
 <constraints>   ::= "/" <constraints-disj>
 <anonymous>     ::= "?_" | "_"
 <constant-disj> ::= <constant> (| <constant>)*
-<constant>      ::= <identifier>
+<constant>      ::= <identifier> | <string-literal>
 <identifier>    ::= <alphanumeric> | "+" | "-" | "_"
+<string-literal>   ::= <double-quote> <escaped-any-char>* <double-quote>
+<escaped-any-char> ::= "\\" | "\" <double-quote> | <char>
 \end{SaveVerbatim}
 \begin{center}
 \fbox{\BUseVerbatim{KoweyTmp}}
