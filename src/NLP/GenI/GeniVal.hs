@@ -67,7 +67,10 @@ mkGAnon :: GeniVal
 mkGAnon       = GeniVal Nothing Nothing
 
 instance Uniplate GeniVal where
-  uniplate x = (Zero, \Zero -> x)
+  uniplate x = (Zero, f)
+   where
+    f Zero = x
+    f _    = error ("uniplate error " ++ show x)
 
 instance Show GeniVal where
   show = showGeniVal
