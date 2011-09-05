@@ -20,9 +20,10 @@
 
 module NLP.GenI.Console(consoleGeni, runTestCaseOnly) where
 
+import Control.Applicative ( pure )
 import Control.Monad
 import Data.IORef(readIORef, modifyIORef)
-import Data.List(find, sort)
+import Data.List(find)
 import Data.Maybe ( isJust, fromMaybe )
 import System.Directory(createDirectoryIfMissing)
 import System.Exit ( exitWith, exitFailure, ExitCode(..) )
@@ -170,11 +171,12 @@ runOnSemInput pstRef args semInput =
                      Standalone _ f  -> writeFile f
                      PartOfSuite n f -> writeFile $ f </> n </> "stats"
      --
+     let formatLines = if useRanking
+                          then pure . prettyResult pst
+                          else grRealisations
      if dump
-        then oWrite . ppJSON $ results
-        else if useRanking
-                then oWrite . unlines . map (prettyResult pst) $ results
-                else oWrite . unlines . sort . concatMap grRealisations $ results
+        then oWrite $ ppJSON results
+        else oWrite $ unlines . concatMap (fromResult formatLines) $ results
      doWrite . ppJSON $ results
      -- print any warnings we picked up along the way
      when (not $ null warningsOut) $
@@ -193,4 +195,6 @@ runOnSemInput pstRef args semInput =
     helper builder =
       do (results, stats, _) <- runGeni pstRef builder
          return (results, stats)
-
+    fromResult :: (GeniSuccess -> [String]) -> GeniResult -> [String]
+    fromResult _ (Left errs) = [ show errs ]
+    fromResult f (Right x)   = f x

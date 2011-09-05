@@ -32,7 +32,7 @@ module NLP.GenI.Geni (
              ProgState(..), ProgStateRef, emptyProgState,
              initGeni,
              runGeni, runGeniWithSelector,
-             GeniResult(..), ResultType(..),
+             GeniResult, GeniError(..), GeniSuccess(..), ResultType(..),
              -- * helpers
              lemmaSentenceString, prettyResult,
              showRealisations, groupAndCount,
@@ -501,7 +501,12 @@ is run the surface realiser.
 \end{enumerate}
 
 \begin{code}
-data GeniResult = GeniResult
+type GeniResult = Either GeniError GeniSuccess
+
+data GeniError = GeniError [String]
+  deriving (Ord, Eq)
+
+data GeniSuccess = GeniSuccess
  { grLemmaSentence     :: LemmaPlusSentence
  , grRealisations :: [String]
  , grDerivation   :: B.TagDerivation --type definition changed in Builder.hs 
@@ -510,7 +515,8 @@ data GeniResult = GeniResult
  , grViolations   :: [ OtViolation ]
  , grResultType   :: ResultType
  , grOrigin       :: Integer -- normally a chart item id
- } deriving (Ord, Eq)
+ }
+ deriving (Ord, Eq)
 
 data GeniLexSel = GeniLexSel
  { nlTree  :: String
@@ -518,6 +524,10 @@ data GeniLexSel = GeniLexSel
  } deriving (Ord, Eq)
 
 data ResultType = CompleteResult | PartialResult deriving (Ord, Eq)
+
+
+instance Show GeniError where
+  show (GeniError xs) = intercalate "\n" $ map ("Error: " ++) xs
 
 -- | Returns a list of sentences, a set of Statistics, and the generator state.
 --   The generator state is mostly useful for debugging via the graphical interface.
@@ -607,8 +617,8 @@ finaliseResults pstRef ty os =
     return . map addRanking . rank $ unranked
  where
   sentences = map snd3 os
-  sansRanking pst (i,l,d) rs =
-    GeniResult { grLemmaSentence = l
+  sansRanking pst (i,l,d) rs = GeniSuccess
+               { grLemmaSentence = l
                , grRealisations = rs
                , grDerivation   = d
                , grLexSelection = map (\x -> GeniLexSel x (getTraces pst x)) (B.lexicalSelection d)
@@ -617,7 +627,7 @@ finaliseResults pstRef ty os =
                , grResultType = ty
                , grOrigin     = i
                }
-  addRanking (i,res,vs) = res { grViolations = vs, grRanking = i }
+  addRanking (i,res,vs) = Right $ res { grViolations = vs, grRanking = i }
 \end{code}
 
 % --------------------------------------------------------------------
@@ -637,10 +647,10 @@ showRealisations sentences =
      else unlines sentencesGrouped
 
 -- | No morphology! Pretend the lemma string is a sentence
-lemmaSentenceString :: GeniResult -> String
+lemmaSentenceString :: GeniSuccess -> String
 lemmaSentenceString = unwords . map lpLemma . grLemmaSentence
 
-prettyResult :: ProgState -> GeniResult -> String
+prettyResult :: ProgState -> GeniSuccess -> String
 prettyResult pst nr =
   concat . intersperse "\n" . map showOne . grRealisations $ nr
  where
@@ -821,12 +831,12 @@ verbosity :: ProgStateRef -> IO Bool
 verbosity = fmap (hasFlagP VerboseModeFlg . pa)
           . readIORef
 
-instance JSON GeniResult where
+instance JSON GeniSuccess where
  readJSON j =
     do jo <- fromJSObject `fmap` readJSON j
        let field x = maybe (fail $ "Could not find: " ++ x) readJSON
                    $ lookup x jo
-       GeniResult <$> field "raw"
+       GeniSuccess<$> field "raw"
                   <*> field "realisations"
                   <*> field "derivation"
                   <*> field "lexical-selection"
@@ -844,6 +854,15 @@ instance JSON GeniResult where
                              , ("result-type", showJSON $ grResultType nr)
                              , ("chart-item", showJSON $ grOrigin nr)
                              ]
+
+instance JSON GeniError where
+ readJSON j =
+    do jo <- fromJSObject `fmap` readJSON j
+       let field x = maybe (fail $ "Could not find: " ++ x) readJSON
+                   $ lookup x jo
+       GeniError  <$> field "errors"
+ showJSON (GeniError xs) =
+     JSObject . toJSObject $ [ ("errors", showJSON xs) ]
 
 instance JSON ResultType where
   readJSON j =
@@ -873,6 +892,7 @@ picosToMillis t = realToFrac t / (10^(9 :: Int))
 
 {-!
 deriving instance NFData GeniResult
+deriving instance NFData GeniError
 deriving instance NFData ResultType
 deriving instance NFData GeniLexSel
 !-}
@@ -880,12 +900,16 @@ deriving instance NFData GeniLexSel
 -- GENERATED START
 
  
-instance NFData GeniResult where
-        rnf (GeniResult x1 x2 x3 x4 x5 x6 x7 x8)
+instance NFData GeniSuccess where
+        rnf (GeniSuccess x1 x2 x3 x4 x5 x6 x7 x8)
           = rnf x1 `seq`
               rnf x2 `seq`
                 rnf x3 `seq`
                   rnf x4 `seq` rnf x5 `seq` rnf x6 `seq` rnf x7 `seq` rnf x8 `seq` ()
+
+
+instance NFData GeniError where
+        rnf (GeniError x1) = rnf x1 `seq` ()
 
  
 instance NFData ResultType where
