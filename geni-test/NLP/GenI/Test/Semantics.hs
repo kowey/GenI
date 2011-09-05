@@ -159,4 +159,4 @@ instance Arbitrary GTestPred where
   do handle <- arbitraryGConst
      rel  <- arbitrary
      args <- arbitrary
-     return $ GTestPred handle rel args
+     return $ GTestPred handle (fromGeniValLite rel) (map fromGeniValLite args)
