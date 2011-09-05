@@ -25,15 +25,16 @@ import Data.IORef(readIORef, modifyIORef)
 import Data.List(find, sort)
 import Data.Maybe ( isJust, fromMaybe )
 import System.Directory(createDirectoryIfMissing)
-import System.Exit ( exitFailure )
+import System.Exit ( exitWith, exitFailure, ExitCode(..) )
 import System.FilePath ( (</>), takeFileName )
+import System.Timeout ( timeout )
 
 import NLP.GenI.Btypes
    ( SemInput, TestCase(tcSem, tcName)
    )
 import qualified NLP.GenI.Btypes as G
 import NLP.GenI.General
-  ( ePutStr, ePutStrLn, withTimeout, exitTimeout
+  ( ePutStr, ePutStrLn,
   )
 import NLP.GenI.Geni
 import NLP.GenI.Configuration
@@ -55,12 +56,15 @@ consoleGeni :: ProgStateRef -> IO()
 consoleGeni pstRef = do
   pst <- readIORef pstRef
   loadEverything pstRef
+  let job = runInstructions pstRef
   case getFlagP TimeoutFlg (pa pst) of
-    Nothing -> runInstructions pstRef
-    Just t  -> withTimeout t (timeoutErr t) $ runInstructions pstRef
-  where
-   timeoutErr t = do ePutStrLn $ "GenI timed out after " ++ (show t) ++ "s"
-                     exitTimeout
+    Nothing -> job
+    Just t  -> do
+     status <- timeout (fromIntegral t * 1000000) job
+     case status of
+        Just () -> return ()
+        Nothing -> do ePutStrLn $ "GenI timed out after " ++ show t ++ "s"
+                      exitWith (ExitFailure 2)
 
 -- | Runs the tests specified in our instructions list.
 --   We assume that the grammar and lexicon are already

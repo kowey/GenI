@@ -27,9 +27,6 @@ module NLP.GenI.General (
         -- ** Strict readFile
         readFile',
         lazySlurp,
-        -- ** Timeouts
-        withTimeout,
-        exitTimeout,
         -- * Strings
         isGeniIdentLetter,
         dropTillIncluding,
@@ -70,24 +67,18 @@ module NLP.GenI.General (
         where
 
 import Control.Arrow (first)
+import Control.Exception (IOException)
 import Control.Monad (liftM)
 import Data.Bits (shiftR, (.&.))
 import Data.Char (isAlphaNum, isDigit, isSpace, toUpper, toLower)
 import Data.Function ( on )
 import Data.List (foldl', intersect, inits, intersperse, groupBy, group, sort, sortBy)
-import Data.Typeable ( typeOf )
+import Data.Typeable ( typeOf, Typeable )
 import Data.Tree
 import System.IO (hPutStrLn, hPutStr, hFlush, stderr)
 import System.IO.Error (isUserError, ioeGetErrorString)
 import qualified Data.Map as Map
-
--- for timeout
-import Control.Concurrent
-import Control.Exception ( Exception, IOException, catch, throw, block, unblock  )
 import Prelude hiding ( catch )
-import Data.Dynamic(Typeable)
-import Data.Unique
-import System.Exit(exitWith, ExitCode(ExitFailure))
 
 -- for non-lazy IO
 import System.IO (openFile, IOMode(ReadMode), hFileSize, hGetBuf)
@@ -442,37 +433,3 @@ lazySlurp fp ix len
     | otherwise = do
        w <- peekElemOff p sublen
        loop (sublen-1) p (chr (fromIntegral w):acc)
-
--- ----------------------------------------------------------------------
--- Timeouts
--- ----------------------------------------------------------------------
-
-data TimeOut = TimeOut Unique deriving (Typeable)
-instance Exception TimeOut
-instance Show TimeOut where
-  show _ = "TimeOut"
-
-withTimeout :: Integer
-            -> IO a -- ^ action to run upon timing out
-            -> IO a -- ^ main action to run
-            -> IO a
-withTimeout secs on_timeout action =
- do parent  <- myThreadId
-    i       <- newUnique
-    block $ do
-      timeout <- forkIO (timeout_thread secs parent i)
-      catch
-        ( unblock $ do result <- action
-                       killThread timeout
-                       return result )
-        ( \ex -> case ex of
-                 TimeOut u | u == i -> unblock on_timeout
-                 _ -> killThread timeout >>= throw ex )
- where
-  timeout_thread secs_ parent i =
-   do threadDelay $ (fromInteger secs_) * 1000000
-      throwTo parent (TimeOut i)
-
--- | Like 'exitFailure', except that we return with a code that we reserve for timing out
-exitTimeout :: IO ()
-exitTimeout = exitWith $ ExitFailure 2
