@@ -56,25 +56,23 @@ suite = testGroup "NLP.GenI.Semantics"
 
 prop_subsumeSem_length :: [GTestPred] -> [GTestPred] -> Property
 prop_subsumeSem_length lits1 lits2 =
-  all qc_not_empty_GVar_Pred s1 && all qc_not_empty_GVar_Pred s2 && not (null sboth) ==>
+  not (null sboth) ==>
     all (\x -> length (fst x) == s1_len) sboth
  where
   sboth = s1 `subsumeSem` s2
   s1_len = length s1
-  s1 = alphaConvert "-1" $ map fromGTestPred lits1
-  s2 = alphaConvert "-2" $ map fromGTestPred lits2
+  s1 = map fromGTestPred lits1
+  s2 = map fromGTestPred lits2
 
-prop_subsumeSem_reflexive :: [GTestPred] -> Property
-prop_subsumeSem_reflexive lits =
-  not (null s) && all qc_not_empty_GVar_Pred s ==> not . null $ s `subsumeSem` s
+prop_subsumeSem_reflexive :: [GTestPred] -> Bool
+prop_subsumeSem_reflexive lits = not . null $ s `subsumeSem` s
  where
-  s = alphaConvert "" $ map fromGTestPred lits
+  s = map fromGTestPred lits
 
-prop_subsumePred_reflexive :: GTestPred -> Property
-prop_subsumePred_reflexive pr =
-  qc_not_empty_GVar_Pred s ==> s `tt_subsumePred` s
+prop_subsumePred_reflexive :: GTestPred -> Bool
+prop_subsumePred_reflexive pr = s `tt_subsumePred` s
  where
-  s = alphaConvert "" (fromGTestPred pr)
+  s = fromGTestPred pr
 
 prop_subsumePred_antisymmetric :: SubsumedPair GTestPred -> Bool
 prop_subsumePred_antisymmetric (SubsumedPair x_ y_) =
@@ -147,9 +145,6 @@ tt_subsumePred x y = isJust (subsumePred x y)
 tt_pred_equiv :: (GeniVal, GeniVal, [GeniVal]) -> (GeniVal, GeniVal, [GeniVal]) -> Bool
 tt_pred_equiv (h1,p1,as1) (h2,p2,as2) =
   and $ zipWith tt_equiv (h1 : p1 : as1) (h2 : p2 : as2)
-
-qc_not_empty_GVar_Pred :: Pred -> Bool
-qc_not_empty_GVar_Pred (h,r,as) = all qc_not_empty_GVar (h:r:as)
 
 fromGTestPred :: GTestPred -> (GeniVal, GeniVal, [GeniVal])
 fromGTestPred (GTestPred h r as) = (h,r,as)
