@@ -1,6 +1,9 @@
+{-# LANGUAGE FlexibleInstances, TypeSynonymInstances, OverlappingInstances #-}
 module NLP.GenI.Test.Semantics ( suite ) where
 
-import Data.Maybe ( isJust )
+import Control.Arrow ( first )
+import Data.Maybe ( isJust, maybeToList )
+import qualified Data.Map as Map
 
 import NLP.GenI.Semantics
 import NLP.GenI.GeniVal
@@ -73,13 +76,70 @@ prop_subsumePred_reflexive pr =
  where
   s = alphaConvert "" (fromGTestPred pr)
 
-prop_subsumePred_antisymmetric :: GTestPred -> GTestPred -> Property
-prop_subsumePred_antisymmetric x_ y_ =
- all qc_not_empty_GVar_Pred [ x, y ] && x `tt_subsumePred` y ==>
+prop_subsumePred_antisymmetric :: SubsumedPair GTestPred -> Bool
+prop_subsumePred_antisymmetric (SubsumedPair x_ y_) =
    x `tt_pred_equiv` y || not (y `tt_subsumePred` x)
  where
-   x = alphaConvert "-1" (fromGTestPred x_)
-   y = alphaConvert "-2" (fromGTestPred y_)
+   x = fromGTestPred x_
+   y = fromGTestPred y_
+
+class Subsumable a where
+  subsume :: a -> a -> [(a, Subst)]
+
+instance Subsumable GeniVal where
+  subsume x y = fromUnificationResult (x `subsumeOne` y)
+
+instance Subsumable GeniValLite where
+  subsume x y = map (first GeniValLite) . fromUnificationResult
+              $ fromGeniValLite x `subsumeOne` fromGeniValLite y
+
+instance Subsumable Pred where
+  subsume x y = maybeToList (x `subsumePred` y)
+
+instance Subsumable GTestPred where
+  subsume x y = map (first tp) . maybeToList
+              $ fromGTestPred x `subsumePred` fromGTestPred y
+   where
+    tp (x,y,z) = GTestPred x y z
+
+instance (Arbitrary a, Show a, Subsumable a) => Show (SubsumedPair a) where
+  show (SubsumedPair x y) = show (x,y)
+
+data (Subsumable a, Arbitrary a) => SubsumedPair a = SubsumedPair a a
+
+unzipSubsumedPair :: (Subsumable a, Arbitrary a) => [SubsumedPair a] -> ([a],[a])
+unzipSubsumedPair = unzip . map helper
+  where
+   helper (SubsumedPair x y) = (x,y)
+
+instance (Show a, DescendGeniVal a, Collectable a, Subsumable a, Arbitrary a) => Arbitrary (SubsumedPair a) where
+  arbitrary = do
+    x <-  alphaConvert "-1" `fmap` arbitrary
+    y <- (alphaConvert "-2" `fmap` arbitrary) `suchThat` (\y -> not (null (x `subsume` y)))
+    return (SubsumedPair x y)
+
+instance Arbitrary (SubsumedPair GTestPred) where
+  arbitrary = do
+    (SubsumedPair h1 h2) <- arbitrary
+    (SubsumedPair p1 p2) <- arbitrary
+    (args1, args2) <- unzipSubsumedPair `fmap` arbitrary
+    return $ SubsumedPair (mkPred h1 p1 args1) (mkPred h2 p2 args2)
+   where
+    mkPred x y zs = GTestPred (fromGeniValLite x)
+                              (fromGeniValLite y)
+                              (map fromGeniValLite zs)
+
+isSuccess :: UnificationResult -> Bool
+isSuccess NLP.GenI.GeniVal.Failure = False
+isSuccess (SuccessSans _)     = True
+isSuccess (SuccessRep  _ _)   = True
+isSuccess (SuccessRep2 _ _ _) = True
+
+fromUnificationResult :: UnificationResult -> [(GeniVal,Subst)]
+fromUnificationResult NLP.GenI.GeniVal.Failure = []
+fromUnificationResult (SuccessSans g)  = [(g, Map.empty)]
+fromUnificationResult (SuccessRep v g) = [(g, Map.fromList [(v,g)])]
+fromUnificationResult (SuccessRep2 v1 v2 g) = [(g, Map.fromList [(v1,g),(v2,g)])]
 
 tt_subsumePred :: Pred -> Pred -> Bool
 tt_subsumePred x y = isJust (subsumePred x y)

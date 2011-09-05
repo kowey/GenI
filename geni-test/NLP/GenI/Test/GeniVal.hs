@@ -157,8 +157,9 @@ instance IsString GeniVal where
   fromString = mkGConstNone
 
 -- Definition of Arbitrary GeniVal for QuickCheck
-newtype GTestString = GTestString String
-newtype GTestString2 = GTestString2 String
+newtype PrintString = PrintString { fromPrintString :: String }
+newtype GTestString = GTestString { fromGTestString :: String }
+newtype GTestString2 = GTestString2 { fromGTestString2 :: String }
 data TestPair = TestPair [GeniVal] [GeniVal]
 
 instance Collectable TestPair where
@@ -167,14 +168,11 @@ instance Collectable TestPair where
 instance DescendGeniVal TestPair where
   descendGeniVal f (TestPair x y) = TestPair (descendGeniVal f x) (descendGeniVal f y)
 
-fromGTestString :: GTestString -> String
-fromGTestString (GTestString s) = s
-
-fromGTestString2 :: GTestString2 -> String
-fromGTestString2 (GTestString2 s) = s
+instance Arbitrary PrintString where
+  arbitrary = PrintString `fmap` (listOf1 (arbitrary `suchThat` isPrint))
 
 instance Arbitrary GTestString where
-  arbitrary = GTestString `fmap` (listOf1 (arbitrary `suchThat` isPrint))
+  arbitrary = GTestString `fmap` elements gTestStrings
 
 gTestStrings :: [String]
 gTestStrings =
@@ -190,12 +188,37 @@ instance Arbitrary GeniVal where
   arbitrary = oneof [ arbitraryGConst, arbitraryGVar, return mkGAnon ]
 
 arbitraryGConst :: Gen GeniVal
-arbitraryGConst = liftM2 mkGConst (fromGTestString `fmap` arbitrary)
-                                  (map fromGTestString `fmap` arbitrary)
+arbitraryGConst = liftM2 mkGConst (fromPrintString `fmap` arbitrary)
+                                  (map fromPrintString `fmap` arbitrary)
 
 arbitraryGVar :: Gen GeniVal
 arbitraryGVar = liftM2 mkGVar (fromGTestString2 `fmap` arbitrary)
-                              (fmap (map fromGTestString . fromList1) `fmap` arbitrary)
+                              (fmap (map fromPrintString . fromList1) `fmap` arbitrary)
+
+
+-- | a small subset of GeniVal for some more elaborate tests
+newtype GeniValLite = GeniValLite { fromGeniValLite :: GeniVal }
+
+instance Arbitrary GeniValLite where
+  arbitrary = GeniValLite `fmap`
+                oneof [ liftM2 mkGConst astr (listOf astr)
+                      , liftM2 mkGVar (fromGTestString2 `fmap` arbitrary) (maybeOf (listOf1 astr))
+                      , return mkGAnon
+                      ]
+    where
+     astr   = fromGTestString `fmap` arbitrary
+
+instance Show GeniValLite where
+  show = show . fromGeniValLite
+
+instance Collectable GeniValLite where
+  collect = collect . fromGeniValLite
+
+instance DescendGeniVal GeniValLite where
+  descendGeniVal f (GeniValLite g) = GeniValLite (descendGeniVal f g)
+
+maybeOf :: Gen a -> Gen (Maybe a)
+maybeOf g = frequency [(1, return Nothing), (3, fmap Just g)]  -- stolen from instance Arbitrary
 
 data List1 a = List1 { fromList1 :: [a] }
 
