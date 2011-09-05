@@ -50,7 +50,7 @@ module NLP.GenI.Builder (
  SemBitMap, defineSemanticBits, semToBitVector, bitVectorToSem, DispatchFilter, condFilter,
  defaultStepAll,
  BuilderState, UninflectedDisjunction(..), Input(..), unlessEmptySem,
-initStats, Output, SentenceAut, run, queryCounter, defaultMetricNames, preInit
+ initStats, Output, SentenceAut, run, queryCounter, defaultMetricNames, preInit
 )
 where
 
