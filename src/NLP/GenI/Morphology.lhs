@@ -212,6 +212,7 @@ sansMorph = singleton . unwords . map lem
 ---  the third party software.
 -- FIXME: this doesn't actually support lists-of-results per input
 -- will need to work it out
+-- HUH? What makes me say that?
 inflectSentencesUsingCmd :: String -> [LemmaPlusSentence] -> IO [(LemmaPlusSentence,[String])]
 inflectSentencesUsingCmd morphcmd sentences =
   doit `catch` (fallback . show)
