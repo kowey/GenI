@@ -18,6 +18,8 @@
 \chapter{Polarity Optimisation}
 \label{cha:Polarity}
 
+\todo{rewrite for manual}
+
 We introduce a notion of polarities as a means of pre-detecting
 incompatibilities between candidate trees for different propositions.
 This optimisation is inserted between candidate selection 
@@ -366,8 +368,8 @@ buildPolAut k initK skelAut =
         , transitions = Map.empty }
       -- cand' = observe "candidate map" cand 
   in nubAut $ buildPolAut' k (transitions skelAut) initAut 
-\end{code}
 
+{-
 Our helper function looks at a single state in the skeleton automaton
 and at one of the states in the new automaton which correspond to it.
 We use the transitions from the old automaton to determine which states
@@ -377,8 +379,8 @@ are looking at a different polarity key, so that whereas two candidates
 automaton may transition to the same state in the old automaton, their
 polarity effects for the new key will make them diverge in the new
 automaton.  
+-}
 
-\begin{code}
 buildPolAut' :: PolarityKey -> PolTransFn -> PolAut -> PolAut
 -- for each literal... (this is implicit in the automaton state grouping)
 buildPolAut' fk skeleton aut = 
@@ -429,6 +431,17 @@ polarity of zero sum can now be eliminated.  We do this by stepping
 recursively backwards from the final states: 
 
 \begin{code}
+{-|
+The pruning algorithm takes as arguments a list of states to process.
+Among these, any state which does not have outgoing transitions is
+placed on the blacklist.  We remove all transitions to the blacklist and
+all states that only transition to the blacklist, and then we repeat
+pruning, with a next batch of states.
+
+Finally, we return the pruned automaton.  Note: in order for this to
+work, it is essential that the final states are *not* included in the
+list of states to process.
+-}
 prune :: PolAut -> PolAut
 prune aut = 
   let theStates   = states aut
@@ -447,19 +460,7 @@ prune aut =
   in if (null theStates) 
      then aut
      else pruned { states = (headPruned ++ final) : tailPruned } 
-\end{code}
 
-The pruning algorithm takes as arguments a list of states to process.
-Among these, any state which does not have outgoing transitions is
-placed on the blacklist.  We remove all transitions to the blacklist and
-all states that only transition to the blacklist, and then we repeat
-pruning, with a next batch of states.  
-
-Finally, we return the pruned automaton.  Note: in order for this to
-work, it is essential that the final states are *not* included in the
-list of states to process.
-
-\begin{code}
 prune' :: [[PolState]] -> PolAut -> PolAut
 prune' [] oldAut = oldAut { states = reverse $ states oldAut }
 prune' (sts:next) oldAut = 
@@ -772,7 +773,7 @@ assignIndex i te =
 % ====================================================================
 
 \subsection{Lexical filtering} \label{fn:detectIdxConstraints}
-
+\label{sec:polarity:idxconstraints}
 Lexical filtering allows the user to constrain the lexical selection
 to only those items that contain a certain property, for example, the
 realising an item as a cleft.
@@ -1037,12 +1038,9 @@ instance Ord PolState where
     let prC   = compare pr1 pr2
         expoC = compare (ex1,po1) (ex2,po2)
     in if (prC == EQ) then expoC else prC
-\end{code}
 
-We include also some fake states which are useful for general
-housekeeping during the main algortihms.
-
-\begin{code}
+-- We include also some fake states which are useful for general
+-- housekeeping during the main algortihms.
 fakestate :: Int -> [Interval] -> PolState
 fakestate s pol = PolSt s [] pol --PolSt (0, s, [""]) [] pol
 
@@ -1051,11 +1049,7 @@ polstart :: [Interval] -> PolState
 polstart pol = fakestate 0 pol -- fakestate "START" pol
 \end{code}
 
-% ----------------------------------------------------------------------
-\section{Display code}
-\label{sec:display_pol}
-% ----------------------------------------------------------------------
-
+\ignore{
 \begin{code}
 -- | 'showLite' is like Show but it's only used for debugging
 --   TODO: is this true?
@@ -1069,19 +1063,17 @@ instance (ShowLite a, ShowLite b) => ShowLite (a,b) where
 
 instance ShowLite Int where showLite = show 
 instance ShowLite Char where showLite = show 
-\end{code}
 
-%\begin{code}
-%instance (Show st, ShowLite ab) => ShowLite (NFA st ab) where
-%  showLite aut = 
-%    concatMap showTrans $ toList (transitions aut)
-%    where showTrans ((st1, x), st2) = show st1 ++ showArrow x 
-%                                 ++ show st2 ++ "\n"
-%          showArrow x = " --" ++ showLite x ++ "--> " 
-%        -- showSt (PolSt pr po) = show po
-%\end{code}
+{-
+instance (Show st, ShowLite ab) => ShowLite (NFA st ab) where
+  showLite aut =
+    concatMap showTrans $ toList (transitions aut)
+    where showTrans ((st1, x), st2) = show st1 ++ showArrow x
+                                 ++ show st2 ++ "\n"
+          showArrow x = " --" ++ showLite x ++ "--> "
+        -- showSt (PolSt pr po) = show po
+-}
 
-\begin{code}
 instance ShowLite TagElem where
   showLite = idname 
 
@@ -1103,3 +1095,4 @@ showLitePm pm =
   let showPair (f, pol) = showInterval pol ++ show f
   in concat $ intersperse " " $ map showPair $ Map.toList pm
 \end{code}
+}
