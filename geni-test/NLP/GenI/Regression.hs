@@ -93,7 +93,7 @@ genSuite mkCase name xs = do
 -- goodSuiteCase :: ProgStateRef -> G.TestCase -> TestCase
 goodSuiteCase pstRef tc = testCase (tcName tc) $ do
   res <- runOnSemInput pstRef (tcSem tc)
-  let sentences = map lemmaSentenceString (rights res)
+  let sentences = map lemmaSentenceString (successes res)
       name = tcName tc
       semStr = showSem . fst3 . tcSem $ tc
       mainMsg  = "for " ++ semStr ++ ",  got no results"
@@ -103,7 +103,7 @@ goodSuiteCase pstRef tc = testCase (tcName tc) $ do
 
 badSuiteCase pstRef tc = testCase (tcName tc) $ do
   res <- runOnSemInput pstRef (tcSem tc)
-  let sentences = map lemmaSentenceString (rights res)
+  let sentences = map lemmaSentenceString (successes res)
   assertBool "no results" (null sentences)
 
 runOnSemInput :: ProgStateRef -> SemInput -> IO [GeniResult]
@@ -117,3 +117,6 @@ runOnSemInput pstRef semInput =
      sort `fmap` go
   where
     helper builder = fst3 `fmap` runGeni pstRef builder
+
+successes :: [GeniResult] -> [GeniSuccess]
+successes = filter isSuccess

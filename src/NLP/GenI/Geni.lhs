@@ -32,7 +32,8 @@ module NLP.GenI.Geni (
              ProgState(..), ProgStateRef, emptyProgState,
              initGeni,
              runGeni, runGeniWithSelector,
-             GeniResult, GeniError(..), GeniSuccess(..), ResultType(..),
+             GeniResult(..), isSuccess, GeniError(..), GeniSuccess(..),
+             ResultType(..),
              -- * helpers
              lemmaSentenceString, prettyResult,
              showRealisations, groupAndCount,
@@ -501,7 +502,13 @@ is run the surface realiser.
 \end{enumerate}
 
 \begin{code}
-type GeniResult = Either GeniError GeniSuccess
+data GeniResult = GError   GeniError
+                | GSuccess GeniSuccess
+  deriving (Ord, Eq)
+
+isSuccess :: GeniResult -> Bool
+isSuccess (GSuccess _) = True
+isSuccess (GError _)   = False
 
 data GeniError = GeniError [String]
   deriving (Ord, Eq)
@@ -627,7 +634,7 @@ finaliseResults pstRef ty os =
                , grResultType = ty
                , grOrigin     = i
                }
-  addRanking (i,res,vs) = Right $ res { grViolations = vs, grRanking = i }
+  addRanking (i,res,vs) = GSuccess $ res { grViolations = vs, grRanking = i }
 \end{code}
 
 % --------------------------------------------------------------------
@@ -831,6 +838,14 @@ verbosity :: ProgStateRef -> IO Bool
 verbosity = fmap (hasFlagP VerboseModeFlg . pa)
           . readIORef
 
+instance JSON GeniResult where
+ readJSON j =
+    case readJSON j of
+      Ok s    -> Ok (GSuccess s)
+      Error _ -> GError `fmap` readJSON j
+ showJSON (GSuccess x) = showJSON x
+ showJSON (GError   x) = showJSON x
+
 instance JSON GeniSuccess where
  readJSON j =
     do jo <- fromJSObject `fmap` readJSON j
@@ -892,12 +907,18 @@ picosToMillis t = realToFrac t / (10^(9 :: Int))
 
 {-!
 deriving instance NFData GeniResult
+deriving instance NFData GeniSuccess
 deriving instance NFData GeniError
 deriving instance NFData ResultType
 deriving instance NFData GeniLexSel
 !-}
 
 -- GENERATED START
+
+ 
+instance NFData GeniResult where
+        rnf (GError x1) = rnf x1 `seq` ()
+        rnf (GSuccess x1) = rnf x1 `seq` ()
 
  
 instance NFData GeniSuccess where
@@ -907,14 +928,14 @@ instance NFData GeniSuccess where
                 rnf x3 `seq`
                   rnf x4 `seq` rnf x5 `seq` rnf x6 `seq` rnf x7 `seq` rnf x8 `seq` ()
 
-
+ 
 instance NFData GeniError where
         rnf (GeniError x1) = rnf x1 `seq` ()
 
  
 instance NFData ResultType where
-        rnf CompleteResult = ()
-        rnf PartialResult = ()
+        rnf (CompleteResult) = ()
+        rnf (PartialResult) = ()
 
  
 instance NFData GeniLexSel where

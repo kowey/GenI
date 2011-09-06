@@ -196,5 +196,5 @@ runOnSemInput pstRef args semInput =
       do (results, stats, _) <- runGeni pstRef builder
          return (results, stats)
     fromResult :: (GeniSuccess -> [String]) -> GeniResult -> [String]
-    fromResult _ (Left errs) = [ show errs ]
-    fromResult f (Right x)   = f x
+    fromResult _ (GError errs) = [ show errs ]
+    fromResult f (GSuccess x)  = f x
