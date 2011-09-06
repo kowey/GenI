@@ -643,8 +643,8 @@ optionsForTesting =
       "run test case STRING"
   , Option []    ["timeout"] (reqArg TimeoutFlg read "SECONDS")
       "time out after SECONDS seconds"
-  , Option []    ["maxchartsz"] (reqArg ChartMaxSzFlg read "INT")
-      ""
+  , Option []    ["maxsteps"] (reqArg MaxStepsFlg read "INT")
+      "abort and return any results found after INT steps"
   , Option []    ["metrics"] (optArg MetricsFlg ["default"] words "LIST")
       "keep track of performance metrics: (default: iterations comparisons chart_size)"
   , Option []    ["statsfile"] (reqArg StatsFileFlg id "FILE")

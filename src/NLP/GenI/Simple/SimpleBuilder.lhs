@@ -177,8 +177,7 @@ data SimpleStatus = S
   { theAgenda    :: Agenda
   , theHoldingPen :: AuxAgenda
   , theChart     :: Chart
-  , chartSz    :: !Integer
-  , chartMaxSz :: Maybe Integer
+  , maxSteps   :: Maybe Integer
   , theTrash   :: Trash
   , theResults :: [SimpleItem]
   , tsem       :: BitVector
@@ -217,7 +216,6 @@ addToAuxAgenda te = do
 addToChart :: SimpleItem -> SimpleState ()
 addToChart te = do
   modify $ \s -> s { theChart = te:theChart s
-                   , chartSz  = chartSz s + 1
                    }
   incrCounter chart_size 1
 
@@ -350,8 +348,7 @@ initSimpleBuilder twophase input config =
       initS = S{ theAgenda    = []
                , theHoldingPen = []
                , theChart     = []
-               , chartSz      = 0
-               , chartMaxSz   = getFlagP ChartMaxSzFlg config
+               , maxSteps     = getFlagP MaxStepsFlg config
                , theTrash     = []
                , theResults   = []
                , semBitMap = bmap
@@ -543,7 +540,6 @@ switchToAux = do
   put st{ theAgenda = []
         , theHoldingPen = []
         , theChart = auxTrees
-        , chartSz  = fromIntegral (length auxTrees)
         , step = AdjunctionPhase }
   mapM_ simpleDispatch_2p_adjphase compT
   -- toss the syntactically incomplete stuff in the trash
@@ -558,9 +554,9 @@ finished :: Bool -> SimpleStatus -> GenStatus
 finished twophase st =
   if null (theAgenda st) && (not twophase || isAdjunctionPhase (step st))
    then                              B.Finished
-   else case chartMaxSz st of
-          Just n | n < chartSz st -> B.Error $ "Max chart size exceeded (" ++ show n ++ ")"
-          _                       -> B.Active
+   else case maxSteps st of
+          Just n | n < gencounter st -> B.Error $ "Max steps exceeded (" ++ show n ++ ")"
+          _                          -> B.Active
 \end{code}
 
 \subsubsection{SemFilter Optimisation}

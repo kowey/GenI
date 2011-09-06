@@ -110,7 +110,6 @@ getAllFlags f fs = catMaybes [ cast v | flg@(Flag _ v) <- fs, isFlag f flg ]
 -- ----------------------------------------------------------------------
 
 data BatchDirFlg = BatchDirFlg FilePath deriving (Eq, Show, Typeable)
-data ChartMaxSzFlg = ChartMaxSzFlg Integer deriving (Eq, Show, Typeable)
 data DisableGuiFlg = DisableGuiFlg () deriving (Eq, Show, Typeable)
 data DetectPolaritiesFlg = DetectPolaritiesFlg (Set.Set PolarityAttr) deriving (Eq, Show, Typeable)
 data DumpDerivationFlg = DumpDerivationFlg () deriving (Eq, Show, Typeable)
@@ -122,6 +121,7 @@ data InstructionsFileFlg = InstructionsFileFlg FilePath deriving (Eq, Show, Type
 data LexiconFlg = LexiconFlg FilePath deriving (Eq, Show, Typeable)
 data MacrosFlg = MacrosFlg FilePath deriving (Eq, Show, Typeable)
 data TracesFlg = TracesFlg FilePath deriving (Eq, Show, Typeable)
+data MaxStepsFlg = MaxStepsFlg Integer deriving (Eq, Show, Typeable)
 data MetricsFlg = MetricsFlg [String] deriving (Eq, Show, Typeable)
 data MorphCmdFlg = MorphCmdFlg String deriving (Eq, Show, Typeable)
 data MorphInfoFlg = MorphInfoFlg FilePath deriving (Eq, Show, Typeable)
