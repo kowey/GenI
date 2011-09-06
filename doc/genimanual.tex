@@ -14,10 +14,12 @@
 
 \usepackage{lingmacros}  % included with GenI
 \usepackage{covington}   % included with GenI
+\usepackage{todonotes}
 \newtheorem{definition}{Definition}
 
 % ----------------------------------------
 \newcommand{\jargon}{\textbf}
+\newcommand{\todouser}{\todo[inline, color=red!40]}
 \newcommand{\geni}{\textsc{GenI}\xspace}
 \newcommand{\natlang}{\textit}
 \newcommand{\semexpr}{\texttt}
@@ -100,6 +102,7 @@ other informal notes on the wiki.  See
 
 \part{Extras}
 
+\input{../src/NLP/GenI/Polarity.lhs}
 \input{../src/NLP/GenI/OptimalityTheory.lhs}
 \input{../src/NLP/GenI/Morphology.lhs}
 

@@ -232,6 +232,9 @@ formally,
 \end{center}
 
 \begin{code}
+-- We make no attempt to check for / guarantee uniqueness here
+-- because the same sort of format is used for things which are
+-- not strictly speaking feature structures
 geniFeats :: GeniValLike v => Parser (Flist v)
 geniFeats = option [] $ squares $ many geniAttVal
 
@@ -293,12 +296,57 @@ geniLiteral =
 The semantic input can either be provided directly in the graphical interface
 or as part of a test suite.
 
-The format for semantic inputs is actually a bit richer than the core
-definition in section \ref{sec:geni-semantics}, but I have not yet written the
-documentation for it.
+\paragraph{Core format}
 
-\textbf{TODO}: The semantics may contain literal based constraints as described
-in section \ref{sec:fixme}.
+The semantics is basically follows the format described in section
+\label{sec:geni-semantics}, but it can also be further constrained,
+see below.
+
+\paragraph{(Local) literal constraints}
+
+
+Each literal may be followed by a boolean expression in square brackets
+denoting constraints on the lexical selection for that literal, for
+example
+
+\begin{itemize}
+\item \verb!l0:chase(c d c) [ Passive | (Active & (~ Ditransitive) ]!
+\end{itemize}
+
+\todouser{Boolean expression syntax not supported yet. Use space-delimited conjunctions for now}
+
+The syntax for expressions is defined in this EBNF:
+
+\begin{SaveVerbatim}{KoweyTmp}
+<boolexp> ::= <identifier>
+            | <boolexp> & <boolexp>
+            | <boolexp> | <boolexp>
+            | ~ <boolexp>
+            | ( <boolexp> )
+\end{SaveVerbatim}
+\begin{center}
+\fbox{\BUseVerbatim{KoweyTmp}}
+\end{center}
+
+\paragraph{(Global) index constraints}
+
+Index constraints can be specified using a syntax similar to that used by
+feature structures, without the requirement that attributes be unique. To
+give an example, the input below uses an index constraint to select
+between two paraphrases in a hypothetical grammar that allows either the
+sentences ``the dog chases the cat'' or ``it is the cat which is chased
+by the dog''.
+
+\begin{SaveVerbatim}{KoweyTmp}
+semantics:[l0:chase(c d c) l1:dog(d) l2:def(d) l3:cat(c) l4:def(c)]
+idxconstraints:[focus:d]
+\end{SaveVerbatim}
+\begin{center}
+\fbox{\BUseVerbatim{KoweyTmp}}
+\end{center}
+
+Use of index constraints requires polarity filtering.  See section
+\ref{sec:polarity:idxconstraints} on how they are applied.
 
 \begin{code}
 geniSemanticInput :: Parser (Sem,Flist GeniVal,[LitConstr])
