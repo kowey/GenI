@@ -328,6 +328,9 @@ The syntax for expressions is defined in this EBNF:
 \fbox{\BUseVerbatim{KoweyTmp}}
 \end{center}
 
+See chapter \ref{cha:paraphrase} for more details on how literal
+constraints are used.
+
 \paragraph{(Global) index constraints}
 
 Index constraints can be specified using a syntax similar to that used by
