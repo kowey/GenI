@@ -2,6 +2,7 @@ GenI 0.22, XX
 ----------------------
   * Polarity filtering no longer requires all subst/root nodes to have
     the feature defined.
+  * --maxchartsz to cap each test case at a certain number of chart items
 
 GenI 0.20, 29 Sep 2009
 ----------------------

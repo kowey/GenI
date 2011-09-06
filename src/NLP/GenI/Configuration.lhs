@@ -18,6 +18,7 @@
 \chapter{Command line arguments}
 
 \begin{code}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE OverloadedStrings, ViewPatterns #-}
 module NLP.GenI.Configuration
@@ -642,6 +643,8 @@ optionsForTesting =
       "run test case STRING"
   , Option []    ["timeout"] (reqArg TimeoutFlg read "SECONDS")
       "time out after SECONDS seconds"
+  , Option []    ["maxchartsz"] (reqArg ChartMaxSzFlg read "INT")
+      ""
   , Option []    ["metrics"] (optArg MetricsFlg ["default"] words "LIST")
       "keep track of performance metrics: (default: iterations comparisons chart_size)"
   , Option []    ["statsfile"] (reqArg StatsFileFlg id "FILE")

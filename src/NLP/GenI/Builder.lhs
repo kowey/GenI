@@ -43,7 +43,7 @@ UML might help.  See figure \ref{fig:builderUml}.
 {-# LANGUAGE DeriveDataTypeable #-}
 
 module NLP.GenI.Builder (
- TagDerivation, Builder(..),
+ TagDerivation, Builder(..), GenStatus(..),
  lexicalSelection, FilterStatus(..),incrCounter, num_iterations,
  (>-->),
  num_comparisons, chart_size,
@@ -114,13 +114,17 @@ All backends provide the same essential functionality:
 FIXME: need to update this comment
 
 \begin{code}
+data GenStatus = Finished
+               | Active
+               | Error String
+
 data Builder st it pa = Builder
   { init     :: Input -> pa -> (st, Statistics)
   --
   , step     :: BuilderState st ()
   , stepAll  :: BuilderState st ()
   --
-  , finished :: st -> Bool
+  , finished :: st -> GenStatus
   , unpack   :: st -> [Output]
   , partial  :: st -> [Output] }
 
@@ -348,9 +352,9 @@ bitVectorToSem bmap vector =
 defaultStepAll :: Builder st it pa -> BuilderState st ()
 defaultStepAll b =
  do s <- get
-    unless (finished b s) $
-      do step b
-         defaultStepAll b
+    case finished b s of
+      Active -> step b >> defaultStepAll b
+      _      -> return ()
 \end{code}
 
 \subsection{Dispatching new chart items}

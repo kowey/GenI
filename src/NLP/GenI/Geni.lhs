@@ -549,6 +549,7 @@ runGeniWithSelector pstRef  selector builder =
      let config = pa pst
          run    = B.run builder
          unpack = B.unpack builder
+         finished = B.finished builder
      -- step 1: lexical selection
      initStuff <- initGeniWithSelector pstRef selector 
      start <- ( rnf initStuff ) `seq` getCPUTime  --force evaluation before measuring start time to avoid including grammar/lexicon parsing.
@@ -560,8 +561,9 @@ runGeniWithSelector pstRef  selector builder =
          tryPartial  = null uninflected && hasFlagP PartialFlg config
          rawResults  = if tryPartial then B.partial builder finalSt else uninflected
          resultTy    = if tryPartial then PartialResult else CompleteResult
+         status      = finished finalSt
      -- step 4: post-processing
-     results <- finaliseResults pstRef resultTy rawResults
+     results <- finaliseResults pstRef (resultTy, status, rawResults)
      end <-  ( rnf results ) `seq` getCPUTime --force evaluation before measuring end time to account for all the work that should be done.
      let elapsedTime = picosToMillis $! end - start
      let diff = round (elapsedTime :: Double) :: Int
@@ -610,8 +612,8 @@ initGeniWithSelector pstRef lexSelector =
 -- | 'finaliseResults' does any post-processing steps that we want to integrate
 --   into mainline GenI.  So far, this consists of morphological realisation and
 --   OT ranking
-finaliseResults :: ProgStateRef -> ResultType -> [B.Output] -> IO [GeniResult]
-finaliseResults pstRef ty os =
+finaliseResults :: ProgStateRef -> (ResultType, B.GenStatus, [B.Output]) -> IO [GeniResult]
+finaliseResults pstRef (ty, status, os) =
  do pst <- readIORef pstRef
     -- morph TODO: make this a bit safer
     mss <- case getFlagP MorphCmdFlg (pa pst) of
@@ -621,7 +623,12 @@ finaliseResults pstRef ty os =
     -- OT ranking
     let unranked = zipWith (sansRanking pst) os mss
         rank = rankResults (getTraces pst) grDerivation (ranking pst)
-    return . map addRanking . rank $ unranked
+        successes = map addRanking (rank unranked)
+        failures  = case status of
+                      B.Error str -> [GeniError [str]]
+                      B.Finished  -> []
+                      B.Active    -> []
+    return (map GError failures ++ map GSuccess successes)
  where
   sentences = map snd3 os
   sansRanking pst (i,l,d) rs = GeniSuccess
@@ -634,7 +641,7 @@ finaliseResults pstRef ty os =
                , grResultType = ty
                , grOrigin     = i
                }
-  addRanking (i,res,vs) = GSuccess $ res { grViolations = vs, grRanking = i }
+  addRanking (i,res,vs) = res { grViolations = vs, grRanking = i }
 \end{code}
 
 % --------------------------------------------------------------------

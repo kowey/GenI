@@ -84,6 +84,7 @@ import NLP.GenI.Builder (
     incrCounter, num_iterations, num_comparisons, chart_size,
     SemBitMap, defineSemanticBits, semToBitVector, bitVectorToSem,
     DispatchFilter, (>-->), condFilter, FilterStatus(Filtered, NotFiltered),
+    GenStatus(..),
     )
 import NLP.GenI.LemmaPlus ( LemmaPlus(..) )
 import qualified NLP.GenI.Builder as B
@@ -121,14 +122,16 @@ simpleBuilder_2p = simpleBuilder True
 simpleBuilder_1p = simpleBuilder False
 
 simpleBuilder :: Bool -> SimpleBuilder
-simpleBuilder twophase = B.Builder
-  { B.init     = initSimpleBuilder twophase
-  , B.step     = if twophase then generateStep_2p else generateStep_1p
-  , B.stepAll  = B.defaultStepAll (simpleBuilder twophase)
-  , B.finished = \s -> (null.theAgenda) s && (not twophase || isAdjunctionPhase (step s))
-  , B.unpack   = unpackResults.theResults
-  , B.partial  = unpackResults.partialResults
-  }
+simpleBuilder twophase = me
+ where
+  me = B.Builder
+   { B.init     = initSimpleBuilder twophase
+   , B.step     = if twophase then generateStep_2p else generateStep_1p
+   , B.stepAll  = B.defaultStepAll me
+   , B.finished = finished twophase
+   , B.unpack   = unpackResults.theResults
+   , B.partial  = unpackResults.partialResults
+   }
 \end{code}
 
 % --------------------------------------------------------------------
@@ -174,6 +177,8 @@ data SimpleStatus = S
   { theAgenda    :: Agenda
   , theHoldingPen :: AuxAgenda
   , theChart     :: Chart
+  , chartSz    :: !Integer
+  , chartMaxSz :: Maybe Integer
   , theTrash   :: Trash
   , theResults :: [SimpleItem]
   , tsem       :: BitVector
@@ -211,7 +216,9 @@ addToAuxAgenda te = do
 
 addToChart :: SimpleItem -> SimpleState ()
 addToChart te = do
-  modify $ \s -> s { theChart = te:theChart s }
+  modify $ \s -> s { theChart = te:theChart s
+                   , chartSz  = chartSz s + 1
+                   }
   incrCounter chart_size 1
 
 addToTrash :: SimpleItem -> String -> SimpleState ()
@@ -343,6 +350,8 @@ initSimpleBuilder twophase input config =
       initS = S{ theAgenda    = []
                , theHoldingPen = []
                , theChart     = []
+               , chartSz      = 0
+               , chartMaxSz   = getFlagP ChartMaxSzFlg config
                , theTrash     = []
                , theResults   = []
                , semBitMap = bmap
@@ -534,11 +543,24 @@ switchToAux = do
   put st{ theAgenda = []
         , theHoldingPen = []
         , theChart = auxTrees
+        , chartSz  = fromIntegral (length auxTrees)
         , step = AdjunctionPhase }
   mapM_ simpleDispatch_2p_adjphase compT
   -- toss the syntactically incomplete stuff in the trash
   mapM_ (\t -> addToTrash t ts_synIncomplete) incompT1
   mapM_ (\t -> addToTrash t "sem-filtered") incompT3
+\end{code}
+
+\subsection{Completion}
+
+\begin{code}
+finished :: Bool -> SimpleStatus -> GenStatus
+finished twophase st =
+  if null (theAgenda st) && (not twophase || isAdjunctionPhase (step st))
+   then                              B.Finished
+   else case chartMaxSz st of
+          Just n | n < chartSz st -> B.Error $ "Max chart size exceeded (" ++ show n ++ ")"
+          _                       -> B.Active
 \end{code}
 
 \subsubsection{SemFilter Optimisation}

@@ -23,7 +23,7 @@ module NLP.GenI.Console(consoleGeni, runTestCaseOnly) where
 import Control.Applicative ( pure )
 import Control.Monad
 import Data.IORef(readIORef, modifyIORef)
-import Data.List(find)
+import Data.List(partition, find)
 import Data.Maybe ( isJust, fromMaybe )
 import System.Directory(createDirectoryIfMissing)
 import System.Exit ( exitWith, exitFailure, ExitCode(..) )
@@ -105,7 +105,9 @@ runInstructions pstRef =
       when verbose $
         ePutStrLn "======================================================"
       (res , _) <- runOnSemInput pstRef (PartOfSuite n bdir) s
-      ePutStrLn $ " " ++ n ++ " - " ++ (show $ length res) ++ " results"
+      let (goodres, badres) = partition isSuccess res
+          badresSuf = if null badres then "" else " (" ++ show (length badres) ++ " errors)"
+      ePutStrLn $ " " ++ n ++ " - " ++ show (length goodres) ++ " results" ++ badresSuf
       when (null res && earlyDeath) $ do
         ePutStrLn $ "Exiting early because test case " ++ n ++ " failed."
         exitFailure
