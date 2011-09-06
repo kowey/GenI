@@ -23,7 +23,6 @@ module NLP.GenI.GeniVal where
 -- import Debug.Trace -- for test stuff
 import Control.Arrow (first, (***))
 import Control.Monad (liftM)
-import Data.Char ( isAlphaNum )
 import Data.List
 import Data.Maybe (catMaybes, fromMaybe, isNothing, isJust)
 import Data.Generics (Data)
