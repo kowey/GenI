@@ -3,6 +3,7 @@ GenI 0.22, XX
   * Polarity filtering no longer requires all subst/root nodes to have
     the feature defined.
   * --maxchartsz to cap each test case at a certain number of chart items
+  * TODO: make sure UTF-8 stuff still works
 
 GenI 0.20, 29 Sep 2009
 ----------------------
