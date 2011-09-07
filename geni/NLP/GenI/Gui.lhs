@@ -52,6 +52,7 @@ import NLP.GenI.Geni
   )
 import NLP.GenI.General (boundsCheck, geniBug, fst3, prettyException, trim)
 import NLP.GenI.Btypes (TestCase(..), showFlist,)
+import NLP.GenI.Geni     (GeniResult(..))
 import NLP.GenI.GeniShow (geniShow)
 import NLP.GenI.Configuration
   ( Params(..), Instruction, hasOpt
@@ -622,7 +623,8 @@ resultsGui builderGui pstRef =
     -- ranking tab
     pst <- readIORef pstRef
     let useRanking = hasFlagP RankingConstraintsFlg (pa pst)
-    rankTab <- messageGui nb . unlines . map (prettyResult pst) $ results
+    rankTab <- messageGui nb . unlines . map (prettyResult pst)
+               $ [ x | GSuccess x <- results ]
     -- tabs
     let myTabs = [ tab "summary"       summTab
                  , tab "realisations"  resTab

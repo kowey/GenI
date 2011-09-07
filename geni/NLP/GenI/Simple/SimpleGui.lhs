@@ -27,10 +27,10 @@ module NLP.GenI.Simple.SimpleGui where
 \begin{code}
 import Graphics.UI.WX
 
-import Control.Arrow ( (&&&) )
+import Control.Arrow ( (&&&), (***) )
 import qualified Data.GraphViz as GV
 import Data.IORef
-import Data.List ( sort, intersperse )
+import Data.List ( sort, intersperse, partition )
 import qualified Data.Map as Map
 
 import NLP.GenI.Statistics (Statistics, showFinalStats)
@@ -38,7 +38,8 @@ import NLP.GenI.Statistics (Statistics, showFinalStats)
 import NLP.GenI.Btypes (GNode(gnname, gup), AvPair(..), emptyGNode)
 import NLP.GenI.Configuration ( Params(..) )
 import NLP.GenI.General ( snd3, buckets )
-import NLP.GenI.Geni ( ProgStateRef, runGeni, GeniResult(..) )
+import NLP.GenI.Geni ( ProgStateRef, runGeni
+                     , GeniResult(..), GeniSuccess(..), GeniError(..), isSuccess )
 import NLP.GenI.GeniVal (mkGConst, GeniVal)
 import NLP.GenI.Graphviz ( GraphvizShow(..) )
 import NLP.GenI.GuiHelper
@@ -51,7 +52,7 @@ import NLP.GenI.Tags (tsemantics, DerivationStep(dsChild), TagElem(idname, ttree
 import NLP.GenI.GraphvizShow ( graphvizShowDerivation )
 
 import qualified NLP.GenI.Builder    as B
-import NLP.GenI.Builder (LemmaPlus(..))
+import NLP.GenI.Morphology (LemmaPlus(..))
 import qualified NLP.GenI.BuilderGui as BG
 import NLP.GenI.Polarity
 import NLP.GenI.Simple.SimpleBuilder
@@ -111,19 +112,7 @@ realisationsGui pstRef f resultsRaw =
 
 summaryGui :: ProgStateRef -> Window a -> [GeniResult] -> Statistics -> IO Layout
 summaryGui _ f results stats =
-  do let taggedResults = concatMap sentences results
-         resultBuckets = buckets snd taggedResults
-         sentences gr  = map (\r -> (grOrigin gr, r)) (grRealisations gr)
-         showBucket (s, xys) = s ++ " (" ++ instances ++ ")"
-           where
-            instances = if length ys == 1
-                           then ys_str
-                           else show (length ys) ++ " instances: " ++ ys_str
-            ys = map fst xys
-            ys_str = concat . intersperse ", " . map show . sort $ ys
-         msg = if null results then "(none)" else unlines (map showBucket resultBuckets)
-         totalResults  = length taggedResults
-     p <- panel f []
+  do p <- panel f []
      statsTxt <- textCtrl p [ text := showFinalStats stats ]
      t <- textCtrl p [ text := msg ]
      saveBt <- button p [ text := "Save to file"
@@ -134,6 +123,33 @@ summaryGui _ f results stats =
               , hfill $ label $ "Realisations (" ++ show totalResults ++ " found)"
               , fill  $ widget t
               , hfloatRight $ widget saveBt ]
+ where
+  (succeses, errors) = partitionGeniResult results
+  taggedResults = concatMap sentences succeses 
+  resultBuckets = buckets snd taggedResults
+  sentences gr  = map (\r -> (grOrigin gr, r)) (grRealisations gr)
+  showBucket (s, xys) = s ++ " (" ++ instances ++ ")"
+    where
+     instances = if length ys == 1
+                    then ys_str
+                    else show (length ys) ++ " instances: " ++ ys_str
+     ys = map fst xys
+     ys_str = concat . intersperse ", " . map show . sort $ ys
+  msg = unlines $ concatMap fromError errors
+               ++ (if null succeses
+                      then [ "(none)" ]
+                      else map showBucket resultBuckets)
+  totalResults  = length taggedResults
+  fromError (GeniError e) = e
+
+partitionGeniResult :: [GeniResult] -> ([GeniSuccess],[GeniError])
+partitionGeniResult results = (map unSucc *** map unErr)
+                            $ partition isSuccess results
+  where
+   unSucc (GSuccess x) = x
+   unSucc _ = error $ "NLP.GenI.Simple.SimpleGui unSucc"
+   unErr  (GError x) = x
+   unErr  _ = error $ "NLP.GenI.Simple.SimpleGui unErr"
 \end{code}
 
 % --------------------------------------------------------------------
