@@ -60,6 +60,11 @@ emptyPred = (mkGAnon,mkGAnon,[])
 \section{Utility functions}
 
 \begin{code}
+removeConstraints :: SemInput -> SemInput
+removeConstraints (x, _, _) = (x, [], [])
+\end{code}
+
+\begin{code}
 -- | Sort semantics first according to its predicate, and then to its handles.
 sortSem :: Sem -> Sem
 sortSem = sortBy (\(h1,p1,a1) (h2,p2,a2) -> compare (p1, h1:a1) (p2, h2:a2))

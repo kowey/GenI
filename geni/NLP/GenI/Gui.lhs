@@ -575,7 +575,7 @@ doGenerate f pstRef sembox detectPolsTxt rootFeatTxt useDebugger pauseOnLex =
     let setConfig = id
           . (maybeSet RootFeatureFlg parseRF rootCatVal)
           . (setFlagP DetectPolaritiesFlg (readPolarityAttrs detectPolsVal))
-    modifyIORef pstRef $ \p -> p { pa = setConfig (pa p), warnings = [] }
+    modifyIORef pstRef $ \p -> p { pa = setConfig (pa p) }
     minput <- try $ do
       set sembox [ text :~ trim ]
       loadEverything   pstRef

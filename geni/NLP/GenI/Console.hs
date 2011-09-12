@@ -123,7 +123,7 @@ runTestCaseOnly pstRef =
     semInput <- case getFlagP TestCaseFlg config of
                    Nothing -> if hasFlagP FromStdinFlg config
                                  then do getContents >>= loadTargetSemStr pstRef
-                                         ts `fmap` readIORef pstRef
+                                         (ts . local) `fmap` readIORef pstRef
                                  else getFirstCase pst
                    Just c  -> findCase pst c
     runOnSemInput pstRef (Standalone pstOutfile sFile) semInput
@@ -148,7 +148,7 @@ runOnSemInput :: ProgStateRef
               -> SemInput
               -> IO ([GeniResult], Statistics)
 runOnSemInput pstRef args semInput =
-  do modifyIORef pstRef (\x -> x{ts = semInput, warnings = []})
+  do modifyIORef pstRef (resetLocal semInput)
      pst <- readIORef pstRef
      let config = pa pst
          dump = hasFlagP DumpDerivationFlg config
@@ -156,7 +156,7 @@ runOnSemInput pstRef args semInput =
      (results, stats) <- case builderType config of
                             SimpleBuilder -> helper simpleBuilder_2p
                             SimpleOnePhaseBuilder -> helper simpleBuilder_1p
-     warningsOut <- warnings `fmap` readIORef pstRef
+     warningsOut <- (warnings . local) `fmap` readIORef pstRef
      -- create directory if need be
      case args of
        PartOfSuite n f -> createDirectoryIfMissing False (f </> n)

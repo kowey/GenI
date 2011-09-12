@@ -30,6 +30,7 @@ involve some messy IO performance tricks.
 module NLP.GenI.Geni (
              -- * main interface
              ProgState(..), ProgStateRef, emptyProgState,
+             ProgStateLocal(..), resetLocal,
              initGeni,
              runGeni, runGeniWithSelector,
              GeniResult(..), isSuccess, GeniError(..), GeniSuccess(..),
@@ -77,19 +78,18 @@ import Text.JSON
 import NLP.GenI.General(
     groupAndCount,
     geniBug,
-    fst3, snd3,
+    snd3,
     ePutStr, ePutStrLn, eFlush,
     )
 
 import NLP.GenI.Btypes
   (Macros, ILexEntry, Lexicon,
-   SemInput, Sem, LitConstr, TestCase(..), sortSem,
+   SemInput, Sem, LitConstr, TestCase(..), sortSem, removeConstraints,
    isemantics, ifamname, iword,
    showLexeme, showSem,
    pidname, pfamily, ptrace,
    )
 import NLP.GenI.BtypesBinary ()
-
 import NLP.GenI.Tags (TagElem,
              idname,
              tsemantics,
@@ -147,7 +147,6 @@ data ProgState = ST{ -- | the current configuration being processed
                     gr       :: Macros,
                     le       :: Lexicon,
                     morphinf :: MorphFn,
-                    ts       :: SemInput, 
                     -- | names of test case to run
                     tcase    :: String, 
                     -- | name, original string (for gui), sem
@@ -158,8 +157,23 @@ data ProgState = ST{ -- | the current configuration being processed
                     traces   :: [String],
                     -- | any warnings accumulated during realisation
                     --   (most recent first)
-                    warnings :: [String]
+                    local    :: ProgStateLocal
                }
+
+-- local to a single run
+data ProgStateLocal = STLocal {
+    ts       :: SemInput
+  , warnings :: [String]
+}
+
+emptyLocal :: ProgStateLocal
+emptyLocal = STLocal
+  { ts = ([],[],[])
+  , warnings = []
+  }
+
+resetLocal :: SemInput -> ProgState -> ProgState
+resetLocal sem p = p { local = emptyLocal { ts = sem } }
 
 type ProgStateRef = IORef ProgState
 
@@ -170,17 +184,19 @@ emptyProgState args =
     , gr = []
     , le = Map.empty
     , morphinf = const Nothing
-    , ts = ([],[],[])
     , tcase = []
     , tsuite = []
     , traces = []
     , ranking = []
-    , warnings = []
+    , local   = emptyLocal
     }
 
 -- | Log another warning in our internal program state
 addWarning :: ProgStateRef -> String -> IO ()
-addWarning pstRef s = modifyIORef pstRef $ \p -> p { warnings = s : warnings p }
+addWarning pstRef s = do
+  modifyIORef pstRef $ \p -> p { local = tweak (local p) }
+ where
+  tweak l = l { warnings = s : warnings l }
 \end{code}
 
 % --------------------------------------------------------------------
@@ -422,7 +438,7 @@ instance Loadable SemL where
           . runParser geniSemanticInput () f
    where
     smooth (s,r,l) = (sortSem s, sort r, l)
- lSet (SemL x) p = p { ts = x }
+ lSet (SemL x) p = resetLocal x p
  lSummarise (SemL _) = "sem input"
 
 loadTargetSemStr :: ProgStateRef -> String -> IO ()
@@ -545,7 +561,8 @@ runGeni pstRef builder = runGeniWithSelector pstRef defaultSelector builder
 
 runGeniWithSelector :: ProgStateRef -> Selector -> B.Builder st it Params -> IO ([GeniResult], Statistics, st)
 runGeniWithSelector pstRef  selector builder =
-  do pst <- readIORef pstRef
+  do modifyIORef pstRef $ \p -> resetLocal (ts (local p)) p
+     pst <- readIORef pstRef
      let config = pa pst
          run    = B.run builder
          unpack = B.unpack builder
@@ -590,16 +607,15 @@ initGeni pstRef = initGeniWithSelector pstRef defaultSelector
 
 initGeniWithSelector :: ProgStateRef -> Selector -> IO (B.Input)
 initGeniWithSelector pstRef lexSelector =
- do -- disable constraints if the NoConstraintsFlg anti-optimisation is active
-    modifyIORef pstRef
-      (\p -> if hasOpt NoConstraints (pa p)
-             then p { ts = (fst3 (ts p),[],[]) }
-             else p)
+ do -- disable constraints if the NoConstraintsFlg pessimisation is active
+    hasConstraints <- (hasOpt NoConstraints . pa) `fmap` readIORef pstRef
+    when hasConstraints $
+      modifyIORef pstRef $ \p -> p { local = killConstraints (local p) }
     -- lexical selection
     (cand, lexonly) <- lexSelector pstRef
     pst <- readIORef pstRef
     -- strip morphological predicates
-    let (tsem,tres,lc) = ts pst
+    let (tsem,tres,lc) = ts (local pst)
         tsem2 = stripMorphSem (morphinf pst) tsem
             --
     let initStuff = B.Input 
@@ -608,6 +624,9 @@ initGeniWithSelector pstRef lexSelector =
           , B.inCands = map (\c -> (c,-1)) cand
           }
     return initStuff 
+ where
+   killConstraints l = l { ts = removeConstraints (ts l) }
+
 
 -- | 'finaliseResults' does any post-processing steps that we want to integrate
 --   into mainline GenI.  So far, this consists of morphological realisation and
@@ -710,7 +729,7 @@ succeed in anchoring it.
 runLexSelection :: ProgStateRef -> IO ([TagElem], [ILexEntry])
 runLexSelection pstRef =
  do pst <- readIORef pstRef
-    let (tsem,_,litConstrs) = ts pst
+    let (tsem,_,litConstrs) = ts (local pst)
         lexicon  = le pst
         config   = pa pst
         verbose  = hasFlagP VerboseModeFlg config

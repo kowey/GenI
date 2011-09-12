@@ -38,6 +38,7 @@ module NLP.GenI.Btypes (
    -- Functions from Sem
    toKeys, subsumeSem, sortSem, showSem, showPred,
    emptyPred,
+   removeConstraints,
 
    -- Functions from Flist
    sortFlist, unify, unifyFeat, appendSubst,

@@ -39,7 +39,7 @@ import NLP.GenI.GeniShow(geniShow)
 import NLP.GenI.GraphvizShow ()
 import NLP.GenI.Tags (TagItem(tgIdName), tagLeaves)
 import NLP.GenI.Geni
-  ( ProgState(..) )
+  ( ProgState(..), ProgStateLocal(..) )
 import NLP.GenI.GeniParsers ( geniTagElems, parseFromFile )
 import NLP.GenI.General
   (geniBug, boundsCheck, dropTillIncluding, ePutStrLn)
@@ -83,7 +83,7 @@ candidateGui pst f xs = do
   (tb,gvRef,updater) <- tagViewerGui pst p "lexically selected item" "candidates"
                         $ sectionsBySem xs
   let polFeats = "Polarity attributes detected: " ++ (unwords.suggestPolFeatures) xs
-      warning = unlines $ filter (not.null) (polFeats : warnings pst)
+      warning = unlines $ filter (not.null) (polFeats : warnings (local pst))
   -- side panel
   sidePnl <- panel p []
   ifaceLst <- singleListBox sidePnl [ tooltip := "interface for this tree (double-click me!)" ]
