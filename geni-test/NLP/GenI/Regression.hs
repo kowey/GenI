@@ -108,7 +108,7 @@ badSuiteCase pstRef tc = testCase (tcName tc) $ do
 
 runOnSemInput :: ProgStateRef -> SemInput -> IO [GeniResult]
 runOnSemInput pstRef semInput =
-  do modifyIORef pstRef (\x -> x{ts = semInput})
+  do modifyIORef pstRef (resetLocal semInput)
      pst <- readIORef pstRef
      let config = pa pst
          go = case builderType config of
@@ -119,4 +119,4 @@ runOnSemInput pstRef semInput =
     helper builder = fst3 `fmap` runGeni pstRef builder
 
 successes :: [GeniResult] -> [GeniSuccess]
-successes = filter isSuccess
+successes xs = [ s | GSuccess s <- xs ]
