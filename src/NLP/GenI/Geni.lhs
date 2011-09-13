@@ -67,6 +67,7 @@ import Data.Maybe (fromMaybe, isJust)
 import Data.Typeable (Typeable)
 
 import System.CPUTime( getCPUTime )
+import System.Log.Logger
 import NLP.GenI.Statistics
 import Control.DeepSeq
 
@@ -80,6 +81,7 @@ import NLP.GenI.General(
     geniBug,
     snd3,
     ePutStr, ePutStrLn, eFlush,
+    mkLogname,
     )
 
 import NLP.GenI.Btypes
@@ -194,6 +196,7 @@ emptyProgState args =
 -- | Log another warning in our internal program state
 addWarning :: ProgStateRef -> String -> IO ()
 addWarning pstRef s = do
+  warningM logname s
   modifyIORef pstRef $ \p -> p { local = tweak (local p) }
  where
   tweak l = l { warnings = s : warnings l }
@@ -930,6 +933,10 @@ instance JSON GeniLexSel where
 -- Converts picoseconds to milliseconds.
 picosToMillis :: Integer -> Double
 picosToMillis t = realToFrac t / (10^(9 :: Int))
+
+data MNAME = MNAME deriving Typeable
+logname :: String
+logname = mkLogname MNAME
 
 {-!
 deriving instance NFData GeniResult
