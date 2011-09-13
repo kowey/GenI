@@ -411,7 +411,7 @@ initStats pa =
      identifyMs :: [String] -> [Metric]
      identifyMs ms = map namedMetric $ mdefault ms ++ delete "default" ms
      metrics = identifyMs $ fromMaybe [] $ getFlagP MetricsFlg pa
- in execState (mapM addMetric metrics) emptyStats
+ in execState (mapM_ addMetric metrics) emptyStats
 
 namedMetric :: String -> Metric
 -- the default case is that it's an int metric
