@@ -36,6 +36,7 @@ module NLP.GenI.General (
         quoteString,
         clumpBy,
         -- * Triples
+        first3, second3, third3,
         fst3, snd3, thd3,
         -- * Lists
         map',
@@ -181,6 +182,15 @@ toAlphaNum = map readOne . groupBy ((==) `on` isDigit)
 -- ----------------------------------------------------------------------
 -- Triples
 -- ----------------------------------------------------------------------
+
+first3 :: (a -> a2) -> (a, b, c) -> (a2, b, c)
+first3 f (x,y,z) = (f x, y, z)
+
+second3 :: (b -> b2) -> (a, b, c) -> (a, b2, c)
+second3 f (x,y,z) = (x, f y, z)
+
+third3 :: (c -> c2) -> (a, b, c) -> (a, b, c2)
+third3 f (x,y,z) = (x, y, f z)
 
 fst3 :: (a,b,c) -> a
 fst3 (x,_,_) = x
