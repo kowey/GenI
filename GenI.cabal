@@ -139,7 +139,7 @@ Library
 
 Executable     geni
  Main-Is:        MainGeni.lhs
- Hs-Source-Dirs: geni
+ Hs-Source-Dirs: src/geni
 
  Ghc-options:    -Wall -O2
  Ghc-prof-options: -auto-all
@@ -166,7 +166,7 @@ Executable     geni
 
 Executable geni-test
  Main-Is:       MainTest.hs
- Hs-Source-Dirs: geni-test
+ Hs-Source-Dirs: src/geni-test
  if flag(test)
     Buildable: True
     Build-Depends: GenI
