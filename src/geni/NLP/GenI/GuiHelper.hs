@@ -630,7 +630,6 @@ openImage sw vbitmap fname = do
     bmsize <- get bm size 
     set sw [virtualSize := bmsize]
     repaint sw
-      `catch` \_ -> repaint sw
 
 closeImage :: VarBitmap -> IO ()
 closeImage vbitmap = do 
