@@ -157,7 +157,8 @@ Executable     geni
               , utf8-string == 0.3.*
  if flag(gui)
     Build-Depends: wx >= 0.10.3 && < 0.13
-                 , graphviz == 2999.11.*
+                 , text     == 0.11.*
+                 , graphviz >= 2999.12 && < 2999.14
  else
     cpp-options:      -DDISABLE_GUI
 

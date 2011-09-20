@@ -19,6 +19,7 @@
 
 \begin{code}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module NLP.GenI.Simple.SimpleGui where
 \end{code}
@@ -29,9 +30,11 @@ import Graphics.UI.WX
 
 import Control.Arrow ( (&&&), (***) )
 import qualified Data.GraphViz as GV
+import qualified Data.GraphViz.Attributes.Complete as GV
 import Data.IORef
 import Data.List ( sort, intersperse, partition )
 import qualified Data.Map as Map
+import qualified Data.Text.Lazy as T
 
 import NLP.GenI.Statistics (Statistics, showFinalStats)
 
@@ -41,7 +44,7 @@ import NLP.GenI.General ( snd3, buckets )
 import NLP.GenI.Geni ( ProgStateRef, runGeni
                      , GeniResult(..), GeniSuccess(..), GeniError(..), isSuccess )
 import NLP.GenI.GeniVal (mkGConst, GeniVal)
-import NLP.GenI.Graphviz ( GraphvizShow(..) )
+import NLP.GenI.Graphviz ( GraphvizShow(..), gvUnlines )
 import NLP.GenI.GuiHelper
   ( messageGui, tagViewerGui,
     maybeSaveAsFile,
@@ -224,17 +227,18 @@ instance XMGDerivation SimpleItem where
 \begin{code}
 instance GraphvizShow Bool SimpleItem where
   graphvizLabel  f c =
-    unlines $ graphvizLabel f (toTagElem c)
-            : siDiagnostic (siGuiStuff c)
+    gvUnlines $ graphvizLabel f (toTagElem c)
+              : map T.pack (siDiagnostic (siGuiStuff c))
 
   graphvizParams f c = graphvizParams f (toTagElem c)
   graphvizShowAsSubgraph f p it =
    let isHiglight n = gnname n `elem` (siHighlight.siGuiStuff) it
        info n | isHiglight n = (n, Just (GV.X11Color GV.Red))
               | otherwise    = (n, Nothing)
-       gvSub :: (Bool, GNode GeniVal -> (GNode GeniVal, Maybe GV.Color)) -> String -> TagElem -> [GV.DotSubGraph String]
+       gvSub :: (Bool, GNode GeniVal -> (GNode GeniVal, Maybe GV.Color))
+             -> T.Text -> TagElem -> [GV.DotSubGraph T.Text]
        gvSub = graphvizShowAsSubgraph
-   in concat [ gvSub (f, info) (p ++ "TagElem") (toTagElem it)
+   in concat [ gvSub (f, info) (p `T.append` "TagElem") (toTagElem it)
              , graphvizShowDerivation (siDerivation it)
              ]
 
