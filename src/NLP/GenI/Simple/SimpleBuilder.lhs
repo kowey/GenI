@@ -517,26 +517,17 @@ switchToAux :: SimpleState ()
 switchToAux = do
   st <- get
   let oldAuxTrees = theHoldingPen st
-      config = genconfig st
       -- You might be wondering why we ignore the auxiliary trees in the
       -- chart; this is because all the syntactically complete auxiliary
       -- trees have already been filtered away by calls to classifyNew
       initialT  = filter siInitial (theChart st)
       (compT1, incompT1) = partition (null.siSubstnodes) initialT
-      --
       (auxTrees, compT2) =
-        if hasOpt EarlyNa config
-        then ( mapMaybe (detectNa oldAuxTrees) oldAuxTrees
-             , mapMaybe (detectNa auxTrees) compT1 )
-        else ( oldAuxTrees, compT1 )
-      --
-      (compT3, incompT3) =
-        if hasOpt SemFiltered config
-        then semfilter (tsem st) auxTrees compT2
-        else (compT2, [])
+        ( mapMaybe (detectNa oldAuxTrees) oldAuxTrees
+        , mapMaybe (detectNa auxTrees) compT1 )
+      (compT3, incompT3) = semfilter (tsem st) auxTrees compT2
       --
       compT = compT3
-  -- the root cat filter by Claire
   put st{ theAgenda = []
         , theHoldingPen = []
         , theChart = auxTrees

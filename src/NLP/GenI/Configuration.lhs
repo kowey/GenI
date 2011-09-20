@@ -497,23 +497,20 @@ rootFeatureOption =
 coreOptimisationCodes :: [(Optimisation,String,String)]
 coreOptimisationCodes =
  [ (Polarised        , "p",      "polarity filtering")
- , (EarlyNa          , "e-na",   "detect null adjunction at earliest opportunity")
- , (SemFiltered      , "f-sem",  "semantic filtering (two-phase only)")
  , (NoConstraints    , "nc",     "disable semantic constraints (anti-optimisation!)")
  ]
 
 optimisationCodes :: [(Optimisation,String,String)]
 optimisationCodes =
  coreOptimisationCodes ++
- [ (SemFiltered      , "S",      "semantic filtering (same as f-sem)")
- , (PolOpts          , "pol",    equivalentTo polOpts)
+ [ (PolOpts          , "pol",    equivalentTo polOpts)
  , (AdjOpts          , "adj",    equivalentTo adjOpts)
  ]
  where equivalentTo os = "equivalent to '" ++ (unwords $ map showOptCode os) ++ "'"
 
 polOpts, adjOpts :: [Optimisation]
 polOpts = [Polarised]
-adjOpts = [EarlyNa, SemFiltered]
+adjOpts = []
 \end{code}
 
 \begin{code}

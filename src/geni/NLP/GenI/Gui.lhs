@@ -173,14 +173,6 @@ mainGui pstRef
          [ text := "Sem constraints"
          , tooltip := "Use any sem constraints the user provides"
          ]
-       earlyNaChk <- optCheckBox EarlyNa pstRef f
-          [ text := "NA detection"
-          , tooltip := "Early detection of nodes that cannot be adjoined to"
-          ]
-       semfilterChk <- optCheckBox SemFiltered pstRef f
-         [ text := "Semantic filters"
-         , tooltip := "(2p only) Filter away semantically incomplete structures before adjunction phase"
-         ]
        extrapolText <- staticText f 
          [ text := maybe "" showLitePm $ getFlagP ExtraPolaritiesFlg config
          , tooltip := "Use the following additional polarities" 
@@ -220,8 +212,6 @@ mainGui pstRef
                              , row 5 [ label "  ", column 5 
                                      [ dynamic $ row 5 [ label "Extra: ", widget extrapolText ] ] ]
                              , dynamic $ widget useSemConstraintsChk
-                             , dynamic $ widget semfilterChk 
-                             , dynamic $ widget earlyNaChk
                              ]
        set f [layout := column 5 [ gramsemBox
                    , row 5 [ fill $ -- boxed "Input Semantics" $ 

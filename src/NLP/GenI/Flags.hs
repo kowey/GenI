@@ -36,8 +36,6 @@ data Optimisation = PolOpts
                   | AdjOpts
                   | Polarised
                   | NoConstraints
-                  | SemFiltered
-                  | EarlyNa
   deriving (Show,Eq,Typeable)
 
 type Instruction = (FilePath, Maybe [String])

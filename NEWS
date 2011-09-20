@@ -5,7 +5,10 @@ GenI 0.22, XX
   * --maxsteps to cap each test case at a certain number of chart
     generation steps
   * TODO: make sure UTF-8 stuff still works
-
+  * The following optimisations are now obligatory
+    - early null-adjunction detection
+    - semantic filter (for 2-phase realisation)
+  
 GenI 0.20, 29 Sep 2009
 ----------------------
 - NON BACKWARD-COMPATIBLE CHANGES
