@@ -22,9 +22,11 @@ import Graphics.UI.WX
 -- import Graphics.UI.WXCore
 
 import Control.Arrow ( (&&&), (***) )
+import Control.Exception ( catch, IOException )
 import qualified Control.Monad as Monad 
 import Control.Monad.State.Strict ( execStateT, runState )
 import qualified Data.Map as Map
+import Prelude hiding ( catch )
 
 import Data.IORef
 import System.Directory 
@@ -57,7 +59,6 @@ import NLP.GenI.Builder (queryCounter, num_iterations, chart_size,
     num_comparisons)
 import NLP.GenI.Polarity (PolAut, suggestPolFeatures)
 import NLP.GenI.GraphvizShowPolarity ()
-
 -- ----------------------------------------------------------------------
 -- Types
 -- ----------------------------------------------------------------------
@@ -682,6 +683,7 @@ createImage cachedir f gvref = do
   graphicFile <-  createImagePath cachedir (show sel)
   let create x = do _ <- toGraphviz config x dotFile graphicFile
                     return . GvCreated $ graphicFile
+      handler :: IOException -> IO GraphvizStatus
       handler err = do errorDialog f "Error calling graphviz" (show err) 
                        return . GvError . show $ err
   exists <- doesFileExist graphicFile
