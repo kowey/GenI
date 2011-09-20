@@ -83,7 +83,7 @@ Library
                , directory   > 1
                , filepath    == 1.*
                , hslogger == 1.1.*
-               , json >= 0.4.3 && < 0.5
+               , json >= 0.4.3 && < 0.6
                , MaybeT == 0.1.*
                , mtl > 1.0 && < 2.1
                , parsec >= 2 && < 3.2
@@ -148,7 +148,7 @@ Executable     geni
               , filepath    == 1.*
               , yaml-light  == 0.1.*
               , hslogger    == 1.1.*
-              , json        == 0.4.*
+              , json        >= 0.4 && < 0.6
               , mtl         > 1.0 && < 2.1
               , process     > 1
               , split       == 0.1.*
