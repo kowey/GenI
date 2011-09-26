@@ -26,7 +26,7 @@ module NLP.GenI.Semantics where
 import Control.Arrow ( first, (***) )
 import Data.Generics.PlateDirect
 import Data.List ( isPrefixOf, nub, sort, sortBy, delete, insert )
-import Data.Maybe ( isNothing )
+import Data.Maybe ( isNothing, isJust )
 import qualified Data.Map as Map
 
 import NLP.GenI.FeatureStructures
@@ -62,6 +62,24 @@ emptyPred = (mkGAnon,mkGAnon,[])
 \begin{code}
 removeConstraints :: SemInput -> SemInput
 removeConstraints (x, _, _) = (x, [], [])
+
+sortByMostConstants :: Sem -> Sem
+sortByMostConstants = sortBy (flip compare `on` constants)
+
+class HasConstants a where
+  constants :: a -> Int
+
+instance HasConstants GeniVal where
+  constants g = if isConst2 g then 1 else 0
+   where
+    isConst2 :: GeniVal -> Bool
+    isConst2 g = isJust (gConstraints g) && isNothing (gLabel g)
+
+instance HasConstants a => HasConstants [a] where
+  constants = sum . map constants
+
+instance HasConstants Pred where
+  constants (h, p, args) = constants (h:p:args)
 \end{code}
 
 \begin{code}
@@ -129,12 +147,21 @@ Notes about the subsumeSem function:
 --   If @x@ does NOT subsume @y@, we return the empty list.
 subsumeSem :: Sem -> Sem -> [(Sem,Subst)]
 subsumeSem x y | length x > length y = []
-subsumeSem x_ y_ = map (first sortSem) $ subsumeSemH x y
+subsumeSem x_ y_ =
+  let result  = map (first sortSem) $ subsumeSemH x y
+      showRes (s,subst) = "  " ++ showSem s ++ " " ++ showSubst subst
+  in  if null result
+         then result
+         else trace (unlines [ "Does     " ++ showSem x
+                             , "subsume? " ++ showSem y
+                             , unlines (map showRes result)
+                             ]
+            ) result
  where
   -- the sorting is just to ensure that we get results in the same order
   -- not sure if it's really needed
-  x = sort x_
-  y = sort y_
+  x = sortByMostConstants x_
+  y = sortByMostConstants y_
 
 subsumeSemH :: Sem -> Sem -> [(Sem,Subst)]
 subsumeSemH [] [] = [ ([], Map.empty) ]
@@ -189,8 +216,8 @@ unifySem xs_ ys_ =
     then unifySemH xs ys
     else unifySemH ys xs
  where
-  xs = sort xs_
-  ys = sort ys_
+  xs = sortByMostConstants xs_
+  ys = sortByMostConstants ys_
 
 -- list monad for Prolog-style backtracking.
 unifySemH :: Sem -> Sem -> [(Sem,Subst)]
