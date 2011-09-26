@@ -32,8 +32,6 @@ import qualified Data.Map as Map
 
 import NLP.GenI.FeatureStructures
 import NLP.GenI.GeniVal
-
-import Debug.Trace
 \end{code}
 }
 
@@ -151,15 +149,7 @@ Notes about the subsumeSem function:
 subsumeSem :: Sem -> Sem -> [(Sem,Subst)]
 subsumeSem x y | length x > length y = []
 subsumeSem x_ y_ =
-  let result  = map (first sortSem) $ subsumeSemH x y
-      showRes (s,subst) = "  " ++ showSem s ++ " " ++ showSubst subst
-  in  if null result
-         then result
-         else trace (unlines [ "Does     " ++ showSem x
-                             , "subsume? " ++ showSem y
-                             , unlines (map showRes result)
-                             ]
-            ) result
+  map (first sortSem) $ subsumeSemH x y
  where
   -- the sorting is just to ensure that we get results in the same order
   -- not sure if it's really needed
