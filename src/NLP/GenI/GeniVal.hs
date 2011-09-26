@@ -103,6 +103,11 @@ isAnon _     = False
 
 type Subst = Map.Map String GeniVal
 
+showSubst :: Subst -> String
+showSubst = unwords . map sho . Map.toList
+ where
+  sho (v,s) = v ++ "<-" ++ show s
+
 -- ----------------------------------------------------------------------
 -- Unification and subsumption
 -- ----------------------------------------------------------------------
