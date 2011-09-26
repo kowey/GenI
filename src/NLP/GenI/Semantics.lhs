@@ -25,12 +25,15 @@ module NLP.GenI.Semantics where
 
 import Control.Arrow ( first, (***) )
 import Data.Generics.PlateDirect
+import Data.Function ( on )
 import Data.List ( isPrefixOf, nub, sort, sortBy, delete, insert )
 import Data.Maybe ( isNothing, isJust )
 import qualified Data.Map as Map
 
 import NLP.GenI.FeatureStructures
 import NLP.GenI.GeniVal
+
+import Debug.Trace
 \end{code}
 }
 
