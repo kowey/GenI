@@ -231,7 +231,7 @@ unlessEmptySem :: Input -> Params -> a -> a
 unlessEmptySem input _ =
  let (cands,_) = unzip $ inCands input
      nullSemCands   = [ idname t | t <- cands, (null.tsemantics) t ]
-     unInstSemCands = [ idname t | t <- cands, not $ Set.null $ collect (tsemantics t) Set.empty ]
+     unInstSemCands = [ idname t | t <- cands, not $ Map.null $ collect (tsemantics t) Map.empty ]
      nullSemErr     = "The following trees have a null semantics: " ++ (unwords nullSemCands)
      unInstSemErr   = "The following trees have an uninstantiated semantics: " ++ (unwords unInstSemCands)
      semanticsErr   = (if null nullSemCands then "" else nullSemErr ++ "\n") ++

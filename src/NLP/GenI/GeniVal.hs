@@ -28,7 +28,6 @@ import Data.Maybe (catMaybes, fromMaybe, isNothing, isJust)
 import Data.Generics (Data)
 import Data.Typeable (Typeable)
 import qualified Data.Map as Map
-import qualified Data.Set as Set
 
 import Data.Generics.PlateDirect
 
@@ -275,14 +274,21 @@ replaceOneG _ v = {-# SCC "replaceOneG" #-} v
 
 type CollectedVar = (String, Maybe [String])
 
--- | A 'Collectable' is something which can return its variables as a set.
+-- | A 'Collectable' is something which can return its variables as a
+--   map from the variable to the number of times that variable occurs
+--   in it.
+--
+--   Important invariant: if the variable does not occur, then it does
+--   not appear in the map (ie. all counts must be >= 1 or the item
+--   does not occur at all)
+--
 --   By variables, what I most had in mind was the GVar values in a
 --   GeniVal.  This notion is probably not very useful outside the context of
 --   alpha-conversion task, but it seems general enough that I'll keep it
 --   around for a good bit, until either some use for it creeps up, or I find
 --   a more general notion that I can transform this into.
 class Collectable a where
-  collect :: a -> Set.Set CollectedVar -> Set.Set CollectedVar
+  collect :: a -> Map.Map CollectedVar Int -> Map.Map CollectedVar Int
 
 instance Collectable a => Collectable (Maybe a) where
   collect Nothing  s = s
@@ -292,7 +298,7 @@ instance (Collectable a => Collectable [a]) where
   collect l s = foldr collect s l
 
 instance Collectable GeniVal where
-  collect (GeniVal (Just v) cs) s = Set.insert (v,cs) s
+  collect (GeniVal (Just v) cs) s = Map.insertWith' (+) (v,cs) 1 s
   collect _ s = s
 
 -- | An Idable is something that can be mapped to a unique id.
@@ -302,6 +308,16 @@ instance Collectable GeniVal where
 class Idable a where
   idOf :: a -> Integer
 
+-- | Anonymise any variable that occurs only once in the object
+anonymiseSingletons :: (Collectable a, DescendGeniVal a) => a -> a
+anonymiseSingletons x =
+   replace subst x
+ where
+   subst = Map.map (const mkGAnon) . Map.filter (== 1)
+           -- merge counts for same var, different constraints
+         . Map.fromListWith (+) . map (first fst) . Map.toList
+         $ collect x Map.empty
+
 -- 'alphaConvertById' appends a unique suffix to all variables in
 -- an object.  This avoids us having to alpha convert all the time
 -- and relies on the assumption finding that a unique suffix is
@@ -310,13 +326,16 @@ alphaConvertById :: (Collectable a, DescendGeniVal a, Idable a) => a -> a
 alphaConvertById x = {-# SCC "alphaConvertById" #-}
   alphaConvert ('-' : (show . idOf $ x)) x
 
+-- | 'alphaConvert' does more than renaming.  It also intersects any
+--   constraints that a variable may carry and deletes singletons in
+--   favour of anonymous values
 alphaConvert :: (Collectable a, DescendGeniVal a) => String -> a -> a
 alphaConvert suffix x = {-# SCC "alphaConvert" #-}
-  replace subst x
+  replace subst (anonymiseSingletons x)
  where
   subst :: Subst
   subst = Map.mapWithKey convert vars
-  vars  = Map.fromListWith isect . Set.elems $ collect x Set.empty
+  vars  = Map.fromListWith isect . Map.keys $ collect x Map.empty
   isect xi yi = fromMaybe (Just []) $ intersectConstraints xi yi
   convert v = GeniVal (Just (v ++ suffix))
 

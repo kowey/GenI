@@ -105,7 +105,7 @@ chooseCandI tsem cand =
         where psubsem = sem `subsumeSem` tsem
               sem = isemantics l
       --
-  in nub $ concatMap helper cand
+  in nub $ concatMap (helper . alphaConvert "") cand
 \end{code}
 
 A semantic key is a semantic literal boiled down to predicate plus arity
