@@ -458,7 +458,12 @@ parsePathEq e =
   rejoin = concat . intersperse "."
 
 showPathEqLhs :: PathEqLhs -> String
-showPathEqLhs (x,tb,z) = intercalate "." [x, if tb then "top" else "bot" , z]
+showPathEqLhs (x,tb_,z) =
+  intercalate "." $ case x of
+                     "interface" -> [x,z]
+                     _           -> [x,tb,z]
+  where
+   tb = if tb_ then "top" else "bot"
 \end{code}
 
 \subsection{Lemanchor mechanism}
