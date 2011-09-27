@@ -86,6 +86,7 @@ Library
                , json >= 0.4.3 && < 0.6
                , MaybeT == 0.1.*
                , mtl > 1.0 && < 2.1
+               , ordered == 0.1.*
                , parsec >= 2 && < 3.2
                , process > 1
                , split >= 0.1.1 && < 0.2
@@ -118,6 +119,7 @@ Library
                 NLP.GenI.Tags,
                 NLP.GenI.TestSuite,
                 NLP.GenI.TreeSchemata,
+                NLP.GenI.Warnings,
                 NLP.GenI.Morphology,
                 NLP.GenI.OptimalityTheory,
                 NLP.GenI.Polarity,

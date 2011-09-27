@@ -84,7 +84,7 @@ candidateGui pst f xs = do
   (tb,gvRef,updater) <- tagViewerGui pst p "lexically selected item" "candidates"
                         $ sectionsBySem xs
   let polFeats = "Polarity attributes detected: " ++ (unwords.suggestPolFeatures) xs
-      warning = unlines $ filter (not.null) (polFeats : warnings (local pst))
+      warning = unlines $ filter (not .  null) (polFeats : (map show . warnings $ local pst))
   -- side panel
   sidePnl <- panel p []
   ifaceLst <- singleListBox sidePnl [ tooltip := "interface for this tree (double-click me!)" ]

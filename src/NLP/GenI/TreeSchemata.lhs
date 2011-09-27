@@ -80,7 +80,7 @@ data Ttree a = TT
   , psemantics :: Maybe Sem
   , ptrace :: [String]
   , tree :: Tree a }
-  deriving (Show, Data, Typeable)
+  deriving (Show, Data, Typeable, Eq)
 
 data Ptype = Initial | Auxiliar | Unspecified
              deriving (Show, Eq, Data, Typeable)

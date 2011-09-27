@@ -49,6 +49,7 @@ import NLP.GenI.Configuration
   )
 import NLP.GenI.Simple.SimpleBuilder
 import NLP.GenI.Statistics ( Statistics )
+import NLP.GenI.Warnings
 
 import Text.JSON
 import Text.JSON.Pretty ( render, pp_value )
@@ -183,9 +184,9 @@ runOnSemInput pstRef args semInput =
      -- print any warnings we picked up along the way
      when (not $ null warningsOut) $
       do let ws = reverse warningsOut
-         ePutStr $ "Warnings:\n" ++ (unlines $ map (\x -> " - " ++ x) ws)
+         ePutStr $ "Warnings:\n" ++ (unlines . map (" - " ++) . concatMap showGeniWarning $ sortWarnings ws)
          case args of
-          PartOfSuite n f -> writeFile (f </> n </> "warnings") $ unlines ws
+          PartOfSuite n f -> writeFile (f </> n </> "warnings") $ unlines (map show ws)
           _ -> return ()
      -- print out statistical data (if available)
      when (isJust $ getFlagP MetricsFlg config) $ soWrite (ppJSON stats)

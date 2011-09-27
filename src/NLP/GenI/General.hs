@@ -46,7 +46,7 @@ module NLP.GenI.General (
         groupByFM,
         multiGroupByFM,
         insertToListMap,
-        groupAndCount,
+        groupAndCount, histogram,
         combinations,
         mapMaybeM,
         repList,
@@ -73,7 +73,7 @@ import Control.Monad (liftM)
 import Data.Bits (shiftR, (.&.))
 import Data.Char (isAlphaNum, isDigit, isSpace, toUpper, toLower)
 import Data.Function ( on )
-import Data.List (foldl', intersect, inits, intersperse, groupBy, group, sort, sortBy)
+import Data.List (foldl', intersect, inits, intersperse, groupBy, sortBy)
 import Data.Typeable ( typeOf, Typeable )
 import Data.Tree
 import System.IO (hPutStrLn, hPutStr, hFlush, stderr)
@@ -251,10 +251,11 @@ insertToListMap k i m =
 -- | Convert a list of items into a list of tuples (a,b) where
 --   a is an item in the list and b is the number of times a
 --   in occurs in the list.
-groupAndCount :: (Eq a, Ord a) => [a] -> [(a, Int)]
-groupAndCount xs = 
-  map (\x -> (head x, length x)) grouped
-  where grouped = (group.sort) xs
+groupAndCount :: (Ord a) => [a] -> [(a, Int)]
+groupAndCount = Map.toList . histogram
+
+histogram :: Ord a => [a] -> Map.Map a Int
+histogram xs = Map.fromListWith (+) $ zip xs (repeat 1)
 
 buckets :: Ord b => (a -> b) -> [a] -> [ (b,[a]) ]
 buckets f = map (first head . unzip)

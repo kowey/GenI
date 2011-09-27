@@ -26,6 +26,7 @@ involve some messy IO performance tricks.
 
 \begin{code}
 {-# LANGUAGE ScopedTypeVariables, ExistentialQuantification, TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 module NLP.GenI.Geni (
              -- * main interface
@@ -88,7 +89,7 @@ import NLP.GenI.Btypes
   (Macros, ILexEntry, Lexicon,
    SemInput, Sem, LitConstr, TestCase(..), sortSem, removeConstraints,
    isemantics, ifamname, iword,
-   showLexeme, showSem,
+   showLexeme,
    pidname, pfamily, ptrace,
    )
 import NLP.GenI.BtypesBinary ()
@@ -122,11 +123,13 @@ import NLP.GenI.GeniParsers (geniMacros, geniTagElems,
                     ParseError,
                     )
 import NLP.GenI.LexicalSelection
-        ( mapBySemKeys, chooseLexCand, combineList, compressLexCombineErrors, LexCombineError
-        , missingCoanchors,
+        ( mapBySemKeys, chooseLexCand, combineList
+        , missingCoanchors
         )
 import NLP.GenI.Morphology
 import NLP.GenI.OptimalityTheory
+import NLP.GenI.Warnings
+
 -- import CkyBuilder 
 -- import SimpleBuilder (simpleBuilder)
 
@@ -165,7 +168,7 @@ data ProgState = ST{ -- | the current configuration being processed
 -- local to a single run
 data ProgStateLocal = STLocal {
     ts       :: SemInput
-  , warnings :: [String]
+  , warnings :: [GeniWarning]
 }
 
 emptyLocal :: ProgStateLocal
@@ -194,12 +197,12 @@ emptyProgState args =
     }
 
 -- | Log another warning in our internal program state
-addWarning :: ProgStateRef -> String -> IO ()
+addWarning :: ProgStateRef -> GeniWarning -> IO ()
 addWarning pstRef s = do
   warningM logname s
   modifyIORef pstRef $ \p -> p { local = tweak (local p) }
  where
-  tweak l = l { warnings = s : warnings l }
+  tweak l = l { warnings = s `appendWarning` warnings l }
 \end{code}
 
 % --------------------------------------------------------------------
@@ -748,59 +751,36 @@ runLexSelection pstRef =
       do ePutStrLn $ "Lexical items selected:\n" ++ (unlinesIndentAnd (showLexeme.iword) lexCand)
          ePutStrLn $ "Trees anchored (family) :\n" ++ (unlinesIndentAnd idname candFinal)
     -- anchoring errors
-    mapM_ (addWarning pstRef . showErr) $ concatMap compressLexCombineErrors errs
+    mapM_ (addWarning pstRef) errs
     -- more lexical selection errors
-    forM_ lexCand $ \l ->
-         do let familyMembers = [ p | p <- grammar, pfamily p == ifamname l ]
-            -- snippets of error message
-            let lexeme = showLexeme.iword $ l
-                _outOfFamily n = show n ++ "/" ++ (show $ length familyMembers)
-                                 ++ " instances of " ++ lexeme ++ ":" ++ ifamname l
-            -- print out missing coanchors list
-            case concatMap (missingCoanchors l) familyMembers of
-              [] -> return ()
-              cs -> mapM_ showWarning . group . sort $ cs
-                    where showWarning [] = geniBug "silly error in Geni.runLexSelection"
-                          showWarning xs@(x0:_) = addWarning pstRef $ "Missing co-anchor '" ++ x0 ++ "'" ++ " in " ++ _outOfFamily (length xs) ++ "."
-{-
-            -- print out enrichment errors
-            let isEnrichErr (EnrichError _ _ _) = True
-                isEnrichErr _ = False
-                (otherEs, enrichEs) = partition isEnrichErr (concat errs)
-            unless (null enrichEs) $ do
-                let numDiscards = length enrichEs
-                    badEnrichments = [ av | av <- iequations l, hasMatch av ]
-                    hasMatch (AvPair a _) = any (== (fst . runWriter $ parsePathEq a)) errLocs
-                    errLocs = map eeLocation enrichEs
-                ePutStrLn $      "Warning: Discarded "
-                            ++ _outOfFamily numDiscards
-                            ++ "\n         due to enrichment failure with "
-                            ++ "[" ++ showPairs badEnrichments ++ "]."
-            mapM (ePutStrLn.show) otherEs
--}
+    let coanchorWarnings = do -- list monad
+          l     <- lexCand
+          let ts = filter (\p -> pfamily p == ifamname l) grammar
+          (c,n) <- groupAndCount $ concatMap (missingCoanchors l) ts
+          return (LexWarning [l] (MissingCoanchors c n))
+    mapM_ (addWarning pstRef) coanchorWarnings
     -- lexical selection failures
     let missedSem  = tsem \\ (nub $ concatMap tsemantics candFinal)
         hasTree l = isJust $ find (\t -> tsemantics t == lsem) cand
           where lsem = isemantics l
         missedLex = filter (not.hasTree) lexCand
-    unless (null missedSem) $ addWarning pstRef $ "no lexical selection for " ++ showSem missedSem
-    unless (null missedLex) $ forM_ missedLex $ \l -> addWarning pstRef $
-        "'" ++ showLex l ++ "' was lexically selected, but not anchored to any trees"
+    unless (null missedSem) $ addWarning pstRef (NoLexSelection missedSem)
+    unless (null missedLex) $ addWarning pstRef (LexWarning missedLex LexCombineAllSchemataFailed)
     return (candFinal, lexCand)
  where
-   showLex l = (showLexeme $ iword l) ++ "-" ++ (ifamname l)
-   showErr (c, e) = show e ++ " (" ++ show c ++ " times)"
-   --
    indent  x = ' ' : x
    unlinesIndentAnd :: (x -> String) -> [x] -> String
    unlinesIndentAnd f = unlines . map (indent . f)
 
-initialLexSelection :: Sem -> Lexicon -> Macros -> ([TagElem], [ILexEntry], [[LexCombineError]])
+initialLexSelection :: Sem -> Lexicon -> Macros -> ([TagElem], [ILexEntry], [GeniWarning])
 initialLexSelection tsem lexicon grammar =
-  (concat cands, lexCands, errs)
+  (cands, lexCands, errs)
  where
-  (errs, cands) = unzip $ map (combineList tsem grammar) lexCands
   lexCands      = chooseLexCand lexicon tsem
+  combinations  = map (combineList tsem grammar) lexCands
+  cands         = concatMap snd combinations
+  errs          = concat $ zipWith mkWarnings lexCands (map fst combinations)
+  mkWarnings l  = map (LexWarning [l] . LexCombineOneSchemaFailed)
 
 finaliseLexSelection :: MorphFn -> Sem -> [LitConstr] -> [TagElem] -> [TagElem]
 finaliseLexSelection morph tsem litConstrs =
