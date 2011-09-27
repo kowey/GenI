@@ -23,7 +23,7 @@ import qualified Data.Map as Map
 import Data.Poset
 
 import NLP.GenI.Lexicon ( ILexEntry(..) )
-import NLP.GenI.General ( buckets, histogram )
+import NLP.GenI.General ( histogram )
 import NLP.GenI.LexicalSelection ( LexCombineError )
 import NLP.GenI.Semantics ( Pred, showPred )
 import NLP.GenI.TreeSchemata ( showLexeme )
@@ -80,16 +80,13 @@ mergeWarning _ _ = Nothing
 -- | A warning may be displayed over several lines
 showGeniWarning :: GeniWarning -> [String]
 showGeniWarning (NoLexSelection ps) = [ "No lexical entries for literals: " ++ unwords (map showPred ps) ]
-showGeniWarning (LexWarning ls w)   = withLosers ls (showLexWarning w)
+showGeniWarning (LexWarning ls wa)  = [ showLexWarning wa ++ ": " ++ showWithCount showWithFam wf | wf <- Map.toList (toWfCount ls) ]
  where
   showLexWarning lw =
     case lw of
      LexCombineAllSchemataFailed  -> "Lexically selected but could not be anchored any members of its family"
      LexCombineOneSchemaFailed lc -> show lc
      MissingCoanchors co n        -> "Expected co-anchor " ++ co ++ " is missing from " ++ show n ++ " schemata"
-  --
-  withLosers :: [ILexEntry] -> String -> [String]
-  withLosers ls x = [ x ++ ": " ++ showWithCount showWithFam wf | wf <- Map.toList (toWfCount ls) ]
   showWithFam (w, f) = showLexeme w ++ " (" ++ f ++ ")"
 
 -- word and all families associated with that word
@@ -100,5 +97,6 @@ toWfCount = histogram . map toWf
  where
    toWf i = (iword i, ifamname i)
 
+showWithCount :: (a -> String) -> (a, Int) -> String
 showWithCount f (x, 1) = f x
 showWithCount f (x, n) = f x ++ " ×" ++ show n
