@@ -42,7 +42,7 @@ module NLP.GenI.Morphology
 \ignore{
 \begin{code}
 import Control.Concurrent (forkIO)
-import Control.Exception (bracket, evaluate)
+import Control.Exception (catch, bracket, evaluate, IOException)
 import Data.Maybe (isNothing)
 import Data.Tree
 import qualified Data.Map as Map
@@ -51,6 +51,7 @@ import System.Exit
 import System.Log.Logger
 import System.IO
 import System.Process
+import Prelude hiding (catch)
 import Text.JSON
 import Text.JSON.Pretty
 
@@ -215,9 +216,9 @@ sansMorph = singleton . unwords . map lem
 -- HUH? What makes me say that?
 inflectSentencesUsingCmd :: String -> [LemmaPlusSentence] -> IO [(LemmaPlusSentence,[String])]
 inflectSentencesUsingCmd morphcmd sentences =
-  doit `catch` (fallback . show)
+  doit `catch` \e -> let _ = e :: IOException in (fallback (show e))
  where
-  hCloseSloppy h = hClose h `catch` \err -> warningM logname (show err)
+  hCloseSloppy h = hClose h `catch` \err -> let _ = err :: IOException in warningM logname (show err)
   doit = bracket
    (do debugM logname $ "Starting morph generator: " ++ morphcmd 
        runInteractiveCommand morphcmd)
@@ -257,7 +258,8 @@ inflectSentencesUsingCmd morphcmd sentences =
                                   else fallback $ "Morphological generator returned "
                                                   ++ show lenResults ++ " results for "
                                                   ++ show lenSentences ++ " inputs"
-                            `catch` \e -> fallback $ "Error calling morphological generator:\n" ++ show e
+                            `catch` \e -> let _ = e :: IOException
+                                          in  fallback ("Error calling morphological generator:\n" ++ show e)
         else fallback "Morph generator failed"
   fallback err = do
     errorM logname err
