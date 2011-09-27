@@ -50,6 +50,7 @@ import NLP.GenI.Btypes
 import NLP.GenI.PolarityTypes ( PolarityKey(..) )
 import NLP.GenI.Tags
   ( idname, mapBySem, TagElem(ttrace, tinterface) )
+import NLP.GenI.Warnings
 
 import NLP.GenI.Configuration
   ( Params(..), MetricsFlg(..), setFlagP )
@@ -59,6 +60,7 @@ import NLP.GenI.Builder (queryCounter, num_iterations, chart_size,
     num_comparisons)
 import NLP.GenI.Polarity (PolAut, suggestPolFeatures)
 import NLP.GenI.GraphvizShowPolarity ()
+
 -- ----------------------------------------------------------------------
 -- Types
 -- ----------------------------------------------------------------------
@@ -84,7 +86,8 @@ candidateGui pst f xs = do
   (tb,gvRef,updater) <- tagViewerGui pst p "lexically selected item" "candidates"
                         $ sectionsBySem xs
   let polFeats = "Polarity attributes detected: " ++ (unwords.suggestPolFeatures) xs
-      warning = unlines $ filter (not .  null) (polFeats : (map show . warnings $ local pst))
+      lexWarnings = concatMap showGeniWarning . sortWarnings $ warnings (local pst)
+      warning = unlines $ filter (not .  null) (polFeats : lexWarnings)
   -- side panel
   sidePnl <- panel p []
   ifaceLst <- singleListBox sidePnl [ tooltip := "interface for this tree (double-click me!)" ]
