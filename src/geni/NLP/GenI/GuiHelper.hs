@@ -621,7 +621,7 @@ type OpenImageFn = FilePath -> IO ()
 type VarBitmap   = Var (Maybe (Bitmap ())) 
 
 openImage :: Window a -> VarBitmap -> OpenImageFn
-openImage sw vbitmap fname = do 
+openImage sw vbitmap fname = do
     -- load the new bitmap
     bm <- bitmapCreateFromFile fname  -- can fail with exception
     closeImage vbitmap
