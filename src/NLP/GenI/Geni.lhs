@@ -199,7 +199,7 @@ emptyProgState args =
 -- | Log another warning in our internal program state
 addWarning :: ProgStateRef -> GeniWarning -> IO ()
 addWarning pstRef s = do
-  warningM logname s
+  -- warningM logname s
   modifyIORef pstRef $ \p -> p { local = tweak (local p) }
  where
   tweak l = l { warnings = s `appendWarning` warnings l }
