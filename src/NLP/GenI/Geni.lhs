@@ -38,7 +38,7 @@ module NLP.GenI.Geni (
              ResultType(..),
              -- * helpers
              lemmaSentenceString, prettyResult,
-             showRealisations, groupAndCount,
+             showRealisations, histogram,
              getTraces, Selector,
              loadEverything,
              loadLexicon, Loadable(..),
@@ -78,7 +78,7 @@ import Text.JSON
 -- import System.Process 
 
 import NLP.GenI.General(
-    groupAndCount,
+    histogram,
     geniBug,
     snd3,
     ePutStr, ePutStrLn, eFlush,
@@ -676,14 +676,11 @@ finaliseResults pstRef (ty, status, os) =
 \begin{code}
 -- | Show the sentences produced by the generator, in a relatively compact form
 showRealisations :: [String] -> String
-showRealisations sentences =
-  let sentencesGrouped = map (\ (s,c) -> s ++ countStr c) g
-                         where g = groupAndCount sentences 
-      countStr c = if c > 1 then " (" ++ show c ++ " instances)"
-                            else ""
-  in if null sentences
-     then "(none)"
-     else unlines sentencesGrouped
+showRealisations [] = "(none)"
+showRealisations xs = unlines . map sho . Map.toList . histogram $ xs
+  where
+   sho (x,1) = x
+   sho (x,c) = x ++ " (" ++ show c ++ " instances)"
 
 -- | No morphology! Pretend the lemma string is a sentence
 lemmaSentenceString :: GeniSuccess -> String
@@ -755,8 +752,8 @@ runLexSelection pstRef =
     -- more lexical selection errors
     let coanchorWarnings = do -- list monad
           l     <- lexCand
-          let ts = filter (\p -> pfamily p == ifamname l) grammar
-          (c,n) <- groupAndCount $ concatMap (missingCoanchors l) ts
+          let xs = filter (\p -> pfamily p == ifamname l) grammar
+          (c,n) <- Map.toList . histogram $ concatMap (missingCoanchors l) xs
           return (LexWarning [l] (MissingCoanchors c n))
     mapM_ (addWarning pstRef) coanchorWarnings
     -- lexical selection failures

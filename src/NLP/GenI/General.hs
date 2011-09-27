@@ -46,7 +46,7 @@ module NLP.GenI.General (
         groupByFM,
         multiGroupByFM,
         insertToListMap,
-        groupAndCount, histogram,
+        histogram,
         combinations,
         mapMaybeM,
         repList,
@@ -247,12 +247,6 @@ insertToListMap k i m =
   case Map.lookup k m of
   Nothing -> Map.insert k [i] m
   Just p  -> Map.insert k (i:p) m
-
--- | Convert a list of items into a list of tuples (a,b) where
---   a is an item in the list and b is the number of times a
---   in occurs in the list.
-groupAndCount :: (Ord a) => [a] -> [(a, Int)]
-groupAndCount = Map.toList . histogram
 
 histogram :: Ord a => [a] -> Map.Map a Int
 histogram xs = Map.fromListWith (+) $ zip xs (repeat 1)
