@@ -34,10 +34,11 @@ import Data.List
 import Data.List.Split ( wordsBy )
 import qualified Data.Map as Map
 import Data.Maybe (catMaybes, fromMaybe, isJust)
+import Data.Poset
 import Data.Tree (Tree(Node))
 
 import NLP.GenI.General(filterTree, repAllNode,
-    multiGroupByFM,
+    multiGroupByFM, showWithCount,
     geniBug,
     repNodeByNode,
     fst3,
@@ -165,14 +166,51 @@ lexTell x = lift (tell [x])
 
 data LexCombineError =
        BoringError String
-     | EnrichError SchemaTree PathEqLhs
-     | OtherError  SchemaTree String
+     | FamilyNotFoundError String
+     | SchemaError [SchemaTree] LexCombineError2
  deriving Eq
 
+data LexCombineError2 = EnrichError PathEqLhs
+                      | StringError String
+ deriving (Eq, Ord)
+
+instance Poset LexCombineError where
+ leq (BoringError _) _                                 = True
+ leq (FamilyNotFoundError x1) (FamilyNotFoundError x2) = leq x1 x2
+ leq (FamilyNotFoundError _)  (SchemaError _ _)        = True
+ leq (SchemaError _ e1) (SchemaError _ e2)             = leq e1 e2
+ leq _ _ = False
+
+instance Poset LexCombineError2 where
+ leq (EnrichError _)  (EnrichError _ ) = False
+ leq (EnrichError _ ) (StringError _ ) = True
+ leq (StringError s1) (StringError s2) = leq s1 s2
+ leq _ _ = False
+
+
 instance Show LexCombineError where
- show (BoringError s)    = s
- show (OtherError t s)   = s
- show (EnrichError t p)  = show $ OtherError t ("enrichment error " ++ showPathEqLhs p)
+ show e = body ++ suffix
+  where
+   (body, suffix) = showLexCombineError e
+
+showLexCombineError :: LexCombineError -> (String, String)
+showLexCombineError (SchemaError xs x) = (show x, showWithCount (const "") "trees" ((),length xs))
+showLexCombineError (BoringError s)    = (s, "")
+showLexCombineError (FamilyNotFoundError f) = ("Family " ++ f ++ " not found in tree schema file", "")
+
+instance Show LexCombineError2 where
+ show (EnrichError p) = "Some trees discarded due enrichment error on " ++ showPathEqLhs p
+ show (StringError s) = s
+
+compressLexCombineErrors :: [LexCombineError] -> [LexCombineError]
+compressLexCombineErrors errs = schema2 ++ normal
+ where
+  isSchema (SchemaError _ _) = True
+  isSchema _ = False
+  (schema, normal) = partition isSchema errs
+  schema2 = map (uncurry (flip SchemaError))
+          . Map.toList
+          $ Map.fromListWith (++) [ (l,ts) | SchemaError ts l <- schema ]
 \end{code}
 
 The first step in lexical selection is to collect all the features and
@@ -185,12 +223,12 @@ combineList :: Sem -> Macros -> ILexEntry
             -> ([LexCombineError],[TagElem]) -- ^ any warnings, plus the results
 combineList tsem gram lexitem =
   case [ t | t <- gram, pfamily t == tn ] of
-       []   -> ([BoringError $ "Family " ++ tn ++ " not found in Macros"],[])
+       []   -> ([FamilyNotFoundError tn],[])
        macs -> squish . swap . unzip $ map (\m -> runWriter . runMaybeT $ combineOne tsem lexitem m) macs
   where
    tn = ifamname lexitem
    swap (x,y) = (y,x)
-   squish = concat *** (concat . catMaybes)
+   squish = (compressLexCombineErrors . concat) *** (concat . catMaybes)
 \end{code}
 
 \begin{code}
@@ -206,7 +244,7 @@ combineOne tsem lexRaw eRaw = -- Maybe monad
              >>= unifyInterfaceUsing ifilters -- filtering
              >>= enrichWithWarning -- enrichment
     tree2 <- case crushTreeGNode (tree e) of
-               Nothing -> do lexTell (OtherError e "Could not flatten disjunction")
+               Nothing -> do lexTell (SchemaError [e] (StringError "Could not flatten disjunction"))
                              fail ""
                Just x  -> return x
     let name = concat $ intersperse ":" $ filter (not.null)
@@ -222,7 +260,7 @@ combineOne tsem lexRaw eRaw = -- Maybe monad
               , ttrace      = ptrace e
               }
     semUnifications <- case unifySem (isemantics l) (fromMaybe [] $ psemantics e) of
-                         [] -> do lexTell (OtherError e "could not unify lemma and schema semantics")
+                         [] -> do lexTell (SchemaError [e] (StringError "could not unify lemma and schema semantics"))
                                   fail ""
                          xs -> return xs
     return $ concatMap (finaliseSemantics template) semUnifications
@@ -235,17 +273,17 @@ combineOne tsem lexRaw eRaw = -- Maybe monad
    let lp = iparams l
        tp = params t
    in if length lp /= length tp
-      then do lexTell (OtherError t "Parameter length mismatch")
+      then do lexTell (SchemaError [t] (StringError "Parameter length mismatch"))
               fail ""
       else case unify lp tp of
-             Nothing -> do lexTell (OtherError t "Paremeter unification error")
+             Nothing -> do lexTell (SchemaError [t] (StringError "Parameter unification error"))
                            fail ""
              Just (ps2, subst) -> return (replace subst l, t2)
                                   where t2 = (replace subst t) { params = ps2 }
   unifyInterfaceUsing ifn (l,e) =
     -- trace ("unify interface" ++ wt) $
     case unifyFeat (ifn l) (pinterface e) of
-    Nothing             -> do lexTell (OtherError e "Interface unification error")
+    Nothing             -> do lexTell (SchemaError [e] (StringError "Interface unification error"))
                               fail ""
     Just (int2, fsubst) -> return (replace fsubst l, e2)
                            where e2 = (replace fsubst e) { pinterface = int2 }
@@ -325,7 +363,7 @@ enrich l t =
     case unifyFeat [toAvPair en] (pinterface tx) of
       Nothing -> lexTell (ifaceEnrichErr en) >> fail ""
       Just (i2, isubs) -> return $ (replace isubs tx) { pinterface = i2 }
-  ifaceEnrichErr (loc,_) = EnrichError t loc
+  ifaceEnrichErr (loc,_) = SchemaError [t] (EnrichError loc)
 
 enrichBy :: ILexEntry -- ^ lexeme (for debugging info)
          -> SchemaTree
@@ -345,7 +383,7 @@ enrichBy lexEntry t (eqLhs, eqVal) =
  where
    (eqName, eqTop, eqAtt) = eqLhs
    fixNode n mt = mt { tree = repNodeByNode (matchNodeName eqName) n (tree mt) }
-   enrichErr = EnrichError t eqLhs
+   enrichErr = SchemaError [t] (EnrichError eqLhs)
 
 enrichFeat :: AvPair GeniVal -> Flist [GeniVal] -> Maybe (Flist [GeniVal], Subst)
 enrichFeat (AvPair a v) fs =
@@ -490,14 +528,6 @@ setOrigin t = fmap (\g -> g { gorigin = t })
 % ----------------------------------------------------------------------
 
 \begin{code}
-{-
--- compressLexCombineErrors :: [LexCombineError]
-compressLexCombineErrors new old =
-  map (head &&& length) (groupBy h new)
- where
-  h _ _ = False
--}
-
 myEMPTY :: String
 myEMPTY = "MYEMPTY"
 \end{code}

@@ -46,7 +46,7 @@ module NLP.GenI.General (
         groupByFM,
         multiGroupByFM,
         insertToListMap,
-        histogram,
+        histogram, showWithCount,
         combinations,
         mapMaybeM,
         repList,
@@ -250,6 +250,16 @@ insertToListMap k i m =
 
 histogram :: Ord a => [a] -> Map.Map a Int
 histogram xs = Map.fromListWith (+) $ zip xs (repeat 1)
+
+-- | 
+--
+-- > showWithCount toBlah ""     (x,1) == "blah"
+-- > showWithCount toBlah "foos" (x,1) == "blah"
+-- > showWithCount toBlah ""     (x,4) == "blah ×4"
+-- > showWithCount toBlah "foos" (x,4) == "blah ×4 foos"
+showWithCount :: (a -> String) -> String -> (a, Int) -> String
+showWithCount f _  (x, 1) = f x
+showWithCount f ts (x, n) = unwords $ [ f x, "×" ++ show n ] ++ if null ts then [] else [ts]
 
 buckets :: Ord b => (a -> b) -> [a] -> [ (b,[a]) ]
 buckets f = map (first head . unzip)

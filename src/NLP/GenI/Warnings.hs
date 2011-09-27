@@ -23,8 +23,8 @@ import qualified Data.Map as Map
 import Data.Poset
 
 import NLP.GenI.Lexicon ( ILexEntry(..) )
-import NLP.GenI.General ( histogram )
-import NLP.GenI.LexicalSelection ( LexCombineError )
+import NLP.GenI.General ( histogram, showWithCount )
+import NLP.GenI.LexicalSelection ( LexCombineError, showLexCombineError )
 import NLP.GenI.Semantics ( Pred, showPred )
 import NLP.GenI.TreeSchemata ( showLexeme )
 
@@ -39,7 +39,7 @@ data LexWarning = LexCombineAllSchemataFailed
 
 -- | Sort, treating non-comporable items as equal
 posort :: Poset a => [a] -> [a]
-posort = sortBy fromPosetCmp
+posort = sortBy (flip fromPosetCmp)
  where
   fromPosetCmp x1 x2 = case posetCmp x1 x2 of
                          Comp o -> o
@@ -51,15 +51,12 @@ instance Poset GeniWarning where
  leq _ _                                  = False 
 
 instance Poset LexWarning where
- posetCmp w1 w2 =
-   case (compare `on` ranking) w1 w2 of
-     EQ -> if w1 == w2 then Comp EQ else NComp
-     LT -> Comp LT
-     GT -> Comp GT
-  where
-   ranking LexCombineAllSchemataFailed   = [1]
-   ranking (LexCombineOneSchemaFailed _) = [2]
-   ranking (MissingCoanchors _ n)        = [3, n]
+ leq (LexCombineOneSchemaFailed l1) (LexCombineOneSchemaFailed l2)   = leq l1 l2
+ leq (LexCombineOneSchemaFailed _)  _                                = True
+ leq LexCombineAllSchemataFailed LexCombineAllSchemataFailed         = True
+ leq LexCombineAllSchemataFailed (MissingCoanchors _ _)              = True
+ leq (MissingCoanchors _ n1) (MissingCoanchors _ n2)                 = leq n1 n2
+ leq _ _                                                             = False
 
 instance Show GeniWarning where
   show = intercalate "\n" .  showGeniWarning
@@ -80,13 +77,17 @@ mergeWarning _ _ = Nothing
 -- | A warning may be displayed over several lines
 showGeniWarning :: GeniWarning -> [String]
 showGeniWarning (NoLexSelection ps) = [ "No lexical entries for literals: " ++ unwords (map showPred ps) ]
-showGeniWarning (LexWarning ls wa)  = [ showLexWarning wa ++ ": " ++ showWithCount showWithFam wf | wf <- Map.toList (toWfCount ls) ]
+showGeniWarning (LexWarning ls wa)  =
+  do -- list monad
+     let (msg, suffix) = showLexWarning wa
+     wf <- Map.toList (toWfCount ls)
+     return (msg ++ ": " ++ showWithCount showWithFam "lemmas" wf ++ suffix)
  where
   showLexWarning lw =
     case lw of
-     LexCombineAllSchemataFailed  -> "Lexically selected but could not be anchored any members of its family"
-     LexCombineOneSchemaFailed lc -> show lc
-     MissingCoanchors co n        -> "Expected co-anchor " ++ co ++ " is missing from " ++ show n ++ " schemata"
+     LexCombineAllSchemataFailed  -> ("Lexically selected but anchoring failed for *all* instances of", "")
+     LexCombineOneSchemaFailed lc -> showLexCombineError lc
+     MissingCoanchors co n        -> ("Expected co-anchor " ++ co ++ " is missing from " ++ show n ++ " schemata", "")
   showWithFam (w, f) = showLexeme w ++ " (" ++ f ++ ")"
 
 -- word and all families associated with that word
@@ -96,7 +97,3 @@ toWfCount :: [ILexEntry] -> WordFamilyCount
 toWfCount = histogram . map toWf
  where
    toWf i = (iword i, ifamname i)
-
-showWithCount :: (a -> String) -> (a, Int) -> String
-showWithCount f (x, 1) = f x
-showWithCount f (x, n) = f x ++ " ×" ++ show n
