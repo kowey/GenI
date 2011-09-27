@@ -26,7 +26,7 @@ module NLP.GenI.Semantics where
 import Control.Arrow ( first, (***) )
 import Data.Generics.PlateDirect
 import Data.Function ( on )
-import Data.List ( isPrefixOf, nub, sort, sortBy, delete, insert )
+import Data.List ( isPrefixOf, nub, sortBy, delete, insert )
 import Data.Maybe ( isNothing, isJust )
 import qualified Data.Map as Map
 
@@ -74,7 +74,7 @@ instance HasConstants GeniVal where
   constants g = if isConst2 g then 1 else 0
    where
     isConst2 :: GeniVal -> Bool
-    isConst2 g = isJust (gConstraints g) && isNothing (gLabel g)
+    isConst2 x = isJust (gConstraints x) && isNothing (gLabel x)
 
 instance HasConstants a => HasConstants [a] where
   constants = sum . map constants

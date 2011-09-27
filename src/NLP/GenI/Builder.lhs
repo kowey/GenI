@@ -59,7 +59,6 @@ import Data.Bits ( (.&.), (.|.), bit )
 import Data.List ( delete, sort, nub )
 import qualified Data.Map as Map
 import Data.Maybe ( mapMaybe, fromMaybe  )
-import qualified Data.Set as Set
 import Data.Tree ( flatten )
 import Prelude hiding ( init )
 
