@@ -177,7 +177,6 @@ data SimpleStatus = S
   { theAgenda    :: Agenda
   , theHoldingPen :: AuxAgenda
   , theChart     :: Chart
-  , maxSteps   :: Maybe Integer
   , theTrash   :: Trash
   , theResults :: [SimpleItem]
   , tsem       :: BitVector
@@ -348,7 +347,6 @@ initSimpleBuilder twophase input config =
       initS = S{ theAgenda    = []
                , theHoldingPen = []
                , theChart     = []
-               , maxSteps     = getFlagP MaxStepsFlg config
                , theTrash     = []
                , theResults   = []
                , semBitMap = bmap
@@ -545,13 +543,14 @@ finished :: Bool -> SimpleStatus -> GenStatus
 finished twophase st
   | reallyDone   = B.Finished
   | atMaxResults = B.Finished
-  | atMaxSteps   = B.Error $ "Max steps exceeded (" ++ show maxSt ++ ")"
+  | atMaxSteps   = B.Error $ "Max steps exceeded (" ++ show maxSteps ++ ")"
   | otherwise    = B.Active
  where
   reallyDone   = null (theAgenda st) && (not twophase || isAdjunctionPhase (step st)) 
   atMaxResults = maybeIf (<= fromIntegral (length (theResults st))) $ getFlagP MaxResultsFlg (genconfig st)
-  atMaxSteps   = maybeIf (<  gencounter st) $ maxSteps st
-  maxSt        = fromMaybe (error "get maxsteps") $ maxSteps st
+  atMaxSteps   = maybeIf (<  gencounter st) mMaxSteps
+  mMaxSteps    = getFlagP MaxStepsFlg (genconfig st)
+  maxSteps     = fromMaybe (error "get maxsteps") mMaxSteps
   maybeIf bf = maybe False bf
 \end{code}
 
