@@ -480,6 +480,7 @@ optionsForOptimisation =
          (reqArg DetectPolaritiesFlg readPolarityAttrs "LIST")
          ("attributes 'LIST' (eg. \"cat idx V.tense\", default:" ++ show defaultPolarityAttrs ++ ")")
    , rootFeatureOption
+   , maxResultsOption
   ]
 
 rootFeatureOption :: OptDescr Flag
@@ -632,6 +633,11 @@ testSuiteOption :: OptDescr Flag
 testSuiteOption =
   Option ['s'] ["testsuite"] (reqArg TestSuiteFlg id "FILE") "test suite FILE"
 
+maxResultsOption :: OptDescr Flag
+maxResultsOption =
+  Option []    ["maxresults"] (reqArg MaxResultsFlg read "INT")
+      "return as soon as at least INT results are found"
+
 optionsForTesting :: [OptDescr Flag]
 optionsForTesting =
   [ testSuiteOption
@@ -642,6 +648,7 @@ optionsForTesting =
       "time out after SECONDS seconds"
   , Option []    ["maxsteps"] (reqArg MaxStepsFlg read "INT")
       "abort and return any results found after INT steps"
+  , maxResultsOption
   , Option []    ["metrics"] (optArg MetricsFlg ["default"] words "LIST")
       "keep track of performance metrics: (default: iterations comparisons chart_size)"
   , Option []    ["statsfile"] (reqArg StatsFileFlg id "FILE")

@@ -57,7 +57,7 @@ import Control.Monad.State.Strict
   (get, put, modify, gets, runState, execStateT)
 
 import Data.List (partition, foldl')
-import Data.Maybe (isJust, isNothing, mapMaybe)
+import Data.Maybe (isJust, isNothing, mapMaybe, fromMaybe)
 import Data.Ord (comparing)
 import Data.Bits
 import qualified Data.Map as Map
@@ -542,12 +542,17 @@ switchToAux = do
 
 \begin{code}
 finished :: Bool -> SimpleStatus -> GenStatus
-finished twophase st =
-  if null (theAgenda st) && (not twophase || isAdjunctionPhase (step st))
-   then                              B.Finished
-   else case maxSteps st of
-          Just n | n < gencounter st -> B.Error $ "Max steps exceeded (" ++ show n ++ ")"
-          _                          -> B.Active
+finished twophase st
+  | reallyDone   = B.Finished
+  | atMaxResults = B.Finished
+  | atMaxSteps   = B.Error $ "Max steps exceeded (" ++ show maxSt ++ ")"
+  | otherwise    = B.Active
+ where
+  reallyDone   = null (theAgenda st) && (not twophase || isAdjunctionPhase (step st)) 
+  atMaxResults = maybeIf (<= fromIntegral (length (theResults st))) $ getFlagP MaxResultsFlg (genconfig st)
+  atMaxSteps   = maybeIf (<  gencounter st) $ maxSteps st
+  maxSt        = fromMaybe (error "get maxsteps") $ maxSteps st
+  maybeIf bf = maybe False bf
 \end{code}
 
 \subsubsection{SemFilter Optimisation}
