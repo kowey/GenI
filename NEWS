@@ -8,7 +8,9 @@ GenI 0.22, XX
   * The following optimisations are now obligatory
     - early null-adjunction detection
     - semantic filter (for 2-phase realisation)
-  
+  * geniserver is now an HTTP server (and a library so you can write
+    your own geni-based web servers)
+
 GenI 0.20, 29 Sep 2009
 ----------------------
 - NON BACKWARD-COMPATIBLE CHANGES
