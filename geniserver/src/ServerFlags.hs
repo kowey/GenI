@@ -21,15 +21,30 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 module ServerFlags where
 
-import Data.List ( nubBy )
 import NLP.GenI.Configuration
+import NLP.GenI.General ( snd3 )
 
 myOptions :: [OptDescr Flag]
-myOptions = optionsForStandardGenI ++ optionsForServer
+myOptions = nubBySwitches (concatMap snd3 serverOptionsSections)
+
+type OptSection = (String,[OptDescr Flag],[String])
+
+serverOptionsSections :: [OptSection]
+serverOptionsSections =
+ [ ("Core options", optionsForServer, [])
+ , ("Input", optionsForInputFiles, [])
+ , ("Algorithm",
+     (nubBySwitches $ optionsForBuilder ++ optionsForOptimisation),
+     [])
+ , ("Morphology", optionsForMorphology, [])
+ , ("Client parameters", optionsForRequest, ["Subset of parameters the client can pass in"])
+ ]
 
 optionsForServer :: [OptDescr Flag]
 optionsForServer =
-  [ Option [] ["port"] (reqArg PortFlg read "INT")
+  [ helpOption, verboseOption
+  , macrosOption, lexiconOption
+  , Option [] ["port"] (reqArg PortFlg read "INT")
       "port to listen on"
   ]
 

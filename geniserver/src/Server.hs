@@ -48,7 +48,15 @@ defaultPort = 4364
 
 main :: IO ()
 main = do
+  pname    <- getProgName
   confArgs <- treatArgs myOptions =<< getArgs
+  let has = flip hasFlagP confArgs
+  case () of
+   _ | has HelpFlg -> putStrLn (usage serverOptionsSections pname)
+     | otherwise   -> startServer confArgs
+
+startServer :: Params -> IO ()
+startServer confArgs = do
   let port = fromMaybe defaultPort (getFlagP PortFlg confArgs)
   pstRef   <- newIORef (emptyProgState $ setFlagP FromStdinFlg () confArgs)
   _   <- loadGeniMacros pstRef
