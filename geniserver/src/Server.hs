@@ -1,7 +1,8 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-
-GenIClientServer
-Copyright (C) 2007 Eric Kow
+geniserver
+Copyright (C) 2011 Eric Kow (on behalf of SRI)
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -20,96 +21,63 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 module Main (main) where
 
-import Data.IORef (newIORef, readIORef, modifyIORef)
-import Network (withSocketsDo, listenOn, accept, Socket, PortID(..))
-import System.Environment (getArgs)
-import System.IO hiding ( getContents, putStrLn, hPutStrLn )
-import System.IO.UTF8
-import System.Posix.Signals (installHandler, sigPIPE, Handler(Ignore))
-import Text.JSON
-import Prelude hiding ( getContents, putStrLn )
+{-# LANGUAGE OverloadedStrings #-}
+import Control.Monad.IO.Class ( liftIO )
+import Data.IORef
+import Data.Maybe ( fromMaybe )
+import Network.Wai
+import Network.HTTP.Types (statusOK, status400)
+import Network.Wai.Handler.Warp (run)
+import qualified Data.ByteString.Lazy as B
+import qualified Data.ByteString.Lazy.UTF8 as B
+import qualified Data.Enumerator.Binary as EB
+import qualified Text.JSON as J
+import qualified Text.JSON.Pretty as J
+import System.Environment
 
 import NLP.GenI.Configuration
 import NLP.GenI.General (fst3)
 import NLP.GenI.Geni
 import NLP.GenI.Simple.SimpleBuilder
-import qualified NLP.GenI.Builder as B
-import ClientServer (getPort, ServerInstruction(..),hGetBlock,hPutBlock)
 
+import ServerFlags
+import ServerInstruction
+
+defaultPort :: Int
+defaultPort = 4364
 
 main :: IO ()
-main = withSocketsDo $
- do -- ignore SIGPIPE so that we don't just die if the client
-    -- is available when we try to write back to it
-    installHandler sigPIPE Ignore Nothing
-    confArgs <- treatArgs myOptions =<< getArgs
-    pstRef <- newIORef (emptyProgState $ setFlagP FromStdinFlg () confArgs)
-    case getFlagP ServerInputFlg confArgs of
-      Nothing        -> fail $ "Need --listen stdin|filename|port"
-      Just FromStdin ->
-       do loadEverything pstRef
-          minstructions <- hGetBlock stdin
-          case minstructions of
-            Left err -> fail err
-            Right (ServerInstruction params semStr) ->
-              putStrLn . encode =<< handleRequest pstRef params semStr
-      Just (FromPort port) ->
-       do loadEverything pstRef
-          pst  <- readIORef pstRef
-          sock <- listenOn port
-          listen sock pst
+main = do
+  confArgs <- treatArgs myOptions =<< getArgs
+  let port = fromMaybe defaultPort (getFlagP PortFlg confArgs)
+  pstRef   <- newIORef (emptyProgState $ setFlagP FromStdinFlg () confArgs)
+  _   <- loadGeniMacros pstRef
+  _   <- loadLexicon    pstRef
+  pst <- readIORef pstRef
+  run port (application pst)
 
-listen :: Socket -> ProgState -> IO ()
-listen sock pst =
- do pstRef <- newIORef pst
-    (h,_,_) <- accept sock
-    hSetBuffering h NoBuffering
-    -- do a task
-    contents <- hGetBlock h
-    let minstructions = contents
-    -- any errors? (Left err monad)
-    case minstructions of
-      Left err   -> hPutStrLn stderr (show err)
-      Right (ServerInstruction params semStr) ->
-       ignoringErrors $ do
-          results <- handleRequest pstRef params semStr
-          hPutBlock h results
-          hFlush h
-    -- close shop and start over
-    ignoringErrors $ hClose h
-    listen sock pst -- the original
- where
-  ignoringErrors job = job `catch` \err -> hPutStrLn stderr (show err)
+application :: ProgState -> Application
+application pst _ = do
+  bs     <- EB.consume
+  let mj = J.decode (B.toString bs)
+  case mj of
+    J.Ok j    -> do
+      answer <- liftIO $ handleRequest pst (gParams j) (gSemantics j)
+      return $ responseLBS statusOK  [("Content-Type", "application/json")] $ B.fromString (prettyEncode answer)
+    J.Error s ->
+      return $ responseLBS status400 [("Content-Type", "text/plain")]  $ B.concat [ B.fromString s, "\n", bs ]
 
-handleRequest pstRef params semStr =
-  do pst <- readIORef pstRef
-     conf <- treatArgsWithParams optionsForStandardGenI params (pa pst)
-     modifyIORef pstRef (\p -> p { pa = conf })
-     loadTargetSemStr pstRef $ "semantics:[" ++ semStr ++ "]"
-     -- do the realisation
-     let helper builder = fst3 `fmap` runGeni pstRef builder
-     results <- case builderType conf of
-                  NullBuilder   -> helper B.nullBuilder
-                  SimpleBuilder -> helper simpleBuilder_2p
-                  SimpleOnePhaseBuilder -> helper simpleBuilder_1p
-     return results
+handleRequest :: ProgState -> [String] -> String -> IO [GeniResult]
+handleRequest pst params semStr = do
+  conf   <- treatArgsWithParams optionsForRequest params (pa pst)
+  pstRef <- newIORef (pst { pa = conf })
+  loadTargetSemStr pstRef $ "semantics:[" ++ semStr ++ "]"
+  -- do the realisation
+  let helper builder = fst3 `fmap` runGeni pstRef builder
+  results <- case builderType conf of
+               SimpleBuilder -> helper simpleBuilder_2p
+               SimpleOnePhaseBuilder -> helper simpleBuilder_1p
+  return results
 
--- ----------------------------------------------------------------------
-
-myOptions :: [OptDescr Flag]
-myOptions = optionsForStandardGenI ++ optionsForServer
-
-optionsForServer :: [OptDescr Flag]
-optionsForServer =
-  [ Option [] ["listen"] (reqArg ServerInputFlg toServerInput "FILE/PORT")
-      "file name (Unix socket), port or 'stdin'"
-  ]
-
-data ServerInputFlg = ServerInputFlg ServerInput deriving (Eq, Show, Typeable)
-
-data ServerInput = FromStdin | FromPort PortID
-  deriving (Eq, Show, Typeable)
-
-toServerInput :: String -> ServerInput
-toServerInput "stdin" = FromStdin
-toServerInput x = FromPort (getPort x)
+prettyEncode :: J.JSON a => a -> String
+prettyEncode = J.render . J.pp_value . J.showJSON
