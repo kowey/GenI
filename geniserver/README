@@ -1,0 +1,4 @@
+Example usage:
+
+    geniserver -m examples/ej/macros -l examples/ej/lexicon
+    curl -i -X PUT -H "Content-Type: application/json" -d@/tmp/example-instructions.json http://localhost:4634

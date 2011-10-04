@@ -19,50 +19,33 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 -}
 
-module Main (main) where
+module NLP.GenI.Server where
 
-{-# LANGUAGE OverloadedStrings #-}
 import Control.Monad.IO.Class ( liftIO )
 import Data.IORef
-import Data.Maybe ( fromMaybe )
 import Network.Wai
 import Network.HTTP.Types (statusOK, status400)
-import Network.Wai.Handler.Warp (run)
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Lazy.UTF8 as B
 import qualified Data.Enumerator.Binary as EB
 import qualified Text.JSON as J
 import qualified Text.JSON.Pretty as J
-import System.Environment
 
 import NLP.GenI.Configuration
 import NLP.GenI.General (fst3)
 import NLP.GenI.Geni
 import NLP.GenI.Simple.SimpleBuilder
 
-import ServerFlags
-import ServerInstruction
+import NLP.GenI.Server.Flags
+import NLP.GenI.Server.Instruction
 
-defaultPort :: Int
-defaultPort = 4364
 
-main :: IO ()
-main = do
-  pname    <- getProgName
-  confArgs <- treatArgs myOptions =<< getArgs
-  let has = flip hasFlagP confArgs
-  case () of
-   _ | has HelpFlg -> putStrLn (usage serverOptionsSections pname)
-     | otherwise   -> startServer confArgs
-
-startServer :: Params -> IO ()
-startServer confArgs = do
-  let port = fromMaybe defaultPort (getFlagP PortFlg confArgs)
+initialise :: Params -> IO ProgState
+initialise confArgs = do
   pstRef   <- newIORef (emptyProgState $ setFlagP FromStdinFlg () confArgs)
   _   <- loadGeniMacros pstRef
   _   <- loadLexicon    pstRef
-  pst <- readIORef pstRef
-  run port (application pst)
+  readIORef pstRef
 
 application :: ProgState -> Application
 application pst _ = do

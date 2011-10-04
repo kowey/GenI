@@ -19,13 +19,13 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 -}
 
-module ServerFlags where
+module NLP.GenI.Server.Flags where
 
 import NLP.GenI.Configuration
 import NLP.GenI.General ( snd3 )
 
-myOptions :: [OptDescr Flag]
-myOptions = nubBySwitches (concatMap snd3 serverOptionsSections)
+serverOptions :: [OptDescr Flag]
+serverOptions = nubBySwitches (concatMap snd3 serverOptionsSections)
 
 type OptSection = (String,[OptDescr Flag],[String])
 
