@@ -32,6 +32,7 @@ module NLP.GenI.Configuration
   , optionsForStandardGenI
   , optionsForBasicStuff, optionsForOptimisation, optionsForMorphology, optionsForInputFiles
   , optionsForBuilder, optionsForTesting
+  , helpOption, verboseOption, macrosOption, lexiconOption
   , nubBySwitches
   , noArg, reqArg, optArg
   , parseFlagWithParsec
@@ -357,12 +358,16 @@ optionsForOutput =
   [ outputOption
   , Option []    ["dump"]    (noArg DumpDerivationFlg)
       "print derivation information on stdout (JSON)"
-  , Option []    ["partial"] (noArg PartialFlg)
-      "return partial result(s) if no complete solution is found"
   -- same as rankingOption but with output-centric help text
+  , partialOption
   , Option [] ["ranking"] (reqArg RankingConstraintsFlg id "FILE")
     "use constraints in FILE to rank output"
   ]
+
+partialOption :: OptDescr Flag
+partialOption =
+ Option []    ["partial"] (noArg PartialFlg)
+    "return partial result(s) if no complete solution is found"
 
 outputOption :: OptDescr Flag
 outputOption =
@@ -597,6 +602,9 @@ optionsForBuilder :: [OptDescr Flag]
 optionsForBuilder =
   [ Option ['b'] ["builder"]  (reqArg BuilderFlg readBuilderType "BUILDER")
       ("use as realisation engine one of: " ++ (unwords $ map show mainBuilderTypes))
+  , partialOption
+  , maxStepsOption
+  , maxResultsOption
   ]
 
 mainBuilderTypes :: [BuilderType]
@@ -638,6 +646,11 @@ maxResultsOption =
   Option []    ["maxresults"] (reqArg MaxResultsFlg read "INT")
       "return as soon as at least INT results are found"
 
+maxStepsOption :: OptDescr Flag
+maxStepsOption =
+  Option []    ["maxsteps"] (reqArg MaxStepsFlg read "INT")
+      "abort and return any results found after INT steps"
+
 optionsForTesting :: [OptDescr Flag]
 optionsForTesting =
   [ testSuiteOption
@@ -646,9 +659,8 @@ optionsForTesting =
       "run test case STRING"
   , Option []    ["timeout"] (reqArg TimeoutFlg read "SECONDS")
       "time out after SECONDS seconds"
-  , Option []    ["maxsteps"] (reqArg MaxStepsFlg read "INT")
-      "abort and return any results found after INT steps"
   , maxResultsOption
+  , maxStepsOption
   , Option []    ["metrics"] (optArg MetricsFlg ["default"] words "LIST")
       "keep track of performance metrics: (default: iterations comparisons chart_size)"
   , Option []    ["statsfile"] (reqArg StatsFileFlg id "FILE")
