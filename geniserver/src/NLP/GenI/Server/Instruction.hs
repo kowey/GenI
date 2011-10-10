@@ -31,9 +31,10 @@ data ServerInstruction = ServerInstruction
 instance JSON ServerInstruction where
  readJSON j =
     do jo <- fromJSObject `fmap` readJSON j
-       let field x = maybe (fail $ "Could not find: " ++ x) readJSON
-                   $ lookup x jo
-       ServerInstruction <$> field "params"
+       let fieldOr def x = maybe def readJSON (lookup x jo)
+           fieldOrNull   = fieldOr (return [])
+           field x       = fieldOr (fail $ "Could not find: " ++ x) x
+       ServerInstruction <$> fieldOrNull "params"
                          <*> field "semantics"
  showJSON x =
      JSObject . toJSObject $ [ ("params", showJSONs $ gParams x)
