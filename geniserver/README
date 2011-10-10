@@ -1,4 +1,12 @@
 Example usage:
 
+    geniserver --help
     geniserver -m examples/ej/macros -l examples/ej/lexicon
+
+Just get a newline-delimited list of sentences:
+
     curl -i -X PUT -H "Content-Type: application/json" -d@/tmp/example-instructions.json http://localhost:4634
+
+Get full results (JSON format dump):
+
+    curl -i -X PUT -H "Content-Type: application/json" -d@/tmp/example-instructions.json http://localhost:4634/dump

@@ -22,6 +22,7 @@ Library
                , transformers
                , utf8-string >= 0.3.5 && < 0.4
                , wai   == 0.4.*
+               , text  < 1.0
                , GenI >= 0.19.0 && < 0.23
   Ghc-options:    -Wall -O2
   Hs-Source-Dirs: src
@@ -33,3 +34,4 @@ Executable geniserver
                , geniserver
                , GenI >= 0.19.0 && < 0.23
                , warp  == 0.4.*
+               , text  < 1.0
