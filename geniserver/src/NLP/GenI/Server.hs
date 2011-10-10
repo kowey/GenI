@@ -57,7 +57,7 @@ toGenReq req =
     []       -> Right Normal
     xs       -> Left $ "Don't know about path: " ++ T.unpack (T.intercalate "/" xs)
 
-parseInstruction :: B.ByteString -> Either String ServerInstruction
+parseInstruction :: J.JSON j => B.ByteString -> Either String j
 parseInstruction = J.resultToEither . J.decode . B.toString
 
 application :: ProgState -> Application
