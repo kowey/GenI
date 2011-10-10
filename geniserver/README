@@ -1,4 +1,5 @@
-Example usage:
+Quick start
+======================================================================
 
     geniserver --help
     geniserver -m examples/ej/macros -l examples/ej/lexicon
@@ -10,3 +11,21 @@ Just get a newline-delimited list of sentences:
 Get full results (JSON format dump):
 
     curl -i -X PUT -H "Content-Type: application/json" -d@/tmp/example-instructions.json http://localhost:4634/dump
+
+Input format
+======================================================================
+The server accepts as input a JSON object with the following members:
+
+- semantics - a GenI semantics string (eg. "love(j m) john(j) mary(m)")
+
+- params (optional): array of command line args (argv without argv[0])
+  see geniserver --help for a list of acceptable parameters from client end
+
+Details
+======================================================================
+* Newline-delimited mode returns sentences only.  If there are no
+  results, you still get an HTTP success status (200 status), but
+  with an empty list and no explanation
+
+* Errors such as malformed JSON input or malformed GenI strings
+  are reported with HTTP code 400
