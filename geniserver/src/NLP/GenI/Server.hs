@@ -26,9 +26,11 @@ import Control.Exception
 import Control.Monad.IO.Class ( liftIO )
 import Data.IORef
 import qualified Data.Text as T
+import qualified Data.Text.Lazy as TL
+import qualified Data.Text.Lazy.Encoding as TL
+import qualified Data.ByteString.Lazy as B
 import Network.Wai
 import Network.HTTP.Types (statusOK, status400, Header, Ascii)
-import qualified Data.ByteString.Lazy.UTF8 as B
 import qualified Data.Enumerator.Binary as EB
 import qualified Text.JSON as J
 import qualified Text.JSON.Pretty as J
@@ -58,7 +60,7 @@ toGenReq req =
     xs       -> Left $ "Don't know about path: " ++ T.unpack (T.intercalate "/" xs)
 
 parseInstruction :: J.JSON j => B.ByteString -> Either String j
-parseInstruction = J.resultToEither . J.decode . B.toString
+parseInstruction = J.resultToEither . J.decode . TL.unpack . TL.decodeUtf8
 
 application :: ProgState -> Application
 application pst req = do
@@ -75,11 +77,11 @@ application pst req = do
          Left (BadInputException d e) -> return (err (d ++ " parse error: " ++ show e))
 
 ok :: GenReq -> [GeniResult] -> Response
-ok Dump   j = responseLBS statusOK  [contentType "application/json"] $ B.fromString (prettyEncode j)
-ok Normal j = responseLBS statusOK  [contentType "text/plain"]       $ B.fromString (showResults j)
+ok Dump   j = responseLBS statusOK  [contentType "application/json"] $ encodeB $ prettyEncode j
+ok Normal j = responseLBS statusOK  [contentType "text/plain"]       $ encodeB $ showResults j
 
 err :: String -> Response
-err x = responseLBS status400 [contentType "text/plain"] (B.fromString x)
+err x = responseLBS status400 [contentType "text/plain"] (encodeB x)
 
 showResults :: [GeniResult] -> String
 showResults xs =  unlines . concat $ [ grRealisations g | GSuccess g <- xs ]
@@ -100,6 +102,10 @@ handleRequest pst instr = try $ do
   semStr = gSemantics instr
 
 -- ----------------------------------------------------------------------
+
+encodeB :: String -> B.ByteString
+encodeB = TL.encodeUtf8 . TL.pack
+
 contentType :: Ascii -> Header
 contentType x = ("Content-Type", x)
 
