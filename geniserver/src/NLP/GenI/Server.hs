@@ -21,12 +21,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 module NLP.GenI.Server where
 
+import Control.Applicative
 import Control.Exception
 import Control.Monad.IO.Class ( liftIO )
 import Data.IORef
 import qualified Data.Text as T
 import Network.Wai
-import Network.HTTP.Types (statusOK, status400)
+import Network.HTTP.Types (statusOK, status400, Header, Ascii)
 import qualified Data.ByteString.Lazy.UTF8 as B
 import qualified Data.Enumerator.Binary as EB
 import qualified Text.JSON as J
@@ -56,27 +57,32 @@ toGenReq req =
     []       -> Right Normal
     xs       -> Left $ "Don't know about path: " ++ T.unpack (T.intercalate "/" xs)
 
+parseInstruction :: B.ByteString -> Either String ServerInstruction
+parseInstruction = J.resultToEither . J.decode . B.toString
+
 application :: ProgState -> Application
 application pst req = do
-  bs     <- EB.consume
-  case toGenReq req of
-    Left e     -> return (err e)
-    Right ty ->
-     case J.decode (B.toString bs) of
-      J.Ok j    -> heart ty j
-      J.Error s -> return (err s)
- where
+   bs <- EB.consume
+   let input = (,) <$> toGenReq req <*> parseInstruction bs
+   case input of
+     Left e    -> return (err e)
+     Right tyj -> uncurry heart tyj
+  where
    heart ty j = do
-    me <- liftIO (handleRequest pst j)
-    case me of
-      Right p                      -> return (ok ty p)
-      Left (BadInputException d e) -> return (err (d ++ " parse error: " ++ show e))
-   ok Dump   j = responseLBS statusOK  [contentType "application/json"] $ B.fromString (prettyEncode j)
-   ok Normal j = responseLBS statusOK  [contentType "text/plain"]       $ B.fromString (showResults j)
-   err x = responseLBS status400 [contentType "text/plain"] (B.fromString x)
-   showResults xs =  unlines . concat $ [ grRealisations g | GSuccess g <- xs ]
+      me <- liftIO (handleRequest pst j)
+      case me of
+         Right p                      -> return (ok ty p)
+         Left (BadInputException d e) -> return (err (d ++ " parse error: " ++ show e))
 
-contentType x = ("Content-Type", x)
+ok :: GenReq -> [GeniResult] -> Response
+ok Dump   j = responseLBS statusOK  [contentType "application/json"] $ B.fromString (prettyEncode j)
+ok Normal j = responseLBS statusOK  [contentType "text/plain"]       $ B.fromString (showResults j)
+
+err :: String -> Response
+err x = responseLBS status400 [contentType "text/plain"] (B.fromString x)
+
+showResults :: [GeniResult] -> String
+showResults xs =  unlines . concat $ [ grRealisations g | GSuccess g <- xs ]
 
 handleRequest :: ProgState -> ServerInstruction -> IO (Either BadInputException [GeniResult])
 handleRequest pst instr = try $ do
@@ -92,6 +98,10 @@ handleRequest pst instr = try $ do
  where
   params = gParams    instr
   semStr = gSemantics instr
+
+-- ----------------------------------------------------------------------
+contentType :: Ascii -> Header
+contentType x = ("Content-Type", x)
 
 prettyEncode :: J.JSON a => a -> String
 prettyEncode = J.render . J.pp_value . J.showJSON
