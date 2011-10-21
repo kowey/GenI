@@ -23,6 +23,7 @@ module Main (main) where
 
 import Network.Wai.Handler.Warp (run)
 import Data.Maybe ( fromMaybe )
+import NLP.GenI.General ( ePutStrLn )
 import NLP.GenI.Configuration
 import NLP.GenI.Server
 import NLP.GenI.Server.Flags
@@ -40,6 +41,7 @@ main = do
 startServer :: Params -> IO ()
 startServer confArgs = do
   pst <- initialise confArgs
+  ePutStrLn ("Listening on port: " ++ show port)
   run port (application pst)
  where
   port = fromMaybe defaultPort (getFlagP PortFlg confArgs)
