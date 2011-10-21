@@ -23,6 +23,7 @@ module NLP.GenI.Server where
 
 import Control.Applicative
 import Control.Exception
+import Control.Monad ( liftM, ap )
 import Control.Monad.IO.Class ( liftIO )
 import Data.IORef
 import qualified Data.Text as T
@@ -65,7 +66,7 @@ parseInstruction = J.resultToEither . J.decode . TL.unpack . TL.decodeUtf8
 application :: ProgState -> Application
 application pst req = do
    bs <- EB.consume
-   let input = (,) <$> toGenReq req <*> parseInstruction bs
+   let input = (,) `liftM` toGenReq req `ap` parseInstruction bs
    case input of
      Left e    -> return (err e)
      Right tyj -> uncurry heart tyj
