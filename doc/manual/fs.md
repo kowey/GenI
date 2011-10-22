@@ -2,69 +2,43 @@
 title: Feature structures
 ---
 
-A GenI feature structure is a mapping from attributes to (atomic) values.
+A GenI feature structure is a mapping from attributes to values.
 
-<!-- TODO
-- Look up Jurafsky and Martin: what do we call non-recursive feature structures?
--->
+Feature structures in GenI are flat, in other words not recursive;
+however, feature structures may appear as part of some larger
+structure (eg. a TAG tree, or a lexical entry). The scope of
+the unification variables is over the whole structure.
 
 ## Feature structure unification
 
-*TODO: this needs to be rewritten as user documentation.
-It comes from my failed attempt at Literate Haskell*
-
-Feature structure unification takes two feature lists as input.
-If it suceeds, it produces
-
-1.  a unified feature structure list
-
-2.  a list of variable replacements that will need to be propagated
-    across other feature structures with the same variables
+Feature structure unification is a process which merges two
+feature structures.  Any substitutions that result unification 
+are percolated throughout the feature structure's parent
+(eg. the elementary tree in which it appears).
 
 Unification fails if, at any point during the unification process, the
 two lists have different constant values for the same attribute. For
 example, unification fails on the following inputs because they have
 different values for the *number* attribute:
 
-TODO: somehow convert the LaTeX to SVGs or something friendlier
-
-> { cat:np\
->  number:3\
-> } { cat:np\
->  number:2\
-> }
+      [ cat:np number:3 ]
+    ⊔ [ cat:np number:2 ]
 
 Note that the following input should also fail as a result on the
 coreference on *?X*.
 
-> { cat:np\
->  one: 1\
->  two:2\
-> } { cat:np\
->  one: ?X\
->  two:?X\
-> }
+      [ cat:np  one: 1   two:2  ]
+    ⊔ [ cat:np  one: ?X  two:?X ]
 
 On the other hand, any other pair of feature lists should unify
 succesfully, even those that do not share the same attributes. Below are
 some examples of successful unifications:
 
-> { cat:np\
->  one: 1\
->  two:2\
-> } { cat:np\
->  one: ?X\
->  two:?Y\
-> } $\rightarrow$ { cat:np\
->  one: 1\
->  two:2\
-> },
+      [ cat:np one: 1   two:2  ]
+    ⊔ [ cat:np one: ?X  two:?Y ]
+    → [ cat:np one: 1   two:2  ]
 
-> { cat:np\
->  number:3\
-> } { cat:np\
->  case:nom\
-> } $\rightarrow$ { cat:np\
->  case:nom\
->  number:3\
-> },
+
+      [ cat:np          number:3 ]
+    ⊔ [ cat:np case:nom          ]
+    → [ cat:np case:nom number:3 ]

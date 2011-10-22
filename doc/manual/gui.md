@@ -84,13 +84,3 @@ following boxes:
 3.  The top feature structure
 
 4.  The bottom feature structure
-
-## Interface
-
-## Derived Trees
-
-Browser for derived/derivation trees, except if there are no results, we
-show a message box
-
-## Debugger
-

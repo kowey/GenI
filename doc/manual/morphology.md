@@ -11,16 +11,16 @@ provided either in the GenI repository or on hackage.
 
 Morphological input means attaching morphological features on trees. The
 user specifies morphological input through the input semantics. Our job
-is to identify morphological predicates like {plural(x)} and apply
-features like { num:pl} on the relevant trees.
+is to identify morphological predicates like `plural(x)` and apply
+features like `[num:pl]` on the relevant trees.
 
 ## Morphological realisation
 
-{Morphological realisation} refers to the actual process of converting
+**Morphological realisation** refers to the actual process of converting
 lemmas and morphological information into inflected forms. We do this by
 calling some third party software specified by the user.
 
-The morphological software must accept a JSON list of {lemma sentences}
+The morphological software must accept a JSON list of **lemma sentences**
 where each lemma sentence is itself a list of objects containing a lemma
 and a feature structure.
 

@@ -1,4 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
+
+{- TODO
+- figure out how to plug genidoc.bib into this
+
+-}
+
 import Control.Arrow ((>>>))
 import System.FilePath
 

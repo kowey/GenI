@@ -1,17 +1,13 @@
-# Command line arguments
+---
+title: Command line arguments
+---
 
-## Command line arguments
+GenI can accepts a fairly large number of command line flags.
+Not all of them are documented here yet.
 
-Command line arguments can be specified in the GNU style, for example
-`--foo=bar` or `--foo bar`, or `-f bar` when a short switch is
-available. For more information, type {geni –help}.
+For more information, type `geni -–help`.
 
 ## Options by theme
-
-{sec:fancy\_parameters}
-
-At the time of this writing (2009-09-25), it is highly unlikely that all
-the options are documented here. See `geni --help` for more details.
 
 Note that you might see an option described in more than one place
 because it falls into multiple categories.
@@ -20,7 +16,7 @@ because it falls into multiple categories.
 
 ### Input files
 
-See Chapter {cha:formats} for details on how to write these files.
+See [formats](formats.html) for details on how to write these files.
 
 macros
   ~ The `macros` switch is used to supply GenI with FB-LTAG tree
@@ -116,7 +112,7 @@ morphlexicon
 
 morphinfo
   ~ tells GenI which literals in the input semantics are to be used by
-    the morphological *pre-*processor. The pre-processor strips these
+    the morphological preprocessor. The pre-processor strips these
     features from the input and fiddles with the elementary trees used
     by GenI so that the right features get attached to the leaf nodes.
     An example of a “morphological” literal is something like `past(p)`.
