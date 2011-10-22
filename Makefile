@@ -8,7 +8,7 @@ DOC_DIRS := doc
 #   MAKE_DOCS=foo/bar.pdf foo/other.pdf baz/filename.pdf
 # If you are making slides instead of documents, you should
 # uncomment and modify the MAKE_SLIDES variable.
-MAKE_DOCS = doc/literateGenI.pdf doc/genimanual.pdf
+MAKE_DOCS = doc/literateGenI.pdf
 
 # -- Latex or Pdflatex? (pdflatex by default) --
 # If you use latex instead of pdflatex, you should change the line
