@@ -1,20 +1,20 @@
-# Feature structures
+---
+title: Feature structures
+---
 
-## Core types
+A GenI feature structure is a mapping from attributes to (atomic) values.
 
-A feature structure is a list of attribute-value pairs.
-
-## Basic functions
-
-### Traversal
-
-### Pretty printing
+<!-- TODO
+- Look up Jurafsky and Martin: what do we call non-recursive feature structures?
+-->
 
 ## Feature structure unification
 
-{sec:fs\_unification} Feature structure unification takes two feature
-lists as input. If it fails, it returns Nothing. Otherwise, it returns a
-tuple with:
+*TODO: this needs to be rewritten as user documentation.
+It comes from my failed attempt at Literate Haskell*
+
+Feature structure unification takes two feature lists as input.
+If it suceeds, it produces
 
 1.  a unified feature structure list
 
@@ -25,6 +25,8 @@ Unification fails if, at any point during the unification process, the
 two lists have different constant values for the same attribute. For
 example, unification fails on the following inputs because they have
 different values for the *number* attribute:
+
+TODO: somehow convert the LaTeX to SVGs or something friendlier
 
 > { cat:np\
 >  number:3\
@@ -66,5 +68,3 @@ some examples of successful unifications:
 >  case:nom\
 >  number:3\
 > },
-
-## Fancy disjunction

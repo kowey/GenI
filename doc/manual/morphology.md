@@ -1,4 +1,6 @@
-# Morphology
+---
+title: Morphology
+---
 
 There are two basic tasks: morphological input and output. GenI farms
 out morphology to whatever third party program you specify on the
