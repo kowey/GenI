@@ -15,10 +15,10 @@ title: Table of contents
 1. [Feature structures](fs.html)
 1. [Semantics](semantics.html)
 
-## Behaviour 
+## Surface realisation
 
 1. [Lexical selection](lexical-selection.html)
-1. Chart generation (TODO)
+1. [Tree assembly](assembly.html)
 
 ## Advanced features
 
