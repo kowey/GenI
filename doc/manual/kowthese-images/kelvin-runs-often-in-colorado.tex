@@ -1,0 +1,109 @@
+\def\semrow#1#2{\multicolumn{#1}{c}{\small \koweysemexpr{#2}}\\}
+% ----------------------------------------- Kelvin / Colorado
+\def\pntree#1#2#3{%
+\begin{tabular}{cc}
+\multicolumn{1}{c}{\node{n}{NP$_#3$}} \\[3ex]
+\node{nx}{#1} \\[2ex]
+\semrow{1}{#2} \\
+\nodeconnect{n}{nx}
+\end{tabular}%
+}
+
+% ----------------------------------------------------------------------
+% kelvin runs often
+% ----------------------------------------------------------------------
+
+\def\KelvinRunsOftenTrees{%
+% -----------------------------------------
+\pntree{Kelvin}{l1:name(k Kelvin)}{k}
+% -----------------------------------------
+&
+% ----------------------------------------- runs
+\begin{tabular}{cc}
+\multicolumn{2}{c}{\hspace{-1em}\node{n}{S}$_{?E2}$}
+\\[3ex]
+\node{n1}{NP$\downarrow$$^k$}  &
+\node{n2}{VP$_{?E1}^{?E2}$}
+\\[2ex]
+&
+\node{n2.1}{V$_r^{?E1}$}
+\\[2ex]
+&
+\node{n2.1x}{runs}
+\\[2ex]
+\semrow{2}{l0:runs(r) l0:agent(r k)} \\
+\nodeconnect{n}{n1} \nodeconnect{n}{n2}
+\nodeconnect{n2}{n2.1}
+\nodeconnect{n2.1}{n2.1x}
+\end{tabular}
+% -----------------------------------------
+&
+% ----------------------------------------- often
+\begin{tabular}{cc}
+\multicolumn{2}{c}{\hspace{0.5em}\node{n}{VP}$^r$}
+\\[3ex]
+\node{n1}{VP$_r$*} &
+\node{n2}{Adv}
+\\[3ex]
+&
+\node{n2x}{often}
+\\[2ex]
+\semrow{2}{l0:often(r)}
+\nodeconnect{n}{n1} \nodeconnect{n}{n2}
+\nodeconnect{n2}{n2x}
+\end{tabular}
+% -----------------------------------------
+}
+
+% ----------------------------------------------------------------------
+% in Colorado
+% ----------------------------------------------------------------------
+
+\def\InColoradoTrees{%
+% ----------------------------------------- in...
+\begin{tabular}{ccc}
+\multicolumn{3}{c}{\hspace{-1.5em}\node{n}{VP$^r$}}
+\\[4ex]
+\node{n1}{VP$_r$*} &
+\multicolumn{2}{c}{\hspace{-0.5em}\node{n2}{PP}}
+\\[3ex]
+&
+\node{n2.1}{P} &
+\hspace{1em}\node{n2.2}{NP$\downarrow$$^i$}
+\\[2ex]
+&
+\node{n2.1x}{in}
+\\[2ex]
+\semrow{3}{l0:in(r,i)} \\
+\nodeconnect{n}{n1} \nodeconnect{n}{n2}
+\nodeconnect{n2}{n2.1} \nodeconnect{n2}{n2.2}
+\nodeconnect{n2.1}{n2.1x}
+\end{tabular}
+% -----------------------------------------
+&
+% -----------------------------------------
+\pntree{Colorado}{l3:place(i Colorado)}{i}
+% -----------------------------------------
+}
+
+% ----------------------------------------------------------------------
+% tables
+% ----------------------------------------------------------------------
+
+\def\KelvinRunsOften{%
+\begin{tabular}{ccc}
+&&\\
+\KelvinRunsOftenTrees
+\end{tabular}
+}
+
+\def\KelvinRunsOftenInColorado{%
+\begin{tabular}{ccc}
+&&\\
+\KelvinRunsOftenTrees \\[3ex]
+\InColoradoTrees \\
+\end{tabular}
+}
+
+
+

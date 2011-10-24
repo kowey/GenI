@@ -2,8 +2,6 @@
 title: Tree assembly
 ---
 
-**TODO** : This imported from my PhD thesis. It needs massaging.
-
 After the lexical selection phase, we move into tree assembly. The input
 to this phase is the semantic formula we wish to realise, and the set of
 lexically selected elementary trees. Our objective is to find every
@@ -68,9 +66,11 @@ example or two:
 Let us start with a simple one. Suppose that the input semantics is
 `l0:run(r) l0:agent(r k) l0:often(r) l1:name(k Kelvin)`. Lexical
 selection gives us a set of elementary trees lexicalised with the words
-*Kelvin*, *often*, *runs* (Figure {fig:kro}). The trees for *Kelvin* and
+*Kelvin*, *often*, *runs*. The trees for *Kelvin* and
 *runs* are placed on the agenda, the one for *often* is placed on the
 auxiliary agenda.
+
+![Kelvin, often, runs](images/kelvin-runs-1.png)
 
 We begin with the **substitution phase**, which consists of
 systematically exploring the possibility of combining two trees by
@@ -127,10 +127,12 @@ to more than one result. Our new input semantics is
 `l1:name(k Kelvin) l0:often(r) l0:run(r k) l0:in(r i) l0:place(i Colorado)`
 , basically the same as before with two new literals. The lexically
 selected trees
-(Figure {fig:kroic}) are the same as before plus trees for *in* and
+are the same as before plus trees for *in* and
 *Colorado*. The trees for *in*, *Colorado*, *Kelvin* and *runs* are
 placed on the agenda, whereas the tree for *often* is placed on the
 auxiliary agenda.
+
+![Kelvin, often, runs](images/kelvin-runs-2.png)
 
 Again, the substitution phase explores all possible substitutions, of
 which there are two: *Kelvin* into *runs* to get *Kelvin runs*, and
