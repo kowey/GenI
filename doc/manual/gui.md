@@ -38,12 +38,12 @@ the realisations tab.
 
 ## Debugging
 
-{sec:gui:debugger} Instead of going directly to the results window, you
+Instead of going directly to the results window, you
 could instead use the interactive debugger which GenI provides. The
 debugger shows a separate tab for each phase in surface realisation
 (lexical selection, filtering, building).
 
-> ![Debugging](images/GenI-debugger.png)
+> ![Debugging](images/debugger.png)
 
 ### Stepping through the debugger
 
