@@ -1,19 +1,22 @@
-# Polarity Optimisation
+---
+title: Polarity filtering
+---
 
-{cha:Polarity}
-
-{rewrite for manual}
+> **NOTE** *This documentation has not yet been properly
+> converted from its original LateX source, nor rewritten
+> for use in the manual*
 
 We introduce a notion of polarities as a means of pre-detecting
 incompatibilities between candidate trees for different propositions.
-This optimisation is inserted between candidate selection (section
-{sec:candidate\_selection}) and chart generation. The input to this
-optimisation is the {target semantics} and the corresponding {candidate
-trees}.
+This optimisation is inserted between
+[lexical selection](lexical-selection.html)
+and [tree assembly](tree-assembly.html). The input to this
+optimisation is the **target semantics** and the corresponding
+**candidate trees**.
 
 This whole optimisation is based on adding polarities to the grammar. We
-have a set of strings which we call {polarity keys}, and some positive
-or negative integers which we call {charges}. Each tree in the grammar
+have a set of strings which we call **polarity keys**, and some positive
+or negative integers which we call **charges**. Each tree in the grammar
 may assign a charge to some number of polarity keys. For example, here
 is a simple grammar that uses the polarity keys n and v.
 
@@ -43,15 +46,10 @@ use simple integers, but polarities intervals, so more something like
 $(-2,-2)n$! But for the most part, the intervals are zero length, and
 you can just think of $-2n$ as shorthand for $(-2,-2)n$.
 
-## Interface
+## Building a polarity automaton
 
-## The automaton itself - outline
-
-{polarity:overview}
-
-We start with the controller function (the general architecture) and
-detail the individual steps in the following sections. The basic
-architecture is as follows:
+The basic process for constructing a polarity automaton is
+as follows:
 
 1.  Build a seed automaton (section {sec:seed\_automaton}).
 
@@ -66,27 +64,18 @@ everything a tuple with (1) a list of the automota that were created (2)
 the final automaton (3) a possibly modified input semantics. The first
 item is only neccesary for debugging; only the last two are important.
 
-Note:
-
--   the {extraPol} argument is a map containing any initial values for
-    polarity keys. This is useful to impose external filters like “I
-    only want expressions where the object is topicalised”.
-
--   to recuperate something useful from these automaton, it might be
-    helpful to call {automatonPaths} on it.
-
 ## Polarity automaton
 
-{sec:polarity\_automaton} We construct a finite state automaton for each
+We construct a finite state automaton for each
 polarity key that is in the set of trees. It helps to imagine a table
 where each column corresponds to a single proposition.
 
->             {gift(g)}                {cost(g,x)}              {high(x)}
->   ----------------------------- ---------------------- ------------------------
->     {the gift} {blue} {+1np}        {the cost of}       {is high} {red} {-1np}
->    {the present} {blue} {+1np}   {costs} {red} {-1np}          {a lot}
->                                                                 {much}
->
+   `gift(g)`                     `cost(g,x)`           `high(x)`
+   ----------------------------- --------------------- ------------------------
+   *the gift*    +1np            *the cost of*         *is high*        -1np
+   *the present* +1np            *costs*        -1np   *a lot*
+                                                       *much*
+
 Each column (proposition) has a different number of cells which
 corresponds to the lexical ambiguity for that proposition, more
 concretely, the number of candidate trees for that proposition. The
@@ -124,6 +113,7 @@ semantics, we create a start state, calculate the states/transitions to
 $p_1$ and succesively calculate the states/transitions from proposition
 $p_x$ to $p_{x+1}$ for all $1 < x < n$.
 
+<!-- _ -->
 The ultimate goal is to construct an automaton that accounts for
 multiple polarity keys. The simplest approach would be to calculate a
 seperate automaton for each key, prune them all and then intersect the
@@ -138,43 +128,38 @@ automaton”.
 
 ### Pruning
 
-{sec:automaton\_pruning} Any path through the automaton which does not
+Any path through the automaton which does not
 lead to final polarity of zero sum can now be eliminated. We do this by
 stepping recursively backwards from the final states:
 
 ## Zero-literal semantics
 
-{sec:multiuse} {semantic\_weights} {sec:nullsem} {sec:co-anchors}
-Lexical items with a {null semantics} typically correspond to functions
-words: complementisers {(John likes **to** read.)}, subcategorised
-prepositions {(Mary accuses John **of** cheating.)}. Such items need not
+Lexical items with a **null semantics** typically correspond to functions
+words: complementisers “John likes **to** read.”, subcategorised
+prepositions “Mary accuses John **of** cheating.“
+
+Such items need not
 be lexical items at all. We can exploit TAG’s support for trees with
 multiple anchors, by treating them as co-anchors to some primary lexical
-item. The English infinitival {to}, for example, can appear in the tree
-{to take} as {s(comp(to),v(take),np$\downarrow$)}.
+item. The English infinitival *to*, for example, can appear in the tree
+*to take* as s(comp(to),v(take),np$\downarrow$).
 
 On the other hand, pronouns have a {zero-literal} semantics, one which
 is not null, but which consists only of a variable index. For example,
-the pronoun {she} in ({ex:pronoun\_pol\_she}) has semantics {s} and in
+the pronoun *she* in ({ex:pronoun\_pol\_she}) has semantics {s} and in
 ({ex:pronoun\_pol\_control}), {he} has the semantics {j}.
 
-{ {{ex:pronoun\_pol}
+1. `joe(j) sue(s) book(b) lend(l j b s) boring(b)` <br/>
+   Joe lends Sue a boring book.
 
-{ex:pronoun\_pol\_sue} {joe(j), sue(s), book(b), lend(l,j,b,s),
-boring(b) } \
-{Joe lends Sue a boring book.}
+2. `joe(j)        book(b) lend(l j b s) boring(b)` <br/>
+   Joe lends her a boring book.
 
-{ex:pronoun\_pol\_she} {joe(j), {{white}sue(s),} book(b), lend(l,j,b,s),
-boring(b) } \
-{Joe lends her a boring book.} } {{ex:pronoun\_pol\_control}
+3. `joe(j), sue(s), leave(l,j), promise(p,j,s,l)` <br/>
+   - Joe promises Sue to leave.
+   - Joe promises Sue that he would leave.
 
-{\\color{white}a.}
-{ex:pronoun\_pol\_control\_inf} {joe(j), sue(s), leave(l,j),
-promise(p,j,s,l)} \
-{Joe promises Sue to leave.} \
-or {Joe promises Sue that he would leave.} }}
-
-In figure {fig:polarity\_automaton\_zerolit\_bad}, we compare the
+In the figure below, we compare the
 construction of polarity automata for ({ex:pronoun\_pol\_sue}, left) and
 ({ex:pronoun\_pol\_she}, right). Building an automaton for
 ({ex:pronoun\_pol\_she}) fails because {sue} is not available to cancel
@@ -188,10 +173,9 @@ index refers to an entity. This entity must be “consumed” by a syntactic
 functor (e.g. a verb) and “provided” by a syntactic argument (e.g. a
 noun).
 
-> > ![image](images/zeroaut-noun.pdf) ![image](images/zeroaut-sans.pdf)
->
-> {-0.4cm} {Difficulty with zero-literal semantics.}
-> {fig:polarity\_automaton\_zerolit\_bad}
+![](images/zeroaut-noun.png)
+
+![Difficulty with zero-literal semantics.](images/zeroaut-sans.png)
 
 We make this explicit by annotating the semantics of the lexical input
 (that is the set of lexical items selected on the basis of the input
@@ -212,10 +196,7 @@ Building the polarity automaton as normal yields lexical combinations
 with the required number of pronouns, as in figure
 {fig:polarity\_automaton\_zerolit}.
 
-> > ![image](images/zeroaut-pron.pdf)
->
-> {-0.4cm} {Constructing a polarity automaton with zero-literal
-> semantics.} {fig:polarity\_automaton\_zerolit}
+![Constructing a polarity automaton with zero-literal semantics](images/zeroaut-pron.png)
 
 {different\_sem\_annotations} The sitation is more complicated where the
 lexical input contains lexical items with different annotations for the
@@ -237,10 +218,7 @@ includes that literal along with its regular semantics (figure
 infinitive-soliciting form is treated as if it already fulfils the role
 of a pronoun, and does not need one in its lexical combination.
 
-> > ![image](images/zeroaut-promise.pdf)
->
-> {-0.4cm} {Constructing a polarity automaton with zero-literal
-> semantics.} {fig:polarity\_automaton\_zerolit\_promise}
+![Constructing a polarity automaton with zero-literal semantics](images/zeroaut-promise.png)
 
 We insert pronouns into the input semantics using the following process:
 
@@ -257,57 +235,12 @@ We insert pronouns into the input semantics using the following process:
     pronouns than predicted by inserting the excess pronouns in their
     extra literal semantics (see page {different\_sem\_annotations})
 
-##### assignIndex
-
-is a useful way to restrict the behaviour of null semantic items like
-pronouns using the information generated by the index counting
-mechanism. The problem with null semantic items is that their indices
-are not set, which means that they could potentially combine with any
-other tree. To make things more efficient, we can set the index of these
-items and thus reduce the number of spurious combinations.
-
-Notes
-
-> This function works by FS unification on the root node of the tree
-> with the { idx:i\
-> }. If unification is not possible, we simply return the tree as is.
->
-> This function renames the tree by appending the index to its name
-
 ## Further optimisations
-
-### Lexical filtering
-
-{fn:detectIdxConstraints} {sec:polarity:idxconstraints} Lexical
-filtering allows the user to constrain the lexical selection to only
-those items that contain a certain property, for example, the realising
-an item as a cleft.
-
-The idea is that the user provides an input like
-`idxconstraints:[cleft:j]`, which means that the lexical selection must
-include exactly one tree with the property cleft:j in its interface.
-This mechanism works as pre-processing step after lexical selection and
-before polarity automaton construction, in conjuction with the
-ExtraPolarities mechanism. What we do is
-
-1.  Preprocess the lexically selected trees; any tree which has a a
-    desired property (e.g. cleft:j) in its interface is assigned a
-    positive polarity for that property (+cleft:j)
-
-2.  Add all the index constraints as negative extra polarities
-    (-cleft:j)
-
-Note: we assume the index constraints and interface are sorted; also, we
-prefix the index constraint polarities with a “.” because they are
-likely to be very powerful filters and we would like them to be used
-first.
 
 ### Automatic detection
 
 Automatic detection is not an optimisation in itself, but a means to
 make grammar development with polarities more convenient.
-
-##### Which attributes should we use?
 
 Our detection process looks for attributes which are defined on *all*
 subst and root nodes of the lexically selected items. Note that this
@@ -329,17 +262,12 @@ Now what really happens: we treat automaton polarities as intervals, not
 as single integers! For the most part, nothing changes from the
 simplified explanation. Where we added a $-1$ charge before, we now add
 a $(-1,-1)$ charge. Similarly, we where added a $+1$ charge, we now add
-$(1,1)$. So what’s the point of all this? It helps us deal with atomic
-disjunction.
+$(1,1)$.
 
-###### Atomic disjunction
-
-Say we encounter a substitution node whose category is either cl or n.
-What we do is add the polarities $cl (-1,0),  n (-1,0)$ which means that
-there are anywhere from -1 to 0 cl, and for n. FIXME: What kind of sucks
-about all this though is that this slightly worsens the filter because
-it allows for both cl and n to be $-1$ (or $0$) at the same time. It
-would be nice to have some kind of mutual exclusion working.
+So what’s the point of all this? It helps us deal with atomic disjunction.
+Suppose we encounter a substitution node whose category is either cl or n.
+What we do is add the polarities $cl (-1,0),  n (-1,0)$ which means that there
+are anywhere from -1 to 0 cl, and for n.
 
 ### Chart sharing
 
@@ -347,8 +275,7 @@ Chart sharing is based on the idea that instead of performing a seperate
 generation task for each automaton path, we should do single generation
 task, but annotate each tree with set of the automata paths it appears
 on. We then allow trees on the same paths to be compared only if they
-are on the same path. Note: chart sharing involves some mucking around
-with the generation engine (see page {fn:Builder:preInit})
+are on the same path
 
 ### Semantic sorting
 
@@ -384,9 +311,7 @@ keys.
 Note: we have to take care to count each literal for each lexical
 entry’s semantics or else the multi-literal semantic code will choke.
 
-## Types
-
-### Polarity NFA
+## Details
 
 We can define the polarity automaton as a NFA, or a five-tuple
 $(Q, \Sigma, \delta, q_0, q_n)$ such that
@@ -407,16 +332,6 @@ $(Q, \Sigma, \delta, q_0, q_n)$ such that
 
 5.  $\delta$ is the transition function between states, which we define
     below.
-
-Note:
-
--   For convenience during automaton intersection, we actually define
-    the states as being $(i, [(p_x,p_y)])$ where $[(p_x,p_y)]$ is a list
-    of polarity intervals.
-
--   We use integer $i$ for each state instead of literals directly,
-    because it is possible for the target semantics to contain the same
-    literal twice (at least, with the index counting mechanism in place)
 
 [^1]: except for predicative nouns, which like verbs, are semantic
     functors

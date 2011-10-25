@@ -4,9 +4,11 @@ title: Lexical selection
 
 ## Overview
 
-Lexical selection combines the input semantics with the lexicon
-and the tree schema file.  It produces a set of elementary trees
-which can then passed on to chart generation. 
+Lexical selection combines the input semantics with the lexicon and the
+tree schema file.  The input to lexical selection is (i) a flat input
+semantics and (ii) an [FB-LTAG](fb-ltag.html) grammar.  The output is a
+a set of elementary trees which can then passed on to the tree assembly
+phase.
 
 The lexical selection process can be described as
 
@@ -20,6 +22,9 @@ The lexical selection process can be described as
    [Enrich](#enrichment) these tree schemata and unify the
    their semantics with the semantics of the instantiated lemmas.
    The result of this is a set of elementary trees
+
+Because the input semantics is saturated, the instantiated lexical item
+also has a saturated semantics.
 
 ## Enrichment
 <a name="enrichment"/>

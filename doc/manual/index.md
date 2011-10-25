@@ -10,6 +10,7 @@ title: Table of contents
 
 ## Key concepts
 
+1. GenI Value (TODO)
 1. Tree Adjoining Grammar (TODO)
 1. Unification (TODO)
 1. [Feature structures](fs.html)
@@ -24,7 +25,8 @@ title: Table of contents
 
 1. [Morphology](morphology.html)
 1. [Ranking output with Optimality Theory](ot.html)
-1. [Paraphrase pre-selection](paraphrase.html)
+1. [Paraphrase selection](paraphrase.html)
+1. [Lexical filtering](lexical-filtering.html)
 
 ## Optimisations
 
