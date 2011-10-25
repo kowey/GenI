@@ -1,25 +1,20 @@
-% GenI surface realiser
-% Copyright (C) 2005-2009 Carlos Areces and Eric Kow
-%
-% This program is free software; you can redistribute it and/or
-% modify it under the terms of the GNU General Public License
-% as published by the Free Software Foundation; either version 2
-% of the License, or (at your option) any later version.
-%
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-%
-% You should have received a copy of the GNU General Public License
-% along with this program; if not, write to the Free Software
-% Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+-- GenI surface realiser
+-- Copyright (C) 2005-2009 Carlos Areces and Eric Kow
+--
+-- This program is free software; you can redistribute it and/or
+-- modify it under the terms of the GNU General Public License
+-- as published by the Free Software Foundation; either version 2
+-- of the License, or (at your option) any later version.
+--
+-- This program is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with this program; if not, write to the Free Software
+-- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-\chapter{Lexicon}
-\label{cha:Lexicon}
-
-\ignore{
-\begin{code}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 module NLP.GenI.Lexicon (
@@ -43,12 +38,7 @@ import Control.DeepSeq
 
 --instance Show (IO()) where
 --  show _ = ""
-\end{code}
-}
 
-Every lexical entry is associated with a single family.
-
-\begin{code}
 -- | A lexicon maps semantic predicates to lexical entries.
 type Lexicon = Map.Map String [ILexEntry]
 data ILexEntry = ILE
@@ -74,10 +64,7 @@ emptyLE = ILE { iword = [],
                 isemantics = [],
                 iequations = [],
                 isempols   = [] }
-\end{code}
 
-\ignore{
-\begin{code}
 instance Biplate ILexEntry GeniVal where
   biplate (ILE x1 x2 zps zint zfilts zeq x3 zsem x4) =
     plate ILE |- x1 |- x2
@@ -113,6 +100,3 @@ instance NFData ILexEntry where
                   rnf x4 `seq`
                     rnf x5 `seq` rnf x6 `seq` rnf x7 `seq` rnf x8 `seq` rnf x9 `seq` ()
 -- GENERATED STOP
-\end{code}
-}
--

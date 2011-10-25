@@ -1,23 +1,20 @@
-% GenI surface realiser
-% Copyright (C) 2005 Carlos Areces and Eric Kow
-%
-% This program is free software; you can redistribute it and/or
-% modify it under the terms of the GNU General Public License
-% as published by the Free Software Foundation; either version 2
-% of the License, or (at your option) any later version.
-%
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-%
-% You should have received a copy of the GNU General Public License
-% along with this program; if not, write to the Free Software
-% Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+-- GenI surface realiser
+-- Copyright (C) 2005 Carlos Areces and Eric Kow
+--
+-- This program is free software; you can redistribute it and/or
+-- modify it under the terms of the GNU General Public License
+-- as published by the Free Software Foundation; either version 2
+-- of the License, or (at your option) any later version.
+--
+-- This program is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with this program; if not, write to the Free Software
+-- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-\chapter{Command line arguments}
-
-\begin{code}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE OverloadedStrings, ViewPatterns #-}
@@ -44,10 +41,7 @@ module NLP.GenI.Configuration
   , Typeable
   )
 where
-\end{code}
 
-\ignore{
-\begin{code}
 import Control.Arrow ( first )
 import Control.Monad ( liftM )
 import qualified Data.ByteString.Char8 as BC
@@ -74,23 +68,11 @@ import NLP.GenI.General ( geniBug, fst3, snd3 )
 import NLP.GenI.GeniParsers ( geniFeats, tillEof )
 import NLP.GenI.LemmaPlus ( LemmaPlusSentence )
 import NLP.GenI.PolarityTypes ( readPolarityAttrs )
-\end{code}
-}
 
-% --------------------------------------------------------------------
-% Code for debugging. (should be latex-commented
-% when not in use)
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Params
+-- --------------------------------------------------------------------
 
-%\begin{code}
-%import Debug.Trace
-%\end{code}
-
-% --------------------------------------------------------------------
-% Params
-% --------------------------------------------------------------------
-
-\begin{code}
 -- | Holds the specification for how Geni should be run, its input
 --   files, etc.  This is the stuff that would normally be found in
 --   the configuration file.
@@ -139,19 +121,11 @@ emptyParams = Prms {
                       (parseFlagWithParsec "default root feat" geniFeats defaultRootFeat)
                   ]
   }
-\end{code}
 
-% --------------------------------------------------------------------
-\section{Command line arguments}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Command line arguments
+-- --------------------------------------------------------------------
 
-Command line arguments can be specified in the GNU style, for example
-\texttt{--foo=bar} or \texttt{--foo bar}, or \texttt{-f bar} when a
-short switch is available.  For more information, type \texttt{geni
---help}.
-
-
-\begin{code}
 type OptSection = (String,[OptDescr Flag],[String])
 
 -- | Uses the GetOpt library to process the command line arguments.
@@ -209,9 +183,7 @@ optArg :: forall f x . (Eq f, Show f, Typeable f, Eq x, Show x, Typeable x)
        -> String         -- ^ description
        -> ArgDescr Flag
 optArg s def fn desc = OptArg (\x -> Flag s (maybe def fn x)) desc
-\end{code}
 
-\begin{code}
 -- -------------------------------------------------------------------
 -- Parsing command line arguments
 -- -------------------------------------------------------------------
@@ -261,23 +233,11 @@ defineParams flgs prms =
     else p
   fromFlags default_ t fs =
     fromMaybe (default_ prms) (getFlag t fs)
-\end{code}
 
-\section{Options by theme}
-\label{sec:fancy_parameters}
+-- --------------------------------------------------------------------
+-- Basic options
+-- --------------------------------------------------------------------
 
-At the time of this writing (2009-09-25), it is highly unlikely that all the
-options are documented here.  See \verb!geni --help!  for more details.
-
-Note that you might see an option described in more than one place
-because it falls into multiple categories.
-
-% --------------------------------------------------------------------
-\subsection{Basic options}
-% --------------------------------------------------------------------
-
-
-\begin{code}
 optionsForBasicStuff :: [OptDescr Flag]
 optionsForBasicStuff =
   [ helpOption, verboseOption, noguiOption
@@ -285,31 +245,11 @@ optionsForBasicStuff =
   , rootFeatureOption
   , outputOption
   ]
-\end{code}
 
-% --------------------------------------------------------------------
-\subsection{Input files}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Input files
+-- --------------------------------------------------------------------
 
-See Chapter \ref{cha:formats} for details on how to write these files.
-
-\begin{description}
-\item[macros]
-  The \verb!macros! switch is used to supply GenI with FB-LTAG tree
-  schemata.
-\item[lexicon]
-  The \verb!lexicon! is used for lexical entries that point to the
-  macros
-\item[suite]
-  The \verb!suite! provides test cases on which to run GenI
-\item[ranking]
-  The \verb!ranking! switch allows you to specify a file containing
-  Optimality Theory style constraints which GenI will use to rank
-  its output.  See Chapter \ref{cha:ranking} for more details on the format
-  and use of this file.
-\end{description}
-
-\begin{code}
 optionsForInputFiles :: [OptDescr Flag]
 optionsForInputFiles =
   [ macrosOption
@@ -346,13 +286,11 @@ rankingOption :: OptDescr Flag
 rankingOption =
   Option [] ["ranking"] (reqArg RankingConstraintsFlg id "FILE")
     "ranking constraints FILE (using Optimality Theory)"
-\end{code}
 
-% --------------------------------------------------------------------
-\subsection{Output}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Output
+-- --------------------------------------------------------------------
 
-\begin{code}
 optionsForOutput :: [OptDescr Flag]
 optionsForOutput =
   [ outputOption
@@ -373,13 +311,11 @@ outputOption :: OptDescr Flag
 outputOption =
   Option ['o'] ["output"] (reqArg OutputFileFlg id "FILE")
     "output file FILE (stdout if unset)"
-\end{code}
 
-% --------------------------------------------------------------------
-\subsection{User interface}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- User interface
+-- --------------------------------------------------------------------
 
-\begin{code}
 optionsForUserInterface :: [OptDescr Flag]
 optionsForUserInterface =
   [ noguiOption, helpOption, versionOption
@@ -402,80 +338,20 @@ versionOption  = Option [] ["version"] (noArg VersionFlg)
 verboseOption :: OptDescr Flag
 verboseOption = Option ['v'] ["verbose"] (noArg VerboseModeFlg)
                 "verbose mode"
-\end{code}
 
-% --------------------------------------------------------------------
-\subsection{Optimisations}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Optimisations
+-- --------------------------------------------------------------------
 
-\begin{description}
-\item[opt]
-  The opt switch lets you specify a list of optimisations
-  that GenI should use, for example, \texttt{--opt='pol S i'}.
-  We associate each optimisation with a short code like 'i' for
-  ``index accessibility filtering''.  This code is what the
-  user passes in, and is sometimes used by GenI to tell the
-  user which optimisations it's using.  See \texttt{geni
-    --help} for more detail on the codes.
-
-  Optimisations can be accumulated.  For example, if you say something
-  like \texttt{--opt='foo bar' --opt='quux'} it is the same as saying
-  \texttt{--opt='foo bar quux'}.
-
-  Note that we also have two special thematic codes ``pol'' and
-  ``adj'' which tell GenI that it should enable all the
-  polarity-related, and all the adjunction-related
-  optimisations respectively.
-
-\item[detect-pols]
-  This tells GenI how to detect polarities in your grammar.  You pass
-  this in in the form of a space-delimited string, where each word is either
-  an attribute or a ``restricted'' attribute.  In lieu of an explanation,
-  here is an example: the string ``cat idx V.tense D.c'' tells GenI that
-  we should detect polarities on the ``cat'' and ``idx'' attribute
-  for all nodes and also on the ``tense'' attribute for all nodes
-  with the category ``V'' and the ``c'' attribute for all nodes with the
-  category ``D''.
-
-  If your grammar comes with its own hand-written polarities, you can
-  suppress polarity detection altogether by supplying the empty string.
-
-  Also, if you do not use this switch, the following defaults will be
-  used:
-
-\begin{includecodeinmanual}
-\begin{code}
 defaultPolarityAttrs :: String
 defaultPolarityAttrs = "cat"
-\end{code}
-\end{includecodeinmanual}
 
-\item[rootfeat]
-  No results?  Make sure your rootfeat are set correctly.  GenI
-  will reject all sentences whose root category does not unify
-  with the rootfeat. A possible default root feature might be
-\begin{includecodeinmanual}
-\begin{code}
 exampleRootFeat :: String
 exampleRootFeat = "[cat:s inv:- mode:ind|subj wh:-]"
-\end{code}
-\end{includecodeinmanual}
 
-  By the default the root feature allows pretty much any
-  result through, but for best results, you should
-  probably constrain it a little more.  Note that an
-  empty root feature is also legal, but would cause
-  polarity filtering to filter the wrong things.
-
-\begin{includecodeinmanual}
-\begin{code}
 defaultRootFeat :: String
 defaultRootFeat = "[cat:_]"
-\end{code}
-\end{includecodeinmanual}
-\end{description}
 
-\begin{code}
 optionsForOptimisation :: [OptDescr Flag]
 optionsForOptimisation =
    [ Option [] ["opts"]
@@ -517,9 +393,7 @@ optimisationCodes =
 polOpts, adjOpts :: [Optimisation]
 polOpts = [Polarised]
 adjOpts = []
-\end{code}
 
-\begin{code}
 -- ---------------------------------------------------------------------
 -- Optimisation usage info
 -- ---------------------------------------------------------------------
@@ -547,9 +421,7 @@ usageForOptimisations =
      , "  " ++ unlinesTab (map describeOpt coreOptimisationCodes)
      ]
  where unlinesTab l = concat (intersperse "\n  " l)
-\end{code}
 
-\begin{code}
 -- ---------------------------------------------------------------------
 -- Parsing optimisation stuff
 -- ---------------------------------------------------------------------
@@ -584,20 +456,11 @@ parseFlagWithParsec description p str =
  case runParser (tillEof p) () "" str of
  Left  err -> error $ "Couldn't parse " ++ description ++ " because " ++ show err
  Right res -> res
-\end{code}
 
-% --------------------------------------------------------------------
-\subsection{Builders}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Builders
+-- --------------------------------------------------------------------
 
-\begin{description}
-\item[builder]
-  A builder is basically a surface realisation algorithm.  \geni has the
-  infrastructure to support different realisation algorithms, but some
-  broken ones have been removed.
-\end{description}
-
-\begin{code}
 optionsForBuilder :: [OptDescr Flag]
 optionsForBuilder =
   [ Option ['b'] ["builder"]  (reqArg BuilderFlg readBuilderType "BUILDER")
@@ -626,13 +489,10 @@ readBuilderType b =
   Just x  -> x
   Nothing -> error $ "Unknown builder type " ++ b
 
-\end{code}
+-- --------------------------------------------------------------------
+-- Testing and profiling
+-- --------------------------------------------------------------------
 
-% --------------------------------------------------------------------
-\subsection{Testing and profiling}
-% --------------------------------------------------------------------
-
-\begin{code}
 fromStdinOption :: OptDescr Flag
 fromStdinOption =
   Option [] ["from-stdin"] (noArg FromStdinFlg) "get testcase from stdin"
@@ -670,36 +530,11 @@ optionsForTesting =
   , Option []    ["earlydeath"]    (noArg EarlyDeathFlg)
       "exit on first case with no results (batch processing) "
  ]
-\end{code}
 
-% --------------------------------------------------------------------
-\subsection{Morphology}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Morphology
+-- --------------------------------------------------------------------
 
-GenI provides two options for morphology: either you use an external
-inflection program (morphcmd), or you pass in a morphological lexicon
-(morphlexicon) and in doing so, use GenI's built in inflecter.  The
-GenI internal morphology mechanism is a simple and stupid lookup-and-
-unify table, so you probably don't want to use it if you have a huge
-lexicon.
-
-\begin{description}
-\item[morphcmd] specifies the program used for morphology.  Literate
-GenI \cite{literateGeni} has a chapter describing how that program must work.
-It will mostly likely be a script you wrote to wrap around some off-the-shelf
-software.
-\item[morphlexicon] specifies a morphological lexicon for use by
-GenI's internal morphological generator.  Specifying this option will
-cause the morphcmd flag to be ignored.
-\item[morphinfo] tells GenI which literals in the input semantics are
-to be used by the morphological \emph{pre-}processor.  The pre-processor
-strips these features from the input and fiddles with the elementary
-trees used by GenI so that the right features get attached to the leaf
-nodes.  An example of a ``morphological'' literal is something like
-\texttt{past(p)}.
-\end{description}
-
-\begin{code}
 optionsForMorphology :: [OptDescr Flag]
 optionsForMorphology =
   [ morphInfoOption
@@ -710,39 +545,11 @@ optionsForMorphology =
 morphInfoOption :: OptDescr Flag
 morphInfoOption = Option [] ["morphinfo"] (reqArg MorphInfoFlg id "FILE")
   "morphological features FILE (default: unset)"
-\end{code}
 
-% ====================================================================
-\section{Scripting GenI}
-% ====================================================================
+-- ====================================================================
+-- Scripting GenI
+-- ====================================================================
 
-\begin{description}
-\item[instructions] An instructions file can be used to run GenI on
-a list of test suites and cases.
-
-Any input that you give to GenI will be interpreted as a list of test
-suites (and test cases that you want to run).  Each line has the format
-\texttt{path/to/test-suite case1 case2 .. caseN}.   You can omit the
-test cases, which is interpreted as you wanting to run the entire test
-suite.  Also, the \verb!%! character and anything after is treated as
-a comment.
-
-Interaction with \verb!--testsuite! and \verb!--testcase!:
-\begin{itemize}
-\item If only \verb!--instructions! is set, then the first test suite
-      and or test case from the instructions file is used.
-\item If only \verb!--testsuite! and \verb!--testcase! are set, we
-      pretend that an instructions file was supplied saying that we
-      want to run the entirety of the test suite specified in
-      \verb!--testsuite!.
-\item If both \verb!--instructions! and \verb!--testsuite!/
-      \verb!--testcase! are set then the latter are used to
-      select from within the instructions.
-\end{itemize}
-\end{description}
-
-
-\begin{code}
 -- | Update the internal instructions list, test suite and case
 --   according to the contents of an instructions file.
 processInstructions :: Params -> IO Params
@@ -780,14 +587,12 @@ instructionsFile = mapMaybe inst . lines
            []     -> Nothing
            [f]    -> Just (f, Nothing)
            (f:cs) -> Just (f, Just cs)
-\end{code}
 
 
-% ====================================================================
-\section{Configuration file}
-% ====================================================================
+-- ====================================================================
+-- Configuration file
+-- ====================================================================
 
-\begin{code}
 readGlobalConfig :: IO (Maybe YamlLight)
 readGlobalConfig = do
   geniCfgDir <- getAppUserDataDirectory "geni"
@@ -861,4 +666,3 @@ maybeRead s = case reads s of
 dropPrefix :: Eq a => [a] -> [a] -> ([a],[a])
 dropPrefix (x:xs) (y:ys) | x == y    = dropPrefix xs ys
 dropPrefix left right = (left,right)
-\end{code}

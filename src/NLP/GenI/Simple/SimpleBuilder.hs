@@ -1,29 +1,20 @@
-% GenI surface realiser
-% Copyright (C) 2005 Carlos Areces and Eric Kow
-%
-% This program is free software; you can redistribute it and/or
-% modify it under the terms of the GNU General Public License
-% as published by the Free Software Foundation; either version 2
-% of the License, or (at your option) any later version.
-%
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-%
-% You should have received a copy of the GNU General Public License
-% along with this program; if not, write to the Free Software
-% Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+-- GenI surface realiser
+-- Copyright (C) 2005 Carlos Areces and Eric Kow
+--
+-- This program is free software; you can redistribute it and/or
+-- modify it under the terms of the GNU General Public License
+-- as published by the Free Software Foundation; either version 2
+-- of the License, or (at your option) any later version.
+--
+-- This program is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with this program; if not, write to the Free Software
+-- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-\chapter{SimpleBuilder}
-\label{cha:SimpleBuilder}
-
-A SimpleBuilder is a Builder which constructs derived trees using a
-simple agenda control mechanism and two-phase realisation (substitution
-before adjunction).  There is no packing strategy whatsoever; each chart
-item is a derived tree.
-
-\begin{code}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, LiberalTypeSynonyms, DeriveDataTypeable #-}
 module NLP.GenI.Simple.SimpleBuilder (
@@ -46,11 +37,7 @@ module NLP.GenI.Simple.SimpleBuilder (
    testCanAdjoin, testIapplyAdjNode, testEmptySimpleGuiItem
    )
 where
-\end{code}
 
-
-\ignore{
-\begin{code}
 import Control.Arrow (first)
 import Control.Monad (when, unless, liftM2)
 import Control.Monad.State.Strict
@@ -106,16 +93,11 @@ import NLP.GenI.Tags ( idname,
     )
 
 import Data.List ( sortBy, unfoldr )
-\end{code}
-}
 
-% --------------------------------------------------------------------
-\section{The Builder interface}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- The Builder interface
+-- --------------------------------------------------------------------
 
-Here is our implementation of Builder.
-
-\begin{code}
 type SimpleBuilder = B.Builder SimpleStatus SimpleItem Params
 simpleBuilder_2p, simpleBuilder_1p :: SimpleBuilder
 simpleBuilder_2p = simpleBuilder True
@@ -132,13 +114,11 @@ simpleBuilder twophase = me
    , B.unpack   = unpackResults.theResults
    , B.partial  = unpackResults.partialResults
    }
-\end{code}
 
-% --------------------------------------------------------------------
-\section{Key types}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Key types
+-- --------------------------------------------------------------------
 
-\begin{code}
 type Agenda = [SimpleItem]
 type AuxAgenda  = [SimpleItem]
 type Chart  = [SimpleItem]
@@ -151,26 +131,7 @@ data GenerationPhase = SubstitutionPhase
 isAdjunctionPhase :: GenerationPhase -> Bool
 isAdjunctionPhase AdjunctionPhase = True
 isAdjunctionPhase _ = False
-\end{code}
 
-\subsection{SimpleState and SimpleStatus}
-
-The \fnreflite{SimpleState} is a state monad where the state being
-thread through is a \fnreflite{SimpleStatus}.  The two are named
-deliberately alike to indicate their close relationship.
-
-To prevent confusion, we ought to keep a somewhat consistent naming
-scheme across the builders: FooState for the state monad, FooStatus for
-the state monad's ``contents'', and FooItem for the chart items
-manipulated.
-
-Note the theTrash is not actually essential to the operation of the
-generator; it is for pratical debugging of grammars.  Instead of
-trees dissapearing off the face of the debugger; they go into the
-trash where the user can inspect them and try to figure out why they
-went wrong.
-
-\begin{code}
 type SimpleState a = B.BuilderState SimpleStatus a
 
 data SimpleStatus = S
@@ -187,11 +148,9 @@ data SimpleStatus = S
   , semBitMap  :: SemBitMap
   }
   deriving Show
-\end{code}
 
-\subsubsection{SimpleStatus updaters}
+-- SimpleStatus updaters
 
-\begin{code}
 assignNewId :: SimpleItem -> SimpleState SimpleItem
 assignNewId item = do
   modify $ \s -> s{ gencounter = gencounter s + 1 }
@@ -229,11 +188,11 @@ addToTrash te err = do
 addToResults :: SimpleItem -> SimpleState ()
 addToResults te =
   modify $ \s -> s { theResults = te : theResults s }
-\end{code}
 
-\subsection{SimpleItem}
+-- ----------------------------------------------------------------------
+-- SimpleItem
+-- ----------------------------------------------------------------------
 
-\begin{code}
 data SimpleItem = SimpleItem
  { siId        :: ChartId
  --
@@ -301,9 +260,7 @@ type ChartId = Integer
 instance DescendGeniVal SimpleItem where
   descendGeniVal s i = s `seq` i `seq`
     i { siNodes   = descendGeniVal s (siNodes i) }
-\end{code}
 
-\begin{code}
 {-# INLINE closedAux #-}
 
 -- | True if the chart item has no open substitution nodes
@@ -323,13 +280,11 @@ adjdone = null.siAdjnodes
 
 siInitial :: SimpleItem -> Bool
 siInitial =  isNothing . siFoot
-\end{code}
 
-% --------------------------------------------------------------------
-\section{Initialisation}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Initialisation
+-- --------------------------------------------------------------------
 
-\begin{code}
 -- | Creates an initial SimpleStatus.
 initSimpleBuilder ::  Bool -> B.Input -> Params -> (SimpleStatus, Statistics)
 initSimpleBuilder twophase input config =
@@ -399,19 +354,13 @@ renameNodesWithTidnum te =
         renameNode n = n { gnname = newName n }
         newName n = gnname n ++ "-" ++ tidstr
         tidstr = show . tidnum $ te
-\end{code}
 
-% --------------------------------------------------------------------
-\section{Generate}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Generate
+-- --------------------------------------------------------------------
 
-\subsection{One-phase generation}
+-- One-phase generation
 
-This is a standard chart-and-agenda mechanism, where each iteration
-consists of picking an item off the agenda and combining it with
-elements from the chart.
-
-\begin{code}
 generateStep_1p :: SimpleState ()
 generateStep_1p =
  do isDone <- gets (null.theAgenda)
@@ -428,27 +377,9 @@ generateStep_1p =
                -- determine which of the res should go in the agenda
                -- (monadic state) and which should go in the result (res')
                addToChart given
-\end{code}
 
-\subsection{Two-phase generation}
+-- Two-phase generation
 
-Following \cite{carroll1999ecg}, we could also separate realisation into
-two distinct phases.  This requires that we maintain two seperate
-agendas and process them sequentially, one loop after the other.  See
-\fnref{switchToAux} for details.
-
-\begin{itemize}
-\item If both Agenda and AuxAgenda are empty then there is nothing to do,
-  otherwise, if Agenda is empty then we switch to the application of the
-  Adjunction rule.
-\item After the rule is applied we classify solutions into those that are complete
-  and cover the semantics and those that don't.  The first ones are returned
-  and added to the result, while the others are sent back to Agenda.
-\item Notice that if we are applying the Substitution rule then the
-  current agenda item is added to the chart, otherwise it is deleted.
-\end{itemize}
-
-\begin{code}
 generateStep_2p :: SimpleState ()
 generateStep_2p = do
   nir     <- gets (null.theAgenda)
@@ -475,11 +406,9 @@ generateStep_2p_adj =
      res <- liftM2 (++) (applyAdjunction2p given) (sansAdjunction2p given)
      mapM_ simpleDispatch_2p_adjphase res
      when (adjdone given) $ trashIt given
-\end{code}
 
-\subsection{Helpers for the generateSteps}
+-- Helpers for the generateSteps
 
-\begin{code}
 trashIt :: SimpleItem -> SimpleState ()
 trashIt item =
  do disableGui <- gets (hasFlagP DisableGuiFlg . genconfig)
@@ -501,16 +430,9 @@ selectGiven = do
   case agenda of
    [] -> geniBug "null agenda in selectGiven"
    (a:atail) -> updateAgenda atail >> return a
-\end{code}
 
-\subsection{Switching phases}
+-- Switching phases
 
-After the substitution and na-constraint phases are complete, we switch to the
-final adjunction phase.  We do this by deleting junk from the agenda
-(particularly, trees with open substitution sites remaining), transfering trees
-from the holding pen to the chart and setting the phase to AdjunctionPhase
-
-\begin{code}
 switchToAux :: SimpleState ()
 switchToAux = do
   st <- get
@@ -534,11 +456,9 @@ switchToAux = do
   -- toss the syntactically incomplete stuff in the trash
   mapM_ (\t -> addToTrash t ts_synIncomplete) incompT1
   mapM_ (\t -> addToTrash t "sem-filtered") incompT3
-\end{code}
 
-\subsection{Completion}
+-- Completion
 
-\begin{code}
 finished :: Bool -> SimpleStatus -> GenStatus
 finished twophase st
   | reallyDone   = B.Finished
@@ -552,36 +472,9 @@ finished twophase st
   mMaxSteps    = getFlagP MaxStepsFlg (genconfig st)
   maxSteps     = fromMaybe (error "get maxsteps") mMaxSteps
   maybeIf bf = maybe False bf
-\end{code}
 
-\subsubsection{SemFilter Optimisation}
-\label{sec:semfilter}
+-- SemFilter Optimisation
 
-The purpose of the semantic filter optimisation is to take full
-advantage of Carroll's delayed adjunction.  Consider the semantics
-\semexpr{def(m), poor(m), brokenhearted(m), man(m), def(w), woman(w),
-beautiful(w), heartless(w), rejects(w,m)}.  At the switchToAux step, we
-are left with the initial trees \natlang{man}, \natlang{woman}, \natlang{the
-  woman rejects the man}.
-
-It would be nice to filter out the structures \natlang{man} and \natlang{woman}
-since we know that they are not going to be semantically complete even with
-adjunction.  More precisely, on the switch to adjunction, we do the following:
-
-\begin{itemize}
-\item Take the union of the semantics of all auxiliary trees; which
-      we call $\phi^*$
-\item Delete any initial tree with semantics $\phi^s$ such that
-      $\phi^s \cup \phi^*$ is not the target semantics
-\end{itemize}
-
-In other words, we delete all initial trees that cannot produce a semantically
-complete result even with the help of auxiliary trees.
-
-FIXME: comment 2006-04-18: sem filter each polarity path separately (this is
-more aggressive; it gives us much more filtering)
-
-\begin{code}
 semfilter :: BitVector -> [SimpleItem] -> [SimpleItem] -> ([SimpleItem], [SimpleItem])
 semfilter inputsem auxs initial =
   let auxsem x = foldl' (.|.) 0 [ siSemantics a | a <- auxs, siPolpaths a .&. siPolpaths x /= 0 ]
@@ -592,25 +485,11 @@ semfilter inputsem auxs initial =
       -- that would exclude trees that have stuff in the aux semantics
       -- which would be overzealous
   in partition notjunk initial
-\end{code}
 
-% --------------------------------------------------------------------
-\section{Operations}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Substitution
+-- --------------------------------------------------------------------
 
-We implement the two TAG operations, substitution and adjunction, below.
-These are the only two operations we have, because we're working with a
-very simple builder that constructs derived trees.
-
-% --------------------------------------------------------------------
-\subsection{Substitution}
-\label{sec:substitution}
-% --------------------------------------------------------------------
-
-\paragraph{applySubstitution} Given a SimpleItem it returns the list of all
-possible substitutions between it and the elements in Chart
-
-\begin{code}
 applySubstitution :: SimpleItem -> SimpleState ([SimpleItem])
 applySubstitution item =
  do gr <- lookupChart item
@@ -663,22 +542,11 @@ iapplySubst twophase item1 item2 | siInitial item1 && closed item1 = {-# SCC "ap
      Just x  -> do incrCounter "substitutions" 1
                    return [x]
 iapplySubst _ _ _ = return []
-\end{code}
 
-% --------------------------------------------------------------------
-\subsection{Adjunction}
-\label{sec:adjunction}
-\label{sec:ordered_adjunction}
-\label{sec:foot_constraint}
-% ---------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Adjunction
+-- ---------------------------------------------------------------
 
-\paragraph{applyAdjunction2p} Given a SimpleItem, it returns the list of all
-possible adjunctions between it and the elements in Chart.
-The Chart contains Auxiliars, while SimpleItem is an Initial
-
-Note: as of 13 april 2005 - only uses ordered adjunction as described in
-\cite{kow04a}
-\begin{code}
 applyAdjunction2p :: SimpleItem -> SimpleState ([SimpleItem])
 applyAdjunction2p item = {-# SCC "applyAdjunction2p" #-}
  do gr <-lookupChart item
@@ -706,13 +574,7 @@ tryAdj twophase aItem pItem =
      Just x  -> do incrCounter "adjunctions" 1
                    return $ Just x
      Nothing -> return Nothing
-\end{code}
 
-Note that in the one-phase variant of non-adjunction, we can't do top/bot
-unification on the fly, because afaik we can't tell that a node will never
-be revisited.  One example of this is if you try to adjoin into the root
-
-\begin{code}
 -- | Ignore the next adjunction node
 sansAdjunction1p, sansAdjunction2p :: SimpleItem -> SimpleState [SimpleItem]
 sansAdjunction1p item | closed item =
@@ -739,32 +601,7 @@ sansAdjunction2p item | closed item =
      let item1 = constrainAdj gn tb item
      in return $! [replace s $! item1 { siAdjnodes = atail }]
 sansAdjunction2p _ = return []
-\end{code}
 
-The main work for adjunction is done in the helper function below
-(see also figure \ref{fig:adjunction}).
-Auxiliary tree \texttt{te1} has a root node \texttt{r} and a foot
-node \texttt{f}. Main tree \texttt{te2} has an adjunction site \texttt{an}.
-The resulting tree \texttt{res} is a result of splicing \texttt{te1} into
-\texttt{te2}.  We replace \texttt{s} with the nodes \texttt{anr} and
-\texttt{anf} (which are the results of unifying \texttt{an} with \texttt{r}
-             and \texttt{f} respectively).
-
-\begin{figure}
-\begin{center}
-\includegraphics[scale=0.5]{images/adjunction.pdf}
-\label{fig:adjunction}
-\caption{iapplyAdjNode}
-\end{center}
-\end{figure}
-
-In addition to the trees proper, we have to consider that each tree has
-a list with a copy of its adjunction sites.  The adjunction list of the
-result (\texttt{adjnodes res}) should then contain \texttt{adjnodes te1}
-and \texttt{adjnodes te2}, but replacing \texttt{r} and \texttt{an}
-with \texttt{anr}.
-
-\begin{code}
 iapplyAdjNode :: Bool -> SimpleItem -> SimpleItem -> Maybe SimpleItem
 iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
  case siAdjnodes pItem of
@@ -827,9 +664,7 @@ canAdjoin aItem pSite = do
 
 testCanAdjoin :: SimpleItem -> TagSite -> Maybe (TagSite, TagSite, Subst)
 testCanAdjoin = canAdjoin
-\end{code}
 
-\begin{code}
 detectNa :: [SimpleItem] -- ^ aux trees
          -> SimpleItem   -- ^ me
          -> Maybe SimpleItem
@@ -847,13 +682,11 @@ detectNa rawAux i = helper (map look (siAdjnodes i)) Map.empty []
         Nothing -> if hasAdj
                    then helper ts s (tsName t : acc)
                    else Nothing
-\end{code}
 
-% --------------------------------------------------------------------
-\subsection{Helper functions for operations}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Helper functions for operations
+-- --------------------------------------------------------------------
 
-\begin{code}
 isRootOf :: SimpleItem -> String -> Bool
 isRootOf item n = n == siRoot_ item
 
@@ -899,15 +732,9 @@ constrainAdj :: String -> Flist GeniVal -> SimpleItem -> SimpleItem
 constrainAdj gn newT g =
   g { siNodes = repList (gnnameIs gn) fixIt (siNodes g) }
   where fixIt n = n { gup = newT, gdown = [], gaconstr = True }
-\end{code}
 
-\subsubsection{Derivation trees}
+-- Derivation trees
 
-We make the simplifying assumption that each chart item is only used once.
-This is clearly wrong if we allow for items with an empty semantics, but
-since we do not actually allow such a thing, we're ok.
-
-\begin{code}
 addToDerivation :: Char
                 -> (SimpleItem,String)
                 -> (SimpleItem,String,String)
@@ -917,20 +744,11 @@ addToDerivation op (tc,tcOrigin) (tp,tpOrigin,tpSite) =
       hc = siDerivation tc
       newnode = DerivationStep op tcOrigin tpOrigin tpSite
   in newnode:hp++hc
-\end{code}
 
+-- --------------------------------------------------------------------
+-- Dispatching new results
+-- --------------------------------------------------------------------
 
-
-% --------------------------------------------------------------------
-\section{Dispatching new results}
-% --------------------------------------------------------------------
-
-Dispatching is the process where new chart items are assigned to one of
-the trash, agenda, auxiliary agenda or chart.  The item could be
-modified during dispatch-time; for example, we might do top/bottom
-unification on it.  See \ref{sec:dispatching} for more details.
-
-\begin{code}
 type SimpleDispatchFilter = DispatchFilter SimpleState SimpleItem
 
 simpleDispatch_2p :: SimpleDispatchFilter
@@ -1006,15 +824,11 @@ dpRootFeatFailure item =
         dpToTrash (ts_rootFeatureMismatch rootFeat) item
       Just (_, s) ->
         return . NotFiltered $ replace s item
-\end{code}
-% --------------------------------------------------------------------
-\subsection{Top and bottom unification}
-% --------------------------------------------------------------------
 
-During initialisation of the chart, any nodes which can never receive
-adjunction should be top-bottom unified to start with.
+-- --------------------------------------------------------------------
+-- Top and bottom unification
+-- --------------------------------------------------------------------
 
-\begin{code}
 tbUnifyNaNodes :: [GNode GeniVal] -> Maybe ([GNode GeniVal], Map.Map String GeniVal)
 tbUnifyNaNodes [] = Just ([], Map.empty)
 tbUnifyNaNodes (n:ns) =
@@ -1024,19 +838,7 @@ tbUnifyNaNodes (n:ns) =
             (ns2, sub2) <- tbUnifyNaNodes (replace sub ns)
             return (n2:ns2, sub `appendSubst` sub2)
     else first (n:) `fmap` tbUnifyNaNodes ns
-\end{code}
 
-\paragraph{tbUnifyTree} unifies the top and bottom feature structures
-of each node on each tree.  Note: this only determines if it is
-possible to do so.  Actually returning the results is possible
-and even easy
-(you'll have to look back into the darcs repository and unpull the
- patch from 2006-05-21T15:40:51 ``Remove top/bot unification standalone
- code.'')
-but since it is only used in the one-phase algorithm and for the
-graphical interface, I decided not to bother.
-
-\begin{code}
 type TbEither = Either String Subst
 tbUnifyTree :: SimpleItem -> Bool
 tbUnifyTree item = {-# SCC "tbUnifyTree" #-}
@@ -1045,34 +847,7 @@ tbUnifyTree item = {-# SCC "tbUnifyTree" #-}
     Right _ -> True
   where
    pending = map (toTagSite . lookupOrBug "tbUnifyTree" item) (siPendingTb item)
-\end{code}
 
-Our helper function corresponds to the first unification step.  It is
-meant to be called from a fold.  The node argument represents the
-current node being explored.  The Either argument holds a list of
-pending substitutions and a copy of the entire tree.
-
-There are two things going on in here:
-
-\begin{enumerate}
-\item check if unification is possible - first we apply the pending
-      substitutions on the node and then we check if unification
-      of the top and bottom feature structures of that node
-      succeeds
-\item keep track of the substitutions that need to be performed -
-      any new substitutions that result from unification are
-      added to the pending list
-\end{enumerate}
-
-Note that we wrap the second argument in a Maybe; this is used to
-indicate that if unification suceeds or fails.  We also use it to
-prevent the function from doing any work if a unification failure
-from a previous call has already occured.
-
-Getting this right was a big pain in the butt, so don't go trying to
-simplify this over-complicated code unless you know what you're doing.
-
-\begin{code}
 tbUnifyNode :: TbEither -> TagSite -> TbEither
 tbUnifyNode (Right pending) rawSite =
   -- apply pending substitutions
@@ -1087,17 +862,11 @@ tbUnifyNode (Right pending) rawSite =
 
 -- if earlier we had a failure, don't even bother
 tbUnifyNode (Left n) _ = Left n
-\end{code}
 
-% --------------------------------------------------------------------
-\section{Unpacking the results}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Unpacking the results
+-- --------------------------------------------------------------------
 
-Unpacking the results consists of converting each result into a sentence
-automaton (to take care of atomic disjunction) and reading the paths of
-each automaton.
-
-\begin{code}
 unpackResults :: [SimpleItem] ->  [B.Output]
 unpackResults = concatMap unpackResult
 
@@ -1119,17 +888,8 @@ unpackResult item =
 emptyFeatureStr :: GNode GeniVal -> Bool
 emptyFeatureStr n= null (gdown n) && null (gup n)
 
-\end{code}
+-- Sentence automata
 
-\subsection{Sentence automata}
-
-\fnlabel{listToSentenceAut} converts a list of GNodes into a sentence
-automaton.  It's a actually pretty stupid conversion in fact.  We pretty
-much make a straight path through the automaton, with the only
-cleverness being that we provide a different transition for each
-atomic disjunction.
-
-\begin{code}
 listToSentenceAut :: [ B.UninflectedDisjunction ] -> B.SentenceAut
 listToSentenceAut nodes =
   let theStart  = 0
@@ -1152,20 +912,11 @@ listToSentenceAut nodes =
           next = current + 1
       --
   in foldr helper emptyAut (zip theStates nodes)
-\end{code}
 
-% --------------------------------------------------------------------
-\section{Partial results}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Partial results
+-- --------------------------------------------------------------------
 
-The user may ask for partial results when realisation fails.  We implement this
-using a greedy, full-commitment algorithm.  Find the discarded result that
-matches the largest part of the semantics and output that fragment.  If there
-are parts of the input semantics not covered by that fragment, search for the
-largest chunk that covers the missing semantics.  Recurse until there are no
-more eligible items.
-
-\begin{code}
 partialResults :: SimpleStatus -> [SimpleItem]
 partialResults st = unfoldr getNext 0
  where
@@ -1185,14 +936,11 @@ countBits :: Bits a => a -> Int
 countBits 0  = 0
 countBits bs = if testBit bs 0 then 1 + next else next
   where next = countBits (shiftR bs 1)
-\end{code}
 
-% --------------------------------------------------------------------
-% Performance
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Performance
+-- --------------------------------------------------------------------
 
-\ignore{
-\begin{code}
 {-
 instance NFData SimpleItem where
   rnf (SimpleItem x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13
@@ -1201,5 +949,3 @@ instance NFData SimpleItem where
                  `seq` rnf x11 `seq` rnf x12 `seq` rnf x13
                  `seq` rnf x14
 -}
-\end{code}
-}

@@ -1,33 +1,27 @@
-% GenI surface realiser
-% Copyright (C) 2005 Carlos Areces and Eric Kow
-%
-% This program is free software; you can redistribute it and/or
-% modify it under the terms of the GNU General Public License
-% as published by the Free Software Foundation; either version 2
-% of the License, or (at your option) any later version.
-%
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-%
-% You should have received a copy of the GNU General Public License
-% along with this program; if not, write to the Free Software
-% Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+-- GenI surface realiser
+-- Copyright (C) 2005 Carlos Areces and Eric Kow
+--
+-- This program is free software; you can redistribute it and/or
+-- modify it under the terms of the GNU General Public License
+-- as published by the Free Software Foundation; either version 2
+-- of the License, or (at your option) any later version.
+--
+-- This program is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with this program; if not, write to the Free Software
+-- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-\chapter{Geni}
-\label{cha:Geni}
-
-Geni is the interface between the front and backends of the generator. The GUI
-and the console interface both talk to this module, and in turn, this module
-talks to the input file parsers and the surface realisation engine.  This
-module also does lexical selection and anchoring because these processes might
-involve some messy IO performance tricks.
-
-\begin{code}
 {-# LANGUAGE ScopedTypeVariables, ExistentialQuantification, TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+
+-- | Geni is the interface between the front and backends of the generator. The GUI
+--   and the console interface both talk to this module, and in turn, this module
+--   talks to the input file parsers and the surface realisation engine.
 module NLP.GenI.Geni (
              -- * main interface
              ProgState(..), ProgStateRef, emptyProgState,
@@ -51,10 +45,7 @@ module NLP.GenI.Geni (
              chooseLexCand,
              )
 where
-\end{code}
 
-\ignore{
-\begin{code}
 import Control.Applicative ((<$>),(<*>))
 import Control.Monad.Error
 import Control.Exception
@@ -138,14 +129,11 @@ import NLP.GenI.Warnings
 -- import NLP.GenI.Lexicon
 -- import NLP.GenI.LexicalSelection
 -- import NLP.GenI.FeatureStructures
-\end{code}
-}
 
-% --------------------------------------------------------------------
-\section{ProgState}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- ProgState
+-- --------------------------------------------------------------------
 
-\begin{code}
 data ProgState = ST{ -- | the current configuration being processed
                     pa     :: Params,
                     --
@@ -203,19 +191,16 @@ addWarning pstRef s = do
   modifyIORef pstRef $ \p -> p { local = tweak (local p) }
  where
   tweak l = l { warnings = s `appendWarning` warnings l }
-\end{code}
 
-% --------------------------------------------------------------------
-\section{Interface}
-\subsection{Loading and parsing}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Interface
+-- Loading and parsing
+-- --------------------------------------------------------------------
 
-We have one master function that loads all the files GenI is expected to
-use.  This just calls the sub-loaders below, some of which are exported
-for use by the graphical interface.  The master function also makes sure
-to complain intelligently if some of the required files are missing.
-
-\begin{code}
+-- | We have one master function that loads all the files GenI is expected to
+--   use.  This just calls the sub-loaders below, some of which are exported
+--   for use by the graphical interface.  The master function also makes sure
+--   to complain intelligently if some of the required files are missing.
 loadEverything :: ProgStateRef -> IO() 
 loadEverything pstRef =
   do pst <- readIORef pstRef
@@ -254,14 +239,12 @@ loadEverything pstRef =
      loadTraces pstRef
      -- OT ranking
      loadRanking pstRef
-\end{code}
 
-The file loading functions all work the same way: we load the file,
-and try to parse it.  If this doesn't work, we just fail in IO, and
-GenI dies.  If we succeed, we update the program state passed in as
-an IORef.
 
-\begin{code}
+-- | The file loading functions all work the same way: we load the file,
+--   and try to parse it.  If this doesn't work, we just fail in IO, and
+--   GenI dies.  If we succeed, we update the program state passed in as
+--   an IORef.
 class Loadable x where
   lParse       :: FilePath -- ^ source (optional)
                -> String -> Either ParseError x
@@ -287,9 +270,7 @@ data BadInputException = BadInputException String ParseError
 instance Exception BadInputException
 
 data L a = Loadable a => L
-\end{code}
 
-\begin{code}
 -- | Load something, exiting GenI if we have not been given the
 --   appropriate flag
 loadOrDie :: forall f a . (Eq f, Show f, Typeable f, Loadable a)
@@ -340,9 +321,7 @@ loadGeniMacros pstRef =
      >>= lSetState pstRef
   where
    descr = "trees"
-\end{code}
 
-\begin{code}
 -- | Load something, but only if we are configured to do so
 loadOptional :: forall f a . (Eq f, Show f, Typeable f, Loadable a)
              => L a
@@ -392,19 +371,17 @@ resultToEither2 r =
   case resultToEither r of
     Left e  -> runParser (fail e) () "" "" -- convoluted way to generate a Parsec error
     Right x -> Right x
-\end{code}
 
-\subsubsection{Target semantics}
+-- Target semantics
+--
+-- Reading in the target semantics (or test suite) is a little more
+-- complicated.  It follows the same general schema as above, except
+-- that we parse the file twice: once for our internal representation,
+-- and once to get a string representation of each test case.  The
+-- string representation is for the graphical interface; it avoids us
+-- figuring out how to pretty-print things because we can assume the
+-- user will format it the way s/he wants.
 
-Reading in the target semantics (or test suite) is a little more
-complicated.  It follows the same general schema as above, except
-that we parse the file twice: once for our internal representation,
-and once to get a string representation of each test case.  The
-string representation is for the graphical interface; it avoids us
-figuring out how to pretty-print things because we can assume the
-user will format it the way s/he wants.
-
-\begin{code}
 newtype TestSuiteL = TestSuiteL [TestCase]
 
 instance Loadable TestSuiteL where
@@ -430,13 +407,10 @@ loadTestSuite pstRef = do
   mtc <- (getFlagP TestCaseFlg . pa) `fmap` readIORef pstRef
   modifyIORef pstRef (\p -> p { tcase = fromMaybe "" mtc })
   return xs
-\end{code}
 
-Sometimes, the target semantics does not come from a file, but from
-the graphical interface, so we also provide the ability to parse an
-arbitrary string as the semantics.
-
-\begin{code}
+-- Sometimes, the target semantics does not come from a file, but from
+-- the graphical interface, so we also provide the ability to parse an
+-- arbitrary string as the semantics.
 newtype SemL = SemL SemInput
 
 instance Loadable SemL where
@@ -452,11 +426,9 @@ loadTargetSemStr pstRef s = do
   x <- loadFromString pstRef "semantics" s
   let _ = x :: SemL
   return ()
-\end{code}
 
-\subsubsection{Helpers for loading files}
+-- Helpers for loading files
 
-\begin{code}
 withFlag :: forall f a . (Eq f, Show f, Typeable f)
          => (FilePath -> f) -- ^ flag
          -> ProgStateRef
@@ -506,24 +478,11 @@ parseFromFileMaybeBinary p f =
  if (".genib" `isSuffixOf` f)
     then Right `fmap` decodeFile f
     else p f
-\end{code}
 
-% --------------------------------------------------------------------
-\subsection{Surface realisation - entry point}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Surface realisation - entry point
+-- --------------------------------------------------------------------
 
-This is your basic entry point.  You call this if the only thing you want to do
-is run the surface realiser.
-
-\begin{enumerate}
-\item It initialises the realiser (lexical selection, among other things),
-      via \fnref{initGeni}
-\item It runs the builder (the surface realisation engine proper)
-\item It unpacks the builder results 
-\item It finalises the results (morphological generation)
-\end{enumerate}
-
-\begin{code}
 data GeniResult = GError   GeniError
                 | GSuccess GeniSuccess
   deriving (Ord, Eq)
@@ -558,7 +517,17 @@ data ResultType = CompleteResult | PartialResult deriving (Ord, Eq)
 instance Show GeniError where
   show (GeniError xs) = intercalate "\n" $ map ("Error: " ++) xs
 
--- | Returns a list of sentences, a set of Statistics, and the generator state.
+-- | The entry point!
+-- 
+--   * Initialises the realiser (lexical selection, among other things),
+--
+--   * Runs the builder (the surface realisation engine proper)
+--
+--   * Unpacks the builder results 
+--
+--   * Finalises the results (morphological generation)
+--
+--   Returns a list of sentences, a set of Statistics, and the generator state.
 --   The generator state is mostly useful for debugging via the graphical interface.
 --   Note that we assumes that you have already loaded in your grammar and
 --   parsed your input semantics.
@@ -594,18 +563,10 @@ runGeniWithSelector pstRef  selector builder =
 
      return (results, stats2, finalSt)
 
-\end{code}
+-- --------------------------------------------------------------------
+-- Surface realisation - sub steps
+-- --------------------------------------------------------------------
 
-% --------------------------------------------------------------------
-\subsection{Surface realisation - sub steps}
-% --------------------------------------------------------------------
-
-Below are the initial and final steps of \fnreflite{runGeni}.  These functions
-are seperated out so that they may be individually called from the graphical
-debugger.  The middle steps (running and unpacking the builder) depend on your
-builder implementation.
-
-\begin{code}
 -- | 'initGeni' performs lexical selection and strips the input semantics of
 --   any morpohological literals
 initGeni :: ProgStateRef -> IO (B.Input)
@@ -667,13 +628,11 @@ finaliseResults pstRef (ty, status, os) =
                , grOrigin     = i
                }
   addRanking (i,res,vs) = res { grViolations = vs, grRanking = i }
-\end{code}
 
-% --------------------------------------------------------------------
-\subsection{Displaying results}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Displaying results
+-- --------------------------------------------------------------------
 
-\begin{code}
 -- | Show the sentences produced by the generator, in a relatively compact form
 showRealisations :: [String] -> String
 showRealisations [] = "(none)"
@@ -715,20 +674,16 @@ readPidname n =
   case wordsBy (== ':') n of
   (_:_:p:_) -> p
   _         -> geniBug "readPidname or combineName are broken"
-\end{code}
 
-% --------------------------------------------------------------------
-\section{Lexical selection}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Lexical selection
+-- --------------------------------------------------------------------
 
-\paragraph{runLexSelection} \label{fn:runLexSelection} determines which
-candidates trees which will be used to generate the current target semantics.  
-In addition to the anchored candidate trees, we also return the lexical items 
-themselves.  This list of lexical items is useful for debugging a grammar; 
-it lets us know if GenI managed to lexically select something, but did not 
-succeed in anchoring it.
-
-\begin{code}
+-- | Determines which candidates trees which will be used to generate the
+-- current target semantics.  In addition to the anchored candidate trees, we
+-- also return the lexical items themselves.  This list of lexical items is
+-- useful for debugging a grammar; it lets us know if GenI managed to lexically
+-- select something, but did not succeed in anchoring it.
 runLexSelection :: ProgStateRef -> IO ([TagElem], [ILexEntry])
 runLexSelection pstRef =
  do pst <- readIORef pstRef
@@ -794,31 +749,18 @@ finaliseLexSelection morph tsem litConstrs =
    -- filter out candidates whose semantics has bonus stuff which does
    -- not occur in the input semantics
    considerCoherency = filter (all (`elem` tsem) . tsemantics)
-\end{code}
 
-% --------------------------------------------------------------------
-\subsection{Pre-selection and pre-anchoring}
-\label{sec:pre-anchor}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Pre-selection and pre-anchoring
+-- --------------------------------------------------------------------
 
-For testing purposes, we can perform lexical selection ahead of time and store
-it somewhere else.
-
-\begin{code}
 -- | Only used for instances of GenI where the grammar is compiled
 --   directly into GenI.
 type Selector = ProgStateRef -> IO ([TagElem],[ILexEntry])
 
 defaultSelector :: Selector
 defaultSelector = runLexSelection
-\end{code}
 
-For debugging purposes, it is often useful to perform lexical selection and
-surface realisation separately.  Pre-anchored mode allows the user to just
-pass the lexical selection in as a file of anchored trees associated with a
-semantics.
-
-\begin{code}
 newtype PreAnchoredL = PreAnchoredL [TagElem]
 
 instance Loadable PreAnchoredL where
@@ -832,14 +774,11 @@ readPreAnchored pstRef = do
   PreAnchoredL xs <- loadOrDie (L :: L PreAnchoredL)
                         MacrosFlg "preanchored trees" pstRef
   return xs
-\end{code}
 
-% --------------------------------------------------------------------
-% Boring utility code
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Boring utility code
+-- --------------------------------------------------------------------
 
-\ignore{
-\begin{code}
 verbosity :: ProgStateRef -> IO Bool
 verbosity = fmap (hasFlagP VerboseModeFlg . pa)
           . readIORef
@@ -951,5 +890,3 @@ instance NFData ResultType where
 instance NFData GeniLexSel where
         rnf (GeniLexSel x1 x2) = rnf x1 `seq` rnf x2 `seq` ()
 -- GENERATED STOP
-\end{code}
-}

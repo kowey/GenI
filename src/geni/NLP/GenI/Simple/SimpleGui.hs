@@ -1,31 +1,25 @@
-% GenI surface realiser
-% Copyright (C) 2005 Carlos Areces and Eric Kow
-%
-% This program is free software; you can redistribute it and/or
-% modify it under the terms of the GNU General Public License
-% as published by the Free Software Foundation; either version 2
-% of the License, or (at your option) any later version.
-%
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-%
-% You should have received a copy of the GNU General Public License
-% along with this program; if not, write to the Free Software
-% Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+-- GenI surface realiser
+-- Copyright (C) 2005 Carlos Areces and Eric Kow
+--
+-- This program is free software; you can redistribute it and/or
+-- modify it under the terms of the GNU General Public License
+-- as published by the Free Software Foundation; either version 2
+-- of the License, or (at your option) any later version.
+--
+-- This program is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with this program; if not, write to the Free Software
+-- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-\chapter{Simple GUI}
-
-\begin{code}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module NLP.GenI.Simple.SimpleGui where
-\end{code}
 
-\ignore{
-\begin{code}
 import Graphics.UI.WX
 
 import Control.Arrow ( (&&&), (***) )
@@ -62,14 +56,11 @@ import NLP.GenI.Simple.SimpleBuilder
   ( simpleBuilder, SimpleStatus, SimpleItem(..), SimpleGuiItem(..)
   , unpackResult
   , step, theResults, theAgenda, theHoldingPen, theChart, theTrash)
-\end{code}
-}
 
-% --------------------------------------------------------------------
-\section{Interface}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Interface
+-- --------------------------------------------------------------------
 
-\begin{code}
 simpleGui_2p, simpleGui_1p :: BG.BuilderGui
 simpleGui_2p = simpleGui True
 simpleGui_1p = simpleGui False
@@ -85,19 +76,15 @@ resultsPnl twophase pstRef f =
      (resultsL, _, _) <- realisationsGui pstRef f (theResults st)
      summaryL         <- summaryGui pstRef f sentences stats
      return (sentences, stats, summaryL, resultsL)
-\end{code}
 
-% --------------------------------------------------------------------
-\section{Results}
-\label{sec:results_gui}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Results
+-- --------------------------------------------------------------------
 
-\subsection{Derived Trees}
+-- Derived Trees
 
-Browser for derived/derivation trees, except if there are no results, we show a
-message box
-
-\begin{code}
+-- | Browser for derived/derivation trees, except if there are no results, we show a
+--   message box
 realisationsGui :: ProgStateRef -> (Window a) -> [SimpleItem]
                 -> GvIO () Bool (Maybe SimpleItem)
 realisationsGui _   f [] =
@@ -153,15 +140,11 @@ partitionGeniResult results = (map unSucc *** map unErr)
    unSucc _ = error $ "NLP.GenI.Simple.SimpleGui unSucc"
    unErr  (GError x) = x
    unErr  _ = error $ "NLP.GenI.Simple.SimpleGui unErr"
-\end{code}
 
-% --------------------------------------------------------------------
-\section{Debugger}
-\label{sec:simple_debugger_gui}
-\label{fn:simpleDebugGui}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Debugger
+-- --------------------------------------------------------------------
 
-\begin{code}
 simpleDebuggerTab :: Bool -> (Window a) -> Params -> B.Input -> String -> IO Layout
 simpleDebuggerTab twophase x1 (pa@x2) =
   debuggerPanel (simpleBuilder twophase) False stToGraphviz (simpleItemBar pa)
@@ -207,13 +190,11 @@ simpleItemBar pa f gvRef updaterFn =
           do status <- gvcore `fmap` readIORef gvRef
              set phaseTxt [ text := show (step status) ]
     return (lay, onUpdate)
-\end{code}
 
-% --------------------------------------------------------------------
-\section{Miscellaneous}
-% -------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Miscellaneous
+-- -------------------------------------------------------------------
 
-\begin{code}
 instance TagItem SimpleItem where
  tgIdName    = siIdname.siGuiStuff
  tgIdNum     = siId
@@ -222,9 +203,7 @@ instance TagItem SimpleItem where
 instance XMGDerivation SimpleItem where
  -- Note: this is XMG-related stuff
  getSourceTrees it = tgIdName it : (map dsChild . siDerivation $ it)
-\end{code}
 
-\begin{code}
 instance GraphvizShow Bool SimpleItem where
   graphvizLabel  f c =
     gvUnlines $ graphvizLabel f (toTagElem c)
@@ -253,13 +232,10 @@ toTagElem si =
    lookupOrBug k = case Map.lookup k nodeMap of
                    Nothing -> emptyGNode { gup = [ AvPair "cat" (mkGConst ("error looking up " ++ k) []) ] }
                    Just x  -> x
-\end{code}
 
-\begin{code}
 siToSentence :: SimpleItem -> String
 siToSentence si = case unpackResult si of
                   []    -> siIdname . siGuiStuff $ si
                   (h:_) -> unwords ((idstr ++ ".") : (map lpLemma (snd3 h)))
  where
   idstr = show (siId si)
-\end{code}

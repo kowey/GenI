@@ -1,31 +1,25 @@
-% GenI surface realiser
-% Copyright (C) 2005 Carlos Areces and Eric Kow
-%
-% This program is free software; you can redistribute it and/or
-% modify it under the terms of the GNU General Public License
-% as published by the Free Software Foundation; either version 2
-% of the License, or (at your option) any later version.
-%
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-%
-% You should have received a copy of the GNU General Public License
-% along with this program; if not, write to the Free Software
-% Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+-- GenI surface realiser
+-- Copyright (C) 2005 Carlos Areces and Eric Kow
+--
+-- This program is free software; you can redistribute it and/or
+-- modify it under the terms of the GNU General Public License
+-- as published by the Free Software Foundation; either version 2
+-- of the License, or (at your option) any later version.
+--
+-- This program is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with this program; if not, write to the Free Software
+-- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-\chapter{Graphical User Interface} 
-
-\begin{code}
 {-# LANGUAGE NamedFieldPuns, RecordWildCards #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module NLP.GenI.Gui(guiGeni) where
-\end{code}
 
-\ignore{
-\begin{code}
 import Graphics.UI.WX
 
 import qualified Data.Map as Map
@@ -81,28 +75,12 @@ import NLP.GenI.GuiHelper
 import NLP.GenI.Polarity
 import NLP.GenI.PolarityTypes ( readPolarityAttrs, showPolarityAttrs )
 import NLP.GenI.Simple.SimpleGui
-\end{code}
-}
 
-\section{Main Gui}
+-- Main Gui
 
-\begin{code}
 guiGeni :: ProgStateRef -> IO() 
 guiGeni pstRef = start $ mainGui pstRef
-\end{code}
 
-When you first start GenI, you will see this screen:
-
-\begin{center}
-\includegraphics[width=0.47\textwidth]{hcar/GenI-main-screenshot.jpg}
-\end{center}
-
-It allows you to type in an input semantics (or to modify the one that was
-automatically loaded up), select some optimisations and run the realiser.  You
-can also opt to run the debugger instead of the realiser (section
-\ref{sec:gui:debugger}).
-
-\begin{code}
 mainGui :: ProgStateRef -> IO ()
 mainGui pstRef 
   = do --
@@ -270,7 +248,7 @@ mainOnLoad pstRef (MainWidgets {..}) = do
 -- Note the following point about anti-optimisations: An anti-optimisation
 -- disables a default behaviour which is assumed to be "optimisation".  But of
 -- course we don't want to confuse the GUI user, so we confuse the programmer
--- instead: Given an anti-optimisation DisableFoo, we have a check box UseFoo.  If
+-- instead: Given an pessimisation DisableFoo, we have a check box UseFoo.  If
 -- UseFoo is checked, we remove DisableFoo from the list; if it is unchecked, we
 -- add it to the list.  This is the opposite of the default behaviour, but the
 -- result, I hope, is intuitive for the user.
@@ -298,7 +276,7 @@ optCheckBox, antiOptCheckBox ::
 --   command you set will be run before the toggle stuff)
 optCheckBox = optCheckBoxHelper id
 
--- | Same as 'optCheckBox' but for anti-optimisations
+-- | Same as 'optCheckBox' but for pessimisations
 antiOptCheckBox = optCheckBoxHelper not
 
 optCheckBoxHelper :: (Bool -> Bool) -> Optimisation -> ProgStateRef
@@ -368,23 +346,11 @@ loadTestSuiteAndRefresh f pstRef (suitePath,mcs) tsBox caseChoice =
                   , selection := caseSel
                   , on select := onTestCaseChoice ]
      when (not $ null suite) onTestCaseChoice -- run this once
-\end{code}
  
-% --------------------------------------------------------------------
-\section{Configuration}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Configuration
+-- --------------------------------------------------------------------
 
-The configuration GUI aims to a provide a graphical substitute for the command
-line switches.  Note you cannot yet select optimisations and test cases from
-this window; use the main window instead.  Note also that changes to GenI tend
-to start from the command line switches and only percolate to the GUI when time
-permits.  For full control of GenI, see \verb!geni --help!.
-
-\begin{center}
-\emph{TODO: screenshot wanted}
-\end{center}
-
-\begin{code}
 -- | 'configGui' @pstRef loadFn@ provides the configuration GUI. The continuation
 --   @loadFn@ tells us what to do when the user closes this window.
 configGui ::  ProgStateRef -> IO () -> IO () 
@@ -542,13 +508,11 @@ configGui pstRef loadFn = do
                             , tab "Advanced" layAdvanced ] 
            , hfill $ layButtons ]
         ] 
-\end{code}
  
-% --------------------------------------------------------------------
-\section{Generation}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Generation
+-- --------------------------------------------------------------------
 
-\begin{code}
 -- | 'doGenerate' parses the target semantics, then calls the generator and
 -- displays the result in a results gui (below).
 doGenerate :: Textual tb => Window a -> ProgStateRef
@@ -588,17 +552,7 @@ doGenerate f pstRef sembox detectPolsTxt rootFeatTxt useDebugger pauseOnLex =
      case builderType config of
        SimpleBuilder         -> a simpleGui_2p
        SimpleOnePhaseBuilder -> a simpleGui_1p
-\end{code}
 
-When surface realisation is complete, we display a results window with various
-tabs for intermediary results in lexical selection, derived trees, derivation
-trees and generation statistics.
-
-\begin{center}
-\emph{TODO: screenshot wanted}
-\end{center}
-
-\begin{code}
 resultsGui :: BG.BuilderGui -> ProgStateRef -> IO ()
 resultsGui builderGui pstRef =
  do -- results window
@@ -625,22 +579,11 @@ resultsGui builderGui pstRef =
     set f [ layout := container p $ column 0 [ tabs nb myTabs ]
           , clientSize := sz 700 600 ]
     return ()
-\end{code}
 
-% --------------------------------------------------------------------
-\section{Debugging}
-\label{sec:gui:debugger}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Debugging
+-- --------------------------------------------------------------------
 
-Instead of going directly to the results window, you could instead use the
-interactive debugger which GenI provides.  The debugger shows a separate tab
-for each phase in surface realisation (lexical selection, filtering, building).
-
-\begin{center}
-\includegraphics[width=0.47\textwidth]{hcar/GenI-debugger-screenshot.jpg}
-\end{center}
-
-\begin{code}
 -- | We provide here a universal debugging interface, which makes use of some
 --   parameterisable bits as defined in the BuilderGui module.
 debugGui :: BG.BuilderGui -> ProgStateRef -> Bool -> IO ()
@@ -687,47 +630,3 @@ debugGui builderGui pstRef pauseOnLex =
           , clientSize := sz 700 600 ]
     -- display all tabs if we are not told to pause on lex selection
     when (not pauseOnLex) (step2 cand)
-\end{code}
-
-\subsection{Stepping through the debugger}
-
-The interactive debugger can have a diffrent GUI for each realisation algorithm.
-Here we will discuss the interface for the Simple 2-Phase algorithm which \geni
-uses by default.  The interfaces for other algorithms are likely to very similar.
-
-\begin{center}
-\includegraphics[width=0.47\textwidth]{images/debugger-features.png}
-\end{center}
-
-The debugger allows you to step through chart generation.  Using the 'Step by'
-button, you can walk through an arbitrary number of steps, where each step
-consists in pulling one item of the agenda, combining it with the chart and
-putting some of the results back on to the agenda (or the trash, or results
-pile as the case may be).  New chart items produced on each step typically have
-one of their nodes highlighted in red.  This indicates that the node was the
-site of the most recent ``event''.  For example in the substitution phase, the
-red node indicates where the substitution operation was performed; whereas in
-the adjunction phase, it could either indicate where adjunction was performed
-or where a null-adjunction constraint was applied.
-
-If you select the ``show features'' checkbox, all nodes in the chart item will
-be expanded to reveal the underlying feature structures.  The components of this
-expanded representation are segmented into the following boxes:
-
-\vspace{1em}
-\begin{tabular}{ll}
-\begin{minipage}{0.10\textwidth}
-\includegraphics[width=\textwidth]{images/debugger-features-focus.png}
-\end{minipage} &
-\begin{minipage}{0.70\textwidth}
-\begin{enumerate}
-\item Summary: here, \verb!n:j.m! indicates that the category is \verb!n!,
-      that the top \verb!idx! feature is associated with \verb'j' and the
-      bottom one with \verb!m!.
-\item Decorations: here, $\downarrow$ indicates that this is a TAG substitution
-      node, following the usual conventions in the literature.
-\item The top feature structure
-\item The bottom feature structure
-\end{enumerate}
-\end{minipage} \\
-\end{tabular}

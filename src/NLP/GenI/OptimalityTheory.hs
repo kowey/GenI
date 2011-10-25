@@ -1,24 +1,20 @@
-% GenI surface realiser
-% Copyright (C) 2009 Eric Kow
-%
-% This program is free software; you can redistribute it and/or
-% modify it under the terms of the GNU General Public License
-% as published by the Free Software Foundation; either version 2
-% of the License, or (at your option) any later version.
-%
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-%
-% You should have received a copy of the GNU General Public License
-% along with this program; if not, write to the Free Software
-% Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+-- GenI surface realiser
+-- Copyright (C) 2009 Eric Kow
+--
+-- This program is free software; you can redistribute it and/or
+-- modify it under the terms of the GNU General Public License
+-- as published by the Free Software Foundation; either version 2
+-- of the License, or (at your option) any later version.
+--
+-- This program is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with this program; if not, write to the Free Software
+-- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-\chapter{Ranking output}
-\label{cha:ranking}
-
-\begin{code}
 {-# LANGUAGE TemplateHaskell #-}
 module NLP.GenI.OptimalityTheory
    ( -- * Input
@@ -42,29 +38,12 @@ import NLP.GenI.Btypes ( Macros, ptrace )
 import qualified NLP.GenI.Builder as B
 
 import Control.DeepSeq
-\end{code}
 
-If your tree schemata are annotated with traces (TODO link to traces and
-metagrammars), you can re-use them as a basis for ranking the output produced
-by GenI.  The basic idea is to supply a list of either positive, negative or
-negative conjunction constraints.
-
-For users familiar with Haskell, the constraints are described with the
-following type:
-\begin{includecodeinmanual}
-\begin{code}
 data OtConstraint = PositiveC String -- ^ the trace must appear
                   | NegativeC String -- ^ the trace must NOT appear
                   | NegativeConjC [String] -- ^ these traces must not appear AT THE SAME TIME
  deriving (Show, Eq)
-\end{code}
-\end{includecodeinmanual}
 
-Roughly speaking the more highly ranked the constraint, the greater the impact
-of a violation of that constraint will be.  See section
-\ref{sec:ranking-procedure} for more details on the ranking procedure.
-
-\begin{code}
 data RankedOtConstraint = RankedOtConstraint Int OtConstraint
  deriving (Show, Eq)
 
@@ -91,53 +70,7 @@ data LexItem = LexItem
 
 type GetTraces = String -> [String]
 type OtResult x = (Int,x,[OtViolation])
-\end{code}
 
-\section{Input format}
-
-Constraints are expressed in JSON as a list of \jargon{ranking levels}.  A
-ranking level is a list of constraints that should be assigned the same rank.
-In lieu of a formal description, we provide an example below:
-\small{NB: Either the JSON format or the JSON parser used by GenI is strict
-enough to refuse initial whitespace in this file.}
-
-\begin{verbatim}
-[
- [{"neg-constraint": "dian0Vn1dePassive"},
-  {"pos-constraint": "CanonicalSubject"}],
-
- [{"neg-conj-constraint": ["InvertedNominalSubject",
-                           "CanonicalSententialObjectFinite"]}],
-
- [{"neg-conj-constraint": ["InvertedNominalSubject",
-                           "UnboundedCleft"]},
-  {"neg-constraint": "CleftSubject"}]
-]
-\end{verbatim}
-
-This example constraints file has three ranking levels.  These levels contain
-following constraints:
-
-\begin{enumerate}
-\item A negative constraint saying that \verb!dian0Vn1dePassive! should
-      not appear, and a positive one saying that \verb!CanonicalSubject!
-      \emph{should} appear.  These constraints appear together only because
-      the author of the example thinks they should have the same rank,
-      not because there is neccesarily any inherent relationship between
-      them.
-\item A single negative conjunction constraint saying that
-      \verb!InvertedNominalSubject! and
-      \verb!CanonicalSententialObjectFinite!
-      should not appear together.
-\item A negative conjunction constraint saying tat
-      \verb!InvertedNominalSubject! and \verb!UnboundedCleft! should not
-      appear together; and also a negative constraints saying that
-      \verb!CleftSubject! should not appear.  As with the first ranking
-      level, there is no relationship between these two constraints.  We
-      just put them on the same level to give them the same rank
-\end{enumerate}
-
-\begin{code}
 instance JSON OtConstraint where
  readJSON j =
     do jv <- fromJSObject `fmap` readJSON j
@@ -154,9 +87,7 @@ instance JSON OtConstraint where
      JSObject . toJSObject $ [ ("neg-constraint", showJSON c ) ]
  showJSON (NegativeConjC cs) =
      JSObject . toJSObject $ [ ("neg-conj-constraint", showJSONs cs ) ]
-\end{code}
 
-\begin{code}
 -- ---------------------------------------------------------------------
 -- top level stuff
 -- ---------------------------------------------------------------------
@@ -179,10 +110,7 @@ rankResults getTraces getDerivation r = squish . sortResults . map addViolations
    getViolations  = violations (concatRank r) . lexTraces getTraces . getDerivation
    squish         = concat . zipWith applyRank [1..]
    applyRank i    = map (\(x,vs) -> (i,x,vs))
-\end{code}
 
-
-\begin{code}
 -- ---------------------------------------------------------------------
 -- detecting violations
 -- ---------------------------------------------------------------------
@@ -211,16 +139,7 @@ negViolations :: [RankedOtConstraint]
 negViolations cs l ss =
  [ OtViolation l c | c@(RankedOtConstraint _ (NegativeC s)) <- cs, s `elem` ss ] ++
  [ OtViolation l c | c@(RankedOtConstraint _ (NegativeConjC xs)) <- cs, all (`elem` ss) xs ]
-\end{code}
 
-\section{Ranking procedure}
-\label{sec:ranking-procedure}
-
-Generation results are sorted according to their highest-ranking constraint
-violation (moving on to the next-highest ranking violation and so forth in case
-of a tie).  The best result appears first.
-
-\begin{code}
 -- | Violations sorted so that the highest ranking constraint
 --   (smallest number) goes first
 sortedViolations :: (a, [OtViolation]) -> [RankedOtConstraint2]
@@ -239,27 +158,11 @@ toLexItem :: GetTraces -> String -> LexItem
 toLexItem getTraces t =
  LexItem { lLexname = t
          , lTraces  = getTraces t }
-\end{code}
 
-\section{Output format}
+-- ----------------------------------------------------------------------
+-- Output format
+-- ----------------------------------------------------------------------
 
-Constraint violations can be outputted as JSON objects as the following example
-shows
-
-\begin{verbatim}
-  { "lex-item": "discuter:n0Vn1pn2:Tn0Vn1pn2-5830:22",
-  , "rank": 6,
-  , "violation": {"neg-constraint": "passiveVerbMorphology"}
-  }
-\end{verbatim}
-
-Positive constraint violations are not associated with any lexical items
-so the lex-item field is omitted for them.
-
-\begin{code}
--- ---------------------------------------------------------------------
--- output
--- ---------------------------------------------------------------------
 instance JSON RankedOtConstraint where
  readJSON j =
     do jo <- fromJSObject `fmap` readJSON j
@@ -413,4 +316,3 @@ instance NFData OtConstraint where
         rnf (NegativeC x1) = rnf x1 `seq` ()
         rnf (NegativeConjC x1) = rnf x1 `seq` ()
 -- GENERATED STOP
-\end{code}

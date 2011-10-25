@@ -1,23 +1,24 @@
-% GenI surface realiser
-% Copyright (C) 2005 Carlos Areces and Eric Kow
-%
-% This program is free software; you can redistribute it and/or
-% modify it under the terms of the GNU General Public License
-% as published by the Free Software Foundation; either version 2
-% of the License, or (at your option) any later version.
-%
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-%
-% You should have received a copy of the GNU General Public License
-% along with this program; if not, write to the Free Software
-% Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+-- GenI surface realiser
+-- Copyright (C) 2005 Carlos Areces and Eric Kow
+--
+-- This program is free software; you can redistribute it and/or
+-- modify it under the terms of the GNU General Public License
+-- as published by the Free Software Foundation; either version 2
+-- of the License, or (at your option) any later version.
+--
+-- This program is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with this program; if not, write to the Free Software
+-- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-\chapter{Builder}
-\label{cha:Builder}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 
+{-|
 The heavy lifting of GenI, the whole chart/agenda mechanism, can be
 implemented in many ways.  To make it easier to write different
 algorithms for GenI and compare them, we provide a single interface
@@ -26,21 +27,8 @@ for what we call Builders.
 This interface is then used called by the Geni module and by the
 graphical interface.  Note that each builder has its own graphical
 interface and that we do a similar thing in the graphical interface
-code to make it possible to use these GUIs.  Maybe a little dose of
-UML might help.  See figure \ref{fig:builderUml}.
-
-\begin{figure}
-\begin{center}
-\includegraphics[scale=0.5]{images/builderUml.pdf}
-\label{fig:builderUml}
-\caption{Essentially what the Builder interface provides}
-\end{center}
-\end{figure}
-
-\ignore{
-\begin{code}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE DeriveDataTypeable #-}
+code to make it possible to use these GUIs.
+-}
 
 module NLP.GenI.Builder (
  TagDerivation, Builder(..), GenStatus(..),
@@ -92,69 +80,40 @@ import NLP.GenI.Statistics (Statistics, incrIntMetric,
                    addMetric, emptyStats,
                    )
 import NLP.GenI.Tags ( TagElem(idname,tsemantics,ttree), setTidnums, TagDerivation, DerivationStep(..) )
-\end{code}
-}
 
-\section{The interface}
-
-All backends provide the same essential functionality:
-\begin{description}
-\item [run]       calls init and stepAll and potentially wraps it with some
-                  other functionality.  
-\item [init]      initialise the machine from the semantics and lexical selection 
-\item [step]      run a realisation step
-\item [stepAll]   run all realisations steps until completion
-\item [finished]  determine if realisation is finished
-\item [stats]     extract various statistics from it
-\item [setStats]  set the statistical information 
-\item [unpack]    unpack chart results into a list of sentences
-\end{description}
-
-FIXME: need to update this comment
-
-\begin{code}
 data GenStatus = Finished
                | Active
                | Error String
 
 data Builder st it pa = Builder
   { init     :: Input -> pa -> (st, Statistics)
+             -- ^ initialise the machine from the semantics and lexical selection 
+  , step     :: BuilderState st () -- ^ run a realisation step
+  , stepAll  :: BuilderState st () -- ^ run all realisations steps until completion
   --
-  , step     :: BuilderState st ()
-  , stepAll  :: BuilderState st ()
-  --
-  , finished :: st -> GenStatus
-  , unpack   :: st -> [Output]
-  , partial  :: st -> [Output] }
+  , finished :: st -> GenStatus    -- ^ determine if realisation is finished
+  , unpack   :: st -> [Output]     -- ^ unpack chart results into a list of sentences
+  , partial  :: st -> [Output]
+  }
 
 type Output = (Integer, LemmaPlusSentence, TagDerivation)
 
-\end{code}
+-- | To simplify interaction with the backend, we provide a single data
+--   structure which represents all the inputs a backend could take.
 
-To simplify interaction with the backend, we provide a single data
-structure which represents all the inputs a backend could take.
-
-\begin{code}
 data Input = 
   Input { inSemInput :: SemInput
         , inLex      :: [ILexEntry] -- ^ for the debugger
         , inCands    :: [(TagElem, BitVector)]   -- ^ tag tree
         }
-\end{code}
 
-\section{Uninflected words and sentences}
+-- Uninflected words and sentences
 
-Each word of an uninflected sentence consists of a lemma and some
-feature structures.
-
-\paragraph 
-A SentenceAut represents a set of sentences in the form of an automaton.
-The labels of the automaton are the words of the sentence.  But note! 
-``word'' in the sentence is in fact a tuple (lemma, inflectional feature
-structures).  Normally, the states are defined as integers, with the
-only requirement being that each one, naturally enough, is unique.
-
-\begin{code}
+-- | A SentenceAut represents a set of sentences in the form of an automaton.
+--   The labels of the automaton are the words of the sentence.  But note! 
+--   “word“ in the sentence is in fact a tuple (lemma, inflectional feature
+--   structures).  Normally, the states are defined as integers, with the
+--   only requirement being that each one, naturally enough, is unique.
 type SentenceAut            = NFA Int LemmaPlus
 
 data UninflectedDisjunction = UninflectedDisjunction [String] (Flist GeniVal) deriving (Show, Data, Typeable)
@@ -167,33 +126,29 @@ instance DescendGeniVal UninflectedDisjunction where
 
 instance Collectable UninflectedDisjunction where
   collect (UninflectedDisjunction _ b) = collect b
-\end{code}
 
-\section{BuilderState}
+-- BuilderState
 
-To cleanly seperate the tracking of statistics from the core functionality of a
-builder, we use a State transformer to thread a Statistics state monad inside of
-our main monad.
-
-\begin{code}
+-- To cleanly seperate the tracking of statistics from the core functionality of a
+-- builder, we use a State transformer to thread a Statistics state monad inside of
+-- our main monad.
 type BuilderState s a = StateT s (State Statistics) a
-\end{code}
 
-\section{Helper functions for Builders}
+-- ----------------------------------------------------------------------
+-- Helper functions for Builders
+-- ----------------------------------------------------------------------
 
-\subsection{Initialisation}
-\label{fn:Builder:preInit}
+-- Initialisation
+--
+-- There's a few things that need to be run before even initialising the builder.
+-- One of these is running some of the optimisations (namely the polarity stuff),
+-- which is made complicated by the fact that they are optional.  Another of these
+-- to assign each of the trees with a unique ID.  Note that this has to be done
+-- after the polarity optimisation because this optimisation may introduce new
+-- items into the lexical selection.  Finally, we must also make sure we perform
+-- alpha conversion so that unification does not do the wrong thing when two trees
+-- have the same variables.
 
-There's a few things that need to be run before even initialising the builder.
-One of these is running some of the optimisations (namely the polarity stuff),
-which is made complicated by the fact that they are optional.  Another of these
-to assign each of the trees with a unique ID.  Note that this has to be done
-after the polarity optimisation because this optimisation may introduce new
-items into the lexical selection.  Finally, we must also make sure we perform
-alpha conversion so that unification does not do the wrong thing when two trees
-have the same variables.
-
-\begin{code}
 preInit :: Input -> Params -> (Input, PolResult)
 preInit input config =
  let (cand,_) = unzip $ inCands input
@@ -221,9 +176,7 @@ preInit input config =
                     , inSemInput = (prSem autstuff, snd3 seminput, thd3 seminput) }
      -- note: autstuff is only useful for the graphical debugger
   in (input2, autstuff)
-\end{code}
 
-\begin{code}
 -- | Equivalent to 'id' unless the input contains an empty or uninstatiated
 --   semantics
 unlessEmptySem :: Input -> Params -> a -> a
@@ -238,11 +191,11 @@ unlessEmptySem input _ =
   in if null semanticsErr
      then id
      else error semanticsErr
-\end{code}
 
-\subsection{Running a surface realiser}
+-- ----------------------------------------------------------------------
+-- Running a surface realiser
+-- ----------------------------------------------------------------------
 
-\begin{code}
 -- | Performs surface realisation from an input semantics and a lexical selection.
 --
 --   Statistics tracked
@@ -316,11 +269,11 @@ run builder input config_ =
                     incrCounter "pol_max_trans"    $ maximum $ map numTransitions auts
                     stepAll builder
   in runState (execStateT stepAll_ iSt) iStats
-\end{code}
 
-\subsection{Semantics and bit vectors}
+-- ----------------------------------------------------------------------
+-- Semantics and bit vectors
+-- ----------------------------------------------------------------------
 
-\begin{code}
 type SemBitMap = Map.Map Pred BitVector
 
 -- | assign a bit vector value to each literal in the semantics
@@ -342,11 +295,11 @@ bitVectorToSem :: SemBitMap -> BitVector -> Sem
 bitVectorToSem bmap vector =
   mapMaybe tryKey $ Map.toList bmap
   where tryKey (p,k) = if (k .&. vector == k) then Just p else Nothing
-\end{code}
 
-\subsection{Generate step}
+-- ----------------------------------------------------------------------
+-- Generate step
+-- ----------------------------------------------------------------------
 
-\begin{code}
 -- | Default implementation for the 'stepAll' function in 'Builder'
 defaultStepAll :: Builder st it pa -> BuilderState st ()
 defaultStepAll b =
@@ -354,17 +307,11 @@ defaultStepAll b =
     case finished b s of
       Active -> step b >> defaultStepAll b
       _      -> return ()
-\end{code}
 
-\subsection{Dispatching new chart items}
-\label{sec:dispatching}
-
-Dispatching consists of assigning a chart item to the right part of the
-chart (agenda, trash, results list, etc).  This is implemented as a
-series of filters which can either fail or succeed.  If a filter fails,
-it may modify the item before passing it on to future filters.
-
-\begin{code}
+-- | Dispatching consists of assigning a chart item to the right part of the
+--   chart (agenda, trash, results list, etc).  This is implemented as a
+--   series of filters which can either fail or succeed.  If a filter fails,
+--   it may modify the item before passing it on to future filters.
 type DispatchFilter s a = a -> s (FilterStatus a)
 
 data FilterStatus a = Filtered | NotFiltered a
@@ -382,11 +329,11 @@ condFilter :: (Monad s) => (a -> Bool)
            -> DispatchFilter s a -> DispatchFilter s a
            -> DispatchFilter s a
 condFilter cond f1 f2 = \x -> if cond x then f1 x else f2 x
-\end{code}
 
-\subsection{Statistics}
+-- ----------------------------------------------------------------------
+-- Statistics
+-- ----------------------------------------------------------------------
 
-\begin{code}
 modifyStats :: (Metric -> Metric) -> BuilderState st ()
 modifyStats fn = lift $ modify $ updateMetrics fn
 
@@ -399,11 +346,9 @@ queryCounter key s =
   []  -> Nothing
   [c] -> Just c
   _   -> geniBug $ "More than one instance of the metric: " ++ key
-\end{code}
 
-\subsection{Command line configuration}
+-- Command line configuration
 
-\begin{code}
 initStats :: Params -> Statistics
 initStats pa =
  let mdefault ms = if "default" `elem` ms then defaultMetricNames else []
@@ -419,28 +364,23 @@ namedMetric n = IntMetric n 0
 -- Note that the strings here are command-line strings, not metric names!
 defaultMetricNames :: [ String ]
 defaultMetricNames = [ num_iterations, chart_size, num_comparisons, gen_time ]
-\end{code}
 
-\subsection{Common counters}
+-- Common counters
+--
+-- These numbers allow us to keep track of how efficient our generator is
+-- and where we are in the process (how many steps we've taken, etc)
 
-These numbers allow us to keep track of how efficient our generator is
-and where we are in the process (how many steps we've taken, etc)
-
-\begin{code}
 num_iterations, chart_size, num_comparisons, gen_time :: String
 
 num_iterations  = "iterations"
 chart_size      = "chart_size"
 num_comparisons = "comparisons"
 gen_time = "gen_time"
-\end{code}
 
-% ----------------------------------------------------------------------
-% strictly API-ish bits
-% ----------------------------------------------------------------------
+-- ----------------------------------------------------------------------
+-- strictly API-ish bits
+-- ----------------------------------------------------------------------
 
-\ignore{
-\begin{code}
 -- | The names of lexically selected chart items used in a derivation
 lexicalSelection :: TagDerivation -> [String]
 lexicalSelection = sort . nub . concatMap (\d -> [dsChild d, dsParent d])
@@ -456,6 +396,3 @@ instance NFData Input where
         rnf (Input x1 x2 x3) = rnf x1 `seq` rnf x2 `seq` rnf x3 `seq` ()
 
 -- GENERATED STOP
-\end{code}
-}
--

@@ -1,24 +1,20 @@
-% GenI surface realiser
-% Copyright (C) 2005-2009 Carlos Areces and Eric Kow
-%
-% This program is free software; you can redistribute it and/or
-% modify it under the terms of the GNU General Public License
-% as published by the Free Software Foundation; either version 2
-% of the License, or (at your option) any later version.
-%
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-%
-% You should have received a copy of the GNU General Public License
-% along with this program; if not, write to the Free Software
-% Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+-- GenI surface realiser
+-- Copyright (C) 2005-2009 Carlos Areces and Eric Kow
+--
+-- This program is free software; you can redistribute it and/or
+-- modify it under the terms of the GNU General Public License
+-- as published by the Free Software Foundation; either version 2
+-- of the License, or (at your option) any later version.
+--
+-- This program is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with this program; if not, write to the Free Software
+-- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-\chapter{Feature structures}
-
-\ignore{
-\begin{code}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
 {-# LANGUAGE DeriveDataTypeable #-}
@@ -36,16 +32,10 @@ import NLP.GenI.General ( geniBug )
 
 import Control.DeepSeq
 
-\end{code}
-}
+-- ----------------------------------------------------------------------
+-- Core types
+-- ----------------------------------------------------------------------
 
-% ----------------------------------------------------------------------
-\section{Core types}
-% ----------------------------------------------------------------------
-
-A feature structure is a list of attribute-value pairs.
-
-\begin{code}
 type Flist a  = [AvPair a]
 data AvPair a = AvPair { avAtt :: String
                        , avVal :: a }
@@ -70,21 +60,17 @@ mkFeatStruct fs = Map.fromListWith oops . map fromPair $ fs
 -- we can get rid of showFlist, etc and probably just use toAscList
 showFeatStruct :: FeatStruct GeniVal -> String
 showFeatStruct = showFlist . sortFlist . map (uncurry AvPair) . Map.toList
-\end{code}
 
-% ----------------------------------------------------------------------
-\section{Basic functions}
-% ----------------------------------------------------------------------
+-- ----------------------------------------------------------------------
+-- Basic functions
+-- ----------------------------------------------------------------------
 
-\begin{code}
 -- | Sort an Flist according with its attributes
 sortFlist :: Flist a -> Flist a
 sortFlist = sortBy (compare `on` avAtt)
-\end{code}
 
-\subsection{Traversal}
+-- Traversal
 
-\begin{code}
 instance Biplate (AvPair GeniVal) GeniVal where
   biplate (AvPair a v) = plate AvPair |- a |* v
 
@@ -99,11 +85,9 @@ instance DescendGeniVal v => DescendGeniVal ([String], Flist v) where
 
 instance Collectable a => Collectable (AvPair a) where
   collect (AvPair _ b) = collect b
-\end{code}
 
-\subsection{Pretty printing}
+-- Pretty printing
 
-\begin{code}
 showFlist :: Flist GeniVal -> String
 showFlist f = "[" ++ showPairs f ++ "]"
 
@@ -115,59 +99,11 @@ showAv (AvPair y z) = y ++ ":" ++ show z
 
 instance Show (AvPair GeniVal) where
   show = showAv
-\end{code}
 
-% --------------------------------------------------------------------
-\section{Feature structure unification}
-\label{sec:fs_unification}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Feature structure unification
+-- --------------------------------------------------------------------
 
-Feature structure unification takes two feature lists as input.  If it
-fails, it returns Nothing.  Otherwise, it returns a tuple with:
-
-\begin{enumerate}
-\item a unified feature structure list
-\item a list of variable replacements that will need to be propagated
-      across other feature structures with the same variables
-\end{enumerate}
-
-Unification fails if, at any point during the unification process, the
-two lists have different constant values for the same attribute.
-For example, unification fails on the following inputs because they have
-different values for the \textit{number} attribute:
-
-\begin{quotation}
-\fs{\it cat:np\\ \it number:3\\}
-\fs{\it cat:np\\ \it number:2\\}
-\end{quotation}
-
-Note that the following input should also fail as a result on the
-coreference on \textit{?X}.
-
-\begin{quotation}
-\fs{\it cat:np\\ \it one: 1\\  \it two:2\\}
-\fs{\it cat:np\\ \it one: ?X\\ \it two:?X\\}
-\end{quotation}
-
-On the other hand, any other pair of feature lists should unify
-succesfully, even those that do not share the same attributes.
-Below are some examples of successful unifications:
-
-\begin{quotation}
-\fs{\it cat:np\\ \it one: 1\\  \it two:2\\}
-\fs{\it cat:np\\ \it one: ?X\\ \it two:?Y\\}
-$\rightarrow$
-\fs{\it cat:np\\ \it one: 1\\ \it two:2\\},
-\end{quotation}
-
-\begin{quotation}
-\fs{\it cat:np\\ \it number:3\\}
-\fs{\it cat:np\\ \it case:nom\\}
-$\rightarrow$
-\fs{\it cat:np\\ \it case:nom\\ \it number:3\\},
-\end{quotation}
-
-\begin{code}
 -- | 'unifyFeat' performs feature structure unification, under the
 --   these assumptions about the input:
 --
@@ -203,13 +139,11 @@ alignFeatH fs1@(AvPair f1 v1:l1) fs2@(AvPair f2 v2:l2) acc =
      EQ -> alignFeatH l1 l2  ((f1, v1, v2) : acc)
      LT -> alignFeatH l1 fs2 ((f1, v1, mkGAnon) : acc)
      GT -> alignFeatH fs1 l2 ((f2, mkGAnon, v2) : acc)
-\end{code}
 
-% --------------------------------------------------------------------
-\section{Fancy disjunction}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Fancy disjunction
+-- --------------------------------------------------------------------
 
-\begin{code}
 crushAvPair :: AvPair [GeniVal] -> Maybe (AvPair GeniVal)
 crushAvPair (AvPair a v) = AvPair a `fmap` crushOne v
 
@@ -226,4 +160,3 @@ deriving instance NFData AvPair
 instance (NFData a) => NFData (AvPair a) where
         rnf (AvPair x1 x2) = rnf x1 `seq` rnf x2 `seq` ()
 -- GENERATED STOP
-\end{code}

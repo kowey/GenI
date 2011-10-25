@@ -1,27 +1,23 @@
-% GenI surface realiser
-% Copyright (C) 2005 Carlos Areces and Eric Kow
-%
-% This program is free software; you can redistribute it and/or
-% modify it under the terms of the GNU General Public License
-% as published by the Free Software Foundation; either version 2
-% of the License, or (at your option) any later version.
-%
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-%
-% You should have received a copy of the GNU General Public License
-% along with this program; if not, write to the Free Software
-% Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+-- GenI surface realiser
+-- Copyright (C) 2005 Carlos Areces and Eric Kow
+--
+-- This program is free software; you can redistribute it and/or
+-- modify it under the terms of the GNU General Public License
+-- as published by the Free Software Foundation; either version 2
+-- of the License, or (at your option) any later version.
+--
+-- This program is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with this program; if not, write to the Free Software
+-- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-\chapter{Tags}
-\label{cha:Tags}
+-- | This module provides basic datatypes specific to Tree Adjoining Grammar
+-- (TAG) elementary trees and some low-level operations.
 
-This module provides basic datatypes specific to Tree Adjoining Grammar
-(TAG) elementary trees and some low-level operations.
-
-\begin{code}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
 {-# LANGUAGE DeriveDataTypeable #-}
@@ -43,10 +39,7 @@ module NLP.GenI.Tags(
    mapBySem, showTagSites,
    collect, detectSites
 ) where
-\end{code}
 
-\ignore{
-\begin{code}
 import Control.Applicative ( (<$>), (<*>) )
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe, listToMaybe, mapMaybe)
@@ -70,14 +63,11 @@ import NLP.GenI.TreeSchemata ( Ptype(..),
                                lexemeAttributes )
 
 import Control.DeepSeq
-\end{code}
-}
 
-% ----------------------------------------------------------------------
-\section{Tags}
-% ----------------------------------------------------------------------
+-- ----------------------------------------------------------------------
+-- Tags
+-- ----------------------------------------------------------------------
 
-\begin{code}
 -- | An anchored grammar.
 --   The grammar associates a set of semantic predicates to a list of trees each.
 type Tags = Map.Map String [TagElem]                            
@@ -86,18 +76,11 @@ type Tags = Map.Map String [TagElem]
 --   to the key
 addToTags :: Tags -> String -> TagElem -> Tags
 addToTags t k e = Map.insertWith (++) k [e] t
-\end{code}
 
-% ----------------------------------------------------------------------
-\section{TagElem}
-% ----------------------------------------------------------------------
+-- ----------------------------------------------------------------------
+-- TagElem
+-- ----------------------------------------------------------------------
 
-Final types used for the combined macros + lexicon.  We assume that
-a two trees are the same iff they have the same tidnum.  To make this
-work, we assign each tree with a unique id during the process of
-combining macros with lexicon (see section \ref{sec:combine_macros}).
-
-\begin{code}
 data TagSite = TagSite { tsName :: String
                        , tsUp   :: Flist GeniVal
                        , tsDown :: Flist GeniVal
@@ -144,13 +127,7 @@ detectSites t =
 
 toTagSite :: GNode GeniVal -> TagSite
 toTagSite n = TagSite (gnname n) (gup n) (gdown n) (gorigin n)
-\end{code}
 
-A TAG derivation history consists of a list of 3-tuples representing the
-operation (s for substitution, a for adjunction), the name of the child tree,
-the name of the parent tree and the node affected.
-
-\begin{code}
 type TagDerivation = [ DerivationStep ]
 
 data DerivationStep = DerivationStep
@@ -175,9 +152,7 @@ instance JSON DerivationStep where
                              , ("parent", showJSON  $ dsParent x)
                              , ("parent-node", showJSON $ dsParentSite x)
                              ]
-\end{code}
 
-\begin{code}
 instance Ord TagElem where
   compare t1 t2 = 
     case (ttype t1, ttype t2) of
@@ -203,9 +178,7 @@ instance Collectable TagElem where
 
 instance Idable TagElem where
   idOf = tidnum
-\end{code}
 
-\begin{code}
 emptyTE :: TagElem
 emptyTE = TE { idname = "",
                ttreename = "",
@@ -218,11 +191,9 @@ emptyTE = TE { idname = "",
                tinterface  = [],
                ttrace = []
              }
-\end{code}
 
-\subsection{Substitution and Adjunction}
+-- Substitution and Adjunction
 
-\begin{code}
 -- | Plug the first tree into the second tree at the specified node.
 --   Anything below the second node is silently discarded.
 --   We assume the trees are pluggable; it is treated as a bug if
@@ -258,23 +229,9 @@ findSubTree n n2@(Node x ks)
   | otherwise = case mapMaybe (findSubTree n) ks of
                 []    -> Nothing
                 (h:_) -> Just h
-\end{code}
 
+-- Unique ID
 
-\subsection{Unique ID}
-
-TagElem comparison relies exclusively on \fnparam{tidnum}, so you must
-ensure that every TagElem you use has a unique ID.  We provide two
-helpful functions for this.  These are most likely useful \emph{between}
-lexical selection and generation proper, because during generation
-proper, you can simply keep a counter within a State monad to assign
-unique IDs to new TagElems.
-
-Note that we also label each node of the tree with its elementary tree
-name and with the unique ID.  This helps us to build derivation trees
-correctly
-
-\begin{code}
 -- | Assigns a unique id to each element of this list, that is, an integer
 --   between 1 and the size of the list.
 setTidnums :: [TagElem] -> [TagElem]
@@ -283,13 +240,11 @@ setTidnums xs = zipWith (\c i -> setOrigin $ c {tidnum = i}) xs [1..]
 setOrigin :: TagElem -> TagElem
 setOrigin te = te { ttree = fmap setLabel . ttree $ te }
  where setLabel g = g { gorigin = idname te ++ ":" ++ (show.tidnum) te }
-\end{code}
 
-% ----------------------------------------------------------------------
-\section{TAG Item}
-% ----------------------------------------------------------------------
+-- ----------------------------------------------------------------------
+-- TAG Item
+-- ----------------------------------------------------------------------
 
-\begin{code}
 -- | 'TagItem' is a generalisation of 'TagElem'.
 class TagItem t where 
   tgIdName    :: t -> String
@@ -300,9 +255,7 @@ instance TagItem TagElem where
   tgIdName = idname
   tgIdNum  = tidnum
   tgSemantics = tsemantics
-\end{code}
 
-\begin{code}
 -- | Sorts trees into a Map.Map organised by the first literal of their
 --   semantics.  This is useful in at least three places: the polarity
 --   optimisation, the gui display code, and code for measuring the efficiency
@@ -314,25 +267,22 @@ mapBySem ts =
               []    -> emptyPred
               (x:_) -> x
   in groupByFM gfn ts
-\end{code}
 
-% ----------------------------------------------------------------------
-\section{Extracting sentences}
-% ----------------------------------------------------------------------
+-- ----------------------------------------------------------------------
+-- Extracting sentences
+-- ----------------------------------------------------------------------
 
-Normally, extracting the sentences from a TAG tree would just consist of
-reading its leaves.  But if you want the generator to return inflected
-forms instead of just lemmas, you also need to return the relevant
-features for each leaf.  In TAG, or at least our use of it, the features
-come from the \emph{pre-terminal} nodes, that is, not the leaves
-themselves but their parents.  Another bit of trickiness: because of
-atomic disjunction, leaves might have more than one value, so we can't
-just return a String lemma but a list of String, one for each
-possibility.
-
-\begin{code}
 type UninflectedDisjunction = ([String], Flist GeniVal)
 
+-- | Normally, extracting the sentences from a TAG tree would just
+--   consist of reading its leaves.  But if you want the generator to
+--   return inflected forms instead of just lemmas, you also need to
+--   return the relevant features for each leaf.  In TAG, or at least our
+--   use of it, the features come from the *pre-terminal* nodes, that is,
+--   not the leaves themselves but their parents.  Another bit of
+--   trickiness: because of atomic disjunction, leaves might have more
+--   than one value, so we can't just return a String lemma but a list of
+--   String, one for each possibility.
 tagLeaves :: TagElem -> [ (String, UninflectedDisjunction) ]
 tagLeaves te = [ (gnname pt, (getLexeme t, gup pt)) | (pt,t) <- preTerminals . ttree $ te ]
 
@@ -351,30 +301,26 @@ getLexeme node =
 
 firstMaybe :: (a -> Maybe b) -> [a] -> Maybe b
 firstMaybe fn = listToMaybe . mapMaybe fn
-\end{code}
 
-% ----------------------------------------------------------------------
-\section{Debugging}
-% ----------------------------------------------------------------------
+-- ----------------------------------------------------------------------
+-- Debugging
+-- ----------------------------------------------------------------------
 
-\begin{code}
 -- Useful for debugging adjunction and substitution nodes
 showTagSites :: [TagSite] -> String
 showTagSites sites = concat $ intersperse "\n  " $ map fn sites
   where
    fn (TagSite n t b o) =
     concat . intersperse "/" $ [ n, showPairs t, showPairs b, o ]
-\end{code}
 
-% ----------------------------------------------------------------------
-\section{Diagnostic messages}
-% ----------------------------------------------------------------------
+-- ----------------------------------------------------------------------
+-- Diagnostic messages
+--
+-- Diagnostic messages let us know why a TAG tree is not returned as a result.
+-- Whenever GenI decides to discard a tree, it sets the tdiagnostic field of 
+-- the TagElem so that the person using a debugger can find out what went wrong.
+-- ----------------------------------------------------------------------
 
-Diagnostic messages let us know why a TAG tree is not returned as a result.
-Whenever GenI decides to discard a tree, it sets the tdiagnostic field of 
-the TagElem so that the person using a debugger can find out what went wrong.
-
-\begin{code}
 ts_synIncomplete, ts_tbUnificationFailure :: String
 ts_synIncomplete = "syntactically incomplete"
 ts_tbUnificationFailure = "top/bot unification failure"
@@ -384,13 +330,11 @@ ts_rootFeatureMismatch good = "root feature does not unify with " ++ showFlist g
 
 ts_semIncomplete :: [Pred] -> String
 ts_semIncomplete sem = "semantically incomplete - missing:  " ++ showSem sem
-\end{code}
 
-% ----------------------------------------------------------------------
-% Performance
-% ----------------------------------------------------------------------
+-- ----------------------------------------------------------------------
+-- Performance
+-- ----------------------------------------------------------------------
 
-\begin{code}
 {-!
 deriving instance NFData TagElem
 deriving instance NFData DerivationStep
@@ -414,5 +358,3 @@ instance NFData DerivationStep where
         rnf (DerivationStep x1 x2 x3 x4)
           = rnf x1 `seq` rnf x2 `seq` rnf x3 `seq` rnf x4 `seq` ()
 -- GENERATED STOP
-
-\end{code}

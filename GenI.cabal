@@ -50,14 +50,14 @@ data-files: AUTHORS, INSTALL, README, NEWS, GenI.cabal,
             etc/macstuff/wxmac.icns
 
 extra-source-files: src/NLP/GenI/Test.hs
-                    src/NLP/GenI/Simple/SimpleGui.lhs,
-                    src/NLP/GenI/Gui.lhs
+                    src/NLP/GenI/Simple/SimpleGui.hs,
+                    src/NLP/GenI/Gui.hs
                     src/NLP/GenI/GraphvizShow.hs,
                     src/NLP/GenI/GuiHelper.hs
                     src/NLP/GenI/Console.hs,
                     src/NLP/GenI/Graphviz.hs
-                    src/NLP/GenI/BuilderGui.lhs,
-                    src/NLP/GenI/GraphvizShowPolarity.lhs,
+                    src/NLP/GenI/BuilderGui.hs,
+                    src/NLP/GenI/GraphvizShowPolarity.hs,
                     src/NLP/GenI/Regression.hs
 
 
@@ -138,7 +138,7 @@ Library
   Ghc-prof-options: -auto-all
 
 Executable     geni
- Main-Is:        MainGeni.lhs
+ Main-Is:        MainGeni.hs
  Hs-Source-Dirs: src/geni
 
  Ghc-options:    -Wall -O2

@@ -1,27 +1,21 @@
-% GenI surface realiser
-% Copyright (C) 2005 Carlos Areces and Eric Kow
-%
-% This program is free software; you can redistribute it and/or
-% modify it under the terms of the GNU General Public License
-% as published by the Free Software Foundation; either version 2
-% of the License, or (at your option) any later version.
-%
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-%
-% You should have received a copy of the GNU General Public License
-% along with this program; if not, write to the Free Software
-% Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+-- GenI surface realiser
+-- Copyright (C) 2005 Carlos Areces and Eric Kow
+--
+-- This program is free software; you can redistribute it and/or
+-- modify it under the terms of the GNU General Public License
+-- as published by the Free Software Foundation; either version 2
+-- of the License, or (at your option) any later version.
+--
+-- This program is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with this program; if not, write to the Free Software
+-- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-\chapter{Lexical selection}
-\label{sec:candidate_selection}
-
-This module performs the core of lexical selection and anchoring.
-
-\ignore{
-\begin{code}
+-- | This module performs the core of lexical selection and anchoring.
 module NLP.GenI.LexicalSelection
 where
 
@@ -68,15 +62,11 @@ import NLP.GenI.Tags (TagElem, emptyTE,
              tinterface, ttrace,
              )
 import NLP.GenI.TreeSchemata ( Ttree(..), SchemaTree, SchemaNode, crushTreeGNode )
-\end{code}
-}
 
-\section{Selecting candidate lemmas}
+-- ----------------------------------------------------------------------
+-- Selecting candidate lemmas
+-- ----------------------------------------------------------------------
 
-The lexical selection selects lemmas from the lexicon whose semantics
-subsumes the input semantics.
-
-\begin{code}
 -- | Select and returns the set of entries from the lexicon whose semantics
 --   subsumes the input semantics.
 chooseLexCand :: Lexicon -> Sem -> [ILexEntry]
@@ -109,34 +99,26 @@ chooseCandI tsem cand =
               sem = isemantics l
       --
   in nub $ concatMap (helper . alphaConvert "") cand
-\end{code}
 
-A semantic key is a semantic literal boiled down to predicate plus arity
-(see section \ref{btypes_semantics}).
-
-\begin{code}
 -- | 'mapBySemKeys' @xs fn@ organises items (@xs@) by their semantic key
---   (retrieved by @fn@).  An item may have multiple keys.
+--   (retrieved by @fn@).  A semantic key is a semantic literal boiled
+--   down to predicate plus arity.  An item may have multiple keys.
 ---  This is used to organise the lexicon by its semantics.
 mapBySemKeys :: (a -> Sem) -> [a] -> Map.Map String [a]
 mapBySemKeys semfn xs =
   let gfn t = if (null s) then [myEMPTY] else toKeys s
               where s = semfn t
   in multiGroupByFM gfn xs
-\end{code}
 
-\fnlabel{mergeSynonyms} is a factorisation technique that uses
-atomic disjunction to merge all synonyms into a single lexical
-entry.  Two lexical entries are considered synonyms if their
-semantics match and they point to the same tree families.
-
-FIXME: 2006-10-11 - note that this is no longer being used,
-because it breaks the case where two lexical entries differ
-only by their use of path equations.  Perhaps it's worthwhile
-just to add a check that the path equations match exactly.
-
-\begin{code}
-{-
+-- | `mergeSynonyms' is a factorisation technique that uses
+--   atomic disjunction to merge all synonyms into a single lexical
+--   entry.  Two lexical entries are considered synonyms if their
+--   semantics match and they point to the same tree families.
+-- 
+--  FIXME: 2006-10-11 - note that this is no longer being used,
+--  because it breaks the case where two lexical entries differ
+--  only by their use of path equations.  Perhaps it's worthwhile
+--  just to add a check that the path equations match exactly.
 mergeSynonyms :: [ILexEntry] -> [ILexEntry]
 mergeSynonyms lexEntry =
   let mergeFn l1 l2 = l1 { iword = (iword l1) ++ (iword l2) }
@@ -144,19 +126,11 @@ mergeSynonyms lexEntry =
       synMap = foldr helper Map.empty lexEntry
         where helper x acc = Map.insertWith mergeFn (keyFn x) x acc
   in Map.elems synMap
--}
-\end{code}
 
-% --------------------------------------------------------------------
-\section{Anchoring}
-\label{sec:combine_macros}
-% --------------------------------------------------------------------
+-- --------------------------------------------------------------------
+-- Anchoring
+-- --------------------------------------------------------------------
 
-This section of the code helps you to combined a selected lexical item with
-a macro or a list of macros.  This is a process that can go fail for any
-number of reasons, so we try to record the possible failures for book-keeping.
-
-\begin{code}
 -- | The 'LexCombine' supports warnings during lexical selection
 --   and also failure via Maybe
 type LexCombine a = MaybeT (Writer [LexCombineError]) a
@@ -176,9 +150,9 @@ data LexCombineError2 = EnrichError PathEqLhs
 
 instance Poset LexCombineError where
  leq (BoringError _) _                                 = True
+ leq (SchemaError _ e1) (SchemaError _ e2)             = leq e1 e2
  leq (FamilyNotFoundError x1) (FamilyNotFoundError x2) = leq x1 x2
  leq (FamilyNotFoundError _)  (SchemaError _ _)        = True
- leq (SchemaError _ e1) (SchemaError _ e2)             = leq e1 e2
  leq _ _ = False
 
 instance Poset LexCombineError2 where
@@ -211,12 +185,7 @@ compressLexCombineErrors errs = schema2 ++ normal
   schema2 = map (uncurry (flip SchemaError))
           . Map.toList
           $ Map.fromListWith (++) [ (l,ts) | SchemaError ts l <- schema ]
-\end{code}
 
-The first step in lexical selection is to collect all the features and
-parameters that we want to combine.
-
-\begin{code}
 -- | Given a lexical item, looks up the tree families for that item, and
 --   anchor the item to the trees.
 combineList :: Sem -> Macros -> ILexEntry
@@ -229,9 +198,7 @@ combineList tsem gram lexitem =
    tn = ifamname lexitem
    swap (x,y) = (y,x)
    squish = (compressLexCombineErrors . concat) *** (concat . catMaybes)
-\end{code}
 
-\begin{code}
 -- | Combine a single tree with its lexical item to form a bonafide TagElem.
 --   This process can fail, however, because of filtering or enrichement
 combineOne :: Sem -> ILexEntry -> SchemaTree -> LexCombine [TagElem]
@@ -292,59 +259,9 @@ combineOne tsem lexRaw eRaw = -- Maybe monad
     -- trace ("enrich" ++ wt) $
     do e2 <- enrich l e
        return (l,e2)
-\end{code}
 
-\subsection{Enrichment}
+-- Enrichment
 
-Enrichment is a process which adds features to either the interface, an
-explicitly named node or the co-anchor of a lexically selected tree.  The
-enrichement information comes from the lexicon in the form of a path equations
-which specify
-\begin{enumerate}
-\item the location
-\item top or bottom
-\item the attribute
-\item what value to associate with it
-\end{enumerate}
-
-The conventions taken by GenI for path equations are:
-
-\begin{tabular}{|l|p{8cm}|}
-\hline
-\verb!interface.foo=bar! &
-\fs{foo=bar} is unified into the interface (not the tree) \\
-\hline
-\verb!anchor.bot.foo=bar! &
-\fs{foo=bar} is unified into the bottom feature of the node
-which is marked anchor.  \\
-\hline
-\verb!toto.top.foo=bar! &
-\fs{foo=bar} is unified into the top feature of node named toto \\
-\hline
-\verb!toto.bot.foo=bar! &
-\fs{foo=bar} is unified into the bot feature of node named toto \\
-\hline
-\verb!anchor.foo=bar! &
-same as \verb!anchor.bot.foo=bar!  \\
-\hline
-\verb!anc.whatever...! &
-same as \verb!anchor.whatever...!  \\
-\hline
-\verb!top.foo=bar! &
-same as \verb!anchor.top.foo=bar!  \\
-\hline
-\verb!bot.foo=bar! &
-same as \verb!anchor.bot.foo=bar!  \\
-\hline
-\verb!foo=bar! &
-same as \verb!anchor.bot.foo=bar!  \\
-\hline
-\verb!toto.foo=bar! &
-same as \verb!toto.top.foo=bar! (creates a warning) \\
-\hline
-\end{tabular}
-
-\begin{code}
 -- | (node, top, att) (node is Nothing if anchor)
 type PathEqLhs  = (String, Bool, String)
 type PathEqPair = (PathEqLhs, GeniVal)
@@ -464,35 +381,9 @@ showPathEqLhs (x,tb_,z) =
                      _           -> [x,tb,z]
   where
    tb = if tb_ then "top" else "bot"
-\end{code}
 
-\subsection{Lemanchor mechanism}
+-- Lemanchor mechanism
 
-One problem in building reversible grammars is the treatment of co-anchors.
-In the French language, for example, we have some structures like
-\natlang{C'est Jean qui regarde Marie}
-\natlang{It is John who looks at Mary}
-
-One might be tempted to hard code the ce (it) and the être (is) into the tree
-for regarder (look at), something like \texttt{s(ce, être, n$\downarrow$, qui,
-v(regarder), n$\downarrow$)}.  Indeed, this would work just fine for
-generation, but not for parsing.  When you parse, you would encounter inflected
-forms for these items for example \natlang{c'} for \natlang{ce} or
-\natlang{sont} or \natlang{est} for \natlang{être}.  Hard-coding the \natlang{ce}
-into such trees would break parsing.
-
-To work around this, we propose a mechanism to have our co-anchors and parsing
-too. Co-anchors that are susceptible to morphological variation should be
-\begin{itemize}
-\item marked in a substitution site (this is to keep parsers happy)
-\item have a feature \texttt{bot.lemanchor:foo} where foo is the
-      coanchor you want
-\end{itemize}
-
-GenI will convert these into non-substitution sites with a lexical item
-leaf node.
-
-\begin{code}
 setLemAnchors :: Tree (GNode GeniVal) -> Tree (GNode GeniVal)
 setLemAnchors t =
  repAllNode fn filt t
@@ -515,24 +406,15 @@ setLemAnchors t =
 
 _lemanchor :: String
 _lemanchor = "lemanchor"
-\end{code}
 
-\subsection{Node origins}
+-- Node origins
 
-After lexical selection, we label each tree node with its origin, most
-likely the name and id of its elementary tree.  This is useful for
-building derivation trees
-
-\begin{code}
 setOrigin :: String -> Tree (GNode v) -> Tree (GNode v)
 setOrigin t = fmap (\g -> g { gorigin = t })
-\end{code}
 
-% ----------------------------------------------------------------------
-\section{Helper functions}
-% ----------------------------------------------------------------------
+-- ----------------------------------------------------------------------
+-- Helper functions
+-- ----------------------------------------------------------------------
 
-\begin{code}
 myEMPTY :: String
 myEMPTY = "MYEMPTY"
-\end{code}

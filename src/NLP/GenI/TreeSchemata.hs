@@ -1,31 +1,26 @@
-% GenI surface realiser
-% Copyright (C) 2005-2009 Carlos Areces and Eric Kow
-%
-% This program is free software; you can redistribute it and/or
-% modify it under the terms of the GNU General Public License
-% as published by the Free Software Foundation; either version 2
-% of the License, or (at your option) any later version.
-%
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-%
-% You should have received a copy of the GNU General Public License
-% along with this program; if not, write to the Free Software
-% Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+-- GenI surface realiser
+-- Copyright (C) 2005-2009 Carlos Areces and Eric Kow
+--
+-- This program is free software; you can redistribute it and/or
+-- modify it under the terms of the GNU General Public License
+-- as published by the Free Software Foundation; either version 2
+-- of the License, or (at your option) any later version.
+--
+-- This program is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with this program; if not, write to the Free Software
+-- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-\chapter{Tree schemata}
-\label{cha:TreeSchemata}
-
-This module provides basic datatypes specific to Tree Adjoining Grammar
-tree schemata.
-
-\ignore{
-\begin{code}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE OverlappingInstances, FlexibleInstances #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+
+-- | This module provides basic datatypes specific to Tree Adjoining Grammar
+--   tree schemata.
 module NLP.GenI.TreeSchemata (
    Macros, emptyMacro,
    SchemaTree, SchemaNode, Ttree(..), Ptype(..),
@@ -55,18 +50,15 @@ import NLP.GenI.Semantics ( Sem )
 import NLP.GenI.General (filterTree, listRepNode, geniBug,)
 
 import Control.DeepSeq
-\end{code}
-}
 
-% ----------------------------------------------------------------------
-\section{Tree schemata}
-% ----------------------------------------------------------------------
+-- ----------------------------------------------------------------------
+-- Tree schemata
 
-In GenI, the tree schemata are called `macros' for historical reasons.
-We are working to phase out this name in favour of the more standard
-`tree schema(ta)'.
+-- In GenI, the tree schemata are called `macros' for historical reasons.
+-- We are working to phase out this name in favour of the more standard
+-- `tree schema(ta)'.
+-- ----------------------------------------------------------------------
 
-\begin{code}
 type SchemaTree = Ttree SchemaNode
 type SchemaNode = GNode [GeniVal]
 type Macros = [SchemaTree]
@@ -107,25 +99,21 @@ emptyMacro = TT { params  = [],
                   ptrace = [],
                   tree  = Node emptyGNode []
                  }
-\end{code}
 
-% ----------------------------------------------------------------------
-\section{Tree manipulation}
-% ----------------------------------------------------------------------
+-- ----------------------------------------------------------------------
+-- Tree manipulation
+-- ----------------------------------------------------------------------
 
-\subsection{Traversal}
+-- Traversal
 
-\begin{code}
 instance DescendGeniVal a => DescendGeniVal (Map.Map k a) where
   descendGeniVal s = {-# SCC "descendGeniVal" #-} Map.map (descendGeniVal s)
 
 instance (Collectable a => Collectable (Tree a)) where
   collect = collect.flatten
-\end{code}
 
-\subsection{Utility functions}
+-- Utility functions
 
-\begin{code}
 root :: Tree a -> a
 root (Node a _) = a
 
@@ -158,13 +146,11 @@ setLexeme l (Node a []) = Node a [ Node subanc [] ]
                             , gaconstr = True
                             , glexeme = l}
 setLexeme _ _ = geniBug "impossible case in setLexeme - subtree with kids"
-\end{code}
 
-% ----------------------------------------------------------------------
-\section{TAG nodes (GNode)}
-% ----------------------------------------------------------------------
+-- ----------------------------------------------------------------------
+-- TAG nodes (GNode)
+-- ----------------------------------------------------------------------
 
-\begin{code}
 -- | A single node of a TAG tree.
 data GNode gv =
              GN{gnname :: NodeName,
@@ -184,11 +170,9 @@ data GType = Subs | Foot | Lex | Other
            deriving (Show, Eq, Data, Typeable)
 
 type NodeName = String
-\end{code}
 
-\subsection{Traversal}
+-- Traversal
 
-\begin{code}
 instance Collectable gv => Collectable (GNode gv) where
   collect n = (collect $ gdown n) . (collect $ gup n)
 
@@ -196,11 +180,9 @@ instance DescendGeniVal v => DescendGeniVal (GNode v) where
   descendGeniVal s gn =
     gn { gup = descendGeniVal s (gup gn)
        , gdown = descendGeniVal s (gdown gn) }
-\end{code}
 
-\subsection{Utilities}
+-- Utilities
 
-\begin{code}
 -- | A null 'GNode' which you can use for various debugging or display purposes.
 emptyGNode :: GNode gv
 emptyGNode = GN { gnname = "",
@@ -213,14 +195,7 @@ emptyGNode = GN { gnname = "",
 
 gnnameIs :: NodeName -> GNode gv -> Bool
 gnnameIs n = (== n) . gnname
-\end{code}
 
-A TAG node may have a category.  In the core GenI algorithm, there is nothing
-which distinguishes the category from any other attributes.  But for some
-other uses, such as checking if it is a result or for display purposes, we
-do treat this attribute differently.  We take here the convention that the
-category of a node is associated to the attribute ``cat''.
-\begin{code}
 -- | Return the value of the "cat" attribute, if available
 gCategory :: Flist GeniVal -> Maybe GeniVal
 gCategory top =
@@ -228,23 +203,15 @@ gCategory top =
   []  -> Nothing
   [c] -> Just c
   _   -> geniBug $ "Impossible case: node with more than one category"
-\end{code}
 
-A TAG node might also have a lexeme.  If we are lucky, this is explicitly
-set in the glexeme field of the node.  Otherwise, we try to guess it from
-a list of distinguished attributes (in order of preference).
-\begin{code}
 -- | Attributes recognised as lexemes, in order of preference
 lexemeAttributes :: [String]
 lexemeAttributes = [ "lex", "phon", "cat" ]
-\end{code}
 
-\subsection{Pretty printing}
+-- Pretty printing
 
-The default show for GNode tries to be very compact; it only shows the value
-for cat attribute and any flags which are marked on that node.
-
-\begin{code}
+-- | The default show for GNode tries to be very compact; it only shows the value
+--   for cat attribute and any flags which are marked on that node.
 instance Show (GNode GeniVal) where
   show gn =
     let cat_ = case gCategory.gup $ gn of
@@ -265,11 +232,9 @@ showLexeme :: [String] -> String
 showLexeme []   = ""
 showLexeme [l]  = l
 showLexeme xs   = concat $ intersperse "|" xs
-\end{code}
 
-\subsection{Fancy disjunction}
+-- Fancy disjunction
 
-\begin{code}
 crushTreeGNode :: Tree (GNode [GeniVal]) -> Maybe (Tree (GNode GeniVal))
 crushTreeGNode (Node x xs) =
  do x2  <- crushGNode x
@@ -306,4 +271,3 @@ instance NFData gv => NFData (GNode gv) where
                     rnf x5 `seq`
                       rnf x6 `seq`
                         rnf x7 `seq` rnf x8 `seq` ()
-\end{code}
