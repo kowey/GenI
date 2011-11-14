@@ -89,7 +89,7 @@ instance GraphvizShow (Bool, GvHighlighter (GNode GeniVal)) TagElem where
   ]
 
 gvShowSem :: Sem -> T.Text
-gvShowSem = gvUnlines . map T.pack . map unwords . clumpBy length 32 . words . showSem 
+gvShowSem = gvUnlines . map T.pack . map unwords . clumpBy length 72 . words . showSem
 
 -- ----------------------------------------------------------------------
 -- Helper functions for the TagElem GraphvizShow instance
