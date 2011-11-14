@@ -29,6 +29,7 @@ import qualified Data.Map as Map
 import Prelude hiding ( catch )
 
 import Data.IORef
+import Data.GraphViz.Exception ( GraphvizException(..) )
 import System.Directory 
 import System.FilePath ((<.>),(</>),dropExtensions)
 import System.Process (runProcess)
@@ -685,8 +686,8 @@ createImage cachedir f gvref = do
   graphicFile <-  createImagePath cachedir (show sel)
   let create x = do _ <- toGraphviz config x dotFile graphicFile
                     return . GvCreated $ graphicFile
-      handler :: IOException -> IO GraphvizStatus
-      handler err = do errorDialog f "Error calling graphviz" (show err) 
+      handler :: GraphvizException -> IO GraphvizStatus
+      handler err = do errorDialog f "Error calling graphviz. Is it installed?" (show err)
                        return . GvError . show $ err
   exists <- doesFileExist graphicFile
   -- we only call graphviz if the image is not in the cache
