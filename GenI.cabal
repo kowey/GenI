@@ -141,7 +141,7 @@ Executable     geni
  Main-Is:        MainGeni.hs
  Hs-Source-Dirs: src/geni
 
- Ghc-options:    -Wall -O2
+ Ghc-options:    -Wall -O2 -rtsopts
  Ghc-prof-options: -auto-all
  Build-Depends: base >= 4 && < 5
               , GenI
