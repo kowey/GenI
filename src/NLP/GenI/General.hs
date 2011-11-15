@@ -24,9 +24,6 @@
 module NLP.GenI.General (
         -- * IO
         ePutStr, ePutStrLn, eFlush,
-        -- ** Strict readFile
-        readFile',
-        lazySlurp,
         -- * Strings
         isGeniIdentLetter,
         dropTillIncluding,
@@ -80,12 +77,6 @@ import System.IO (hPutStrLn, hPutStr, hFlush, stderr)
 import System.IO.Error (isUserError, ioeGetErrorString)
 import qualified Data.Map as Map
 import Prelude hiding ( catch )
-
--- for non-lazy IO
-import System.IO (openFile, IOMode(ReadMode), hFileSize, hGetBuf)
-import System.IO.Unsafe (unsafeInterleaveIO)
-import Foreign (mallocForeignPtrBytes, withForeignPtr, ForeignPtr, Ptr, peekElemOff, plusPtr, Word8)
-import Data.Char (chr)
 
 -- ----------------------------------------------------------------------
 -- IO
@@ -411,40 +402,3 @@ type BitVector = Integer
 showBitVector :: Int -> BitVector -> String
 showBitVector min_ 0 = replicate min_ '0'
 showBitVector min_ x = showBitVector (min_ - 1) (shiftR x 1) ++ (show $ x .&. 1)
-
--- ----------------------------------------------------------------------
--- Strict readfile
--- Simon Marlow wrote this code on the Haskell mailing list 2005-08-02.
--- ----------------------------------------------------------------------
-
--- | Using readFile' can be a good idea if you're dealing with not-so-huge
--- files (i.e. where you don't want lazy evaluation), because it ensures
--- that the handles are closed. No more ``too many open files''
-readFile' :: FilePath -> IO String
-readFile' f = do
-  h <- openFile f ReadMode
-  s <- hFileSize h
-  fp <- mallocForeignPtrBytes (fromIntegral s)
-  len <- withForeignPtr fp $ \buf -> hGetBuf h buf (fromIntegral s)
-  lazySlurp fp 0 len
-
-buf_size :: Int
-buf_size = 4096 :: Int
-
-lazySlurp :: ForeignPtr Word8 -> Int -> Int -> IO String
-lazySlurp fp ix len
-  | fp `seq` False = undefined
-  | ix >= len = return []
-  | otherwise = do
-      cs <- unsafeInterleaveIO (lazySlurp fp (ix + buf_size) len)
-      ws <- withForeignPtr fp $ \p -> loop (min (len-ix) buf_size - 1)
-					((p :: Ptr Word8) `plusPtr` ix) cs
-      return ws
- where
-  loop :: Int -> Ptr Word8 -> String -> IO String
-  loop sublen p acc
-    | sublen `seq` p `seq` False = undefined
-    | sublen < 0 = return acc
-    | otherwise = do
-       w <- peekElemOff p sublen
-       loop (sublen-1) p (chr (fromIntegral w):acc)

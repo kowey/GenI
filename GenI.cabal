@@ -155,6 +155,7 @@ Executable     geni
               , process     > 1
               , split       == 0.1.*
               , utf8-string == 0.3.*
+              , strict-io   == 0.2.*
  if flag(gui)
     Build-Depends: wx >= 0.10.3 && < 0.13
                  , text     == 0.11.*
