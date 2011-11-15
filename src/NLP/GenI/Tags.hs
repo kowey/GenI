@@ -45,6 +45,7 @@ import qualified Data.Map as Map
 import Data.Maybe (fromMaybe, listToMaybe, mapMaybe)
 import Data.List (intersperse)
 import Data.Tree
+import qualified Data.Text as T
 
 import Data.Generics (Data)
 import Data.Typeable (Typeable)
@@ -275,7 +276,7 @@ type UninflectedDisjunction = ([String], Flist GeniVal)
 --   trickiness: because of atomic disjunction, leaves might have more
 --   than one value, so we can't just return a String lemma but a list of
 --   String, one for each possibility.
-tagLeaves :: TagElem -> [ (String, UninflectedDisjunction) ]
+tagLeaves :: TagElem -> [ (NodeName, UninflectedDisjunction) ]
 tagLeaves te = [ (gnname pt, (getLexeme t, gup pt)) | (pt,t) <- preTerminals . ttree $ te ]
 
 -- | Try in order: lexeme, lexeme attributes, node name
@@ -286,7 +287,7 @@ getLexeme node =
     lexs -> lexs
   where
    grab la =
-     let match (AvPair a v) | isConst v  && a == la = gConstraints v
+     let match (AvPair a v) | isConst v  && a == la = map T.unpack <$> gConstraints v
          match _ = Nothing
      in firstMaybe match guppy
    guppy      = gup node

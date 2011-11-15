@@ -22,7 +22,7 @@
 module NLP.GenI.GraphvizShow
 where
 
-import Data.List ( intercalate,nub )
+import Data.List ( nub )
 import Data.List.Split (wordsBy)
 import Data.Maybe(listToMaybe, maybeToList)
 
@@ -138,9 +138,9 @@ instance GraphvizShowString () (AvPair GeniVal) where
 
 instance GraphvizShowString () GeniVal where
   graphvizShow () (GeniVal Nothing Nothing)    = "?_"
-  graphvizShow () (GeniVal Nothing (Just cs))  = T.pack (intercalate "!" cs)
-  graphvizShow () (GeniVal (Just l) Nothing)   = T.pack ('?' : l)
-  graphvizShow () (GeniVal (Just l) (Just cs)) = T.pack ('?' : l ++ "/" ++ intercalate "!" cs)
+  graphvizShow () (GeniVal Nothing (Just cs))  = T.intercalate "!" (map T.fromChunks [cs])
+  graphvizShow () (GeniVal (Just l) Nothing)   = '?' `T.cons` (T.pack l)
+  graphvizShow () (GeniVal (Just l) (Just cs)) = '?' `T.cons` (T.concat [T.pack l, "/", T.intercalate "!" (map T.fromChunks [cs])])
 
 showGnDecorations :: GNode GeniVal -> T.Text
 showGnDecorations gn =

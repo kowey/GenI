@@ -16,6 +16,7 @@
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 {-# LANGUAGE CPP, FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 module NLP.GenI.GeniParsers (
   -- * Test suites
@@ -46,6 +47,7 @@ import BoolExp
 
 import Control.Monad (liftM, when)
 import Data.List (sort)
+import qualified Data.Text as T
 import qualified Data.Map  as Map
 import qualified Data.Tree as T
 import Text.ParserCombinators.Parsec hiding (parseFromFile)
@@ -103,7 +105,8 @@ geniValue =   ((try $ anonymous) <?> "_ or ?_")
           <|> (variable   <?> "a variable")
   where
     question = "?"
-    disjunction = sepBy1 (looseIdentifier <|> stringLiteral) (symbol "|")
+    atom     = T.pack `fmap` (looseIdentifier <|> stringLiteral)
+    disjunction = sepBy1 atom (symbol "|")
     constants :: Parser GeniVal
     constants =
       do (c:cs) <- disjunction
@@ -177,7 +180,7 @@ geniSemanticInput =
      --
      setHandle i (h, pred_, par) =
        let h2 = if isAnon h
-                then mkGConst ("genihandle" ++ show i) []
+                then mkGConst ("genihandle" `T.append` T.pack (show i)) []
                 else h
        in (h2, pred_, par)
      --

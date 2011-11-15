@@ -29,6 +29,9 @@ import Data.Generics (Data)
 import Data.Typeable (Typeable)
 import qualified Data.Map as Map
 
+import Data.Text ( Text )
+import qualified Data.Text as T
+
 import Control.DeepSeq
 
 import NLP.GenI.General (geniBug, quoteString, isGeniIdentLetter)
@@ -36,8 +39,8 @@ import NLP.GenI.General (geniBug, quoteString, isGeniIdentLetter)
 -- | constant : no label, just constraints
 --   variable : label, with or without constraints
 --   anonymous : no label, no constraints
-data GeniVal = GeniVal { gLabel       :: Maybe String
-                       , gConstraints :: Maybe [String]
+data GeniVal = GeniVal { gLabel       :: Maybe String 
+                       , gConstraints :: Maybe [Text]
                        }
   deriving (Eq,Ord, Data, Typeable)
 
@@ -45,15 +48,15 @@ data GeniVal = GeniVal { gLabel       :: Maybe String
 --   creates an atomic disjunction.  It makes no difference which of the values
 --   you supply for @x@ and @xs@ as they will be sorted and nubed anyway.  We
 --   divide these only to enforce a non-empty list.
-mkGConst :: String   -- ^ one value
-         -> [String] -- ^ any additional values (atomic disjunction)
+mkGConst :: Text -- ^ one value
+         -> [Text] -- ^ any additional values (atomic disjunction)
          -> GeniVal
 mkGConst x xs  = GeniVal Nothing (Just . sort . nub $ x:xs)
 
-mkGConstNone :: String -> GeniVal
+mkGConstNone :: Text -> GeniVal
 mkGConstNone x = mkGConst x []
 
-mkGVar :: String -> Maybe [String] -> GeniVal
+mkGVar :: String -> Maybe [Text] -> GeniVal
 mkGVar x mxs  = GeniVal (Just x) ((sort . nub) `fmap` mxs)
 
 mkGVarNone :: String -> GeniVal
@@ -73,7 +76,7 @@ showGeniVal gv =
    GeniVal (Just l) Nothing   -> '?':l
    GeniVal (Just l) (Just cs) -> '?':concat [ l, "/", showConstraints cs ]
   where
-   showConstraints = intercalate "|" . map maybeQuote
+   showConstraints = intercalate "|" . map (maybeQuote . T.unpack) -- FIXME push down
    maybeQuote "" = quoteString ""
    maybeQuote x | any naughty x = quoteString x
    maybeQuote x  = x
@@ -269,7 +272,7 @@ replaceOneG _ v = {-# SCC "replaceOneG" #-} v
 -- Variable collection and renaming
 -- ----------------------------------------------------------------------
 
-type CollectedVar = (String, Maybe [String])
+type CollectedVar = (String, Maybe [Text])
 
 -- | A 'Collectable' is something which can return its variables as a
 --   map from the variable to the number of times that variable occurs

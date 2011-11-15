@@ -16,14 +16,17 @@
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 {-# LANGUAGE TypeSynonymInstances, MultiParamTypeClasses, FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module NLP.GenI.Semantics where
 
 import Control.Arrow ( first, (***) )
 import Data.Function ( on )
-import Data.List ( isPrefixOf, nub, sortBy, delete, insert )
+import Data.List ( nub, sortBy, delete, insert )
 import Data.Maybe ( isNothing, isJust )
 import qualified Data.Map as Map
+import Data.Text ( Text )
+import qualified Data.Text as T
 
 import NLP.GenI.FeatureStructures
 import NLP.GenI.GeniVal
@@ -89,10 +92,13 @@ showPred :: Pred -> String
 showPred (h, p, l) = showh ++ show p ++ "(" ++ unwords (map show l) ++ ")"
   where
     hideh g = case gConstraints g of
-                Just [c] -> "genihandle" `isPrefixOf` c
+                Just [c] -> isInternalHandle c
                 _        -> False
     --
     showh = if (hideh h) then "" else (show h) ++ ":"
+
+isInternalHandle :: Text -> Bool
+isInternalHandle = ("genihandle" `T.isPrefixOf`)
 
 -- ----------------------------------------------------------------------
 -- Subsumption

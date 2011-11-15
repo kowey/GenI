@@ -27,6 +27,7 @@ import qualified Data.Map as Map
 import Data.List
 import Data.Maybe (isJust)
 import Data.Tree (flatten)
+import qualified Data.Text as T
 
 import NLP.GenI.Automaton
 import NLP.GenI.Btypes(Pred,
@@ -88,7 +89,7 @@ detectPolarity :: Int          -- ^ polarity to assign
                -> PolarityDetectionResult
 detectPolarity i (RestrictedPolarityAttr cat att) filterFl fl =
   case Map.lookup __cat__ filterFl of
-    Nothing -> PD_UserError $ "[polarities] No category " ++ cat ++ " in:" ++ showFeatStruct filterFl
+    Nothing -> PD_UserError $ "[polarities] No category " ++ T.unpack cat ++ " in:" ++ showFeatStruct filterFl
     Just v -> if isJust (unify [mkGConst cat []] [v])
               then detectPolarity i (SimplePolarityAttr att) emptyFeatStruct fl
               else PD_Nothing

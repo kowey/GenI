@@ -28,7 +28,8 @@ import qualified Data.GraphViz.Attributes.Complete as GV
 import Data.IORef
 import Data.List ( sort, intersperse, partition )
 import qualified Data.Map as Map
-import qualified Data.Text.Lazy as T
+import qualified Data.Text as T
+import qualified Data.Text.Lazy as TL
 
 import NLP.GenI.Statistics (Statistics, showFinalStats)
 
@@ -207,7 +208,7 @@ instance XMGDerivation SimpleItem where
 instance GraphvizShow Bool SimpleItem where
   graphvizLabel  f c =
     gvUnlines $ graphvizLabel f (toTagElem c)
-              : map T.pack (siDiagnostic (siGuiStuff c))
+              : map TL.pack (siDiagnostic (siGuiStuff c))
 
   graphvizParams f c = graphvizParams f (toTagElem c)
   graphvizShowAsSubgraph f p it =
@@ -215,9 +216,9 @@ instance GraphvizShow Bool SimpleItem where
        info n | isHiglight n = (n, Just (GV.X11Color GV.Red))
               | otherwise    = (n, Nothing)
        gvSub :: (Bool, GNode GeniVal -> (GNode GeniVal, Maybe GV.Color))
-             -> T.Text -> TagElem -> [GV.DotSubGraph T.Text]
+             -> TL.Text -> TagElem -> [GV.DotSubGraph TL.Text]
        gvSub = graphvizShowAsSubgraph
-   in concat [ gvSub (f, info) (p `T.append` "TagElem") (toTagElem it)
+   in concat [ gvSub (f, info) (p `TL.append` "TagElem") (toTagElem it)
              , graphvizShowDerivation (siDerivation it)
              ]
 
@@ -230,7 +231,7 @@ toTagElem si =
    nodes   = siNodes si
    nodeMap = Map.fromList $ zip (map gnname nodes) nodes
    lookupOrBug k = case Map.lookup k nodeMap of
-                   Nothing -> emptyGNode { gup = [ AvPair "cat" (mkGConst ("error looking up " ++ k) []) ] }
+                   Nothing -> emptyGNode { gup = [ AvPair "cat" (mkGConst (T.pack ("error looking up " ++ k)) []) ] }
                    Just x  -> x
 
 siToSentence :: SimpleItem -> String

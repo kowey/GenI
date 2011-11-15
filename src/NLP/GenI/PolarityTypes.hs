@@ -23,16 +23,18 @@ module NLP.GenI.PolarityTypes where
 import qualified Data.Set as Set
 import Data.Generics ( Data )
 import Data.Typeable ( Typeable )
+import Data.Text ( Text )
+import qualified Data.Text as T
 
 import Control.DeepSeq
 
-data PolarityKey = PolarityKeyAv   String String
+data PolarityKey = PolarityKeyAv   String Text
                  | PolarityKeyStr  String
                  | PolarityKeyVar  String -- ^ attribute
  deriving (Eq, Ord, Data, Typeable)
 
 instance Show PolarityKey where
-  show (PolarityKeyAv a v) = a ++ ":" ++ v
+  show (PolarityKeyAv a v) = a ++ ":" ++ T.unpack v
   show (PolarityKeyStr s)  = s
   show (PolarityKeyVar a)  = a ++ ":_"
 
@@ -43,7 +45,7 @@ data PolarityAttr = SimplePolarityAttr { spkAtt :: String }
  -- | 'RestrictedPolarityKey' @c att@ is a polarity key in which we only pay
  --   attention to nodes that have the category @c@.  This makes it possible
  --   to have polarities for a just a small subset of nodes
- | RestrictedPolarityAttr { _rpkCat :: String, rpkAtt :: String }
+ | RestrictedPolarityAttr { _rpkCat :: Text, rpkAtt :: String }
  deriving (Eq, Ord, Typeable)
 
 readPolarityAttrs :: String -> Set.Set PolarityAttr
@@ -51,14 +53,14 @@ readPolarityAttrs = Set.fromList . map helper . words
  where
   helper s = case break (== '.') s of
              (a,"") -> SimplePolarityAttr a
-             (c,a)  -> RestrictedPolarityAttr c (drop 1 a)
+             (c,a)  -> RestrictedPolarityAttr (T.pack c) (drop 1 a)
 
 showPolarityAttrs :: Set.Set PolarityAttr -> String
 showPolarityAttrs = unwords . map show . Set.toList
 
 instance Show PolarityAttr where
  show (SimplePolarityAttr a) = a
- show (RestrictedPolarityAttr c a) = c ++ "." ++ a
+ show (RestrictedPolarityAttr c a) = T.unpack c ++ "." ++ a
 
 {-!
 deriving instance NFData PolarityKey

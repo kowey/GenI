@@ -38,9 +38,10 @@ module NLP.GenI.GeniShow
 where
 
 import Data.Tree
-import Data.List(intersperse, isPrefixOf)
+import Data.List(intersperse)
 import qualified Data.Map as Map
 
+import NLP.GenI.Semantics ( isInternalHandle )
 import NLP.GenI.Tags
  ( TagElem, idname,
    tsemantics, ttree, tinterface, ttype, ttreename,
@@ -71,7 +72,7 @@ instance GeniShow Pred where
    showh ++ geniShow p ++ "(" ++ unwords (map geniShow l) ++ ")"
    where
     hideh g = case gConstraints g of
-                Just [c] -> "genihandle" `isPrefixOf` c
+                Just [c] -> isInternalHandle c
                 _        -> False
     showh = if hideh h then "" else geniShow h ++ ":"
 

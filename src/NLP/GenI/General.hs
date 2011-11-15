@@ -76,6 +76,9 @@ import System.IO (hPutStrLn, hPutStr, hFlush, stderr)
 import System.IO.Error (isUserError, ioeGetErrorString)
 import qualified Data.Map as Map
 import Prelude hiding ( catch )
+import Data.Text ( Text )
+import qualified Data.Text.Encoding as T
+import Data.Binary
 
 -- ----------------------------------------------------------------------
 -- IO
@@ -94,6 +97,10 @@ eFlush    = hFlush stderr
 -- ----------------------------------------------------------------------
 -- Strings
 -- ----------------------------------------------------------------------
+
+instance Binary Text where
+  put = put . T.encodeUtf8
+  get = liftM T.decodeUtf8 get
 
 isGeniIdentLetter :: Char -> Bool
 isGeniIdentLetter x = isAlphaNum x || x `elem` "_'+-."

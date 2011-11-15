@@ -30,6 +30,8 @@ import qualified Data.Map as Map
 import Data.Maybe (catMaybes, fromMaybe, isJust)
 import Data.Poset
 import Data.Tree (Tree(Node))
+import qualified Data.Text as T
+import Data.Text ( Text )
 
 import NLP.GenI.General(filterTree, repAllNode,
     showWithCount,
@@ -375,8 +377,8 @@ setLemAnchors t =
   lemAnchorMaybeFake n =
     case lemAnchor n of
     Nothing -> ["ERR_UNSET_LEMMANCHOR"]
-    Just l  -> l
-  lemAnchor :: GNode GeniVal -> Maybe [String]
+    Just l  -> map T.unpack l
+  lemAnchor :: GNode GeniVal -> Maybe [Text]
   lemAnchor n =
     case [ v | AvPair a v <- gdown n, a == _lemanchor ] of
     [l] | isConst l -> gConstraints l
