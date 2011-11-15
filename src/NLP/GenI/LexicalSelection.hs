@@ -86,7 +86,7 @@ chooseCandI tsem cand =
         where psubsem = sem `subsumeSem` tsem
               sem = isemantics l
       --
-  in nub $ concatMap (helper . alphaConvert "") cand
+  in nub $ concatMap helper cand
 
 -- | `mergeSynonyms' is a factorisation technique that uses
 --   atomic disjunction to merge all synonyms into a single lexical

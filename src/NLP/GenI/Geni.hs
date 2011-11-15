@@ -113,6 +113,7 @@ import NLP.GenI.GeniParsers (geniMacros, geniTagElems,
                     runParser,
                     ParseError,
                     )
+import NLP.GenI.GeniVal ( alphaConvert )
 import NLP.GenI.LexicalSelection
         ( chooseLexCand, combineList
         , missingCoanchors
@@ -298,7 +299,9 @@ loadFromString pstRef descr s =
 instance Loadable Lexicon where
   lParse f = fmap toLexicon . runParser geniLexicon () f
     where
-     toLexicon = map sorter
+     fixEntry  = alphaConvert "" -- anonymise singletons for performance
+               . sorter
+     toLexicon = map fixEntry
      sorter l  = l { isemantics = (sortSem . isemantics) l }
   lSet x p = p { le = x }
   lSummarise x = show (length x) ++ " lemmas"
