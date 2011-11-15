@@ -84,6 +84,7 @@ import NLP.GenI.Btypes
    pidname, pfamily, ptrace,
    )
 import NLP.GenI.BtypesBinary ()
+import NLP.GenI.Semantics ( sortByMostConstants )
 import NLP.GenI.Tags (TagElem,
              idname,
              tsemantics,
@@ -302,7 +303,7 @@ instance Loadable Lexicon where
      fixEntry  = alphaConvert "" -- anonymise singletons for performance
                . sorter
      toLexicon = map fixEntry
-     sorter l  = l { isemantics = (sortSem . isemantics) l }
+     sorter l  = l { isemantics = (sortByMostConstants . isemantics) l }
   lSet x p = p { le = x }
   lSummarise x = show (length x) ++ " lemmas"
 
