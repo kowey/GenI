@@ -103,13 +103,8 @@ showPred (h, p, l) = showh ++ show p ++ "(" ++ unwords (map show l) ++ ")"
 --   If @x@ does NOT subsume @y@, we return the empty list.
 subsumeSem :: Sem -> Sem -> [(Sem,Subst)]
 subsumeSem x y | length x > length y = []
-subsumeSem x_ y_ =
+subsumeSem x y =
   map (first sortSem) $ subsumeSemH x y
- where
-  -- the sorting is just to ensure that we get results in the same order
-  -- not sure if it's really needed
-  x = sortByMostConstants x_
-  y = sortByMostConstants y_
 
 subsumeSemH :: Sem -> Sem -> [(Sem,Subst)]
 subsumeSemH [] [] = [ ([], Map.empty) ]
@@ -144,14 +139,11 @@ subsumePred (h1, p1, la1) (h2, p2, la2) =
 -- By minimal, I mean that any literals that are not the product of a
 -- succesful unification really do not unify with anything else.
 unifySem :: Sem -> Sem -> [(Sem,Subst)]
-unifySem xs_ ys_ = 
+unifySem xs ys =
  map (first sortSem) $
- if length xs_ < length ys_
+ if length xs < length ys
     then unifySemH xs ys
     else unifySemH ys xs
- where
-  xs = sortByMostConstants xs_
-  ys = sortByMostConstants ys_
 
 -- list monad for Prolog-style backtracking.
 unifySemH :: Sem -> Sem -> [(Sem,Subst)]
