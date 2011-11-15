@@ -328,8 +328,10 @@ alphaConvertById x = {-# SCC "alphaConvertById" #-}
 --   favour of anonymous values
 alphaConvert :: (Collectable a, DescendGeniVal a) => String -> a -> a
 alphaConvert suffix x = {-# SCC "alphaConvert" #-}
-  replace subst (anonymiseSingletons x)
+  ac (anonymiseSingletons x)
  where
+  ac | null suffix = id
+     | otherwise   = replace subst
   subst :: Subst
   subst = Map.mapWithKey convert vars
   vars  = Map.fromListWith isect . Map.keys $ collect x Map.empty
