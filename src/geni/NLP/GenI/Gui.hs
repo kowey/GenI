@@ -57,7 +57,6 @@ import NLP.GenI.Configuration
   , ExtraPolaritiesFlg(..)
   , LexiconFlg(..)
   , MacrosFlg(..)
-  , MaxResultsFlg(..)
   , MorphCmdFlg(..)
   , MorphInfoFlg(..)
   , OptimisationsFlg(..)
