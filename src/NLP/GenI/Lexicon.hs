@@ -36,8 +36,7 @@ import Control.DeepSeq
 --instance Show (IO()) where
 --  show _ = ""
 
--- | A lexicon maps semantic predicates to lexical entries.
-type Lexicon = Map.Map String [ILexEntry]
+type Lexicon = [ILexEntry]
 data ILexEntry = ILE
     { -- normally just a singleton, useful for merging synonyms
       iword       :: [String]

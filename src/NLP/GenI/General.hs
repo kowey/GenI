@@ -41,7 +41,6 @@ module NLP.GenI.General (
         buckets,
         isEmptyIntersect,
         groupByFM,
-        multiGroupByFM,
         insertToListMap,
         histogram, showWithCount,
         combinations,
@@ -221,15 +220,6 @@ groupByFM :: (Ord b) => (a -> b) -> [a] -> (Map.Map b [a])
 groupByFM fn list = 
   let addfn  x acc key = insertToListMap key x acc
       helper acc x = addfn x acc (fn x)
-  in foldl' helper Map.empty list
-
--- | Same as 'groupByFM', except that we let an item appear in
---   multiple groups.  The fn extracts the property from the item,
---   and returns multiple results in the form of a list
-multiGroupByFM :: (Ord b) => (a -> [b]) -> [a] -> (Map.Map b [a])
-multiGroupByFM fn list = 
-  let addfn  x acc key = insertToListMap key x acc
-      helper acc x = foldl' (addfn x) acc (fn x)
   in foldl' helper Map.empty list
 
 {-# INLINE insertToListMap #-}

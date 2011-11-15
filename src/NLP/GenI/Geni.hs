@@ -114,7 +114,7 @@ import NLP.GenI.GeniParsers (geniMacros, geniTagElems,
                     ParseError,
                     )
 import NLP.GenI.LexicalSelection
-        ( mapBySemKeys, chooseLexCand, combineList
+        ( chooseLexCand, combineList
         , missingCoanchors
         )
 import NLP.GenI.Morphology
@@ -175,7 +175,7 @@ emptyProgState :: Params -> ProgState
 emptyProgState args =
  ST { pa = args
     , gr = []
-    , le = Map.empty
+    , le = []
     , morphinf = const Nothing
     , tcase = []
     , tsuite = []
@@ -296,12 +296,12 @@ loadFromString pstRef descr s =
   throwOnParseError descr (lParse "" s) >>= lSetState pstRef
 
 instance Loadable Lexicon where
-  lParse f = fmap toLexicon . runParser geniLexicon () f
+  lParse f = runParser geniLexicon () f
     where
-     toLexicon = mapBySemKeys isemantics . map sorter
+     toLexicon = map sorter
      sorter l  = l { isemantics = (sortSem . isemantics) l }
   lSet x p = p { le = x }
-  lSummarise x = show (Map.size x) ++ " lemmas"
+  lSummarise x = show (length x) ++ " lemmas"
 
 instance Loadable Macros where
   lParse f = runParser geniMacros () f

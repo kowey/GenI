@@ -32,7 +32,7 @@ import Data.Poset
 import Data.Tree (Tree(Node))
 
 import NLP.GenI.General(filterTree, repAllNode,
-    multiGroupByFM, showWithCount,
+    showWithCount,
     geniBug,
     repNodeByNode,
     fst3,
@@ -70,19 +70,7 @@ import NLP.GenI.TreeSchemata ( Ttree(..), SchemaTree, SchemaNode, crushTreeGNode
 -- | Select and returns the set of entries from the lexicon whose semantics
 --   subsumes the input semantics.
 chooseLexCand :: Lexicon -> Sem -> [ILexEntry]
-chooseLexCand slex tsem =
-  let keys = toKeys tsem
-      -- we choose candidates that match keys
-      lookuplex t = Map.findWithDefault [] t slex
-      cand  = nub -- a lexical entry may match more than one key
-                  -- no point keeping all matches
-            $ concatMap lookuplex $ myEMPTY : keys
-      -- and refine the selection...
-      cand2 = chooseCandI tsem cand
-      -- treat synonyms as a single lexical entry
-      -- FIXME: disabled see mergeSynonyms for explanation
-      -- cand3 = mergeSynonyms cand2
-  in cand2
+chooseLexCand slex tsem = chooseCandI tsem slex
 
 -- | 'chooseCandI' @sem l@ attempts to unify the semantics of @l@ with @sem@
 --   If this succeeds, we use return the result(s); if it fails, we reject
@@ -99,16 +87,6 @@ chooseCandI tsem cand =
               sem = isemantics l
       --
   in nub $ concatMap (helper . alphaConvert "") cand
-
--- | 'mapBySemKeys' @xs fn@ organises items (@xs@) by their semantic key
---   (retrieved by @fn@).  A semantic key is a semantic literal boiled
---   down to predicate plus arity.  An item may have multiple keys.
----  This is used to organise the lexicon by its semantics.
-mapBySemKeys :: (a -> Sem) -> [a] -> Map.Map String [a]
-mapBySemKeys semfn xs =
-  let gfn t = if (null s) then [myEMPTY] else toKeys s
-              where s = semfn t
-  in multiGroupByFM gfn xs
 
 -- | `mergeSynonyms' is a factorisation technique that uses
 --   atomic disjunction to merge all synonyms into a single lexical
