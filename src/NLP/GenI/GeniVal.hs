@@ -29,8 +29,6 @@ import Data.Generics (Data)
 import Data.Typeable (Typeable)
 import qualified Data.Map as Map
 
-import Data.Generics.PlateDirect
-
 import Control.DeepSeq
 
 import NLP.GenI.General (geniBug, quoteString, isGeniIdentLetter)
@@ -63,12 +61,6 @@ mkGVarNone x  = mkGVar x Nothing
 
 mkGAnon :: GeniVal
 mkGAnon       = GeniVal Nothing Nothing
-
-instance Uniplate GeniVal where
-  uniplate x = (Zero, f)
-   where
-    f Zero = x
-    f _    = error ("uniplate error " ++ show x)
 
 instance Show GeniVal where
   show = showGeniVal

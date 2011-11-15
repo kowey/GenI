@@ -52,7 +52,6 @@ import Prelude hiding ( init )
 
 import Control.DeepSeq
 
-import Data.Generics.PlateDirect
 import Data.Generics ( Data )
 import Data.Typeable ( Typeable )
 
@@ -117,9 +116,6 @@ data Input =
 type SentenceAut            = NFA Int LemmaPlus
 
 data UninflectedDisjunction = UninflectedDisjunction [String] (Flist GeniVal) deriving (Show, Data, Typeable)
-
-instance Biplate UninflectedDisjunction GeniVal where
-  biplate (UninflectedDisjunction a v) = plate UninflectedDisjunction |- a ||+ v
 
 instance DescendGeniVal UninflectedDisjunction where
   descendGeniVal s (UninflectedDisjunction a v) = {-# SCC "descendGeniVal" #-} UninflectedDisjunction a (descendGeniVal s v)

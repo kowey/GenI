@@ -47,7 +47,6 @@ import Data.List (intersperse)
 import Data.Tree
 
 import Data.Generics (Data)
-import Data.Generics.PlateDirect
 import Data.Typeable (Typeable)
 import Text.JSON
 
@@ -87,13 +86,6 @@ data TagSite = TagSite { tsName :: String
                        , tsOrigin :: String
                        }
   deriving (Show, Eq, Ord, Data, Typeable)
-
-instance Biplate TagSite GeniVal where
-  biplate (TagSite x1 zu zd x2) = plate TagSite |- x1 ||+ zu ||+ zd |- x2
-
-instance Biplate (Maybe TagSite) GeniVal where
-  biplate (Just x1) = plate Just |+ x1
-  biplate Nothing   = plate Nothing
 
 data TagElem = TE {
                    idname       :: String,

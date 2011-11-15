@@ -20,7 +20,6 @@
 module NLP.GenI.Semantics where
 
 import Control.Arrow ( first, (***) )
-import Data.Generics.PlateDirect
 import Data.Function ( on )
 import Data.List ( isPrefixOf, nub, sortBy, delete, insert )
 import Data.Maybe ( isNothing, isJust )
@@ -34,13 +33,6 @@ type Pred = (GeniVal, GeniVal, [GeniVal])
 type Sem = [Pred]
 type LitConstr = (Pred, [String])
 type SemInput  = (Sem,Flist GeniVal,[LitConstr])
-
-instance Biplate Pred GeniVal where
-  biplate (g1, g2, g3) = plate (,,) |* g1 |* g2 ||* g3
-
-instance Biplate (Maybe Sem) GeniVal where
-  biplate (Just s) = plate Just ||+ s
-  biplate Nothing  = plate Nothing
 
 -- Pred is what I had in mind here
 instance ((Collectable a, Collectable b, Collectable c)

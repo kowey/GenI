@@ -51,7 +51,6 @@ import qualified Data.Map as Map
 import Data.Tree
 
 import Data.Generics ( Data )
-import Data.Generics.PlateDirect
 
 import NLP.GenI.Statistics (Statistics)
 
@@ -240,11 +239,6 @@ data SimpleGuiItem = SimpleGuiItem
  , siFullSem :: Sem
  , siIdname  :: String
  } deriving (Show, Data, Typeable)
-
-instance Biplate SimpleGuiItem GeniVal where
-  biplate (SimpleGuiItem x1 x2 zsem x3) =
-     plate SimpleGuiItem |- x1 |- x2
-                         ||+ zsem |- x3
 
 emptySimpleGuiItem :: SimpleGuiItem
 emptySimpleGuiItem = SimpleGuiItem [] [] [] ""

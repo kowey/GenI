@@ -24,9 +24,6 @@ module NLP.GenI.Lexicon (
 -- import Debug.Trace -- for test stuff
 import Data.Generics (Data)
 import Data.Typeable (Typeable)
-import qualified Data.Map as Map
-
-import Data.Generics.PlateDirect
 
 import NLP.GenI.FeatureStructures
 import NLP.GenI.GeniVal
@@ -64,15 +61,6 @@ emptyLE = ILE { iword = [],
                 isemantics = [],
                 iequations = [],
                 isempols   = [] }
-
-instance Biplate ILexEntry GeniVal where
-  biplate (ILE x1 x2 zps zint zfilts zeq x3 zsem x4) =
-    plate ILE |- x1 |- x2
-              ||* zps
-              ||+ zint
-              ||+ zfilts
-              ||+ zeq  |- x3
-              ||+ zsem |- x4
 
 instance DescendGeniVal ILexEntry where
   descendGeniVal s i =

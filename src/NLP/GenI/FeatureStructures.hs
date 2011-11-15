@@ -22,7 +22,6 @@ module NLP.GenI.FeatureStructures where
 
 import Data.Function (on)
 import Data.Generics (Data)
-import Data.Generics.PlateDirect
 import Data.List (sortBy)
 import qualified Data.Map as Map
 import Data.Typeable (Typeable)
@@ -70,9 +69,6 @@ sortFlist :: Flist a -> Flist a
 sortFlist = sortBy (compare `on` avAtt)
 
 -- Traversal
-
-instance Biplate (AvPair GeniVal) GeniVal where
-  biplate (AvPair a v) = plate AvPair |- a |* v
 
 instance DescendGeniVal v => DescendGeniVal (AvPair v) where
   descendGeniVal s (AvPair a v) = {-# SCC "descendGeniVal" #-} AvPair a (descendGeniVal s v)
