@@ -245,7 +245,7 @@ mainOnLoad pstRef (MainWidgets {..}) = do
          set testCaseChoice  [ enabled := True ]
          onTestSuiteChoice -- load the first suite
 
--- Note the following point about anti-optimisations: An anti-optimisation
+-- Note the following point about pessimisations: An pessimisation
 -- disables a default behaviour which is assumed to be "optimisation".  But of
 -- course we don't want to confuse the GUI user, so we confuse the programmer
 -- instead: Given an pessimisation DisableFoo, we have a check box UseFoo.  If
