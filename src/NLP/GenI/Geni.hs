@@ -296,7 +296,7 @@ loadFromString pstRef descr s =
   throwOnParseError descr (lParse "" s) >>= lSetState pstRef
 
 instance Loadable Lexicon where
-  lParse f = runParser geniLexicon () f
+  lParse f = fmap toLexicon . runParser geniLexicon () f
     where
      toLexicon = map sorter
      sorter l  = l { isemantics = (sortSem . isemantics) l }
