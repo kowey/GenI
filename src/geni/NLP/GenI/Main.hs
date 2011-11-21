@@ -16,7 +16,7 @@
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 {-# LANGUAGE CPP #-}
-module Main (main) where
+module NLP.GenI.Main where
 
 import Control.Applicative ((<$>))
 import Data.IORef(newIORef)
@@ -35,6 +35,7 @@ import NLP.GenI.Configuration (treatArgs, optionsForStandardGenI, processInstruc
                                HelpFlg(..), VersionFlg(..), TestCaseFlg(..),
                                readGlobalConfig, setLoggers
                               )
+import NLP.GenI.Geni ( ProgState(..) )
 
 #ifdef DISABLE_GUI
 import NLP.GenI.Configuration(setFlagP)
@@ -50,14 +51,17 @@ guiGeni = consoleGeni
 
 main :: IO ()
 main = do       
-  pname <- getProgName
   args  <- getArgs
-  maybe (return ()) setLoggers =<< readGlobalConfig
   confArgs <- forceGuiFlag <$> (processInstructions =<< treatArgs optionsForStandardGenI args)
-  let pst = emptyProgState confArgs
+  mainWithState (emptyProgState confArgs)
+
+mainWithState :: ProgState -> IO ()
+mainWithState pst = do
+  pname <- getProgName
+  maybe (return ()) setLoggers =<< readGlobalConfig
   pstRef <- newIORef pst
   let has :: (Typeable f, Typeable x) => (x -> f) -> Bool
-      has = flip hasFlagP confArgs
+      has = flip hasFlagP (pa pst)
       mustRunInConsole = has DumpDerivationFlg || has FromStdinFlg || has BatchDirFlg
       canRunInConsole  = has TestCaseFlg
   case () of

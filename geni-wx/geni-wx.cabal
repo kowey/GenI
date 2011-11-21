@@ -1,0 +1,47 @@
+Name:           geni-wx
+Version:        0.21
+License:        GPL
+License-file:   LICENSE
+Author:         Carlos Areces and Eric Kow
+Category:       Natural Language Processing
+Synopsis:       GenI program modules as a library
+Homepage:       http://projects.haskell.org/GenI
+Maintainer:     geni-users@loria.fr
+Build-Type:     Simple
+Cabal-Version: >=1.8
+
+Library
+  Exposed-Modules:
+                NLP.GenI.BuilderGui
+                NLP.GenI.Console
+                NLP.GenI.Graphviz
+                NLP.GenI.GraphvizShow
+                NLP.GenI.GraphvizShowPolarity
+                NLP.GenI.Gui
+                NLP.GenI.GuiHelper
+                NLP.GenI.Main
+                NLP.GenI.Simple.SimpleGui 
+  Other-Modules:
+                Paths_geni_wx
+                Paths_GenI
+
+  Hs-Source-Dirs: ../src/geni, .
+  Ghc-options:    -Wall -O2
+  Ghc-prof-options: -auto-all
+
+  Build-Depends: base >= 4 && < 5
+              , GenI
+              , containers
+              , directory
+              , filepath
+              , yaml-light
+              , hslogger
+              , json
+              , mtl
+              , process
+              , split
+              , utf8-string
+              , strict-io
+              , wx
+              , text
+              , graphviz

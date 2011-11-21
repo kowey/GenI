@@ -138,7 +138,7 @@ Library
   Ghc-prof-options: -auto-all
 
 Executable     geni
- Main-Is:        MainGeni.hs
+ Main-Is:        Main.hs
  Hs-Source-Dirs: src/geni
 
  Ghc-options:    -Wall -O2 -rtsopts
