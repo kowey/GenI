@@ -24,12 +24,13 @@ import Control.Arrow ( first, (***), (&&&) )
 import Control.Applicative ( (<$>) )
 import Data.Function ( on )
 import Data.List ( nub, sortBy, delete, insert )
-import Data.Maybe ( isNothing, isJust )
+import Data.Maybe ( isNothing, isJust, mapMaybe, fromMaybe )
 import qualified Data.Map as Map
 import Data.Text ( Text )
 import qualified Data.Text as T
 
 import NLP.GenI.FeatureStructures
+import NLP.GenI.General ( histogram )
 import NLP.GenI.GeniVal
 
 -- handle, predicate, parameters
@@ -51,8 +52,17 @@ emptyPred = (mkGAnon,mkGAnon,[])
 removeConstraints :: SemInput -> SemInput
 removeConstraints (x, _, _) = (x, [], [])
 
-sortByMostConstants :: Sem -> Sem
-sortByMostConstants = sortBy (flip compare `on` constants)
+-- sort primarily putting the ones with the most constants first
+-- and secondarily by the number of instances a predicate occurs
+-- (if plain string; atomic disjunction/vars treated as infinite)
+sortByAmbiguity :: Sem -> Sem
+sortByAmbiguity sem = sortBy (flip compare `on` criteria) sem
+ where
+   criteria  = (constants &&& ambiguity) -- this is reverse sorting
+                                         -- so high numbers come first
+   ambiguity l = fromMaybe 0 $ do -- Maybe
+                   p <- boringPred l
+                   negate <$> Map.lookup p (predCount sem)
 
 class HasConstants a where
   constants :: a -> Int
@@ -68,6 +78,15 @@ instance HasConstants a => HasConstants [a] where
 
 instance HasConstants Pred where
   constants (h, p, args) = constants (h:p:args)
+
+predCount :: [Pred] -> Map.Map Text Int
+predCount = histogram . mapMaybe boringPred
+
+boringPred :: Pred -> Maybe Text
+boringPred (_,p,_) =      -- predicates with a straightfoward constant value
+    case gConstraints p of  -- exactly one constraint
+      Just [o] -> Just    o
+      _        -> Nothing
 
 -- | Sort semantics first according to its predicate, and then to its handles.
 sortSem :: Sem -> Sem

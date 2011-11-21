@@ -20,7 +20,7 @@
 module NLP.GenI.LexicalSelection
 where
 
-import Control.Arrow ((***),(&&&))
+import Control.Arrow ((***))
 import Control.Monad.Maybe
 import Control.Monad.Writer
 
