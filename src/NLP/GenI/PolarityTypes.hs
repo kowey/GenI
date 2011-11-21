@@ -28,39 +28,39 @@ import qualified Data.Text as T
 
 import Control.DeepSeq
 
-data PolarityKey = PolarityKeyAv   String Text
+data PolarityKey = PolarityKeyAv   Text Text
                  | PolarityKeyStr  String
-                 | PolarityKeyVar  String -- ^ attribute
+                 | PolarityKeyVar  Text -- ^ attribute
  deriving (Eq, Ord, Data, Typeable)
 
 instance Show PolarityKey where
-  show (PolarityKeyAv a v) = a ++ ":" ++ T.unpack v
+  show (PolarityKeyAv a v) = T.unpack a ++ ":" ++ T.unpack v
   show (PolarityKeyStr s)  = s
-  show (PolarityKeyVar a)  = a ++ ":_"
+  show (PolarityKeyVar a)  = T.unpack a ++ ":_"
 
 type SemPols  = [Int]
 
 -- | 'PolarityAttr' is something you want to perform detect polarities on.
-data PolarityAttr = SimplePolarityAttr { spkAtt :: String }
+data PolarityAttr = SimplePolarityAttr { spkAtt :: Text }
  -- | 'RestrictedPolarityKey' @c att@ is a polarity key in which we only pay
  --   attention to nodes that have the category @c@.  This makes it possible
  --   to have polarities for a just a small subset of nodes
- | RestrictedPolarityAttr { _rpkCat :: Text, rpkAtt :: String }
+ | RestrictedPolarityAttr { _rpkCat :: Text, rpkAtt :: Text }
  deriving (Eq, Ord, Typeable)
 
 readPolarityAttrs :: String -> Set.Set PolarityAttr
 readPolarityAttrs = Set.fromList . map helper . words
  where
   helper s = case break (== '.') s of
-             (a,"") -> SimplePolarityAttr a
-             (c,a)  -> RestrictedPolarityAttr (T.pack c) (drop 1 a)
+             (a,"") -> SimplePolarityAttr (T.pack a)
+             (c,a)  -> RestrictedPolarityAttr (T.pack c) (T.pack (drop 1 a))
 
 showPolarityAttrs :: Set.Set PolarityAttr -> String
 showPolarityAttrs = unwords . map show . Set.toList
 
 instance Show PolarityAttr where
- show (SimplePolarityAttr a) = a
- show (RestrictedPolarityAttr c a) = T.unpack c ++ "." ++ a
+ show (SimplePolarityAttr a) = T.unpack a
+ show (RestrictedPolarityAttr c a) = T.unpack c ++ "." ++ T.unpack a
 
 {-!
 deriving instance NFData PolarityKey

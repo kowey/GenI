@@ -30,6 +30,7 @@ import Prelude hiding ( catch )
 
 import Data.IORef
 import Data.GraphViz.Exception ( GraphvizException(..) )
+import qualified Data.Text as T
 import System.Directory 
 import System.FilePath ((<.>),(</>),dropExtensions)
 import System.Process (runProcess)
@@ -86,7 +87,7 @@ candidateGui pst f xs = do
   p  <- panel f []      
   (tb,gvRef,updater) <- tagViewerGui pst p "lexically selected item" "candidates"
                         $ sectionsBySem xs
-  let polFeats = "Polarity attributes detected: " ++ (unwords.suggestPolFeatures) xs
+  let polFeats = "Polarity attributes detected: " ++ (T.unpack . T.unwords .suggestPolFeatures) xs
       lexWarnings = concatMap showGeniWarning . sortWarnings $ warnings (local pst)
       warning = unlines $ filter (not .  null) (polFeats : lexWarnings)
   -- side panel

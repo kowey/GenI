@@ -18,6 +18,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE OverlappingInstances, FlexibleInstances #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE OverloadedStrings  #-}
 
 -- | This module provides basic datatypes specific to Tree Adjoining Grammar
 --   tree schemata.
@@ -38,6 +39,7 @@ module NLP.GenI.TreeSchemata (
 import qualified Data.Map as Map
 import Data.List (intersperse)
 import Data.Tree
+import Data.Text ( Text )
 
 import Data.Generics (Data)
 import Data.Typeable (Typeable)
@@ -205,7 +207,7 @@ gCategory top =
   _   -> geniBug $ "Impossible case: node with more than one category"
 
 -- | Attributes recognised as lexemes, in order of preference
-lexemeAttributes :: [String]
+lexemeAttributes :: [Text]
 lexemeAttributes = [ "lex", "phon", "cat" ]
 
 -- Pretty printing

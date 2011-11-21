@@ -145,7 +145,7 @@ geniAttVal :: GeniValLike v => Parser (AvPair v)
 geniAttVal = do
   att <- identifierR <?> "an attribute"; colon
   val <- geniValueLike <?> "a GenI value"
-  return $ AvPair att val
+  return $ AvPair (T.pack att) val
 
 geniSemantics :: Parser Sem
 geniSemantics =

@@ -28,7 +28,8 @@ import Data.Maybe(listToMaybe, maybeToList)
 
 import Data.GraphViz
 import Data.GraphViz.Attributes.Complete
-import qualified Data.Text.Lazy as T
+import qualified Data.Text.Lazy as TL
+import qualified Data.Text as T
 
 import NLP.GenI.Tags
  ( TagElem, TagDerivation, idname,
@@ -67,14 +68,14 @@ instance GraphvizShow Bool TagElem where
 instance GraphvizShow (Bool, GvHighlighter (GNode GeniVal)) TagElem where
  graphvizShowAsSubgraph (sf,hfn) prefix te =
     [gvShowTree sf
-                (prefix `T.append` "DerivedTree0")
+                (prefix `TL.append` "DerivedTree0")
                 (hfn `fmap` ttree te)
     ]
 
  graphvizLabel _ te =
   -- we display the tree semantics as the graph label
-  let treename   = "name: "      `T.append` T.pack (idname te)
-      semlist    = "semantics: " `T.append` gvShowSem (tsemantics te)
+  let treename   = "name: "      `TL.append` TL.pack (idname te)
+      semlist    = "semantics: " `TL.append` gvShowSem (tsemantics te)
   in gvUnlines [ treename, semlist ]
 
  graphvizParams _ _ =
@@ -88,8 +89,8 @@ instance GraphvizShow (Bool, GvHighlighter (GNode GeniVal)) TagElem where
                ]
   ]
 
-gvShowSem :: Sem -> T.Text
-gvShowSem = gvUnlines . map T.pack . map unwords . clumpBy length 72 . words . showSem
+gvShowSem :: Sem -> TL.Text
+gvShowSem = gvUnlines . map TL.pack . map unwords . clumpBy length 72 . words . showSem
 
 -- ----------------------------------------------------------------------
 -- Helper functions for the TagElem GraphvizShow instance
@@ -113,7 +114,7 @@ instance GraphvizShowNode (Bool) (GNode GeniVal, Maybe Color) where
        -- content
        stub  = showGnStub gn
        extra = showGnDecorations gn
-       summary = if T.null extra
+       summary = if TL.null extra
                  then FieldLabel stub
                  else FlipFields [ FieldLabel stub, FieldLabel extra ]
        body = Label $
@@ -131,25 +132,25 @@ instance GraphvizShowString () (GNode GeniVal) where
   graphvizShow () gn =
     let stub  = showGnStub gn
         extra = showGnDecorations gn
-    in stub `T.append` extra
+    in stub `TL.append` extra
 
 instance GraphvizShowString () (AvPair GeniVal) where
-  graphvizShow () (AvPair a v) = T.pack (a ++ ":") `T.append` graphvizShow_ v
+  graphvizShow () (AvPair a v) = TL.fromChunks [a, ":"] `TL.append` graphvizShow_ v
 
 instance GraphvizShowString () GeniVal where
   graphvizShow () (GeniVal Nothing Nothing)    = "?_"
-  graphvizShow () (GeniVal Nothing (Just cs))  = T.intercalate "!" (map T.fromChunks [cs])
-  graphvizShow () (GeniVal (Just l) Nothing)   = '?' `T.cons` (T.pack l)
-  graphvizShow () (GeniVal (Just l) (Just cs)) = '?' `T.cons` (T.concat [T.pack l, "/", T.intercalate "!" (map T.fromChunks [cs])])
+  graphvizShow () (GeniVal Nothing (Just cs))  = TL.intercalate "!" (map TL.fromChunks [cs])
+  graphvizShow () (GeniVal (Just l) Nothing)   = '?' `TL.cons` (TL.pack l)
+  graphvizShow () (GeniVal (Just l) (Just cs)) = '?' `TL.cons` (TL.concat [TL.pack l, "/", TL.intercalate "!" (map TL.fromChunks [cs])])
 
-showGnDecorations :: GNode GeniVal -> T.Text
+showGnDecorations :: GNode GeniVal -> TL.Text
 showGnDecorations gn =
   case gtype gn of
   Subs -> "↓"
   Foot -> "*"
   _    -> if gaconstr gn then "ᴺᴬ"   else ""
 
-showGnStub :: GNode GeniVal -> T.Text
+showGnStub :: GNode GeniVal -> TL.Text
 showGnStub gn =
  let cat = case getGnVal gup "cat" gn of
            Nothing -> ""
@@ -163,29 +164,29 @@ showGnStub gn =
      idxB = getIdx gdown
      idx  = tackOn "." idxT idxB
      --
-     lexeme  = T.intercalate "!" (map T.pack (glexeme gn))
- in T.intercalate ":" $ filter (not . T.null) [ cat, idx, lexeme ]
+     lexeme  = TL.intercalate "!" (map TL.pack (glexeme gn))
+ in TL.intercalate ":" $ filter (not . TL.null) [ cat, idx, lexeme ]
 
-getGnVal :: (GNode GeniVal -> Flist GeniVal) -> String -> GNode GeniVal -> Maybe GeniVal
+getGnVal :: (GNode GeniVal -> Flist GeniVal) -> T.Text -> GNode GeniVal -> Maybe GeniVal
 getGnVal getFeat attr gn =
   listToMaybe [ v | AvPair a v <- getFeat gn, a == attr ]
 
--- | @x `tackOn p` y@` is @T.concat [x, p, y]@ if @y@ is not null
+-- | @x `tackOn p` y@` is @TL.concat [x, p, y]@ if @y@ is not null
 --   otherwise is just x
-tackOn :: T.Text -> T.Text -> T.Text -> T.Text
-tackOn p x y = if T.null y then x else T.concat [ x, p, y ]
+tackOn :: TL.Text -> TL.Text -> TL.Text -> TL.Text
+tackOn p x y = if TL.null y then x else TL.concat [ x, p, y ]
 
-graphvizShow_ :: (GraphvizShowString () a) => a -> T.Text
+graphvizShow_ :: (GraphvizShowString () a) => a -> TL.Text
 graphvizShow_ = graphvizShow ()
 
 -- ----------------------------------------------------------------------
 -- Derivation tree
 -- ----------------------------------------------------------------------
 
-graphvizShowDerivation :: TagDerivation -> [DotSubGraph T.Text]
+graphvizShowDerivation :: TagDerivation -> [DotSubGraph TL.Text]
 graphvizShowDerivation = maybeToList . derivationToGv
 
-derivationToGv :: TagDerivation -> Maybe (DotSubGraph T.Text)
+derivationToGv :: TagDerivation -> Maybe (DotSubGraph TL.Text)
 derivationToGv deriv =
  if null histNodes
     then Nothing
@@ -204,11 +205,11 @@ derivationToGv deriv =
       DotEdge (gvDerivationLab parent) (gvDerivationLab child) xs
       where xs = if substadj == 'a' then [Style [SItem Dashed []]] else []
     label n = case wordsBy (== ':') n of
-              name:fam:tree:_ -> T.pack $ name ++ ":" ++ fam ++ "\n" ++ tree
-              _               -> T.pack n `T.append` " (geni/gv ERROR)"
+              name:fam:tree:_ -> TL.pack $ name ++ ":" ++ fam ++ "\n" ++ tree
+              _               -> TL.pack n `TL.append` " (geni/gv ERROR)"
 
-gvDerivationLab :: String -> T.Text
-gvDerivationLab xs = T.pack ("Derivation" ++ gvMunge xs)
+gvDerivationLab :: String -> TL.Text
+gvDerivationLab xs = TL.pack ("Derivation" ++ gvMunge xs)
 
 -- | Node names can't have hyphens in them and newlines within the node
 --   labels should be represented literally as @\\n@.

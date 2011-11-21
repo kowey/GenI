@@ -20,7 +20,8 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module NLP.GenI.Semantics where
 
-import Control.Arrow ( first, (***) )
+import Control.Arrow ( first, (***), (&&&) )
+import Control.Applicative ( (<$>) )
 import Data.Function ( on )
 import Data.List ( nub, sortBy, delete, insert )
 import Data.Maybe ( isNothing, isJust )

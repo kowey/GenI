@@ -15,6 +15,7 @@
 -- along with this program; if not, write to the Free Software
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+{-# LANGUAGE OverloadedStrings #-}
 module NLP.GenI.Polarity.Internal where
 
 import NLP.GenI.FeatureStructures
@@ -27,6 +28,7 @@ import qualified Data.Map as Map
 import Data.List
 import Data.Maybe (isJust)
 import Data.Tree (flatten)
+import Data.Text (Text)
 import qualified Data.Text as T
 
 import NLP.GenI.Automaton
@@ -39,7 +41,7 @@ import NLP.GenI.Tags(TagElem(..), TagItem(..))
 data PolarityDetectionResult = PD_UserError String
                              | PD_Nothing
                              | PD_Just [ (PolarityKey, Interval) ]
-                             | PD_Unconstrained (String, Interval)
+                             | PD_Unconstrained (Text, Interval)
 
 -- ----------------------------------------------------------------------
 -- polarity detection
@@ -163,7 +165,7 @@ nubAut aut =
       transitions = Map.map (\e -> Map.map nub e) (transitions aut)
   }
 
-__cat__, __idx__  :: String
+__cat__, __idx__  :: Text
 __cat__  = "cat"
 __idx__  = "idx"
 

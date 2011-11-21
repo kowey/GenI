@@ -16,6 +16,7 @@
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 -- | This module performs the core of lexical selection and anchoring.
+{-# LANGUAGE OverloadedStrings #-}
 module NLP.GenI.LexicalSelection
 where
 
@@ -243,7 +244,7 @@ combineOne tsem lexRaw eRaw = -- Maybe monad
 -- Enrichment
 
 -- | (node, top, att) (node is Nothing if anchor)
-type PathEqLhs  = (String, Bool, String)
+type PathEqLhs  = (String, Bool, Text)
 type PathEqPair = (PathEqLhs, GeniVal)
 
 enrich :: ILexEntry -> SchemaTree -> LexCombine SchemaTree
@@ -337,9 +338,10 @@ matchNodeName n        = (== n) . gnname
 -- | Parse a path equation using the GenI conventions
 --   This always succeeds, but can return @Just warning@
 --   if anything anomalous comes up
-parsePathEq :: String -> Writer [LexCombineError] PathEqLhs
+--   FIXME : make more efficient
+parsePathEq :: Text -> Writer [LexCombineError] PathEqLhs
 parsePathEq e =
-  case wordsBy (== '.') e of
+  case wordsBy (== '.') (T.unpack e) of
   (n:"top":r) -> return (n, True, rejoin r)
   (n:"bot":r) -> return (n, False, rejoin r)
   ("top":r) -> return ("anchor", True, rejoin r)
@@ -347,18 +349,18 @@ parsePathEq e =
   ("anc":r) -> parsePathEq $ rejoin $ "anchor":r
   ("anchor":r)    -> return ("anchor", False, rejoin r)
   ("interface":r) -> return ("interface", False, rejoin r)
-  (n:r) -> do tell [ BoringError $ "Interpreting path equation " ++ e ++ " as applying to top of " ++ n ++ "." ]
+  (n:r) -> do tell [ BoringError $ "Interpreting path equation " ++ T.unpack e ++ " as applying to top of " ++ n ++ "." ]
               return (n, True, rejoin r)
-  _ -> do tell [ BoringError $ "Could not interpret path equation " ++ e ]
+  _ -> do tell [ BoringError $ "Could not interpret path equation " ++ T.unpack e ]
           return ("", True, e)
  where
-  rejoin = concat . intersperse "."
+  rejoin = T.pack . concat . intersperse "."
 
 showPathEqLhs :: PathEqLhs -> String
 showPathEqLhs (x,tb_,z) =
   intercalate "." $ case x of
-                     "interface" -> [x,z]
-                     _           -> [x,tb,z]
+                     "interface" -> [x,T.unpack z]
+                     _           -> [x,tb,T.unpack z]
   where
    tb = if tb_ then "top" else "bot"
 
@@ -384,7 +386,7 @@ setLemAnchors t =
     [l] | isConst l -> gConstraints l
     _               -> Nothing
 
-_lemanchor :: String
+_lemanchor :: Text
 _lemanchor = "lemanchor"
 
 -- Node origins

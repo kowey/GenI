@@ -40,6 +40,7 @@ where
 import Data.Tree
 import Data.List(intersperse)
 import qualified Data.Map as Map
+import qualified Data.Text as T
 
 import NLP.GenI.Semantics ( isInternalHandle )
 import NLP.GenI.Tags
@@ -62,7 +63,7 @@ instance GeniShow Ptype where
  geniShow _        = ""
 
 instance GeniShow (AvPair GeniVal) where
- geniShow (AvPair a v) = a ++ ":" ++ geniShow v
+ geniShow (AvPair a v) = T.unpack a ++ ":" ++ geniShow v
 
 instance GeniShow GeniVal where
  geniShow x = show  x

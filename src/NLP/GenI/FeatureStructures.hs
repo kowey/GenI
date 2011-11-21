@@ -25,6 +25,8 @@ import Data.Generics (Data)
 import Data.List (sortBy)
 import qualified Data.Map as Map
 import Data.Typeable (Typeable)
+import Data.Text ( Text )
+import qualified Data.Text as T
 
 import NLP.GenI.GeniVal
 import NLP.GenI.General ( geniBug )
@@ -36,13 +38,13 @@ import Control.DeepSeq
 -- ----------------------------------------------------------------------
 
 type Flist a  = [AvPair a]
-data AvPair a = AvPair { avAtt :: String
+data AvPair a = AvPair { avAtt :: Text
                        , avVal :: a }
   deriving (Ord, Eq, Data, Typeable)
 
 -- experimental, alternative representation of Flist
 -- which guarantees uniqueness of keys
-type FeatStruct a = Map.Map String a
+type FeatStruct a = Map.Map Text a
 
 emptyFeatStruct :: FeatStruct a
 emptyFeatStruct = Map.empty
@@ -91,7 +93,7 @@ showPairs :: Flist GeniVal -> String
 showPairs = unwords . map showAv
 
 showAv :: AvPair GeniVal -> String
-showAv (AvPair y z) = y ++ ":" ++ show z
+showAv (AvPair y z) = T.unpack y ++ ":" ++ show z
 
 instance Show (AvPair GeniVal) where
   show = showAv
@@ -123,10 +125,10 @@ unifyFeat f1 f2 =
 --   other with an anonymous value.
 --
 --   The two feature structures must be sorted for this to work
-alignFeat :: Flist GeniVal -> Flist GeniVal -> [(String,GeniVal,GeniVal)]
+alignFeat :: Flist GeniVal -> Flist GeniVal -> [(Text,GeniVal,GeniVal)]
 alignFeat f1 f2 = alignFeatH f1 f2 []
 
-alignFeatH :: Flist GeniVal -> Flist GeniVal -> [(String,GeniVal,GeniVal)] -> [(String,GeniVal,GeniVal)]
+alignFeatH :: Flist GeniVal -> Flist GeniVal -> [(Text,GeniVal,GeniVal)] -> [(Text,GeniVal,GeniVal)]
 alignFeatH [] [] acc = reverse acc
 alignFeatH [] (AvPair f v :x) acc = alignFeatH [] x ((f,mkGAnon,v) : acc)
 alignFeatH x [] acc = alignFeatH [] x acc

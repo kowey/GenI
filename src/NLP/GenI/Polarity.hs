@@ -38,6 +38,7 @@ import qualified Data.Set as Set
 import qualified Data.Map as Map
 import Data.List
 import Data.Maybe (isNothing, isJust)
+import Data.Text (Text)
 
 import NLP.GenI.Automaton
 import NLP.GenI.Btypes(Pred, SemInput, Sem, Flist, AvPair(..), showAv,
@@ -440,7 +441,7 @@ idxConstraintKey = PolarityKeyStr . ('.' :) . showAv
 
 -- Automatic polarity detection
 -- ----------------------------
-suggestPolFeatures :: [TagElem] -> [String]
+suggestPolFeatures :: [TagElem] -> [Text]
 suggestPolFeatures tes =
   let -- only initial trees need be counted; in aux trees, the
       -- root node is implicitly canceled by the foot node
@@ -448,7 +449,7 @@ suggestPolFeatures tes =
       rfeats = map (gdown.root.ttree) $ filter (\t -> ttype t == Initial) tes
       sfeats = [ concat s | s <- map substTops tes, (not.null) s ]
       --
-      attrs :: Flist GeniVal -> [String]
+      attrs :: Flist GeniVal -> [Text]
       attrs avs = [ a | AvPair a v <- avs, isJust (gConstraints v) ]
       theAttributes = map attrs $ rfeats ++ sfeats
   in if null theAttributes then [] else foldr1 intersect theAttributes
