@@ -325,7 +325,7 @@ initSimpleItem disableGui bmap (teRaw,pp) =
   , siDerived = tlite
   , siRoot_ = gnname . root $ theTree
   , siFoot_ = if ttype te == Initial then Nothing else Just . gnname . foot $ theTree
-  , siDerivation = []
+  , siDerivation = [ InitStep (gorigin . root $ theTree) ]
   -- note: see comment in initSimpleBuilder re: tb unification
   , siPendingTb = nullAdjNodes
   --
@@ -528,7 +528,7 @@ iapplySubst twophase item1 item2 | siInitial item1 && closed item1 = {-# SCC "ap
                      item2 { siSubstnodes = stail ++ (siSubstnodes item1)
                            , siAdjnodes   = siAdjnodes item1 ++ siAdjnodes item2
                            , siDerived    = plugTree (siDerived item1) n (siDerived item2)
-                           , siDerivation = addToDerivation 's' (item1,rOrigin) (item2,nOrigin,n)
+                           , siDerivation = addToDerivation SubstitutionStep (item1,rOrigin) (item2,nOrigin,n)
                            , siPendingTb  = pending
                            }
   in case doIt of
@@ -617,7 +617,7 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
         combineSimpleItems [tsName r, an_name] aItem2 $ pItem
                { siAdjnodes = pTail ++ siAdjnodes aItem
                , siDerived = spliceTree (tsName f) (siDerived aItem) an_name (siDerived pItem)
-               , siDerivation = addToDerivation 'a' (aItem,tsOrigin r) (pItem,tsOrigin pSite,an_name)
+               , siDerivation = addToDerivation AdjunctionStep (aItem,tsOrigin r) (pItem,tsOrigin pSite,an_name)
                -- , siAdjlist = (n, (tidnum te1)):(siAdjlist item2)
                -- if we adjoin into the root, the new root is that of the aux
                -- tree (affects 1p only)
@@ -729,15 +729,19 @@ constrainAdj gn newT g =
 
 -- Derivation trees
 
-addToDerivation :: Char
+addToDerivation :: (String -> String -> String -> DerivationStep)
                 -> (SimpleItem,String)
                 -> (SimpleItem,String,String)
                 -> TagDerivation
 addToDerivation op (tc,tcOrigin) (tp,tpOrigin,tpSite) =
   let hp = siDerivation tp
-      hc = siDerivation tc
-      newnode = DerivationStep op tcOrigin tpOrigin tpSite
+      hc = filter (not . isInit) (siDerivation tc)
+      newnode = op tcOrigin tpOrigin tpSite
   in newnode:hp++hc
+ where
+  isInit :: DerivationStep -> Bool
+  isInit (InitStep _) = True
+  isInit _ = False
 
 -- --------------------------------------------------------------------
 -- Dispatching new results

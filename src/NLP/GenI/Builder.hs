@@ -46,7 +46,7 @@ import Control.Monad.State.Strict
 import Data.Bits ( (.&.), (.|.), bit )
 import Data.List ( delete, sort, nub )
 import qualified Data.Map as Map
-import Data.Maybe ( mapMaybe, fromMaybe  )
+import Data.Maybe ( mapMaybe, fromMaybe, maybeToList )
 import Data.Tree ( flatten )
 import Prelude hiding ( init )
 
@@ -78,7 +78,7 @@ import NLP.GenI.Statistics (Statistics, incrIntMetric,
                    queryMetrics, queryIntMetric,
                    addMetric, emptyStats,
                    )
-import NLP.GenI.Tags ( TagElem(idname,tsemantics,ttree), setTidnums, TagDerivation, DerivationStep(..) )
+import NLP.GenI.Tags ( TagElem(idname,tsemantics,ttree), setTidnums, TagDerivation, dsChild, dsParent )
 
 data GenStatus = Finished
                | Active
@@ -379,7 +379,7 @@ gen_time = "gen_time"
 
 -- | The names of lexically selected chart items used in a derivation
 lexicalSelection :: TagDerivation -> [String]
-lexicalSelection = sort . nub . concatMap (\d -> [dsChild d, dsParent d])
+lexicalSelection = sort . nub . concatMap (\d -> dsChild d : maybeToList (dsParent d))
 
 {-!
 deriving instance NFData Input

@@ -25,7 +25,8 @@
 module NLP.GenI.Tags(
    -- Main Datatypes
    Tags, TagElem(..), TagItem(..), TagSite(..),
-   TagDerivation, DerivationStep(..), emptyTE,
+   TagDerivation, DerivationStep(..), dsChild, dsParent, dsParentSite,
+   emptyTE,
    ts_synIncomplete, ts_semIncomplete, ts_tbUnificationFailure,
    ts_rootFeatureMismatch,
 
@@ -40,9 +41,9 @@ module NLP.GenI.Tags(
    collect, detectSites
 ) where
 
-import Control.Applicative ( (<$>), (<*>) )
+import Control.Applicative ( (<$>) )
 import qualified Data.Map as Map
-import Data.Maybe (fromMaybe, listToMaybe, mapMaybe)
+import Data.Maybe (fromMaybe, listToMaybe, mapMaybe, catMaybes)
 import Data.List (intersperse)
 import Data.Tree
 import qualified Data.Text as T
@@ -123,27 +124,39 @@ toTagSite n = TagSite (gnname n) (gup n) (gdown n) (gorigin n)
 
 type TagDerivation = [ DerivationStep ]
 
-data DerivationStep = DerivationStep
- { dsOp         :: Char
- , dsChild      :: String
- , dsParent     :: String
- , dsParentSite :: String
- } deriving (Show, Ord, Eq)
+data DerivationStep = SubstitutionStep String String String
+                    | AdjunctionStep   String String String
+                    | InitStep         String
+ deriving (Show, Ord, Eq)
+
+dsOp :: DerivationStep -> Char
+dsOp (SubstitutionStep {}) = 's'
+dsOp (AdjunctionStep {})   = 'a'
+dsOp (InitStep {})         = 'i'
+
+dsChild :: DerivationStep -> String
+dsChild (SubstitutionStep c _ _) = c
+dsChild (AdjunctionStep c _ _ )  = c
+dsChild (InitStep c)             = c
+
+dsParent :: DerivationStep -> Maybe String
+dsParent (SubstitutionStep _ p _) = Just p
+dsParent (AdjunctionStep _ p _)   = Just p
+dsParent (InitStep _)             = Nothing
+
+dsParentSite :: DerivationStep -> Maybe String
+dsParentSite (SubstitutionStep _ _ s) = Just s
+dsParentSite (AdjunctionStep _ _ s)   = Just s
+dsParentSite (InitStep _)             = Nothing
 
 instance JSON DerivationStep where
- readJSON j =
-    do jo <- fromJSObject `fmap` readJSON j
-       let field x = maybe (fail $ "Could not find: " ++ x) readJSON
-                   $ lookup x jo
-       DerivationStep <$> field "op"
-                      <*> field "child"
-                      <*> field "parent"
-                      <*> field "parent-node"
+ readJSON _ = error "Reading DerivationStep from JSON not implemented"
  showJSON x =
      JSObject . toJSObject $ [ ("op",     showJSON  $ dsOp x)
                              , ("child",  showJSON  $ dsChild x)
-                             , ("parent", showJSON  $ dsParent x)
-                             , ("parent-node", showJSON $ dsParentSite x)
+                             ] ++ catMaybes
+                             [ (\v -> ("parent", showJSON v))      <$> dsParent x
+                             , (\v -> ("parent-node", showJSON v)) <$> dsParentSite x
                              ]
 
 instance Ord TagElem where
@@ -348,6 +361,9 @@ instance NFData TagElem where
 
  
 instance NFData DerivationStep where
-        rnf (DerivationStep x1 x2 x3 x4)
-          = rnf x1 `seq` rnf x2 `seq` rnf x3 `seq` rnf x4 `seq` ()
+        rnf (SubstitutionStep x1 x2 x3)
+          = rnf x1 `seq` rnf x2 `seq` rnf x3 `seq` ()
+        rnf (AdjunctionStep x1 x2 x3)
+          = rnf x1 `seq` rnf x2 `seq` rnf x3 `seq` ()
+        rnf (InitStep x1) = rnf x1 `seq` ()
 -- GENERATED STOP

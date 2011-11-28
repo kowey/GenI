@@ -24,7 +24,7 @@ where
 
 import Data.List ( nub )
 import Data.List.Split (wordsBy)
-import Data.Maybe(listToMaybe, maybeToList)
+import Data.Maybe(listToMaybe, maybeToList, mapMaybe)
 
 import Data.GraphViz
 import Data.GraphViz.Attributes.Complete
@@ -34,7 +34,7 @@ import qualified Data.Text as T
 import NLP.GenI.Tags
  ( TagElem, TagDerivation, idname,
    tsemantics, ttree,
-   DerivationStep(..),
+   DerivationStep(..), dsChild, dsParent
  )
 import NLP.GenI.Btypes (AvPair(..),
                GNode(..), GType(..), Flist,
@@ -196,14 +196,18 @@ derivationToGv deriv =
            , EdgeAttrs [ ArrowHead noArrow ]
            ]
     nodes = map mkNode histNodes
-    edges = map mkEdge deriv
+    edges = mapMaybe mkEdge deriv
     --
-    histNodes = reverse $ nub $ concatMap (\ (DerivationStep _ c p _) -> [c,p]) deriv
+    histNodes = reverse $ nub $ concatMap (\d -> dsChild d : maybeToList (dsParent d)) deriv
     mkNode n  =
       DotNode (gvDerivationLab n) [ Label . StrLabel $ label n ]
-    mkEdge (DerivationStep substadj child parent _) =
-      DotEdge (gvDerivationLab parent) (gvDerivationLab child) xs
-      where xs = if substadj == 'a' then [Style [SItem Dashed []]] else []
+    mkEdge ds = do
+     p <- dsParent ds
+     return $ DotEdge (gvDerivationLab p)
+                      (gvDerivationLab (dsChild ds))
+                      (edgeStyle ds)
+    edgeStyle (AdjunctionStep {}) = [Style [SItem Dashed []]]
+    edgeStyle _ = []
     label n = case wordsBy (== ':') n of
               name:fam:tree:_ -> TL.pack $ name ++ ":" ++ fam ++ "\n" ++ tree
               _               -> TL.pack n `TL.append` " (geni/gv ERROR)"

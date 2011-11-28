@@ -46,7 +46,7 @@ import NLP.GenI.GuiHelper
     debuggerPanel, DebuggerItemBar, setGvParams, GvIO, newGvRef, GraphvizGuiSt(..),
     viewTagWidgets, XMGDerivation(getSourceTrees),
   )
-import NLP.GenI.Tags (tsemantics, DerivationStep(dsChild), TagElem(idname, ttree), TagItem(..), emptyTE)
+import NLP.GenI.Tags (tsemantics, dsChild, TagElem(idname, ttree), TagItem(..), emptyTE)
 import NLP.GenI.GraphvizShow ( graphvizShowDerivation )
 
 import qualified NLP.GenI.Builder    as B
@@ -203,7 +203,7 @@ instance TagItem SimpleItem where
 
 instance XMGDerivation SimpleItem where
  -- Note: this is XMG-related stuff
- getSourceTrees it = tgIdName it : (map dsChild . siDerivation $ it)
+ getSourceTrees it = map dsChild (siDerivation it)
 
 instance GraphvizShow Bool SimpleItem where
   graphvizLabel  f c =
