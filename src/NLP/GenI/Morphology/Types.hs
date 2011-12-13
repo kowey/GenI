@@ -38,6 +38,7 @@ type MorphInputFn = Pred -> Maybe (Flist GeniVal)
 -- ----------------------------------------------------------------------
 -- morph output
 -- ----------------------------------------------------------------------
+type MorphRealiser = [LemmaPlusSentence] -> [[String]]
 
 -- | A lemma plus its morphological features
 data LemmaPlus = LemmaPlus { lpLemma :: String

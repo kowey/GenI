@@ -66,7 +66,7 @@ import NLP.GenI.Btypes ( showFlist, )
 import NLP.GenI.Flags
 import NLP.GenI.General ( geniBug, fst3, snd3 )
 import NLP.GenI.GeniParsers ( geniFeats, tillEof )
-import NLP.GenI.Morphology.Types ( LemmaPlusSentence )
+import NLP.GenI.Morphology.Types ( MorphRealiser )
 import NLP.GenI.Polarity.Types ( readPolarityAttrs )
 
 -- --------------------------------------------------------------------
@@ -80,7 +80,7 @@ data Params = Prms
    { grammarType    :: GrammarType
    , builderType    :: BuilderType
    -- | Can still be overridden with a morph command mind you
-   , customMorph    :: Maybe ([LemmaPlusSentence] -> [[String]])
+   , customMorph    :: Maybe MorphRealiser
    , geniFlags      :: [Flag]
    }
 
