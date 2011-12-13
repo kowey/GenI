@@ -2,10 +2,11 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module NLP.GenI.Test.FeatureStructures where
 
-import Control.Monad ( liftM2 )
+import Control.Monad ( liftM, liftM2 )
 import GHC.Exts ( IsString(..) )
 import Data.Maybe (isJust)
 import qualified Data.Map as Map
+import qualified Data.Text as T
 import Test.HUnit
 import Test.QuickCheck hiding (collect, Failure)
 import Test.Framework
@@ -31,5 +32,5 @@ instance Arbitrary v => Arbitrary (AvPair v) where
   arbitrary = liftM2 AvPair arbitraryAtt arbitrary
 
 arbitraryAtt =
-  elements (reservedNames geniLanguageDef ++ gTestStrings)
+  T.pack `liftM` elements (reservedNames geniLanguageDef ++ gTestStrings)
 

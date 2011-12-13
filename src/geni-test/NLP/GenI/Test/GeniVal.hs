@@ -2,10 +2,12 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module NLP.GenI.Test.GeniVal where
 
+import Control.Applicative ( (<$>) )
 import Control.Monad ( liftM2 )
 import Data.Char
 import GHC.Exts ( IsString(..) )
 import Data.Maybe (isJust)
+import qualified Data.Text as T
 import qualified Data.Map as Map
 import Test.HUnit
 import Test.QuickCheck hiding (collect, Failure)
@@ -154,7 +156,7 @@ qc_not_empty_GVar _ = True
 
 -- for more convenient testing
 instance IsString GeniVal where
-  fromString = mkGConstNone
+  fromString = mkGConstNone . T.pack
 
 -- Definition of Arbitrary GeniVal for QuickCheck
 newtype PrintString = PrintString { fromPrintString :: String }
@@ -188,12 +190,12 @@ instance Arbitrary GeniVal where
   arbitrary = oneof [ arbitraryGConst, arbitraryGVar, return mkGAnon ]
 
 arbitraryGConst :: Gen GeniVal
-arbitraryGConst = liftM2 mkGConst (fromPrintString `fmap` arbitrary)
-                                  (map fromPrintString `fmap` arbitrary)
+arbitraryGConst = liftM2 mkGConst (T.pack . fromPrintString <$> arbitrary)
+                                  (map (T.pack . fromPrintString) <$> arbitrary)
 
 arbitraryGVar :: Gen GeniVal
 arbitraryGVar = liftM2 mkGVar (fromGTestString2 `fmap` arbitrary)
-                              (fmap (map fromPrintString . fromList1) `fmap` arbitrary)
+                              (fmap (map (T.pack . fromPrintString) . fromList1) `fmap` arbitrary)
 
 
 -- | a small subset of GeniVal for some more elaborate tests
@@ -206,7 +208,7 @@ instance Arbitrary GeniValLite where
                       , return mkGAnon
                       ]
     where
-     astr   = fromGTestString `fmap` arbitrary
+     astr   = T.pack . fromGTestString <$> arbitrary
 
 instance Show GeniValLite where
   show = show . fromGeniValLite

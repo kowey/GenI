@@ -16,6 +16,7 @@
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE StandaloneDeriving, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module NLP.GenI.Test.Polarity where
@@ -25,6 +26,7 @@ import Data.List
 import Data.Maybe
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import qualified Data.Text as T
 
 import Test.HUnit
 import Test.QuickCheck hiding (collect, Failure)
@@ -36,7 +38,6 @@ import NLP.GenI.FeatureStructures
 import NLP.GenI.GeniVal
 import NLP.GenI.Polarity
 import NLP.GenI.Polarity.Internal
-import NLP.GenI.PolarityTypes
 import NLP.GenI.Tags
 
 import NLP.GenI.Test.Tags hiding ( suite )
@@ -210,10 +211,10 @@ testDetectPolarityForSillyTagElemAux = do
 instance Arbitrary PolarityKey where
   arbitrary = oneof [ pkAv, pkVar, pkStr ]
    where
-    pkAv  = liftM2 PolarityKeyAv keys arbitrary
+    pkAv  = liftM2 PolarityKeyAv keys (T.pack `liftM` arbitrary)
     pkVar = liftM PolarityKeyVar keys
     pkStr = liftM PolarityKeyStr arbitrary
-    keys  = elements $ map (\x -> [x]) ['a'..'z']
+    keys  = elements $ map T.singleton ['a'..'z']
 
 instance Arbitrary PolMap where
   arbitrary = liftM Map.fromList arbitrary

@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleInstances, TypeSynonymInstances, OverlappingInstances #-}
 module NLP.GenI.Test.Semantics ( suite ) where
 

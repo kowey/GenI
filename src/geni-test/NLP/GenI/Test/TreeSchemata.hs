@@ -27,6 +27,7 @@ import Test.Framework
 import Test.Framework.Providers.HUnit
 import Test.Framework.Providers.QuickCheck2
 
+import qualified Data.Text  as T
 import NLP.GenI.FeatureStructures
 import NLP.GenI.GeniVal
 import NLP.GenI.TreeSchemata
@@ -82,7 +83,7 @@ sillyTreeAux =
 
 emptyNodeCat x = emptyGN
   { gnname = x
-  , gup    = [catAv (mkGConstNone x)]
+  , gup    = [catAv (mkGConstNone (T.pack x))]
   }
 
 sillyLexNode = emptyGN

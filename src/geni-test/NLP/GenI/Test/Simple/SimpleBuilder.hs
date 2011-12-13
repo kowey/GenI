@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module NLP.GenI.Test.Simple.SimpleBuilder ( suite ) where
 
 import Data.Maybe (isJust, isNothing)

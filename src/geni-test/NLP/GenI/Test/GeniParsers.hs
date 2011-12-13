@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module NLP.GenI.Test.GeniParsers where
 
@@ -89,8 +90,8 @@ propRoundTripSem g =
    semStr = "semantics: " ++ showSem g
    anonhandle lit@(h, p, xs) =
      case gConstraints h of
-       Just [c] | "genihandle" `isPrefixOf` c -> (mkGAnon, p, xs)
-       _                                      -> lit
+       Just [c] | isInternalHandle c -> (mkGAnon, p, xs)
+       _                             -> lit
 
 testParse p = runParser (tillEof p) () ""
 
