@@ -22,7 +22,7 @@ import Graphics.UI.WX
 -- import Graphics.UI.WXCore
 
 import Control.Arrow ( (&&&), (***) )
-import Control.Exception ( catch, IOException )
+import Control.Exception ( catch )
 import qualified Control.Monad as Monad 
 import Control.Monad.State.Strict ( execStateT, runState )
 import qualified Data.Map as Map
