@@ -114,7 +114,7 @@ import NLP.GenI.GeniParsers (geniMacros, geniTagElems,
                     runParser,
                     ParseError,
                     )
-import NLP.GenI.GeniVal ( alphaConvert )
+import NLP.GenI.GeniVal ( finaliseVars )
 import NLP.GenI.LexicalSelection
         ( chooseLexCand, combineList
         , missingCoanchors
@@ -300,7 +300,7 @@ loadFromString pstRef descr s =
 instance Loadable Lexicon where
   lParse f = fmap toLexicon . runParser geniLexicon () f
     where
-     fixEntry  = alphaConvert "" -- anonymise singletons for performance
+     fixEntry  = finaliseVars "" -- anonymise singletons for performance
                . sorter
      toLexicon = map fixEntry
      sorter l  = l { isemantics = (sortByAmbiguity . isemantics) l }

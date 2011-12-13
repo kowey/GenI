@@ -52,7 +52,7 @@ import NLP.GenI.Btypes
    showLexeme,
    pidname, pfamily, pinterface, ptype, psemantics, ptrace,
    setAnchor, setLexeme, tree,
-   alphaConvert,
+   finaliseVars,
    )
 import NLP.GenI.BtypesBinary ()
 import NLP.GenI.FeatureStructures (Flist, AvPair(..), unifyFeat)
@@ -185,8 +185,8 @@ combineList tsem gram lexitem =
 combineOne :: Sem -> ILexEntry -> SchemaTree -> LexCombine [TagElem]
 combineOne tsem lexRaw eRaw = -- Maybe monad
  -- trace ("\n" ++ (show wt)) $
- do let l1 = alphaConvert "-l" lexRaw
-        e1 = alphaConvert "-t" eRaw
+ do let l1 = finaliseVars "-l" lexRaw
+        e1 = finaliseVars "-t" eRaw
     (l,e) <- unifyParamsWithWarning (l1,e1)
              >>= unifyInterfaceUsing iinterface
              >>= unifyInterfaceUsing ifilters -- filtering

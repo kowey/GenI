@@ -67,7 +67,7 @@ import NLP.GenI.General (geniBug, BitVector, snd3, thd3)
 import NLP.GenI.Btypes
   ( ILexEntry, SemInput, Sem, Pred, showPred,
     gtype, GType(Subs, Foot),
-    DescendGeniVal(..), Collectable(collect), alphaConvertById,
+    DescendGeniVal(..), Collectable(collect), finaliseVarsById,
     GeniVal
   )
 import NLP.GenI.FeatureStructures ( Flist, sortFlist, mkFeatStruct )
@@ -167,7 +167,7 @@ preInit input config =
      -- chart sharing optimisation
      (cands2, pathIds) = unzip $ detectPolPaths combosPol
      --
-     fixate ts ps = zip (map alphaConvertById $ setTidnums ts) ps
+     fixate ts ps = zip (map finaliseVarsById $ setTidnums ts) ps
      input2 = input { inCands    = fixate cands2 pathIds
                     , inSemInput = (prSem autstuff, snd3 seminput, thd3 seminput) }
      -- note: autstuff is only useful for the graphical debugger

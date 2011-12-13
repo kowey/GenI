@@ -47,7 +47,7 @@ module NLP.GenI.Btypes (
    -- Other functions
    replace, DescendGeniVal(..), replaceList,
    Collectable(..), Idable(..),
-   alphaConvert, alphaConvertById,
+   finaliseVars, finaliseVarsById,
    isConst, isVar, isAnon,
 
    -- Polarities

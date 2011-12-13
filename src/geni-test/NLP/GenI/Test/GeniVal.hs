@@ -40,7 +40,7 @@ suite =
 
 test_alphaconvert_simple :: Assertion
 test_alphaconvert_simple =
-  assertEqual "" [v1n2, v1n2] $ alphaConvert "" [v1, v2]
+  assertEqual "" [v1n2, v1n2] $ finaliseVars "" [v1, v2]
  where
   v1 = mkGVar "X" (Just ["x","y"])
   v2 = mkGVar "X" (Just ["y","z"])
@@ -48,15 +48,15 @@ test_alphaconvert_simple =
 
 prop_alphaconvert_idempotent :: [GeniVal] -> Bool
 prop_alphaconvert_idempotent xs =
-  alphaConvert "" xs2 == xs2
+  finaliseVars "" xs2 == xs2
  where
-  xs2 = alphaConvert "" xs
+  xs2 = finaliseVars "" xs
 
 prop_alphaconvert_subset :: [GeniVal] -> Bool
 prop_alphaconvert_subset gs =
   and $ zipWith csubset gs2 gs
  where
-  gs2 = alphaConvert "" gs
+  gs2 = finaliseVars "" gs
   csubset x y = csubsetH (gConstraints x) (gConstraints y)
   csubsetH Nothing Nothing     = True
   csubsetH Nothing (Just _)    = False
@@ -71,7 +71,7 @@ prop_unify_self x_ =
      Nothing  -> False
      Just unf -> fst unf == x
  where
-   x = alphaConvert "" x_
+   x = finaliseVars "" x_
 
 -- | Unifying something with only anonymous variables should succeed and return
 --   the same result.
@@ -88,7 +88,7 @@ prop_unify_anon x =
 --   normalise the sides so that this doesn't happen.
 prop_unify_sym :: [GeniVal] -> [GeniVal] -> Property
 prop_unify_sym x_ y_ =
-  let (TestPair x y) = alphaConvert "" (TestPair x_ y_)
+  let (TestPair x y) = finaliseVars "" (TestPair x_ y_)
       u1 = (unify x y) :: Maybe ([GeniVal],Subst)
       u2 = unify y x
   in all qc_not_empty_GVar x && all qc_not_empty_GVar y ==> u1 == u2
@@ -102,18 +102,18 @@ prop_subsume_antisymmetric x_ y_ =
  all qc_not_empty_GVar [ x, y ] && tt_subsumes x y ==>
    x `tt_equiv` y || not (tt_subsumes y x)
  where
-   (x, y) = case alphaConvert "" [ x_, y_ ] of
+   (x, y) = case finaliseVars "" [ x_, y_ ] of
              [n1,n2] -> (n1,n2)
-             _ -> error "huh? alphaConvert length mismatch"
+             _ -> error "huh? finaliseVars length mismatch"
 
 prop_subsume_transitive :: GeniVal -> GeniVal -> GeniVal -> Property
 prop_subsume_transitive x_ y_ z_ =
  all qc_not_empty_GVar [ x, y, z ] && tt_subsumes x y && tt_subsumes y z ==>
    tt_subsumes x z
  where
-   (x, y, z) = case alphaConvert "" [ x_, y_, z_ ] of
+   (x, y, z) = case finaliseVars "" [ x_, y_, z_ ] of
                 [n1,n2,n3] -> (n1,n2,n3)
-                _ -> error "huh? alphaConvert length mismatch"
+                _ -> error "huh? finaliseVars length mismatch"
 
 unificationSuccesful :: UnificationResult -> Bool
 unificationSuccesful Failure = False

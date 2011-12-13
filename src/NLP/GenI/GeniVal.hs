@@ -198,7 +198,7 @@ data UnificationResult = SuccessSans GeniVal
 --   Note that we assume that it's acceptable to generate new
 --   variable names by appending an 'x' to them; this assumption
 --   is only safe if the variables have gone through the function
---   'alphaConvertById' or have been pre-processed and rewritten
+--   'finaliseVarsById' or have been pre-processed and rewritten
 --   with some kind of common suffix to avoid an accidental match
 unifyOne :: GeniVal -> GeniVal -> UnificationResult
 unifyOne (GeniVal Nothing Nothing) g = SuccessSans g
@@ -318,19 +318,25 @@ anonymiseSingletons x =
          . Map.fromListWith (+) . map (first fst) . Map.toList
          $ collect x Map.empty
 
--- 'alphaConvertById' appends a unique suffix to all variables in
+-- 'finaliseVarsById' appends a unique suffix to all variables in
 -- an object.  This avoids us having to alpha convert all the time
 -- and relies on the assumption finding that a unique suffix is
 -- possible.
-alphaConvertById :: (Collectable a, DescendGeniVal a, Idable a) => a -> a
-alphaConvertById x = {-# SCC "alphaConvertById" #-}
-  alphaConvert ('-' : (show . idOf $ x)) x
+finaliseVarsById :: (Collectable a, DescendGeniVal a, Idable a) => a -> a
+finaliseVarsById x = {-# SCC "finaliseVarsById" #-}
+  finaliseVars ('-' : (show . idOf $ x)) x
 
--- | 'alphaConvert' does more than renaming.  It also intersects any
---   constraints that a variable may carry and deletes singletons in
---   favour of anonymous values
-alphaConvert :: (Collectable a, DescendGeniVal a) => String -> a -> a
-alphaConvert suffix x = {-# SCC "alphaConvert" #-}
+-- | 'finaliseVars' does the following:
+--
+--   * (if suffix is non-null) appends a suffix to all variable names
+--     to ensure global uniqueness
+--
+--   * anonymises any singleton variables
+--
+--   * intersects constraints for for all variables within the same
+--     object
+finaliseVars :: (Collectable a, DescendGeniVal a) => String -> a -> a
+finaliseVars suffix x = {-# SCC "finaliseVars" #-}
   replace subst (anonymiseSingletons x)
  where
   subst :: Subst

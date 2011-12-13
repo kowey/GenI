@@ -113,8 +113,8 @@ unzipSubsumedPair = unzip . map helper
 
 instance (Show a, DescendGeniVal a, Collectable a, Subsumable a, Arbitrary a) => Arbitrary (SubsumedPair a) where
   arbitrary = do
-    x <-  alphaConvert "-1" `fmap` arbitrary
-    y <- (alphaConvert "-2" `fmap` arbitrary) `suchThat` (\y -> not (null (x `subsume` y)))
+    x <-  finaliseVars "-1" `fmap` arbitrary
+    y <- (finaliseVars "-2" `fmap` arbitrary) `suchThat` (\y -> not (null (x `subsume` y)))
     return (SubsumedPair x y)
 
 instance Arbitrary (SubsumedPair GTestPred) where
