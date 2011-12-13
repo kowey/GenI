@@ -57,7 +57,7 @@ module NLP.GenI.Btypes (
 import NLP.GenI.FeatureStructures
 import NLP.GenI.GeniVal
 import NLP.GenI.Lexicon
-import NLP.GenI.PolarityTypes (SemPols)
+import NLP.GenI.Polarity.Types (SemPols)
 import NLP.GenI.Semantics
 import NLP.GenI.Tags
 import NLP.GenI.TestSuite

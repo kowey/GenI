@@ -72,7 +72,6 @@ import NLP.GenI.GeniParsers hiding ( choice, label, tab, try )
 import NLP.GenI.GuiHelper
 
 import NLP.GenI.Polarity
-import NLP.GenI.PolarityTypes ( readPolarityAttrs, showPolarityAttrs )
 import NLP.GenI.Simple.SimpleGui
 
 -- Main Gui

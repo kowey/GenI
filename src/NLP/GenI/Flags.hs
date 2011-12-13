@@ -24,7 +24,7 @@ import Data.Typeable
 import NLP.GenI.General ( Interval )
 import NLP.GenI.FeatureStructures ( Flist )
 import NLP.GenI.GeniVal ( GeniVal )
-import NLP.GenI.PolarityTypes
+import NLP.GenI.Polarity.Types
 
 -- ----------------------------------------------------------------------
 -- configuration stuff

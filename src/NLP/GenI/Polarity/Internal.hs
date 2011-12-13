@@ -21,7 +21,7 @@ module NLP.GenI.Polarity.Internal where
 import NLP.GenI.FeatureStructures
 import NLP.GenI.General
 import NLP.GenI.GeniVal
-import NLP.GenI.PolarityTypes
+import NLP.GenI.Polarity.Types
 
 import qualified Data.Set as Set
 import qualified Data.Map as Map

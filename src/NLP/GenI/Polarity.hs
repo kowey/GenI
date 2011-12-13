@@ -16,6 +16,8 @@
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 module NLP.GenI.Polarity(
+                module NLP.GenI.Polarity.Types,
+
                 -- * Entry point
                 PolAut, PolState(PolSt), AutDebug, PolResult(..),
                 buildAutomaton,
@@ -53,7 +55,7 @@ import NLP.GenI.General(
     Interval, ival, (!+!), showInterval)
 import NLP.GenI.GeniVal ( GeniVal(gConstraints), mkGAnon, isAnon )
 import NLP.GenI.Polarity.Internal
-import NLP.GenI.PolarityTypes
+import NLP.GenI.Polarity.Types
 import NLP.GenI.Tags(TagElem(..), TagItem(..), setTidnums)
 
 -- ----------------------------------------------------------------------

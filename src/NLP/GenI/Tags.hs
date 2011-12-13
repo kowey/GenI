@@ -57,7 +57,7 @@ import NLP.GenI.GeniVal ( GeniVal(..), DescendGeniVal(..), Collectable(..), Idab
                           isConst,
                         )
 import NLP.GenI.FeatureStructures ( AvPair(..), Flist, showFlist, showPairs )
-import NLP.GenI.PolarityTypes (PolarityKey(..), SemPols)
+import NLP.GenI.Polarity.Types (PolarityKey(..), SemPols)
 import NLP.GenI.Semantics ( Sem, Pred, emptyPred, showSem )
 import NLP.GenI.TreeSchemata ( Ptype(..),
                                GNode(..), GType(..), emptyGNode, NodeName,

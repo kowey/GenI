@@ -49,7 +49,7 @@ import NLP.GenI.General
   (geniBug, boundsCheck, dropTillIncluding, ePutStrLn)
 import NLP.GenI.Btypes
   ( showAv, showPred, showLexeme, )
-import NLP.GenI.PolarityTypes ( PolarityKey(..) )
+import NLP.GenI.Polarity.Types ( PolarityKey(..) )
 import NLP.GenI.Tags
   ( idname, mapBySem, TagElem(ttrace, tinterface) )
 import NLP.GenI.Warnings

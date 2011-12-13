@@ -124,7 +124,7 @@ Library
                 NLP.GenI.OptimalityTheory,
                 NLP.GenI.Polarity,
                 NLP.GenI.Polarity.Internal,
-                NLP.GenI.PolarityTypes,
+                NLP.GenI.Polarity.Types,
                 NLP.GenI.Automaton,
                 NLP.GenI.Statistics,
                 NLP.GenI.Builder,

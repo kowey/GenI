@@ -18,7 +18,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 
-module NLP.GenI.PolarityTypes where
+module NLP.GenI.Polarity.Types where
 
 import qualified Data.Set as Set
 import Data.Generics ( Data )
