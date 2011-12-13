@@ -60,7 +60,7 @@ import NLP.GenI.Tags
 
 -- | Converts information from a morphological information file into GenI's
 --   internal format.
-readMorph :: [(String,[AvPair GeniVal])] -> MorphFn
+readMorph :: [(String,[AvPair GeniVal])] -> MorphInputFn
 readMorph minfo pred_ = Map.lookup key fm
   where fm = Map.fromList minfo
         key = show $ snd3 pred_
@@ -69,7 +69,7 @@ readMorph minfo pred_ = Map.lookup key fm
 --   strictly morphological.  The first argument tells us helps identify the
 --   morphological literals -- it associates literals with morphological stuff;
 --   if it returns 'Nothing', then it is non-morphological
-stripMorphSem :: MorphFn -> Sem -> Sem
+stripMorphSem :: MorphInputFn -> Sem -> Sem
 stripMorphSem morphfn tsem = 
   [ l | l <- tsem, (isNothing.morphfn) l ]
 
@@ -80,7 +80,7 @@ stripMorphSem morphfn tsem =
 --   @cand@.  A tree is considered relevant w.r.t to a morphological
 --   literal if its semantics contains at least one literal whose first index
 --   is the same as the first index of the morphological literal.
-attachMorph :: MorphFn -> Sem -> [TagElem] -> [TagElem]
+attachMorph :: MorphInputFn -> Sem -> [TagElem] -> [TagElem]
 attachMorph morphfn sem cands = 
   let -- relevance of a tree wrt to an index
       relTree i = not.null.relfilt.tsemantics

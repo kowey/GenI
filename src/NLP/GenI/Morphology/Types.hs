@@ -33,7 +33,7 @@ import Text.JSON
 -- morph input
 -- ----------------------------------------------------------------------
 
-type MorphFn = Pred -> Maybe (Flist GeniVal)
+type MorphInputFn = Pred -> Maybe (Flist GeniVal)
 
 -- ----------------------------------------------------------------------
 -- morph output

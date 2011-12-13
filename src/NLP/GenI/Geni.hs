@@ -141,7 +141,7 @@ data ProgState = ST{ -- | the current configuration being processed
                     --
                     gr       :: Macros,
                     le       :: Lexicon,
-                    morphinf :: MorphFn,
+                    morphinf :: MorphInputFn,
                     -- | names of test case to run
                     tcase    :: String, 
                     -- | name, original string (for gui), sem
@@ -342,7 +342,7 @@ loadOptional L flg descr pstRef =
    let _ = x :: a
    return () -- ignore
 
-newtype MorphFnL = MorphFnL MorphFn
+newtype MorphFnL = MorphFnL MorphInputFn
 
 instance Loadable MorphFnL where
   lParse f = fmap (MorphFnL . readMorph) . runParser geniMorphInfo () f
@@ -738,7 +738,7 @@ initialLexSelection tsem lexicon grammar =
   errs          = concat $ zipWith mkWarnings lexCands (map fst combinations)
   mkWarnings l  = map (LexWarning [l] . LexCombineOneSchemaFailed)
 
-finaliseLexSelection :: MorphFn -> Sem -> [LitConstr] -> [TagElem] -> [TagElem]
+finaliseLexSelection :: MorphInputFn -> Sem -> [LitConstr] -> [TagElem] -> [TagElem]
 finaliseLexSelection morph tsem litConstrs =
   setTidnums . considerCoherency . considerLc . considerMorph
  where
