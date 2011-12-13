@@ -27,9 +27,7 @@ or on hackage.
 {-# LANGUAGE DeriveDataTypeable #-}
 module NLP.GenI.Morphology
  (
- MorphFn
- -- re-export
- , LemmaPlus(..), LemmaPlusSentence
+ module NLP.GenI.Morphology.Types
  -- * Morphological predicates
  , readMorph, stripMorphSem, attachMorph, setMorphAnchor
  -- * Morphological realisation
@@ -53,10 +51,8 @@ import Text.JSON.Pretty
 import NLP.GenI.GeniVal ( mkGAnon )
 import NLP.GenI.Btypes
 import NLP.GenI.General
-import NLP.GenI.LemmaPlus
+import NLP.GenI.Morphology.Types
 import NLP.GenI.Tags
-
-type MorphFn = Pred -> Maybe (Flist GeniVal)
 
 -- ----------------------------------------------------------------------
 -- Morphological input

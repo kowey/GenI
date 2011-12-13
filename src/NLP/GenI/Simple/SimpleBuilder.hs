@@ -72,7 +72,7 @@ import NLP.GenI.Builder (
     DispatchFilter, (>-->), condFilter, FilterStatus(Filtered, NotFiltered),
     GenStatus(..),
     )
-import NLP.GenI.LemmaPlus ( LemmaPlus(..) )
+import NLP.GenI.Morphology.Types ( LemmaPlus(..) )
 import qualified NLP.GenI.Builder as B
 
 import NLP.GenI.Tags (TagElem, TagSite(..),

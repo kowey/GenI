@@ -71,7 +71,7 @@ import NLP.GenI.Btypes
     GeniVal
   )
 import NLP.GenI.FeatureStructures ( Flist, sortFlist, mkFeatStruct )
-import NLP.GenI.LemmaPlus
+import NLP.GenI.Morphology.Types
 import NLP.GenI.Polarity  (PolResult(..), buildAutomaton, detectPolPaths)
 import NLP.GenI.Statistics (Statistics, incrIntMetric,
                    Metric(IntMetric), updateMetrics,

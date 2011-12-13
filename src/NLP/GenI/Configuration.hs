@@ -66,7 +66,7 @@ import NLP.GenI.Btypes ( showFlist, )
 import NLP.GenI.Flags
 import NLP.GenI.General ( geniBug, fst3, snd3 )
 import NLP.GenI.GeniParsers ( geniFeats, tillEof )
-import NLP.GenI.LemmaPlus ( LemmaPlusSentence )
+import NLP.GenI.Morphology.Types ( LemmaPlusSentence )
 import NLP.GenI.Polarity.Types ( readPolarityAttrs )
 
 -- --------------------------------------------------------------------

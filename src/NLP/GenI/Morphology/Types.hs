@@ -17,7 +17,7 @@
 -- along with this program; if not, write to the Free Software
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-module NLP.GenI.LemmaPlus where
+module NLP.GenI.Morphology.Types where
 
 import Control.Applicative ((<$>),(<*>))
 import Control.DeepSeq
@@ -25,8 +25,19 @@ import Control.DeepSeq
 import NLP.GenI.GeniVal ( GeniVal )
 import NLP.GenI.FeatureStructures ( Flist, showFlist )
 import NLP.GenI.GeniParsers ( geniFeats, CharParser, runParser )
+import NLP.GenI.Semantics
 
 import Text.JSON
+
+-- ----------------------------------------------------------------------
+-- morph input
+-- ----------------------------------------------------------------------
+
+type MorphFn = Pred -> Maybe (Flist GeniVal)
+
+-- ----------------------------------------------------------------------
+-- morph output
+-- ----------------------------------------------------------------------
 
 -- | A lemma plus its morphological features
 data LemmaPlus = LemmaPlus { lpLemma :: String
