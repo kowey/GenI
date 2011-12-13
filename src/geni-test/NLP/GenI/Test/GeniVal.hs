@@ -53,9 +53,11 @@ prop_alphaconvert_idempotent xs =
   xs2 = finaliseVars "" xs
 
 prop_alphaconvert_subset :: [GeniVal] -> Bool
-prop_alphaconvert_subset gs =
+prop_alphaconvert_subset gs_ =
   and $ zipWith csubset gs2 gs
  where
+  gs  = gs_ ++ gs_ -- duplicate gs_ so that we don't trigger singleton
+                   -- anonymisation
   gs2 = finaliseVars "" gs
   csubset x y = csubsetH (gConstraints x) (gConstraints y)
   csubsetH Nothing Nothing     = True
