@@ -175,6 +175,7 @@ Executable geni-test
                  , base >= 4 && < 5
                  , containers  >= 0.1
                  , filepath   == 1.*
+                 , json
                  , parsec >= 2 && < 3.2
                  , QuickCheck == 2.4.*
                  , HUnit > 1 && < 1.3

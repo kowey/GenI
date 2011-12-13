@@ -134,8 +134,8 @@ setMorphAnchor n t =
 
 -- | Extracts the lemmas from a list of uninflected sentences.  This is used
 --   when the morphological generator is unavailable, doesn't work, etc.
-sansMorph :: LemmaPlusSentence -> [String]
-sansMorph = singleton . unwords . map lem
+sansMorph :: LemmaPlusSentence -> MorphOutput
+sansMorph = MorphOutput [] . singleton . unwords . map lem
  where
   lem (LemmaPlus l _) = l
 
@@ -144,7 +144,7 @@ sansMorph = singleton . unwords . map lem
 -- FIXME: this doesn't actually support lists-of-results per input
 -- will need to work it out
 -- HUH? What makes me say that?
-inflectSentencesUsingCmd :: String -> [LemmaPlusSentence] -> IO [(LemmaPlusSentence,[String])]
+inflectSentencesUsingCmd :: String -> [LemmaPlusSentence] -> IO [(LemmaPlusSentence,MorphOutput)]
 inflectSentencesUsingCmd morphcmd sentences =
   doit `catch` \e -> let _ = e :: IOException in (fallback (show e))
  where

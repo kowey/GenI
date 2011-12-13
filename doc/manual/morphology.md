@@ -47,19 +47,21 @@ NB: I recommend using a JSON library instead of parsing and writing this
 by hand.
 
 The morphological realiser may return more than one output per sentence.
-Indeed, we expect a JSON-formatted list (a) of lists (b), where each (b)
-provides a number of candidate morphological realisations for a sentence
-in (a). The list (a) must have the same length as the input because each
-item in (a) is expected to correspond to a sentence from the input.
+Indeed, we expect for each sentence a JSON object containing a list of
+possible morphological realisations that sentence and any warnings that
+may have been encountered.  The list of objects must have the same length as
+the input because each item is expected to correspond to a sentence from
+the input.
 
 Notice that the morphological generator can choose to delete spaces or
 do other orthographical tricks in between words:
 
     [
-     ["la fille detestait les garcons"],
+     {"realisations": ["la fille detestait les garcons"]},
 
-     ["c'est le garcon que la fille detestait"
-     ,"c'est les garcons que la fille detestait"]
+     {"warnings":["'garcon' not found in morph lexicon"]
+     ,realisations":[ "c'est le garcon que la fille detestait"
+                    , "c'est les garcons que la fille detestait"]}
     ]
 
 If your morphological software does not do this, you could wrap it with

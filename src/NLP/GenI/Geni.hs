@@ -618,12 +618,13 @@ finaliseResults pstRef (ty, status, os) =
                       B.Error str -> [GeniError [str]]
                       B.Finished  -> []
                       B.Active    -> []
+    mapM_ (addWarning pstRef) $ map (MorphWarning . moWarnings) mss
     return (map GError failures ++ map GSuccess successes)
  where
   sentences = map snd3 os
   sansRanking pst (i,l,d) rs = GeniSuccess
                { grLemmaSentence = l
-               , grRealisations = rs
+               , grRealisations = moRealisations rs
                , grDerivation   = d
                , grLexSelection = map (\x -> GeniLexSel x (getTraces pst x)) (B.lexicalSelection d)
                , grRanking = -1
@@ -796,18 +797,7 @@ instance JSON GeniResult where
  showJSON (GError   x) = showJSON x
 
 instance JSON GeniSuccess where
- readJSON j =
-    do jo <- fromJSObject `fmap` readJSON j
-       let field x = maybe (fail $ "Could not find: " ++ x) readJSON
-                   $ lookup x jo
-       GeniSuccess<$> field "raw"
-                  <*> field "realisations"
-                  <*> field "derivation"
-                  <*> field "lexical-selection"
-                  <*> field "ranking"
-                  <*> field "violations"
-                  <*> field "result-type"
-                  <*> field "chart-item"
+ readJSON _ = error "Don't know how to read GeniSuccess"
  showJSON nr =
      JSObject . toJSObject $ [ ("raw", showJSON $ grLemmaSentence nr)
                              , ("realisations", showJSONs $ grRealisations nr)

@@ -30,6 +30,7 @@ import NLP.GenI.TreeSchemata ( showLexeme )
 
 data GeniWarning = LexWarning [ILexEntry] LexWarning 
                  | NoLexSelection         [Pred]
+                 | MorphWarning           [String]
   deriving Eq
 
 data LexWarning = LexCombineAllSchemataFailed
@@ -47,7 +48,9 @@ posort = sortBy (flip fromPosetCmp)
 
 instance Poset GeniWarning where
  leq (LexWarning _ w1) (LexWarning _ w2)  = leq w1 w2
- leq (LexWarning _  _) (NoLexSelection _) = True
+ leq (MorphWarning w1) (MorphWarning w2)  = leq w1 w2
+ leq (LexWarning _  _) _                  = True
+ leq _ (MorphWarning _)                   = True
  leq _ _                                  = False 
 
 instance Poset LexWarning where
@@ -89,6 +92,7 @@ showGeniWarning (LexWarning ls wa)  =
      LexCombineOneSchemaFailed lc -> showLexCombineError lc
      MissingCoanchors co n        -> ("Expected co-anchor " ++ co ++ " is missing from " ++ show n ++ " schemata", "")
   showWithFam (w, f) = showLexeme w ++ " (" ++ f ++ ")"
+showGeniWarning (MorphWarning ws) = map ("Morph: " ++) ws
 
 -- word and all families associated with that word
 type WordFamilyCount = Map.Map ([String],String) Int

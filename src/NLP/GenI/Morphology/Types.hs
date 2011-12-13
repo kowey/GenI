@@ -21,6 +21,7 @@ module NLP.GenI.Morphology.Types where
 
 import Control.Applicative ((<$>),(<*>))
 import Control.DeepSeq
+import Data.Maybe ( fromMaybe )
 
 import NLP.GenI.GeniVal ( GeniVal )
 import NLP.GenI.FeatureStructures ( Flist, showFlist )
@@ -38,7 +39,25 @@ type MorphInputFn = Pred -> Maybe (Flist GeniVal)
 -- ----------------------------------------------------------------------
 -- morph output
 -- ----------------------------------------------------------------------
-type MorphRealiser = [LemmaPlusSentence] -> [[String]]
+
+type MorphRealiser = [LemmaPlusSentence] -> [MorphOutput]
+
+data MorphOutput = MorphOutput { moWarnings     :: [String]
+                               , moRealisations :: [String]
+                               }
+  deriving (Ord, Eq)
+
+instance JSON MorphOutput where
+ readJSON j =
+   case fromJSObject `fmap` readJSON j of
+     Error e -> MorphOutput [] <$> readJSON j
+     Ok jo   -> do
+       let field x = maybe (fail $ "Could not find: " ++ x) readJSON
+                   $ lookup x jo
+           warnings = maybe (return []) readJSON (lookup "warnings" jo)
+       MorphOutput <$> warnings
+                   <*> field "realisations"
+ showJSON _ = error "Don't know how to render MorphOutput"
 
 -- | A lemma plus its morphological features
 data LemmaPlus = LemmaPlus { lpLemma :: String
@@ -59,6 +78,7 @@ instance JSON LemmaPlus where
      JSObject . toJSObject $ [ ("lemma", showJSON l)
                              , ("lemma-features", showJSON $ showFlist fs)
                              ]
+
 parsecToJSON :: Monad m => String -> CharParser () b -> String -> m b
 parsecToJSON description p str =
  case runParser p () "" str of
@@ -66,10 +86,17 @@ parsecToJSON description p str =
    Right res -> return res
 
 {-!
+deriving instance NFData MorphOutput
 deriving instance NFData LemmaPlus
 !-}
 
 -- GENERATED START
+
+ 
+instance NFData MorphOutput where
+        rnf (MorphOutput x1 x2) = rnf x1 `seq` rnf x2 `seq` ()
+
+ 
 instance NFData LemmaPlus where
         rnf (LemmaPlus x1 x2) = rnf x1 `seq` rnf x2 `seq` ()
 -- GENERATED STOP

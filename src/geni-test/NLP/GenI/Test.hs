@@ -24,6 +24,7 @@ import System.Environment ( getArgs )
 import Test.Framework
 import NLP.GenI.Test.GeniParsers ( suite )
 import NLP.GenI.Test.GeniVal ( suite )
+import NLP.GenI.Test.Morphology ( suite )
 import NLP.GenI.Test.Polarity ( suite )
 import NLP.GenI.Test.Semantics ( suite )
 import NLP.GenI.Test.Simple.SimpleBuilder ( suite )
@@ -36,6 +37,7 @@ runTests =
     flip defaultMainWithArgs args
      [ NLP.GenI.Test.GeniVal.suite
      , NLP.GenI.Test.GeniParsers.suite
+     , NLP.GenI.Test.Morphology.suite
      , NLP.GenI.Test.Polarity.suite
      , NLP.GenI.Test.Semantics.suite
      , NLP.GenI.Test.Simple.SimpleBuilder.suite
