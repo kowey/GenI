@@ -62,8 +62,8 @@ type SemInput  = (Sem,Flist GeniVal,[LitConstr])
 instance Collectable Literal where
   collect (Literal a b c) = collect a . collect b . collect c
 
-emptyPred :: Literal
-emptyPred = Literal mkGAnon mkGAnon []
+emptyLiteral :: Literal
+emptyLiteral = Literal mkGAnon mkGAnon []
 
 -- Utility functions
 
