@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleInstances, TypeSynonymInstances, OverlappingInstances #-}
 module NLP.GenI.Test.Semantics ( suite ) where
 
+import Control.Applicative ( (<$>), (<*>) )
 import Control.Arrow ( first )
 import Data.Maybe ( isJust, maybeToList )
 import qualified Data.Map as Map
