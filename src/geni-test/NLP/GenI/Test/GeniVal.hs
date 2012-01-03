@@ -11,6 +11,7 @@ import qualified Data.Text as T
 import qualified Data.Map as Map
 import Test.HUnit
 import Test.QuickCheck hiding (collect, Failure)
+import Test.QuickCheck.Arbitrary
 import Test.Framework
 import Test.Framework.Providers.HUnit
 import Test.Framework.Providers.QuickCheck2
@@ -190,6 +191,19 @@ instance Arbitrary GTestString2 where
 
 instance Arbitrary GeniVal where
   arbitrary = oneof [ arbitraryGConst, arbitraryGVar, return mkGAnon ]
+  shrink g  = do
+    label       <- shrink (gLabel g)
+    constraints <- shrinkMaybe (shrinkList shrinkText) (gConstraints g)
+    return $ g { gLabel       = label
+               , gConstraints = constraints
+               }
+
+shrinkText :: T.Text -> [T.Text]
+shrinkText = map T.pack . shrinkList2 shrink . T.unpack
+
+shrinkMaybe :: (a -> [a]) -> Maybe a -> [Maybe a]
+shrinkMaybe shr Nothing  = []
+shrinkMaybe shr (Just x) = Nothing : map Just (shr x)
 
 arbitraryGConst :: Gen GeniVal
 arbitraryGConst = liftM2 mkGConst (T.pack . fromPrintString <$> arbitrary)
@@ -231,3 +245,36 @@ instance Arbitrary a => Arbitrary (List1 a) where
 
 arbitrary1 :: Arbitrary a => Gen [a]
 arbitrary1 = listOf1 arbitrary
+
+-- ----------------------------------------------------------------------
+-- shrinkList 2
+-- ----------------------------------------------------------------------
+
+-- | This is more aggressive than shrinkList in the sense that when
+--   shrinkList is faced with a 1000 elements, it first tries removing
+--   1000, 500, 250.. elements
+--
+--   This version instead goes down to
+--   1000, 998, 994, 984, 968.., 512 (and then resumes the basic behaviour)
+shrinkList2 :: (a -> [a]) -> [a] -> [[a]]
+shrinkList2 shr xs =
+      concat [ removes k n xs | k <- ks ]
+   ++ shrinkOne xs
+ where
+  n      = length xs
+  ks     = newks ++ drop 2 oldks
+  newks  = [ n - (2 ^ p) | p <- [0 .. log2_n - 1] ]
+  oldks  = [ k | k <- takeWhile (>0) (iterate (`div`2) n) ]
+  log2_n = floor . logBase 2 . fromIntegral $ n
+  
+  shrinkOne []     = []
+  shrinkOne (x:xs) = [ x':xs | x'  <- shr x ]
+                  ++ [ x:xs' | xs' <- shrinkOne xs ] 
+  
+  removes k n xs
+      | k > n     = []
+      | null xs2  = [[]]
+      | otherwise = xs2 : map (xs1 ++) (removes k (n-k) xs2)
+   where
+      xs1 = take k xs
+      xs2 = drop k xs
