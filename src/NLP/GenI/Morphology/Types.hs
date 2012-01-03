@@ -49,7 +49,7 @@ data MorphOutput = MorphOutput { moWarnings     :: [String]
 instance JSON MorphOutput where
  readJSON j =
    case fromJSObject `fmap` readJSON j of
-     Error e -> MorphOutput [] <$> readJSON j
+     Error _ -> MorphOutput [] <$> readJSON j
      Ok jo   -> do
        let field x = maybe (fail $ "Could not find: " ++ x) readJSON
                    $ lookup x jo
