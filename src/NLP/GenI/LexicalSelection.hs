@@ -54,7 +54,6 @@ import NLP.GenI.Btypes
    setAnchor, setLexeme, tree,
    finaliseVars,
    )
-import NLP.GenI.BtypesBinary ()
 import NLP.GenI.FeatureStructures (Flist, AvPair(..), unifyFeat)
 import NLP.GenI.GeniVal( unify, GeniVal(gConstraints), isConst, Subst )
 

@@ -22,6 +22,7 @@ module NLP.GenI.Lexicon (
 ) where
 
 -- import Debug.Trace -- for test stuff
+import Data.Binary
 import Data.Generics (Data)
 import Data.Typeable (Typeable)
 
@@ -73,10 +74,40 @@ instance Collectable ILexEntry where
               (collect $ ifilters l) . (collect $ iequations l) .
               (collect $ isemantics l)
 
-{-!
+-- ----------------------------------------------------------------------
+--
+-- ----------------------------------------------------------------------
+
+{-
+deriving instance Binary ILexEntry
 deriving instance NFData ILexEntry
-!-}
+-}
+
 -- GENERATED START
+
+ 
+instance Binary ILexEntry where
+        put (ILE x1 x2 x3 x4 x5 x6 x7 x8 x9)
+          = do put x1
+               put x2
+               put x3
+               put x4
+               put x5
+               put x6
+               put x7
+               put x8
+               put x9
+        get
+          = do x1 <- get
+               x2 <- get
+               x3 <- get
+               x4 <- get
+               x5 <- get
+               x6 <- get
+               x7 <- get
+               x8 <- get
+               x9 <- get
+               return (ILE x1 x2 x3 x4 x5 x6 x7 x8 x9)
 
  
 instance NFData ILexEntry where

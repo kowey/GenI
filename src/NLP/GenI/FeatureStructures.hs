@@ -20,6 +20,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 module NLP.GenI.FeatureStructures where
 
+import Data.Binary
 import Data.Function (on)
 import Data.Generics (Data)
 import Data.List (sortBy)
@@ -152,10 +153,21 @@ crushFlist :: Flist [GeniVal] -> Maybe (Flist GeniVal)
 crushFlist = mapM crushAvPair
 
 {-!
+deriving instance Binary AvPair
 deriving instance NFData AvPair
 !-}
 
 -- GENERATED START
+
+
+instance (Binary a) => Binary (AvPair a) where
+        put (AvPair x1 x2)
+          = do put x1
+               put x2
+        get
+          = do x1 <- get
+               x2 <- get
+               return (AvPair x1 x2)
 
  
 instance (NFData a) => NFData (AvPair a) where

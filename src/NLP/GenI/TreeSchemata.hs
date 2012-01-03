@@ -37,6 +37,7 @@ module NLP.GenI.TreeSchemata (
  ) where
 
 import qualified Data.Map as Map
+import Data.Binary
 import Data.List (intersperse)
 import Data.Tree
 import Data.Text ( Text )
@@ -255,6 +256,41 @@ crushGNode gn =
                  , gtype = gtype gn
                  , gaconstr = gaconstr gn
                  , gorigin = gorigin gn}
+
+
+instance Binary Ptype where
+  put Initial = putWord8 0
+  put Auxiliar = putWord8 1
+  put Unspecified = putWord8 2
+  get = do
+    tag_ <- getWord8
+    case tag_ of
+      0 -> return Initial
+      1 -> return Auxiliar
+      2 -> return Unspecified
+      _ -> fail "no parse"
+
+instance Binary gv => Binary (GNode gv) where
+  put (GN a b c d e f g h) = put a >> put b >> put c >> put d >> put e >> put f >> put g >> put h
+  get = get >>= \a -> get >>= \b -> get >>= \c -> get >>= \d -> get >>= \e -> get >>= \f -> get >>= \g -> get >>= \h -> return (GN a b c d e f g h)
+
+instance Binary GType where
+  put Subs = putWord8 0
+  put Foot = putWord8 1
+  put Lex = putWord8 2
+  put Other = putWord8 3
+  get = do
+    tag_ <- getWord8
+    case tag_ of
+      0 -> return Subs
+      1 -> return Foot
+      2 -> return Lex
+      3 -> return Other
+      _ -> fail "no parse"
+
+instance (Binary a) => Binary (Ttree a) where
+  put (TT a b c d e f g h) = put a >> put b >> put c >> put d >> put e >> put f >> put g >> put h
+  get = get >>= \a -> get >>= \b -> get >>= \c -> get >>= \d -> get >>= \e -> get >>= \f -> get >>= \g -> get >>= \h -> return (TT a b c d e f g h)
 
 -- Node type used during parsing of the grammar
 instance NFData GType where

@@ -23,6 +23,7 @@ module NLP.GenI.GeniVal where
 -- import Debug.Trace -- for test stuff
 import Control.Arrow (first, (***))
 import Control.Monad (liftM)
+import Data.Binary
 import Data.List
 import Data.Maybe (catMaybes, fromMaybe, isNothing, isJust)
 import Data.Generics (Data)
@@ -380,3 +381,7 @@ instance (Functor f, DescendGeniVal a) => DescendGeniVal (f a) where
 
 instance NFData GeniVal where
   rnf (GeniVal x y) = rnf x `seq` rnf y
+
+instance Binary GeniVal where
+  put (GeniVal a b) = put a >> put b
+  get = get >>= \a -> get >>= \b -> return (GeniVal a b)

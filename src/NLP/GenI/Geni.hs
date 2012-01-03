@@ -83,7 +83,6 @@ import NLP.GenI.Btypes
    showLexeme,
    pidname, pfamily, ptrace,
    )
-import NLP.GenI.BtypesBinary ()
 import NLP.GenI.Semantics ( sortByAmbiguity )
 import NLP.GenI.Tags (TagElem,
              idname,
