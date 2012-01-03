@@ -57,10 +57,13 @@ mkFeatStruct fs = Map.fromListWith oops . map fromPair $ fs
      "I've allowed a feature structure with multiple versions of a key"
      ++ " to sneak through: " ++ showFlist fs
 
+fromFeatStruct :: FeatStruct a -> Flist a
+fromFeatStruct = sortFlist . map (uncurry AvPair) . Map.toList
+
 -- if we decide to move over to this representation of feature structures
 -- we can get rid of showFlist, etc and probably just use toAscList
 showFeatStruct :: FeatStruct GeniVal -> String
-showFeatStruct = showFlist . sortFlist . map (uncurry AvPair) . Map.toList
+showFeatStruct = showFlist . fromFeatStruct
 
 -- ----------------------------------------------------------------------
 -- Basic functions
