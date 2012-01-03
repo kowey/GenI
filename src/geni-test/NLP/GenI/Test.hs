@@ -22,6 +22,7 @@ module NLP.GenI.Test where
 import Data.List ( isPrefixOf )
 import System.Environment ( getArgs )
 import Test.Framework
+import NLP.GenI.Test.FeatureStructures ( suite )
 import NLP.GenI.Test.GeniParsers ( suite )
 import NLP.GenI.Test.GeniVal ( suite )
 import NLP.GenI.Test.Morphology ( suite )
@@ -37,6 +38,7 @@ runTests =
     flip defaultMainWithArgs args
      [ NLP.GenI.Test.GeniVal.suite
      , NLP.GenI.Test.GeniParsers.suite
+     , NLP.GenI.Test.FeatureStructures.suite
      , NLP.GenI.Test.Morphology.suite
      , NLP.GenI.Test.Polarity.suite
      , NLP.GenI.Test.Semantics.suite
