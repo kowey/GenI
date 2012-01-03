@@ -63,4 +63,4 @@ sillyTagElemAux = sillyTagElem
   }
 
 sillyLiteral :: Literal
-sillyLiteral = (mkGConstNone "l", mkGConstNone "silly", [])
+sillyLiteral = Literal (mkGConstNone "l") (mkGConstNone "silly") []

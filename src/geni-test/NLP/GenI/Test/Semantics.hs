@@ -51,9 +51,9 @@ suite = testGroup "NLP.GenI.Semantics"
   sem_x  = [ lit_x ]
   sem_y  = [ lit_y ]
   sem_xy = [ lit_x, lit_y ]
-  lit1 = (mkGConst "a" [], mkGConst "apple" [], [mkGVar "A" Nothing])
-  lit_x = (mkGConst "a" [], mkGConst "apple" [], [mkGConst "x" []])
-  lit_y = (mkGConst "a" [], mkGConst "apple" [], [mkGConst "y" []])
+  lit1 =  Literal (mkGConstNone "a") (mkGConstNone "apple") [mkGVarNone "A"]
+  lit_x = Literal (mkGConstNone "a") (mkGConstNone "apple") [mkGConstNone "x"]
+  lit_y = Literal (mkGConstNone "a") (mkGConstNone "apple") [mkGConstNone "y"]
 
 prop_subsumeSem_length :: [GTestLiteral] -> [GTestLiteral] -> Property
 prop_subsumeSem_length lits1 lits2 =
@@ -99,7 +99,7 @@ instance Subsumable GTestLiteral where
   subsume x y = map (first tp) . maybeToList
               $ fromGTestLiteral x `subsumeLiteral` fromGTestLiteral y
    where
-    tp (x,y,z) = GTestLiteral x y z
+    tp (Literal x y z) = GTestLiteral x y z
 
 instance (Arbitrary a, Show a, Subsumable a) => Show (SubsumedPair a) where
   show (SubsumedPair x y) = show (x,y)
@@ -143,14 +143,22 @@ fromUnificationResult (SuccessRep2 v1 v2 g) = [(g, Map.fromList [(v1,g),(v2,g)])
 ttSubsumeLiteral :: Literal -> Literal -> Bool
 ttSubsumeLiteral x y = isJust (subsumeLiteral x y)
 
-tt_literal_equiv :: (GeniVal, GeniVal, [GeniVal]) -> (GeniVal, GeniVal, [GeniVal]) -> Bool
-tt_literal_equiv (h1,p1,as1) (h2,p2,as2) =
+tt_literal_equiv :: Literal -> Literal -> Bool
+tt_literal_equiv (Literal h1 p1 as1) (Literal h2 p2 as2) =
   and $ zipWith tt_equiv (h1 : p1 : as1) (h2 : p2 : as2)
 
-fromGTestLiteral :: GTestLiteral -> (GeniVal, GeniVal, [GeniVal])
-fromGTestLiteral (GTestLiteral h r as) = (h,r,as)
+fromGTestLiteral :: GTestLiteral -> Literal
+fromGTestLiteral (GTestLiteral h r as) = Literal h r as
 
 data GTestLiteral = GTestLiteral GeniVal GeniVal [GeniVal]
+
+instance Arbitrary Literal where
+  arbitrary = Literal <$> arbitrary
+                      <*> arbitrary
+                      <*> arbitrary
+  shrink l = Literal <$> shrink (lHandle l)
+                     <*> shrink (lPredicate l)
+                     <*> shrinkList2 shrink (lArgs l)
 
 instance Show GTestLiteral where
   show = showLiteral . fromGTestLiteral

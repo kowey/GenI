@@ -21,7 +21,6 @@ module NLP.GenI.Morphology.Types where
 
 import Control.Applicative ((<$>),(<*>))
 import Control.DeepSeq
-import Data.Maybe ( fromMaybe )
 
 import NLP.GenI.GeniVal ( GeniVal )
 import NLP.GenI.FeatureStructures ( Flist, showFlist )

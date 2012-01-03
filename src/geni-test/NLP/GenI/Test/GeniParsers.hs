@@ -88,9 +88,9 @@ propRoundTripSem g =
    Right g2@(x,_,_) -> first3 (map anonhandle) g2 == (g, [], [])
  where
    semStr = "semantics: " ++ showSem g
-   anonhandle lit@(h, p, xs) =
+   anonhandle lit@(Literal h p xs) =
      case gConstraints h of
-       Just [c] | isInternalHandle c -> (mkGAnon, p, xs)
+       Just [c] | isInternalHandle c -> Literal mkGAnon p xs
        _                             -> lit
 
 testParse p = runParser (tillEof p) () ""

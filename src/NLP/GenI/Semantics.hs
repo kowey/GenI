@@ -15,6 +15,7 @@
 -- along with this program; if not, write to the Free Software
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE TypeSynonymInstances, MultiParamTypeClasses, FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
@@ -22,8 +23,11 @@ module NLP.GenI.Semantics where
 
 import Control.Arrow ( first, (***), (&&&) )
 import Control.Applicative ( (<$>) )
+import Control.DeepSeq
+import Data.Binary
 import Data.Function ( on )
-import Data.List ( nub, sortBy, delete, insert )
+import Data.Data
+import Data.List ( nub, sort, sortBy, delete, insert )
 import Data.Maybe ( isNothing, isJust, mapMaybe, fromMaybe )
 import qualified Data.Map as Map
 import Data.Text ( Text )
@@ -34,23 +38,41 @@ import NLP.GenI.General ( histogram )
 import NLP.GenI.GeniVal
 
 -- handle, predicate, parameters
-type Literal = (GeniVal, GeniVal, [GeniVal])
+data Literal = Literal { lHandle    :: GeniVal
+                       , lPredicate :: GeniVal
+                       , lArgs      :: [GeniVal]
+                       }
+ deriving (Eq, Data, Typeable)
+
+instance Ord Literal where
+  compare = compare `on` tucked
+    where
+      -- treat the handle as an argument
+      tucked l = (lPredicate l, lHandle l : lArgs l)
+
+-- FIXME: I'm never too sure if this is a good idea or not
+-- implementing show as pretty printing
+instance Show Literal where
+  show = showLiteral
+
 type Sem = [Literal]
 type LitConstr = (Literal, [String])
 type SemInput  = (Sem,Flist GeniVal,[LitConstr])
 
--- Literal is what I had in mind here
-instance ((Collectable a, Collectable b, Collectable c)
-           => Collectable (a,b,c)) where
-  collect (a,b,c) = collect a . collect b . collect c
+instance Collectable Literal where
+  collect (Literal a b c) = collect a . collect b . collect c
 
-emptyLiteral :: Literal
-emptyLiteral = (mkGAnon,mkGAnon,[])
+emptyPred :: Literal
+emptyPred = Literal mkGAnon mkGAnon []
 
 -- Utility functions
 
 removeConstraints :: SemInput -> SemInput
 removeConstraints (x, _, _) = (x, [], [])
+
+-- | default sorting for a semantics
+sortSem :: Sem -> Sem
+sortSem = sort
 
 -- sort primarily putting the ones with the most constants first
 -- and secondarily by the number of instances a predicate occurs
@@ -77,30 +99,30 @@ instance HasConstants a => HasConstants [a] where
   constants = sum . map constants
 
 instance HasConstants Literal where
-  constants (h, p, args) = constants (h:p:args)
+  constants (Literal h p args) = constants (h:p:args)
 
 literalCount :: [Literal] -> Map.Map Text Int
 literalCount = histogram . mapMaybe boringLiteral
 
 boringLiteral :: Literal -> Maybe Text
-boringLiteral (_,p,_) =      -- predicates with a straightfoward constant value
-    case gConstraints p of  -- exactly one constraint
+boringLiteral l =
+    -- predicate with a straightfoward constant value
+    -- exactly one constraint
+    case gConstraints (lPredicate l) of
       Just [o] -> Just    o
       _        -> Nothing
-
--- | Sort semantics first according to its predicate, and then to its handles.
-sortSem :: Sem -> Sem
-sortSem = sortBy (\(h1,p1,a1) (h2,p2,a2) -> compare (p1, h1:a1) (p2, h2:a2))
 
 -- | Given a Semantics, return the string with the proper keys
 --   (propsymbol+arity) to access the agenda
 toKeys :: Sem -> [String]
-toKeys l = map (\(_,prop,par) -> show prop ++ (show $ length par)) l
+toKeys = map (\l -> show (lPredicate l) ++ show  (length $ lArgs l))
 
 -- Traversal
 
 instance DescendGeniVal Literal where
-  descendGeniVal s (h, n, lp) = (descendGeniVal s h, descendGeniVal s n, descendGeniVal s lp)
+  descendGeniVal s (Literal h n lp) = Literal (descendGeniVal s h)
+                                              (descendGeniVal s n)
+                                              (descendGeniVal s lp)
 
 -- Pretty printing
 
@@ -109,7 +131,7 @@ showSem l =
     "[" ++ (unwords $ map showLiteral l) ++ "]"
 
 showLiteral :: Literal -> String
-showLiteral (h, p, l) = showh ++ show p ++ "(" ++ unwords (map show l) ++ ")"
+showLiteral (Literal h p l) = showh ++ show p ++ "(" ++ unwords (map show l) ++ ")"
   where
     hideh g = case gConstraints g of
                 Just [c] -> isInternalHandle c
@@ -146,7 +168,7 @@ subsumeSemH (x:xs) ys = nub $
 
 -- | @p1 `subsumeLiteral` p2@... FIXME
 subsumeLiteral :: Literal -> Literal -> Maybe (Literal, Subst)
-subsumeLiteral (h1, p1, la1) (h2, p2, la2) =
+subsumeLiteral (Literal h1 p1 la1) (Literal h2 p2 la2) =
   if length la1 == length la2
   then do let hpla1 = h1:p1:la1
               hpla2 = h2:p2:la2
@@ -154,7 +176,7 @@ subsumeLiteral (h1, p1, la1) (h2, p2, la2) =
           return (toLiteral hpla, sub)
   else Nothing
  where
-  toLiteral (h:p:xs) = (h, p, xs)
+  toLiteral (h:p:xs) = Literal h p xs
   toLiteral _ = error "subsumeLiteral.toLiteral"
 
 -- ----------------------------------------------------------------------
@@ -187,7 +209,7 @@ unifySemH (x:xs) ys = nub $ do
             prepend `fmap` unifySemH next_xs next_ys
 
 unifyLiteral :: Literal -> Literal -> Maybe (Literal, Subst)
-unifyLiteral (h1, p1, la1) (h2, p2, la2) =
+unifyLiteral (Literal h1 p1 la1) (Literal h2 p2 la2) =
   if length la1 == length la2
   then do let hpla1 = h1:p1:la1
               hpla2 = h2:p2:la2
@@ -195,5 +217,33 @@ unifyLiteral (h1, p1, la1) (h2, p2, la2) =
           return (toLiteral hpla, sub)
   else Nothing
  where
-  toLiteral (h:p:xs) = (h, p, xs)
+  toLiteral (h:p:xs) = Literal h p xs
   toLiteral _ = error "unifyLiteral.toLiteral"
+
+-- ----------------------------------------------------------------------
+--
+-- ----------------------------------------------------------------------
+
+{-!
+deriving instance NFData Literal 
+deriving instance Binary Literal 
+!-}
+
+-- GENERATED START
+
+ 
+instance NFData Literal where
+        rnf (Literal x1 x2 x3) = rnf x1 `seq` rnf x2 `seq` rnf x3 `seq` ()
+
+ 
+instance Binary Literal where
+        put (Literal x1 x2 x3)
+          = do put x1
+               put x2
+               put x3
+        get
+          = do x1 <- get
+               x2 <- get
+               x3 <- get
+               return (Literal x1 x2 x3)
+-- GENERATED STOP

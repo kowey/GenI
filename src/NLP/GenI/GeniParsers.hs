@@ -38,12 +38,14 @@ module NLP.GenI.GeniParsers (
 import NLP.GenI.GeniVal (mkGConst, mkGVar, mkGAnon)
 import NLP.GenI.Btypes
 import NLP.GenI.Tags (TagElem(..), emptyTE, setTidnums)
+import NLP.GenI.Semantics ( Literal(..) )
 import NLP.GenI.TreeSchemata (SchemaTree)
 import NLP.GenI.General (isGeniIdentLetter)
 import NLP.GenI.GeniShow (GeniShow(geniShow))
 
 import BoolExp
 
+import Control.Applicative ( (<*>), (<$>) )
 import Control.Monad (liftM, when)
 import Data.List (sort)
 import qualified Data.Text as T
@@ -153,11 +155,9 @@ geniSemantics =
 
 geniLiteral :: Parser Literal
 geniLiteral =
-  do handle    <- option mkGAnon handleParser <?> "a handle"
-     predicate <- geniValue <?> "a predicate"
-     pars      <- parens (many geniValue) <?> "some parameters"
-     --
-     return (handle, predicate, pars)
+  Literal <$> (option mkGAnon handleParser <?> "a handle")
+          <*> (geniValue <?> "a predicate")
+          <*> (parens (many geniValue) <?> "some parameters")
   where handleParser =
           try $ do { h <- geniValue ; char ':' ; return h }
 
@@ -177,11 +177,11 @@ geniSemanticInput =
      createHandles :: Sem -> Sem
      createHandles = zipWith setHandle ([1..] :: [Int])
      --
-     setHandle i (h, pred_, par) =
+     setHandle i (Literal h pred_ par) =
        let h2 = if isAnon h
                 then mkGConst (T.pack "genihandle" `T.append` T.pack (show i)) []
                 else h
-       in (h2, pred_, par)
+       in Literal h2 pred_ par
      --
      literalAndConstraint :: Parser (Literal, [String])
      literalAndConstraint =
@@ -343,7 +343,7 @@ geniLexLiteral =
      paramsPols <- parens (many geniPolValue) <?> "some parameters"
      --
      let (pars, pols) = unzip paramsPols
-         literal = (handle, predicate, pars)
+         literal = Literal handle predicate pars
      return (literal, hpol:pols)
   where handleParser =
           try $ do { h <- geniPolValue; colon; return h }

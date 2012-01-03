@@ -48,8 +48,6 @@ import NLP.GenI.Btypes
    isemantics, ifamname, iword, iparams, iequations,
    iinterface, ifilters,
    isempols,
-   toKeys,
-   showLexeme,
    pidname, pfamily, pinterface, ptype, psemantics, ptrace,
    setAnchor, setLexeme, tree,
    finaliseVars,

@@ -52,6 +52,7 @@ import NLP.GenI.GeniVal ( mkGAnon )
 import NLP.GenI.Btypes
 import NLP.GenI.General
 import NLP.GenI.Morphology.Types
+import NLP.GenI.Semantics ( Literal(..) )
 import NLP.GenI.Tags
 
 -- ----------------------------------------------------------------------
@@ -61,9 +62,9 @@ import NLP.GenI.Tags
 -- | Converts information from a morphological information file into GenI's
 --   internal format.
 readMorph :: [(String,[AvPair GeniVal])] -> MorphInputFn
-readMorph minfo pred_ = Map.lookup key fm
+readMorph minfo lit = Map.lookup key fm
   where fm = Map.fromList minfo
-        key = show $ snd3 pred_
+        key = show (lPredicate lit)
 
 -- | Filters away from an input semantics any literals whose realisation is
 --   strictly morphological.  The first argument tells us helps identify the
@@ -85,8 +86,9 @@ attachMorph morphfn sem cands =
   let -- relevance of a tree wrt to an index
       relTree i = not.null.relfilt.tsemantics
         where relfilt = filter (relLit i)  
-      relLit i l = if null args then False else (head args == i)
-        where args = thd3 l
+      relLit i l = case lArgs l of
+                     []    -> False
+                     (x:_) -> x == i
       -- perform the attachment for a tree if it is relevant
       attachHelper :: GeniVal -> Flist GeniVal -> TagElem -> TagElem
       attachHelper i mfs t = 
@@ -97,8 +99,9 @@ attachMorph morphfn sem cands =
         case morphfn l of 
           Nothing  -> cs
           Just mfs -> map (attachHelper i mfs) cs
-        where i = if null args then mkGAnon else head args
-              args = thd3 l 
+        where i = case lArgs l of
+                    []    -> mkGAnon
+                    (x:_) -> x
   in foldr attach cands sem 
 
 -- | Actually unify the morphological features into the anchor node

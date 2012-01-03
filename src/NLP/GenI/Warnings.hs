@@ -17,7 +17,6 @@
 
 module NLP.GenI.Warnings where
  
-import Data.Function
 import Data.List
 import qualified Data.Map as Map
 import Data.Poset

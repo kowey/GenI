@@ -32,10 +32,10 @@ import Data.Text (Text)
 import qualified Data.Text as T
 
 import NLP.GenI.Automaton
-import NLP.GenI.Btypes(Literal,
-              Ptype(Initial),
-              GNode, root, gup, gdown, gtype, GType(Subs),
-              )
+import NLP.GenI.Semantics (Literal)
+import NLP.GenI.TreeSchemata ( Ptype(Initial),
+    GNode, root, gup, gdown, gtype, GType(Subs),
+    )
 import NLP.GenI.Tags(TagElem(..), TagItem(..))
 
 data PolarityDetectionResult = PD_UserError String

@@ -42,7 +42,7 @@ import Data.List(intersperse)
 import qualified Data.Map as Map
 import qualified Data.Text as T
 
-import NLP.GenI.Semantics ( isInternalHandle )
+import NLP.GenI.Semantics ( isInternalHandle, SemInput, Literal(..) )
 import NLP.GenI.Tags
  ( TagElem, idname,
    tsemantics, ttree, tinterface, ttype, ttreename,
@@ -50,7 +50,6 @@ import NLP.GenI.Tags
 import NLP.GenI.Btypes (GeniVal(..), AvPair(..), Ptype(..),
                Ttree(params, pidname, pfamily, pinterface, ptype, tree, psemantics, ptrace),
                GNode(..), GType(..),
-               SemInput, Literal,
                TestCase(..),
                )
 
@@ -69,7 +68,7 @@ instance GeniShow GeniVal where
  geniShow x = show  x
 
 instance GeniShow Literal where
- geniShow (h, p, l) =
+ geniShow (Literal h p l) =
    showh ++ geniShow p ++ "(" ++ unwords (map geniShow l) ++ ")"
    where
     hideh g = case gConstraints g of
