@@ -16,7 +16,6 @@
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 {-# LANGUAGE CPP, FlexibleInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 module NLP.GenI.GeniParsers (
   -- * Test suites
@@ -180,7 +179,7 @@ geniSemanticInput =
      --
      setHandle i (h, pred_, par) =
        let h2 = if isAnon h
-                then mkGConst ("genihandle" `T.append` T.pack (show i)) []
+                then mkGConst (T.pack "genihandle" `T.append` T.pack (show i)) []
                 else h
        in (h2, pred_, par)
      --
