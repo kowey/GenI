@@ -342,7 +342,8 @@ finaliseVars suffix x = {-# SCC "finaliseVars" #-}
   subst :: Subst
   subst = Map.mapWithKey convert vars
   vars  = Map.fromListWith isect . Map.keys $ collect x Map.empty
-  isect xi yi = fromMaybe (Just []) $ intersectConstraints xi yi
+  isect xi yi = fromMaybe (Just []) -- unification failure => fully constrained
+              $ intersectConstraints xi yi
   convert v = GeniVal (Just (v ++ suffix))
 
 -- ----------------------------------------------------------------------
