@@ -253,7 +253,7 @@ enrich l t =
     -- enrich the interface and everything else
     t2 <- foldM enrichInterface t intE
     -- enrich everything else
-    foldM (enrichBy l) t2 namedE
+    foldM enrichBy t2 namedE
  where
   toAvPair ((_,_,a),v) = AvPair a v
   enrichInterface tx en =
@@ -262,11 +262,10 @@ enrich l t =
       Just (i2, isubs) -> return $ (replace isubs tx) { pinterface = i2 }
   ifaceEnrichErr (loc,_) = SchemaError [t] (EnrichError loc)
 
-enrichBy :: ILexEntry -- ^ lexeme (for debugging info)
-         -> SchemaTree
+enrichBy :: SchemaTree
          -> (PathEqLhs, GeniVal) -- ^ enrichment eq
          -> LexCombine SchemaTree
-enrichBy lexEntry t (eqLhs, eqVal) =
+enrichBy t (eqLhs, eqVal) =
  case seekCoanchor eqName t of
  Nothing -> return t -- to be robust, we accept if the node isn't there
  Just a  ->
