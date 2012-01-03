@@ -43,7 +43,7 @@ import Data.Maybe (isNothing, isJust)
 import Data.Text (Text)
 
 import NLP.GenI.Automaton
-import NLP.GenI.Btypes(Pred, SemInput, Sem, Flist, AvPair(..), showAv,
+import NLP.GenI.Btypes(Literal, SemInput, Sem, Flist, AvPair(..), showAv,
               replace,
               emptyPred, Ptype(Initial), 
               showSem, sortSem,
@@ -129,7 +129,7 @@ makePolAut candsRaw tsemRaw extraPol ks =
 -- The fact that we
 -- preserve the order of the input semantics is important for our handling
 -- of multi-literal semantics and for semantic frequency sorting.
-buildColumns :: (TagItem t) => [t] -> Sem -> Map.Map Pred [t] 
+buildColumns :: (TagItem t) => [t] -> Sem -> Map.Map Literal [t] 
 buildColumns cands [] = 
   Map.singleton emptyPred e 
   where e = filter (null.tgSemantics) cands
@@ -174,7 +174,7 @@ buildSeedAut' cands (l:ls) i aut =
   in buildSeedAut' cands ls (i+1) (newAut { states = next })
 
 -- for each candidate corresponding to literal l...
-buildSeedAutHelper :: [TagElem] -> Pred -> Int -> PolState -> (PolAut,[PolState]) -> (PolAut,[PolState])
+buildSeedAutHelper :: [TagElem] -> Literal -> Int -> PolState -> (PolAut,[PolState]) -> (PolAut,[PolState])
 buildSeedAutHelper cs l i st (aut,prev) =
   let -- get the extra semantics from the last state
       (PolSt _ ex1 _) = st
@@ -354,13 +354,13 @@ fixPronouns (tsem,cands) =
       indices = concatMap fn (Map.toList chargemap) 
         where fn (i,c) = replicate (negate c) i
       -- the extra columns 
-      extraSem = map indexPred indices
+      extraSem = map indexLiteral indices
       tsem2    = sortSem (tsem ++ extraSem)
       -- zero-literal semantic items to realise the extra columns 
       zlit = filter (null.tsemantics) cands
       cands2 = (cands \\ zlit) ++ concatMap fn indices
         where fn i = map (tweak i) zlit
-              tweak i x = assignIndex i $ x { tsemantics = [indexPred i] }
+              tweak i x = assignIndex i $ x { tsemantics = [indexLiteral i] }
       -- part 4 (insert excess pronouns in tree sem)
       comparefn :: GeniVal -> Int -> Int -> [GeniVal]
       comparefn i ct cm = if cm < ct then extra else []
@@ -373,17 +373,17 @@ fixPronouns (tsem,cands) =
       addextra :: TagElem -> TagElem
       addextra c = c { tsemantics = sortSem (sem ++ extra) }
         where sem   = tsemantics c
-              extra = map indexPred $ concatMap comparePron (getpols c)
+              extra = map indexLiteral $ concatMap comparePron (getpols c)
       cands3 = map addextra cands2
   in (tsem2, cands3)
 
 -- | Builds a fake semantic predicate that the index counting mechanism uses to
 --   represent extra columns.
-indexPred :: GeniVal -> Pred
-indexPred x = (x, mkGAnon, [])
+indexLiteral :: GeniVal -> Literal
+indexLiteral x = (x, mkGAnon, [])
 
 -- Returns True if the given literal was introduced by the index counting mechanism
-isExtraCol :: Pred -> Bool
+isExtraCol :: Literal -> Bool
 isExtraCol (_,p,[]) = isAnon p
 isExtraCol _        = False
 
@@ -535,7 +535,7 @@ sortSemByFreq tsem cands =
 
 -- Polarity NFA
 
-data PolState = PolSt Int [Pred] [(Int,Int)]     
+data PolState = PolSt Int [Literal] [(Int,Int)]     
                 -- ^ position in the input semantics, extra semantics, 
                 --   polarity interval
      deriving (Eq)

@@ -24,7 +24,7 @@ module NLP.GenI.Btypes (
    GNode(..), GType(Subs, Foot, Lex, Other), NodeName,
    Ttree(..), SemPols, TestCase(..),
    Ptype(Initial,Auxiliar,Unspecified),
-   Pred, Flist, AvPair(..), GeniVal(..),
+   Literal, Flist, AvPair(..), GeniVal(..),
    Lexicon, ILexEntry(..), Macros, Sem, LitConstr, SemInput, Subst,
    emptyLE, emptyGNode, emptyMacro,
 
@@ -36,8 +36,8 @@ module NLP.GenI.Btypes (
    root, rootUpd, foot, setLexeme, setAnchor,
 
    -- Functions from Sem
-   toKeys, subsumeSem, sortSem, showSem, showPred,
-   emptyPred,
+   toKeys, subsumeSem, sortSem, showSem, showLiteral,
+   emptyLiteral,
    removeConstraints,
 
    -- Functions from Flist

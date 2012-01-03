@@ -48,7 +48,7 @@ import NLP.GenI.GeniParsers ( geniTagElems, parseFromFile )
 import NLP.GenI.General
   (geniBug, boundsCheck, dropTillIncluding, ePutStrLn)
 import NLP.GenI.Btypes
-  ( showAv, showPred, showLexeme, )
+  ( showAv, showLiteral, showLexeme, )
 import NLP.GenI.Polarity.Types ( PolarityKey(..) )
 import NLP.GenI.Tags
   ( idname, mapBySem, TagElem(ttrace, tinterface) )
@@ -140,7 +140,7 @@ sectionsBySem tsem =
      --
      lookupTr k = Map.findWithDefault [] k semmap
      section  k = (Nothing, header) : (map tlab $ lookupTr k)
-                  where header = "___" ++ showPred k ++ "___"
+                  where header = "___" ++ showLiteral k ++ "___"
                         tlab t = (Just t, tgIdName t)
  in concatMap section sem
 

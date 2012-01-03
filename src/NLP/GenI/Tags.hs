@@ -58,7 +58,7 @@ import NLP.GenI.GeniVal ( GeniVal(..), DescendGeniVal(..), Collectable(..), Idab
                         )
 import NLP.GenI.FeatureStructures ( AvPair(..), Flist, showFlist, showPairs )
 import NLP.GenI.Polarity.Types (PolarityKey(..), SemPols)
-import NLP.GenI.Semantics ( Sem, Pred, emptyPred, showSem )
+import NLP.GenI.Semantics ( Sem, Literal, emptyLiteral, showSem )
 import NLP.GenI.TreeSchemata ( Ptype(..),
                                GNode(..), GType(..), emptyGNode, NodeName,
                                lexemeAttributes )
@@ -267,10 +267,10 @@ instance TagItem TagElem where
 --   optimisation, the gui display code, and code for measuring the efficiency
 --   of GenI.  Note: trees with a null semantics are filed under an empty
 --   predicate, if any.
-mapBySem :: (TagItem t) => [t] -> Map.Map Pred [t]
+mapBySem :: (TagItem t) => [t] -> Map.Map Literal [t]
 mapBySem ts = 
   let gfn t = case tgSemantics t of
-              []    -> emptyPred
+              []    -> emptyLiteral
               (x:_) -> x
   in groupByFM gfn ts
 
@@ -334,7 +334,7 @@ ts_tbUnificationFailure = "top/bot unification failure"
 ts_rootFeatureMismatch :: Flist GeniVal -> String
 ts_rootFeatureMismatch good = "root feature does not unify with " ++ showFlist good
 
-ts_semIncomplete :: [Pred] -> String
+ts_semIncomplete :: [Literal] -> String
 ts_semIncomplete sem = "semantically incomplete - missing:  " ++ showSem sem
 
 -- ----------------------------------------------------------------------

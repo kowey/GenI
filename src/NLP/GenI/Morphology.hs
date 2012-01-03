@@ -92,7 +92,7 @@ attachMorph morphfn sem cands =
       attachHelper i mfs t = 
         if relTree i t then attachMorphHelper mfs t else t 
       -- perform all attachments for a literal
-      attach :: Pred -> [TagElem] -> [TagElem]
+      attach :: Literal -> [TagElem] -> [TagElem]
       attach l cs = 
         case morphfn l of 
           Nothing  -> cs

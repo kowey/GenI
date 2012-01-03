@@ -47,7 +47,7 @@ sillyTagElem = TE
   , tidnum     = 0
   , ttree      = sillyTree
   , ttype      = Initial
-  , tsemantics = [ sillyPred ]
+  , tsemantics = [ sillyLiteral ]
   , tpolarities = Map.empty
   , tinterface  = []
   , ttrace      = []
@@ -62,5 +62,5 @@ sillyTagElemAux = sillyTagElem
   , ttype      = Auxiliar
   }
 
-sillyPred :: Pred
-sillyPred = (mkGConstNone "l", mkGConstNone "silly", [])
+sillyLiteral :: Literal
+sillyLiteral = (mkGConstNone "l", mkGConstNone "silly", [])

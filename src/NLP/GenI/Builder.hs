@@ -65,7 +65,7 @@ import NLP.GenI.Configuration
   )
 import NLP.GenI.General (geniBug, BitVector, snd3, thd3)
 import NLP.GenI.Btypes
-  ( ILexEntry, SemInput, Sem, Pred, showPred,
+  ( ILexEntry, SemInput, Sem, Literal, showLiteral,
     gtype, GType(Subs, Foot),
     DescendGeniVal(..), Collectable(collect), finaliseVarsById,
     GeniVal
@@ -270,7 +270,7 @@ run builder input config_ =
 -- Semantics and bit vectors
 -- ----------------------------------------------------------------------
 
-type SemBitMap = Map.Map Pred BitVector
+type SemBitMap = Map.Map Literal BitVector
 
 -- | assign a bit vector value to each literal in the semantics
 -- the resulting map can then be used to construct a bit vector
@@ -284,7 +284,7 @@ semToBitVector :: SemBitMap -> Sem -> BitVector
 semToBitVector bmap sem = foldr (.|.) 0 $ map doLookup sem
   where doLookup p =
          case Map.lookup p bmap of
-         Nothing -> geniBug $ "predicate " ++ showPred p ++ " not found in semanticBit map"
+         Nothing -> geniBug $ "predicate " ++ showLiteral p ++ " not found in semanticBit map"
          Just b  -> b
 
 bitVectorToSem :: SemBitMap -> BitVector -> Sem

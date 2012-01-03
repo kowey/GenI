@@ -32,7 +32,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 
 import NLP.GenI.Automaton
-import NLP.GenI.Btypes(Pred,
+import NLP.GenI.Btypes(Literal,
               Ptype(Initial),
               GNode, root, gup, gdown, gtype, GType(Subs),
               )
@@ -115,7 +115,7 @@ substNodes t = [ gn | gn <- (flatten.ttree) t, gtype gn == Subs ]
 substTops :: TagElem -> [Flist GeniVal]
 substTops = map gup . substNodes
 
-type SemMap = Map.Map Pred [TagElem]
+type SemMap = Map.Map Literal [TagElem]
 type PolMap = Map.Map PolarityKey Interval
 
 -- ----------------------------------------------------------------------

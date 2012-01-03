@@ -25,11 +25,11 @@ import Data.Poset
 import NLP.GenI.Lexicon ( ILexEntry(..) )
 import NLP.GenI.General ( histogram, showWithCount )
 import NLP.GenI.LexicalSelection ( LexCombineError, showLexCombineError )
-import NLP.GenI.Semantics ( Pred, showPred )
+import NLP.GenI.Semantics ( Literal, showLiteral )
 import NLP.GenI.TreeSchemata ( showLexeme )
 
 data GeniWarning = LexWarning [ILexEntry] LexWarning 
-                 | NoLexSelection         [Pred]
+                 | NoLexSelection         [Literal]
                  | MorphWarning           [String]
   deriving Eq
 
@@ -79,7 +79,7 @@ mergeWarning _ _ = Nothing
 
 -- | A warning may be displayed over several lines
 showGeniWarning :: GeniWarning -> [String]
-showGeniWarning (NoLexSelection ps) = [ "No lexical entries for literals: " ++ unwords (map showPred ps) ]
+showGeniWarning (NoLexSelection ps) = [ "No lexical entries for literals: " ++ unwords (map showLiteral ps) ]
 showGeniWarning (LexWarning ls wa)  =
   do -- list monad
      let (msg, suffix) = showLexWarning wa

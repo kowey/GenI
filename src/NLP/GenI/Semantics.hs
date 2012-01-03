@@ -34,18 +34,18 @@ import NLP.GenI.General ( histogram )
 import NLP.GenI.GeniVal
 
 -- handle, predicate, parameters
-type Pred = (GeniVal, GeniVal, [GeniVal])
-type Sem = [Pred]
-type LitConstr = (Pred, [String])
+type Literal = (GeniVal, GeniVal, [GeniVal])
+type Sem = [Literal]
+type LitConstr = (Literal, [String])
 type SemInput  = (Sem,Flist GeniVal,[LitConstr])
 
--- Pred is what I had in mind here
+-- Literal is what I had in mind here
 instance ((Collectable a, Collectable b, Collectable c)
            => Collectable (a,b,c)) where
   collect (a,b,c) = collect a . collect b . collect c
 
-emptyPred :: Pred
-emptyPred = (mkGAnon,mkGAnon,[])
+emptyLiteral :: Literal
+emptyLiteral = (mkGAnon,mkGAnon,[])
 
 -- Utility functions
 
@@ -61,8 +61,8 @@ sortByAmbiguity sem = sortBy (flip compare `on` criteria) sem
    criteria  = (constants &&& ambiguity) -- this is reverse sorting
                                          -- so high numbers come first
    ambiguity l = fromMaybe 0 $ do -- Maybe
-                   p <- boringPred l
-                   negate <$> Map.lookup p (predCount sem)
+                   p <- boringLiteral l
+                   negate <$> Map.lookup p (literalCount sem)
 
 class HasConstants a where
   constants :: a -> Int
@@ -76,14 +76,14 @@ instance HasConstants GeniVal where
 instance HasConstants a => HasConstants [a] where
   constants = sum . map constants
 
-instance HasConstants Pred where
+instance HasConstants Literal where
   constants (h, p, args) = constants (h:p:args)
 
-predCount :: [Pred] -> Map.Map Text Int
-predCount = histogram . mapMaybe boringPred
+literalCount :: [Literal] -> Map.Map Text Int
+literalCount = histogram . mapMaybe boringLiteral
 
-boringPred :: Pred -> Maybe Text
-boringPred (_,p,_) =      -- predicates with a straightfoward constant value
+boringLiteral :: Literal -> Maybe Text
+boringLiteral (_,p,_) =      -- predicates with a straightfoward constant value
     case gConstraints p of  -- exactly one constraint
       Just [o] -> Just    o
       _        -> Nothing
@@ -99,17 +99,17 @@ toKeys l = map (\(_,prop,par) -> show prop ++ (show $ length par)) l
 
 -- Traversal
 
-instance DescendGeniVal Pred where
+instance DescendGeniVal Literal where
   descendGeniVal s (h, n, lp) = (descendGeniVal s h, descendGeniVal s n, descendGeniVal s lp)
 
 -- Pretty printing
 
 showSem :: Sem -> String
 showSem l =
-    "[" ++ (unwords $ map showPred l) ++ "]"
+    "[" ++ (unwords $ map showLiteral l) ++ "]"
 
-showPred :: Pred -> String
-showPred (h, p, l) = showh ++ show p ++ "(" ++ unwords (map show l) ++ ")"
+showLiteral :: Literal -> String
+showLiteral (h, p, l) = showh ++ show p ++ "(" ++ unwords (map show l) ++ ")"
   where
     hideh g = case gConstraints g of
                 Just [c] -> isInternalHandle c
@@ -137,25 +137,25 @@ subsumeSemH [] [] = [ ([], Map.empty) ]
 subsumeSemH _ []  = error "subsumeSemH: got longer list in front"
 subsumeSemH []     _  = [ ([], Map.empty) ]
 subsumeSemH (x:xs) ys = nub $
- do let attempts = zip ys $ map (subsumePred x) ys
+ do let attempts = zip ys $ map (subsumeLiteral x) ys
     (y, Just (x2, subst)) <- attempts
     let next_xs = replace subst xs
         next_ys = replace subst $ delete y ys
         prepend = insert x2 *** appendSubst subst
     prepend `fmap` subsumeSemH next_xs next_ys
 
--- | @p1 `subsumePred` p2@... FIXME
-subsumePred :: Pred -> Pred -> Maybe (Pred, Subst)
-subsumePred (h1, p1, la1) (h2, p2, la2) =
+-- | @p1 `subsumeLiteral` p2@... FIXME
+subsumeLiteral :: Literal -> Literal -> Maybe (Literal, Subst)
+subsumeLiteral (h1, p1, la1) (h2, p2, la2) =
   if length la1 == length la2
   then do let hpla1 = h1:p1:la1
               hpla2 = h2:p2:la2
           (hpla, sub) <- hpla1 `allSubsume` hpla2
-          return (toPred hpla, sub)
+          return (toLiteral hpla, sub)
   else Nothing
  where
-  toPred (h:p:xs) = (h, p, xs)
-  toPred _ = error "subsumePred.toPred"
+  toLiteral (h:p:xs) = (h, p, xs)
+  toLiteral _ = error "subsumeLiteral.toLiteral"
 
 -- ----------------------------------------------------------------------
 -- Unification
@@ -177,7 +177,7 @@ unifySemH [] [] = return ([], Map.empty)
 unifySemH [] xs = return (xs, Map.empty)
 unifySemH xs [] = error $ "unifySem: shorter list should always be in front: " ++ showSem xs
 unifySemH (x:xs) ys = nub $ do
- let attempts = zip ys $ map (unifyPred x) ys
+ let attempts = zip ys $ map (unifyLiteral x) ys
  if all (isNothing . snd) attempts
     then first (x:) `fmap` unifySemH xs ys -- only include x unmolested if no unification succeeds
     else do (y, Just (x2, subst)) <- attempts
@@ -186,14 +186,14 @@ unifySemH (x:xs) ys = nub $ do
                 prepend = insert x2 *** appendSubst subst
             prepend `fmap` unifySemH next_xs next_ys
 
-unifyPred :: Pred -> Pred -> Maybe (Pred, Subst)
-unifyPred (h1, p1, la1) (h2, p2, la2) =
+unifyLiteral :: Literal -> Literal -> Maybe (Literal, Subst)
+unifyLiteral (h1, p1, la1) (h2, p2, la2) =
   if length la1 == length la2
   then do let hpla1 = h1:p1:la1
               hpla2 = h2:p2:la2
           (hpla, sub) <- hpla1 `unify` hpla2
-          return (toPred hpla, sub)
+          return (toLiteral hpla, sub)
   else Nothing
  where
-  toPred (h:p:xs) = (h, p, xs)
-  toPred _ = error "unifyPred.toPred"
+  toLiteral (h:p:xs) = (h, p, xs)
+  toLiteral _ = error "unifyLiteral.toLiteral"

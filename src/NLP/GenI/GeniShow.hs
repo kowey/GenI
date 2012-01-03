@@ -50,7 +50,7 @@ import NLP.GenI.Tags
 import NLP.GenI.Btypes (GeniVal(..), AvPair(..), Ptype(..),
                Ttree(params, pidname, pfamily, pinterface, ptype, tree, psemantics, ptrace),
                GNode(..), GType(..),
-               SemInput, Pred,
+               SemInput, Literal,
                TestCase(..),
                )
 
@@ -68,7 +68,7 @@ instance GeniShow (AvPair GeniVal) where
 instance GeniShow GeniVal where
  geniShow x = show  x
 
-instance GeniShow Pred where
+instance GeniShow Literal where
  geniShow (h, p, l) =
    showh ++ geniShow p ++ "(" ++ unwords (map geniShow l) ++ ")"
    where

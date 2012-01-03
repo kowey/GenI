@@ -152,7 +152,7 @@ geniSemantics =
   do sem <- many (geniLiteral <?> "a literal")
      return (sortSem sem)
 
-geniLiteral :: Parser Pred
+geniLiteral :: Parser Literal
 geniLiteral =
   do handle    <- option mkGAnon handleParser <?> "a handle"
      predicate <- geniValue <?> "a predicate"
@@ -184,7 +184,7 @@ geniSemanticInput =
                 else h
        in (h2, pred_, par)
      --
-     literalAndConstraint :: Parser (Pred, [String])
+     literalAndConstraint :: Parser (Literal, [String])
      literalAndConstraint =
        do l <- geniLiteral
           t <- option [] $ squares $ many identifier
@@ -337,7 +337,7 @@ geniLexSemantics =
   do litpols <- many (geniLexLiteral <?> "a literal")
      return $ unzip litpols
 
-geniLexLiteral :: Parser (Pred, [Int])
+geniLexLiteral :: Parser (Literal, [Int])
 geniLexLiteral =
   do (handle, hpol) <- option (mkGAnon,0) (handleParser <?> "a handle")
      predicate  <- geniValue <?> "a predicate"
