@@ -177,9 +177,11 @@ Executable geni-test
                  , json
                  , parsec >= 2 && < 3.2
                  , QuickCheck == 2.4.*
+                 , smallcheck
                  , HUnit > 1 && < 1.3
                  , test-framework-hunit >= 0.2.4 && < 0.3
                  , test-framework-quickcheck2 >= 0.2.4 && < 0.3
+                 , test-framework-smallcheck
                  , test-framework > 0.3
                  , text
  else

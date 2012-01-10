@@ -15,7 +15,7 @@ import Test.QuickCheck.Arbitrary
 import Test.Framework
 import Test.Framework.Providers.HUnit
 import Test.Framework.Providers.QuickCheck2
-
+import NLP.GenI.Test.SmallCheck.GeniVal as SC
 import NLP.GenI.GeniVal
 
 suite :: Test.Framework.Test
@@ -37,6 +37,7 @@ suite =
      , testProperty "subsumeOne antisymmetric" prop_subsume_antisymmetric
      , testProperty "subsumeOne transitive"    prop_subsume_transitive
      ]
+  , SC.suite
   ]
 
 test_alphaconvert_simple :: Assertion
