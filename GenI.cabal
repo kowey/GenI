@@ -111,6 +111,7 @@ Library
                 NLP.GenI.GeniParsers,
                 NLP.GenI.GeniShow,
                 NLP.GenI.GeniVal,
+                NLP.GenI.GeniVal.Internal,
                 NLP.GenI.Lexicon,
                 NLP.GenI.LexicalSelection,
                 NLP.GenI.Semantics,

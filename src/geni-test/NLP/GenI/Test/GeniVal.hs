@@ -127,7 +127,7 @@ tt_subsumes :: GeniVal -> GeniVal -> Bool
 tt_subsumes x y = unificationSuccesful (subsumeOne x y)
 
 tt_equiv :: GeniVal -> GeniVal -> Bool
-tt_equiv (GeniVal _ xc) (GeniVal _ yc) =
+tt_equiv (gConstraints -> xc) (gConstraints -> yc) =
  case (xc, yc) of
    (Just xs, Just ys) -> xs == ys
    (Just _, Nothing)  -> False
@@ -279,3 +279,14 @@ shrinkList2 shr xs =
    where
       xs1 = take k xs
       xs2 = drop k xs
+-- ----------------------------------------------------------------------
+--
+-- ----------------------------------------------------------------------
+
+instance Serial GeniVal where
+  series   =  cons0 mkGAnon
+           \/ cons1 mkGConst
+           \/ cons2 mkGVar
+  -- meh, I'd rather be forced to pattern match in case the type of GeniVal
+  -- changes in the future, but I also don't want to import the constructor
+  coseries rs d = [ \g -> f (gLabel g) (gConstraints g) | f <- alts2 rs d ]

@@ -22,6 +22,7 @@
 module NLP.GenI.GraphvizShow
 where
 
+import Data.FullList ( fromFL )
 import Data.List ( nub )
 import Data.List.Split (wordsBy)
 import Data.Maybe(listToMaybe, maybeToList, mapMaybe)
@@ -41,7 +42,7 @@ import NLP.GenI.Btypes (AvPair(..),
                showSem,
                )
 import NLP.GenI.General ( clumpBy )
-import NLP.GenI.GeniVal (GeniVal(..),isConst)
+import NLP.GenI.GeniVal (GeniVal(..), isConst, isAnon, isVar)
 import NLP.GenI.Graphviz
   ( GraphvizShow(graphvizShowAsSubgraph, graphvizLabel, graphvizParams)
   , GraphvizShowNode(graphvizShowNode)
@@ -138,10 +139,14 @@ instance GraphvizShowString () (AvPair GeniVal) where
   graphvizShow () (AvPair a v) = TL.fromChunks [a, ":"] `TL.append` graphvizShow_ v
 
 instance GraphvizShowString () GeniVal where
-  graphvizShow () (GeniVal Nothing Nothing)    = "?_"
-  graphvizShow () (GeniVal Nothing (Just cs))  = TL.intercalate "!" (map TL.fromChunks [cs])
-  graphvizShow () (GeniVal (Just l) Nothing)   = '?' `TL.cons` (TL.pack l)
-  graphvizShow () (GeniVal (Just l) (Just cs)) = '?' `TL.cons` (TL.concat [TL.pack l, "/", TL.intercalate "!" (map TL.fromChunks [cs])])
+  graphvizShow () g =
+    case (gLabel g, gConstraints g) of
+      (Nothing, Nothing) -> "?_"
+      (Nothing, Just cs) -> constraints cs
+      (Just l,  Nothing) -> '?' `TL.cons` (TL.pack l)
+      (Just l,  Just cs) -> '?' `TL.cons` (TL.concat [TL.pack l, "/", constraints cs])
+   where
+    constraints cs = TL.intercalate "!" $ map TL.fromChunks [fromFL cs]
 
 showGnDecorations :: GNode GeniVal -> TL.Text
 showGnDecorations gn =
