@@ -1,5 +1,20 @@
 # Boring file regexps:
 
+# TEMPORARY
+# things I actually want to delete but am not sure about yet
+JUNK($|/)
+
+### GenI stuff
+^geniwrapper/MinimalGenI-OSX($|/)
+^geni(-wx|convert|report|server)/dist($|/)
+^(sillymorph|src/geni-test)/dist($|/)
+^doc/_site($|/)
+^doc/_cache($|/)
+^doc/.*\.(aux|dvi|eps|log|bbl|blg|pdf|toc)$
+^STASH($|/)
+^geniwrapper/test-(c-mac|c-win|c2|hs-c)$
+^doc/site$
+
 ### compiler and interpreter intermediate files
 # haskell (ghc) interfaces
 \.hi$
@@ -39,7 +54,7 @@
 \.installed-pkg-config
 \.setup-config
 # standard cabal build dir, might not be boring for everybody
-# ^dist(/|$)
+^dist(/|$)
 # autotools
 (^|/)autom4te\.cache($|/)
 (^|/)config\.(log|status)$
