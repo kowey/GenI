@@ -35,7 +35,7 @@ module NLP.GenI.GeniParsers (
   module Text.ParserCombinators.Parsec
 ) where
 
-import NLP.GenI.GeniVal (mkGConst, mkGVar, mkGAnon)
+import NLP.GenI.GeniVal (mkGConst, mkGConstNone, mkGVar, mkGAnon)
 import NLP.GenI.Btypes
 import NLP.GenI.Tags (TagElem(..), emptyTE, setTidnums)
 import NLP.GenI.Semantics ( Literal(..) )
@@ -44,6 +44,7 @@ import NLP.GenI.General (isGeniIdentLetter)
 import NLP.GenI.GeniShow (GeniShow(geniShow))
 
 import BoolExp
+import Data.FullList ( Listable(..) )
 
 import Control.Applicative ( (<*>), (<$>) )
 import Control.Monad (liftM, when)
@@ -107,11 +108,13 @@ geniValue =   ((try $ anonymous) <?> "_ or ?_")
   where
     question = "?"
     atom     = T.pack `fmap` (looseIdentifier <|> stringLiteral)
-    disjunction = sepBy1 atom (symbol "|")
+    disjunction = do
+      (x:xs) <- sepBy1 atom (symbol "|")
+      return (x !: xs)
     constants :: Parser GeniVal
     constants =
-      do (c:cs) <- disjunction
-         return (mkGConst c cs)
+      do cs <- disjunction
+         return $ mkGConst cs
     variable :: Parser GeniVal
     variable =
       do symbol question
@@ -179,7 +182,7 @@ geniSemanticInput =
      --
      setHandle i (Literal h pred_ par) =
        let h2 = if isAnon h
-                then mkGConst (T.pack "genihandle" `T.append` T.pack (show i)) []
+                then mkGConstNone (T.pack "genihandle" `T.append` T.pack (show i))
                 else h
        in Literal h2 pred_ par
      --

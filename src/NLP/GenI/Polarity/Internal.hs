@@ -18,6 +18,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module NLP.GenI.Polarity.Internal where
 
+import Control.Applicative
 import NLP.GenI.FeatureStructures
 import NLP.GenI.General
 import NLP.GenI.GeniVal
@@ -30,6 +31,7 @@ import Data.Maybe (isJust)
 import Data.Tree (flatten)
 import Data.Text (Text)
 import qualified Data.Text as T
+import Data.FullList
 
 import NLP.GenI.Automaton
 import NLP.GenI.Semantics (Literal)
@@ -92,13 +94,13 @@ detectPolarity :: Int          -- ^ polarity to assign
 detectPolarity i (RestrictedPolarityAttr cat att) filterFl fl =
   case Map.lookup __cat__ filterFl of
     Nothing -> PD_UserError $ "[polarities] No category " ++ T.unpack cat ++ " in:" ++ showFeatStruct filterFl
-    Just v -> if isJust (unify [mkGConst cat []] [v])
+    Just v -> if isJust (unify [mkGConstNone cat] [v])
               then detectPolarity i (SimplePolarityAttr att) emptyFeatStruct fl
               else PD_Nothing
 detectPolarity i (SimplePolarityAttr att) _ fl =
   case Map.lookup att fl of
     Nothing -> PD_Unconstrained (withZero att)
-    Just v  -> case gConstraints v of
+    Just v  -> case fromFL <$> gConstraints v of
              Just [x] -> PD_Just [ (PolarityKeyAv att x, ival i) ]       -- singleton
              Just xs  -> PD_Just $ map (withZero . PolarityKeyAv att) xs   -- interval if ambiguous
              Nothing  -> PD_Unconstrained (withZero att)

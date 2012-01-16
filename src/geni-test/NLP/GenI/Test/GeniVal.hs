@@ -1,10 +1,13 @@
+{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module NLP.GenI.Test.GeniVal where
 
-import Control.Applicative ( (<$>) )
+import Control.Applicative ( (<$>), (<*>) )
 import Control.Monad ( liftM2 )
 import Data.Char
+import Data.FullList
+import Data.List ( nub, isPrefixOf )
 import GHC.Exts ( IsString(..) )
 import Data.Maybe (isJust)
 import qualified Data.Text as T
@@ -32,8 +35,7 @@ suite =
       , testBackPropagation
       ]
   , testGroup "subsumption"
-     [ testProperty "subsumeOne reflexive"
-         (\x -> qc_not_empty_GVar x ==> tt_subsumes x x)
+     [ testProperty "subsumeOne reflexive" (\x -> tt_subsumes x x)
      , testProperty "subsumeOne antisymmetric" prop_subsume_antisymmetric
      , testProperty "subsumeOne transitive"    prop_subsume_transitive
      ]
@@ -44,9 +46,9 @@ test_alphaconvert_simple :: Assertion
 test_alphaconvert_simple =
   assertEqual "" [v1n2, v1n2] $ finaliseVars "" [v1, v2]
  where
-  v1 = mkGVar "X" (Just ["x","y"])
-  v2 = mkGVar "X" (Just ["y","z"])
-  v1n2 = mkGVar "X" (Just ["y"])
+  v1   = mkGVar "X" (Just $ "x" !: ["y"])
+  v2   = mkGVar "X" (Just $ "y" !: ["z"])
+  v1n2 = mkGVar "X" (Just $ "y" !: [])
 
 prop_alphaconvert_idempotent :: [GeniVal] -> Bool
 prop_alphaconvert_idempotent xs =
@@ -65,12 +67,13 @@ prop_alphaconvert_subset gs_ =
   csubsetH Nothing Nothing     = True
   csubsetH Nothing (Just _)    = False
   csubsetH (Just _) Nothing    = True
-  csubsetH (Just xs) (Just ys) = all (`elem` ys) xs
+  csubsetH (Just (fromFL -> [x])) (Just _)
+    | "ERROR_impossible_constraints" `T.isPrefixOf` x = True
+  csubsetH (Just xs) (Just ys) = all (`elem` fromFL ys) (fromFL xs)
 
 -- | Unifying something with itself should always succeed
-prop_unify_self :: [GeniVal] -> Property
+prop_unify_self :: [GeniVal] -> Bool
 prop_unify_self x_ =
- all qc_not_empty_GVar x ==>
    case unify x x of
      Nothing  -> False
      Just unf -> fst unf == x
@@ -90,12 +93,12 @@ prop_unify_anon x =
 -- | Unification should be symmetrical.  We can't guarantee these if there
 --   are cases where there are variables in the same place on both sides, so we
 --   normalise the sides so that this doesn't happen.
-prop_unify_sym :: [GeniVal] -> [GeniVal] -> Property
-prop_unify_sym x_ y_ =
-  let (TestPair x y) = finaliseVars "" (TestPair x_ y_)
-      u1 = (unify x y) :: Maybe ([GeniVal],Subst)
-      u2 = unify y x
-  in all qc_not_empty_GVar x && all qc_not_empty_GVar y ==> u1 == u2
+prop_unify_sym :: [GeniVal] -> [GeniVal] -> Bool
+prop_unify_sym x_ y_ = u1 == u2
+ where
+  (TestPair x y) = finaliseVars "" (TestPair x_ y_)
+  u1 = (unify x y) :: Maybe ([GeniVal],Subst)
+  u2 = unify y x
 
 -- | Unifying something with the empty list should always succeed
 prop_unify_empty :: [GeniVal] -> Bool
@@ -103,7 +106,7 @@ prop_unify_empty x = isJust (unify x [])
 
 prop_subsume_antisymmetric :: GeniVal -> GeniVal -> Property
 prop_subsume_antisymmetric x_ y_ =
- all qc_not_empty_GVar [ x, y ] && tt_subsumes x y ==>
+ tt_subsumes x y ==>
    x `tt_equiv` y || not (tt_subsumes y x)
  where
    (x, y) = case finaliseVars "" [ x_, y_ ] of
@@ -112,7 +115,7 @@ prop_subsume_antisymmetric x_ y_ =
 
 prop_subsume_transitive :: GeniVal -> GeniVal -> GeniVal -> Property
 prop_subsume_transitive x_ y_ z_ =
- all qc_not_empty_GVar [ x, y, z ] && tt_subsumes x y && tt_subsumes y z ==>
+ tt_subsumes x y && tt_subsumes y z ==>
    tt_subsumes x z
  where
    (x, y, z) = case finaliseVars "" [ x_, y_, z_ ] of
@@ -142,17 +145,13 @@ testBackPropagation =
    ]
  where
   n = 3
-  cx = mkGConst "X" []
+  cx = mkGConstNone "X"
   leftStrs = map show [1..n]
   left  = map (flip mkGVar Nothing) leftStrs
   right = drop 1 left ++ [cx]
   expected = Just (expectedResult, expectedSubst)
   expectedResult = replicate n cx
   expectedSubst  = Map.fromList $ zip leftStrs (repeat cx)
-
-qc_not_empty_GVar :: GeniVal -> Bool
-qc_not_empty_GVar (GeniVal (Just _) (Just [])) = False
-qc_not_empty_GVar _ = True
 
 -- ----------------------------------------------------------------------
 --
@@ -192,12 +191,14 @@ instance Arbitrary GTestString2 where
 
 instance Arbitrary GeniVal where
   arbitrary = oneof [ arbitraryGConst, arbitraryGVar, return mkGAnon ]
+{-
   shrink g  = do
     label       <- shrink (gLabel g)
     constraints <- shrinkMaybe (shrinkList shrinkText) (gConstraints g)
     return $ g { gLabel       = label
                , gConstraints = constraints
                }
+-}
 
 shrinkText :: T.Text -> [T.Text]
 shrinkText = map T.pack . shrinkList2 shrink . T.unpack
@@ -207,25 +208,30 @@ shrinkMaybe shr Nothing  = []
 shrinkMaybe shr (Just x) = Nothing : map Just (shr x)
 
 arbitraryGConst :: Gen GeniVal
-arbitraryGConst = liftM2 mkGConst (T.pack . fromPrintString <$> arbitrary)
-                                  (map (T.pack . fromPrintString) <$> arbitrary)
+arbitraryGConst = mkGConst <$> arbitraryConstraints fromPrintString
 
 arbitraryGVar :: Gen GeniVal
-arbitraryGVar = liftM2 mkGVar (fromGTestString2 `fmap` arbitrary)
-                              (fmap (map (T.pack . fromPrintString) . fromList1) `fmap` arbitrary)
+arbitraryGVar = mkGVar <$> (fromGTestString2 `fmap` arbitrary)
+                       <*> (maybeOf (arbitraryConstraints fromPrintString))
 
+arbitraryConstraints :: Arbitrary a => (a -> String) -> Gen (FullList T.Text)
+arbitraryConstraints f = do
+  x  <- str              <$> arbitrary
+  xs <- map str . take 3 <$> arbitrary
+  return (x !: xs)
+ where
+  str = T.pack . f
 
 -- | a small subset of GeniVal for some more elaborate tests
 newtype GeniValLite = GeniValLite { fromGeniValLite :: GeniVal }
 
 instance Arbitrary GeniValLite where
   arbitrary = GeniValLite `fmap`
-                oneof [ liftM2 mkGConst astr (listOf astr)
-                      , liftM2 mkGVar (fromGTestString2 `fmap` arbitrary) (maybeOf (listOf1 astr))
-                      , return mkGAnon
-                      ]
-    where
-     astr   = T.pack . fromGTestString <$> arbitrary
+    oneof [ mkGConst <$> arbitraryConstraints fromGTestString
+          , mkGVar   <$> (fromGTestString2 `fmap` arbitrary)
+                     <*> (maybeOf (arbitraryConstraints fromGTestString))
+          , return mkGAnon
+          ]
 
 instance Show GeniValLite where
   show = show . fromGeniValLite

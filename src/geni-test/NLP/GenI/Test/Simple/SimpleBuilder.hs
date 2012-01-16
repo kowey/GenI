@@ -11,7 +11,7 @@ import NLP.GenI.Btypes
   , GNode(..)
   , GType(Foot,Other)
   )
-import NLP.GenI.GeniVal ( GeniVal, mkGConst )
+import NLP.GenI.GeniVal ( GeniVal, mkGConst, mkGConstNone )
 
 import NLP.GenI.Tags (
              toTagSite,
@@ -112,6 +112,6 @@ ttCat = AvPair "cat"
 ttDet = AvPair "det"
 
 ttA_, ttPlus_, ttMinus_ :: GeniVal
-ttA_     = mkGConst "a" []
-ttPlus_  = mkGConst "+" []
-ttMinus_ = mkGConst "-" []
+ttA_     = mkGConstNone "a"
+ttPlus_  = mkGConstNone "+"
+ttMinus_ = mkGConstNone "-"

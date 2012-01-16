@@ -4,6 +4,7 @@ module NLP.GenI.Test.SmallCheck.GeniVal (suite) where
 
 import Control.Applicative
 import Data.Char
+import Data.FullList
 import Data.List ( nub )
 import GHC.Exts ( IsString(..) )
 import Data.Maybe (isJust)
@@ -25,22 +26,28 @@ suite =
     testProperty "unify self" prop_unify_self
   ]
 
-instance Serial GeniVal where
-  series = cons2 GeniVal
-
-instance Serial T.Text where
-  series = cons1 T.pack
-
 -- | Unifying something with itself should always succeed
-prop_unify_self :: GeniVal -> Property
+prop_unify_self :: GeniVal -> Bool
 prop_unify_self x_ =
- qc_not_empty_GVar x ==>
    case unify [x] [x] of
      Nothing  -> False
      Just unf -> fst unf == [x]
  where
    x = finaliseVars "" x_
 
-qc_not_empty_GVar :: GeniVal -> Bool
-qc_not_empty_GVar (GeniVal (Just _) (Just [])) = False
-qc_not_empty_GVar _ = True
+
+-- ----------------------------------------------------------------------
+-- serial
+-- ----------------------------------------------------------------------
+
+instance Serial GeniVal where
+  series = cons2 GeniVal
+
+instance Serial T.Text where
+  series = cons1 T.pack
+
+instance (Serial a) => Serial (FullList a) where
+  series = cons2 cons
+    where
+      cons :: a -> [a] -> FullList a
+      cons = (!:)

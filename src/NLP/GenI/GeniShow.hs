@@ -47,11 +47,12 @@ import NLP.GenI.Tags
  ( TagElem, idname,
    tsemantics, ttree, tinterface, ttype, ttreename,
  )
-import NLP.GenI.Btypes (GeniVal(..), AvPair(..), Ptype(..),
+import NLP.GenI.Btypes (AvPair(..), Ptype(..),
                Ttree(params, pidname, pfamily, pinterface, ptype, tree, psemantics, ptrace),
                GNode(..), GType(..),
                TestCase(..),
                )
+import NLP.GenI.GeniVal ( GeniVal(..), singletonVal )
 
 class GeniShow a where
   geniShow :: a -> String
@@ -71,10 +72,8 @@ instance GeniShow Literal where
  geniShow (Literal h p l) =
    showh ++ geniShow p ++ "(" ++ unwords (map geniShow l) ++ ")"
    where
-    hideh g = case gConstraints g of
-                Just [c] -> isInternalHandle c
-                _        -> False
-    showh = if hideh h then "" else geniShow h ++ ":"
+    hideh g = maybe False isInternalHandle (singletonVal g)
+    showh   = if hideh h then "" else geniShow h ++ ":"
 
 instance GeniShow (GNode GeniVal) where
  geniShow x =

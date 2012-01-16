@@ -4,6 +4,7 @@ module NLP.GenI.Test.GeniParsers where
 
 import Control.Monad ( liftM2 )
 
+import Data.FullList
 import Data.List
 import Test.HUnit
 import Test.QuickCheck hiding (collect, Failure)
@@ -18,6 +19,7 @@ import NLP.GenI.GeniParsers
 import NLP.GenI.Semantics
 import NLP.GenI.Test.FeatureStructures ()
 import NLP.GenI.Test.GeniVal ()
+import NLP.GenI.Test.Semantics ()
 
 suite :: Test.Framework.Test
 suite =
@@ -49,7 +51,7 @@ testEvilGeniVal =
             , "x"
             , quotemarks "|"
             ])
-    (show (mkGConst "\"?\\/" [ "|", "x", "\\" ]))
+    (show (mkGConst ("\"?\\/" !: [ "|", "x", "\\" ])))
  where
   quotemarks x = "\"" ++ x ++ "\""
 
@@ -89,9 +91,9 @@ propRoundTripSem g =
  where
    semStr = "semantics: " ++ showSem g
    anonhandle lit@(Literal h p xs) =
-     case gConstraints h of
-       Just [c] | isInternalHandle c -> Literal mkGAnon p xs
-       _                             -> lit
+     case singletonVal h of
+       Just c | isInternalHandle c -> Literal mkGAnon p xs
+       _                           -> lit
 
 testParse p = runParser (tillEof p) () ""
 

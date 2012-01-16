@@ -104,6 +104,8 @@ Library
 
   Exposed-Modules:
                 BoolExp,
+                Data.FullList.Internal,
+                Data.FullList,
                 NLP.GenI.Btypes,
                 NLP.GenI.FeatureStructures,
                 NLP.GenI.Flags,

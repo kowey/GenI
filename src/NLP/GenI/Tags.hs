@@ -50,6 +50,7 @@ import qualified Data.Text as T
 
 import Data.Generics (Data)
 import Data.Typeable (Typeable)
+import Data.FullList
 import Text.JSON
 
 import NLP.GenI.General (listRepNode, groupByFM, preTerminals, geniBug)
@@ -300,7 +301,7 @@ getLexeme node =
     lexs -> lexs
   where
    grab la =
-     let match (AvPair a v) | isConst v  && a == la = map T.unpack <$> gConstraints v
+     let match (AvPair a v) | isConst v  && a == la = map T.unpack . fromFL <$> gConstraints v
          match _ = Nothing
      in firstMaybe match guppy
    guppy      = gup node

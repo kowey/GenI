@@ -34,6 +34,7 @@ import Data.Tree (Tree(Node))
 import qualified Data.Text as T
 import Data.Text ( Text )
 
+import Data.FullList hiding ( head, tail )
 import NLP.GenI.General(filterTree, repAllNode,
     showWithCount,
     geniBug,
@@ -379,7 +380,7 @@ setLemAnchors t =
   lemAnchor :: GNode GeniVal -> Maybe [Text]
   lemAnchor n =
     case [ v | AvPair a v <- gdown n, a == _lemanchor ] of
-    [l] | isConst l -> gConstraints l
+    [l] | isConst l -> fromFL `fmap` (gConstraints l)
     _               -> Nothing
 
 _lemanchor :: Text

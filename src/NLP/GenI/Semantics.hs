@@ -18,6 +18,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE TypeSynonymInstances, MultiParamTypeClasses, FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module NLP.GenI.Semantics where
 
@@ -105,12 +106,9 @@ literalCount :: [Literal] -> Map.Map Text Int
 literalCount = histogram . mapMaybe boringLiteral
 
 boringLiteral :: Literal -> Maybe Text
-boringLiteral l =
+boringLiteral = singletonVal . lPredicate
     -- predicate with a straightfoward constant value
     -- exactly one constraint
-    case gConstraints (lPredicate l) of
-      Just [o] -> Just    o
-      _        -> Nothing
 
 -- | Given a Semantics, return the string with the proper keys
 --   (propsymbol+arity) to access the agenda
@@ -133,11 +131,11 @@ showSem l =
 showLiteral :: Literal -> String
 showLiteral (Literal h p l) = showh ++ show p ++ "(" ++ unwords (map show l) ++ ")"
   where
-    hideh g = case gConstraints g of
-                Just [c] -> isInternalHandle c
-                _        -> False
+    hideh g = case singletonVal g of
+                Just c -> isInternalHandle c
+                _      -> False
     --
-    showh = if (hideh h) then "" else (show h) ++ ":"
+    showh = if hideh h then "" else (show h) ++ ":"
 
 isInternalHandle :: Text -> Bool
 isInternalHandle = ("genihandle" `T.isPrefixOf`)

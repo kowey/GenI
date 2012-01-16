@@ -22,6 +22,7 @@
 module NLP.GenI.Test.Polarity where
 
 import Control.Monad ( forM_, liftM, liftM2 )
+import Data.FullList hiding ( head, tail )
 import Data.List
 import Data.Maybe
 import qualified Data.Map as Map
@@ -230,5 +231,5 @@ barAvAnd x = mkFeatStruct [ x, barAv ]
 
 foAv  = AvPair "fo" "vfo"
 fooAv = AvPair "foo" "vfoo"
-fooDisjAv = AvPair "foo" (mkGConst "vfoo" ["vfoo2"])
+fooDisjAv = AvPair "foo" (mkGConst ("vfoo" !: ["vfoo2"]))
 barAv = AvPair "bar" "vbar"

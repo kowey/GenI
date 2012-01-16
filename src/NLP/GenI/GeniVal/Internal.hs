@@ -25,7 +25,7 @@ import Control.Arrow (first, (***))
 import Control.Monad (liftM)
 import Data.Binary
 import Data.List
-import Data.Maybe (catMaybes, fromMaybe, isNothing, isJust)
+import Data.Maybe (fromMaybe, isNothing, isJust)
 import Data.Generics (Data)
 import Data.Typeable (Typeable)
 import qualified Data.Map as Map
@@ -35,30 +35,38 @@ import qualified Data.Text as T
 
 import Control.DeepSeq
 
+import Data.FullList ( FullList, fromFL, Listable(..) )
 import NLP.GenI.General (geniBug, quoteString, isGeniIdentLetter)
+
 
 -- | constant : no label, just constraints
 --   variable : label, with or without constraints
 --   anonymous : no label, no constraints
 data GeniVal = GeniVal { gLabel       :: Maybe String 
-                       , gConstraints :: Maybe [Text]
+                       , gConstraints :: Maybe (FullList Text)
                        }
   deriving (Eq,Ord, Data, Typeable)
 
--- | 'mkGConst' @x []@ creates a single constant.  'mkGConst' @x xs@
+sortNub :: (Eq a, Ord a) => FullList a -> FullList a
+sortNub xs =
+  case (sort . nub . fromFL $ xs) of
+   []     -> geniBug "sortNub is broken"
+   (y:ys) -> y !: ys
+
+-- | 'mkGConst' @x :! []@ creates a single constant.  'mkGConst' @x :! xs@
 --   creates an atomic disjunction.  It makes no difference which of the values
---   you supply for @x@ and @xs@ as they will be sorted and nubed anyway.  We
---   divide these only to enforce a non-empty list.
-mkGConst :: Text -- ^ one value
-         -> [Text] -- ^ any additional values (atomic disjunction)
+--   you supply for @x@ and @xs@ as they will be sorted and nubed anyway.
+mkGConst :: FullList Text -- ^ non-empty list
          -> GeniVal
-mkGConst x xs  = GeniVal Nothing (Just . sort . nub $ x:xs)
+mkGConst cs_ = GeniVal Nothing (Just cs)
+ where
+  cs = sortNub cs_
 
 mkGConstNone :: Text -> GeniVal
-mkGConstNone x = mkGConst x []
+mkGConstNone x = mkGConst (x !: [])
 
-mkGVar :: String -> Maybe [Text] -> GeniVal
-mkGVar x mxs  = GeniVal (Just x) ((sort . nub) `fmap` mxs)
+mkGVar :: String -> Maybe (FullList Text) -> GeniVal
+mkGVar x mxs  = GeniVal (Just x) (sortNub `fmap` mxs)
 
 mkGVarNone :: String -> GeniVal
 mkGVarNone x  = mkGVar x Nothing
@@ -77,7 +85,7 @@ showGeniVal gv =
    GeniVal (Just l) Nothing   -> '?':l
    GeniVal (Just l) (Just cs) -> '?':concat [ l, "/", showConstraints cs ]
   where
-   showConstraints = intercalate "|" . map (maybeQuote . T.unpack) -- FIXME push down
+   showConstraints = intercalate "|" . map (maybeQuote . T.unpack) . fromFL -- FIXME push down
    maybeQuote "" = quoteString ""
    maybeQuote x | any naughty x = quoteString x
    maybeQuote x  = x
@@ -85,6 +93,12 @@ showGeniVal gv =
 
 isConst :: GeniVal -> Bool
 isConst = isNothing . gLabel
+
+singletonVal :: GeniVal -> Maybe Text
+singletonVal v =
+ case fmap fromFL (gConstraints v) of
+    Just [o] -> Just o
+    _        -> Nothing
 
 isVar :: GeniVal -> Bool
 isVar = isJust . gConstraints
@@ -221,13 +235,13 @@ unifyOne g1 g2 =
   gc1 = gConstraints g1
   gc2 = gConstraints g2
 
-intersectConstraints :: Eq a => Maybe [a] -> Maybe [a] -> Maybe (Maybe [a])
+intersectConstraints :: Eq a => Maybe (FullList a) -> Maybe (FullList a) -> Maybe (Maybe (FullList a))
 intersectConstraints Nothing cs = Just cs
 intersectConstraints cs Nothing = Just cs
 intersectConstraints (Just v1) (Just v2) =
-  case v1 `intersect` v2 of
-    []   -> Nothing
-    newV -> Just (Just newV)
+  case fromFL v1 `intersect` fromFL v2 of
+    []     -> Nothing
+    (x:xs) -> Just (Just (x !: xs))
 
 -- ----------------------------------------------------------------------
 -- Core subsumption
@@ -237,7 +251,7 @@ intersectConstraints (Just v1) (Just v2) =
 --   subsumes @y@ or 'Failure' otherwise
 subsumeOne :: GeniVal -> GeniVal -> UnificationResult
 subsumeOne g1@(GeniVal _ (Just cs1)) g2@ (GeniVal _ (Just cs2)) =
-   if cs1 `subset` cs2 then unifyOne g1 g2 else Failure
+   if fromFL cs1 `subset` fromFL cs2 then unifyOne g1 g2 else Failure
  where
    subset x y = all (`elem` y) x
 subsumeOne (GeniVal _ (Just _)) (GeniVal _ Nothing) = Failure
@@ -273,7 +287,7 @@ replaceOneG _ v = {-# SCC "replaceOneG" #-} v
 -- Variable collection and renaming
 -- ----------------------------------------------------------------------
 
-type CollectedVar = (String, Maybe [Text])
+type CollectedVar = (String, Maybe (FullList Text))
 
 -- | A 'Collectable' is something which can return its variables as a
 --   map from the variable to the number of times that variable occurs
@@ -300,7 +314,7 @@ instance (Collectable a => Collectable [a]) where
 
 instance Collectable GeniVal where
   collect (GeniVal (Just v) cs) s = Map.insertWith' (+) (v,cs) 1 s
-  collect _ s = s
+  collect (GeniVal Nothing _)   s = s
 
 -- | An Idable is something that can be mapped to a unique id.
 --   You might consider using this to implement Ord, but I won't.
@@ -333,19 +347,25 @@ finaliseVarsById x = {-# SCC "finaliseVarsById" #-}
 --     to ensure global uniqueness
 --
 --   * anonymises any singleton variables
---
---   * intersects constraints for for all variables within the same
---     object
+---
+---   * intersects constraints for for all variables within the same
+---     object
 finaliseVars :: (Collectable a, DescendGeniVal a) => String -> a -> a
 finaliseVars suffix x = {-# SCC "finaliseVars" #-}
   replace subst (anonymiseSingletons x)
  where
-  subst :: Subst
-  subst = Map.mapWithKey convert vars
-  vars  = Map.fromListWith isect . Map.keys $ collect x Map.empty
-  isect xi yi = fromMaybe (Just []) -- unification failure => fully constrained
-              $ intersectConstraints xi yi
-  convert v = GeniVal (Just (v ++ suffix))
+   subst :: Subst
+   subst = Map.mapWithKey convert vars
+   vars  = Map.fromListWithKey isect $ Map.keys (collect x Map.empty)
+   -- TODO: ugh: this is maybe not ideal: if a variable has impossible
+   -- constraints (eg. ?X/cat cannot unify with ?X/dog, but it can
+   -- unify with ?X/cat vs ?X/dog|cat => ?X/cat), we hardcode it to a
+   -- value that should not be able to unify with anything
+   isect k xi yi =
+      fromMaybe (Just (impossibleC k)) $ intersectConstraints xi yi
+   convert v = GeniVal (Just (v ++ suffix))
+   impossibleC v =  (T.pack ("ERROR_impossible_constraints_" ++ v ++ suffix))
+                 !: []
 
 -- ----------------------------------------------------------------------
 -- Fancy disjunction
@@ -357,9 +377,9 @@ crushOne [gs] = Just gs
 crushOne gs   =
   if any isNothing gcs
      then Nothing
-     else case concat (catMaybes gcs) of
+     else case concat [ fromFL c | Just c <- gcs ] of
             []     -> Nothing
-            (c:cs) -> Just (mkGConst c cs)
+            (c:cs) -> Just (mkGConst (c !: cs))
   where
    gcs = map gConstraints gs
 
