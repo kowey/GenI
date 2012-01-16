@@ -1,8 +1,11 @@
 # Boring file regexps:
 
 # TEMPORARY
+^doc/manual/kowthese-images/UNUSED($|/)
 # things I actually want to delete but am not sure about yet
 JUNK($|/)
+^geniwrapper/subject-verb-agreement($|/)
+^install.sh$
 
 ### GenI stuff
 ^geniwrapper/MinimalGenI-OSX($|/)
