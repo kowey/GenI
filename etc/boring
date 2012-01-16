@@ -9,8 +9,8 @@ JUNK($|/)
 
 ### GenI stuff
 ^geniwrapper/MinimalGenI-OSX($|/)
-^geni(-wx|convert|report|server)/dist($|/)
-^(sillymorph|src/geni-test)/dist($|/)
+^geni(-wx|convert|report|server|-test)/dist($|/)
+^(sillymorph)/dist($|/)
 ^doc/_site($|/)
 ^doc/_cache($|/)
 ^doc/.*\.(aux|dvi|eps|log|bbl|blg|pdf|toc)$

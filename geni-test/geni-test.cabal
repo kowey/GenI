@@ -38,3 +38,5 @@ Library
                , test-framework-smallcheck
                , test-framework > 0.3
                , text
+
+  Hs-Source-Dirs: ../src/geni-test
