@@ -38,7 +38,7 @@ import NLP.GenI.Configuration ( Params(..) )
 import NLP.GenI.General ( snd3, buckets )
 import NLP.GenI.Geni ( ProgStateRef, runGeni
                      , GeniResult(..), GeniSuccess(..), GeniError(..), isSuccess )
-import NLP.GenI.GeniVal (mkGConst, GeniVal)
+import NLP.GenI.GeniVal ( mkGConstNone, GeniVal )
 import NLP.GenI.Graphviz ( GraphvizShow(..), gvUnlines )
 import NLP.GenI.GuiHelper
   ( messageGui, tagViewerGui,
@@ -231,7 +231,7 @@ toTagElem si =
    nodes   = siNodes si
    nodeMap = Map.fromList $ zip (map gnname nodes) nodes
    lookupOrBug k = case Map.lookup k nodeMap of
-                   Nothing -> emptyGNode { gup = [ AvPair "cat" (mkGConst (T.pack ("error looking up " ++ k)) []) ] }
+                   Nothing -> emptyGNode { gup = [ AvPair "cat" (mkGConstNone (T.pack ("ERROR looking up " ++ k))) ] }
                    Just x  -> x
 
 siToSentence :: SimpleItem -> String

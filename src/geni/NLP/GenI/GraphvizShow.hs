@@ -42,7 +42,7 @@ import NLP.GenI.Btypes (AvPair(..),
                showSem,
                )
 import NLP.GenI.General ( clumpBy )
-import NLP.GenI.GeniVal (GeniVal(..), isConst, isAnon, isVar)
+import NLP.GenI.GeniVal (GeniVal(..), isConst)
 import NLP.GenI.Graphviz
   ( GraphvizShow(graphvizShowAsSubgraph, graphvizLabel, graphvizParams)
   , GraphvizShowNode(graphvizShowNode)
