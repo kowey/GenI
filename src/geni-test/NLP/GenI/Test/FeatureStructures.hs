@@ -12,6 +12,7 @@ import qualified Data.Text as T
 import Test.HUnit
 import Test.QuickCheck hiding (collect, Failure)
 import Test.QuickCheck.Arbitrary
+import Test.SmallCheck.Series
 import Test.Framework
 import Test.Framework.Providers.HUnit
 import Test.Framework.Providers.QuickCheck2
@@ -51,3 +52,12 @@ shrinkFeatStruct = fmap Map.fromList
     t2 <- shrinkText t
     v2 <- shrink v
     return (t2, v2)
+
+-- via derive
+instance (Serial a) => Serial (AvPair a) where
+        series = cons2 AvPair
+        coseries rs d
+          = [\ t ->
+               case t of
+                   AvPair x1 x2 -> t0 x1 x2
+             | t0 <- alts2 rs d]

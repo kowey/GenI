@@ -12,10 +12,16 @@ import NLP.GenI.GeniVal
 import NLP.GenI.Test.GeniVal hiding (  suite )
 
 import Test.HUnit
-import Test.QuickCheck hiding (collect)
+-- import Test.QuickCheck hiding (collect)
+import Test.QuickCheck ( suchThat )
+import Test.QuickCheck.Arbitrary
+import Test.SmallCheck
+import qualified Test.SmallCheck as SmallCheck
+import Test.SmallCheck.Series
 import Test.Framework
 import Test.Framework.Providers.HUnit
-import Test.Framework.Providers.QuickCheck2
+import Test.Framework.Providers.SmallCheck
+-- import Test.Framework.Providers.QuickCheck2
 
 -- ----------------------------------------------------------------------
 -- Testing
@@ -56,7 +62,7 @@ suite = testGroup "NLP.GenI.Semantics"
   lit_x = Literal (mkGConstNone "a") (mkGConstNone "apple") [mkGConstNone "x"]
   lit_y = Literal (mkGConstNone "a") (mkGConstNone "apple") [mkGConstNone "y"]
 
-prop_subsumeSem_length :: [GTestLiteral] -> [GTestLiteral] -> Property
+prop_subsumeSem_length :: [GTestLiteral] -> [GTestLiteral] -> SmallCheck.Property
 prop_subsumeSem_length lits1 lits2 =
   not (null sboth) ==>
     all (\x -> length (fst x) == s1_len) sboth
@@ -170,3 +176,40 @@ instance Arbitrary GTestLiteral where
      rel  <- arbitrary
      args <- arbitrary
      return $ GTestLiteral handle (fromGeniValLite rel) (map fromGeniValLite args)
+
+-- ----------------------------------------------------------------------
+-- SmallCheck
+-- ----------------------------------------------------------------------
+
+instance Serial Literal where
+        series = cons3 Literal
+        coseries rs d
+          = [\ t ->
+               case t of
+                   Literal x1 x2 x3 -> t0 x1 x2 x3
+             | t0 <- alts3 rs d]
+
+{-!
+deriving instance (Arbitrary a, Serial a) => Serial (SubsumedPair a)
+deriving instance Serial GTestLiteral
+!-}
+-- GENERATED START
+
+ 
+instance (Arbitrary a, Subsumable a, Serial a) => Serial (SubsumedPair a) where
+        series = cons2 SubsumedPair
+        coseries rs d
+          = [\ t ->
+               case t of
+                   SubsumedPair x1 x2 -> t0 x1 x2
+             | t0 <- alts2 rs d]
+
+ 
+instance Serial GTestLiteral where
+        series = cons3 GTestLiteral
+        coseries rs d
+          = [\ t ->
+               case t of
+                   GTestLiteral x1 x2 x3 -> t0 x1 x2 x3
+             | t0 <- alts3 rs d]
+-- GENERATED STOP

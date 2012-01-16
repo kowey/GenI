@@ -13,13 +13,17 @@ import Data.Maybe (isJust)
 import qualified Data.Text as T
 import qualified Data.Map as Map
 import Test.HUnit
-import Test.QuickCheck hiding (collect, Failure)
+import Test.SmallCheck
+import Test.SmallCheck.Series
+import Test.QuickCheck hiding (collect, Failure, Property, (==>))
 import Test.QuickCheck.Arbitrary
 import Test.Framework
 import Test.Framework.Providers.HUnit
-import Test.Framework.Providers.QuickCheck2
-import NLP.GenI.Test.SmallCheck.GeniVal as SC
+-- import Test.Framework.Providers.QuickCheck2
+import Test.Framework.Providers.SmallCheck
+-- import NLP.GenI.Test.SmallCheck.GeniVal as SC
 import NLP.GenI.GeniVal
+import NLP.GenI.Test.General ()
 
 suite :: Test.Framework.Test
 suite =
@@ -34,12 +38,8 @@ suite =
       , testProperty "symmetry" prop_unify_sym
       , testBackPropagation
       ]
-  , testGroup "subsumption"
-     [ testProperty "subsumeOne reflexive" (\x -> tt_subsumes x x)
-     , testProperty "subsumeOne antisymmetric" prop_subsume_antisymmetric
-     , testProperty "subsumeOne transitive"    prop_subsume_transitive
-     ]
-  , SC.suite
+  , t_subsumesOne
+  -- , SC.suite
   ]
 
 test_alphaconvert_simple :: Assertion
@@ -103,6 +103,14 @@ prop_unify_sym x_ y_ = u1 == u2
 -- | Unifying something with the empty list should always succeed
 prop_unify_empty :: [GeniVal] -> Bool
 prop_unify_empty x = isJust (unify x [])
+
+t_subsumesOne :: Test.Framework.Test
+t_subsumesOne = testGroup "subsumeOne"
+  [ testProperty "reflexive"     (\x -> tt_subsumes x x)
+  , testProperty "antisymmetric" prop_subsume_antisymmetric
+  , testProperty "transitive"    prop_subsume_transitive
+  , testCase     "hard-coded"    (assertBool "" $ tt_subsumes mkGAnon (mkGConstNone "x"))
+  ]
 
 prop_subsume_antisymmetric :: GeniVal -> GeniVal -> Property
 prop_subsume_antisymmetric x_ y_ =
