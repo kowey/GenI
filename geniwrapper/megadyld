@@ -1,0 +1,24 @@
+GHC_LIB_DIR=/Library/Frameworks/GHC.framework/Versions/7.0.3-i386/usr/lib/ghc-7.0.3
+
+export DYLD_LIBRARY_PATH=\
+${GHC_LIB_DIR}/array-0.3.0.2:\
+${GHC_LIB_DIR}/base-4.3.1.0:\
+${GHC_LIB_DIR}/bytestring-0.9.1.10:\
+${GHC_LIB_DIR}/containers-0.4.0.0:\
+${GHC_LIB_DIR}/directory-1.1.0.0:\
+${GHC_LIB_DIR}/extensible-exceptions-0.1.1.2:\
+${GHC_LIB_DIR}/filepath-1.2.0.0:\
+${GHC_LIB_DIR}/ghc-7.0.3:\
+${GHC_LIB_DIR}/ghc-prim-0.2.0.0:\
+${GHC_LIB_DIR}/haskell2010-1.0.0.0:\
+${GHC_LIB_DIR}/hpc-0.5.0.6:\
+${GHC_LIB_DIR}/integer-gmp-0.2.0.3:\
+${GHC_LIB_DIR}:\
+${GHC_LIB_DIR}/old-locale-1.0.0.2:\
+${GHC_LIB_DIR}/old-time-1.0.0.6:\
+${GHC_LIB_DIR}/pretty-1.0.1.2:\
+${GHC_LIB_DIR}/process-1.0.1.5:\
+${GHC_LIB_DIR}/time-1.2.0.3:\
+${GHC_LIB_DIR}/unix-2.4.2.0:\
+
+$*
