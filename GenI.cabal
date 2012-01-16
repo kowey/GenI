@@ -131,8 +131,8 @@ Library
                 NLP.GenI.Statistics,
                 NLP.GenI.Builder,
                 NLP.GenI.Simple.SimpleBuilder,
-                -- NLP.GenI.CkyEarley.CkyBuilder,
-                NLP.GenI.Geni, NLP.GenI.Configuration
+                NLP.GenI.Geni,
+                NLP.GenI.Configuration
   Other-Modules:
 
   Hs-Source-Dirs: src
