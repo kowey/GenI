@@ -23,7 +23,7 @@ module NLP.GenI.Btypes (
    -- Datatypes
    GNode(..), GType(Subs, Foot, Lex, Other), NodeName,
    Ttree(..), SemPols, TestCase(..),
-   Ptype(Initial,Auxiliar,Unspecified),
+   Ptype(Initial,Auxiliar),
    Literal, Flist, AvPair(..), GeniVal(..),
    Lexicon, ILexEntry(..), Macros, Sem, LitConstr, SemInput, Subst,
    emptyLE, emptyGNode, emptyMacro,

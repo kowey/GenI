@@ -77,7 +77,7 @@ data Ttree a = TT
   , tree :: Tree a }
   deriving (Show, Data, Typeable, Eq)
 
-data Ptype = Initial | Auxiliar | Unspecified
+data Ptype = Initial | Auxiliar
              deriving (Show, Eq, Data, Typeable)
 
 instance DescendGeniVal v => DescendGeniVal (Ttree v) where
@@ -97,7 +97,7 @@ emptyMacro = TT { params  = [],
                   pidname = "",
                   pfamily = "",
                   pinterface = [],
-                  ptype = Unspecified,
+                  ptype = Initial,
                   psemantics = Nothing,
                   ptrace = [],
                   tree  = Node emptyGNode []
@@ -261,13 +261,11 @@ crushGNode gn =
 instance Binary Ptype where
   put Initial = putWord8 0
   put Auxiliar = putWord8 1
-  put Unspecified = putWord8 2
   get = do
     tag_ <- getWord8
     case tag_ of
       0 -> return Initial
       1 -> return Auxiliar
-      2 -> return Unspecified
       _ -> fail "no parse"
 
 instance Binary gv => Binary (GNode gv) where

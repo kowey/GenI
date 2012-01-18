@@ -30,7 +30,6 @@ import NLP.GenI.FeatureStructures
 import NLP.GenI.GeniVal
 import NLP.GenI.Semantics
 import NLP.GenI.Polarity.Types (SemPols)
-import NLP.GenI.TreeSchemata
 
 import Control.DeepSeq
 

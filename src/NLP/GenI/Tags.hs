@@ -167,7 +167,6 @@ instance Ord TagElem where
          (Initial, Auxiliar)  -> LT
          (Auxiliar, Initial)  -> GT
          (Auxiliar, Auxiliar) -> compareId 
-         _                    -> error "TagElem compare not exhaustively defined"
     where compareId  = compare (tidnum t1) (tidnum t2)
 
 instance DescendGeniVal TagElem where
