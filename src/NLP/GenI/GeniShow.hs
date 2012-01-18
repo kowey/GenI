@@ -52,6 +52,7 @@ import NLP.GenI.Btypes (AvPair(..), Ptype(..),
                GNode(..), GType(..),
                TestCase(..),
                )
+import NLP.GenI.Lexicon
 import NLP.GenI.GeniVal ( GeniVal(..), singletonVal )
 
 class GeniShow a where

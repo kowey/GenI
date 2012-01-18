@@ -18,7 +18,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 module NLP.GenI.Lexicon (
-   Lexicon, ILexEntry(..), emptyLE,
+   Lexicon, ILexEntry(..),
 ) where
 
 -- import Debug.Trace -- for test stuff
@@ -48,16 +48,6 @@ data ILexEntry = ILE
     , isemantics  :: Sem
     , isempols    :: [SemPols] }
   deriving (Show, Eq, Data, Typeable)
-
-emptyLE :: ILexEntry
-emptyLE = ILE { iword = [],
-                ifamname = "",
-                iparams = [],
-                iinterface   = [],
-                ifilters = [],
-                isemantics = [],
-                iequations = [],
-                isempols   = [] }
 
 instance DescendGeniVal ILexEntry where
   descendGeniVal s i =
