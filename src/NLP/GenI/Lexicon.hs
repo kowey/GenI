@@ -46,7 +46,6 @@ data ILexEntry = ILE
     , iinterface  :: Flist GeniVal
     , ifilters    :: Flist GeniVal
     , iequations  :: Flist GeniVal
-    , iptype      :: Ptype
     , isemantics  :: Sem
     , isempols    :: [SemPols] }
   deriving (Show, Eq, Data, Typeable)
@@ -57,7 +56,6 @@ emptyLE = ILE { iword = [],
                 iparams = [],
                 iinterface   = [],
                 ifilters = [],
-                iptype = Unspecified,
                 isemantics = [],
                 iequations = [],
                 isempols   = [] }
@@ -78,16 +76,16 @@ instance Collectable ILexEntry where
 --
 -- ----------------------------------------------------------------------
 
-{-
+{-!
 deriving instance Binary ILexEntry
 deriving instance NFData ILexEntry
--}
+!-}
 
 -- GENERATED START
 
  
 instance Binary ILexEntry where
-        put (ILE x1 x2 x3 x4 x5 x6 x7 x8 x9)
+        put (ILE x1 x2 x3 x4 x5 x6 x7 x8)
           = do put x1
                put x2
                put x3
@@ -96,7 +94,6 @@ instance Binary ILexEntry where
                put x6
                put x7
                put x8
-               put x9
         get
           = do x1 <- get
                x2 <- get
@@ -106,15 +103,13 @@ instance Binary ILexEntry where
                x6 <- get
                x7 <- get
                x8 <- get
-               x9 <- get
-               return (ILE x1 x2 x3 x4 x5 x6 x7 x8 x9)
+               return (ILE x1 x2 x3 x4 x5 x6 x7 x8)
 
  
 instance NFData ILexEntry where
-        rnf (ILE x1 x2 x3 x4 x5 x6 x7 x8 x9)
+        rnf (ILE x1 x2 x3 x4 x5 x6 x7 x8)
           = rnf x1 `seq`
               rnf x2 `seq`
                 rnf x3 `seq`
-                  rnf x4 `seq`
-                    rnf x5 `seq` rnf x6 `seq` rnf x7 `seq` rnf x8 `seq` rnf x9 `seq` ()
+                  rnf x4 `seq` rnf x5 `seq` rnf x6 `seq` rnf x7 `seq` rnf x8 `seq` ()
 -- GENERATED STOP
