@@ -7,7 +7,8 @@ module Data.FullList.Internal where
 
 import Data.Binary
 import Control.DeepSeq
-import Prelude hiding (head, tail)
+import Prelude hiding (head, tail, (++))
+import qualified Prelude
 import Data.Data
 
 newtype FullList a = FullList [a]  -- data constructor is not exported!
@@ -34,7 +35,8 @@ tail :: FullList a -> [a]
 tail (FullList (_:x)) = x
 tail (FullList _) = error "NList.tail is broken"
 
-
+(++) :: FullList a -> FullList a -> FullList a
+(++) x y = FullList ((Prelude.++) (fromFL x) (fromFL y)) -- OK because both already full
 
 -- Mapping over a non-empty list gives a non-empty list
 instance Functor FullList where

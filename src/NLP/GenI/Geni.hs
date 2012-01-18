@@ -52,6 +52,7 @@ import Control.Exception
 
 import Data.Binary (Binary, decodeFile)
 import Data.IORef (IORef, readIORef, modifyIORef)
+import Data.FullList ( fromFL )
 import Data.List
 import Data.List.Split ( wordsBy )
 import qualified Data.Map as Map
@@ -704,7 +705,7 @@ runLexSelection pstRef =
     let candFinal = finaliseLexSelection (morphinf pst) tsem litConstrs cand
     -- status
     when verbose $
-      do ePutStrLn $ "Lexical items selected:\n" ++ (unlinesIndentAnd (showLexeme.iword) lexCand)
+      do ePutStrLn $ "Lexical items selected:\n" ++ (unlinesIndentAnd (showLexeme . fromFL . iword) lexCand)
          ePutStrLn $ "Trees anchored (family) :\n" ++ (unlinesIndentAnd idname candFinal)
     -- anchoring errors
     mapM_ (addWarning pstRef) errs

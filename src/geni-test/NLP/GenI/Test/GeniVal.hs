@@ -6,7 +6,7 @@ module NLP.GenI.Test.GeniVal where
 import Control.Applicative ( (<$>), (<*>) )
 import Control.Monad ( liftM2 )
 import Data.Char
-import Data.FullList
+import Data.FullList hiding ( (++) )
 import Data.List ( nub, isPrefixOf )
 import GHC.Exts ( IsString(..) )
 import Data.Maybe (isJust)

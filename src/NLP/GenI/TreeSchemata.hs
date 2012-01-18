@@ -23,7 +23,7 @@
 -- | This module provides basic datatypes specific to Tree Adjoining Grammar
 --   tree schemata.
 module NLP.GenI.TreeSchemata (
-   Macros, emptyMacro,
+   Macros,
    SchemaTree, SchemaNode, Ttree(..), Ptype(..),
 
    -- Functions from Tree GNode
@@ -31,17 +31,18 @@ module NLP.GenI.TreeSchemata (
    crushTreeGNode,
 
    -- GNode
-   GNode(..), emptyGNode, gnnameIs, NodeName,
+   GNode(..), gnnameIs, NodeName,
    GType(..), gCategory, showLexeme,
    crushGNode,
  ) where
 
 import qualified Data.Map as Map
 import Data.Binary
-import Data.List (intersperse)
+import Data.List (intercalate)
 import Data.Tree
 import Data.Text ( Text )
 
+import Data.FullList hiding (head, tail, (++))
 import Data.Generics (Data)
 import Data.Typeable (Typeable)
 
@@ -91,18 +92,6 @@ instance (Collectable a) => Collectable (Ttree a) where
   collect mt = (collect $ params mt) . (collect $ tree mt) .
                (collect $ psemantics mt) . (collect $ pinterface mt)
 
--- | A null tree which you can use for various debugging or display purposes.
-emptyMacro :: SchemaTree
-emptyMacro = TT { params  = [],
-                  pidname = "",
-                  pfamily = "",
-                  pinterface = [],
-                  ptype = Initial,
-                  psemantics = Nothing,
-                  ptrace = [],
-                  tree  = Node emptyGNode []
-                 }
-
 -- ----------------------------------------------------------------------
 -- Tree manipulation
 -- ----------------------------------------------------------------------
@@ -130,11 +119,11 @@ foot t = case filterTree (\n -> gtype n == Foot) t of
 
 -- | Given a lexical item @s@ and a Tree GNode t, returns the tree t'
 --   where l has been assigned to the anchor node in t'
-setAnchor :: [String] -> Tree (GNode a) -> Tree (GNode a)
+setAnchor :: FullList String -> Tree (GNode a) -> Tree (GNode a)
 setAnchor s t =
   let filt (Node a []) = (gtype a == Lex && ganchor a)
       filt _ = False
-  in case listRepNode (setLexeme s) filt [t] of
+  in case listRepNode (setLexeme (fromFL s)) filt [t] of
      ([r],True) -> r
      _ -> geniBug $ "setLexeme " ++ show s ++ " returned weird result"
 
@@ -145,9 +134,15 @@ setAnchor s t =
 --   item
 setLexeme :: [String] -> Tree (GNode a) -> Tree (GNode a)
 setLexeme l (Node a []) = Node a [ Node subanc [] ]
-  where subanc = emptyGNode { gnname = '_' : ((gnname a) ++ ('.' : (concat l)))
-                            , gaconstr = True
-                            , glexeme = l}
+  where subanc = GN { gnname = concat ([ "_", gnname a, "." ] ++ l)
+                    , gup    = []
+                    , gdown  = []
+                    , gaconstr = True
+                    , ganchor  = False
+                    , glexeme = l
+                    , gtype   = Other
+                    , gorigin = ""
+                    }
 setLexeme _ _ = geniBug "impossible case in setLexeme - subtree with kids"
 
 -- ----------------------------------------------------------------------
@@ -186,16 +181,6 @@ instance DescendGeniVal v => DescendGeniVal (GNode v) where
 
 -- Utilities
 
--- | A null 'GNode' which you can use for various debugging or display purposes.
-emptyGNode :: GNode gv
-emptyGNode = GN { gnname = "",
-                  gup = [], gdown = [],
-                  ganchor = False,
-                  glexeme = [],
-                  gtype = Other,
-                  gaconstr = False,
-                  gorigin = "" }
-
 gnnameIs :: NodeName -> GNode gv -> Bool
 gnnameIs n = (== n) . gnname
 
@@ -222,7 +207,7 @@ instance Show (GNode GeniVal) where
                Just c  -> show c
         lex_ = showLexeme $ glexeme gn
         --
-        stub = concat $ intersperse ":" $ filter (not.null) [ cat_, lex_ ]
+        stub = intercalate ":" $ filter (not.null) [ cat_, lex_ ]
         extra = case (gtype gn) of
                    Subs -> " !"
                    Foot -> " *"
@@ -234,7 +219,7 @@ instance Show (GNode GeniVal) where
 showLexeme :: [String] -> String
 showLexeme []   = ""
 showLexeme [l]  = l
-showLexeme xs   = concat $ intersperse "|" xs
+showLexeme xs   = intercalate "|" xs
 
 -- Fancy disjunction
 

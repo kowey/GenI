@@ -26,7 +26,6 @@ module NLP.GenI.Tags(
    -- Main Datatypes
    Tags, TagElem(..), TagItem(..), TagSite(..),
    TagDerivation, DerivationStep(..), dsChild, dsParent, dsParentSite,
-   emptyTE,
    ts_synIncomplete, ts_semIncomplete, ts_tbUnificationFailure,
    ts_rootFeatureMismatch,
 
@@ -50,7 +49,7 @@ import qualified Data.Text as T
 
 import Data.Generics (Data)
 import Data.Typeable (Typeable)
-import Data.FullList
+import Data.FullList hiding ( (++) )
 import Text.JSON
 
 import NLP.GenI.General (listRepNode, groupByFM, preTerminals, geniBug)
@@ -61,7 +60,7 @@ import NLP.GenI.FeatureStructures ( AvPair(..), Flist, showFlist, showPairs )
 import NLP.GenI.Polarity.Types (PolarityKey(..), SemPols)
 import NLP.GenI.Semantics ( Sem, Literal, emptyLiteral, showSem )
 import NLP.GenI.TreeSchemata ( Ptype(..),
-                               GNode(..), GType(..), emptyGNode, NodeName,
+                               GNode(..), GType(..), NodeName,
                                lexemeAttributes )
 
 import Control.DeepSeq
@@ -184,19 +183,6 @@ instance Collectable TagElem where
 
 instance Idable TagElem where
   idOf = tidnum
-
-emptyTE :: TagElem
-emptyTE = TE { idname = "",
-               ttreename = "",
-               tidnum = -1,
-               ttype  = Initial,
-               ttree  = Node emptyGNode [],
-               tsemantics = [], 
-               tpolarities = Map.empty,
-               tsempols    = [],
-               tinterface  = [],
-               ttrace = []
-             }
 
 -- Substitution and Adjunction
 

@@ -5,8 +5,9 @@ module Data.FullList
     indeedFL,
     head,
     tail,
+    (++),
     Listable (..)
     ) where
 
 import Data.FullList.Internal
-import Prelude hiding ( head, tail )
+import Prelude hiding ( head, tail, (++) )

@@ -31,7 +31,7 @@ import Data.Maybe (isJust)
 import Data.Tree (flatten)
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.FullList
+import Data.FullList hiding ( (++) )
 
 import NLP.GenI.Automaton
 import NLP.GenI.Semantics (Literal)

@@ -23,6 +23,7 @@ module NLP.GenI.Lexicon (
 
 -- import Debug.Trace -- for test stuff
 import Data.Binary
+import Data.FullList
 import Data.Generics (Data)
 import Data.Typeable (Typeable)
 
@@ -39,7 +40,7 @@ import Control.DeepSeq
 type Lexicon = [ILexEntry]
 data ILexEntry = ILE
     { -- normally just a singleton, useful for merging synonyms
-      iword       :: [String]
+      iword       :: FullList String
     , ifamname    :: String
     , iparams     :: [GeniVal]
     , iinterface  :: Flist GeniVal

@@ -61,7 +61,6 @@ class GeniShow a where
 instance GeniShow Ptype where
  geniShow Initial  = "initial"
  geniShow Auxiliar = "auxiliary"
- geniShow _        = ""
 
 instance GeniShow (AvPair GeniVal) where
  geniShow (AvPair a v) = T.unpack a ++ ":" ++ geniShow v

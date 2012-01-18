@@ -34,7 +34,9 @@ import Data.Tree (Tree(Node))
 import qualified Data.Text as T
 import Data.Text ( Text )
 
-import Data.FullList hiding ( head, tail )
+import Data.FullList hiding ( head, tail, (++) )
+import qualified Data.FullList as FL
+
 import NLP.GenI.General(filterTree, repAllNode,
     showWithCount,
     geniBug,
@@ -50,19 +52,18 @@ import NLP.GenI.Btypes
    iinterface, ifilters,
    isempols,
    pidname, pfamily, pinterface, ptype, psemantics, ptrace,
-   setAnchor, setLexeme, tree,
    finaliseVars,
    )
 import NLP.GenI.FeatureStructures (Flist, AvPair(..), unifyFeat)
 import NLP.GenI.GeniVal( unify, GeniVal(gConstraints), isConst, Subst )
 
 import NLP.GenI.Semantics ( subsumeSem, unifySem, Sem )
-import NLP.GenI.Tags (TagElem, emptyTE,
-             idname, ttreename,
-             ttype, tsemantics, ttree, tsempols,
-             tinterface, ttrace,
+import NLP.GenI.Tags (TagElem(..),
+             idname,
              )
-import NLP.GenI.TreeSchemata ( Ttree(..), SchemaTree, SchemaNode, crushTreeGNode )
+import NLP.GenI.TreeSchemata ( Ttree(..), SchemaTree, SchemaNode, crushTreeGNode
+                             , setAnchor, setLexeme, tree
+                             )
 
 -- ----------------------------------------------------------------------
 -- Selecting candidate lemmas
@@ -100,7 +101,7 @@ chooseCandI tsem cand =
 --  just to add a check that the path equations match exactly.
 mergeSynonyms :: [ILexEntry] -> [ILexEntry]
 mergeSynonyms lexEntry =
-  let mergeFn l1 l2 = l1 { iword = (iword l1) ++ (iword l2) }
+  let mergeFn l1 l2 = l1 { iword = (FL.++) (iword l1) (iword l2) }
       keyFn l = (ifamname l, isemantics l)
       synMap = foldr helper Map.empty lexEntry
         where helper x acc = Map.insertWith mergeFn (keyFn x) x acc
@@ -194,14 +195,16 @@ combineOne tsem lexRaw eRaw = -- Maybe monad
                              fail ""
                Just x  -> return x
     let name = concat $ intersperse ":" $ filter (not.null)
-                 [ head (iword l) , pfamily e , pidname e ]
-        template = emptyTE
+                 [ FL.head (iword l) , pfamily e , pidname e ]
+        template = TE
               { idname = name
               , ttreename = pfamily e
+              , tidnum    = -1 -- provisional id
               , ttype = ptype e
               , ttree = setOrigin name . setLemAnchors . setAnchor (iword l) $ tree2
               , tsemantics  = []
               , tsempols    = isempols l
+              , tpolarities = Map.empty
               , tinterface  = pinterface e
               , ttrace      = ptrace e
               }

@@ -26,7 +26,6 @@ module NLP.GenI.Btypes (
    Ptype(Initial,Auxiliar),
    Literal, Flist, AvPair(..), GeniVal(..),
    Lexicon, ILexEntry(..), Macros, Sem, LitConstr, SemInput, Subst,
-   emptyGNode, emptyMacro,
 
    -- GNode stuff
    gCategory, showLexeme, lexemeAttributes, gnnameIs,

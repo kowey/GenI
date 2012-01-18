@@ -4,7 +4,7 @@ module NLP.GenI.Test.GeniParsers where
 
 import Control.Monad ( liftM2 )
 
-import Data.FullList
+import Data.FullList hiding ( (++) )
 import Data.List
 import Test.HUnit
 import Test.QuickCheck hiding (collect, Failure)

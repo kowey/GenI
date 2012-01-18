@@ -37,7 +37,7 @@ module NLP.GenI.GeniParsers (
 
 import NLP.GenI.GeniVal (mkGConst, mkGConstNone, mkGVar, mkGAnon)
 import NLP.GenI.Btypes
-import NLP.GenI.Tags (TagElem(..), emptyTE, setTidnums)
+import NLP.GenI.Tags (TagElem(..), setTidnums)
 import NLP.GenI.Semantics ( Literal(..) )
 import NLP.GenI.TreeSchemata (SchemaTree)
 import NLP.GenI.General (isGeniIdentLetter)
@@ -318,7 +318,7 @@ geniLexicalEntry =
      keywordSemantics
      (sem,pols) <- squares geniLexSemantics
      --
-     return     ILE { iword = [lemma]
+     return     ILE { iword = lemma !: []
                     , ifamname = family
                     , iparams = pars
                     , iinterface = sortFlist interface
@@ -479,12 +479,17 @@ geniTagElem =
     theTree  <- geniTree
     sem      <- do { keywordSemantics; squares geniSemantics }
     --
-    return $ emptyTE { idname = tname
-                     , ttreename = family
-                     , tinterface = iface
-                     , ttype  = theType
-                     , ttree = theTree
-                     , tsemantics = sem }
+    return $ TE { idname      = tname
+                , ttreename   = family
+                , tinterface  = iface
+                , ttype       = theType
+                , ttree       = theTree
+                , tsemantics  = sem
+                , tidnum      = -1 -- provisional id
+                , tpolarities = Map.empty
+                , tsempols    = []
+                , ttrace      = []
+                }
 
 -- | 'geniParams' recognises a list of parameters optionally followed by a
 --  bang (\verb$!$) and a list of attribute-value pairs.  This whole thing is

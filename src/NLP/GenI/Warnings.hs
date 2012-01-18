@@ -16,7 +16,8 @@
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 module NLP.GenI.Warnings where
- 
+
+import Data.FullList ( FullList, fromFL )
 import Data.List
 import qualified Data.Map as Map
 import Data.Poset
@@ -90,11 +91,11 @@ showGeniWarning (LexWarning ls wa)  =
      LexCombineAllSchemataFailed  -> ("Lexically selected but anchoring failed for *all* instances of", "")
      LexCombineOneSchemaFailed lc -> showLexCombineError lc
      MissingCoanchors co n        -> ("Expected co-anchor " ++ co ++ " is missing from " ++ show n ++ " schemata", "")
-  showWithFam (w, f) = showLexeme w ++ " (" ++ f ++ ")"
+  showWithFam (w, f) = showLexeme (fromFL w) ++ " (" ++ f ++ ")"
 showGeniWarning (MorphWarning ws) = map ("Morph: " ++) ws
 
 -- word and all families associated with that word
-type WordFamilyCount = Map.Map ([String],String) Int
+type WordFamilyCount = Map.Map (FullList String,String) Int
 
 toWfCount :: [ILexEntry] -> WordFamilyCount
 toWfCount = histogram . map toWf
