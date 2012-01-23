@@ -38,10 +38,11 @@ module NLP.GenI.GeniShow
 where
 
 import Data.Tree
-import Data.List(intersperse)
+import Data.List(intercalate)
 import qualified Data.Map as Map
 import qualified Data.Text as T
 
+import NLP.GenI.General ( quoteString )
 import NLP.GenI.Semantics ( isInternalHandle, SemInput, Literal(..) )
 import NLP.GenI.Tags
  ( TagElem, idname,
@@ -53,7 +54,7 @@ import NLP.GenI.Btypes (AvPair(..), Ptype(..),
                TestCase(..),
                )
 import NLP.GenI.Lexicon
-import NLP.GenI.GeniVal ( GeniVal(..), singletonVal )
+import NLP.GenI.GeniVal ( GeniVal(..), singletonVal, mkGConst )
 
 class GeniShow a where
   geniShow :: a -> String
@@ -75,6 +76,18 @@ instance GeniShow Literal where
     hideh g = maybe False isInternalHandle (singletonVal g)
     showh   = if hideh h then "" else geniShow h ++ ":"
 
+-- TODO: does not support semantic polarities yet
+instance GeniShow ILexEntry where
+ geniShow l = intercalate "\n"
+    [ unwords [ geniShow . mkGConst . fmap T.pack $ iword l
+              , quoteString (ifamname l)
+              , parens . unwords $ concat [ map geniShow (iparams l), ["!"], map geniShow (iinterface l) ]
+              ]
+    , geniShowKeyword "filters"   $ geniShow (ifilters l)
+    , geniShowKeyword "equations" $ geniShow (iequations l)
+    , geniShowKeyword "semantics" $ geniShow l
+    ]
+
 instance GeniShow (GNode GeniVal) where
  geniShow x =
   let gaconstrstr = case (gaconstr x, gtype x) of
@@ -88,7 +101,7 @@ instance GeniShow (GNode GeniVal) where
                      _    -> ""
       glexstr n =
         if null ls then ""
-        else concat $ intersperse "|" $ map quote ls
+        else intercalate "|" $ map quote ls
         where quote s = "\"" ++ s ++ "\""
               ls = glexeme n
       tbFeats n = (geniShow $ gup n) ++ "!" ++ (geniShow $ gdown n)
