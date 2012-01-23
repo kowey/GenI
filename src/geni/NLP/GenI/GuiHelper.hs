@@ -15,14 +15,14 @@
 -- along with this program; if not, write to the Free Software
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+{-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 module NLP.GenI.GuiHelper where
 
 import Graphics.UI.WX
 -- import Graphics.UI.WXCore
 
-import Control.Arrow ( (&&&), (***) )
-import Control.Exception ( catch )
+import Control.Exception hiding ( bracket )
 import qualified Control.Monad as Monad 
 import Control.Monad.State.Strict ( execStateT, runState )
 import qualified Data.Map as Map
@@ -35,33 +35,22 @@ import System.Directory
 import System.FilePath ((<.>),(</>),dropExtensions)
 import System.Process (runProcess)
 
-import NLP.GenI.Graphviz
 import NLP.GenI.Automaton (numStates, numTransitions)
-
-import NLP.GenI.Configuration ( getFlagP, MacrosFlg(..), ViewCmdFlg(..) )
-import NLP.GenI.GeniShow(geniShow)
-import NLP.GenI.GraphvizShow ()
-import NLP.GenI.Tags (TagItem(tgIdName), tagLeaves)
-import NLP.GenI.Geni
-  ( ProgState(..), ProgStateLocal(..) )
+import NLP.GenI.Btypes ( showAv, showLiteral, showLexeme, )
+import NLP.GenI.Builder (queryCounter, num_iterations, chart_size, num_comparisons)
+import NLP.GenI.Configuration ( Params(..), MetricsFlg(..), setFlagP, getFlagP, MacrosFlg(..), ViewCmdFlg(..) )
+import NLP.GenI.General (geniBug, boundsCheck, dropTillIncluding, ePutStrLn)
+import NLP.GenI.Geni ( ProgState(..), ProgStateLocal(..) )
 import NLP.GenI.GeniParsers ( geniTagElems, parseFromFile )
-import NLP.GenI.General
-  (geniBug, boundsCheck, dropTillIncluding, ePutStrLn)
-import NLP.GenI.Btypes
-  ( showAv, showLiteral, showLexeme, )
-import NLP.GenI.Polarity.Types ( PolarityKey(..) )
-import NLP.GenI.Tags
-  ( idname, mapBySem, TagElem(ttrace, tinterface) )
-import NLP.GenI.Warnings
-
-import NLP.GenI.Configuration
-  ( Params(..), MetricsFlg(..), setFlagP )
-
-import qualified NLP.GenI.Builder as B
-import NLP.GenI.Builder (queryCounter, num_iterations, chart_size,
-    num_comparisons)
-import NLP.GenI.Polarity (PolAut, suggestPolFeatures)
+import NLP.GenI.GeniShow(geniShow)
+import NLP.GenI.Graphviz
+import NLP.GenI.GraphvizShow (GvItem(..), gvItemSetFlag, gvItemLabel)
 import NLP.GenI.GraphvizShowPolarity ()
+import NLP.GenI.Polarity (PolAut, suggestPolFeatures)
+import NLP.GenI.Polarity.Types ( PolarityKey(..) )
+import NLP.GenI.Tags ( idname, mapBySem, TagElem(ttrace, tinterface), TagItem(tgIdName), tagLeaves )
+import NLP.GenI.Warnings
+import qualified NLP.GenI.Builder as B
 
 -- ----------------------------------------------------------------------
 -- Types
@@ -82,7 +71,7 @@ data GraphvizStatus = GvError String
 candidateGui :: ProgState
              -> Window a
              -> [TagElem]
-             -> GvIO () Bool (Maybe TagElem)
+             -> GvIO () (GvItem Bool TagElem)
 candidateGui pst f xs = do
   p  <- panel f []      
   (tb,gvRef,updater) <- tagViewerGui pst p "lexically selected item" "candidates"
@@ -133,15 +122,15 @@ candidateGui pst f xs = do
   let lay  = fill $ container p $ column 5 theItems
   return (lay, gvRef, updater)
 
-sectionsBySem :: (TagItem t) => [t] -> [ (Maybe t, String) ]
+sectionsBySem :: (TagItem t) => [t] -> [GvItem Bool t]
 sectionsBySem tsem =
  let semmap   = mapBySem tsem
      sem      = Map.keys semmap
      --
      lookupTr k = Map.findWithDefault [] k semmap
-     section  k = (Nothing, header) : (map tlab $ lookupTr k)
-                  where header = "___" ++ showLiteral k ++ "___"
-                        tlab t = (Just t, tgIdName t)
+     section  k = GvHeader header : map tlab (lookupTr k)
+       where header = "___" ++ showLiteral k ++ "___"
+             tlab t = GvItem (tgIdName t) False t
  in concatMap section sem
 
 -- ----------------------------------------------------------------------
@@ -150,20 +139,19 @@ sectionsBySem tsem =
 
 -- | A browser to see the automata constructed during the polarity optimisation
 --   step.
-polarityGui :: (Window a) -> [(PolarityKey,PolAut,PolAut)] -> PolAut
-            -> GvIO () () PolAut
+polarityGui :: Window a -> [(PolarityKey,PolAut,PolAut)] -> PolAut
+            -> GvIO () (GvItem () PolAut)
 polarityGui   f xs final = do
-  let stats a = " (" ++ (show $ numStates a) ++ "st " ++ (show $ numTransitions a) ++ "tr)"
-      aut2  (_ , a1, a2)  = [ a1, a2 ]
-      autLabel (pkey, a1,a2) = [ show pkey ++ stats a1, show pkey ++ " pruned" ++ stats a2]
-      finalAutLab = ( final, "final" ++ stats final )
-      autslabs = concatBoth (map (aut2 &&& autLabel) xs) ++ [ finalAutLab ]
-  gvRef   <- newGvRef () () "automata"
-  setGvDrawables gvRef autslabs
+  gvRef   <- newGvRef () "automata"
+  setGvDrawables gvRef $ concatMap toItem xs ++ [finalItem]
   graphvizGui f "polarity" gvRef
-
-concatBoth :: [ ([a],[b]) ] -> [ (a,b) ]
-concatBoth = uncurry zip . (concat *** concat) . unzip -- is there a simpler way?
+ where
+   toItem (pkey, a1, a2) = [ it (show pkey) a1
+                           , it (show pkey ++ " pruned") a2 ]
+   finalItem =   it "final" final
+   --
+   it  n a = GvItem (lab n a) () a
+   lab n a = n ++ " (" ++ show (numStates a) ++ "st " ++ show (numTransitions a) ++ "tr)"
 
 -- ----------------------------------------------------------------------
 -- Helpers
@@ -193,12 +181,12 @@ squishLeaf = showLexeme.fst.snd
 -- ----------------------------------------------------------------------
 
 -- | Variant of 'graphvizGui' with a toggle to view feature structures
-tagViewerGui :: (GraphvizShow Bool t, TagItem t, XMGDerivation t)
-             => ProgState -> (Window a) -> String -> String -> [(Maybe t,String)]
-             -> GvIO () Bool (Maybe t)
+tagViewerGui :: (GraphvizShow (GvItem Bool t), XMGDerivation t)
+             => ProgState -> (Window a) -> String -> String -> [GvItem Bool t]
+             -> GvIO () (GvItem Bool t)
 tagViewerGui pst f tip cachedir itNlab = do
   p <- panel f []      
-  gvRef <- newGvRef () False tip
+  gvRef <- newGvRef () tip
   setGvDrawables gvRef itNlab
   (lay,ref,onUpdate) <- graphvizGui p cachedir gvRef
   -- button bar widgets
@@ -208,7 +196,7 @@ tagViewerGui pst f tip cachedir itNlab = do
   -- handlers
   let onDetailsChk =
         do isDetailed <- get detailsChk checked
-           setGvParams gvRef isDetailed
+           modifyGvItems gvRef (gvItemSetFlag isDetailed)
            onUpdate
   set detailsChk [ on command := onDetailsChk ]
   -- pack it all in      
@@ -224,8 +212,8 @@ tagViewerGui pst f tip cachedir itNlab = do
 -- ----------------------------------------------------------------------
 
 -- | Calls Yannick Parmentier's handy visualisation tool ViewTAG.
-viewTagWidgets :: (GraphvizShow Bool t, TagItem t, XMGDerivation t)
-               => Window a -> GraphvizGuiRef st (Maybe t) Bool -> Params
+viewTagWidgets :: (GraphvizShow (GvItem Bool t), XMGDerivation t)
+               => Window a -> GraphvizGuiRef st (GvItem Bool t) -> Params
                -> IO Layout
 viewTagWidgets p gvRef config =
  do viewTagBtn <- button p [ text := "ViewTAG" ]
@@ -273,7 +261,7 @@ runViewTag params drName =
 --   dump it to file or read replace it by the contents of some other file
 pauseOnLexGui :: ProgState -> (Window a) -> [TagElem]
               -> ([TagElem] -> IO ()) -- ^ continuation
-              -> GvIO () Bool (Maybe TagElem)
+              -> GvIO () (GvItem Bool TagElem)
 pauseOnLexGui pst f xs job = do
   p <- panel f []
   candV <- varCreate xs
@@ -310,8 +298,8 @@ pauseOnLexGui pst f xs job = do
   return (lay, ref, updater)
 
 type DebuggerItemBar st flg itm
-      =  Panel ()                     -- ^ parent panel
-      -> GraphvizGuiRef st (Maybe itm) flg  -- ^ gv ref to use
+      =  Panel ()                           -- ^ parent panel
+      -> GraphvizGuiRef st (GvItem flg itm) -- ^ gv ref to use
       -> GvUpdater -- ^ onUpdate
       -> IO (Layout, GvUpdater)
 
@@ -338,10 +326,9 @@ type DebuggerItemBar st flg itm
 --   Note that we don't constrain the type of item returned by the builder to
 --   be the same as the type handled by your gui: that's quite normal because
 --   you might want to decorate the type with some other information
-debuggerPanel :: (GraphvizShow flg itm) 
+debuggerPanel :: GraphvizShow (GvItem flg itm)
   => B.Builder st itm2 Params -- ^ builder to use
-  -> flg -- ^ initial value for the flag argument in GraphvizShow
-  -> (st -> [(Maybe itm, String)])
+  -> (st -> [GvItem flg itm])
      -- ^ function to convert a Builder state into lists of items
      --   and their labels, the way graphvizGui likes it
   -> (DebuggerItemBar st flg itm)
@@ -353,7 +340,7 @@ debuggerPanel :: (GraphvizShow flg itm)
   -> B.Input    -- ^ builder input
   -> String     -- ^ graphviz cache directory
   -> IO Layout 
-debuggerPanel builder gvInitial stateToGv itemBar f config input cachedir = 
+debuggerPanel builder stateToGv itemBar f config input cachedir = 
  do let initBuilder = B.init  builder 
         nextStep    = B.step  builder 
         allSteps    = B.stepAll builder 
@@ -364,7 +351,7 @@ debuggerPanel builder gvInitial stateToGv itemBar f config input cachedir =
     -- ---------------------------------------------------------
     -- item viewer: select and display an item
     -- ---------------------------------------------------------
-    gvRef <- newGvRef initS gvInitial "debugger session"
+    gvRef <- newGvRef initS "debugger session"
     setGvDrawables gvRef (stateToGv initS)
     (layItemViewer,_,onUpdateMain) <- graphvizGui p cachedir gvRef
     -- ----------------------------------------------------------
@@ -437,16 +424,15 @@ debuggerPanel builder gvInitial stateToGv itemBar f config input cachedir =
 data GraphvizOrder = GvoParams | GvoItems | GvoSel 
      deriving Eq
 
-data GraphvizGuiSt st a b =
+data GraphvizGuiSt st a =
         GvSt { gvcore    :: st,
                gvitems   :: Map.Map Int a,
-               gvparams  :: b,
                gvlabels  :: [String],
                -- | tooltip for the selection box
                gvtip     :: String,
                -- | handler function to call when the selection is
                -- updated (note: before displaying the object)
-               gvhandler :: Maybe (GraphvizGuiSt st a b -> IO ()),
+               gvhandler :: Maybe (GraphvizGuiSt st a -> IO ()),
                gvsel     :: Int,
                gvorders  :: [GraphvizOrder] }
 
@@ -461,12 +447,11 @@ data GraphvizGuiSt st a b =
 --
 --  4. if you want to react to the selection being changed, you should set
 --     gvhandler
-type GraphvizGuiRef st a b = IORef (GraphvizGuiSt st a b)
+type GraphvizGuiRef st a = IORef (GraphvizGuiSt st a)
 
-newGvRef :: st -> b -> String -> IO (GraphvizGuiRef st a b)
-newGvRef initSt p t =
+newGvRef :: st -> String -> IO (GraphvizGuiRef st a)
+newGvRef initSt t =
   let st = GvSt { gvcore = initSt,
-                  gvparams = p,
                   gvitems  = Map.empty,
                   gvlabels  = [], 
                   gvhandler = Nothing,
@@ -475,43 +460,35 @@ newGvRef initSt p t =
                   gvorders = [] }
   in newIORef st
 
-setGvSel :: GraphvizGuiRef st a b  -> Int -> IO ()
+setGvSel :: GraphvizGuiRef st a -> Int -> IO ()
 setGvSel gvref s  =
   do let fn x = x { gvsel = s,
                     gvorders = GvoSel : (gvorders x) }
      modifyIORef gvref fn 
-  
-setGvParams :: GraphvizGuiRef st a b -> b -> IO ()
-setGvParams gvref c  =
-  do let fn x = x { gvparams = c,
-                    gvorders = GvoParams : (gvorders x) }
-     modifyIORef gvref fn 
 
-modifyGvParams :: GraphvizGuiRef st a b -> (b -> b) -> IO ()
-modifyGvParams gvref fn  =
-  do gvSt <- readIORef gvref
-     setGvParams gvref (fn $ gvparams gvSt)
+modifyGvItems :: GraphvizGuiRef st a -> (a -> a) -> IO ()
+modifyGvItems gvref fn =
+  modifyIORef gvref $ \s -> s { gvitems = Map.map fn (gvitems s) }
 
-setGvDrawables :: GraphvizGuiRef st a b -> [(a,String)] -> IO ()
+setGvDrawables :: GraphvizGuiRef st (GvItem f a) -> [GvItem f a] -> IO ()
 setGvDrawables gvref itlb =
-  do let (it,lb) = unzip itlb
-         fn x = x { gvitems = Map.fromList $ zip [0..] it
-                  , gvlabels = lb
+  do let fn x = x { gvitems = Map.fromList $ zip [0..] itlb
+                  , gvlabels = map gvItemLabel itlb
                   , gvorders = GvoItems : (gvorders x)
                   }
      modifyIORef gvref fn 
 
 -- | Helper function for making selection handlers (see 'addGvHandler')
 --   Note that this was designed for cases where the contents is a Maybe
-gvOnSelect :: IO () -> (a -> IO ()) -> GraphvizGuiSt st (Maybe a) b -> IO ()
+gvOnSelect :: IO () -> (a -> IO ()) -> GraphvizGuiSt st (GvItem f a) -> IO ()
 gvOnSelect onNothing onJust gvSt =
  let sel    = gvsel gvSt
      things = gvitems gvSt
  in case Map.lookup sel things of
-    Just (Just s) -> onJust s
-    _             -> onNothing
+    Just (GvItem _  _ s) -> onJust s
+    _                    -> onNothing
 
-setGvHandler :: GraphvizGuiRef st a b -> Maybe (GraphvizGuiSt st a b -> IO ()) -> IO ()
+setGvHandler :: GraphvizGuiRef st a -> Maybe (GraphvizGuiSt st a -> IO ()) -> IO ()
 setGvHandler gvref mh =
   do gvSt <- readIORef gvref
      modifyIORef gvref (\x -> x { gvhandler = mh })
@@ -521,7 +498,7 @@ setGvHandler gvref mh =
 
 -- | add a selection handler - if there already is a handler
 --   this handler will be called before the new one
-addGvHandler :: GraphvizGuiRef st a b -> (GraphvizGuiSt st a b -> IO ()) -> IO ()
+addGvHandler :: GraphvizGuiRef st a -> (GraphvizGuiSt st a -> IO ()) -> IO ()
 addGvHandler gvref h =
   do gvSt <- readIORef gvref
      let newH = case gvhandler gvSt of 
@@ -529,7 +506,7 @@ addGvHandler gvref h =
                 Just oldH -> Just (\g -> oldH g >> h g)
      setGvHandler gvref newH
 
-type GvIO st f d  = IO (Layout, GraphvizGuiRef st d f, GvUpdater)
+type GvIO st d  = IO (Layout, GraphvizGuiRef st d, GvUpdater)
 type GvUpdater = IO ()
 
 -- |'graphvizGui' @f glab cachedir gvRef@ is a general-purpose GUI for
@@ -549,7 +526,7 @@ type GvUpdater = IO ()
 --  * @cachedir@ - the cache subdirectory.  We intialise this by creating a cache
 --    directory for images which will be generated from the results
 --  * @gvRef@ - see above
-graphvizGui :: (GraphvizShow f d) => (Window a) -> String -> GraphvizGuiRef st d f -> GvIO st f d
+graphvizGui :: GraphvizShow d => Window a -> String -> GraphvizGuiRef st d -> GvIO st d
 graphvizGui f cachedir gvRef = do
   initGvSt <- readIORef gvRef
   -- widgets
@@ -654,8 +631,8 @@ onPaint vbitmap dc _ = do
 -- | 'createAndOpenImage' attempts to draw an image (or retrieve it from cache)
 -- and opens it if we succeed.  Otherwise, it does nothing at all; the creation
 -- function will display an error message if it fails.
-createAndOpenImage :: (GraphvizShow f b) => 
-  FilePath -> Window a -> GraphvizGuiRef st b f -> OpenImageFn -> IO ()
+createAndOpenImage :: GraphvizShow b =>
+  FilePath -> Window a -> GraphvizGuiRef st b -> OpenImageFn -> IO ()
 createAndOpenImage cachedir f gvref openFn = do 
   let errormsg g = "The file " ++ g ++ " was not created!\n"
                    ++ "Is graphviz installed?"
@@ -672,20 +649,19 @@ createAndOpenImage cachedir f gvref openFn = do
 
 -- | Creates a graphical visualisation for anything which can be displayed
 --   by graphviz.
-createImage :: (GraphvizShow f b)
+createImage :: GraphvizShow b
             => FilePath            -- ^ cache directory
             -> Window a            -- ^ parent window
-            -> GraphvizGuiRef st b f  -- ^ stuff to display
+            -> GraphvizGuiRef st b -- ^ stuff to display
             -> IO GraphvizStatus
 createImage cachedir f gvref = do
   gvSt <- readIORef gvref
   -- putStrLn $ "creating image via graphviz"
   let drawables = gvitems  gvSt
       sel       = gvsel    gvSt
-      config    = gvparams gvSt
   dotFile <- createDotPath cachedir (show sel)
   graphicFile <-  createImagePath cachedir (show sel)
-  let create x = do _ <- toGraphviz config x dotFile graphicFile
+  let create x = do _ <- toGraphviz x dotFile graphicFile
                     return . GvCreated $ graphicFile
       handler :: GraphvizException -> IO GraphvizStatus
       handler err = do errorDialog f "Error calling graphviz. Is it installed?" (show err)

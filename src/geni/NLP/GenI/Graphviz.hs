@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, ScopedTypeVariables #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, FlexibleContexts #-}
+
 {-
  GenI surface realiser
  Copyright (C) 2005 Carlos Areces and Eric Kow
@@ -50,21 +51,19 @@ import Prelude hiding ( writeFile )
      that by default, all graphs are treated as directed graphs.  You
      can hide this by turning off edge arrows.
 -}
-class GraphvizShow flag b where
-  graphvizShowGraph       :: flag -> b -> DotGraph Text
-  graphvizShowAsSubgraph  :: flag   -- ^ flag
-                          -> Text   -- ^ prefix
+class GraphvizShow b where
+  graphvizShowGraph       :: b -> DotGraph Text
+  graphvizShowAsSubgraph  :: Text   -- ^ prefix
                           -> b      -- ^ item
                           -> [DotSubGraph Text] -- ^ gv output
-  graphvizLabel           :: flag   -- ^ flag
-                          -> b      -- ^ item
+  graphvizLabel           :: b      -- ^ item
                           -> Text   -- ^ gv output
-  graphvizParams          :: flag -> b -> [GlobalAttributes]
+  graphvizParams          :: b -> [GlobalAttributes]
 
-  graphvizShowGraph f b  =
+  graphvizShowGraph b  =
     DotGraph False True Nothing $ DotStmts
-       (addLabel (graphvizLabel f b) $ graphvizParams f b)
-       (graphvizShowAsSubgraph f "_" b)
+       (addLabel (graphvizLabel b) $ graphvizParams b)
+       (graphvizShowAsSubgraph "_" b)
        []
        []
     where
@@ -72,33 +71,30 @@ class GraphvizShow flag b where
       addLabel "" = id
       addLabel l  = (GraphAttrs [Label (StrLabel l)] :)
 
-  graphvizLabel _ _ = ""
-  graphvizParams _ _ = []
+  graphvizLabel _ = ""
+  graphvizParams _ = []
 
-class GraphvizShowNode flag b where
-  graphvizShowNode :: flag   -- ^ flag 
-                   -> Text   -- ^ prefix
+class GraphvizShowNode b where
+  graphvizShowNode :: Text   -- ^ prefix
                    -> b      -- ^ item 
                    -> DotNode Text -- ^ gv output
 
 -- | Things which are meant to be displayed within some other graph
 --   as (part) of a node label
-class GraphvizShowString flag b where
-  graphvizShow :: flag   -- ^ flag
-               -> b      -- ^ item
+class GraphvizShowString b where
+  graphvizShow :: b      -- ^ item
                -> Text   -- ^ gv output
 
 -- | Note: the 'dotFile' argument allows you to save the intermediary
 -- dot output to a file.  You can pass in the empty string if you don't
-toGraphviz :: (GraphvizShow f a) => f 
-                                 -> a 
+toGraphviz :: GraphvizShow a     => a
                                  -> String -- ^ the 'dotFile'
                                  -> String -> IO FilePath
-toGraphviz p x dotFile outputFile = do
+toGraphviz x dotFile outputFile = do
    T.writeFile dotFile (printIt g)
    runGraphviz g Png outputFile
  where
-  g = graphvizShowGraph p x
+  g = graphvizShowGraph x
 
 -- ---------------------------------------------------------------------
 -- useful utility functions
@@ -111,15 +107,15 @@ gvUnlines = T.intercalate "\n"
 -- some instances 
 -- ---------------------------------------------------------------------
 
-instance (GraphvizShow f b) => GraphvizShow f (Maybe b) where
-  graphvizShowAsSubgraph _ _ Nothing  = []
-  graphvizShowAsSubgraph f p (Just b) = graphvizShowAsSubgraph f p b
+instance GraphvizShow b => GraphvizShow (Maybe b) where
+  graphvizShowAsSubgraph _ Nothing  = []
+  graphvizShowAsSubgraph p (Just b) = graphvizShowAsSubgraph p b
 
-  graphvizLabel _ Nothing  = ""
-  graphvizLabel f (Just b) = graphvizLabel f b
+  graphvizLabel Nothing  = ""
+  graphvizLabel (Just b) = graphvizLabel b
 
-  graphvizParams _ Nothing = [] 
-  graphvizParams f (Just b) = graphvizParams f b
+  graphvizParams Nothing = []
+  graphvizParams (Just b) = graphvizParams b
 
 -- | Displays a tree in graphviz format.  
 {- Note that we could make this an
@@ -135,12 +131,11 @@ instance (GraphvizShow f b) => GraphvizShow f (Maybe b) where
    the 2nd child of the root) to keep them distinct.  Note : We use the
    letter `x' as seperator because graphviz will choke on `.' or `-', even
    underscore. -}
-gvShowTree :: (GraphvizShowNode f n) => 
-     f                      -- ^ GraphvizShow flag
-  -> Text                   -- ^ node prefix
+gvShowTree :: GraphvizShowNode n =>
+     Text                   -- ^ node prefix
   -> Tree n                 -- ^ the tree
   -> DotSubGraph Text
-gvShowTree f prefix t =
+gvShowTree prefix t =
   DotSG False Nothing $ DotStmts atts [] nodes edges
  where
   atts = [ EdgeAttrs [ ArrowHead noArrow ] ] -- should be none
@@ -148,7 +143,7 @@ gvShowTree f prefix t =
   --
   walk pref (Node node xs) =
     let mkPrefix i = T.concat [pref, "x", T.pack (show i)]
-        ns = graphvizShowNode f pref node
+        ns = graphvizShowNode pref node
         ps = map mkPrefix [1::Int .. length xs]
         es = map (\n -> DotEdge pref n []) ps
     in (ns, es) : concat (zipWith walk ps xs)

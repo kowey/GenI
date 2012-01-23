@@ -15,14 +15,14 @@
 -- along with this program; if not, write to the Free Software
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module NLP.GenI.Simple.SimpleGui where
 
 import Graphics.UI.WX
 
-import Control.Arrow ( (&&&), (***) )
+import Control.Arrow ( (***) )
 import qualified Data.GraphViz as GV
 import qualified Data.GraphViz.Attributes.Complete as GV
 import Data.IORef
@@ -33,21 +33,23 @@ import qualified Data.Text.Lazy as TL
 
 import NLP.GenI.Statistics (Statistics, showFinalStats)
 
-import NLP.GenI.Btypes (GNode(gnname, gup), AvPair(..), emptyGNode)
 import NLP.GenI.Configuration ( Params(..) )
+import NLP.GenI.FeatureStructures (AvPair(..))
 import NLP.GenI.General ( snd3, buckets )
 import NLP.GenI.Geni ( ProgStateRef, runGeni
                      , GeniResult(..), GeniSuccess(..), GeniError(..), isSuccess )
 import NLP.GenI.GeniVal ( mkGConstNone, GeniVal )
 import NLP.GenI.Graphviz ( GraphvizShow(..), gvUnlines )
+import NLP.GenI.GraphvizShow ( graphvizShowDerivation, GvItem(..), gvItemSetFlag, GNodeHighlights, Highlights )
 import NLP.GenI.GuiHelper
   ( messageGui, tagViewerGui,
     maybeSaveAsFile,
-    debuggerPanel, DebuggerItemBar, setGvParams, GvIO, newGvRef, GraphvizGuiSt(..),
+    debuggerPanel, DebuggerItemBar, GvIO, newGvRef, GraphvizGuiSt(..),
     viewTagWidgets, XMGDerivation(getSourceTrees),
+    modifyGvItems,
   )
-import NLP.GenI.Tags (tsemantics, dsChild, TagElem(idname, ttree), TagItem(..), emptyTE)
-import NLP.GenI.GraphvizShow ( graphvizShowDerivation )
+import NLP.GenI.Tags (dsChild, TagItem(..))
+import NLP.GenI.TreeSchemata ( GNode(..), GType(..) )
 
 import qualified NLP.GenI.Builder    as B
 import NLP.GenI.Morphology (LemmaPlus(..))
@@ -87,14 +89,14 @@ resultsPnl twophase pstRef f =
 -- | Browser for derived/derivation trees, except if there are no results, we show a
 --   message box
 realisationsGui :: ProgStateRef -> (Window a) -> [SimpleItem]
-                -> GvIO () Bool (Maybe SimpleItem)
+                -> GvIO () (GvItem Bool SimpleItem)
 realisationsGui _   f [] =
   do m <- messageGui f "No results found"
-     g <- newGvRef () False ""
+     g <- newGvRef () ""
      return (m, g, return ())
 realisationsGui pstRef f resultsRaw =
   do let tip = "result"
-         mkItNLabl = Just &&& siToSentence
+         mkItNLabl x = GvItem (siToSentence x) False x
          itNlabl = map mkItNLabl resultsRaw
      --
      pst     <- readIORef pstRef
@@ -148,10 +150,10 @@ partitionGeniResult results = (map unSucc *** map unErr)
 
 simpleDebuggerTab :: Bool -> (Window a) -> Params -> B.Input -> String -> IO Layout
 simpleDebuggerTab twophase x1 (pa@x2) =
-  debuggerPanel (simpleBuilder twophase) False stToGraphviz (simpleItemBar pa)
+  debuggerPanel (simpleBuilder twophase) stToGraphviz (simpleItemBar pa)
    x1 x2
  
-stToGraphviz :: SimpleStatus -> [(Maybe SimpleItem, String)]
+stToGraphviz :: SimpleStatus -> [GvItem Bool SimpleItem]
 stToGraphviz st = 
   let agenda    = section "AGENDA"    $ theAgenda    st
       auxAgenda = section "HOLDING"   $ theHoldingPen st
@@ -160,8 +162,8 @@ stToGraphviz st =
       results   = section "RESULTS"   $ theResults   st
       --
       section n i = hd : (map tlFn i)
-        where hd = (Nothing, "___" ++ n ++ "___")
-              tlFn x = (Just x, siToSentence x ++ (showPaths $ siPolpaths x))
+        where hd  = GvHeader ("___" ++ n ++ "___")
+              tlFn x = GvItem (siToSentence x ++ showPaths (siPolpaths x)) False x
       showPaths t = " (" ++ showPolPaths t ++ ")"
   in concat [ agenda, auxAgenda, chart, trash, results ]
 
@@ -175,7 +177,7 @@ simpleItemBar pa f gvRef updaterFn =
     -- handlers
     let onDetailsChk = 
          do isDetailed <- get detailsChk checked 
-            setGvParams gvRef isDetailed
+            modifyGvItems gvRef (gvItemSetFlag isDetailed)
             updaterFn
     set detailsChk [ on command := onDetailsChk ]
     --
@@ -196,43 +198,58 @@ simpleItemBar pa f gvRef updaterFn =
 -- Miscellaneous
 -- -------------------------------------------------------------------
 
-instance TagItem SimpleItem where
- tgIdName    = siIdname.siGuiStuff
- tgIdNum     = siId
- tgSemantics = siFullSem.siGuiStuff
+-- to have the basic GraphvizShow functionality
+newtype SimpleItemWrapper = SimpleItemWrapper { fromSimpleItemWrapper :: SimpleItem }
+
+instance TagItem SimpleItemWrapper where
+ tgIdName    = siIdname . siGuiStuff . fromSimpleItemWrapper
+ tgIdNum     = siId . fromSimpleItemWrapper
+ tgSemantics = siFullSem . siGuiStuff . fromSimpleItemWrapper
+ tgTree si   = fmap lookupOrBug (siDerived (fromSimpleItemWrapper si))
+  where
+   lookupOrBug k = case Map.lookup k nodeMap of
+                   Nothing -> GN { gup     = [ AvPair "cat" (mkGConstNone . T.pack $ "ERROR looking up " ++ k) ]
+                                 , gdown   = []
+                                 , gnname  = "ERROR"
+                                 , glexeme = []
+                                 , gtype   = Other
+                                 , ganchor  = False
+                                 , gaconstr = False
+                                 , gorigin = "ERROR"
+                                 }
+                   Just x  -> x
+   nodeMap = fromListUsingKey gnname (siNodes (fromSimpleItemWrapper si))
+
+fromListUsingKey :: Ord k => (a -> k) -> [a] -> Map.Map k a
+fromListUsingKey f xs = Map.fromList [ (f x, x) | x <- xs ]
 
 instance XMGDerivation SimpleItem where
  -- Note: this is XMG-related stuff
  getSourceTrees it = map dsChild (siDerivation it)
 
-instance GraphvizShow Bool SimpleItem where
-  graphvizLabel  f c =
-    gvUnlines $ graphvizLabel f (toTagElem c)
+instance GraphvizShow (GvItem Bool SimpleItem) where
+  graphvizLabel (GvHeader _)     = ""
+  graphvizLabel g@(GvItem _ _ c) =
+    gvUnlines $ graphvizLabel (highlightSimpleItem g)
               : map TL.pack (siDiagnostic (siGuiStuff c))
 
-  graphvizParams f c = graphvizParams f (toTagElem c)
-  graphvizShowAsSubgraph f p it =
-   let isHiglight n = gnname n `elem` (siHighlight.siGuiStuff) it
-       info n | isHiglight n = (n, Just (GV.X11Color GV.Red))
-              | otherwise    = (n, Nothing)
-       gvSub :: (Bool, GNode GeniVal -> (GNode GeniVal, Maybe GV.Color))
-             -> TL.Text -> TagElem -> [GV.DotSubGraph TL.Text]
-       gvSub = graphvizShowAsSubgraph
-   in concat [ gvSub (f, info) (p `TL.append` "TagElem") (toTagElem it)
-             , graphvizShowDerivation (siDerivation it)
-             ]
+  graphvizParams = graphvizParams . highlightSimpleItem
 
-toTagElem :: SimpleItem -> TagElem
-toTagElem si =
-  emptyTE { idname = tgIdName si
-          , tsemantics = tgSemantics si
-          , ttree = fmap lookupOrBug (siDerived si) }
-  where
-   nodes   = siNodes si
-   nodeMap = Map.fromList $ zip (map gnname nodes) nodes
-   lookupOrBug k = case Map.lookup k nodeMap of
-                   Nothing -> emptyGNode { gup = [ AvPair "cat" (mkGConstNone (T.pack ("ERROR looking up " ++ k))) ] }
-                   Just x  -> x
+  graphvizShowAsSubgraph _ (GvHeader _) = []
+  graphvizShowAsSubgraph p g@(GvItem _ _ it) =
+     concat [ graphvizShowAsSubgraph (p `TL.append` "TagElem") (highlightSimpleItem g)
+            , graphvizShowDerivation (siDerivation it)
+            ]
+
+highlightSimpleItem :: GvItem Bool SimpleItem -> GvItem GNodeHighlights SimpleItemWrapper
+highlightSimpleItem (GvHeader h)    = GvHeader h
+highlightSimpleItem (GvItem l f it) = GvItem l (f, highlights) (SimpleItemWrapper it)
+ where
+   highlights :: Highlights (GNode GeniVal)
+   highlights n =
+    if gnname n `elem` siHighlight (siGuiStuff it)
+       then Just (GV.X11Color GV.Red)
+       else Nothing
 
 siToSentence :: SimpleItem -> String
 siToSentence si = case unpackResult si of

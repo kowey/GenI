@@ -34,20 +34,20 @@ import NLP.GenI.Polarity(PolAut, PolState(PolSt), NFA(states, transitions), fina
 import NLP.GenI.Graphviz(GraphvizShow(..), gvUnlines)
 import NLP.GenI.Tags(idname)
 
-instance GraphvizShow () PolAut where
+instance GraphvizShow PolAut where
   -- we want a directed graph (arrows)
-  graphvizShowGraph f aut =
+  graphvizShowGraph aut =
      DotGraph False True Nothing $ DotStmts
          [ GraphAttrs [RankDir FromLeft, RankSep [0.02], Pack (PackMargin 1)]
          , NodeAttrs [FontSize 10]
          , EdgeAttrs [FontSize 10]
          ]
-         (graphvizShowAsSubgraph f "aut" aut)
+         (graphvizShowAsSubgraph "aut" aut)
          [] -- all nodes are in the subgraph
          []
 
   --
-  graphvizShowAsSubgraph _ prefix aut =
+  graphvizShowAsSubgraph prefix aut =
     [ DotSG False Nothing
             $ DotStmts [ NodeAttrs [ Shape Ellipse, Peripheries 1 ] ]
                        []

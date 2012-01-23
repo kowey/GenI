@@ -33,8 +33,8 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.Text as T
 
 import NLP.GenI.Tags
- ( TagElem, TagDerivation, idname,
-   tsemantics, ttree,
+ ( TagDerivation,
+   TagItem(..), TagElem(..),
    DerivationStep(..), dsChild, dsParent
  )
 import NLP.GenI.Btypes (AvPair(..),
@@ -52,34 +52,75 @@ import NLP.GenI.Graphviz
 import NLP.GenI.Semantics ( Sem )
 
 -- ----------------------------------------------------------------------
+--
+-- ----------------------------------------------------------------------
+
+-- | Imagine some kind of menu system that displays a list of items
+--   and displays the selected item
+data GvItem flg itm = GvHeader String       -- ^ no actual item
+                    | GvItem String flg itm
+
+gvItemLabel :: GvItem a b -> String
+gvItemLabel (GvHeader h)   = h
+gvItemLabel (GvItem l _ _) = l
+
+gvItemSetFlag :: f -> GvItem f a -> GvItem f a
+gvItemSetFlag _  g@(GvHeader _) = g
+gvItemSetFlag f2 (GvItem l _ x) = GvItem l f2 x
+
+instance GraphvizShow a => GraphvizShow (GvItem () a) where
+  graphvizShowAsSubgraph _ (GvHeader _ )   = []
+  graphvizShowAsSubgraph p (GvItem _ () b) = graphvizShowAsSubgraph p b
+
+  graphvizLabel (GvHeader _)     = ""
+  graphvizLabel (GvItem _ () b)  = graphvizLabel b
+
+  graphvizParams (GvHeader _)    = []
+  graphvizParams (GvItem _ () b) = graphvizParams b
+
+instance Functor (GvItem flg) where
+  fmap _  (GvHeader h)     = GvHeader h
+  fmap fn (GvItem l flg x) = GvItem l flg (fn x)
+
+-- ----------------------------------------------------------------------
 -- For GraphViz
 -- ----------------------------------------------------------------------
 
-type GvHighlighter a = a -> (a, Maybe Color)
+type GNodeHighlights = (Bool, Highlights (GNode GeniVal))
+type Highlights a    = (a -> Maybe Color)
 
-nullHighlighter :: GvHighlighter (GNode GeniVal)
-nullHighlighter a = (a,Nothing)
+nullHighlighter :: Highlights a
+nullHighlighter = const Nothing
 
-instance GraphvizShow Bool TagElem where
- graphvizShowAsSubgraph sf = graphvizShowAsSubgraph (sf, nullHighlighter)
- graphvizLabel  sf = graphvizLabel (sf, nullHighlighter )
- graphvizParams sf = graphvizParams (sf, nullHighlighter)
+addNullHighlighter :: GvItem Bool x -> GvItem GNodeHighlights x
+addNullHighlighter (GvHeader h)   = GvHeader h
+addNullHighlighter (GvItem l f x) = GvItem l (f, nullHighlighter) x
 
+instance GraphvizShow (GvItem Bool TagElem) where
+ graphvizShowAsSubgraph p = graphvizShowAsSubgraph p . addNullHighlighter
+ graphvizLabel  = graphvizLabel  . addNullHighlighter
+ graphvizParams = graphvizParams . addNullHighlighter
 
-instance GraphvizShow (Bool, GvHighlighter (GNode GeniVal)) TagElem where
- graphvizShowAsSubgraph (sf,hfn) prefix te =
-    [gvShowTree sf
-                (prefix `TL.append` "DerivedTree0")
-                (hfn `fmap` ttree te)
+instance TagItem t => GraphvizShow (GvItem GNodeHighlights t) where
+ graphvizShowAsSubgraph _      (GvHeader _) = []
+ graphvizShowAsSubgraph prefix (GvItem _ (sf, hfn) te) =
+    [gvShowTree (prefix `TL.append` "DerivedTree0")
+                (fmap toDetails (tgTree te))
     ]
+  where
+   toDetails x = Details { ddetails = sf
+                         , dcolour  = hfn x
+                         , dnode    = x
+                         }
 
- graphvizLabel _ te =
+ graphvizLabel (GvHeader _)    = ""
+ graphvizLabel (GvItem _ _ te) =
   -- we display the tree semantics as the graph label
-  let treename   = "name: "      `TL.append` TL.pack (idname te)
-      semlist    = "semantics: " `TL.append` gvShowSem (tsemantics te)
+  let treename   = "name: "      `TL.append` TL.pack (tgIdName te)
+      semlist    = "semantics: " `TL.append` gvShowSem (tgSemantics te)
   in gvUnlines [ treename, semlist ]
 
- graphvizParams _ _ =
+ graphvizParams _ =
   [ GraphAttrs [ FontSize 10
                , RankSep [0.3]
                ]
@@ -97,29 +138,35 @@ gvShowSem = gvUnlines . map TL.pack . map unwords . clumpBy length 72 . words . 
 -- Helper functions for the TagElem GraphvizShow instance
 -- ----------------------------------------------------------------------
 
-instance GraphvizShowNode (Bool) (GNode GeniVal, Maybe Color) where
+data Details n = Details { ddetails :: Bool
+                         , dcolour  :: Maybe Color
+                         , dnode    :: n
+                         }
+
+instance GraphvizShowNode (Details (GNode GeniVal)) where
  -- compact -> (node, mcolour) -> String
- graphvizShowNode detailed prefix (gn, mcolour) =
+ graphvizShowNode prefix dn =
    let -- attributes
        filledParam         = Style [SItem Filled []]
        fillcolorParam      = FillColor (X11Color LemonChiffon)
        shapeRecordParam    = Shape Record
        shapePlaintextParam = Shape PlainText
        --
-       colorParams = case mcolour of
+       colorParams = case dcolour dn of
                      Nothing -> []
                      Just c  -> [ FontColor c ]
-       shapeParams = if detailed
+       shapeParams = if ddetails dn
                      then [ shapeRecordParam, filledParam, fillcolorParam ]
                      else [ shapePlaintextParam ]
        -- content
+       gn    = dnode dn
        stub  = showGnStub gn
        extra = showGnDecorations gn
        summary = if TL.null extra
                  then FieldLabel stub
                  else FlipFields [ FieldLabel stub, FieldLabel extra ]
        body = Label $
-              if not detailed then (StrLabel (graphvizShow_ gn))
+              if not (ddetails dn) then (StrLabel (graphvizShow_ gn))
               else RecordLabel [ FlipFields $
                                    [ summary
                                    , FieldLabel . showFs $ gup gn
@@ -129,17 +176,17 @@ instance GraphvizShowNode (Bool) (GNode GeniVal, Maybe Color) where
               maybeFs fs = if null fs then [] else [FieldLabel (showFs fs)]
    in DotNode prefix (body : shapeParams ++ colorParams)
 
-instance GraphvizShowString () (GNode GeniVal) where
-  graphvizShow () gn =
+instance GraphvizShowString (GNode GeniVal) where
+  graphvizShow gn =
     let stub  = showGnStub gn
         extra = showGnDecorations gn
     in stub `TL.append` extra
 
-instance GraphvizShowString () (AvPair GeniVal) where
-  graphvizShow () (AvPair a v) = TL.fromChunks [a, ":"] `TL.append` graphvizShow_ v
+instance GraphvizShowString (AvPair GeniVal) where
+  graphvizShow (AvPair a v) = TL.fromChunks [a, ":"] `TL.append` graphvizShow_ v
 
-instance GraphvizShowString () GeniVal where
-  graphvizShow () g =
+instance GraphvizShowString GeniVal where
+  graphvizShow g =
     case (gLabel g, gConstraints g) of
       (Nothing, Nothing) -> "?_"
       (Nothing, Just cs) -> constraints cs
@@ -181,8 +228,8 @@ getGnVal getFeat attr gn =
 tackOn :: TL.Text -> TL.Text -> TL.Text -> TL.Text
 tackOn p x y = if TL.null y then x else TL.concat [ x, p, y ]
 
-graphvizShow_ :: (GraphvizShowString () a) => a -> TL.Text
-graphvizShow_ = graphvizShow ()
+graphvizShow_ :: GraphvizShowString a => a -> TL.Text
+graphvizShow_ = graphvizShow
 
 -- ----------------------------------------------------------------------
 -- Derivation tree

@@ -242,11 +242,13 @@ class TagItem t where
   tgIdName    :: t -> String
   tgIdNum     :: t -> Integer
   tgSemantics :: t -> Sem
+  tgTree      :: t -> Tree (GNode GeniVal)
 
 instance TagItem TagElem where
   tgIdName = idname
   tgIdNum  = tidnum
   tgSemantics = tsemantics
+  tgTree = ttree
 
 -- | Sorts trees into a Map.Map organised by the first literal of their
 --   semantics.  This is useful in at least three places: the polarity
