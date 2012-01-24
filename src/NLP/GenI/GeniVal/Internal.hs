@@ -35,7 +35,7 @@ import qualified Data.Text as T
 
 import Control.DeepSeq
 
-import Data.FullList ( FullList, fromFL, Listable(..) )
+import Data.FullList ( FullList, fromFL, Listable(..), sortNub )
 import NLP.GenI.General (geniBug, quoteString, isGeniIdentLetter)
 
 
@@ -46,12 +46,6 @@ data GeniVal = GeniVal { gLabel       :: Maybe String
                        , gConstraints :: Maybe (FullList Text)
                        }
   deriving (Eq,Ord, Data, Typeable)
-
-sortNub :: (Eq a, Ord a) => FullList a -> FullList a
-sortNub xs =
-  case (sort . nub . fromFL $ xs) of
-   []     -> geniBug "sortNub is broken"
-   (y:ys) -> y !: ys
 
 -- | 'mkGConst' @x :! []@ creates a single constant.  'mkGConst' @x :! xs@
 --   creates an atomic disjunction.  It makes no difference which of the values

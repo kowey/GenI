@@ -6,6 +6,7 @@ module Data.FullList
     head,
     tail,
     (++),
+    sortNub,
     Listable (..)
     ) where
 

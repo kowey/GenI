@@ -38,13 +38,14 @@ module NLP.GenI.GeniParsers (
 import NLP.GenI.GeniVal (mkGConst, mkGConstNone, mkGVar, mkGAnon)
 import NLP.GenI.Btypes
 import NLP.GenI.Tags (TagElem(..), setTidnums)
+import NLP.GenI.Lexicon ( mkILexEntry )
 import NLP.GenI.Semantics ( Literal(..) )
 import NLP.GenI.TreeSchemata (SchemaTree)
 import NLP.GenI.General (isGeniIdentLetter)
 import NLP.GenI.GeniShow (GeniShow(geniShow))
 
 import BoolExp
-import Data.FullList ( Listable(..) )
+import Data.FullList ( FullList, Listable(..) )
 
 import Control.Applicative ( (<*>), (<$>) )
 import Control.Monad (liftM, when)
@@ -107,14 +108,9 @@ geniValue =   ((try $ anonymous) <?> "_ or ?_")
           <|> (variable   <?> "a variable")
   where
     question = "?"
-    atom     = T.pack `fmap` (looseIdentifier <|> stringLiteral)
-    disjunction = do
-      (x:xs) <- sepBy1 atom (symbol "|")
-      return (x !: xs)
+    disjunction = fmap T.pack <$> geniAtomicDisjunction
     constants :: Parser GeniVal
-    constants =
-      do cs <- disjunction
-         return $ mkGConst cs
+    constants = mkGConst <$> disjunction
     variable :: Parser GeniVal
     variable =
       do symbol question
@@ -126,6 +122,13 @@ geniValue =   ((try $ anonymous) <?> "_ or ?_")
       do optional $ symbol question
          symbol "_"
          return mkGAnon
+
+geniAtomicDisjunction :: Parser (FullList String)
+geniAtomicDisjunction = do
+  (x:xs) <- sepBy1 atom (symbol "|")
+  return (x !: xs)
+ where
+  atom = looseIdentifier <|> stringLiteral
 
 geniFancyDisjunction :: Parser [GeniVal]
 geniFancyDisjunction = geniValue `sepBy1` symbol ";"
@@ -308,7 +311,7 @@ geniLexicon = tillEof $ many1 geniLexicalEntry
 
 geniLexicalEntry :: Parser ILexEntry
 geniLexicalEntry =
-  do lemma  <- (looseIdentifier <|> stringLiteral) <?> "a lemma"
+  do lemmas  <- geniAtomicDisjunction <?> "a lemma (or disjunction thereof)"
      family <- identifier <?> "a tree family"
      (pars, interface) <- option ([],[]) $ parens paramsParser
      equations <- option [] $ do keyword "equations"
@@ -318,14 +321,7 @@ geniLexicalEntry =
      keywordSemantics
      (sem,pols) <- squares geniLexSemantics
      --
-     return     ILE { iword = lemma !: []
-                    , ifamname = family
-                    , iparams = pars
-                    , iinterface = sortFlist interface
-                    , iequations = equations
-                    , ifilters = filters
-                    , isemantics = sem
-                    , isempols = pols }
+     return (mkILexEntry lemmas family pars interface filters equations sem pols)
   where
     paramsParser :: Parser ([GeniVal], Flist GeniVal)
     paramsParser = do

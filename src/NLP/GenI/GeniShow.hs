@@ -33,6 +33,7 @@ Unfortunately, HaXml seems to have some kind of space leak.
 -}
 
 -- This module provides specialised functions for visualising tree data.
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances, TypeSynonymInstances #-}
 module NLP.GenI.GeniShow
 where
@@ -42,7 +43,6 @@ import Data.List(intercalate)
 import qualified Data.Map as Map
 import qualified Data.Text as T
 
-import NLP.GenI.General ( quoteString )
 import NLP.GenI.Semantics ( isInternalHandle, SemInput, Literal(..) )
 import NLP.GenI.Tags
  ( TagElem, idname,
@@ -80,12 +80,12 @@ instance GeniShow Literal where
 instance GeniShow ILexEntry where
  geniShow l = intercalate "\n"
     [ unwords [ geniShow . mkGConst . fmap T.pack $ iword l
-              , quoteString (ifamname l)
+              , ifamname l
               , parens . unwords $ concat [ map geniShow (iparams l), ["!"], map geniShow (iinterface l) ]
               ]
-    , geniShowKeyword "filters"   $ geniShow (ifilters l)
     , geniShowKeyword "equations" $ geniShow (iequations l)
-    , geniShowKeyword "semantics" $ geniShow l
+    , geniShowKeyword "filters"   $ geniShow (ifilters l)
+    , geniShowKeyword "semantics" $ geniShow (isemantics l)
     ]
 
 instance GeniShow (GNode GeniVal) where
@@ -107,8 +107,17 @@ instance GeniShow (GNode GeniVal) where
       tbFeats n = (geniShow $ gup n) ++ "!" ++ (geniShow $ gdown n)
   in unwords $ filter (not.null) $ [ gnname x, gaconstrstr, gtypestr x, glexstr x, tbFeats x ]
 
-instance (GeniShow a) => GeniShow [a] where
- geniShow = squares . unwords . (map geniShow)
+geniShowSmallList :: GeniShow a => [a] -> String
+geniShowSmallList = squares . unwords . (map geniShow)
+
+instance GeniShow [Literal] where
+ geniShow = geniShowSmallList
+
+instance GeniShow (AvPair v) => GeniShow [AvPair v] where
+ geniShow = geniShowSmallList
+
+instance GeniShow [ILexEntry] where
+ geniShow = intercalate "\n\n" . map geniShow
 
 instance (GeniShow a) => GeniShow (Tree a) where
  geniShow t =

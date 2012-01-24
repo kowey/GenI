@@ -115,6 +115,7 @@ Library
                 NLP.GenI.GeniVal,
                 NLP.GenI.GeniVal.Internal,
                 NLP.GenI.Lexicon,
+                NLP.GenI.Lexicon.Internal,
                 NLP.GenI.LexicalSelection,
                 NLP.GenI.Semantics,
                 NLP.GenI.Tags,

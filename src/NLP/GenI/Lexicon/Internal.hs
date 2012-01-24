@@ -17,13 +17,13 @@
 
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE DeriveDataTypeable #-}
-module NLP.GenI.Lexicon (
-   Lexicon, ILexEntry(..),
-) where
+module NLP.GenI.Lexicon.Internal where
 
 -- import Debug.Trace -- for test stuff
 import Data.Binary
 import Data.FullList
+import Data.Function
+import Data.List ( sortBy )
 import Data.Generics (Data)
 import Data.Typeable (Typeable)
 
@@ -49,6 +49,27 @@ data ILexEntry = ILE
     , isemantics  :: Sem
     , isempols    :: [SemPols] }
   deriving (Show, Eq, Data, Typeable)
+
+mkILexEntry :: FullList String -- ^ word
+            -> String          -- ^ family name
+            -> [GeniVal]       -- ^ parameters list (deprecated)
+            -> Flist GeniVal   -- ^ interface (use instead of params)
+            -> Flist GeniVal   -- ^ filters
+            -> Flist GeniVal   -- ^ equations
+            -> Sem             -- ^ semantics
+            -> [SemPols]       -- ^ semantic polarities
+            -> ILexEntry
+mkILexEntry word famname params interface filters equations sem sempols =
+  ILE (sortNub word)
+      famname
+      params
+      (sortFlist interface)
+      (sortFlist filters)
+      (sortFlist equations)
+      sem2
+      sempols2
+  where
+   (sem2, sempols2) = unzip $ sortBy (compareOnLiteral `on` fst) (zip sem sempols)
 
 instance DescendGeniVal ILexEntry where
   descendGeniVal s i =

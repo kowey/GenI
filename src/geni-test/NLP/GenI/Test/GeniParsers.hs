@@ -4,6 +4,7 @@ module NLP.GenI.Test.GeniParsers where
 
 import Control.Monad ( liftM2 )
 
+import Control.Applicative ( (<$>) )
 import Data.FullList hiding ( (++) )
 import Data.List
 import Test.HUnit
@@ -13,11 +14,14 @@ import Test.Framework.Providers.HUnit
 import Test.Framework.Providers.QuickCheck2
 
 import NLP.GenI.FeatureStructures
+import NLP.GenI.Lexicon ( ILexEntry(..) )
 import NLP.GenI.General
+import NLP.GenI.GeniShow
 import NLP.GenI.GeniVal
 import NLP.GenI.GeniParsers
 import NLP.GenI.Semantics
 import NLP.GenI.Test.FeatureStructures ()
+import NLP.GenI.Test.Lexicon ()
 import NLP.GenI.Test.GeniVal ()
 import NLP.GenI.Test.Semantics ()
 
@@ -39,6 +43,7 @@ suite =
       [ testProperty "GeniVal" propRoundTripGeniVal
       , testProperty "FS"      propRoundTripFeats
       , testProperty "Sem"     propRoundTripSem
+      , testProperty "ILexEntry" propRoundTripILexEntry
       ]
   ]
 
@@ -90,7 +95,24 @@ propRoundTripSem g =
    Right g2@(x,_,_) -> first3 (map anonhandle) g2 == (g, [], [])
  where
    semStr = "semantics: " ++ showSem g
-   anonhandle lit@(Literal h p xs) =
+
+propRoundTripILexEntry x_ =
+ whenFail (putStrLn $ "----\n" ++ s  ++ "\n---\n" ++ show p) $
+ case p of
+   Left  e  -> False
+   Right x2 -> x2 == [x]
+ where
+  x = sortEntry x_
+  s = geniShow [x]
+  p = map nosempols <$> testParse geniLexicon s
+  sortEntry l = l { iinterface = sortFlist (iinterface l)
+                  , ifilters   = sortFlist (ifilters l)
+                  , iequations = sortFlist (iequations l)
+                  , isemantics = sortSem (isemantics l)
+                  }
+  nosempols l = l { isempols = [] }
+
+anonhandle lit@(Literal h p xs) =
      case singletonVal h of
        Just c | isInternalHandle c -> Literal mkGAnon p xs
        _                           -> lit

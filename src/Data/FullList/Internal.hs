@@ -10,6 +10,7 @@ import Control.DeepSeq
 import Prelude hiding (head, tail, (++))
 import qualified Prelude
 import Data.Data
+import Data.List ( sort, nub )
 
 newtype FullList a = FullList [a]  -- data constructor is not exported!
   deriving (Eq, Ord, Show, Data, Typeable)
@@ -37,6 +38,12 @@ tail (FullList _) = error "NList.tail is broken"
 
 (++) :: FullList a -> FullList a -> FullList a
 (++) x y = FullList ((Prelude.++) (fromFL x) (fromFL y)) -- OK because both already full
+
+sortNub :: (Eq a, Ord a) => FullList a -> FullList a
+sortNub xs =
+  case (sort . nub . fromFL $ xs) of
+   []     -> error "sortNub is broken"
+   (y:ys) -> y !: ys
 
 -- Mapping over a non-empty list gives a non-empty list
 instance Functor FullList where

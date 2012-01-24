@@ -28,7 +28,7 @@ import Control.DeepSeq
 import Data.Binary
 import Data.Function ( on )
 import Data.Data
-import Data.List ( nub, sort, sortBy, delete, insert )
+import Data.List ( nub, sortBy, delete, insert )
 import Data.Maybe ( isNothing, isJust, mapMaybe, fromMaybe )
 import qualified Data.Map as Map
 import Data.Text ( Text )
@@ -73,7 +73,10 @@ removeConstraints (x, _, _) = (x, [], [])
 
 -- | default sorting for a semantics
 sortSem :: Sem -> Sem
-sortSem = sort
+sortSem = sortBy compareOnLiteral
+
+compareOnLiteral :: Literal -> Literal -> Ordering
+compareOnLiteral = compare
 
 -- sort primarily putting the ones with the most constants first
 -- and secondarily by the number of instances a predicate occurs
