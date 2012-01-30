@@ -89,7 +89,7 @@ runInstructions pstRef =
        config <- pa `fmap` readIORef pstRef
        -- we assume the that the suites have unique filenames
        let bsubdir = bdir </> takeFileName file
-       createDirectoryIfMissing False bsubdir
+       createDirectoryIfMissing True bsubdir
        fullsuite <- loadTestSuite pstRef
        let suite = case (mtcs, getFlagP TestCaseFlg config) of
                     (_, Just c) -> filter (\t -> tcName t == c) fullsuite
@@ -160,7 +160,7 @@ runOnSemInput pstRef args semInput =
      warningsOut <- (warnings . local) `fmap` readIORef pstRef
      -- create directory if need be
      case args of
-       PartOfSuite n f -> createDirectoryIfMissing False (f </> n)
+       PartOfSuite n f -> createDirectoryIfMissing True (f </> n)
        _               -> return ()
      let oWrite = case args of
                      Standalone "" _ -> putStrLn
