@@ -21,10 +21,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 module NLP.GenI.Server where
 
-import Control.Applicative
 import Control.Exception
 import Control.Monad ( liftM, ap )
 import Control.Monad.IO.Class ( liftIO )
+import Data.Conduit
+import Data.Conduit.Lazy
 import Data.IORef
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
@@ -65,8 +66,8 @@ parseInstruction = J.resultToEither . J.decode . TL.unpack . TL.decodeUtf8
 
 application :: ProgState -> Application
 application pst req = do
-   bs <- EB.consume
-   let input = (,) `liftM` toGenReq req `ap` parseInstruction bs
+   bss <- liftIO . runResourceT . lazyConsume . requestBody $ req
+   let input = (,) `liftM` toGenReq req `ap` parseInstruction (B.fromChunks bss)
    case input of
      Left e    -> return (err e)
      Right tyj -> uncurry heart tyj
