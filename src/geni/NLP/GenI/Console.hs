@@ -38,6 +38,7 @@ import NLP.GenI.General
   ( ePutStr, ePutStrLn,
   )
 import NLP.GenI.Geni
+import NLP.GenI.GeniShow
 import NLP.GenI.Configuration
   ( Params
   , BatchDirFlg(..), DumpDerivationFlg(..), EarlyDeathFlg(..), FromStdinFlg(..), OutputFileFlg(..)
@@ -152,52 +153,63 @@ runOnSemInput pstRef args semInput =
   do modifyIORef pstRef (resetLocal semInput)
      pst <- readIORef pstRef
      let config = pa pst
-         dump = hasFlagP DumpDerivationFlg config
-         useRanking = hasFlagP RankingConstraintsFlg config
      (results, stats) <- case builderType config of
                             SimpleBuilder -> helper simpleBuilder_2p
                             SimpleOnePhaseBuilder -> helper simpleBuilder_1p
      warningsOut <- (warnings . local) `fmap` readIORef pstRef
-     -- create directory if need be
-     case args of
-       PartOfSuite n f -> createDirectoryIfMissing True (f </> n)
-       _               -> return ()
-     let oWrite = case args of
-                     Standalone "" _ -> putStrLn
-                     Standalone f  _ -> writeFile f
-                     PartOfSuite n f -> writeFile $ f </> n </> "responses"
-         doWrite = case args of
-                     Standalone _  _ -> const (return ())
-                     PartOfSuite n f -> writeFile $ f </> n </> "derivations"
-         soWrite = case args of
-                     Standalone _ "" -> putStrLn
-                     Standalone _ f  -> writeFile f
-                     PartOfSuite n f -> writeFile $ f </> n </> "stats"
-     --
-     let formatLines = if useRanking
-                          then pure . prettyResult pst
-                          else grRealisations
-     if dump
-        then oWrite $ ppJSON results
-        else oWrite $ unlines . concatMap (fromResult formatLines) $ results
-     doWrite . ppJSON $ results
-     -- print any warnings we picked up along the way
-     when (not $ null warningsOut) $
-      do let ws = reverse warningsOut
-         ePutStr $ "Warnings:\n" ++ (unlines . map (" - " ++) . concatMap showGeniWarning $ sortWarnings ws)
-         case args of
-          PartOfSuite n f -> writeFile (f </> n </> "warnings") $ unlines (map show ws)
-          _ -> return ()
-     -- print out statistical data (if available)
-     when (isJust $ getFlagP MetricsFlg config) $ soWrite (ppJSON stats)
-     --
+     writeResults pst args semInput results stats warningsOut
      return (results, stats)
   where
-    ppJSON :: JSON a => a -> String
-    ppJSON = render . pp_value . showJSON 
     helper builder =
       do (results, stats, _) <- runGeni pstRef builder
          return (results, stats)
+
+writeResults :: ProgState -> RunAs -> SemInput -> [GeniResult] -> Statistics -> [GeniWarning] -> IO ()
+writeResults pst args semInput results stats warningsOut = do
+     -- create output directory as needed
+     case args of
+       PartOfSuite n f -> createDirectoryIfMissing True (f </> n)
+       _               -> return ()
+     -- print responses
+     if dump
+        then writeResponses $ ppJSON results
+        else writeResponses $ unlines . concatMap (fromResult formatResponses) $ results
+     -- print out statistical data (if available)
+     when (isJust $ getFlagP MetricsFlg config) $
+        writeStats (ppJSON stats)
+     -- print any warnings we picked up along the way
+     unless (null warningsOut) $ do
+        let ws = reverse warningsOut
+        ePutStr $ "Warnings:\n" ++ formatWarnings ws
+        writeBatchFile "warnings" $ unlines (map show ws)
+     -- other outputs when run in batch mode
+     writeBatchFile "semantics"  $ geniShowSemInput semInput ""
+     writeBatchFile "derivations"$ ppJSON results
+  where
+    config      = pa pst
+    dump        = hasFlagP DumpDerivationFlg config
+    -- do we print ranking information and all that other jazz?
+    formatResponses = if hasFlagP RankingConstraintsFlg config
+                         then pure . prettyResult pst
+                         else grRealisations
+    formatWarnings = unlines . map (" - " ++)
+                   . concatMap showGeniWarning . sortWarnings
+    --
+    writeBatchFile key = case args of
+        Standalone _  _ -> const (return ())
+        PartOfSuite n f -> writeFile (f </> n </> key)
+    writeResponses = case args of
+        Standalone "" _ -> putStrLn
+        Standalone f  _ -> writeFile f
+        PartOfSuite _ _ -> writeBatchFile "responses"
+    writeStats = case args of
+        Standalone _ "" -> putStrLn
+        Standalone _ f  -> writeFile f
+        PartOfSuite _ _ -> writeBatchFile "stats"
+    --
     fromResult :: (GeniSuccess -> [String]) -> GeniResult -> [String]
     fromResult _ (GError errs) = [ show errs ]
     fromResult f (GSuccess x)  = f x
+
+ppJSON :: JSON a => a -> String
+ppJSON = render . pp_value . showJSON
