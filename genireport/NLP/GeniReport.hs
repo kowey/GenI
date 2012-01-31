@@ -114,21 +114,23 @@ resultsTable rs =
    tbody $ forM_ rs resultsRow
 
 resultsRow :: Result -> Html
-resultsRow (Result {..}) = tr cells ! class_ status 
+resultsRow r@(Result {..}) = tr cells ! class_ (status r)
  where
   cells = do
    td (prettyKey reKey)
    td (toHtml (length reRealisations))
    td (toHtml (length reWarnings))
-  lenRealisations = length reRealisations
-  lenWarnings     = length reWarnings
-  status | lenRealisations == 0 = "failure"
-         | lenWarnings     >  0 = "warnings"
-         | otherwise            = "success"
+
+status :: Result -> AttributeValue
+status (Result {..})
+ | length reRealisations == 0 = "failure"
+ | length reWarnings     >  0 = "warnings"
+ | otherwise                  = "success"
 
 mkDetailsSummary :: [Result] -> Html
 mkDetailsSummary res = html $ do
-  H.head $
+  H.head $ do
+    H.link ! rel "stylesheet" ! type_  "text/css" ! href "report.css"
     H.style . toHtml . unlines $
       [ "td { border-bottom-style: solid; border-bottom-width: 1px; }"
       , ".count { color: grey } "
@@ -138,13 +140,21 @@ mkDetailsSummary res = html $ do
 
 detailsTable :: [Result] -> Html
 detailsTable rs =
- table (forM_ rs detailsRow) ! class_ "tablesorter"
+  table content !  A.id "detailsTable" ! class_ "tablesorter"
+ where
+  content = do
+   thead . tr $ do
+           th "case"
+           th "results"  ! colspan "2"
+           th "warnings" ! colspan "2"
+   tbody $ forM_ rs detailsRow
 
 detailsRow :: Result -> Html
 detailsRow (Result {..}) = tr $ do
  td (prettyKey reKey)
  td (toHtml (length reRealisations))
  td (toHtml (unlinesCountHtml reRealisations))
+ td (toHtml (length reWarnings))
  td (toHtml (unlinesCountHtml . concatMap expandCount $ reWarnings))
 
 prettyKey :: String -> Html
