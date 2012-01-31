@@ -29,6 +29,7 @@ module NLP.GenI.Geni (
              initGeni,
              runGeni, runGeniWithSelector,
              GeniResult(..), isSuccess, GeniError(..), GeniSuccess(..),
+             GeniLexSel(..),
              ResultType(..),
              -- * helpers
              lemmaSentenceString, prettyResult,
