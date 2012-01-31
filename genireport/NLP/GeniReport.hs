@@ -21,8 +21,9 @@
 
 import Control.Applicative
 import Control.Monad (forM_)
-import Data.Char ( isDigit )
-import Data.List ( intersperse, intercalate, sort, group )
+import Data.Char ( isDigit, toLower )
+import Data.Function ( on )
+import Data.List ( intersperse, intercalate, sort, group, nub, sortBy )
 import Data.List.Split
 
 import Text.Blaze.Html5 hiding ( map )
@@ -190,10 +191,13 @@ detailsRow r@(Result {..}) = tr cells
    td (toHtml (unlinesCountHtml reRealisations))
    td (toHtml (length reWarnings))
    td (toHtml (unlinesCountHtml . concatMap expandCount $ reWarnings))
+  traces = [  lcSort . nub $ concatMap nlTrace $ grLexSelection g | GSuccess g <- reDerivation ]
   tcName = do
    prettyKey reKey
    br
    H.div (semInputToHtml reSemInput) ! A.style "margin-top: 1em;"
+   br
+   H.div (sequence_ . intersperse br $ map (toHtml . unwords) traces)
 
 semInputToHtml :: SemInput -> Html
 semInputToHtml (sem,icons,lcons) = do
@@ -262,6 +266,9 @@ dataFiles =
 -- ----------------------------------------------------------------------
 -- odds and ends
 -- ----------------------------------------------------------------------
+
+lcSort :: [String] -> [String]
+lcSort = sortBy (compare `on` map toLower)
 
 readFileIfExists :: a -> (String -> a) -> FilePath -> IO a
 readFileIfExists z job f = do
