@@ -44,6 +44,9 @@ import Text.JSON hiding ( Result )
 import qualified Text.JSON as J
 
 import NLP.GenI.Geni
+import NLP.GenI.GeniParsers
+import NLP.GenI.GeniShow
+import NLP.GenI.Semantics
 import Paths_genireport
 
 data GeniReport = GeniReport
@@ -81,8 +84,13 @@ readResults d = do
     derivs  <- case mderivs of
                  J.Error err -> fail err
                  J.Ok x      -> return x
-    Result c <$> (lines `fmap` readFile (dc </> "responses"))
-             <*> (readFileIfExists [] lines (dc </> "warnings"))
+    msem <- parseFromFile geniSemanticInput (dc </> "semantics")
+    sem  <- case msem of
+              Left err -> fail (show err)
+              Right s  -> return s
+    Result c sem
+             <$> (lines `fmap` readFile (dc </> "responses"))
+             <*> readFileIfExists [] lines (dc </> "warnings")
              <*> pure derivs
 
 -- ----------------------------------------------------------------------
@@ -91,6 +99,7 @@ readResults d = do
 
 data Result = Result
   { reKey          :: String
+  , reSemInput     :: SemInput
   , reRealisations :: [String]
   , reWarnings     :: [String]
   , reDerivation   :: [GeniResult]
@@ -149,6 +158,7 @@ mkDetailsSummary res = html $ do
     H.style . toHtml . unlines $
       [ "td { border-bottom-style: solid; border-bottom-width: 1px; }"
       , ".count { color: grey } "
+      , ".mute  { color: grey } "
       ]
     H.script . toHtml . unlines $
      [ "$(document).ready(function()"
@@ -182,6 +192,40 @@ detailsRow r@(Result {..}) = tr cells
    td (toHtml (unlinesCountHtml . concatMap expandCount $ reWarnings))
   tcName = do
    prettyKey reKey
+   br
+   H.div (semInputToHtml reSemInput) ! A.style "margin-top: 1em;"
+
+semInputToHtml :: SemInput -> Html
+semInputToHtml (sem,icons,lcons) = do
+  keyword "semantics"
+  squares $ sequence_ . intersperse sp $ map withConstraints sem
+  unless (null icons) $ do
+    br
+    keyword "idxconstraints"
+    squares $ toHtml (geniShow icons)
+ where
+  keyword :: String -> Html
+  keyword txt = H.span (toHtml txt)
+  mute        = class_ "mute"
+  sp = toHtml (" " :: String)
+  --
+  withConstraints lit = toHtml lit >> constraints lit
+  constraints lit =
+    case concat [ cs | (p,cs) <- lcons, p == lit ] of
+      [] -> return ()
+      cs -> squares (toHtml (unwords cs) ! mute)
+  --
+  squares x = do
+    H.span (toHtml ("[" :: String))
+    x
+    H.span (toHtml ("]" :: String))
+
+instance ToHtml Literal where
+ toHtml (Literal h p l) = do
+   H.span (toHtml (geniShow h ++ ":")) ! mute
+   toHtml (geniShow p ++ "(" ++ unwords (map geniShow l) ++ ")")
+  where
+   mute        = class_ "mute"
 
 prettyKey :: String -> Html
 prettyKey = toHtml
