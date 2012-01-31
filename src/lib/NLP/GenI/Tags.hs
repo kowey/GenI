@@ -40,7 +40,7 @@ module NLP.GenI.Tags(
    collect, detectSites
 ) where
 
-import Control.Applicative ( (<$>) )
+import Control.Applicative ( (<$>), (<*>) )
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe, listToMaybe, mapMaybe, catMaybes)
 import Data.List (intersperse)
@@ -150,7 +150,16 @@ dsParentSite (AdjunctionStep _ _ s)   = Just s
 dsParentSite (InitStep _)             = Nothing
 
 instance JSON DerivationStep where
- readJSON _ = error "Reading DerivationStep from JSON not implemented"
+ readJSON j = do
+   jo <- fromJSObject `fmap` readJSON j
+   let field x = maybe (fail $ "Could not find: " ++ x) readJSON $ lookup x jo
+   op    <- field "op"
+   child <- field "child"
+   case op of
+    "s" -> AdjunctionStep   child <$> field "parent" <*> field "parent-node"
+    "a" -> SubstitutionStep child <$> field "parent" <*> field "parent-node"
+    "i" -> return (InitStep child)
+    x   -> fail $ "Don't know about derivation operation '" ++ x ++ "'"
  showJSON x =
      JSObject . toJSObject $ [ ("op",     showJSON  $ dsOp x)
                              , ("child",  showJSON  $ dsChild x)
