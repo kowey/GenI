@@ -1,5 +1,5 @@
 -- GenI reporting tool
--- Copyright (C) 2011 Eric Kow (SRI)
+-- Copyright (C) 2011 Eric Kow (Computational Linguistics Ltd)
 --
 -- This program is free software; you can redistribute it and/or
 -- modify it under the terms of the GNU General Public License
