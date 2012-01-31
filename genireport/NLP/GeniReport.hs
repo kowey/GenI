@@ -40,7 +40,10 @@ import System.IO.Strict
 import Prelude hiding ( readFile )
 import qualified Prelude as P 
 import Control.Monad
+import Text.JSON hiding ( Result )
+import qualified Text.JSON as J
 
+import NLP.GenI.Geni
 import Paths_genireport
 
 data GeniReport = GeniReport
@@ -74,8 +77,13 @@ readResults d = do
   cases <- getRealDirectoryContents d
   forM cases $ \c -> do
     let dc = d </> c
+    mderivs <- readFileIfExists (J.Ok []) J.decode (dc </> "derivations")
+    derivs  <- case mderivs of
+                 J.Error err -> fail err
+                 J.Ok x      -> return x
     Result c <$> (lines `fmap` readFile (dc </> "responses"))
-             <*> (lines `fmap` readFileIfExists (dc </> "warnings"))
+             <*> (readFileIfExists [] lines (dc </> "warnings"))
+             <*> pure derivs
 
 -- ----------------------------------------------------------------------
 -- business
@@ -85,7 +93,11 @@ data Result = Result
   { reKey          :: String
   , reRealisations :: [String]
   , reWarnings     :: [String]
-  } deriving Show
+  , reDerivation   :: [GeniResult]
+  }
+
+-- deriving Show
+-- instance Show Result where
 
 mkSummary :: [Result] -> Html
 mkSummary res = html $ do
@@ -193,11 +205,11 @@ dataFiles =
 -- odds and ends
 -- ----------------------------------------------------------------------
 
-readFileIfExists :: FilePath -> IO String
-readFileIfExists f = do
+readFileIfExists :: a -> (String -> a) -> FilePath -> IO a
+readFileIfExists z job f = do
   x <- doesFileExist f
-  if x then readFile f
-       else return ""
+  if x then job <$> readFile f
+       else return z
 
 groupAndCount :: (Eq a, Ord a) => [a] -> [(a, Int)]
 groupAndCount xs = 
