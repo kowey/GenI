@@ -797,7 +797,18 @@ instance JSON GeniResult where
  showJSON (GError   x) = showJSON x
 
 instance JSON GeniSuccess where
- readJSON _ = error "Don't know how to read GeniSuccess"
+ readJSON j = do
+   jo <- fromJSObject `fmap` readJSON j
+   let field x = maybe (fail $ "Could not find: " ++ x) readJSON
+               $ lookup x jo
+   GeniSuccess <$> field "raw"
+               <*> field "realisations"
+               <*> field "derivation"
+               <*> field "lexical-selection"
+               <*> field "ranking"
+               <*> field "violations"
+               <*> field "result-type"
+               <*> field "chart-item"
  showJSON nr =
      JSObject . toJSObject $ [ ("raw", showJSON $ grLemmaSentence nr)
                              , ("realisations", showJSONs $ grRealisations nr)
