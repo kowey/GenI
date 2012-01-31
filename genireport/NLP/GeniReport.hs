@@ -148,13 +148,7 @@ detailsRow (Result {..}) = tr $ do
  td (toHtml (unlinesCountHtml . concatMap expandCount $ reWarnings))
 
 prettyKey :: String -> Html
-prettyKey k =
-  mapM_ transform k
- where
-  transform :: Char -> Html
-  transform '+'               = " + " >> br
-  transform x | x `elem` "-_" = " "
-  transform x = toHtml x
+prettyKey = toHtml
 
 expandCount :: String -> [String]
 expandCount x = 
