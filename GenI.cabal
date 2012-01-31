@@ -136,7 +136,7 @@ Library
                 NLP.GenI.Configuration
   Other-Modules:
 
-  Hs-Source-Dirs: src
+  Hs-Source-Dirs: src/lib
   Ghc-options:    -Wall -O2
   Ghc-prof-options: -auto-all
 
