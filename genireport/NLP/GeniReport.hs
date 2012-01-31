@@ -120,15 +120,16 @@ resultsTable rs =
  where
   content = do
    thead . tr $ do
-           th "case"
+           th "case" ! colspan "2"
            th "results"
            th "warnings"
    tbody $ forM_ rs resultsRow
 
 resultsRow :: Result -> Html
-resultsRow r@(Result {..}) = tr cells ! class_ (status r)
+resultsRow r@(Result {..}) = tr cells
  where
   cells = do
+   td (return ()) ! class_ (status r)
    td (prettyKey reKey)
    td (toHtml (length reRealisations))
    td (toHtml (length reWarnings))
@@ -164,20 +165,23 @@ detailsTable rs =
  where
   content = do
    thead . tr $ do
-           th "case"
+           th "case"     ! colspan "2"
            th "results"  ! colspan "2"
            th "warnings" ! colspan "2"
    tbody $ forM_ rs detailsRow
 
 detailsRow :: Result -> Html
-detailsRow r@(Result {..}) = tr cells !  class_ (status r)
+detailsRow r@(Result {..}) = tr cells
  where
   cells = do
-   td (prettyKey reKey)
+   td (return ()) ! class_ (status r) -- colour code
+   td (H.span tcName ! A.style "width:60em; display: inline-block;") -- limit the width a bit
    td (toHtml (length reRealisations))
    td (toHtml (unlinesCountHtml reRealisations))
    td (toHtml (length reWarnings))
    td (toHtml (unlinesCountHtml . concatMap expandCount $ reWarnings))
+  tcName = do
+   prettyKey reKey
 
 prettyKey :: String -> Html
 prettyKey = toHtml
