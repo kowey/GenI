@@ -143,12 +143,20 @@ mkDetailsSummary :: [Result] -> Html
 mkDetailsSummary res = html $ do
   H.head $ do
     H.link ! rel "stylesheet" ! type_  "text/css" ! href "report.css"
+    H.script "" ! type_ "text/javascript" ! src "jquery-1.6.2.min.js"
+    H.script "" ! type_ "text/javascript" ! src "jquery.tablesorter.min.js"
     H.style . toHtml . unlines $
       [ "td { border-bottom-style: solid; border-bottom-width: 1px; }"
       , ".count { color: grey } "
       ]
-  body $ do
-   detailsTable res
+    H.script . toHtml . unlines $
+     [ "$(document).ready(function()"
+     , " {"
+     , "   $(\"#detailsTable\").tablesorter();"
+     , " }"
+     , ");"
+     ]
+  detailsTable res
 
 detailsTable :: [Result] -> Html
 detailsTable rs =
@@ -162,12 +170,14 @@ detailsTable rs =
    tbody $ forM_ rs detailsRow
 
 detailsRow :: Result -> Html
-detailsRow (Result {..}) = tr $ do
- td (prettyKey reKey)
- td (toHtml (length reRealisations))
- td (toHtml (unlinesCountHtml reRealisations))
- td (toHtml (length reWarnings))
- td (toHtml (unlinesCountHtml . concatMap expandCount $ reWarnings))
+detailsRow r@(Result {..}) = tr cells !  class_ (status r)
+ where
+  cells = do
+   td (prettyKey reKey)
+   td (toHtml (length reRealisations))
+   td (toHtml (unlinesCountHtml reRealisations))
+   td (toHtml (length reWarnings))
+   td (toHtml (unlinesCountHtml . concatMap expandCount $ reWarnings))
 
 prettyKey :: String -> Html
 prettyKey = toHtml
