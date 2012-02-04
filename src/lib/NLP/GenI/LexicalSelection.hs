@@ -28,7 +28,7 @@ import Data.Function ( on )
 import Data.List
 import Data.List.Split ( wordsBy )
 import qualified Data.Map as Map
-import Data.Maybe (catMaybes, fromMaybe, isJust)
+import Data.Maybe (catMaybes, fromMaybe, isJust, isNothing)
 import Data.Poset
 import Data.Tree (Tree(Node))
 import qualified Data.Text as T
@@ -41,7 +41,6 @@ import NLP.GenI.General(filterTree, repAllNode,
     showWithCount,
     geniBug,
     repNodeByNode,
-    fst3,
     )
 import NLP.GenI.Btypes
   (Macros, ILexEntry, Lexicon,
@@ -244,9 +243,18 @@ combineOne tsem lexRaw eRaw = -- Maybe monad
 
 -- Enrichment
 
--- | (node, top, att) (node is Nothing if anchor)
-type PathEqLhs  = (String, Bool, Text)
-type PathEqPair = (PathEqLhs, GeniVal)
+data PathEqLhs = PeqInterface   Text
+               | PeqJust        NodePathEqLhs
+               | PeqUnknown     Text
+  deriving (Eq, Ord)
+
+data NodePathEqLhs = PeqNode String TopBottom Text
+  deriving (Eq, Ord)
+
+data TopBottom = Top | Bottom
+  deriving (Eq, Ord)
+
+type PathEqPair = (NodePathEqLhs, GeniVal)
 
 enrich :: ILexEntry -> SchemaTree -> LexCombine SchemaTree
 enrich l t =
@@ -257,31 +265,37 @@ enrich l t =
     -- enrich everything else
     foldM enrichBy t2 namedE
  where
-  toAvPair ((_,_,a),v) = AvPair a v
   enrichInterface tx en =
-    case unifyFeat [toAvPair en] (pinterface tx) of
+    case unifyFeat [en] (pinterface tx) of
       Nothing -> lexTell (ifaceEnrichErr en) >> fail ""
       Just (i2, isubs) -> return $ (replace isubs tx) { pinterface = i2 }
-  ifaceEnrichErr (loc,_) = SchemaError [t] (EnrichError loc)
+  ifaceEnrichErr (AvPair loc _) = SchemaError [t] (EnrichError (PeqInterface loc))
 
+-- | Helper for 'enrich' (enrich by single path equation)
 enrichBy :: SchemaTree
-         -> (PathEqLhs, GeniVal) -- ^ enrichment eq
+         -> PathEqPair
          -> LexCombine SchemaTree
-enrichBy t (eqLhs, eqVal) =
- case seekCoanchor eqName t of
- Nothing -> return t -- to be robust, we accept if the node isn't there
- Just a  ->
-        do let tfeat = (if eqTop then gup else gdown) a
-           (newfeat, sub) <- case enrichFeat (AvPair eqAtt eqVal) tfeat of
-                               Nothing -> lexTell enrichErr >> fail ""
-                               Just x  -> return x
-           let newnode = if eqTop then a {gup   = newfeat}
-                                  else a {gdown = newfeat}
-           return $ fixNode newnode $ replace sub t
+enrichBy t eq@(eqLhs, _) =
+  case maybeEnrichBy t eq of
+    Nothing -> lexTell enrichErr >> return t
+    Just t2 -> return t2
  where
-   (eqName, eqTop, eqAtt) = eqLhs
-   fixNode n mt = mt { tree = repNodeByNode (matchNodeName eqName) n (tree mt) }
-   enrichErr = SchemaError [t] (EnrichError eqLhs)
+  enrichErr = SchemaError [t] (EnrichError (PeqJust eqLhs))
+
+-- | Helper for 'enrichBy'
+maybeEnrichBy :: SchemaTree
+              -> PathEqPair
+              -> Maybe SchemaTree
+maybeEnrichBy t (eqLhs, eqVal) = do
+  node      <- seekCoanchor eqLhs t
+  (fs, sub) <- enrichFeat (AvPair eqAtt eqVal) (get node)
+  return $ fixNode (set node fs) (replace sub t)
+ where
+  (get, set) = case eqTop of
+                 Top     -> (gup,   \n x -> n { gup = x })
+                 Bottom  -> (gdown, \n x -> n { gdown = x})
+  (PeqNode _ eqTop eqAtt) = eqLhs
+  fixNode n mt = mt { tree = repNodeByNode (matchNodeName eqLhs) n (tree mt) }
 
 enrichFeat :: AvPair GeniVal -> Flist [GeniVal] -> Maybe (Flist [GeniVal], Subst)
 enrichFeat (AvPair a v) fs =
@@ -298,42 +312,36 @@ enrichFeat (AvPair a v) fs =
   where
    avMatch (AvPair fa _) = fa == a
 
-pathEqName :: PathEqPair -> String
-pathEqName = fst3.fst
-
 missingCoanchors :: ILexEntry -> SchemaTree -> [String]
 missingCoanchors lexEntry t =
-  -- list monad
-  do eq <- nubBy ((==) `on` pathEqName) (snd justEquations)
-     let name = pathEqName eq
-     case seekCoanchor name t of
-       Nothing -> [name]
-       Just _  -> []
-  where
-   justEquations = fst . runWriter $ lexEquations lexEntry
+   [ name eqLhs | eqLhs <- nubBy ((==) `on` name) equations, missing eqLhs ]
+ where
+   equations = map fst . snd . fst . runWriter $ lexEquations lexEntry
+   name (PeqNode n _ _) = n
+   missing eqLhs = isNothing (seekCoanchor eqLhs t)
 
 -- | Split a lex entry's path equations into interface enrichement equations
 --   or (co-)anchor modifiers
-lexEquations :: ILexEntry -> Writer [LexCombineError] ([PathEqPair],[PathEqPair])
+lexEquations :: ILexEntry -> Writer [LexCombineError] ([AvPair GeniVal],[PathEqPair])
 lexEquations =
   fmap myPartition . mapM parseAv . iequations
   where
-   myPartition = partition (nameIs "interface")
+   myPartition xs = ( [ AvPair a v | (PeqInterface a, v) <- xs ]
+                    , [ (n,v)      | (PeqJust n, v)      <- xs ] )
    parseAv (AvPair a v) = fmap (\a2 -> (a2,v)) (parsePathEq a)
-   nameIs n x = pathEqName x == n
 
-seekCoanchor :: String -> SchemaTree -> Maybe SchemaNode
-seekCoanchor eqName t =
- case filterTree (matchNodeName eqName) (tree t) of
+seekCoanchor :: NodePathEqLhs -> SchemaTree -> Maybe SchemaNode
+seekCoanchor eqLhs t =
+ case filterTree (matchNodeName eqLhs) (tree t) of
  [a] -> Just a
  []  -> Nothing
  _   -> geniBug $ "Tree with multiple matches in enrichBy. " ++
                   "\nTree: " ++ pidname t ++ "\nFamily: " ++ pfamily t ++
-                  "\nMatching on: " ++ eqName
+                  "\nMatching on: " ++ showPathEqLhs (PeqJust eqLhs)
 
-matchNodeName :: String -> SchemaNode -> Bool
-matchNodeName "anchor" = ganchor
-matchNodeName n        = (== n) . gnname
+matchNodeName :: NodePathEqLhs -> SchemaNode -> Bool
+matchNodeName (PeqNode "anchor" _ _) = ganchor
+matchNodeName (PeqNode n _ _)        = (== n) . gnname
 
 -- | Parse a path equation using the GenI conventions
 --   This always succeeds, but can return @Just warning@
@@ -342,27 +350,31 @@ matchNodeName n        = (== n) . gnname
 parsePathEq :: Text -> Writer [LexCombineError] PathEqLhs
 parsePathEq e =
   case wordsBy (== '.') (T.unpack e) of
-  (n:"top":r) -> return (n, True, rejoin r)
-  (n:"bot":r) -> return (n, False, rejoin r)
-  ("top":r) -> return ("anchor", True, rejoin r)
-  ("bot":r) -> return ("anchor", False, rejoin r)
-  ("anc":r) -> parsePathEq $ rejoin $ "anchor":r
-  ("anchor":r)    -> return ("anchor", False, rejoin r)
-  ("interface":r) -> return ("interface", False, rejoin r)
-  (n:r) -> do tell [ BoringError $ "Interpreting path equation " ++ T.unpack e ++ " as applying to top of " ++ n ++ "." ]
-              return (n, True, rejoin r)
-  _ -> do tell [ BoringError $ "Could not interpret path equation " ++ T.unpack e ]
-          return ("", True, e)
+  (n:"top":r)     -> return (node n Top    r)
+  (n:"bot":r)     -> return (node n Bottom r)
+  ("top":r)       -> return (node "anchor" Top r)
+  ("bot":r)       -> return (node "anchor" Bottom r)
+  ("anchor":r)    -> return (node "anchor" Bottom r)
+  ("interface":r) -> return (PeqInterface     (rejoin r))
+  ("anc":r)       -> parsePathEq $ rejoin ("anchor":r)
+  (n:r)           -> tell [ BoringError (tMsg n) ] >> return (node n Top r)
+  _               -> tell [ BoringError iMsg     ] >> return (PeqUnknown e)
  where
+  node n tb r = PeqJust $ PeqNode n tb (rejoin r)
   rejoin = T.pack . concat . intersperse "."
+  tMsg n = "Interpreting path equation " ++ T.unpack e ++ " as applying to top of " ++ n ++ "."
+  iMsg   = "Could not interpret path equation " ++ T.unpack e 
 
 showPathEqLhs :: PathEqLhs -> String
-showPathEqLhs (x,tb_,z) =
-  intercalate "." $ case x of
-                     "interface" -> [x,T.unpack z]
-                     _           -> [x,tb,T.unpack z]
-  where
-   tb = if tb_ then "top" else "bot"
+showPathEqLhs p =
+  case p of
+   PeqJust (PeqNode n tb att) -> squish [ n       , fromTb tb, T.unpack att ]
+   PeqInterface att -> squish [ "interface", T.unpack att ]
+   PeqUnknown e     -> T.unpack e
+ where
+  fromTb Top    = "top"
+  fromTb Bottom = "bot"
+  squish = intercalate "."
 
 -- Lemanchor mechanism
 

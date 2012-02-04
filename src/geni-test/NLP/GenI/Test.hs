@@ -25,6 +25,7 @@ import Test.Framework
 import NLP.GenI.Test.FeatureStructures ( suite )
 import NLP.GenI.Test.GeniParsers ( suite )
 import NLP.GenI.Test.GeniVal ( suite )
+import NLP.GenI.Test.LexicalSelection ( suite )
 import NLP.GenI.Test.Lexicon ( suite )
 import NLP.GenI.Test.Morphology ( suite )
 import NLP.GenI.Test.Polarity ( suite )
@@ -40,6 +41,7 @@ runTests =
      [ NLP.GenI.Test.GeniVal.suite
      , NLP.GenI.Test.GeniParsers.suite
      , NLP.GenI.Test.FeatureStructures.suite
+     , NLP.GenI.Test.LexicalSelection.suite
      , NLP.GenI.Test.Lexicon.suite
      , NLP.GenI.Test.Morphology.suite
      , NLP.GenI.Test.Polarity.suite

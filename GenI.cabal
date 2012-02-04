@@ -174,6 +174,7 @@ Test-Suite geni-test
                  , containers  >= 0.1
                  , filepath   == 1.*
                  , json
+                 , mtl
                  , parsec >= 2 && < 3.2
                  , QuickCheck == 2.4.*
                  , smallcheck
