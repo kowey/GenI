@@ -278,18 +278,19 @@ enrichBy :: SchemaTree
 enrichBy t eq@(eqLhs, _) =
   case maybeEnrichBy t eq of
     Nothing -> lexTell enrichErr >> return t
-    Just t2 -> return t2
+    Just (t2,_) -> return t2
  where
   enrichErr = SchemaError [t] (EnrichError (PeqJust eqLhs))
 
 -- | Helper for 'enrichBy'
 maybeEnrichBy :: SchemaTree
               -> PathEqPair
-              -> Maybe SchemaTree
+              -> Maybe (SchemaTree, Subst)
 maybeEnrichBy t (eqLhs, eqVal) = do
   node      <- seekCoanchor eqLhs t
   (fs, sub) <- enrichFeat (AvPair eqAtt eqVal) (get node)
-  return $ fixNode (set node fs) (replace sub t)
+  let t2 = fixNode (set node fs) (replace sub t)
+  return (t2, sub)
  where
   (get, set) = case eqTop of
                  Top     -> (gup,   \n x -> n { gup = x })
