@@ -45,7 +45,6 @@ import NLP.GenI.General(filterTree, repAllNode,
 import NLP.GenI.Btypes
   (Macros, ILexEntry, Lexicon,
    replace,
-   GNode(ganchor, gnname, gup, gdown, gaconstr, gtype, gorigin),
    GType(Subs, Other),
    isemantics, ifamname, iword, iparams, iequations,
    iinterface, ifilters,
@@ -62,6 +61,7 @@ import NLP.GenI.Tags (TagElem(..),
              )
 import NLP.GenI.TreeSchemata ( Ttree(..), SchemaTree, SchemaNode, crushTreeGNode
                              , setAnchor, setLexeme, tree
+                             , GNode(..)
                              )
 
 -- ----------------------------------------------------------------------
@@ -248,7 +248,8 @@ data PathEqLhs = PeqInterface   Text
                | PeqUnknown     Text
   deriving (Eq, Ord)
 
-data NodePathEqLhs = PeqNode String TopBottom Text
+data NodePathEqLhs = PeqFeat String TopBottom Text
+                   | PeqLex  String
   deriving (Eq, Ord)
 
 data TopBottom = Top | Bottom
@@ -287,16 +288,23 @@ maybeEnrichBy :: SchemaTree
               -> PathEqPair
               -> Maybe (SchemaTree, Subst)
 maybeEnrichBy t (eqLhs, eqVal) = do
-  node      <- seekCoanchor eqLhs t
-  (fs, sub) <- enrichFeat (AvPair eqAtt eqVal) (get node)
-  let t2 = fixNode (set node fs) (replace sub t)
-  return (t2, sub)
+  node <- seekCoanchor eqLhs t
+  case eqLhs of
+    PeqFeat _ eqTop eqAtt -> do
+      let (get, set) = case eqTop of
+                         Top     -> (gup,   \n x -> n { gup = x })
+                         Bottom  -> (gdown, \n x -> n { gdown = x})
+      (fs, sub) <- enrichFeat (AvPair eqAtt eqVal) (get node)
+      let t2 = fixNode (set node fs) (replace sub t)
+      return (t2, sub)
+    PeqLex _ -> do
+       vs <- gConstraints eqVal
+       let node2 = node { glexeme = map T.unpack (FL.fromFL vs) }
+           t2    = fixNode node2 t
+       return (t2, Map.empty)
  where
-  (get, set) = case eqTop of
-                 Top     -> (gup,   \n x -> n { gup = x })
-                 Bottom  -> (gdown, \n x -> n { gdown = x})
-  (PeqNode _ eqTop eqAtt) = eqLhs
   fixNode n mt = mt { tree = repNodeByNode (matchNodeName eqLhs) n (tree mt) }
+
 
 enrichFeat :: AvPair GeniVal -> Flist [GeniVal] -> Maybe (Flist [GeniVal], Subst)
 enrichFeat (AvPair a v) fs =
@@ -318,7 +326,8 @@ missingCoanchors lexEntry t =
    [ name eqLhs | eqLhs <- nubBy ((==) `on` name) equations, missing eqLhs ]
  where
    equations = map fst . snd . fst . runWriter $ lexEquations lexEntry
-   name (PeqNode n _ _) = n
+   name (PeqFeat n _ _) = n
+   name (PeqLex  n)     = n
    missing eqLhs = isNothing (seekCoanchor eqLhs t)
 
 -- | Split a lex entry's path equations into interface enrichement equations
@@ -341,8 +350,12 @@ seekCoanchor eqLhs t =
                   "\nMatching on: " ++ showPathEqLhs (PeqJust eqLhs)
 
 matchNodeName :: NodePathEqLhs -> SchemaNode -> Bool
-matchNodeName (PeqNode "anchor" _ _) = ganchor
-matchNodeName (PeqNode n _ _)        = (== n) . gnname
+matchNodeName (PeqFeat n _ _) = matchNodeNameHelper n
+matchNodeName (PeqLex n)      = matchNodeNameHelper n
+
+matchNodeNameHelper :: String -> SchemaNode -> Bool
+matchNodeNameHelper "anchor" = ganchor
+matchNodeNameHelper n        = (== n) . gnname
 
 -- | Parse a path equation using the GenI conventions
 --   This always succeeds, but can return @Just warning@
@@ -353,6 +366,7 @@ parsePathEq e =
   case wordsBy (== '.') (T.unpack e) of
   (n:"top":r)     -> return (node n Top    r)
   (n:"bot":r)     -> return (node n Bottom r)
+  [n,"lex"]       -> return (PeqJust (PeqLex n))
   ("top":r)       -> return (node "anchor" Top r)
   ("bot":r)       -> return (node "anchor" Bottom r)
   ("anchor":r)    -> return (node "anchor" Bottom r)
@@ -361,7 +375,7 @@ parsePathEq e =
   (n:r@(_:_))     -> tell [ BoringError (tMsg n) ] >> return (node n Top r)
   _               -> tell [ BoringError iMsg     ] >> return (PeqUnknown e)
  where
-  node n tb r = PeqJust $ PeqNode n tb (rejoin r)
+  node n tb r = PeqJust $ PeqFeat n tb (rejoin r)
   rejoin = T.pack . concat . intersperse "."
   tMsg n = "Interpreting path equation " ++ T.unpack e ++ " as applying to top of " ++ n ++ "."
   iMsg   = "Could not interpret path equation " ++ T.unpack e 
@@ -369,7 +383,8 @@ parsePathEq e =
 showPathEqLhs :: PathEqLhs -> String
 showPathEqLhs p =
   case p of
-   PeqJust (PeqNode n tb att) -> squish [ n       , fromTb tb, T.unpack att ]
+   PeqJust (PeqFeat n tb att) -> squish [ n, fromTb tb, T.unpack att ]
+   PeqJust (PeqLex  n)        -> squish [ n, "lex" ]
    PeqInterface att -> squish [ "interface", T.unpack att ]
    PeqUnknown e     -> T.unpack e
  where

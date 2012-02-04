@@ -36,9 +36,9 @@ equations which specify
 
 1.  the location
 
-2.  top or bottom
+2.  top, bottom, or lex
 
-3.  the attribute
+3.  the attribute (if top or bottom)
 
 4.  what value to associate with it
 
@@ -54,6 +54,8 @@ equation             effect
 
 `toto.top.foo=bar`   `foo=bar` is unified into the top feature of node named
                      “toto”
+
+`toto.lex=quux`      the lexeme for the node named “toto” is set to “quux”
 
 `anchor.foo=bar`     same as `anchor.bot.foo=bar`
 

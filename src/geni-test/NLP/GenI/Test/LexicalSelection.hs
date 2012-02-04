@@ -52,30 +52,34 @@ deriving instance Show SchemaTree
 t_parsePathEq :: Test.Framework.Test
 t_parsePathEq = testGroup "parsePathEq"
   [ tc (PeqInterface "foo")                "interface.foo"
-  , tc (PeqJust $ PeqNode "foo" Top "bar") "foo.bar"
+  , tc (PeqJust $ PeqFeat "foo" Top "bar") "foo.bar"
   , testProperty "roundtrip" prop_parsePathEq_roundTrip
   ]
  where
   tc res str = testCase str $ assertEqual "" res (fst . runWriter . parsePathEq $ T.pack str)
 
 t_maybeEnrichBy = testGroup "maybeEnrinchBy"
-  [ tc (Just tB1) (PeqNode "r"      Bottom "x", "y")
-  , tc (Just tB2) (PeqNode "r"      Top    "x", "y")
-  , tc (Just tC)  (PeqNode "anchor" Bottom "z", "a1")
+  [ tc (Just tB1) (PeqFeat "r"      Bottom "x", "y")
+  , tc (Just tB2) (PeqFeat "r"      Top    "x", "y")
+  , tc (Just tC)  (PeqFeat "anchor" Bottom "z", "a1")
+  , tc (Just tD)  (PeqLex  "b1", "quux")
+  , tc Nothing    (PeqLex  "b1", mkGVarNone "X")
   ]
  where
   tc res eq@(eqLhs, v) = testCase (showPathEqLhs (PeqJust eqLhs) ++ ":" ++ show v)
                        $ assertEqual "" res (fmap fst $ maybeEnrichBy t eq)
   --
-  tB1 = t { tree = toSchemaNode <$> mkT rB1 s1 l  s2 }
-  tB2 = t { tree = toSchemaNode <$> mkT rB2 s1 l  s2 }
-  tC  = t { tree = toSchemaNode <$> mkT r   s1 lC s2 }
+  tB1 = t { tree = mkT rB1 s1  l  s2 }
+  tB2 = t { tree = mkT rB2 s1  l  s2 }
+  tC  = t { tree = mkT r   s1  lC s2 }
+  tD  = t { tree = mkT r   s1D l  s2 }
+
   rB1 = r { gdown = [ idxAv "r", AvPair "x" "y" ] }
   rB2 = r { gup   = [ catAv "a", idxAv "rbad", AvPair "x" "y" ] }
   lC  = l { gdown = [ AvPair "z" "a1" ] }
+  s1D = s1 { glexeme = [ "quux" ] }
   --
-  t = toSchemaTree $ TT
-         { params  = []
+  t = TT { params  = []
          , pfamily = "fam"
          , pidname = "nom"
          , pinterface = [ AvPair "z" (mkGVarNone "Z") ]
@@ -84,7 +88,7 @@ t_maybeEnrichBy = testGroup "maybeEnrinchBy"
          , ptrace = []
          , tree   = mkT r s1 l s2
          }
-  mkT xr xs1 xl xs2 = Node xr [ Node xs1 [], Node xl [], Node xs2 [] ]
+  mkT xr xs1 xl xs2 = toSchemaNode <$> Node xr [ Node xs1 [], Node xl [], Node xs2 [] ]
   r = emptyGN { gnname = "r"
               , gup    = [ catAv "a", idxAv "rbad" ]
               , gdown  = [ idxAv "r" ] }
@@ -111,7 +115,7 @@ instance Arbitrary TopBottom where
   arbitrary = elements [ Top, Bottom ]
 
 instance Arbitrary NodePathEqLhs where
-  arbitrary = PeqNode <$> nodeName <*> arbitrary <*> attribute
+  arbitrary = PeqFeat <$> nodeName <*> arbitrary <*> attribute
    where
     nodeName  = dotless <$> arbitrary1
     attribute = T.pack . dotless <$> arbitrary1
