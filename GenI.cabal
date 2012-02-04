@@ -69,10 +69,6 @@ Flag static
   Description: Build a static binary
   Default:     False
 
-Flag test
-  description: Compile standalone unit tests binary
-  default:     False
-
 Library
   Build-depends: base >= 4 && < 5
                , binary >= 0.5.0.2 && < 0.6
@@ -169,12 +165,11 @@ Executable     geni
  if flag(static)
     ghc-options: -static -optl-static
 
-Executable geni-test
+Test-Suite geni-test
+ Type:          exitcode-stdio-1.0
  Main-Is:       MainTest.hs
  Hs-Source-Dirs: src/geni-test
- if flag(test)
-    Buildable: True
-    Build-Depends: GenI
+ Build-Depends:    GenI
                  , base >= 4 && < 5
                  , containers  >= 0.1
                  , filepath   == 1.*
@@ -188,5 +183,3 @@ Executable geni-test
                  , test-framework-smallcheck
                  , test-framework > 0.3
                  , text
- else
-    Buildable: False
