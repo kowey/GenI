@@ -33,6 +33,9 @@ fullListOf g = (!:) <$> g <*> listOf g
 -- Serial
 -- ----------------------------------------------------------------------
 
+instance Arbitrary T.Text where
+  arbitrary = T.pack <$> arbitrary
+
 instance Serial T.Text where
   series = cons1 T.pack
 

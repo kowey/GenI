@@ -106,3 +106,27 @@ emptyGN = GN
   , gaconstr = False
   , gorigin  = "test"
   }
+
+toSchemaTree :: Ttree (GNode GeniVal) -> SchemaTree
+toSchemaTree st = TT { params  = params st
+                     , pfamily = pfamily st
+                     , pidname = pidname st
+                     , ptype   = ptype st
+                     , ptrace  = ptrace st
+                     , pinterface = pinterface st
+                     , psemantics = psemantics st
+                     , tree    = fmap toSchemaNode (tree st)
+                     }
+
+toSchemaNode :: GNode GeniVal -> GNode [GeniVal]
+toSchemaNode gn = GN { gup      = map promote (gup gn)
+                     , gdown    = map promote (gdown gn)
+                     , gnname   = gnname gn
+                     , ganchor  = ganchor gn
+                     , glexeme  = glexeme gn
+                     , gtype    = gtype gn
+                     , gaconstr = gaconstr gn
+                     , gorigin  = gorigin gn
+                     }
+ where
+  promote (AvPair a v) = (AvPair a [v])
