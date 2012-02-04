@@ -358,7 +358,7 @@ parsePathEq e =
   ("anchor":r)    -> return (node "anchor" Bottom r)
   ("interface":r) -> return (PeqInterface     (rejoin r))
   ("anc":r)       -> parsePathEq $ rejoin ("anchor":r)
-  (n:r)           -> tell [ BoringError (tMsg n) ] >> return (node n Top r)
+  (n:r@(_:_))     -> tell [ BoringError (tMsg n) ] >> return (node n Top r)
   _               -> tell [ BoringError iMsg     ] >> return (PeqUnknown e)
  where
   node n tb r = PeqJust $ PeqNode n tb (rejoin r)
