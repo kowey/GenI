@@ -93,7 +93,7 @@ should be
 
 -   marked in a substitution site (this is to keep parsers happy)
 
--   have a feature `bot.lemanchor:foo` where foo is the coanchor you
+-   have a feature `top.lemanchor:foo` where foo is the coanchor you
     want
 
 GenI will convert these into non-substitution sites with a lexical item

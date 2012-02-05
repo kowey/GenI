@@ -410,7 +410,7 @@ setLemAnchors t =
     Just l  -> map T.unpack l
   lemAnchor :: GNode GeniVal -> Maybe [Text]
   lemAnchor n =
-    case [ v | AvPair a v <- gdown n, a == _lemanchor ] of
+    case [ v | AvPair a v <- gup n, a == _lemanchor ] of
     [l] | isConst l -> fromFL `fmap` (gConstraints l)
     _               -> Nothing
 
