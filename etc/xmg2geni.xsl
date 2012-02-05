@@ -102,7 +102,7 @@
 
   <!-- node type -->
   <xsl:choose>
-    <xsl:when test="@type!='std' and @type!='nadj'">
+    <xsl:when test="@type!='std' and @type!='nadj' and @type!='coanchor'">
       <xsl:text>type:</xsl:text>
       <xsl:value-of select="@type"/>
       <xsl:text> </xsl:text>
