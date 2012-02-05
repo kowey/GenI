@@ -102,7 +102,7 @@
 
   <!-- node type -->
   <xsl:choose>
-    <xsl:when test="@type!='std' and @type!='nadj' and @type!='coanchor'">
+    <xsl:when test="@type!='std' and @type!='nadj' and @type!='coanchor' and @type!='lex'">
       <xsl:text>type:</xsl:text>
       <xsl:value-of select="@type"/>
       <xsl:text> </xsl:text>
@@ -110,14 +110,14 @@
     <xsl:when test="@type='nadj'">
       <xsl:text>aconstr:noadj </xsl:text>
     </xsl:when>
+    <!-- coanchors -->
+    <xsl:when test="@type = 'lex' and narg/fs/f/sym/@value">
+      <xsl:text>type:lex </xsl:text>
+      <xsl:text>"</xsl:text>
+      <xsl:value-of select="narg/fs/f/sym/@value"/>
+      <xsl:text>" </xsl:text>
+    </xsl:when>
   </xsl:choose>
-
-  <!-- coanchors -->
-  <xsl:if test="@type = 'lex'">
-    <xsl:text>"</xsl:text>
-    <xsl:value-of select="narg/fs/f/sym/@value"/>
-    <xsl:text>" </xsl:text>
-  </xsl:if>
 
   <!-- features -->
   <xsl:for-each select="narg/fs">
