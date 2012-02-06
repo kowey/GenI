@@ -24,7 +24,7 @@ import Data.Typeable( Typeable )
 import Data.Version ( showVersion )
 import System.Environment(getArgs, getProgName)
 
-import Paths_GenI ( version )
+import Paths_geni_gui ( version )
 
 import NLP.GenI.Geni(emptyProgState)
 import NLP.GenI.Console(consoleGeni)
@@ -36,23 +36,12 @@ import NLP.GenI.Configuration (treatArgs, optionsForStandardGenI, processInstruc
                                readGlobalConfig, setLoggers
                               )
 import NLP.GenI.Geni ( ProgState(..) )
-
-#ifdef DISABLE_GUI
-import NLP.GenI.Configuration(setFlagP)
-import NLP.GenI.Geni(ProgStateRef)
-#else
 import NLP.GenI.Gui(guiGeni)
-#endif
-
-#ifdef DISABLE_GUI
-guiGeni :: ProgStateRef -> IO ()
-guiGeni = consoleGeni
-#endif
 
 main :: IO ()
 main = do       
   args  <- getArgs
-  confArgs <- forceGuiFlag <$> (processInstructions =<< treatArgs optionsForStandardGenI args)
+  confArgs <- processInstructions =<< treatArgs optionsForStandardGenI args
   mainWithState (emptyProgState confArgs)
 
 mainWithState :: ProgState -> IO ()
@@ -68,21 +57,4 @@ mainWithState pst = do
    _ | has HelpFlg               -> putStrLn (usage optionsSections pname)
      | has VersionFlg            -> putStrLn ("GenI " ++ showVersion version)
      | mustRunInConsole          -> consoleGeni pstRef
-     | not (has DisableGuiFlg)   -> guiGeni pstRef
-     | canRunInConsole           -> consoleGeni pstRef
-     | otherwise                 -> fail $ unlines
-        [ "GenI must either be run..."
-        , " - with the graphical interface enabled"
-        , " - in self-diagnostic unit test mode"
-        , " - with a test case specified"
-        , " - with a batch directory specified or"
-        , " - with --dump"
-        , " - with --from-stdin"
-        ]
-
-forceGuiFlag :: Params -> Params
-#ifdef DISABLE_GUI
-forceGuiFlag = setFlagP DisableGuiFlg ()
-#else
-forceGuiFlag = id
-#endif
+     | otherwise                 -> guiGeni pstRef

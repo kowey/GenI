@@ -35,7 +35,7 @@ import System.Directory
 import System.Exit (exitWith, ExitCode(ExitSuccess))
 import System.FilePath ( makeRelative )
 
-import Paths_GenI ( version )
+import Paths_geni_gui ( version )
 import qualified NLP.GenI.Builder as B
 import qualified NLP.GenI.BuilderGui as BG
 import NLP.GenI.Geni

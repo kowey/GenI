@@ -9,7 +9,7 @@ JUNK($|/)
 
 ### GenI stuff
 ^geniwrapper/MinimalGenI-OSX($|/)
-^geni(-wx|convert|report|server|-test)/dist($|/)
+^geni(-gui|convert|report|server|-test)/dist($|/)
 ^(sillymorph)/dist($|/)
 ^doc/_site($|/)
 ^doc/_cache($|/)
@@ -17,6 +17,7 @@ JUNK($|/)
 ^STASH($|/)
 ^geniwrapper/test-(c-mac|c-win|c2|hs-c)$
 ^doc/site$
+^cabal-dev($|/)
 
 ### compiler and interpreter intermediate files
 # haskell (ghc) interfaces

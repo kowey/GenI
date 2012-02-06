@@ -8,7 +8,7 @@ Synopsis:       A natural language generator (specifically, an FB-LTAG surface r
 Description:    A natural language generator (specifically, an FB-LTAG surface realiser)
 Homepage:       http://projects.haskell.org/GenI
 Maintainer:     geni-users@loria.fr
-Build-Type:     Custom
+Build-Type:     Simple
 Cabal-Version: >=1.8
 data-files: AUTHORS, INSTALL, README, NEWS, GenI.cabal,
             examples/artificial/lexicon,
@@ -44,26 +44,13 @@ data-files: AUTHORS, INSTALL, README, NEWS, GenI.cabal,
             examples/xmg-example/lexicon/demo-morph-utf8.mph,
             examples/xmg-example/Makefile,
             examples/xmg-example/README,
-            examples/xmg-example/suite,
-            etc/stupidmorph.pl,
-            etc/macstuff/Info.plist,
-            etc/macstuff/wxmac.icns
+            examples/xmg-example/suite
 
-extra-source-files: src/NLP/GenI/Test.hs
-                    src/NLP/GenI/Simple/SimpleGui.hs,
-                    src/NLP/GenI/Gui.hs
-                    src/NLP/GenI/GraphvizShow.hs,
-                    src/NLP/GenI/GuiHelper.hs
-                    src/NLP/GenI/Console.hs,
-                    src/NLP/GenI/Graphviz.hs
-                    src/NLP/GenI/BuilderGui.hs,
-                    src/NLP/GenI/GraphvizShowPolarity.hs,
-                    src/NLP/GenI/Regression.hs
+extra-source-files: geni-test/NLP/GenI/Test.hs
 
-
-Flag gui
-  description: Build with a graphical user interface
-  default: False
+source-repository head
+  type:     darcs
+  location: http://code.haskell.org/GenI
 
 Flag static
   Description: Build a static binary
@@ -92,9 +79,6 @@ Library
                , utf8-string >= 0.3.5 && < 0.4
                , yaml-light  == 0.1.*
 
-  if !flag(gui)
-    cpp-options:      -DDISABLE_GUI
-
   if flag(static)
     ghc-options: -static -optl-static
 
@@ -103,6 +87,7 @@ Library
                 Data.FullList.Internal,
                 Data.FullList,
                 NLP.GenI.Btypes,
+                NLP.GenI.Console,
                 NLP.GenI.FeatureStructures,
                 NLP.GenI.Flags,
                 NLP.GenI.General,
@@ -132,15 +117,15 @@ Library
                 NLP.GenI.Configuration
   Other-Modules:
 
-  Hs-Source-Dirs: src/lib
-  Ghc-options:    -Wall -O2
+  Hs-Source-Dirs: src
+  Ghc-options:    -Wall
   Ghc-prof-options: -auto-all
 
 Executable     geni
- Main-Is:        Main.hs
- Hs-Source-Dirs: src/geni
+ Main-Is:        geni.hs
+ Hs-Source-Dirs: geni
 
- Ghc-options:    -Wall -O2 -rtsopts
+ Ghc-options:    -Wall -rtsopts
  Ghc-prof-options: -auto-all
  Build-Depends: base >= 4 && < 5
               , GenI
@@ -155,20 +140,11 @@ Executable     geni
               , split       == 0.1.*
               , utf8-string == 0.3.*
               , strict-io   == 0.2.*
- if flag(gui)
-    Build-Depends: wx >= 0.10.3 && < 0.13
-                 , text     == 0.11.*
-                 , graphviz >= 2999.12 && < 2999.14
- else
-    cpp-options:      -DDISABLE_GUI
-
- if flag(static)
-    ghc-options: -static -optl-static
 
 Test-Suite geni-test
  Type:          exitcode-stdio-1.0
  Main-Is:       MainTest.hs
- Hs-Source-Dirs: src/geni-test
+ Hs-Source-Dirs: geni-test
  Build-Depends:    GenI
                  , base >= 4 && < 5
                  , containers  >= 0.1

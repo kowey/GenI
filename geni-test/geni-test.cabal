@@ -39,4 +39,4 @@ Library
                , test-framework > 0.3
                , text
 
-  Hs-Source-Dirs: ../src/geni-test
+  Hs-Source-Dirs: .
