@@ -17,6 +17,8 @@ Library
                  , NLP.GenI.Test.GeniParsers
                  , NLP.GenI.Test.General
                  , NLP.GenI.Test.GeniVal
+                 , NLP.GenI.Test.LexicalSelection
+                 , NLP.GenI.Test.Lexicon
                  , NLP.GenI.Test.Morphology
                  , NLP.GenI.Test.Polarity
                  , NLP.GenI.Test.Semantics
@@ -29,6 +31,7 @@ Library
                , containers  >= 0.1
                , filepath   == 1.*
                , json
+               , mtl
                , parsec >= 2 && < 3.2
                , QuickCheck == 2.4.*
                , HUnit > 1 && < 1.3
