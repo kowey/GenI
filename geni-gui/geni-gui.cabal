@@ -21,7 +21,7 @@ Library
                 NLP.GenI.GraphvizShowPolarity
                 NLP.GenI.Gui
                 NLP.GenI.GuiHelper
-                NLP.GenI.Main
+                NLP.GenI.MainGui
                 NLP.GenI.Simple.SimpleGui 
   Other-Modules:
                 Paths_geni_gui

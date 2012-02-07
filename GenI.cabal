@@ -98,6 +98,7 @@ Library
                 NLP.GenI.Lexicon,
                 NLP.GenI.Lexicon.Internal,
                 NLP.GenI.LexicalSelection,
+                NLP.GenI.Main,
                 NLP.GenI.Semantics,
                 NLP.GenI.Tags,
                 NLP.GenI.TestSuite,
@@ -116,6 +117,7 @@ Library
                 NLP.GenI.Geni,
                 NLP.GenI.Configuration
   Other-Modules:
+                Paths_GenI
 
   Hs-Source-Dirs: src
   Ghc-options:    -Wall

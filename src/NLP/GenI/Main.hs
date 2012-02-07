@@ -24,7 +24,7 @@ import Data.Typeable( Typeable )
 import Data.Version ( showVersion )
 import System.Environment(getArgs, getProgName)
 
-import Paths_geni_gui ( version )
+import Paths_GenI ( version )
 
 import NLP.GenI.Geni(emptyProgState)
 import NLP.GenI.Console(consoleGeni)
@@ -35,13 +35,13 @@ import NLP.GenI.Configuration (treatArgs, optionsForStandardGenI, processInstruc
                                HelpFlg(..), VersionFlg(..), TestCaseFlg(..),
                                readGlobalConfig, setLoggers
                               )
-import NLP.GenI.Geni ( ProgState(..) )
-import NLP.GenI.Gui(guiGeni)
+import NLP.GenI.Configuration(setFlagP)
+import NLP.GenI.Geni( ProgState(..) )
 
 main :: IO ()
-main = do       
+main = do
   args  <- getArgs
-  confArgs <- processInstructions =<< treatArgs optionsForStandardGenI args
+  confArgs <- forceGuiFlag <$> (processInstructions =<< treatArgs optionsForStandardGenI args)
   mainWithState (emptyProgState confArgs)
 
 mainWithState :: ProgState -> IO ()
@@ -55,6 +55,16 @@ mainWithState pst = do
       canRunInConsole  = has TestCaseFlg
   case () of
    _ | has HelpFlg               -> putStrLn (usage optionsSections pname)
-     | has VersionFlg            -> putStrLn ("GenI " ++ showVersion version)
+     | has VersionFlg            -> putStrLn (pname ++ " " ++ showVersion version)
      | mustRunInConsole          -> consoleGeni pstRef
-     | otherwise                 -> guiGeni pstRef
+     | canRunInConsole           -> consoleGeni pstRef
+     | otherwise                 -> fail $ unlines
+        [ "genibatch must either be run..."
+        , " - with a test case specified"
+        , " - with a batch directory specified or"
+        , " - with --dump"
+        , " - with --from-stdin"
+        ]
+
+forceGuiFlag :: Params -> Params
+forceGuiFlag = setFlagP DisableGuiFlg ()

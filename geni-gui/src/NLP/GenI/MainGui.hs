@@ -16,7 +16,7 @@
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 {-# LANGUAGE CPP #-}
-module Main where
+module NLP.GenI.MainGui where
 
 import Control.Applicative ((<$>))
 import Data.IORef(newIORef)
@@ -24,7 +24,7 @@ import Data.Typeable( Typeable )
 import Data.Version ( showVersion )
 import System.Environment(getArgs, getProgName)
 
-import Paths_GenI ( version )
+import Paths_geni_gui ( version )
 
 import NLP.GenI.Geni(emptyProgState)
 import NLP.GenI.Console(consoleGeni)
@@ -35,13 +35,13 @@ import NLP.GenI.Configuration (treatArgs, optionsForStandardGenI, processInstruc
                                HelpFlg(..), VersionFlg(..), TestCaseFlg(..),
                                readGlobalConfig, setLoggers
                               )
-import NLP.GenI.Configuration(setFlagP)
-import NLP.GenI.Geni( ProgState(..) )
+import NLP.GenI.Geni ( ProgState(..) )
+import NLP.GenI.Gui(guiGeni)
 
 main :: IO ()
-main = do
+main = do       
   args  <- getArgs
-  confArgs <- forceGuiFlag <$> (processInstructions =<< treatArgs optionsForStandardGenI args)
+  confArgs <- processInstructions =<< treatArgs optionsForStandardGenI args
   mainWithState (emptyProgState confArgs)
 
 mainWithState :: ProgState -> IO ()
@@ -55,16 +55,6 @@ mainWithState pst = do
       canRunInConsole  = has TestCaseFlg
   case () of
    _ | has HelpFlg               -> putStrLn (usage optionsSections pname)
-     | has VersionFlg            -> putStrLn (pname ++ " " ++ showVersion version)
+     | has VersionFlg            -> putStrLn ("GenI " ++ showVersion version)
      | mustRunInConsole          -> consoleGeni pstRef
-     | canRunInConsole           -> consoleGeni pstRef
-     | otherwise                 -> fail $ unlines
-        [ "genibatch must either be run..."
-        , " - with a test case specified"
-        , " - with a batch directory specified or"
-        , " - with --dump"
-        , " - with --from-stdin"
-        ]
-
-forceGuiFlag :: Params -> Params
-forceGuiFlag = setFlagP DisableGuiFlg ()
+     | otherwise                 -> guiGeni pstRef
