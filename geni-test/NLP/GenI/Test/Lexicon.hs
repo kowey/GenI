@@ -49,7 +49,6 @@ instance Arbitrary ILexEntry where
         <*> arbitrary
         <*> arbitrary
         <*> arbitrary
-        <*> pure [] -- FIXME: need to implement GeniShow with isempol 
      where
       nonEmptyStr :: Gen String
       nonEmptyStr = elements gTestStrings
@@ -62,4 +61,3 @@ instance Arbitrary ILexEntry where
         <*> shrinkList shrink (ifilters l)
         <*> shrinkList shrink (iequations l)
         <*> shrinkList shrink (isemantics l)
-        <*> shrinkList pure (isempols l)

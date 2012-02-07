@@ -50,6 +50,8 @@ data ILexEntry = ILE
     , isempols    :: [SemPols] }
   deriving (Show, Eq, Data, Typeable)
 
+-- | See also 'mkFullILexEntry'
+--   This version comes with some sensible defaults.
 mkILexEntry :: FullList String -- ^ word
             -> String          -- ^ family name
             -> [GeniVal]       -- ^ parameters list (deprecated)
@@ -57,9 +59,24 @@ mkILexEntry :: FullList String -- ^ word
             -> Flist GeniVal   -- ^ filters
             -> Flist GeniVal   -- ^ equations
             -> Sem             -- ^ semantics
-            -> [SemPols]       -- ^ semantic polarities
             -> ILexEntry
-mkILexEntry word famname params interface filters equations sem sempols =
+mkILexEntry word famname params interface filters equations sem =
+  mkFullILexEntry word famname params interface filters equations
+      sem (map noSemPols sem)
+  where
+   noSemPols l = replicate (length (lArgs l)) 0
+
+-- | Variant of 'mkILexEntry' but with more control
+mkFullILexEntry :: FullList String -- ^ word
+                -> String          -- ^ family name
+                -> [GeniVal]       -- ^ parameters list (deprecated)
+                -> Flist GeniVal   -- ^ interface (use instead of params)
+                -> Flist GeniVal   -- ^ filters
+                -> Flist GeniVal   -- ^ equations
+                -> Sem             -- ^ semantics
+                -> [SemPols]       -- ^ semantic polarities
+                -> ILexEntry
+mkFullILexEntry word famname params interface filters equations sem sempols =
   ILE (sortNub word)
       famname
       params

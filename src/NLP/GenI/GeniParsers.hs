@@ -38,7 +38,7 @@ module NLP.GenI.GeniParsers (
 import NLP.GenI.GeniVal (mkGConst, mkGConstNone, mkGVar, mkGAnon)
 import NLP.GenI.Btypes
 import NLP.GenI.Tags (TagElem(..), setTidnums)
-import NLP.GenI.Lexicon ( mkILexEntry )
+import NLP.GenI.Lexicon ( mkFullILexEntry )
 import NLP.GenI.Semantics ( Literal(..) )
 import NLP.GenI.TreeSchemata (SchemaTree)
 import NLP.GenI.General (isGeniIdentLetter)
@@ -321,7 +321,7 @@ geniLexicalEntry =
      keywordSemantics
      (sem,pols) <- squares geniLexSemantics
      --
-     return (mkILexEntry lemmas family pars interface filters equations sem pols)
+     return (mkFullILexEntry lemmas family pars interface filters equations sem pols)
   where
     paramsParser :: Parser ([GeniVal], Flist GeniVal)
     paramsParser = do
