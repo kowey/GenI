@@ -59,7 +59,7 @@ mainWithState pst = do
      | mustRunInConsole          -> consoleGeni pstRef
      | canRunInConsole           -> consoleGeni pstRef
      | otherwise                 -> fail $ unlines
-        [ "genibatch must either be run..."
+        [ "geni must either be run..."
         , " - with a test case specified"
         , " - with a batch directory specified or"
         , " - with --dump"
