@@ -51,20 +51,10 @@ mainWithState pst = do
   pstRef <- newIORef pst
   let has :: (Typeable f, Typeable x) => (x -> f) -> Bool
       has = flip hasFlagP (pa pst)
-      mustRunInConsole = has DumpDerivationFlg || has FromStdinFlg || has BatchDirFlg
-      canRunInConsole  = has TestCaseFlg
   case () of
    _ | has HelpFlg               -> putStrLn (usage optionsSections pname)
      | has VersionFlg            -> putStrLn (pname ++ " " ++ showVersion version)
-     | mustRunInConsole          -> consoleGeni pstRef
-     | canRunInConsole           -> consoleGeni pstRef
-     | otherwise                 -> fail $ unlines
-        [ "geni must either be run..."
-        , " - with a test case specified"
-        , " - with a batch directory specified or"
-        , " - with --dump"
-        , " - with --from-stdin"
-        ]
+     | otherwise                 -> consoleGeni pstRef
 
 forceGuiFlag :: Params -> Params
 forceGuiFlag = setFlagP DisableGuiFlg ()

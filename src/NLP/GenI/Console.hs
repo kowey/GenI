@@ -20,12 +20,14 @@
 
 module NLP.GenI.Console(consoleGeni, runTestCaseOnly) where
 
-import Control.Applicative ( pure )
+import Control.Applicative ( pure, (<$>) )
 import Control.Monad
 import Data.IORef(readIORef, modifyIORef)
 import Data.List(partition, find)
 import Data.Maybe ( isJust, fromMaybe )
-import System.Directory(createDirectoryIfMissing)
+import Data.Time ( getCurrentTime, formatTime )
+import System.Locale ( defaultTimeLocale, iso8601DateFormat )
+import System.Directory( createDirectoryIfMissing, getTemporaryDirectory )
 import System.Exit ( exitWith, exitFailure, ExitCode(..) )
 import System.FilePath ( (</>), takeFileName )
 import System.Timeout ( timeout )
@@ -78,10 +80,20 @@ runInstructions :: ProgStateRef -> IO ()
 runInstructions pstRef =
   do pst <- readIORef pstRef
      let config = pa pst
-     case getFlagP BatchDirFlg config of
-       Nothing   -> runTestCaseOnly pstRef >> return ()
-       Just bdir -> runBatch bdir
+     batchDir <- case getFlagP BatchDirFlg config of
+                   Nothing  -> do
+                     t   <- getTemporaryDirectory
+                     utc <- fmtTime <$> getCurrentTime
+                     return (t </> "geni-" ++ utc)
+                   Just bdir -> return bdir
+     runBatch batchDir
+     unless (hasFlagP BatchDirFlg config) $ do
+       ePutStr $ unlines [ ""
+                         , "Results saved to directory " ++ batchDir
+                         , "To save results in a different directory, use the --batchdir flag"
+                         ]
   where
+  fmtTime = formatTime defaultTimeLocale (iso8601DateFormat (Just "%H%M"))
   runBatch bdir =
     do config <- pa `fmap` readIORef pstRef
        mapM_ (runSuite bdir) $ getListFlagP TestInstructionsFlg config
