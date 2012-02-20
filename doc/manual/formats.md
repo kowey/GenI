@@ -279,7 +279,7 @@ Here are some examples of nodes
      n3 type:subst [cat:n idx:?Y]![cat:n idx:?Y] % subst
      n4 type:foot  [cat:n idx:?Y]![cat:n idx:?Y] % foot
      n5 type:lex   "de"                        % coanchor
-     n2 anchor                                 % anchor
+     n2 anchor     [cat:n]![cat:n]             % anchor
      n5 aconstr:noadj % node with a null-adjunction constraint (other than subst or foot)
 
 ### Example
