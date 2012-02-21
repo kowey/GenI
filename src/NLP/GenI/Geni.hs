@@ -67,7 +67,7 @@ import Data.Maybe (fromMaybe)
 import Data.Typeable (Typeable)
 
 import System.CPUTime( getCPUTime )
-import System.Log.Logger
+-- import System.Log.Logger
 import NLP.GenI.Semantics ( sortByAmbiguity, Literal )
 import NLP.GenI.Statistics
 import Control.DeepSeq
@@ -82,7 +82,7 @@ import NLP.GenI.General(
     geniBug,
     snd3,
     ePutStr, ePutStrLn, eFlush,
-    mkLogname,
+    -- mkLogname,
     )
 
 import NLP.GenI.Btypes
@@ -853,9 +853,11 @@ instance JSON GeniLexSel where
 picosToMillis :: Integer -> Double
 picosToMillis t = realToFrac t / (10^(9 :: Int))
 
+{-
 data MNAME = MNAME deriving Typeable
 logname :: String
 logname = mkLogname MNAME
+-}
 
 {-!
 deriving instance NFData GeniResult
