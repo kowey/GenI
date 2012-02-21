@@ -26,10 +26,8 @@ import Control.Monad.Writer
 
 import Data.Function ( on )
 import Data.List
-import Data.List.Split ( wordsBy )
 import qualified Data.Map as Map
 import Data.Maybe (catMaybes, fromMaybe, isJust, isNothing)
-import Data.Poset
 import Data.Tree (Tree(Node))
 import qualified Data.Text as T
 import Data.Text ( Text )
@@ -38,7 +36,7 @@ import Data.FullList hiding ( head, tail, (++) )
 import qualified Data.FullList as FL
 
 import NLP.GenI.General(filterTree, repAllNode,
-    showWithCount,
+    histogram,
     geniBug,
     repNodeByNode,
     )
@@ -59,10 +57,57 @@ import NLP.GenI.Semantics ( subsumeSem, unifySem, Sem )
 import NLP.GenI.Tags (TagElem(..),
              idname,
              )
+import NLP.GenI.LexicalSelection.Types
 import NLP.GenI.TreeSchemata ( Ttree(..), SchemaTree, SchemaNode, crushTreeGNode
                              , setAnchor, setLexeme, tree
                              , GNode(..)
                              )
+import NLP.GenI.Warnings
+
+-- ----------------------------------------------------------------------
+-- Lexical selection algorithms
+-- ----------------------------------------------------------------------
+
+type LexicalSelector = Macros -> Lexicon -> Sem -> IO LexicalSelection
+
+data LexicalSelection = LexicalSelection
+      { -- | the main result: anchored trees
+        lsAnchored   :: [TagElem]
+        -- | if available, lexical entries that were used to produce anchored
+        --   trees (useful for identifying anchoring failure)
+      , lsLexEntries :: [ILexEntry]
+      , lsWarnings   :: [GeniWarning]
+      }
+
+-- | Performs standard GenI lexical selection as described in
+--   <http://projects.haskell.org/GenI/manual/lexical-selection.html>
+defaultLexSelection :: Macros -> Lexicon -> Sem -> LexicalSelection
+defaultLexSelection grammar lexicon tsem =
+  LexicalSelection { lsAnchored   = cands
+                   , lsLexEntries = lexCands
+                   , lsWarnings   = lexWarnings ++ coanchorWarnings ++ errs
+                   }
+ where
+  lexCands      = chooseLexCand lexicon tsem
+  combinations  = map (combineList tsem grammar) lexCands
+  cands         = concatMap snd combinations
+  errs          = concat $ zipWith mkWarnings lexCands (map fst combinations)
+  mkWarnings l  = map (LexWarning [l] . LexCombineOneSchemaFailed)
+  coanchorWarnings = do -- list monad
+    l     <- lexCands
+    let xs = filter (\p -> pfamily p == ifamname l) grammar
+    (c,n) <- Map.toList . histogram $ concatMap (missingCoanchors l) xs
+    return (LexWarning [l] (MissingCoanchors c n))
+  lexWarnings = case missingLexEntries cands lexCands of
+                  [] -> []
+                  xs -> [LexWarning xs LexCombineAllSchemataFailed]
+
+-- | @missingLexEntries ts lexs@ returns any of the lexical candidates
+--   @lexs@ that were apparently not anchored succesfully
+missingLexEntries :: [TagElem] -> [ILexEntry] -> [ILexEntry]
+missingLexEntries cands = filter treeless
+ where
+  treeless l = isNothing $ find (\t -> tsemantics t == isemantics l) cands
 
 -- ----------------------------------------------------------------------
 -- Selecting candidate lemmas
@@ -116,54 +161,6 @@ type LexCombine a = MaybeT (Writer [LexCombineError]) a
 
 lexTell :: LexCombineError -> LexCombine ()
 lexTell x = lift (tell [x])
-
-data LexCombineError =
-       BoringError String
-     | FamilyNotFoundError String
-     | SchemaError [SchemaTree] LexCombineError2
- deriving Eq
-
-data LexCombineError2 = EnrichError PathEqLhs
-                      | StringError String
- deriving (Eq, Ord)
-
-instance Poset LexCombineError where
- leq (BoringError _) _                                 = True
- leq (SchemaError _ e1) (SchemaError _ e2)             = leq e1 e2
- leq (FamilyNotFoundError x1) (FamilyNotFoundError x2) = leq x1 x2
- leq (FamilyNotFoundError _)  (SchemaError _ _)        = True
- leq _ _ = False
-
-instance Poset LexCombineError2 where
- leq (EnrichError _)  (EnrichError _ ) = False
- leq (EnrichError _ ) (StringError _ ) = True
- leq (StringError s1) (StringError s2) = leq s1 s2
- leq _ _ = False
-
-
-instance Show LexCombineError where
- show e = body ++ suffix
-  where
-   (body, suffix) = showLexCombineError e
-
-showLexCombineError :: LexCombineError -> (String, String)
-showLexCombineError (SchemaError xs x) = (show x, showWithCount (const "") "trees" ((),length xs))
-showLexCombineError (BoringError s)    = (s, "")
-showLexCombineError (FamilyNotFoundError f) = ("Family " ++ f ++ " not found in tree schema file", "")
-
-instance Show LexCombineError2 where
- show (EnrichError p) = "Some trees discarded due enrichment error on " ++ showPathEqLhs p
- show (StringError s) = s
-
-compressLexCombineErrors :: [LexCombineError] -> [LexCombineError]
-compressLexCombineErrors errs = schema2 ++ normal
- where
-  isSchema (SchemaError _ _) = True
-  isSchema _ = False
-  (schema, normal) = partition isSchema errs
-  schema2 = map (uncurry (flip SchemaError))
-          . Map.toList
-          $ Map.fromListWith (++) [ (l,ts) | SchemaError ts l <- schema ]
 
 -- | Given a lexical item, looks up the tree families for that item, and
 --   anchor the item to the trees.
@@ -242,20 +239,6 @@ combineOne tsem lexRaw eRaw = -- Maybe monad
        return (l,e2)
 
 -- Enrichment
-
-data PathEqLhs = PeqInterface   Text
-               | PeqJust        NodePathEqLhs
-               | PeqUnknown     Text
-  deriving (Eq, Ord)
-
-data NodePathEqLhs = PeqFeat String TopBottom Text
-                   | PeqLex  String
-  deriving (Eq, Ord)
-
-data TopBottom = Top | Bottom
-  deriving (Eq, Ord)
-
-type PathEqPair = (NodePathEqLhs, GeniVal)
 
 enrich :: ILexEntry -> SchemaTree -> LexCombine SchemaTree
 enrich l t =
@@ -356,41 +339,6 @@ matchNodeName (PeqLex n)      = matchNodeNameHelper n
 matchNodeNameHelper :: String -> SchemaNode -> Bool
 matchNodeNameHelper "anchor" = ganchor
 matchNodeNameHelper n        = (== n) . gnname
-
--- | Parse a path equation using the GenI conventions
---   This always succeeds, but can return @Just warning@
---   if anything anomalous comes up
---   FIXME : make more efficient
-parsePathEq :: Text -> Writer [LexCombineError] PathEqLhs
-parsePathEq e =
-  case wordsBy (== '.') (T.unpack e) of
-  (n:"top":r)     -> return (node n Top    r)
-  (n:"bot":r)     -> return (node n Bottom r)
-  [n,"lex"]       -> return (PeqJust (PeqLex n))
-  ("top":r)       -> return (node "anchor" Top r)
-  ("bot":r)       -> return (node "anchor" Bottom r)
-  ("anchor":r)    -> return (node "anchor" Bottom r)
-  ("interface":r) -> return (PeqInterface     (rejoin r))
-  ("anc":r)       -> parsePathEq $ rejoin ("anchor":r)
-  (n:r@(_:_))     -> tell [ BoringError (tMsg n) ] >> return (node n Top r)
-  _               -> tell [ BoringError iMsg     ] >> return (PeqUnknown e)
- where
-  node n tb r = PeqJust $ PeqFeat n tb (rejoin r)
-  rejoin = T.pack . concat . intersperse "."
-  tMsg n = "Interpreting path equation " ++ T.unpack e ++ " as applying to top of " ++ n ++ "."
-  iMsg   = "Could not interpret path equation " ++ T.unpack e 
-
-showPathEqLhs :: PathEqLhs -> String
-showPathEqLhs p =
-  case p of
-   PeqJust (PeqFeat n tb att) -> squish [ n, fromTb tb, T.unpack att ]
-   PeqJust (PeqLex  n)        -> squish [ n, "lex" ]
-   PeqInterface att -> squish [ "interface", T.unpack att ]
-   PeqUnknown e     -> T.unpack e
- where
-  fromTb Top    = "top"
-  fromTb Bottom = "bot"
-  squish = intercalate "."
 
 -- Lemanchor mechanism
 

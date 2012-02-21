@@ -26,24 +26,20 @@ module NLP.GenI.Geni (
              -- * main interface
              ProgState(..), ProgStateRef, emptyProgState,
              ProgStateLocal(..), resetLocal,
-             initGeni,
-             runGeni, runGeniWithSelector,
+             initGeni, runGeni,
              GeniResult(..), isSuccess, GeniError(..), GeniSuccess(..),
              GeniLexSel(..),
              ResultType(..),
              -- * helpers
              lemmaSentenceString, prettyResult,
              showRealisations, histogram,
-             getTraces, Selector,
+             getTraces, LexicalSelector,
              loadEverything,
              loadLexicon, Loadable(..),
              loadGeniMacros,
              loadTestSuite, loadTargetSemStr,
              loadRanking, BadInputException(..),
              loadFromString,
-
-             -- used by auxiliary tools only
-             chooseLexCand,
              )
 where
 
@@ -57,11 +53,12 @@ import Data.FullList ( fromFL )
 import Data.List
 import Data.List.Split ( wordsBy )
 import qualified Data.Map as Map
-import Data.Maybe (fromMaybe, isJust)
+import Data.Maybe (fromMaybe)
 import Data.Typeable (Typeable)
 
 import System.CPUTime( getCPUTime )
 import System.Log.Logger
+import NLP.GenI.Semantics ( sortByAmbiguity, Literal )
 import NLP.GenI.Statistics
 import Control.DeepSeq
 
@@ -81,11 +78,10 @@ import NLP.GenI.General(
 import NLP.GenI.Btypes
   (Macros, ILexEntry, Lexicon,
    SemInput, Sem, LitConstr, TestCase(..), sortSem, removeConstraints,
-   isemantics, ifamname, iword,
+   isemantics, iword,
    showLexeme,
-   pidname, pfamily, ptrace,
+   pidname, ptrace,
    )
-import NLP.GenI.Semantics ( sortByAmbiguity )
 import NLP.GenI.Tags (TagElem,
              idname,
              tsemantics,
@@ -116,10 +112,7 @@ import NLP.GenI.GeniParsers (geniMacros, geniTagElems,
                     ParseError,
                     )
 import NLP.GenI.GeniVal ( finaliseVars )
-import NLP.GenI.LexicalSelection
-        ( chooseLexCand, combineList
-        , missingCoanchors
-        )
+import NLP.GenI.LexicalSelection ( LexicalSelector, LexicalSelection(..), defaultLexSelection )
 import NLP.GenI.Morphology
 import NLP.GenI.OptimalityTheory
 import NLP.GenI.Warnings
@@ -143,6 +136,7 @@ data ProgState = ST{ -- | the current configuration being processed
                     gr       :: Macros,
                     le       :: Lexicon,
                     morphinf :: MorphInputFn,
+                    selector :: LexicalSelector, -- ^ lexical selection function
                     -- | names of test case to run
                     tcase    :: String, 
                     -- | name, original string (for gui), sem
@@ -180,6 +174,7 @@ emptyProgState args =
     , gr = []
     , le = []
     , morphinf = const Nothing
+    , selector = \m l s -> return (defaultLexSelection m l s)
     , tcase = []
     , tsuite = []
     , traces = []
@@ -537,18 +532,15 @@ instance Show GeniError where
 --   Note that we assumes that you have already loaded in your grammar and
 --   parsed your input semantics.
 runGeni :: ProgStateRef -> B.Builder st it Params -> IO ([GeniResult], Statistics, st)
-runGeni pstRef builder = runGeniWithSelector pstRef defaultSelector builder
-
-runGeniWithSelector :: ProgStateRef -> Selector -> B.Builder st it Params -> IO ([GeniResult], Statistics, st)
-runGeniWithSelector pstRef  selector builder =
-  do modifyIORef pstRef $ \p -> resetLocal (ts (local p)) p
+runGeni pstRef builder = do
+     modifyIORef pstRef $ \p -> resetLocal (ts (local p)) p
      pst <- readIORef pstRef
      let config = pa pst
          run    = B.run builder
          unpack = B.unpack builder
          finished = B.finished builder
      -- step 1: lexical selection
-     initStuff <- initGeniWithSelector pstRef selector 
+     initStuff <- initGeni pstRef
      start <- ( rnf initStuff ) `seq` getCPUTime  --force evaluation before measuring start time to avoid including grammar/lexicon parsing.
 
      -- step 2: chart generation
@@ -575,25 +567,22 @@ runGeniWithSelector pstRef  selector builder =
 -- | 'initGeni' performs lexical selection and strips the input semantics of
 --   any morpohological literals
 initGeni :: ProgStateRef -> IO (B.Input)
-initGeni pstRef = initGeniWithSelector pstRef defaultSelector
-
-initGeniWithSelector :: ProgStateRef -> Selector -> IO (B.Input)
-initGeniWithSelector pstRef lexSelector =
+initGeni pstRef =
  do -- disable constraints if the NoConstraintsFlg pessimisation is active
     hasConstraints <- (hasOpt NoConstraints . pa) `fmap` readIORef pstRef
     when hasConstraints $
       modifyIORef pstRef $ \p -> p { local = killConstraints (local p) }
     -- lexical selection
-    (cand, lexonly) <- lexSelector pstRef
     pst <- readIORef pstRef
-    -- strip morphological predicates
     let (tsem,tres,lc) = ts (local pst)
-        tsem2 = stripMorphSem (morphinf pst) tsem
-            --
+        tsem2          = stripMorphSem (morphinf pst) tsem
+    selection <- runLexSelection pstRef
+    mapM_ (addWarning pstRef) (lsWarnings selection)
+    -- strip morphological predicates
     let initStuff = B.Input 
           { B.inSemInput = (tsem2, tres, lc)
-          , B.inLex   = lexonly 
-          , B.inCands = map (\c -> (c,-1)) cand
+          , B.inLex   = lsLexEntries selection
+          , B.inCands = map (\c -> (c,-1)) (lsAnchored selection)
           }
     return initStuff 
  where
@@ -685,61 +674,53 @@ readPidname n =
 -- Lexical selection
 -- --------------------------------------------------------------------
 
--- | Determines which candidates trees which will be used to generate the
--- current target semantics.  In addition to the anchored candidate trees, we
--- also return the lexical items themselves.  This list of lexical items is
--- useful for debugging a grammar; it lets us know if GenI managed to lexically
--- select something, but did not succeed in anchoring it.
-runLexSelection :: ProgStateRef -> IO ([TagElem], [ILexEntry])
+-- | Runs the lexical selection (be it the standard GenI version or
+--   a custom function supplied by a user) and runs the results
+--   through the universal 'finaliseLexSelection'.
+--
+--   Also hunts for some warning conditions
+runLexSelection :: ProgStateRef -> IO LexicalSelection
 runLexSelection pstRef =
  do pst <- readIORef pstRef
     let (tsem,_,litConstrs) = ts (local pst)
-        lexicon  = le pst
         config   = pa pst
         verbose  = hasFlagP VerboseModeFlg config
-        grammar = gr pst
     -- perform lexical selection
-    (cand, lexCand, errs) <- case grammarType config of
-                               PreAnchored -> do cs <- readPreAnchored pstRef
-                                                 return (cs, [], [])
-                               _           -> return $ initialLexSelection tsem lexicon grammar
-    let candFinal = finaliseLexSelection (morphinf pst) tsem litConstrs cand
+    selection <- (selector pst) (gr pst) (le pst) tsem
+    let lexCand   = lsLexEntries selection
+        candFinal = finaliseLexSelection (morphinf pst) tsem litConstrs (lsAnchored selection)
     -- status
     when verbose $
-      do ePutStrLn $ "Lexical items selected:\n" ++ (unlinesIndentAnd (showLexeme . fromFL . iword) lexCand)
-         ePutStrLn $ "Trees anchored (family) :\n" ++ (unlinesIndentAnd idname candFinal)
-    -- anchoring errors
-    mapM_ (addWarning pstRef) errs
-    -- more lexical selection errors
-    let coanchorWarnings = do -- list monad
-          l     <- lexCand
-          let xs = filter (\p -> pfamily p == ifamname l) grammar
-          (c,n) <- Map.toList . histogram $ concatMap (missingCoanchors l) xs
-          return (LexWarning [l] (MissingCoanchors c n))
-    mapM_ (addWarning pstRef) coanchorWarnings
-    -- lexical selection failures
-    let missedSem  = tsem \\ (nub $ concatMap tsemantics candFinal)
-        hasTree l = isJust $ find (\t -> tsemantics t == lsem) cand
-          where lsem = isemantics l
-        missedLex = filter (not.hasTree) lexCand
-    unless (null missedSem) $ addWarning pstRef (NoLexSelection missedSem)
-    unless (null missedLex) $ addWarning pstRef (LexWarning missedLex LexCombineAllSchemataFailed)
-    return (candFinal, lexCand)
+      do ePutStrLn $ "Lexical items selected:\n" ++ unlinesIndentAnd (showLexeme . fromFL . iword) lexCand
+         ePutStrLn $ "Trees anchored (family) :\n" ++ unlinesIndentAnd idname candFinal
+    -- warnings
+    let semWarnings = case missingLiterals candFinal tsem of
+                       [] -> []
+                       xs -> [NoLexSelection xs]
+    return $ selection { lsAnchored = candFinal
+                       , lsWarnings = concat [ semWarnings, lsWarnings selection ]
+                       }
  where
    indent  x = ' ' : x
    unlinesIndentAnd :: (x -> String) -> [x] -> String
    unlinesIndentAnd f = unlines . map (indent . f)
 
-initialLexSelection :: Sem -> Lexicon -> Macros -> ([TagElem], [ILexEntry], [GeniWarning])
-initialLexSelection tsem lexicon grammar =
-  (cands, lexCands, errs)
- where
-  lexCands      = chooseLexCand lexicon tsem
-  combinations  = map (combineList tsem grammar) lexCands
-  cands         = concatMap snd combinations
-  errs          = concat $ zipWith mkWarnings lexCands (map fst combinations)
-  mkWarnings l  = map (LexWarning [l] . LexCombineOneSchemaFailed)
+-- | @missingLiterals ts sem@ returns any literals in @sem@ that do not
+--   appear in any of the @ts@ trees
+missingLiterals :: [TagElem] -> [Literal] -> [Literal]
+missingLiterals cands tsem =
+   tsem \\ (nub $ concatMap tsemantics cands)
 
+-- | Post-processes lexical selection results to things which
+--   GenI considers applicable to all situations:
+--
+--   * attaches morphological information to trees
+--
+--   * throws out elementary trees that violate trace constraints
+--     given by the user
+--
+--   * filters out any elementary tree whose semantics contains
+--     things that are not in the input semantics
 finaliseLexSelection :: MorphInputFn -> Sem -> [LitConstr] -> [TagElem] -> [TagElem]
 finaliseLexSelection morph tsem litConstrs =
   setTidnums . considerCoherency . considerLc . considerMorph
@@ -759,13 +740,6 @@ finaliseLexSelection morph tsem litConstrs =
 -- --------------------------------------------------------------------
 -- Pre-selection and pre-anchoring
 -- --------------------------------------------------------------------
-
--- | Only used for instances of GenI where the grammar is compiled
---   directly into GenI.
-type Selector = ProgStateRef -> IO ([TagElem],[ILexEntry])
-
-defaultSelector :: Selector
-defaultSelector = runLexSelection
 
 newtype PreAnchoredL = PreAnchoredL [TagElem]
 

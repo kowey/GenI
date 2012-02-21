@@ -99,6 +99,7 @@ Library
                 NLP.GenI.Lexicon,
                 NLP.GenI.Lexicon.Internal,
                 NLP.GenI.LexicalSelection,
+                NLP.GenI.LexicalSelection.Types,
                 NLP.GenI.Main,
                 NLP.GenI.Semantics,
                 NLP.GenI.Tags,

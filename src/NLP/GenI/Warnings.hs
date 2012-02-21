@@ -24,7 +24,7 @@ import Data.Poset
 
 import NLP.GenI.Lexicon ( ILexEntry(..) )
 import NLP.GenI.General ( histogram, showWithCount )
-import NLP.GenI.LexicalSelection ( LexCombineError, showLexCombineError )
+import NLP.GenI.LexicalSelection.Types ( LexCombineError, showLexCombineError )
 import NLP.GenI.Semantics ( Literal, showLiteral )
 import NLP.GenI.TreeSchemata ( showLexeme )
 
