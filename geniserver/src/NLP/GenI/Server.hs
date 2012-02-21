@@ -39,7 +39,7 @@ import qualified Text.JSON.Pretty as J
 
 import NLP.GenI.Configuration
 import NLP.GenI.General (fst3)
-import NLP.GenI.Geni
+import NLP.GenI
 import NLP.GenI.Simple.SimpleBuilder
 
 import NLP.GenI.Server.Flags

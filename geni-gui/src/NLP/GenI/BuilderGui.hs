@@ -22,7 +22,7 @@ where
 import Graphics.UI.WX
 
 import qualified NLP.GenI.Builder as B
-import NLP.GenI.Geni (ProgStateRef, GeniResult)
+import NLP.GenI (ProgStateRef, GeniResult)
 import NLP.GenI.Configuration (Params)
 import NLP.GenI.Statistics (Statistics)
 

@@ -116,8 +116,8 @@ Library
                 NLP.GenI.Statistics,
                 NLP.GenI.Builder,
                 NLP.GenI.Simple.SimpleBuilder,
-                NLP.GenI.Geni,
-                NLP.GenI.Configuration
+                NLP.GenI.Configuration,
+                NLP.GenI
   Other-Modules:
                 Paths_GenI
 

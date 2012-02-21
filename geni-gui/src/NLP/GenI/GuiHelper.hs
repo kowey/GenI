@@ -40,7 +40,7 @@ import NLP.GenI.Btypes ( showAv, showLiteral, showLexeme, )
 import NLP.GenI.Builder (queryCounter, num_iterations, chart_size, num_comparisons)
 import NLP.GenI.Configuration ( Params(..), MetricsFlg(..), setFlagP, getFlagP, MacrosFlg(..), ViewCmdFlg(..) )
 import NLP.GenI.General (geniBug, boundsCheck, dropTillIncluding, ePutStrLn)
-import NLP.GenI.Geni ( ProgState(..), ProgStateLocal(..) )
+import NLP.GenI ( ProgState(..), ProgStateLocal(..) )
 import NLP.GenI.GeniParsers ( geniTagElems, parseFromFile )
 import NLP.GenI.GeniShow(geniShow)
 import NLP.GenI.Graphviz

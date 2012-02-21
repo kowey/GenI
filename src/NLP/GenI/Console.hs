@@ -39,7 +39,7 @@ import qualified NLP.GenI.Btypes as G
 import NLP.GenI.General
   ( ePutStr, ePutStrLn,
   )
-import NLP.GenI.Geni
+import NLP.GenI
 import NLP.GenI.GeniShow
 import NLP.GenI.Configuration
   ( Params

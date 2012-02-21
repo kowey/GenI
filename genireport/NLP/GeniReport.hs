@@ -44,7 +44,7 @@ import Control.Monad
 import Text.JSON hiding ( Result )
 import qualified Text.JSON as J
 
-import NLP.GenI.Geni
+import NLP.GenI
 import NLP.GenI.GeniParsers
 import NLP.GenI.GeniShow
 import NLP.GenI.Semantics

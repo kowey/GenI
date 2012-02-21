@@ -38,7 +38,7 @@ import System.FilePath ( makeRelative )
 import Paths_geni_gui ( version )
 import qualified NLP.GenI.Builder as B
 import qualified NLP.GenI.BuilderGui as BG
-import NLP.GenI.Geni
+import NLP.GenI
   ( ProgState(..), ProgStateRef, initGeni
   , prettyResult
   , loadEverything, loadTestSuite, loadTargetSemStr
@@ -46,7 +46,7 @@ import NLP.GenI.Geni
   )
 import NLP.GenI.General (boundsCheck, geniBug, fst3, prettyException, trim)
 import NLP.GenI.Btypes (TestCase(..), showFlist,)
-import NLP.GenI.Geni     (GeniResult(..))
+import NLP.GenI (GeniResult(..))
 import NLP.GenI.GeniShow (geniShow)
 import NLP.GenI.Configuration
   ( Params(..), Instruction, hasOpt

@@ -26,7 +26,6 @@ import System.Environment(getArgs, getProgName)
 
 import Paths_GenI ( version )
 
-import NLP.GenI.Geni(emptyProgState)
 import NLP.GenI.Console(consoleGeni)
 import NLP.GenI.Configuration (treatArgs, optionsForStandardGenI, processInstructions,
                                usage, optionsSections, Params,
@@ -35,7 +34,7 @@ import NLP.GenI.Configuration (treatArgs, optionsForStandardGenI, processInstruc
                                readGlobalConfig, setLoggers
                               )
 import NLP.GenI.Configuration(setFlagP)
-import NLP.GenI.Geni( ProgState(..) )
+import NLP.GenI ( ProgState(..), emptyProgState )
 
 main :: IO ()
 main = do

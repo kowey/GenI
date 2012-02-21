@@ -18,7 +18,6 @@
 {-# LANGUAGE CPP #-}
 module NLP.GenI.MainGui where
 
-import Control.Applicative ((<$>))
 import Data.IORef(newIORef)
 import Data.Typeable( Typeable )
 import Data.Version ( showVersion )
@@ -26,16 +25,16 @@ import System.Environment(getArgs, getProgName)
 
 import Paths_geni_gui ( version )
 
-import NLP.GenI.Geni(emptyProgState)
+import NLP.GenI (emptyProgState)
 import NLP.GenI.Console(consoleGeni)
 import NLP.GenI.Configuration (treatArgs, optionsForStandardGenI, processInstructions,
-                               usage, optionsSections, Params,
-                               hasFlagP, BatchDirFlg(..), DisableGuiFlg(..),
+                               usage, optionsSections,
+                               hasFlagP, BatchDirFlg(..),
                                DumpDerivationFlg(..),  FromStdinFlg(..),
                                HelpFlg(..), VersionFlg(..), TestCaseFlg(..),
                                readGlobalConfig, setLoggers
                               )
-import NLP.GenI.Geni ( ProgState(..) )
+import NLP.GenI ( ProgState(..) )
 import NLP.GenI.Gui(guiGeni)
 
 main :: IO ()

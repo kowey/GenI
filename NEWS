@@ -6,7 +6,7 @@ GenI 0.22, XX
 
 - NEW FEATURES
 
-  * Somewhat safer API
+  * Somewhat safer and easier to navigate API
   * Polarity filtering no longer requires all subst/root nodes to have
     the feature defined.
   * Capping

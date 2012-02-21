@@ -36,8 +36,8 @@ import NLP.GenI.Statistics (Statistics, showFinalStats)
 import NLP.GenI.Configuration ( Params(..) )
 import NLP.GenI.FeatureStructures (AvPair(..))
 import NLP.GenI.General ( snd3, buckets )
-import NLP.GenI.Geni ( ProgStateRef, runGeni
-                     , GeniResult(..), GeniSuccess(..), GeniError(..), isSuccess )
+import NLP.GenI ( ProgStateRef, runGeni
+                , GeniResult(..), GeniSuccess(..), GeniError(..), isSuccess )
 import NLP.GenI.GeniVal ( mkGConstNone, GeniVal )
 import NLP.GenI.Graphviz ( GraphvizShow(..), gvUnlines )
 import NLP.GenI.GraphvizShow ( graphvizShowDerivation, GvItem(..), gvItemSetFlag, GNodeHighlights, Highlights )

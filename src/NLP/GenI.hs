@@ -19,10 +19,10 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 
--- | Geni is the interface between the front and backends of the generator. The GUI
+-- | This is the interface between the front and backends of the generator. The GUI
 --   and the console interface both talk to this module, and in turn, this module
 --   talks to the input file parsers and the surface realisation engine.
-module NLP.GenI.Geni (
+module NLP.GenI (
              -- * Main interface
 
              -- ** Program state and configuration
@@ -140,7 +140,8 @@ import NLP.GenI.Warnings
 -- ProgState
 -- --------------------------------------------------------------------
 
-data ProgState = ST{ -- | the current configuration being processed
+data ProgState = ProgState
+                { -- | the current configuration being processed
                     pa     :: Params,
                     -- | loaded tree schemata
                     gr       :: Macros,
@@ -168,7 +169,7 @@ data ProgState = ST{ -- | the current configuration being processed
 --   be able to hit a reset button (see `resetLocal') between each run.
 --
 --   Better yet would be a more functional style that avoids all this!
-data ProgStateLocal = STLocal {
+data ProgStateLocal = ProgStateLocal {
 
     ts       :: SemInput
       -- | any warnings accumulated during realisation
@@ -177,7 +178,7 @@ data ProgStateLocal = STLocal {
 }
 
 emptyLocal :: ProgStateLocal
-emptyLocal = STLocal
+emptyLocal = ProgStateLocal
   { ts = ([],[],[])
   , warnings = []
   }
@@ -189,8 +190,8 @@ type ProgStateRef = IORef ProgState
 
 -- | The program state when you start GenI for the very first time
 emptyProgState :: Params -> ProgState
-emptyProgState args =
- ST { pa = args
+emptyProgState args = ProgState
+    { pa = args
     , gr = []
     , le = []
     , morphinf = const Nothing
