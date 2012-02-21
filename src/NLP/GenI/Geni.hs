@@ -122,7 +122,7 @@ import NLP.GenI.GeniParsers (geniMacros, geniTagElems,
                     ParseError,
                     )
 import NLP.GenI.GeniVal ( finaliseVars )
-import NLP.GenI.LexicalSelection ( LexicalSelector, LexicalSelection(..), defaultLexSelection )
+import NLP.GenI.LexicalSelection ( LexicalSelector, LexicalSelection(..), defaultLexicalSelector )
 import NLP.GenI.Morphology
 import NLP.GenI.OptimalityTheory
 import NLP.GenI.Warnings
@@ -197,7 +197,7 @@ emptyProgState args =
     , gr = []
     , le = []
     , morphinf = const Nothing
-    , selector = \m l s -> return (defaultLexSelection m l s)
+    , selector = \m l s -> return (defaultLexicalSelector m l s)
     , tcase = []
     , tsuite = []
     , traces = []
