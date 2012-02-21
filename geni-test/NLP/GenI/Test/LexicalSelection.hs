@@ -30,6 +30,7 @@ import NLP.GenI.Test.Semantics () -- instance Arbitrary
 import NLP.GenI.Test.TreeSchemata
 import NLP.GenI.FeatureStructures
 import NLP.GenI.LexicalSelection
+import NLP.GenI.LexicalSelection.Types
 import NLP.GenI.GeniParsers ( geniLanguageDef )
 import NLP.GenI.TreeSchemata
 import Text.ParserCombinators.Parsec.Token ( reservedNames )
