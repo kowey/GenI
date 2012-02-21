@@ -99,7 +99,7 @@ import NLP.GenI.Tags (TagElem,
              setTidnums) 
 
 import NLP.GenI.Configuration
-  ( Params, customMorph
+  ( Params, customMorph, customSelector
   , getFlagP, hasFlagP, hasOpt, Optimisation(NoConstraints)
   , MacrosFlg(..), LexiconFlg(..), TestSuiteFlg(..), TestCaseFlg(..)
   , MorphInfoFlg(..), MorphCmdFlg(..)
@@ -150,9 +150,6 @@ data ProgState = ST{ -- | the current configuration being processed
                     --   the semantics
                     --   (you may instead be looking for 'NLP.GenI.Configuration.customMorph')
                     morphinf :: MorphInputFn,
-                    -- | lexical selection function (if you set this
-                    --   you may want to add 'PreAnchored' to the config)
-                    selector :: LexicalSelector,
                     -- | names of test case to run
                     tcase    :: String, 
                     -- | name, original string (for gui), sem
@@ -197,7 +194,6 @@ emptyProgState args =
     , gr = []
     , le = []
     , morphinf = const Nothing
-    , selector = \m l s -> return (defaultLexicalSelector m l s)
     , tcase = []
     , tsuite = []
     , traces = []
@@ -709,7 +705,8 @@ runLexSelection pstRef =
         config   = pa pst
         verbose  = hasFlagP VerboseModeFlg config
     -- perform lexical selection
-    selection <- (selector pst) (gr pst) (le pst) tsem
+    selector  <- getLexicalSelector pstRef
+    selection <- selector (gr pst) (le pst) tsem
     let lexCand   = lsLexEntries selection
         candFinal = finaliseLexSelection (morphinf pst) tsem litConstrs (lsAnchored selection)
     -- status
@@ -727,6 +724,16 @@ runLexSelection pstRef =
    indent  x = ' ' : x
    unlinesIndentAnd :: (x -> String) -> [x] -> String
    unlinesIndentAnd f = unlines . map (indent . f)
+
+-- | Grab the lexical selector from the config, or return the standard GenI
+--   version if none is supplied
+getLexicalSelector :: ProgStateRef -> IO LexicalSelector
+getLexicalSelector pstRef = do
+  config <- pa <$> readIORef pstRef
+  case (customSelector config, grammarType config) of
+    (Just s, _)            -> return s
+    (Nothing, PreAnchored) -> mkPreAnchoredLexicalSelector pstRef
+    (Nothing, _)           -> return defaultLexicalSelector
 
 -- | @missingLiterals ts sem@ returns any literals in @sem@ that do not
 --   appear in any of the @ts@ trees
@@ -777,6 +784,11 @@ readPreAnchored pstRef = do
   PreAnchoredL xs <- loadOrDie (L :: L PreAnchoredL)
                         MacrosFlg "preanchored trees" pstRef
   return xs
+
+mkPreAnchoredLexicalSelector :: ProgStateRef -> IO LexicalSelector
+mkPreAnchoredLexicalSelector pstRef = do
+  xs <- readPreAnchored pstRef
+  return (\_ _ _ -> return (LexicalSelection xs [] []))
 
 -- --------------------------------------------------------------------
 -- Boring utility code

@@ -68,6 +68,7 @@ import NLP.GenI.General ( geniBug, fst3, snd3 )
 import NLP.GenI.GeniParsers ( geniFeats, tillEof )
 import NLP.GenI.Morphology.Types ( MorphRealiser )
 import NLP.GenI.Polarity.Types ( readPolarityAttrs )
+import NLP.GenI.LexicalSelection ( LexicalSelector )
 
 -- --------------------------------------------------------------------
 -- Params
@@ -81,6 +82,9 @@ data Params = Prms
    , builderType    :: BuilderType
    -- | Can still be overridden with a morph command mind you
    , customMorph    :: Maybe MorphRealiser
+   -- | Lexical selection function
+   --   (if you set this you may want to add 'PreAnchored' to the config)
+   , customSelector :: Maybe LexicalSelector
    , geniFlags      :: [Flag]
    }
 
@@ -115,6 +119,7 @@ emptyParams = Prms {
   builderType   = SimpleBuilder,
   grammarType   = GeniHand,
   customMorph   = Nothing,
+  customSelector= Nothing,
   geniFlags     = [ Flag ViewCmdFlg "ViewTAG"
                   , Flag DetectPolaritiesFlg (readPolarityAttrs defaultPolarityAttrs)
                   , Flag RootFeatureFlg

@@ -81,8 +81,13 @@ data LexicalSelection = LexicalSelection
 
 -- | Performs standard GenI lexical selection as described in
 --   <http://projects.haskell.org/GenI/manual/lexical-selection.html>
-defaultLexicalSelector :: Macros -> Lexicon -> Sem -> LexicalSelection
-defaultLexicalSelector grammar lexicon tsem =
+defaultLexicalSelector :: Macros -> Lexicon -> Sem -> IO LexicalSelection
+defaultLexicalSelector g l t = return (defaultLexicalSelection g l t)
+
+-- | Helper for 'defaultLexicalSelector'
+--   (Standard GenI lexical selection is actually pure)
+defaultLexicalSelection :: Macros -> Lexicon -> Sem -> LexicalSelection
+defaultLexicalSelection grammar lexicon tsem =
   LexicalSelection { lsAnchored   = cands
                    , lsLexEntries = lexCands
                    , lsWarnings   = lexWarnings ++ coanchorWarnings ++ errs

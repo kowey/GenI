@@ -30,7 +30,7 @@ import NLP.GenI.Geni(emptyProgState)
 import NLP.GenI.Console(consoleGeni)
 import NLP.GenI.Configuration (treatArgs, optionsForStandardGenI, processInstructions,
                                usage, optionsSections, Params,
-                               hasFlagP, BatchDirFlg(..), DisableGuiFlg(..),
+                               hasFlagP, DisableGuiFlg(..),
                                HelpFlg(..), VersionFlg(..),
                                readGlobalConfig, setLoggers
                               )
