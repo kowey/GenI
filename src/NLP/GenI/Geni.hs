@@ -23,19 +23,29 @@
 --   and the console interface both talk to this module, and in turn, this module
 --   talks to the input file parsers and the surface realisation engine.
 module NLP.GenI.Geni (
-             -- * main interface
+             -- * Main interface
+
+             -- ** Program state and configuration
              ProgState(..), ProgStateRef, emptyProgState,
              ProgStateLocal(..), resetLocal,
-             initGeni, runGeni,
+             LexicalSelector,
+
+             -- ** Running GenI
+             runGeni,
              GeniResult(..), isSuccess, GeniError(..), GeniSuccess(..),
              GeniLexSel(..),
              ResultType(..),
-             -- * helpers
+
+             -- * Helpers
+             initGeni,
              lemmaSentenceString, prettyResult,
              showRealisations, histogram,
-             getTraces, LexicalSelector,
+             getTraces,
+
+             -- ** Loading things
              loadEverything,
-             loadLexicon, Loadable(..),
+             Loadable(..),
+             loadLexicon,
              loadGeniMacros,
              loadTestSuite, loadTargetSemStr,
              loadRanking, BadInputException(..),
@@ -132,11 +142,17 @@ import NLP.GenI.Warnings
 
 data ProgState = ST{ -- | the current configuration being processed
                     pa     :: Params,
-                    --
+                    -- | loaded tree schemata
                     gr       :: Macros,
+                    -- | loaded lexical entries
                     le       :: Lexicon,
+                    -- | function to extract morphological information from
+                    --   the semantics
+                    --   (you may instead be looking for 'NLP.GenI.Configuration.customMorph')
                     morphinf :: MorphInputFn,
-                    selector :: LexicalSelector, -- ^ lexical selection function
+                    -- | lexical selection function (if you set this
+                    --   you may want to add 'PreAnchored' to the config)
+                    selector :: LexicalSelector,
                     -- | names of test case to run
                     tcase    :: String, 
                     -- | name, original string (for gui), sem
@@ -145,14 +161,21 @@ data ProgState = ST{ -- | the current configuration being processed
                     ranking  :: OtRanking,
                     -- | simplified traces (optional)
                     traces   :: [String],
-                    -- | any warnings accumulated during realisation
-                    --   (most recent first)
+                    -- | see 'ProgStateLocal'
                     local    :: ProgStateLocal
                }
 
--- local to a single run
+-- | The “local” program state is specific to a single input semantics.
+--
+--   The idea is that if we run GenI over a batch of inputs, we want to
+--   be able to hit a reset button (see `resetLocal') between each run.
+--
+--   Better yet would be a more functional style that avoids all this!
 data ProgStateLocal = STLocal {
+
     ts       :: SemInput
+      -- | any warnings accumulated during realisation
+      --   (most recent first)
   , warnings :: [GeniWarning]
 }
 
