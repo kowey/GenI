@@ -64,7 +64,7 @@ import NLP.GenI.Configuration
     Optimisation(..), hasOpt,
   )
 import NLP.GenI.FeatureStructures ( Flist, sortFlist, mkFeatStruct )
-import NLP.GenI.General ( BitVector(..), snd3, thd3, geniBug )
+import NLP.GenI.General ( BitVector, snd3, thd3, geniBug )
 import NLP.GenI.GeniVal ( GeniVal, DescendGeniVal(..), Collectable(collect), finaliseVarsById )
 import NLP.GenI.Lexicon ( ILexEntry )
 import NLP.GenI.Morphology.Types

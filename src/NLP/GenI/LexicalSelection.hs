@@ -71,7 +71,8 @@ data LexicalSelection = LexicalSelection
         -- | if available, lexical entries that were used to produce anchored
         --   trees (useful for identifying anchoring failure)
       , lsLexEntries :: [ILexEntry]
-      , lsWarnings   :: [GeniWarning]
+        -- | HINT: use 'Data.Monoid.mempty' to initialise to empty
+      , lsWarnings   :: GeniWarnings
       }
 
 -- | Performs standard GenI lexical selection as described in
@@ -168,19 +169,19 @@ defaultAnchoring :: Macros -> [ILexEntry] -> Sem -> LexicalSelection
 defaultAnchoring grammar lexCands tsem =
   LexicalSelection { lsAnchored   = cands
                    , lsLexEntries = lexCands
-                   , lsWarnings   = lexWarnings ++ coanchorWarnings ++ errs
+                   , lsWarnings   = mconcat [ lexWarnings, coanchorWarnings, errs ]
                    }
  where
   combinations  = map (combineList tsem grammar) lexCands
   cands         = concatMap snd combinations
-  errs          = concat $ zipWith mkWarnings lexCands (map fst combinations)
+  errs          = mconcat $ map GeniWarnings $ zipWith mkWarnings lexCands (map fst combinations)
   mkWarnings l  = map (LexWarning [l] . LexCombineOneSchemaFailed)
-  coanchorWarnings = do -- list monad
+  coanchorWarnings = GeniWarnings $ do -- list monad
     l     <- lexCands
     let xs = filter (\p -> pfamily p == ifamname l) grammar
     (c,n) <- Map.toList . histogram $ concatMap (missingCoanchors l) xs
     return (LexWarning [l] (MissingCoanchors c n))
-  lexWarnings = case missingLexEntries cands lexCands of
+  lexWarnings = GeniWarnings $ case missingLexEntries cands lexCands of
                   [] -> []
                   xs -> [LexWarning xs LexCombineAllSchemataFailed]
 

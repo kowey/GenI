@@ -106,11 +106,13 @@ instance Poset LexCombineError where
  leq _ _ = False
 
 instance Poset LexCombineError2 where
- leq (EnrichError _)  (EnrichError _ ) = False
- leq (EnrichError _ ) (StringError _ ) = True
- leq (StringError s1) (StringError s2) = leq s1 s2
+ leq (EnrichError e1) (EnrichError e2)  = leq e1 e2
+ leq (EnrichError _ ) (StringError _ )  = True
+ leq (StringError s1) (StringError s2)  = leq s1 s2
  leq _ _ = False
 
+instance Poset PathEqLhs where
+ leq l1 l2 = leq (showPathEqLhs l1) (showPathEqLhs l2)
 
 instance Show LexCombineError where
  show e = body ++ suffix

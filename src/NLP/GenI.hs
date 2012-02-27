@@ -64,6 +64,7 @@ import Data.List
 import Data.List.Split ( wordsBy )
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
+import Data.Monoid
 import Data.Typeable (Typeable)
 
 import System.CPUTime( getCPUTime )
@@ -593,7 +594,7 @@ initGeni pstRef =
     let (tsem,tres,lc) = ts (local pst)
         tsem2          = stripMorphSem (morphinf pst) tsem
     selection <- runLexSelection pstRef
-    mapM_ (addWarning pstRef) (lsWarnings selection)
+    mapM_ (addWarning pstRef) $ fromGeniWarnings (lsWarnings selection)
     -- strip morphological predicates
     let initStuff = B.Input 
           { B.inSemInput = (tsem2, tres, lc)
@@ -715,7 +716,7 @@ runLexSelection pstRef =
                        [] -> []
                        xs -> [NoLexSelection xs]
     return $ selection { lsAnchored = candFinal
-                       , lsWarnings = concat [ semWarnings, lsWarnings selection ]
+                       , lsWarnings = GeniWarnings semWarnings `mappend` lsWarnings selection
                        }
  where
    indent  x = ' ' : x
@@ -785,7 +786,7 @@ readPreAnchored pstRef = do
 mkPreAnchoredLexicalSelector :: ProgStateRef -> IO LexicalSelector
 mkPreAnchoredLexicalSelector pstRef = do
   xs <- readPreAnchored pstRef
-  return (\_ _ _ -> return (LexicalSelection xs [] []))
+  return (\_ _ _ -> return (LexicalSelection xs [] mempty))
 
 -- --------------------------------------------------------------------
 -- Boring utility code

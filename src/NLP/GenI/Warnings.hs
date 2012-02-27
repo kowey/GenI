@@ -19,6 +19,7 @@ module NLP.GenI.Warnings where
 
 import Data.FullList ( FullList, fromFL )
 import Data.List
+import Data.Monoid
 import qualified Data.Map as Map
 import Data.Poset
 
@@ -28,10 +29,20 @@ import NLP.GenI.LexicalSelection.Types ( LexCombineError, showLexCombineError )
 import NLP.GenI.Semantics ( Literal, showLiteral )
 import NLP.GenI.TreeSchemata ( showLexeme )
 
+-- | This exists because we want the 'Monoid' instance, providing a 
+--   GenI-specific notion of appending which merges instances of the
+--   same error
+newtype GeniWarnings = GeniWarnings { fromGeniWarnings :: [GeniWarning] }
+
+instance Monoid GeniWarnings where
+  mempty  = GeniWarnings []
+  mappend (GeniWarnings g1) (GeniWarnings g2) = GeniWarnings (foldr appendWarning g2 g1)
+
 data GeniWarning = LexWarning [ILexEntry] LexWarning 
                  | NoLexSelection         [Literal]
                  | MorphWarning           [String]
   deriving Eq
+
 
 data LexWarning = LexCombineAllSchemataFailed
                 | LexCombineOneSchemaFailed   LexCombineError
@@ -55,14 +66,20 @@ instance Poset GeniWarning where
  leq _ _                                  = False 
 
 instance Poset LexWarning where
- leq (UnknownLexWarning w1) (UnknownLexWarning w2)                   = leq w1 w2
- leq (UnknownLexWarning w1) _                                        = True
+ -- 1. LexCombineOneSchemaFailed
  leq (LexCombineOneSchemaFailed l1) (LexCombineOneSchemaFailed l2)   = leq l1 l2
  leq (LexCombineOneSchemaFailed _)  _                                = True
- leq LexCombineAllSchemataFailed LexCombineAllSchemataFailed         = True
- leq LexCombineAllSchemataFailed (MissingCoanchors _ _)              = True
+ -- 2. LexCombineAllSchemataFailed
+ leq LexCombineAllSchemataFailed (LexCombineOneSchemaFailed _)       = False
+ leq LexCombineAllSchemataFailed  _                                  = True
+ -- 3. MissingCoanchors
  leq (MissingCoanchors _ n1) (MissingCoanchors _ n2)                 = leq n1 n2
- leq _ _                                                             = False
+ leq (MissingCoanchors _ _) (LexCombineOneSchemaFailed _)            = False
+ leq (MissingCoanchors _ _) LexCombineAllSchemataFailed              = False
+ leq (MissingCoanchors _ _) _                                        = True
+ -- 4. UnknownLexWarning
+ leq (UnknownLexWarning w1) (UnknownLexWarning w2)                   = leq w1 w2
+ leq (UnknownLexWarning _) _                                         = False
 
 instance Show GeniWarning where
   show = intercalate "\n" .  showGeniWarning
@@ -94,6 +111,7 @@ showGeniWarning (LexWarning ls wa)  =
      LexCombineAllSchemataFailed  -> ("Lexically selected but anchoring failed for *all* instances of", "")
      LexCombineOneSchemaFailed lc -> showLexCombineError lc
      MissingCoanchors co n        -> ("Expected co-anchor " ++ co ++ " is missing from " ++ show n ++ " schemata", "")
+     UnknownLexWarning l          -> (l,"")
   showWithFam (w, f) = showLexeme (fromFL w) ++ " (" ++ f ++ ")"
 showGeniWarning (MorphWarning ws) = map ("Morph: " ++) ws
 
