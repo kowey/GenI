@@ -36,6 +36,7 @@ data GeniWarning = LexWarning [ILexEntry] LexWarning
 data LexWarning = LexCombineAllSchemataFailed
                 | LexCombineOneSchemaFailed   LexCombineError
                 | MissingCoanchors            String Int
+                | UnknownLexWarning           String
   deriving Eq
 
 -- | Sort, treating non-comporable items as equal
@@ -54,6 +55,8 @@ instance Poset GeniWarning where
  leq _ _                                  = False 
 
 instance Poset LexWarning where
+ leq (UnknownLexWarning w1) (UnknownLexWarning w2)                   = leq w1 w2
+ leq (UnknownLexWarning w1) _                                        = True
  leq (LexCombineOneSchemaFailed l1) (LexCombineOneSchemaFailed l2)   = leq l1 l2
  leq (LexCombineOneSchemaFailed _)  _                                = True
  leq LexCombineAllSchemataFailed LexCombineAllSchemataFailed         = True
