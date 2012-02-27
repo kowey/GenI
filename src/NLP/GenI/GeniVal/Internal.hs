@@ -117,7 +117,7 @@ showSubst = unwords . map sho . Map.toList
 -- ----------------------------------------------------------------------
 
 -- | 'unify' performs unification on two lists of 'GeniVal'.  If
---   unification succeeds, it returns @Just (r,s)@ where \verb!r! is
+--   unification succeeds, it returns @Just (r,s)@ where @r@ is
 --   the result of unification and \verb!s! is a list of substitutions that
 --   this unification results in.
 unify :: Monad m => [GeniVal] -> [GeniVal] -> m ([GeniVal], Subst)
