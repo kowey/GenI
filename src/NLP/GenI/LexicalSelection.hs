@@ -40,27 +40,19 @@ import NLP.GenI.General(filterTree, repAllNode,
     geniBug,
     repNodeByNode,
     )
-import NLP.GenI.Btypes
-  (Macros, ILexEntry, Lexicon,
-   replace,
-   GType(Subs, Other),
-   isemantics, ifamname, iword, iparams, iequations,
-   iinterface, ifilters,
-   isempols,
-   pidname, pfamily, pinterface, ptype, psemantics, ptrace,
-   finaliseVars,
-   )
 import NLP.GenI.FeatureStructures (Flist, AvPair(..), unifyFeat)
-import NLP.GenI.GeniVal( unify, GeniVal(gConstraints), isConst, Subst )
+import NLP.GenI.GeniVal( unify, GeniVal(gConstraints), isConst, Subst, replace, finaliseVars )
 
 import NLP.GenI.Semantics ( subsumeSem, unifySem, Sem )
 import NLP.GenI.Tags (TagElem(..),
              idname,
              )
 import NLP.GenI.LexicalSelection.Types
-import NLP.GenI.TreeSchemata ( Ttree(..), SchemaTree, SchemaNode, crushTreeGNode
+import NLP.GenI.Lexicon ( ILexEntry(..), Lexicon, )
+import NLP.GenI.TreeSchemata ( Ttree(..), SchemaTree, SchemaNode, Macros
+                             , crushTreeGNode
                              , setAnchor, setLexeme, tree
-                             , GNode(..)
+                             , GNode(..), GType(..)
                              )
 import NLP.GenI.Warnings
 

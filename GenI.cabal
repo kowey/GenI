@@ -87,7 +87,6 @@ Library
                 BoolExp,
                 Data.FullList.Internal,
                 Data.FullList,
-                NLP.GenI.Btypes,
                 NLP.GenI.Console,
                 NLP.GenI.FeatureStructures,
                 NLP.GenI.Flags,

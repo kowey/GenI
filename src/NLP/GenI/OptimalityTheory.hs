@@ -34,7 +34,7 @@ import Data.Char ( isSpace )
 import Data.List (nub, partition, sort, sortBy, groupBy, intersperse, (\\), unfoldr )
 import Text.JSON
 
-import NLP.GenI.Btypes ( Macros, ptrace )
+import NLP.GenI.TreeSchemata ( Macros, ptrace )
 import qualified NLP.GenI.Builder as B
 
 import Control.DeepSeq

@@ -48,11 +48,12 @@ import Prelude hiding (catch)
 import Text.JSON
 import Text.JSON.Pretty
 
-import NLP.GenI.GeniVal ( mkGAnon )
-import NLP.GenI.Btypes
+import NLP.GenI.FeatureStructures
+import NLP.GenI.GeniVal ( mkGAnon, GeniVal, replace )
 import NLP.GenI.General
 import NLP.GenI.Morphology.Types
-import NLP.GenI.Semantics ( Literal(..) )
+import NLP.GenI.Semantics ( Literal(..), Sem )
+import NLP.GenI.TreeSchemata ( GNode(..), GType(..) )
 import NLP.GenI.Tags
 
 -- ----------------------------------------------------------------------

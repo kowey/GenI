@@ -36,7 +36,7 @@ import System.FilePath ((<.>),(</>),dropExtensions)
 import System.Process (runProcess)
 
 import NLP.GenI.Automaton (numStates, numTransitions)
-import NLP.GenI.Btypes ( showAv, showLiteral, showLexeme, )
+import NLP.GenI.FeatureStructures ( showAv )
 import NLP.GenI.Builder (queryCounter, num_iterations, chart_size, num_comparisons)
 import NLP.GenI.Configuration ( Params(..), MetricsFlg(..), setFlagP, getFlagP, MacrosFlg(..), ViewCmdFlg(..) )
 import NLP.GenI.General (geniBug, boundsCheck, dropTillIncluding, ePutStrLn)
@@ -48,7 +48,9 @@ import NLP.GenI.GraphvizShow (GvItem(..), gvItemSetFlag, gvItemLabel)
 import NLP.GenI.GraphvizShowPolarity ()
 import NLP.GenI.Polarity (PolAut, suggestPolFeatures)
 import NLP.GenI.Polarity.Types ( PolarityKey(..) )
+import NLP.GenI.Semantics ( showLiteral )
 import NLP.GenI.Tags ( idname, mapBySem, TagElem(ttrace, tinterface), TagItem(tgIdName), tagLeaves )
+import NLP.GenI.TreeSchemata ( showLexeme )
 import NLP.GenI.Warnings
 import qualified NLP.GenI.Builder as B
 

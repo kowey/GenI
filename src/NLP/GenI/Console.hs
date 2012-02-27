@@ -32,10 +32,6 @@ import System.Exit ( exitWith, exitFailure, ExitCode(..) )
 import System.FilePath ( (</>), takeFileName )
 import System.Timeout ( timeout )
 
-import NLP.GenI.Btypes
-   ( SemInput, TestCase(tcSem, tcName)
-   )
-import qualified NLP.GenI.Btypes as G
 import NLP.GenI.General
   ( ePutStr, ePutStrLn,
   )
@@ -50,8 +46,10 @@ import NLP.GenI.Configuration
   , hasFlagP, getListFlagP, getFlagP, setFlagP
   , builderType , BuilderType(..)
   )
+import NLP.GenI.Semantics ( SemInput )
 import NLP.GenI.Simple.SimpleBuilder
 import NLP.GenI.Statistics ( Statistics )
+import NLP.GenI.TestSuite ( TestCase(..) )
 import NLP.GenI.Warnings
 
 import Text.JSON
@@ -112,7 +110,7 @@ runInstructions pstRef =
           then    fail $ "Can't do batch processing. The test suite " ++ file ++ " has cases with no name."
           else do ePutStrLn "Batch processing mode"
                   mapM_ (runCase bsubdir) suite
-  runCase bdir (G.TestCase { tcName = n, tcSem = s }) =
+  runCase bdir (TestCase { tcName = n, tcSem = s }) =
    do config <- pa `fmap` readIORef pstRef
       let verbose = hasFlagP VerboseModeFlg config
           earlyDeath = hasFlagP EarlyDeathFlg config

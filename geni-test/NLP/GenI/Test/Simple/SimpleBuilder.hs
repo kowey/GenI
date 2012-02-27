@@ -4,18 +4,11 @@ module NLP.GenI.Test.Simple.SimpleBuilder ( suite ) where
 import Data.Maybe (isJust, isNothing)
 import Data.Tree
 
-import NLP.GenI.Simple.SimpleBuilder
-
-import NLP.GenI.Btypes
-  ( AvPair(..)
-  , GNode(..)
-  , GType(Foot,Other)
-  )
+import NLP.GenI.FeatureStructures
 import NLP.GenI.GeniVal ( GeniVal, mkGConst, mkGConstNone )
-
-import NLP.GenI.Tags (
-             toTagSite,
-            )
+import NLP.GenI.Simple.SimpleBuilder
+import NLP.GenI.Tags ( toTagSite )
+import NLP.GenI.TreeSchemata
 
 import Test.HUnit
 import Test.Framework

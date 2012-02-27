@@ -68,8 +68,6 @@ import Data.Typeable (Typeable)
 
 import System.CPUTime( getCPUTime )
 -- import System.Log.Logger
-import NLP.GenI.Semantics ( sortByAmbiguity, Literal )
-import NLP.GenI.Statistics
 import Control.DeepSeq
 
 import qualified System.IO.UTF8 as UTF8
@@ -85,13 +83,6 @@ import NLP.GenI.General(
     -- mkLogname,
     )
 
-import NLP.GenI.Btypes
-  (Macros, ILexEntry, Lexicon,
-   SemInput, Sem, LitConstr, TestCase(..), sortSem, removeConstraints,
-   isemantics, iword,
-   showLexeme,
-   pidname, ptrace,
-   )
 import NLP.GenI.Tags (TagElem,
              idname,
              tsemantics,
@@ -123,8 +114,13 @@ import NLP.GenI.GeniParsers (geniMacros, geniTagElems,
                     )
 import NLP.GenI.GeniVal ( finaliseVars )
 import NLP.GenI.LexicalSelection ( LexicalSelector, LexicalSelection(..), defaultLexicalSelector )
+import NLP.GenI.Lexicon
 import NLP.GenI.Morphology
 import NLP.GenI.OptimalityTheory
+import NLP.GenI.Semantics
+import NLP.GenI.Statistics
+import NLP.GenI.TestSuite ( TestCase(..) )
+import NLP.GenI.TreeSchemata
 import NLP.GenI.Warnings
 
 -- import CkyBuilder 

@@ -62,7 +62,7 @@ import Text.ParserCombinators.Parsec ( runParser, CharParser )
 import Data.String ( IsString(..) )
 import Data.Yaml.YamlLight
 
-import NLP.GenI.Btypes ( showFlist, )
+import NLP.GenI.FeatureStructures ( showFlist, )
 import NLP.GenI.Flags
 import NLP.GenI.General ( geniBug, fst3, snd3 )
 import NLP.GenI.GeniParsers ( geniFeats, tillEof )

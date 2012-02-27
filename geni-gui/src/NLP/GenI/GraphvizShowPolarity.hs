@@ -28,10 +28,10 @@ import Data.GraphViz
 import Data.GraphViz.Attributes.Complete
 
 import qualified Data.Text.Lazy as T
-import NLP.GenI.Btypes(showSem)
 import NLP.GenI.General(showInterval)
 import NLP.GenI.Polarity(PolAut, PolState(PolSt), NFA(states, transitions), finalSt)
 import NLP.GenI.Graphviz(GraphvizShow(..), gvUnlines)
+import NLP.GenI.Semantics ( showSem )
 import NLP.GenI.Tags(idname)
 
 instance GraphvizShow PolAut where

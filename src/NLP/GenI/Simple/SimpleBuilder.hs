@@ -40,58 +40,38 @@ where
 
 import Control.Arrow (first)
 import Control.Monad (when, unless, liftM2)
-import Control.Monad.State.Strict
-  (get, put, modify, gets, runState, execStateT)
-
-import Data.List (partition, foldl')
+import Control.Monad.State.Strict (get, put, modify, gets, runState, execStateT)
+import Data.Bits
+import Data.Generics ( Data )
+import Data.List (partition, foldl', sortBy, unfoldr )
 import Data.Maybe (isJust, isNothing, mapMaybe, fromMaybe)
 import Data.Ord (comparing)
-import Data.Bits
-import qualified Data.Map as Map
 import Data.Tree
-
-import Data.Generics ( Data )
-
-import NLP.GenI.Statistics (Statistics)
-
+import qualified Data.Map as Map
 import NLP.GenI.Automaton ( automatonPaths, NFA(..), addTrans )
-import NLP.GenI.Btypes
-  ( Ptype(Initial)
-  , replace, DescendGeniVal(..)
-  , GNode(..), NodeName, gnnameIs
-  , GType(Other)
-  , root, foot
-  , plugTree, spliceTree
-  , unifyFeat, Flist, Subst, appendSubst
-  , sortSem, Sem
-  )
-import NLP.GenI.GeniVal ( GeniVal )
-import NLP.GenI.Builder (
-    incrCounter, num_iterations, num_comparisons, chart_size,
-    SemBitMap, defineSemanticBits, semToBitVector, bitVectorToSem,
-    DispatchFilter, (>-->), condFilter, FilterStatus(Filtered, NotFiltered),
-    GenStatus(..),
-    )
-import NLP.GenI.Morphology.Types ( LemmaPlus(..) )
-import qualified NLP.GenI.Builder as B
-
-import NLP.GenI.Tags (TagElem, TagSite(..),
-             getLexeme, toTagSite, tidnum,
-             ttree, ttype, tsemantics,
-             detectSites,
-             TagDerivation, DerivationStep(..),
-             ts_rootFeatureMismatch,
-            )
+import NLP.GenI.Builder ( incrCounter, num_iterations, num_comparisons
+                        , chart_size, SemBitMap, defineSemanticBits, semToBitVector, bitVectorToSem
+                        , DispatchFilter, (>-->), condFilter, FilterStatus(Filtered, NotFiltered)
+                        , GenStatus(..),
+                        )
 import NLP.GenI.Configuration
-import NLP.GenI.General
- ( BitVector, mapMaybeM, mapTree', geniBug, preTerminals, )
-
-import NLP.GenI.General ( repList, )
-import NLP.GenI.Tags ( idname,
-    ts_synIncomplete, ts_semIncomplete, ts_tbUnificationFailure,
-    )
-
-import Data.List ( sortBy, unfoldr )
+import NLP.GenI.FeatureStructures ( unifyFeat, Flist )
+import NLP.GenI.General ( BitVector, mapMaybeM, mapTree', geniBug, preTerminals, repList )
+import NLP.GenI.GeniVal ( GeniVal, replace, DescendGeniVal(..), Subst, appendSubst )
+import NLP.GenI.Morphology.Types ( LemmaPlus(..) )
+import NLP.GenI.Semantics ( sortSem, Sem )
+import NLP.GenI.Statistics (Statistics)
+import NLP.GenI.Tags ( TagElem, TagSite(..), getLexeme, toTagSite
+                     , tidnum, idname, ttree, ttype, tsemantics
+                     , detectSites, TagDerivation
+                     , DerivationStep(..)
+                     , plugTree, spliceTree
+                     , ts_rootFeatureMismatch, ts_synIncomplete, ts_semIncomplete
+                     , ts_tbUnificationFailure
+                     )
+import NLP.GenI.TreeSchemata ( Ptype(Initial), GNode(..), NodeName, gnnameIs
+                             , GType(Other), root, foot )
+import qualified NLP.GenI.Builder as B
 
 -- --------------------------------------------------------------------
 -- The Builder interface

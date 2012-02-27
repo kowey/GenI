@@ -45,7 +45,7 @@ import NLP.GenI
   , BadInputException(..)
   )
 import NLP.GenI.General (boundsCheck, geniBug, fst3, prettyException, trim)
-import NLP.GenI.Btypes (TestCase(..), showFlist,)
+import NLP.GenI.FeatureStructures ( showFlist )
 import NLP.GenI (GeniResult(..))
 import NLP.GenI.GeniShow (geniShow)
 import NLP.GenI.Configuration
@@ -73,6 +73,7 @@ import NLP.GenI.GuiHelper
 
 import NLP.GenI.Polarity
 import NLP.GenI.Simple.SimpleGui
+import NLP.GenI.TestSuite ( TestCase(..) )
 
 -- Main Gui
 

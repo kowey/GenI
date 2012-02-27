@@ -44,16 +44,11 @@ import qualified Data.Map as Map
 import qualified Data.Text as T
 
 import NLP.GenI.Semantics ( isInternalHandle, SemInput, Literal(..) )
-import NLP.GenI.Tags
- ( TagElem, idname,
-   tsemantics, ttree, tinterface, ttype, ttreename,
- )
-import NLP.GenI.Btypes (AvPair(..), Ptype(..),
-               Ttree(params, pidname, pfamily, pinterface, ptype, tree, psemantics, ptrace),
-               GNode(..), GType(..),
-               TestCase(..),
-               )
+import NLP.GenI.Tags ( TagElem(..) )
+import NLP.GenI.TreeSchemata (Ptype(..), Ttree(..), GNode(..), GType(..) )
+import NLP.GenI.TestSuite ( TestCase(..) )
 import NLP.GenI.Lexicon
+import NLP.GenI.FeatureStructures ( AvPair(..) )
 import NLP.GenI.GeniVal ( GeniVal(..), singletonVal, mkGConst )
 
 class GeniShow a where

@@ -35,14 +35,15 @@ module NLP.GenI.GeniParsers (
   module Text.ParserCombinators.Parsec
 ) where
 
-import NLP.GenI.GeniVal (mkGConst, mkGConstNone, mkGVar, mkGAnon)
-import NLP.GenI.Btypes
-import NLP.GenI.Tags (TagElem(..), setTidnums)
-import NLP.GenI.Lexicon ( mkFullILexEntry )
-import NLP.GenI.Semantics ( Literal(..) )
-import NLP.GenI.TreeSchemata (SchemaTree)
+import NLP.GenI.FeatureStructures ( Flist, AvPair(..), showFlist, sortFlist )
 import NLP.GenI.General (isGeniIdentLetter)
 import NLP.GenI.GeniShow (GeniShow(geniShow))
+import NLP.GenI.GeniVal ( GeniVal, mkGConst, mkGConstNone, mkGVar, mkGAnon, isAnon )
+import NLP.GenI.Lexicon ( mkFullILexEntry, ILexEntry(..) )
+import NLP.GenI.Semantics ( Literal(..), Sem, sortSem, LitConstr, SemInput )
+import NLP.GenI.Tags (TagElem(..), setTidnums)
+import NLP.GenI.TestSuite ( TestCase(..) )
+import NLP.GenI.TreeSchemata (SchemaTree(..), Ttree(..), Ptype(..), GNode(..), GType(..) )
 
 import BoolExp
 import Data.FullList ( FullList, Listable(..) )

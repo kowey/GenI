@@ -32,24 +32,18 @@ import Data.GraphViz.Attributes.Complete
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text as T
 
-import NLP.GenI.Tags
- ( TagDerivation,
-   TagItem(..), TagElem(..),
-   DerivationStep(..), dsChild, dsParent
- )
-import NLP.GenI.Btypes (AvPair(..),
-               GNode(..), GType(..), Flist,
-               showSem,
-               )
+import NLP.GenI.FeatureStructures ( AvPair(..), Flist )
 import NLP.GenI.General ( clumpBy )
 import NLP.GenI.GeniVal (GeniVal(..), isConst)
+import NLP.GenI.Semantics ( Sem, showSem )
+import NLP.GenI.Tags ( TagDerivation, TagItem(..), TagElem(..), DerivationStep(..), dsChild, dsParent )
+import NLP.GenI.TreeSchemata ( GNode(..), GType(..) )
 import NLP.GenI.Graphviz
   ( GraphvizShow(graphvizShowAsSubgraph, graphvizLabel, graphvizParams)
   , GraphvizShowNode(graphvizShowNode)
   , GraphvizShowString(graphvizShow)
   , gvUnlines, gvShowTree
   )
-import NLP.GenI.Semantics ( Sem )
 
 -- ----------------------------------------------------------------------
 --
