@@ -93,7 +93,7 @@ defaultLexicalSelection grammar lexicon tsem =
                    , lsWarnings   = lexWarnings ++ coanchorWarnings ++ errs
                    }
  where
-  lexCands      = chooseLexCand lexicon tsem
+  lexCands      = defaultLexicalChoice lexicon tsem
   combinations  = map (combineList tsem grammar) lexCands
   cands         = concatMap snd combinations
   errs          = concat $ zipWith mkWarnings lexCands (map fst combinations)
@@ -120,8 +120,8 @@ missingLexEntries cands = filter treeless
 
 -- | Select and returns the set of entries from the lexicon whose semantics
 --   subsumes the input semantics.
-chooseLexCand :: Lexicon -> Sem -> [ILexEntry]
-chooseLexCand slex tsem = chooseCandI tsem slex
+defaultLexicalChoice :: Lexicon -> Sem -> [ILexEntry]
+defaultLexicalChoice slex tsem = chooseCandI tsem slex
 
 -- | 'chooseCandI' @sem l@ attempts to unify the semantics of @l@ with @sem@
 --   If this succeeds, we use return the result(s); if it fails, we reject
