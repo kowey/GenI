@@ -65,13 +65,16 @@ import NLP.GenI.TreeSchemata ( Ttree(..), SchemaTree, SchemaNode, crushTreeGNode
 import NLP.GenI.Warnings
 
 -- ----------------------------------------------------------------------
--- Lexical selection algorithms
+-- * Lexical selection algorithms
 -- ----------------------------------------------------------------------
 
+-- | See 'NLP.GenI.Configuration' if you want to use GenI with a custom
+--   lexical selection function.
 type LexicalSelector = Macros -> Lexicon -> Sem -> IO LexicalSelection
 
+-- | The result of the lexical selection process
 data LexicalSelection = LexicalSelection
-      { -- | the main result: anchored trees
+      { -- | the main result: a set of elementary trees (ie. anchored trees)
         lsAnchored   :: [TagElem]
         -- | if available, lexical entries that were used to produce anchored
         --   trees (useful for identifying anchoring failure)
@@ -81,41 +84,35 @@ data LexicalSelection = LexicalSelection
 
 -- | Performs standard GenI lexical selection as described in
 --   <http://projects.haskell.org/GenI/manual/lexical-selection.html>
+--
+--   This is just 'defaultLexicalSelection' lifted into IO
 defaultLexicalSelector :: Macros -> Lexicon -> Sem -> IO LexicalSelection
 defaultLexicalSelector g l t = return (defaultLexicalSelection g l t)
 
 -- | Helper for 'defaultLexicalSelector'
 --   (Standard GenI lexical selection is actually pure)
+--
+--   This is just 'defaultLexicalChoice' and 'defaultAnchoring'
 defaultLexicalSelection :: Macros -> Lexicon -> Sem -> LexicalSelection
 defaultLexicalSelection grammar lexicon tsem =
-  LexicalSelection { lsAnchored   = cands
-                   , lsLexEntries = lexCands
-                   , lsWarnings   = lexWarnings ++ coanchorWarnings ++ errs
-                   }
- where
-  lexCands      = defaultLexicalChoice lexicon tsem
-  combinations  = map (combineList tsem grammar) lexCands
-  cands         = concatMap snd combinations
-  errs          = concat $ zipWith mkWarnings lexCands (map fst combinations)
-  mkWarnings l  = map (LexWarning [l] . LexCombineOneSchemaFailed)
-  coanchorWarnings = do -- list monad
-    l     <- lexCands
-    let xs = filter (\p -> pfamily p == ifamname l) grammar
-    (c,n) <- Map.toList . histogram $ concatMap (missingCoanchors l) xs
-    return (LexWarning [l] (MissingCoanchors c n))
-  lexWarnings = case missingLexEntries cands lexCands of
-                  [] -> []
-                  xs -> [LexWarning xs LexCombineAllSchemataFailed]
+  defaultAnchoring grammar (defaultLexicalChoice lexicon tsem) tsem
 
 -- | @missingLexEntries ts lexs@ returns any of the lexical candidates
---   @lexs@ that were apparently not anchored succesfully
+--   @lexs@ that were apparently not anchored succesfully.
+--
+--   TODO: it does this by (wrongly) checking for each lexical item
+--   to see if any of the anchored trees in @ts@ have identical
+--   semantics to that lexical item.  The better way to do this would
+--   be to throw a subsumption check on top of items reported missing,
+--   because it's possible for the trees to add semantics through
+--   unification.
 missingLexEntries :: [TagElem] -> [ILexEntry] -> [ILexEntry]
 missingLexEntries cands = filter treeless
  where
   treeless l = isNothing $ find (\t -> tsemantics t == isemantics l) cands
 
 -- ----------------------------------------------------------------------
--- Selecting candidate lemmas
+-- * Selecting candidate lemmas
 -- ----------------------------------------------------------------------
 
 -- | Select and returns the set of entries from the lexicon whose semantics
@@ -157,15 +154,48 @@ mergeSynonyms lexEntry =
   in Map.elems synMap
 
 -- --------------------------------------------------------------------
--- Anchoring
+-- * Anchoring
 -- --------------------------------------------------------------------
 
--- | The 'LexCombine' supports warnings during lexical selection
+-- | The 'LexCombine' monad supports warnings during lexical selection
 --   and also failure via Maybe
 type LexCombine a = MaybeT (Writer [LexCombineError]) a
 
+-- | Note an anchoring error
 lexTell :: LexCombineError -> LexCombine ()
 lexTell x = lift (tell [x])
+
+-- | @defaultAnchoring schemata lex sem@  implements the later half of lexical
+--   selection (tree anchoring and enrichement).  It assumes that @lex@ consists
+--   just of the lexical items that have been selected, and tries to combine them
+--   with the tree schemata.
+--
+--   This function may be useful if you are implementing your own lexical selection
+--   functions, and you want GenI to take over after you've given it a @[ILexEntry]@
+defaultAnchoring :: Macros -> [ILexEntry] -> Sem -> LexicalSelection
+defaultAnchoring grammar lexCands tsem =
+  LexicalSelection { lsAnchored   = cands
+                   , lsLexEntries = lexCands
+                   , lsWarnings   = lexWarnings ++ coanchorWarnings ++ errs
+                   }
+ where
+  combinations  = map (combineList tsem grammar) lexCands
+  cands         = concatMap snd combinations
+  errs          = concat $ zipWith mkWarnings lexCands (map fst combinations)
+  mkWarnings l  = map (LexWarning [l] . LexCombineOneSchemaFailed)
+  coanchorWarnings = do -- list monad
+    l     <- lexCands
+    let xs = filter (\p -> pfamily p == ifamname l) grammar
+    (c,n) <- Map.toList . histogram $ concatMap (missingCoanchors l) xs
+    return (LexWarning [l] (MissingCoanchors c n))
+  lexWarnings = case missingLexEntries cands lexCands of
+                  [] -> []
+                  xs -> [LexWarning xs LexCombineAllSchemataFailed]
+
+
+-- ----------------------------------------------------------------------
+-- ** Combination
+-- ----------------------------------------------------------------------
 
 -- | Given a lexical item, looks up the tree families for that item, and
 --   anchor the item to the trees.
@@ -243,8 +273,12 @@ combineOne tsem lexRaw eRaw = -- Maybe monad
     do e2 <- enrich l e
        return (l,e2)
 
--- Enrichment
+-- ----------------------------------------------------------------------
+-- ** Enrichment
+-- ----------------------------------------------------------------------
 
+-- | See <http://projects.haskell.org/manual/lexical-selection>
+--   on enrichement
 enrich :: ILexEntry -> SchemaTree -> LexCombine SchemaTree
 enrich l t =
  do -- separate into interface/anchor/named
@@ -259,6 +293,8 @@ enrich l t =
       Nothing -> lexTell (ifaceEnrichErr en) >> fail ""
       Just (i2, isubs) -> return $ (replace isubs tx) { pinterface = i2 }
   ifaceEnrichErr (AvPair loc _) = SchemaError [t] (EnrichError (PeqInterface loc))
+
+-- *** 'enrich' helpers
 
 -- | Helper for 'enrich' (enrich by single path equation)
 enrichBy :: SchemaTree
@@ -293,7 +329,13 @@ maybeEnrichBy t (eqLhs, eqVal) = do
  where
   fixNode n mt = mt { tree = repNodeByNode (matchNodeName eqLhs) n (tree mt) }
 
-
+-- | @enrichFeat av fs@ attempts to unify @av@ with @fs@
+--
+--   Note here that @fs@ is an @Flist [GeniVal]@ rather than the usual
+--   @Flist GeniVal@ you may expect.  This is because it comes from
+--   'SchemaTree' which allows non-atomic disjunctions of @GeniVal@
+--   which have to be flatten down to at most atomic disjunctions once
+--   lexical selection is complete.
 enrichFeat :: AvPair GeniVal -> Flist [GeniVal] -> Maybe (Flist [GeniVal], Subst)
 enrichFeat (AvPair a v) fs =
   case span (\x -> avAtt x < a) fs of
@@ -309,6 +351,8 @@ enrichFeat (AvPair a v) fs =
   where
    avMatch (AvPair fa _) = fa == a
 
+-- | @missingCoanchors l t@ returns the list of coanchor node names from @l@
+--   that were not found in @t@
 missingCoanchors :: ILexEntry -> SchemaTree -> [String]
 missingCoanchors lexEntry t =
    [ name eqLhs | eqLhs <- nubBy ((==) `on` name) equations, missing eqLhs ]
@@ -328,6 +372,11 @@ lexEquations =
                     , [ (n,v)      | (PeqJust n, v)      <- xs ] )
    parseAv (AvPair a v) = fmap (\a2 -> (a2,v)) (parsePathEq a)
 
+-- | @seekCoanchor lhs t@ returns @Just node@ if @t@ contains exactly one
+--   node that can be identified by @lhs@, @Nothing@ if it contains none.
+--
+--   It crashes if there is more than one such node, because this should
+--   have been caught earlier by GenI.
 seekCoanchor :: NodePathEqLhs -> SchemaTree -> Maybe SchemaNode
 seekCoanchor eqLhs t =
  case filterTree (matchNodeName eqLhs) (tree t) of
@@ -337,16 +386,23 @@ seekCoanchor eqLhs t =
                   "\nTree: " ++ pidname t ++ "\nFamily: " ++ pfamily t ++
                   "\nMatching on: " ++ showPathEqLhs (PeqJust eqLhs)
 
+-- | @matchNodeName lhs n@ is @True@ if the @lhs@ refers to the node @n@
 matchNodeName :: NodePathEqLhs -> SchemaNode -> Bool
 matchNodeName (PeqFeat n _ _) = matchNodeNameHelper n
 matchNodeName (PeqLex n)      = matchNodeNameHelper n
 
+-- | @matchNodeNameHelper@ recognises “anchor“ by convention; otherwise,
+--   it does a name match
 matchNodeNameHelper :: String -> SchemaNode -> Bool
 matchNodeNameHelper "anchor" = ganchor
 matchNodeNameHelper n        = (== n) . gnname
 
--- Lemanchor mechanism
+-- ----------------------------------------------------------------------
+-- ** Lemanchor mechanism
+-- ----------------------------------------------------------------------
 
+-- | The lemanchor mechanism is described in
+--   <http://projects.haskell.org/manual/lexical-selection>
 setLemAnchors :: Tree (GNode GeniVal) -> Tree (GNode GeniVal)
 setLemAnchors t =
  repAllNode fn filt t
@@ -367,17 +423,11 @@ setLemAnchors t =
     [l] | isConst l -> fromFL `fmap` (gConstraints l)
     _               -> Nothing
 
+-- | The name of the lemanchor attribute (by convention; see source)
 _lemanchor :: Text
 _lemanchor = "lemanchor"
 
--- Node origins
-
+-- | @setOrigin n t@ marks the nodes in @t@ as having come from
+--   a tree named @n@
 setOrigin :: String -> Tree (GNode v) -> Tree (GNode v)
 setOrigin t = fmap (\g -> g { gorigin = t })
-
--- ----------------------------------------------------------------------
--- Helper functions
--- ----------------------------------------------------------------------
-
-myEMPTY :: String
-myEMPTY = "MYEMPTY"
