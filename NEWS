@@ -7,6 +7,7 @@ GenI 0.22, XX
 - NEW FEATURES
 
   * Somewhat safer and easier to navigate API
+  * Customisable arbitrary lexical selection function
   * Polarity filtering no longer requires all subst/root nodes to have
     the feature defined.
   * Capping
