@@ -124,7 +124,7 @@ showLexCombineError (BoringError s)    = (s, "")
 showLexCombineError (FamilyNotFoundError f) = ("Family " ++ f ++ " not found in tree schema file", "")
 
 instance Show LexCombineError2 where
- show (EnrichError p) = "Some trees discarded due enrichment error on " ++ showPathEqLhs p
+ show (EnrichError p) = "Some trees discarded due to enrichment error on " ++ showPathEqLhs p
  show (StringError s) = s
 
 compressLexCombineErrors :: [LexCombineError] -> [LexCombineError]
