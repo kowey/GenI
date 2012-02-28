@@ -79,7 +79,7 @@ candidateGui pst f xs = do
   (tb,gvRef,updater) <- tagViewerGui pst p "lexically selected item" "candidates"
                         $ sectionsBySem xs
   let polFeats = "Polarity attributes detected: " ++ (T.unpack . T.unwords .suggestPolFeatures) xs
-      lexWarnings = concatMap showGeniWarning . sortWarnings $ warnings (local pst)
+      lexWarnings = concatMap showGeniWarning . fromGeniWarnings . sortWarnings $ warnings (local pst)
       warning = unlines $ filter (not .  null) (polFeats : lexWarnings)
   -- side panel
   sidePnl <- panel p []

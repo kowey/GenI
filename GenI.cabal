@@ -105,6 +105,7 @@ Library
                 NLP.GenI.TestSuite,
                 NLP.GenI.TreeSchemata,
                 NLP.GenI.Warnings,
+                NLP.GenI.Warnings.Internal,
                 NLP.GenI.Morphology,
                 NLP.GenI.Morphology.Types,
                 NLP.GenI.OptimalityTheory,

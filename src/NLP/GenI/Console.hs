@@ -174,7 +174,7 @@ runOnSemInput pstRef args semInput =
       do (results, stats, _) <- runGeni pstRef builder
          return (results, stats)
 
-writeResults :: ProgState -> RunAs -> SemInput -> [GeniResult] -> Statistics -> [GeniWarning] -> IO ()
+writeResults :: ProgState -> RunAs -> SemInput -> [GeniResult] -> Statistics -> GeniWarnings -> IO ()
 writeResults pst args semInput results stats warningsOut = do
      -- create output directory as needed
      case args of
@@ -188,10 +188,10 @@ writeResults pst args semInput results stats warningsOut = do
      when (isJust $ getFlagP MetricsFlg config) $
         writeStats (ppJSON stats)
      -- print any warnings we picked up along the way
-     unless (null warningsOut) $ do
-        let ws = reverse warningsOut
-        ePutStr $ "Warnings:\n" ++ formatWarnings ws
-        writeBatchFile "warnings" $ unlines (map show ws)
+     unless (null (fromGeniWarnings warningsOut)) $ do
+        ePutStr $ "Warnings:\n" ++ formatWarnings warningsOut
+        writeBatchFile "warnings" $ unlines . map show . reverse
+                                  $ fromGeniWarnings warningsOut
      -- other outputs when run in batch mode
      writeBatchFile "semantics"  $ geniShowSemInput semInput ""
      writeBatchFile "derivations"$ ppJSON results
@@ -203,7 +203,8 @@ writeResults pst args semInput results stats warningsOut = do
                          then pure . prettyResult pst
                          else grRealisations
     formatWarnings = unlines . map (" - " ++)
-                   . concatMap showGeniWarning . sortWarnings
+                   . concatMap showGeniWarning
+                   . reverse . fromGeniWarnings . sortWarnings
     --
     writeBatchFile key = case args of
         Standalone _  _ -> const (return ())

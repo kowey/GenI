@@ -171,13 +171,13 @@ data ProgStateLocal = ProgStateLocal {
     ts       :: SemInput
       -- | any warnings accumulated during realisation
       --   (most recent first)
-  , warnings :: [GeniWarning]
+  , warnings :: GeniWarnings
 }
 
 emptyLocal :: ProgStateLocal
 emptyLocal = ProgStateLocal
   { ts = ([],[],[])
-  , warnings = []
+  , warnings = mempty
   }
 
 resetLocal :: SemInput -> ProgState -> ProgState
@@ -205,7 +205,7 @@ addWarning pstRef s = do
   -- warningM logname s
   modifyIORef pstRef $ \p -> p { local = tweak (local p) }
  where
-  tweak l = l { warnings = s `appendWarning` warnings l }
+  tweak l = l { warnings = mkGeniWarnings [s] `mappend` warnings l }
 
 -- --------------------------------------------------------------------
 -- Interface
@@ -716,7 +716,7 @@ runLexSelection pstRef =
                        [] -> []
                        xs -> [NoLexSelection xs]
     return $ selection { lsAnchored = candFinal
-                       , lsWarnings = GeniWarnings semWarnings `mappend` lsWarnings selection
+                       , lsWarnings = mkGeniWarnings semWarnings `mappend` lsWarnings selection
                        }
  where
    indent  x = ' ' : x

@@ -174,14 +174,14 @@ defaultAnchoring grammar lexCands tsem =
  where
   combinations  = map (combineList tsem grammar) lexCands
   cands         = concatMap snd combinations
-  errs          = mconcat $ map GeniWarnings $ zipWith mkWarnings lexCands (map fst combinations)
+  errs          = mkGeniWarnings . concat $ zipWith mkWarnings lexCands (map fst combinations)
   mkWarnings l  = map (LexWarning [l] . LexCombineOneSchemaFailed)
-  coanchorWarnings = GeniWarnings $ do -- list monad
+  coanchorWarnings = mkGeniWarnings $ do -- list monad
     l     <- lexCands
     let xs = filter (\p -> pfamily p == ifamname l) grammar
     (c,n) <- Map.toList . histogram $ concatMap (missingCoanchors l) xs
     return (LexWarning [l] (MissingCoanchors c n))
-  lexWarnings = GeniWarnings $ case missingLexEntries cands lexCands of
+  lexWarnings = mkGeniWarnings $ case missingLexEntries cands lexCands of
                   [] -> []
                   xs -> [LexWarning xs LexCombineAllSchemataFailed]
 
