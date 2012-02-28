@@ -215,7 +215,7 @@ combineOne tsem lexRaw eRaw = -- Maybe monad
              >>= unifyInterfaceUsing ifilters -- filtering
              >>= enrichWithWarning -- enrichment
     tree2 <- case crushTreeGNode (tree e) of
-               Nothing -> do lexTell (SchemaError [e] (StringError "Could not flatten disjunction"))
+               Nothing -> do lexTell (SchemaError [pidname e] (StringError "Could not flatten disjunction"))
                              fail ""
                Just x  -> return x
     let name = concat $ intersperse ":" $ filter (not.null)
@@ -233,7 +233,7 @@ combineOne tsem lexRaw eRaw = -- Maybe monad
               , ttrace      = ptrace e
               }
     semUnifications <- case unifySem (isemantics l) (fromMaybe [] $ psemantics e) of
-                         [] -> do lexTell (SchemaError [e] (StringError "could not unify lemma and schema semantics"))
+                         [] -> do lexTell (SchemaError [pidname e] (StringError "could not unify lemma and schema semantics"))
                                   fail ""
                          xs -> return xs
     return $ concatMap (finaliseSemantics template) semUnifications
@@ -246,17 +246,17 @@ combineOne tsem lexRaw eRaw = -- Maybe monad
    let lp = iparams l
        tp = params t
    in if length lp /= length tp
-      then do lexTell (SchemaError [t] (StringError "Parameter length mismatch"))
+      then do lexTell (SchemaError [pidname t] (StringError "Parameter length mismatch"))
               fail ""
       else case unify lp tp of
-             Nothing -> do lexTell (SchemaError [t] (StringError "Parameter unification error"))
+             Nothing -> do lexTell (SchemaError [pidname t] (StringError "Parameter unification error"))
                            fail ""
              Just (ps2, subst) -> return (replace subst l, t2)
                                   where t2 = (replace subst t) { params = ps2 }
   unifyInterfaceUsing ifn (l,e) =
     -- trace ("unify interface" ++ wt) $
     case unifyFeat (ifn l) (pinterface e) of
-    Nothing             -> do lexTell (SchemaError [e] (StringError "Interface unification error"))
+    Nothing             -> do lexTell (SchemaError [pidname e] (StringError "Interface unification error"))
                               fail ""
     Just (int2, fsubst) -> return (replace fsubst l, e2)
                            where e2 = (replace fsubst e) { pinterface = int2 }
@@ -285,7 +285,7 @@ enrich l t =
     case unifyFeat [en] (pinterface tx) of
       Nothing -> lexTell (ifaceEnrichErr en) >> fail ""
       Just (i2, isubs) -> return $ (replace isubs tx) { pinterface = i2 }
-  ifaceEnrichErr (AvPair loc _) = SchemaError [t] (EnrichError (PeqInterface loc))
+  ifaceEnrichErr (AvPair loc _) = SchemaError [pidname t] (EnrichError (PeqInterface loc))
 
 -- *** 'enrich' helpers
 
@@ -298,7 +298,7 @@ enrichBy t eq@(eqLhs, _) =
     Nothing -> lexTell enrichErr >> return t
     Just (t2,_) -> return t2
  where
-  enrichErr = SchemaError [t] (EnrichError (PeqJust eqLhs))
+  enrichErr = SchemaError [pidname t] (EnrichError (PeqJust eqLhs))
 
 -- | Helper for 'enrichBy'
 maybeEnrichBy :: SchemaTree

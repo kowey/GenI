@@ -27,7 +27,6 @@ import qualified Data.Text as T
 
 import NLP.GenI.GeniVal
 import NLP.GenI.General ( showWithCount )
-import NLP.GenI.TreeSchemata
 
 -- | Left hand side of a path equation
 data PathEqLhs = PeqInterface   Text
@@ -91,7 +90,7 @@ showPathEqLhs p =
 data LexCombineError =
        BoringError String
      | FamilyNotFoundError String
-     | SchemaError [SchemaTree] LexCombineError2
+     | SchemaError [String] LexCombineError2
  deriving Eq
 
 data LexCombineError2 = EnrichError PathEqLhs
