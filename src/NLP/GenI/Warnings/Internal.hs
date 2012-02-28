@@ -95,7 +95,6 @@ instance Poset LexWarning where
  leq (MissingCoanchors _ n1) (MissingCoanchors _ n2)                 = leq n1 n2
  leq (MissingCoanchors _ _) (LexCombineOneSchemaFailed _)            = False
  leq (MissingCoanchors _ _) LexCombineAllSchemataFailed              = False
- leq (MissingCoanchors _ _) _                                        = True
 
 instance Show GeniWarning where
   show = intercalate "\n" .  showGeniWarning
