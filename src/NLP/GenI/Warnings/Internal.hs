@@ -41,8 +41,13 @@ instance Monoid GeniWarnings where
   mempty  = GeniWarnings []
   mappend (GeniWarnings g1) (GeniWarnings g2) = GeniWarnings (foldr appendWarning g2 g1)
 
-data GeniWarning = LexWarning [ILexEntry] LexWarning 
+data GeniWarning = -- | A warning that should be repeated for each lexical entry affected
+                   LexWarning [ILexEntry] LexWarning
+                   -- | A single custom warning
+                 | CustomLexWarning String
+                   -- | Literals which did not receive any lexical selection
                  | NoLexSelection         [Literal]
+                   -- | Warnings from the morphological realiser
                  | MorphWarning           [String]
   deriving Eq
 
@@ -50,7 +55,6 @@ data GeniWarning = LexWarning [ILexEntry] LexWarning
 data LexWarning = LexCombineAllSchemataFailed
                 | LexCombineOneSchemaFailed   LexCombineError
                 | MissingCoanchors            String Int
-                | UnknownLexWarning           String
   deriving Eq
 
 -- | Sort, treating non-comporable items as equal
@@ -62,11 +66,23 @@ posort = sortBy (flip fromPosetCmp)
                          NComp  -> EQ
 
 instance Poset GeniWarning where
+ -- 1. LexWarning
  leq (LexWarning _ w1) (LexWarning _ w2)  = leq w1 w2
- leq (MorphWarning w1) (MorphWarning w2)  = leq w1 w2
- leq (LexWarning _  _) _                  = True
- leq _ (MorphWarning _)                   = True
- leq _ _                                  = False 
+ leq (LexWarning _ _)  _                  = True
+ -- 2. CustomLexWarning
+ leq (CustomLexWarning _)  (LexWarning _ _)      = False
+ leq (CustomLexWarning w1) (CustomLexWarning w2) = leq w1 w2
+ leq (CustomLexWarning _)  _                     = True
+ -- 3. NoLexSelection
+ leq (NoLexSelection _) (LexWarning _ _)     = False
+ leq (NoLexSelection _) (CustomLexWarning _) = False
+ leq (NoLexSelection _) (NoLexSelection _)   = True
+ leq (NoLexSelection _) _                    = True
+ -- 4. MorphWarning
+ leq (MorphWarning _)  (LexWarning _ _)     = False
+ leq (MorphWarning _)  (CustomLexWarning _) = False
+ leq (MorphWarning _)  (NoLexSelection _)   = False
+ leq (MorphWarning w1) (MorphWarning w2)    = leq w1 w2
 
 instance Poset LexWarning where
  -- 1. LexCombineOneSchemaFailed
@@ -80,9 +96,6 @@ instance Poset LexWarning where
  leq (MissingCoanchors _ _) (LexCombineOneSchemaFailed _)            = False
  leq (MissingCoanchors _ _) LexCombineAllSchemataFailed              = False
  leq (MissingCoanchors _ _) _                                        = True
- -- 4. UnknownLexWarning
- leq (UnknownLexWarning w1) (UnknownLexWarning w2)                   = leq w1 w2
- leq (UnknownLexWarning _) _                                         = False
 
 instance Show GeniWarning where
   show = intercalate "\n" .  showGeniWarning
@@ -103,6 +116,7 @@ mergeWarning _ _ = Nothing
 -- | A warning may be displayed over several lines
 showGeniWarning :: GeniWarning -> [String]
 showGeniWarning (NoLexSelection ps) = [ "No lexical entries for literals: " ++ unwords (map showLiteral ps) ]
+showGeniWarning (CustomLexWarning w) = [w]
 showGeniWarning (LexWarning ls wa)  =
   do -- list monad
      let (msg, suffix) = showLexWarning wa
@@ -114,7 +128,6 @@ showGeniWarning (LexWarning ls wa)  =
      LexCombineAllSchemataFailed  -> ("Lexically selected but anchoring failed for *all* instances of", "")
      LexCombineOneSchemaFailed lc -> showLexCombineError lc
      MissingCoanchors co n        -> ("Expected co-anchor " ++ co ++ " is missing from " ++ show n ++ " schemata", "")
-     UnknownLexWarning l          -> (l,"")
   showWithFam (w, f) = showLexeme (fromFL w) ++ " (" ++ f ++ ")"
 showGeniWarning (MorphWarning ws) = map ("Morph: " ++) ws
 
