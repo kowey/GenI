@@ -276,7 +276,7 @@ instructionsOption =
       "instructions file FILE"
 
 macrosOption =
-  Option ['m'] ["macros"] (reqArg MacrosFlg id "FILE")
+  Option ['t','m'] ["trees","macros"] (reqArg MacrosFlg id "FILE")
       "tree schemata file FILE (unanchored trees)"
 
 lexiconOption =

@@ -18,9 +18,13 @@ because it falls into multiple categories.
 
 See [formats](formats.html) for details on how to write these files.
 
-macros
-  ~ The `macros` switch is used to supply GenI with FB-LTAG tree
-    schemata.
+trees
+  ~ The `trees` switch is used to supply GenI with FB-LTAG tree
+    schemata
+
+    *This used to be called “macros”, but I'm trying to deprecate
+    this because “tree schemata” is more standard TAG terminology
+    as far as I can tell. You'll likely see “macros” everywhere.*
 
 lexicon
   ~ The `lexicon` is used for lexical entries that point to the macros
