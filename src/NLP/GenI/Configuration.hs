@@ -42,6 +42,7 @@ module NLP.GenI.Configuration
   )
 where
 
+import Control.Applicative ( (<$>) )
 import Control.Arrow ( first )
 import Control.Monad ( liftM )
 import qualified Data.ByteString.Char8 as BC
@@ -55,6 +56,8 @@ import System.FilePath
 import System.IO ( stderr )
 import System.Log.Logger
 import System.Log.Handler.Simple
+import System.Log.Handler ( LogHandler, setFormatter )
+import System.Log.Formatter
 import Data.List  ( find, intersperse, nubBy )
 import qualified Data.Map as Map
 import Data.Maybe ( fromMaybe, isNothing, fromJust )
@@ -606,46 +609,63 @@ readGlobalConfig = do
   if hasCfg then Just `fmap` parseYamlFile globalCfg 
             else return Nothing
 
-setLoggers :: YamlLight -> IO ()
-setLoggers y = do
-   maybeIO (mapM_ update) (loggerConfig y)
- where
-   update lc = do
-     -- may be just for default logger
-     maybeIO (updateL (lcName lc)) (lcPriority lc)
-     -- only if an additional handler is specified
-     let fp = fromMaybe DEBUG (lcPriority lc)
-     maybeIO (updateH (lcName lc) fp) (lcHandler lc)
-   updateH m p x = do
-     h <- toAddHandler x p
-     updateGlobalLogger m h
-   updateL m x = updateGlobalLogger m (setLevel x)
-   maybeIO = maybe (return ())
-
-data LoggerConfig = LoggerConfig { lcName     :: String
-                                 , lcPriority :: Maybe Priority
-                                 , lcHandler  :: Maybe LogTo
+data LoggerConfig = LoggerConfig { lcName      :: String
+                                 , lcPriority  :: Priority
+                                 , lcHandler   :: LogTo
+                                 , lcFormatter :: LogFmt
                                  }
  deriving Show
 
 data LogTo = LogToFile FilePath | LogToErr
  deriving Show
 
-toAddHandler :: LogTo -> Priority -> IO (Logger -> Logger)
-toAddHandler (LogToFile f) p = addHandler `fmap` fileHandler f p
-toAddHandler LogToErr      p = addHandler `fmap` streamHandler stderr p
+data LogFmt = LogFmtNull | LogFmtSimple String
+ deriving Show
+
+logDefaultConfig :: String -> LoggerConfig
+logDefaultConfig n = LoggerConfig
+    { lcName      = n
+    , lcPriority  = DEBUG
+    , lcHandler   = LogToErr
+    , lcFormatter = LogFmtNull
+    }
+
+setLoggers :: YamlLight -> IO ()
+setLoggers y = do
+    mapM_ setGeniHandler $ fromMaybe [globalDefault] (loggerConfig y)
+  where
+    globalDefault = (logDefaultConfig "") { lcPriority = INFO }
+
+setGeniHandler :: LoggerConfig -> IO ()
+setGeniHandler lc = do
+    h <- flip setFormatter fmttr <$> handler (lcPriority lc)
+    updateGlobalLogger (lcName lc) (setHandlers [h])
+  where
+    handler = case lcHandler lc of
+                LogToFile f -> fileHandler f
+                LogToErr    -> streamHandler stderr
+    --
+    fmttr = case lcFormatter lc of
+              LogFmtSimple str -> simpleLogFormatter str
+              LogFmtNull       -> nullFormatter
 
 instance Read LogTo where
   readsPrec _ (dropPrefix "stderr"  -> ("", x)) = [ (LogToErr, x) ]
-  readsPrec p (dropPrefix "file"    -> ("", x)) = map (first LogToFile) $
-      case x of
-       (h:_) | isSpace h ->
-        case dropWhile isSpace x of
-         xs@('"':_)                                -> readsPrec p xs
-         (break isSpace -> y) | not (null (fst y)) -> [y]
-         _                                         -> []
-       _                                           -> []
+  readsPrec p (dropPrefix "file"    -> ("", x)) = map (first LogToFile) (readsQuotedStringPrec p x)
   readsPrec _ _ = []
+
+instance Read LogFmt where
+  readsPrec _ (dropPrefix "null"     -> ("", x)) = [ (LogFmtNull, x) ]
+  readsPrec p (dropPrefix "simple"   -> ("", x)) = map (first LogFmtSimple) (readsQuotedStringPrec p x)
+  readsPrec _ _ = []
+
+readsQuotedStringPrec :: Int -> String -> [ (String, String) ]
+readsQuotedStringPrec p x@(h:_) | isSpace h =
+    case dropWhile isSpace x of
+      xs@('"':_)                                -> readsPrec p xs
+      (break isSpace -> y) | not (null (fst y)) -> [y]
+      _                                         -> []
+readsQuotedStringPrec _ _                   = []
 
 loggerConfig :: YamlLight -> Maybe [LoggerConfig]
 loggerConfig yaml = lookupYL "logging" yaml
@@ -656,8 +676,11 @@ loggerConfig yaml = lookupYL "logging" yaml
    readOne :: Map.Map YamlLight YamlLight -> Maybe LoggerConfig 
    readOne m = do
      name <- get Just "name" m
-     return $ LoggerConfig name (get maybeRead "level"   m)
-                                (get maybeRead "handler" m)
+     return $ updater "level"   m (\x l -> l { lcPriority = x })
+            . updater "handler" m (\x l -> l { lcHandler  = x })
+            . updater "format"  m (\x l -> l { lcFormatter = x })
+            $ logDefaultConfig name
+   updater str m fn = maybe id fn (get maybeRead str m)
    get f x m = Map.lookup x m >>= unStr >>= (f . BC.unpack)
 
 instance IsString YamlLight where
