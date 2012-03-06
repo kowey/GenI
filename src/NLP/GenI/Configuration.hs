@@ -47,7 +47,7 @@ import Control.Arrow ( first )
 import Control.Monad ( liftM )
 import qualified Data.ByteString.Char8 as BC
 import Data.Char ( toLower, isSpace )
-import Data.Maybe ( mapMaybe, isJust )
+import Data.Maybe ( isJust, listToMaybe, mapMaybe )
 import Data.Typeable ( Typeable )
 import System.Console.GetOpt
 import System.Directory ( getAppUserDataDirectory, doesFileExist )
@@ -573,7 +573,15 @@ processInstructions config = do
                       Nothing -> return fakeInstructions
                       Just f  -> instructionsFile `fmap` readFile f
     let updateInstructions = setFlagP TestInstructionsFlg instructions
-    return (updateInstructions config)
+        -- we have to set a test suite in case the user only supplies
+        -- an instructions argument so that NLP.GenI.loadEverything
+        -- knows that the user has given us a suite to load
+        updateTestSuite p =
+          if hasFlagP TestSuiteFlg p then p
+             else case (fst `fmap` listToMaybe instructions) of
+                   Just s  -> setFlagP TestSuiteFlg s p
+                   Nothing -> p
+    return . updateTestSuite . updateInstructions $ config
   where
     fakeInstructions :: [Instruction]
     fakeInstructions =
