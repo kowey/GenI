@@ -18,6 +18,7 @@
 -- | The console user interface including batch processing on entire
 --   test suites.
 
+{-# LANGUAGE DeriveDataTypeable #-}
 module NLP.GenI.Console(consoleGeni) where
 
 import Control.Applicative ( pure, (<$>) )
@@ -26,6 +27,8 @@ import Data.IORef(readIORef, modifyIORef)
 import Data.List ( partition )
 import Data.Maybe ( fromMaybe, isJust )
 import Data.Time ( getCurrentTime, formatTime )
+import Data.Typeable
+import System.Log.Logger
 import System.Locale ( defaultTimeLocale, iso8601DateFormat )
 import System.Directory( createDirectoryIfMissing, getTemporaryDirectory )
 import System.Exit ( exitWith, exitFailure, ExitCode(..) )
@@ -46,6 +49,7 @@ import NLP.GenI.Configuration
   , hasFlagP, getListFlagP, getFlagP, setFlagP
   , builderType , BuilderType(..)
   )
+import NLP.GenI.General ( mkLogname )
 import NLP.GenI.Semantics ( SemInput )
 import NLP.GenI.Simple.SimpleBuilder
 import NLP.GenI.Statistics ( Statistics )
@@ -103,6 +107,7 @@ runInstructions pstRef =
        if any (null . tcName) suite
           then    fail $ "Can't do batch processing. The test suite " ++ file ++ " has cases with no name."
           else do ePutStrLn "Batch processing mode"
+                  debugM logname (show $ length suite)
                   mapM_ (runCase bsubdir) suite
   runCase bdir (TestCase { tcName = n, tcSem = s }) =
    do config <- pa `fmap` readIORef pstRef
@@ -125,11 +130,13 @@ runInstructions pstRef =
 --   how testsuite, testcase, and instructions are expected to interact
 loadNextSuite :: ProgStateRef -> (FilePath, Maybe [String]) -> IO [TestCase]
 loadNextSuite pstRef (file, mtcs) = do
+    debugM logname $ "Loading next test suite: " ++ file
+    debugM logname $ "Test case filter: " ++ maybe "none" (\xs -> show (length xs) ++ " items") mtcs
     modifyIORef pstRef $ \p -> p { pa = setFlagP TestSuiteFlg file (pa p) } -- yucky statefulness! :-(
     config <- pa `fmap` readIORef pstRef
-    fullsuite <- loadTestSuite pstRef
     let mspecific = getFlagP TestCaseFlg config
-    debugM logname (show mspecific)
+    debugM logname $ "Test case to pick out: " ++ fromMaybe "none"  mspecific
+    fullsuite <- loadTestSuite pstRef
     return (filterSuite mtcs mspecific fullsuite)
   where
     filterSuite _         (Just c) suite = filter (\t -> tcName t == c) suite
@@ -211,3 +218,11 @@ writeResults pst args semInput results stats warningsOut = do
 
 ppJSON :: JSON a => a -> String
 ppJSON = render . pp_value . showJSON
+
+-- ----------------------------------------------------------------------
+-- Odds and ends
+-- ----------------------------------------------------------------------
+
+data MNAME = MNAME deriving Typeable
+logname :: String
+logname = mkLogname MNAME
