@@ -20,6 +20,7 @@
 --   to replace these functions with versions that are available in the standard
 --   libraries, or the Haskell platform ones, or on hackage.
 
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 module NLP.GenI.General (
         -- * IO
