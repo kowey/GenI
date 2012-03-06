@@ -31,7 +31,7 @@ import NLP.GenI.Configuration (treatArgs, optionsForStandardGenI, processInstruc
                                usage, optionsSections,
                                hasFlagP, BatchDirFlg(..),
                                DumpDerivationFlg(..),  FromStdinFlg(..),
-                               HelpFlg(..), VersionFlg(..), TestCaseFlg(..),
+                               HelpFlg(..), VersionFlg(..),
                                readGlobalConfig, setLoggers
                               )
 import NLP.GenI ( ProgState(..) )
@@ -51,7 +51,6 @@ mainWithState pst = do
   let has :: (Typeable f, Typeable x) => (x -> f) -> Bool
       has = flip hasFlagP (pa pst)
       mustRunInConsole = has DumpDerivationFlg || has FromStdinFlg || has BatchDirFlg
-      canRunInConsole  = has TestCaseFlg
   case () of
    _ | has HelpFlg               -> putStrLn (usage optionsSections pname)
      | has VersionFlg            -> putStrLn ("GenI " ++ showVersion version)
