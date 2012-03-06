@@ -625,9 +625,16 @@ logDefaultConfig n = LoggerConfig
 
 setLoggers :: YamlLight -> IO ()
 setLoggers y = do
+    -- it seems we need to explicitly create the root logger
+    -- we set this to the lowest priority because we want the user to
+    -- be able to set the priority on their loggers as low as they want 
+    updateGlobalLogger "" $ setLevel DEBUG
+                          . setHandlers noHandlers
     mapM_ setGeniHandler $ fromMaybe [globalDefault] (loggerConfig y)
   where
-    globalDefault = (logDefaultConfig "") { lcPriority = INFO }
+    noHandlers :: [GenericHandler ()]
+    noHandlers = []
+    globalDefault = (logDefaultConfig "NLP.GenI") { lcPriority = INFO }
 
 setGeniHandler :: LoggerConfig -> IO ()
 setGeniHandler lc = do
@@ -668,7 +675,7 @@ loggerConfig yaml = lookupYL "logging" yaml
  where
    readOne :: Map.Map YamlLight YamlLight -> Maybe LoggerConfig 
    readOne m = do
-     name <- get Just "name" m
+     let name = fromMaybe "NLP.GenI" (get Just "name" m)
      return $ updater "level"   m (\x l -> l { lcPriority = x })
             . updater "handler" m (\x l -> l { lcHandler  = x })
             . updater "format"  m (\x l -> l { lcFormatter = x })
