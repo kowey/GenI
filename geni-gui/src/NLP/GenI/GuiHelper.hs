@@ -75,7 +75,9 @@ candidateGui :: ProgState
              -> [TagElem]
              -> GvIO () (GvItem Bool TagElem)
 candidateGui pst f xs = do
-  p  <- panel f []      
+  pouter <- panel f []
+  split  <- splitterWindow pouter []
+  p  <- panel split []
   (tb,gvRef,updater) <- tagViewerGui pst p "lexically selected item" "candidates"
                         $ sectionsBySem xs
   let polFeats = "Polarity attributes detected: " ++ (T.unpack . T.unwords .suggestPolFeatures) xs
@@ -117,11 +119,9 @@ candidateGui pst f xs = do
     updateTrace gvSt
   --
   let layMain = fill $ row 2 [ fill tb, vfill laySide ]
-  theItems <- if null warning
-                 then return [ layMain ]
-                 else do warningTxt <- textCtrl p [ text := warning ]
-                         return [ hfill (widget warningTxt), layMain ]
-  let lay  = fill $ container p $ column 5 theItems
+  warningTxt <- textCtrl split [ text := warning ]
+  let lay = fill . container pouter
+          $ fill $ hsplit split 25 200 (widget warningTxt) (container p layMain)
   return (lay, gvRef, updater)
 
 sectionsBySem :: (TagItem t) => [t] -> [GvItem Bool t]
