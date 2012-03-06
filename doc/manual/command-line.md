@@ -136,12 +136,11 @@ instructions
 
     Interaction with `--testsuite` and `--testcase`:
 
-    -   If only `--instructions` is set, then the first test suite and
-        or test case from the instructions file is used.
+    -   If only `--instructions` is set, we use that
 
-    -   If only `--testsuite` and `--testcase` are set, we pretend that
+    -   If only `--testsuite` is set, we pretend that
         an instructions file was supplied saying that we want to run the
-        entirety of the test suite specified in `--testsuite`.
+        that suite (or a specific case if `--testcase` is given too)
 
     -   If both `--instructions` and `--testsuite`/ `--testcase` are set
         then the latter are used to select from within the instructions.

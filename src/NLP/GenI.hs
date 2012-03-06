@@ -93,7 +93,7 @@ import NLP.GenI.Tags (TagElem,
 import NLP.GenI.Configuration
   ( Params, customMorph, customSelector
   , getFlagP, hasFlagP, hasOpt, Optimisation(NoConstraints)
-  , MacrosFlg(..), LexiconFlg(..), TestSuiteFlg(..), TestCaseFlg(..)
+  , MacrosFlg(..), LexiconFlg(..), TestSuiteFlg(..)
   , MorphInfoFlg(..), MorphCmdFlg(..)
   , RankingConstraintsFlg(..)
   , PartialFlg(..)
@@ -148,10 +148,6 @@ data ProgState = ProgState
                     --   the semantics
                     --   (you may instead be looking for 'NLP.GenI.Configuration.customMorph')
                     morphinf :: MorphInputFn,
-                    -- | names of test case to run
-                    tcase    :: String, 
-                    -- | name, original string (for gui), sem
-                    tsuite   :: [TestCase],
                     -- | OT constraints (optional)
                     ranking  :: OtRanking,
                     -- | simplified traces (optional)
@@ -192,8 +188,6 @@ emptyProgState args = ProgState
     , gr = []
     , le = []
     , morphinf = const Nothing
-    , tcase = []
-    , tsuite = []
     , traces = []
     , ranking = []
     , local   = emptyLocal
@@ -414,15 +408,13 @@ instance Loadable TestSuiteL where
            , tcSemString = str }
     first3 g (x, y, z) = (g x, y, z)
  --
- lSet (TestSuiteL x) p = p { tsuite = x }
+ lSet (TestSuiteL _) p = p
  lSummarise (TestSuiteL x) = show (length x) ++ " cases"
 
--- | Stores the results in the tcase and tsuite fields
+-- |
 loadTestSuite :: ProgStateRef -> IO [TestCase]
 loadTestSuite pstRef = do
   TestSuiteL xs <- loadOrDie (L :: L TestSuiteL) TestSuiteFlg "test suite" pstRef
-  mtc <- (getFlagP TestCaseFlg . pa) `fmap` readIORef pstRef
-  modifyIORef pstRef (\p -> p { tcase = fromMaybe "" mtc })
   return xs
 
 -- Sometimes, the target semantics does not come from a file, but from

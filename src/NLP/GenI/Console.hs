@@ -24,7 +24,7 @@ import Control.Applicative ( pure, (<$>) )
 import Control.Monad
 import Data.IORef(readIORef, modifyIORef)
 import Data.List ( partition )
-import Data.Maybe ( isJust )
+import Data.Maybe ( fromMaybe, isJust )
 import Data.Time ( getCurrentTime, formatTime )
 import System.Locale ( defaultTimeLocale, iso8601DateFormat )
 import System.Directory( createDirectoryIfMissing, getTemporaryDirectory )
@@ -95,18 +95,12 @@ runInstructions pstRef =
   runBatch bdir =
     do config <- pa `fmap` readIORef pstRef
        mapM_ (runSuite bdir) $ getListFlagP TestInstructionsFlg config
-  runSuite bdir (file, mtcs) =
-    do modifyIORef pstRef $ \p -> p { pa = setFlagP TestSuiteFlg file (pa p) }
-       config <- pa `fmap` readIORef pstRef
+  runSuite bdir next@(file, _) =
+    do suite  <- loadNextSuite pstRef next
        -- we assume the that the suites have unique filenames
        let bsubdir = bdir </> takeFileName file
        createDirectoryIfMissing True bsubdir
-       fullsuite <- loadTestSuite pstRef
-       let suite = case (mtcs, getFlagP TestCaseFlg config) of
-                    (_, Just c) -> filter (\t -> tcName t == c) fullsuite
-                    (Nothing,_) -> fullsuite
-                    (Just cs,_) -> filter (\t -> tcName t `elem` cs) fullsuite
-       if any null $ map tcName suite
+       if any (null . tcName) suite
           then    fail $ "Can't do batch processing. The test suite " ++ file ++ " has cases with no name."
           else do ePutStrLn "Batch processing mode"
                   mapM_ (runCase bsubdir) suite
@@ -124,6 +118,23 @@ runInstructions pstRef =
         ePutStrLn $ "Exiting early because test case " ++ n ++ " failed."
         exitFailure
 
+-- | Used in processing instructions files. Each instruction consists of a
+--   suite file and a list of test case names from that file
+--
+--   See <http://projects.haskell.org/GenI/manual/command-line.html> for
+--   how testsuite, testcase, and instructions are expected to interact
+loadNextSuite :: ProgStateRef -> (FilePath, Maybe [String]) -> IO [TestCase]
+loadNextSuite pstRef (file, mtcs) = do
+    modifyIORef pstRef $ \p -> p { pa = setFlagP TestSuiteFlg file (pa p) } -- yucky statefulness! :-(
+    config <- pa `fmap` readIORef pstRef
+    fullsuite <- loadTestSuite pstRef
+    let mspecific = getFlagP TestCaseFlg config
+    debugM logname (show mspecific)
+    return (filterSuite mtcs mspecific fullsuite)
+  where
+    filterSuite _         (Just c) suite = filter (\t -> tcName t == c) suite
+    filterSuite Nothing   Nothing  suite = suite
+    filterSuite (Just cs) Nothing  suite = filter (\t -> tcName t `elem` cs) suite
 
 data RunAs = Standalone  FilePath FilePath
            | PartOfSuite String FilePath

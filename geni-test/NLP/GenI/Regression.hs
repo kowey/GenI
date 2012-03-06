@@ -86,7 +86,10 @@ genSuite mkCase name xs = do
   let pst = emptyProgState (noGui confArgs)
   pstRef <- newIORef pst
   loadEverything pstRef
-  suite <- tsuite <$> readIORef pstRef
+  suite <- case getListFlagP TestInstructionsFlg confArgs of
+             []  -> error "NLP.GenI.Regression: not expecting empty instructions"
+             [x] -> fst x
+             xs  -> error "NLP.GenI.Regression: not expecting multiple instructions"
   return . testGroup name $ map (mkCase pstRef) suite
 
 

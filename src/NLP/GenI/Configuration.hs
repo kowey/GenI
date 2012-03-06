@@ -42,12 +42,12 @@ module NLP.GenI.Configuration
   )
 where
 
-import Control.Applicative ( (<$>) )
+import Control.Applicative ( (<$>), pure )
 import Control.Arrow ( first )
 import Control.Monad ( liftM )
 import qualified Data.ByteString.Char8 as BC
 import Data.Char ( toLower, isSpace )
-import Data.Maybe ( listToMaybe, mapMaybe, isJust )
+import Data.Maybe ( mapMaybe, isJust )
 import Data.Typeable ( Typeable )
 import System.Console.GetOpt
 import System.Directory ( getAppUserDataDirectory, doesFileExist )
@@ -560,33 +560,26 @@ morphInfoOption = Option [] ["morphinfo"] (reqArg MorphInfoFlg id "FILE")
 
 -- | Update the internal instructions list, test suite and case
 --   according to the contents of an instructions file.
+--
+--   Basic approach
+--
+--   * we always have instructions: if no instructions file, is specified
+--     we infer virtual instructions from the test suite flag
+--   * the testsuite and testcase flags are focusing tools, they pick out
+--     a subset from the instructions
 processInstructions :: Params -> IO Params
-processInstructions config =
- do instructions <- case getFlagP InstructionsFileFlg config of
+processInstructions config = do
+    instructions <- case getFlagP InstructionsFileFlg config of
                       Nothing -> return fakeInstructions
                       Just f  -> instructionsFile `fmap` readFile f
-    -- basically set the test suite/case flag to the first instruction
-    -- note that with the above code (which sets the first instruction
-    -- to the test suite/case flag), this should work out to identity
-    -- when those flags are provided.
-    let updateInstructions =
-          setFlagP TestInstructionsFlg instructions
-        updateTestCase p =
-          if hasFlagP TestCaseFlg p then p
-             else case (listToMaybe instructions >>= snd >>= listToMaybe) of
-                   Just c   -> setFlagP TestCaseFlg c p 
-                   Nothing  -> p
-        updateTestSuite p =
-          if hasFlagP TestSuiteFlg p then p
-             else case (fst `fmap` listToMaybe instructions) of
-                   Just s  -> setFlagP TestSuiteFlg s p
-                   Nothing -> p
-    return . updateInstructions . updateTestSuite . updateTestCase $ config
- where
-  fakeInstructions =
-     case getFlagP TestSuiteFlg config of
-       Just ts -> [ (ts, Nothing) ]
-       Nothing -> []
+    let updateInstructions = setFlagP TestInstructionsFlg instructions
+    return (updateInstructions config)
+  where
+    fakeInstructions :: [Instruction]
+    fakeInstructions =
+         let cases = singleton <$> getFlagP TestCaseFlg config
+             mkInstr xs = singleton (xs, cases)
+         in maybe [] mkInstr $ getFlagP TestSuiteFlg config
 
 instructionsFile :: String -> [Instruction]
 instructionsFile = mapMaybe inst . lines
@@ -685,6 +678,13 @@ loggerConfig yaml = lookupYL "logging" yaml
 
 instance IsString YamlLight where
   fromString = YStr . fromString
+
+-- ----------------------------------------------------------------------
+--
+-- ----------------------------------------------------------------------
+
+singleton :: a -> [a]
+singleton = pure
 
 maybeRead :: Read a => String -> Maybe a
 maybeRead s = case reads s of

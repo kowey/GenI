@@ -62,6 +62,7 @@ import NLP.GenI.Configuration
   , OptimisationsFlg(..)
   , RankingConstraintsFlg(..)
   , RootFeatureFlg(..)
+  , TestCaseFlg(..)
   , TestSuiteFlg(..)
   , TestInstructionsFlg(..)
   , ViewCmdFlg(..)
@@ -238,7 +239,7 @@ mainOnLoad pstRef (MainWidgets {..}) = do
                sel <- get testSuiteChoice selection
                case Map.lookup sel imap of
                  Nothing -> geniBug $ "No such index in test suite selector (gui): " ++ show sel
-                 Just t  -> loadTestSuiteAndRefresh f pstRef t tsTextBox testCaseChoice
+                 Just t  -> loadTestSuiteAndRefresh f pstRef t (tsTextBox, testCaseChoice)
          set testSuiteChoice [ enabled := True, items := map fst is
                              , on select := onTestSuiteChoice, selection := 0 ]
          set testCaseChoice  [ enabled := True ]
@@ -303,23 +304,42 @@ optCheckBoxHelper idOrNot o pstRef f as =
 --   This is used when you first start the graphical interface
 --   or when you run the configuration menu.
 loadTestSuiteAndRefresh :: (Textual a, Selecting b, Selection b, Items b String) 
-              => Window w -> ProgStateRef -> Instruction -> a -> b -> IO ()
-loadTestSuiteAndRefresh f pstRef (suitePath,mcs) tsBox caseChoice =
-  do (loadTestSuite pstRef >> return ())
-       `catch` (\(e :: SomeException) -> errorDialog f ("Error reading test suite " ++ suitePath) (show e))
-     pst <- readIORef pstRef
-     let suite   = tsuite pst
-         theCase = tcase pst
-         suiteCases = case filter (\c -> tcName c `elem` cs) suite of
+              => Window w
+              -> ProgStateRef
+              -> Instruction
+              -> (a, b) -- ^ test suite text and case selector widgets
+              -> IO ()
+loadTestSuiteAndRefresh f pstRef (suitePath,mcs) widgets = do
+    pst    <- readIORef pstRef
+    msuite <- try (loadTestSuite pstRef)
+    let mcase = getFlagP TestCaseFlg (pa pst)
+    case msuite of
+      Left e  -> errorDialog f ("Error reading test suite " ++ suitePath) $ show (e :: SomeException)
+      Right s -> onTestSuiteLoaded f s mcs mcase widgets
+
+-- | Helper for 'loadTestSuiteAndRefresh'
+onTestSuiteLoaded :: (Textual a, Selecting b, Selection b, Items b String)
+                  => Window w
+                  -> [TestCase]     -- ^ loaded suite
+                  -> Maybe [String] -- ^ subset of test cases to select (instructions)
+                  -> Maybe String   -- ^ particular test case to focus on
+                  -> (a, b) -- ^ test suite text and case selector widgets
+                  -> IO ()
+onTestSuiteLoaded f suite mcs mcase (tsBox, caseChoice) = do
+     -- if the instructions specify a set of cases, we hide the cases that aren't mentioned
+     let suiteCases = case filter (\c -> tcName c `elem` cs) suite of
                        []  -> suite
                        res -> res
            where cs = fromMaybe [] mcs
          suiteCaseNames = map tcName suiteCases
+         theCase = case mcase of
+                     Just c | c `elem` suiteCaseNames -> c
+                     _                                -> ""
      -- we number the cases for easy identification, putting 
      -- a star to highlight the selected test case (if available)
      let numfn :: Int -> String -> String
          numfn n t = (if t == theCase then "* " else "")
-                      ++ (show n) ++ ". " ++ t
+                      ++ show n ++ ". " ++ t
          tcaseLabels = zipWith numfn [1..] suiteCaseNames
      -- we select the first case in cases_, if available
      caseSel <- if null theCase
@@ -345,7 +365,7 @@ loadTestSuiteAndRefresh f pstRef (suitePath,mcs) tsBox caseChoice =
                   , selection := caseSel
                   , on select := onTestCaseChoice ]
      when (not $ null suite) onTestCaseChoice -- run this once
- 
+
 -- --------------------------------------------------------------------
 -- Configuration
 -- --------------------------------------------------------------------
