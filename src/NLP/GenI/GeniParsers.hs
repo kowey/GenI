@@ -43,7 +43,7 @@ import NLP.GenI.Lexicon ( mkFullILexEntry, ILexEntry(..) )
 import NLP.GenI.Semantics ( Literal(..), Sem, sortSem, LitConstr, SemInput )
 import NLP.GenI.Tags (TagElem(..), setTidnums)
 import NLP.GenI.TestSuite ( TestCase(..) )
-import NLP.GenI.TreeSchemata (SchemaTree(..), Ttree(..), Ptype(..), GNode(..), GType(..) )
+import NLP.GenI.TreeSchemata (SchemaTree, Ttree(..), Ptype(..), GNode(..), GType(..) )
 
 import BoolExp
 import Data.FullList ( FullList, Listable(..) )
