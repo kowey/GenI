@@ -18,13 +18,13 @@
 -- | The console user interface including batch processing on entire
 --   test suites.
 
-module NLP.GenI.Console(consoleGeni, runTestCaseOnly) where
+module NLP.GenI.Console(consoleGeni) where
 
 import Control.Applicative ( pure, (<$>) )
 import Control.Monad
 import Data.IORef(readIORef, modifyIORef)
-import Data.List(partition, find)
-import Data.Maybe ( isJust, fromMaybe )
+import Data.List ( partition )
+import Data.Maybe ( isJust )
 import Data.Time ( getCurrentTime, formatTime )
 import System.Locale ( defaultTimeLocale, iso8601DateFormat )
 import System.Directory( createDirectoryIfMissing, getTemporaryDirectory )
@@ -39,8 +39,8 @@ import NLP.GenI
 import NLP.GenI.GeniShow
 import NLP.GenI.Configuration
   ( Params
-  , BatchDirFlg(..), DumpDerivationFlg(..), EarlyDeathFlg(..), FromStdinFlg(..), OutputFileFlg(..)
-  , MetricsFlg(..), RankingConstraintsFlg(..), StatsFileFlg(..)
+  , BatchDirFlg(..), DumpDerivationFlg(..), EarlyDeathFlg(..)
+  , MetricsFlg(..), RankingConstraintsFlg(..)
   , TestCaseFlg(..), TestSuiteFlg(..), TestInstructionsFlg(..)
   , TimeoutFlg(..),  VerboseModeFlg(..)
   , hasFlagP, getListFlagP, getFlagP, setFlagP
@@ -124,30 +124,6 @@ runInstructions pstRef =
         ePutStrLn $ "Exiting early because test case " ++ n ++ " failed."
         exitFailure
 
--- | Run the specified test case, or failing that, the first test
---   case in the suite
-runTestCaseOnly :: ProgStateRef -> IO ([GeniResult], Statistics)
-runTestCaseOnly pstRef =
- do pst <- readIORef pstRef
-    let config     = pa pst
-        pstOutfile = fromMaybe "" $ getFlagP OutputFileFlg config
-        sFile      = fromMaybe "" $ getFlagP StatsFileFlg  config
-    semInput <- case getFlagP TestCaseFlg config of
-                   Nothing -> if hasFlagP FromStdinFlg config
-                                 then do getContents >>= loadTargetSemStr pstRef
-                                         (ts . local) `fmap` readIORef pstRef
-                                 else getFirstCase pst
-                   Just c  -> findCase pst c
-    runOnSemInput pstRef (Standalone pstOutfile sFile) semInput
- where
-  getFirstCase pst =
-    case tsuite pst of
-    []    -> fail "Test suite is empty."
-    (c:_) -> return $ tcSem c
-  findCase pst theCase =
-    case find (\x -> tcName x == theCase) (tsuite pst) of
-    Nothing -> fail ("No such test case: " ++ theCase)
-    Just s  -> return $ tcSem s
 
 data RunAs = Standalone  FilePath FilePath
            | PartOfSuite String FilePath
