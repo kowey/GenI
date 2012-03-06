@@ -1,13 +1,12 @@
 Requirements
 ------------
- * GHC 6.8 or 6.10
- * libgmp (for ghc)
+ * Haskell Platform 2011.3.0.0
 
 GUI requirements
 ----------------
 Only needed if you want the graphical interface:
  * wxWidgets 2.8
- * wxHaskell 0.11
+ * wxHaskell
  * Graphviz
 
 Building GenI
@@ -15,7 +14,7 @@ Building GenI
 1. obtain cabal-install
 2. run: cabal install
 3. if you want the graphical interface, try
-    cabal install -fgui
+    cabal install ./geni-gui
    but ONLY AFTER you succeed in installing the text version :-)
 
-For more details, see http://trac.haskell.org/GenI
+For more details, see http://projects.haskell.org/GenI

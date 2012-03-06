@@ -1,24 +1,27 @@
-documentation
+Documentation
 -------------
-make doc # (pdflatex and haddock are needed)
-
 1. users manual: 
-     http://wiki.loria.fr/wiki/GenI
-2. semi-literate source code: 
-     doc/genidoc.pdf 
-3. API: 
-     doc/api/index.html
+     http://projects.haskell.org/GenI/manual
+2. API:
+     http://projects.haskell.org/GenI/api-doc
 
-installing GenI
+Installing GenI
 ---------------
-(tested on Linux and MacOs X)
+(tested on Linux, Windows, and MacOS X)
 
-see INSTALL for details
+see INSTALL for details (should just be cabal install)
 
-assuming everything above is installed correctly,
-it should possible to just make
+Development
+-----------
+The code style has evolved a lot.  Sorry for the inconsistency.
+As of 2012-05-06, I'm trying to move to a published style guide
+so I can stop thinking about it
 
-contact us!
+  https://github.com/tibbe/haskell-style-guide
+
+But the code will take a long time to catch up
+
+Contact us!
 -----------
 Please let us know if you are using GenI; we'd like to hear about your
 experiences, both positive and negative.
