@@ -19,12 +19,13 @@
 --   test suites.
 
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE PatternGuards #-}
 module NLP.GenI.Console(consoleGeni) where
 
 import Control.Applicative ( pure, (<$>) )
 import Control.Monad
 import Data.IORef(readIORef, modifyIORef)
-import Data.List ( partition )
+import Data.List ( find, partition )
 import Data.Maybe ( fromMaybe, isJust )
 import Data.Time ( getCurrentTime, formatTime )
 import Data.Typeable
@@ -45,6 +46,7 @@ import NLP.GenI.Configuration
   , BatchDirFlg(..), DumpDerivationFlg(..), EarlyDeathFlg(..)
   , MetricsFlg(..), RankingConstraintsFlg(..)
   , TestCaseFlg(..), TestSuiteFlg(..), TestInstructionsFlg(..)
+  , FromStdinFlg(..), OutputFileFlg(..), StatsFileFlg(..)
   , TimeoutFlg(..),  VerboseModeFlg(..)
   , hasFlagP, getListFlagP, getFlagP, setFlagP
   , builderType , BuilderType(..)
@@ -61,17 +63,44 @@ import Text.JSON.Pretty ( render, pp_value )
 
 consoleGeni :: ProgStateRef -> IO()
 consoleGeni pstRef = do
-  pst <- readIORef pstRef
-  loadEverything pstRef
-  let job = runInstructions pstRef
-  case getFlagP TimeoutFlg (pa pst) of
-    Nothing -> job
-    Just t  -> do
-     status <- timeout (fromIntegral t * 1000000) job
-     case status of
-        Just () -> return ()
-        Nothing -> do ePutStrLn $ "GenI timed out after " ++ show t ++ "s"
-                      exitWith (ExitFailure 2)
+    config <- pa <$> readIORef pstRef
+    loadEverything pstRef
+    let job | hasFlagP FromStdinFlg config           = runStdinTestCase pstRef
+            | hasFlagP BatchDirFlg config            = runInstructions pstRef -- even if there is a testcase
+            | Just tc <- getFlagP TestCaseFlg config = runSpecificTestCase pstRef tc
+            | otherwise                              = runInstructions pstRef
+    case getFlagP TimeoutFlg config of
+      Nothing -> job
+      Just t  -> withGeniTimeOut t job
+
+withGeniTimeOut :: Int -- ^ seconds
+                -> IO ()
+                -> IO ()
+withGeniTimeOut t job = do
+    status <- timeout (fromIntegral t * 1000000) job
+    case status of
+      Just () -> return ()
+      Nothing -> do
+          ePutStrLn $ "GenI timed out after " ++ show t ++ "s"
+          exitWith (ExitFailure 2)
+
+-- | Run GenI without reading any test suites, just grab semantics from stdin
+runStdinTestCase :: ProgStateRef -> IO ()
+runStdinTestCase pstRef = do
+    config   <- pa <$> readIORef pstRef
+    loadTargetSemStr pstRef =<< getContents
+    semInput <- (ts . local) <$> readIORef pstRef -- TODO: want less stateful approach
+    _ <- runOnSemInput pstRef (runAsStandalone config) semInput
+    return ()
+
+-- | Run a test case with the specified name
+runSpecificTestCase :: ProgStateRef -> String -> IO ()
+runSpecificTestCase pstRef cname = do
+    config <- pa <$> readIORef pstRef
+    fullsuite <- loadTestSuite pstRef
+    case find (\x -> tcName x == cname) fullsuite  of
+      Nothing -> fail ("No such test case: " ++ cname)
+      Just s  -> runOnSemInput pstRef (runAsStandalone config) (tcSem s) >> return ()
 
 -- | Runs the tests specified in our instructions list.
 --   We assume that the grammar and lexicon are already
@@ -144,6 +173,11 @@ loadNextSuite pstRef (file, mtcs) = do
 
 data RunAs = Standalone  FilePath FilePath
            | PartOfSuite String FilePath
+
+runAsStandalone :: Params -> RunAs
+runAsStandalone config =
+    Standalone (fromMaybe "" $ getFlagP OutputFileFlg config)
+               (fromMaybe "" $ getFlagP StatsFileFlg config)
 
 -- | Runs a case in the test suite.  If the user does not specify any test
 --   cases, we run the first one.  If the user specifies a non-existing

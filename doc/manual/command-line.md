@@ -123,6 +123,14 @@ morphinfo
 
 ## Scripting GenI
 
+testcase
+  ~ - CLI: Run only the specified test case from the suite and dump the results
+
+    - GUI: Focus on the specified test case
+
+from-stdin
+  ~ Takes semantic input from stdin (no testsuite needed!)
+
 instructions
   ~ An instructions file can be used to run GenI on a list of test
     suites and cases.
@@ -134,7 +142,7 @@ instructions
     test suite. Also, the `%` character and anything after is treated as
     a comment.
 
-    Interaction with `--testsuite` and `--testcase`:
+    Interaction with `--testsuite` and `--testcase` (batch mode and GUI):
 
     -   If only `--instructions` is set, we use that
 
