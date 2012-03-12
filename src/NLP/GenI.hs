@@ -617,7 +617,7 @@ finaliseResults pstRef (ty, status, os) =
                       B.Error str -> [GeniError [str]]
                       B.Finished  -> []
                       B.Active    -> []
-    mapM_ (addWarning pstRef) $ map (MorphWarning . moWarnings) mss
+    mapM_ (addWarning pstRef) [ MorphWarning ws | ws <- map moWarnings mss, not (null ws) ]
     return (map GError failures ++ map GSuccess successes)
  where
   sentences = map snd3 os
