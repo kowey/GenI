@@ -49,13 +49,13 @@ data GeniWarning = -- | A warning that should be repeated for each lexical entry
                  | NoLexSelection         [Literal]
                    -- | Warnings from the morphological realiser
                  | MorphWarning           [String]
-  deriving Eq
+  deriving (Show, Eq)
 
 
 data LexWarning = LexCombineAllSchemataFailed
                 | LexCombineOneSchemaFailed   LexCombineError
                 | MissingCoanchors            String Int
-  deriving Eq
+  deriving (Show, Eq)
 
 -- | Sort, treating non-comporable items as equal
 posort :: Poset a => [a] -> [a]
@@ -95,9 +95,6 @@ instance Poset LexWarning where
  leq (MissingCoanchors _ n1) (MissingCoanchors _ n2)                 = leq n1 n2
  leq (MissingCoanchors _ _) (LexCombineOneSchemaFailed _)            = False
  leq (MissingCoanchors _ _) LexCombineAllSchemataFailed              = False
-
-instance Show GeniWarning where
-  show = intercalate "\n" .  showGeniWarning
 
 sortWarnings :: GeniWarnings -> GeniWarnings
 sortWarnings (GeniWarnings ws) = GeniWarnings (posort ws)
