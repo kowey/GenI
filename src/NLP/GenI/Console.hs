@@ -107,7 +107,6 @@ runInstructions pstRef =
        if any (null . tcName) suite
           then    fail $ "Can't do batch processing. The test suite " ++ file ++ " has cases with no name."
           else do ePutStrLn "Batch processing mode"
-                  debugM logname (show $ length suite)
                   mapM_ (runCase bsubdir) suite
   runCase bdir (TestCase { tcName = n, tcSem = s }) =
    do config <- pa `fmap` readIORef pstRef
