@@ -17,7 +17,6 @@ Library
                , bytestring >= 0.9
                , cmdargs >= 0.7
                , conduit == 0.2.*
-               , enumerator == 0.4.*
                , http-types == 0.6.*
                , json >= 0.4.3 && < 0.6
                , transformers

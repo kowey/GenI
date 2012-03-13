@@ -31,13 +31,11 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TL
 import qualified Data.ByteString.Lazy as B
 import Network.Wai
-import Network.HTTP.Types (statusOK, status400, Header, Ascii)
-import qualified Data.Enumerator.Binary as EB
+import Network.HTTP.Types (status200, status400, Header, Ascii)
 import qualified Text.JSON as J
 import qualified Text.JSON.Pretty as J
 
 import NLP.GenI.Configuration
-import NLP.GenI.General (fst3)
 import NLP.GenI
 import NLP.GenI.Simple.SimpleBuilder
 import NLP.GenI.GeniParsers ( ParseError )
@@ -80,8 +78,8 @@ application pst req = do
 
 -- TODO: what to do about the warnings?
 ok :: GenReq -> GeniResults -> Response
-ok Dump   j = responseLBS statusOK  [contentType "application/json"] $ encodeB $ prettyEncode (grResults j)
-ok Normal j = responseLBS statusOK  [contentType "text/plain"]       $ encodeB $ showResults (grResults j)
+ok Dump   j = responseLBS status200  [contentType "application/json"] $ encodeB $ prettyEncode (grResults j)
+ok Normal j = responseLBS status200  [contentType "text/plain"]       $ encodeB $ showResults (grResults j)
 
 err :: String -> Response
 err x = responseLBS status400 [contentType "text/plain"] (encodeB x)
@@ -95,7 +93,7 @@ handleRequest pst instr = do
     pstRef <- newIORef (pst { pa = conf })
     let mSemInput = parseSemInput $ "semantics:[" ++ semStr ++ "]"
     case mSemInput of
-      Left err       -> return (Left err)
+      Left e         -> return (Left e)
       Right semInput -> do
            -- do the realisation
            let helper builder = fst `fmap` runGeni pstRef semInput builder
