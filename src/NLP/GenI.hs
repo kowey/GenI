@@ -504,21 +504,21 @@ data GeniError = GeniError [String]
   deriving (Ord, Eq)
 
 data GeniSuccess = GeniSuccess
- { grLemmaSentence     :: LemmaPlusSentence
- , grRealisations :: [String]
- , grDerivation   :: B.TagDerivation --type definition changed in Builder.hs 
- , grLexSelection :: [ GeniLexSel ]
- , grRanking      :: Int
- , grViolations   :: [ OtViolation ]
- , grResultType   :: ResultType
- , grOrigin       :: Integer -- normally a chart item id
- }
- deriving (Ord, Eq)
+    { grLemmaSentence :: LemmaPlusSentence -- ^ “original” uninflected result 
+    , grRealisations  :: [String]          -- ^ results after morphology
+    , grResultType    :: ResultType
+    , grDerivation    :: B.TagDerivation   -- ^ derivation tree behind the result
+    , grOrigin        :: Integer           -- ^ normally a chart item id
+    , grLexSelection  :: [GeniLexSel]      -- ^ the lexical selection behind
+                                           --   this result (info only)
+    , grRanking       :: Int               -- ^ see 'NLP.GenI.OptimalityTheory'
+    , grViolations    :: [OtViolation]     -- ^ which OT constraints were violated
+    } deriving (Ord, Eq)
 
 data GeniLexSel = GeniLexSel
- { nlTree  :: String
- , nlTrace :: [String]
- } deriving (Ord, Eq)
+    { nlTree  :: String
+    , nlTrace :: [String]
+    } deriving (Ord, Eq)
 
 data ResultType = CompleteResult | PartialResult deriving (Ord, Eq)
 
@@ -803,12 +803,13 @@ instance JSON GeniSuccess where
                $ lookup x jo
    GeniSuccess <$> field "raw"
                <*> field "realisations"
+               <*> field "result-type"
+               <*> field "warnings"
                <*> field "derivation"
+               <*> field "chart-item"
                <*> field "lexical-selection"
                <*> field "ranking"
                <*> field "violations"
-               <*> field "result-type"
-               <*> field "chart-item"
  showJSON nr =
      JSObject . toJSObject $ [ ("raw", showJSON $ grLemmaSentence nr)
                              , ("realisations", showJSONs $ grRealisations nr)
@@ -818,6 +819,7 @@ instance JSON GeniSuccess where
                              , ("violations", showJSONs $ grViolations nr)
                              , ("result-type", showJSON $ grResultType nr)
                              , ("chart-item", showJSON $ grOrigin nr)
+                             , ("warnings",   showJSONs $ grWarnings nr)
                              ]
 
 instance JSON GeniError where
