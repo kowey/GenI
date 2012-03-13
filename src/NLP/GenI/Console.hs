@@ -56,7 +56,6 @@ import NLP.GenI.Semantics ( SemInput )
 import NLP.GenI.Simple.SimpleBuilder
 import NLP.GenI.Statistics ( Statistics )
 import NLP.GenI.TestSuite ( TestCase(..) )
-import NLP.GenI.Warnings
 
 import Text.JSON
 import Text.JSON.Pretty ( render, pp_value )
@@ -186,23 +185,25 @@ runOnSemInput :: ProgStateRef
               -> RunAs
               -> SemInput
               -> IO ([GeniResult], Statistics)
-runOnSemInput pstRef args semInput =
-  do modifyIORef pstRef (resetLocal semInput)
-     pst <- readIORef pstRef
-     let config = pa pst
-     (results, stats) <- case builderType config of
-                            SimpleBuilder -> helper simpleBuilder_2p
-                            SimpleOnePhaseBuilder -> helper simpleBuilder_1p
-     warningsOut <- (warnings . local) `fmap` readIORef pstRef
-     writeResults pst args semInput results stats warningsOut
-     return (results, stats)
+runOnSemInput pstRef args semInput = do
+    pst <- readIORef pstRef
+    res <- case builderType (pa pst) of
+             SimpleBuilder         -> helper pst simpleBuilder_2p
+             SimpleOnePhaseBuilder -> helper pst simpleBuilder_1p
+    return (grResults res, grStatistics res)
   where
-    helper builder =
-      do (results, stats, _) <- runGeni pstRef builder
-         return (results, stats)
+    helper pst builder = do
+         res <- runGeni pstRef builder
+         writeResults pst args semInput res
+         return res
 
-writeResults :: ProgState -> RunAs -> SemInput -> [GeniResult] -> Statistics -> GeniWarnings -> IO ()
-writeResults pst args semInput results stats warningsOut = do
+-- | Not just the global warnings but the ones local to each response too
+allWarnings :: GeniResults st -> [String]
+allWarnings res = concat $ grGlobalWarnings res
+                         : [ grWarnings s | GSuccess s <- grResults res ]
+
+writeResults :: ProgState -> RunAs -> SemInput -> GeniResults st -> IO ()
+writeResults pst args semInput gresults = do
      -- create output directory as needed
      case args of
        PartOfSuite n f -> createDirectoryIfMissing True (f </> n)
@@ -215,14 +216,16 @@ writeResults pst args semInput results stats warningsOut = do
      when (isJust $ getFlagP MetricsFlg config) $
         writeStats (ppJSON stats)
      -- print any warnings we picked up along the way
-     unless (null (fromGeniWarnings warningsOut)) $ do
-        ePutStr $ "Warnings:\n" ++ formatWarnings warningsOut
-        writeBatchFile "warnings" $ unlines . map show . reverse
-                                  $ fromGeniWarnings warningsOut
+     unless (null warnings) $ do
+        ePutStr $ "Warnings:\n" ++ formatWarnings warnings
+        writeBatchFile "warnings" $ unlines warnings
      -- other outputs when run in batch mode
      writeBatchFile "semantics"  $ geniShowSemInput semInput ""
      writeBatchFile "derivations"$ ppJSON results
   where
+    results     = grResults    gresults
+    warnings    = allWarnings  gresults
+    stats       = grStatistics gresults
     config      = pa pst
     dump        = hasFlagP DumpDerivationFlg config
     -- do we print ranking information and all that other jazz?
@@ -230,8 +233,6 @@ writeResults pst args semInput results stats warningsOut = do
                          then pure . prettyResult pst
                          else grRealisations
     formatWarnings = unlines . map (" - " ++)
-                   . concatMap showGeniWarning
-                   . reverse . fromGeniWarnings . sortWarnings
     --
     writeBatchFile key = case args of
         Standalone _  _ -> const (return ())

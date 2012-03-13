@@ -32,6 +32,7 @@ module NLP.GenI (
 
              -- ** Running GenI
              runGeni,
+             GeniResults(..),
              GeniResult(..), isSuccess, GeniError(..), GeniSuccess(..),
              GeniLexSel(..),
              ResultType(..),
@@ -163,17 +164,12 @@ data ProgState = ProgState
 --
 --   Better yet would be a more functional style that avoids all this!
 data ProgStateLocal = ProgStateLocal {
-
     ts       :: SemInput
-      -- | any warnings accumulated during realisation
-      --   (most recent first)
-  , warnings :: GeniWarnings
 }
 
 emptyLocal :: ProgStateLocal
 emptyLocal = ProgStateLocal
   { ts = ([],[],[])
-  , warnings = mempty
   }
 
 resetLocal :: SemInput -> ProgState -> ProgState
@@ -192,14 +188,6 @@ emptyProgState args = ProgState
     , ranking = []
     , local   = emptyLocal
     }
-
--- | Log another warning in our internal program state
-addWarning :: ProgStateRef -> GeniWarning -> IO ()
-addWarning pstRef s = do
-  -- warningM logname s
-  modifyIORef pstRef $ \p -> p { local = tweak (local p) }
- where
-  tweak l = l { warnings = mkGeniWarnings [s] `mappend` warnings l }
 
 -- --------------------------------------------------------------------
 -- Interface
@@ -492,6 +480,18 @@ parseFromFileMaybeBinary p f =
 -- Surface realisation - entry point
 -- --------------------------------------------------------------------
 
+-- | 'GeniResults' is the outcome of running GenI on a single input semantics.
+--   Each distinct result is returned as a single 'GeniResult' (NB: a single
+--   result may expand into multiple strings through morphological
+--   post-processing),
+data GeniResults st = GeniResults
+    { grResults        :: [GeniResult] -- ^ one per chart item
+    , grGlobalWarnings :: [String]     -- ^ usually from lexical selection
+    , grStatistics     :: Statistics   -- ^ things like number of chart items
+                                       --   to help study efficiency
+    , grState          :: st           -- ^ chart parser state, useful for queries?
+    }
+
 data GeniResult = GError   GeniError
                 | GSuccess GeniSuccess
   deriving (Ord, Eq)
@@ -507,6 +507,8 @@ data GeniSuccess = GeniSuccess
     { grLemmaSentence :: LemmaPlusSentence -- ^ “original” uninflected result 
     , grRealisations  :: [String]          -- ^ results after morphology
     , grResultType    :: ResultType
+    , grWarnings      :: [String]          -- ^ warnings “local” to this particular
+                                           --   item, cf. 'grGlobalWarnings'
     , grDerivation    :: B.TagDerivation   -- ^ derivation tree behind the result
     , grOrigin        :: Integer           -- ^ normally a chart item id
     , grLexSelection  :: [GeniLexSel]      -- ^ the lexical selection behind
@@ -540,7 +542,7 @@ instance Show GeniError where
 --   The generator state is mostly useful for debugging via the graphical interface.
 --   Note that we assumes that you have already loaded in your grammar and
 --   parsed your input semantics.
-runGeni :: ProgStateRef -> B.Builder st it Params -> IO ([GeniResult], Statistics, st)
+runGeni :: ProgStateRef -> B.Builder st it Params -> IO (GeniResults st)
 runGeni pstRef builder = do
      modifyIORef pstRef $ \p -> resetLocal (ts (local p)) p
      pst <- readIORef pstRef
@@ -549,7 +551,7 @@ runGeni pstRef builder = do
          unpack = B.unpack builder
          finished = B.finished builder
      -- step 1: lexical selection
-     initStuff <- initGeni pstRef
+     (initStuff, initWarns) <- initGeni pstRef
      start <- ( rnf initStuff ) `seq` getCPUTime  --force evaluation before measuring start time to avoid including grammar/lexicon parsing.
 
      -- step 2: chart generation
@@ -566,8 +568,13 @@ runGeni pstRef builder = do
      let elapsedTime = picosToMillis $! end - start
      let diff = round (elapsedTime :: Double) :: Int
      let stats2 = updateMetrics (incrIntMetric "gen_time"  (fromIntegral diff) ) stats
-
-     return (results, stats2, finalSt)
+     return $ GeniResults { grResults        = results
+                          , grStatistics     = stats2
+                          , grState          = finalSt
+                          , grGlobalWarnings = map showWarnings (fromGeniWarnings initWarns)
+                          }
+  where
+    showWarnings = intercalate "\n" . showGeniWarning
 
 -- --------------------------------------------------------------------
 -- Surface realisation - sub steps
@@ -575,7 +582,7 @@ runGeni pstRef builder = do
 
 -- | 'initGeni' performs lexical selection and strips the input semantics of
 --   any morpohological literals
-initGeni :: ProgStateRef -> IO (B.Input)
+initGeni :: ProgStateRef -> IO (B.Input, GeniWarnings)
 initGeni pstRef =
  do -- disable constraints if the NoConstraintsFlg pessimisation is active
     hasConstraints <- (hasOpt NoConstraints . pa) `fmap` readIORef pstRef
@@ -586,14 +593,13 @@ initGeni pstRef =
     let (tsem,tres,lc) = ts (local pst)
         tsem2          = stripMorphSem (morphinf pst) tsem
     selection <- runLexSelection pstRef
-    mapM_ (addWarning pstRef) $ fromGeniWarnings (lsWarnings selection)
     -- strip morphological predicates
     let initStuff = B.Input 
           { B.inSemInput = (tsem2, tres, lc)
           , B.inLex   = lsLexEntries selection
           , B.inCands = map (\c -> (c,-1)) (lsAnchored selection)
           }
-    return initStuff 
+    return (initStuff, lsWarnings selection)
  where
    killConstraints l = l { ts = removeConstraints (ts l) }
 
@@ -617,13 +623,13 @@ finaliseResults pstRef (ty, status, os) =
                       B.Error str -> [GeniError [str]]
                       B.Finished  -> []
                       B.Active    -> []
-    mapM_ (addWarning pstRef) [ MorphWarning ws | ws <- map moWarnings mss, not (null ws) ]
     return (map GError failures ++ map GSuccess successes)
  where
   sentences = map snd3 os
   sansRanking pst (i,l,d) rs = GeniSuccess
                { grLemmaSentence = l
                , grRealisations = moRealisations rs
+               , grWarnings     = moWarnings rs
                , grDerivation   = d
                , grLexSelection = map (\x -> GeniLexSel x (getTraces pst x)) (B.lexicalSelection d)
                , grRanking = -1
@@ -880,11 +886,12 @@ instance NFData GeniResult where
 
  
 instance NFData GeniSuccess where
-        rnf (GeniSuccess x1 x2 x3 x4 x5 x6 x7 x8)
+        rnf (GeniSuccess x1 x2 x3 x4 x5 x6 x7 x8 x9)
           = rnf x1 `seq`
               rnf x2 `seq`
                 rnf x3 `seq`
-                  rnf x4 `seq` rnf x5 `seq` rnf x6 `seq` rnf x7 `seq` rnf x8 `seq` ()
+                  rnf x4 `seq`
+                    rnf x5 `seq` rnf x6 `seq` rnf x7 `seq` rnf x8 `seq` rnf x9 `seq` ()
 
  
 instance NFData GeniError where
@@ -892,8 +899,8 @@ instance NFData GeniError where
 
  
 instance NFData ResultType where
-        rnf (CompleteResult) = ()
-        rnf (PartialResult) = ()
+        rnf CompleteResult = ()
+        rnf PartialResult = ()
 
  
 instance NFData GeniLexSel where
