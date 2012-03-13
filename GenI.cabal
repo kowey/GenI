@@ -143,7 +143,6 @@ Executable     geni
               , process     > 1
               , split       == 0.1.*
               , utf8-string == 0.3.*
-              , strict-io   == 0.2.*
 
 Test-Suite geni-test
  Type:          exitcode-stdio-1.0
