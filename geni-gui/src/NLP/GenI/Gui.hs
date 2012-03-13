@@ -616,7 +616,8 @@ debugGui builderGui pstRef pauseOnLex =
     p    <- panel f []
     nb   <- notebook p []
     -- generation step 1
-    initStuff <- initGeni pstRef
+    semInput <- (ts . local) `fmap` readIORef pstRef -- TODO: figure this out
+    (initStuff, initWarns) <- initGeni pstRef semInput
     let (cand,_)   = unzip $ B.inCands initStuff
     -- continuation for candidate selection tab
     let step2 newCands =
@@ -639,10 +640,9 @@ debugGui builderGui pstRef pauseOnLex =
             return ()
     -- candidate selection tab
     pst <- readIORef pstRef
-    let warns = warnings (local pst)
     (canPnl,_,_) <- if pauseOnLex
-                    then pauseOnLexGui (pa pst) nb cand warns step2
-                    else candidateGui  (pa pst) nb cand warns
+                    then pauseOnLexGui (pa pst) nb cand initWarns step2
+                    else candidateGui  (pa pst) nb cand initWarns
     -- basic tabs
     let basicTabs = [ tab "lexical selection" canPnl ]
     --

@@ -80,7 +80,7 @@ import Text.JSON
 import NLP.GenI.General(
     histogram,
     geniBug,
-    snd3,
+    snd3, first3,
     ePutStr, ePutStrLn, eFlush,
     -- mkLogname,
     )
@@ -489,7 +489,8 @@ data GeniResults st = GeniResults
     , grGlobalWarnings :: [String]     -- ^ usually from lexical selection
     , grStatistics     :: Statistics   -- ^ things like number of chart items
                                        --   to help study efficiency
-    , grState          :: st           -- ^ chart parser state, useful for queries?
+    , grState          :: st           -- ^ chart parser state, used eg. by
+                                       --   the GUI to display derivation trees
     }
 
 data GeniResult = GError   GeniError
@@ -551,7 +552,7 @@ runGeni pstRef builder = do
          unpack = B.unpack builder
          finished = B.finished builder
      -- step 1: lexical selection
-     (initStuff, initWarns) <- initGeni pstRef
+     (initStuff, initWarns) <- initGeni pstRef (ts . local $ pst)
      start <- ( rnf initStuff ) `seq` getCPUTime  --force evaluation before measuring start time to avoid including grammar/lexicon parsing.
 
      -- step 2: chart generation
@@ -582,27 +583,26 @@ runGeni pstRef builder = do
 
 -- | 'initGeni' performs lexical selection and strips the input semantics of
 --   any morpohological literals
-initGeni :: ProgStateRef -> IO (B.Input, GeniWarnings)
-initGeni pstRef =
- do -- disable constraints if the NoConstraintsFlg pessimisation is active
-    hasConstraints <- (hasOpt NoConstraints . pa) `fmap` readIORef pstRef
-    when hasConstraints $
-      modifyIORef pstRef $ \p -> p { local = killConstraints (local p) }
-    -- lexical selection
+initGeni :: ProgStateRef -> SemInput -> IO (B.Input, GeniWarnings)
+initGeni pstRef semInput_ = do
     pst <- readIORef pstRef
-    let (tsem,tres,lc) = ts (local pst)
-        tsem2          = stripMorphSem (morphinf pst) tsem
-    selection <- runLexSelection pstRef
+    let semInput = stripMorphStuff pst
+                 . maybeRemoveConstraints pst
+                 $ semInput_
+    -- lexical selection
+    selection <- runLexSelection pstRef semInput
     -- strip morphological predicates
     let initStuff = B.Input 
-          { B.inSemInput = (tsem2, tres, lc)
+          { B.inSemInput = semInput
           , B.inLex   = lsLexEntries selection
           , B.inCands = map (\c -> (c,-1)) (lsAnchored selection)
           }
     return (initStuff, lsWarnings selection)
- where
-   killConstraints l = l { ts = removeConstraints (ts l) }
-
+  where
+    stripMorphStuff pst = first3 (stripMorphSem (morphinf pst))
+    -- disable constraints if the NoConstraintsFlg pessimisation is active
+    maybeRemoveConstraints pst =
+         if hasOpt NoConstraints (pa pst) then removeConstraints else id
 
 -- | 'finaliseResults' does any post-processing steps that we want to integrate
 --   into mainline GenI.  So far, this consists of morphological realisation and
@@ -694,11 +694,10 @@ readPidname n =
 --   through the universal 'finaliseLexSelection'.
 --
 --   Also hunts for some warning conditions
-runLexSelection :: ProgStateRef -> IO LexicalSelection
-runLexSelection pstRef =
- do pst <- readIORef pstRef
-    let (tsem,_,litConstrs) = ts (local pst)
-        config   = pa pst
+runLexSelection :: ProgStateRef -> SemInput -> IO LexicalSelection
+runLexSelection pstRef (tsem,_,litConstrs) = do
+    pst <- readIORef pstRef
+    let config   = pa pst
         verbose  = hasFlagP VerboseModeFlg config
     -- perform lexical selection
     selector  <- getLexicalSelector pstRef
@@ -716,10 +715,10 @@ runLexSelection pstRef =
     return $ selection { lsAnchored = candFinal
                        , lsWarnings = mkGeniWarnings semWarnings `mappend` lsWarnings selection
                        }
- where
-   indent  x = ' ' : x
-   unlinesIndentAnd :: (x -> String) -> [x] -> String
-   unlinesIndentAnd f = unlines . map (indent . f)
+  where
+    indent  x = ' ' : x
+    unlinesIndentAnd :: (x -> String) -> [x] -> String
+    unlinesIndentAnd f = unlines . map (indent . f)
 
 -- | Grab the lexical selector from the config, or return the standard GenI
 --   version if none is supplied

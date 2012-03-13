@@ -37,6 +37,7 @@ import NLP.GenI.Configuration ( Params(..) )
 import NLP.GenI.FeatureStructures (AvPair(..))
 import NLP.GenI.General ( snd3, buckets )
 import NLP.GenI ( ProgStateRef, ProgState(pa), runGeni
+                , GeniResults(..)
                 , GeniResult(..), GeniSuccess(..), GeniError(..), isSuccess )
 import NLP.GenI.GeniVal ( mkGConstNone, GeniVal )
 import NLP.GenI.Graphviz ( GraphvizShow(..), gvUnlines )
@@ -74,11 +75,13 @@ simpleGui twophase = BG.BuilderGui {
     , BG.debuggerPnl = simpleDebuggerTab twophase }
 
 resultsPnl :: Bool -> ProgStateRef -> Window a -> IO ([GeniResult], Statistics, Layout, Layout)
-resultsPnl twophase pstRef f =
-  do (sentences, stats, st) <- runGeni pstRef (simpleBuilder twophase)
-     (resultsL, _, _) <- realisationsGui pstRef f (theResults st)
-     summaryL         <- summaryGui pstRef f sentences stats
-     return (sentences, stats, summaryL, resultsL)
+resultsPnl twophase pstRef f = do
+    gresults <- runGeni pstRef (simpleBuilder twophase)
+    let sentences = grResults    gresults
+        stats     = grStatistics gresults
+    (resultsL, _, _) <- realisationsGui pstRef f $ theResults (grState gresults)
+    summaryL         <- summaryGui pstRef f sentences stats
+    return (sentences, stats, summaryL, resultsL)
 
 -- --------------------------------------------------------------------
 -- Results
