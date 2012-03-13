@@ -54,7 +54,6 @@ import NLP.GenI.Configuration
 import NLP.GenI.General ( mkLogname )
 import NLP.GenI.Semantics ( SemInput )
 import NLP.GenI.Simple.SimpleBuilder
-import NLP.GenI.Statistics ( Statistics )
 import NLP.GenI.TestSuite ( TestCase(..) )
 
 import Text.JSON
@@ -87,10 +86,12 @@ withGeniTimeOut t job = do
 runStdinTestCase :: ProgStateRef -> IO ()
 runStdinTestCase pstRef = do
     config   <- pa <$> readIORef pstRef
-    loadTargetSemStr pstRef =<< getContents
-    semInput <- (ts . local) <$> readIORef pstRef -- TODO: want less stateful approach
-    _ <- runOnSemInput pstRef (runAsStandalone config) semInput
-    return ()
+    mSemInput <- parseSemInput <$> getContents
+    case mSemInput of
+      Left err ->
+           fail $ "I didn't understand the semantics you gave me: " ++ show err
+      Right semInput ->
+           runOnSemInput pstRef (runAsStandalone config) semInput >> return ()
 
 -- | Run a test case with the specified name
 runSpecificTestCase :: ProgStateRef -> String -> IO ()
@@ -142,8 +143,9 @@ runInstructions pstRef =
           earlyDeath = hasFlagP EarlyDeathFlg config
       when verbose $
         ePutStrLn "======================================================"
-      (res , _) <- runOnSemInput pstRef (PartOfSuite n bdir) s
-      let (goodres, badres) = partition isSuccess res
+      gresults <- runOnSemInput pstRef (PartOfSuite n bdir) s
+      let res = grResults gresults
+          (goodres, badres) = partition isSuccess (grResults gresults)
           badresSuf = if null badres then "" else " (" ++ show (length badres) ++ " errors)"
       ePutStrLn $ " " ++ n ++ " - " ++ show (length goodres) ++ " results" ++ badresSuf
       when (null res && earlyDeath) $ do
@@ -184,25 +186,24 @@ runAsStandalone config =
 runOnSemInput :: ProgStateRef
               -> RunAs
               -> SemInput
-              -> IO ([GeniResult], Statistics)
+              -> IO GeniResults
 runOnSemInput pstRef args semInput = do
     pst <- readIORef pstRef
-    res <- case builderType (pa pst) of
+    case builderType (pa pst) of
              SimpleBuilder         -> helper pst simpleBuilder_2p
              SimpleOnePhaseBuilder -> helper pst simpleBuilder_1p
-    return (grResults res, grStatistics res)
   where
     helper pst builder = do
-         res <- runGeni pstRef builder
+         (res,_) <- runGeni pstRef semInput builder
          writeResults pst args semInput res
          return res
 
 -- | Not just the global warnings but the ones local to each response too
-allWarnings :: GeniResults st -> [String]
+allWarnings :: GeniResults -> [String]
 allWarnings res = concat $ grGlobalWarnings res
                          : [ grWarnings s | GSuccess s <- grResults res ]
 
-writeResults :: ProgState -> RunAs -> SemInput -> GeniResults st -> IO ()
+writeResults :: ProgState -> RunAs -> SemInput -> GeniResults -> IO ()
 writeResults pst args semInput gresults = do
      -- create output directory as needed
      case args of

@@ -24,6 +24,7 @@ import Graphics.UI.WX
 
 import qualified Data.Map as Map
 
+import Control.Applicative ( (<$>) )
 import Control.Exception
 import Data.IORef
 import Data.List ( nub, delete, findIndex)
@@ -39,9 +40,10 @@ import Paths_geni_gui ( version )
 import qualified NLP.GenI.Builder as B
 import qualified NLP.GenI.BuilderGui as BG
 import NLP.GenI
-  ( ProgState(..), ProgStateLocal(..), ProgStateRef, initGeni
+  ( ProgState(..), ProgStateRef, initGeni
   , prettyResult
-  , loadEverything, loadTestSuite, loadTargetSemStr
+  , parseSemInput
+  , loadEverything, loadTestSuite
   , BadInputException(..)
   )
 import NLP.GenI.General (boundsCheck, geniBug, fst3, prettyException, trim)
@@ -73,6 +75,7 @@ import NLP.GenI.GeniParsers hiding ( choice, label, tab, try )
 import NLP.GenI.GuiHelper
 
 import NLP.GenI.Polarity
+import NLP.GenI.Semantics
 import NLP.GenI.Simple.SimpleGui
 import NLP.GenI.TestSuite ( TestCase(..) )
 
@@ -539,8 +542,8 @@ doGenerate :: Textual tb => Window a -> ProgStateRef
                          -> tb -- ^ polarities to detect
                          -> tb -- ^ root feature
                          -> Bool -> Bool -> IO ()
-doGenerate f pstRef sembox detectPolsTxt rootFeatTxt useDebugger pauseOnLex =
- do let parseRF  = parseFlagWithParsec "root features" geniFeats
+doGenerate f pstRef sembox detectPolsTxt rootFeatTxt useDebugger pauseOnLex = do
+    let parseRF  = parseFlagWithParsec "root features" geniFeats
     rootCatVal    <- get rootFeatTxt text
     detectPolsVal <- get detectPolsTxt text
     --
@@ -550,21 +553,19 @@ doGenerate f pstRef sembox detectPolsTxt rootFeatTxt useDebugger pauseOnLex =
           . (maybeSet RootFeatureFlg parseRF rootCatVal)
           . (setFlagP DetectPolaritiesFlg (readPolarityAttrs detectPolsVal))
     modifyIORef pstRef $ \p -> p { pa = setConfig (pa p) }
-    minput <- try $ do
+    minput <- do
       set sembox [ text :~ trim ]
       loadEverything   pstRef
-      loadTargetSemStr pstRef =<< get sembox text
+      parseSemInput <$> get sembox text
     case minput of
-      Left e -> handler "Please give me better input" fromBadInputException e
-      Right () -> do
-        let doDebugger bg = debugGui bg pstRef pauseOnLex
-            doResults  bg = resultsGui bg pstRef
+      Left e -> errorDialog f "Please give me better input" (show e)
+      Right semInput -> do
+        let doDebugger bg = debugGui   bg pstRef semInput pauseOnLex
+            doResults  bg = resultsGui bg pstRef semInput
         catch
          (withBuilderGui $ if useDebugger then doDebugger else doResults)
          (handler "Error during realisation" prettyException)
- where
-   fromBadInputException (BadInputException d msg) =
-     d ++ ":\n" ++ show msg
+  where
    handler title fn err = errorDialog f title (fn err)
    withBuilderGui a = do
      config <- pa `fmap` readIORef pstRef
@@ -572,9 +573,9 @@ doGenerate f pstRef sembox detectPolsTxt rootFeatTxt useDebugger pauseOnLex =
        SimpleBuilder         -> a simpleGui_2p
        SimpleOnePhaseBuilder -> a simpleGui_1p
 
-resultsGui :: BG.BuilderGui -> ProgStateRef -> IO ()
-resultsGui builderGui pstRef =
- do -- results window
+resultsGui :: BG.BuilderGui -> ProgStateRef -> SemInput -> IO ()
+resultsGui builderGui pstRef semInput = do
+    -- results window
     f <- frame [ text := "Results"
                , fullRepaintOnResize := False
                , layout := stretch $ label "Generating..."
@@ -583,7 +584,7 @@ resultsGui builderGui pstRef =
     p    <- panel f []
     nb   <- notebook p []
     -- realisations tab
-    (results,_,summTab,resTab) <- BG.resultsPnl builderGui pstRef nb
+    (results,_,summTab,resTab) <- BG.resultsPnl builderGui pstRef semInput nb
     -- ranking tab
     pst <- readIORef pstRef
     let useRanking = hasFlagP RankingConstraintsFlg (pa pst)
@@ -605,8 +606,8 @@ resultsGui builderGui pstRef =
 
 -- | We provide here a universal debugging interface, which makes use of some
 --   parameterisable bits as defined in the BuilderGui module.
-debugGui :: BG.BuilderGui -> ProgStateRef -> Bool -> IO ()
-debugGui builderGui pstRef pauseOnLex =
+debugGui :: BG.BuilderGui -> ProgStateRef -> SemInput -> Bool -> IO ()
+debugGui builderGui pstRef semInput pauseOnLex =
  do config <- pa `fmap` readIORef pstRef
     let btype = show $ builderType config
     --
@@ -616,7 +617,6 @@ debugGui builderGui pstRef pauseOnLex =
     p    <- panel f []
     nb   <- notebook p []
     -- generation step 1
-    semInput <- (ts . local) `fmap` readIORef pstRef -- TODO: figure this out
     (initStuff, initWarns) <- initGeni pstRef semInput
     let (cand,_)   = unzip $ B.inCands initStuff
     -- continuation for candidate selection tab

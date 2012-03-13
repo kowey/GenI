@@ -49,13 +49,14 @@ import NLP.GenI.GuiHelper
     viewTagWidgets, XMGDerivation(getSourceTrees),
     modifyGvItems,
   )
+import NLP.GenI.Semantics ( SemInput )
 import NLP.GenI.Tags (dsChild, TagItem(..))
 import NLP.GenI.TreeSchemata ( GNode(..), GType(..) )
 
 import qualified NLP.GenI.Builder    as B
 import NLP.GenI.Morphology (LemmaPlus(..))
 import qualified NLP.GenI.BuilderGui as BG
-import NLP.GenI.Polarity
+import NLP.GenI.Polarity hiding ( finalSt )
 import NLP.GenI.Simple.SimpleBuilder
   ( simpleBuilder, SimpleStatus, SimpleItem(..), SimpleGuiItem(..)
   , unpackResult
@@ -74,12 +75,12 @@ simpleGui twophase = BG.BuilderGui {
       BG.resultsPnl  = resultsPnl twophase
     , BG.debuggerPnl = simpleDebuggerTab twophase }
 
-resultsPnl :: Bool -> ProgStateRef -> Window a -> IO ([GeniResult], Statistics, Layout, Layout)
-resultsPnl twophase pstRef f = do
-    gresults <- runGeni pstRef (simpleBuilder twophase)
+resultsPnl :: Bool -> ProgStateRef -> SemInput -> Window a -> IO ([GeniResult], Statistics, Layout, Layout)
+resultsPnl twophase pstRef semInput f = do
+    (gresults, finalSt) <- runGeni pstRef semInput (simpleBuilder twophase)
     let sentences = grResults    gresults
         stats     = grStatistics gresults
-    (resultsL, _, _) <- realisationsGui pstRef f $ theResults (grState gresults)
+    (resultsL, _, _) <- realisationsGui pstRef f $ theResults finalSt
     summaryL         <- summaryGui pstRef f sentences stats
     return (sentences, stats, summaryL, resultsL)
 

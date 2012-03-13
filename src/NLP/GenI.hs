@@ -27,7 +27,6 @@ module NLP.GenI (
 
              -- ** Program state and configuration
              ProgState(..), ProgStateRef, emptyProgState,
-             ProgStateLocal(..), resetLocal,
              LexicalSelector,
 
              -- ** Running GenI
@@ -48,7 +47,7 @@ module NLP.GenI (
              Loadable(..),
              loadLexicon,
              loadGeniMacros,
-             loadTestSuite, loadTargetSemStr,
+             loadTestSuite, parseSemInput,
              loadRanking, BadInputException(..),
              loadFromString,
              )
@@ -138,42 +137,22 @@ import NLP.GenI.Warnings
 -- ProgState
 -- --------------------------------------------------------------------
 
+-- | The program state consists of its configuration options and abstract,
+--   cleaned up representations of all the data it's had to load into memory
+--   (tree schemata files, lexicon files, etc).  The intention is for the
+--   state to stay static until the next time something triggers some file
+--   loading.
 data ProgState = ProgState
-                { -- | the current configuration being processed
-                    pa     :: Params,
-                    -- | loaded tree schemata
-                    gr       :: Macros,
-                    -- | loaded lexical entries
-                    le       :: Lexicon,
-                    -- | function to extract morphological information from
-                    --   the semantics
-                    --   (you may instead be looking for 'NLP.GenI.Configuration.customMorph')
-                    morphinf :: MorphInputFn,
-                    -- | OT constraints (optional)
-                    ranking  :: OtRanking,
-                    -- | simplified traces (optional)
-                    traces   :: [String],
-                    -- | see 'ProgStateLocal'
-                    local    :: ProgStateLocal
-               }
-
--- | The “local” program state is specific to a single input semantics.
---
---   The idea is that if we run GenI over a batch of inputs, we want to
---   be able to hit a reset button (see `resetLocal') between each run.
---
---   Better yet would be a more functional style that avoids all this!
-data ProgStateLocal = ProgStateLocal {
-    ts       :: SemInput
-}
-
-emptyLocal :: ProgStateLocal
-emptyLocal = ProgStateLocal
-  { ts = ([],[],[])
-  }
-
-resetLocal :: SemInput -> ProgState -> ProgState
-resetLocal sem p = p { local = emptyLocal { ts = sem } }
+    { pa       :: Params  -- ^ the current configuration
+    , gr       :: Macros  -- ^ tree schemata
+    , le       :: Lexicon -- ^ lexical entries
+    , morphinf :: MorphInputFn -- ^ function to extract morphological
+                               -- information from the semantics (you may
+                               -- instead be looking for
+                               -- 'NLP.GenI.Configuration.customMorph')
+    , ranking  :: OtRanking -- ^ OT constraints    (optional)
+    , traces   :: [String]  -- ^ simplified traces (optional)
+    }
 
 type ProgStateRef = IORef ProgState
 
@@ -186,7 +165,6 @@ emptyProgState args = ProgState
     , morphinf = const Nothing
     , traces = []
     , ranking = []
-    , local   = emptyLocal
     }
 
 -- --------------------------------------------------------------------
@@ -394,7 +372,6 @@ instance Loadable TestSuiteL where
     cleanup tc str =
         tc { tcSem = first3 sortSem (tcSem tc)
            , tcSemString = str }
-    first3 g (x, y, z) = (g x, y, z)
  --
  lSet (TestSuiteL _) p = p
  lSummarise (TestSuiteL x) = show (length x) ++ " cases"
@@ -405,24 +382,10 @@ loadTestSuite pstRef = do
   TestSuiteL xs <- loadOrDie (L :: L TestSuiteL) TestSuiteFlg "test suite" pstRef
   return xs
 
--- Sometimes, the target semantics does not come from a file, but from
--- the graphical interface, so we also provide the ability to parse an
--- arbitrary string as the semantics.
-newtype SemL = SemL SemInput
-
-instance Loadable SemL where
- lParse f = fmap (SemL . smooth)
-          . runParser geniSemanticInput () f
-   where
+parseSemInput :: String -> Either ParseError SemInput
+parseSemInput = fmap smooth . runParser geniSemanticInput () "semantics"
+  where
     smooth (s,r,l) = (sortSem s, sort r, l)
- lSet (SemL x) p = resetLocal x p
- lSummarise (SemL _) = "sem input"
-
-loadTargetSemStr :: ProgStateRef -> String -> IO ()
-loadTargetSemStr pstRef s = do
-  x <- loadFromString pstRef "semantics" s
-  let _ = x :: SemL
-  return ()
 
 -- Helpers for loading files
 
@@ -484,13 +447,11 @@ parseFromFileMaybeBinary p f =
 --   Each distinct result is returned as a single 'GeniResult' (NB: a single
 --   result may expand into multiple strings through morphological
 --   post-processing),
-data GeniResults st = GeniResults
+data GeniResults = GeniResults
     { grResults        :: [GeniResult] -- ^ one per chart item
     , grGlobalWarnings :: [String]     -- ^ usually from lexical selection
     , grStatistics     :: Statistics   -- ^ things like number of chart items
                                        --   to help study efficiency
-    , grState          :: st           -- ^ chart parser state, used eg. by
-                                       --   the GUI to display derivation trees
     }
 
 data GeniResult = GError   GeniError
@@ -525,7 +486,6 @@ data GeniLexSel = GeniLexSel
 
 data ResultType = CompleteResult | PartialResult deriving (Ord, Eq)
 
-
 instance Show GeniError where
   show (GeniError xs) = intercalate "\n" $ map ("Error: " ++) xs
 
@@ -539,20 +499,19 @@ instance Show GeniError where
 --
 --   * Finalises the results (morphological generation)
 --
---   Returns a list of sentences, a set of Statistics, and the generator state.
---   The generator state is mostly useful for debugging via the graphical interface.
+--   In addition to the results, this returns a generator state.  The latter is
+--   is mostly useful for debugging via the graphical interface.
 --   Note that we assumes that you have already loaded in your grammar and
 --   parsed your input semantics.
-runGeni :: ProgStateRef -> B.Builder st it Params -> IO (GeniResults st)
-runGeni pstRef builder = do
-     modifyIORef pstRef $ \p -> resetLocal (ts (local p)) p
+runGeni :: ProgStateRef -> SemInput -> B.Builder st it Params -> IO (GeniResults,st)
+runGeni pstRef semInput builder = do
      pst <- readIORef pstRef
      let config = pa pst
          run    = B.run builder
          unpack = B.unpack builder
          finished = B.finished builder
      -- step 1: lexical selection
-     (initStuff, initWarns) <- initGeni pstRef (ts . local $ pst)
+     (initStuff, initWarns) <- initGeni pstRef semInput
      start <- ( rnf initStuff ) `seq` getCPUTime  --force evaluation before measuring start time to avoid including grammar/lexicon parsing.
 
      -- step 2: chart generation
@@ -567,13 +526,13 @@ runGeni pstRef builder = do
      results <- finaliseResults pstRef (resultTy, status, rawResults)
      end <-  ( rnf results ) `seq` getCPUTime --force evaluation before measuring end time to account for all the work that should be done.
      let elapsedTime = picosToMillis $! end - start
-     let diff = round (elapsedTime :: Double) :: Int
-     let stats2 = updateMetrics (incrIntMetric "gen_time"  (fromIntegral diff) ) stats
-     return $ GeniResults { grResults        = results
-                          , grStatistics     = stats2
-                          , grState          = finalSt
-                          , grGlobalWarnings = map showWarnings (fromGeniWarnings initWarns)
-                          }
+         diff = round (elapsedTime :: Double) :: Int
+         stats2 = updateMetrics (incrIntMetric "gen_time"  (fromIntegral diff) ) stats
+         gresults = GeniResults { grResults        = results
+                                , grStatistics     = stats2
+                                , grGlobalWarnings = map showWarnings (fromGeniWarnings initWarns)
+                                }
+     return (gresults, finalSt)
   where
     showWarnings = intercalate "\n" . showGeniWarning
 

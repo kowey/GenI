@@ -24,8 +24,9 @@ import Graphics.UI.WX
 import qualified NLP.GenI.Builder as B
 import NLP.GenI (ProgStateRef, GeniResult)
 import NLP.GenI.Configuration (Params)
+import NLP.GenI.Semantics
 import NLP.GenI.Statistics (Statistics)
 
 data BuilderGui = BuilderGui
-  { resultsPnl  :: forall a . ProgStateRef -> (Window a) -> IO ([GeniResult],Statistics,Layout,Layout)
+  { resultsPnl  :: forall a . ProgStateRef -> SemInput -> (Window a) -> IO ([GeniResult],Statistics,Layout,Layout)
   , debuggerPnl :: forall a . (Window a) -> Params -> B.Input -> String -> IO Layout }
