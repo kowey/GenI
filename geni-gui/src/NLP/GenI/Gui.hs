@@ -39,7 +39,7 @@ import Paths_geni_gui ( version )
 import qualified NLP.GenI.Builder as B
 import qualified NLP.GenI.BuilderGui as BG
 import NLP.GenI
-  ( ProgState(..), ProgStateRef, initGeni
+  ( ProgState(..), ProgStateLocal(..), ProgStateRef, initGeni
   , prettyResult
   , loadEverything, loadTestSuite, loadTargetSemStr
   , BadInputException(..)
@@ -639,9 +639,10 @@ debugGui builderGui pstRef pauseOnLex =
             return ()
     -- candidate selection tab
     pst <- readIORef pstRef
+    let warns = warnings (local pst)
     (canPnl,_,_) <- if pauseOnLex
-                    then pauseOnLexGui pst nb cand step2
-                    else candidateGui  pst nb cand
+                    then pauseOnLexGui (pa pst) nb cand warns step2
+                    else candidateGui  (pa pst) nb cand warns
     -- basic tabs
     let basicTabs = [ tab "lexical selection" canPnl ]
     --

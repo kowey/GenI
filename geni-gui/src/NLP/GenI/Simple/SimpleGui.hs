@@ -36,7 +36,7 @@ import NLP.GenI.Statistics (Statistics, showFinalStats)
 import NLP.GenI.Configuration ( Params(..) )
 import NLP.GenI.FeatureStructures (AvPair(..))
 import NLP.GenI.General ( snd3, buckets )
-import NLP.GenI ( ProgStateRef, runGeni
+import NLP.GenI ( ProgStateRef, ProgState(pa), runGeni
                 , GeniResult(..), GeniSuccess(..), GeniError(..), isSuccess )
 import NLP.GenI.GeniVal ( mkGConstNone, GeniVal )
 import NLP.GenI.Graphviz ( GraphvizShow(..), gvUnlines )
@@ -101,7 +101,7 @@ realisationsGui pstRef f resultsRaw =
      --
      pst     <- readIORef pstRef
      -- FIXME: have to show the semantics again
-     tagViewerGui pst f tip "derived" itNlabl
+     tagViewerGui (pa pst) f tip "derived" itNlabl
 
 summaryGui :: ProgStateRef -> Window a -> [GeniResult] -> Statistics -> IO Layout
 summaryGui _ f results stats =
@@ -149,9 +149,8 @@ partitionGeniResult results = (map unSucc *** map unErr)
 -- --------------------------------------------------------------------
 
 simpleDebuggerTab :: Bool -> (Window a) -> Params -> B.Input -> String -> IO Layout
-simpleDebuggerTab twophase x1 (pa@x2) =
-  debuggerPanel (simpleBuilder twophase) stToGraphviz (simpleItemBar pa)
-   x1 x2
+simpleDebuggerTab twophase x1 x2 =
+    debuggerPanel (simpleBuilder twophase) stToGraphviz (simpleItemBar x2) x1 x2
  
 stToGraphviz :: SimpleStatus -> [GvItem Bool SimpleItem]
 stToGraphviz st = 
@@ -168,12 +167,12 @@ stToGraphviz st =
   in concat [ agenda, auxAgenda, chart, trash, results ]
 
 simpleItemBar :: Params -> DebuggerItemBar SimpleStatus Bool SimpleItem
-simpleItemBar pa f gvRef updaterFn =
+simpleItemBar config f gvRef updaterFn =
  do ib <- panel f []
     phaseTxt   <- staticText ib [ text := "" ]
     detailsChk <- checkBox ib [ text := "Show features"
                               , checked := False ]
-    viewTagLay <- viewTagWidgets ib gvRef pa
+    viewTagLay <- viewTagWidgets ib gvRef config
     -- handlers
     let onDetailsChk = 
          do isDetailed <- get detailsChk checked 

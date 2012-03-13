@@ -40,7 +40,6 @@ import NLP.GenI.FeatureStructures ( showAv )
 import NLP.GenI.Builder (queryCounter, num_iterations, chart_size, num_comparisons)
 import NLP.GenI.Configuration ( Params(..), MetricsFlg(..), setFlagP, getFlagP, MacrosFlg(..), ViewCmdFlg(..) )
 import NLP.GenI.General (geniBug, boundsCheck, dropTillIncluding, ePutStrLn)
-import NLP.GenI ( ProgState(..), ProgStateLocal(..) )
 import NLP.GenI.GeniParsers ( geniTagElems, parseFromFile )
 import NLP.GenI.GeniShow(geniShow)
 import NLP.GenI.Graphviz
@@ -70,18 +69,19 @@ data GraphvizStatus = GvError String
 
 -- | 'candidateGui' displays the lexically selected items, grouped by the
 --   semantics they subsume.
-candidateGui :: ProgState
+candidateGui :: Params
              -> Window a
              -> [TagElem]
+             -> GeniWarnings
              -> GvIO () (GvItem Bool TagElem)
-candidateGui pst f xs = do
+candidateGui config f xs warns = do
   pouter <- panel f []
   split  <- splitterWindow pouter []
   p  <- panel split []
-  (tb,gvRef,updater) <- tagViewerGui pst p "lexically selected item" "candidates"
+  (tb,gvRef,updater) <- tagViewerGui config p "lexically selected item" "candidates"
                         $ sectionsBySem xs
   let polFeats = "Polarity attributes detected: " ++ (T.unpack . T.unwords .suggestPolFeatures) xs
-      lexWarnings = concatMap showGeniWarning . fromGeniWarnings . sortWarnings $ warnings (local pst)
+      lexWarnings = concatMap showGeniWarning . fromGeniWarnings . sortWarnings $ warns
       warning = unlines $ filter (not .  null) (polFeats : lexWarnings)
   -- side panel
   sidePnl <- panel p []
@@ -184,9 +184,9 @@ squishLeaf = showLexeme.fst.snd
 
 -- | Variant of 'graphvizGui' with a toggle to view feature structures
 tagViewerGui :: (GraphvizShow (GvItem Bool t), XMGDerivation t)
-             => ProgState -> (Window a) -> String -> String -> [GvItem Bool t]
+             => Params -> (Window a) -> String -> String -> [GvItem Bool t]
              -> GvIO () (GvItem Bool t)
-tagViewerGui pst f tip cachedir itNlab = do
+tagViewerGui config f tip cachedir itNlab = do
   p <- panel f []      
   gvRef <- newGvRef () tip
   setGvDrawables gvRef itNlab
@@ -194,7 +194,7 @@ tagViewerGui pst f tip cachedir itNlab = do
   -- button bar widgets
   detailsChk <- checkBox p [ text := "Show features"
                            , checked := False ]
-  viewTagLay <- viewTagWidgets p gvRef (pa pst)
+  viewTagLay <- viewTagWidgets p gvRef config
   -- handlers
   let onDetailsChk =
         do isDetailed <- get detailsChk checked
@@ -261,13 +261,13 @@ runViewTag params drName =
 
 -- | 'pauseOnLexGui' allows the user to see lexical selection only and either
 --   dump it to file or read replace it by the contents of some other file
-pauseOnLexGui :: ProgState -> (Window a) -> [TagElem]
+pauseOnLexGui :: Params -> (Window a) -> [TagElem] -> GeniWarnings
               -> ([TagElem] -> IO ()) -- ^ continuation
               -> GvIO () (GvItem Bool TagElem)
-pauseOnLexGui pst f xs job = do
+pauseOnLexGui config f xs warns job = do
   p <- panel f []
   candV <- varCreate xs
-  (tb, ref, updater) <- candidateGui pst p xs
+  (tb, ref, updater) <- candidateGui config p xs warns
   -- supplementary button bar
   let saveCmd =
        do c <- varGet candV
