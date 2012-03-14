@@ -28,6 +28,7 @@ import Control.Monad.State.Strict ( execStateT, runState )
 import qualified Data.Map as Map
 import Prelude hiding ( catch )
 
+import Data.Array ( (!), listArray )
 import Data.IORef
 import Data.GraphViz.Exception ( GraphvizException(..) )
 import qualified Data.Text as T
@@ -699,6 +700,26 @@ initCacheDir cachesubdir = do
 -- ----------------------------------------------------------------------
 -- Miscellaneous
 -- ----------------------------------------------------------------------
+
+-- | Set a selection widget's selection reactor
+--   We assume you've already populated it (radio boxes cannot be added to,
+--   so we have to let you do it manually on initialisation)
+setSelection :: (Selecting w, Selection w, Items w String)
+             => w                    -- ^ widget
+             -> [a]                  -- ^ items
+             -> Int                  -- ^ initial selection
+             -> (a -> IO ())         -- ^ on selection
+             -> IO ()
+setSelection widgt xs initial reactor = do
+    set widgt [ selection := initial
+              , on select := onSelection
+              ]
+    onSelection
+  where
+    imap = listArray (0, length xs - 1) xs
+    onSelection = do
+        sel <- get widgt selection
+        reactor (imap ! sel)
 
 -- | Save the given string to a file, if the user selets one via the file save
 --   dialog. Otherwise, don't do anything.

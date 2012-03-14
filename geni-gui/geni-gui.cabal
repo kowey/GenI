@@ -33,6 +33,7 @@ Library
   Build-Depends: base >= 4 && < 5
                , GenI
                , cabal-macosx == 0.2.*
+               , array
                , containers
                , directory
                , filepath
