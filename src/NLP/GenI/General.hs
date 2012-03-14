@@ -38,7 +38,6 @@ module NLP.GenI.General (
         fst3, snd3, thd3,
         -- * Lists
         map',
-        boundsCheck,
         buckets,
         isEmptyIntersect,
         groupByFM,
@@ -207,11 +206,6 @@ thd3 (_,_,x) = x
 map' :: (a->b) -> [a] -> [b]
 map' _ [] = []
 map' f (x:xs) = let a = f x in a `seq` (a:(map' f xs))
-
--- | Makes sure that index s is in the bounds of list l.  
---   Surely there must be some more intelligent way to deal with this.
-boundsCheck :: Int -> [a] -> Bool
-boundsCheck s l = s >= 0 && s < length l
 
 -- | True if the intersection of two lists is empty.
 isEmptyIntersect :: (Eq a) => [a] -> [a] -> Bool
