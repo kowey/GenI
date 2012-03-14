@@ -593,7 +593,7 @@ debugGui builderGui pstRef semInput pauseOnLex = do
            -- generation step 2.B (start the generator for each path)
            debugPnl <- BG.debuggerPnl builderGui nb config input2 btype
            let mAutTab  = tab "automata" <$> mAutPnl
-               debugTab = tab (btype ++ "-session") debugPnl
+               debugTab = tab "tree assembly" debugPnl
                genTabs  = catMaybes [ mAutTab, Just debugTab ]
            --
            set f [ layout := container p $ tabs nb genTabs ]
