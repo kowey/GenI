@@ -132,14 +132,8 @@ mainGui pstRef = do
                              SimpleOnePhaseBuilder -> 1
     algoChoiceBox <- radioBox f Vertical (map show mainBuilderTypes) []
     setSelection algoChoiceBox mainBuilderTypes initialSelection setBuilder
-    polChk <- optCheckBox Polarised pstRef f
-       [ text := "Polarities"
-       , tooltip := "Use the polarity optimisation"
-       ]
-    useSemConstraintsChk <- antiOptCheckBox NoConstraints pstRef f
-      [ text := "Sem constraints"
-      , tooltip := "Use any sem constraints the user provides"
-      ]
+    polChk <- optCheckBox f pstRef polarisedBio
+    useSemConstraintsChk <- optCheckBox f pstRef semConstraintBio
     extrapolText <- staticText f
       [ text := maybe "" showLitePm $ getFlagP ExtraPolaritiesFlg config
       , tooltip := "Use the following additional polarities"
@@ -227,44 +221,60 @@ mainOnLoad pstRef (MainWidgets {..}) = do
           setSelection testSuiteChoice is 0 $
              \t -> loadTestSuiteAndRefresh f pstRef t (tsTextBox, testCaseChoice)
 
-type OptimisationCheckbox a = Optimisation
-                            -> ProgStateRef
-                            -> Window a
-                            -> [Prop (CheckBox ())]
-                            -> IO (CheckBox ())
+-- ----------------------------------------------------------------------
+-- Toggling optimisations
+-- ----------------------------------------------------------------------
 
--- | Checkbox for enabling or disabling an optimisation
---   You need not set the checked or on command attributes
---   as this is done for you (but you can if you want,
---   setting checked will override the default, and any
---   command you set will be run before the toggle stuff)
-optCheckBox :: OptimisationCheckbox a
-optCheckBox = optCheckBoxHelper id
+-- | optimisation or pessimisation?
+data OptType = Opti | Pessi
 
--- | Same as 'optCheckBox' but for pessimisations
---
---   Note the following point about pessimisations: An pessimisation
+data OptBio = OptBio
+    { odType     :: OptType
+    , odOpt      :: Optimisation
+    , odShortTxt :: String -- ^ confusing detail: always describes an optimisation
+                           --   (so it says the straightforward thing for optimisations
+                           --    but the opposite meaning for pessimisations)
+    , odToolTip  :: String -- ^ see confusing detail above
+    }
+
+polarisedBio :: OptBio
+polarisedBio = OptBio Opti Polarised
+    "Polarities"
+    "Use the polarity optimisation"
+
+semConstraintBio :: OptBio
+semConstraintBio = OptBio Pessi NoConstraints
+    "Sem constraints"
+    "Use any sem constraints the user provides"
+
+optBios :: [OptBio]
+optBios = [ polarisedBio, semConstraintBio ]
+
+-- | Note the following point about pessimisations: An pessimisation
 --   disables a default behaviour which is assumed to be "optimisation".  But of
 --   course we don't want to confuse the GUI user, so we confuse the programmer
 --   instead: Given an pessimisation DisableFoo, we have a check box UseFoo.  If
 --   UseFoo is checked, we remove DisableFoo from the list; if it is unchecked, we
 --   add it to the list.  This is the opposite of the default behaviour, but the
 --   result, I hope, is intuitive for the user.
-antiOptCheckBox :: OptimisationCheckbox a
-antiOptCheckBox = optCheckBoxHelper not
-
-optCheckBoxHelper :: (Bool -> Bool) -> OptimisationCheckbox a
-optCheckBoxHelper idOrNot o pstRef f as = do
+optCheckBox :: Window a -> ProgStateRef -> OptBio -> IO (CheckBox ())
+optCheckBox f pstRef od = do
     config <- pa <$> readIORef pstRef
-    chk <- checkBox f [ checked := idOrNot (hasOpt o config) ]
-    set chk as
-    set chk [ on command :~ (>> onCheck chk) ]
+    chk <- checkBox f [ checked := flippy (hasOpt o config)
+                      , text    := odShortTxt od
+                      , tooltip := odToolTip od
+                      ]
+    set chk [ on command := onCheck chk ]
     return chk
   where
+    o = odOpt od
+    flippy = case odType od of
+               Opti  -> id
+               Pessi -> not
     onCheck chk = do
         isChecked <- get chk checked
         config    <- pa <$> readIORef pstRef
-        let modopt  = if idOrNot isChecked then (o:) else delete o
+        let modopt  = if flippy isChecked then (o:) else delete o
             newopts = nub . modopt $ getListFlagP OptimisationsFlg config
         modifyIORef pstRef . modifyParams $ setFlagP OptimisationsFlg newopts
 
@@ -541,10 +551,12 @@ resultsGui builderGui pstRef semInput = do
                ]
     p    <- panel f []
     nb   <- notebook p []
+    pst  <- readIORef pstRef
+    -- input tab
+    inputTab <- inputInfoGui nb (pa pst) semInput
     -- realisations tab
     (results,_,summTab,resTab) <- BG.resultsPnl builderGui pstRef semInput nb
     -- ranking tab
-    pst <- readIORef pstRef
     mRankTab <- if hasFlagP RankingConstraintsFlg (pa pst)
                    then Just <$> messageGui nb (pretty pst results)
                    else return Nothing
@@ -553,17 +565,52 @@ resultsGui builderGui pstRef semInput = do
            [ Just (tab "summary"       summTab)
            , Just (tab "realisations"  resTab)
            , tab "ranking" <$> mRankTab
+           , Just (tab "input"         inputTab)
            ]
     -- pack it all together
     set f [ layout := container p $ column 0 [ tabs nb myTabs ]
-          , clientSize := sz 700 600 ]
+          , clientSize := bigSize ]
+    repaint f
     return ()
   where
     pretty pst res = unlines $ map (prettyResult pst) [ x | GSuccess x <- res ]
 
+
 -- --------------------------------------------------------------------
 -- Debugging
 -- --------------------------------------------------------------------
+
+-- | Information about the config/input in this session
+inputInfoGui :: Window a -- ^ parent window
+             -> Params
+             -> SemInput
+             -> IO Layout
+inputInfoGui f config semInput = messageGui f . unlines $
+    [ geniShow semInput
+    , ""
+    , "Options"
+    , "-------"
+    , "Root feature: " ++ maybe "" showFlist (getFlagP RootFeatureFlg config)
+    , ""
+    , "Optimisations"
+    , "-------------"
+    ] ++ map optStatus optBios ++ polStuff
+
+ where
+  optStatus od = odShortTxt od ++ ": " ++
+                 if enabled od then "Yes" else "No"
+  enabled od = case odType od of
+                 Opti  -> configged od
+                 Pessi -> not (configged od)
+  configged od = hasOpt  (odOpt od) config
+  dps = maybe "" showPolarityAttrs (getFlagP DetectPolaritiesFlg config)
+  eps = maybe "" showLitePm $ getFlagP ExtraPolaritiesFlg config
+  polStuff = if enabled polarisedBio
+              then [ ""
+                   , "Detect polarities: " ++ dps
+                   , "Extra polarities:  " ++ eps
+                   ]
+              else []
 
 -- | We provide here a universal debugging interface, which makes use of some
 --   parameterisable bits as defined in the BuilderGui module.
@@ -596,18 +643,23 @@ debugGui builderGui pstRef semInput pauseOnLex = do
                debugTab = tab "tree assembly" debugPnl
                genTabs  = catMaybes [ mAutTab, Just debugTab ]
            --
-           set f [ layout := container p $ tabs nb genTabs ]
+           set f [ layout := container p $ tabs nb genTabs
+                 , clientSize := bigSize
+                 ]
            return ()
+    -- inputs tab
+    inpPnl <- inputInfoGui nb config semInput
     -- lexical selection tab
     pst <- readIORef pstRef
     (canPnl,_,_) <- if pauseOnLex
                        then pauseOnLexGui (pa pst) nb cand initWarns step2
                        else candidateGui  (pa pst) nb cand initWarns
     -- basic tabs
-    let basicTabs = [ tab "lexical selection" canPnl ]
+    let basicTabs = [ tab "input"             inpPnl
+                    , tab "lexical selection" canPnl ]
     --
     set f [ layout := container p $ tabs nb basicTabs
-          , clientSize := sz 700 600 ]
+          , clientSize := bigSize ]
     -- display all tabs if we are not told to pause on lex selection
     unless pauseOnLex (step2 cand)
   where
@@ -618,6 +670,9 @@ debugGui builderGui pstRef semInput pauseOnLex = do
 -- ----------------------------------------------------------------------
 -- odds and ends
 -- ----------------------------------------------------------------------
+
+bigSize :: Size2D Int
+bigSize = sz 700 600
 
 modifyParams :: (Params -> Params) -> ProgState -> ProgState
 modifyParams f pst = pst { pa = f (pa pst) }

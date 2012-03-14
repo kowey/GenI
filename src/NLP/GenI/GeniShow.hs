@@ -160,7 +160,7 @@ instance GeniShow TestCase where
             ++ map (geniShowKeyword "sentence" . squares) sentences
             ++ (concat.prettify.map outStuff $ outputs)
   where
-   semS     = if null semStr then geniShowSemInput sem "" else semStr
+   semS     = if null semStr then geniShow sem else semStr
    prettify = if all (Map.null . snd) outputs then id else map ("":)
    gshowTrace ((k1,k2),ts) =
      geniShowKeyword "trace" . squares . showString (k1 ++ " " ++  k2 ++ " ! " ++ unwords ts) $ ""
@@ -175,6 +175,9 @@ squares s = "[" ++ s ++ "]"
 
 geniShowKeyword :: String -> ShowS
 geniShowKeyword k = showString k . showChar ':'
+
+instance GeniShow SemInput where
+  geniShow s = geniShowSemInput s ""
 
 geniShowSemInput :: SemInput -> ShowS
 geniShowSemInput (sem,icons,lcons) =
