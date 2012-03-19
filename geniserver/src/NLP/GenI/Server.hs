@@ -24,7 +24,7 @@ module NLP.GenI.Server where
 import Control.Monad ( liftM, ap )
 import Control.Monad.IO.Class ( liftIO )
 import Data.Conduit
-import Data.Conduit.Lazy
+import Data.Conduit.List
 import Data.IORef
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
@@ -64,7 +64,7 @@ parseInstruction = J.resultToEither . J.decode . TL.unpack . TL.decodeUtf8
 
 application :: ProgState -> Application
 application pst req = do
-    bss <- liftIO . runResourceT . lazyConsume . requestBody $ req
+    bss <- requestBody req $$ consume
     let input = (,) `liftM` toGenReq req `ap` parseInstruction (B.fromChunks bss)
     case input of
       Left e    -> return (err e)
