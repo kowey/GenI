@@ -17,7 +17,7 @@ import Prelude hiding ( getContents, putStrLn )
 
 import NLP.GenI.Configuration
 import NLP.GenI.General (fst3)
-import NLP.GenI.Geni
+import NLP.GenI
 import NLP.GenI.GeniParsers ( geniLexicon, geniFeats, runParser, ParseError, tillEof )
 import NLP.GenI.Lexicon ( Lexicon )
 import NLP.GenI.Simple.SimpleBuilder
@@ -78,22 +78,24 @@ geniRealize pstRef lex sem rf = do
   me <- geniRealizeI pstRef lex sem rf
   return $ case me of
      Left (BadInputException d e) -> encode . errorObject $ d ++ " parse error: " ++ show e
-     Right p                      -> encode . fst3 $ p
+     Right p                      -> encode . grResults . fst $ p
 
 geniRealizeI pstRef lex sem rf = try $ do
-  bracket
-    (le `fmap` readIORef pstRef)
-    (\origLe -> modifyIORef pstRef $ \p -> p { le = origLe }) $
-    \origLe -> do
-  unless (null lex) $ do
-     l <- loadFromString pstRef "lexicon" lex
-     let _ = l :: Lexicon
-     return ()
-  loadTargetSemStr pstRef $ "semantics:[" ++ sem ++ "]"
-  r <- tryParse geniFeats "root feature" rf
-  modifyIORef pstRef $ \p -> p { pa = setFlagP RootFeatureFlg r (pa p) }
-  runGeni pstRef simpleBuilder_2p
-
+    bracket
+         (le `fmap` readIORef pstRef)
+         (\origLe -> modifyIORef pstRef $ \p -> p { le = origLe }) $
+         \origLe -> do
+    unless (null lex) $ do
+        l <- loadFromString pstRef "lexicon" lex
+        let _ = l :: Lexicon
+        return ()
+    semInput <- case parseSemInput ("semantics:[" ++ sem ++ "]") of
+                    Left err -> throwIO (BadInputException "semantics" err)
+                    Right x  -> return x
+    r <- tryParse geniFeats "root feature" rf
+    modifyIORef pstRef $ \p -> p { pa = setFlagP RootFeatureFlg r (pa p) }
+    runGeni pstRef semInput simpleBuilder_2p
+  
 tryParse p descr str =
   case runParser (tillEof p) () "" str of
   Left  err -> throwIO (BadInputException descr err)
