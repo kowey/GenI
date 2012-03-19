@@ -45,36 +45,36 @@ import NLP.GenI.Server.Instruction
 
 initialise :: Params -> IO ProgState
 initialise confArgs = do
-  pstRef   <- newIORef (emptyProgState $ setFlagP FromStdinFlg () confArgs)
-  _   <- loadGeniMacros pstRef
-  _   <- loadLexicon    pstRef
-  readIORef pstRef
+    pstRef   <- newIORef (emptyProgState $ setFlagP FromStdinFlg () confArgs)
+    _   <- loadGeniMacros pstRef
+    _   <- loadLexicon    pstRef
+    readIORef pstRef
 
 data GenReq = Dump | Normal
 
 toGenReq :: Request -> Either String GenReq
 toGenReq req =
-  case pathInfo req of
-    ["dump"] -> Right Dump
-    []       -> Right Normal
-    xs       -> Left $ "Don't know about path: " ++ T.unpack (T.intercalate "/" xs)
+    case pathInfo req of
+        ["dump"] -> Right Dump
+        []       -> Right Normal
+        xs       -> Left $ "Don't know about path: " ++ T.unpack (T.intercalate "/" xs)
 
 parseInstruction :: J.JSON j => B.ByteString -> Either String j
 parseInstruction = J.resultToEither . J.decode . TL.unpack . TL.decodeUtf8
 
 application :: ProgState -> Application
 application pst req = do
-   bss <- liftIO . runResourceT . lazyConsume . requestBody $ req
-   let input = (,) `liftM` toGenReq req `ap` parseInstruction (B.fromChunks bss)
-   case input of
-     Left e    -> return (err e)
-     Right tyj -> uncurry heart tyj
+    bss <- liftIO . runResourceT . lazyConsume . requestBody $ req
+    let input = (,) `liftM` toGenReq req `ap` parseInstruction (B.fromChunks bss)
+    case input of
+      Left e    -> return (err e)
+      Right tyj -> uncurry heart tyj
   where
-   heart ty j = do
-      me <- liftIO (handleRequest pst j)
-      case me of
-         Right p  -> return (ok ty p)
-         Left e   -> return (err ("parse error: " ++ show e))
+    heart ty j = do
+        me <- liftIO (handleRequest pst j)
+        case me of
+            Right p  -> return (ok ty p)
+            Left e   -> return (err ("parse error: " ++ show e))
 
 -- TODO: what to do about the warnings?
 ok :: GenReq -> GeniResults -> Response
@@ -85,7 +85,7 @@ err :: String -> Response
 err x = responseLBS status400 [contentType "text/plain"] (encodeB x)
 
 showResults :: [GeniResult] -> String
-showResults xs =  unlines . concat $ [ grRealisations g | GSuccess g <- xs ]
+showResults xs = unlines . concat $ [ grRealisations g | GSuccess g <- xs ]
 
 handleRequest :: ProgState -> ServerInstruction -> IO (Either ParseError GeniResults)
 handleRequest pst instr = do
@@ -93,14 +93,14 @@ handleRequest pst instr = do
     pstRef <- newIORef (pst { pa = conf })
     let mSemInput = parseSemInput $ "semantics:[" ++ semStr ++ "]"
     case mSemInput of
-      Left e         -> return (Left e)
-      Right semInput -> do
-           -- do the realisation
-           let helper builder = fst `fmap` runGeni pstRef semInput builder
-           results <- case builderType conf of
-                        SimpleBuilder -> helper simpleBuilder_2p
-                        SimpleOnePhaseBuilder -> helper simpleBuilder_1p
-           return (Right results)
+        Left e         -> return (Left e)
+        Right semInput -> do
+            -- do the realisation
+            let helper builder = fst `fmap` runGeni pstRef semInput builder
+            results <- case builderType conf of
+                           SimpleBuilder         -> helper simpleBuilder_2p
+                           SimpleOnePhaseBuilder -> helper simpleBuilder_1p
+            return (Right results)
   where
     params = gParams    instr
     semStr = gSemantics instr
