@@ -135,13 +135,13 @@ mainGui pstRef = do
     polChk <- optCheckBox f pstRef polarisedBio
     useSemConstraintsChk <- optCheckBox f pstRef semConstraintBio
     extrapolText <- staticText f
-      [ text := maybe "" showLitePm $ getFlagP ExtraPolaritiesFlg config
-      , tooltip := "Use the following additional polarities"
-      ]
+        [ text := maybe "" showLitePm $ getFlagP ExtraPolaritiesFlg config
+        , tooltip := "Use the following additional polarities"
+        ]
     -- commands for the checkboxes
     let togglePolStuff = do
-        c <- get polChk checked
-        set extrapolText [ enabled := c ]
+            c <- get polChk checked
+            set extrapolText [ enabled := c ]
     set polChk [on command :~ (>> togglePolStuff) ]
     -- -----------------------------------------------------------------
     -- layout; packing it all together
@@ -598,14 +598,14 @@ inputInfoGui f config semInput = messageGui f . unlines $
 
  where
   optStatus od = odShortTxt od ++ ": " ++
-                 if enabled od then "Yes" else "No"
-  enabled od = case odType od of
-                 Opti  -> configged od
-                 Pessi -> not (configged od)
+                 if enabld od then "Yes" else "No"
+  enabld od = case odType od of
+                Opti  -> configged od
+                Pessi -> not (configged od)
   configged od = hasOpt  (odOpt od) config
   dps = maybe "" showPolarityAttrs (getFlagP DetectPolaritiesFlg config)
   eps = maybe "" showLitePm $ getFlagP ExtraPolaritiesFlg config
-  polStuff = if enabled polarisedBio
+  polStuff = if enabld polarisedBio
               then [ ""
                    , "Detect polarities: " ++ dps
                    , "Extra polarities:  " ++ eps

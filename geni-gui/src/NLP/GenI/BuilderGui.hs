@@ -16,8 +16,7 @@
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 {-# LANGUAGE RankNTypes #-}
-module NLP.GenI.BuilderGui
-where
+module NLP.GenI.BuilderGui where
 
 import Graphics.UI.WX
 
@@ -27,6 +26,26 @@ import NLP.GenI.Configuration (Params)
 import NLP.GenI.Semantics
 import NLP.GenI.Statistics (Statistics)
 
+-- | Once upon a time, GenI had two very different algorithms for tree assembly,
+--   a CKY/Early style one using packed trees; and the traditional “simple“
+--   algorithm that remains in 2012-GenI.  Diffrent algorithms may use different
+--   chart items, and different debugger visualisations, hence this data structure
+--
+--   I hope one day to make a move towards implementing the fancier algorithms,
+--   which is why I'm keeping around this infrastructure
 data BuilderGui = BuilderGui
-  { resultsPnl  :: forall a . ProgStateRef -> SemInput -> (Window a) -> IO ([GeniResult],Statistics,Layout,Layout)
-  , debuggerPnl :: forall a . (Window a) -> Params -> B.Input -> String -> IO Layout }
+    { -- | A 'resultsPnl' returns results, statistics and layouts for
+      --   a panel showing detailed results (eg. with trees and what not)
+      --   and one showing a summary of the results
+      resultsPnl  :: forall a
+                   . ProgStateRef 
+                  -> SemInput
+                  -> Window a -- ^ parent
+                  -> IO ([GeniResult],Statistics,Layout,Layout)
+    , debuggerPnl :: forall a
+                   . Window a -- ^ parent
+                  -> Params
+                  -> B.Input
+                  -> String   -- ^ name of the builder algorithm
+                  -> IO Layout
+    }

@@ -645,15 +645,16 @@ createAndOpenImage :: GraphvizShow b
 createAndOpenImage cachedir f gvref openFn = do
     gvStatus <- createImage cachedir f gvref
     case gvStatus of
-      GvCreated graphic -> do
-          exists <- doesFileExist graphic
-          if exists
-             then openFn graphic
-             else errorDialog f "" (noFile graphic)
-      GvError err -> errorDialog f "" err
+      GvCreated g    -> openGraphic g
       GvNoSuchItem _ -> return ()
+      GvError err    -> errorDialog f "" err
       GvCached       -> return ()
   where
+    openGraphic graphic = do
+        exists <- doesFileExist graphic
+        if exists
+           then openFn graphic
+           else errorDialog f "" (noFile graphic)
     noFile g = "The file " ++ g ++ " was not created! Is graphviz installed?"
 
 -- | Creates a graphical visualisation for anything which can be displayed

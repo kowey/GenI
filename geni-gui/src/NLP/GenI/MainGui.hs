@@ -24,35 +24,34 @@ import Data.Version ( showVersion )
 import System.Environment(getArgs, getProgName)
 
 import Paths_geni_gui ( version )
-
-import NLP.GenI (emptyProgState)
+import NLP.GenI ( ProgState(..), emptyProgState )
+import NLP.GenI.Configuration
+    ( treatArgs, optionsForStandardGenI, processInstructions, usage
+    , optionsSections, hasFlagP
+    , BatchDirFlg(..), DumpDerivationFlg(..),  FromStdinFlg(..)
+    , HelpFlg(..), VersionFlg(..)
+    , readGlobalConfig, setLoggers
+    )
 import NLP.GenI.Console(consoleGeni)
-import NLP.GenI.Configuration (treatArgs, optionsForStandardGenI, processInstructions,
-                               usage, optionsSections,
-                               hasFlagP, BatchDirFlg(..),
-                               DumpDerivationFlg(..),  FromStdinFlg(..),
-                               HelpFlg(..), VersionFlg(..),
-                               readGlobalConfig, setLoggers
-                              )
-import NLP.GenI ( ProgState(..) )
 import NLP.GenI.Gui(guiGeni)
 
 main :: IO ()
-main = do       
-  args  <- getArgs
-  confArgs <- processInstructions =<< treatArgs optionsForStandardGenI args
-  mainWithState (emptyProgState confArgs)
+main =  getArgs
+    >>= treatArgs optionsForStandardGenI
+    >>= processInstructions
+    >>= (mainWithState . emptyProgState)
 
 mainWithState :: ProgState -> IO ()
 mainWithState pst = do
-  pname <- getProgName
-  maybe (return ()) setLoggers =<< readGlobalConfig
-  pstRef <- newIORef pst
-  let has :: (Typeable f, Typeable x) => (x -> f) -> Bool
-      has = flip hasFlagP (pa pst)
-      mustRunInConsole = has DumpDerivationFlg || has FromStdinFlg || has BatchDirFlg
-  case () of
-   _ | has HelpFlg               -> putStrLn (usage optionsSections pname)
-     | has VersionFlg            -> putStrLn ("GenI " ++ showVersion version)
-     | mustRunInConsole          -> consoleGeni pstRef
-     | otherwise                 -> guiGeni pstRef
+    pname <- getProgName
+    maybe (return ()) setLoggers =<< readGlobalConfig
+    pstRef <- newIORef pst
+    let has :: (Typeable f, Typeable x) => (x -> f) -> Bool
+        has = flip hasFlagP (pa pst)
+        mustRunInConsole = has DumpDerivationFlg || has FromStdinFlg
+                        || has BatchDirFlg
+    case () of
+      _ | has HelpFlg      -> putStrLn (usage optionsSections pname)
+        | has VersionFlg   -> putStrLn ("GenI " ++ showVersion version)
+        | mustRunInConsole -> consoleGeni pstRef
+        | otherwise        -> guiGeni pstRef
