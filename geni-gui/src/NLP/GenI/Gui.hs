@@ -538,8 +538,8 @@ doGenerate f pstRef sembox detectPolsTxt rootFeatTxt useDebugger pauseOnLex = do
     withBuilderGui a = do
       config <- pa <$> readIORef pstRef
       case builderType config of
-        SimpleBuilder         -> a simpleGui_2p
-        SimpleOnePhaseBuilder -> a simpleGui_1p
+        SimpleBuilder         -> a simpleGui2p
+        SimpleOnePhaseBuilder -> a simpleGui1p
 
 resultsGui :: BG.BuilderGui -> ProgStateRef -> SemInput -> IO ()
 resultsGui builderGui pstRef semInput = do

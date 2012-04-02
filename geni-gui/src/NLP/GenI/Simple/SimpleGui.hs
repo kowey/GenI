@@ -24,6 +24,7 @@ import Control.Applicative ( (<$>) )
 import Control.Arrow ( (***) )
 import Data.IORef
 import Data.List ( sort, intercalate, partition )
+import Data.Maybe ( fromMaybe )
 import qualified Data.Map as Map
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
@@ -220,17 +221,19 @@ instance TagItem SimpleItemWrapper where
         lookupOrBug <$> siDerived (fromSimpleItemWrapper si)
       where
         lookupOrBug k = fromMaybe (buggyNode k) $ Map.lookup k nodeMap
-    nodeMap = fromListUsingKey gnname (siNodes (fromSimpleItemWrapper si))
-    buggyNode k = GN
-        { gup     = [ AvPair "cat" (mkGConstNone . T.pack $ "ERROR looking up " ++ k) ]
-        , gdown   = []
-        , gnname  = "ERROR"
-        , glexeme = []
-        , gtype   = Other
-        , ganchor  = False
-        , gaconstr = False
-        , gorigin = "ERROR"
-        }
+        nodeMap = fromListUsingKey gnname (siNodes (fromSimpleItemWrapper si))
+        buggyNode k = GN
+            { gup     = [ AvPair "cat"
+                             (mkGConstNone . T.pack $ "ERROR looking up " ++ k)
+                        ]
+            , gdown   = []
+            , gnname  = "ERROR"
+            , glexeme = []
+            , gtype   = Other
+            , ganchor  = False
+            , gaconstr = False
+            , gorigin = "ERROR"
+            }
 
 fromListUsingKey :: Ord k => (a -> k) -> [a] -> Map.Map k a
 fromListUsingKey f xs = Map.fromList [ (f x, x) | x <- xs ]
@@ -267,5 +270,5 @@ siToSentence si =
     case unpackResult si of
         []    -> siIdname . siGuiStuff $ si
         (h:_) -> unwords ((idstr ++ ".") : map lpLemma (snd3 h))
- where
+  where
     idstr = show (siId si)
