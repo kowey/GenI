@@ -19,51 +19,52 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE OverloadedStrings, ViewPatterns #-}
 module NLP.GenI.Configuration
-  ( Params(..)
-  --
-  , mainBuilderTypes
-  , getFlagP, getListFlagP, modifyFlagP, setFlagP, hasFlagP, deleteFlagP, hasOpt
-  , emptyParams, defineParams
-  , treatArgs, treatArgsWithParams, usage, basicSections, optionsSections
-  , processInstructions
-  , optionsForStandardGenI
-  , optionsForBasicStuff, optionsForOptimisation, optionsForMorphology, optionsForInputFiles
-  , optionsForBuilder, optionsForTesting
-  , helpOption, verboseOption, macrosOption, lexiconOption
-  , nubBySwitches
-  , noArg, reqArg, optArg
-  , parseFlagWithParsec
-  -- * configration files
-  , readGlobalConfig, setLoggers
-  -- re-exports
-  , module System.Console.GetOpt
-  , module NLP.GenI.Flags
-  , Typeable
-  )
+    ( Params(..)
+    --
+    , mainBuilderTypes
+    , getFlagP, getListFlagP, modifyFlagP, setFlagP, hasFlagP, deleteFlagP, hasOpt
+    , emptyParams, defineParams
+    , treatArgs, treatArgsWithParams, usage, basicSections, optionsSections
+    , processInstructions
+    , optionsForStandardGenI
+    , optionsForBasicStuff, optionsForOptimisation, optionsForMorphology, optionsForInputFiles
+    , optionsForBuilder, optionsForTesting
+    , helpOption, verboseOption, macrosOption, lexiconOption
+    , nubBySwitches
+    , noArg, reqArg, optArg
+    , parseFlagWithParsec
+    -- * configration files
+    , readGlobalConfig, setLoggers
+    -- re-exports
+    , module System.Console.GetOpt
+    , module NLP.GenI.Flags
+    , Typeable
+    )
 where
 
 import Control.Applicative ( (<$>), pure )
 import Control.Arrow ( first )
 import Control.Monad ( liftM )
-import qualified Data.ByteString.Char8 as BC
 import Data.Char ( toLower, isSpace )
-import Data.Maybe ( isJust, listToMaybe, mapMaybe )
+import Data.List  ( find, intersperse, nubBy )
+import Data.Maybe ( fromMaybe, isNothing, fromJust )
+import Data.Maybe ( listToMaybe, mapMaybe )
+import Data.String ( IsString(..) )
 import Data.Typeable ( Typeable )
-import System.Console.GetOpt
 import System.Directory ( getAppUserDataDirectory, doesFileExist )
 import System.Environment ( getProgName )
 import System.FilePath
 import System.IO ( stderr )
-import System.Log.Logger
-import System.Log.Handler.Simple
-import System.Log.Handler ( LogHandler, setFormatter )
-import System.Log.Formatter
-import Data.List  ( find, intersperse, nubBy )
-import qualified Data.Map as Map
-import Data.Maybe ( fromMaybe, isNothing, fromJust )
 import Text.ParserCombinators.Parsec ( runParser, CharParser )
-import Data.String ( IsString(..) )
+import qualified Data.ByteString.Char8 as BC
+import qualified Data.Map as Map
+
 import Data.Yaml.YamlLight
+import System.Console.GetOpt
+import System.Log.Formatter
+import System.Log.Handler ( LogHandler, setFormatter )
+import System.Log.Handler.Simple
+import System.Log.Logger
 
 import NLP.GenI.FeatureStructures ( showFlist, )
 import NLP.GenI.Flags
@@ -80,25 +81,34 @@ import NLP.GenI.LexicalSelection ( LexicalSelector )
 -- | Holds the specification for how Geni should be run, its input
 --   files, etc.  This is the stuff that would normally be found in
 --   the configuration file.
-data Params = Prms
-   { grammarType    :: GrammarType
-   , builderType    :: BuilderType
-   -- | Can still be overridden with a morph command mind you
-   , customMorph    :: Maybe MorphRealiser
-   -- | Lexical selection function
-   --   (if you set this you may want to add 'PreAnchored' to the config)
-   , customSelector :: Maybe LexicalSelector
-   , geniFlags      :: [Flag]
-   }
+data Params = Params
+    { grammarType    :: GrammarType
+    , builderType    :: BuilderType
+    -- | Can still be overridden with a morph command mind you
+    , customMorph    :: Maybe MorphRealiser
+    -- | Lexical selection function
+    --   (if you set this you may want to add 'PreAnchored' to the config)
+    , customSelector :: Maybe LexicalSelector
+    , geniFlags      :: [Flag]
+    }
 
 instance Show Params where
-  show p = unlines
-    [ unwords [ "GenI config :", show (grammarType p), show (builderType p), morph ]
-    , unwords $ "GenI flags  :" : map show (geniFlags p)
-    ]
-   where
-    morph = "custom morph:" ++ show (isJust (customMorph p))
+    show p = unlines
+        [ unwords [ "GenI config :", show (grammarType p), show (builderType p), morph ]
+        , unwords $ "GenI flags  :" : map show (geniFlags p)
+        ]
+      where
+        morph = "custom morph:" ++ show (isJust (customMorph p))
 
+-- | The default parameters configuration
+emptyParams :: Params
+emptyParams = Params
+    { builderType    = SimpleBuilder
+    , grammarType    = GeniHand
+    , customMorph    = Nothing
+    , customSelector = Nothing
+    , geniFlags      = emptyFlags
+    }
 
 hasOpt :: Optimisation -> Params -> Bool
 hasOpt o p = maybe False (elem o) $ getFlagP OptimisationsFlg p
@@ -116,19 +126,15 @@ modifyFlagP f m p = p { geniFlags = modifyFlag f m (geniFlags p) }
 setFlagP f v p  = p { geniFlags = setFlag f v (geniFlags p) }
 getFlagP f     = getFlag f . geniFlags
 getListFlagP f = fromMaybe [] . getFlagP f
--- | The default parameters configuration
-emptyParams :: Params
-emptyParams = Prms {
-  builderType   = SimpleBuilder,
-  grammarType   = GeniHand,
-  customMorph   = Nothing,
-  customSelector= Nothing,
-  geniFlags     = [ Flag ViewCmdFlg "ViewTAG"
-                  , Flag DetectPolaritiesFlg (readPolarityAttrs defaultPolarityAttrs)
-                  , Flag RootFeatureFlg
-                      (parseFlagWithParsec "default root feat" geniFeats defaultRootFeat)
-                  ]
-  }
+
+emptyFlags :: [Flag]
+emptyFlags =
+    [ Flag ViewCmdFlg "ViewTAG"
+    , Flag DetectPolaritiesFlg $
+          readPolarityAttrs defaultPolarityAttrs
+    , Flag RootFeatureFlg $
+          parseFlagWithParsec "default root feat" geniFeats defaultRootFeat
+    ]
 
 -- --------------------------------------------------------------------
 -- Command line arguments
@@ -140,31 +146,35 @@ type OptSection = (String,[OptDescr Flag],[String])
 -- Note that we divide them into basic and advanced usage.
 optionsForStandardGenI :: [OptDescr Flag]
 optionsForStandardGenI =
-  nubBySwitches $ concatMap snd3 optionsSections
-                  ++ -- FIXME: weird mac stuff
-                  [ Option ['p']    []  (reqArg WeirdFlg id "CMD") "" ]
+    nubBySwitches $ concatMap snd3 optionsSections
+        ++ [ Option ['p']    []  (reqArg WeirdFlg id "CMD") "" ]
+        -- TODO: what is this -p flag for, exactly? It's something
+        -- related to how GenI runs within an app bundle.  Can we
+        -- do away with it?
 
 basicSections :: [OptSection]
-basicSections = map tweakBasic $ take 1 optionsSections
- where
-  tweakBasic (x,y,z) = (x,y,z ++ ["See --help for more options"])
+basicSections =
+    map tweakBasic $ take 1 optionsSections
+  where
+    tweakBasic (x,y,z) = (x,y,z ++ ["See --help for more options"])
 
 optionsSections :: [OptSection]
 optionsSections =
- [ ("Core options", optionsForBasicStuff, example)
- , ("Input", optionsForInputFiles, [])
- , ("Output", optionsForOutput, [])
- , ("Algorithm",
-     (nubBySwitches $ optionsForBuilder ++ optionsForOptimisation),
-     usageForOptimisations)
- , ("Morphology", optionsForMorphology, [])
- , ("User interface", optionsForUserInterface, [])
- , ("Batch processing", optionsForTesting, [])
- ]
- where
-  example  = [ "Example:"
-             , " geni -m examples/ej/mac -l examples/ej/lexicon -s examples/ej/suite"
-             ]
+    [ ("Core options", optionsForBasicStuff, example)
+    , ("Input", optionsForInputFiles, [])
+    , ("Output", optionsForOutput, [])
+    , ("Algorithm",
+        (nubBySwitches $ optionsForBuilder ++ optionsForOptimisation),
+        usageForOptimisations)
+    , ("Morphology", optionsForMorphology, [])
+    , ("User interface", optionsForUserInterface, [])
+    , ("Batch processing", optionsForTesting, [])
+    ]
+  where
+      example =
+          [ "Example:"
+          , " geni -m examples/ej/mac -l examples/ej/lexicon -s examples/ej/suite"
+          ]
 
 getSwitches :: OptDescr a -> ([Char],[String])
 getSwitches (Option s l _ _) = (s,l)
