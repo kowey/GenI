@@ -47,6 +47,7 @@ import NLP.GenI.GeniShow(geniShow)
 import NLP.GenI.Graphviz
 import NLP.GenI.GraphvizShow (GvItem(..), gvItemSetFlag, gvItemLabel)
 import NLP.GenI.GraphvizShowPolarity ()
+import NLP.GenI.Lexicon
 import NLP.GenI.Polarity (PolAut, AutDebug, suggestPolFeatures)
 import NLP.GenI.Pretty
 import NLP.GenI.Tags ( idname, mapBySem, TagElem(ttrace, tinterface), TagItem(tgIdName), tagLeaves )
@@ -72,16 +73,19 @@ data GraphvizStatus = GvError String
 --   dump it to file or read replace it by the contents of some other file
 pauseOnLexGui :: Params
               -> Window a             -- ^ parent window
+              -> [ILexEntry]          -- ^ lexically selected items (before anchoring)
               -> [TagElem]            -- ^ lexically selected items
               -> GeniWarnings         -- ^ lexical selection warnings
               -> Maybe ([TagElem] -> IO ()) -- ^ run when “begin” is clicked
               -> GvIO () (GvItem Bool TagElem)
-pauseOnLexGui config f xs warns mjob = do
+pauseOnLexGui config f lexs xs warns mjob = do
     p <- panel f []
     candV <- varCreate xs
     (tb, ref, updater) <- candidateGui config p xs warns
     -- supplementary button bar
-    let saveCmd = do
+    let dispCmd = do
+            putStr . unlines $ map geniShow lexs
+        saveCmd = do
             cs <- varGet candV
             maybeSaveAsFile f . unlines $ map geniShow cs
         loadCmd = loadLex $ \cs -> do
@@ -89,10 +93,11 @@ pauseOnLexGui config f xs warns mjob = do
             setGvDrawables ref (sectionsBySem cs)
             updater
     --
-    saveBt <- button p [ text := "Save to file", on command := saveCmd ]
-    loadBt <- button p [ text := "Load from file", on command := loadCmd ]
+    dispBt <- button p [ text := "Show lexical entries", on command := dispCmd ]
+    saveBt <- button p [ text := "Save selection", on command := saveCmd ]
+    loadBt <- button p [ text := "Load", on command := loadCmd ]
     nextBt <- button p [ text := "Begin" ]
-    let disableBar = forM_ [ saveBt, loadBt, nextBt ] $
+    let disableBar = forM_ [ loadBt, nextBt ] $
             \w -> set w [ enabled := False ]
         continue job = do
             disableBar
@@ -102,7 +107,7 @@ pauseOnLexGui config f xs warns mjob = do
         Just j  -> set nextBt [ on command := continue j ]
     let lay = fill $ container p $ column 5
               [ fill tb, hfill (vrule 1)
-              , row 0 [ row 5 [ widget saveBt, widget loadBt ]
+              , row 0 [ row 5 [ widget dispBt, widget saveBt, widget loadBt ]
                       , hfloatRight $ widget nextBt ] ]
     return (lay, ref, updater)
   where

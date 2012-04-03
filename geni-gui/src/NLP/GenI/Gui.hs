@@ -655,14 +655,13 @@ debugGui builderGui pstRef semInput pauseOnLex = do
     inpPnl <- inputInfoGui nb config semInput
     -- lexical selection tab
     pst <- readIORef pstRef
-    (canPnl,_,_) <- pauseOnLexGui (pa pst) nb cand initWarns $
+    (canPnl,_,_) <- pauseOnLexGui (pa pst) nb
+                       (B.inLex initStuff) cand initWarns $
                        if pauseOnLex then Just step2 else Nothing
     -- basic tabs
-    let basicTabs = [ tab "input"             inpPnl
-                    , tab "lexical selection" canPnl ]
-    --
-    set f [ layout := container p $ tabs nb basicTabs
-          , clientSize := bigSize ]
+    addTabs [ tab "input"             inpPnl
+            , tab "lexical selection" canPnl
+            ]
     -- display all tabs if we are not told to pause on lex selection
     unless pauseOnLex (step2 cand)
   where
