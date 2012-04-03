@@ -22,7 +22,6 @@ import Graphics.UI.WX
 
 import qualified NLP.GenI.Builder as B
 import NLP.GenI (ProgStateRef, GeniResult)
-import NLP.GenI.Configuration (Params)
 import NLP.GenI.Semantics
 import NLP.GenI.Statistics (Statistics)
 
@@ -39,13 +38,22 @@ data BuilderGui = BuilderGui
       --   and one showing a summary of the results
       resultsPnl  :: forall a
                    . ProgStateRef 
-                  -> SemInput
                   -> Window a -- ^ parent
+                  -> SemInput
                   -> IO ([GeniResult],Statistics,Layout,Layout)
+    -- | Just a sentence summary tab (small part of the resultsPnl)
+    , summaryPnl :: forall a
+                  . ProgStateRef
+                 -> Window a -- ^ parent
+                 -> [GeniResult]
+                 -> Statistics
+                 -> IO Layout
     , debuggerPnl :: forall a
-                   . Window a -- ^ parent
-                  -> Params
+                   . ProgStateRef
+                  -> Window a -- ^ parent
                   -> B.Input
                   -> String   -- ^ name of the builder algorithm
+                  -> ([GeniResult] -> Statistics -> IO ())
+                  -- ^ what to do when we get results
                   -> IO Layout
     }

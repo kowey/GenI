@@ -48,6 +48,7 @@ import NLP.GenI.GraphvizShow
     , gvItemSetFlag, GNodeHighlights, Highlights )
 import NLP.GenI.GuiHelper
     ( messageGui, tagViewerGui, maybeSaveAsFile, debuggerPanel
+    , Debugger (..)
     , DebuggerItemBar, GvIO, newGvRef, GraphvizGuiSt(..), viewTagWidgets
     , XMGDerivation(getSourceTrees), modifyGvItems
     )
@@ -76,11 +77,12 @@ simpleGui1p = simpleGui False
 simpleGui :: Bool -> BG.BuilderGui
 simpleGui twophase = BG.BuilderGui
     { BG.resultsPnl  = resultsPnl twophase
+    , BG.summaryPnl  = summaryGui
     , BG.debuggerPnl = simpleDebuggerTab twophase
     }
 
-resultsPnl :: Bool -> ProgStateRef -> SemInput -> Window a -> IO ([GeniResult], Statistics, Layout, Layout)
-resultsPnl twophase pstRef semInput f = do
+resultsPnl :: Bool -> ProgStateRef -> Window a -> SemInput -> IO ([GeniResult], Statistics, Layout, Layout)
+resultsPnl twophase pstRef f semInput = do
     (gresults, finalSt) <- runGeni pstRef semInput (simpleBuilder twophase)
     let sentences = grResults    gresults
         stats     = grStatistics gresults
@@ -159,9 +161,25 @@ partitionGeniResult results = (map unSucc *** map unErr)
 -- Debugger
 -- --------------------------------------------------------------------
 
-simpleDebuggerTab :: Bool -> Window a -> Params -> B.Input -> String -> IO Layout
-simpleDebuggerTab twophase x1 x2 =
-    debuggerPanel (simpleBuilder twophase) stToGraphviz (simpleItemBar x2) x1 x2
+simpleDebuggerTab :: Bool
+                  -> ProgStateRef
+                  -> Window a
+                  -> B.Input
+                  -> String
+                  -> ([GeniResult] -> Statistics -> IO ())
+                  -> IO Layout
+simpleDebuggerTab twophase pstRef f input name job = do
+    config <- pa <$> readIORef pstRef
+    debuggerPanel (dbg config) pstRef f input
+  where
+    dbg :: Params -> Debugger SimpleStatus Bool SimpleItem
+    dbg config = Debugger
+        { dBuilder    = simpleBuilder twophase
+        , dToGv       = stToGraphviz
+        , dControlPnl = simpleItemBar config
+        , dNext       = job
+        , dCacheDir   = name
+        }
 
 stToGraphviz :: SimpleStatus -> [GvItem Bool SimpleItem]
 stToGraphviz st =

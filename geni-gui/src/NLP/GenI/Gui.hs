@@ -556,7 +556,7 @@ resultsGui builderGui pstRef semInput = do
     -- input tab
     inputTab <- inputInfoGui nb (pa pst) semInput
     -- realisations tab
-    (results,_,summTab,resTab) <- BG.resultsPnl builderGui pstRef semInput nb
+    (results,_,summTab,resTab) <- BG.resultsPnl builderGui pstRef nb semInput
     -- ranking tab
     mRankTab <- if hasFlagP RankingConstraintsFlg (pa pst)
                    then Just <$> messageGui nb (purty pst results)
@@ -632,11 +632,14 @@ debugGui builderGui pstRef semInput pauseOnLex = do
            set f [ layout := container p (tabs nb ts) -- appends ts
                  , clientSize := bigSize
                  ]
-           notebookSetSelection nb oldCount -- ie. the latest tab added
-           return ()
+           notebookSetSelection nb oldCount >> return ()
     -- generation step 1
     (initStuff, initWarns) <- initGeni pstRef semInput
     let (cand,_)   = unzip $ B.inCands initStuff
+    -- continuation for tree assembly tab
+    let step3 results stats = do
+            resPnl <- BG.summaryPnl builderGui pstRef nb results stats
+            addTabs [tab "summary" resPnl]
     -- continuation for candidate selection tab
     let step2 newCands = do
            -- generation step 2.A (run polarity stuff)
@@ -647,7 +650,7 @@ debugGui builderGui pstRef semInput pauseOnLex = do
                          then Just <$> myPolarityGui nb autstuff
                          else return Nothing
            -- generation step 2.B (start the generator for each path)
-           debugPnl <- BG.debuggerPnl builderGui nb config input2 btype
+           debugPnl <- BG.debuggerPnl builderGui pstRef nb input2 btype step3
            let mAutTab  = tab "automata" <$> mAutPnl
                debugTab = tab "tree assembly" debugPnl
            addTabs $ catMaybes [ mAutTab, Just debugTab ]

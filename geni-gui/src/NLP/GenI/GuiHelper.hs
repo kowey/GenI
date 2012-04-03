@@ -15,8 +15,10 @@
 -- along with this program; if not, write to the Free Software
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+{-# LANGUAGE NamedFieldPuns, RecordWildCards #-}
 {-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE RankNTypes #-}
 module NLP.GenI.GuiHelper where
 
 import Control.Applicative ( (<$>) )
@@ -36,6 +38,7 @@ import qualified Data.Text as T
 
 import Graphics.UI.WX
 
+import NLP.GenI
 import NLP.GenI.Automaton (numStates, numTransitions)
 import NLP.GenI.Builder (queryCounter, num_iterations, chart_size, num_comparisons)
 import NLP.GenI.Configuration ( Params(..), MetricsFlg(..), setFlagP, getFlagP
@@ -50,6 +53,7 @@ import NLP.GenI.GraphvizShowPolarity ()
 import NLP.GenI.Lexicon
 import NLP.GenI.Polarity (PolAut, AutDebug, suggestPolFeatures)
 import NLP.GenI.Pretty
+import NLP.GenI.Statistics
 import NLP.GenI.Tags ( idname, mapBySem, TagElem(ttrace, tinterface), TagItem(tgIdName), tagLeaves )
 import NLP.GenI.TreeSchemata ( showLexeme )
 import NLP.GenI.Warnings
@@ -330,6 +334,21 @@ type DebuggerItemBar st flg itm =
     -> GvUpdater -- ^ onUpdate
     -> IO (Layout, GvUpdater)
 
+data GraphvizShow (GvItem flg itm) => Debugger st flg itm = Debugger
+    { dBuilder :: B.Builder st itm Params
+      -- ^ builder to use
+    , dToGv :: st -> [GvItem flg itm]
+      -- ^ function to convert a Builder state into lists of items
+      --   and their labels, the way graphvizGui likes it
+    , dControlPnl :: DebuggerItemBar st flg itm
+      -- ^ function returning a control panel configuring
+      --   how you want the currently selected item in the debugger
+      --   to be displayed
+    , dCacheDir :: FilePath
+      -- ^ graphviz cache directory
+    , dNext     :: [GeniResult] -> Statistics -> IO ()
+    }
+
 -- | A generic graphical debugger widget for GenI, including
 --
 --   * item viewer which allows the user to select one of the items in the
@@ -354,31 +373,25 @@ type DebuggerItemBar st flg itm =
 --   be the same as the type handled by your gui: that's quite normal because
 --   you might want to decorate the type with some other information
 debuggerPanel :: GraphvizShow (GvItem flg itm)
-              => B.Builder st itm2 Params -- ^ builder to use
-              -> (st -> [GvItem flg itm])
-              -- ^ function to convert a Builder state into lists of items
-              --   and their labels, the way graphvizGui likes it
-              -> DebuggerItemBar st flg itm
-              -- ^ 'itemBar' function returning a control panel configuring
-              --   how you want the currently selected item in the debugger
-              --   to be displayed
+              => Debugger st flg itm
+              -> ProgStateRef
               -> Window a -- ^ parent window
-              -> Params     -- ^ geni params
-              -> B.Input    -- ^ builder input
-              -> String     -- ^ graphviz cache directory
+              -> B.Input
               -> IO Layout
-debuggerPanel builder stateToGv itemBar f config_ input cachedir = do
+debuggerPanel (Debugger {..}) pstRef f input = do
+    config <- (setMetrics . pa) <$> readIORef pstRef
+    let (initS, initStats) = initBuilder input config
     p <- panel f []
     -- ---------------------------------------------------------
     -- item viewer: select and display an item
     -- ---------------------------------------------------------
     gvRef <- newGvRef initS "debugger session"
-    setGvDrawables gvRef (stateToGv initS)
-    (layItemViewer,_,onUpdateMain) <- graphvizGui p cachedir gvRef
+    setGvDrawables gvRef (dToGv initS)
+    (layItemViewer,_,onUpdateMain) <- graphvizGui p dCacheDir gvRef
     -- ----------------------------------------------------------
     -- item bar: controls for how an individual item is displayed
     -- ----------------------------------------------------------
-    (layItemBar,onUpdateItemBar) <- itemBar p gvRef onUpdateMain
+    (layItemBar,onUpdateItemBar) <- dControlPnl p gvRef onUpdateMain
     -- -------------------------------------------
     -- dashboard: controls for the debugger itself
     -- -------------------------------------------
@@ -389,6 +402,7 @@ debuggerPanel builder stateToGv itemBar f config_ input cachedir = do
     leapVal   <- entry  db [ text := "1", clientSize := sz 30 25 ]
     finishBt  <- button db [text := "Leap to end"]
     statsTxt  <- staticText db []
+    done      <- varCreate False
     -- dashboard commands
     let showQuery c gs = maybe "???" show (queryCounter c gs)
         updateStatsTxt gs = set statsTxt [ text :~ (\_ -> txtStats gs) ]
@@ -403,21 +417,25 @@ debuggerPanel builder stateToGv itemBar f config_ input cachedir = do
                 leapInt = read leapTxt
                 (s2,stats2) = foldr genStep s_stats [1..leapInt]
             modifyIORef gvRef $ \g -> g { gvcore = s2 }
-            setGvDrawables gvRef (stateToGv s2)
+            setGvDrawables gvRef (dToGv s2)
             setGvSel gvRef 1
             onUpdate
             updateStatsTxt stats2
             set nextBt [ on command :~ (\_ -> showNext (s2,stats2) ) ]
+            case B.finished dBuilder s2 of
+                B.Active -> return ()
+                _        -> callNext done stats2 s2
     let showLast = do
              -- redo generation from scratch
              let (s2, stats2) = runState (execStateT allSteps initS) initStats
-             setGvDrawables gvRef (stateToGv s2)
+             setGvDrawables gvRef (dToGv s2)
              onUpdate
              updateStatsTxt stats2
+             callNext done stats2 s2
     let showReset = do
              set nextBt   [ on command  := showNext (initS, initStats) ]
              updateStatsTxt initStats
-             setGvDrawables gvRef (stateToGv initS)
+             setGvDrawables gvRef (dToGv initS)
              setGvSel gvRef 1
              onUpdate
     -- dashboard handlers
@@ -435,12 +453,17 @@ debuggerPanel builder stateToGv itemBar f config_ input cachedir = do
     -- -------------------------------------------
     return $ fill $ container p $ column 5 [ layItemViewer, layItemBar, hfill (vrule 1), layCmdBar ]
   where
-    initBuilder = B.init  builder
-    nextStep    = B.step  builder
-    allSteps    = B.stepAll builder
-    config      = setFlagP MetricsFlg B.defaultMetricNames config_
-    (initS, initStats) = initBuilder input config
-
+    initBuilder = B.init  dBuilder
+    nextStep    = B.step  dBuilder
+    allSteps    = B.stepAll dBuilder
+    setMetrics  = setFlagP MetricsFlg B.defaultMetricNames
+    -- builder stateToGv itemBar f config_ input cachedir = do
+    callNext d stats st = do
+        done <- varGet d
+        unless done $ do
+            varSet d True
+            results <- extractResults pstRef dBuilder st
+            dNext results stats
 
 -- --------------------------------------------------------------------
 -- Graphviz GUI
