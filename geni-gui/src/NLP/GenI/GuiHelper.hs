@@ -68,6 +68,55 @@ data GraphvizStatus = GvError String
 -- Lexically selected items
 -- ----------------------------------------------------------------------
 
+-- | 'pauseOnLexGui' allows the user to see lexical selection only and either
+--   dump it to file or read replace it by the contents of some other file
+pauseOnLexGui :: Params
+              -> Window a             -- ^ parent window
+              -> [TagElem]            -- ^ lexically selected items
+              -> GeniWarnings         -- ^ lexical selection warnings
+              -> Maybe ([TagElem] -> IO ()) -- ^ run when “begin” is clicked
+              -> GvIO () (GvItem Bool TagElem)
+pauseOnLexGui config f xs warns mjob = do
+    p <- panel f []
+    candV <- varCreate xs
+    (tb, ref, updater) <- candidateGui config p xs warns
+    -- supplementary button bar
+    let saveCmd = do
+            cs <- varGet candV
+            maybeSaveAsFile f . unlines $ map geniShow cs
+        loadCmd = loadLex $ \cs -> do
+            varSet candV cs
+            setGvDrawables ref (sectionsBySem cs)
+            updater
+    --
+    saveBt <- button p [ text := "Save to file", on command := saveCmd ]
+    loadBt <- button p [ text := "Load from file", on command := loadCmd ]
+    nextBt <- button p [ text := "Begin" ]
+    let disableBar = forM_ [ saveBt, loadBt, nextBt ] $
+            \w -> set w [ enabled := False ]
+        continue job = do
+            disableBar
+            varGet candV >>= job
+    case mjob of
+        Nothing -> disableBar
+        Just j  -> set nextBt [ on command := continue j ]
+    let lay = fill $ container p $ column 5
+              [ fill tb, hfill (vrule 1)
+              , row 0 [ row 5 [ widget saveBt, widget loadBt ]
+                      , hfloatRight $ widget nextBt ] ]
+    return (lay, ref, updater)
+  where
+    loadLex job = do
+        fsel <- fileOpenDialog f False True
+                    "Choose your file..."
+                    anyFile "" ""
+        flip maybeIO fsel $ \file -> do
+            parsed <- parseFromFile geniTagElems file
+            case parsed of
+                Left err -> errorDialog f "" (show err)
+                Right c  -> job c
+
+
 -- | 'candidateGui' displays the lexically selected items, grouped by the
 --   semantics they subsume.
 candidateGui :: Params
@@ -269,47 +318,6 @@ runViewTag params drName =
 -- Graphical debugger (helper functions)
 -- --------------------------------------------------------------------
 
--- | 'pauseOnLexGui' allows the user to see lexical selection only and either
---   dump it to file or read replace it by the contents of some other file
-pauseOnLexGui :: Params
-              -> Window a             -- ^ parent window
-              -> [TagElem]            -- ^ lexically selected items
-              -> GeniWarnings         -- ^ lexical selection warnings
-              -> ([TagElem] -> IO ()) -- ^ run when “begin” is clicked
-              -> GvIO () (GvItem Bool TagElem)
-pauseOnLexGui config f xs warns job = do
-  p <- panel f []
-  candV <- varCreate xs
-  (tb, ref, updater) <- candidateGui config p xs warns
-  -- supplementary button bar
-  let saveCmd = do
-          c <- varGet candV
-          maybeSaveAsFile f (unlines $ map geniShow c)
-      loadCmd = do
-          fsel <- fileOpenDialog f False True
-                     "Choose your file..."
-                     anyFile "" ""
-          flip maybeIO fsel $ \file -> do
-              parsed <- parseFromFile geniTagElems file
-              case parsed of
-                Left err -> errorDialog f "" (show err)
-                Right c  -> do
-                    varSet candV c
-                    setGvDrawables ref (sectionsBySem c)
-                    updater
-  --
-  saveBt <- button p [ text := "Save to file", on command := saveCmd ]
-  loadBt <- button p [ text := "Load from file", on command := loadCmd ]
-  nextBt <- button p [ text := "Begin" ]
-  let disableW w = set w [ enabled := False ]
-  set nextBt [ on command := do mapM_ disableW [ saveBt, loadBt, nextBt ]
-                                varGet candV >>= job ]
-  --
-  let lay = fill $ container p $ column 5
-            [ fill tb, hfill (vrule 1)
-            , row 0 [ row 5 [ widget saveBt, widget loadBt ]
-                    , hfloatRight $ widget nextBt ] ]
-  return (lay, ref, updater)
 
 type DebuggerItemBar st flg itm =
        Panel ()                           -- ^ parent panel
