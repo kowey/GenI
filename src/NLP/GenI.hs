@@ -38,7 +38,7 @@ module NLP.GenI (
              ResultType(..),
 
              -- * Helpers
-             initGeni,
+             initGeni, extractResults,
              lemmaSentenceString, prettyResult,
              showRealisations, histogram,
              getTraces,
@@ -493,7 +493,7 @@ data ResultType = CompleteResult | PartialResult deriving (Ord, Eq)
 instance Show GeniError where
   show (GeniError xs) = intercalate "\n" $ map ("Error: " ++) xs
 
--- | The entry point!
+-- | Entry point! (the most useful function to know here)
 -- 
 --   * Initialises the realiser (lexical selection, among other things),
 --
@@ -512,23 +512,17 @@ runGeni pstRef semInput builder = do
      pst <- readIORef pstRef
      let config = pa pst
          run    = B.run builder
-         unpack = B.unpack builder
-         finished = B.finished builder
      -- step 1: lexical selection
      (initStuff, initWarns) <- initGeni pstRef semInput
-     start <- ( rnf initStuff ) `seq` getCPUTime  --force evaluation before measuring start time to avoid including grammar/lexicon parsing.
-
+     --force evaluation before measuring start time to avoid including grammar/lexicon parsing.
+     start <- rnf initStuff `seq` getCPUTime
      -- step 2: chart generation
      let (finalSt, stats) = run initStuff config
-     -- step 3: unpacking
-     let uninflected = unpack finalSt
-         tryPartial  = null uninflected && hasFlagP PartialFlg config
-         rawResults  = if tryPartial then B.partial builder finalSt else uninflected
-         resultTy    = if tryPartial then PartialResult else CompleteResult
-         status      = finished finalSt
+     -- step 3: unpacking and
      -- step 4: post-processing
-     results <- finaliseResults pstRef (resultTy, status, rawResults)
-     end <-  ( rnf results ) `seq` getCPUTime --force evaluation before measuring end time to account for all the work that should be done.
+     results <- extractResults pstRef builder finalSt
+     --force evaluation before measuring end time to account for all the work that should be done.
+     end <- rnf results `seq` getCPUTime
      let elapsedTime = picosToMillis $! end - start
          diff = round (elapsedTime :: Double) :: Int
          stats2 = updateMetrics (incrIntMetric "gen_time"  (fromIntegral diff) ) stats
@@ -539,6 +533,27 @@ runGeni pstRef semInput builder = do
      return (gresults, finalSt)
   where
     showWarnings = intercalate "\n" . showGeniWarning
+
+-- | This is a helper to 'runGenI'. It's mainly useful if you are building
+--   interactive GenI debugging tools.
+--
+--   Given a builder state,
+--
+--   * Unpacks the builder results
+--
+--   * Finalises the results (morphological generation)
+extractResults :: ProgStateRef ->  B.Builder st it Params -> st -> IO [GeniResult]
+extractResults pstRef builder finalSt = do
+    config  <- pa <$> readIORef pstRef
+    -- step 3: unpacking
+    let uninflected = B.unpack builder finalSt
+        (rawResults, resultTy) =
+            if null uninflected && hasFlagP PartialFlg config
+               then (B.partial builder finalSt, PartialResult)
+               else (uninflected              , CompleteResult)
+        status = B.finished builder finalSt
+    -- step 4: post-processing
+    finaliseResults pstRef (resultTy, status, rawResults)
 
 -- --------------------------------------------------------------------
 -- Surface realisation - sub steps
@@ -571,8 +586,8 @@ initGeni pstRef semInput_ = do
 --   into mainline GenI.  So far, this consists of morphological realisation and
 --   OT ranking
 finaliseResults :: ProgStateRef -> (ResultType, B.GenStatus, [B.Output]) -> IO [GeniResult]
-finaliseResults pstRef (ty, status, os) =
- do pst <- readIORef pstRef
+finaliseResults pstRef (ty, status, os) = do
+    pst <- readIORef pstRef
     -- morph TODO: make this a bit safer
     mss <- case getFlagP MorphCmdFlg (pa pst) of
              Nothing  -> let morph = fromMaybe (map sansMorph) (customMorph (pa pst))
