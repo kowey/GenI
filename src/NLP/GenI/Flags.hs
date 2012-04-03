@@ -64,11 +64,13 @@ whilst preserving type safety (we always know that MacrosFlg is
 associated with String).  The alternative would be writing getters and
 setters for each flag, and that gets really boring after a while.
 -}
-data Flag = forall f x . (Eq f, Show f, Show x, Typeable f, Typeable x) =>
+data Flag = forall f x . (Eq f, Typeable f, Typeable x) =>
      Flag (x -> f) x deriving (Typeable)
 
+{-
 instance Show Flag where
  show (Flag f x) = "Flag " ++ show (f x)
+-}
 
 instance Eq Flag where
  (Flag f1 x1) == (Flag f2 x2)
@@ -86,19 +88,19 @@ deleteFlag :: (Typeable f, Typeable x) => (x -> f) -> [Flag] -> [Flag]
 deleteFlag f = filter (not.(isFlag f))
 
 -- | This only has an effect if the flag is set
-modifyFlag :: (Eq f, Show f, Show x, Typeable f, Typeable x) => (x -> f) -> (x -> x) -> [Flag] -> [Flag]
+modifyFlag :: (Eq f, Typeable f, Typeable x) => (x -> f) -> (x -> x) -> [Flag] -> [Flag]
 modifyFlag f m fs =
   case getFlag f fs of
     Nothing -> fs
     Just v  -> setFlag f (m v) fs
 
-setFlag :: (Eq f, Show f, Show x, Typeable f, Typeable x) => (x -> f) -> x -> [Flag] -> [Flag]
+setFlag :: (Eq f, Typeable f, Typeable x) => (x -> f) -> x -> [Flag] -> [Flag]
 setFlag f v fs = (Flag f v) : tl where tl = deleteFlag f fs
 
-getFlag :: (Show f, Show x, Typeable f, Typeable x)  => (x -> f) -> [Flag] -> Maybe x
+getFlag :: (Typeable f, Typeable x)  => (x -> f) -> [Flag] -> Maybe x
 getFlag f fs = do (Flag _ v) <- find (isFlag f) fs ; cast v
 
-getAllFlags :: (Show f, Show x, Typeable f, Typeable x)  => (x -> f) -> [Flag] -> [x]
+getAllFlags :: (Typeable f, Typeable x)  => (x -> f) -> [Flag] -> [x]
 getAllFlags f fs = catMaybes [ cast v | flg@(Flag _ v) <- fs, isFlag f flg ]
 
 -- ----------------------------------------------------------------------
@@ -107,40 +109,40 @@ getAllFlags f fs = catMaybes [ cast v | flg@(Flag _ v) <- fs, isFlag f flg ]
 -- data type code.
 -- ----------------------------------------------------------------------
 
-data BatchDirFlg = BatchDirFlg FilePath deriving (Eq, Show, Typeable)
-data DisableGuiFlg = DisableGuiFlg () deriving (Eq, Show, Typeable)
-data DetectPolaritiesFlg = DetectPolaritiesFlg (Set.Set PolarityAttr) deriving (Eq, Show, Typeable)
-data DumpDerivationFlg = DumpDerivationFlg () deriving (Eq, Show, Typeable)
-data EarlyDeathFlg = EarlyDeathFlg () deriving (Eq, Show, Typeable)
-data ExtraPolaritiesFlg = ExtraPolaritiesFlg (Map.Map PolarityKey Interval) deriving (Eq, Show, Typeable)
-data FromStdinFlg = FromStdinFlg () deriving (Eq, Show, Typeable)
-data HelpFlg = HelpFlg () deriving (Eq, Show, Typeable)
-data InstructionsFileFlg = InstructionsFileFlg FilePath deriving (Eq, Show, Typeable)
-data LexiconFlg = LexiconFlg FilePath deriving (Eq, Show, Typeable)
-data MacrosFlg = MacrosFlg FilePath deriving (Eq, Show, Typeable)
-data TracesFlg = TracesFlg FilePath deriving (Eq, Show, Typeable)
-data MaxStepsFlg = MaxStepsFlg Integer deriving (Eq, Show, Typeable)
-data MaxResultsFlg = MaxResultsFlg Integer deriving (Eq, Show, Typeable)
-data MetricsFlg = MetricsFlg [String] deriving (Eq, Show, Typeable)
-data MorphCmdFlg = MorphCmdFlg String deriving (Eq, Show, Typeable)
-data MorphInfoFlg = MorphInfoFlg FilePath deriving (Eq, Show, Typeable)
-data OptimisationsFlg = OptimisationsFlg [Optimisation] deriving (Eq, Show, Typeable)
-data OutputFileFlg = OutputFileFlg String deriving (Eq, Show, Typeable)
-data PartialFlg = PartialFlg () deriving (Eq, Show, Typeable)
-data RankingConstraintsFlg = RankingConstraintsFlg FilePath deriving (Eq, Show, Typeable)
-data RootFeatureFlg = RootFeatureFlg (Flist GeniVal) deriving (Eq, Show, Typeable)
-data NoLoadTestSuiteFlg = NoLoadTestSuiteFlg () deriving (Eq, Show, Typeable)
-data StatsFileFlg = StatsFileFlg FilePath deriving (Eq, Show, Typeable)
-data TestCaseFlg = TestCaseFlg String deriving (Eq, Show, Typeable)
-data TestInstructionsFlg = TestInstructionsFlg [Instruction] deriving (Eq, Show, Typeable)
-data TestSuiteFlg = TestSuiteFlg FilePath deriving (Eq, Show, Typeable)
-data TimeoutFlg = TimeoutFlg Int deriving (Eq, Show, Typeable)
-data VerboseModeFlg = VerboseModeFlg () deriving (Eq, Show, Typeable)
-data VersionFlg = VersionFlg () deriving (Eq, Show, Typeable)
-data ViewCmdFlg = ViewCmdFlg String deriving (Eq, Show, Typeable)
-data BuilderFlg = BuilderFlg  BuilderType deriving (Eq, Show, Typeable)
-data GrammarTypeFlg = GrammarTypeFlg GrammarType deriving (Eq, Show, Typeable)
+newtype BatchDirFlg = BatchDirFlg FilePath deriving (Eq, Typeable)
+newtype DisableGuiFlg = DisableGuiFlg () deriving (Eq, Typeable)
+newtype DetectPolaritiesFlg = DetectPolaritiesFlg (Set.Set PolarityAttr) deriving (Eq, Typeable)
+newtype DumpDerivationFlg = DumpDerivationFlg () deriving (Eq, Typeable)
+newtype EarlyDeathFlg = EarlyDeathFlg () deriving (Eq, Typeable)
+newtype ExtraPolaritiesFlg = ExtraPolaritiesFlg (Map.Map PolarityKey Interval) deriving (Eq, Typeable)
+newtype FromStdinFlg = FromStdinFlg () deriving (Eq, Typeable)
+newtype HelpFlg = HelpFlg () deriving (Eq, Typeable)
+newtype InstructionsFileFlg = InstructionsFileFlg FilePath deriving (Eq, Typeable)
+newtype LexiconFlg = LexiconFlg FilePath deriving (Eq, Typeable)
+newtype MacrosFlg = MacrosFlg FilePath deriving (Eq, Typeable)
+newtype TracesFlg = TracesFlg FilePath deriving (Eq, Typeable)
+newtype MaxStepsFlg = MaxStepsFlg Integer deriving (Eq, Typeable)
+newtype MaxResultsFlg = MaxResultsFlg Integer deriving (Eq, Typeable)
+newtype MetricsFlg = MetricsFlg [String] deriving (Eq, Typeable)
+newtype MorphCmdFlg = MorphCmdFlg String deriving (Eq, Typeable)
+newtype MorphInfoFlg = MorphInfoFlg FilePath deriving (Eq, Typeable)
+newtype OptimisationsFlg = OptimisationsFlg [Optimisation] deriving (Eq, Typeable)
+newtype OutputFileFlg = OutputFileFlg String deriving (Eq, Typeable)
+newtype PartialFlg = PartialFlg () deriving (Eq, Typeable)
+newtype RankingConstraintsFlg = RankingConstraintsFlg FilePath deriving (Eq, Typeable)
+newtype RootFeatureFlg = RootFeatureFlg (Flist GeniVal) deriving (Eq, Typeable)
+newtype NoLoadTestSuiteFlg = NoLoadTestSuiteFlg () deriving (Eq, Typeable)
+newtype StatsFileFlg = StatsFileFlg FilePath deriving (Eq, Typeable)
+newtype TestCaseFlg = TestCaseFlg String deriving (Eq, Typeable)
+newtype TestInstructionsFlg = TestInstructionsFlg [Instruction] deriving (Eq, Typeable)
+newtype TestSuiteFlg = TestSuiteFlg FilePath deriving (Eq, Typeable)
+newtype TimeoutFlg = TimeoutFlg Int deriving (Eq, Typeable)
+newtype VerboseModeFlg = VerboseModeFlg () deriving (Eq, Typeable)
+newtype VersionFlg = VersionFlg () deriving (Eq, Typeable)
+newtype ViewCmdFlg = ViewCmdFlg String deriving (Eq, Typeable)
+newtype BuilderFlg = BuilderFlg BuilderType deriving (Eq, Typeable)
+newtype GrammarTypeFlg = GrammarTypeFlg GrammarType deriving (Eq, Typeable)
 -- the WeirdFlg exists strictly to please OS X when you launch
 -- GenI in an application bundle (double-click)... for some
 -- reason it wants to pass an argument to -p
-data WeirdFlg = WeirdFlg String deriving (Eq, Show, Typeable)
+newtype WeirdFlg = WeirdFlg String deriving (Eq, Typeable)

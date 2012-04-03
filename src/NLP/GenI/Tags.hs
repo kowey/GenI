@@ -21,6 +21,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module NLP.GenI.Tags(
    -- Main Datatypes
@@ -36,14 +37,13 @@ module NLP.GenI.Tags(
    setTidnums, plugTree, spliceTree,
 
    -- General functions
-   mapBySem, showTagSites,
+   mapBySem,
    collect, detectSites
 ) where
 
 import Control.Applicative ( (<$>), (<*>) )
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe, listToMaybe, mapMaybe, catMaybes)
-import Data.List (intersperse)
 import Data.Tree
 import qualified Data.Text as T
 
@@ -56,9 +56,10 @@ import NLP.GenI.General (listRepNode, groupByFM, preTerminals, geniBug)
 import NLP.GenI.GeniVal ( GeniVal(..), DescendGeniVal(..), Collectable(..), Idable(..),
                           isConst,
                         )
-import NLP.GenI.FeatureStructures ( AvPair(..), Flist, showFlist, showPairs )
+import NLP.GenI.FeatureStructures ( AvPair(..), Flist )
 import NLP.GenI.Polarity.Types (PolarityKey(..), SemPols)
-import NLP.GenI.Semantics ( Sem, Literal, emptyLiteral, showSem )
+import NLP.GenI.Pretty
+import NLP.GenI.Semantics ( Sem, Literal, emptyLiteral )
 import NLP.GenI.TreeSchemata ( Ptype(..),
                                GNode(..), GType(..), NodeName,
                                lexemeAttributes )
@@ -87,7 +88,7 @@ data TagSite = TagSite { tsName :: String
                        , tsDown :: Flist GeniVal
                        , tsOrigin :: String
                        }
-  deriving (Show, Eq, Ord, Data, Typeable)
+  deriving (Eq, Ord, Data, Typeable)
 
 data TagElem = TE {
                    idname       :: String,
@@ -103,7 +104,7 @@ data TagElem = TE {
                    ttrace       :: [String],
                    tsempols     :: [SemPols]
                 }
-             deriving (Show, Eq, Data, Typeable)
+             deriving (Eq, Data, Typeable)
 
 -- | Given a tree(GNode) returns a list of substitution or adjunction
 --   nodes, as well as remaining nodes with a null adjunction constraint.
@@ -310,11 +311,12 @@ firstMaybe fn = listToMaybe . mapMaybe fn
 -- ----------------------------------------------------------------------
 
 -- Useful for debugging adjunction and substitution nodes
-showTagSites :: [TagSite] -> String
-showTagSites sites = concat $ intersperse "\n  " $ map fn sites
-  where
-   fn (TagSite n t b o) =
-    concat . intersperse "/" $ [ n, showPairs t, showPairs b, o ]
+instance Pretty [TagSite] where
+    pretty =
+        T.intercalate "\n  " . map fn
+      where
+        fn (TagSite n t b o) = T.intercalate "/"
+            [ T.pack n, pretty t, pretty b, T.pack o ]
 
 -- ----------------------------------------------------------------------
 -- Diagnostic messages
@@ -329,10 +331,10 @@ ts_synIncomplete = "syntactically incomplete"
 ts_tbUnificationFailure = "top/bot unification failure"
 
 ts_rootFeatureMismatch :: Flist GeniVal -> String
-ts_rootFeatureMismatch good = "root feature does not unify with " ++ showFlist good
+ts_rootFeatureMismatch good = "root feature does not unify with " ++ prettyStr good
 
 ts_semIncomplete :: [Literal] -> String
-ts_semIncomplete sem = "semantically incomplete - missing:  " ++ showSem sem
+ts_semIncomplete sem = "semantically incomplete - missing:  " ++ prettyStr sem
 
 -- ----------------------------------------------------------------------
 -- Performance

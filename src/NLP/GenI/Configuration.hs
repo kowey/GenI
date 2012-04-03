@@ -66,11 +66,11 @@ import System.Log.Handler ( LogHandler, setFormatter )
 import System.Log.Handler.Simple
 import System.Log.Logger
 
-import NLP.GenI.FeatureStructures ( showFlist, )
 import NLP.GenI.Flags
 import NLP.GenI.General ( geniBug, fst3, snd3 )
 import NLP.GenI.GeniParsers ( geniFeats, tillEof )
 import NLP.GenI.Morphology.Types ( MorphRealiser )
+import NLP.GenI.Pretty
 import NLP.GenI.Polarity.Types ( readPolarityAttrs )
 import NLP.GenI.LexicalSelection ( LexicalSelector )
 
@@ -92,6 +92,7 @@ data Params = Params
     , geniFlags      :: [Flag]
     }
 
+{-
 instance Show Params where
     show p = unlines
         [ unwords [ "GenI config :", show (grammarType p), show (builderType p), morph ]
@@ -99,6 +100,7 @@ instance Show Params where
         ]
       where
         morph = "custom morph:" ++ show (isJust (customMorph p))
+-}
 
 -- | The default parameters configuration
 emptyParams :: Params
@@ -114,17 +116,25 @@ hasOpt :: Optimisation -> Params -> Bool
 hasOpt o p = maybe False (elem o) $ getFlagP OptimisationsFlg p
 
 hasFlagP    :: (Typeable f, Typeable x) => (x -> f) -> Params -> Bool
-deleteFlagP :: (Typeable f, Typeable x) => (x -> f) -> Params -> Params
-modifyFlagP :: (Eq f, Show f, Show x, Typeable f, Typeable x) => (x -> f) -> (x -> x) -> Params -> Params
-setFlagP    :: (Eq f, Show f, Show x, Typeable f, Typeable x) => (x -> f) -> x -> Params -> Params
-getFlagP    :: (Show f, Show x, Typeable f, Typeable x) => (x -> f) -> Params -> Maybe x
-getListFlagP :: (Show f, Show x, Typeable f, Typeable x) => ([x] -> f) -> Params -> [x]
-
 hasFlagP f      = hasFlag f . geniFlags
+
+deleteFlagP :: (Typeable f, Typeable x) => (x -> f) -> Params -> Params
 deleteFlagP f p = p { geniFlags = deleteFlag f (geniFlags p) }
+
+modifyFlagP :: (Eq f, Typeable f, Typeable x)
+            => (x -> f) -> (x -> x) -> Params -> Params
 modifyFlagP f m p = p { geniFlags = modifyFlag f m (geniFlags p) }
+
+setFlagP    :: (Eq f, Typeable f, Typeable x)
+            => (x -> f) -> x -> Params -> Params
 setFlagP f v p  = p { geniFlags = setFlag f v (geniFlags p) }
-getFlagP f     = getFlag f . geniFlags
+
+getFlagP    :: (Typeable f, Typeable x)
+            => (x -> f) -> Params -> Maybe x
+getFlagP f = getFlag f . geniFlags
+
+getListFlagP :: (Typeable f, Typeable x)
+             => ([x] -> f) -> Params -> [x]
 getListFlagP f = fromMaybe [] . getFlagP f
 
 emptyFlags :: [Flag]
@@ -183,18 +193,18 @@ nubBySwitches :: [OptDescr a] -> [OptDescr a]
 nubBySwitches = nubBy (\x y -> getSwitches x == getSwitches y)
 
 -- GetOpt wrappers
-noArg :: forall f . (Eq f, Show f, Typeable f)
+noArg :: forall f . (Eq f, Typeable f)
       => (() -> f) -> ArgDescr Flag
 noArg  s = NoArg (Flag s ())
 
-reqArg :: forall f x . (Eq f, Show f, Typeable f, Eq x, Show x, Typeable x)
+reqArg :: forall f x . (Eq f, Typeable f, Eq x, Typeable x)
        => (x -> f)      -- ^ flag
        -> (String -> x) -- ^ string reader for flag (probably |id| if already a String)
        -> String        -- ^ description
        -> ArgDescr Flag
 reqArg s fn desc = ReqArg (\x -> Flag s (fn x)) desc
 
-optArg :: forall f x . (Eq f, Show f, Typeable f, Eq x, Show x, Typeable x)
+optArg :: forall f x . (Eq f, Typeable f, Eq x, Typeable x)
        => (x -> f)       -- ^ flag
        -> x              -- ^ default value
        -> (String -> x)  -- ^ string reader (as in @reqArg@)
@@ -387,8 +397,8 @@ rootFeatureOption =
   Option ['r'] ["rootfeat"]
          (reqArg RootFeatureFlg readRF "FEATURE")
          ("root features 'FEATURE' (eg. "
-          ++ showFlist exampleRF ++ ", default: "
-          ++ showFlist defaultRF ++ ")")
+          ++ prettyStr exampleRF ++ ", default: "
+          ++ prettyStr defaultRF ++ ")")
  where
    exampleRF = readRF exampleRootFeat
    defaultRF = readRF defaultRootFeat

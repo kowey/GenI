@@ -34,6 +34,7 @@ import qualified Data.Text as T
 import Data.FullList hiding ( (++) )
 
 import NLP.GenI.Automaton
+import NLP.GenI.Pretty
 import NLP.GenI.Semantics (Literal)
 import NLP.GenI.TreeSchemata ( Ptype(Initial),
     GNode, root, gup, gdown, gtype, GType(Subs),
@@ -93,7 +94,10 @@ detectPolarity :: Int          -- ^ polarity to assign
                -> PolarityDetectionResult
 detectPolarity i (RestrictedPolarityAttr cat att) filterFl fl =
   case Map.lookup __cat__ filterFl of
-    Nothing -> PD_UserError $ "[polarities] No category " ++ T.unpack cat ++ " in:" ++ showFeatStruct filterFl
+    Nothing -> PD_UserError . T.unpack $ "[polarities] No category "
+                  `T.append` cat
+                  `T.append` " in:"
+                  `T.append` pretty filterFl
     Just v -> if isJust (unify [mkGConstNone cat] [v])
               then detectPolarity i (SimplePolarityAttr att) emptyFeatStruct fl
               else PD_Nothing

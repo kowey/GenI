@@ -18,6 +18,7 @@
 
 {-# LANGUAGE OverlappingInstances, FlexibleInstances, TemplateHaskell #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE OverloadedStrings #-}
 module NLP.GenI.GeniVal.Internal where
 
 -- import Debug.Trace -- for test stuff
@@ -36,13 +37,13 @@ import qualified Data.Text as T
 import Control.DeepSeq
 
 import Data.FullList ( FullList, fromFL, Listable(..), sortNub )
-import NLP.GenI.General (geniBug, quoteString, isGeniIdentLetter)
-
+import NLP.GenI.General (geniBug, quoteText, isGeniIdentLetter)
+import NLP.GenI.Pretty
 
 -- | constant : no label, just constraints
 --   variable : label, with or without constraints
 --   anonymous : no label, no constraints
-data GeniVal = GeniVal { gLabel       :: Maybe String 
+data GeniVal = GeniVal { gLabel       :: Maybe Text
                        , gConstraints :: Maybe (FullList Text)
                        }
   deriving (Eq,Ord, Data, Typeable)
@@ -59,31 +60,35 @@ mkGConst cs_ = GeniVal Nothing (Just cs)
 mkGConstNone :: Text -> GeniVal
 mkGConstNone x = mkGConst (x !: [])
 
-mkGVar :: String -> Maybe (FullList Text) -> GeniVal
+mkGVar :: Text -> Maybe (FullList Text) -> GeniVal
 mkGVar x mxs  = GeniVal (Just x) (sortNub `fmap` mxs)
 
-mkGVarNone :: String -> GeniVal
+mkGVarNone :: Text -> GeniVal
 mkGVarNone x  = mkGVar x Nothing
 
 mkGAnon :: GeniVal
 mkGAnon       = GeniVal Nothing Nothing
 
+{-
 instance Show GeniVal where
-  show = showGeniVal
+  show = T.unpack . prettyGeniVal
+-}
 
-showGeniVal :: GeniVal -> String
-showGeniVal gv =
-  case gv of
-   GeniVal Nothing Nothing    -> "?_"
-   GeniVal Nothing (Just cs)  -> showConstraints cs
-   GeniVal (Just l) Nothing   -> '?':l
-   GeniVal (Just l) (Just cs) -> '?':concat [ l, "/", showConstraints cs ]
-  where
-   showConstraints = intercalate "|" . map (maybeQuote . T.unpack) . fromFL -- FIXME push down
-   maybeQuote "" = quoteString ""
-   maybeQuote x | any naughty x = quoteString x
-   maybeQuote x  = x
-   naughty x = not (isGeniIdentLetter x) || x `elem` "_?/"
+instance Pretty GeniVal where
+    pretty gv =
+        case gv of
+            GeniVal Nothing Nothing    -> showLabel "_"
+            GeniVal Nothing (Just cs)  -> showConstraints cs
+            GeniVal (Just l) Nothing   -> showLabel l
+            GeniVal (Just l) (Just cs) ->
+                showLabel l `T.append` "/" `T.append` showConstraints cs
+      where
+        showLabel l = '?' `T.cons` l
+        showConstraints = T.intercalate "|" . map maybeQuote . fromFL -- FIXME push down
+        maybeQuote x | T.null x        = quoteText ""
+                     | T.any naughty x = quoteText x
+                     | otherwise       = x
+        naughty x = not (isGeniIdentLetter x) || x `elem` "_?/"
 
 isConst :: GeniVal -> Bool
 isConst = isNothing . gLabel
@@ -105,12 +110,13 @@ isAnon _     = False
 -- Helper types
 -- ----------------------------------------------------------------------
 
-type Subst = Map.Map String GeniVal
+type Subst = Map.Map Text GeniVal
 
-showSubst :: Subst -> String
-showSubst = unwords . map sho . Map.toList
- where
-  sho (v,s) = v ++ "<-" ++ show s
+prettySubst :: Subst -> Text
+prettySubst =
+    T.unwords . map sho . Map.toList
+  where
+    sho (v,s) = v `T.append` "<-" `T.append` pretty s
 
 -- ----------------------------------------------------------------------
 -- Unification and subsumption
@@ -141,7 +147,11 @@ unifyHelper f ll1 ll2 = repropagate `liftM` helper ll1 ll2
   helper l1 [] = return (l1, Map.empty)
   helper (h1:t1) (h2:t2) =
     case f h1 h2 of
-    Failure -> fail $ "unification failure between " ++ show h1 ++ " and " ++ show h2
+    Failure -> fail . T.unpack . T.unwords $
+                   [ "unification failure between"
+                   , pretty h1, "and"
+                   , pretty h2
+                   ]
     SuccessRep v g -> prepend `liftM` helper t1b t2b
                       where
                        s   = (v,g)
@@ -173,14 +183,14 @@ appendSubst sm1 sm2 = Map.foldrWithKey (curry prependToSubst) sm2 sm1
 --   Note that it is undefined if you try to append something like
 --   @Y -> foo@ to @Y -> bar@, because that would mean that unification
 --   is broken
-prependToSubst :: (String,GeniVal) -> Subst -> Subst
+prependToSubst :: (Text,GeniVal) -> Subst -> Subst
 prependToSubst (v, gr@(GeniVal (Just r) _)) sm =
   case Map.lookup v sm of
     Just v2 -> geniBug . unlines $
                 [ "prependToSubst: GenI just tried to prepend the substitution"
-                , "  " ++ show (mkGVar v Nothing) ++ " -> " ++ show gr
+                , "  " ++ prettyStr (mkGVar v Nothing) ++ " -> " ++ prettyStr gr
                 , "to one where where "
-                , "  " ++ show (mkGVar v Nothing) ++ " -> " ++ show v2
+                , "  " ++ prettyStr (mkGVar v Nothing) ++ " -> " ++ prettyStr v2
                 , "is slated to occur afterwards."
                 , ""
                 , "This could mean that either"
@@ -198,8 +208,8 @@ prependToSubst (v, gr) sm = Map.insert v gr sm
 -- ----------------------------------------------------------------------
 
 data UnificationResult = SuccessSans GeniVal
-                       | SuccessRep  String GeniVal
-                       | SuccessRep2 String String GeniVal
+                       | SuccessRep  Text GeniVal
+                       | SuccessRep2 Text Text GeniVal
                        | Failure
 
 -- | See source code for details
@@ -213,21 +223,33 @@ unifyOne :: GeniVal -> GeniVal -> UnificationResult
 unifyOne (GeniVal Nothing Nothing) g = SuccessSans g
 unifyOne g (GeniVal Nothing Nothing) = SuccessSans g
 unifyOne g1 g2 =
- case intersectConstraints gc1 gc2 of
-   Nothing -> Failure
-   Just cs -> case (gLabel g1, gLabel g2) of
-                (Nothing, Nothing) -> SuccessSans  (GeniVal Nothing cs)
-                (Nothing, Just v)  -> SuccessRep v (GeniVal Nothing cs)
-                (Just v, Nothing)  -> SuccessRep v (GeniVal Nothing cs)
-                (Just v1, Just v2) | v1 == v2 && gc1 /= gc2 -> geniBug $ "I just tried to unify variable with itself, but it has mismatching constraints: " ++ show g1 ++ " vs. "++ show g2
-                                   | v1 == v2   -> SuccessSans g1
-                                   | gc1 == gc2 -> let gv = GeniVal (Just (max v1 v2)) cs
-                                                   in  SuccessRep (min v1 v2) gv
-                                   | otherwise  -> let gv = GeniVal (Just (max v1 v2 ++ "-g")) cs
-                                                   in  SuccessRep2 (min v1 v2) (max v1 v2) gv -- min/max stuff for symmetry
- where
-  gc1 = gConstraints g1
-  gc2 = gConstraints g2
+    maybe Failure constrSuccess (intersectConstraints gc1 gc2)
+  where
+    gc1 = gConstraints g1
+    gc2 = gConstraints g2
+    constrSuccess cs =
+        case (gLabel g1, gLabel g2) of
+            (Nothing, Nothing) -> SuccessSans  (GeniVal Nothing cs)
+            (Nothing, Just v)  -> SuccessRep v (GeniVal Nothing cs)
+            (Just v, Nothing)  -> SuccessRep v (GeniVal Nothing cs)
+            (Just v1, Just v2) -> bothLabeled cs v1 v2
+    bothLabeled cs v1 v2
+        | v1 == v2 && gc1 /= gc2 = geniBug constraintBug
+        | v1 == v2               = SuccessSans g1
+        | gc1 == gc2             = successSameConstraints cs v1 v2
+        | otherwise              = successDiffConstraints cs v1 v2
+    successSameConstraints cs v1 v2 =
+        SuccessRep (min v1 v2) $ GeniVal (Just (max v1 v2)) cs
+    successDiffConstraints cs v1 v2 =
+        -- min/max stuff for symmetry
+        SuccessRep2 (min v1 v2) (max v1 v2) $
+        GeniVal (Just (max v1 v2 `T.append` "-g")) cs
+    constraintBug = unwords
+        [ "I just tried to unify variable with itself,"
+        , "but it has mismatching constraints:"
+        , prettyStr g1,  "vs."
+        , prettyStr g2
+        ]
 
 intersectConstraints :: Eq a => Maybe (FullList a) -> Maybe (FullList a) -> Maybe (Maybe (FullList a))
 intersectConstraints Nothing cs = Just cs
@@ -259,29 +281,29 @@ replace :: DescendGeniVal a => Subst -> a -> a
 replace m | Map.null m = id
 replace m = descendGeniVal (replaceMapG m)
 
-replaceOne :: DescendGeniVal a => (String, GeniVal) -> a -> a
+replaceOne :: DescendGeniVal a => (Text, GeniVal) -> a -> a
 replaceOne = descendGeniVal . replaceOneG
 
 -- | Here it is safe to say (X -> Y; Y -> Z) because this would be crushed
 --   down into a final value of (X -> Z; Y -> Z)
-replaceList :: DescendGeniVal a => [(String,GeniVal)] -> a -> a
+replaceList :: DescendGeniVal a => [(Text,GeniVal)] -> a -> a
 replaceList = replace . foldl' update Map.empty
   where
    update m (s1,s2) = Map.insert s1 s2 $ Map.map (replaceOne (s1,s2)) m
 
 replaceMapG :: Subst -> GeniVal -> GeniVal
-replaceMapG m v@(GeniVal (Just v_) _) = {-# SCC "replaceMapG" #-} Map.findWithDefault v v_ m
-replaceMapG _ v = {-# SCC "replaceMapG" #-} v
+replaceMapG m v@(GeniVal (Just v_) _) = Map.findWithDefault v v_ m
+replaceMapG _ v = v
 
-replaceOneG :: (String, GeniVal) -> GeniVal -> GeniVal
-replaceOneG (s1, s2) (GeniVal (Just v_) _) | v_ == s1 = {-# SCC "replaceOneG" #-} s2
-replaceOneG _ v = {-# SCC "replaceOneG" #-} v
+replaceOneG :: (Text, GeniVal) -> GeniVal -> GeniVal
+replaceOneG (s1, s2) (GeniVal (Just v_) _) | v_ == s1 = s2
+replaceOneG _ v = v
 
 -- ----------------------------------------------------------------------
 -- Variable collection and renaming
 -- ----------------------------------------------------------------------
 
-type CollectedVar = (String, Maybe (FullList Text))
+type CollectedVar = (Text, Maybe (FullList Text))
 
 -- | A 'Collectable' is something which can return its variables as a
 --   map from the variable to the number of times that variable occurs
@@ -332,8 +354,7 @@ anonymiseSingletons x =
 -- and relies on the assumption finding that a unique suffix is
 -- possible.
 finaliseVarsById :: (Collectable a, DescendGeniVal a, Idable a) => a -> a
-finaliseVarsById x = {-# SCC "finaliseVarsById" #-}
-  finaliseVars ('-' : (show . idOf $ x)) x
+finaliseVarsById x = finaliseVars ('-' `T.cons` (T.pack . show $ idOf x)) x
 
 -- | 'finaliseVars' does the following:
 --
@@ -344,7 +365,7 @@ finaliseVarsById x = {-# SCC "finaliseVarsById" #-}
 ---
 ---   * intersects constraints for for all variables within the same
 ---     object
-finaliseVars :: (Collectable a, DescendGeniVal a) => String -> a -> a
+finaliseVars :: (Collectable a, DescendGeniVal a) => Text -> a -> a
 finaliseVars suffix x = {-# SCC "finaliseVars" #-}
   replace subst (anonymiseSingletons x)
  where
@@ -357,8 +378,8 @@ finaliseVars suffix x = {-# SCC "finaliseVars" #-}
    -- value that should not be able to unify with anything
    isect k xi yi =
       fromMaybe (Just (impossibleC k)) $ intersectConstraints xi yi
-   convert v = GeniVal (Just (v ++ suffix))
-   impossibleC v =  (T.pack ("ERROR_impossible_constraints_" ++ v ++ suffix))
+   convert v = GeniVal (Just (v `T.append` suffix))
+   impossibleC v =  ("ERROR_impossible_constraints_" `T.append` v `T.append` suffix)
                  !: []
 
 -- ----------------------------------------------------------------------

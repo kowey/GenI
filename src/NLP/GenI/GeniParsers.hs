@@ -35,11 +35,12 @@ module NLP.GenI.GeniParsers (
   module Text.ParserCombinators.Parsec
 ) where
 
-import NLP.GenI.FeatureStructures ( Flist, AvPair(..), showFlist, sortFlist )
+import NLP.GenI.FeatureStructures ( Flist, AvPair(..), sortFlist )
 import NLP.GenI.General (isGeniIdentLetter)
 import NLP.GenI.GeniShow (GeniShow(geniShow))
 import NLP.GenI.GeniVal ( GeniVal, mkGConst, mkGConstNone, mkGVar, mkGAnon, isAnon )
 import NLP.GenI.Lexicon ( mkFullILexEntry, ILexEntry(..) )
+import NLP.GenI.Pretty ( prettyStr )
 import NLP.GenI.Semantics ( Literal(..), Sem, sortSem, LitConstr, SemInput )
 import NLP.GenI.Tags (TagElem(..), setTidnums)
 import NLP.GenI.TestSuite ( TestCase(..) )
@@ -115,7 +116,7 @@ geniValue =   ((try $ anonymous) <?> "_ or ?_")
     variable :: Parser GeniVal
     variable =
       do symbol question
-         v <- identifier
+         v <- T.pack <$> identifier
          mcs <- option Nothing $ (symbol "/" >> Just `liftM` disjunction)
          return (mkGVar v mcs)
     anonymous :: Parser GeniVal
@@ -235,7 +236,7 @@ data SemInputString = SemInputString String (Flist GeniVal)
 instance GeniShow SemInputString where
  geniShow (SemInputString semStr idxC) =
    SEMANTICS ++ ":" ++ semStr ++ (if null idxC then "" else r)
-   where r = "\n" ++ IDXCONSTRAINTS ++ ": " ++ showFlist idxC
+   where r = "\n" ++ IDXCONSTRAINTS ++ ": " ++ prettyStr idxC
 
 toSemInputString :: SemInput -> String -> SemInputString
 toSemInputString (_,lc,_) s = SemInputString s lc

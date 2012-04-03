@@ -21,7 +21,8 @@
 --   libraries, or the Haskell platform ones, or on hackage.
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveDataTypeable, TypeSynonymInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 module NLP.GenI.General (
         -- * IO
         ePutStr, ePutStrLn, eFlush,
@@ -31,7 +32,7 @@ module NLP.GenI.General (
         trim,
         toUpperHead, toLowerHead,
         toAlphaNum,
-        quoteString,
+        quoteString, quoteText,
         clumpBy,
         -- * Triples
         first3, second3, third3,
@@ -77,6 +78,7 @@ import System.IO.Error (isUserError, ioeGetErrorString)
 import qualified Data.Map as Map
 import Prelude hiding ( catch )
 import Data.Text ( Text )
+import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import Data.Binary
 
@@ -128,6 +130,16 @@ quoteString xs = "\"" ++ concatMap helper xs ++ "\""
    helper '"'  = [ '\\', '\"' ]
    helper '\\' = [ '\\', '\\' ]
    helper x    = [ x ]
+
+quoteText :: Text -> Text
+quoteText t =
+    q `T.append` escape t `T.append` q
+  where
+    escape = T.replace q escQ . T.replace s escS
+    q = "\""
+    s = "\\"
+    escQ = s `T.append` q
+    escS = s `T.append` s
 
 -- | break a list of items into sublists of length < the clump
 --   size, taking into consideration that each item in the clump

@@ -16,8 +16,9 @@
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances, TypeSynonymInstances, MultiParamTypeClasses #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE OverloadedStrings #-}
 module NLP.GenI.FeatureStructures where
 
 import Data.Binary
@@ -31,6 +32,7 @@ import qualified Data.Text as T
 
 import NLP.GenI.GeniVal
 import NLP.GenI.General ( geniBug )
+import NLP.GenI.Pretty
 
 import Control.DeepSeq
 
@@ -56,15 +58,15 @@ mkFeatStruct fs = Map.fromListWith oops . map fromPair $ fs
    fromPair (AvPair a v) = (a,v)
    oops _ _ = geniBug $
      "I've allowed a feature structure with multiple versions of a key"
-     ++ " to sneak through: " ++ showFlist fs
+     ++ " to sneak through: " ++ prettyStr fs
 
 fromFeatStruct :: FeatStruct a -> Flist a
 fromFeatStruct = sortFlist . map (uncurry AvPair) . Map.toList
 
 -- if we decide to move over to this representation of feature structures
 -- we can get rid of showFlist, etc and probably just use toAscList
-showFeatStruct :: FeatStruct GeniVal -> String
-showFeatStruct = showFlist . fromFeatStruct
+instance Pretty (FeatStruct GeniVal) where
+    pretty = pretty . fromFeatStruct
 
 -- ----------------------------------------------------------------------
 -- Basic functions
@@ -90,17 +92,16 @@ instance Collectable a => Collectable (AvPair a) where
 
 -- Pretty printing
 
-showFlist :: Flist GeniVal -> String
-showFlist f = "[" ++ showPairs f ++ "]"
+instance Pretty (Flist GeniVal) where
+    pretty = squares . T.unwords . map pretty
 
-showPairs :: Flist GeniVal -> String
-showPairs = unwords . map showAv
+instance Pretty (AvPair GeniVal) where
+    pretty (AvPair a v) = a `T.append` ":" `T.append` pretty v
 
-showAv :: AvPair GeniVal -> String
-showAv (AvPair y z) = T.unpack y ++ ":" ++ show z
-
+{-
 instance Show (AvPair GeniVal) where
   show = showAv
+-}
 
 -- --------------------------------------------------------------------
 -- Feature structure unification

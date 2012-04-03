@@ -69,7 +69,8 @@ import NLP.GenI.GeniVal ( GeniVal, DescendGeniVal(..), Collectable(collect), fin
 import NLP.GenI.Lexicon ( ILexEntry )
 import NLP.GenI.Morphology.Types
 import NLP.GenI.Polarity  (PolResult(..), buildAutomaton, detectPolPaths)
-import NLP.GenI.Semantics ( SemInput, Sem, Literal, showLiteral )
+import NLP.GenI.Pretty
+import NLP.GenI.Semantics ( SemInput, Sem, Literal )
 import NLP.GenI.Statistics (Statistics, incrIntMetric,
                    Metric(IntMetric), updateMetrics,
                    queryMetrics, queryIntMetric,
@@ -113,7 +114,7 @@ data Input =
 --   only requirement being that each one, naturally enough, is unique.
 type SentenceAut            = NFA Int LemmaPlus
 
-data UninflectedDisjunction = UninflectedDisjunction [String] (Flist GeniVal) deriving (Show, Data, Typeable)
+data UninflectedDisjunction = UninflectedDisjunction [String] (Flist GeniVal) deriving (Data, Typeable)
 
 instance DescendGeniVal UninflectedDisjunction where
   descendGeniVal s (UninflectedDisjunction a v) = {-# SCC "descendGeniVal" #-} UninflectedDisjunction a (descendGeniVal s v)
@@ -282,7 +283,7 @@ semToBitVector :: SemBitMap -> Sem -> BitVector
 semToBitVector bmap sem = foldr (.|.) 0 $ map doLookup sem
   where doLookup p =
          case Map.lookup p bmap of
-         Nothing -> geniBug $ "predicate " ++ showLiteral p ++ " not found in semanticBit map"
+         Nothing -> geniBug $ "predicate " ++ prettyStr p ++ " not found in semanticBit map"
          Just b  -> b
 
 bitVectorToSem :: SemBitMap -> BitVector -> Sem

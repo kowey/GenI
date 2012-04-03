@@ -26,7 +26,8 @@ import Data.Poset
 import NLP.GenI.Lexicon ( ILexEntry(..) )
 import NLP.GenI.General ( histogram, showWithCount )
 import NLP.GenI.LexicalSelection.Types ( LexCombineError, showLexCombineError )
-import NLP.GenI.Semantics ( Literal, showLiteral )
+import NLP.GenI.Pretty
+import NLP.GenI.Semantics ( Literal )
 import NLP.GenI.TreeSchemata ( showLexeme )
 
 -- | This exists because we want the 'Monoid' instance, providing a 
@@ -49,7 +50,7 @@ data GeniWarning = -- | A warning that should be repeated for each lexical entry
                  | NoLexSelection         [Literal]
                    -- | Warnings from the morphological realiser
                  | MorphWarning           [String]
-  deriving (Show, Eq)
+  deriving (Eq)
 
 
 data LexWarning = LexCombineAllSchemataFailed
@@ -111,7 +112,7 @@ mergeWarning _ _ = Nothing
 
 -- | A warning may be displayed over several lines
 showGeniWarning :: GeniWarning -> [String]
-showGeniWarning (NoLexSelection ps) = [ "No lexical entries for literals: " ++ unwords (map showLiteral ps) ]
+showGeniWarning (NoLexSelection ps) = [ "No lexical entries for literals: " ++ unwords (map prettyStr ps) ]
 showGeniWarning (CustomLexWarning w) = [w]
 showGeniWarning (LexWarning ls wa)  =
   do -- list monad

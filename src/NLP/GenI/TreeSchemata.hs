@@ -46,12 +46,13 @@ import Data.FullList hiding (head, tail, (++))
 import Data.Generics (Data)
 import Data.Typeable (Typeable)
 
+import NLP.GenI.General (filterTree, listRepNode, geniBug,)
 import NLP.GenI.GeniVal ( GeniVal(..), DescendGeniVal(..), Collectable(..),
                         )
 import NLP.GenI.FeatureStructures ( AvPair(..), Flist, crushFlist )
+import NLP.GenI.Pretty
 import NLP.GenI.Semantics ( Sem )
 
-import NLP.GenI.General (filterTree, listRepNode, geniBug,)
 
 import Control.DeepSeq
 
@@ -76,7 +77,7 @@ data Ttree a = TT
   , psemantics :: Maybe Sem
   , ptrace :: [String]
   , tree :: Tree a }
-  deriving (Show, Data, Typeable, Eq)
+  deriving (Data, Typeable, Eq)
 
 data Ptype = Initial | Auxiliar
              deriving (Show, Eq, Data, Typeable)
@@ -200,19 +201,19 @@ lexemeAttributes = [ "lex", "phon", "cat" ]
 
 -- | The default show for GNode tries to be very compact; it only shows the value
 --   for cat attribute and any flags which are marked on that node.
-instance Show (GNode GeniVal) where
-  show gn =
-    let cat_ = case gCategory.gup $ gn of
-               Nothing -> []
-               Just c  -> show c
-        lex_ = showLexeme $ glexeme gn
+instance Pretty (GNode GeniVal) where
+    prettyStr gn =
+        stub ++ extra
+      where
+        cat_ = maybe [] prettyStr . gCategory $ gup gn
+        lex_ = showLexeme (glexeme gn)
         --
         stub = intercalate ":" $ filter (not.null) [ cat_, lex_ ]
-        extra = case (gtype gn) of
-                   Subs -> " !"
-                   Foot -> " *"
-                   _    -> if (gaconstr gn)  then " #"   else ""
-    in stub ++ extra
+        extra = case gtype gn of
+                    Subs -> " !"
+                    Foot -> " *"
+                    _    -> if gaconstr gn then " #"   else ""
+
 
 -- FIXME: will have to think of nicer way - one which involves
 -- unpacking the trees :-(

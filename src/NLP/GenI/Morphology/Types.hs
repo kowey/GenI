@@ -23,8 +23,9 @@ import Control.Applicative ((<$>),(<*>))
 import Control.DeepSeq
 
 import NLP.GenI.GeniVal ( GeniVal )
-import NLP.GenI.FeatureStructures ( Flist, showFlist )
+import NLP.GenI.FeatureStructures ( Flist )
 import NLP.GenI.GeniParsers ( geniFeats, CharParser, runParser )
+import NLP.GenI.Pretty
 import NLP.GenI.Semantics
 
 import Text.JSON
@@ -61,7 +62,7 @@ instance JSON MorphOutput where
 -- | A lemma plus its morphological features
 data LemmaPlus = LemmaPlus { lpLemma :: String
                            , lpFeats :: Flist GeniVal }
- deriving (Show, Eq, Ord)
+ deriving (Eq, Ord)
 
 -- | A sentence composed of 'LemmaPlus' instead of plain old words
 type LemmaPlusSentence = [LemmaPlus]
@@ -75,7 +76,7 @@ instance JSON LemmaPlus where
                  <*> (parsecToJSON "lemma-features" geniFeats =<< field "lemma-features")
  showJSON (LemmaPlus l fs) =
      JSObject . toJSObject $ [ ("lemma", showJSON l)
-                             , ("lemma-features", showJSON $ showFlist fs)
+                             , ("lemma-features", showJSON $ prettyStr fs)
                              ]
 
 parsecToJSON :: Monad m => String -> CharParser () b -> String -> m b

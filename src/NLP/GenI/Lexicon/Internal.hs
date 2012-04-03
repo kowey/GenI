@@ -48,7 +48,7 @@ data ILexEntry = ILE
     , iequations  :: Flist GeniVal
     , isemantics  :: Sem
     , isempols    :: [SemPols] }
-  deriving (Show, Eq, Data, Typeable)
+  deriving (Eq, Data, Typeable)
 
 -- | See also 'mkFullILexEntry'
 --   This version comes with some sensible defaults.

@@ -52,6 +52,7 @@ import NLP.GenI.FeatureStructures
 import NLP.GenI.GeniVal ( mkGAnon, GeniVal, replace )
 import NLP.GenI.General
 import NLP.GenI.Morphology.Types
+import NLP.GenI.Pretty
 import NLP.GenI.Semantics ( Literal(..), Sem )
 import NLP.GenI.TreeSchemata ( GNode(..), GType(..) )
 import NLP.GenI.Tags
@@ -63,9 +64,11 @@ import NLP.GenI.Tags
 -- | Converts information from a morphological information file into GenI's
 --   internal format.
 readMorph :: [(String,[AvPair GeniVal])] -> MorphInputFn
-readMorph minfo lit = Map.lookup key fm
-  where fm = Map.fromList minfo
-        key = show (lPredicate lit)
+readMorph minfo lit =
+    Map.lookup key fm
+  where
+    fm = Map.fromList minfo
+    key = prettyStr (lPredicate lit)
 
 -- | Filters away from an input semantics any literals whose realisation is
 --   strictly morphological.  The first argument tells us helps identify the

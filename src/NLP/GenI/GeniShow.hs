@@ -43,13 +43,14 @@ import Data.List(intercalate)
 import qualified Data.Map as Map
 import qualified Data.Text as T
 
-import NLP.GenI.Semantics ( isInternalHandle, SemInput, Literal(..) )
+import NLP.GenI.Semantics ( SemInput, Literal(..) )
 import NLP.GenI.Tags ( TagElem(..) )
 import NLP.GenI.TreeSchemata (Ptype(..), Ttree(..), GNode(..), GType(..) )
 import NLP.GenI.TestSuite ( TestCase(..) )
 import NLP.GenI.Lexicon
 import NLP.GenI.FeatureStructures ( AvPair(..) )
-import NLP.GenI.GeniVal ( GeniVal(..), singletonVal, mkGConst )
+import NLP.GenI.Pretty hiding ( parens, squares )
+import NLP.GenI.GeniVal ( GeniVal(..), mkGConst )
 
 class GeniShow a where
   geniShow :: a -> String
@@ -59,17 +60,13 @@ instance GeniShow Ptype where
  geniShow Auxiliar = "auxiliary"
 
 instance GeniShow (AvPair GeniVal) where
- geniShow (AvPair a v) = T.unpack a ++ ":" ++ geniShow v
+   geniShow = prettyStr
 
 instance GeniShow GeniVal where
- geniShow x = show  x
+   geniShow = prettyStr
 
 instance GeniShow Literal where
- geniShow (Literal h p l) =
-   showh ++ geniShow p ++ "(" ++ unwords (map geniShow l) ++ ")"
-   where
-    hideh g = maybe False isInternalHandle (singletonVal g)
-    showh   = if hideh h then "" else geniShow h ++ ":"
+   geniShow = prettyStr
 
 -- TODO: does not support semantic polarities yet
 instance GeniShow ILexEntry where

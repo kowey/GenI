@@ -37,6 +37,7 @@ import qualified Data.Text as T
 import NLP.GenI.FeatureStructures
 import NLP.GenI.General ( histogram )
 import NLP.GenI.GeniVal
+import NLP.GenI.Pretty
 
 -- handle, predicate, parameters
 data Literal = Literal { lHandle    :: GeniVal
@@ -50,11 +51,6 @@ instance Ord Literal where
     where
       -- treat the handle as an argument
       tucked l = (lPredicate l, lHandle l : lArgs l)
-
--- FIXME: I'm never too sure if this is a good idea or not
--- implementing show as pretty printing
-instance Show Literal where
-  show = showLiteral
 
 type Sem = [Literal]
 type LitConstr = (Literal, [String])
@@ -113,11 +109,6 @@ boringLiteral = singletonVal . lPredicate
     -- predicate with a straightfoward constant value
     -- exactly one constraint
 
--- | Given a Semantics, return the string with the proper keys
---   (propsymbol+arity) to access the agenda
-toKeys :: Sem -> [String]
-toKeys = map (\l -> show (lPredicate l) ++ show  (length $ lArgs l))
-
 -- Traversal
 
 instance DescendGeniVal Literal where
@@ -127,18 +118,16 @@ instance DescendGeniVal Literal where
 
 -- Pretty printing
 
-showSem :: Sem -> String
-showSem l =
-    "[" ++ (unwords $ map showLiteral l) ++ "]"
+instance Pretty Sem where
+   pretty = squares . T.unwords . map pretty
 
-showLiteral :: Literal -> String
-showLiteral (Literal h p l) = showh ++ show p ++ "(" ++ unwords (map show l) ++ ")"
-  where
-    hideh g = case singletonVal g of
-                Just c -> isInternalHandle c
-                _      -> False
-    --
-    showh = if hideh h then "" else (show h) ++ ":"
+instance Pretty Literal where
+   pretty (Literal h p l) =
+       mh `T.append` pretty p
+          `T.append` (parens . T.unwords . map pretty $ l)
+     where
+       mh    = if hideh h then "" else pretty h `T.snoc` ':'
+       hideh = maybe False isInternalHandle . singletonVal
 
 isInternalHandle :: Text -> Bool
 isInternalHandle = ("genihandle" `T.isPrefixOf`)
@@ -198,7 +187,7 @@ unifySem xs ys =
 unifySemH :: Sem -> Sem -> [(Sem,Subst)]
 unifySemH [] [] = return ([], Map.empty)
 unifySemH [] xs = return (xs, Map.empty)
-unifySemH xs [] = error $ "unifySem: shorter list should always be in front: " ++ showSem xs
+unifySemH xs [] = error $ "unifySem: shorter list should always be in front: " ++ prettyStr xs
 unifySemH (x:xs) ys = nub $ do
  let attempts = zip ys $ map (unifyLiteral x) ys
  if all (isNothing . snd) attempts

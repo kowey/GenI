@@ -100,6 +100,7 @@ Library
                 NLP.GenI.LexicalSelection,
                 NLP.GenI.LexicalSelection.Types,
                 NLP.GenI.Main,
+                NLP.GenI.Pretty,
                 NLP.GenI.Semantics,
                 NLP.GenI.Tags,
                 NLP.GenI.TestSuite,

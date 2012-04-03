@@ -18,6 +18,7 @@
 {-# LANGUAGE ScopedTypeVariables, ExistentialQuantification, TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 -- | This is the interface between the front and backends of the generator. The GUI
 --   and the console interface both talk to this module, and in turn, this module
@@ -248,7 +249,7 @@ data L a = Loadable a => L
 
 -- | Load something, exiting GenI if we have not been given the
 --   appropriate flag
-loadOrDie :: forall f a . (Eq f, Show f, Typeable f, Loadable a)
+loadOrDie :: forall f a . (Eq f, Typeable f, Loadable a)
           => L a
           -> (FilePath -> f) -- ^ flag
           -> String
@@ -300,7 +301,7 @@ loadGeniMacros pstRef =
    descr = "trees"
 
 -- | Load something, but only if we are configured to do so
-loadOptional :: forall f a . (Eq f, Show f, Typeable f, Loadable a)
+loadOptional :: forall f a . (Eq f, Typeable f, Loadable a)
              => L a
              -> (FilePath -> f) -- ^ flag
              -> String
@@ -346,7 +347,7 @@ loadRanking = loadOptional (L :: L OtRanking) RankingConstraintsFlg "OT constrai
 resultToEither2 :: Result a -> Either ParseError a
 resultToEither2 r =
   case resultToEither r of
-    Left e  -> runParser (fail e) () "" "" -- convoluted way to generate a Parsec error
+    Left e  -> runParser (fail e) () "" [] -- convoluted way to generate a Parsec error
     Right x -> Right x
 
 -- Target semantics
@@ -389,7 +390,7 @@ parseSemInput = fmap smooth . runParser geniSemanticInput () "semantics"
 
 -- Helpers for loading files
 
-withFlag :: forall f a . (Eq f, Show f, Typeable f)
+withFlag :: forall f a . (Eq f, Typeable f)
          => (FilePath -> f) -- ^ flag
          -> ProgStateRef
          -> IO a               -- ^ null action
@@ -401,20 +402,23 @@ withFlag flag pstRef z job =
       Nothing -> z
       Just  x -> job x
 
-withFlagOrIgnore :: forall f . (Eq f, Show f, Typeable f)
+withFlagOrIgnore :: forall f . (Eq f, Typeable f)
                  => (FilePath -> f) -- ^ flag
                  -> ProgStateRef
                  -> (FilePath -> IO ())
                  -> IO ()
 withFlagOrIgnore flag pstRef = withFlag flag pstRef (return ())
 
-withFlagOrDie :: forall f a . (Eq f, Show f, Typeable f)
+withFlagOrDie :: forall f a . (Eq f, Typeable f)
               => (FilePath -> f) -- ^ flag
               -> ProgStateRef
               -> String
               -> (FilePath -> IO a)
               -> IO a
-withFlagOrDie flag pstRef description = withFlag flag pstRef (fail ("Please specify a " ++ description ++ "!"))
+withFlagOrDie flag pstRef description =
+    withFlag flag pstRef (fail msg)
+  where
+    msg = "Please specify a " ++ description ++ " file!"
 
 withLoadStatus :: Loadable a
                => Bool                    -- ^ verbose

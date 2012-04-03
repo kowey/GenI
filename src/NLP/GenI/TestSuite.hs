@@ -22,10 +22,10 @@ import qualified Data.Map as Map
 import NLP.GenI.Semantics
 
 data TestCase = TestCase
-       { tcName :: String
-       , tcSemString :: String -- ^ for gui
-       , tcSem  :: SemInput
-       , tcExpected :: [String] -- ^ expected results (for testing)
-       , tcOutputs :: [(String, Map.Map (String,String) [String])]
-       -- ^ results we actually got, and their traces (for testing)
-       } deriving Show
+    { tcName :: String
+    , tcSemString :: String -- ^ for gui
+    , tcSem  :: SemInput
+    , tcExpected :: [String] -- ^ expected results (for testing)
+    , tcOutputs :: [(String, Map.Map (String,String) [String])]
+    -- ^ results we actually got, and their traces (for testing)
+    }

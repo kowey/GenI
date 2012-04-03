@@ -43,15 +43,16 @@ import Data.Maybe (isNothing, isJust)
 import Data.Text (Text)
 
 import NLP.GenI.Automaton
-import NLP.GenI.FeatureStructures ( Flist, AvPair(..), showAv, FeatStruct, unifyFeat )
+import NLP.GenI.FeatureStructures ( Flist, AvPair(..), FeatStruct, unifyFeat )
 import NLP.GenI.General(
     BitVector, isEmptyIntersect, thd3,
     Interval, ival, (!+!), showInterval)
 import NLP.GenI.GeniVal ( GeniVal(gConstraints), mkGAnon, isAnon, replace )
 import NLP.GenI.Polarity.Internal
 import NLP.GenI.Polarity.Types
+import NLP.GenI.Pretty
 import NLP.GenI.Semantics ( Literal(..), SemInput, Sem, emptyLiteral
-                          , showSem, sortSem
+                          , sortSem
                           )
 import NLP.GenI.Tags(TagElem(..), TagItem(..), setTidnums)
 import NLP.GenI.TreeSchemata ( Ptype(Initial), GNode, root, gup, gdown, rootUpd)
@@ -339,7 +340,7 @@ fixPronouns :: (Sem,[TagElem]) -> (Sem,[TagElem])
 fixPronouns (tsem,cands) = 
   let -- part 1 (for each literal get smallest charge for each idx)
       getpols :: TagElem -> [ (PredLite,SemPols) ]
-      getpols x = zip [ (show p, h:as) | Literal h p as <- tsemantics x ] (tsempols x)
+      getpols x = zip [ (prettyStr p, h:as) | Literal h p as <- tsemantics x ] (tsempols x)
       sempols :: [ (PredLite,SemPols) ]
       sempols = concatMap getpols cands
       usagemap :: SemWeightMap 
@@ -437,7 +438,7 @@ declareIdxConstraints = Map.fromList . (map declare) where
 
 -- TODO: test that index constraints come first
 idxConstraintKey :: AvPair GeniVal -> PolarityKey
-idxConstraintKey = PolarityKeyStr . ('.' :) . showAv
+idxConstraintKey = PolarityKeyStr . ('.' :) . prettyStr
 
 -- Automatic polarity detection
 -- ----------------------------
@@ -542,7 +543,7 @@ type PolAut   = NFA PolState PolTrans
 type PolTransFn = Map.Map PolState (Map.Map PolState [Maybe PolTrans])
 
 instance Show PolState
-  where show (PolSt pr ex po) = show pr ++ " " ++ showSem ex ++ show po
+  where show (PolSt pr ex po) = show pr ++ " " ++ prettyStr ex ++ show po
 -- showPred pr ++ " " ++ showSem ex ++ show po
 
 instance Ord PolState where

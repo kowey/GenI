@@ -126,7 +126,7 @@ data SimpleStatus = S
   -- we keep a SemBitMap strictly to help display the semantics
   , semBitMap  :: SemBitMap
   }
-  deriving Show
+  -- deriving Show
 
 -- SimpleStatus updaters
 
@@ -192,7 +192,7 @@ data SimpleItem = SimpleItem
  , siDerivation :: TagDerivation
  -- for the debugger only
  , siGuiStuff :: SimpleGuiItem
- } deriving (Show)
+ } -- deriving (Show)
 
 
 lookupOrBug :: String -> SimpleItem -> NodeName -> GNode GeniVal
@@ -218,7 +218,7 @@ data SimpleGuiItem = SimpleGuiItem
  , siDiagnostic :: [String]
  , siFullSem :: Sem
  , siIdname  :: String
- } deriving (Show, Data, Typeable)
+ } deriving (Data, Typeable)
 
 emptySimpleGuiItem :: SimpleGuiItem
 emptySimpleGuiItem = SimpleGuiItem [] [] [] ""
@@ -807,7 +807,7 @@ dpRootFeatFailure item =
 -- Top and bottom unification
 -- --------------------------------------------------------------------
 
-tbUnifyNaNodes :: [GNode GeniVal] -> Maybe ([GNode GeniVal], Map.Map String GeniVal)
+tbUnifyNaNodes :: [GNode GeniVal] -> Maybe ([GNode GeniVal], Subst)
 tbUnifyNaNodes [] = Just ([], Map.empty)
 tbUnifyNaNodes (n:ns) =
  if gaconstr n
