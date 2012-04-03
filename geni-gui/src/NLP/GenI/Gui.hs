@@ -33,6 +33,7 @@ import System.Exit (exitWith, ExitCode(ExitSuccess))
 import System.FilePath ( makeRelative )
 
 import Graphics.UI.WX
+import Graphics.UI.WXCore
 
 import NLP.GenI
     ( ProgState(..), ProgStateRef, initGeni , GeniResult(..), prettyResult
@@ -625,6 +626,14 @@ debugGui builderGui pstRef semInput pauseOnLex = do
                ]
     p    <- panel f []
     nb   <- notebook p []
+    let addTabs [] = return ()
+        addTabs ts = do
+           oldCount <- notebookGetPageCount nb
+           set f [ layout := container p (tabs nb ts) -- appends ts
+                 , clientSize := bigSize
+                 ]
+           notebookSetSelection nb oldCount -- ie. the latest tab added
+           return ()
     -- generation step 1
     (initStuff, initWarns) <- initGeni pstRef semInput
     let (cand,_)   = unzip $ B.inCands initStuff
@@ -641,12 +650,7 @@ debugGui builderGui pstRef semInput pauseOnLex = do
            debugPnl <- BG.debuggerPnl builderGui nb config input2 btype
            let mAutTab  = tab "automata" <$> mAutPnl
                debugTab = tab "tree assembly" debugPnl
-               genTabs  = catMaybes [ mAutTab, Just debugTab ]
-           --
-           set f [ layout := container p $ tabs nb genTabs
-                 , clientSize := bigSize
-                 ]
-           return ()
+           addTabs $ catMaybes [ mAutTab, Just debugTab ]
     -- inputs tab
     inpPnl <- inputInfoGui nb config semInput
     -- lexical selection tab
