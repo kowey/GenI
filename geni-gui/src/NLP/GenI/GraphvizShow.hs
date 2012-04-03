@@ -35,8 +35,9 @@ import Data.GraphViz.Attributes.Complete
 
 import NLP.GenI.FeatureStructures ( AvPair(..), Flist )
 import NLP.GenI.General ( clumpBy )
+import NLP.GenI.Pretty
 import NLP.GenI.GeniVal (GeniVal(..), isConst)
-import NLP.GenI.Semantics ( Sem, showSem )
+import NLP.GenI.Semantics ( Sem )
 import NLP.GenI.Tags
     ( TagDerivation, TagItem(..), TagElem(..)
     , DerivationStep(..), dsChild, dsParent
@@ -129,7 +130,8 @@ gvShowSem :: Sem -> TL.Text
 gvShowSem = gvUnlines
           . map (TL.pack . unwords)
           . clumpBy length 72
-          . words . showSem
+          . words
+          . prettyStr
 
 -- ----------------------------------------------------------------------
 -- Helper functions for the TagElem GraphvizShow instance
@@ -193,7 +195,7 @@ instance GraphvizShowString GeniVal where
             (Just l,  Nothing) -> plainVar l
             (Just l,  Just cs) -> TL.concat [plainVar l, "/", constraints cs]
       where
-        plainVar l = '?' `TL.cons` TL.pack l
+        plainVar l = '?' `TL.cons` TL.fromChunks [l]
         constraints cs = TL.intercalate "!" $ map TL.fromChunks [fromFL cs]
 
 showGnDecorations :: GNode GeniVal -> TL.Text

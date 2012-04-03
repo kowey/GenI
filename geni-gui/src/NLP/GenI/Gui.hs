@@ -50,12 +50,12 @@ import NLP.GenI.Configuration
     --
     , Optimisation(..) , BuilderType(..), mainBuilderTypes
     )
-import NLP.GenI.FeatureStructures ( showFlist )
 import NLP.GenI.General (fst3, prettyException, trim)
 import NLP.GenI.GeniParsers hiding ( choice, label, tab, try )
 import NLP.GenI.GeniShow (geniShow)
 import NLP.GenI.GuiHelper
 import NLP.GenI.Polarity
+import NLP.GenI.Pretty
 import NLP.GenI.Semantics
 import NLP.GenI.Simple.SimpleGui
 import NLP.GenI.TestSuite ( TestCase(..) )
@@ -108,7 +108,7 @@ mainGui pstRef = do
                                , enabled := hasSem ]
     -- Detect polarities and root feature
     let initialDP = maybe "" showPolarityAttrs (getFlagP DetectPolaritiesFlg config)
-        initialRF = maybe "" showFlist (getFlagP RootFeatureFlg config)
+        initialRF = maybe "" prettyStr (getFlagP RootFeatureFlg config)
     detectPolsTxt <- entry f [ text := initialDP ]
     rootFeatTxt   <- entry f [ text := initialRF ]
     -- Box and Frame for files loaded
@@ -376,7 +376,7 @@ configGui pstRef loadFn = do
                       (getFlagP DetectPolaritiesFlg config)
         , size := longSize ]
     rootFeatTxt <- entry pbas
-        [ text := maybe "" showFlist (getFlagP RootFeatureFlg config)
+        [ text := maybe "" prettyStr (getFlagP RootFeatureFlg config)
         , size := longSize ]
     let layFiles = [ row 1 [ label "trees:"
                            , fill $ widget macrosFileLabel
@@ -558,7 +558,7 @@ resultsGui builderGui pstRef semInput = do
     (results,_,summTab,resTab) <- BG.resultsPnl builderGui pstRef semInput nb
     -- ranking tab
     mRankTab <- if hasFlagP RankingConstraintsFlg (pa pst)
-                   then Just <$> messageGui nb (pretty pst results)
+                   then Just <$> messageGui nb (purty pst results)
                    else return Nothing
     -- tabs
     let myTabs = catMaybes
@@ -573,7 +573,7 @@ resultsGui builderGui pstRef semInput = do
     repaint f
     return ()
   where
-    pretty pst res = unlines $ map (prettyResult pst) [ x | GSuccess x <- res ]
+    purty pst res = unlines $ map (prettyResult pst) [ x | GSuccess x <- res ]
 
 
 -- --------------------------------------------------------------------
@@ -590,7 +590,7 @@ inputInfoGui f config semInput = messageGui f . unlines $
     , ""
     , "Options"
     , "-------"
-    , "Root feature: " ++ maybe "" showFlist (getFlagP RootFeatureFlg config)
+    , "Root feature: " ++ maybe "" prettyStr (getFlagP RootFeatureFlg config)
     , ""
     , "Optimisations"
     , "-------------"
@@ -651,9 +651,8 @@ debugGui builderGui pstRef semInput pauseOnLex = do
     inpPnl <- inputInfoGui nb config semInput
     -- lexical selection tab
     pst <- readIORef pstRef
-    (canPnl,_,_) <- if pauseOnLex
-                       then pauseOnLexGui (pa pst) nb cand initWarns step2
-                       else candidateGui  (pa pst) nb cand initWarns
+    (canPnl,_,_) <- pauseOnLexGui (pa pst) nb cand initWarns $
+                       if pauseOnLex then Just step2 else Nothing
     -- basic tabs
     let basicTabs = [ tab "input"             inpPnl
                     , tab "lexical selection" canPnl ]

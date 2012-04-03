@@ -30,8 +30,8 @@ import Data.GraphViz.Attributes.Complete
 import qualified Data.Text.Lazy as T
 import NLP.GenI.General(showInterval)
 import NLP.GenI.Polarity(PolAut, PolState(PolSt), NFA(states, transitions), finalSt)
+import NLP.GenI.Pretty
 import NLP.GenI.Graphviz(GraphvizShow(..), gvUnlines)
-import NLP.GenI.Semantics ( showSem )
 import NLP.GenI.Tags(idname)
 
 instance GraphvizShow PolAut where
@@ -68,7 +68,7 @@ gvShowState fin stId st =
    showSt (PolSt _ ex po) =
           gvUnlines . catMaybes $
             [ Nothing -- Just (snd3 pr)
-            , if null ex then Nothing else Just (T.pack (showSem ex))
+            , if null ex then Nothing else Just (T.fromChunks [pretty ex])
             , Just . T.pack . intercalate "," $ map showInterval po
             ]
    decorate = if st `elem` fin

@@ -21,7 +21,7 @@ module NLP.GenI.GuiHelper where
 
 import Control.Applicative ( (<$>) )
 import Control.Exception hiding ( bracket )
-import Control.Monad ( unless )
+import Control.Monad ( unless, forM_ )
 import Control.Monad.State.Strict ( execStateT, runState )
 import Data.Array ( (!), listArray )
 import Data.GraphViz.Exception ( GraphvizException(..) )
@@ -37,7 +37,6 @@ import qualified Data.Text as T
 import Graphics.UI.WX
 
 import NLP.GenI.Automaton (numStates, numTransitions)
-import NLP.GenI.FeatureStructures ( showAv )
 import NLP.GenI.Builder (queryCounter, num_iterations, chart_size, num_comparisons)
 import NLP.GenI.Configuration ( Params(..), MetricsFlg(..), setFlagP, getFlagP
                               , hasOpt, Optimisation(..)
@@ -49,7 +48,7 @@ import NLP.GenI.Graphviz
 import NLP.GenI.GraphvizShow (GvItem(..), gvItemSetFlag, gvItemLabel)
 import NLP.GenI.GraphvizShowPolarity ()
 import NLP.GenI.Polarity (PolAut, AutDebug, suggestPolFeatures)
-import NLP.GenI.Semantics ( showLiteral )
+import NLP.GenI.Pretty
 import NLP.GenI.Tags ( idname, mapBySem, TagElem(ttrace, tinterface), TagItem(tgIdName), tagLeaves )
 import NLP.GenI.TreeSchemata ( showLexeme )
 import NLP.GenI.Warnings
@@ -115,7 +114,7 @@ candidateGui config f xs warns = do
     let updateTrace = gvOnSelect (return ())
           (\s -> set traceLst [ items := ttrace s ])
         updateIface = gvOnSelect (return ())
-          (\s -> set ifaceLst [ items := map showAv $ tinterface s ])
+          (\s -> set ifaceLst [ items := map prettyStr $ tinterface s ])
     Monad.unless (null xs) $ do
         addGvHandler gvRef updateTrace
         addGvHandler gvRef updateIface
@@ -140,7 +139,7 @@ sectionsBySem tsem =
     lookupTr k = Map.findWithDefault [] k semmap
     section  k = GvHeader header : map tlab (lookupTr k)
       where
-        header = "___" ++ showLiteral k ++ "___"
+        header = "___" ++ prettyStr k ++ "___"
         tlab t = GvItem (tgIdName t) False t
 
 -- ----------------------------------------------------------------------
