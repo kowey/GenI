@@ -15,8 +15,9 @@
 -- along with this program; if not, write to the Free Software
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE OverloadedStrings #-}
 module NLP.GenI.Lexicon.Internal where
 
 -- import Debug.Trace -- for test stuff
@@ -27,9 +28,12 @@ import Data.List ( sortBy )
 import Data.Generics (Data)
 import Data.Text ( Text )
 import Data.Typeable (Typeable)
+import qualified Data.Text as T
 
 import NLP.GenI.FeatureStructure
+import NLP.GenI.GeniShow
 import NLP.GenI.GeniVal
+import NLP.GenI.Pretty
 import NLP.GenI.Semantics
 import NLP.GenI.Polarity.Types (SemPols)
 
@@ -100,6 +104,35 @@ instance Collectable ILexEntry where
   collect l = (collect $ iinterface l) . (collect $ iparams l) .
               (collect $ ifilters l) . (collect $ iequations l) .
               (collect $ isemantics l)
+
+-- ----------------------------------------------------------------------
+-- converting to text
+-- ----------------------------------------------------------------------
+
+-- TODO: does not support semantic polarities yet
+instance GeniShow ILexEntry where
+    geniShowText l = T.intercalate "\n"
+        [ T.unwords
+              [ geniShowText . mkGConst $ iword l
+              , ifamname l
+              , paramT
+              ]
+        , geniKeyword "equations" $ geniShowText (iequations l)
+        , geniKeyword "filters"   $ geniShowText (ifilters l)
+        , geniKeyword "semantics" $ geniShowText (isemantics l)
+        ]
+      where 
+        paramT = parens . T.unwords . concat $
+            [ map geniShowText (iparams l)
+            , ["!"]
+            , map geniShowText (iinterface l)
+            ]
+
+instance GeniShow [ILexEntry] where
+    geniShowText = T.intercalate "\n\n" . map geniShowText
+
+instance Pretty ILexEntry where
+    pretty = geniShowText
 
 -- ----------------------------------------------------------------------
 --

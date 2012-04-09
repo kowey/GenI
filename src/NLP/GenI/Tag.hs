@@ -56,6 +56,7 @@ import Text.JSON
 
 import NLP.GenI.FeatureStructure ( AvPair(..), Flist )
 import NLP.GenI.General (listRepNode, groupByFM, preTerminals, geniBug)
+import NLP.GenI.GeniShow
 import NLP.GenI.GeniVal ( GeniVal(..), DescendGeniVal(..), Collectable(..), Idable(..),
                           isConst,
                         )
@@ -321,8 +322,21 @@ firstMaybe :: (a -> Maybe b) -> [a] -> Maybe b
 firstMaybe fn = listToMaybe . mapMaybe fn
 
 -- ----------------------------------------------------------------------
--- Debugging
+-- Conversion to text
 -- ----------------------------------------------------------------------
+
+instance GeniShow TagElem where
+    geniShowText te = T.concat
+        [ "% ------------------------- ", idname te
+        , "\n", ttreename te, ":" , idname te
+        , " " , (geniShowText $ tinterface te)
+        , " " , (geniShowText $ ttype te)
+        , "\n", (geniShowText $ ttree te)
+        , "\n", geniKeyword "semantics" (geniShowText $ tsemantics te)
+        ]
+
+instance GeniShow [TagElem] where
+    geniShowText = T.intercalate "\n\n" . map geniShowText
 
 -- Useful for debugging adjunction and substitution nodes
 instance Pretty [TagSite] where

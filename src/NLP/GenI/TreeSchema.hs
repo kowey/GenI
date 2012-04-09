@@ -199,7 +199,33 @@ gCategory top =
 lexemeAttributes :: [Text]
 lexemeAttributes = [ "lex", "phon", "cat" ]
 
--- Pretty printing
+-- ----------------------------------------------------------------------
+-- Pretty printing and other text conversions
+-- ----------------------------------------------------------------------
+
+instance GeniShow Ptype where
+    geniShow Initial  = "initial"
+    geniShow Auxiliar = "auxiliary"
+
+instance (GeniShow a) => GeniShow (Ttree a) where
+    geniShowText tt = T.intercalate "\n" . filter (not . T.null) $
+        [ "% ------------------------- ", pidname tt
+        , T.unwords [ pfamily tt <> ":" <> pidname tt
+                    , plist
+                    , geniShowText (ptype  tt)
+                    ]
+        , geniShowText (tree   tt)
+        , maybe "" showSem (psemantics tt)
+        , showTr (ptrace tt)
+        ]
+      where
+        plist = parens . T.unwords . concat $
+            [ map geniShowText (params tt)
+            , ["!"]
+            , map geniShowText (pinterface tt)
+            ]
+        showSem = geniKeyword "semantics" . geniShowText
+        showTr  = geniKeyword "trace" . squares . T.unwords
 
 -- | The default show for GNode tries to be very compact; it only shows the value
 --   for cat attribute and any flags which are marked on that node.

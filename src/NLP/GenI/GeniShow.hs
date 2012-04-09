@@ -23,7 +23,9 @@ module NLP.GenI.GeniShow
 where
 
 import Data.Text ( Text )
+import Data.Tree
 import qualified Data.Text as T
+import NLP.GenI.Pretty
 
 -- | GenI format; should round-trip with 'NLP.GenI.Parser' by rights
 --
@@ -35,29 +37,23 @@ class GeniShow a where
     geniShowText :: a -> Text
     geniShowText = T.pack . geniShow
 
+instance (GeniShow a) => GeniShow (Tree a) where
+    geniShowText = geniShowTree 0
+
+geniShowTree :: GeniShow a => Int -> Tree a -> Text
+geniShowTree i (Node a l) =
+    spaces <> geniShowText a <> rest
+  where
+    rest = case (l,i) of
+               ([], 0) -> "{}"
+               ([], _) -> ""
+               (_,  _) -> "{\n" <> T.unlines (map next l)
+                                <> spaces
+                                <> "}"
+    next   = geniShowTree (i+1)
+    spaces = T.pack (replicate i ' ')
+
 {-
-instance GeniShow Ptype where
- geniShow Initial  = "initial"
- geniShow Auxiliar = "auxiliary"
-
-instance GeniShow GeniVal where
-   geniShow = prettyStr
-
-instance GeniShow Literal where
-   geniShow = prettyStr
-
--- TODO: does not support semantic polarities yet
-instance GeniShow ILexEntry where
- geniShow l = intercalate "\n"
-    [ unwords [ geniShow . mkGConst . fmap T.pack $ iword l
-              , ifamname l
-              , parens . unwords $ concat [ map geniShow (iparams l), ["!"], map geniShow (iinterface l) ]
-              ]
-    , geniShowKeyword "equations" $ geniShow (iequations l)
-    , geniShowKeyword "filters"   $ geniShow (ifilters l)
-    , geniShowKeyword "semantics" $ geniShow (isemantics l)
-    ]
-
 geniShowSmallList :: GeniShow a => [a] -> String
 geniShowSmallList = squares . unwords . (map geniShow)
 
@@ -66,45 +62,6 @@ instance GeniShow [Literal] where
 
 instance GeniShow (AvPair v) => GeniShow [AvPair v] where
  geniShow = geniShowSmallList
-
-instance GeniShow [ILexEntry] where
- geniShow = intercalate "\n\n" . map geniShow
-
-instance (GeniShow a) => GeniShow (Tree a) where
- geniShow t =
-  let treestr i (Node a l) =
-        spaces i ++ geniShow a ++
-        case (l,i) of
-        ([], 0)  -> "{}"
-        ([], _)  -> ""
-        (_, _)   -> "{\n" ++ (unlines $ map next l) ++ spaces i ++ "}"
-        where next = treestr (i+1)
-      --
-      spaces i = take i $ repeat ' '
-  in treestr 0 t
-
-instance GeniShow TagElem where
- geniShow te =
-  "\n% ------------------------- " ++ idname te
-  ++ "\n" ++ (ttreename te) ++ ":" ++ (idname te)
-  ++ " "  ++ (geniShow.tinterface $ te)
-  ++ " "  ++ (geniShow.ttype $ te)
-  ++ "\n" ++ (geniShow.ttree $ te)
-  ++ "\n" ++ geniShowKeyword "semantics" "" ++ (geniShow.tsemantics $ te)
-
-instance (GeniShow a) => GeniShow (Ttree a) where
- geniShow tt =
-  "\n% ------------------------- " ++ pidname tt
-  ++ "\n" ++ (pfamily tt) ++ ":" ++ (pidname tt)
-  ++ " "  ++ (parens $    (unwords $ map geniShow $ params tt)
-                       ++ " ! "
-                       ++ (unwords $ map geniShow $ pinterface tt))
-  ++ " "  ++ (geniShow.ptype $ tt)
-  ++ "\n" ++ (geniShow.tree $ tt)
-  ++ (case psemantics tt of
-      Nothing   -> ""
-      Just psem -> "\n" ++ geniShowKeyword "semantics" (geniShow psem))
-  ++ "\n" ++ geniShowKeyword "trace" (squares.unwords.ptrace $ tt)
 
 instance GeniShow TestCase where
  geniShow (TestCase { tcName = name
@@ -123,12 +80,6 @@ instance GeniShow TestCase where
    outStuff (o,ds) =
      [ geniShowKeyword "output"   . squares $ o ]
      ++ (map gshowTrace $ Map.toList ds)
--}
-
-{-
-parens, squares :: String -> String
-parens s  = "(" ++ s ++ ")"
-squares s = "[" ++ s ++ "]"
 -}
 
 geniKeyword :: Text -> Text  -> Text
