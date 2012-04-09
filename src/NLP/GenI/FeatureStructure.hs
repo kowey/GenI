@@ -30,6 +30,7 @@ import Data.Typeable (Typeable)
 import Data.Text ( Text )
 import qualified Data.Text as T
 
+import NLP.GenI.GeniShow
 import NLP.GenI.GeniVal
 import NLP.GenI.General ( geniBug )
 import NLP.GenI.Pretty
@@ -68,6 +69,9 @@ fromFeatStruct = sortFlist . map (uncurry AvPair) . Map.toList
 instance Pretty (FeatStruct GeniVal) where
     pretty = pretty . fromFeatStruct
 
+instance GeniShow (FeatStruct GeniVal) where
+    geniShowText = geniShowText . fromFeatStruct
+
 -- ----------------------------------------------------------------------
 -- Basic functions
 -- ----------------------------------------------------------------------
@@ -90,13 +94,19 @@ instance DescendGeniVal v => DescendGeniVal ([String], Flist v) where
 instance Collectable a => Collectable (AvPair a) where
   collect (AvPair _ b) = collect b
 
--- Pretty printing
+-- Pretty printing and output format
 
 instance Pretty (Flist GeniVal) where
-    pretty = squares . T.unwords . map pretty
+    pretty = geniShowText
 
 instance Pretty (AvPair GeniVal) where
-    pretty (AvPair a v) = a `T.append` ":" `T.append` pretty v
+    pretty = geniShowText
+
+instance GeniShow (Flist GeniVal) where
+    geniShowText = squares . T.unwords . map geniShowText
+
+instance GeniShow (AvPair GeniVal) where
+    geniShowText (AvPair a v) = a `T.append` ":" `T.append` geniShowText v
 
 {-
 instance Show (AvPair GeniVal) where

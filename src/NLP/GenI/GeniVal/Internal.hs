@@ -75,7 +75,10 @@ instance Show GeniVal where
 -}
 
 instance Pretty GeniVal where
-    pretty gv =
+    pretty = geniShowText
+
+instance GeniShow GeniVal where
+    geniShowText gv =
         case gv of
             GeniVal Nothing Nothing    -> showLabel "_"
             GeniVal Nothing (Just cs)  -> showConstraints cs

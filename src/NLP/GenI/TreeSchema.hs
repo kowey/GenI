@@ -46,7 +46,8 @@ import Data.FullList hiding (head, tail, (++))
 import Data.Generics (Data)
 import Data.Typeable (Typeable)
 
-import NLP.GenI.General (filterTree, listRepNode, geniBug,)
+import NLP.GenI.General (filterTree, listRepNode, geniBug, quoteText)
+import NLP.GenI.GeniShow
 import NLP.GenI.GeniVal ( GeniVal(..), DescendGeniVal(..), Collectable(..),
                         )
 import NLP.GenI.FeatureStructure ( AvPair(..), Flist, crushFlist )
@@ -213,6 +214,31 @@ instance Pretty (GNode GeniVal) where
                     Subs -> " !"
                     Foot -> " *"
                     _    -> if gaconstr gn then " #"   else ""
+
+instance GeniShow (GNode GeniVal) where
+    geniShowText x =
+        T.unwords . filter (not . T.null) $
+            [ gnname x, gaconstrstr, gtypestr x, glexstr x, tbFeats x ]
+      where
+        gaconstrstr = case (gaconstr x, gtype x) of
+                          (True, Other) -> "aconstr:noadj"
+                          _             ->  ""
+        gtypestr n  = case gtype n of
+                          Subs -> "type:subst"
+                          Foot -> "type:foot"
+                          Lex  -> if ganchor n && (null.glexeme) n
+                                     then "type:anchor" else "type:lex"
+                          _    -> ""
+        glexstr n =
+            if null ls
+               then ""
+               else T.intercalate "|" (map quoteText ls)
+          where
+            ls = glexeme n
+        tbFeats n =
+            geniShowText (gup n)
+            `T.append` "!"
+            `T.append` geniShowText (gdown n)
 
 
 -- FIXME: will have to think of nicer way - one which involves

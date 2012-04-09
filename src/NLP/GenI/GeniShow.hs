@@ -15,52 +15,30 @@
 --  along with this program; if not, write to the Free Software
 --  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-{-
-We need to be able to dump some of GenI's data structures into a simple
-text format we call GeniHand.
-
-There are at least two uses for this, one is that it allows us to
-interrupt the debugging process, dump everything to file, muck around
-with the trees and then pick up where we left off.
-
-The other use is to make large grammars faster to load.  We don't actually do
-this anymore, mind you, but it's nice to have the option.  The idea is to take
-a massive XML grammar, parse it to a set of TagElems and then write these back
-in the lighter syntax.  It's not that XML is inherently less efficient to parse
-than the handwritten syntax, just that writing an efficient parser for XML
-based format is more annoying, so I stuck with HaXml to make my life easy.
-Unfortunately, HaXml seems to have some kind of space leak.
--}
-
 -- This module provides specialised functions for visualising tree data.
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances, TypeSynonymInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 module NLP.GenI.GeniShow
 where
 
-import Data.Tree
-import Data.List(intercalate)
-import qualified Data.Map as Map
+import Data.Text ( Text )
 import qualified Data.Text as T
 
-import NLP.GenI.Semantics ( SemInput, Literal(..) )
-import NLP.GenI.Tags ( TagElem(..) )
-import NLP.GenI.TreeSchemata (Ptype(..), Ttree(..), GNode(..), GType(..) )
-import NLP.GenI.TestSuite ( TestCase(..) )
-import NLP.GenI.Lexicon
-import NLP.GenI.FeatureStructures ( AvPair(..) )
-import NLP.GenI.Pretty hiding ( parens, squares )
-import NLP.GenI.GeniVal ( GeniVal(..), mkGConst )
-
+-- | GenI format; should round-trip with 'NLP.GenI.Parser' by rights
+--
+--   Minimal definition, either one of 'geniShow' or 'geniShowText'
 class GeniShow a where
-  geniShow :: a -> String
+    geniShow :: a -> String
+    geniShow = T.unpack . geniShowText
 
+    geniShowText :: a -> Text
+    geniShowText = T.pack . geniShow
+
+{-
 instance GeniShow Ptype where
  geniShow Initial  = "initial"
  geniShow Auxiliar = "auxiliary"
-
-instance GeniShow (AvPair GeniVal) where
-   geniShow = prettyStr
 
 instance GeniShow GeniVal where
    geniShow = prettyStr
@@ -79,25 +57,6 @@ instance GeniShow ILexEntry where
     , geniShowKeyword "filters"   $ geniShow (ifilters l)
     , geniShowKeyword "semantics" $ geniShow (isemantics l)
     ]
-
-instance GeniShow (GNode GeniVal) where
- geniShow x =
-  let gaconstrstr = case (gaconstr x, gtype x) of
-                    (True, Other) -> "aconstr:noadj"
-                    _             ->  ""
-      gtypestr n = case (gtype n) of
-                     Subs -> "type:subst"
-                     Foot -> "type:foot"
-                     Lex  -> if ganchor n && (null.glexeme) n
-                             then "type:anchor" else "type:lex"
-                     _    -> ""
-      glexstr n =
-        if null ls then ""
-        else intercalate "|" $ map quote ls
-        where quote s = "\"" ++ s ++ "\""
-              ls = glexeme n
-      tbFeats n = (geniShow $ gup n) ++ "!" ++ (geniShow $ gdown n)
-  in unwords $ filter (not.null) $ [ gnname x, gaconstrstr, gtypestr x, glexstr x, tbFeats x ]
 
 geniShowSmallList :: GeniShow a => [a] -> String
 geniShowSmallList = squares . unwords . (map geniShow)
@@ -164,26 +123,13 @@ instance GeniShow TestCase where
    outStuff (o,ds) =
      [ geniShowKeyword "output"   . squares $ o ]
      ++ (map gshowTrace $ Map.toList ds)
+-}
 
-
+{-
 parens, squares :: String -> String
 parens s  = "(" ++ s ++ ")"
 squares s = "[" ++ s ++ "]"
+-}
 
-geniShowKeyword :: String -> ShowS
-geniShowKeyword k = showString k . showChar ':'
-
-instance GeniShow SemInput where
-  geniShow s = geniShowSemInput s ""
-
-geniShowSemInput :: SemInput -> ShowS
-geniShowSemInput (sem,icons,lcons) =
-  let withConstraints lit =
-        case concat [ cs | (p,cs) <- lcons, p == lit ] of
-        [] -> geniShow lit
-        cs -> geniShow lit ++ (squares . unwords $ cs)
-      semStuff = geniShowKeyword "semantics" . squares
-               . (showString . unwords . map withConstraints $ sem)
-      idxStuff = geniShowKeyword "idxconstraints"
-               . (showString . geniShow $ icons) . squares
- in semStuff .  (if null icons then id else showChar '\n' . idxStuff)
+geniKeyword :: Text -> Text  -> Text
+geniKeyword k t = k `T.append` ":" `T.append` t

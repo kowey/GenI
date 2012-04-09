@@ -35,6 +35,7 @@ import Data.Text ( Text )
 import qualified Data.Text as T
 
 import NLP.GenI.FeatureStructure
+import NLP.GenI.GeniShow
 import NLP.GenI.General ( histogram )
 import NLP.GenI.GeniVal
 import NLP.GenI.Pretty
@@ -119,15 +120,41 @@ instance DescendGeniVal Literal where
 -- Pretty printing
 
 instance Pretty Sem where
-   pretty = squares . T.unwords . map pretty
+   pretty = geniShowText
+
+instance GeniShow Sem where
+   geniShowText = squares . T.unwords . map geniShowText
 
 instance Pretty Literal where
-   pretty (Literal h p l) =
-       mh `T.append` pretty p
-          `T.append` (parens . T.unwords . map pretty $ l)
+   pretty = geniShowText
+
+instance GeniShow Literal where
+   geniShowText (Literal h p l) =
+       mh `T.append` geniShowText p
+          `T.append` (parens . T.unwords . map geniShowText $ l)
      where
-       mh    = if hideh h then "" else pretty h `T.snoc` ':'
+       mh    = if hideh h then "" else geniShowText h `T.snoc` ':'
        hideh = maybe False isInternalHandle . singletonVal
+
+instance Pretty SemInput where
+    pretty = geniShowText
+
+instance GeniShow SemInput where
+    geniShowText (sem,icons,lcons) = T.intercalate "\n" . concat $
+        [ [semStuff]
+        , [ idxStuff | not (null icons) ]
+        ]
+      where
+        semStuff = geniKeyword "semantics"
+                 . squares . T.unwords
+                 $ map withConstraints sem
+        idxStuff = geniKeyword "idxconstraints"
+                 . squares
+                 $ geniShowText icons
+        withConstraints lit =
+            case concat [ cs | (p,cs) <- lcons, p == lit ] of
+                [] -> geniShowText lit
+                cs -> geniShowText lit `T.append` (squares . T.unwords $ cs)
 
 isInternalHandle :: Text -> Bool
 isInternalHandle = ("genihandle" `T.isPrefixOf`)
