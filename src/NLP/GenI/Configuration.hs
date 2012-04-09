@@ -50,6 +50,7 @@ import Data.List  ( find, intersperse, nubBy )
 import Data.Maybe ( fromMaybe, isNothing, fromJust )
 import Data.Maybe ( listToMaybe, mapMaybe )
 import Data.String ( IsString(..) )
+import Data.Text ( Text )
 import Data.Typeable ( Typeable )
 import System.Directory ( getAppUserDataDirectory, doesFileExist )
 import System.Environment ( getProgName )
@@ -58,6 +59,8 @@ import System.IO ( stderr )
 import Text.ParserCombinators.Parsec ( runParser, CharParser )
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.Map as Map
+import qualified Data.Text as T
+import qualified Data.Text.IO as T
 
 import Data.Yaml.YamlLight
 import System.Console.GetOpt
@@ -543,7 +546,8 @@ optionsForTesting :: [OptDescr Flag]
 optionsForTesting =
   [ testSuiteOption
   , fromStdinOption
-  , Option []    ["testcase"]   (reqArg TestCaseFlg id "STRING")
+  , Option []    ["testcase"]
+      (reqArg (TestCaseFlg . T.pack) id "STRING")
       "run test case STRING"
   , Option []    ["timeout"] (reqArg TimeoutFlg read "SECONDS")
       "time out after SECONDS seconds"
@@ -591,7 +595,7 @@ processInstructions :: Params -> IO Params
 processInstructions config = do
     instructions <- case getFlagP InstructionsFileFlg config of
                       Nothing -> return fakeInstructions
-                      Just f  -> instructionsFile `fmap` readFile f
+                      Just f  -> instructionsFile `fmap` T.readFile f
     let updateInstructions = setFlagP TestInstructionsFlg instructions
         -- we have to set a test suite in case the user only supplies
         -- an instructions argument so that NLP.GenI.loadEverything
@@ -609,14 +613,14 @@ processInstructions config = do
              mkInstr xs = singleton (xs, cases)
          in maybe [] mkInstr $ getFlagP TestSuiteFlg config
 
-instructionsFile :: String -> [Instruction]
-instructionsFile = mapMaybe inst . lines
- where
-  inst l = case words (takeWhile (/= '%') l) of
-           []     -> Nothing
-           [f]    -> Just (f, Nothing)
-           (f:cs) -> Just (f, Just cs)
-
+instructionsFile :: Text -> [Instruction]
+instructionsFile =
+    mapMaybe inst . T.lines
+  where
+    inst l = case T.words (T.takeWhile (/= '%') l) of
+                 []     -> Nothing
+                 [f]    -> Just (T.unpack f, Nothing)
+                 (f:cs) -> Just (T.unpack f, Just cs)
 
 -- ====================================================================
 -- Configuration file

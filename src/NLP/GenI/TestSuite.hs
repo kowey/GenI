@@ -18,14 +18,15 @@
 module NLP.GenI.TestSuite
 where
 
+import Data.Text ( Text)
 import qualified Data.Map as Map
 import NLP.GenI.Semantics
 
 data TestCase = TestCase
-    { tcName :: String
-    , tcSemString :: String -- ^ for gui
+    { tcName :: Text
+    , tcSemString :: Text -- ^ for gui
     , tcSem  :: SemInput
-    , tcExpected :: [String] -- ^ expected results (for testing)
-    , tcOutputs :: [(String, Map.Map (String,String) [String])]
+    , tcExpected :: [Text] -- ^ expected results (for testing)
+    , tcOutputs :: [(Text, Map.Map (Text,Text) [Text])]
     -- ^ results we actually got, and their traces (for testing)
     }

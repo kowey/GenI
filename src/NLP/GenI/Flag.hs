@@ -37,7 +37,7 @@ data Optimisation = PolOpts
                   | NoConstraints
   deriving (Show,Eq,Typeable)
 
-type Instruction = (FilePath, Maybe [String])
+type Instruction = (FilePath, Maybe [Text])
 
 data BuilderType = SimpleBuilder | SimpleOnePhaseBuilder
      deriving (Eq, Typeable)
@@ -131,7 +131,7 @@ newtype RankingConstraintsFlg = RankingConstraintsFlg FilePath deriving (Eq, Typ
 newtype RootFeatureFlg = RootFeatureFlg (Flist GeniVal) deriving (Eq, Typeable)
 newtype NoLoadTestSuiteFlg = NoLoadTestSuiteFlg () deriving (Eq, Typeable)
 newtype StatsFileFlg = StatsFileFlg FilePath deriving (Eq, Typeable)
-newtype TestCaseFlg = TestCaseFlg String deriving (Eq, Typeable)
+newtype TestCaseFlg = TestCaseFlg Text deriving (Eq, Typeable)
 newtype TestInstructionsFlg = TestInstructionsFlg [Instruction] deriving (Eq, Typeable)
 newtype TestSuiteFlg = TestSuiteFlg FilePath deriving (Eq, Typeable)
 newtype TimeoutFlg = TimeoutFlg Int deriving (Eq, Typeable)

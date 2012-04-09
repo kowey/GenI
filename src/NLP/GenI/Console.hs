@@ -21,7 +21,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE OverloadedStrings #-}
-module NLP.GenI.Console(consoleGeni) where
+module NLP.GenI.Console ( consoleGeni, loadNextSuite ) where
 
 import Control.Applicative ( pure, (<$>) )
 import Control.Monad
@@ -38,8 +38,11 @@ import System.Exit ( exitWith, exitFailure, ExitCode(..) )
 import System.FilePath ( (</>), takeFileName )
 import System.IO ( stderr )
 import System.Timeout ( timeout )
+import qualified Data.ByteString as B
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
+import qualified Data.Text.Encoding as T
+
 
 import NLP.GenI.General
   ( ePutStr, ePutStrLn,
@@ -99,13 +102,13 @@ runStdinTestCase pstRef = do
            runOnSemInput pstRef (runAsStandalone config) semInput >> return ()
 
 -- | Run a test case with the specified name
-runSpecificTestCase :: ProgStateRef -> String -> IO ()
+runSpecificTestCase :: ProgStateRef -> Text -> IO ()
 runSpecificTestCase pstRef cname = do
     config <- pa <$> readIORef pstRef
     fullsuite <- loadTestSuite pstRef
     case find (\x -> tcName x == cname) fullsuite  of
-      Nothing -> fail ("No such test case: " ++ cname)
-      Just s  -> runOnSemInput pstRef (runAsStandalone config) (tcSem s) >> return ()
+        Nothing -> fail ("No such test case: " ++ T.unpack cname)
+        Just s  -> runOnSemInput pstRef (runAsStandalone config) (tcSem s) >> return ()
 
 -- | Runs the tests specified in our instructions list.
 --   We assume that the grammar and lexicon are already
@@ -130,15 +133,16 @@ runInstructions pstRef =
                          ]
   where
   fmtTime = formatTime defaultTimeLocale (iso8601DateFormat (Just "%H%M"))
-  runBatch bdir =
-    do config <- pa `fmap` readIORef pstRef
-       mapM_ (runSuite bdir) $ getListFlagP TestInstructionsFlg config
+  runBatch bdir = do
+      config <- pa <$> readIORef pstRef
+      mapM_ (runSuite bdir) $
+          getListFlagP TestInstructionsFlg config
   runSuite bdir next@(file, _) =
     do suite  <- loadNextSuite pstRef next
        -- we assume the that the suites have unique filenames
        let bsubdir = bdir </> takeFileName file
        createDirectoryIfMissing True bsubdir
-       if any (null . tcName) suite
+       if any (T.null . tcName) suite
           then    fail $ "Can't do batch processing. The test suite " ++ file ++ " has cases with no name."
           else do ePutStrLn "Batch processing mode"
                   mapM_ (runCase bsubdir) suite
@@ -151,25 +155,28 @@ runInstructions pstRef =
       gresults <- runOnSemInput pstRef (PartOfSuite n bdir) s
       let res = grResults gresults
           (goodres, badres) = partition isSuccess (grResults gresults)
-          badresSuf = if null badres then "" else " (" ++ show (length badres) ++ " errors)"
-      ePutStrLn $ " " ++ n ++ " - " ++ show (length goodres) ++ " results" ++ badresSuf
+      T.hPutStrLn stderr $
+          " " <> n <+> "-" <+> pretty (length goodres) <+> "results" <+>
+          parens (pretty (length badres))
       when (null res && earlyDeath) $ do
-        ePutStrLn $ "Exiting early because test case " ++ n ++ " failed."
-        exitFailure
+          T.hPutStrLn stderr $ "Exiting early because test case" <+> n <+> "failed."
+          exitFailure
 
 -- | Used in processing instructions files. Each instruction consists of a
 --   suite file and a list of test case names from that file
 --
 --   See <http://projects.haskell.org/GenI/manual/command-line.html> for
 --   how testsuite, testcase, and instructions are expected to interact
-loadNextSuite :: ProgStateRef -> (FilePath, Maybe [String]) -> IO [TestCase]
+--
+--   (Exported for use by regression testing code)
+loadNextSuite :: ProgStateRef -> (FilePath, Maybe [Text]) -> IO [TestCase]
 loadNextSuite pstRef (file, mtcs) = do
     debugM logname $ "Loading next test suite: " ++ file
     debugM logname $ "Test case filter: " ++ maybe "none" (\xs -> show (length xs) ++ " items") mtcs
     modifyIORef pstRef $ \p -> p { pa = setFlagP TestSuiteFlg file (pa p) } -- yucky statefulness! :-(
     config <- pa `fmap` readIORef pstRef
     let mspecific = getFlagP TestCaseFlg config
-    debugM logname $ "Test case to pick out: " ++ fromMaybe "none"  mspecific
+    debugM logname . T.unpack $ "Test case to pick out:" <+> fromMaybe "none"  mspecific
     fullsuite <- loadTestSuite pstRef
     return (filterSuite mtcs mspecific fullsuite)
   where
@@ -178,7 +185,7 @@ loadNextSuite pstRef (file, mtcs) = do
     filterSuite (Just cs) Nothing  suite = filter (\t -> tcName t `elem` cs) suite
 
 data RunAs = Standalone  FilePath FilePath
-           | PartOfSuite String FilePath
+           | PartOfSuite Text FilePath
 
 runAsStandalone :: Params -> RunAs
 runAsStandalone config =
@@ -212,8 +219,8 @@ writeResults :: ProgState -> RunAs -> SemInput -> GeniResults -> IO ()
 writeResults pst args semInput gresults = do
     -- create output directory as needed
     case args of
-      PartOfSuite n f -> createDirectoryIfMissing True (f </> n)
-      _               -> return ()
+        PartOfSuite n f -> createDirectoryIfMissing True (f </> T.unpack n)
+        _               -> return ()
     -- print responses
     if dump
        then writeResponses $ ppJSON results
@@ -242,14 +249,14 @@ writeResults pst args semInput gresults = do
     --
     writeBatchFile key = case args of
         Standalone _  _ -> const (return ())
-        PartOfSuite n f -> T.writeFile (f </> n </> key)
+        PartOfSuite n f -> writeFileUtf8 (f </> T.unpack n </> key)
     writeResponses = case args of
-        Standalone "" _ -> T.putStrLn
-        Standalone f  _ -> T.writeFile f
+        Standalone "" _ -> putStrLnUtf8
+        Standalone f  _ -> writeFileUtf8 f
         PartOfSuite _ _ -> writeBatchFile "responses"
     writeStats = case args of
-        Standalone _ "" -> T.putStrLn
-        Standalone _ f  -> T.writeFile f
+        Standalone _ "" -> putStrLnUtf8
+        Standalone _ f  -> writeFileUtf8 f
         PartOfSuite _ _ -> writeBatchFile "stats"
     --
     fromResult :: (GeniSuccess -> [Text]) -> GeniResult -> [Text]
@@ -260,6 +267,12 @@ writeResults pst args semInput gresults = do
 --   we should just use that instead
 ppJSON :: JSON a => a -> Text
 ppJSON = T.pack . render . pp_value . showJSON
+
+writeFileUtf8 :: FilePath -> Text -> IO ()
+writeFileUtf8 f = B.writeFile f . T.encodeUtf8
+
+putStrLnUtf8 :: Text -> IO ()
+putStrLnUtf8 = B.putStr . T.encodeUtf8 . (<> "\n")
 
 -- ----------------------------------------------------------------------
 -- Odds and ends

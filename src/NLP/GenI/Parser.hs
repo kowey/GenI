@@ -37,7 +37,7 @@ module NLP.GenI.Parser (
 ) where
 
 
-import Control.Applicative ( (<*>), (<$>), (*>) )
+import Control.Applicative ( (<*>), (<$>), (*>), (<*) )
 import Control.Monad (liftM, when)
 import Data.Text ( Text )
 import qualified Data.Text as T
@@ -201,9 +201,9 @@ geniSemanticInput =
           return (l,t)
 
 -- | The original string representation of the semantics (for gui)
-geniSemanticInputString :: Parser String
-geniSemanticInputString =
- do keywordSemantics
+geniSemanticInputString :: Parser Text
+geniSemanticInputString = do
+    keywordSemantics
     s <- squaresString
     whiteSpace
     optional geniIdxConstraints
@@ -224,12 +224,15 @@ geniLitConstraints =
            ]
    op s f assoc = P.Infix (do { string s ; return f }) assoc
 
-squaresString :: Parser String
-squaresString =
- do char '['
-    s <- liftM concat $ many $ (many1 $ noneOf "[]") <|> squaresString
+squaresString :: Parser Text
+squaresString = do
+    char '['
+    s <- (T.concat <$> many inSq) <|> squaresString
     char ']'
-    return $ "[" ++ s ++ "]"
+    return $ "[" `T.append` s `T.append` "]"
+  where
+    inSq :: Parser Text
+    inSq = T.pack <$> many1 (noneOf "[]")
 
 -- the output end of things
 -- displaying preformatted semantic input
@@ -250,9 +253,9 @@ geniTestSuite =
 
 -- | Just the String representations of the semantics
 --   in the test suite
-geniTestSuiteString :: Parser [String]
+geniTestSuiteString :: Parser [Text]
 geniTestSuiteString =
-  tillEof (many geniTestCaseString)
+    tillEof (many geniTestCaseString)
 
 -- | This is only used by the script genimakesuite
 geniDerivations :: Parser [TestCaseOutput]
@@ -260,52 +263,49 @@ geniDerivations = tillEof $ many geniOutput
 
 geniTestCase :: Parser TestCase
 geniTestCase =
-  do name  <- option "" (identifier <?> "a test case name")
+  do name  <- option "" (tidentifier <?> "a test case name")
      seminput <- geniSemanticInput
      sentences <- many geniSentence
      outputs   <- many geniOutput
      return $ TestCase name "" seminput sentences outputs
 
 -- note that the keyword is NOT optional
-type TestCaseOutput = (String, Map.Map (String,String) [String])
+type TestCaseOutput = (Text, Map.Map (Text,Text) [Text])
 geniOutput :: Parser TestCaseOutput
-geniOutput =
- do ws <- keyword OUTPUT >> (squares geniWords)
-    ds <- Map.fromList `fmap` many geniTraces
+geniOutput = do
+    ws <- keyword OUTPUT >> squares geniWords
+    ds <- Map.fromList <$> many geniTraces
     return (ws, ds)
 
-geniTraces :: Parser ((String,String), [String])
-geniTraces =
- do keyword TRACE
+geniTraces :: Parser ((Text,Text), [Text])
+geniTraces = do
+    keyword TRACE
     squares $ do
-      k1 <- withWhite geniWord
-      k2 <- withWhite geniWord
-      whiteSpace >> char '!' >> whiteSpace
-      traces <- sepEndBy1 geniWord whiteSpace
-      return ((k1,k2), traces)
+        k1 <- withWhite geniWord
+        k2 <- withWhite geniWord
+        whiteSpace >> char '!' >> whiteSpace
+        traces <- geniWord `sepEndBy1` whiteSpace
+        return ((k1,k2), traces)
 
 withWhite :: Parser a -> Parser a
 withWhite p = p >>= (\a -> whiteSpace >> return a)
 
-geniSentence :: Parser String
+geniSentence :: Parser Text
 geniSentence = optional (keyword SENTENCE) >> squares geniWords
 
-geniWords :: Parser String
+geniWords :: Parser Text
 geniWords =
- unwords `fmap` (sepEndBy1 geniWord whiteSpace <?> "a sentence")
+    T.unwords <$> (sepEndBy1 geniWord whiteSpace <?> "a sentence")
 
-geniWord :: Parser String
-geniWord = many1 (noneOf "[]\v\f\t\r\n ")
+geniWord :: Parser Text
+geniWord = T.pack <$> many1 (noneOf "[]\v\f\t\r\n ")
 
 -- | The original string representation of a test case semantics
 --   (for gui)
-geniTestCaseString :: Parser String
-geniTestCaseString =
- do option "" (identifier <?> "a test case name")
-    s <- geniSemanticInputString
-    many geniSentence
-    many geniOutput
-    return s
+geniTestCaseString :: Parser Text
+geniTestCaseString = do
+    option "" (identifier <?> "a test case name")
+    geniSemanticInputString <* (many geniSentence >> many geniOutput)
 
 -- ----------------------------------------------------------------------
 -- Lexicon
