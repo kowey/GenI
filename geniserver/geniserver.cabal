@@ -11,7 +11,7 @@ Cabal-Version: >=1.8
 Library
   Exposed-Modules: NLP.GenI.Server
                  , NLP.GenI.Server.Instruction
-                 , NLP.GenI.Server.Flags
+                 , NLP.GenI.Server.Flag
 
   Build-Depends: base < 5
                , bytestring >= 0.9

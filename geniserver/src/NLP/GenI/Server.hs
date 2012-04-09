@@ -24,7 +24,7 @@ module NLP.GenI.Server where
 import Control.Monad ( liftM, ap )
 import Control.Monad.IO.Class ( liftIO )
 import Data.Conduit
-import Data.Conduit.List
+import Data.Conduit.List hiding ( map, concatMap )
 import Data.IORef
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
@@ -38,9 +38,9 @@ import qualified Text.JSON.Pretty as J
 import NLP.GenI.Configuration
 import NLP.GenI
 import NLP.GenI.Simple.SimpleBuilder
-import NLP.GenI.GeniParsers ( ParseError )
+import NLP.GenI.Parser ( ParseError )
 
-import NLP.GenI.Server.Flags
+import NLP.GenI.Server.Flag
 import NLP.GenI.Server.Instruction
 
 initialise :: Params -> IO ProgState
@@ -67,25 +67,30 @@ application pst req = do
     bss <- requestBody req $$ consume
     let input = (,) `liftM` toGenReq req `ap` parseInstruction (B.fromChunks bss)
     case input of
-      Left e    -> return (err e)
+      Left e    -> return (err (TL.pack e))
       Right tyj -> uncurry heart tyj
   where
     heart ty j = do
         me <- liftIO (handleRequest pst j)
         case me of
             Right p  -> return (ok ty p)
-            Left e   -> return (err ("parse error: " ++ show e))
+            Left e   -> return (err . TL.pack $ "parse error: " ++ show e)
 
 -- TODO: what to do about the warnings?
 ok :: GenReq -> GeniResults -> Response
-ok Dump   j = responseLBS status200  [contentType "application/json"] $ encodeB $ prettyEncode (grResults j)
-ok Normal j = responseLBS status200  [contentType "text/plain"]       $ encodeB $ showResults (grResults j)
+ok Dump   j =
+     responseLBS status200  [contentType "application/json"] $
+         TL.encodeUtf8 $ prettyEncode (grResults j)
+ok Normal j =
+     responseLBS status200  [contentType "text/plain"] $
+         TL.encodeUtf8 $ showResults (grResults j)
 
-err :: String -> Response
-err x = responseLBS status400 [contentType "text/plain"] (encodeB x)
+err :: TL.Text -> Response
+err x = responseLBS status400 [contentType "text/plain"] (TL.encodeUtf8 x)
 
-showResults :: [GeniResult] -> String
-showResults xs = unlines . concat $ [ grRealisations g | GSuccess g <- xs ]
+showResults :: [GeniResult] -> TL.Text
+showResults xs = TL.unlines . concat $
+    [ map TL.fromChunks [grRealisations g] | GSuccess g <- xs ]
 
 handleRequest :: ProgState -> ServerInstruction -> IO (Either ParseError GeniResults)
 handleRequest pst instr = do
@@ -107,11 +112,11 @@ handleRequest pst instr = do
 
 -- ----------------------------------------------------------------------
 
-encodeB :: String -> B.ByteString
-encodeB = TL.encodeUtf8 . TL.pack
+encodeB :: TL.Text -> B.ByteString
+encodeB = TL.encodeUtf8
 
 contentType :: Ascii -> Header
 contentType x = ("Content-Type", x)
 
-prettyEncode :: J.JSON a => a -> String
-prettyEncode = J.render . J.pp_value . J.showJSON
+prettyEncode :: J.JSON a => a -> TL.Text
+prettyEncode = TL.pack . J.render . J.pp_value . J.showJSON

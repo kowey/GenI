@@ -26,7 +26,7 @@ import Data.Maybe ( fromMaybe )
 import NLP.GenI.General ( ePutStrLn )
 import NLP.GenI.Configuration
 import NLP.GenI.Server
-import NLP.GenI.Server.Flags
+import NLP.GenI.Server.Flag
 import System.Environment
 
 main :: IO ()
