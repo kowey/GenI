@@ -5,7 +5,7 @@
 --
 -- This module can be treated as public domain
 
-module NLP.GenI.Flags where
+module NLP.GenI.Flag where
 
 -- This module exists purely for the purpose of making it more convenient
 -- to modify the flag set in GenI (by eliminating the need to explicitly
@@ -16,9 +16,9 @@ module NLP.GenI.Flags where
 --  3. add the getopt stuff and find a section for the flag
 
 import Data.List ( find )
-import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Maybe ( catMaybes, fromJust )
+import Data.Text ( Text )
 import Data.Typeable
 
 import NLP.GenI.FeatureStructure ( Flist )

@@ -37,7 +37,7 @@ module NLP.GenI.Configuration
     , readGlobalConfig, setLoggers
     -- re-exports
     , module System.Console.GetOpt
-    , module NLP.GenI.Flags
+    , module NLP.GenI.Flag
     , Typeable
     )
 where
@@ -66,7 +66,7 @@ import System.Log.Handler ( LogHandler, setFormatter )
 import System.Log.Handler.Simple
 import System.Log.Logger
 
-import NLP.GenI.Flags
+import NLP.GenI.Flag
 import NLP.GenI.General ( geniBug, fst3, snd3 )
 import NLP.GenI.Parser ( geniFeats, tillEof )
 import NLP.GenI.Morphology.Types ( MorphRealiser )

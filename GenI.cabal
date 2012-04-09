@@ -89,7 +89,7 @@ Library
                 Data.FullList,
                 NLP.GenI.Console,
                 NLP.GenI.FeatureStructure,
-                NLP.GenI.Flags,
+                NLP.GenI.Flag,
                 NLP.GenI.General,
                 NLP.GenI.GeniShow,
                 NLP.GenI.GeniVal,
