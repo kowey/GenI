@@ -27,7 +27,7 @@ module NLP.GenI.Polarity(
                 fixPronouns,
                 detectSansIdx, suggestPolFeatures, detectPols, detectPolPaths,
                 declareIdxConstraints, detectIdxConstraints,
-                showLite, showLitePm, showPolPaths, showPolPaths',
+                showPolPaths, showPolPaths',
 
                 -- re-exported from Automaton
                 automatonPaths, finalSt,
@@ -41,13 +41,12 @@ import qualified Data.Map as Map
 import Data.List
 import Data.Maybe (isNothing, isJust)
 import Data.Text (Text)
-import qualified Data.Text as T
 
 import NLP.GenI.Automaton
 import NLP.GenI.FeatureStructure ( Flist, AvPair(..), FeatStruct, unifyFeat )
-import NLP.GenI.General(
-    BitVector, isEmptyIntersect, thd3,
-    Interval, ival, (!+!), showInterval)
+import NLP.GenI.General
+    ( BitVector, isEmptyIntersect, thd3, Interval, ival, (!+!)
+    )
 import NLP.GenI.GeniVal ( GeniVal(gConstraints), mkGAnon, isAnon, replace )
 import NLP.GenI.Polarity.Internal
 import NLP.GenI.Polarity.Types
@@ -561,47 +560,3 @@ fakestate s pol = PolSt s [] pol --PolSt (0, s, [""]) [] pol
 -- | an initial state for polarity automata
 polstart :: [Interval] -> PolState
 polstart pol = fakestate 0 pol -- fakestate "START" pol
-
--- | 'showLite' is like Show but it's only used for debugging
---   TODO: is this true?
-class ShowLite a where
-  showLite :: a -> String
-
-instance (ShowLite a) => ShowLite [a] where
-  showLite x = "[" ++ (concat $ intersperse ", " $ map showLite x) ++ "]"
-instance (ShowLite a, ShowLite b) => ShowLite (a,b) where
-  showLite (x,y) = "(" ++ (showLite x) ++ "," ++ (showLite y) ++ ")"
-
-instance ShowLite Int where showLite = show 
-instance ShowLite Char where showLite = show 
-
-{-
-instance (Show st, ShowLite ab) => ShowLite (NFA st ab) where
-  showLite aut =
-    concatMap showTrans $ toList (transitions aut)
-    where showTrans ((st1, x), st2) = show st1 ++ showArrow x
-                                 ++ show st2 ++ "\n"
-          showArrow x = " --" ++ showLite x ++ "--> "
-        -- showSt (PolSt pr po) = show po
--}
-
-instance ShowLite TagElem where
-    showLite = T.unpack . idname
-
-{-
--- | Display a SemMap in human readable text.
-showLiteSm :: SemMap -> String
-showLiteSm sm = 
-  concatMap showPair $ toList sm 
-  where showPair  (pr, cs) = showPred pr ++ "\t: " ++ showPair' cs ++ "\n"
-        showPair' [] = ""
-        showPair' (te:cs) = tlIdname te ++ "[" ++ showLitePm (tpolarities te) ++ "]"
-                                        ++ " " ++ showPair' cs 
--}
-
--- | Display a PolMap in human-friendly text.
---   The advantage is that it displays fewer quotation marks.
-showLitePm :: PolMap -> String
-showLitePm pm = 
-  let showPair (f, pol) = showInterval pol ++ show f
-  in concat $ intersperse " " $ map showPair $ Map.toList pm
