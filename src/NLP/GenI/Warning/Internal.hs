@@ -15,7 +15,8 @@
 -- along with this program; if not, write to the Free Software
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-module NLP.GenI.Warnings.Internal where
+{-# LANGUAGE OverloadedStrings #-}
+module NLP.GenI.Warning.Internal where
 
 import Data.FullList ( FullList, fromFL )
 import Data.List
@@ -28,7 +29,7 @@ import NLP.GenI.General ( histogram, showWithCount )
 import NLP.GenI.LexicalSelection.Types ( LexCombineError, showLexCombineError )
 import NLP.GenI.Pretty
 import NLP.GenI.Semantics ( Literal )
-import NLP.GenI.TreeSchemata ( showLexeme )
+import NLP.GenI.TreeSchema ( showLexeme )
 
 -- | This exists because we want the 'Monoid' instance, providing a 
 --   GenI-specific notion of appending which merges instances of the

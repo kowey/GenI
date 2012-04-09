@@ -63,7 +63,7 @@ import NLP.GenI.Configuration
     RootFeatureFlg(..),
     Optimisation(..), hasOpt,
   )
-import NLP.GenI.FeatureStructures ( Flist, sortFlist, mkFeatStruct )
+import NLP.GenI.FeatureStructure ( Flist, sortFlist, mkFeatStruct )
 import NLP.GenI.General ( BitVector, snd3, thd3, geniBug )
 import NLP.GenI.GeniVal ( GeniVal, DescendGeniVal(..), Collectable(collect), finaliseVarsById )
 import NLP.GenI.Lexicon ( ILexEntry )
@@ -76,8 +76,11 @@ import NLP.GenI.Statistics (Statistics, incrIntMetric,
                    queryMetrics, queryIntMetric,
                    addMetric, emptyStats,
                    )
-import NLP.GenI.Tags ( TagElem(idname,tsemantics,ttree), setTidnums, TagDerivation, dsChild, dsParent )
-import NLP.GenI.TreeSchemata ( GNode(..), GType(Subs, Foot) )
+import NLP.GenI.Tag
+    ( TagElem(idname,tsemantics,ttree), setTidnums
+    , TagDerivation, dsChild, dsParent
+    )
+import NLP.GenI.TreeSchema ( GNode(..), GType(Subs, Foot) )
 
 data GenStatus = Finished
                | Active

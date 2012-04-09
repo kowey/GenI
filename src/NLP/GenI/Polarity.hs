@@ -43,7 +43,7 @@ import Data.Maybe (isNothing, isJust)
 import Data.Text (Text)
 
 import NLP.GenI.Automaton
-import NLP.GenI.FeatureStructures ( Flist, AvPair(..), FeatStruct, unifyFeat )
+import NLP.GenI.FeatureStructure ( Flist, AvPair(..), FeatStruct, unifyFeat )
 import NLP.GenI.General(
     BitVector, isEmptyIntersect, thd3,
     Interval, ival, (!+!), showInterval)
@@ -54,8 +54,8 @@ import NLP.GenI.Pretty
 import NLP.GenI.Semantics ( Literal(..), SemInput, Sem, emptyLiteral
                           , sortSem
                           )
-import NLP.GenI.Tags(TagElem(..), TagItem(..), setTidnums)
-import NLP.GenI.TreeSchemata ( Ptype(Initial), GNode, root, gup, gdown, rootUpd)
+import NLP.GenI.Tag ( TagElem(..), TagItem(..), setTidnums )
+import NLP.GenI.TreeSchema ( Ptype(Initial), GNode, root, gup, gdown, rootUpd)
 
 -- ----------------------------------------------------------------------
 -- Interface

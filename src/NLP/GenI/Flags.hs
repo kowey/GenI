@@ -21,8 +21,8 @@ import qualified Data.Set as Set
 import Data.Maybe ( catMaybes, fromJust )
 import Data.Typeable
 
+import NLP.GenI.FeatureStructure ( Flist )
 import NLP.GenI.General ( Interval )
-import NLP.GenI.FeatureStructures ( Flist )
 import NLP.GenI.GeniVal ( GeniVal )
 import NLP.GenI.Polarity.Types
 

@@ -19,7 +19,7 @@
 {-# LANGUAGE FlexibleInstances, TypeSynonymInstances, MultiParamTypeClasses #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE OverloadedStrings #-}
-module NLP.GenI.FeatureStructures where
+module NLP.GenI.FeatureStructure where
 
 import Data.Binary
 import Data.Function (on)

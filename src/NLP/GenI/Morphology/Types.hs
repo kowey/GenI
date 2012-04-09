@@ -23,8 +23,8 @@ import Control.Applicative ((<$>),(<*>))
 import Control.DeepSeq
 
 import NLP.GenI.GeniVal ( GeniVal )
-import NLP.GenI.FeatureStructures ( Flist )
-import NLP.GenI.GeniParsers ( geniFeats, CharParser, runParser )
+import NLP.GenI.FeatureStructure ( Flist )
+import NLP.GenI.Parser ( geniFeats, CharParser, runParser )
 import NLP.GenI.Pretty
 import NLP.GenI.Semantics
 

@@ -34,7 +34,7 @@ import qualified Data.Map as Map
 import Data.Text ( Text )
 import qualified Data.Text as T
 
-import NLP.GenI.FeatureStructures
+import NLP.GenI.FeatureStructure
 import NLP.GenI.General ( histogram )
 import NLP.GenI.GeniVal
 import NLP.GenI.Pretty

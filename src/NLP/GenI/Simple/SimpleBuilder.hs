@@ -55,22 +55,23 @@ import NLP.GenI.Builder ( incrCounter, num_iterations, num_comparisons
                         , GenStatus(..),
                         )
 import NLP.GenI.Configuration
-import NLP.GenI.FeatureStructures ( unifyFeat, Flist )
+import NLP.GenI.FeatureStructure ( unifyFeat, Flist )
 import NLP.GenI.General ( BitVector, mapMaybeM, mapTree', geniBug, preTerminals, repList )
 import NLP.GenI.GeniVal ( GeniVal, replace, DescendGeniVal(..), Subst, appendSubst )
 import NLP.GenI.Morphology.Types ( LemmaPlus(..) )
 import NLP.GenI.Semantics ( sortSem, Sem )
 import NLP.GenI.Statistics (Statistics)
-import NLP.GenI.Tags ( TagElem, TagSite(..), getLexeme, toTagSite
-                     , tidnum, idname, ttree, ttype, tsemantics
-                     , detectSites, TagDerivation
-                     , DerivationStep(..)
-                     , plugTree, spliceTree
-                     , ts_rootFeatureMismatch, ts_synIncomplete, ts_semIncomplete
-                     , ts_tbUnificationFailure
-                     )
-import NLP.GenI.TreeSchemata ( Ptype(Initial), GNode(..), NodeName, gnnameIs
-                             , GType(Other), root, foot )
+import NLP.GenI.Tag
+    ( TagElem, TagSite(..), getLexeme, toTagSite
+    , tidnum, idname, ttree, ttype, tsemantics
+    , detectSites, TagDerivation, DerivationStep(..)
+    , plugTree, spliceTree
+    , ts_rootFeatureMismatch, ts_synIncomplete, ts_semIncomplete
+    , ts_tbUnificationFailure
+    )
+import NLP.GenI.TreeSchema
+    ( Ptype(Initial), GNode(..), NodeName, gnnameIs
+    , GType(Other), root, foot )
 import qualified NLP.GenI.Builder as B
 
 -- --------------------------------------------------------------------

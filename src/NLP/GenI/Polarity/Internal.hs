@@ -19,7 +19,6 @@
 module NLP.GenI.Polarity.Internal where
 
 import Control.Applicative
-import NLP.GenI.FeatureStructures
 import NLP.GenI.General
 import NLP.GenI.GeniVal
 import NLP.GenI.Polarity.Types
@@ -34,6 +33,7 @@ import qualified Data.Text as T
 import Data.FullList hiding ( (++) )
 
 import NLP.GenI.Automaton
+import NLP.GenI.FeatureStructure
 import NLP.GenI.Pretty
 import NLP.GenI.Semantics (Literal)
 import NLP.GenI.TreeSchemata ( Ptype(Initial),

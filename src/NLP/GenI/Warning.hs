@@ -19,13 +19,14 @@
 --
 --   This makes it easier to recognise repeated warnings and print them
 --   out in a reasonable way
-module NLP.GenI.Warnings ( -- * Collection of warnings
-                           GeniWarnings, fromGeniWarnings, mkGeniWarnings
-                         , sortWarnings
-                           -- * Individual warnings
-                         , GeniWarning(..), LexWarning(..)
-                         , showGeniWarning
-                         )
+module NLP.GenI.Warning
+    ( -- * Collection of warnings
+      GeniWarnings, fromGeniWarnings, mkGeniWarnings
+    , sortWarnings
+      -- * Individual warnings
+    , GeniWarning(..), LexWarning(..)
+    , showGeniWarning
+    )
  where
 
-import NLP.GenI.Warnings.Internal
+import NLP.GenI.Warning.Internal

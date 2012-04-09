@@ -22,7 +22,7 @@
 
 -- | This module provides basic datatypes specific to Tree Adjoining Grammar
 --   tree schemata.
-module NLP.GenI.TreeSchemata (
+module NLP.GenI.TreeSchema (
    Macros,
    SchemaTree, SchemaNode, Ttree(..), Ptype(..),
 
@@ -49,7 +49,7 @@ import Data.Typeable (Typeable)
 import NLP.GenI.General (filterTree, listRepNode, geniBug,)
 import NLP.GenI.GeniVal ( GeniVal(..), DescendGeniVal(..), Collectable(..),
                         )
-import NLP.GenI.FeatureStructures ( AvPair(..), Flist, crushFlist )
+import NLP.GenI.FeatureStructure ( AvPair(..), Flist, crushFlist )
 import NLP.GenI.Pretty
 import NLP.GenI.Semantics ( Sem )
 

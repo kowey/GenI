@@ -35,26 +35,23 @@ import Data.Text ( Text )
 import Data.FullList hiding ( head, tail, (++) )
 import qualified Data.FullList as FL
 
+import NLP.GenI.FeatureStructure (Flist, AvPair(..), unifyFeat)
 import NLP.GenI.General(filterTree, repAllNode,
     histogram,
     geniBug,
     repNodeByNode,
     )
-import NLP.GenI.FeatureStructures (Flist, AvPair(..), unifyFeat)
 import NLP.GenI.GeniVal( unify, GeniVal(gConstraints), isConst, Subst, replace, finaliseVars )
-
-import NLP.GenI.Semantics ( subsumeSem, unifySem, Sem )
-import NLP.GenI.Tags (TagElem(..),
-             idname,
-             )
 import NLP.GenI.LexicalSelection.Types
 import NLP.GenI.Lexicon ( ILexEntry(..), Lexicon, )
-import NLP.GenI.TreeSchemata ( Ttree(..), SchemaTree, SchemaNode, Macros
-                             , crushTreeGNode
-                             , setAnchor, setLexeme, tree
-                             , GNode(..), GType(..)
-                             )
-import NLP.GenI.Warnings
+import NLP.GenI.Semantics ( subsumeSem, unifySem, Sem )
+import NLP.GenI.Tag ( TagElem(..), idname )
+import NLP.GenI.TreeSchema ( Ttree(..), SchemaTree, SchemaNode, Macros
+                           , crushTreeGNode
+                           , setAnchor, setLexeme, tree
+                           , GNode(..), GType(..)
+                           )
+import NLP.GenI.Warning
 
 -- ----------------------------------------------------------------------
 -- * Lexical selection algorithms

@@ -84,29 +84,11 @@ import NLP.GenI.General(
     ePutStr, ePutStrLn, eFlush,
     -- mkLogname,
     )
-
-import NLP.GenI.Tags (TagElem,
-             idname,
-             tsemantics,
-             ttrace,
-             setTidnums) 
-
-import NLP.GenI.Configuration
-  ( Params, customMorph, customSelector
-  , getFlagP, hasFlagP, hasOpt, Optimisation(NoConstraints)
-  , MacrosFlg(..), LexiconFlg(..), TestSuiteFlg(..)
-  , MorphInfoFlg(..), MorphCmdFlg(..)
-  , RankingConstraintsFlg(..)
-  , PartialFlg(..)
-  , FromStdinFlg(..), VerboseModeFlg(..)
-  , NoLoadTestSuiteFlg(..)
-  , RootFeatureFlg(..)
-  , TracesFlg(..)
-  , grammarType
-  , GrammarType(..) )
-
-import qualified NLP.GenI.Builder as B
-
+import NLP.GenI.GeniVal ( finaliseVars )
+import NLP.GenI.LexicalSelection ( LexicalSelector, LexicalSelection(..), defaultLexicalSelector )
+import NLP.GenI.Lexicon
+import NLP.GenI.Morphology
+import NLP.GenI.OptimalityTheory
 import NLP.GenI.Parser (geniMacros, geniTagElems,
                     geniLexicon, geniTestSuite,
                     geniTestSuiteString, geniSemanticInput,
@@ -114,19 +96,13 @@ import NLP.GenI.Parser (geniMacros, geniTagElems,
                     runParser,
                     ParseError,
                     )
-import NLP.GenI.GeniVal ( finaliseVars )
-import NLP.GenI.LexicalSelection ( LexicalSelector, LexicalSelection(..), defaultLexicalSelector )
-import NLP.GenI.Lexicon
-import NLP.GenI.Morphology
-import NLP.GenI.OptimalityTheory
+import NLP.GenI.Pretty
 import NLP.GenI.Semantics
 import NLP.GenI.Statistics
+import NLP.GenI.Tag ( TagElem, idname, tsemantics, ttrace, setTidnums )
 import NLP.GenI.TestSuite ( TestCase(..) )
-import NLP.GenI.TreeSchemata
-import NLP.GenI.Warnings
-
--- import CkyBuilder 
--- import SimpleBuilder (simpleBuilder)
+import NLP.GenI.TreeSchema
+import NLP.GenI.Warning
 
 -- -- DEBUG
 -- import Control.Monad.Writer

@@ -23,7 +23,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module NLP.GenI.Tags(
+module NLP.GenI.Tag (
    -- Main Datatypes
    Tags, TagElem(..), TagItem(..), TagSite(..),
    TagDerivation, DerivationStep(..), dsChild, dsParent, dsParentSite,
@@ -52,18 +52,16 @@ import Data.Typeable (Typeable)
 import Data.FullList hiding ( (++) )
 import Text.JSON
 
+import NLP.GenI.FeatureStructure ( AvPair(..), Flist )
 import NLP.GenI.General (listRepNode, groupByFM, preTerminals, geniBug)
 import NLP.GenI.GeniVal ( GeniVal(..), DescendGeniVal(..), Collectable(..), Idable(..),
                           isConst,
                         )
-import NLP.GenI.FeatureStructures ( AvPair(..), Flist )
 import NLP.GenI.Polarity.Types (PolarityKey(..), SemPols)
 import NLP.GenI.Pretty
 import NLP.GenI.Semantics ( Sem, Literal, emptyLiteral )
-import NLP.GenI.TreeSchemata ( Ptype(..),
-                               GNode(..), GType(..), NodeName,
-                               lexemeAttributes )
-
+import NLP.GenI.TreeSchema
+    ( Ptype(..), GNode(..), GType(..), NodeName, lexemeAttributes )
 import Control.DeepSeq
 
 -- ----------------------------------------------------------------------

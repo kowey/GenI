@@ -27,7 +27,7 @@ import Data.List ( sortBy )
 import Data.Generics (Data)
 import Data.Typeable (Typeable)
 
-import NLP.GenI.FeatureStructures
+import NLP.GenI.FeatureStructure
 import NLP.GenI.GeniVal
 import NLP.GenI.Semantics
 import NLP.GenI.Polarity.Types (SemPols)
