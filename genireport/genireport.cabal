@@ -66,6 +66,7 @@ Executable genireport
                ,  json
                ,  split  == 0.1.*
                ,  strict == 0.3.*
+               ,  text
                ,  GenI
   
   -- Modules not exported by this package.

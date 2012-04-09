@@ -20,32 +20,34 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, DeriveDataTypeable #-}
 
 import Control.Applicative
-import Control.Monad (forM_)
+import Control.Monad
 import Data.Char ( isDigit, toLower )
 import Data.Function ( on )
 import Data.List ( intersperse, intercalate, sort, group, nub, sortBy )
-import Data.List.Split
-
-import Text.Blaze.Html5 hiding ( map )
-import Text.Blaze.Html5.Attributes
-import qualified Text.Blaze.Html5 as H
-import qualified Text.Blaze.Html5.Attributes as A
-import Text.Blaze.Renderer.Utf8 ( renderHtml )
-
-import qualified Data.ByteString.Lazy as B
-import System.Console.CmdLib hiding ( group )
-import qualified System.Console.CmdLib as C
+import Data.Text ( Text )
+import Prelude hiding ( readFile )
 import System.Directory
 import System.FilePath
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Lazy as BL
+import qualified Prelude as P
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
+
+import Data.List.Split
+import System.Console.CmdLib hiding ( group )
 import System.IO.Strict
-import Prelude hiding ( readFile )
-import qualified Prelude as P 
-import Control.Monad
+import Text.Blaze.Html5 hiding ( map )
+import Text.Blaze.Html5.Attributes
+import Text.Blaze.Renderer.Utf8 ( renderHtml )
 import Text.JSON hiding ( Result )
+import qualified System.Console.CmdLib as C
+import qualified Text.Blaze.Html5 as H
+import qualified Text.Blaze.Html5.Attributes as A
 import qualified Text.JSON as J
 
 import NLP.GenI
-import NLP.GenI.GeniParsers
+import NLP.GenI.Parser
 import NLP.GenI.GeniShow
 import NLP.GenI.Semantics
 import Paths_genireport
@@ -71,8 +73,8 @@ main = do
   opts <- executeR GeniReport {} =<< getArgs
   res  <- readResults (inputDir opts)
   let odir = outputDir opts
-  B.writeFile (odir </> "report.html")  $ renderHtml (mkSummary res)
-  B.writeFile (odir </> "details.html") $ renderHtml (mkDetailsSummary res)
+  BL.writeFile (odir </> "report.html")  $ renderHtml (mkSummary res)
+  BL.writeFile (odir </> "details.html") $ renderHtml (mkDetailsSummary res)
   forM dataFiles $ \bn -> do
     f <- getDataFileName bn
     copyFile f (odir </> bn)
@@ -81,7 +83,8 @@ readResults d = do
   cases <- getRealDirectoryContents d
   forM cases $ \c -> do
     let dc = d </> c
-    mderivs <- readFileIfExists (J.Ok []) J.decode (dc </> "derivations")
+    mderivs <- readFileIfExists (J.Ok []) (J.decode . T.unpack)
+                   (dc </> "derivations")
     derivs  <- case mderivs of
                  J.Error err -> fail err
                  J.Ok x      -> return x
@@ -89,9 +92,9 @@ readResults d = do
     sem  <- case msem of
               Left err -> fail (show err)
               Right s  -> return s
-    Result c sem
-             <$> (lines `fmap` readFile (dc </> "responses"))
-             <*> readFileIfExists [] lines (dc </> "warnings")
+    Result (T.pack c) sem
+             <$> (T.lines <$> readFileUtf8 (dc </> "responses"))
+             <*> readFileIfExists [] T.lines (dc </> "warnings")
              <*> pure derivs
 
 -- ----------------------------------------------------------------------
@@ -99,10 +102,10 @@ readResults d = do
 -- ----------------------------------------------------------------------
 
 data Result = Result
-  { reKey          :: String
+  { reKey          :: Text
   , reSemInput     :: SemInput
-  , reRealisations :: [String]
-  , reWarnings     :: [String]
+  , reRealisations :: [Text]
+  , reWarnings     :: [Text]
   , reDerivation   :: [GeniResult]
   }
 
@@ -197,7 +200,7 @@ detailsRow r@(Result {..}) = tr cells
    br
    H.div (semInputToHtml reSemInput) ! A.style "margin-top: 1em;"
    br
-   H.div (sequence_ . intersperse br $ map (toHtml . unwords) traces)
+   H.div (sequence_ . intersperse br $ map (toHtml . T.unwords) traces)
 
 semInputToHtml :: SemInput -> Html
 semInputToHtml (sem,icons,lcons) = do
@@ -217,12 +220,12 @@ semInputToHtml (sem,icons,lcons) = do
   constraints lit =
     case concat [ cs | (p,cs) <- lcons, p == lit ] of
       [] -> return ()
-      cs -> squares (toHtml (unwords cs) ! mute)
+      cs -> squares (toHtml (T.unwords cs) ! mute)
   --
   squares x = do
-    H.span (toHtml ("[" :: String))
+    H.span (toHtml ("[" :: Text))
     x
-    H.span (toHtml ("]" :: String))
+    H.span (toHtml ("]" :: Text))
 
 instance ToHtml Literal where
  toHtml (Literal h p l) = do
@@ -231,21 +234,23 @@ instance ToHtml Literal where
   where
    mute        = class_ "mute"
 
-prettyKey :: String -> Html
+prettyKey :: Text -> Html
 prettyKey = toHtml
 
-expandCount :: String -> [String]
-expandCount x = 
-  case dropPrefix (reverse suff) (reverse x) of
-   ("", ry) -> let (rc, rmsg) = P.span isDigit ry
-                   msg   = reverse (drop 2 rmsg)
-                   count = read (reverse rc)
-               in replicate count msg
-   (_,  _)  -> [x]
- where
-  suff = " times)"
+expandCount :: Text -> [Text]
+expandCount x =
+    maybe [x] exp (T.stripSuffix suff x)
+  where
+    exp t =
+        replicate count msg
+      where
+        msg   = T.dropWhileEnd isDigit t
+        count = read . T.unpack
+              . T.dropWhile (not . isDigit)
+              . T.drop (T.length msg) $ t
+    suff = " times)"
 
-unlinesCountHtml :: [String] -> Html
+unlinesCountHtml :: [Text] -> Html
 unlinesCountHtml = sequence_ . intersperse br . map htmlC . groupAndCount
  where
   htmlC (s, 1) = toHtml s
@@ -267,14 +272,17 @@ dataFiles =
 -- odds and ends
 -- ----------------------------------------------------------------------
 
-lcSort :: [String] -> [String]
-lcSort = sortBy (compare `on` map toLower)
+lcSort :: [Text] -> [Text]
+lcSort = sortBy (compare `on` T.toLower)
 
-readFileIfExists :: a -> (String -> a) -> FilePath -> IO a
+readFileIfExists :: a -> (Text -> a) -> FilePath -> IO a
 readFileIfExists z job f = do
-  x <- doesFileExist f
-  if x then job <$> readFile f
-       else return z
+    x <- doesFileExist f
+    if x then job <$> readFileUtf8 f
+         else return z
+
+readFileUtf8 :: FilePath -> IO Text
+readFileUtf8 f = T.decodeUtf8 <$> B.readFile f
 
 groupAndCount :: (Eq a, Ord a) => [a] -> [(a, Int)]
 groupAndCount xs = 
@@ -287,4 +295,4 @@ dropPrefix left right = (left,right)
 
 getRealDirectoryContents :: FilePath -> IO [String]
 getRealDirectoryContents d =
-  filter (not . (`elem` [".",".."])) <$> getDirectoryContents d
+    filter (not . (`elem` [".",".."])) <$> getDirectoryContents d
