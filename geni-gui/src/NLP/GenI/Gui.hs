@@ -46,7 +46,7 @@ import NLP.GenI.Configuration
     , deleteFlagP, setFlagP, getFlagP, getListFlagP
     , parseFlagWithParsec
     --
-    , DetectPolaritiesFlg(..) , ExtraPolaritiesFlg(..), LexiconFlg(..)
+    , DetectPolaritiesFlg(..) , LexiconFlg(..)
     , MacrosFlg(..) , MorphCmdFlg(..) , MorphInfoFlg(..), OptimisationsFlg(..)
     , RankingConstraintsFlg(..) , RootFeatureFlg(..) , TestCaseFlg(..)
     , TestSuiteFlg(..) , TestInstructionsFlg(..) , ViewCmdFlg(..)
