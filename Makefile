@@ -27,7 +27,7 @@ DVIPDF_CMD=dvips `basename $< .tex`.dvi -o `basename $< .tex`.ps;\
 # source stuff
 # --------------------------------------------------------------------
 
-SOURCE_FILES=$(shell find src -name '*.*hs' -o -name '*.lhs')
+SOURCE_FILES=$(shell find src geni-gui -name '*.*hs' -o -name '*.lhs')
 
 SCRIPT_FILES = bin/tryXtimes\
 	       etc/stupidmorph.pl\
@@ -69,7 +69,7 @@ permissions: $(config_file)
 	chmod u+x $(SCRIPT_FILES)
 
 tags: $(SOURCE_FILES)
-	hasktags -c $(shell find src -name '*.*hs')
+	hasktags -c $(SOURCE_FILES)
 	LC_ALL=C sort $@ > $@.tmp
 	mv $@.tmp $@
 
