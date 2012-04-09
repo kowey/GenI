@@ -21,13 +21,13 @@ module NLP.GenI.Morphology.Types where
 
 import Control.Applicative ((<$>),(<*>))
 import Control.DeepSeq
+import Data.Text ( Text )
 
 import NLP.GenI.GeniVal ( GeniVal )
 import NLP.GenI.FeatureStructure ( Flist )
 import NLP.GenI.Parser ( geniFeats, CharParser, runParser )
 import NLP.GenI.Pretty
 import NLP.GenI.Semantics
-
 import Text.JSON
 
 -- ----------------------------------------------------------------------
@@ -42,8 +42,8 @@ type MorphInputFn = Literal -> Maybe (Flist GeniVal)
 
 type MorphRealiser = [LemmaPlusSentence] -> [MorphOutput]
 
-data MorphOutput = MorphOutput { moWarnings     :: [String]
-                               , moRealisations :: [String]
+data MorphOutput = MorphOutput { moWarnings     :: [Text]
+                               , moRealisations :: [Text]
                                }
   deriving (Ord, Eq)
 
@@ -60,8 +60,10 @@ instance JSON MorphOutput where
  showJSON _ = error "Don't know how to render MorphOutput"
 
 -- | A lemma plus its morphological features
-data LemmaPlus = LemmaPlus { lpLemma :: String
-                           , lpFeats :: Flist GeniVal }
+data LemmaPlus = LemmaPlus
+    { lpLemma :: Text
+    , lpFeats :: Flist GeniVal
+    }
  deriving (Eq, Ord)
 
 -- | A sentence composed of 'LemmaPlus' instead of plain old words

@@ -20,6 +20,7 @@
 
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE OverloadedStrings #-}
 module NLP.GenI.Console(consoleGeni) where
 
 import Control.Applicative ( pure, (<$>) )
@@ -27,6 +28,7 @@ import Control.Monad
 import Data.IORef(readIORef, modifyIORef)
 import Data.List ( find, partition )
 import Data.Maybe ( fromMaybe, isJust )
+import Data.Text ( Text )
 import Data.Time ( getCurrentTime, formatTime )
 import Data.Typeable
 import System.Log.Logger
@@ -34,13 +36,15 @@ import System.Locale ( defaultTimeLocale, iso8601DateFormat )
 import System.Directory( createDirectoryIfMissing, getTemporaryDirectory )
 import System.Exit ( exitWith, exitFailure, ExitCode(..) )
 import System.FilePath ( (</>), takeFileName )
+import System.IO ( stderr )
 import System.Timeout ( timeout )
+import qualified Data.Text as T
+import qualified Data.Text.IO as T
 
 import NLP.GenI.General
   ( ePutStr, ePutStrLn,
   )
 import NLP.GenI
-import NLP.GenI.GeniShow
 import NLP.GenI.Configuration
   ( Params
   , BatchDirFlg(..), DumpDerivationFlg(..), EarlyDeathFlg(..)
@@ -52,6 +56,7 @@ import NLP.GenI.Configuration
   , builderType , BuilderType(..)
   )
 import NLP.GenI.General ( mkLogname )
+import NLP.GenI.Pretty
 import NLP.GenI.Semantics ( SemInput )
 import NLP.GenI.Simple.SimpleBuilder
 import NLP.GenI.TestSuite ( TestCase(..) )
@@ -199,30 +204,30 @@ runOnSemInput pstRef args semInput = do
          return res
 
 -- | Not just the global warnings but the ones local to each response too
-allWarnings :: GeniResults -> [String]
+allWarnings :: GeniResults -> [Text]
 allWarnings res = concat $ grGlobalWarnings res
                          : [ grWarnings s | GSuccess s <- grResults res ]
 
 writeResults :: ProgState -> RunAs -> SemInput -> GeniResults -> IO ()
 writeResults pst args semInput gresults = do
-     -- create output directory as needed
-     case args of
-       PartOfSuite n f -> createDirectoryIfMissing True (f </> n)
-       _               -> return ()
-     -- print responses
-     if dump
-        then writeResponses $ ppJSON results
-        else writeResponses $ unlines . concatMap (fromResult formatResponses) $ results
-     -- print out statistical data (if available)
-     when (isJust $ getFlagP MetricsFlg config) $
-        writeStats (ppJSON stats)
-     -- print any warnings we picked up along the way
-     unless (null warnings) $ do
-        ePutStr $ "Warnings:\n" ++ formatWarnings warnings
-        writeBatchFile "warnings" $ unlines warnings
-     -- other outputs when run in batch mode
-     writeBatchFile "semantics"  $ geniShowSemInput semInput ""
-     writeBatchFile "derivations"$ ppJSON results
+    -- create output directory as needed
+    case args of
+      PartOfSuite n f -> createDirectoryIfMissing True (f </> n)
+      _               -> return ()
+    -- print responses
+    if dump
+       then writeResponses $ ppJSON results
+       else writeResponses $ T.unlines . concatMap (fromResult formatResponses) $ results
+    -- print out statistical data (if available)
+    when (isJust $ getFlagP MetricsFlg config) $
+       writeStats (ppJSON stats)
+    -- print any warnings we picked up along the way
+    unless (null warnings) $ do
+       T.hPutStrLn stderr $ "Warnings:\n" <> formatWarnings warnings
+       writeBatchFile "warnings" $ T.unlines warnings
+    -- other outputs when run in batch mode
+    writeBatchFile "semantics"  $ pretty semInput
+    writeBatchFile "derivations"$ ppJSON results
   where
     results     = grResults    gresults
     warnings    = allWarnings  gresults
@@ -233,26 +238,28 @@ writeResults pst args semInput gresults = do
     formatResponses = if hasFlagP RankingConstraintsFlg config
                          then pure . prettyResult pst
                          else grRealisations
-    formatWarnings = unlines . map (" - " ++)
+    formatWarnings = T.unlines . map (" - " <>)
     --
     writeBatchFile key = case args of
         Standalone _  _ -> const (return ())
-        PartOfSuite n f -> writeFile (f </> n </> key)
+        PartOfSuite n f -> T.writeFile (f </> n </> key)
     writeResponses = case args of
-        Standalone "" _ -> putStrLn
-        Standalone f  _ -> writeFile f
+        Standalone "" _ -> T.putStrLn
+        Standalone f  _ -> T.writeFile f
         PartOfSuite _ _ -> writeBatchFile "responses"
     writeStats = case args of
-        Standalone _ "" -> putStrLn
-        Standalone _ f  -> writeFile f
+        Standalone _ "" -> T.putStrLn
+        Standalone _ f  -> T.writeFile f
         PartOfSuite _ _ -> writeBatchFile "stats"
     --
-    fromResult :: (GeniSuccess -> [String]) -> GeniResult -> [String]
-    fromResult _ (GError errs) = [ show errs ]
+    fromResult :: (GeniSuccess -> [Text]) -> GeniResult -> [Text]
+    fromResult _ (GError errs) = [ pretty errs ]
     fromResult f (GSuccess x)  = f x
 
-ppJSON :: JSON a => a -> String
-ppJSON = render . pp_value . showJSON
+-- | TODO: If somebody puts together a render function that emits Data.Text
+--   we should just use that instead
+ppJSON :: JSON a => a -> Text
+ppJSON = T.pack . render . pp_value . showJSON
 
 -- ----------------------------------------------------------------------
 -- Odds and ends

@@ -38,10 +38,11 @@ module NLP.GenI.TreeSchema (
 
 import qualified Data.Map as Map
 import Data.Binary
-import Data.List (intercalate)
 import Data.Tree
 import Data.Text ( Text )
+import qualified Data.Text as T
 
+import Control.DeepSeq
 import Data.FullList hiding (head, tail, (++))
 import Data.Generics (Data)
 import Data.Typeable (Typeable)
@@ -53,9 +54,6 @@ import NLP.GenI.GeniVal ( GeniVal(..), DescendGeniVal(..), Collectable(..),
 import NLP.GenI.FeatureStructure ( AvPair(..), Flist, crushFlist )
 import NLP.GenI.Pretty
 import NLP.GenI.Semantics ( Sem )
-
-
-import Control.DeepSeq
 
 -- ----------------------------------------------------------------------
 -- Tree schemata
@@ -70,18 +68,19 @@ type SchemaNode = GNode [GeniVal]
 type Macros = [SchemaTree]
 
 data Ttree a = TT
-  { params  :: [GeniVal]
-  , pfamily :: String
-  , pidname :: String
-  , pinterface :: Flist GeniVal
-  , ptype :: Ptype
-  , psemantics :: Maybe Sem
-  , ptrace :: [String]
-  , tree :: Tree a }
+    { params  :: [GeniVal]
+    , pfamily :: Text
+    , pidname :: Text
+    , pinterface :: Flist GeniVal
+    , ptype :: Ptype
+    , psemantics :: Maybe Sem
+    , ptrace :: [Text]
+    , tree :: Tree a
+    }
   deriving (Data, Typeable, Eq)
 
 data Ptype = Initial | Auxiliar
-             deriving (Show, Eq, Data, Typeable)
+  deriving (Show, Eq, Data, Typeable)
 
 instance DescendGeniVal v => DescendGeniVal (Ttree v) where
   descendGeniVal s mt =
@@ -121,7 +120,7 @@ foot t = case filterTree (\n -> gtype n == Foot) t of
 
 -- | Given a lexical item @s@ and a Tree GNode t, returns the tree t'
 --   where l has been assigned to the anchor node in t'
-setAnchor :: FullList String -> Tree (GNode a) -> Tree (GNode a)
+setAnchor :: FullList Text -> Tree (GNode a) -> Tree (GNode a)
 setAnchor s t =
   let filt (Node a []) = (gtype a == Lex && ganchor a)
       filt _ = False
@@ -134,17 +133,19 @@ setAnchor s t =
 --   its unique child.  The idea is that it converts terminal lexeme nodes
 --   into preterminal nodes where the actual terminal is the given lexical
 --   item
-setLexeme :: [String] -> Tree (GNode a) -> Tree (GNode a)
+setLexeme :: [Text] -> Tree (GNode a) -> Tree (GNode a)
 setLexeme l (Node a []) = Node a [ Node subanc [] ]
-  where subanc = GN { gnname = concat ([ "_", gnname a, "." ] ++ l)
-                    , gup    = []
-                    , gdown  = []
-                    , gaconstr = True
-                    , ganchor  = False
-                    , glexeme = l
-                    , gtype   = Other
-                    , gorigin = ""
-                    }
+  where
+    subanc = GN
+        { gnname = T.concat $ "_" : gnname a : "." : l
+        , gup    = []
+        , gdown  = []
+        , gaconstr = True
+        , ganchor  = False
+        , glexeme = l
+        , gtype   = Other
+        , gorigin = ""
+        }
 setLexeme _ _ = geniBug "impossible case in setLexeme - subtree with kids"
 
 -- ----------------------------------------------------------------------
@@ -152,24 +153,24 @@ setLexeme _ _ = geniBug "impossible case in setLexeme - subtree with kids"
 -- ----------------------------------------------------------------------
 
 -- | A single node of a TAG tree.
-data GNode gv =
-             GN{gnname :: NodeName,
-                gup    :: Flist gv,   -- ^ top feature structure
-                gdown  :: Flist gv,   -- ^ bottom feature structure
-                ganchor  :: Bool,     -- ^ @False@ for na nodes
-                glexeme  :: [String], -- ^ @[]@ for na nodes
-                gtype    :: GType,
-                gaconstr :: Bool,
-                gorigin  :: String  -- ^ for TAG, this would be the elementary tree
-                                    --   that this node originally came from
-                }
-           deriving (Eq, Data, Typeable)
+data GNode gv = GN
+    { gnname :: NodeName
+    , gup    :: Flist gv   -- ^ top feature structure
+    , gdown  :: Flist gv   -- ^ bottom feature structure
+    , ganchor  :: Bool     -- ^ @False@ for na nodes
+    , glexeme  :: [Text]   -- ^ @[]@ for na nodes
+    , gtype    :: GType
+    , gaconstr :: Bool
+    , gorigin  :: Text -- ^ for TAG, this would be the elementary tree
+                       --   that this node originally came from
+    }
+  deriving (Eq, Data, Typeable)
 
 -- Node type used during parsing of the grammar
 data GType = Subs | Foot | Lex | Other
-           deriving (Show, Eq, Data, Typeable)
+  deriving (Show, Eq, Data, Typeable)
 
-type NodeName = String
+type NodeName = Text
 
 -- Traversal
 
@@ -202,14 +203,17 @@ lexemeAttributes = [ "lex", "phon", "cat" ]
 
 -- | The default show for GNode tries to be very compact; it only shows the value
 --   for cat attribute and any flags which are marked on that node.
+--
+--   This is one the places where the pretty representation of a GenI object is
+--   different from its GenI-format one
 instance Pretty (GNode GeniVal) where
-    prettyStr gn =
-        stub ++ extra
+    pretty gn =
+        stub `T.append` extra
       where
-        cat_ = maybe [] prettyStr . gCategory $ gup gn
+        cat_ = maybe "" pretty . gCategory $ gup gn
         lex_ = showLexeme (glexeme gn)
         --
-        stub = intercalate ":" $ filter (not.null) [ cat_, lex_ ]
+        stub = T.intercalate ":" $ filter (not . T.null) [ cat_, lex_ ]
         extra = case gtype gn of
                     Subs -> " !"
                     Foot -> " *"
@@ -243,10 +247,10 @@ instance GeniShow (GNode GeniVal) where
 
 -- FIXME: will have to think of nicer way - one which involves
 -- unpacking the trees :-(
-showLexeme :: [String] -> String
+showLexeme :: [Text] -> Text
 showLexeme []   = ""
 showLexeme [l]  = l
-showLexeme xs   = intercalate "|" xs
+showLexeme xs   = T.intercalate "|" xs
 
 -- Fancy disjunction
 

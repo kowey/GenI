@@ -38,6 +38,7 @@ import Control.DeepSeq
 
 import Data.FullList ( FullList, fromFL, Listable(..), sortNub )
 import NLP.GenI.General (geniBug, quoteText, isGeniIdentLetter)
+import NLP.GenI.GeniShow
 import NLP.GenI.Pretty
 
 -- | constant : no label, just constraints

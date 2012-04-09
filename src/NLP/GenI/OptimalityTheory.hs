@@ -15,7 +15,7 @@
 -- along with this program; if not, write to the Free Software
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings #-}
 module NLP.GenI.OptimalityTheory
    ( -- * Input
      OtConstraint(..), OtRanking,
@@ -31,17 +31,20 @@ import Control.Applicative ( (<$>), (<*>) )
 import Control.Arrow ( first )
 import Data.Function (on)
 import Data.Char ( isSpace )
-import Data.List (nub, partition, sort, sortBy, groupBy, intersperse, (\\), unfoldr )
+import Data.List (nub, partition, sort, sortBy, groupBy, (\\), unfoldr )
+import Data.Text ( Text )
+import qualified Data.Text as T
 import Text.JSON
 
+import NLP.GenI.Pretty
 import NLP.GenI.TreeSchema ( Macros, ptrace )
 import qualified NLP.GenI.Builder as B
 
 import Control.DeepSeq
 
-data OtConstraint = PositiveC String -- ^ the trace must appear
-                  | NegativeC String -- ^ the trace must NOT appear
-                  | NegativeConjC [String] -- ^ these traces must not appear AT THE SAME TIME
+data OtConstraint = PositiveC Text -- ^ the trace must appear
+                  | NegativeC Text -- ^ the trace must NOT appear
+                  | NegativeConjC [Text] -- ^ these traces must not appear AT THE SAME TIME
  deriving (Show, Eq)
 
 data RankedOtConstraint = RankedOtConstraint Int OtConstraint
@@ -59,16 +62,17 @@ instance Ord RankedOtConstraint2 where
 
 type OtRanking = [[OtConstraint]]
 
-data OtViolation = OtViolation { otLexName            :: String -- ^ empty for global
+data OtViolation = OtViolation { otLexName            :: Text -- ^ empty for global
                                , otConstraintViolated :: RankedOtConstraint }
  deriving (Show, Eq, Ord)
 
 data LexItem = LexItem
-       { lLexname :: String
-       , lTraces :: [String]
-       } deriving (Ord, Eq, Show)
+    { lLexname :: Text
+    , lTraces  :: [Text]
+    }
+  deriving (Ord, Eq, Show)
 
-type GetTraces = String -> [String]
+type GetTraces = Text -> [Text]
 type OtResult x = (Int,x,[OtViolation])
 
 instance JSON OtConstraint where
@@ -91,16 +95,17 @@ instance JSON OtConstraint where
 -- ---------------------------------------------------------------------
 -- top level stuff
 -- ---------------------------------------------------------------------
-otWarnings :: Macros -> OtRanking -> [OtViolation] -> [String]
+otWarnings :: Macros -> OtRanking -> [OtViolation] -> [Text]
 otWarnings gram ranking blocks =
     addWarning neTraces neTracesW
   . addWarning nvConstraints nvConstraintsW
   $ []
  where
   addWarning xs w = if null xs then id else (w xs :)
-  neTracesW xs = "these traces never appear in the grammar: " ++ unwords xs
+  neTracesW xs = "these traces never appear in the grammar: " `T.append` T.unwords xs
   neTraces  = nonExistentTraces gram ranking
-  nvConstraintsW xs = "these constraints are never violated: " ++ unwords (map prettyConstraint xs)
+  nvConstraintsW xs = "these constraints are never violated: "
+      `T.append` T.unwords (map pretty xs)
   nvConstraints = neverViolated blocks ranking
 
 rankResults :: GetTraces -> (a -> B.TagDerivation) -> OtRanking -> [a] -> [OtResult a] --changed type Derivation
@@ -122,7 +127,7 @@ violations cs ls = posVs ls ++ negVs ls
   posVs  = posViolations cs . concatMap lTraces
 
 -- | A positive constraint is violated when a trace is NOT present
-posViolations :: [RankedOtConstraint] -> [String] -> [OtViolation]
+posViolations :: [RankedOtConstraint] -> [Text] -> [OtViolation]
 posViolations cs ss =
  [ OtViolation "" c | c@(RankedOtConstraint _ (PositiveC s)) <- cs, not (s `elem` ss) ]
 
@@ -133,8 +138,8 @@ posViolations cs ss =
 --   either need to partition the input strings and map this function
 --   on each sublist or rewrite this code.
 negViolations :: [RankedOtConstraint]
-              -> String   -- ^ lex name
-              -> [String] -- ^ traces
+              -> Text     -- ^ lex name
+              -> [Text]   -- ^ traces
               -> [OtViolation]
 negViolations cs l ss =
  [ OtViolation l c | c@(RankedOtConstraint _ (NegativeC s)) <- cs, s `elem` ss ] ++
@@ -154,10 +159,11 @@ sortResults = sortAndGroupByDecoration compare sortedViolations
 lexTraces :: GetTraces -> B.TagDerivation -> [LexItem] --changed type Derivation
 lexTraces getTraces = map (toLexItem getTraces) . B.lexicalSelection
 
-toLexItem :: GetTraces -> String -> LexItem
+toLexItem :: GetTraces -> Text -> LexItem
 toLexItem getTraces t =
- LexItem { lLexname = t
-         , lTraces  = getTraces t }
+    LexItem { lLexname = t
+            , lTraces  = getTraces t
+            }
 
 -- ----------------------------------------------------------------------
 -- Output format
@@ -196,32 +202,34 @@ instance JSON OtViolation where
 -- ---------------------------------------------------------------------
 
 -- TODO: Return as a pretty Doc
-prettyViolations :: GetTraces -> Bool -> [OtViolation] -> String
+prettyViolations :: GetTraces -> Bool -> [OtViolation] -> Text
 prettyViolations getTraces noisy vs =
-   unlines $ (if null posVs then []  else [ indented 1 75 . showPosVs $ posVs ])
-           ++ map showLexVs negBuckets
- where
-  (posVs, negVs) = partition (null . otLexName) vs
-  negBuckets = buckets otLexName negVs
-  --
-  showPosVs  = unwords . map (prettyRankedConstraint . otConstraintViolated)
-  showLexVs (l,lvs) =
-    let itmName = "(" ++ l ++ ")"
-        constraints = map otConstraintViolated lvs
-        allTraces = indented 4 75 . unwords . getTraces $ l
-    in (indented 2 75 . unwords $ itmName : map prettyRankedConstraint constraints)
-       ++ (if noisy then "\n" ++ allTraces else "")
+    T.unlines $
+        [ indented 1 75 (showPosVs posVs) | not (null posVs) ]
+        ++ map showLexVs negBuckets
+  where
+    (posVs, negVs) = partition (T.null . otLexName) vs
+    negBuckets = buckets otLexName negVs
+    --
+    showPosVs = T.unwords . map prettyV
+    showLexVs (l,lvs) =
+        (indented 2 75 . T.unwords $ parens l : map prettyV lvs) `T.append`
+        (if noisy then "\n" `T.append` allTraces l else "")
+      where
+        allTraces = indented 4 75 . T.unwords . getTraces
+    prettyV = pretty . otConstraintViolated
 
-prettyRankedConstraint :: RankedOtConstraint -> String
-prettyRankedConstraint (RankedOtConstraint r c) = prettyConstraint c ++ " " ++ prettyRank r
+instance Pretty RankedOtConstraint where
+    pretty (RankedOtConstraint r c) = pretty c <+> prettyRank r
 
-prettyConstraint :: OtConstraint -> String
-prettyConstraint (PositiveC str) = '+' : str
-prettyConstraint (NegativeC str) = '*' : str
-prettyConstraint (NegativeConjC strs) = "*(" ++ (concat $ intersperse " & " strs) ++ ")"
+instance Pretty OtConstraint where
+    pretty (PositiveC str) = '+' `T.cons` str
+    pretty (NegativeC str) = '*' `T.cons` str
+    pretty (NegativeConjC strs) =
+        '*' `T.cons` (parens . T.intercalate " & " $ strs)
 
-prettyRank :: Int -> String
-prettyRank r = "(r" ++ show r ++ ")"
+prettyRank :: Int -> Text
+prettyRank r = parens $ 'r' `T.cons` T.pack (show r)
 
 -- ---------------------------------------------------------------------
 -- detecting impossible constraints or other potential errors
@@ -232,13 +240,13 @@ neverViolated vs ranking = concat ranking \\ cs_used
  where
   cs_used = nub . map (noRank . otConstraintViolated) $ vs
 
-nonExistentTraces :: Macros -> [[OtConstraint]] -> [String]
+nonExistentTraces :: Macros -> [[OtConstraint]] -> [Text]
 nonExistentTraces ms vs = r_traces \\ m_traces
  where
   m_traces = nub $ concatMap ptrace ms
   r_traces = nub $ concatMap cTraces $ concat vs
 
-cTraces :: OtConstraint -> [String]
+cTraces :: OtConstraint -> [Text]
 cTraces (PositiveC c) = [c]
 cTraces (NegativeConjC cs) = cs
 cTraces (NegativeC c) = [c]
@@ -272,27 +280,44 @@ sortAndGroupByDecoration cmp f = map (map snd)
                                . sortBy (cmp `on` fst)
                                . map (\x -> (f x, x))
 
-indented :: Int -> Int -> String -> String
-indented x len = concat . intersperse "\n" . map (\s -> spaces x ++ s) . unfoldr f
- where
-  f ""  = Nothing
-  f str = Just $ splitAtBefore len str
+indented :: Int -> Int -> Text -> Text
+indented x len = T.intercalate "\n"
+               . map (\s -> spaces x `T.append` s)
+               . wordWrap len
 
-spaces :: Int -> String
-spaces n = replicate n ' '
+spaces :: Int -> Text
+spaces n = T.pack (replicate n ' ')
 
-splitAtBefore :: Int -> String -> (String, String)
+-- | Whitespace-sensitive wrapping
+--
+--   Properties:
+--
+--   * Only splits at whitespace
+--
+--   * Lines at most @len@ characters long, whitespace permitting
+wordWrap :: Int    -- ^ wrap after these many characters
+         -> Text
+         -> [Text]
+wordWrap len =
+    unfoldr f
+  where
+    f t = if T.null t then Nothing else Just (splitAtBefore len t)
+
+splitAtBefore :: Int -- ^ wrap after these many characters 
+              -> Text
+              -> (Text, Text)
 splitAtBefore len xs
-  | length xs < len = (xs, "")
-  | any isSpace xs  = (begin, trim $ drop (length begin) xs)
-  | otherwise       = (xs, "")
- where
-  begin
-   | length upToSpace > len = upToSpace
-   | otherwise = reverse . trim . dropWhile isNotSpace . reverse . take len $ xs
-  upToSpace = takeWhile isNotSpace xs
-  isNotSpace = not . isSpace
-  trim = drop 1
+    | T.length xs < len = (xs, "")
+    | T.any isSpace xs  = (begin, end)
+    | otherwise         = (xs, "")
+  where
+    begin =
+        if T.length upToSpace > len
+           then upToSpace -- ugh! that's one massive line
+           else T.stripEnd . T.dropWhileEnd isNotSpace . T.take len $ xs
+    end = T.stripStart $ T.drop (T.length begin) xs
+    upToSpace  = T.stripStart xs
+    isNotSpace = not . isSpace
 
 {-!
 deriving instance NFData OtViolation

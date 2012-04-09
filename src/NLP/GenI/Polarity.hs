@@ -41,6 +41,7 @@ import qualified Data.Map as Map
 import Data.List
 import Data.Maybe (isNothing, isJust)
 import Data.Text (Text)
+import qualified Data.Text as T
 
 import NLP.GenI.Automaton
 import NLP.GenI.FeatureStructure ( Flist, AvPair(..), FeatStruct, unifyFeat )
@@ -585,7 +586,7 @@ instance (Show st, ShowLite ab) => ShowLite (NFA st ab) where
 -}
 
 instance ShowLite TagElem where
-  showLite = idname 
+    showLite = T.unpack . idname
 
 {-
 -- | Display a SemMap in human readable text.

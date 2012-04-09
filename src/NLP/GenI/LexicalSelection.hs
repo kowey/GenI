@@ -20,10 +20,10 @@
 module NLP.GenI.LexicalSelection
 where
 
+import Control.Applicative ( (<$>) )
 import Control.Arrow ((***))
 import Control.Monad.Maybe
 import Control.Monad.Writer
-
 import Data.Function ( on )
 import Data.List
 import qualified Data.Map as Map
@@ -36,10 +36,8 @@ import Data.FullList hiding ( head, tail, (++) )
 import qualified Data.FullList as FL
 
 import NLP.GenI.FeatureStructure (Flist, AvPair(..), unifyFeat)
-import NLP.GenI.General(filterTree, repAllNode,
-    histogram,
-    geniBug,
-    repNodeByNode,
+import NLP.GenI.General
+    ( filterTree, repAllNode, histogram, geniBug, repNodeByNode,
     )
 import NLP.GenI.GeniVal( unify, GeniVal(gConstraints), isConst, Subst, replace, finaliseVars )
 import NLP.GenI.LexicalSelection.Types
@@ -212,10 +210,11 @@ combineOne tsem lexRaw eRaw = -- Maybe monad
              >>= unifyInterfaceUsing ifilters -- filtering
              >>= enrichWithWarning -- enrichment
     tree2 <- case crushTreeGNode (tree e) of
-               Nothing -> do lexTell (SchemaError [pidname e] (StringError "Could not flatten disjunction"))
+               Nothing -> do lexTell (SchemaError [pidname e]
+                                 (StringError "Could not flatten disjunction"))
                              fail ""
                Just x  -> return x
-    let name = concat $ intersperse ":" $ filter (not.null)
+    let name = T.intercalate ":" $ filter (not . T.null)
                  [ FL.head (iword l) , pfamily e , pidname e ]
         template = TE
               { idname = name
@@ -235,6 +234,9 @@ combineOne tsem lexRaw eRaw = -- Maybe monad
                          xs -> return xs
     return $ concatMap (finaliseSemantics template) semUnifications
  where
+  croak t msg = do
+      lexTell (SchemaError [pidname t] (StringError msg))
+      fail ""
   finaliseSemantics template (sem,sub) =
     do (sem2,sub2) <- sem `subsumeSem` replace sub tsem
        return $ replace sub2 $ template { tsemantics = sem2 }
@@ -243,18 +245,15 @@ combineOne tsem lexRaw eRaw = -- Maybe monad
    let lp = iparams l
        tp = params t
    in if length lp /= length tp
-      then do lexTell (SchemaError [pidname t] (StringError "Parameter length mismatch"))
-              fail ""
+      then croak t "Parameter length mismatch"
       else case unify lp tp of
-             Nothing -> do lexTell (SchemaError [pidname t] (StringError "Parameter unification error"))
-                           fail ""
+             Nothing -> croak t "Parameter unification error"
              Just (ps2, subst) -> return (replace subst l, t2)
                                   where t2 = (replace subst t) { params = ps2 }
   unifyInterfaceUsing ifn (l,e) =
     -- trace ("unify interface" ++ wt) $
     case unifyFeat (ifn l) (pinterface e) of
-    Nothing             -> do lexTell (SchemaError [pidname e] (StringError "Interface unification error"))
-                              fail ""
+    Nothing             -> croak e "Interface unification error"
     Just (int2, fsubst) -> return (replace fsubst l, e2)
                            where e2 = (replace fsubst e) { pinterface = int2 }
   --
@@ -282,7 +281,8 @@ enrich l t =
     case unifyFeat [en] (pinterface tx) of
       Nothing -> lexTell (ifaceEnrichErr en) >> fail ""
       Just (i2, isubs) -> return $ (replace isubs tx) { pinterface = i2 }
-  ifaceEnrichErr (AvPair loc _) = SchemaError [pidname t] (EnrichError (PeqInterface loc))
+  ifaceEnrichErr (AvPair loc _) =
+       SchemaError [pidname t] (EnrichError (PeqInterface loc))
 
 -- *** 'enrich' helpers
 
@@ -313,7 +313,7 @@ maybeEnrichBy t (eqLhs, eqVal) = do
       return (t2, sub)
     PeqLex _ -> do
        vs <- gConstraints eqVal
-       let node2 = node { glexeme = map T.unpack (FL.fromFL vs) }
+       let node2 = node { glexeme = FL.fromFL vs }
            t2    = fixNode node2 t
        return (t2, Map.empty)
  where
@@ -343,7 +343,7 @@ enrichFeat (AvPair a v) fs =
 
 -- | @missingCoanchors l t@ returns the list of coanchor node names from @l@
 --   that were not found in @t@
-missingCoanchors :: ILexEntry -> SchemaTree -> [String]
+missingCoanchors :: ILexEntry -> SchemaTree -> [Text]
 missingCoanchors lexEntry t =
    [ name eqLhs | eqLhs <- nubBy ((==) `on` name) equations, missing eqLhs ]
  where
@@ -369,12 +369,16 @@ lexEquations =
 --   have been caught earlier by GenI.
 seekCoanchor :: NodePathEqLhs -> SchemaTree -> Maybe SchemaNode
 seekCoanchor eqLhs t =
- case filterTree (matchNodeName eqLhs) (tree t) of
- [a] -> Just a
- []  -> Nothing
- _   -> geniBug $ "Tree with multiple matches in enrichBy. " ++
-                  "\nTree: " ++ pidname t ++ "\nFamily: " ++ pfamily t ++
-                  "\nMatching on: " ++ showPathEqLhs (PeqJust eqLhs)
+   case filterTree (matchNodeName eqLhs) (tree t) of
+        [a] -> Just a
+        []  -> Nothing
+        _   -> geniBug . T.unpack . T.intercalate "\n" $
+            [ "NLP.GenI.LexicalSelection.seekCoanchor:"
+            , "Did not expect to see a tree with multiple matches in enrichBy."
+            , "Tree: "   `T.append` pidname t
+            , "Family: " `T.append` pfamily t
+            , "Matching on: " `T.append` showPathEqLhs (PeqJust eqLhs)
+            ]
 
 -- | @matchNodeName lhs n@ is @True@ if the @lhs@ refers to the node @n@
 matchNodeName :: NodePathEqLhs -> SchemaNode -> Bool
@@ -383,7 +387,7 @@ matchNodeName (PeqLex n)      = matchNodeNameHelper n
 
 -- | @matchNodeNameHelper@ recognises “anchor“ by convention; otherwise,
 --   it does a name match
-matchNodeNameHelper :: String -> SchemaNode -> Bool
+matchNodeNameHelper :: Text -> SchemaNode -> Bool
 matchNodeNameHelper "anchor" = ganchor
 matchNodeNameHelper n        = (== n) . gnname
 
@@ -395,23 +399,21 @@ matchNodeNameHelper n        = (== n) . gnname
 --   <http://projects.haskell.org/manual/lexical-selection>
 setLemAnchors :: Tree (GNode GeniVal) -> Tree (GNode GeniVal)
 setLemAnchors t =
- repAllNode fn filt t
- where
-  filt (Node a []) = gtype a == Subs && (isJust. lemAnchor) a
-  filt _ = False
-  fn (Node x k) = setLexeme (lemAnchorMaybeFake x) $
-                    Node (x { gtype = Other, gaconstr = False }) k
-  --
-  lemAnchorMaybeFake :: GNode GeniVal -> [String]
-  lemAnchorMaybeFake n =
-    case lemAnchor n of
-    Nothing -> ["ERR_UNSET_LEMMANCHOR"]
-    Just l  -> map T.unpack l
-  lemAnchor :: GNode GeniVal -> Maybe [Text]
-  lemAnchor n =
-    case [ v | AvPair a v <- gup n, a == _lemanchor ] of
-    [l] | isConst l -> fromFL `fmap` (gConstraints l)
-    _               -> Nothing
+    repAllNode fn filt t
+  where
+    filt (Node a []) = gtype a == Subs && (isJust. lemAnchor) a
+    filt _           = False
+    fn (Node x k) = setLexeme (lemAnchorMaybeFake x) $
+        Node (x { gtype = Other, gaconstr = False }) k
+    --
+    lemAnchorMaybeFake :: GNode GeniVal -> [Text]
+    lemAnchorMaybeFake n =
+        fromMaybe ["ERR_UNSET_LEMMANCHOR"] (lemAnchor n)
+    lemAnchor :: GNode GeniVal -> Maybe [Text]
+    lemAnchor n =
+        case [ v | AvPair a v <- gup n, a == _lemanchor ] of
+            [l] | isConst l -> fromFL <$> gConstraints l
+            _               -> Nothing
 
 -- | The name of the lemanchor attribute (by convention; see source)
 _lemanchor :: Text
@@ -419,5 +421,5 @@ _lemanchor = "lemanchor"
 
 -- | @setOrigin n t@ marks the nodes in @t@ as having come from
 --   a tree named @n@
-setOrigin :: String -> Tree (GNode v) -> Tree (GNode v)
+setOrigin :: Text -> Tree (GNode v) -> Tree (GNode v)
 setOrigin t = fmap (\g -> g { gorigin = t })

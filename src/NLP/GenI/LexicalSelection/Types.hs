@@ -15,18 +15,19 @@
 -- along with this program; if not, write to the Free Software
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE OverloadedStrings #-}
 module NLP.GenI.LexicalSelection.Types where
 
 import Control.Monad.Writer
 import Data.List
-import Data.List.Split ( wordsBy )
 import Data.Poset
 import Data.Text ( Text )
 import qualified Data.Map as Map
 import qualified Data.Text as T
 
 import NLP.GenI.GeniVal
-import NLP.GenI.General ( showWithCount )
+import NLP.GenI.Pretty
 
 -- | Left hand side of a path equation
 data PathEqLhs = PeqInterface   Text
@@ -39,8 +40,8 @@ data PathEqLhs = PeqInterface   Text
 -- ----------------------------------------------------------------------
 
 -- | Path equations can either hit a feature or a node's lexeme attribute
-data NodePathEqLhs = PeqFeat String TopBottom Text
-                   | PeqLex  String
+data NodePathEqLhs = PeqFeat Text TopBottom Text
+                   | PeqLex  Text
   deriving (Eq, Ord)
 
 data TopBottom = Top | Bottom
@@ -54,47 +55,52 @@ type PathEqPair = (NodePathEqLhs, GeniVal)
 --   FIXME : make more efficient
 parsePathEq :: Text -> Writer [LexCombineError] PathEqLhs
 parsePathEq e =
-  case wordsBy (== '.') (T.unpack e) of
-  (n:"top":r)     -> return (node n Top    r)
-  (n:"bot":r)     -> return (node n Bottom r)
-  [n,"lex"]       -> return (PeqJust (PeqLex n))
-  ("top":r)       -> return (node "anchor" Top r)
-  ("bot":r)       -> return (node "anchor" Bottom r)
-  ("anchor":r)    -> return (node "anchor" Bottom r)
-  ("interface":r) -> return (PeqInterface     (rejoin r))
-  ("anc":r)       -> parsePathEq $ rejoin ("anchor":r)
-  (n:r@(_:_))     -> tell [ BoringError (tMsg n) ] >> return (node n Top r)
-  _               -> tell [ BoringError iMsg     ] >> return (PeqUnknown e)
- where
-  node n tb r = PeqJust $ PeqFeat n tb (rejoin r)
-  rejoin = T.pack . concat . intersperse "."
-  tMsg n = "Interpreting path equation " ++ T.unpack e ++ " as applying to top of " ++ n ++ "."
-  iMsg   = "Could not interpret path equation " ++ T.unpack e
+    case T.splitOn "." e of
+        (n:"top":r)     -> return (node n Top    r)
+        (n:"bot":r)     -> return (node n Bottom r)
+        [n,"lex"]       -> return (PeqJust (PeqLex n))
+        ("top":r)       -> return (node "anchor" Top r)
+        ("bot":r)       -> return (node "anchor" Bottom r)
+        ("anchor":r)    -> return (node "anchor" Bottom r)
+        ("interface":r) -> return (PeqInterface  (rejoin r))
+        ("anc":r)       -> parsePathEq $ rejoin ("anchor":r)
+        (n:r@(_:_))     -> tell [BoringError (tMsg n)] >> return (node n Top r)
+        _               -> tell [BoringError iMsg    ] >> return (PeqUnknown e)
+  where
+    node n tb r = PeqJust $ PeqFeat n tb (rejoin r)
+    rejoin = T.intercalate "."
+    tMsg n = T.unwords
+        [ "Interpreting path equation"
+        , e
+        , "as applying to top of"
+        , n `T.snoc` '.'
+        ]
+    iMsg = "Could not interpret path equation" <+> e
 
-showPathEqLhs :: PathEqLhs -> String
+showPathEqLhs :: PathEqLhs -> Text
 showPathEqLhs p =
-  case p of
-   PeqJust (PeqFeat n tb att) -> squish [ n, fromTb tb, T.unpack att ]
-   PeqJust (PeqLex  n)        -> squish [ n, "lex" ]
-   PeqInterface att -> squish [ "interface", T.unpack att ]
-   PeqUnknown e     -> T.unpack e
- where
-  fromTb Top    = "top"
-  fromTb Bottom = "bot"
-  squish = intercalate "."
+    case p of
+        PeqJust (PeqFeat n tb att) -> squish [ n, fromTb tb, att ]
+        PeqJust (PeqLex  n)        -> squish [ n, "lex" ]
+        PeqInterface att           -> squish [ "interface", att ]
+        PeqUnknown e               -> e
+  where
+    fromTb Top    = "top"
+    fromTb Bottom = "bot"
+    squish = T.intercalate "."
 
 -- ----------------------------------------------------------------------
 -- * Warnings
 -- ----------------------------------------------------------------------
 
 data LexCombineError =
-       BoringError String
-     | FamilyNotFoundError String
-     | SchemaError [String] LexCombineError2
+       BoringError Text
+     | FamilyNotFoundError Text
+     | SchemaError [Text] LexCombineError2
  deriving Eq
 
 data LexCombineError2 = EnrichError PathEqLhs
-                      | StringError String
+                      | StringError Text
  deriving (Eq, Ord)
 
 instance Poset LexCombineError where
@@ -113,19 +119,24 @@ instance Poset LexCombineError2 where
 instance Poset PathEqLhs where
  leq l1 l2 = leq (showPathEqLhs l1) (showPathEqLhs l2)
 
-instance Show LexCombineError where
- show e = body ++ suffix
-  where
-   (body, suffix) = showLexCombineError e
+instance Poset Text where
+    leq l1 l2 = leq (T.unpack l1) (T.unpack l2)
 
-showLexCombineError :: LexCombineError -> (String, String)
-showLexCombineError (SchemaError xs x) = (show x, showWithCount (const "") "trees" ((),length xs))
+instance Pretty LexCombineError where
+    pretty e =
+        body <+> suffix
+      where
+        (body, suffix) = showLexCombineError e
+
+showLexCombineError :: LexCombineError -> (Text, Text)
+showLexCombineError (SchemaError xs x) = (pretty  x, prettyCount (const "") "trees" ((), length xs))
 showLexCombineError (BoringError s)    = (s, "")
-showLexCombineError (FamilyNotFoundError f) = ("Family " ++ f ++ " not found in tree schema file", "")
+showLexCombineError (FamilyNotFoundError f) = ("Family" <+> f <+> "not found in tree schema file", "")
 
-instance Show LexCombineError2 where
- show (EnrichError p) = "Some trees discarded due to enrichment error on " ++ showPathEqLhs p
- show (StringError s) = s
+instance Pretty LexCombineError2 where
+    pretty (EnrichError p) =
+        "Some trees discarded due to enrichment error on" <+> showPathEqLhs p
+    pretty (StringError s) = s
 
 compressLexCombineErrors :: [LexCombineError] -> [LexCombineError]
 compressLexCombineErrors errs = schema2 ++ normal

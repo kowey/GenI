@@ -21,12 +21,15 @@ module NLP.GenI.Warning.Internal where
 import Data.FullList ( FullList, fromFL )
 import Data.List
 import Data.Monoid
+import Data.Text ( Text )
 import qualified Data.Map as Map
+import qualified Data.Text as T
+
 import Data.Poset
 
-import NLP.GenI.Lexicon ( ILexEntry(..) )
-import NLP.GenI.General ( histogram, showWithCount )
+import NLP.GenI.General ( histogram )
 import NLP.GenI.LexicalSelection.Types ( LexCombineError, showLexCombineError )
+import NLP.GenI.Lexicon ( ILexEntry(..) )
 import NLP.GenI.Pretty
 import NLP.GenI.Semantics ( Literal )
 import NLP.GenI.TreeSchema ( showLexeme )
@@ -46,18 +49,18 @@ instance Monoid GeniWarnings where
 data GeniWarning = -- | A warning that should be repeated for each lexical entry affected
                    LexWarning [ILexEntry] LexWarning
                    -- | A single custom warning
-                 | CustomLexWarning String
+                 | CustomLexWarning Text
                    -- | Literals which did not receive any lexical selection
                  | NoLexSelection         [Literal]
                    -- | Warnings from the morphological realiser
-                 | MorphWarning           [String]
+                 | MorphWarning           [Text]
   deriving (Eq)
 
 
 data LexWarning = LexCombineAllSchemataFailed
                 | LexCombineOneSchemaFailed   LexCombineError
-                | MissingCoanchors            String Int
-  deriving (Show, Eq)
+                | MissingCoanchors            Text Int
+  deriving (Eq)
 
 -- | Sort, treating non-comporable items as equal
 posort :: Poset a => [a] -> [a]
@@ -112,25 +115,29 @@ mergeWarning (LexWarning ls1 w1) (LexWarning ls2 w2) | w1 == w2 = Just (LexWarni
 mergeWarning _ _ = Nothing
 
 -- | A warning may be displayed over several lines
-showGeniWarning :: GeniWarning -> [String]
-showGeniWarning (NoLexSelection ps) = [ "No lexical entries for literals: " ++ unwords (map prettyStr ps) ]
+showGeniWarning :: GeniWarning -> [Text]
+showGeniWarning (NoLexSelection ps) =
+    [ "No lexical entries for literals:" <+> T.unwords (map pretty ps) ]
 showGeniWarning (CustomLexWarning w) = [w]
-showGeniWarning (LexWarning ls wa)  =
-  do -- list monad
-     let (msg, suffix) = showLexWarning wa
-     wf <- Map.toList (toWfCount ls)
-     return (msg ++ ": " ++ showWithCount showWithFam "lemmas" wf ++ suffix)
+showGeniWarning (LexWarning ls wa)  = do -- list monad
+    wf <- Map.toList (toWfCount ls)
+    return (msg <> ":" <+> prettyCount showWithFam "lemmas" wf <> suffix)
  where
-  showLexWarning lw =
-    case lw of
-     LexCombineAllSchemataFailed  -> ("Lexically selected but anchoring failed for *all* instances of", "")
-     LexCombineOneSchemaFailed lc -> showLexCombineError lc
-     MissingCoanchors co n        -> ("Expected co-anchor " ++ co ++ " is missing from " ++ show n ++ " schemata", "")
-  showWithFam (w, f) = showLexeme (fromFL w) ++ " (" ++ f ++ ")"
-showGeniWarning (MorphWarning ws) = map ("Morph: " ++) ws
+    (msg, suffix) = showLexWarning wa
+    showLexWarning LexCombineAllSchemataFailed =
+        ("Lexically selected but anchoring failed for *all* instances of", "")
+    showLexWarning (LexCombineOneSchemaFailed lc) =
+        showLexCombineError lc
+    showLexWarning (MissingCoanchors co n) =
+        (T.unwords [ "Expected co-anchor", co
+                   , "is missing from", T.pack (show n), "schemata"
+                   ]
+        , "")
+    showWithFam (w, f) = showLexeme (fromFL w) <+> parens f
+showGeniWarning (MorphWarning ws) = map ("Morph:" <+>) ws
 
 -- word and all families associated with that word
-type WordFamilyCount = Map.Map (FullList String,String) Int
+type WordFamilyCount = Map.Map (FullList Text, Text) Int
 
 toWfCount :: [ILexEntry] -> WordFamilyCount
 toWfCount = histogram . map toWf

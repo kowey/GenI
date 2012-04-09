@@ -45,10 +45,12 @@ where
 import Control.Monad.State.Strict
 import Data.Bits ( (.&.), (.|.), bit )
 import Data.List ( delete, sort, nub )
-import qualified Data.Map as Map
 import Data.Maybe ( mapMaybe, fromMaybe, maybeToList )
 import Data.Tree ( flatten )
 import Prelude hiding ( init )
+import Data.Text ( Text )
+import qualified Data.Map as Map
+import qualified Data.Text as T
 
 import Control.DeepSeq
 
@@ -84,7 +86,7 @@ import NLP.GenI.TreeSchema ( GNode(..), GType(Subs, Foot) )
 
 data GenStatus = Finished
                | Active
-               | Error String
+               | Error Text
 
 data Builder st it pa = Builder
   { init     :: Input -> pa -> (st, Statistics)
@@ -117,7 +119,7 @@ data Input =
 --   only requirement being that each one, naturally enough, is unique.
 type SentenceAut            = NFA Int LemmaPlus
 
-data UninflectedDisjunction = UninflectedDisjunction [String] (Flist GeniVal) deriving (Data, Typeable)
+data UninflectedDisjunction = UninflectedDisjunction [Text] (Flist GeniVal) deriving (Data, Typeable)
 
 instance DescendGeniVal UninflectedDisjunction where
   descendGeniVal s (UninflectedDisjunction a v) = {-# SCC "descendGeniVal" #-} UninflectedDisjunction a (descendGeniVal s v)
@@ -178,17 +180,22 @@ preInit input config =
 -- | Equivalent to 'id' unless the input contains an empty or uninstatiated
 --   semantics
 unlessEmptySem :: Input -> Params -> a -> a
-unlessEmptySem input _ =
- let (cands,_) = unzip $ inCands input
-     nullSemCands   = [ idname t | t <- cands, (null.tsemantics) t ]
-     unInstSemCands = [ idname t | t <- cands, not $ Map.null $ collect (tsemantics t) Map.empty ]
-     nullSemErr     = "The following trees have a null semantics: " ++ (unwords nullSemCands)
-     unInstSemErr   = "The following trees have an uninstantiated semantics: " ++ (unwords unInstSemCands)
-     semanticsErr   = (if null nullSemCands then "" else nullSemErr ++ "\n") ++
-                      (if null unInstSemCands then "" else unInstSemErr)
-  in if null semanticsErr
-     then id
-     else error semanticsErr
+unlessEmptySem input _
+    | null semanticsErr = id
+    | otherwise         = error semanticsErr
+  where
+    (cands,_) = unzip $ inCands input
+    nullSemCands   = [ idname t | t <- cands, (null.tsemantics) t ]
+    unInstSemCands = [ idname t | t <- cands, not $ Map.null $ collect (tsemantics t) Map.empty ]
+    nullSemErr     =
+        "The following trees have a null semantics: " ++
+         T.unpack (T.unwords nullSemCands)
+    unInstSemErr   =
+        "The following trees have an uninstantiated semantics: " ++
+        T.unpack (T.unwords unInstSemCands)
+    semanticsErr =
+        (if null nullSemCands   then "" else nullSemErr ++ "\n") ++
+        (if null unInstSemCands then "" else unInstSemErr)
 
 -- ----------------------------------------------------------------------
 -- Running a surface realiser
@@ -380,8 +387,9 @@ gen_time = "gen_time"
 -- ----------------------------------------------------------------------
 
 -- | The names of lexically selected chart items used in a derivation
-lexicalSelection :: TagDerivation -> [String]
-lexicalSelection = sort . nub . concatMap (\d -> dsChild d : maybeToList (dsParent d))
+lexicalSelection :: TagDerivation -> [Text]
+lexicalSelection = sort . nub
+                 . concatMap (\d -> dsChild d : maybeToList (dsParent d))
 
 {-!
 deriving instance NFData Input

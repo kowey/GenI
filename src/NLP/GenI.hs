@@ -54,34 +54,44 @@ module NLP.GenI (
              )
 where
 
-import Control.Applicative ((<$>),(<*>))
-import Control.Monad.Error
-import Control.Exception
 
+import Control.Applicative ((<$>),(<*>))
+import Control.DeepSeq
+import Control.Exception
+import Control.Monad.Error
 import Data.Binary (Binary, decodeFile)
 import Data.IORef (IORef, readIORef, modifyIORef)
-import Data.FullList ( fromFL )
 import Data.List
-import Data.List.Split ( wordsBy )
-import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
 import Data.Monoid
+import Data.Text ( Text )
 import Data.Typeable (Typeable)
-
 import System.CPUTime( getCPUTime )
--- import System.Log.Logger
-import Control.DeepSeq
+import System.IO ( stderr )
+import qualified Data.Map as Map
+import qualified Data.Text as T
+import qualified Data.Text.IO as T
 
+import Data.FullList ( fromFL )
+import Text.JSON
 import qualified System.IO.UTF8 as UTF8
 
-import Text.JSON
--- import System.Process 
-
-import NLP.GenI.General(
-    histogram,
-    geniBug,
-    snd3, first3,
-    ePutStr, ePutStrLn, eFlush,
+import NLP.GenI.Configuration
+    ( Params, customMorph, customSelector
+    , getFlagP, hasFlagP, hasOpt, Optimisation(NoConstraints)
+    , MacrosFlg(..), LexiconFlg(..), TestSuiteFlg(..)
+    , MorphInfoFlg(..), MorphCmdFlg(..)
+    , RankingConstraintsFlg(..)
+    , PartialFlg(..)
+    , FromStdinFlg(..), VerboseModeFlg(..)
+    , NoLoadTestSuiteFlg(..)
+    , RootFeatureFlg(..)
+    , TracesFlg(..)
+    , grammarType
+    , GrammarType(..)
+    )
+import NLP.GenI.General
+    ( histogram, geniBug, snd3, first3, ePutStr, ePutStrLn, eFlush,
     -- mkLogname,
     )
 import NLP.GenI.GeniVal ( finaliseVars )
@@ -103,6 +113,7 @@ import NLP.GenI.Tag ( TagElem, idname, tsemantics, ttrace, setTidnums )
 import NLP.GenI.TestSuite ( TestCase(..) )
 import NLP.GenI.TreeSchema
 import NLP.GenI.Warning
+import qualified NLP.GenI.Builder as B
 
 -- -- DEBUG
 -- import Control.Monad.Writer
@@ -128,7 +139,7 @@ data ProgState = ProgState
                                -- instead be looking for
                                -- 'NLP.GenI.Configuration.customMorph')
     , ranking  :: OtRanking -- ^ OT constraints    (optional)
-    , traces   :: [String]  -- ^ simplified traces (optional)
+    , traces   :: [Text]    -- ^ simplified traces (optional)
     }
 
 type ProgStateRef = IORef ProgState
@@ -299,12 +310,12 @@ instance Loadable MorphFnL where
   lSet (MorphFnL x) p = p { morphinf = x }
   lSummarise _ = "morphinfo"
 
-newtype TracesL = TracesL [String]
+newtype TracesL = TracesL [Text]
 
 instance Loadable TracesL where
- lParse _ = Right . TracesL . lines
- lSet (TracesL xs) p = p { traces = xs }
- lSummarise (TracesL xs) = show (length xs) ++ " traces"
+    lParse _ = Right . TracesL . T.lines . T.pack
+    lSet (TracesL xs) p = p { traces = xs }
+    lSummarise (TracesL xs) = show (length xs) ++ " traces"
 
 instance Loadable OtRanking where
   lParse _ = resultToEither2 . decode
@@ -429,7 +440,7 @@ parseFromFileMaybeBinary p f =
 --   post-processing),
 data GeniResults = GeniResults
     { grResults        :: [GeniResult] -- ^ one per chart item
-    , grGlobalWarnings :: [String]     -- ^ usually from lexical selection
+    , grGlobalWarnings :: [Text]       -- ^ usually from lexical selection
     , grStatistics     :: Statistics   -- ^ things like number of chart items
                                        --   to help study efficiency
     }
@@ -442,14 +453,14 @@ isSuccess :: GeniResult -> Bool
 isSuccess (GSuccess _) = True
 isSuccess (GError _)   = False
 
-data GeniError = GeniError [String]
+data GeniError = GeniError [Text]
   deriving (Ord, Eq)
 
 data GeniSuccess = GeniSuccess
     { grLemmaSentence :: LemmaPlusSentence -- ^ “original” uninflected result 
-    , grRealisations  :: [String]          -- ^ results after morphology
+    , grRealisations  :: [Text]            -- ^ results after morphology
     , grResultType    :: ResultType
-    , grWarnings      :: [String]          -- ^ warnings “local” to this particular
+    , grWarnings      :: [Text]            -- ^ warnings “local” to this particular
                                            --   item, cf. 'grGlobalWarnings'
     , grDerivation    :: B.TagDerivation   -- ^ derivation tree behind the result
     , grOrigin        :: Integer           -- ^ normally a chart item id
@@ -460,14 +471,14 @@ data GeniSuccess = GeniSuccess
     } deriving (Ord, Eq)
 
 data GeniLexSel = GeniLexSel
-    { nlTree  :: String
-    , nlTrace :: [String]
+    { nlTree  :: Text
+    , nlTrace :: [Text]
     } deriving (Ord, Eq)
 
 data ResultType = CompleteResult | PartialResult deriving (Ord, Eq)
 
-instance Show GeniError where
-  show (GeniError xs) = intercalate "\n" $ map ("Error: " ++) xs
+instance Pretty GeniError where
+    pretty (GeniError xs) = T.intercalate "\n" $ map ("Error:" <+>) xs
 
 -- | Entry point! (the most useful function to know here)
 -- 
@@ -508,7 +519,7 @@ runGeni pstRef semInput builder = do
                                 }
      return (gresults, finalSt)
   where
-    showWarnings = intercalate "\n" . showGeniWarning
+    showWarnings = T.intercalate "\n" . showGeniWarning
 
 -- | This is a helper to 'runGenI'. It's mainly useful if you are building
 --   interactive GenI debugging tools.
@@ -606,25 +617,25 @@ showRealisations xs = unlines . map sho . Map.toList . histogram $ xs
    sho (x,c) = x ++ " (" ++ show c ++ " instances)"
 
 -- | No morphology! Pretend the lemma string is a sentence
-lemmaSentenceString :: GeniSuccess -> String
-lemmaSentenceString = unwords . map lpLemma . grLemmaSentence
+lemmaSentenceString :: GeniSuccess -> Text
+lemmaSentenceString = T.unwords . map lpLemma . grLemmaSentence
 
-prettyResult :: ProgState -> GeniSuccess -> String
+prettyResult :: ProgState -> GeniSuccess -> Text
 prettyResult pst nr =
-  concat . intersperse "\n" . map showOne . grRealisations $ nr
+    T.intercalate "\n" . map showOne . grRealisations $ nr
  where
-  showOne str = show theRanking  ++ ". " ++ str ++ "\n" ++ violations
-  violations  = prettyViolations tracesFn verbose (grViolations nr)
-  theRanking  = grRanking nr
-  verbose  = hasFlagP VerboseModeFlg (pa pst)
-  tracesFn = getTraces pst
+    showOne str = pretty theRanking <> ". " <> str <> "\n" <> violations
+    violations  = prettyViolations tracesFn verbose (grViolations nr)
+    theRanking  = grRanking nr
+    verbose  = hasFlagP VerboseModeFlg (pa pst)
+    tracesFn = getTraces pst
 
 -- | 'getTraces' is most likely useful for grammars produced by a
 --   metagrammar system.  Given a tree name, we retrieve the ``trace''
 --   information from the grammar for all trees that have this name.  We
 --   assume the tree name was constructed by GenI; see the source code for
 --   details.
-getTraces :: ProgState -> String -> [String]
+getTraces :: ProgState -> Text -> [Text]
 getTraces pst tname =
   filt $ concat [ ptrace t | t <- gr pst, pidname t == readPidname tname ]
   where
@@ -633,11 +644,11 @@ getTraces pst tname =
           theTs -> filter (`elem` theTs)
 
 -- | We assume the name was constructed by 'combineName'
-readPidname :: String -> String
+readPidname :: Text -> Text
 readPidname n =
-  case wordsBy (== ':') n of
-  (_:_:p:_) -> p
-  _         -> geniBug "readPidname or combineName are broken"
+    case T.splitOn ":" n of
+        (_:_:p:_) -> p
+        _         -> geniBug "NLP.GenI.readPidname or combineName are broken"
 
 -- --------------------------------------------------------------------
 -- Lexical selection
@@ -659,9 +670,11 @@ runLexSelection pstRef (tsem,_,litConstrs) = do
     let lexCand   = lsLexEntries selection
         candFinal = finaliseLexSelection (morphinf pst) tsem litConstrs (lsAnchored selection)
     -- status
-    when verbose $
-      do ePutStrLn $ "Lexical items selected:\n" ++ unlinesIndentAnd (showLexeme . fromFL . iword) lexCand
-         ePutStrLn $ "Trees anchored (family) :\n" ++ unlinesIndentAnd idname candFinal
+    when verbose $ T.hPutStrLn stderr . T.unlines $
+        "Lexical items selected:"
+        :  map (indent . showLexeme . fromFL . iword) lexCand
+        ++ ["Trees anchored (family) :"]
+        ++ map (indent . idname) candFinal
     -- warnings
     let semWarnings = case missingLiterals candFinal tsem of
                        [] -> []
@@ -670,9 +683,7 @@ runLexSelection pstRef (tsem,_,litConstrs) = do
                        , lsWarnings = mkGeniWarnings semWarnings `mappend` lsWarnings selection
                        }
   where
-    indent  x = ' ' : x
-    unlinesIndentAnd :: (x -> String) -> [x] -> String
-    unlinesIndentAnd f = unlines . map (indent . f)
+    indent  x = ' ' `T.cons` x
 
 -- | Grab the lexical selector from the config, or return the standard GenI
 --   version if none is supplied

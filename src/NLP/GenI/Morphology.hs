@@ -38,13 +38,15 @@ import Control.Concurrent (forkIO)
 import Control.Exception (catch, bracket, evaluate, IOException)
 import Data.Maybe (isNothing)
 import Data.Tree
-import qualified Data.Map as Map
 import Data.Typeable
 import System.Exit
-import System.Log.Logger
 import System.IO
 import System.Process
 import Prelude hiding (catch)
+import qualified Data.Map as Map
+import qualified Data.Text as T
+
+import System.Log.Logger
 import Text.JSON
 import Text.JSON.Pretty
 
@@ -119,7 +121,7 @@ attachMorphHelper mfs te =
       anchor = head $ filterTree fn tt
                where fn a = (ganchor a && gtype a == Lex)
   in case unifyFeat mfs (gup anchor) of
-     Nothing -> error ("Morphological unification failure on " ++ idname te)
+     Nothing -> error ("Morphological unification failure on " ++ T.unpack (idname te))
      Just (unf,subst) ->
       let -- perform replacements
           te2 = replace subst te 
@@ -142,9 +144,10 @@ setMorphAnchor n t =
 -- | Extracts the lemmas from a list of uninflected sentences.  This is used
 --   when the morphological generator is unavailable, doesn't work, etc.
 sansMorph :: LemmaPlusSentence -> MorphOutput
-sansMorph = MorphOutput [] . singleton . unwords . map lem
- where
-  lem (LemmaPlus l _) = l
+sansMorph =
+    MorphOutput [] . singleton . T.unwords . map lem
+  where
+    lem (LemmaPlus l _) = l
 
 -- | Converts a list of uninflected sentences into inflected ones by calling
 ---  the third party software.

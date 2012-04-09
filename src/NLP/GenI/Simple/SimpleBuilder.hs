@@ -17,6 +17,7 @@
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, LiberalTypeSynonyms, DeriveDataTypeable #-}
+{-# LANGUAGE OverloadedStrings #-}
 module NLP.GenI.Simple.SimpleBuilder (
    -- Types
    Agenda, AuxAgenda, Chart, SimpleStatus, SimpleState,
@@ -46,8 +47,11 @@ import Data.Generics ( Data )
 import Data.List (partition, foldl', sortBy, unfoldr )
 import Data.Maybe (isJust, isNothing, mapMaybe, fromMaybe)
 import Data.Ord (comparing)
+import Data.Text ( Text )
 import Data.Tree
 import qualified Data.Map as Map
+import qualified Data.Text as T
+
 import NLP.GenI.Automaton ( automatonPaths, NFA(..), addTrans )
 import NLP.GenI.Builder ( incrCounter, num_iterations, num_comparisons
                         , chart_size, SemBitMap, defineSemanticBits, semToBitVector, bitVectorToSem
@@ -59,6 +63,7 @@ import NLP.GenI.FeatureStructure ( unifyFeat, Flist )
 import NLP.GenI.General ( BitVector, mapMaybeM, mapTree', geniBug, preTerminals, repList )
 import NLP.GenI.GeniVal ( GeniVal, replace, DescendGeniVal(..), Subst, appendSubst )
 import NLP.GenI.Morphology.Types ( LemmaPlus(..) )
+import NLP.GenI.Pretty
 import NLP.GenI.Semantics ( sortSem, Sem )
 import NLP.GenI.Statistics (Statistics)
 import NLP.GenI.Tag
@@ -163,7 +168,7 @@ addToTrash te err = do
   unless disableGui $
     modify $ \s -> s { theTrash = te2 : theTrash s }
   where
-    te2 = modifyGuiStuff (\g -> g { siDiagnostic = err:siDiagnostic g }) te
+    te2 = modifyGuiStuff (\g -> g { siDiagnostic = err : siDiagnostic g }) te
 
 addToResults :: SimpleItem -> SimpleState ()
 addToResults te =
@@ -184,7 +189,7 @@ data SimpleItem = SimpleItem
  -- for generation sans semantics
  -- , siAdjlist :: [(String,Integer)] -- (node name, auxiliary tree id)
  , siNodes   :: [GNode GeniVal]    -- ^ actually a set
- , siDerived :: Tree String
+ , siDerived :: Tree Text
  , siRoot_    :: NodeName
  , siFoot_    :: Maybe NodeName
  --
@@ -196,12 +201,12 @@ data SimpleItem = SimpleItem
  } -- deriving (Show)
 
 
-lookupOrBug :: String -> SimpleItem -> NodeName -> GNode GeniVal
+lookupOrBug :: Text -> SimpleItem -> NodeName -> GNode GeniVal
 lookupOrBug fnname item k =
         case filter (gnnameIs k) (siNodes item) of
-          []   -> geniBug $ fnname ++ ": could not find node " ++ k 
+          []   -> geniBug $ T.unpack fnname ++ ": could not find node " ++ T.unpack k
           [gn] -> gn
-          _    -> geniBug $ fnname ++ ": more than one node named " ++ k
+          _    -> geniBug $ T.unpack fnname ++ ": more than one node named " ++ T.unpack k
 
 siRoot :: SimpleItem -> TagSite
 siRoot x = toTagSite . lookupOrBug "siRoot" x $ siRoot_ x
@@ -209,16 +214,16 @@ siRoot x = toTagSite . lookupOrBug "siRoot" x $ siRoot_ x
 siFoot :: SimpleItem -> Maybe TagSite
 siFoot x = (toTagSite . lookupOrBug "siFoot" x) `fmap` siFoot_ x
 
-instance DescendGeniVal (String, B.UninflectedDisjunction) where
+instance DescendGeniVal (Text, B.UninflectedDisjunction) where
   descendGeniVal m (s,d) = (s, descendGeniVal m d)
 
 -- | Things whose only use is within the graphical debugger
 data SimpleGuiItem = SimpleGuiItem
- { siHighlight :: [String] -- ^ nodes to highlight
+ { siHighlight :: [Text] -- ^ nodes to highlight
  -- if there are things wrong with this item, what?
  , siDiagnostic :: [String]
  , siFullSem :: Sem
- , siIdname  :: String
+ , siIdname  :: Text
  } deriving (Data, Typeable)
 
 emptySimpleGuiItem :: SimpleGuiItem
@@ -323,12 +328,14 @@ initSimpleGuiItem te = SimpleGuiItem
 
 renameNodesWithTidnum :: TagElem -> (TagElem, Tree NodeName)
 renameNodesWithTidnum te =
-  ( te { ttree = mapTree' renameNode theTree }
-  , mapTree' newName theTree )
-  where theTree = ttree te
-        renameNode n = n { gnname = newName n }
-        newName n = gnname n ++ "-" ++ tidstr
-        tidstr = show . tidnum $ te
+    ( te { ttree = mapTree' renameNode theTree }
+    , mapTree' newName theTree
+    )
+  where
+    theTree = ttree te
+    renameNode n = n { gnname = newName n }
+    newName n = gnname n `T.append` "-" `T.append` tidstr te
+    tidstr    = T.pack . show . tidnum
 
 -- --------------------------------------------------------------------
 -- Generate
@@ -438,7 +445,7 @@ finished :: Bool -> SimpleStatus -> GenStatus
 finished twophase st
   | reallyDone   = B.Finished
   | atMaxResults = B.Finished
-  | atMaxSteps   = B.Error $ "Max steps exceeded (" ++ show maxSteps ++ ")"
+  | atMaxSteps   = B.Error $ "Max steps exceeded" <+> parens (pretty maxSteps)
   | otherwise    = B.Active
  where
   reallyDone   = null (theAgenda st) && (not twophase || isAdjunctionPhase (step st)) 
@@ -509,7 +516,7 @@ iapplySubst twophase item1 item2 | siInitial item1 && closed item1 = {-# SCC "ap
                      item2 { siSubstnodes = stail ++ (siSubstnodes item1)
                            , siAdjnodes   = siAdjnodes item1 ++ siAdjnodes item2
                            , siDerived    = plugTree (siDerived item1) n (siDerived item2)
-                           , siDerivation = addToDerivation SubstitutionStep (item1,rOrigin) (item2,nOrigin,n)
+                           , siDerivation = addToDerivation SubstitutionStep (item1, rOrigin) (item2,nOrigin,n)
                            , siPendingTb  = pending
                            }
   in case doIt of
@@ -662,7 +669,7 @@ detectNa rawAux i = helper (map look (siAdjnodes i)) Map.empty []
 -- Helper functions for operations
 -- --------------------------------------------------------------------
 
-isRootOf :: SimpleItem -> String -> Bool
+isRootOf :: SimpleItem -> Text -> Bool
 isRootOf item n = n == siRoot_ item
 
 -- | Retrieves a list of trees from the chart which could be combined with the given agenda tree.
@@ -703,16 +710,16 @@ combineSimpleGuiItems hi item1 item2 =
        , siHighlight = hi
        }
 
-constrainAdj :: String -> Flist GeniVal -> SimpleItem -> SimpleItem
+constrainAdj :: Text -> Flist GeniVal -> SimpleItem -> SimpleItem
 constrainAdj gn newT g =
   g { siNodes = repList (gnnameIs gn) fixIt (siNodes g) }
   where fixIt n = n { gup = newT, gdown = [], gaconstr = True }
 
 -- Derivation trees
 
-addToDerivation :: (String -> String -> String -> DerivationStep)
-                -> (SimpleItem,String)
-                -> (SimpleItem,String,String)
+addToDerivation :: (Text -> Text -> Text -> DerivationStep)
+                -> (SimpleItem, Text)
+                -> (SimpleItem, Text, Text)
                 -> TagDerivation
 addToDerivation op (tc,tcOrigin) (tp,tpOrigin,tpSite) =
   let hp = siDerivation tp
@@ -818,7 +825,7 @@ tbUnifyNaNodes (n:ns) =
             return (n2:ns2, sub `appendSubst` sub2)
     else first (n:) `fmap` tbUnifyNaNodes ns
 
-type TbEither = Either String Subst
+type TbEither = Either Text Subst
 tbUnifyTree :: SimpleItem -> Bool
 tbUnifyTree item = {-# SCC "tbUnifyTree" #-}
   case foldl' tbUnifyNode (Right Map.empty) pending of

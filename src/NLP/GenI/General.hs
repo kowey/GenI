@@ -43,7 +43,7 @@ module NLP.GenI.General (
         isEmptyIntersect,
         groupByFM,
         insertToListMap,
-        histogram, showWithCount,
+        histogram,
         combinations,
         mapMaybeM,
         repList,
@@ -57,7 +57,7 @@ module NLP.GenI.General (
         -- * Bit vectors
         BitVector,
         showBitVector,
-       -- * Errors, logging and exceptions
+        -- * Errors, logging and exceptions
         geniBug,
         prettyException,
         mkLogname,
@@ -81,6 +81,7 @@ import Data.Text ( Text )
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import Data.Binary
+import Text.JSON
 
 -- ----------------------------------------------------------------------
 -- IO
@@ -246,16 +247,6 @@ insertToListMap k i m =
 histogram :: Ord a => [a] -> Map.Map a Int
 histogram xs = Map.fromListWith (+) $ zip xs (repeat 1)
 
--- | 
---
--- > showWithCount toBlah ""     (x,1) == "blah"
--- > showWithCount toBlah "foos" (x,1) == "blah"
--- > showWithCount toBlah ""     (x,4) == "blah ×4"
--- > showWithCount toBlah "foos" (x,4) == "blah ×4 foos"
-showWithCount :: (a -> String) -> String -> (a, Int) -> String
-showWithCount f _  (x, 1) = f x
-showWithCount f ts (x, n) = unwords $ [ f x, "×" ++ show n ] ++ if null ts then [] else [ts]
-
 buckets :: Ord b => (a -> b) -> [a] -> [ (b,[a]) ]
 buckets f = map (first head . unzip)
           . groupBy ((==) `on` fst)
@@ -406,3 +397,11 @@ type BitVector = Integer
 showBitVector :: Int -> BitVector -> String
 showBitVector min_ 0 = replicate min_ '0'
 showBitVector min_ x = showBitVector (min_ - 1) (shiftR x 1) ++ (show $ x .&. 1)
+
+-- ----------------------------------------------------------------------
+-- JSON
+-- ----------------------------------------------------------------------
+
+instance JSON Text where
+    readJSON = fmap T.pack . readJSON
+    showJSON = showJSON . T.unpack

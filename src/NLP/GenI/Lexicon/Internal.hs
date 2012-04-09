@@ -25,6 +25,7 @@ import Data.FullList
 import Data.Function
 import Data.List ( sortBy )
 import Data.Generics (Data)
+import Data.Text ( Text )
 import Data.Typeable (Typeable)
 
 import NLP.GenI.FeatureStructure
@@ -40,8 +41,8 @@ import Control.DeepSeq
 type Lexicon = [ILexEntry]
 data ILexEntry = ILE
     { -- normally just a singleton, useful for merging synonyms
-      iword       :: FullList String
-    , ifamname    :: String
+      iword       :: FullList Text
+    , ifamname    :: Text
     , iparams     :: [GeniVal]
     , iinterface  :: Flist GeniVal
     , ifilters    :: Flist GeniVal
@@ -52,8 +53,8 @@ data ILexEntry = ILE
 
 -- | See also 'mkFullILexEntry'
 --   This version comes with some sensible defaults.
-mkILexEntry :: FullList String -- ^ word
-            -> String          -- ^ family name
+mkILexEntry :: FullList Text   -- ^ word
+            -> Text            -- ^ family name
             -> [GeniVal]       -- ^ parameters list (deprecated)
             -> Flist GeniVal   -- ^ interface (use instead of params)
             -> Flist GeniVal   -- ^ filters
@@ -67,8 +68,8 @@ mkILexEntry word famname params interface filters equations sem =
    noSemPols l = replicate (length (lArgs l)) 0
 
 -- | Variant of 'mkILexEntry' but with more control
-mkFullILexEntry :: FullList String -- ^ word
-                -> String          -- ^ family name
+mkFullILexEntry :: FullList Text   -- ^ word
+                -> Text            -- ^ family name
                 -> [GeniVal]       -- ^ parameters list (deprecated)
                 -> Flist GeniVal   -- ^ interface (use instead of params)
                 -> Flist GeniVal   -- ^ filters

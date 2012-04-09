@@ -19,27 +19,27 @@
 module NLP.GenI.Polarity.Internal where
 
 import Control.Applicative
+import Data.List
+import Data.Maybe (isJust)
+import Data.Text (Text)
+import Data.Tree (flatten)
+import qualified Data.Map as Map
+import qualified Data.Set as Set
+import qualified Data.Text as T
+
+import Data.FullList hiding ( (++) )
+import NLP.GenI.Automaton
+import NLP.GenI.FeatureStructure
 import NLP.GenI.General
 import NLP.GenI.GeniVal
 import NLP.GenI.Polarity.Types
-
-import qualified Data.Set as Set
-import qualified Data.Map as Map
-import Data.List
-import Data.Maybe (isJust)
-import Data.Tree (flatten)
-import Data.Text (Text)
-import qualified Data.Text as T
-import Data.FullList hiding ( (++) )
-
-import NLP.GenI.Automaton
-import NLP.GenI.FeatureStructure
 import NLP.GenI.Pretty
 import NLP.GenI.Semantics (Literal)
-import NLP.GenI.TreeSchemata ( Ptype(Initial),
-    GNode, root, gup, gdown, gtype, GType(Subs),
+import NLP.GenI.Tag ( TagElem(..), TagItem(..) )
+import NLP.GenI.TreeSchema
+    ( Ptype(Initial)
+    , GNode, root, gup, gdown, gtype, GType(Subs),
     )
-import NLP.GenI.Tags(TagElem(..), TagItem(..))
 
 data PolarityDetectionResult = PD_UserError String
                              | PD_Nothing
@@ -68,7 +68,7 @@ detectPolsH polarityAttrs te =
     Initial -> substuff ++ rstuff
     _       -> substuff
   where
-   pdError e = e ++ " in " ++ tgIdName te -- ideally we'd propagate this
+   pdError e = e ++ " in " ++ T.unpack (tgIdName te) -- ideally we'd propagate this
    detectOrBust x1 x2 x3 x4 = pdToList pdError (detectPolarity x1 x2 x3 x4)
    --
    rup   = mkFeatStruct . gup . root .ttree $ te

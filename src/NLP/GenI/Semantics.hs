@@ -54,7 +54,7 @@ instance Ord Literal where
       tucked l = (lPredicate l, lHandle l : lArgs l)
 
 type Sem = [Literal]
-type LitConstr = (Literal, [String])
+type LitConstr = (Literal, [Text])
 type SemInput  = (Sem,Flist GeniVal,[LitConstr])
 
 instance Collectable Literal where

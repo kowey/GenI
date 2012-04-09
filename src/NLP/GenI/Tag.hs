@@ -45,8 +45,10 @@ import Control.Applicative ( (<$>), (<*>) )
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe, listToMaybe, mapMaybe, catMaybes)
 import Data.Tree
+import Data.Text ( Text )
 import qualified Data.Text as T
 
+import Control.DeepSeq
 import Data.Generics (Data)
 import Data.Typeable (Typeable)
 import Data.FullList hiding ( (++) )
@@ -57,12 +59,11 @@ import NLP.GenI.General (listRepNode, groupByFM, preTerminals, geniBug)
 import NLP.GenI.GeniVal ( GeniVal(..), DescendGeniVal(..), Collectable(..), Idable(..),
                           isConst,
                         )
-import NLP.GenI.Polarity.Types (PolarityKey(..), SemPols)
+import NLP.GenI.Polarity.Types ( PolarityKey(..), SemPols )
 import NLP.GenI.Pretty
 import NLP.GenI.Semantics ( Sem, Literal, emptyLiteral )
 import NLP.GenI.TreeSchema
     ( Ptype(..), GNode(..), GType(..), NodeName, lexemeAttributes )
-import Control.DeepSeq
 
 -- ----------------------------------------------------------------------
 -- Tags
@@ -81,28 +82,29 @@ addToTags t k e = Map.insertWith (++) k [e] t
 -- TagElem
 -- ----------------------------------------------------------------------
 
-data TagSite = TagSite { tsName :: String
-                       , tsUp   :: Flist GeniVal
-                       , tsDown :: Flist GeniVal
-                       , tsOrigin :: String
-                       }
+data TagSite = TagSite
+    { tsName :: Text
+    , tsUp   :: Flist GeniVal
+    , tsDown :: Flist GeniVal
+    , tsOrigin :: Text
+    }
   deriving (Eq, Ord, Data, Typeable)
 
-data TagElem = TE {
-                   idname       :: String,
-                   ttreename    :: String,
-                   tidnum       :: Integer,
-                   ttype        :: Ptype,
-                   ttree        :: Tree (GNode GeniVal),
-                   tsemantics   :: Sem,
-                   -- optimisation stuff
-                   -- (polarity key to charge interval)
-                   tpolarities  :: Map.Map PolarityKey (Int,Int),
-                   tinterface   :: Flist GeniVal,  -- for idxconstraints (pol)
-                   ttrace       :: [String],
-                   tsempols     :: [SemPols]
-                }
-             deriving (Eq, Data, Typeable)
+data TagElem = TE
+    { idname       :: Text
+    , ttreename    :: Text
+    , tidnum       :: Integer
+    , ttype        :: Ptype
+    , ttree        :: Tree (GNode GeniVal)
+    , tsemantics   :: Sem
+     -- optimisation stuff
+     -- (polarity key to charge interval)
+    , tpolarities  :: Map.Map PolarityKey (Int,Int)
+    , tinterface   :: Flist GeniVal  -- for idxconstraints (pol)
+    , ttrace       :: [Text]
+    , tsempols     :: [SemPols]
+    }
+  deriving (Eq, Data, Typeable)
 
 -- | Given a tree(GNode) returns a list of substitution or adjunction
 --   nodes, as well as remaining nodes with a null adjunction constraint.
@@ -123,9 +125,9 @@ toTagSite n = TagSite (gnname n) (gup n) (gdown n) (gorigin n)
 
 type TagDerivation = [ DerivationStep ]
 
-data DerivationStep = SubstitutionStep String String String
-                    | AdjunctionStep   String String String
-                    | InitStep         String
+data DerivationStep = SubstitutionStep Text Text Text
+                    | AdjunctionStep   Text Text Text
+                    | InitStep         Text
  deriving (Show, Ord, Eq)
 
 dsOp :: DerivationStep -> Char
@@ -133,17 +135,17 @@ dsOp (SubstitutionStep {}) = 's'
 dsOp (AdjunctionStep {})   = 'a'
 dsOp (InitStep {})         = 'i'
 
-dsChild :: DerivationStep -> String
+dsChild :: DerivationStep -> Text
 dsChild (SubstitutionStep c _ _) = c
 dsChild (AdjunctionStep c _ _ )  = c
 dsChild (InitStep c)             = c
 
-dsParent :: DerivationStep -> Maybe String
+dsParent :: DerivationStep -> Maybe Text
 dsParent (SubstitutionStep _ p _) = Just p
 dsParent (AdjunctionStep _ p _)   = Just p
 dsParent (InitStep _)             = Nothing
 
-dsParentSite :: DerivationStep -> Maybe String
+dsParentSite :: DerivationStep -> Maybe Text
 dsParentSite (SubstitutionStep _ _ s) = Just s
 dsParentSite (AdjunctionStep _ _ s)   = Just s
 dsParentSite (InitStep _)             = Nothing
@@ -151,7 +153,8 @@ dsParentSite (InitStep _)             = Nothing
 instance JSON DerivationStep where
  readJSON j = do
    jo <- fromJSObject `fmap` readJSON j
-   let field x = maybe (fail $ "Could not find: " ++ x) readJSON $ lookup x jo
+   let field x = maybe (fail $ "Could not find: " ++ x) readJSON
+               $ lookup x jo
    op    <- field "op"
    child <- field "child"
    case op of
@@ -160,8 +163,8 @@ instance JSON DerivationStep where
     "i" -> return (InitStep child)
     x   -> fail $ "Don't know about derivation operation '" ++ x ++ "'"
  showJSON x =
-     JSObject . toJSObject $ [ ("op",     showJSON  $ dsOp x)
-                             , ("child",  showJSON  $ dsChild x)
+     JSObject . toJSObject $ [ ("op",     showJSON $ dsOp x)
+                             , ("child",  showJSON $ dsChild x)
                              ] ++ catMaybes
                              [ (\v -> ("parent", showJSON v))      <$> dsParent x
                              , (\v -> ("parent-node", showJSON v)) <$> dsParentSite x
@@ -198,11 +201,16 @@ instance Idable TagElem where
 --   Anything below the second node is silently discarded.
 --   We assume the trees are pluggable; it is treated as a bug if
 --   they are not!
-plugTree :: Tree NodeName -> NodeName -> Tree NodeName -> Tree NodeName
+plugTree :: Tree NodeName
+         -> NodeName
+         -> Tree NodeName
+         -> Tree NodeName
 plugTree male n female =
-  case listRepNode (const male) (nmatch n) [female] of
-  ([r], True) -> r
-  _           -> geniBug $ "unexpected plug failure at node " ++ n
+    case listRepNode (const male) (nmatch n) [female] of
+         ([r], True) -> r
+         _           -> geniBug oops
+  where
+    oops = "plugTree: unexpected plug failure at node " ++ T.unpack n
 
 -- | Given two trees 'auxt' and 't', splice the tree 'auxt' into
 --   't' via the TAG adjunction rule.
@@ -211,14 +219,16 @@ spliceTree :: NodeName      -- ^ foot node of the aux tree
            -> NodeName      -- ^ place to adjoin in target tree
            -> Tree NodeName -- ^ target tree
            -> Tree NodeName
-spliceTree f auxT n targetT =
-  case findSubTree n targetT of -- excise the subtree at n
-  Nothing -> geniBug $ "Unexpected adjunction failure. " ++
-                       "Could not find node " ++ n ++ " of target tree."
-  Just eT -> -- plug the excised bit into the aux
-             let auxPlus = plugTree eT f auxT
-             -- plug the augmented aux at n
-             in  plugTree auxPlus n targetT
+spliceTree f auxT n top =
+    plugTree middle n top 
+  where
+    bottom = fromMaybe (geniBug oops) (findSubTree n top)
+    middle = plugTree bottom f auxT
+    oops = unwords
+        [ "NLP.GenI.Tag.spliceTree:"
+        , "Unexpected adjunction failure."
+        , "Could not find node " ++ T.unpack n ++ " of target tree."
+        ]
 
 nmatch :: NodeName -> Tree NodeName -> Bool
 nmatch n (Node a _) = a == n
@@ -238,8 +248,13 @@ setTidnums :: [TagElem] -> [TagElem]
 setTidnums xs = zipWith (\c i -> setOrigin $ c {tidnum = i}) xs [1..]
 
 setOrigin :: TagElem -> TagElem
-setOrigin te = te { ttree = fmap setLabel . ttree $ te }
- where setLabel g = g { gorigin = idname te ++ ":" ++ (show.tidnum) te }
+setOrigin te =
+    te { ttree = fmap setLabel . ttree $ te }
+  where
+    setLabel g = g { gorigin = nameNumber }
+    nameNumber = idname te
+        `T.append` ":"
+        `T.append` (T.pack . show . tidnum) te
 
 -- ----------------------------------------------------------------------
 -- TAG Item
@@ -247,16 +262,16 @@ setOrigin te = te { ttree = fmap setLabel . ttree $ te }
 
 -- | 'TagItem' is a generalisation of 'TagElem'.
 class TagItem t where 
-  tgIdName    :: t -> String
-  tgIdNum     :: t -> Integer
-  tgSemantics :: t -> Sem
-  tgTree      :: t -> Tree (GNode GeniVal)
+    tgIdName    :: t -> Text
+    tgIdNum     :: t -> Integer
+    tgSemantics :: t -> Sem
+    tgTree      :: t -> Tree (GNode GeniVal)
 
 instance TagItem TagElem where
-  tgIdName = idname
-  tgIdNum  = tidnum
-  tgSemantics = tsemantics
-  tgTree = ttree
+    tgIdName = idname
+    tgIdNum  = tidnum
+    tgSemantics = tsemantics
+    tgTree = ttree
 
 -- | Sorts trees into a Map.Map organised by the first literal of their
 --   semantics.  This is useful in at least three places: the polarity
@@ -274,7 +289,7 @@ mapBySem ts =
 -- Extracting sentences
 -- ----------------------------------------------------------------------
 
-type UninflectedDisjunction = ([String], Flist GeniVal)
+type UninflectedDisjunction = ([Text], Flist GeniVal)
 
 -- | Normally, extracting the sentences from a TAG tree would just
 --   consist of reading its leaves.  But if you want the generator to
@@ -289,17 +304,18 @@ tagLeaves :: TagElem -> [ (NodeName, UninflectedDisjunction) ]
 tagLeaves te = [ (gnname pt, (getLexeme t, gup pt)) | (pt,t) <- preTerminals . ttree $ te ]
 
 -- | Try in order: lexeme, lexeme attributes, node name
-getLexeme :: GNode GeniVal -> [String]
+getLexeme :: GNode GeniVal -> [Text]
 getLexeme node =
-  case glexeme node of
-    []   -> fromMaybe [gnname node] $ firstMaybe grab lexemeAttributes
-    lexs -> lexs
+    case glexeme node of
+        []   -> fromMaybe [gnname node] $ firstMaybe grab lexemeAttributes
+        lexs -> lexs
   where
-   grab la =
-     let match (AvPair a v) | isConst v  && a == la = map T.unpack . fromFL <$> gConstraints v
-         match _ = Nothing
-     in firstMaybe match guppy
-   guppy      = gup node
+    grab la = firstMaybe match guppy
+      where
+        match (AvPair a v) | isConst v && a == la =
+             fromFL <$> gConstraints v
+        match _ = Nothing
+    guppy = gup node
 
 firstMaybe :: (a -> Maybe b) -> [a] -> Maybe b
 firstMaybe fn = listToMaybe . mapMaybe fn
@@ -314,7 +330,7 @@ instance Pretty [TagSite] where
         T.intercalate "\n  " . map fn
       where
         fn (TagSite n t b o) = T.intercalate "/"
-            [ T.pack n, pretty t, pretty b, T.pack o ]
+            [ n, pretty t, pretty b, o ]
 
 -- ----------------------------------------------------------------------
 -- Diagnostic messages
