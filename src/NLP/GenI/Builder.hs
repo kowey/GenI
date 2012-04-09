@@ -61,7 +61,7 @@ import NLP.GenI.Automaton (NFA, automatonPaths, automatonPathSets, numStates, nu
 import NLP.GenI.Configuration
   ( getListFlagP, getFlagP, modifyFlagP, Params,
     DetectPolaritiesFlg(..),
-    ExtraPolaritiesFlg(..), MetricsFlg(..),
+    MetricsFlg(..),
     RootFeatureFlg(..),
     Optimisation(..), hasOpt,
   )
@@ -154,7 +154,7 @@ preInit input config =
  let (cand,_) = unzip $ inCands input
      seminput = inSemInput input
      --
-     extraPol = fromMaybe (Map.empty) $ getFlagP ExtraPolaritiesFlg config
+     extraPol = Map.empty
      polsToDetect = fromMaybe (error "there should be a default for --detect-pols")
                   $ getFlagP DetectPolaritiesFlg config
      rootFeat = mkFeatStruct $ getListFlagP RootFeatureFlg config

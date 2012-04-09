@@ -22,7 +22,6 @@ import Data.Text ( Text )
 import Data.Typeable
 
 import NLP.GenI.FeatureStructure ( Flist )
-import NLP.GenI.General ( Interval )
 import NLP.GenI.GeniVal ( GeniVal )
 import NLP.GenI.Polarity.Types
 
@@ -114,7 +113,6 @@ newtype DisableGuiFlg = DisableGuiFlg () deriving (Eq, Typeable)
 newtype DetectPolaritiesFlg = DetectPolaritiesFlg (Set.Set PolarityAttr) deriving (Eq, Typeable)
 newtype DumpDerivationFlg = DumpDerivationFlg () deriving (Eq, Typeable)
 newtype EarlyDeathFlg = EarlyDeathFlg () deriving (Eq, Typeable)
-newtype ExtraPolaritiesFlg = ExtraPolaritiesFlg (Map.Map PolarityKey Interval) deriving (Eq, Typeable)
 newtype FromStdinFlg = FromStdinFlg () deriving (Eq, Typeable)
 newtype HelpFlg = HelpFlg () deriving (Eq, Typeable)
 newtype InstructionsFileFlg = InstructionsFileFlg FilePath deriving (Eq, Typeable)
