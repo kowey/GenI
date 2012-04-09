@@ -19,6 +19,7 @@
 --   This can be seen as regression testing of GenI
 --   and also of grammars using GenI
 
+{-# LANGUAGE OverloadedStrings #-}
 module NLP.GenI.Regression (mkSuite) where
 
 import Control.Applicative ((<$>))
@@ -31,23 +32,15 @@ import Test.HUnit
 import Test.Framework
 import Test.Framework.Providers.HUnit
 import Test.Framework.Providers.QuickCheck2
+import qualified Data.Text as T
 
-
-import NLP.GenI.Btypes
-   ( SemInput, showSem
-   , TestCase(tcSem, tcName, tcExpected)
-   )
-import qualified NLP.GenI.Btypes as G
-import NLP.GenI.General
-  ( fst3,
-  )
-import NLP.GenI.Geni
+import NLP.GenI
 import NLP.GenI.Configuration
-  ( Params
-  , builderType , BuilderType(..)
-  , setFlagP, DisableGuiFlg(..)
-  , processInstructions, treatArgs, optionsForStandardGenI
-  )
+import NLP.GenI.Console
+import NLP.GenI.General ( fst3, )
+import NLP.GenI.Pretty
+import NLP.GenI.Semantics ( SemInput )
+import NLP.GenI.TestSuite ( TestCase(tcSem, tcName, tcExpected) )
 import NLP.GenI.Simple.SimpleBuilder
 
 mkSuite :: IO Test.Framework.Test
@@ -78,48 +71,50 @@ usualArgsBad p args =
 
 noGui = setFlagP DisableGuiFlg () 
 
+type TestMaker = ProgStateRef -> TestCase -> Test.Framework.Test
+
 goodSuite = genSuite goodSuiteCase
 badSuite  = genSuite badSuiteCase
 
+genSuite :: TestMaker -> String -> [String] -> IO Test.Framework.Test
 genSuite mkCase name xs = do
-  confArgs <- processInstructions =<< treatArgs optionsForStandardGenI xs
-  let pst = emptyProgState (noGui confArgs)
-  pstRef <- newIORef pst
-  loadEverything pstRef
-  suite <- case getListFlagP TestInstructionsFlg confArgs of
-             []  -> error "NLP.GenI.Regression: not expecting empty instructions"
-             [x] -> fst x
-             xs  -> error "NLP.GenI.Regression: not expecting multiple instructions"
-  return . testGroup name $ map (mkCase pstRef) suite
+    confArgs <- processInstructions =<< treatArgs optionsForStandardGenI xs
+    let pst = emptyProgState (noGui confArgs)
+    pstRef <- newIORef pst
+    loadEverything pstRef
+    suite <- case getListFlagP TestInstructionsFlg confArgs of
+                 []  -> error "NLP.GenI.Regression: not expecting empty instructions"
+                 [x] -> loadNextSuite pstRef x
+                 _   -> error "NLP.GenI.Regression: not expecting multiple instructions"
+    return . testGroup name $ map (mkCase pstRef) suite
 
-
--- goodSuiteCase :: ProgStateRef -> G.TestCase -> TestCase
-goodSuiteCase pstRef tc = testCase (tcName tc) $ do
+goodSuiteCase :: TestMaker
+goodSuiteCase pstRef tc = testCase (T.unpack (tcName tc)) $ do
   res <- runOnSemInput pstRef (tcSem tc)
   let sentences = map lemmaSentenceString (successes res)
       name = tcName tc
-      semStr = showSem . fst3 . tcSem $ tc
+      semStr = prettyStr . fst3 . tcSem $ tc
       mainMsg  = "for " ++ semStr ++ ",  got no results"
   assertBool "got result" (not (null sentences))
   forM_ (tcExpected tc) $ \e ->
-      assertBool ("got result: " ++ e) (e `elem` sentences)
+      assertBool ("got result: " ++ T.unpack e) (e `elem` sentences)
 
-badSuiteCase pstRef tc = testCase (tcName tc) $ do
+badSuiteCase :: TestMaker
+badSuiteCase pstRef tc = testCase (T.unpack (tcName tc)) $ do
   res <- runOnSemInput pstRef (tcSem tc)
   let sentences = map lemmaSentenceString (successes res)
   assertBool "no results" (null sentences)
 
 runOnSemInput :: ProgStateRef -> SemInput -> IO [GeniResult]
-runOnSemInput pstRef semInput =
-  do modifyIORef pstRef (resetLocal semInput)
-     pst <- readIORef pstRef
-     let config = pa pst
-         go = case builderType config of
-                SimpleBuilder -> helper simpleBuilder_2p
-                SimpleOnePhaseBuilder -> helper simpleBuilder_1p
-     sort `fmap` go
+runOnSemInput pstRef semInput = do
+    pst <- readIORef pstRef
+    let config = pa pst
+        go = case builderType config of
+               SimpleBuilder -> helper simpleBuilder_2p
+               SimpleOnePhaseBuilder -> helper simpleBuilder_1p
+    sort `fmap` go
   where
-    helper builder = fst3 `fmap` runGeni pstRef builder
+    helper b = (grResults . fst) <$> runGeni pstRef semInput b
 
 successes :: [GeniResult] -> [GeniSuccess]
 successes xs = [ s | GSuccess s <- xs ]
