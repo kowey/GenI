@@ -1,22 +1,19 @@
 GenI 0.22, XX
 ----------------------
-- NON BACKWARD-COMPATIBLE CHANGES
+- NEW FEATURES AND UI CHANGES
 
   * GHC 7.0.3 or higher required (Haskell Platform preferred)
-
-- NEW FEATURES
-
-  * Somewhat safer and easier to navigate API
+  * Simpler install : geni and geni-gui are now separate executables
+  * --batchdir now optional (GenI creates a default temporary directory
+    if you don't specify one)
   * New logging mechanism (not extensively used yet)
-  * Customisable arbitrary lexical selection function
   * Polarity filtering no longer requires all subst/root nodes to have
     the feature defined.
-  * Capping
+  * New input tab for graphical generation
+  * Capping results
     * --maxsteps to cap each test case at a certain number of chart
                  generation steps
     * --maxresults
-  * TODO: make sure UTF-8 stuff still works
-  * Logging facility
   * More compact warnings output
   * The following optimisations are now obligatory
     - early null-adjunction detection
@@ -24,14 +21,31 @@ GenI 0.22, XX
   * Faster lexical selection
     - duplicates trimed
     - singleton variables are anonymised
+  * Make '-r' a short command line option for '--rootfeat'.
+  * Tree schemata support “fancy” disjunctions of unification variables
+    These are not atomic disjunctions, but they will be squashed upon
+    lexical selection
+  * New time metric for statistics collection
+
+- LIBRARY CHANGES
+
+  * Somewhat safer and easier to navigate API
+  * Customisable arbitrary lexical selection action
+  * Customisable arbitrary morpholical realiser action
 
 - NEW TOOLS
 
   * geniserver is now an HTTP server (and a library so you can write
     your own geni-based web servers)
+  * genireport provides a summary of test suite results
 
 - BUGFIXES
 
+  * Do top/bottom unification on na-constrained nodes during initialisation.
+  * Avoid accepting 'aconstr:noadj' as an attribute.
+  * #33 - Make the root feature flag required, with no defaults.
+  * #39: reject malformed root feature input.
+  * #49 - correct order that leaf nodes are returned.
   * one-tree results now have derivation trees
 
 GenI 0.20, 29 Sep 2009
