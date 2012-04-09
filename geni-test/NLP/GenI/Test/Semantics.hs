@@ -9,6 +9,7 @@ import qualified Data.Map as Map
 
 import NLP.GenI.Semantics
 import NLP.GenI.GeniVal
+import NLP.GenI.Pretty
 import NLP.GenI.Test.GeniVal hiding (  suite )
 
 import Test.HUnit
@@ -26,6 +27,9 @@ import Test.Framework.Providers.SmallCheck
 -- ----------------------------------------------------------------------
 -- Testing
 -- ----------------------------------------------------------------------
+
+instance Show Literal where
+    show = prettyStr
 
 suite :: Test.Framework.Test
 suite = testGroup "NLP.GenI.Semantics"
@@ -168,7 +172,7 @@ instance Arbitrary Literal where
                      <*> shrinkList2 shrink (lArgs l)
 
 instance Show GTestLiteral where
-  show = showLiteral . fromGTestLiteral
+  show = show . fromGTestLiteral
 
 instance Arbitrary GTestLiteral where
  arbitrary =

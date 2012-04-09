@@ -23,7 +23,9 @@ import Test.Framework.Providers.HUnit
 import Test.Framework.Providers.SmallCheck
 -- import NLP.GenI.Test.SmallCheck.GeniVal as SC
 import NLP.GenI.GeniVal
+import NLP.GenI.Pretty
 import NLP.GenI.Test.General ()
+import NLP.GenI.Test.Show
 
 suite :: Test.Framework.Test
 suite =
@@ -154,7 +156,7 @@ testBackPropagation =
  where
   n = 3
   cx = mkGConstNone "X"
-  leftStrs = map show [1..n]
+  leftStrs = map (T.pack . show) [1..n]
   left  = map (flip mkGVar Nothing) leftStrs
   right = drop 1 left ++ [cx]
   expected = Just (expectedResult, expectedSubst)
@@ -219,7 +221,7 @@ arbitraryGConst :: Gen GeniVal
 arbitraryGConst = mkGConst <$> arbitraryConstraints fromPrintString
 
 arbitraryGVar :: Gen GeniVal
-arbitraryGVar = mkGVar <$> (fromGTestString2 `fmap` arbitrary)
+arbitraryGVar = mkGVar <$> (T.pack . fromGTestString2 <$> arbitrary)
                        <*> (maybeOf (arbitraryConstraints fromPrintString))
 
 arbitraryConstraints :: Arbitrary a => (a -> String) -> Gen (FullList T.Text)
@@ -236,13 +238,13 @@ newtype GeniValLite = GeniValLite { fromGeniValLite :: GeniVal }
 instance Arbitrary GeniValLite where
   arbitrary = GeniValLite `fmap`
     oneof [ mkGConst <$> arbitraryConstraints fromGTestString
-          , mkGVar   <$> (fromGTestString2 `fmap` arbitrary)
+          , mkGVar   <$> (T.pack . fromGTestString2 <$> arbitrary)
                      <*> (maybeOf (arbitraryConstraints fromGTestString))
           , return mkGAnon
           ]
 
 instance Show GeniValLite where
-  show = show . fromGeniValLite
+  show = prettyStr . fromGeniValLite
 
 instance Collectable GeniValLite where
   collect = collect . fromGeniValLite

@@ -22,11 +22,19 @@ import NLP.GenI.General
 import NLP.GenI.GeniShow
 import NLP.GenI.GeniVal
 import NLP.GenI.Parser
+import NLP.GenI.Pretty
 import NLP.GenI.Semantics
 import NLP.GenI.Test.FeatureStructures ()
 import NLP.GenI.Test.Lexicon ()
 import NLP.GenI.Test.GeniVal ()
 import NLP.GenI.Test.Semantics ()
+
+instance Show (AvPair GeniVal) where
+    show = geniShow
+
+instance Show ILexEntry where
+    show = geniShow
+
 
 suite :: Test.Framework.Test
 suite =

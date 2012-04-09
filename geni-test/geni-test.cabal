@@ -22,6 +22,7 @@ Library
                  , NLP.GenI.Test.Morphology
                  , NLP.GenI.Test.Polarity
                  , NLP.GenI.Test.Semantics
+                 , NLP.GenI.Test.Show
                  , NLP.GenI.Test.Simple.SimpleBuilder
                  , NLP.GenI.Test.Tags
                  , NLP.GenI.Test.TreeSchemata
