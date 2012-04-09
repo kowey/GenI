@@ -10,6 +10,7 @@ import Data.FullList hiding ( (++) )
 import Data.List ( nub, isPrefixOf )
 import GHC.Exts ( IsString(..) )
 import Data.Maybe (isJust)
+import Data.Text ( Text )
 import qualified Data.Text as T
 import qualified Data.Map as Map
 import Test.HUnit
@@ -172,9 +173,9 @@ instance IsString GeniVal where
   fromString = mkGConstNone . T.pack
 
 -- Definition of Arbitrary GeniVal for QuickCheck
-newtype PrintString = PrintString { fromPrintString :: String }
-newtype GTestString = GTestString { fromGTestString :: String }
-newtype GTestString2 = GTestString2 { fromGTestString2 :: String }
+newtype PrintString = PrintString { fromPrintString :: Text }
+newtype GTestString = GTestString { fromGTestString :: Text }
+newtype GTestString2 = GTestString2 { fromGTestString2 :: Text }
 data TestPair = TestPair [GeniVal] [GeniVal]
 
 instance Collectable TestPair where
@@ -184,12 +185,12 @@ instance DescendGeniVal TestPair where
   descendGeniVal f (TestPair x y) = TestPair (descendGeniVal f x) (descendGeniVal f y)
 
 instance Arbitrary PrintString where
-  arbitrary = PrintString `fmap` (listOf1 (arbitrary `suchThat` isPrint))
+  arbitrary = (PrintString . T.pack) <$> listOf1 (arbitrary `suchThat` isPrint)
 
 instance Arbitrary GTestString where
   arbitrary = GTestString `fmap` elements gTestStrings
 
-gTestStrings :: [String]
+gTestStrings :: [Text]
 gTestStrings =
     [ "a", "apple" , "b", "banana", "c", "carrot", "d", "durian"
     , "e", "eggplant", "f", "fennel" , "g", "grape" ]
@@ -221,16 +222,14 @@ arbitraryGConst :: Gen GeniVal
 arbitraryGConst = mkGConst <$> arbitraryConstraints fromPrintString
 
 arbitraryGVar :: Gen GeniVal
-arbitraryGVar = mkGVar <$> (T.pack . fromGTestString2 <$> arbitrary)
+arbitraryGVar = mkGVar <$> (fromGTestString2 <$> arbitrary)
                        <*> (maybeOf (arbitraryConstraints fromPrintString))
 
-arbitraryConstraints :: Arbitrary a => (a -> String) -> Gen (FullList T.Text)
+arbitraryConstraints :: Arbitrary a => (a -> Text) -> Gen (FullList Text)
 arbitraryConstraints f = do
-  x  <- str              <$> arbitrary
-  xs <- map str . take 3 <$> arbitrary
-  return (x !: xs)
- where
-  str = T.pack . f
+    x  <- f              <$> arbitrary
+    xs <- map f . take 3 <$> arbitrary
+    return (x !: xs)
 
 -- | a small subset of GeniVal for some more elaborate tests
 newtype GeniValLite = GeniValLite { fromGeniValLite :: GeniVal }
@@ -238,7 +237,7 @@ newtype GeniValLite = GeniValLite { fromGeniValLite :: GeniVal }
 instance Arbitrary GeniValLite where
   arbitrary = GeniValLite `fmap`
     oneof [ mkGConst <$> arbitraryConstraints fromGTestString
-          , mkGVar   <$> (T.pack . fromGTestString2 <$> arbitrary)
+          , mkGVar   <$> (fromGTestString2 <$> arbitrary)
                      <*> (maybeOf (arbitraryConstraints fromGTestString))
           , return mkGAnon
           ]
@@ -262,6 +261,10 @@ instance Arbitrary a => Arbitrary (List1 a) where
 
 arbitrary1 :: Arbitrary a => Gen [a]
 arbitrary1 = listOf1 arbitrary
+
+arbitraryText1 :: Gen Text
+arbitraryText1 = T.pack <$> arbitrary1
+
 
 -- ----------------------------------------------------------------------
 -- shrinkList 2

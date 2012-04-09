@@ -9,6 +9,7 @@ import Control.Monad ( liftM, liftM2 )
 import GHC.Exts ( IsString(..) )
 import Data.FullList ( (!:) )
 import Data.Maybe (isJust)
+import Data.Text ( Text )
 import qualified Data.Map as Map
 import qualified Data.Text as T
 import Test.HUnit
@@ -20,13 +21,13 @@ import Test.Framework.Providers.HUnit
 import Test.Framework.Providers.QuickCheck2
 
 import NLP.GenI.GeniVal
-import NLP.GenI.Test.FeatureStructures
+import NLP.GenI.Test.FeatureStructure
 import NLP.GenI.Test.General ( fullListOf )
 import NLP.GenI.Test.GeniVal ( arbitrary1, gTestStrings )
 import NLP.GenI.Test.Semantics () -- instance Arbitrary
-import NLP.GenI.FeatureStructures
+import NLP.GenI.FeatureStructure
 import NLP.GenI.Lexicon
-import NLP.GenI.GeniParsers ( geniLanguageDef )
+import NLP.GenI.Parser ( geniLanguageDef )
 import Text.ParserCombinators.Parsec.Token ( reservedNames )
 
 suite :: Test.Framework.Test
@@ -50,7 +51,7 @@ instance Arbitrary ILexEntry where
         <*> arbitrary
         <*> arbitrary
      where
-      nonEmptyStr :: Gen String
+      nonEmptyStr :: Gen Text
       nonEmptyStr = elements gTestStrings
   shrink l = do
     mkILexEntry

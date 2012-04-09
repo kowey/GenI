@@ -17,7 +17,7 @@
 
 {-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE StandaloneDeriving #-}
-module NLP.GenI.Test.TreeSchemata where
+module NLP.GenI.Test.TreeSchema where
 
 import Data.Tree
 
@@ -28,9 +28,9 @@ import Test.Framework.Providers.HUnit
 import Test.Framework.Providers.QuickCheck2
 
 import qualified Data.Text  as T
-import NLP.GenI.FeatureStructures
+import NLP.GenI.FeatureStructure
 import NLP.GenI.GeniVal
-import NLP.GenI.TreeSchemata
+import NLP.GenI.TreeSchema
 
 import NLP.GenI.Test.GeniVal hiding ( suite )
 
@@ -83,7 +83,7 @@ sillyTreeAux =
 
 emptyNodeCat x = emptyGN
   { gnname = x
-  , gup    = [catAv (mkGConstNone (T.pack x))]
+  , gup    = [catAv (mkGConstNone x)]
   }
 
 sillyLexNode = emptyGN

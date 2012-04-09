@@ -11,8 +11,8 @@ import Test.Framework.Providers.HUnit
 import Test.Framework.Providers.QuickCheck2
 
 import NLP.GenI.Test.GeniVal ( gTestStrings )
-import NLP.GenI.FeatureStructures
-import NLP.GenI.GeniParsers ( geniLanguageDef )
+import NLP.GenI.FeatureStructure
+import NLP.GenI.Parser ( geniLanguageDef )
 import NLP.GenI.Morphology
 import Text.JSON
 
@@ -21,8 +21,6 @@ suite =
  testGroup "NLP.GenI.Morphology"
   [ testCase "JSON parsing" testMorphOutputJson
   ]
-
-deriving instance Show MorphOutput
 
 testMorphOutputJson = do
   assertEqual "" (Ok sansWarnings) (decode "[\"john loves mary\", \"mary is loved by john\"]")

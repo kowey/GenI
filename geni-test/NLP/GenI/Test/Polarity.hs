@@ -35,16 +35,15 @@ import Test.Framework
 import Test.Framework.Providers.HUnit
 import Test.Framework.Providers.QuickCheck2
 
-import NLP.GenI.FeatureStructures
+import NLP.GenI.FeatureStructure
 import NLP.GenI.GeniVal
 import NLP.GenI.Polarity
 import NLP.GenI.Polarity.Internal
-import NLP.GenI.Tags
+import NLP.GenI.Tag
 
-import NLP.GenI.Test.Tags hiding ( suite )
+import NLP.GenI.Test.Tag hiding ( suite )
 
 deriving instance Eq   PolarityDetectionResult
-deriving instance Show PolarityDetectionResult
 
 suite :: Test.Framework.Test
 suite =

@@ -11,9 +11,11 @@ import Control.Monad.Writer
 import GHC.Exts ( IsString(..) )
 import Data.FullList ( (!:) )
 import Data.Maybe (isJust)
+import Data.Text ( Text )
+import Data.Tree
 import qualified Data.Map as Map
 import qualified Data.Text as T
-import Data.Tree
+
 import Test.HUnit
 import Test.QuickCheck hiding (collect, Failure)
 import Test.QuickCheck.Arbitrary
@@ -23,16 +25,16 @@ import Test.Framework.Providers.HUnit
 import Test.Framework.Providers.QuickCheck2
 
 import NLP.GenI.GeniVal
-import NLP.GenI.Test.FeatureStructures
+import NLP.GenI.Test.FeatureStructure
 import NLP.GenI.Test.General ( fullListOf )
-import NLP.GenI.Test.GeniVal ( arbitrary1, gTestStrings )
+import NLP.GenI.Test.GeniVal ( arbitrary1, arbitraryText1, gTestStrings )
 import NLP.GenI.Test.Semantics () -- instance Arbitrary
-import NLP.GenI.Test.TreeSchemata
-import NLP.GenI.FeatureStructures
+import NLP.GenI.Test.TreeSchema
+import NLP.GenI.FeatureStructure
 import NLP.GenI.LexicalSelection
 import NLP.GenI.LexicalSelection.Types
-import NLP.GenI.GeniParsers ( geniLanguageDef )
-import NLP.GenI.TreeSchemata
+import NLP.GenI.Parser ( geniLanguageDef )
+import NLP.GenI.TreeSchema
 import Text.ParserCombinators.Parsec.Token ( reservedNames )
 
 suite :: Test.Framework.Test
@@ -41,14 +43,6 @@ suite =
   [ t_parsePathEq
   , t_maybeEnrichBy
   ]
-
-deriving instance Show PathEqLhs
-deriving instance Show NodePathEqLhs
-deriving instance Show TopBottom
--- deriving instance Show (GNode [GeniVal])
-deriving instance Show (AvPair [GeniVal])
-deriving instance Show SchemaNode
-deriving instance Show SchemaTree
 
 t_parsePathEq :: Test.Framework.Test
 t_parsePathEq = testGroup "parsePathEq"
@@ -67,8 +61,9 @@ t_maybeEnrichBy = testGroup "maybeEnrinchBy"
   , tc Nothing    (PeqLex  "b1", mkGVarNone "X")
   ]
  where
-  tc res eq@(eqLhs, v) = testCase (showPathEqLhs (PeqJust eqLhs) ++ ":" ++ show v)
-                       $ assertEqual "" res (fmap fst $ maybeEnrichBy t eq)
+  tc res eq@(eqLhs, v) =
+      testCase ((T.unpack . showPathEqLhs $ PeqJust eqLhs) ++ ":" ++ show v)
+      $ assertEqual "" res (fmap fst $ maybeEnrichBy t eq)
   --
   tB1 = t { tree = mkT rB1 s1  l  s2 }
   tB2 = t { tree = mkT rB2 s1  l  s2 }
@@ -110,7 +105,7 @@ prop_parsePathEq_roundTrip :: PathEqLhs -> Bool
 prop_parsePathEq_roundTrip eq = eq == eq2
  where
   str = showPathEqLhs eq
-  eq2 = fst . runWriter . parsePathEq . T.pack $ str
+  eq2 = fst . runWriter . parsePathEq $ str
 
 instance Arbitrary TopBottom where
   arbitrary = elements [ Top, Bottom ]
@@ -118,14 +113,15 @@ instance Arbitrary TopBottom where
 instance Arbitrary NodePathEqLhs where
   arbitrary = PeqFeat <$> nodeName <*> arbitrary <*> attribute
    where
-    nodeName  = dotless <$> arbitrary1
-    attribute = T.pack . dotless <$> arbitrary1
+    nodeName  = dotless <$> arbitraryText1
+    attribute = dotless <$> arbitraryText1
 
-dotless "." = "x"
-dotless xs  = filter (/= '.') xs
+dotless :: Text -> Text
+dotless t | t == "."  = "x"
+          | otherwise = T.filter (/= '.') t
 
 instance Arbitrary PathEqLhs where
-  arbitrary = oneof [ (PeqInterface . T.pack . dotless) <$> arbitrary1
-                    , (PeqUnknown   . T.pack . dotless) <$> arbitrary1
+  arbitrary = oneof [ (PeqInterface . dotless) <$> arbitraryText1
+                    , (PeqUnknown   . dotless) <$> arbitraryText1
                     , PeqJust      <$> arbitrary
                     ]

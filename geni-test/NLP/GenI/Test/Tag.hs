@@ -17,7 +17,7 @@
 
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StandaloneDeriving #-}
-module NLP.GenI.Test.Tags where
+module NLP.GenI.Test.Tag where
 
 import qualified Data.Map as Map
 
@@ -27,17 +27,17 @@ import Test.Framework
 import Test.Framework.Providers.HUnit
 import Test.Framework.Providers.QuickCheck2
 
-import NLP.GenI.FeatureStructures
+import NLP.GenI.FeatureStructure
 import NLP.GenI.GeniVal
 import NLP.GenI.Semantics
-import NLP.GenI.TreeSchemata
-import NLP.GenI.Tags
+import NLP.GenI.TreeSchema
+import NLP.GenI.Tag
 
-import NLP.GenI.Test.TreeSchemata hiding ( suite )
+import NLP.GenI.Test.TreeSchema hiding ( suite )
 
 suite :: Test.Framework.Test
 suite =
- testGroup "NLP.GenI.Tags"
+ testGroup "NLP.GenI.Tag"
   []
 
 sillyTagElem :: TagElem

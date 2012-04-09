@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module NLP.GenI.Test.FeatureStructures where
+module NLP.GenI.Test.FeatureStructure where
 
 import Control.Arrow ( (***) )
 import Control.Monad ( liftM, liftM2 )
@@ -19,13 +19,13 @@ import Test.Framework.Providers.QuickCheck2
 
 import NLP.GenI.GeniVal
 import NLP.GenI.Test.GeniVal ( gTestStrings, shrinkText )
-import NLP.GenI.FeatureStructures
-import NLP.GenI.GeniParsers ( geniLanguageDef )
+import NLP.GenI.FeatureStructure
+import NLP.GenI.Parser ( geniLanguageDef )
 import Text.ParserCombinators.Parsec.Token ( reservedNames )
 
 suite :: Test.Framework.Test
 suite =
- testGroup "NLP.GenI.FeatureStructures"
+ testGroup "NLP.GenI.FeatureStructure"
   [
   ]
 
@@ -41,7 +41,7 @@ instance Arbitrary v => Arbitrary (AvPair v) where
     return (AvPair a v)
 
 arbitraryAtt =
-  T.pack `liftM` elements (reservedNames geniLanguageDef ++ gTestStrings)
+    elements (map T.pack (reservedNames geniLanguageDef) ++ gTestStrings)
 
 shrinkFeatStruct :: Arbitrary a => FeatStruct a -> [FeatStruct a]
 shrinkFeatStruct = fmap Map.fromList

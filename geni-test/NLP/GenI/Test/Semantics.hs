@@ -28,9 +28,6 @@ import Test.Framework.Providers.SmallCheck
 -- Testing
 -- ----------------------------------------------------------------------
 
-instance Show Literal where
-    show = prettyStr
-
 suite :: Test.Framework.Test
 suite = testGroup "NLP.GenI.Semantics"
  [ testGroup "subsumeLiteral"
