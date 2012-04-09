@@ -1,4 +1,0 @@
-#!/bin/sh
-
-runhaskell Setup.lhs build
-dist/build/geniconvert/geniconvert -f tagml -t genib -o /tmp/toy.genib profiling/toy.xml +RTS -sstderr

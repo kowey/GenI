@@ -1,8 +1,0 @@
-#!/bin/sh
-
-chmod u+x profiling/setup
-chmod u+x profiling/run
-chmod u+x profiling/compare
-chmod u+x profiling/save
-runhaskell Setup.lhs configure --enable-executable-profiling
-

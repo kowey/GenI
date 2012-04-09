@@ -1,6 +1,0 @@
-#!/bin/sh
-
-darcs push --no-set-default ../../PerfGeniStable
-cd ../../PerfGeniStable/geniconvert
-runhaskell Setup.lhs build
-profiling/run
