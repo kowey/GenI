@@ -16,8 +16,9 @@
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 {-# LANGUAGE CPP, FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
-module NLP.GenI.GeniParsers (
+module NLP.GenI.Parser (
   -- * Test suites
   geniTestSuite, geniSemanticInput, geniTestSuiteString,
   geniDerivations,
@@ -35,23 +36,10 @@ module NLP.GenI.GeniParsers (
   module Text.ParserCombinators.Parsec
 ) where
 
-import NLP.GenI.FeatureStructures ( Flist, AvPair(..), sortFlist )
-import NLP.GenI.General (isGeniIdentLetter)
-import NLP.GenI.GeniShow (GeniShow(geniShow))
-import NLP.GenI.GeniVal ( GeniVal, mkGConst, mkGConstNone, mkGVar, mkGAnon, isAnon )
-import NLP.GenI.Lexicon ( mkFullILexEntry, ILexEntry(..) )
-import NLP.GenI.Pretty ( prettyStr )
-import NLP.GenI.Semantics ( Literal(..), Sem, sortSem, LitConstr, SemInput )
-import NLP.GenI.Tags (TagElem(..), setTidnums)
-import NLP.GenI.TestSuite ( TestCase(..) )
-import NLP.GenI.TreeSchemata (SchemaTree, Ttree(..), Ptype(..), GNode(..), GType(..) )
 
-import BoolExp
-import Data.FullList ( FullList, Listable(..) )
-
-import Control.Applicative ( (<*>), (<$>) )
+import Control.Applicative ( (<*>), (<$>), (*>) )
 import Control.Monad (liftM, when)
-import Data.List (sort)
+import Data.Text ( Text )
 import qualified Data.Text as T
 import qualified Data.Map  as Map
 import qualified Data.Tree as T
@@ -65,6 +53,21 @@ import Text.ParserCombinators.Parsec.Token (TokenParser,
 import qualified Text.ParserCombinators.Parsec.Token as P
 import qualified Text.ParserCombinators.Parsec.Expr  as P
 import qualified System.IO.UTF8 as UTF8
+
+import NLP.GenI.FeatureStructure ( Flist, AvPair(..), sortFlist )
+import NLP.GenI.General (isGeniIdentLetter)
+import NLP.GenI.GeniShow (GeniShow(geniShow))
+import NLP.GenI.GeniVal ( GeniVal, mkGConst, mkGConstNone, mkGVar, mkGAnon, isAnon )
+import NLP.GenI.Lexicon ( mkFullILexEntry, ILexEntry(..) )
+import NLP.GenI.Pretty ( prettyStr )
+import NLP.GenI.Semantics ( Literal(..), Sem, sortSem, LitConstr, SemInput )
+import NLP.GenI.Tag (TagElem(..), setTidnums)
+import NLP.GenI.TestSuite ( TestCase(..) )
+import NLP.GenI.TreeSchema (SchemaTree, Ttree(..), Ptype(..), GNode(..), GType(..) )
+
+import BoolExp
+import Data.FullList ( FullList, Listable(..) )
+
 
 -- General notes
 
@@ -110,13 +113,13 @@ geniValue =   ((try $ anonymous) <?> "_ or ?_")
           <|> (variable   <?> "a variable")
   where
     question = "?"
-    disjunction = fmap T.pack <$> geniAtomicDisjunction
+    disjunction = geniAtomicDisjunction
     constants :: Parser GeniVal
     constants = mkGConst <$> disjunction
     variable :: Parser GeniVal
     variable =
       do symbol question
-         v <- T.pack <$> identifier
+         v <- tidentifier
          mcs <- option Nothing $ (symbol "/" >> Just `liftM` disjunction)
          return (mkGVar v mcs)
     anonymous :: Parser GeniVal
@@ -125,12 +128,12 @@ geniValue =   ((try $ anonymous) <?> "_ or ?_")
          symbol "_"
          return mkGAnon
 
-geniAtomicDisjunction :: Parser (FullList String)
+geniAtomicDisjunction :: Parser (FullList Text)
 geniAtomicDisjunction = do
-  (x:xs) <- sepBy1 atom (symbol "|")
-  return (x !: xs)
- where
-  atom = looseIdentifier <|> stringLiteral
+    (x:xs) <- sepBy1 (T.pack <$> atom) (symbol "|")
+    return (x !: xs)
+  where
+    atom = looseIdentifier <|> stringLiteral
 
 geniFancyDisjunction :: Parser [GeniVal]
 geniFancyDisjunction = geniValue `sepBy1` symbol ";"
@@ -187,14 +190,14 @@ geniSemanticInput =
      --
      setHandle i (Literal h pred_ par) =
        let h2 = if isAnon h
-                then mkGConstNone (T.pack "genihandle" `T.append` T.pack (show i))
+                then mkGConstNone ("genihandle" `T.append` T.pack (show i))
                 else h
        in Literal h2 pred_ par
      --
-     literalAndConstraint :: Parser (Literal, [String])
+     literalAndConstraint :: Parser LitConstr
      literalAndConstraint =
        do l <- geniLiteral
-          t <- option [] $ squares $ many identifier
+          t <- option [] $ squares $ many tidentifier
           return (l,t)
 
 -- | The original string representation of the semantics (for gui)
@@ -209,11 +212,11 @@ geniSemanticInputString =
 geniIdxConstraints :: Parser (Flist GeniVal)
 geniIdxConstraints = keyword IDXCONSTRAINTS >> geniFeats
 
-geniLitConstraints :: Parser (BoolExp String)
+geniLitConstraints :: Parser (BoolExp T.Text)
 geniLitConstraints =
    P.buildExpressionParser table piece
  where
-   piece =  (Cond `liftM` identifier)
+   piece =  (Cond <$> tidentifier)
        <|> do { string "~"; Not `liftM` geniLitConstraints }
        <|> parens geniLitConstraints
    table = [ [ op "&" And P.AssocLeft ]
@@ -314,7 +317,7 @@ geniLexicon = tillEof $ many1 geniLexicalEntry
 geniLexicalEntry :: Parser ILexEntry
 geniLexicalEntry =
   do lemmas  <- geniAtomicDisjunction <?> "a lemma (or disjunction thereof)"
-     family <- identifier <?> "a tree family"
+     family  <- tidentifier <?> "a tree family"
      (pars, interface) <- option ([],[]) $ parens paramsParser
      equations <- option [] $ do keyword "equations"
                                  geniFeats <?> "path equations"
@@ -369,15 +372,16 @@ auxType  = do { reserved AUXILIARY ; return Auxiliar }
 geniTreeDef :: Parser SchemaTree
 geniTreeDef =
   do sourcePos <- getPosition
-     family   <- identifier
-     tname    <- option "" $ do { colon; identifier }
+     family   <- tidentifier
+     tname    <- option "" (colon *> tidentifier)
      (pars,iface)   <- geniParams
      theTtype  <- (initType <|> auxType)
      theTree  <- geniTree
      -- sanity checks?
      let treeFail x =
           do setPosition sourcePos -- FIXME does not do what I expect
-             fail $ "In tree " ++ family ++ ":" ++ tname ++ " " ++ show sourcePos ++ ": " ++ x
+             fail $ "In tree " ++ T.unpack family ++ ":"
+                    ++ T.unpack tname ++ " " ++ show sourcePos ++ ": " ++ x
      let theNodes = T.flatten theTree
          numFeet    = length [ x | x <- theNodes, gtype x == Foot ]
          numAnchors = length [ x | x <- theNodes, ganchor x ]
@@ -391,7 +395,7 @@ geniTreeDef =
        treeFail "Initial trees may not have foot nodes"
      --
      psem     <- option Nothing $ do { keywordSemantics; liftM Just (squares geniSemantics) }
-     ptrc     <- option [] $ do { keyword TRACE; squares (many identifier) }
+     ptrc     <- option [] $ do { keyword TRACE; squares (many tidentifier) }
      --
      return TT{ params = pars
               , pfamily = family
@@ -418,46 +422,70 @@ geniTree =
      return (T.Node node kids)
 
 geniNode :: (Ord v, GeniValLike v) => Parser (GNode v)
-geniNode =
-  do name      <- identifier
-     nodeType  <- option "" ( (keyword TYPE >> typeParser)
-                              <|>
-                              reserved ANCHOR)
-     lex_   <- if nodeType == LEX
-                  then (sepBy (stringLiteral<|>identifier) (symbol "|") <?> "some lexemes")
-                  else return []
-     constr <- case nodeType of
-               ""     -> adjConstraintParser
-               ANCHOR -> adjConstraintParser
-               _  -> return True
-     (top_,bot_) <- -- features only obligatory for non-lex nodes
-                    if nodeType == LEX
-                       then option ([],[]) $ try topbotParser
-                       else topbotParser
-     --
-     let top   = sort top_
-         bot   = sort bot_
-         nodeType2 = case nodeType of
-                       ANCHOR  -> Lex
-                       LEX     -> Lex
-                       FOOT    -> Foot
-                       SUBST   -> Subs
-                       ""        -> Other
-                       other     -> error ("unknown node type: " ++ other)
-     return $ GN { gnname = name, gtype = nodeType2
-                 , gup = top, gdown = bot
-                 , glexeme  = lex_
-                 , ganchor  = (nodeType == ANCHOR)
-                 , gaconstr = constr
-                 , gorigin  = "" }
+geniNode = do
+    name      <- tidentifier
+    nodeType  <- geniNodeAnnotation
+    lex_   <- if nodeType == AnnoLexeme
+                 then ((tstringLiteral <|> tidentifier) `sepBy` symbol "|") <?> "some lexemes"
+                 else return []
+    constr <- case nodeType of
+                  AnnoDefault -> adjConstraintParser
+                  AnnoAnchor  -> adjConstraintParser
+                  _           -> return True
+    -- features only obligatory for non-lex nodes
+    (top,bot) <- if nodeType == AnnoLexeme
+                    then option ([],[]) $ try topbotParser
+                    else topbotParser
+    return $ GN { gnname   = name
+                , gtype    = fromAnnotation nodeType
+                , gup      = sortFlist top
+                , gdown    = sortFlist bot
+                , glexeme  = lex_
+                , ganchor  = nodeType == AnnoAnchor
+                , gaconstr = constr
+                , gorigin  = ""
+                }
   where
-    typeParser = choice $ map (try.symbol) [ ANCHOR, FOOT, SUBST, LEX ]
     adjConstraintParser = option False $ reserved ACONSTR >> char ':' >> symbol "noadj" >> return True
-    topbotParser =
-      do top <- geniFeats <?> "top features"
-         symbol "!"
-         bot <- geniFeats <?> "bot features"
-         return (top,bot)
+    topbotParser = do
+        top <- geniFeats <?> "top features"
+        symbol "!"
+        bot <- geniFeats <?> "bot features"
+        return (top,bot)
+
+-- | Should be purely internal type to help parsing.
+--   Injection to 'GType'.
+--
+--   We don't just use GType directly because the annotations convey
+--   subtle distinctions that aren't encoded, particularly between
+--   lexemes and anchors
+data Annotation = AnnoAnchor
+                | AnnoLexeme
+                | AnnoSubst
+                | AnnoFoot
+                | AnnoDefault
+  deriving Eq
+
+fromAnnotation :: Annotation -> GType
+fromAnnotation AnnoLexeme  = Lex
+fromAnnotation AnnoAnchor  = Lex
+fromAnnotation AnnoSubst   = Subs
+fromAnnotation AnnoFoot    = Foot
+fromAnnotation AnnoDefault = Other
+
+geniNodeAnnotation :: Parser Annotation
+geniNodeAnnotation =
+    (keyword TYPE *> ty)                   <|>
+    (reserved ANCHOR >> return AnnoAnchor) <|>
+    return AnnoDefault
+  where
+    ty    = choice [ try (symbol s) >> return t | (s,t) <- table ]
+    table =
+        [ (ANCHOR, AnnoAnchor)
+        , (FOOT,   AnnoFoot)
+        , (SUBST,  AnnoSubst)
+        , (LEX,    AnnoLexeme)
+        ]
 
 -- | This makes it possible to read anchored trees, which may be
 --   useful for debugging purposes.
@@ -469,9 +497,9 @@ geniTagElems :: Parser [TagElem]
 geniTagElems = tillEof $ setTidnums `fmap` many geniTagElem
 
 geniTagElem :: Parser TagElem
-geniTagElem =
- do family   <- identifier
-    tname    <- option "" $ do { colon; identifier }
+geniTagElem = do
+    family   <- tidentifier
+    tname    <- option "" $ (colon *> tidentifier)
     iface    <- (snd `liftM` geniParams) <|> geniFeats
     theType  <- initType <|> auxType
     theTree  <- geniTree
@@ -556,6 +584,9 @@ whiteSpace = P.whiteSpace lexer
 looseIdentifier, identifier, stringLiteral, colon :: CharParser () String
 identifier    = P.identifier lexer
 
+tidentifier :: CharParser () Text
+tidentifier = T.pack <$> identifier
+
 -- stolen from Parsec code (ident)
 -- | Like 'identifier' but allows for reserved words too
 looseIdentifier =
@@ -568,6 +599,10 @@ looseIdentifier =
 
 stringLiteral = P.stringLiteral lexer
 colon         = P.colon lexer
+
+tstringLiteral :: CharParser () Text
+tstringLiteral = T.pack <$> stringLiteral
+
 
 squares, braces, parens :: CharParser () a -> CharParser () a
 squares = P.squares lexer

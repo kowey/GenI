@@ -107,7 +107,7 @@ import NLP.GenI.Configuration
 
 import qualified NLP.GenI.Builder as B
 
-import NLP.GenI.GeniParsers (geniMacros, geniTagElems,
+import NLP.GenI.Parser (geniMacros, geniTagElems,
                     geniLexicon, geniTestSuite,
                     geniTestSuiteString, geniSemanticInput,
                     geniMorphInfo,

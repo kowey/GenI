@@ -1,6 +1,9 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE StandaloneDeriving #-}
+
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module NLP.GenI.Test.GeniParsers where
+module NLP.GenI.Test.Parser where
 
 import Control.Monad ( liftM2 )
 
@@ -18,7 +21,7 @@ import NLP.GenI.Lexicon ( ILexEntry(..) )
 import NLP.GenI.General
 import NLP.GenI.GeniShow
 import NLP.GenI.GeniVal
-import NLP.GenI.GeniParsers
+import NLP.GenI.Parser
 import NLP.GenI.Semantics
 import NLP.GenI.Test.FeatureStructures ()
 import NLP.GenI.Test.Lexicon ()
@@ -27,7 +30,7 @@ import NLP.GenI.Test.Semantics ()
 
 suite :: Test.Framework.Test
 suite =
- testGroup "NLP.GenI.GeniParsers"
+ testGroup "NLP.GenI.Parser"
   [ testGroup "GeniVal"
       [ testCase     "empty constraints illegal"  testEmptyConstraintsIllegal
       , testCase     "show evil value"            testEvilGeniVal
@@ -84,8 +87,9 @@ propRoundTripGeniVal g =
    Left  e  -> False
    Right g2 -> g2 == g
 
+propRoundTripFeats :: Flist GeniVal -> Bool
 propRoundTripFeats g =
- case testParse geniFeats (showFlist g) of
+ case testParse geniFeats (geniShow g) of
    Left  e  -> False
    Right g2 -> g2 == g
 
@@ -94,7 +98,7 @@ propRoundTripSem g =
    Left  e  -> False
    Right g2@(x,_,_) -> first3 (map anonhandle) g2 == (g, [], [])
  where
-   semStr = "semantics: " ++ showSem g
+   semStr = "semantics: " ++ geniShow g
 
 propRoundTripILexEntry x_ =
  whenFail (putStrLn $ "----\n" ++ s  ++ "\n---\n" ++ show p) $
