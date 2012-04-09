@@ -25,7 +25,6 @@ where
 import Control.Applicative ( (<$>) )
 import Data.FullList ( fromFL )
 import Data.List ( nub )
-import Data.List.Split (wordsBy)
 import Data.Maybe(listToMaybe, maybeToList, mapMaybe)
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text as T
@@ -33,22 +32,22 @@ import qualified Data.Text as T
 import Data.GraphViz
 import Data.GraphViz.Attributes.Complete
 
-import NLP.GenI.FeatureStructures ( AvPair(..), Flist )
+import NLP.GenI.FeatureStructure ( AvPair(..), Flist )
 import NLP.GenI.General ( clumpBy )
 import NLP.GenI.Pretty
 import NLP.GenI.GeniVal (GeniVal(..), isConst)
-import NLP.GenI.Semantics ( Sem )
-import NLP.GenI.Tags
-    ( TagDerivation, TagItem(..), TagElem(..)
-    , DerivationStep(..), dsChild, dsParent
-    )
-import NLP.GenI.TreeSchemata ( GNode(..), GType(..) )
 import NLP.GenI.Graphviz
     ( GraphvizShow(graphvizShowAsSubgraph, graphvizLabel, graphvizParams)
     , GraphvizShowNode(graphvizShowNode)
     , GraphvizShowString(graphvizShow)
     , gvUnlines, gvShowTree
     )
+import NLP.GenI.Semantics ( Sem )
+import NLP.GenI.Tag
+    ( TagDerivation, TagItem(..), TagElem(..)
+    , DerivationStep(..), dsChild, dsParent
+    )
+import NLP.GenI.TreeSchema ( GNode(..), GType(..) )
 
 -- ----------------------------------------------------------------------
 --
@@ -56,10 +55,10 @@ import NLP.GenI.Graphviz
 
 -- | Imagine some kind of menu system that displays a list of items
 --   and displays the selected item
-data GvItem flg itm = GvHeader String       -- ^ no actual item
-                    | GvItem String flg itm
+data GvItem flg itm = GvHeader T.Text      -- ^ no actual item
+                    | GvItem T.Text flg itm
 
-gvItemLabel :: GvItem a b -> String
+gvItemLabel :: GvItem a b -> T.Text
 gvItemLabel (GvHeader h)   = h
 gvItemLabel (GvItem l _ _) = l
 
@@ -117,7 +116,7 @@ instance TagItem t => GraphvizShow (GvItem GNodeHighlights t) where
         gvUnlines [ treename, semlist ]
       where
         -- we display the tree semantics as the graph label
-        treename   = "name: "      `TL.append` TL.pack (tgIdName te)
+        treename   = "name: "      `TL.append` TL.fromChunks [tgIdName te]
         semlist    = "semantics: " `TL.append` gvShowSem (tgSemantics te)
 
     graphvizParams _ =
@@ -219,7 +218,7 @@ showGnStub gn =
     idxB = getIdx gdown
     idx  = tackOn "." idxT idxB
     --
-    lexeme  = TL.intercalate "!" (map TL.pack (glexeme gn))
+    lexeme  = TL.intercalate "!" [ TL.fromChunks [n] | n <- glexeme gn ]
 
 getGnVal :: (GNode GeniVal -> Flist GeniVal)
          -> T.Text
@@ -257,7 +256,7 @@ derivationToGv deriv =
     --
     histNodes = reverse $ nub $ concatMap (\d -> dsChild d : maybeToList (dsParent d)) deriv
     mkNode n  =
-      DotNode (gvDerivationLab n) [ Label . StrLabel $ label n ]
+        DotNode (gvDerivationLab n) [ Label . StrLabel $ label n ]
     mkEdge ds = do
      p <- dsParent ds
      return $ DotEdge (gvDerivationLab p)
@@ -265,18 +264,14 @@ derivationToGv deriv =
                       (edgeStyle ds)
     edgeStyle (AdjunctionStep {}) = [Style [SItem Dashed []]]
     edgeStyle _ = []
-    label n = case wordsBy (== ':') n of
-              name:fam:tree:_ -> TL.pack $ name ++ ":" ++ fam ++ "\n" ++ tree
-              _               -> TL.pack n `TL.append` " (geni/gv ERROR)"
+    label n =
+        case T.splitOn ":" n of
+            name:fam:tree:_ -> TL.fromChunks [ name <> ":" <> fam <> "\n" <> tree ]
+            _               -> TL.fromChunks [n] `TL.append` " (geni/gv ERROR)"
 
-gvDerivationLab :: String -> TL.Text
-gvDerivationLab xs = TL.pack ("Derivation" ++ gvMunge xs)
+gvDerivationLab :: T.Text -> TL.Text
+gvDerivationLab xs = "Derivation" `TL.append` gvMunge xs
 
--- | Node names can't have hyphens in them and newlines within the node
---   labels should be represented literally as @\\n@.
-gvMunge :: String -> String
-gvMunge = map dot2x . filter (/= ':') . filter (/= '-')
-
-dot2x :: Char -> Char
-dot2x '.' = 'x'
-dot2x c   = c
+-- | Node names can't have hyphens in them
+gvMunge :: T.Text -> TL.Text
+gvMunge = TL.fromChunks . T.split (`elem` ":-") . T.replace "." "x"

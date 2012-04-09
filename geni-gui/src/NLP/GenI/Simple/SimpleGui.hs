@@ -23,7 +23,7 @@ module NLP.GenI.Simple.SimpleGui where
 import Control.Applicative ( (<$>) )
 import Control.Arrow ( (***) )
 import Data.IORef
-import Data.List ( sort, intercalate, partition )
+import Data.List ( sort, partition )
 import Data.Maybe ( fromMaybe )
 import qualified Data.Map as Map
 import qualified Data.Text as T
@@ -39,7 +39,7 @@ import NLP.GenI
     , GeniSuccess(..), GeniError(..), isSuccess
     )
 import NLP.GenI.Configuration ( Params(..) )
-import NLP.GenI.FeatureStructures ( AvPair(..) )
+import NLP.GenI.FeatureStructure ( AvPair(..) )
 import NLP.GenI.General ( snd3, buckets )
 import NLP.GenI.GeniVal ( mkGConstNone, GeniVal )
 import NLP.GenI.Graphviz ( GraphvizShow(..), gvUnlines )
@@ -54,6 +54,7 @@ import NLP.GenI.GuiHelper
     )
 import NLP.GenI.Morphology (LemmaPlus(..))
 import NLP.GenI.Polarity hiding ( finalSt )
+import NLP.GenI.Pretty
 import NLP.GenI.Semantics ( SemInput )
 import NLP.GenI.Simple.SimpleBuilder
     ( simpleBuilder, SimpleStatus, SimpleItem(..), SimpleGuiItem(..)
@@ -61,8 +62,8 @@ import NLP.GenI.Simple.SimpleBuilder
     , theResults, theAgenda, theHoldingPen, theChart, theTrash
     )
 import NLP.GenI.Statistics (Statistics, showFinalStats)
-import NLP.GenI.Tags (dsChild, TagItem(..))
-import NLP.GenI.TreeSchemata ( GNode(..), GType(..) )
+import NLP.GenI.Tag (dsChild, TagItem(..))
+import NLP.GenI.TreeSchema ( GNode(..), GType(..) )
 import qualified NLP.GenI.Builder    as B
 import qualified NLP.GenI.BuilderGui as BG
 
@@ -119,7 +120,7 @@ summaryGui :: ProgStateRef
 summaryGui _ f results stats = do
     p <- panel f []
     statsTxt <- textCtrl p [ text := showFinalStats stats ]
-    t <- textCtrl p [ text := msg ]
+    t <- textCtrl p [ text := T.unpack msg ]
     saveBt <- button p [ text := "Save to file"
                        , on command := maybeSaveAsFile f msg ]
     return $ fill $ container p $ column 1
@@ -134,17 +135,17 @@ summaryGui _ f results stats = do
     taggedResults = concatMap sentences succeses
     resultBuckets = buckets snd taggedResults
     sentences gr  = map (\r -> (grOrigin gr, r)) (grRealisations gr)
-    showBucket (s, xys) = s ++ " (" ++ instances ++ ")"
+    prettyBucket (s, xys) = s <+> parens instances
       where
         instances = if length ys == 1
                        then ys_str
-                       else show (length ys) ++ " instances: " ++ ys_str
+                       else pretty (length ys) <+> "instances:" <+> ys_str
         ys = map fst xys
-        ys_str = intercalate ", " . map show . sort $ ys
-    msg = unlines $ concatMap fromError errors
+        ys_str = T.intercalate ", " . map pretty . sort $ ys
+    msg = T.unlines $ concatMap fromError errors
                  ++ (if null succeses
                         then [ "(none)" ]
-                        else map showBucket resultBuckets)
+                        else map prettyBucket resultBuckets)
     totalResults  = length taggedResults
     fromError (GeniError e) = e
 
@@ -193,9 +194,9 @@ stToGraphviz st =
     --
     section n i = hd : map tlFn i
       where
-        hd     = GvHeader ("___" ++ n ++ "___")
-        tlFn x = GvItem (siToSentence x ++ showPaths (siPolpaths x)) False x
-    showPaths t = " (" ++ showPolPaths t ++ ")"
+        hd     = GvHeader ("___" <> n <> "___")
+        tlFn x = GvItem (siToSentence x <+> prettyPaths x) False x
+    prettyPaths  = parens . prettyPolPaths . siPolpaths
 
 simpleItemBar :: Params -> DebuggerItemBar SimpleStatus Bool SimpleItem
 simpleItemBar config f gvRef updaterFn = do
@@ -242,7 +243,7 @@ instance TagItem SimpleItemWrapper where
         nodeMap = fromListUsingKey gnname (siNodes (fromSimpleItemWrapper si))
         buggyNode k = GN
             { gup     = [ AvPair "cat"
-                             (mkGConstNone . T.pack $ "ERROR looking up " ++ k)
+                             (mkGConstNone $ "ERROR looking up" <+> k)
                         ]
             , gdown   = []
             , gnname  = "ERROR"
@@ -283,10 +284,10 @@ highlightSimpleItem (GvItem l f it) = GvItem l (f, highlights) (SimpleItemWrappe
            then Just (GV.X11Color GV.Red)
            else Nothing
 
-siToSentence :: SimpleItem -> String
+siToSentence :: SimpleItem -> T.Text 
 siToSentence si =
     case unpackResult si of
         []    -> siIdname . siGuiStuff $ si
-        (h:_) -> unwords ((idstr ++ ".") : map lpLemma (snd3 h))
+        (h:_) -> T.unwords ((idstr <> ".") : map lpLemma (snd3 h))
   where
-    idstr = show (siId si)
+    idstr = pretty (siId si)

@@ -18,6 +18,7 @@
 {-# LANGUAGE NamedFieldPuns, RecordWildCards #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings #-}
 module NLP.GenI.Gui (guiGeni) where
 
 import Control.Applicative ( (<$>) )
@@ -31,6 +32,7 @@ import Prelude hiding ( catch )
 import System.Directory
 import System.Exit (exitWith, ExitCode(ExitSuccess))
 import System.FilePath ( makeRelative )
+import qualified Data.Text as T
 
 import Graphics.UI.WX
 import Graphics.UI.WXCore
@@ -52,9 +54,9 @@ import NLP.GenI.Configuration
     , Optimisation(..) , BuilderType(..), mainBuilderTypes
     )
 import NLP.GenI.General (fst3, prettyException, trim)
-import NLP.GenI.GeniParsers hiding ( choice, label, tab, try )
-import NLP.GenI.GeniShow (geniShow)
+import NLP.GenI.GeniShow ( geniShow, geniShowText )
 import NLP.GenI.GuiHelper
+import NLP.GenI.Parser hiding ( choice, label, tab, try )
 import NLP.GenI.Polarity
 import NLP.GenI.Pretty
 import NLP.GenI.Semantics
@@ -135,15 +137,6 @@ mainGui pstRef = do
     setSelection algoChoiceBox mainBuilderTypes initialSelection setBuilder
     polChk <- optCheckBox f pstRef polarisedBio
     useSemConstraintsChk <- optCheckBox f pstRef semConstraintBio
-    extrapolText <- staticText f
-        [ text := maybe "" showLitePm $ getFlagP ExtraPolaritiesFlg config
-        , tooltip := "Use the following additional polarities"
-        ]
-    -- commands for the checkboxes
-    let togglePolStuff = do
-            c <- get polChk checked
-            set extrapolText [ enabled := c ]
-    set polChk [on command :~ (>> togglePolStuff) ]
     -- -----------------------------------------------------------------
     -- layout; packing it all together
     -- -----------------------------------------------------------------
@@ -159,7 +152,6 @@ mainGui pstRef = do
         onLoad = mainOnLoad pstRef myWidgets
     set loadMenIt [ on command := configGui pstRef onLoad ]
     onLoad
-    togglePolStuff
     --
     let labeledRow l w = row 1 [ label l, hfill (widget w) ]
     let gramsemBox = boxed "Files last loaded" $
@@ -172,8 +164,6 @@ mainGui pstRef = do
                           , dynamic $ widget algoChoiceBox
                           , label "Optimisations"
                           , dynamic $ widget polChk
-                          , row 5 [ label "  ", column 5
-                                  [ dynamic $ row 5 [ label "Extra: ", widget extrapolText ] ] ]
                           , dynamic $ widget useSemConstraintsChk
                           ]
     set f [layout := column 5 [ gramsemBox
@@ -574,7 +564,7 @@ resultsGui builderGui pstRef semInput = do
     repaint f
     return ()
   where
-    purty pst res = unlines $ map (prettyResult pst) [ x | GSuccess x <- res ]
+    purty pst res = T.unlines $ map (prettyResult pst) [ x | GSuccess x <- res ]
 
 
 -- --------------------------------------------------------------------
@@ -586,30 +576,28 @@ inputInfoGui :: Window a -- ^ parent window
              -> Params
              -> SemInput
              -> IO Layout
-inputInfoGui f config semInput = messageGui f . unlines $
-    [ geniShow semInput
+inputInfoGui f config semInput = messageGui f . T.unlines $
+    [ geniShowText semInput
     , ""
     , "Options"
     , "-------"
-    , "Root feature: " ++ maybe "" prettyStr (getFlagP RootFeatureFlg config)
+    , "Root feature: " <> maybe "" pretty (getFlagP RootFeatureFlg config)
     , ""
     , "Optimisations"
     , "-------------"
     ] ++ map optStatus optBios ++ polStuff
 
  where
-  optStatus od = odShortTxt od ++ ": " ++
+  optStatus od = T.pack (odShortTxt od) <> ": " <>
                  if enabld od then "Yes" else "No"
   enabld od = case odType od of
                 Opti  -> configged od
                 Pessi -> not (configged od)
   configged od = hasOpt  (odOpt od) config
   dps = maybe "" showPolarityAttrs (getFlagP DetectPolaritiesFlg config)
-  eps = maybe "" showLitePm $ getFlagP ExtraPolaritiesFlg config
   polStuff = if enabld polarisedBio
               then [ ""
-                   , "Detect polarities: " ++ dps
-                   , "Extra polarities:  " ++ eps
+                   , "Detect polarities: " <> T.pack dps
                    ]
               else []
 

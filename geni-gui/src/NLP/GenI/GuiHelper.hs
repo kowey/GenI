@@ -17,6 +17,7 @@
 
 {-# LANGUAGE NamedFieldPuns, RecordWildCards #-}
 {-# LANGUAGE OverlappingInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RankNTypes #-}
 module NLP.GenI.GuiHelper where
@@ -28,6 +29,7 @@ import Control.Monad.State.Strict ( execStateT, runState )
 import Data.Array ( (!), listArray )
 import Data.GraphViz.Exception ( GraphvizException(..) )
 import Data.IORef
+import Data.Text ( Text )
 import Prelude hiding ( catch )
 import System.Directory
 import System.FilePath ((<.>),(</>),dropExtensions)
@@ -35,6 +37,7 @@ import System.Process (runProcess)
 import qualified Control.Monad as Monad
 import qualified Data.Map as Map
 import qualified Data.Text as T
+import qualified Data.Text.IO as T
 
 import Graphics.UI.WX
 
@@ -45,8 +48,8 @@ import NLP.GenI.Configuration ( Params(..), MetricsFlg(..), setFlagP, getFlagP
                               , hasOpt, Optimisation(..)
                               , MacrosFlg(..), ViewCmdFlg(..) )
 import NLP.GenI.General (dropTillIncluding, ePutStrLn)
-import NLP.GenI.GeniParsers ( geniTagElems, parseFromFile )
-import NLP.GenI.GeniShow(geniShow)
+import NLP.GenI.Parser ( geniTagElems, parseFromFile )
+import NLP.GenI.GeniShow ( geniShowText )
 import NLP.GenI.Graphviz
 import NLP.GenI.GraphvizShow (GvItem(..), gvItemSetFlag, gvItemLabel)
 import NLP.GenI.GraphvizShowPolarity ()
@@ -54,9 +57,9 @@ import NLP.GenI.Lexicon
 import NLP.GenI.Polarity (PolAut, AutDebug, suggestPolFeatures)
 import NLP.GenI.Pretty
 import NLP.GenI.Statistics
-import NLP.GenI.Tags ( idname, mapBySem, TagElem(ttrace, tinterface), TagItem(tgIdName), tagLeaves )
-import NLP.GenI.TreeSchemata ( showLexeme )
-import NLP.GenI.Warnings
+import NLP.GenI.Tag ( idname, mapBySem, TagElem(ttrace, tinterface), TagItem(tgIdName), tagLeaves )
+import NLP.GenI.TreeSchema ( showLexeme )
+import NLP.GenI.Warning
 import qualified NLP.GenI.Builder as B
 
 -- ----------------------------------------------------------------------
@@ -87,11 +90,10 @@ pauseOnLexGui config f lexs xs warns mjob = do
     candV <- varCreate xs
     (tb, ref, updater) <- candidateGui config p xs warns
     -- supplementary button bar
-    let dispCmd = do
-            putStr . unlines $ map geniShow lexs
+    let dispCmd = T.putStrLn (geniShowText lexs)
         saveCmd = do
             cs <- varGet candV
-            maybeSaveAsFile f . unlines $ map geniShow cs
+            maybeSaveAsFile f (geniShowText cs <> "\n")
         loadCmd = loadLex $ \cs -> do
             varSet candV cs
             setGvDrawables ref (sectionsBySem cs)
@@ -139,13 +141,13 @@ candidateGui config f xs warns = do
     p  <- panel split []
     (tb,gvRef,updater) <- tagViewerGui config p "lexically selected item" "candidates"
                           $ sectionsBySem xs
-    let polFeats = "Polarity attributes detected: " ++
+    let polFeats = "Polarity attributes detected:" <+>
                    case suggestPolFeatures xs of
-                     [] -> "None! :-("
-                     fs -> T.unpack (T.unwords fs)
+                       [] -> "None! :-("
+                       fs -> T.unwords fs
         addPolFeats fs = if hasOpt Polarised config then polFeats : fs else fs
         lexWarnings = concatMap showGeniWarning . fromGeniWarnings . sortWarnings $ warns
-        warning = unlines $ filter (not .  null) (addPolFeats lexWarnings)
+        warning = T.unlines $ filter (not .  T.null) (addPolFeats lexWarnings)
     -- side panel
     sidePnl <- panel p []
     ifaceLst <- singleListBox sidePnl [ tooltip := "interface for this tree (double-click me!)" ]
@@ -170,7 +172,7 @@ candidateGui config f xs warns = do
     set traceLst [ on doubleClick := \_ -> addToNoted traceLst ]
     -- updaters : what happens when the user selects an item
     let updateTrace = gvOnSelect (return ())
-          (\s -> set traceLst [ items := ttrace s ])
+          (\s -> set traceLst [ items := map T.unpack $ ttrace s ])
         updateIface = gvOnSelect (return ())
           (\s -> set ifaceLst [ items := map prettyStr $ tinterface s ])
     Monad.unless (null xs) $ do
@@ -182,7 +184,7 @@ candidateGui config f xs warns = do
         updateTrace gvSt
     --
     let layMain = fill $ row 2 [ fill tb, vfill laySide ]
-    warningTxt <- textCtrl split [ text := warning ]
+    warningTxt <- textCtrl split [ text := T.unpack warning ]
     let lay = fill . container pouter
             $ fill $ hsplit split 5 100 (widget warningTxt) (container p layMain)
     return (lay, gvRef, updater)
@@ -197,7 +199,7 @@ sectionsBySem tsem =
     lookupTr k = Map.findWithDefault [] k semmap
     section  k = GvHeader header : map tlab (lookupTr k)
       where
-        header = "___" ++ prettyStr k ++ "___"
+        header = "___" <> pretty k <> "___"
         tlab t = GvItem (tgIdName t) False t
 
 -- ----------------------------------------------------------------------
@@ -215,12 +217,13 @@ polarityGui   f xs final = do
     setGvDrawables gvRef $ concatMap toItem xs ++ [finalItem]
     graphvizGui f "polarity" gvRef
  where
-    toItem (pkey, a1, a2) = [ it (show pkey) a1
-                            , it (show pkey ++ " pruned") a2 ]
+    toItem (pkey, a1, a2) = [ it (pretty pkey) a1
+                            , it (pretty pkey <+> "pruned") a2 ]
     finalItem = it "final" final
     it  n a = GvItem (lab n a) () a
-    lab n a = n ++ " (" ++ show (numStates a) ++ "st "
-                        ++ show (numTransitions a) ++ "tr)"
+    lab n a = (n <+>) $ parens $
+         pretty (numStates a)      <> "st " <>
+         pretty (numTransitions a) <> "tr"
 
 -- ----------------------------------------------------------------------
 -- Helpers
@@ -229,7 +232,7 @@ polarityGui   f xs final = do
 -- | Any data structure which has corresponds to a TAG tree and which
 --   has some notion of derivation
 class XMGDerivation a where
-    getSourceTrees :: a -> [String]
+    getSourceTrees :: a -> [Text]
 
 instance XMGDerivation TagElem where
     getSourceTrees te = [idname te]
@@ -239,11 +242,11 @@ instance XMGDerivation TagElem where
 -- an atomic disjunction. Our solution is just to display each choice and
 -- use some delimiter to seperate them.  We also do not do any
 -- morphological processing.
-toSentence :: TagElem -> String
-toSentence = unwords . map squishLeaf . tagLeaves
+toSentence :: TagElem -> Text
+toSentence = T.unwords . map squishLeaf . tagLeaves
 
-squishLeaf :: (a,([String], b)) -> String
-squishLeaf = showLexeme . fst .snd
+squishLeaf :: (a,([Text], b)) -> Text
+squishLeaf = showLexeme . fst . snd
 
 -- ----------------------------------------------------------------------
 -- TAG viewer
@@ -253,7 +256,7 @@ squishLeaf = showLexeme . fst .snd
 tagViewerGui :: (GraphvizShow (GvItem Bool t), XMGDerivation t)
              => Params
              -> Window a        -- ^ parent
-             -> String          -- ^ tooltip
+             -> Text            -- ^ tooltip
              -> FilePath        -- ^ cache directory for graphviz
              -> [GvItem Bool t] -- ^ items
              -> GvIO () (GvItem Bool t)
@@ -293,13 +296,15 @@ viewTagWidgets p gvRef config = do
     viewTagCom <- choice p [ tooltip := "derivation tree" ]
     -- handlers
     let onViewTag d = readIORef gvRef >>=
-         gvOnSelect (return ()) (const (runViewTag config d))
+         gvOnSelect (return ()) (const (runViewTag config (T.unpack d)))
     -- when the user selects a tree, we want to update the list of derivations
     let updateDerivationList = gvOnSelect
           (set viewTagCom [ enabled := False ])
           (\s -> do
                let dervs = getSourceTrees s
-               set viewTagCom [ enabled := True, items := dervs ]
+               set viewTagCom [ enabled := True
+                              , items := map T.unpack dervs
+                              ]
                setSelection viewTagCom dervs 0 $ \d ->
                    set viewTagBtn [ on command := onViewTag d ]
           )
@@ -476,8 +481,8 @@ data GraphvizOrder = GvoParams | GvoItems | GvoSel
 data GraphvizGuiSt st a = GvSt
     { gvcore    :: st
     , gvitems   :: Map.Map Int a
-    , gvlabels  :: [String]
-    , gvtip     :: String -- ^ tooltip for the selection box
+    , gvlabels  :: [Text]
+    , gvtip     :: Text -- ^ tooltip for the selection box
     -- | handler function to call when the selection is
     --   updated (note: before displaying the object)
     , gvhandler :: Maybe (GraphvizGuiSt st a -> IO ())
@@ -498,7 +503,7 @@ data GraphvizGuiSt st a = GvSt
 --     gvhandler
 type GraphvizGuiRef st a = IORef (GraphvizGuiSt st a)
 
-newGvRef :: st -> String -> IO (GraphvizGuiRef st a)
+newGvRef :: st -> Text -> IO (GraphvizGuiRef st a)
 newGvRef initSt t = newIORef GvSt
     { gvcore = initSt
     , gvitems  = Map.empty
@@ -578,7 +583,7 @@ graphvizGui f cachedir gvRef = do
     p <- panel f [ fullRepaintOnResize := False ]
     split <- splitterWindow p []
     (dtBitmap,sw) <- scrolledBitmap split
-    rchoice  <- singleListBox split [tooltip := gvtip initGvSt]
+    rchoice  <- singleListBox split [ tooltip := T.unpack (gvtip initGvSt) ]
     -- set handlers
     let openFn   = openImage sw dtBitmap
     -- pack it all together
@@ -599,7 +604,7 @@ graphvizGui f cachedir gvRef = do
           let orders = gvorders gvSt
           initCacheDir cachedir
           Monad.when (GvoItems `elem` orders) $
-            set rchoice [ items := gvlabels gvSt ]
+            set rchoice [ items := map T.unpack (gvlabels gvSt) ]
           Monad.when (GvoSel `elem` orders) $
             set rchoice [ selection := gvsel gvSt ]
           modifyIORef gvRef (\x -> x { gvorders = []})
@@ -762,19 +767,19 @@ setSelection widgt xs initial reactor = do
 
 -- | Save the given string to a file, if the user selets one via the file save
 --   dialog. Otherwise, don't do anything.
-maybeSaveAsFile :: Window a -> String -> IO ()
+maybeSaveAsFile :: Window a -> Text -> IO ()
 maybeSaveAsFile f msg = do
     fsel <- fileSaveDialog f False True "Save to" anyFile "" ""
     case fsel of
       Nothing   -> return ()
-      Just file -> writeFile file msg
+      Just file -> T.writeFile file msg
 
 -- | A message panel for use by the Results gui panels.
-messageGui :: Window a -> String -> IO Layout
+messageGui :: Window a -> Text -> IO Layout
 messageGui f msg = do
     p <- panel f []
     -- sw <- scrolledWindow p [scrollRate := sz 10 10 ]
-    t  <- textCtrl p [ text := msg, enabled := False ]
+    t  <- textCtrl p [ text := T.unpack msg, enabled := False ]
     return $ fill $ container p $ column 1 [ fill (widget t) ]
 
 gvCACHEDIR :: IO String

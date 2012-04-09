@@ -27,12 +27,12 @@ import Data.Maybe ( catMaybes )
 import Data.GraphViz
 import Data.GraphViz.Attributes.Complete
 
-import qualified Data.Text.Lazy as T
+import qualified Data.Text.Lazy as TL
 import NLP.GenI.General(showInterval)
 import NLP.GenI.Polarity(PolAut, PolState(PolSt), NFA(states, transitions), finalSt)
 import NLP.GenI.Pretty
 import NLP.GenI.Graphviz(GraphvizShow(..), gvUnlines)
-import NLP.GenI.Tags(idname)
+import NLP.GenI.Tag (idname)
 
 instance GraphvizShow PolAut where
   -- we want a directed graph (arrows)
@@ -57,32 +57,32 @@ instance GraphvizShow PolAut where
     where
        st  = (concat.states) aut
        fin = finalSt aut
-       ids = map (\x -> prefix `T.append` T.pack (show x)) ([0..] :: [Int])
+       ids = map (\x -> prefix `TL.append` TL.pack (show x)) ([0..] :: [Int])
        -- map which permits us to assign an id to a state
        stmap = Map.fromList $ zip st ids
 
-gvShowState :: [PolState] -> T.Text -> PolState -> DotNode T.Text
+gvShowState :: [PolState] -> TL.Text -> PolState -> DotNode TL.Text
 gvShowState fin stId st =
   DotNode stId $ decorate [ Label . StrLabel . showSt $ st ]
   where
    showSt (PolSt _ ex po) =
           gvUnlines . catMaybes $
             [ Nothing -- Just (snd3 pr)
-            , if null ex then Nothing else Just (T.fromChunks [pretty ex])
-            , Just . T.pack . intercalate "," $ map showInterval po
+            , if null ex then Nothing else Just (TL.fromChunks [pretty ex])
+            , Just . TL.pack . intercalate "," $ map showInterval po
             ]
    decorate = if st `elem` fin
                  then (Peripheries 2 :)
                  else id
 
-gvShowTrans :: PolAut -> Map.Map PolState T.Text
-               -> T.Text -> PolState -> [DotEdge T.Text]
+gvShowTrans :: PolAut -> Map.Map PolState TL.Text
+               -> TL.Text -> PolState -> [DotEdge TL.Text]
 gvShowTrans aut stmap idFrom st =
   let -- outgoing transition labels from st
       trans = Map.findWithDefault Map.empty st $ transitions aut
       -- returns the graphviz dot command to draw a labeled transition
       drawTrans (stTo,x) = case Map.lookup stTo stmap of
-                             Nothing   -> drawTrans' ("id_error_" `T.append` (T.pack (sem_ stTo))) x
+                             Nothing   -> drawTrans' ("id_error_" `TL.append` (TL.pack (sem_ stTo))) x
                              Just idTo -> drawTrans' idTo x
                            where sem_ (PolSt i _ _) = show i
                                  --showSem (PolSt (_,pred,_) _ _) = pred
@@ -91,9 +91,10 @@ gvShowTrans aut stmap idFrom st =
         where
           lablen  = length labels
           maxlabs = 6
-          excess = T.pack $ "...and " ++ show (lablen - maxlabs) ++ " more"
+          excess = TL.pack $ "...and " ++ show (lablen - maxlabs) ++ " more"
           --
-          labstrs = map (maybe "EMPTY" (T.pack . idname)) labels
+          name t  = TL.fromChunks [ idname t ]
+          labstrs = map (maybe "EMPTY" name) labels
           labs = if lablen > maxlabs
                  then take maxlabs labstrs ++ [ excess ]
                  else labstrs
