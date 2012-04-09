@@ -17,6 +17,7 @@
 
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module NLP.GenI.Polarity.Types where
 
@@ -28,15 +29,17 @@ import qualified Data.Text as T
 
 import Control.DeepSeq
 
+import NLP.GenI.Pretty
+
 data PolarityKey = PolarityKeyAv   Text Text
-                 | PolarityKeyStr  String
+                 | PolarityKeyStr  Text
                  | PolarityKeyVar  Text -- ^ attribute
  deriving (Eq, Ord, Data, Typeable)
 
-instance Show PolarityKey where
-  show (PolarityKeyAv a v) = T.unpack a ++ ":" ++ T.unpack v
-  show (PolarityKeyStr s)  = s
-  show (PolarityKeyVar a)  = T.unpack a ++ ":_"
+instance Pretty PolarityKey where
+  pretty (PolarityKeyAv a v) = a <> ":" <> v
+  pretty (PolarityKeyStr s)  = s
+  pretty (PolarityKeyVar a)  = a <> ":_"
 
 type SemPols  = [Int]
 

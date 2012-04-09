@@ -15,6 +15,7 @@
 -- along with this program; if not, write to the Free Software
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+{-# LANGUAGE OverloadedStrings #-}
 module NLP.GenI.Polarity(
                 module NLP.GenI.Polarity.Types,
 
@@ -27,7 +28,7 @@ module NLP.GenI.Polarity(
                 fixPronouns,
                 detectSansIdx, suggestPolFeatures, detectPols, detectPolPaths,
                 declareIdxConstraints, detectIdxConstraints,
-                showPolPaths, showPolPaths',
+                prettyPolPaths, prettyPolPaths',
 
                 -- re-exported from Automaton
                 automatonPaths, finalSt,
@@ -41,6 +42,7 @@ import qualified Data.Map as Map
 import Data.List
 import Data.Maybe (isNothing, isJust)
 import Data.Text (Text)
+import qualified Data.Text as T
 
 import NLP.GenI.Automaton
 import NLP.GenI.FeatureStructure ( Flist, AvPair(..), FeatStruct, unifyFeat )
@@ -438,7 +440,7 @@ declareIdxConstraints = Map.fromList . (map declare) where
 
 -- TODO: test that index constraints come first
 idxConstraintKey :: AvPair GeniVal -> PolarityKey
-idxConstraintKey = PolarityKeyStr . ('.' :) . prettyStr
+idxConstraintKey = PolarityKeyStr . ("." <>) . pretty
 
 -- Automatic polarity detection
 -- ----------------------------
@@ -497,17 +499,18 @@ detectPolPaths' accFM counter (path:ps) =
   in detectPolPaths' newFM (counter+1) ps
 
 -- | Render the list of polarity automaton paths as a string
-showPolPaths :: BitVector -> String
-showPolPaths paths =
-  let pathlist = showPolPaths' paths 1
-  in concat $ intersperse ", " $ map show pathlist
+prettyPolPaths :: BitVector -> Text
+prettyPolPaths paths =
+    T.intercalate ", " $ map pretty pathlist
+  where
+    pathlist = prettyPolPaths' paths 1
 
-showPolPaths' :: BitVector -> Int -> [Int] 
-showPolPaths' 0 _ = []
-showPolPaths' bv counter = 
+prettyPolPaths' :: BitVector -> Int -> [Int] 
+prettyPolPaths' 0 _ = []
+prettyPolPaths' bv counter = 
   if b then (counter:next) else next
   where b = testBit bv 0
-        next = showPolPaths' (shiftR bv 1) (counter + 1)
+        next = prettyPolPaths' (shiftR bv 1) (counter + 1)
 
 -- Semantic sorting
 -- ----------------
