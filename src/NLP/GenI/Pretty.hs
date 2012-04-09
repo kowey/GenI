@@ -39,6 +39,12 @@ class Pretty a where
 instance Pretty String where
    prettyStr a = a
 
+instance Pretty Int where
+   prettyStr a = show a
+
+instance Pretty Integer where
+   prettyStr a = show a
+
 between :: Text -> Text -> Text -> Text
 between l r x = l `T.append` x `T.append` r
 
@@ -47,3 +53,23 @@ parens = between "(" ")"
 
 squares :: Text -> Text
 squares = between "[" "]"
+
+(<>) :: Text -> Text -> Text
+t1 <> t2 = t1 `T.append` t2
+
+(<+>) :: Text -> Text -> Text
+t1 <+> t2 | T.null t1 = t2
+          | T.null t2 = t1
+          | otherwise = t1 `T.append` " " `T.append` t2
+
+-- |
+--
+-- > prettyCount toBlah ""     (x,1) == "blah"
+-- > prettyCount toBlah "foos" (x,1) == "blah"
+-- > prettyCount toBlah ""     (x,4) == "blah ×4"
+-- > prettyCount toBlah "foos" (x,4) == "blah ×4 foos"
+prettyCount :: (a -> Text) -> Text -> (a, Int) -> Text
+prettyCount f _  (x, 1) = f x
+prettyCount f ts (x, n) = f x <+> count <+> ts
+  where
+    count = '×' `T.cons` T.pack (show n)
