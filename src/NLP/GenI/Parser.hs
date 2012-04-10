@@ -56,10 +56,10 @@ import qualified System.IO.UTF8 as UTF8
 
 import NLP.GenI.FeatureStructure ( Flist, AvPair(..), sortFlist )
 import NLP.GenI.General (isGeniIdentLetter)
-import NLP.GenI.GeniShow (GeniShow(geniShow))
+import NLP.GenI.GeniShow ( GeniShow(..), geniKeyword )
 import NLP.GenI.GeniVal ( GeniVal, mkGConst, mkGConstNone, mkGVar, mkGAnon, isAnon )
 import NLP.GenI.Lexicon ( mkFullILexEntry, ILexEntry(..) )
-import NLP.GenI.Pretty ( prettyStr )
+import NLP.GenI.Pretty ( above )
 import NLP.GenI.Semantics ( Literal(..), Sem, sortSem, LitConstr, SemInput )
 import NLP.GenI.Tag (TagElem(..), setTidnums)
 import NLP.GenI.TestSuite ( TestCase(..) )
@@ -237,14 +237,16 @@ squaresString = do
 -- the output end of things
 -- displaying preformatted semantic input
 
-data SemInputString = SemInputString String (Flist GeniVal)
+data SemInputString = SemInputString Text (Flist GeniVal)
 
 instance GeniShow SemInputString where
- geniShow (SemInputString semStr idxC) =
-   SEMANTICS ++ ":" ++ semStr ++ (if null idxC then "" else r)
-   where r = "\n" ++ IDXCONSTRAINTS ++ ": " ++ prettyStr idxC
+    geniShowText (SemInputString semStr idxC) =
+        geniKeyword SEMANTICS semStr `above` r
+      where
+        r | null idxC = ""
+          | otherwise = geniKeyword IDXCONSTRAINTS (geniShowText idxC)
 
-toSemInputString :: SemInput -> String -> SemInputString
+toSemInputString :: SemInput -> Text -> SemInputString
 toSemInputString (_,lc,_) s = SemInputString s lc
 
 geniTestSuite :: Parser [TestCase]

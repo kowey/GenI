@@ -27,6 +27,7 @@ import Control.Monad ( unless )
 import Data.IORef ( readIORef, modifyIORef )
 import Data.List ( nub, delete, findIndex)
 import Data.Maybe ( fromMaybe, catMaybes )
+import Data.Text ( Text )
 import Data.Version ( showVersion )
 import Prelude hiding ( catch )
 import System.Directory
@@ -287,15 +288,15 @@ loadTestSuiteAndRefresh f pstRef (suitePath,mcs) widgets = do
     msuite <- try (loadTestSuite pstRef)
     let mcase = getFlagP TestCaseFlg (pa pst)
     case msuite of
-      Left e  -> errorDialog f ("Error reading test suite " ++ suitePath) $ show (e :: SomeException)
-      Right s -> onTestSuiteLoaded f s mcs mcase widgets
+        Left e  -> errorDialog f ("Error reading test suite " ++ suitePath) $ show (e :: SomeException)
+        Right s -> onTestSuiteLoaded f s mcs mcase widgets
 
 -- | Helper for 'loadTestSuiteAndRefresh'
 onTestSuiteLoaded :: (Textual a, Selecting b, Selection b, Items b String)
                   => Window w
                   -> [TestCase]     -- ^ loaded suite
-                  -> Maybe [String] -- ^ subset of test cases to select (instructions)
-                  -> Maybe String   -- ^ particular test case to focus on
+                  -> Maybe [Text]   -- ^ subset of test cases to select (instructions)
+                  -> Maybe Text     -- ^ particular test case to focus on
                   -> (a, b) -- ^ test suite text and case selector widgets
                   -> IO ()
 onTestSuiteLoaded f suite mcs mcase (tsBox, caseChoice) = do
@@ -315,15 +316,16 @@ onTestSuiteLoaded f suite mcs mcase (tsBox, caseChoice) = do
     numfn n t = concat [ if hasName (fromMaybe "" mcase) t then "* " else ""
                        , show  n
                        , ". "
-                       , tcName t
+                       , T.unpack (tcName t)
                        ]
     -- first case selected is either specified
     getInitialSelection Nothing  _      = return 0
     getInitialSelection (Just n) tcases =
         case findIndex (hasName n) tcases of
-          Nothing -> do errorDialog f "" ("No such test case: " ++ n)
-                        return 0
-          Just i  -> return i
+            Nothing -> do
+                errorDialog f "" ("No such test case: " ++ T.unpack n)
+                return 0
+            Just i  -> return i
     hasName name tc = tcName tc == name
     --
     setTsBox (TestCase {..}) =

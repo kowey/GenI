@@ -54,13 +54,26 @@ parens = between "(" ")"
 squares :: Text -> Text
 squares = between "[" "]"
 
+-- | Identical to 'T.append'
 (<>) :: Text -> Text -> Text
 t1 <> t2 = t1 `T.append` t2
 
+-- | Separated by space unless one of them is empty (in which case just
+--   the non-empty one)
 (<+>) :: Text -> Text -> Text
 t1 <+> t2 | T.null t1 = t2
           | T.null t2 = t1
           | otherwise = t1 `T.append` " " `T.append` t2
+
+-- | I think I want ($+$) here but I'm not sure I understand the
+--   documentation from the pretty package.
+--
+--   @t1 `above` t2@ separates the two by a newline, unless one
+--   of them is empty. The vertical equivalent to '(<+>)'
+above :: Text -> Text -> Text
+above t1 t2 | T.null t1 = t2
+            | T.null t2 = t1
+            | otherwise = t1 `T.append` "\n" `T.append` t2
 
 -- |
 --
