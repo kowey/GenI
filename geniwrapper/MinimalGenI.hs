@@ -18,7 +18,7 @@ import Prelude hiding ( getContents, putStrLn )
 import NLP.GenI.Configuration
 import NLP.GenI.General (fst3)
 import NLP.GenI
-import NLP.GenI.GeniParsers ( geniLexicon, geniFeats, runParser, ParseError, tillEof )
+import NLP.GenI.Parser ( geniLexicon, geniFeats, runParser, ParseError, tillEof )
 import NLP.GenI.Lexicon ( Lexicon )
 import NLP.GenI.Simple.SimpleBuilder
 import qualified NLP.GenI.Builder as B
