@@ -25,7 +25,7 @@ import Data.Text ( Text )
 
 import NLP.GenI.GeniVal ( GeniVal )
 import NLP.GenI.FeatureStructure ( Flist )
-import NLP.GenI.Parser ( geniFeats, CharParser, runParser )
+import NLP.GenI.Parser ( geniFeats, Parser, runParser )
 import NLP.GenI.Pretty
 import NLP.GenI.Semantics
 import Text.JSON
@@ -81,7 +81,7 @@ instance JSON LemmaPlus where
                              , ("lemma-features", showJSON $ prettyStr fs)
                              ]
 
-parsecToJSON :: Monad m => String -> CharParser () b -> String -> m b
+parsecToJSON :: Monad m => String -> Parser b -> String -> m b
 parsecToJSON description p str =
  case runParser p () "" str of
    Left  err -> fail $ "Couldn't parse " ++ description ++ " because " ++ show err

@@ -33,26 +33,28 @@ module NLP.GenI.Parser (
   geniWord, geniLanguageDef, tillEof,
   --
   parseFromFile, -- UTF-8 version
-  module Text.ParserCombinators.Parsec
+  module Text.Parsec,
+  module Text.Parsec.String,
 ) where
 
 
 import Control.Applicative ( (<*>), (<$>), (*>), (<*) )
 import Control.Monad (liftM, when)
 import Data.Text ( Text )
-import qualified Data.Text as T
-import qualified Data.Map  as Map
-import qualified Data.Tree as T
-import Text.ParserCombinators.Parsec hiding (parseFromFile)
-import Text.ParserCombinators.Parsec.Language (emptyDef)
-import Text.ParserCombinators.Parsec.Token (TokenParser,
+import Text.Parsec
+import Text.Parsec.String hiding ( parseFromFile ) -- TODO: replace with Text.Parsec.Text
+import Text.Parsec.Language (emptyDef)
+import Text.Parsec.Token (TokenParser,
     LanguageDef,
     commentLine, commentStart, commentEnd, opLetter,
     reservedOpNames, reservedNames, identLetter, identStart, 
     makeTokenParser)
-import qualified Text.ParserCombinators.Parsec.Token as P
-import qualified Text.ParserCombinators.Parsec.Expr  as P
+import qualified Data.Map  as Map
+import qualified Data.Text as T
+import qualified Data.Tree as T
 import qualified System.IO.UTF8 as UTF8
+import qualified Text.Parsec.Expr  as P
+import qualified Text.Parsec.Token as P
 
 import NLP.GenI.FeatureStructure ( Flist, AvPair(..), sortFlist )
 import NLP.GenI.General (isGeniIdentLetter)
@@ -119,7 +121,7 @@ geniValue =   ((try $ anonymous) <?> "_ or ?_")
     variable :: Parser GeniVal
     variable =
       do symbol question
-         v <- tidentifier
+         v <- identifier
          mcs <- option Nothing $ (symbol "/" >> Just `liftM` disjunction)
          return (mkGVar v mcs)
     anonymous :: Parser GeniVal
@@ -130,7 +132,7 @@ geniValue =   ((try $ anonymous) <?> "_ or ?_")
 
 geniAtomicDisjunction :: Parser (FullList Text)
 geniAtomicDisjunction = do
-    (x:xs) <- sepBy1 (T.pack <$> atom) (symbol "|")
+    (x:xs) <- atom `sepBy1` (symbol "|")
     return (x !: xs)
   where
     atom = looseIdentifier <|> stringLiteral
@@ -155,9 +157,9 @@ geniFeats = option [] $ squares $ many geniAttVal
 
 geniAttVal :: GeniValLike v => Parser (AvPair v)
 geniAttVal = do
-  att <- identifierR <?> "an attribute"; colon
-  val <- geniValueLike <?> "a GenI value"
-  return $ AvPair (T.pack att) val
+    att <- identifierR <?> "an attribute"; colon
+    val <- geniValueLike <?> "a GenI value"
+    return $ AvPair att val
 
 geniSemantics :: Parser Sem
 geniSemantics =
@@ -200,7 +202,7 @@ geniSemanticInput =
      literalAndConstraint :: Parser LitConstr
      literalAndConstraint =
        do l <- geniLiteral
-          t <- option [] $ squares $ many tidentifier
+          t <- option [] $ squares $ many identifier
           return (l,t)
 
 -- | The original string representation of the semantics (for gui)
@@ -219,7 +221,7 @@ geniLitConstraints :: Parser (BoolExp T.Text)
 geniLitConstraints =
    P.buildExpressionParser table piece
  where
-   piece =  (Cond <$> tidentifier)
+   piece =  (Cond <$> identifier)
        <|> do { string "~"; Not `liftM` geniLitConstraints }
        <|> parens geniLitConstraints
    table = [ [ op "&" And P.AssocLeft ]
@@ -268,7 +270,7 @@ geniDerivations = tillEof $ many geniOutput
 
 geniTestCase :: Parser TestCase
 geniTestCase =
-  do name  <- option "" (tidentifier <?> "a test case name")
+  do name  <- option "" (identifier <?> "a test case name")
      seminput <- geniSemanticInput
      sentences <- many geniSentence
      outputs   <- many geniOutput
@@ -322,7 +324,7 @@ geniLexicon = tillEof $ many1 geniLexicalEntry
 geniLexicalEntry :: Parser LexEntry
 geniLexicalEntry =
   do lemmas  <- geniAtomicDisjunction <?> "a lemma (or disjunction thereof)"
-     family  <- tidentifier <?> "a tree family"
+     family  <- identifier <?> "a tree family"
      (pars, interface) <- option ([],[]) $ parens paramsParser
      equations <- option [] $ do keyword "equations"
                                  geniFeats <?> "path equations"
@@ -368,8 +370,8 @@ auxType  = do { reserved AUXILIARY ; return Auxiliar }
 geniTreeDef :: Parser SchemaTree
 geniTreeDef =
   do sourcePos <- getPosition
-     family   <- tidentifier
-     tname    <- option "" (colon *> tidentifier)
+     family   <- identifier
+     tname    <- option "" (colon *> identifier)
      (pars,iface)   <- geniParams
      theTtype  <- (initType <|> auxType)
      theTree  <- geniTree
@@ -391,7 +393,7 @@ geniTreeDef =
        treeFail "Initial trees may not have foot nodes"
      --
      psem     <- option Nothing $ do { keywordSemantics; liftM Just (squares geniSemantics) }
-     ptrc     <- option [] $ do { keyword TRACE; squares (many tidentifier) }
+     ptrc     <- option [] $ do { keyword TRACE; squares (many identifier) }
      --
      return TT{ params = pars
               , pfamily = family
@@ -419,10 +421,10 @@ geniTree =
 
 geniNode :: (Ord v, GeniValLike v) => Parser (GNode v)
 geniNode = do
-    name      <- tidentifier
+    name      <- identifier
     nodeType  <- geniNodeAnnotation
     lex_   <- if nodeType == AnnoLexeme
-                 then ((tstringLiteral <|> tidentifier) `sepBy` symbol "|") <?> "some lexemes"
+                 then ((stringLiteral <|> identifier) `sepBy` symbol "|") <?> "some lexemes"
                  else return []
     constr <- case nodeType of
                   AnnoDefault -> adjConstraintParser
@@ -494,8 +496,8 @@ geniTagElems = tillEof $ setTidnums `fmap` many geniTagElem
 
 geniTagElem :: Parser TagElem
 geniTagElem = do
-    family   <- tidentifier
-    tname    <- option "" $ (colon *> tidentifier)
+    family   <- identifier
+    tname    <- option "" $ (colon *> identifier)
     iface    <- (snd `liftM` geniParams) <|> geniFeats
     theType  <- initType <|> auxType
     theTree  <- geniTree
@@ -532,7 +534,7 @@ geniMorphInfo :: Parser [(Text,Flist GeniVal)]
 geniMorphInfo = tillEof $ many morphEntry
 
 morphEntry :: Parser (Text,Flist GeniVal)
-morphEntry = (,) <$> tidentifier <*> geniFeats
+morphEntry = (,) <$> identifier <*> geniFeats
 
 -- ======================================================================
 -- Everything else
@@ -555,13 +557,12 @@ geniPolarity = option 0 (plus <|> minus)
 -- ----------------------------------------------------------------------
 
 {-# INLINE keyword #-}
-keyword :: String -> Parser String
+keyword :: Text -> Parser Text
 keyword k =
-  do let helper = try $ do { reserved k; colon; return k }
-     helper <?> k ++ ":"
+     (try $ do { reserved k; colon; return k }) <?> T.unpack k ++ ":"
 
 {-# INLINE keywordSemantics #-}
-keywordSemantics :: Parser String
+keywordSemantics :: Parser Text
 keywordSemantics = keyword SEMANTICS
 
 -- ----------------------------------------------------------------------
@@ -571,60 +572,57 @@ keywordSemantics = keyword SEMANTICS
 lexer :: TokenParser ()
 lexer  = makeTokenParser geniLanguageDef
 
-whiteSpace :: CharParser () ()
+whiteSpace :: Parser ()
 whiteSpace = P.whiteSpace lexer
 
-looseIdentifier, identifier, stringLiteral, colon :: CharParser () String
-identifier    = P.identifier lexer
-
-tidentifier :: CharParser () Text
-tidentifier = T.pack <$> identifier
+identifier :: Parser Text
+identifier = decode <$> P.identifier lexer
 
 -- stolen from Parsec code (ident)
 -- | Like 'identifier' but allows for reserved words too
+looseIdentifier :: Parser Text
 looseIdentifier =
- do { i <- ident ; whiteSpace; return i }
- where
-  ident =
-   do { c <- identStart geniLanguageDef
-      ; cs <- many (identLetter geniLanguageDef)
-      ; return (c:cs) } <?> "identifier"
+    decode <$> do { i <- ident ; whiteSpace; return i }
+  where
+    ident = do
+        { c <- identStart geniLanguageDef
+        ; cs <- many (identLetter geniLanguageDef)
+        ; return (c:cs) } <?> "identifier"
 
-stringLiteral = P.stringLiteral lexer
-colon         = P.colon lexer
+colon :: Parser Text
+colon = decode <$> P.colon lexer
 
-tstringLiteral :: CharParser () Text
-tstringLiteral = T.pack <$> stringLiteral
+stringLiteral :: Parser Text
+stringLiteral = decode <$> P.stringLiteral lexer
 
-
-squares, braces, parens :: CharParser () a -> CharParser () a
+squares, braces, parens :: Parser a -> Parser a
 squares = P.squares lexer
 braces  = P.braces  lexer
 parens  = P.parens  lexer
 
-reserved, symbol :: String -> CharParser () String
-reserved s = P.reserved lexer s >> return s
-symbol = P.symbol lexer
+reserved :: Text -> Parser Text
+reserved s = P.reserved lexer (T.unpack s) >> return s
+
+symbol :: Text -> Parser Text
+symbol s = P.symbol lexer (T.unpack s) >> return s
+
+decode :: String -> Text
+decode = T.pack
 
 -- ----------------------------------------------------------------------
 -- parsec helpers
 -- ----------------------------------------------------------------------
 
 -- | identifier, permitting reserved words too
-identifierR :: CharParser () String
-identifierR
-  = do { c <- P.identStart geniLanguageDef
-       ; cs <- many (P.identLetter geniLanguageDef)
-       ; return (c:cs)
-       }
-       <?> "identifier or reserved word"
+identifierR :: Parser Text
+identifierR = decode <$> do
+    { c <- P.identStart geniLanguageDef
+    ; cs <- many (P.identLetter geniLanguageDef)
+    ; return (c:cs)
+    } <?> "identifier or reserved word"
 
 tillEof :: Parser a -> Parser a
-tillEof p =
-  do whiteSpace
-     r <- p
-     eof
-     return r
+tillEof p = whiteSpace *> p <* eof
 
 -- stolen from Parsec and adapted to use UTF-8 input
 parseFromFile :: Parser a -> SourceName -> IO (Either ParseError a)
