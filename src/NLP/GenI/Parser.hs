@@ -58,7 +58,7 @@ import NLP.GenI.FeatureStructure ( Flist, AvPair(..), sortFlist )
 import NLP.GenI.General (isGeniIdentLetter)
 import NLP.GenI.GeniShow ( GeniShow(..), geniKeyword )
 import NLP.GenI.GeniVal ( GeniVal, mkGConst, mkGConstNone, mkGVar, mkGAnon, isAnon )
-import NLP.GenI.Lexicon ( mkFullLexEntry, LexEntry(..) )
+import NLP.GenI.Lexicon ( fromLexSem, mkFullLexEntry, LexEntry(..) )
 import NLP.GenI.Pretty ( above )
 import NLP.GenI.Semantics ( Literal(..), Sem, sortSem, LitConstr, SemInput )
 import NLP.GenI.Tag (TagElem(..), setTidnums)
@@ -164,13 +164,16 @@ geniSemantics =
   do sem <- many (geniLiteral <?> "a literal")
      return (sortSem sem)
 
-geniLiteral :: Parser Literal
-geniLiteral =
-  Literal <$> (option mkGAnon handleParser <?> "a handle")
-          <*> (geniValue <?> "a predicate")
-          <*> (parens (many geniValue) <?> "some parameters")
-  where handleParser =
-          try $ do { h <- geniValue ; char ':' ; return h }
+geniLiteral :: Parser (Literal GeniVal)
+geniLiteral = geniLiteral_ mkGAnon geniValue
+
+geniLiteral_ :: a -> Parser a -> Parser (Literal a)
+geniLiteral_ zero gv =
+    Literal <$> (option zero handleParser <?> "a handle")
+            <*> (gv <?> "a predicate")
+            <*> (parens (many gv) <?> "some parameters")
+  where
+    handleParser = try $ gv <* char ':'
 
 geniSemanticInput :: Parser (Sem,Flist GeniVal,[LitConstr])
 geniSemanticInput =
@@ -326,7 +329,7 @@ geniLexicalEntry =
      filters <- option [] $ do keyword "filters"
                                geniFeats
      keywordSemantics
-     (sem,pols) <- squares geniLexSemantics
+     (sem, pols) <- fromLexSem <$> squares geniLexSemantics
      --
      return (mkFullLexEntry lemmas family pars interface filters equations sem pols)
   where
@@ -337,22 +340,13 @@ geniLexicalEntry =
                                   many geniAttVal
       return (pars, interface)
 
-geniLexSemantics :: Parser (Sem, [[Int]])
-geniLexSemantics =
-  do litpols <- many (geniLexLiteral <?> "a literal")
-     return $ unzip litpols
+geniLexSemantics :: Parser [Literal PolValue]
+geniLexSemantics = sortSem <$> many (geniLexLiteral <?> "a literal")
 
-geniLexLiteral :: Parser (Literal, [Int])
-geniLexLiteral =
-  do (handle, hpol) <- option (mkGAnon,0) (handleParser <?> "a handle")
-     predicate  <- geniValue <?> "a predicate"
-     paramsPols <- parens (many geniPolValue) <?> "some parameters"
-     --
-     let (pars, pols) = unzip paramsPols
-         literal = Literal handle predicate pars
-     return (literal, hpol:pols)
-  where handleParser =
-          try $ do { h <- geniPolValue; colon; return h }
+type PolValue = (GeniVal, Int)
+
+geniLexLiteral :: Parser (Literal PolValue)
+geniLexLiteral = geniLiteral_ (mkGAnon,0) geniPolValue
 
 geniPolValue :: Parser (GeniVal, Int)
 geniPolValue =

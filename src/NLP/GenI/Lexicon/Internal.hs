@@ -107,6 +107,31 @@ instance Collectable LexEntry where
               (collect $ isemantics l)
 
 -- ----------------------------------------------------------------------
+-- lexicon semantics
+-- ----------------------------------------------------------------------
+
+-- | An annotated GeniVal. This is for a rather old, obscure
+--   variant on the polarity filtering optimisation. To account
+--   for zero literal semantics, we annotate each value in the
+--   semantics with a positive/negative marker.  These markers
+--   are then counted up to determine with we need to insert
+--   more literals into the semantics or not.  See the manual
+--   on polarity filtering for more details
+type PolValue = (GeniVal, Int)
+
+fromLexSem :: [Literal PolValue] -> (Sem, [SemPols])
+fromLexSem = unzip . map fromLexLiteral
+
+-- | Note that by convention we ignore the polarity associated
+--   with the predicate itself
+fromLexLiteral :: Literal PolValue -> (Literal GeniVal, SemPols)
+fromLexLiteral (Literal h pr vs) =
+    (lit, pols)
+  where
+    lit  = Literal (fst h) (fst pr) (map fst vs)
+    pols = snd h : map snd vs
+
+-- ----------------------------------------------------------------------
 -- converting to text
 -- ----------------------------------------------------------------------
 

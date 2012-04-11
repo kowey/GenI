@@ -41,26 +41,27 @@ import NLP.GenI.GeniVal
 import NLP.GenI.Pretty
 
 -- handle, predicate, parameters
-data Literal = Literal { lHandle    :: GeniVal
-                       , lPredicate :: GeniVal
-                       , lArgs      :: [GeniVal]
-                       }
+data Literal gv = Literal
+    { lHandle    :: gv
+    , lPredicate :: gv
+    , lArgs      :: [gv]
+    }
  deriving (Eq, Data, Typeable)
 
-instance Ord Literal where
+instance Ord gv => Ord (Literal gv) where
   compare = compare `on` tucked
     where
       -- treat the handle as an argument
       tucked l = (lPredicate l, lHandle l : lArgs l)
 
-type Sem = [Literal]
-type LitConstr = (Literal, [Text])
+type Sem = [Literal GeniVal]
+type LitConstr = (Literal GeniVal, [Text])
 type SemInput  = (Sem,Flist GeniVal,[LitConstr])
 
-instance Collectable Literal where
+instance Collectable a => Collectable (Literal a) where
   collect (Literal a b c) = collect a . collect b . collect c
 
-emptyLiteral :: Literal
+emptyLiteral :: Literal GeniVal
 emptyLiteral = Literal mkGAnon mkGAnon []
 
 -- Utility functions
@@ -69,10 +70,10 @@ removeConstraints :: SemInput -> SemInput
 removeConstraints (x, _, _) = (x, [], [])
 
 -- | default sorting for a semantics
-sortSem :: Sem -> Sem
+sortSem :: Ord a => [Literal a] -> [Literal a]
 sortSem = sortBy compareOnLiteral
 
-compareOnLiteral :: Literal -> Literal -> Ordering
+compareOnLiteral :: Ord a => Literal a -> Literal a -> Ordering
 compareOnLiteral = compare
 
 -- sort primarily putting the ones with the most constants first
@@ -99,20 +100,20 @@ instance HasConstants GeniVal where
 instance HasConstants a => HasConstants [a] where
   constants = sum . map constants
 
-instance HasConstants Literal where
+instance HasConstants (Literal GeniVal) where
   constants (Literal h p args) = constants (h:p:args)
 
-literalCount :: [Literal] -> Map.Map Text Int
+literalCount :: [Literal GeniVal] -> Map.Map Text Int
 literalCount = histogram . mapMaybe boringLiteral
 
-boringLiteral :: Literal -> Maybe Text
+boringLiteral :: Literal GeniVal -> Maybe Text
 boringLiteral = singletonVal . lPredicate
     -- predicate with a straightfoward constant value
     -- exactly one constraint
 
 -- Traversal
 
-instance DescendGeniVal Literal where
+instance DescendGeniVal a => DescendGeniVal (Literal a) where
   descendGeniVal s (Literal h n lp) = Literal (descendGeniVal s h)
                                               (descendGeniVal s n)
                                               (descendGeniVal s lp)
@@ -125,10 +126,10 @@ instance Pretty Sem where
 instance GeniShow Sem where
    geniShowText = squares . T.unwords . map geniShowText
 
-instance Pretty Literal where
+instance Pretty (Literal GeniVal) where
    pretty = geniShowText
 
-instance GeniShow Literal where
+instance GeniShow (Literal GeniVal) where
    geniShowText (Literal h p l) =
        mh `T.append` geniShowText p
           `T.append` (parens . T.unwords . map geniShowText $ l)
@@ -184,7 +185,7 @@ subsumeSemH (x:xs) ys = nub $
     prepend `fmap` subsumeSemH next_xs next_ys
 
 -- | @p1 `subsumeLiteral` p2@... FIXME
-subsumeLiteral :: Literal -> Literal -> Maybe (Literal, Subst)
+subsumeLiteral :: Literal GeniVal -> Literal GeniVal -> Maybe (Literal GeniVal, Subst)
 subsumeLiteral (Literal h1 p1 la1) (Literal h2 p2 la2) =
   if length la1 == length la2
   then do let hpla1 = h1:p1:la1
@@ -225,7 +226,7 @@ unifySemH (x:xs) ys = nub $ do
                 prepend = insert x2 *** appendSubst subst
             prepend `fmap` unifySemH next_xs next_ys
 
-unifyLiteral :: Literal -> Literal -> Maybe (Literal, Subst)
+unifyLiteral :: Literal GeniVal -> Literal GeniVal -> Maybe (Literal GeniVal, Subst)
 unifyLiteral (Literal h1 p1 la1) (Literal h2 p2 la2) =
   if length la1 == length la2
   then do let hpla1 = h1:p1:la1
@@ -249,11 +250,11 @@ deriving instance Binary Literal
 -- GENERATED START
 
  
-instance NFData Literal where
+instance NFData g => NFData (Literal g) where
         rnf (Literal x1 x2 x3) = rnf x1 `seq` rnf x2 `seq` rnf x3 `seq` ()
 
  
-instance Binary Literal where
+instance Binary g => Binary (Literal g) where
         put (Literal x1 x2 x3)
           = do put x1
                put x2

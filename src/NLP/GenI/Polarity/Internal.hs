@@ -121,7 +121,7 @@ substNodes t = [ gn | gn <- (flatten.ttree) t, gtype gn == Subs ]
 substTops :: TagElem -> [Flist GeniVal]
 substTops = map gup . substNodes
 
-type SemMap = Map.Map Literal [TagElem]
+type SemMap = Map.Map (Literal GeniVal) [TagElem]
 type PolMap = Map.Map PolarityKey Interval
 
 -- ----------------------------------------------------------------------

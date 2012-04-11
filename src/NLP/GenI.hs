@@ -94,7 +94,7 @@ import NLP.GenI.General
     ( histogram, geniBug, snd3, first3, ePutStr, ePutStrLn, eFlush,
     -- mkLogname,
     )
-import NLP.GenI.GeniVal ( finaliseVars )
+import NLP.GenI.GeniVal
 import NLP.GenI.LexicalSelection ( LexicalSelector, LexicalSelection(..), defaultLexicalSelector )
 import NLP.GenI.Lexicon
 import NLP.GenI.Morphology
@@ -697,7 +697,7 @@ getLexicalSelector pstRef = do
 
 -- | @missingLiterals ts sem@ returns any literals in @sem@ that do not
 --   appear in any of the @ts@ trees
-missingLiterals :: [TagElem] -> [Literal] -> [Literal]
+missingLiterals :: [TagElem] -> [Literal GeniVal] -> [Literal GeniVal]
 missingLiterals cands tsem =
    tsem \\ (nub $ concatMap tsemantics cands)
 

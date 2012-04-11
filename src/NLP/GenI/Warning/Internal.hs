@@ -28,6 +28,7 @@ import qualified Data.Text as T
 import Data.Poset
 
 import NLP.GenI.General ( histogram )
+import NLP.GenI.GeniVal ( GeniVal )
 import NLP.GenI.LexicalSelection.Types ( LexCombineError, showLexCombineError )
 import NLP.GenI.Lexicon ( LexEntry(..) )
 import NLP.GenI.Pretty
@@ -51,7 +52,7 @@ data GeniWarning = -- | A warning that should be repeated for each lexical entry
                    -- | A single custom warning
                  | CustomLexWarning Text
                    -- | Literals which did not receive any lexical selection
-                 | NoLexSelection         [Literal]
+                 | NoLexSelection         [Literal GeniVal]
                    -- | Warnings from the morphological realiser
                  | MorphWarning           [Text]
   deriving (Eq)

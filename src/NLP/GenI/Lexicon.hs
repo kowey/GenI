@@ -19,7 +19,9 @@ module NLP.GenI.Lexicon (
    Lexicon,
    -- anything but the constructor
    LexEntry, mkLexEntry, mkFullLexEntry,
-   iword , ifamname, iparams, iinterface , ifilters, iequations, isemantics, isempols
+   iword , ifamname, iparams, iinterface , ifilters, iequations, isemantics, isempols,
+   -- * Converting between lexical/normal semantics
+   PolValue, fromLexSem, fromLexLiteral,
 ) where
 
 import NLP.GenI.Lexicon.Internal

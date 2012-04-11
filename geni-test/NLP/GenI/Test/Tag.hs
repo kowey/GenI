@@ -62,5 +62,5 @@ sillyTagElemAux = sillyTagElem
   , ttype      = Auxiliar
   }
 
-sillyLiteral :: Literal
+sillyLiteral :: Literal GeniVal
 sillyLiteral = Literal (mkGConstNone "l") (mkGConstNone "silly") []

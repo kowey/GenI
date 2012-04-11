@@ -100,7 +100,7 @@ instance Subsumable GeniValLite where
   subsume x y = map (first GeniValLite) . fromUnificationResult
               $ fromGeniValLite x `subsumeOne` fromGeniValLite y
 
-instance Subsumable Literal where
+instance Subsumable (Literal GeniVal) where
   subsume x y = maybeToList (x `subsumeLiteral` y)
 
 instance Subsumable GTestLiteral where
@@ -148,19 +148,19 @@ fromUnificationResult (SuccessSans g)  = [(g, Map.empty)]
 fromUnificationResult (SuccessRep v g) = [(g, Map.fromList [(v,g)])]
 fromUnificationResult (SuccessRep2 v1 v2 g) = [(g, Map.fromList [(v1,g),(v2,g)])]
 
-ttSubsumeLiteral :: Literal -> Literal -> Bool
+ttSubsumeLiteral :: Literal GeniVal -> Literal GeniVal -> Bool
 ttSubsumeLiteral x y = isJust (subsumeLiteral x y)
 
-tt_literal_equiv :: Literal -> Literal -> Bool
+tt_literal_equiv :: Literal GeniVal -> Literal GeniVal -> Bool
 tt_literal_equiv (Literal h1 p1 as1) (Literal h2 p2 as2) =
   and $ zipWith tt_equiv (h1 : p1 : as1) (h2 : p2 : as2)
 
-fromGTestLiteral :: GTestLiteral -> Literal
+fromGTestLiteral :: GTestLiteral -> Literal GeniVal
 fromGTestLiteral (GTestLiteral h r as) = Literal h r as
 
 data GTestLiteral = GTestLiteral GeniVal GeniVal [GeniVal]
 
-instance Arbitrary Literal where
+instance Arbitrary (Literal GeniVal) where
   arbitrary = Literal <$> arbitrary
                       <*> arbitrary
                       <*> arbitrary
@@ -182,7 +182,7 @@ instance Arbitrary GTestLiteral where
 -- SmallCheck
 -- ----------------------------------------------------------------------
 
-instance Serial Literal where
+instance Serial a => Serial (Literal a) where
         series = cons3 Literal
         coseries rs d
           = [\ t ->

@@ -39,4 +39,4 @@ deriving instance Show MorphOutput
 deriving instance Show PolarityDetectionResult
 deriving instance Show PolarityKey
 
-deriving instance Show Literal
+deriving instance Show (Literal GeniVal)

@@ -279,7 +279,7 @@ run builder input config_ =
 -- Semantics and bit vectors
 -- ----------------------------------------------------------------------
 
-type SemBitMap = Map.Map Literal BitVector
+type SemBitMap = Map.Map (Literal GeniVal) BitVector
 
 -- | assign a bit vector value to each literal in the semantics
 -- the resulting map can then be used to construct a bit vector

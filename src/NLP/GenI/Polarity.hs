@@ -130,7 +130,9 @@ makePolAut candsRaw tsemRaw extraPol ks =
 -- The fact that we
 -- preserve the order of the input semantics is important for our handling
 -- of multi-literal semantics and for semantic frequency sorting.
-buildColumns :: (TagItem t) => [t] -> Sem -> Map.Map Literal [t] 
+buildColumns :: (TagItem t) => [t]
+             -> Sem
+             -> Map.Map (Literal GeniVal) [t]
 buildColumns cands [] = 
   Map.singleton emptyLiteral e
   where e = filter (null.tgSemantics) cands
@@ -175,7 +177,12 @@ buildSeedAut' cands (l:ls) i aut =
   in buildSeedAut' cands ls (i+1) (newAut { states = next })
 
 -- for each candidate corresponding to literal l...
-buildSeedAutHelper :: [TagElem] -> Literal -> Int -> PolState -> (PolAut,[PolState]) -> (PolAut,[PolState])
+buildSeedAutHelper :: [TagElem]
+                   -> Literal GeniVal
+                   -> Int
+                   -> PolState
+                   -> (PolAut,[PolState])
+                   -> (PolAut,[PolState])
 buildSeedAutHelper cs l i st (aut,prev) =
   let -- get the extra semantics from the last state
       (PolSt _ ex1 _) = st
@@ -380,11 +387,11 @@ fixPronouns (tsem,cands) =
 
 -- | Builds a fake semantic predicate that the index counting mechanism uses to
 --   represent extra columns.
-indexLiteral :: GeniVal -> Literal
+indexLiteral :: GeniVal -> Literal GeniVal
 indexLiteral x = Literal x mkGAnon []
 
 -- Returns True if the given literal was introduced by the index counting mechanism
-isExtraCol :: Literal -> Bool
+isExtraCol :: Literal GeniVal -> Bool
 isExtraCol (Literal _ p []) = isAnon p
 isExtraCol _                = False
 
@@ -537,7 +544,7 @@ sortSemByFreq tsem cands =
 
 -- Polarity NFA
 
-data PolState = PolSt Int [Literal] [(Int,Int)]     
+data PolState = PolSt Int [Literal GeniVal] [(Int,Int)]
                 -- ^ position in the input semantics, extra semantics, 
                 --   polarity interval
      deriving (Eq)
