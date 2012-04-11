@@ -80,7 +80,7 @@ data GraphvizStatus = GvError String
 --   dump it to file or read replace it by the contents of some other file
 pauseOnLexGui :: Params
               -> Window a             -- ^ parent window
-              -> [ILexEntry]          -- ^ lexically selected items (before anchoring)
+              -> [LexEntry]          -- ^ lexically selected items (before anchoring)
               -> [TagElem]            -- ^ lexically selected items
               -> GeniWarnings         -- ^ lexical selection warnings
               -> Maybe ([TagElem] -> IO ()) -- ^ run when “begin” is clicked
