@@ -17,7 +17,7 @@ import Test.Framework.Providers.HUnit
 import Test.Framework.Providers.QuickCheck2
 
 import NLP.GenI.FeatureStructure
-import NLP.GenI.Lexicon ( ILexEntry(..) )
+import NLP.GenI.Lexicon ( LexEntry(..) )
 import NLP.GenI.General
 import NLP.GenI.GeniShow
 import NLP.GenI.GeniVal
@@ -47,7 +47,7 @@ suite =
       [ testProperty "GeniVal" propRoundTripGeniVal
       , testProperty "FS"      propRoundTripFeats
       , testProperty "Sem"     propRoundTripSem
-      , testProperty "ILexEntry" propRoundTripILexEntry
+      , testProperty "LexEntry" propRoundTripILexEntry
       ]
   ]
 

@@ -40,9 +40,9 @@ suite =
 --
 -- ----------------------------------------------------------------------
 
-instance Arbitrary ILexEntry where
+instance Arbitrary LexEntry where
   arbitrary =
-    mkILexEntry
+    mkLexEntry
         <$> fullListOf nonEmptyStr
         <*> nonEmptyStr
         <*> arbitrary
@@ -54,7 +54,7 @@ instance Arbitrary ILexEntry where
       nonEmptyStr :: Gen Text
       nonEmptyStr = elements gTestStrings
   shrink l = do
-    mkILexEntry
+    mkLexEntry
         <$> pure (iword l)
         <*> pure (ifamname l)
         <*> shrinkList shrink (iparams l)

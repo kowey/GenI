@@ -41,7 +41,7 @@ import NLP.GenI.General
     )
 import NLP.GenI.GeniVal( unify, GeniVal(gConstraints), isConst, Subst, replace, finaliseVars )
 import NLP.GenI.LexicalSelection.Types
-import NLP.GenI.Lexicon ( ILexEntry(..), Lexicon, )
+import NLP.GenI.Lexicon ( LexEntry(..), Lexicon, )
 import NLP.GenI.Semantics ( subsumeSem, unifySem, Sem )
 import NLP.GenI.Tag ( TagElem(..), idname )
 import NLP.GenI.TreeSchema ( Ttree(..), SchemaTree, SchemaNode, Macros
@@ -65,7 +65,7 @@ data LexicalSelection = LexicalSelection
         lsAnchored   :: [TagElem]
         -- | if available, lexical entries that were used to produce anchored
         --   trees (useful for identifying anchoring failure)
-      , lsLexEntries :: [ILexEntry]
+      , lsLexEntries :: [LexEntry]
         -- | HINT: use 'Data.Monoid.mempty' to initialise to empty
       , lsWarnings   :: GeniWarnings
       }
@@ -94,7 +94,7 @@ defaultLexicalSelection grammar lexicon tsem =
 --   be to throw a subsumption check on top of items reported missing,
 --   because it's possible for the trees to add semantics through
 --   unification.
-missingLexEntries :: [TagElem] -> [ILexEntry] -> [ILexEntry]
+missingLexEntries :: [TagElem] -> [LexEntry] -> [LexEntry]
 missingLexEntries cands = filter treeless
  where
   treeless l = isNothing $ find (\t -> tsemantics t == isemantics l) cands
@@ -105,18 +105,18 @@ missingLexEntries cands = filter treeless
 
 -- | Select and returns the set of entries from the lexicon whose semantics
 --   subsumes the input semantics.
-defaultLexicalChoice :: Lexicon -> Sem -> [ILexEntry]
+defaultLexicalChoice :: Lexicon -> Sem -> [LexEntry]
 defaultLexicalChoice slex tsem = chooseCandI tsem slex
 
 -- | 'chooseCandI' @sem l@ attempts to unify the semantics of @l@ with @sem@
 --   If this succeeds, we use return the result(s); if it fails, we reject
 --   @l@ as a lexical selection candidate.
-chooseCandI :: Sem -> [ILexEntry] -> [ILexEntry]
+chooseCandI :: Sem -> [LexEntry] -> [LexEntry]
 chooseCandI tsem cand =
   let replaceLex i (sem,sub) =
         (replace sub i) { isemantics = sem }
       --
-      helper :: ILexEntry -> [ILexEntry]
+      helper :: LexEntry -> [LexEntry]
       helper l = if null sem then [l]
                  else map (replaceLex l) psubsem
         where psubsem = sem `subsumeSem` tsem
@@ -133,7 +133,7 @@ chooseCandI tsem cand =
 --  because it breaks the case where two lexical entries differ
 --  only by their use of path equations.  Perhaps it's worthwhile
 --  just to add a check that the path equations match exactly.
-mergeSynonyms :: [ILexEntry] -> [ILexEntry]
+mergeSynonyms :: [LexEntry] -> [LexEntry]
 mergeSynonyms lexEntry =
   let mergeFn l1 l2 = l1 { iword = (FL.++) (iword l1) (iword l2) }
       keyFn l = (ifamname l, isemantics l)
@@ -159,8 +159,8 @@ lexTell x = lift (tell [x])
 --   with the tree schemata.
 --
 --   This function may be useful if you are implementing your own lexical selection
---   functions, and you want GenI to take over after you've given it a @[ILexEntry]@
-defaultAnchoring :: Macros -> [ILexEntry] -> Sem -> LexicalSelection
+--   functions, and you want GenI to take over after you've given it a @[LexEntry]@
+defaultAnchoring :: Macros -> [LexEntry] -> Sem -> LexicalSelection
 defaultAnchoring grammar lexCands tsem =
   LexicalSelection { lsAnchored   = cands
                    , lsLexEntries = lexCands
@@ -187,7 +187,7 @@ defaultAnchoring grammar lexCands tsem =
 
 -- | Given a lexical item, looks up the tree families for that item, and
 --   anchor the item to the trees.
-combineList :: Sem -> Macros -> ILexEntry
+combineList :: Sem -> Macros -> LexEntry
             -> ([LexCombineError],[TagElem]) -- ^ any warnings, plus the results
 combineList tsem gram lexitem =
   case [ t | t <- gram, pfamily t == tn ] of
@@ -200,7 +200,7 @@ combineList tsem gram lexitem =
 
 -- | Combine a single tree with its lexical item to form a bonafide TagElem.
 --   This process can fail, however, because of filtering or enrichement
-combineOne :: Sem -> ILexEntry -> SchemaTree -> LexCombine [TagElem]
+combineOne :: Sem -> LexEntry -> SchemaTree -> LexCombine [TagElem]
 combineOne tsem lexRaw eRaw = -- Maybe monad
  -- trace ("\n" ++ (show wt)) $
  do let l1 = finaliseVars "-l" lexRaw
@@ -268,7 +268,7 @@ combineOne tsem lexRaw eRaw = -- Maybe monad
 
 -- | See <http://projects.haskell.org/manual/lexical-selection>
 --   on enrichement
-enrich :: ILexEntry -> SchemaTree -> LexCombine SchemaTree
+enrich :: LexEntry -> SchemaTree -> LexCombine SchemaTree
 enrich l t =
  do -- separate into interface/anchor/named
     (intE, namedE) <- lift $ lexEquations l
@@ -343,7 +343,7 @@ enrichFeat (AvPair a v) fs =
 
 -- | @missingCoanchors l t@ returns the list of coanchor node names from @l@
 --   that were not found in @t@
-missingCoanchors :: ILexEntry -> SchemaTree -> [Text]
+missingCoanchors :: LexEntry -> SchemaTree -> [Text]
 missingCoanchors lexEntry t =
    [ name eqLhs | eqLhs <- nubBy ((==) `on` name) equations, missing eqLhs ]
  where
@@ -354,7 +354,7 @@ missingCoanchors lexEntry t =
 
 -- | Split a lex entry's path equations into interface enrichement equations
 --   or (co-)anchor modifiers
-lexEquations :: ILexEntry -> Writer [LexCombineError] ([AvPair GeniVal],[PathEqPair])
+lexEquations :: LexEntry -> Writer [LexCombineError] ([AvPair GeniVal],[PathEqPair])
 lexEquations =
   fmap myPartition . mapM parseAv . iequations
   where

@@ -58,7 +58,7 @@ import NLP.GenI.FeatureStructure ( Flist, AvPair(..), sortFlist )
 import NLP.GenI.General (isGeniIdentLetter)
 import NLP.GenI.GeniShow ( GeniShow(..), geniKeyword )
 import NLP.GenI.GeniVal ( GeniVal, mkGConst, mkGConstNone, mkGVar, mkGAnon, isAnon )
-import NLP.GenI.Lexicon ( mkFullILexEntry, ILexEntry(..) )
+import NLP.GenI.Lexicon ( mkFullLexEntry, LexEntry(..) )
 import NLP.GenI.Pretty ( above )
 import NLP.GenI.Semantics ( Literal(..), Sem, sortSem, LitConstr, SemInput )
 import NLP.GenI.Tag (TagElem(..), setTidnums)
@@ -313,10 +313,10 @@ geniTestCaseString = do
 -- Lexicon
 -- ----------------------------------------------------------------------
 
-geniLexicon :: Parser [ILexEntry]
+geniLexicon :: Parser [LexEntry]
 geniLexicon = tillEof $ many1 geniLexicalEntry
 
-geniLexicalEntry :: Parser ILexEntry
+geniLexicalEntry :: Parser LexEntry
 geniLexicalEntry =
   do lemmas  <- geniAtomicDisjunction <?> "a lemma (or disjunction thereof)"
      family  <- tidentifier <?> "a tree family"
@@ -328,7 +328,7 @@ geniLexicalEntry =
      keywordSemantics
      (sem,pols) <- squares geniLexSemantics
      --
-     return (mkFullILexEntry lemmas family pars interface filters equations sem pols)
+     return (mkFullLexEntry lemmas family pars interface filters equations sem pols)
   where
     paramsParser :: Parser ([GeniVal], Flist GeniVal)
     paramsParser = do

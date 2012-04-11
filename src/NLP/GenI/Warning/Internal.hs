@@ -29,7 +29,7 @@ import Data.Poset
 
 import NLP.GenI.General ( histogram )
 import NLP.GenI.LexicalSelection.Types ( LexCombineError, showLexCombineError )
-import NLP.GenI.Lexicon ( ILexEntry(..) )
+import NLP.GenI.Lexicon ( LexEntry(..) )
 import NLP.GenI.Pretty
 import NLP.GenI.Semantics ( Literal )
 import NLP.GenI.TreeSchema ( showLexeme )
@@ -47,7 +47,7 @@ instance Monoid GeniWarnings where
   mappend (GeniWarnings g1) (GeniWarnings g2) = GeniWarnings (foldr appendWarning g2 g1)
 
 data GeniWarning = -- | A warning that should be repeated for each lexical entry affected
-                   LexWarning [ILexEntry] LexWarning
+                   LexWarning [LexEntry] LexWarning
                    -- | A single custom warning
                  | CustomLexWarning Text
                    -- | Literals which did not receive any lexical selection
@@ -139,7 +139,7 @@ showGeniWarning (MorphWarning ws) = map ("Morph:" <+>) ws
 -- word and all families associated with that word
 type WordFamilyCount = Map.Map (FullList Text, Text) Int
 
-toWfCount :: [ILexEntry] -> WordFamilyCount
+toWfCount :: [LexEntry] -> WordFamilyCount
 toWfCount = histogram . map toWf
  where
    toWf i = (iword i, ifamname i)

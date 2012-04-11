@@ -42,8 +42,8 @@ import Control.DeepSeq
 --instance Show (IO()) where
 --  show _ = ""
 
-type Lexicon = [ILexEntry]
-data ILexEntry = ILE
+type Lexicon = [LexEntry]
+data LexEntry = LexEntry
     { -- normally just a singleton, useful for merging synonyms
       iword       :: FullList Text
     , ifamname    :: Text
@@ -55,24 +55,24 @@ data ILexEntry = ILE
     , isempols    :: [SemPols] }
   deriving (Eq, Data, Typeable)
 
--- | See also 'mkFullILexEntry'
+-- | See also 'mkFullLexEntry'
 --   This version comes with some sensible defaults.
-mkILexEntry :: FullList Text   -- ^ word
+mkLexEntry :: FullList Text   -- ^ word
             -> Text            -- ^ family name
             -> [GeniVal]       -- ^ parameters list (deprecated)
             -> Flist GeniVal   -- ^ interface (use instead of params)
             -> Flist GeniVal   -- ^ filters
             -> Flist GeniVal   -- ^ equations
             -> Sem             -- ^ semantics
-            -> ILexEntry
-mkILexEntry word famname params interface filters equations sem =
-  mkFullILexEntry word famname params interface filters equations
+            -> LexEntry
+mkLexEntry word famname params interface filters equations sem =
+  mkFullLexEntry word famname params interface filters equations
       sem (map noSemPols sem)
   where
    noSemPols l = replicate (length (lArgs l)) 0
 
--- | Variant of 'mkILexEntry' but with more control
-mkFullILexEntry :: FullList Text   -- ^ word
+-- | Variant of 'mkLexEntry' but with more control
+mkFullLexEntry :: FullList Text   -- ^ word
                 -> Text            -- ^ family name
                 -> [GeniVal]       -- ^ parameters list (deprecated)
                 -> Flist GeniVal   -- ^ interface (use instead of params)
@@ -80,27 +80,28 @@ mkFullILexEntry :: FullList Text   -- ^ word
                 -> Flist GeniVal   -- ^ equations
                 -> Sem             -- ^ semantics
                 -> [SemPols]       -- ^ semantic polarities
-                -> ILexEntry
-mkFullILexEntry word famname params interface filters equations sem sempols =
-  ILE (sortNub word)
-      famname
-      params
-      (sortFlist interface)
-      (sortFlist filters)
-      (sortFlist equations)
-      sem2
-      sempols2
+                -> LexEntry
+mkFullLexEntry word famname params interface filters equations sem sempols =
+    LexEntry
+        (sortNub word)
+        famname
+        params
+        (sortFlist interface)
+        (sortFlist filters)
+        (sortFlist equations)
+        sem2
+        sempols2
   where
-   (sem2, sempols2) = unzip $ sortBy (compareOnLiteral `on` fst) (zip sem sempols)
+     (sem2, sempols2) = unzip $ sortBy (compareOnLiteral `on` fst) (zip sem sempols)
 
-instance DescendGeniVal ILexEntry where
+instance DescendGeniVal LexEntry where
   descendGeniVal s i =
     i { iinterface  = descendGeniVal s (iinterface i)
       , iequations  = descendGeniVal s (iequations i)
       , isemantics  = descendGeniVal s (isemantics i)
       , iparams = descendGeniVal s (iparams i) }
 
-instance Collectable ILexEntry where
+instance Collectable LexEntry where
   collect l = (collect $ iinterface l) . (collect $ iparams l) .
               (collect $ ifilters l) . (collect $ iequations l) .
               (collect $ isemantics l)
@@ -110,7 +111,7 @@ instance Collectable ILexEntry where
 -- ----------------------------------------------------------------------
 
 -- TODO: does not support semantic polarities yet
-instance GeniShow ILexEntry where
+instance GeniShow LexEntry where
     geniShowText l = T.intercalate "\n"
         [ T.unwords
               [ geniShowText . mkGConst $ iword l
@@ -128,10 +129,10 @@ instance GeniShow ILexEntry where
             , map geniShowText (iinterface l)
             ]
 
-instance GeniShow [ILexEntry] where
+instance GeniShow [LexEntry] where
     geniShowText = T.intercalate "\n\n" . map geniShowText
 
-instance Pretty ILexEntry where
+instance Pretty LexEntry where
     pretty = geniShowText
 
 -- ----------------------------------------------------------------------
@@ -139,15 +140,15 @@ instance Pretty ILexEntry where
 -- ----------------------------------------------------------------------
 
 {-!
-deriving instance Binary ILexEntry
-deriving instance NFData ILexEntry
+deriving instance Binary LexEntry
+deriving instance NFData LexEntry
 !-}
 
 -- GENERATED START
 
  
-instance Binary ILexEntry where
-        put (ILE x1 x2 x3 x4 x5 x6 x7 x8)
+instance Binary LexEntry where
+        put (LexEntry x1 x2 x3 x4 x5 x6 x7 x8)
           = do put x1
                put x2
                put x3
@@ -165,11 +166,11 @@ instance Binary ILexEntry where
                x6 <- get
                x7 <- get
                x8 <- get
-               return (ILE x1 x2 x3 x4 x5 x6 x7 x8)
+               return (LexEntry x1 x2 x3 x4 x5 x6 x7 x8)
 
  
-instance NFData ILexEntry where
-        rnf (ILE x1 x2 x3 x4 x5 x6 x7 x8)
+instance NFData LexEntry where
+        rnf (LexEntry x1 x2 x3 x4 x5 x6 x7 x8)
           = rnf x1 `seq`
               rnf x2 `seq`
                 rnf x3 `seq`

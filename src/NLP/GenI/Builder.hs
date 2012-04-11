@@ -68,7 +68,7 @@ import NLP.GenI.Configuration
 import NLP.GenI.FeatureStructure ( Flist, sortFlist, mkFeatStruct )
 import NLP.GenI.General ( BitVector, snd3, thd3, geniBug )
 import NLP.GenI.GeniVal ( GeniVal, DescendGeniVal(..), Collectable(collect), finaliseVarsById )
-import NLP.GenI.Lexicon ( ILexEntry )
+import NLP.GenI.Lexicon ( LexEntry )
 import NLP.GenI.Morphology.Types
 import NLP.GenI.Polarity  (PolResult(..), buildAutomaton, detectPolPaths)
 import NLP.GenI.Pretty
@@ -106,7 +106,7 @@ type Output = (Integer, LemmaPlusSentence, TagDerivation)
 
 data Input = 
   Input { inSemInput :: SemInput
-        , inLex      :: [ILexEntry] -- ^ for the debugger
+        , inLex      :: [LexEntry] -- ^ for the debugger
         , inCands    :: [(TagElem, BitVector)]   -- ^ tag tree
         }
 

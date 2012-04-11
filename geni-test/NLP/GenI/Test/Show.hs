@@ -23,7 +23,7 @@ instance Show GeniVal where
 instance Show (AvPair GeniVal) where
     show = geniShow
 
-instance Show ILexEntry where
+instance Show LexEntry where
     show = geniShow
 
 deriving instance Show PathEqLhs

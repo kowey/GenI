@@ -18,7 +18,7 @@
 module NLP.GenI.Lexicon (
    Lexicon,
    -- anything but the constructor
-   ILexEntry, mkILexEntry, mkFullILexEntry,
+   LexEntry, mkLexEntry, mkFullLexEntry,
    iword , ifamname, iparams, iinterface , ifilters, iequations, isemantics, isempols
 ) where
 
