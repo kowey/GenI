@@ -37,6 +37,7 @@ module NLP.GenI.Morphology
 import Control.Concurrent (forkIO)
 import Control.Exception (catch, bracket, evaluate, IOException)
 import Data.Maybe (isNothing)
+import Data.Text ( Text )
 import Data.Tree
 import Data.Typeable
 import System.Exit
@@ -65,12 +66,12 @@ import NLP.GenI.TreeSchema ( GNode(..), GType(..) )
 
 -- | Converts information from a morphological information file into GenI's
 --   internal format.
-readMorph :: [(String,[AvPair GeniVal])] -> MorphInputFn
+readMorph :: [(Text,[AvPair GeniVal])] -> MorphInputFn
 readMorph minfo lit =
     Map.lookup key fm
   where
     fm = Map.fromList minfo
-    key = prettyStr (lPredicate lit)
+    key = pretty (lPredicate lit)
 
 -- | Filters away from an input semantics any literals whose realisation is
 --   strictly morphological.  The first argument tells us helps identify the

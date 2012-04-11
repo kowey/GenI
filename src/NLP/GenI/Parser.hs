@@ -528,14 +528,11 @@ geniParams = parens $ do
 -- Morphology
 -- ----------------------------------------------------------------------
 
-geniMorphInfo :: Parser [(String,Flist GeniVal)]
+geniMorphInfo :: Parser [(Text,Flist GeniVal)]
 geniMorphInfo = tillEof $ many morphEntry
 
-morphEntry :: Parser (String,Flist GeniVal)
-morphEntry =
-  do pred_ <- identifier
-     feats <- geniFeats
-     return (pred_, feats)
+morphEntry :: Parser (Text,Flist GeniVal)
+morphEntry = (,) <$> tidentifier <*> geniFeats
 
 -- ======================================================================
 -- Everything else
