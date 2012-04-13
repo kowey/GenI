@@ -16,12 +16,12 @@ Library
   Build-Depends: base < 5
                , bytestring >= 0.9
                , cmdargs >= 0.7
-               , conduit == 0.2.*
+               , conduit >= 0.2
                , http-types == 0.6.*
                , json >= 0.4.3 && < 0.6
                , transformers
                , utf8-string >= 0.3.5 && < 0.4
-               , wai   == 1.1.*
+               , wai   >= 1.1 && < 2.0
                , text  < 1.0
                , GenI >= 0.19.0 && < 0.23
   Ghc-options:    -Wall -O2
@@ -33,5 +33,5 @@ Executable geniserver
   Build-Depends: base < 5
                , geniserver
                , GenI >= 0.19.0 && < 0.23
-               , warp  == 1.1.*
+               , warp  >= 1.1   && < 2.0
                , text  < 1.0
