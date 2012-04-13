@@ -14,14 +14,14 @@ import Data.Text ( Text )
 import qualified Data.Text as T
 import qualified Data.Map as Map
 import Test.HUnit
-import Test.SmallCheck
-import Test.SmallCheck.Series
-import Test.QuickCheck hiding (collect, Failure, Property, (==>))
+-- import Test.SmallCheck
+-- import Test.SmallCheck.Series
+import Test.QuickCheck hiding ( Failure, collect )
 import Test.QuickCheck.Arbitrary
 import Test.Framework
 import Test.Framework.Providers.HUnit
--- import Test.Framework.Providers.QuickCheck2
-import Test.Framework.Providers.SmallCheck
+import Test.Framework.Providers.QuickCheck2
+-- import Test.Framework.Providers.SmallCheck
 -- import NLP.GenI.Test.SmallCheck.GeniVal as SC
 import NLP.GenI.GeniVal
 import NLP.GenI.Pretty
@@ -302,6 +302,7 @@ shrinkList2 shr xs =
 --
 -- ----------------------------------------------------------------------
 
+{-
 instance Serial GeniVal where
   series   =  cons0 mkGAnon
            \/ cons1 mkGConst
@@ -309,3 +310,4 @@ instance Serial GeniVal where
   -- meh, I'd rather be forced to pattern match in case the type of GeniVal
   -- changes in the future, but I also don't want to import the constructor
   coseries rs d = [ \g -> f (gLabel g) (gConstraints g) | f <- alts2 rs d ]
+-}

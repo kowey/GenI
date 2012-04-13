@@ -53,6 +53,7 @@ shrinkFeatStruct = fmap Map.fromList
     v2 <- shrink v
     return (t2, v2)
 
+{-
 -- via derive
 instance (Serial a) => Serial (AvPair a) where
         series = cons2 AvPair
@@ -61,3 +62,4 @@ instance (Serial a) => Serial (AvPair a) where
                case t of
                    AvPair x1 x2 -> t0 x1 x2
              | t0 <- alts2 rs d]
+-}

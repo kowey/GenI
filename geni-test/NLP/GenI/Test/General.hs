@@ -36,11 +36,10 @@ fullListOf g = (!:) <$> g <*> listOf g
 instance Arbitrary T.Text where
   arbitrary = T.pack <$> arbitrary
 
-instance Serial T.Text where
-  series = cons1 T.pack
-
+{-
 instance (Serial a) => Serial (FullList a) where
   series = cons2 cons
     where
       cons :: a -> [a] -> FullList a
       cons = (!:)
+-}
