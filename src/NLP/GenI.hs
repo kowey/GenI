@@ -63,7 +63,7 @@ import Data.Binary (Binary, decodeFile)
 import Data.IORef (IORef, readIORef, modifyIORef)
 import Data.List
 import Data.Maybe (fromMaybe)
-import Data.Monoid
+import Data.Monoid ( mappend, mempty )
 import Data.Text ( Text )
 import Data.Typeable (Typeable)
 import System.CPUTime( getCPUTime )

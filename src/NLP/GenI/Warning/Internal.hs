@@ -20,7 +20,7 @@ module NLP.GenI.Warning.Internal where
 
 import Data.FullList ( FullList, fromFL )
 import Data.List
-import Data.Monoid
+import Data.Monoid ( Monoid, mconcat, mappend, mempty )
 import Data.Text ( Text )
 import qualified Data.Map as Map
 import qualified Data.Text as T
