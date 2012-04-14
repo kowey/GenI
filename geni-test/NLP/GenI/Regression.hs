@@ -57,14 +57,14 @@ mkSuite = do
 
 usualArgs :: FilePath -> [String] -> [String]
 usualArgs p args =
-  [ "-m", p </> "macros"
+  [ "-t", p </> "trees"
   , "-l", p </> "lexicon"
   , "-s", p </> "suite"
   ] ++ args
 
 usualArgsBad :: FilePath -> [String] -> [String]
 usualArgsBad p args =
-  [ "-m", p </> "macros"
+  [ "-t", p </> "trees"
   , "-l", p </> "lexicon"
   , "-s", p </> "suite-bad"
   ] ++ args
