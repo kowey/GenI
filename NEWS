@@ -1,52 +1,105 @@
-GenI 0.22, XX
+GenI 0.22, 14 Apr 2012
 ----------------------
-- NEW FEATURES AND UI CHANGES
+CHANGES TO WATCH OUT FOR
 
-  * GHC 7.0.3 or higher required (Haskell Platform preferred)
-  * Simpler install : geni and geni-gui are now separate executables
-  * --batchdir now optional (GenI creates a default temporary directory
-    if you don't specify one)
-  * New logging mechanism (not extensively used yet)
-  * Polarity filtering no longer requires all subst/root nodes to have
-    the feature defined.
-  * New input tab for graphical generation
-  * Capping results
-    * --maxsteps to cap each test case at a certain number of chart
-                 generation steps
-    * --maxresults
-  * More compact warnings output
-  * The following optimisations are now obligatory
-    - early null-adjunction detection
-    - semantic filter (for 2-phase realisation)
-  * Faster lexical selection
-    - duplicates trimed
-    - singleton variables are anonymised
-  * Make '-r' a short command line option for '--rootfeat'.
-  * Tree schemata support “fancy” disjunctions of unification variables
-    These are not atomic disjunctions, but they will be squashed upon
-    lexical selection
-  * New time metric for statistics collection
+* Separation of geni and geni-gui into two packages;
+  simpler installation
+* Now using the top feature for lemanchors instead of bot
+* Empty disjunctions forbidden in unification variables
+* JSON input/output to morph processors have changed
+* Lexical selection unifies semantics of tree schema + lemma with
+  input semantics.
 
-- LIBRARY CHANGES
+GUI
 
-  * Somewhat safer and easier to navigate API
-  * Customisable arbitrary lexical selection action
-  * Customisable arbitrary morpholical realiser action
+* New results tab with reminder of inputs
+* Add gui element to display unanchored lexical selection.
+* Jump to new tab in debugger panel when created.
+* Update gui to use Pretty instead of Show
+* Rename $algo-session tab to "tree assembly"
+* Make warnings resizable.
+* Fix display of path equations with 'interface' in them.
+* Fix #50 - load button has no effect.
+* Fix #49 - correct order that leaf nodes are returned.
+* Show GenI version in About box.
+* Add detect polarities and root feature editor to main gui.
 
-- NEW TOOLS
+DOCUMENTATION
 
-  * geniserver is now an HTTP server (and a library so you can write
-    your own geni-based web servers)
-  * genireport provides a summary of test suite results
+* Literate GenI and genimanual replaced with
+  http://projects.haskell.org/GenI/manual
 
-- BUGFIXES
+GENERAL
 
-  * Do top/bottom unification on na-constrained nodes during initialisation.
-  * Avoid accepting 'aconstr:noadj' as an attribute.
-  * #33 - Make the root feature flag required, with no defaults.
-  * #39: reject malformed root feature input.
-  * #49 - correct order that leaf nodes are returned.
-  * one-tree results now have derivation trees
+* Builds with GHC 7
+* Core behaviour
+     * Early null-adjunction and semfilter obligatory
+     * Handling of zero-literal semantic items restored
+     * Unconstrained polarities in automaton construction.
+       This makes it possible to do polarity detection with only a
+       weakly specified root feature like [cat:_], and without needing
+       the relevant feature to be implemented everywhere.
+
+* Flags:
+     * --trees (used to be --macros; latter is deprecated)
+     * --batchdir now optional (defaults to a new temp dir)
+     * --maxsteps (stop after N steps)
+     * --extrapol REMOVED (use root feature instead)
+* Logging facility (not used much in GenI yet)
+  Can be configured in ~/.geni/config.yaml, for example
+  logging:
+   -
+     name     : NLP.GenI.Console
+     level    : WARN
+     format   : simple "$msg"
+   -
+     name     : NLP.Geni.LexicalSelection
+     level    : DEBUG
+     format   : simple "$utcTime $loggername $msg"
+     handler  : stderr
+* Less repetition in warnings (hopefully easier to read)
+* More hiding of constructors for safety
+* New enrichment option for setting co-anchors (foo.lex=hello)
+* Lexical selection performance enhancements
+* Variables that only occur once are converted to anonymous,
+  should make unification a bit more efficient
+* Fix #39: reject malformed root feature input.
+* New feature:
+  * Variables with constraints on their possible values (?X/foo|bar)
+  * Fancy disjunctions: tree schemata now allow disjunctions of
+    unification variables (but not recursive). These must flatten down
+    to plain old atomic disjunction once converted to elementary trees
+
+* Time metric in statistics (Laura Perez)
+* Do top/bottom unification on na-constrained nodes during initialisation.
+* Polarity detection relaxed to work with constrained variables too.
+  (?X/foo|bar gives the result as foo|bar)
+* Bugfix in interpretation of root feature (it should be sorted).
+* Flags:
+  * --rootfeat always assumed, but defaults to '[cat:_]'
+  * '-r' a short command line option for '--rootfeat'.
+
+LIBRARY
+
+* Somewhat safer and easier to understand API
+  (still no stability yet)
+* Replace String with Text in GeniVal
+* Replace Show abuse with custom Pretty class
+* Slightly less stateful (no target semantics in state)
+* Much rearranging and renaming (sorry!)
+* New: ability to provide custom lexical selection action
+* New: ability to provide custom morph postprocessing action
+* de-haskell98 (Gwern Branwen)
+* No more null builder.
+
+TOOLS (darcs get --lazy http://code.haskell.org/GenI)
+
+* new tool, genireport: summarise batch generation results
+* geniserver now talks over HTTP using a JSON format
+* Use Sylvain Salvati's xmg2geni.xsl instead of geniconvert.
+    * xmg2geni: fix treatment of missing lexemes.
+    * xmg2geni: treat type=coanchor as other nodes in GenI.
+* geniwrapper: illustrates C wrapper of GenI API
 
 GenI 0.20, 29 Sep 2009
 ----------------------
