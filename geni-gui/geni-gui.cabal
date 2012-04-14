@@ -45,7 +45,7 @@ Library
                , split
                , utf8-string
                , strict-io
-               , wx       >= 0.12 && < 0.14
+               , wx       >= 0.12
                , wxcore
                , text
                , graphviz >= 2999.12 && < 2999.14
