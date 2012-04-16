@@ -131,8 +131,8 @@ X anchor [cat:x thing:bad]![]
 lemanchor () initial
 M [cat:x]![] {
   X anchor [cat:x]![]
-  Y type:subst [cat:y]![lemanchor:hello]
-  Z type:subst [cat:y]![lemanchor:world]
+  Y type:subst [cat:y lemanchor:hello]![]
+  Z type:subst [cat:y lemanchor:world]![]
 }
 
 preterminal () initial
