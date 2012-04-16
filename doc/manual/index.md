@@ -6,6 +6,7 @@ title: Table of contents
 
 1. [File or input formats](formats.html)
 1. [Command line switches](command-line.html)
+1. [Configuration file](config-file.html)
 1. [Graphical interface](gui.html)
 
 ## Key concepts
