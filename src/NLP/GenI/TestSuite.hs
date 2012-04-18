@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 --  GenI surface realiser
 --  Copyright (C) 2005-2009 Carlos Areces and Eric Kow
 --
@@ -19,14 +20,27 @@ module NLP.GenI.TestSuite
 where
 
 import Data.Text ( Text)
-import qualified Data.Map as Map
+import qualified Data.Text as T
+
+import NLP.GenI.GeniShow
+import NLP.GenI.Pretty
 import NLP.GenI.Semantics
 
 data TestCase = TestCase
-    { tcName :: Text
+    { tcName      :: Text
     , tcSemString :: Text -- ^ for gui
-    , tcSem  :: SemInput
-    , tcExpected :: [Text] -- ^ expected results (for testing)
-    , tcOutputs :: [(Text, Map.Map (Text,Text) [Text])]
-    -- ^ results we actually got, and their traces (for testing)
+    , tcSem       :: SemInput
+    , tcExpected  :: [Text] -- ^ expected results (for testing)
     }
+
+instance GeniShow TestCase where
+    geniShowText (TestCase { tcName = name
+                           , tcExpected = sentences
+                           , tcSemString = semStr
+                           , tcSem = sem
+                           }) =
+        T.unlines $ [ name, geniShowText sem ]
+            ++ map (geniKeyword "sentence" . squares) sentences
+
+instance Pretty TestCase where
+    pretty = geniShowText

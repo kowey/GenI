@@ -53,7 +53,7 @@ import qualified Data.Map  as Map
 import qualified Data.Text as T
 import qualified Data.Tree as T
 import qualified System.IO.UTF8 as UTF8
-import qualified Text.Parsec.Expr  as P
+--import qualified Text.Parsec.Expr  as P
 import qualified Text.Parsec.Token as P
 
 import NLP.GenI.FeatureStructure ( Flist, AvPair(..), sortFlist )
@@ -67,7 +67,7 @@ import NLP.GenI.Tag (TagElem(..), setTidnums)
 import NLP.GenI.TestSuite ( TestCase(..) )
 import NLP.GenI.TreeSchema (SchemaTree, Ttree(..), Ptype(..), GNode(..), GType(..) )
 
-import BoolExp
+-- import BoolExp
 import Data.FullList ( FullList, Listable(..) )
 
 
@@ -217,6 +217,7 @@ geniSemanticInputString = do
 geniIdxConstraints :: Parser (Flist GeniVal)
 geniIdxConstraints = keyword IDXCONSTRAINTS >> geniFeats
 
+{-
 geniLitConstraints :: Parser (BoolExp T.Text)
 geniLitConstraints =
    P.buildExpressionParser table piece
@@ -228,6 +229,7 @@ geniLitConstraints =
            , [ op "|" Or  P.AssocLeft ]
            ]
    op s f assoc = P.Infix (do { string s ; return f }) assoc
+-}
 
 squaresString :: Parser Text
 squaresString = do
@@ -270,11 +272,10 @@ geniDerivations = tillEof $ many geniOutput
 
 geniTestCase :: Parser TestCase
 geniTestCase =
-  do name  <- option "" (identifier <?> "a test case name")
-     seminput <- geniSemanticInput
-     sentences <- many geniSentence
-     outputs   <- many geniOutput
-     return $ TestCase name "" seminput sentences outputs
+     TestCase <$> (option "" (identifier <?> "a test case name"))
+              <*> lookAhead geniSemanticInputString
+              <*> geniSemanticInput
+              <*> many geniSentence
 
 -- note that the keyword is NOT optional
 type TestCaseOutput = (Text, Map.Map (Text,Text) [Text])

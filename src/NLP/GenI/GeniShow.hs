@@ -63,23 +63,6 @@ instance GeniShow [Literal] where
 instance GeniShow (AvPair v) => GeniShow [AvPair v] where
  geniShow = geniShowSmallList
 
-instance GeniShow TestCase where
- geniShow (TestCase { tcName = name
-                    , tcExpected = sentences
-                    , tcOutputs = outputs
-                    , tcSemString = semStr
-                    , tcSem = sem }) =
-  unlines $ [ name, semS ]
-            ++ map (geniShowKeyword "sentence" . squares) sentences
-            ++ (concat.prettify.map outStuff $ outputs)
-  where
-   semS     = if null semStr then geniShow sem else semStr
-   prettify = if all (Map.null . snd) outputs then id else map ("":)
-   gshowTrace ((k1,k2),ts) =
-     geniShowKeyword "trace" . squares . showString (k1 ++ " " ++  k2 ++ " ! " ++ unwords ts) $ ""
-   outStuff (o,ds) =
-     [ geniShowKeyword "output"   . squares $ o ]
-     ++ (map gshowTrace $ Map.toList ds)
 -}
 
 geniKeyword :: Text -> Text  -> Text
