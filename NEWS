@@ -1,5 +1,10 @@
 GenI 0.22, 14 Apr 2012
 ----------------------
+Note that the changes between this release and 0.20 are considered to be under
+the BSD3 license.  GenI overall remains dual-licensed under the GPL and any
+commercial-use terms you may wish to negotiate with INRIA. Having secured the
+rights to use GenI 0.20, you may freely use GenI 0.22 in a similar fashion.
+
 CHANGES TO WATCH OUT FOR
 
 * Separation of geni and geni-gui into two packages;
