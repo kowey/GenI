@@ -47,7 +47,7 @@ suite =
       [ testProperty "GeniVal" propRoundTripGeniVal
       , testProperty "FS"      propRoundTripFeats
       , testProperty "Sem"     propRoundTripSem
-      , testProperty "LexEntry" propRoundTripILexEntry
+      , testProperty "LexEntry" propRoundTripLexEntry
       ]
   ]
 
@@ -101,7 +101,7 @@ propRoundTripSem g =
  where
    semStr = "semantics: " ++ geniShow g
 
-propRoundTripILexEntry x_ =
+propRoundTripLexEntry x_ =
  whenFail (putStrLn $ "----\n" ++ s  ++ "\n---\n" ++ show p) $
  case p of
    Left  e  -> False
