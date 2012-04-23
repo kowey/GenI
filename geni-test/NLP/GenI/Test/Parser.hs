@@ -107,7 +107,7 @@ propRoundTripLexEntry x_ =
    Left  e  -> False
    Right x2 -> x2 == [x]
  where
-  x = sortEntry x_
+  x = nosempols $ sortEntry x_
   s = geniShow [x]
   p = map nosempols <$> testParse geniLexicon s
   sortEntry l = l { iinterface = sortFlist (iinterface l)
