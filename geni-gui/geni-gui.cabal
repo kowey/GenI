@@ -1,5 +1,5 @@
 Name:           geni-gui
-Version:        0.22
+Version:        0.22.1
 License:        GPL
 License-file:   LICENSE
 Author:         Carlos Areces and Eric Kow
@@ -54,7 +54,7 @@ Executable     geni-gui
  Main-Is:        geni-gui.hs
  Hs-Source-Dirs: .
 
- Ghc-options:    -Wall -O -rtsopts
+ Ghc-options:    -Wall -rtsopts
  Ghc-prof-options: -auto-all
  Build-Depends: base >= 4 && < 5
               , GenI
