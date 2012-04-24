@@ -16,14 +16,14 @@
 -- along with this program; if not, write to the Free Software
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-{-# LANGUAGE OverlappingInstances, FlexibleInstances, TemplateHaskell #-}
+{-# LANGUAGE OverlappingInstances, FlexibleInstances, ViewPatterns #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE OverloadedStrings #-}
 module NLP.GenI.GeniVal.Internal where
 
 -- import Debug.Trace -- for test stuff
-import Control.Arrow (first, (***))
-import Control.Monad (liftM)
+import Control.Arrow (first, second, (***))
+import Control.Monad (liftM, foldM)
 import Data.Binary
 import Data.List
 import Data.Maybe (fromMaybe, isNothing, isJust)
@@ -37,7 +37,7 @@ import qualified Data.Text as T
 import Control.DeepSeq
 
 import Data.FullList ( FullList, fromFL, Listable(..), sortNub )
-import NLP.GenI.General (geniBug, quoteText, isGeniIdentLetter)
+import NLP.GenI.General (buckets, geniBug, quoteText, isGeniIdentLetter)
 import NLP.GenI.GeniShow
 import NLP.GenI.Pretty
 
@@ -373,20 +373,28 @@ finaliseVarsById x = finaliseVars ('-' `T.cons` (T.pack . show $ idOf x)) x
 ---     object
 finaliseVars :: (Collectable a, DescendGeniVal a) => Text -> a -> a
 finaliseVars suffix x = {-# SCC "finaliseVars" #-}
-  replace subst (anonymiseSingletons x)
- where
-   subst :: Subst
-   subst = Map.mapWithKey convert vars
-   vars  = Map.fromListWithKey isect $ Map.keys (collect x Map.empty)
-   -- TODO: ugh: this is maybe not ideal: if a variable has impossible
-   -- constraints (eg. ?X/cat cannot unify with ?X/dog, but it can
-   -- unify with ?X/cat vs ?X/dog|cat => ?X/cat), we hardcode it to a
-   -- value that should not be able to unify with anything
-   isect k xi yi =
-      fromMaybe (Just (impossibleC k)) $ intersectConstraints xi yi
-   convert v = GeniVal (Just (v `T.append` suffix))
-   impossibleC v =  ("ERROR_impossible_constraints_" `T.append` v `T.append` suffix)
-                 !: []
+    replace subst (anonymiseSingletons x)
+  where
+    subst :: Subst
+    subst = Map.mapWithKey convert vars
+    vars  = Map.fromList
+          $ map (second isect) . buckets fst
+          $ Map.keys (collect x Map.empty)
+    -- TODO: ugh: this is maybe not ideal: if a variable has impossible
+    -- constraints (eg. ?X/cat cannot unify with ?X/dog, but it can
+    -- unify with ?X/cat vs ?X/dog|cat => ?X/cat), we hardcode it to a
+    -- value that should not be able to unify with anything
+    isect :: [CollectedVar] -> Maybe (FullList Text)
+    isect (map snd -> xs) =
+       fromMaybe (Just (impossibleC xs)) $
+          foldM intersectConstraints Nothing xs
+    convert v = GeniVal (Just (v `T.append` suffix))
+    -- try to generate something uniquely identifying for constraint
+    -- clashes
+    --
+    impossibleC xs = (!: []) $ T.intercalate "_" $
+        "ERROR_conflicting_constraints"
+        : concatMap (maybe [] fromFL) xs ++ [suffix]
 
 -- ----------------------------------------------------------------------
 -- Fancy disjunction

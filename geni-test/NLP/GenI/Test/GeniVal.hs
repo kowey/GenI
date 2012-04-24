@@ -71,7 +71,7 @@ prop_alphaconvert_subset gs_ =
   csubsetH Nothing (Just _)    = False
   csubsetH (Just _) Nothing    = True
   csubsetH (Just (fromFL -> [x])) (Just _)
-    | "ERROR_impossible_constraints" `T.isPrefixOf` x = True
+    | "ERROR_conflicting_constraints" `T.isPrefixOf` x = True
   csubsetH (Just xs) (Just ys) = all (`elem` fromFL ys) (fromFL xs)
 
 -- | Unifying something with itself should always succeed
