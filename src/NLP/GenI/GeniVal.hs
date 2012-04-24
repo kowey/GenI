@@ -32,7 +32,7 @@ module NLP.GenI.GeniVal
     -- Before you do any unification/subsumption, you should finalise all
     -- the variables in all the objects (a one time alpha-conversion type
     -- thing)
-  , finaliseVars, finaliseVarsById
+  , finaliseVars, finaliseVarsById, anonymiseSingletons
     -- ** Unification
   , unify, UnificationResult(..), Subst, appendSubst
     -- ** subsumption

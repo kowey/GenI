@@ -367,13 +367,11 @@ finaliseVarsById x = finaliseVars ('-' `T.cons` (T.pack . show $ idOf x)) x
 --   * (if suffix is non-null) appends a suffix to all variable names
 --     to ensure global uniqueness
 --
---   * anonymises any singleton variables
----
----   * intersects constraints for for all variables within the same
----     object
+--   * intersects constraints for for all variables within the same
+--     object
 finaliseVars :: (Collectable a, DescendGeniVal a) => Text -> a -> a
 finaliseVars suffix x = {-# SCC "finaliseVars" #-}
-    replace subst (anonymiseSingletons x)
+    replace subst x
   where
     subst :: Subst
     subst = Map.mapWithKey convert vars

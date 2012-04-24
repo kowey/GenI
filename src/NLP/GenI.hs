@@ -261,7 +261,8 @@ loadFromString pstRef descr s =
 instance Loadable Lexicon where
   lParse f = fmap toLexicon . runParser geniLexicon () f
     where
-     fixEntry  = finaliseVars "" -- anonymise singletons for performance
+     fixEntry  = finaliseVars ""
+               . anonymiseSingletons  -- anonymise singletons for performance
                . sorter
      toLexicon = map fixEntry
      sorter l  = l { isemantics = (sortByAmbiguity . isemantics) l }

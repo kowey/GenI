@@ -39,7 +39,7 @@ import NLP.GenI.FeatureStructure (Flist, AvPair(..), unifyFeat)
 import NLP.GenI.General
     ( filterTree, repAllNode, histogram, geniBug, repNodeByNode,
     )
-import NLP.GenI.GeniVal( unify, GeniVal(gConstraints), isConst, Subst, replace, finaliseVars )
+import NLP.GenI.GeniVal
 import NLP.GenI.LexicalSelection.Types
 import NLP.GenI.Lexicon ( LexEntry(..), Lexicon, )
 import NLP.GenI.Semantics ( subsumeSem, unifySem, Sem )
@@ -232,7 +232,7 @@ combineOne tsem lexRaw eRaw = -- Maybe monad
                          [] -> do lexTell (SchemaError [pidname e] (StringError "could not unify lemma and schema semantics"))
                                   fail ""
                          xs -> return xs
-    return $ concatMap (finaliseSemantics template) semUnifications
+    return $ concatMap (anonymiseSingletons . finaliseSemantics template) semUnifications
  where
   croak t msg = do
       lexTell (SchemaError [pidname t] (StringError msg))
