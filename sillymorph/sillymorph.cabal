@@ -3,7 +3,7 @@ Version:        0.2
 License:        GPL
 License-file:   LICENSE
 Author:         Eric Kow
-Build-Depends:  GenI >=0.21 && < 0.22
+Build-Depends:  GenI >=0.21 && < 0.24
              ,  base < 5
              ,  cmdargs == 0.8.*
              ,  json >= 0.4.3 && < 0.5
