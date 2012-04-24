@@ -38,22 +38,22 @@ data BuilderGui = BuilderGui
       --   and one showing a summary of the results
       resultsPnl  :: forall a
                    . ProgStateRef 
-                  -> Window a -- ^ parent
+                  -> Window a -- parent
                   -> SemInput
                   -> IO ([GeniResult],Statistics,Layout,Layout)
     -- | Just a sentence summary tab (small part of the resultsPnl)
     , summaryPnl :: forall a
                   . ProgStateRef
-                 -> Window a -- ^ parent
+                 -> Window a -- parent
                  -> [GeniResult]
                  -> Statistics
                  -> IO Layout
     , debuggerPnl :: forall a
                    . ProgStateRef
-                  -> Window a -- ^ parent
+                  -> Window a -- parent
                   -> B.Input
-                  -> String   -- ^ name of the builder algorithm
+                  -> String   -- name of the builder algorithm
                   -> ([GeniResult] -> Statistics -> IO ())
-                  -- ^ what to do when we get results
+                  -- what to do when we get results
                   -> IO Layout
     }
