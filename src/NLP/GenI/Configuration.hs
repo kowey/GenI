@@ -547,7 +547,7 @@ optionsForTesting =
   [ testSuiteOption
   , fromStdinOption
   , Option []    ["testcase"]
-      (reqArg (TestCaseFlg . T.pack) id "STRING")
+      (reqArg TestCaseFlg T.pack "STRING")
       "run test case STRING"
   , Option []    ["timeout"] (reqArg TimeoutFlg read "SECONDS")
       "time out after SECONDS seconds"
