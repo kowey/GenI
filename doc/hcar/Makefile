@@ -19,7 +19,7 @@ MAKE_DOCS=./hcar.pdf
 
 # Define here any other files that your document depends on
 # besides darcs-hcar.tex
-EXTRA_DOC_SOURCE=GenI.tex
+EXTRA_DOC_SOURCE=GenI-EG.tex
 
 TARBALL_BASENAME=hcar
 
