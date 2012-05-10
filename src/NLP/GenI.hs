@@ -759,6 +759,15 @@ verbosity :: ProgStateRef -> IO Bool
 verbosity = fmap (hasFlagP VerboseModeFlg . pa)
           . readIORef
 
+instance JSON GeniResults where
+    readJSON _ =
+        error "Don't know how to read JSON for GeniResults"
+    showJSON x = JSObject . toJSObject $
+        [ ("results",      showJSONs $ grResults x)
+        , ("warnings",     showJSONs $ grGlobalWarnings x)
+        , ("statistics",   showJSON  $ grStatistics x)
+        ]
+
 instance JSON GeniResult where
  readJSON j =
     case readJSON j of

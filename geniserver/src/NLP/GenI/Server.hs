@@ -80,7 +80,7 @@ application pst req = do
 ok :: GenReq -> GeniResults -> Response
 ok Dump   j =
      responseLBS status200  [contentType "application/json"] $
-         TL.encodeUtf8 $ prettyEncode (grResults j)
+         TL.encodeUtf8 $ prettyEncode j
 ok Normal j =
      responseLBS status200  [contentType "text/plain"] $
          TL.encodeUtf8 $ showResults (grResults j)
