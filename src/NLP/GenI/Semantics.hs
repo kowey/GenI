@@ -56,6 +56,8 @@ instance Ord gv => Ord (Literal gv) where
 
 type Sem = [Literal GeniVal]
 type LitConstr = (Literal GeniVal, [Text])
+
+-- | Semantics, index constraints, literal constraints
 type SemInput  = (Sem,Flist GeniVal,[LitConstr])
 
 instance Collectable a => Collectable (Literal a) where

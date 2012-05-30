@@ -41,6 +41,7 @@ module NLP.GenI.Statistics(Statistics, StatisticsState,
     incrIntMetric, queryIntMetric,
 ) where
 
+import Control.Applicative ( (<$>) )
 import Control.Monad.State
 import Data.Maybe (mapMaybe)
 import Text.JSON
@@ -97,13 +98,21 @@ queryIntMetric _ _ = Nothing
 --------------------------- JSON Output ------------------------------
 
 instance JSON Statistics where
- readJSON _j =
-    error "can't read GenI statistics from JSON yet; sorry"
- showJSON = JSObject . toJSObject . map metricToJSON . metrics
+    readJSON (JSObject j) = do
+        Stat <$> mapM jsonToMetric (fromJSObject j)
+    readJSON j = fail $
+        "Expected a JSON object, but got " ++ show j ++ " instead"
+
+    showJSON = JSObject . toJSObject . map metricToJSON . metrics
 
 -- not quite showJSON here
 metricToJSON :: Metric -> (String, JSValue)
 metricToJSON (IntMetric s i) = (s, showJSON i)
+
+jsonToMetric :: (String, JSValue) -> Result Metric
+jsonToMetric (s, i) = IntMetric s <$> readJSON i
+
+--------------------------- DeepSeq ------------------------------
 
 {-!
 deriving instance NFData Statistics

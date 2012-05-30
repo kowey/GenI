@@ -760,8 +760,13 @@ verbosity = fmap (hasFlagP VerboseModeFlg . pa)
           . readIORef
 
 instance JSON GeniResults where
-    readJSON _ =
-        error "Don't know how to read JSON for GeniResults"
+    readJSON j = do
+        jo <- fromJSObject `fmap` readJSON j
+        let field x = maybe (fail $ "Could not find: " ++ x) readJSON
+                    $ lookup x jo
+        GeniResults <$> field "results"
+                    <*> field "warnings"
+                    <*> field "statistics"
     showJSON x = JSObject . toJSObject $
         [ ("results",      showJSONs $ grResults x)
         , ("warnings",     showJSONs $ grGlobalWarnings x)
