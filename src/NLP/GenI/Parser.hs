@@ -135,7 +135,7 @@ geniAtomicDisjunction = do
     (x:xs) <- atom `sepBy1` (symbol "|")
     return (x !: xs)
   where
-    atom = looseIdentifier <|> stringLiteral
+    atom = looseFlexiIdentifier
 
 geniFancyDisjunction :: Parser [GeniVal]
 geniFancyDisjunction = geniValue `sepBy1` symbol ";"
@@ -272,7 +272,7 @@ geniDerivations = tillEof $ many geniOutput
 
 geniTestCase :: Parser TestCase
 geniTestCase =
-     TestCase <$> (option "" (identifier <?> "a test case name"))
+     TestCase <$> (option "" (flexiIdentifier <?> "a test case name"))
               <*> lookAhead geniSemanticInputString
               <*> geniSemanticInput
               <*> many geniSentence
@@ -312,7 +312,7 @@ geniWord = T.pack <$> many1 (noneOf "[]\v\f\t\r\n ")
 --   (for gui)
 geniTestCaseString :: Parser Text
 geniTestCaseString = do
-    option "" (identifier <?> "a test case name")
+    option "" (flexiIdentifier <?> "a test case name")
     geniSemanticInputString <* (many geniSentence >> many geniOutput)
 
 -- ----------------------------------------------------------------------
@@ -425,7 +425,7 @@ geniNode = do
     name      <- identifier
     nodeType  <- geniNodeAnnotation
     lex_   <- if nodeType == AnnoLexeme
-                 then ((stringLiteral <|> identifier) `sepBy` symbol "|") <?> "some lexemes"
+                 then (flexiIdentifier `sepBy` symbol "|") <?> "some lexemes"
                  else return []
     constr <- case nodeType of
                   AnnoDefault -> adjConstraintParser
@@ -579,6 +579,10 @@ whiteSpace = P.whiteSpace lexer
 identifier :: Parser Text
 identifier = decode <$> P.identifier lexer
 
+-- | Like 'identifier', but also accepts string literals
+flexiIdentifier :: Parser Text
+flexiIdentifier = stringLiteral <|> identifier
+
 -- stolen from Parsec code (ident)
 -- | Like 'identifier' but allows for reserved words too
 looseIdentifier :: Parser Text
@@ -589,6 +593,10 @@ looseIdentifier =
         { c <- identStart geniLanguageDef
         ; cs <- many (identLetter geniLanguageDef)
         ; return (c:cs) } <?> "identifier"
+
+-- | Accepts: identifiers, bare reserved words, and string literals
+looseFlexiIdentifier :: Parser Text
+looseFlexiIdentifier = looseIdentifier <|> stringLiteral
 
 colon :: Parser Text
 colon = decode <$> P.colon lexer

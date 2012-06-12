@@ -32,7 +32,7 @@ module NLP.GenI.General (
         trim,
         toUpperHead, toLowerHead,
         toAlphaNum,
-        quoteString, quoteText,
+        quoteString, quoteText, maybeQuoteText,
         clumpBy,
         -- * Triples
         first3, second3, third3,
@@ -131,6 +131,18 @@ quoteString xs = "\"" ++ concatMap helper xs ++ "\""
    helper '"'  = [ '\\', '\"' ]
    helper '\\' = [ '\\', '\\' ]
    helper x    = [ x ]
+
+-- | 'quoteText' but only if it contains characters that are not
+--   used in GenI identifiers
+maybeQuoteText :: Text -> Text
+maybeQuoteText x
+    | T.null x        = quoteText ""
+    | "-" `T.isPrefixOf` x = quoteText x -- could be interpreted as
+    | "+" `T.isPrefixOf` x = quoteText x -- semantic polarities
+    | T.any naughty x = quoteText x
+    | otherwise       = x
+  where
+    naughty c = not (isGeniIdentLetter c) || c `elem` "_?/"
 
 quoteText :: Text -> Text
 quoteText t =

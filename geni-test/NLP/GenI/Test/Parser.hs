@@ -24,6 +24,7 @@ import NLP.GenI.GeniVal
 import NLP.GenI.Parser
 import NLP.GenI.Pretty
 import NLP.GenI.Semantics
+import NLP.GenI.TestSuite
 import NLP.GenI.Test.FeatureStructure ()
 import NLP.GenI.Test.Lexicon ()
 import NLP.GenI.Test.GeniVal ()
@@ -49,6 +50,7 @@ suite =
       , testProperty "Sem"     propRoundTripSem
       , testProperty "LexEntry" propRoundTripLexEntry
       ]
+  , tSuite
   ]
 
 testEvilGeniVal :: Assertion
@@ -78,6 +80,27 @@ testNonAlphanum = do
 testRecogniseSem :: Assertion
 testRecogniseSem = do
  assertBool "example"    (isRight (testParse geniSemanticInput "semantics:[L24474:instance-of(Activate101114 Activate) L24475:object(Activate101114 GDP-Bound-G-Protein101111 sg3) L24476:instance-of(GDP-Bound-G-Protein101111 GDP-Bound-G-Protein)]"))
+
+tSuite :: Test.Framework.Test
+tSuite = testGroup "test suites"
+    [ testCase "silly/simple" $ assertBool "" $
+        isRight (testParse geniTestSuite sillySuite)
+    , testCase "comma" $ assertEqual ""
+        (Right ["v,runs"])
+        (map tcName <$> testParse geniTestSuite commaSuite)
+    ]
+
+sillySuite :: String
+sillySuite = unlines
+    [ "v_runs"
+    , "semantics: [ name(s1 a vincent) run(e a) ]"
+    ]
+
+commaSuite :: String
+commaSuite = unlines
+    [ "\"v,runs\""
+    , "semantics: [ name(s1 a vincent) run(e a) ]"
+    ]
 
 propParseableGeniVal g =
   isRight (testParse geniValue (show (g :: GeniVal)))
@@ -123,6 +146,9 @@ anonhandle lit@(Literal h p xs) =
        _                           -> lit
 
 testParse p = runParser (tillEof p) () ""
+
+instance Eq ParseError where
+   e1 == e2 = show e1 == show e2
 
 isLeft (Left _) = True
 isLeft _ = False

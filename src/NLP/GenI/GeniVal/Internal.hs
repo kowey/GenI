@@ -37,7 +37,7 @@ import qualified Data.Text as T
 import Control.DeepSeq
 
 import Data.FullList ( FullList, fromFL, Listable(..), sortNub )
-import NLP.GenI.General (buckets, geniBug, quoteText, isGeniIdentLetter)
+import NLP.GenI.General (buckets, geniBug, maybeQuoteText)
 import NLP.GenI.GeniShow
 import NLP.GenI.Pretty
 
@@ -88,13 +88,7 @@ instance GeniShow GeniVal where
                 showLabel l `T.append` "/" `T.append` showConstraints cs
       where
         showLabel l = '?' `T.cons` l
-        showConstraints = T.intercalate "|" . map maybeQuote . fromFL -- FIXME push down
-        maybeQuote x | T.null x        = quoteText ""
-                     | "-" `T.isPrefixOf` x = quoteText x -- could be interpreted as
-                     | "+" `T.isPrefixOf` x = quoteText x -- semantic polarities
-                     | T.any naughty x = quoteText x
-                     | otherwise       = x
-        naughty x = not (isGeniIdentLetter x) || x `elem` "_?/"
+        showConstraints = T.intercalate "|" . map maybeQuoteText . fromFL -- FIXME push down
 
 isConst :: GeniVal -> Bool
 isConst = isNothing . gLabel

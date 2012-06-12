@@ -22,6 +22,7 @@ where
 import Data.Text ( Text)
 import qualified Data.Text as T
 
+import NLP.GenI.General ( maybeQuoteText )
 import NLP.GenI.GeniShow
 import NLP.GenI.Pretty
 import NLP.GenI.Semantics
@@ -36,10 +37,10 @@ data TestCase = TestCase
 instance GeniShow TestCase where
     geniShowText (TestCase { tcName = name
                            , tcExpected = sentences
-                           , tcSemString = semStr
+                           , tcSemString = _semStr
                            , tcSem = sem
                            }) =
-        T.unlines $ [ name, geniShowText sem ]
+        T.unlines $ [ maybeQuoteText name, geniShowText sem ]
             ++ map (geniKeyword "sentence" . squares) sentences
 
 instance Pretty TestCase where
