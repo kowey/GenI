@@ -45,6 +45,3 @@ startServer confArgs = do
   run port (application pst)
  where
   port = fromMaybe defaultPort (getFlagP PortFlg confArgs)
-
-defaultPort :: Int
-defaultPort = 4364

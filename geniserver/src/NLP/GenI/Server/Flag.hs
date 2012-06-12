@@ -42,13 +42,28 @@ serverOptionsSections =
 
 optionsForServer :: [OptDescr Flag]
 optionsForServer =
-  [ helpOption, verboseOption
-  , macrosOption, lexiconOption
-  , Option [] ["port"] (reqArg PortFlg read "INT")
-      "port to listen on"
-  ]
+    [ helpOption, verboseOption
+    , macrosOption, lexiconOption
+    , Option [] ["port"] (reqArg PortFlg read "INT")
+        ("port to listen on (default " ++ show defaultPort ++ ")")
+    , Option [] ["host"] (reqArg HostFlg id   "HOST")
+        ("which host to bind (default " ++ defaultHost ++ ")")
+    ]
 
 data PortFlg = PortFlg Int deriving (Eq, Show, Typeable)
+
+-- | We deliberately avoid using HostPreference as it's Warp-specific
+--   and we want to keep up the idea that the geniserver library can
+--   be used as a generic WAI application
+--
+--   You'll have to convert using 'fromString'.
+data HostFlg = HostFlg String deriving (Eq, Show, Typeable)
+
+defaultHost :: String
+defaultHost = "127.0.0.1"
+
+defaultPort :: Int
+defaultPort = 4364
 
 optionsForRequest :: [OptDescr Flag]
 optionsForRequest=
