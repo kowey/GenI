@@ -17,6 +17,7 @@
 
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 {-|
 The heavy lifting of GenI, the whole chart/agenda mechanism, can be
@@ -381,6 +382,15 @@ num_iterations  = "iterations"
 chart_size      = "chart_size"
 num_comparisons = "comparisons"
 gen_time = "gen_time"
+
+-- ----------------------------------------------------------------------
+-- pretty printing
+-- ----------------------------------------------------------------------
+
+instance Pretty GenStatus where
+    pretty Finished  = "finished"
+    pretty Active    = "in progress"
+    pretty (Error x) = "error:" <+> x
 
 -- ----------------------------------------------------------------------
 -- strictly API-ish bits

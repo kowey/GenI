@@ -75,6 +75,7 @@ import qualified Data.Text.IO as T
 import Data.FullList ( fromFL )
 import Text.JSON
 import qualified System.IO.UTF8 as UTF8
+import System.Log.Logger ( debugM )
 
 import NLP.GenI.Configuration
     ( Params, customMorph, customSelector
@@ -91,8 +92,8 @@ import NLP.GenI.Configuration
     , GrammarType(..)
     )
 import NLP.GenI.General
-    ( histogram, geniBug, snd3, first3, ePutStr, ePutStrLn, eFlush,
-    -- mkLogname,
+    ( histogram, geniBug, snd3, first3, ePutStr, ePutStrLn, eFlush
+    , mkLogname
     )
 import NLP.GenI.GeniVal
 import NLP.GenI.LexicalSelection ( LexicalSelector, LexicalSelection(..), defaultLexicalSelector )
@@ -541,6 +542,7 @@ extractResults pstRef builder finalSt = do
                else (uninflected              , CompleteResult)
         status = B.finished builder finalSt
     -- step 4: post-processing
+    debugM logname $ "tree assembly status: " ++ prettyStr status
     finaliseResults pstRef (resultTy, status, rawResults)
 
 -- --------------------------------------------------------------------
@@ -557,6 +559,10 @@ initGeni pstRef semInput_ = do
                  $ semInput_
     -- lexical selection
     selection <- runLexSelection pstRef semInput
+    debugM logname $
+        "lexical selection returned " ++
+        (show . length $ lsAnchored selection) ++
+        " anchored trees"
     -- strip morphological predicates
     let initStuff = B.Input 
           { B.inSemInput = semInput
@@ -576,6 +582,7 @@ initGeni pstRef semInput_ = do
 finaliseResults :: ProgStateRef -> (ResultType, B.GenStatus, [B.Output]) -> IO [GeniResult]
 finaliseResults pstRef (ty, status, os) = do
     pst <- readIORef pstRef
+    debugM logname $ "finalising " ++ show (length sentences) ++ " results"
     -- morph TODO: make this a bit safer
     mss <- case getFlagP MorphCmdFlg (pa pst) of
              Nothing  -> let morph = fromMaybe (map sansMorph) (customMorph (pa pst))
@@ -842,11 +849,9 @@ instance JSON GeniLexSel where
 picosToMillis :: Integer -> Double
 picosToMillis t = realToFrac t / (10^(9 :: Int))
 
-{-
 data MNAME = MNAME deriving Typeable
 logname :: String
 logname = mkLogname MNAME
--}
 
 {-!
 deriving instance NFData GeniResult
