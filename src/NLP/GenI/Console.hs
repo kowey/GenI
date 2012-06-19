@@ -157,7 +157,7 @@ runInstructions pstRef =
           (goodres, badres) = partition isSuccess (grResults gresults)
       T.hPutStrLn stderr $
           " " <> n <+> "-" <+> pretty (length goodres) <+> "results" <+>
-          parens (pretty (length badres))
+          (if null badres then "" else parens (pretty (length badres) <+> "failures"))
       when (null res && earlyDeath) $ do
           T.hPutStrLn stderr $ "Exiting early because test case" <+> n <+> "failed."
           exitFailure
