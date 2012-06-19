@@ -8,7 +8,7 @@ Synopsis:       GenI graphical user interface
 Homepage:       http://projects.haskell.org/GenI
 Maintainer:     geni-users@loria.fr
 Build-Type:     Custom
-Cabal-Version: >=1.8
+Cabal-Version: >=1.14
 Extra-source-files:
             macstuff/Info.plist,
             macstuff/wxmac.icns
