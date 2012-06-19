@@ -49,6 +49,7 @@ import qualified Text.JSON as J
 import NLP.GenI
 import NLP.GenI.Parser
 import NLP.GenI.GeniShow
+import NLP.GenI.GeniVal
 import NLP.GenI.Semantics
 import Paths_genireport
 
@@ -227,7 +228,7 @@ semInputToHtml (sem,icons,lcons) = do
     x
     H.span (toHtml ("]" :: Text))
 
-instance ToHtml Literal where
+instance ToHtml (Literal GeniVal) where
  toHtml (Literal h p l) = do
    H.span (toHtml (geniShow h ++ ":")) ! mute
    toHtml (geniShow p ++ "(" ++ unwords (map geniShow l) ++ ")")
