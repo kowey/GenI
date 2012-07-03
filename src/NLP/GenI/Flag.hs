@@ -17,7 +17,7 @@ module NLP.GenI.Flag where
 
 import Data.List ( find )
 import qualified Data.Set as Set
-import Data.Maybe ( catMaybes, fromJust )
+import Data.Maybe ( catMaybes, fromJust, fromMaybe )
 import Data.Text ( Text )
 import Data.Typeable
 
@@ -101,6 +101,9 @@ getFlag f fs = do (Flag _ v) <- find (isFlag f) fs ; cast v
 
 getAllFlags :: (Typeable f, Typeable x)  => (x -> f) -> [Flag] -> [x]
 getAllFlags f fs = catMaybes [ cast v | flg@(Flag _ v) <- fs, isFlag f flg ]
+
+getListFlag :: (Typeable f, Typeable x) => ([x] -> f) -> [Flag] -> [x]
+getListFlag f = fromMaybe [] . getFlag f
 
 -- ----------------------------------------------------------------------
 -- Below are just the individual flags, which unfortunately have to be

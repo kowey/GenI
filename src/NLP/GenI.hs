@@ -78,7 +78,7 @@ import qualified System.IO.UTF8 as UTF8
 import System.Log.Logger ( debugM )
 
 import NLP.GenI.Configuration
-    ( Params, customMorph, customSelector
+    ( Params, customMorph, customSelector, geniFlags
     , getFlagP, hasFlagP, hasOpt, Optimisation(NoConstraints)
     , MacrosFlg(..), LexiconFlg(..), TestSuiteFlg(..)
     , MorphInfoFlg(..), MorphCmdFlg(..)
@@ -496,17 +496,17 @@ instance Pretty GeniError where
 --   is mostly useful for debugging via the graphical interface.
 --   Note that we assumes that you have already loaded in your grammar and
 --   parsed your input semantics.
-runGeni :: ProgStateRef -> SemInput -> B.Builder st it Params -> IO (GeniResults,st)
+runGeni :: ProgStateRef -> SemInput -> B.Builder st it -> IO (GeniResults,st)
 runGeni pstRef semInput builder = do
      pst <- readIORef pstRef
-     let config = pa pst
+     let flags  = geniFlags (pa pst)
          run    = B.run builder
      -- step 1: lexical selection
      (initStuff, initWarns) <- initGeni pstRef semInput
      --force evaluation before measuring start time to avoid including grammar/lexicon parsing.
      start <- rnf initStuff `seq` getCPUTime
      -- step 2: chart generation
-     let (finalSt, stats) = run initStuff config
+     let (finalSt, stats) = run initStuff flags
      -- step 3: unpacking and
      -- step 4: post-processing
      results <- extractResults pstRef builder finalSt
@@ -531,7 +531,7 @@ runGeni pstRef semInput builder = do
 --   * Unpacks the builder results
 --
 --   * Finalises the results (morphological generation)
-extractResults :: ProgStateRef ->  B.Builder st it Params -> st -> IO [GeniResult]
+extractResults :: ProgStateRef ->  B.Builder st it -> st -> IO [GeniResult]
 extractResults pstRef builder finalSt = do
     config  <- pa <$> readIORef pstRef
     -- step 3: unpacking
@@ -574,7 +574,7 @@ initGeni pstRef semInput_ = do
     stripMorphStuff pst = first3 (stripMorphSem (morphinf pst))
     -- disable constraints if the NoConstraintsFlg pessimisation is active
     maybeRemoveConstraints pst =
-         if hasOpt NoConstraints (pa pst) then removeConstraints else id
+         if hasOpt NoConstraints (geniFlags (pa pst)) then removeConstraints else id
 
 -- | 'finaliseResults' does any post-processing steps that we want to integrate
 --   into mainline GenI.  So far, this consists of morphological realisation and

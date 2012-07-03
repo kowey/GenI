@@ -115,8 +115,8 @@ emptyParams = Params
     , geniFlags      = emptyFlags
     }
 
-hasOpt :: Optimisation -> Params -> Bool
-hasOpt o p = maybe False (elem o) $ getFlagP OptimisationsFlg p
+hasOpt :: Optimisation -> [Flag] -> Bool
+hasOpt o p = maybe False (elem o) $ getFlag OptimisationsFlg p
 
 hasFlagP    :: (Typeable f, Typeable x) => (x -> f) -> Params -> Bool
 hasFlagP f      = hasFlag f . geniFlags

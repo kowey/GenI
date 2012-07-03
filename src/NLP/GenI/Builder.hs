@@ -59,14 +59,9 @@ import Data.Generics ( Data )
 import Data.Typeable ( Typeable )
 
 import NLP.GenI.Automaton (NFA, automatonPaths, automatonPathSets, numStates, numTransitions)
-import NLP.GenI.Configuration
-  ( getListFlagP, getFlagP, modifyFlagP, Params,
-    DetectPolaritiesFlg(..),
-    MetricsFlg(..),
-    RootFeatureFlg(..),
-    Optimisation(..), hasOpt,
-  )
+import NLP.GenI.Configuration ( hasOpt )
 import NLP.GenI.FeatureStructure ( Flist, sortFlist, mkFeatStruct )
+import NLP.GenI.Flag
 import NLP.GenI.General ( BitVector, snd3, thd3, geniBug )
 import NLP.GenI.GeniVal ( GeniVal, DescendGeniVal(..), Collectable(collect), finaliseVarsById )
 import NLP.GenI.Lexicon ( LexEntry )
@@ -89,8 +84,8 @@ data GenStatus = Finished
                | Active
                | Error Text
 
-data Builder st it pa = Builder
-  { init     :: Input -> pa -> (st, Statistics)
+data Builder st it = Builder
+  { init     :: Input -> [Flag] -> (st, Statistics)
              -- ^ initialise the machine from the semantics and lexical selection 
   , step     :: BuilderState st () -- ^ run a realisation step
   , stepAll  :: BuilderState st () -- ^ run all realisations steps until completion
@@ -150,17 +145,17 @@ type BuilderState s a = StateT s (State Statistics) a
 -- alpha conversion so that unification does not do the wrong thing when two trees
 -- have the same variables.
 
-preInit :: Input -> Params -> (Input, PolResult)
-preInit input config =
+preInit :: Input -> [Flag] -> (Input, PolResult)
+preInit input flags =
  let (cand,_) = unzip $ inCands input
      seminput = inSemInput input
      --
      extraPol = Map.empty
      polsToDetect = fromMaybe (error "there should be a default for --detect-pols")
-                  $ getFlagP DetectPolaritiesFlg config
-     rootFeat = mkFeatStruct $ getListFlagP RootFeatureFlg config
+                  $ getFlag DetectPolaritiesFlg flags
+     rootFeat = mkFeatStruct $ getListFlag RootFeatureFlg flags
      -- do any optimisations
-     isPol = hasOpt Polarised config
+     isPol = hasOpt Polarised flags
      -- polarity optimisation (if enabled)
      autstuff = buildAutomaton polsToDetect rootFeat extraPol seminput cand
      autpaths = map concat . automatonPathSets . prFinal $ autstuff
@@ -180,7 +175,7 @@ preInit input config =
 
 -- | Equivalent to 'id' unless the input contains an empty or uninstatiated
 --   semantics
-unlessEmptySem :: Input -> Params -> a -> a
+unlessEmptySem :: Input -> [Flag] -> a -> a
 unlessEmptySem input _
     | null semanticsErr = id
     | otherwise         = error semanticsErr
@@ -233,15 +228,15 @@ unlessEmptySem input _
 --    * lex_foot_nodes  - total number of foot nodes in lexically selected trees
 --
 --    * plex_...        - same as the lex_ equivalent, but after polarity filtering
-run :: Builder st it Params -> Input -> Params -> (st, Statistics)
-run builder input config_ =
+run :: Builder st it -> Input -> [Flag] -> (st, Statistics)
+run builder input flags_ =
   let -- 0 normalise the config
-      config = modifyFlagP RootFeatureFlg sortFlist config_
+      flags = modifyFlag RootFeatureFlg sortFlist flags_
       -- 1 run the setup stuff
-      (input2, autstuff) = preInit input config
+      (input2, autstuff) = preInit input flags
       auts = map snd3 (prIntermediate autstuff)
       -- 2 call the init stuff
-      (iSt, iStats) = init builder input2 config
+      (iSt, iStats) = init builder input2 flags
       -- 2b extra statistics
       autpaths = map concat . automatonPathSets . prFinal $ autstuff
       countsFor ts = (length ts, length nodes, length sn, length an)
@@ -307,7 +302,7 @@ bitVectorToSem bmap vector =
 -- ----------------------------------------------------------------------
 
 -- | Default implementation for the 'stepAll' function in 'Builder'
-defaultStepAll :: Builder st it pa -> BuilderState st ()
+defaultStepAll :: Builder st it -> BuilderState st ()
 defaultStepAll b =
  do s <- get
     case finished b s of
@@ -355,13 +350,14 @@ queryCounter key s =
 
 -- Command line configuration
 
-initStats :: Params -> Statistics
-initStats pa =
- let mdefault ms = if "default" `elem` ms then defaultMetricNames else []
-     identifyMs :: [String] -> [Metric]
-     identifyMs ms = map namedMetric $ mdefault ms ++ delete "default" ms
-     metrics = identifyMs $ fromMaybe [] $ getFlagP MetricsFlg pa
- in execState (mapM_ addMetric metrics) emptyStats
+initStats :: [Flag] -> Statistics
+initStats flags =
+    execState (mapM_ addMetric metrics) emptyStats
+  where
+    mdefault ms = if "default" `elem` ms then defaultMetricNames else []
+    identifyMs :: [String] -> [Metric]
+    identifyMs ms = map namedMetric $ mdefault ms ++ delete "default" ms
+    metrics = identifyMs $ fromMaybe [] $ getFlag MetricsFlg flags
 
 namedMetric :: String -> Metric
 -- the default case is that it's an int metric

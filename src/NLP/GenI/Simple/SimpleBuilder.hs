@@ -49,6 +49,7 @@ import Data.Maybe (isJust, isNothing, mapMaybe, fromMaybe)
 import Data.Ord (comparing)
 import Data.Text ( Text )
 import Data.Tree
+import Data.Typeable ( Typeable )
 import qualified Data.Map as Map
 import qualified Data.Text as T
 
@@ -58,8 +59,8 @@ import NLP.GenI.Builder ( incrCounter, num_iterations, num_comparisons
                         , DispatchFilter, (>-->), condFilter, FilterStatus(Filtered, NotFiltered)
                         , GenStatus(..),
                         )
-import NLP.GenI.Configuration
 import NLP.GenI.FeatureStructure ( unifyFeat, Flist )
+import NLP.GenI.Flag
 import NLP.GenI.General ( BitVector, mapMaybeM, mapTree', geniBug, preTerminals, repList )
 import NLP.GenI.GeniVal ( GeniVal, replace, DescendGeniVal(..), Subst, appendSubst )
 import NLP.GenI.Morphology.Types ( LemmaPlus(..) )
@@ -83,7 +84,7 @@ import qualified NLP.GenI.Builder as B
 -- The Builder interface
 -- --------------------------------------------------------------------
 
-type SimpleBuilder = B.Builder SimpleStatus SimpleItem Params
+type SimpleBuilder = B.Builder SimpleStatus SimpleItem
 simpleBuilder_2p, simpleBuilder_1p :: SimpleBuilder
 simpleBuilder_2p = simpleBuilder True
 simpleBuilder_1p = simpleBuilder False
@@ -128,7 +129,7 @@ data SimpleStatus = S
   , tsem       :: BitVector
   , step       :: GenerationPhase
   , gencounter :: Integer
-  , genconfig  :: Params
+  , genconfig  :: [Flag]
   -- we keep a SemBitMap strictly to help display the semantics
   , semBitMap  :: SemBitMap
   }
@@ -164,7 +165,7 @@ addToChart te = do
 
 addToTrash :: SimpleItem -> String -> SimpleState ()
 addToTrash te err = do
-  disableGui <- gets (hasFlagP DisableGuiFlg . genconfig)
+  disableGui <- gets (hasFlag DisableGuiFlg . genconfig)
   unless disableGui $
     modify $ \s -> s { theTrash = te2 : theTrash s }
   where
@@ -266,9 +267,9 @@ siInitial =  isNothing . siFoot
 -- --------------------------------------------------------------------
 
 -- | Creates an initial SimpleStatus.
-initSimpleBuilder ::  Bool -> B.Input -> Params -> (SimpleStatus, Statistics)
-initSimpleBuilder twophase input config =
-  let disableGui = hasFlagP DisableGuiFlg config
+initSimpleBuilder ::  Bool -> B.Input -> [Flag] -> (SimpleStatus, Statistics)
+initSimpleBuilder twophase input flags =
+  let disableGui = hasFlag DisableGuiFlg flags
       cands   = map (initSimpleItem disableGui bmap) $ B.inCands input
       (sem,_,_) = B.inSemInput input
       bmap    = defineSemanticBits sem
@@ -288,10 +289,10 @@ initSimpleBuilder twophase input config =
                , tsem      = semToBitVector bmap sem
                , step     =  SubstitutionPhase
                , gencounter = 0
-               , genconfig  = config }
+               , genconfig  = flags }
       --
-  in B.unlessEmptySem input config $
-     runState (execStateT (mapM initialDp cands) initS) (B.initStats config)
+  in B.unlessEmptySem input flags $
+     runState (execStateT (mapM initialDp cands) initS) (B.initStats flags)
 
 
 initSimpleItem :: Bool -- ^ disable gui
@@ -393,7 +394,7 @@ generateStep_2p_adj =
 
 trashIt :: SimpleItem -> SimpleState ()
 trashIt item =
- do disableGui <- gets (hasFlagP DisableGuiFlg . genconfig)
+ do disableGui <- gets (hasFlag DisableGuiFlg . genconfig)
     unless disableGui $ do
     s <- get
     let bmap = semBitMap s
@@ -449,9 +450,9 @@ finished twophase st
   | otherwise    = B.Active
  where
   reallyDone   = null (theAgenda st) && (not twophase || isAdjunctionPhase (step st)) 
-  atMaxResults = maybeIf (<= fromIntegral (length (theResults st))) $ getFlagP MaxResultsFlg (genconfig st)
+  atMaxResults = maybeIf (<= fromIntegral (length (theResults st))) $ getFlag MaxResultsFlg (genconfig st)
   atMaxSteps   = maybeIf (<  gencounter st) mMaxSteps
-  mMaxSteps    = getFlagP MaxStepsFlg (genconfig st)
+  mMaxSteps    = getFlag MaxStepsFlg (genconfig st)
   maxSteps     = fromMaybe (error "get maxsteps") mMaxSteps
   maybeIf bf = maybe False bf
 
@@ -803,7 +804,7 @@ dpTbFailure item =
 dpRootFeatFailure :: SimpleDispatchFilter
 dpRootFeatFailure item =
  do config <- gets genconfig
-    let rootFeat = getListFlagP RootFeatureFlg config
+    let rootFeat = getListFlag RootFeatureFlg config
         (TagSite _ top _ _) = siRoot item
     case unifyFeat rootFeat top of
       Nothing ->
