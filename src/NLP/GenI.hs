@@ -31,7 +31,7 @@ module NLP.GenI (
              LexicalSelector,
 
              -- ** Running GenI
-             runGeni,
+             runGeni, simplifyResults, defaultCustomSem,
              GeniResults(..),
              GeniResult(..), isSuccess, GeniError(..), GeniSuccess(..),
              GeniLexSel(..),
@@ -54,7 +54,6 @@ module NLP.GenI (
              )
 where
 
-
 import Control.Applicative ((<$>),(<*>))
 import Control.DeepSeq
 import Control.Exception
@@ -67,10 +66,13 @@ import Data.Monoid ( mappend, mempty )
 import Data.Text ( Text )
 import Data.Typeable (Typeable)
 import System.CPUTime( getCPUTime )
+import System.FilePath ( takeExtension )
 import System.IO ( stderr )
 import qualified Data.Map as Map
+import qualified Data.ByteString as BS
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
+import qualified Data.Text.Encoding as T
 
 import Data.FullList ( fromFL )
 import Text.JSON
@@ -78,7 +80,7 @@ import qualified System.IO.UTF8 as UTF8
 import System.Log.Logger ( debugM )
 
 import NLP.GenI.Configuration
-    ( Params, customMorph, customSelector
+    ( Params, customMorph, geniFlags
     , getFlagP, hasFlagP, hasOpt, Optimisation(NoConstraints)
     , MacrosFlg(..), LexiconFlg(..), TestSuiteFlg(..)
     , MorphInfoFlg(..), MorphCmdFlg(..)
@@ -91,12 +93,13 @@ import NLP.GenI.Configuration
     , grammarType
     , GrammarType(..)
     )
+import NLP.GenI.ErrorIO
 import NLP.GenI.General
     ( histogram, geniBug, snd3, first3, ePutStr, ePutStrLn, eFlush
     , mkLogname
     )
 import NLP.GenI.GeniVal
-import NLP.GenI.LexicalSelection ( LexicalSelector, LexicalSelection(..), defaultLexicalSelector )
+import NLP.GenI.LexicalSelection ( CustomSem(..), LexicalSelector, LexicalSelection(..), defaultLexicalSelector )
 import NLP.GenI.Lexicon
 import NLP.GenI.Morphology
 import NLP.GenI.OptimalityTheory
@@ -107,10 +110,11 @@ import NLP.GenI.Parser (geniMacros, geniTagElems,
                     runParser,
                     ParseError,
                     )
+import NLP.GenI.GeniShow
 import NLP.GenI.Pretty
 import NLP.GenI.Semantics
 import NLP.GenI.Statistics
-import NLP.GenI.Tag ( TagElem, idname, tsemantics, ttrace, setTidnums )
+import NLP.GenI.Tag ( TagElem, idname, tsemantics, setTidnums )
 import NLP.GenI.TestSuite ( TestCase(..) )
 import NLP.GenI.TreeSchema
 import NLP.GenI.Warning
@@ -165,8 +169,8 @@ emptyProgState args = ProgState
 --   use.  This just calls the sub-loaders below, some of which are exported
 --   for use by the graphical interface.  The master function also makes sure
 --   to complain intelligently if some of the required files are missing.
-loadEverything :: ProgStateRef -> IO() 
-loadEverything pstRef =
+loadEverything :: ProgStateRef -> CustomSem sem -> IO()
+loadEverything pstRef wrangler =
   do pst <- readIORef pstRef
      --
      let config   = pa pst
@@ -198,7 +202,7 @@ loadEverything pstRef =
      when isNotPreanchored $ loadLexicon pstRef >> return ()
      -- in any case, we have to...
      loadMorphInfo pstRef
-     when useTestSuite $ loadTestSuite pstRef >> return ()
+     when useTestSuite $ loadTestSuite pst wrangler >> return ()
      -- the trace filter file
      loadTraces pstRef
      -- OT ranking
@@ -211,12 +215,12 @@ loadEverything pstRef =
 --   an IORef.
 class Loadable x where
   lParse       :: FilePath -- ^ source (optional)
-               -> String -> Either ParseError x
+               -> String -> Either Text x
   lSet         :: x -> ProgState -> ProgState
   lSummarise   :: x -> String
 
 -- | Note that here we assume the input consists of UTF-8 encoded file
-lParseFromFile :: Loadable x => FilePath -> IO (Either ParseError x)
+lParseFromFile :: Loadable x => FilePath -> IO (Either Text x)
 lParseFromFile f = lParse f `fmap` UTF8.readFile f
 
 -- | Returns the input too (convenient for type checking)
@@ -224,11 +228,11 @@ lSetState :: Loadable x => ProgStateRef -> x -> IO x
 lSetState pstRef x = modifyIORef pstRef (lSet x) >> return x
 
 -- to be phased out
-throwOnParseError :: String -> Either ParseError x -> IO x
+throwOnParseError :: String -> Either Text x -> IO x
 throwOnParseError descr (Left err) = throwIO (BadInputException descr err)
 throwOnParseError _ (Right p)  = return p
 
-data BadInputException = BadInputException String ParseError
+data BadInputException = BadInputException String Text
   deriving (Show, Typeable)
 
 instance Exception BadInputException
@@ -243,13 +247,14 @@ loadOrDie :: forall f a . (Eq f, Typeable f, Loadable a)
           -> String
           -> ProgStateRef
           -> IO a
-loadOrDie L flg descr pstRef =
-  withFlagOrDie flg pstRef descr $ \f -> do
-   v <- verbosity pstRef
-   x <- withLoadStatus v f descr lParseFromFile
-     >>= throwOnParseError descr
-     >>= lSetState pstRef
-   return x
+loadOrDie L flg descr pstRef = do
+    pst <- readIORef pstRef
+    withFlagOrDie flg pst descr $ \f -> do
+        v <- verbosity pstRef
+        x <- withLoadStatus v f descr lSummarise lParseFromFile
+                 >>= throwOnParseError descr
+                 >>= lSetState pstRef
+        return x
 
 -- | Load something from a string rather than a file
 loadFromString :: Loadable a => ProgStateRef
@@ -260,7 +265,7 @@ loadFromString pstRef descr s =
   throwOnParseError descr (lParse "" s) >>= lSetState pstRef
 
 instance Loadable Lexicon where
-  lParse f = fmap toLexicon . runParser geniLexicon () f
+  lParse f = fmap toLexicon . fromParsec . runParser geniLexicon () f
     where
      fixEntry  = finaliseVars ""
                . anonymiseSingletons  -- anonymise singletons for performance
@@ -271,7 +276,7 @@ instance Loadable Lexicon where
   lSummarise x = show (length x) ++ " lemmas"
 
 instance Loadable Macros where
-  lParse f = runParser geniMacros () f
+  lParse f = fromParsec . runParser geniMacros () f
   lSet x p = p { gr = x }
   lSummarise x = show (length x) ++ " schemata"
 
@@ -280,14 +285,16 @@ loadLexicon = loadOrDie (L :: L Lexicon) LexiconFlg "lexicon"
 
 -- | The macros are stored as a hashing function in the monad.
 loadGeniMacros :: ProgStateRef -> IO Macros
-loadGeniMacros pstRef =
-  withFlagOrDie MacrosFlg pstRef descr $ \f -> do
-     v <- verbosity pstRef
-     withLoadStatus v f descr (parseFromFileMaybeBinary lParseFromFile)
-     >>= throwOnParseError "tree schemata"
-     >>= lSetState pstRef
+loadGeniMacros pstRef = do
+    pst <- readIORef pstRef
+    withFlagOrDie MacrosFlg pst descr $ \f -> do
+        v <- verbosity pstRef
+        withLoadStatus v f descr lSummarise parse
+            >>= throwOnParseError "tree schemata"
+            >>= lSetState pstRef
   where
-   descr = "trees"
+    descr = "trees"
+    parse = parseFromFileMaybeBinary lParseFromFile
 
 -- | Load something, but only if we are configured to do so
 loadOptional :: forall f a . (Eq f, Typeable f, Loadable a)
@@ -296,19 +303,22 @@ loadOptional :: forall f a . (Eq f, Typeable f, Loadable a)
              -> String
              -> ProgStateRef
              -> IO ()
-loadOptional L flg descr pstRef =
-  withFlagOrIgnore flg pstRef $ \f -> do
-   v <- verbosity pstRef
-   x <- withLoadStatus v f descr lParseFromFile
-     >>= throwOnParseError descr
-     >>= lSetState pstRef
-   let _ = x :: a
-   return () -- ignore
+loadOptional L flg descr pstRef = do
+    pst <- readIORef pstRef
+    withFlagOrIgnore flg pst $ \f -> do
+        v <- verbosity pstRef
+        x <- withLoadStatus v f descr lSummarise lParseFromFile
+                 >>= throwOnParseError descr
+                 >>= lSetState pstRef
+        let _ = x :: a
+        return () -- ignore
 
 newtype MorphFnL = MorphFnL MorphInputFn
 
 instance Loadable MorphFnL where
-  lParse f = fmap (MorphFnL . readMorph) . runParser geniMorphInfo () f
+  lParse f = fmap (MorphFnL . readMorph)
+           . fromParsec
+           . runParser geniMorphInfo () f
   lSet (MorphFnL x) p = p { morphinf = x }
   lSummarise _ = "morphinfo"
 
@@ -333,11 +343,15 @@ loadTraces = loadOptional (L :: L TracesL) TracesFlg "traces"
 loadRanking :: ProgStateRef -> IO ()
 loadRanking = loadOptional (L :: L OtRanking) RankingConstraintsFlg "OT constraints"
 
-resultToEither2 :: Result a -> Either ParseError a
+fromParsec :: Either ParseError a -> Either Text a
+fromParsec (Left err) = Left . T.pack $ show err
+fromParsec (Right a)  = Right a
+
+resultToEither2 :: Result a -> Either Text a
 resultToEither2 r =
-  case resultToEither r of
-    Left e  -> runParser (fail e) () "" [] -- convoluted way to generate a Parsec error
-    Right x -> Right x
+    case resultToEither r of
+        Left e  -> Left (T.pack e)
+        Right x -> Right x
 
 -- Target semantics
 --
@@ -349,31 +363,38 @@ resultToEither2 r =
 -- figuring out how to pretty-print things because we can assume the
 -- user will format it the way s/he wants.
 
-newtype TestSuiteL = TestSuiteL [TestCase]
+newtype TestSuiteL = TestSuiteL { fromTestSuiteL :: [TestCase SemInput] }
 
 instance Loadable TestSuiteL where
- lParse f s =
-   case runParser geniTestSuite () f s of
-     Left e     -> Left e
-     Right sem  -> case runParser geniTestSuiteString () f s of
-        Left e      -> Left e
-        Right mStrs -> Right (TestSuiteL (zipWith cleanup sem mStrs))
-   where
-    cleanup tc str =
-        tc { tcSem = first3 sortSem (tcSem tc)
-           , tcSemString = str }
- --
- lSet (TestSuiteL _) p = p
- lSummarise (TestSuiteL x) = show (length x) ++ " cases"
+    lParse f s = fromParsec $ do
+        sem   <- runParser geniTestSuite () f s
+        mStrs <- runParser geniTestSuiteString () f s
+        return $ TestSuiteL (zipWith cleanup sem mStrs)
+      where
+        cleanup tc str = tc
+            { tcSem = first3 sortSem (tcSem tc)
+            , tcSemString = str
+            }
+    --
+    lSet (TestSuiteL _) p = p
+    lSummarise (TestSuiteL x) = show (length x) ++ " cases"
 
 -- |
-loadTestSuite :: ProgStateRef -> IO [TestCase]
-loadTestSuite pstRef = do
-  TestSuiteL xs <- loadOrDie (L :: L TestSuiteL) TestSuiteFlg "test suite" pstRef
-  return xs
+loadTestSuite :: ProgState -> CustomSem sem -> IO [TestCase sem]
+loadTestSuite pst wrangler = do
+    withFlagOrDie flg pst descr $ \f ->
+         withLoadStatus v f descr summary pfile
+         >>= throwOnParseError descr
+  where
+    v       = hasFlagP VerboseModeFlg (pa pst)
+    pfile f = customSuiteParser wrangler f <$> readFileUtf8 f
+    flg   = TestSuiteFlg
+    descr = "test suite"
+    summary xs = show (length xs) ++ " test cases"
 
 parseSemInput :: String -> Either ParseError SemInput
-parseSemInput = fmap smooth . runParser geniSemanticInput () "semantics"
+parseSemInput =
+    fmap smooth . runParser geniSemanticInput () "semantics"
   where
     smooth (s,r,l) = (sortSem s, sort r, l)
 
@@ -381,56 +402,53 @@ parseSemInput = fmap smooth . runParser geniSemanticInput () "semantics"
 
 withFlag :: forall f a . (Eq f, Typeable f)
          => (FilePath -> f) -- ^ flag
-         -> ProgStateRef
+         -> ProgState
          -> IO a               -- ^ null action
          -> (FilePath -> IO a) -- ^ job
          -> IO a
-withFlag flag pstRef z job =
- do config <- pa `fmap` readIORef pstRef
-    case getFlagP flag config of
-      Nothing -> z
-      Just  x -> job x
+withFlag flag pst z job =
+    maybe z job $ getFlagP flag (pa pst)
 
 withFlagOrIgnore :: forall f . (Eq f, Typeable f)
                  => (FilePath -> f) -- ^ flag
-                 -> ProgStateRef
+                 -> ProgState
                  -> (FilePath -> IO ())
                  -> IO ()
-withFlagOrIgnore flag pstRef = withFlag flag pstRef (return ())
+withFlagOrIgnore flag pst = withFlag flag pst (return ())
 
 withFlagOrDie :: forall f a . (Eq f, Typeable f)
               => (FilePath -> f) -- ^ flag
-              -> ProgStateRef
+              -> ProgState
               -> String
               -> (FilePath -> IO a)
               -> IO a
-withFlagOrDie flag pstRef description =
-    withFlag flag pstRef (fail msg)
+withFlagOrDie flag pst description =
+    withFlag flag pst (fail msg)
   where
     msg = "Please specify a " ++ description ++ " file!"
 
-withLoadStatus :: Loadable a
-               => Bool                    -- ^ verbose
+withLoadStatus :: Bool                 -- ^ verbose
                -> FilePath             -- ^ file to load
                -> String               -- ^ description
-               -> (FilePath -> IO (Either ParseError a)) -- ^ parsing cmd
-               -> IO (Either ParseError a)
-withLoadStatus False f _ p = p f
-withLoadStatus True  f d p = do
-  ePutStr $ unwords [ "Loading",  d, f ++ "... " ]
-  eFlush
-  mx <- p f
-  ePutStrLn $ either (const "ERROR") (\x -> lSummarise x ++ " loaded") mx
-  return mx
+               -> (a -> String)        -- ^ summary
+               -> (FilePath -> IO (Either Text a)) -- ^ parsing cmd
+               -> IO (Either Text a)
+withLoadStatus False f _ _         p = p f
+withLoadStatus True  f d summarise p = do
+     ePutStr $ unwords [ "Loading",  d, f ++ "... " ]
+     eFlush
+     mx <- p f
+     ePutStrLn $ either (const "ERROR") (\x -> summarise x ++ " loaded") mx
+     return mx
 
 parseFromFileMaybeBinary :: Binary a
-                         => (FilePath -> IO (Either ParseError a))
+                         => (FilePath -> IO (Either Text a))
                          -> FilePath
-                         -> IO (Either ParseError a)
+                         -> IO (Either Text a)
 parseFromFileMaybeBinary p f =
- if (".genib" `isSuffixOf` f)
-    then Right `fmap` decodeFile f
-    else p f
+     if takeExtension f == ".genib"
+        then Right <$> decodeFile f
+        else p f
 
 -- --------------------------------------------------------------------
 -- Surface realisation - entry point
@@ -496,32 +514,49 @@ instance Pretty GeniError where
 --   is mostly useful for debugging via the graphical interface.
 --   Note that we assumes that you have already loaded in your grammar and
 --   parsed your input semantics.
-runGeni :: ProgStateRef -> SemInput -> B.Builder st it -> IO (GeniResults,st)
-runGeni pstRef semInput builder = do
-     pst <- readIORef pstRef
-     let flags  = geniFlags (pa pst)
-         run    = B.run builder
-     -- step 1: lexical selection
-     (initStuff, initWarns) <- initGeni pstRef semInput
-     --force evaluation before measuring start time to avoid including grammar/lexicon parsing.
-     start <- rnf initStuff `seq` getCPUTime
-     -- step 2: chart generation
-     let (finalSt, stats) = run initStuff flags
-     -- step 3: unpacking and
-     -- step 4: post-processing
-     results <- extractResults pstRef builder finalSt
-     --force evaluation before measuring end time to account for all the work that should be done.
-     end <- rnf results `seq` getCPUTime
-     let elapsedTime = picosToMillis $! end - start
-         diff = round (elapsedTime :: Double) :: Int
-         stats2 = updateMetrics (incrIntMetric "gen_time"  (fromIntegral diff) ) stats
-         gresults = GeniResults { grResults        = results
-                                , grStatistics     = stats2
-                                , grGlobalWarnings = map showWarnings (fromGeniWarnings initWarns)
-                                }
-     return (gresults, finalSt)
+runGeni :: ProgStateRef
+        -> CustomSem sem
+        -> B.Builder st it
+        -> sem
+        -> ErrorIO (GeniResults,st)
+runGeni pstRef selector builder semInput = do
+    -- step 1: lexical selection
+    istuff <- initGeni pstRef selector semInput
+    -- steps 2 to 4
+    liftIO $ runBuilder istuff
   where
+    runBuilder (initStuff, initWarns) = do
+        pst <- readIORef pstRef
+        let flags  = geniFlags (pa pst)
+            run    = B.run builder
+        --force evaluation before measuring start time to avoid including grammar/lexicon parsing.
+        start <- rnf initStuff `seq` getCPUTime
+        -- step 2: chart generation
+        let (finalSt, stats) = run initStuff flags
+        -- step 3: unpacking and
+        -- step 4: post-processing
+        results <- extractResults pstRef builder finalSt
+        --force evaluation before measuring end time to account for all the work that should be done.
+        end <- rnf results `seq` getCPUTime
+        let elapsedTime = picosToMillis $! end - start
+            diff = round (elapsedTime :: Double) :: Int
+            stats2 = updateMetrics (incrIntMetric "gen_time"  (fromIntegral diff) ) stats
+            gresults = GeniResults { grResults        = results
+                                   , grStatistics     = stats2
+                                   , grGlobalWarnings = map showWarnings (fromGeniWarnings initWarns)
+                                   }
+        return (gresults, finalSt)
     showWarnings = T.intercalate "\n" . showGeniWarning
+
+-- | @simplifyResults <$> runGenI...'@ for an easier time if you don't need the
+--   surface realiser state
+simplifyResults :: Either Text (GeniResults, st) -> GeniResults
+simplifyResults (Left t) = GeniResults
+    { grResults        = [GError $ GeniError [t]]
+    , grGlobalWarnings = []
+    , grStatistics     = emptyStats
+    }
+simplifyResults (Right (r,_)) = r
 
 -- | This is a helper to 'runGenI'. It's mainly useful if you are building
 --   interactive GenI debugging tools.
@@ -551,19 +586,20 @@ extractResults pstRef builder finalSt = do
 
 -- | 'initGeni' performs lexical selection and strips the input semantics of
 --   any morpohological literals
-initGeni :: ProgStateRef -> SemInput -> IO (B.Input, GeniWarnings)
-initGeni pstRef semInput_ = do
-    pst <- readIORef pstRef
-    let semInput = stripMorphStuff pst
-                 . maybeRemoveConstraints pst
-                 $ semInput_
+--
+--   See 'defaultCustomSem'
+initGeni :: ProgStateRef
+         -> CustomSem sem
+         -> sem
+         -> ErrorIO (B.Input, GeniWarnings)
+initGeni pstRef wrangler csem = do
     -- lexical selection
-    selection <- runLexSelection pstRef semInput
-    debugM logname $
+    selection <- runLexSelection pstRef wrangler csem
+    liftIO $ debugM logname $
         "lexical selection returned " ++
         (show . length $ lsAnchored selection) ++
         " anchored trees"
-    -- strip morphological predicates
+    semInput <- liftEither $ fromCustomSemInput wrangler csem
     let initStuff = B.Input 
           { B.inSemInput = semInput
           , B.inLex   = lsLexEntries selection
@@ -571,10 +607,6 @@ initGeni pstRef semInput_ = do
           }
     return (initStuff, lsWarnings selection)
   where
-    stripMorphStuff pst = first3 (stripMorphSem (morphinf pst))
-    -- disable constraints if the NoConstraintsFlg pessimisation is active
-    maybeRemoveConstraints pst =
-         if hasOpt NoConstraints (geniFlags (pa pst)) then removeConstraints else id
 
 -- | 'finaliseResults' does any post-processing steps that we want to integrate
 --   into mainline GenI.  So far, this consists of morphological realisation and
@@ -667,18 +699,23 @@ readPidname n =
 --   through the universal 'finaliseLexSelection'.
 --
 --   Also hunts for some warning conditions
-runLexSelection :: ProgStateRef -> SemInput -> IO LexicalSelection
-runLexSelection pstRef sem@(tsem,_,_) = do
-    pst <- readIORef pstRef
+runLexSelection :: ProgStateRef
+                -> CustomSem sem -- ^ handler for custom semantics
+                -> sem           -- ^ semantics
+                -> ErrorIO LexicalSelection
+runLexSelection pstRef wrangler csem = do
+    pst <- liftIO $ readIORef pstRef
     let config   = pa pst
         verbose  = hasFlagP VerboseModeFlg config
+        selector = customSelector wrangler
     -- perform lexical selection
-    selector  <- getLexicalSelector pstRef
-    selection <- selector (gr pst) (le pst) sem
+    selection <- liftIO $ selector (gr pst) (le pst) csem
+    -- finalise selection
+    sem@(tsem, _, _) <- liftEither $ fromCustomSemInput wrangler csem
     let lexCand   = lsLexEntries selection
         candFinal = finaliseLexSelection (morphinf pst) sem (lsAnchored selection)
     -- status
-    when verbose $ T.hPutStrLn stderr . T.unlines $
+    when verbose $ liftIO $ T.hPutStrLn stderr . T.unlines $
         "Lexical items selected:"
         :  map (indent . showLexeme . fromFL . iword) lexCand
         ++ ["Trees anchored (family) :"]
@@ -693,15 +730,30 @@ runLexSelection pstRef sem@(tsem,_,_) = do
   where
     indent  x = ' ' `T.cons` x
 
--- | Grab the lexical selector from the config, or return the standard GenI
---   version if none is supplied
-getLexicalSelector :: ProgStateRef -> IO (LexicalSelector SemInput)
-getLexicalSelector pstRef = do
-    config <- pa <$> readIORef pstRef
-    case (customSem config, grammarType config) of
-        (Just s, _)            -> return (customSelector s)
-        (Nothing, PreAnchored) -> mkPreAnchoredLexicalSelector pstRef
-        (Nothing, _)           -> return defaultLexicalSelector
+-- | Standard GenI semantics and lexical selection algorithm
+--   (with optional "preanchored" mode)
+defaultCustomSem :: ProgState -> IO (CustomSem SemInput)
+defaultCustomSem pst = mkDefaultCustomSem pst <$>
+    case grammarType (pa pst) of
+        PreAnchored -> mkPreAnchoredLexicalSelector pst
+        _           -> return defaultLexicalSelector
+
+mkDefaultCustomSem :: ProgState
+                    -> LexicalSelector SemInput
+                    -> CustomSem SemInput
+mkDefaultCustomSem pst selector = CustomSem
+    { fromCustomSemInput = Right
+    , customSelector     = \t l s -> selector t l (tweakSem s)
+    , customRenderSem    = geniShowText
+    , customSemParser    = fromParsec . parseSemInput . T.unpack
+    , customSuiteParser  = \f -> fmap fromTestSuiteL . lParse f . T.unpack
+    }
+  where
+    tweakSem = stripMorphStuff . maybeRemoveConstraints
+    stripMorphStuff = first3 (stripMorphSem (morphinf pst))
+    -- disable constraints if the NoConstraintsFlg pessimisation is active
+    maybeRemoveConstraints =
+         if hasOpt NoConstraints (geniFlags (pa pst)) then removeConstraints else id
 
 -- | @missingLiterals ts sem@ returns any literals in @sem@ that do not
 --   appear in any of the @ts@ trees
@@ -735,25 +787,34 @@ finaliseLexSelection morph (tsem,_,_) =
 newtype PreAnchoredL = PreAnchoredL [TagElem]
 
 instance Loadable PreAnchoredL where
-  lParse f = fmap PreAnchoredL
-           . runParser geniTagElems () f
-  lSet _ p = p -- this does not update prog state at all
-  lSummarise (PreAnchoredL xs) = show (length xs) ++ " trees"
+    lParse f = fmap PreAnchoredL
+             . fromParsec
+             . runParser geniTagElems () f
+    lSet _ p = p -- this does not update prog state at all
+    lSummarise (PreAnchoredL xs) = show (length xs) ++ " trees"
 
-readPreAnchored :: ProgStateRef -> IO [TagElem]
-readPreAnchored pstRef = do
-  PreAnchoredL xs <- loadOrDie (L :: L PreAnchoredL)
-                        MacrosFlg "preanchored trees" pstRef
-  return xs
+readPreAnchored :: ProgState -> IO [TagElem]
+readPreAnchored pst = withFlagOrDie flg pst descr $ \f -> do
+    x <- withLoadStatus v f descr lSummarise lParseFromFile
+             >>= throwOnParseError descr
+    let PreAnchoredL xs = x
+    return xs
+  where
+    v     = hasFlagP VerboseModeFlg (pa pst)
+    flg   = MacrosFlg
+    descr = "preanchored trees"
 
-mkPreAnchoredLexicalSelector :: ProgStateRef -> IO (LexicalSelector SemInput)
-mkPreAnchoredLexicalSelector pstRef = do
-  xs <- readPreAnchored pstRef
-  return (\_ _ _ -> return (LexicalSelection xs [] mempty))
+mkPreAnchoredLexicalSelector :: ProgState -> IO (LexicalSelector SemInput)
+mkPreAnchoredLexicalSelector pst = do
+    xs <- readPreAnchored pst
+    return (\_ _ _ -> return (LexicalSelection xs [] mempty))
 
 -- --------------------------------------------------------------------
 -- Boring utility code
 -- --------------------------------------------------------------------
+
+readFileUtf8 :: FilePath -> IO Text
+readFileUtf8 f = T.decodeUtf8 <$> BS.readFile f
 
 verbosity :: ProgStateRef -> IO Bool
 verbosity = fmap (hasFlagP VerboseModeFlg . pa)

@@ -29,30 +29,32 @@ import Paths_GenI ( version )
 import NLP.GenI.Console(consoleGeni)
 import NLP.GenI.Configuration (treatArgs, optionsForStandardGenI, processInstructions,
                                usage, optionsSections, Params,
-                               hasFlagP, DisableGuiFlg(..),
+                               hasFlagP, setFlagP, DisableGuiFlg(..),
                                HelpFlg(..), VersionFlg(..),
                                readGlobalConfig, setLoggers
                               )
-import NLP.GenI.Configuration(setFlagP)
-import NLP.GenI ( ProgState(..), emptyProgState )
+import NLP.GenI.LexicalSelection ( CustomSem(..) )
+import NLP.GenI ( ProgState(..), emptyProgState, defaultCustomSem )
 
 main :: IO ()
 main = do
-  args  <- getArgs
-  confArgs <- forceGuiFlag <$> (processInstructions =<< treatArgs optionsForStandardGenI args)
-  mainWithState (emptyProgState confArgs)
+    args  <- getArgs
+    confArgs <- forceGuiFlag <$> (processInstructions =<< treatArgs optionsForStandardGenI args)
+    let pst = (emptyProgState confArgs)
+    wrangler <- defaultCustomSem pst
+    mainWithState pst wrangler
 
-mainWithState :: ProgState -> IO ()
-mainWithState pst = do
-  pname <- getProgName
-  maybe (return ()) setLoggers =<< readGlobalConfig
-  pstRef <- newIORef pst
-  let has :: (Typeable f, Typeable x) => (x -> f) -> Bool
-      has = flip hasFlagP (pa pst)
-  case () of
-   _ | has HelpFlg               -> putStrLn (usage optionsSections pname)
-     | has VersionFlg            -> putStrLn (pname ++ " " ++ showVersion version)
-     | otherwise                 -> consoleGeni pstRef
+mainWithState :: ProgState -> CustomSem sem -> IO ()
+mainWithState pst wrangler = do
+    maybe (return ()) setLoggers =<< readGlobalConfig
+    pname <- getProgName
+    let has :: (Typeable f, Typeable x) => (x -> f) -> Bool
+        has = flip hasFlagP (pa pst)
+    pstRef <- newIORef pst
+    case () of
+        _ | has HelpFlg               -> putStrLn (usage optionsSections pname)
+          | has VersionFlg            -> putStrLn (pname ++ " " ++ showVersion version)
+          | otherwise                 -> consoleGeni pstRef wrangler
 
 forceGuiFlag :: Params -> Params
 forceGuiFlag = setFlagP DisableGuiFlg ()

@@ -24,6 +24,7 @@ module NLP.GenI.Regression (mkSuite) where
 
 import Control.Applicative ((<$>))
 import Control.Monad (forM_)
+import Control.Monad.Trans.Error
 import Data.Either
 import Data.IORef (newIORef, readIORef, modifyIORef)
 import Data.List(sort)
@@ -38,6 +39,7 @@ import NLP.GenI
 import NLP.GenI.Configuration
 import NLP.GenI.Console
 import NLP.GenI.General ( fst3, )
+import NLP.GenI.LexicalSelection ( CustomSem )
 import NLP.GenI.Pretty
 import NLP.GenI.Semantics ( SemInput )
 import NLP.GenI.TestSuite ( TestCase(tcSem, tcName, tcExpected) )
@@ -71,7 +73,7 @@ usualArgsBad p args =
 
 noGui = setFlagP DisableGuiFlg () 
 
-type TestMaker = ProgStateRef -> TestCase -> Test.Framework.Test
+type TestMaker = ProgStateRef -> CustomSem SemInput -> TestCase SemInput -> Test.Framework.Test
 
 goodSuite = genSuite goodSuiteCase
 badSuite  = genSuite badSuiteCase
@@ -81,16 +83,17 @@ genSuite mkCase name xs = do
     confArgs <- processInstructions =<< treatArgs optionsForStandardGenI xs
     let pst = emptyProgState (noGui confArgs)
     pstRef <- newIORef pst
-    loadEverything pstRef
+    wrangler <- defaultCustomSem pst
+    loadEverything pstRef wrangler
     suite <- case getListFlagP TestInstructionsFlg confArgs of
                  []  -> error "NLP.GenI.Regression: not expecting empty instructions"
-                 [x] -> loadNextSuite pstRef x
+                 [x] -> loadNextSuite pstRef wrangler x
                  _   -> error "NLP.GenI.Regression: not expecting multiple instructions"
-    return . testGroup name $ map (mkCase pstRef) suite
+    return . testGroup name $ map (mkCase pstRef wrangler) suite
 
 goodSuiteCase :: TestMaker
-goodSuiteCase pstRef tc = testCase (T.unpack (tcName tc)) $ do
-  res <- runOnSemInput pstRef (tcSem tc)
+goodSuiteCase pstRef wrangler tc = testCase (T.unpack (tcName tc)) $ do
+  res <- runOnSemInput pstRef wrangler (tcSem tc)
   let sentences = map lemmaSentenceString (successes res)
       name = tcName tc
       semStr = prettyStr . fst3 . tcSem $ tc
@@ -100,13 +103,13 @@ goodSuiteCase pstRef tc = testCase (T.unpack (tcName tc)) $ do
       assertBool ("got result: " ++ T.unpack e) (e `elem` sentences)
 
 badSuiteCase :: TestMaker
-badSuiteCase pstRef tc = testCase (T.unpack (tcName tc)) $ do
-  res <- runOnSemInput pstRef (tcSem tc)
+badSuiteCase pstRef wrangler tc = testCase (T.unpack (tcName tc)) $ do
+  res <- runOnSemInput pstRef wrangler (tcSem tc)
   let sentences = map lemmaSentenceString (successes res)
   assertBool "no results" (null sentences)
 
-runOnSemInput :: ProgStateRef -> SemInput -> IO [GeniResult]
-runOnSemInput pstRef semInput = do
+runOnSemInput :: ProgStateRef -> CustomSem SemInput -> SemInput -> IO [GeniResult]
+runOnSemInput pstRef wrangler semInput = do
     pst <- readIORef pstRef
     let config = pa pst
         go = case builderType config of
@@ -114,7 +117,8 @@ runOnSemInput pstRef semInput = do
                SimpleOnePhaseBuilder -> helper simpleBuilder_1p
     sort `fmap` go
   where
-    helper b = (grResults . fst) <$> runGeni pstRef semInput b
+    helper b = (grResults . simplifyResults) <$>
+        (runErrorT $ runGeni pstRef wrangler b semInput)
 
 successes :: [GeniResult] -> [GeniSuccess]
 successes xs = [ s | GSuccess s <- xs ]

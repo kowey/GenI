@@ -25,16 +25,15 @@ import qualified Data.Text as T
 import NLP.GenI.General ( maybeQuoteText )
 import NLP.GenI.GeniShow
 import NLP.GenI.Pretty
-import NLP.GenI.Semantics
 
-data TestCase = TestCase
+data TestCase sem = TestCase
     { tcName      :: Text
     , tcSemString :: Text -- ^ for gui
-    , tcSem       :: SemInput
+    , tcSem       :: sem
     , tcExpected  :: [Text] -- ^ expected results (for testing)
     }
 
-instance GeniShow TestCase where
+instance GeniShow sem => GeniShow (TestCase sem) where
     geniShowText (TestCase { tcName = name
                            , tcExpected = sentences
                            , tcSemString = _semStr
@@ -43,5 +42,5 @@ instance GeniShow TestCase where
         T.unlines $ [ maybeQuoteText name, geniShowText sem ]
             ++ map (geniKeyword "sentence" . squares) sentences
 
-instance Pretty TestCase where
+instance GeniShow sem => Pretty (TestCase sem) where
     pretty = geniShowText

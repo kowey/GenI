@@ -25,6 +25,7 @@ module NLP.GenI.Console ( consoleGeni, loadNextSuite ) where
 
 import Control.Applicative ( pure, (<$>) )
 import Control.Monad
+import Control.Monad.Trans.Error
 import Data.IORef(readIORef, modifyIORef)
 import Data.List ( find, partition )
 import Data.Maybe ( fromMaybe, isJust )
@@ -59,22 +60,23 @@ import NLP.GenI.Configuration
   , builderType , BuilderType(..)
   )
 import NLP.GenI.General ( mkLogname )
+import NLP.GenI.GeniShow
+import NLP.GenI.LexicalSelection
 import NLP.GenI.Pretty
-import NLP.GenI.Semantics ( SemInput )
 import NLP.GenI.Simple.SimpleBuilder
 import NLP.GenI.TestSuite ( TestCase(..) )
 
 import Text.JSON
 import Text.JSON.Pretty ( render, pp_value )
 
-consoleGeni :: ProgStateRef -> IO()
-consoleGeni pstRef = do
+consoleGeni :: ProgStateRef -> CustomSem sem -> IO()
+consoleGeni pstRef wrangler = do
     config <- pa <$> readIORef pstRef
-    loadEverything pstRef
-    let job | hasFlagP FromStdinFlg config           = runStdinTestCase pstRef
-            | hasFlagP BatchDirFlg config            = runInstructions pstRef -- even if there is a testcase
-            | Just tc <- getFlagP TestCaseFlg config = runSpecificTestCase pstRef tc
-            | otherwise                              = runInstructions pstRef
+    loadEverything pstRef wrangler
+    let job | hasFlagP FromStdinFlg config           = runStdinTestCase pstRef wrangler
+            | hasFlagP BatchDirFlg config            = runInstructions  pstRef wrangler -- even if there is a testcase
+            | Just tc <- getFlagP TestCaseFlg config = runSpecificTestCase pstRef wrangler tc
+            | otherwise                              = runInstructions  pstRef wrangler
     case getFlagP TimeoutFlg config of
       Nothing -> job
       Just t  -> withGeniTimeOut t job
@@ -91,32 +93,33 @@ withGeniTimeOut t job = do
           exitWith (ExitFailure 2)
 
 -- | Run GenI without reading any test suites, just grab semantics from stdin
-runStdinTestCase :: ProgStateRef -> IO ()
-runStdinTestCase pstRef = do
+runStdinTestCase :: ProgStateRef -> CustomSem sem -> IO ()
+runStdinTestCase pstRef wrangler = do
     config   <- pa <$> readIORef pstRef
-    mSemInput <- parseSemInput <$> getContents
+    mSemInput <- customSemParser wrangler <$> T.getContents
     case mSemInput of
       Left err ->
            fail $ "I didn't understand the semantics you gave me: " ++ show err
       Right semInput ->
-           runOnSemInput pstRef (runAsStandalone config) semInput >> return ()
+           runOnSemInput pstRef (runAsStandalone config) wrangler semInput >> return ()
 
 -- | Run a test case with the specified name
-runSpecificTestCase :: ProgStateRef -> Text -> IO ()
-runSpecificTestCase pstRef cname = do
-    config <- pa <$> readIORef pstRef
-    fullsuite <- loadTestSuite pstRef
+runSpecificTestCase :: ProgStateRef -> CustomSem sem -> Text -> IO ()
+runSpecificTestCase pstRef wrangler cname = do
+    pst <- readIORef pstRef
+    let config = pa pst
+    fullsuite <- loadTestSuite pst wrangler
     case find (\x -> tcName x == cname) fullsuite  of
         Nothing -> fail ("No such test case: " ++ T.unpack cname)
-        Just s  -> runOnSemInput pstRef (runAsStandalone config) (tcSem s) >> return ()
+        Just s  -> runOnSemInput pstRef (runAsStandalone config) wrangler (tcSem s) >> return ()
 
 -- | Runs the tests specified in our instructions list.
 --   We assume that the grammar and lexicon are already
 --   loaded into the monadic state.
 --   If batch processing is enabled, save the results to the batch output
 --   directory with one subdirectory per suite and per case within that suite.
-runInstructions :: ProgStateRef -> IO ()
-runInstructions pstRef =
+runInstructions :: ProgStateRef -> CustomSem sem -> IO ()
+runInstructions pstRef wrangler =
   do pst <- readIORef pstRef
      let config = pa pst
      batchDir <- case getFlagP BatchDirFlg config of
@@ -138,7 +141,7 @@ runInstructions pstRef =
       mapM_ (runSuite bdir) $
           getListFlagP TestInstructionsFlg config
   runSuite bdir next@(file, _) =
-    do suite  <- loadNextSuite pstRef next
+    do suite  <- loadNextSuite pstRef wrangler next
        -- we assume the that the suites have unique filenames
        let bsubdir = bdir </> takeFileName file
        createDirectoryIfMissing True bsubdir
@@ -152,7 +155,7 @@ runInstructions pstRef =
           earlyDeath = hasFlagP EarlyDeathFlg config
       when verbose $
         ePutStrLn "======================================================"
-      gresults <- runOnSemInput pstRef (PartOfSuite n bdir) s
+      gresults <- runOnSemInput pstRef (PartOfSuite n bdir) wrangler s
       let res = grResults gresults
           (goodres, badres) = partition isSuccess (grResults gresults)
       T.hPutStrLn stderr $
@@ -169,15 +172,19 @@ runInstructions pstRef =
 --   how testsuite, testcase, and instructions are expected to interact
 --
 --   (Exported for use by regression testing code)
-loadNextSuite :: ProgStateRef -> (FilePath, Maybe [Text]) -> IO [TestCase]
-loadNextSuite pstRef (file, mtcs) = do
+loadNextSuite :: ProgStateRef
+              -> CustomSem sem
+              -> (FilePath, Maybe [Text])
+              -> IO [TestCase sem]
+loadNextSuite pstRef wrangler (file, mtcs) = do
     debugM logname $ "Loading next test suite: " ++ file
     debugM logname $ "Test case filter: " ++ maybe "none" (\xs -> show (length xs) ++ " items") mtcs
     modifyIORef pstRef $ \p -> p { pa = setFlagP TestSuiteFlg file (pa p) } -- yucky statefulness! :-(
-    config <- pa `fmap` readIORef pstRef
-    let mspecific = getFlagP TestCaseFlg config
+    pst <- readIORef pstRef
+    let config    = pa pst
+        mspecific = getFlagP TestCaseFlg config
     debugM logname . T.unpack $ "Test case to pick out:" <+> fromMaybe "none"  mspecific
-    fullsuite <- loadTestSuite pstRef
+    fullsuite <- loadTestSuite pst wrangler
     return (filterSuite mtcs mspecific fullsuite)
   where
     filterSuite _         (Just c) suite = filter (\t -> tcName t == c) suite
@@ -197,17 +204,18 @@ runAsStandalone config =
 --   test case we raise an error.
 runOnSemInput :: ProgStateRef
               -> RunAs
-              -> SemInput
+              -> CustomSem sem
+              -> sem
               -> IO GeniResults
-runOnSemInput pstRef args semInput = do
+runOnSemInput pstRef args wrangler csem = do
     pst <- readIORef pstRef
     case builderType (pa pst) of
              SimpleBuilder         -> helper pst simpleBuilder_2p
              SimpleOnePhaseBuilder -> helper pst simpleBuilder_1p
   where
     helper pst builder = do
-         (res,_) <- runGeni pstRef semInput builder
-         writeResults pst args semInput res
+         res <- simplifyResults <$> (runErrorT $ runGeni pstRef wrangler builder csem)
+         writeResults pst args wrangler csem res
          return res
 
 -- | Not just the global warnings but the ones local to each response too
@@ -215,8 +223,12 @@ allWarnings :: GeniResults -> [Text]
 allWarnings res = concat $ grGlobalWarnings res
                          : [ grWarnings s | GSuccess s <- grResults res ]
 
-writeResults :: ProgState -> RunAs -> SemInput -> GeniResults -> IO ()
-writeResults pst args semInput gresults = do
+writeResults :: ProgState
+             -> RunAs
+             -> CustomSem sem
+             -> sem
+             -> GeniResults -> IO ()
+writeResults pst args wrangler csem gresults = do
     -- create output directory as needed
     case args of
         PartOfSuite n f -> createDirectoryIfMissing True (f </> T.unpack n)
@@ -233,7 +245,11 @@ writeResults pst args semInput gresults = do
        T.hPutStrLn stderr $ "Warnings:\n" <> formatWarnings warnings
        writeBatchFile "warnings" $ T.unlines warnings
     -- other outputs when run in batch mode
-    writeBatchFile "semantics"  $ pretty semInput
+    writeBatchFile "raw-semantics" $
+         customRenderSem wrangler csem
+    writeBatchFile "semantics"  $
+         either ("ERROR:" <+>) geniShowText $
+         fromCustomSemInput wrangler csem
     writeBatchFile "derivations"$ ppJSON results
   where
     results     = grResults    gresults

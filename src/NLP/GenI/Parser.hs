@@ -256,7 +256,7 @@ instance GeniShow SemInputString where
 toSemInputString :: SemInput -> Text -> SemInputString
 toSemInputString (_,lc,_) s = SemInputString s lc
 
-geniTestSuite :: Parser [TestCase]
+geniTestSuite :: Parser [TestCase SemInput]
 geniTestSuite =
   tillEof (many geniTestCase)
 
@@ -270,7 +270,7 @@ geniTestSuiteString =
 geniDerivations :: Parser [TestCaseOutput]
 geniDerivations = tillEof $ many geniOutput
 
-geniTestCase :: Parser TestCase
+geniTestCase :: Parser (TestCase SemInput)
 geniTestCase =
      TestCase <$> (option "" (flexiIdentifier <?> "a test case name"))
               <*> lookAhead geniSemanticInputString

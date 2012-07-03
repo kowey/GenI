@@ -19,7 +19,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE OverloadedStrings, ViewPatterns #-}
 module NLP.GenI.Configuration
-    ( Params(..), CustomSem(..)
+    ( Params(..)
     --
     , mainBuilderTypes
     , getFlagP, getListFlagP, modifyFlagP, setFlagP, hasFlagP, deleteFlagP
@@ -75,8 +75,6 @@ import NLP.GenI.Parser ( geniFeats, tillEof )
 import NLP.GenI.Morphology.Types ( MorphRealiser )
 import NLP.GenI.Pretty
 import NLP.GenI.Polarity.Types ( readPolarityAttrs )
-import NLP.GenI.LexicalSelection ( LexicalSelector )
-import NLP.GenI.Semantics
 
 -- --------------------------------------------------------------------
 -- Params
@@ -90,27 +88,9 @@ data Params = Params
     , builderType    :: BuilderType
     -- | Can still be overridden with a morph command mind you
     , customMorph    :: Maybe MorphRealiser
-    -- | Custom semantics and lexical selection function
-    --   (if you set this you may want to add 'PreAnchored' to the config)
-    , customSem      :: Maybe (CustomSem SemInput)
     , geniFlags      :: [Flag]
     }
 
--- | This aims to support users who want to do lexical selection
---   directly from an input other than GenI style flat semantics.
---
---   The requirement here is for you to provide some means of
---   converting the custom semantics to a GenI semantics
-data CustomSem sem = CustomSem
-    { -- | Conversion from custom semantics to GenI semantic input
-      fromCustomSemInput :: sem  -> Either Text SemInput
-      -- | Lexical selection function
-    , customSelector     :: LexicalSelector sem
-    , customSemParser    :: Text -> Either Text sem
-      -- | List of named inputs intended to act as a substitute for
-      --   test suites
-    , customSuiteParser  :: Text -> Either Text [ (Text, sem) ]
-    }
 
 {-
 instance Show Params where
@@ -128,7 +108,6 @@ emptyParams = Params
     { builderType    = SimpleBuilder
     , grammarType    = GeniHand
     , customMorph    = Nothing
-    , customSem      = Nothing
     , geniFlags      = emptyFlags
     }
 

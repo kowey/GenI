@@ -49,11 +49,29 @@ import NLP.GenI.TreeSchema ( Ttree(..), SchemaTree, SchemaNode, Macros
                            , setAnchor, setLexeme, tree
                            , GNode(..), GType(..)
                            )
+import NLP.GenI.TestSuite
 import NLP.GenI.Warning
 
 -- ----------------------------------------------------------------------
 -- * Lexical selection algorithms
 -- ----------------------------------------------------------------------
+-- | This aims to support users who want to do lexical selection
+--   directly from an input other than GenI style flat semantics.
+--
+--   The requirement here is for you to provide some means of
+--   converting the custom semantics to a GenI semantics
+data CustomSem sem = CustomSem
+    { -- | Conversion from custom semantics to GenI semantic input
+      fromCustomSemInput :: sem  -> Either Text SemInput
+      -- | Lexical selection function
+    , customSelector     :: LexicalSelector sem
+    , customSemParser    :: Text -> Either Text sem
+      -- | List of named inputs intended to act as a substitute for
+      --   test suites
+    , customSuiteParser  :: FilePath -- ^ for error messages
+                         -> Text -> Either Text [TestCase sem]
+    , customRenderSem    :: sem -> Text
+    }
 
 -- | See 'NLP.GenI.Configuration' if you want to use GenI with a custom
 --   lexical selection function.
