@@ -59,7 +59,6 @@ import Data.Generics ( Data )
 import Data.Typeable ( Typeable )
 
 import NLP.GenI.Automaton (NFA, automatonPaths, automatonPathSets, numStates, numTransitions)
-import NLP.GenI.Configuration ( hasOpt )
 import NLP.GenI.FeatureStructure ( Flist, sortFlist, mkFeatStruct )
 import NLP.GenI.Flag
 import NLP.GenI.General ( BitVector, snd3, thd3, geniBug )

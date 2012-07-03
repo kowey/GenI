@@ -22,7 +22,7 @@ module NLP.GenI.Configuration
     ( Params(..)
     --
     , mainBuilderTypes
-    , getFlagP, getListFlagP, modifyFlagP, setFlagP, hasFlagP, deleteFlagP, hasOpt
+    , getFlagP, getListFlagP, modifyFlagP, setFlagP, hasFlagP, deleteFlagP
     , emptyParams, defineParams
     , treatArgs, treatArgsWithParams, usage, basicSections, optionsSections
     , processInstructions
@@ -114,9 +114,6 @@ emptyParams = Params
     , customSelector = Nothing
     , geniFlags      = emptyFlags
     }
-
-hasOpt :: Optimisation -> [Flag] -> Bool
-hasOpt o p = maybe False (elem o) $ getFlag OptimisationsFlg p
 
 hasFlagP    :: (Typeable f, Typeable x) => (x -> f) -> Params -> Bool
 hasFlagP f      = hasFlag f . geniFlags

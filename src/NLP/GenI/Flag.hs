@@ -51,6 +51,9 @@ instance Show BuilderType where
   show SimpleBuilder         = "simple-2p"
   show SimpleOnePhaseBuilder = "simple-1p"
 
+hasOpt :: Optimisation -> [Flag] -> Bool
+hasOpt o p = maybe False (elem o) $ getFlag OptimisationsFlg p
+
 -- ----------------------------------------------------------------------
 -- flag core
 -- ----------------------------------------------------------------------
