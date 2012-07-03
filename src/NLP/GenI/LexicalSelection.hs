@@ -42,7 +42,7 @@ import NLP.GenI.General
 import NLP.GenI.GeniVal
 import NLP.GenI.LexicalSelection.Types
 import NLP.GenI.Lexicon ( LexEntry(..), Lexicon, )
-import NLP.GenI.Semantics ( subsumeSem, unifySem, Sem )
+import NLP.GenI.Semantics ( subsumeSem, unifySem, Sem, SemInput, LitConstr )
 import NLP.GenI.Tag ( TagElem(..), idname )
 import NLP.GenI.TreeSchema ( Ttree(..), SchemaTree, SchemaNode, Macros
                            , crushTreeGNode
@@ -57,7 +57,7 @@ import NLP.GenI.Warning
 
 -- | See 'NLP.GenI.Configuration' if you want to use GenI with a custom
 --   lexical selection function.
-type LexicalSelector = Macros -> Lexicon -> Sem -> IO LexicalSelection
+type LexicalSelector sem = Macros -> Lexicon -> sem -> IO LexicalSelection
 
 -- | The result of the lexical selection process
 data LexicalSelection = LexicalSelection
@@ -74,16 +74,24 @@ data LexicalSelection = LexicalSelection
 --   <http://projects.haskell.org/GenI/manual/lexical-selection.html>
 --
 --   This is just 'defaultLexicalSelection' lifted into IO
-defaultLexicalSelector :: Macros -> Lexicon -> Sem -> IO LexicalSelection
+defaultLexicalSelector :: Macros -> Lexicon -> SemInput -> IO LexicalSelection
 defaultLexicalSelector g l t = return (defaultLexicalSelection g l t)
 
 -- | Helper for 'defaultLexicalSelector'
 --   (Standard GenI lexical selection is actually pure)
 --
---   This is just 'defaultLexicalChoice' and 'defaultAnchoring'
-defaultLexicalSelection :: Macros -> Lexicon -> Sem -> LexicalSelection
-defaultLexicalSelection grammar lexicon tsem =
-  defaultAnchoring grammar (defaultLexicalChoice lexicon tsem) tsem
+--   This is just
+--
+--   * 'defaultLexicalChoice'
+--
+--   * 'defaultAnchoring'
+--
+--   * 'defaultPostProcessing'
+defaultLexicalSelection :: Macros -> Lexicon -> SemInput -> LexicalSelection
+defaultLexicalSelection grammar lexicon sem =
+    defaultPostProcessing sem $
+    defaultAnchoring      sem grammar $
+    defaultLexicalChoice lexicon sem
 
 -- | @missingLexEntries ts lexs@ returns any of the lexical candidates
 --   @lexs@ that were apparently not anchored succesfully.
@@ -105,8 +113,8 @@ missingLexEntries cands = filter treeless
 
 -- | Select and returns the set of entries from the lexicon whose semantics
 --   subsumes the input semantics.
-defaultLexicalChoice :: Lexicon -> Sem -> [LexEntry]
-defaultLexicalChoice slex tsem = chooseCandI tsem slex
+defaultLexicalChoice :: Lexicon -> SemInput -> [LexEntry]
+defaultLexicalChoice slex (tsem,_,_) = chooseCandI tsem slex
 
 -- | 'chooseCandI' @sem l@ attempts to unify the semantics of @l@ with @sem@
 --   If this succeeds, we use return the result(s); if it fails, we reject
@@ -160,8 +168,8 @@ lexTell x = lift (tell [x])
 --
 --   This function may be useful if you are implementing your own lexical selection
 --   functions, and you want GenI to take over after you've given it a @[LexEntry]@
-defaultAnchoring :: Macros -> [LexEntry] -> Sem -> LexicalSelection
-defaultAnchoring grammar lexCands tsem =
+defaultAnchoring :: SemInput -> Macros -> [LexEntry] -> LexicalSelection
+defaultAnchoring (tsem,_,_) grammar lexCands =
   LexicalSelection { lsAnchored   = cands
                    , lsLexEntries = lexCands
                    , lsWarnings   = mconcat [ lexWarnings, coanchorWarnings, errs ]
@@ -423,3 +431,29 @@ _lemanchor = "lemanchor"
 --   a tree named @n@
 setOrigin :: Text -> Tree (GNode v) -> Tree (GNode v)
 setOrigin t = fmap (\g -> g { gorigin = t })
+
+-- ----------------------------------------------------------------------
+-- * Post-processing
+-- ----------------------------------------------------------------------
+
+-- | Standard post-processing/filtering steps that can take place
+--   after lexical selection.  Right now, this only consists of
+--   paraphrase selection
+defaultPostProcessing :: SemInput -> LexicalSelection -> LexicalSelection
+defaultPostProcessing (_,_,lc) sel = sel
+    { lsAnchored = preselectParaphrases lc (lsAnchored sel) }
+
+-- ----------------------------------------------------------------------
+-- ** Paraphrase selection
+-- ----------------------------------------------------------------------
+
+-- | Rule out lexical selection results that violate trace constraints
+preselectParaphrases :: [LitConstr] -> [TagElem] -> [TagElem]
+preselectParaphrases litContrs = filter (respectsConstraints litContrs)
+
+-- | 'True' if the tree fulfills the supplied trace constraints
+respectsConstraints :: [LitConstr] -> TagElem -> Bool
+respectsConstraints lc t =
+    all (`elem` ttrace t) constrs
+  where
+    constrs = concat [ cs | (l,cs) <- lc, l `elem` tsemantics t ]

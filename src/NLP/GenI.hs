@@ -78,7 +78,7 @@ import qualified System.IO.UTF8 as UTF8
 import System.Log.Logger ( debugM )
 
 import NLP.GenI.Configuration
-    ( Params, customMorph, customSelector, geniFlags
+    ( Params, customMorph, customSelector
     , getFlagP, hasFlagP, hasOpt, Optimisation(NoConstraints)
     , MacrosFlg(..), LexiconFlg(..), TestSuiteFlg(..)
     , MorphInfoFlg(..), MorphCmdFlg(..)
@@ -668,15 +668,15 @@ readPidname n =
 --
 --   Also hunts for some warning conditions
 runLexSelection :: ProgStateRef -> SemInput -> IO LexicalSelection
-runLexSelection pstRef (tsem,_,litConstrs) = do
+runLexSelection pstRef sem@(tsem,_,_) = do
     pst <- readIORef pstRef
     let config   = pa pst
         verbose  = hasFlagP VerboseModeFlg config
     -- perform lexical selection
     selector  <- getLexicalSelector pstRef
-    selection <- selector (gr pst) (le pst) tsem
+    selection <- selector (gr pst) (le pst) sem
     let lexCand   = lsLexEntries selection
-        candFinal = finaliseLexSelection (morphinf pst) tsem litConstrs (lsAnchored selection)
+        candFinal = finaliseLexSelection (morphinf pst) sem (lsAnchored selection)
     -- status
     when verbose $ T.hPutStrLn stderr . T.unlines $
         "Lexical items selected:"
@@ -695,13 +695,13 @@ runLexSelection pstRef (tsem,_,litConstrs) = do
 
 -- | Grab the lexical selector from the config, or return the standard GenI
 --   version if none is supplied
-getLexicalSelector :: ProgStateRef -> IO LexicalSelector
+getLexicalSelector :: ProgStateRef -> IO (LexicalSelector SemInput)
 getLexicalSelector pstRef = do
-  config <- pa <$> readIORef pstRef
-  case (customSelector config, grammarType config) of
-    (Just s, _)            -> return s
-    (Nothing, PreAnchored) -> mkPreAnchoredLexicalSelector pstRef
-    (Nothing, _)           -> return defaultLexicalSelector
+    config <- pa <$> readIORef pstRef
+    case (customSem config, grammarType config) of
+        (Just s, _)            -> return (customSelector s)
+        (Nothing, PreAnchored) -> mkPreAnchoredLexicalSelector pstRef
+        (Nothing, _)           -> return defaultLexicalSelector
 
 -- | @missingLiterals ts sem@ returns any literals in @sem@ that do not
 --   appear in any of the @ts@ trees
@@ -710,27 +710,20 @@ missingLiterals cands tsem =
    tsem \\ (nub $ concatMap tsemantics cands)
 
 -- | Post-processes lexical selection results to things which
---   GenI considers applicable to all situations:
+--   GenI considers universal. No matter what custom
+--   lexical selection mechanism you supply, these preflight
+--   checks will run.
 --
 --   * attaches morphological information to trees
 --
---   * throws out elementary trees that violate trace constraints
---     given by the user
---
 --   * filters out any elementary tree whose semantics contains
 --     things that are not in the input semantics
-finaliseLexSelection :: MorphInputFn -> Sem -> [LitConstr] -> [TagElem] -> [TagElem]
-finaliseLexSelection morph tsem litConstrs =
-  setTidnums . considerCoherency . considerLc . considerMorph
- where
+finaliseLexSelection :: MorphInputFn -> SemInput -> [TagElem] -> [TagElem]
+finaliseLexSelection morph (tsem,_,_) =
+    setTidnums . considerCoherency . considerMorph
+  where
    -- attach any morphological information to the candidates
    considerMorph = attachMorph morph tsem
-   -- filter out candidates which do not fulfill the trace constraints
-   matchesLc t = all (`elem` myTrace) constrs
-         where constrs = concat [ cs | (l,cs) <- litConstrs, l `elem` mySem ]
-               mySem   = tsemantics t
-               myTrace = ttrace t
-   considerLc = filter matchesLc
    -- filter out candidates whose semantics has bonus stuff which does
    -- not occur in the input semantics
    considerCoherency = filter (all (`elem` tsem) . tsemantics)
@@ -753,7 +746,7 @@ readPreAnchored pstRef = do
                         MacrosFlg "preanchored trees" pstRef
   return xs
 
-mkPreAnchoredLexicalSelector :: ProgStateRef -> IO LexicalSelector
+mkPreAnchoredLexicalSelector :: ProgStateRef -> IO (LexicalSelector SemInput)
 mkPreAnchoredLexicalSelector pstRef = do
   xs <- readPreAnchored pstRef
   return (\_ _ _ -> return (LexicalSelection xs [] mempty))
