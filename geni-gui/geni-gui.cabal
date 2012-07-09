@@ -43,6 +43,7 @@ Library
                , mtl
                , process
                , split
+               , transformers
                , utf8-string
                , strict-io
                , wx       >= 0.12

@@ -22,7 +22,6 @@ module NLP.GenI.Parser (
   -- * Test suites
   geniTestSuite, geniSemanticInput, geniTestSuiteString,
   geniDerivations,
-  toSemInputString,
   -- * Trees
   geniMacros, geniTagElems,
   -- * Lexicon and morph
@@ -211,8 +210,15 @@ geniSemanticInputString = do
     keywordSemantics
     s <- squaresString
     whiteSpace
-    optional geniIdxConstraints
-    return s
+    xs <- option [] geniIdxConstraints
+    return (spitBack s xs)
+  where
+    -- this is a bit embarassing
+    spitBack semStr idxC =
+        geniKeyword SEMANTICS semStr `above` r
+      where
+        r | null idxC = ""
+          | otherwise = geniKeyword IDXCONSTRAINTS (geniShowText idxC)
 
 geniIdxConstraints :: Parser (Flist GeniVal)
 geniIdxConstraints = keyword IDXCONSTRAINTS >> geniFeats
@@ -243,18 +249,6 @@ squaresString = do
 
 -- the output end of things
 -- displaying preformatted semantic input
-
-data SemInputString = SemInputString Text (Flist GeniVal)
-
-instance GeniShow SemInputString where
-    geniShowText (SemInputString semStr idxC) =
-        geniKeyword SEMANTICS semStr `above` r
-      where
-        r | null idxC = ""
-          | otherwise = geniKeyword IDXCONSTRAINTS (geniShowText idxC)
-
-toSemInputString :: SemInput -> Text -> SemInputString
-toSemInputString (_,lc,_) s = SemInputString s lc
 
 geniTestSuite :: Parser [TestCase SemInput]
 geniTestSuite =

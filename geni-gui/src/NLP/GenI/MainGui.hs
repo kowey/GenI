@@ -24,7 +24,7 @@ import Data.Version ( showVersion )
 import System.Environment(getArgs, getProgName)
 
 import Paths_geni_gui ( version )
-import NLP.GenI ( ProgState(..), emptyProgState )
+import NLP.GenI ( ProgState(..), emptyProgState, defaultCustomSem )
 import NLP.GenI.Configuration
     ( treatArgs, optionsForStandardGenI, processInstructions, usage
     , optionsSections, hasFlagP
@@ -46,6 +46,7 @@ mainWithState pst = do
     pname <- getProgName
     maybe (return ()) setLoggers =<< readGlobalConfig
     pstRef <- newIORef pst
+    wrangler <- defaultCustomSem pst
     let has :: (Typeable f, Typeable x) => (x -> f) -> Bool
         has = flip hasFlagP (pa pst)
         mustRunInConsole = has DumpDerivationFlg || has FromStdinFlg
@@ -53,5 +54,5 @@ mainWithState pst = do
     case () of
       _ | has HelpFlg      -> putStrLn (usage optionsSections pname)
         | has VersionFlg   -> putStrLn ("GenI " ++ showVersion version)
-        | mustRunInConsole -> consoleGeni pstRef
-        | otherwise        -> guiGeni pstRef
+        | mustRunInConsole -> consoleGeni pstRef wrangler
+        | otherwise        -> guiGeni pstRef wrangler

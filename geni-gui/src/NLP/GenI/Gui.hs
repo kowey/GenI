@@ -24,6 +24,7 @@ module NLP.GenI.Gui (guiGeni) where
 import Control.Applicative ( (<$>) )
 import Control.Exception ( catch, try, SomeException )
 import Control.Monad ( unless )
+import Control.Monad.Trans.Error
 import Data.IORef ( readIORef, modifyIORef )
 import Data.List ( nub, delete, findIndex)
 import Data.Maybe ( fromMaybe, catMaybes )
@@ -40,27 +41,21 @@ import Graphics.UI.WXCore
 
 import NLP.GenI
     ( ProgState(..), ProgStateRef, initGeni , GeniResult(..), prettyResult
-    , parseSemInput, loadEverything, loadTestSuite
+    , loadEverything, loadTestSuite
     )
 import NLP.GenI.Configuration
-    ( Params(..), Instruction, hasOpt , hasFlagP
+    ( Params(..), hasFlagP
     , deleteFlagP, setFlagP, getFlagP, getListFlagP
     , parseFlagWithParsec
-    --
-    , DetectPolaritiesFlg(..) , LexiconFlg(..)
-    , MacrosFlg(..) , MorphCmdFlg(..) , MorphInfoFlg(..), OptimisationsFlg(..)
-    , RankingConstraintsFlg(..) , RootFeatureFlg(..) , TestCaseFlg(..)
-    , TestSuiteFlg(..) , TestInstructionsFlg(..) , ViewCmdFlg(..)
-    --
-    , Optimisation(..) , BuilderType(..), mainBuilderTypes
+    , mainBuilderTypes
     )
+import NLP.GenI.Flag
 import NLP.GenI.General (fst3, prettyException, trim)
-import NLP.GenI.GeniShow ( geniShow, geniShowText )
 import NLP.GenI.GuiHelper
+import NLP.GenI.LexicalSelection
 import NLP.GenI.Parser hiding ( choice, label, tab, try )
 import NLP.GenI.Polarity
 import NLP.GenI.Pretty
-import NLP.GenI.Semantics
 import NLP.GenI.Simple.SimpleGui
 import NLP.GenI.TestSuite ( TestCase(..) )
 import Paths_geni_gui ( version )
@@ -69,11 +64,11 @@ import qualified NLP.GenI.BuilderGui as BG
 
 -- Main Gui
 
-guiGeni :: ProgStateRef -> IO()
-guiGeni pstRef = start (mainGui pstRef)
+guiGeni :: ProgStateRef -> CustomSem sem -> IO()
+guiGeni pstRef wrangler = start (mainGui pstRef wrangler)
 
-mainGui :: ProgStateRef -> IO ()
-mainGui pstRef = do
+mainGui :: ProgStateRef -> CustomSem sem -> IO ()
+mainGui pstRef wrangler = do
     pst <- readIORef pstRef
     -- Top Window
     f <- frame [text := "Geni Project"]
@@ -119,7 +114,7 @@ mainGui pstRef = do
     macrosFileLabel  <- staticText f [ text := getListFlagP MacrosFlg config  ]
     lexiconFileLabel <- staticText f [ text := getListFlagP LexiconFlg config ]
     -- Generate and Debug
-    let genfn = doGenerate f pstRef tsTextBox detectPolsTxt rootFeatTxt
+    let genfn = doGenerate f pstRef wrangler tsTextBox detectPolsTxt rootFeatTxt
     pauseOnLexChk <- checkBox f [ text := "Inspect lex", tooltip := "Affects debugger only"  ]
     debugBt <- button f [ text := "Debug"
                         , on command := get pauseOnLexChk checked >>= genfn True ]
@@ -150,7 +145,7 @@ mainGui pstRef = do
             , testCaseChoice   = testCaseChoice
             , tsTextBox        = tsTextBox
             }
-        onLoad = mainOnLoad pstRef myWidgets
+        onLoad = mainOnLoad pstRef wrangler myWidgets
     set loadMenIt [ on command := configGui pstRef onLoad ]
     onLoad
     --
@@ -197,8 +192,8 @@ data MainWidgets = MainWidgets
     , tsTextBox        :: TextCtrl ()
     }
 
-mainOnLoad :: ProgStateRef -> MainWidgets -> IO ()
-mainOnLoad pstRef (MainWidgets {..}) = do
+mainOnLoad :: ProgStateRef -> CustomSem sem -> MainWidgets -> IO ()
+mainOnLoad pstRef wrangler (MainWidgets {..}) = do
     cfg <- pa `fmap` readIORef pstRef -- we want the latest config!
     -- errHandler title err = errorDialog f title (show err)
     set macrosFileLabel  [ text := getListFlagP MacrosFlg cfg ]
@@ -211,7 +206,7 @@ mainOnLoad pstRef (MainWidgets {..}) = do
       is -> do
           set testSuiteChoice [ enabled := True,  items := map fst is ]
           setSelection testSuiteChoice is 0 $
-             \t -> loadTestSuiteAndRefresh f pstRef t (tsTextBox, testCaseChoice)
+             \t -> loadTestSuiteAndRefresh f pstRef wrangler t (tsTextBox, testCaseChoice)
 
 -- ----------------------------------------------------------------------
 -- Toggling optimisations
@@ -251,8 +246,8 @@ optBios = [ polarisedBio, semConstraintBio ]
 --   result, I hope, is intuitive for the user.
 optCheckBox :: Window a -> ProgStateRef -> OptBio -> IO (CheckBox ())
 optCheckBox f pstRef od = do
-    config <- pa <$> readIORef pstRef
-    chk <- checkBox f [ checked := flippy (hasOpt o config)
+    flags <- (geniFlags . pa) <$> readIORef pstRef
+    chk <- checkBox f [ checked := flippy (hasOpt o flags)
                       , text    := odShortTxt od
                       , tooltip := odToolTip od
                       ]
@@ -280,26 +275,28 @@ optCheckBox f pstRef od = do
 loadTestSuiteAndRefresh :: (Textual a, Selecting b, Selection b, Items b String)
               => Window w
               -> ProgStateRef
+              -> CustomSem sem
               -> Instruction
               -> (a, b) -- ^ test suite text and case selector widgets
               -> IO ()
-loadTestSuiteAndRefresh f pstRef (suitePath,mcs) widgets = do
+loadTestSuiteAndRefresh f pstRef wrangler (suitePath,mcs) widgets = do
     pst    <- readIORef pstRef
-    msuite <- try (loadTestSuite pstRef)
+    msuite <- try (loadTestSuite pst wrangler)
     let mcase = getFlagP TestCaseFlg (pa pst)
     case msuite of
         Left e  -> errorDialog f ("Error reading test suite " ++ suitePath) $ show (e :: SomeException)
-        Right s -> onTestSuiteLoaded f s mcs mcase widgets
+        Right s -> onTestSuiteLoaded f wrangler s mcs mcase widgets
 
 -- | Helper for 'loadTestSuiteAndRefresh'
 onTestSuiteLoaded :: (Textual a, Selecting b, Selection b, Items b String)
                   => Window w
-                  -> [TestCase]     -- ^ loaded suite
+                  -> CustomSem sem  -- ^ handler for any semantics
+                  -> [TestCase sem] -- ^ loaded suite
                   -> Maybe [Text]   -- ^ subset of test cases to select (instructions)
                   -> Maybe Text     -- ^ particular test case to focus on
                   -> (a, b) -- ^ test suite text and case selector widgets
                   -> IO ()
-onTestSuiteLoaded f suite mcs mcase (tsBox, caseChoice) = do
+onTestSuiteLoaded f _ suite mcs mcase (tsBox, caseChoice) = do
     -- if the instructions specify a set of cases, we hide the cases that aren't mentioned
     let suiteCases = case filter (\c -> tcName c `elem` fromMaybe [] mcs) suite of
                        []  -> suite
@@ -312,7 +309,7 @@ onTestSuiteLoaded f suite mcs mcase (tsBox, caseChoice) = do
   where
     -- we number the cases for easy identification, putting
     -- a star to highlight the selected test case (if available)
-    numfn :: Int -> TestCase -> String
+    numfn :: Int -> TestCase sem -> String
     numfn n t = concat [ if hasName (fromMaybe "" mcase) t then "* " else ""
                        , show  n
                        , ". "
@@ -329,7 +326,7 @@ onTestSuiteLoaded f suite mcs mcase (tsBox, caseChoice) = do
     hasName name tc = tcName tc == name
     --
     setTsBox (TestCase {..}) =
-        set tsBox [ text := geniShow (toSemInputString tcSem tcSemString) ]
+        set tsBox [ text := T.unpack tcSemString ]
 
 -- --------------------------------------------------------------------
 -- Configuration
@@ -499,11 +496,12 @@ configGui pstRef loadFn = do
 -- | 'doGenerate' parses the target semantics, then calls the generator and
 --   displays the result in a results gui (below).
 doGenerate :: Textual tb => Window a -> ProgStateRef
+                         -> CustomSem sem
                          -> tb -- ^ sem
                          -> tb -- ^ polarities to detect
                          -> tb -- ^ root feature
                          -> Bool -> Bool -> IO ()
-doGenerate f pstRef sembox detectPolsTxt rootFeatTxt useDebugger pauseOnLex = do
+doGenerate f pstRef wrangler sembox detectPolsTxt rootFeatTxt useDebugger pauseOnLex = do
     let parseRF  = parseFlagWithParsec "root features" geniFeats
     rootCatVal    <- get rootFeatTxt text
     detectPolsVal <- get detectPolsTxt text
@@ -516,13 +514,13 @@ doGenerate f pstRef sembox detectPolsTxt rootFeatTxt useDebugger pauseOnLex = do
     modifyIORef pstRef (modifyParams setConfig)
     minput <- do
         set sembox [ text :~ trim ]
-        loadEverything   pstRef
-        parseSemInput <$> get sembox text
+        loadEverything   pstRef wrangler
+        customSemParser wrangler . T.pack <$> get sembox text
     case minput of
       Left e -> errorDialog f "Please give me better input" (show e)
       Right semInput -> do
-          let doDebugger bg = debugGui   bg pstRef semInput pauseOnLex
-              doResults  bg = resultsGui bg pstRef semInput
+          let doDebugger bg = debugGui   bg pstRef wrangler semInput pauseOnLex
+              doResults  bg = resultsGui bg pstRef wrangler semInput
           catch
               (withBuilderGui $ if useDebugger then doDebugger else doResults)
               (handler "Error during realisation" prettyException)
@@ -534,8 +532,8 @@ doGenerate f pstRef sembox detectPolsTxt rootFeatTxt useDebugger pauseOnLex = do
         SimpleBuilder         -> a simpleGui2p
         SimpleOnePhaseBuilder -> a simpleGui1p
 
-resultsGui :: BG.BuilderGui -> ProgStateRef -> SemInput -> IO ()
-resultsGui builderGui pstRef semInput = do
+resultsGui :: BG.BuilderGui -> ProgStateRef -> CustomSem sem -> sem -> IO ()
+resultsGui builderGui pstRef wrangler semInput = do
     -- results window
     f <- frame [ text := "Results"
                , fullRepaintOnResize := False
@@ -546,9 +544,9 @@ resultsGui builderGui pstRef semInput = do
     nb   <- notebook p []
     pst  <- readIORef pstRef
     -- input tab
-    inputTab <- inputInfoGui nb (pa pst) semInput
+    inputTab <- inputInfoGui nb (geniFlags (pa pst)) wrangler semInput
     -- realisations tab
-    (results,_,summTab,resTab) <- BG.resultsPnl builderGui pstRef nb semInput
+    (results,_,summTab,resTab) <- BG.resultsPnl builderGui pstRef wrangler nb semInput
     -- ranking tab
     mRankTab <- if hasFlagP RankingConstraintsFlg (pa pst)
                    then Just <$> messageGui nb (purty pst results)
@@ -575,15 +573,16 @@ resultsGui builderGui pstRef semInput = do
 
 -- | Information about the config/input in this session
 inputInfoGui :: Window a -- ^ parent window
-             -> Params
-             -> SemInput
+             -> [Flag]
+             -> CustomSem sem
+             -> sem
              -> IO Layout
-inputInfoGui f config semInput = messageGui f . T.unlines $
-    [ geniShowText semInput
+inputInfoGui f flags wrangler csem = messageGui f . T.unlines $
+    [ customRenderSem wrangler csem
     , ""
     , "Options"
     , "-------"
-    , "Root feature: " <> maybe "" pretty (getFlagP RootFeatureFlg config)
+    , "Root feature: " <> maybe "" pretty (getFlag RootFeatureFlg flags)
     , ""
     , "Optimisations"
     , "-------------"
@@ -595,8 +594,8 @@ inputInfoGui f config semInput = messageGui f . T.unlines $
   enabld od = case odType od of
                 Opti  -> configged od
                 Pessi -> not (configged od)
-  configged od = hasOpt  (odOpt od) config
-  dps = maybe "" showPolarityAttrs (getFlagP DetectPolaritiesFlg config)
+  configged od = hasOpt  (odOpt od) flags
+  dps = maybe "" showPolarityAttrs (getFlag DetectPolaritiesFlg flags)
   polStuff = if enabld polarisedBio
               then [ ""
                    , "Detect polarities: " <> T.pack dps
@@ -605,8 +604,8 @@ inputInfoGui f config semInput = messageGui f . T.unlines $
 
 -- | We provide here a universal debugging interface, which makes use of some
 --   parameterisable bits as defined in the BuilderGui module.
-debugGui :: BG.BuilderGui -> ProgStateRef -> SemInput -> Bool -> IO ()
-debugGui builderGui pstRef semInput pauseOnLex = do
+debugGui :: BG.BuilderGui -> ProgStateRef -> CustomSem sem -> sem -> Bool -> IO ()
+debugGui builderGui pstRef wrangler semInput pauseOnLex = do
     config <- pa <$> readIORef pstRef
     let btype = show (builderType config)
     --
@@ -623,44 +622,54 @@ debugGui builderGui pstRef semInput pauseOnLex = do
                  , clientSize := bigSize
                  ]
            notebookSetSelection nb oldCount >> return ()
+    --
     -- generation step 1
-    (initStuff, initWarns) <- initGeni pstRef semInput
-    let (cand,_)   = unzip $ B.inCands initStuff
-    -- continuation for tree assembly tab
-    let step3 results stats = do
-            resPnl <- BG.summaryPnl builderGui pstRef nb results stats
-            addTabs [tab "summary" resPnl]
-    -- continuation for candidate selection tab
-    let step2 newCands = do
-           -- generation step 2.A (run polarity stuff)
-           let newInitStuff = initStuff { B.inCands = map noBv newCands }
-               (input2, autstuff) = B.preInit newInitStuff config
-           -- automata tab
-           mAutPnl <- if hasOpt Polarised config
-                         then Just <$> myPolarityGui nb autstuff
-                         else return Nothing
-           -- generation step 2.B (start the generator for each path)
-           debugPnl <- BG.debuggerPnl builderGui pstRef nb input2 btype step3
-           let mAutTab  = tab "automata" <$> mAutPnl
-               debugTab = tab "tree assembly" debugPnl
-           addTabs $ catMaybes [ mAutTab, Just debugTab ]
-    -- inputs tab
-    inpPnl <- inputInfoGui nb config semInput
-    -- lexical selection tab
-    pst <- readIORef pstRef
-    (canPnl,_,_) <- pauseOnLexGui (pa pst) nb
-                       (B.inLex initStuff) cand initWarns $
-                       if pauseOnLex then Just step2 else Nothing
-    -- basic tabs
-    addTabs [ tab "input"             inpPnl
-            , tab "lexical selection" canPnl
-            ]
-    -- display all tabs if we are not told to pause on lex selection
-    unless pauseOnLex (step2 cand)
+    minit <- runErrorT $ initGeni pstRef wrangler semInput
+    case minit of
+        Left err -> do
+           msgPnl <- messageGui nb err
+           addTabs [ tab "error" msgPnl ]
+        Right x  -> guiRest nb config addTabs x
   where
     myPolarityGui nb autstuff =
        fst3 <$> polarityGui nb (prIntermediate autstuff) (prFinal autstuff)
     noBv x = (x, -1) -- all true?
+    --
+    guiRest nb config addTabs (initStuff, initWarns) = do
+        let (cand,_)   = unzip $ B.inCands initStuff
+            flags      = geniFlags config
+            btype      = builderType config
+        -- continuation for tree assembly tab
+        let step3 results stats = do
+                resPnl <- BG.summaryPnl builderGui pstRef nb results stats
+                addTabs [tab "summary" resPnl]
+        -- continuation for candidate selection tab
+        let step2 newCands = do
+               -- generation step 2.A (run polarity stuff)
+               let newInitStuff = initStuff { B.inCands = map noBv newCands }
+                   (input2, autstuff) = B.preInit newInitStuff flags
+               -- automata tab
+               mAutPnl <- if hasOpt Polarised flags
+                             then Just <$> myPolarityGui nb autstuff
+                             else return Nothing
+               -- generation step 2.B (start the generator for each path)
+               debugPnl <- BG.debuggerPnl builderGui pstRef nb input2 (show btype) step3
+               let mAutTab  = tab "automata" <$> mAutPnl
+                   debugTab = tab "tree assembly" debugPnl
+               addTabs $ catMaybes [ mAutTab, Just debugTab ]
+        -- inputs tab
+        inpPnl <- inputInfoGui nb flags wrangler semInput
+        -- lexical selection tab
+        (canPnl,_,_) <- pauseOnLexGui config nb
+                           (B.inLex initStuff) cand initWarns $
+                           if pauseOnLex then Just step2 else Nothing
+        -- basic tabs
+        addTabs [ tab "input"             inpPnl
+                , tab "lexical selection" canPnl
+                ]
+        -- display all tabs if we are not told to pause on lex selection
+        unless pauseOnLex (step2 cand)
+
 
 -- ----------------------------------------------------------------------
 -- odds and ends

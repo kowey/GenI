@@ -68,8 +68,8 @@ data CustomSem sem = CustomSem
     , customSemParser    :: Text -> Either Text sem
       -- | List of named inputs intended to act as a substitute for
       --   test suites
-    , customSuiteParser  :: FilePath -- ^ for error messages
-                         -> Text -> Either Text [TestCase sem]
+      --   ('FilePath' argument is for reporting error messages only)
+    , customSuiteParser  :: FilePath -> Text -> Either Text [TestCase sem]
     , customRenderSem    :: sem -> Text
     }
 

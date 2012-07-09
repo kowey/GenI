@@ -145,7 +145,9 @@ candidateGui config f xs warns = do
                    case suggestPolFeatures xs of
                        [] -> "None! :-("
                        fs -> T.unwords fs
-        addPolFeats fs = if hasOpt Polarised config then polFeats : fs else fs
+        addPolFeats fs = if hasOpt Polarised (geniFlags config)
+                            then polFeats : fs
+                            else fs
         lexWarnings = concatMap showGeniWarning . fromGeniWarnings . sortWarnings $ warns
         warning = T.unlines $ filter (not .  T.null) (addPolFeats lexWarnings)
     -- side panel
@@ -340,7 +342,7 @@ type DebuggerItemBar st flg itm =
     -> IO (Layout, GvUpdater)
 
 data GraphvizShow (GvItem flg itm) => Debugger st flg itm = Debugger
-    { dBuilder :: B.Builder st itm Params
+    { dBuilder :: B.Builder st itm
       -- ^ builder to use
     , dToGv :: st -> [GvItem flg itm]
       -- ^ function to convert a Builder state into lists of items
@@ -385,7 +387,7 @@ debuggerPanel :: GraphvizShow (GvItem flg itm)
               -> IO Layout
 debuggerPanel (Debugger {..}) pstRef f input = do
     config <- (setMetrics . pa) <$> readIORef pstRef
-    let (initS, initStats) = initBuilder input config
+    let (initS, initStats) = initBuilder input (geniFlags config)
     p <- panel f []
     -- ---------------------------------------------------------
     -- item viewer: select and display an item

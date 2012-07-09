@@ -22,6 +22,7 @@ module NLP.GenI.Simple.SimpleGui where
 
 import Control.Applicative ( (<$>) )
 import Control.Arrow ( (***) )
+import Control.Monad.Trans.Error
 import Data.IORef
 import Data.List ( sort, partition )
 import Data.Maybe ( fromMaybe )
@@ -52,16 +53,16 @@ import NLP.GenI.GuiHelper
     , DebuggerItemBar, GvIO, newGvRef, GraphvizGuiSt(..), viewTagWidgets
     , XMGDerivation(getSourceTrees), modifyGvItems
     )
+import NLP.GenI.LexicalSelection ( CustomSem(..) )
 import NLP.GenI.Morphology (LemmaPlus(..))
 import NLP.GenI.Polarity hiding ( finalSt )
 import NLP.GenI.Pretty
-import NLP.GenI.Semantics ( SemInput )
 import NLP.GenI.Simple.SimpleBuilder
     ( simpleBuilder, SimpleStatus, SimpleItem(..), SimpleGuiItem(..)
     , unpackResult ,step
     , theResults, theAgenda, theHoldingPen, theChart, theTrash
     )
-import NLP.GenI.Statistics (Statistics, showFinalStats)
+import NLP.GenI.Statistics (Statistics, showFinalStats, emptyStats)
 import NLP.GenI.Tag (dsChild, TagItem(..))
 import NLP.GenI.TreeSchema ( GNode(..), GType(..) )
 import qualified NLP.GenI.Builder    as B
@@ -82,14 +83,26 @@ simpleGui twophase = BG.BuilderGui
     , BG.debuggerPnl = simpleDebuggerTab twophase
     }
 
-resultsPnl :: Bool -> ProgStateRef -> Window a -> SemInput -> IO ([GeniResult], Statistics, Layout, Layout)
-resultsPnl twophase pstRef f semInput = do
-    (gresults, finalSt) <- runGeni pstRef semInput (simpleBuilder twophase)
-    let sentences = grResults    gresults
-        stats     = grStatistics gresults
-    (resultsL, _, _) <- realisationsGui pstRef f $ theResults finalSt
-    summaryL         <- summaryGui pstRef f sentences stats
-    return (sentences, stats, summaryL, resultsL)
+resultsPnl :: Bool
+           -> ProgStateRef
+           -> CustomSem sem
+           -> Window a
+           -> sem
+           -> IO ([GeniResult], Statistics, Layout, Layout)
+resultsPnl twophase pstRef wrangler f semInput = do
+    mresults <- runErrorT $
+        runGeni pstRef wrangler (simpleBuilder twophase) semInput
+    case mresults of
+        Left err  -> do
+            (resultsL, _, _) <- realisationsGui pstRef f []
+            summaryL         <- messageGui f err
+            return ([], emptyStats, summaryL, resultsL)
+        Right (gresults, finalSt) -> do
+            let sentences = grResults    gresults
+                stats     = grStatistics gresults
+            (resultsL, _, _) <- realisationsGui pstRef f $ theResults finalSt
+            summaryL         <- summaryGui pstRef f sentences stats
+            return (sentences, stats, summaryL, resultsL)
 
 -- --------------------------------------------------------------------
 -- Results

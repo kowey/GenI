@@ -21,11 +21,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 module NLP.GenI.Server where
 
+import Control.Applicative ( (<$>) )
 import Control.Monad ( liftM, ap )
+import Control.Monad.Trans.Error ( runErrorT )
 import Control.Monad.IO.Class ( liftIO )
 import Data.Conduit
 import Data.Conduit.List hiding ( map, concatMap )
 import Data.IORef
+import Data.Text ( Text )
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TL
@@ -37,8 +40,8 @@ import qualified Text.JSON.Pretty as J
 
 import NLP.GenI.Configuration
 import NLP.GenI
+import NLP.GenI.LexicalSelection ( CustomSem(..) )
 import NLP.GenI.Simple.SimpleBuilder
-import NLP.GenI.Parser ( ParseError )
 
 import NLP.GenI.Server.Flag
 import NLP.GenI.Server.Instruction
@@ -62,8 +65,8 @@ toGenReq req =
 parseInstruction :: J.JSON j => B.ByteString -> Either String j
 parseInstruction = J.resultToEither . J.decode . TL.unpack . TL.decodeUtf8
 
-application :: ProgState -> Application
-application pst req = do
+application :: ProgState -> CustomSem sem -> Application
+application pst wrangler req = do
     bss <- requestBody req $$ consume
     let input = (,) `liftM` toGenReq req `ap` parseInstruction (B.fromChunks bss)
     case input of
@@ -71,7 +74,7 @@ application pst req = do
       Right tyj -> uncurry heart tyj
   where
     heart ty j = do
-        me <- liftIO (handleRequest pst j)
+        me <- liftIO (handleRequest pst wrangler j)
         case me of
             Right p  -> return (ok ty p)
             Left e   -> return (err . TL.pack $ "parse error: " ++ show e)
@@ -92,23 +95,22 @@ showResults :: [GeniResult] -> TL.Text
 showResults xs = TL.unlines . concat $
     [ map TL.fromChunks [grRealisations g] | GSuccess g <- xs ]
 
-handleRequest :: ProgState -> ServerInstruction -> IO (Either ParseError GeniResults)
-handleRequest pst instr = do
+handleRequest :: ProgState -> CustomSem sem -> ServerInstruction -> IO (Either Text GeniResults)
+handleRequest pst wrangler instr = do
     conf   <- treatArgsWithParams optionsForRequest params (pa pst)
     pstRef <- newIORef (pst { pa = conf })
-    let mSemInput = parseSemInput $ "semantics:[" ++ semStr ++ "]"
-    case mSemInput of
+    case customSemParser wrangler semStr of
         Left e         -> return (Left e)
-        Right semInput -> do
+        Right csem -> do
             -- do the realisation
-            let helper builder = fst `fmap` runGeni pstRef semInput builder
+            let helper builder = simplifyResults <$> (runErrorT $ runGeni pstRef wrangler builder csem)
             results <- case builderType conf of
                            SimpleBuilder         -> helper simpleBuilder_2p
                            SimpleOnePhaseBuilder -> helper simpleBuilder_1p
             return (Right results)
   where
     params = gParams    instr
-    semStr = gSemantics instr
+    semStr = T.pack (gSemantics instr)
 
 -- ----------------------------------------------------------------------
 

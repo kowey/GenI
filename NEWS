@@ -1,3 +1,12 @@
+GenI 0.24
+----------------------
+CHANGES TO WATCH OUT FOR
+
+* Server/GUI changes: Semantic input must be full input.
+  - Before: `foo(x) bar(y z)`
+  - After:  `semantics:[foo(x) bar(y z)]`
+* API change: mandatory custom semantics argument
+
 GenI 0.22, 14 Apr 2012
 ----------------------
 Note that the changes between this release and 0.20 are considered to be under

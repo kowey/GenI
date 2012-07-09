@@ -22,7 +22,7 @@ import Graphics.UI.WX
 
 import qualified NLP.GenI.Builder as B
 import NLP.GenI (ProgStateRef, GeniResult)
-import NLP.GenI.Semantics
+import NLP.GenI.LexicalSelection ( CustomSem )
 import NLP.GenI.Statistics (Statistics)
 
 -- | Once upon a time, GenI had two very different algorithms for tree assembly,
@@ -36,10 +36,11 @@ data BuilderGui = BuilderGui
     { -- | A 'resultsPnl' returns results, statistics and layouts for
       --   a panel showing detailed results (eg. with trees and what not)
       --   and one showing a summary of the results
-      resultsPnl  :: forall a
-                   . ProgStateRef 
+      resultsPnl  :: forall a sem
+                   . ProgStateRef
+                  -> CustomSem sem
                   -> Window a -- parent
-                  -> SemInput
+                  -> sem
                   -> IO ([GeniResult],Statistics,Layout,Layout)
     -- | Just a sentence summary tab (small part of the resultsPnl)
     , summaryPnl :: forall a
