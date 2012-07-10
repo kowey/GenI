@@ -40,6 +40,7 @@ module NLP.GenI.Simple.SimpleBuilder (
 where
 
 import Control.Arrow (first)
+import Control.Applicative ( (<$>) )
 import Control.Monad (when, unless, liftM2)
 import Control.Monad.State.Strict (get, put, modify, gets, runState, execStateT)
 import Data.Bits
@@ -393,17 +394,22 @@ generateStep_2p_adj =
 -- Helpers for the generateSteps
 
 trashIt :: SimpleItem -> SimpleState ()
-trashIt item =
- do disableGui <- gets (hasFlag DisableGuiFlg . genconfig)
+trashIt item = do
+    disableGui <- gets (hasFlag DisableGuiFlg . genconfig)
     unless disableGui $ do
-    s <- get
-    let bmap = semBitMap s
-        itemSem = siSemantics item
-        inputSem = tsem s
-        reason = if inputSem == itemSem
+    missing <- missingSem item
+    let reason = if null missing
                     then "unknown reason!"
-                    else ts_semIncomplete $ bitVectorToSem bmap $ inputSem `xor` itemSem
+                    else ts_semIncomplete missing
     addToTrash item reason
+
+missingSem :: SimpleItem -> SimpleState Sem
+missingSem item = do
+    s <- get
+    let bmap     = semBitMap s
+        inputSem = tsem s
+        itemSem  = siSemantics item
+    return $ bitVectorToSem bmap $ inputSem `xor` itemSem
 
 -- | Arbitrarily selects and removes an element from the agenda and
 --   returns it.
@@ -438,7 +444,9 @@ switchToAux = do
   mapM_ simpleDispatch_2p_adjphase compT
   -- toss the syntactically incomplete stuff in the trash
   mapM_ (\t -> addToTrash t ts_synIncomplete) incompT1
-  mapM_ (\t -> addToTrash t "sem-filtered") incompT3
+  mapM_ (\t -> addToTrash t =<< ts_semFiltered <$> missingSem t) incompT3
+  where
+    ts_semFiltered sem = "sem-filtered " ++ prettyStr sem
 
 -- Completion
 
