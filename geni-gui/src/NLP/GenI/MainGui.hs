@@ -34,19 +34,22 @@ import NLP.GenI.Configuration
     )
 import NLP.GenI.Console(consoleGeni)
 import NLP.GenI.Gui(guiGeni)
+import NLP.GenI.LexicalSelection
 
 main :: IO ()
-main =  getArgs
-    >>= treatArgs optionsForStandardGenI
-    >>= processInstructions
-    >>= (mainWithState . emptyProgState)
+main =  do
+    stuff <- processInstructions
+             =<< treatArgs optionsForStandardGenI
+             =<< getArgs
+    let pst = emptyProgState stuff
+    wrangler <- defaultCustomSem pst
+    mainWithState pst wrangler
 
-mainWithState :: ProgState -> IO ()
-mainWithState pst = do
+mainWithState :: ProgState -> CustomSem sem -> IO ()
+mainWithState pst wrangler = do
     pname <- getProgName
     maybe (return ()) setLoggers =<< readGlobalConfig
     pstRef <- newIORef pst
-    wrangler <- defaultCustomSem pst
     let has :: (Typeable f, Typeable x) => (x -> f) -> Bool
         has = flip hasFlagP (pa pst)
         mustRunInConsole = has DumpDerivationFlg || has FromStdinFlg
