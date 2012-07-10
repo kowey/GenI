@@ -75,6 +75,18 @@ above t1 t2 | T.null t1 = t2
             | T.null t2 = t1
             | otherwise = t1 `T.append` "\n" `T.append` t2
 
+-- | Puts list items on the same line if they are smaller than a certain width
+--   otherwise, puts a newline in between them
+squeezed :: Int -> [Text] -> Text
+squeezed _ []  = ""
+squeezed _ [x] = x
+squeezed w (x:xs) =
+    if T.length x  > w
+       then x `above` rest
+       else x <+>     rest
+  where
+    rest = squeezed w xs
+
 -- |
 --
 -- > prettyCount toBlah ""     (x,1) == "blah"

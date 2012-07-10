@@ -143,21 +143,33 @@ instance Pretty SemInput where
     pretty = geniShowText
 
 instance GeniShow SemInput where
-    geniShowText (sem,icons,lcons) = T.intercalate "\n" . concat $
+    geniShowText = displaySemInput (T.unwords . map geniShowText)
+
+instance GeniShow LitConstr where
+    geniShowText (sem, []) = geniShowText sem
+    geniShowText (sem, cs) = geniShowText sem <> squares (T.unwords cs)
+
+-- | Helper for displaying or pretty printing a semantic input
+--
+--   This gives you a bit of control over how each literal is
+--   displayed
+displaySemInput :: ([LitConstr] -> Text) -> SemInput -> Text
+displaySemInput dispLits (sem, icons, lcons) =
+    -- CAREFUL: if you're modifying this, note that geniShowText
+    -- can be affected
+    T.intercalate "\n" . concat $
         [ [semStuff]
         , [ idxStuff | not (null icons) ]
         ]
       where
         semStuff = geniKeyword "semantics"
-                 . squares . T.unwords
+                 . squares . dispLits
                  $ map withConstraints sem
         idxStuff = geniKeyword "idxconstraints"
                  . squares
                  $ geniShowText icons
         withConstraints lit =
-            case concat [ cs | (p,cs) <- lcons, p == lit ] of
-                [] -> geniShowText lit
-                cs -> geniShowText lit `T.append` (squares . T.unwords $ cs)
+            (lit, concat [ cs | (p,cs) <- lcons, p == lit ])
 
 isInternalHandle :: Text -> Bool
 isInternalHandle = ("genihandle" `T.isPrefixOf`)

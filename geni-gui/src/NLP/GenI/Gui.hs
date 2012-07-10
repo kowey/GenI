@@ -55,7 +55,9 @@ import NLP.GenI.GuiHelper
 import NLP.GenI.LexicalSelection
 import NLP.GenI.Parser hiding ( choice, label, tab, try )
 import NLP.GenI.Polarity
+import NLP.GenI.GeniShow
 import NLP.GenI.Pretty
+import NLP.GenI.Semantics
 import NLP.GenI.Simple.SimpleGui
 import NLP.GenI.TestSuite ( TestCase(..) )
 import Paths_geni_gui ( version )
@@ -578,9 +580,8 @@ inputInfoGui :: Window a -- ^ parent window
              -> sem
              -> IO Layout
 inputInfoGui f flags wrangler csem = messageGui f . T.unlines $
-    [ customRenderSem wrangler csem
-    , ""
-    , "Options"
+    [ csemStr, "" ] ++ semBlock ++
+    [ "Options"
     , "-------"
     , "Root feature: " <> maybe "" pretty (getFlag RootFeatureFlg flags)
     , ""
@@ -589,6 +590,23 @@ inputInfoGui f flags wrangler csem = messageGui f . T.unlines $
     ] ++ map optStatus optBios ++ polStuff
 
  where
+  csemStr = customRenderSem wrangler csem
+  -- only show distinct a semantic block if we have a custom semantics
+  -- otherwise, it's covered by the csemStr
+  semBlock = case fromCustomSemInput wrangler csem of
+                Left err -> [ "SEMANTIC CONVERSION ERROR"
+                            , "-------------------------"
+                            , err
+                            , ""
+                            ]
+                Right sem ->
+                    if pretty sem == csemStr
+                       then []
+                       else [ "Converted to semantics"
+                            , "----------------------"
+                            , displaySemInput (squeezed 50 . map geniShowText) sem
+                            , ""
+                            ]
   optStatus od = T.pack (odShortTxt od) <> ": " <>
                  if enabld od then "Yes" else "No"
   enabld od = case odType od of
