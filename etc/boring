@@ -18,6 +18,10 @@ JUNK($|/)
 ^geniwrapper/test-(c-mac|c-win|c2|hs-c)$
 ^doc/site$
 ^cabal-dev($|/)
+^sources.txt($|/)
+^examples/xmg-example/compiled-grammar($|/)
+^examples/xmg-example/grammar/macros.mac($|/)
+^examples/xmg-example/lexicon/(macros.mac|.*.g.*)($|/)
 
 ### compiler and interpreter intermediate files
 # haskell (ghc) interfaces
