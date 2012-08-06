@@ -446,8 +446,8 @@ switchToAux = do
   mapM_ (\t -> addToTrash t ts_synIncomplete) incompT1
   mapM_ (\t -> addToTrash t =<< ts_semFiltered <$> missingSem t) incompT3
   where
-    ts_semFiltered sem = "sem-filtered " ++ prettyStr sem
-
+    ts_semFiltered sem = T.unpack $
+        "Sem-filtered, MISSING:" <+> squeezed 72 (map pretty sem)
 -- Completion
 
 finished :: Bool -> SimpleStatus -> GenStatus

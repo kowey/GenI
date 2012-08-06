@@ -83,12 +83,12 @@ above t1 t2 | T.null t1 = t2
 squeezed :: Int -> [Text] -> Text
 squeezed _ []  = ""
 squeezed _ [x] = x
-squeezed w (x:xs) =
-    if T.length x  > w
-       then x `above` rest
-       else x <+>     rest
+squeezed w (x1:x2:xs) =
+    if long x1 || long x2
+       then x1 `above` x2 `above` squeezed w xs
+       else x1 <+> squeezed w (x2:xs)
   where
-    rest = squeezed w xs
+    long x = T.length x > w
 
 -- |
 --

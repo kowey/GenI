@@ -126,11 +126,7 @@ instance TagItem t => GraphvizShow (GvItem GNodeHighlights t) where
         ]
 
 gvShowSem :: Sem -> TL.Text
-gvShowSem = gvUnlines
-          . map (TL.pack . unwords)
-          . clumpBy length 72
-          . words
-          . prettyStr
+gvShowSem = TL.fromStrict. squeezed 70 . map pretty
 
 -- ----------------------------------------------------------------------
 -- Helper functions for the TagElem GraphvizShow instance
