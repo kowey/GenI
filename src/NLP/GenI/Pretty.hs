@@ -39,6 +39,9 @@ class Pretty a where
 instance Pretty String where
    prettyStr a = a
 
+instance Pretty Text where
+   pretty a = a
+
 instance Pretty Int where
    prettyStr a = show a
 
