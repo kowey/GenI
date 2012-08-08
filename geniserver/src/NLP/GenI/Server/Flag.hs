@@ -21,6 +21,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 module NLP.GenI.Server.Flag where
 
+import Data.Int
+
 import NLP.GenI.Configuration
 import NLP.GenI.General ( snd3 )
 
@@ -51,19 +53,17 @@ optionsForServer =
     ]
 
 data PortFlg = PortFlg Int deriving (Eq, Show, Typeable)
-
--- | We deliberately avoid using HostPreference as it's Warp-specific
---   and we want to keep up the idea that the geniserver library can
---   be used as a generic WAI application
---
---   You'll have to convert using 'fromString'.
 data HostFlg = HostFlg String deriving (Eq, Show, Typeable)
+data ReqMaxSizeFlg = ReqMaxSizeFlg Int64 deriving (Eq, Show, Typeable)
 
 defaultHost :: String
 defaultHost = "127.0.0.1"
 
 defaultPort :: Int
 defaultPort = 4364
+
+defaultReqMaxSize :: Int64
+defaultReqMaxSize = 4194304
 
 optionsForRequest :: [OptDescr Flag]
 optionsForRequest=

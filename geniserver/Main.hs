@@ -21,14 +21,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 module Main (main) where
 
-import Network.Wai.Handler.Warp (run)
 import Data.Maybe ( fromMaybe )
+import System.Environment
+
+import Snap.Http.Server
+
 import NLP.GenI.General ( ePutStrLn )
 import NLP.GenI
 import NLP.GenI.Configuration
 import NLP.GenI.Server
 import NLP.GenI.Server.Flag
-import System.Environment
+import qualified NLP.GenI.Configuration as G
 
 main :: IO ()
 main = do
@@ -39,11 +42,13 @@ main = do
         _ | has HelpFlg -> putStrLn (usage serverOptionsSections pname)
           | otherwise   -> startServer confArgs
 
-startServer :: Params -> IO ()
+startServer :: G.Params -> IO ()
 startServer confArgs = do
     pst <- initialise confArgs
     wrangler <- defaultCustomSem pst
     ePutStrLn ("Listening on port: " ++ show port)
-    run port (application pst wrangler)
+    httpServe (setPort port defaultConfig) $
+        application reqMaxSz pst wrangler
   where
-    port = fromMaybe defaultPort (getFlagP PortFlg confArgs)
+    port     = fromMaybe defaultPort       (getFlagP PortFlg confArgs)
+    reqMaxSz = fromMaybe defaultReqMaxSize (getFlagP ReqMaxSizeFlg confArgs)

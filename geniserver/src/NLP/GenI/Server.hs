@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, ViewPatterns #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-
 geniserver
@@ -22,19 +22,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 module NLP.GenI.Server where
 
 import Control.Applicative ( (<$>) )
-import Control.Monad ( liftM, ap )
 import Control.Monad.Trans.Error ( runErrorT )
 import Control.Monad.IO.Class ( liftIO )
-import Data.Conduit
-import Data.Conduit.List hiding ( map, concatMap )
+import Data.Int
 import Data.IORef
 import Data.Text ( Text )
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TL
 import qualified Data.ByteString.Lazy as B
-import Network.Wai
-import Network.HTTP.Types (status200, status400, Header, Ascii)
+
+import Snap.Core
 import qualified Text.JSON as J
 import qualified Text.JSON.Pretty as J
 
@@ -42,11 +40,12 @@ import NLP.GenI.Configuration
 import NLP.GenI
 import NLP.GenI.LexicalSelection ( CustomSem(..) )
 import NLP.GenI.Simple.SimpleBuilder
-
+import NLP.GenI.Pretty
 import NLP.GenI.Server.Flag
 import NLP.GenI.Server.Instruction
+import qualified NLP.GenI.Configuration as G
 
-initialise :: Params -> IO ProgState
+initialise :: G.Params -> IO ProgState
 initialise confArgs = do
     pstRef   <- newIORef (emptyProgState $ setFlagP FromStdinFlg () confArgs)
     _   <- loadGeniMacros pstRef
@@ -55,45 +54,50 @@ initialise confArgs = do
 
 data GenReq = Dump | Normal
 
-toGenReq :: Request -> Either String GenReq
-toGenReq req =
-    case pathInfo req of
-        ["dump"] -> Right Dump
-        []       -> Right Normal
-        xs       -> Left $ "Don't know about path: " ++ T.unpack (T.intercalate "/" xs)
-
 parseInstruction :: J.JSON j => B.ByteString -> Either String j
 parseInstruction = J.resultToEither . J.decode . TL.unpack . TL.decodeUtf8
 
-application :: ProgState -> CustomSem sem -> Application
-application pst wrangler req = do
-    bss <- requestBody req $$ consume
-    let input = (,) `liftM` toGenReq req `ap` parseInstruction (B.fromChunks bss)
-    case input of
-      Left e    -> return (err (TL.pack e))
-      Right tyj -> uncurry heart tyj
+application :: Int64 -- ^ maximum request size (see 'defaultReqMaxSize')
+            -> ProgState
+            -> CustomSem sem
+            -> Snap ()
+application reqMaxSz pst wrangler =
+    route [ ("dump", handle Dump)
+          , (""    , handle Normal)
+          ]
   where
-    heart ty j = do
-        me <- liftIO (handleRequest pst wrangler j)
-        case me of
-            Right p  -> return (ok ty p)
-            Left e   -> return (err . TL.pack $ "parse error: " ++ show e)
+    handle ty = do
+        bss <- readRequestBody reqMaxSz
+        let input = parseInstruction bss
+        case input of
+            Left e  -> err (T.pack e)
+            Right j -> do
+                me <- liftIO (handleRequest pst wrangler j)
+                case me of
+                    Right p  -> ok ty p
+                    Left e   -> err e
 
--- TODO: what to do about the warnings?
-ok :: GenReq -> GeniResults -> Response
-ok Dump   j =
-     responseLBS status200  [contentType "application/json"] $
-         TL.encodeUtf8 $ prettyEncode j
-ok Normal j =
-     responseLBS status200  [contentType "text/plain"] $
-         TL.encodeUtf8 $ showResults (grResults j)
+ok :: GenReq -> GeniResults -> Snap ()
+ok Dump j = do
+    modifyResponse (setContentType "application/json")
+    writeText $ prettyEncode j
+ok Normal j = do
+    modifyResponse (setContentType "text/plain")
+    writeText $ showResults (grResults j)
 
-err :: TL.Text -> Response
-err x = responseLBS status400 [contentType "text/plain"] (TL.encodeUtf8 x)
+err :: T.Text -> Snap ()
+err x = do
+     modifyResponse $ setResponseCode 400
+     writeText x
+     withResponse finishWith
 
-showResults :: [GeniResult] -> TL.Text
-showResults xs = TL.unlines . concat $
-    [ map TL.fromChunks [grRealisations g] | GSuccess g <- xs ]
+-- ----------------------------------------------------------------------
+--
+-- ----------------------------------------------------------------------
+
+showResults :: [GeniResult] -> T.Text
+showResults xs = T.unlines . concat $
+    [ grRealisations g | GSuccess g <- xs ]
 
 handleRequest :: ProgState -> CustomSem sem -> ServerInstruction -> IO (Either Text GeniResults)
 handleRequest pst wrangler instr = do
@@ -110,15 +114,13 @@ handleRequest pst wrangler instr = do
             return (Right results)
   where
     params = gParams    instr
-    semStr = T.pack (gSemantics instr)
+    semStr = wrapSem . T.pack $ gSemantics instr
+    wrapSem (T.strip -> x) =
+        if "semantics:[" `T.isInfixOf` x
+           then x
+           else "semantics:" <> squares x
 
 -- ----------------------------------------------------------------------
 
-encodeB :: TL.Text -> B.ByteString
-encodeB = TL.encodeUtf8
-
-contentType :: Ascii -> Header
-contentType x = ("Content-Type", x)
-
-prettyEncode :: J.JSON a => a -> TL.Text
-prettyEncode = TL.pack . J.render . J.pp_value . J.showJSON
+prettyEncode :: J.JSON a => a -> T.Text
+prettyEncode = T.pack . J.render . J.pp_value . J.showJSON
