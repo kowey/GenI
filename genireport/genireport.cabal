@@ -60,7 +60,7 @@ Executable genireport
   Build-depends:  base < 5
                ,  blaze-html == 0.5.*
                ,  bytestring
-               ,  cmdlib == 0.3.*
+               ,  cmdargs
                ,  filepath
                ,  directory
                ,  json

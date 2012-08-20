@@ -25,8 +25,10 @@ import Data.Char ( isDigit, toLower )
 import Data.Function ( on )
 import Data.List ( intersperse, intercalate, sort, group, nub, sortBy )
 import Data.Text ( Text )
+import Data.Version ( showVersion )
 import Prelude hiding ( readFile )
 import System.Directory
+import System.Environment
 import System.FilePath
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
@@ -35,13 +37,12 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 
 import Data.List.Split
-import System.Console.CmdLib hiding ( group )
+import System.Console.CmdArgs
 import System.IO.Strict
 import Text.Blaze.Html5 hiding ( map )
 import Text.Blaze.Html5.Attributes
 import Text.Blaze.Renderer.Utf8 ( renderHtml )
 import Text.JSON hiding ( Result )
-import qualified System.Console.CmdLib as C
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 import qualified Text.JSON as J
@@ -59,19 +60,17 @@ data GeniReport = GeniReport
     }
   deriving (Typeable, Data, Eq)
 
-instance Attributes GeniReport where
-  attributes _ = C.group "Options" [
-      inputDir %> [ Positional 0 
-                  , Help "GenI batch directory", ArgHelp "DIR" ],
-      outputDir %> [ Positional 1
-                    , Help "Output directory", ArgHelp "DIR" ]
-    ]
-
-instance RecordCommand GeniReport where
-  mode_summary _ = "GeniReport input-dir output.html"
+geniReport :: String -> GeniReport
+geniReport p = modes
+    [ GeniReport
+          { inputDir  = def &= argPos 0 &= typ "DIR" &= help "GenI batch directory"
+          , outputDir = def &= argPos 1 &= typ "DIR" &= help "Output directory"
+          }
+    ] &= program p
+      &= help (p ++ " " ++ showVersion version)
 
 main = do
-    opts <- executeR GeniReport {} =<< getArgs
+    opts <- cmdArgs . geniReport =<< getProgName
     res  <- readResults (inputDir opts)
     let odir = outputDir opts
     BL.writeFile (odir </> "report.html")  $ renderHtml (mkSummary res)
