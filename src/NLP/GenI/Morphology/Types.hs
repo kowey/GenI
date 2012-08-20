@@ -22,6 +22,7 @@ module NLP.GenI.Morphology.Types where
 import Control.Applicative ((<$>),(<*>))
 import Control.DeepSeq
 import Data.Text ( Text )
+import qualified Data.Text as T
 
 import NLP.GenI.GeniVal ( GeniVal )
 import NLP.GenI.FeatureStructure ( Flist )
@@ -74,18 +75,19 @@ instance JSON LemmaPlus where
     do jo <- fromJSObject `fmap` readJSON j
        let field x = maybe (fail $ "Could not find: " ++ x) readJSON
                    $ lookup x jo
+           tfield = fmap T.pack . field
        LemmaPlus <$> field "lemma"
-                 <*> (parsecToJSON "lemma-features" geniFeats =<< field "lemma-features")
+                 <*> (parsecToJSON "lemma-features" geniFeats =<< tfield "lemma-features")
  showJSON (LemmaPlus l fs) =
      JSObject . toJSObject $ [ ("lemma", showJSON l)
                              , ("lemma-features", showJSON $ prettyStr fs)
                              ]
 
-parsecToJSON :: Monad m => String -> Parser b -> String -> m b
+parsecToJSON :: Monad m => String -> Parser b -> Text -> m b
 parsecToJSON description p str =
- case runParser p () "" str of
-   Left  err -> fail $ "Couldn't parse " ++ description ++ " because " ++ show err
-   Right res -> return res
+    case runParser p () "" str of
+        Left  err -> fail $ "Couldn't parse " ++ description ++ " because " ++ show err
+        Right res -> return res
 
 {-!
 deriving instance NFData MorphOutput

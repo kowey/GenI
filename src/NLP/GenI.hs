@@ -76,7 +76,6 @@ import qualified Data.Text.Encoding as T
 
 import Data.FullList ( fromFL )
 import Text.JSON
-import qualified System.IO.UTF8 as UTF8
 import System.Log.Logger ( debugM )
 
 import NLP.GenI.Configuration
@@ -215,13 +214,13 @@ loadEverything pstRef wrangler =
 --   an IORef.
 class Loadable x where
   lParse       :: FilePath -- ^ source (optional)
-               -> String -> Either Text x
+               -> Text -> Either Text x
   lSet         :: x -> ProgState -> ProgState
   lSummarise   :: x -> String
 
 -- | Note that here we assume the input consists of UTF-8 encoded file
 lParseFromFile :: Loadable x => FilePath -> IO (Either Text x)
-lParseFromFile f = lParse f `fmap` UTF8.readFile f
+lParseFromFile f = lParse f . T.decodeUtf8 <$> BS.readFile f
 
 -- | Returns the input too (convenient for type checking)
 lSetState :: Loadable x => ProgStateRef -> x -> IO x
@@ -259,7 +258,7 @@ loadOrDie L flg descr pstRef = do
 -- | Load something from a string rather than a file
 loadFromString :: Loadable a => ProgStateRef
                -> String -- ^ description
-               -> String -- ^ string to load
+               -> Text   -- ^ string to load
                -> IO a
 loadFromString pstRef descr s =
   throwOnParseError descr (lParse "" s) >>= lSetState pstRef
@@ -325,14 +324,14 @@ instance Loadable MorphFnL where
 newtype TracesL = TracesL [Text]
 
 instance Loadable TracesL where
-    lParse _ = Right . TracesL . T.lines . T.pack
+    lParse _ = Right . TracesL . T.lines
     lSet (TracesL xs) p = p { traces = xs }
     lSummarise (TracesL xs) = show (length xs) ++ " traces"
 
 instance Loadable OtRanking where
-  lParse _ = resultToEither2 . decode
-  lSet r p = p { ranking = r }
-  lSummarise _ = "ranking"
+    lParse _ = resultToEither2 . decode . T.unpack
+    lSet r p = p { ranking = r }
+    lSummarise _ = "ranking"
 
 loadMorphInfo :: ProgStateRef -> IO ()
 loadMorphInfo = loadOptional (L :: L MorphFnL) MorphInfoFlg "morphological info"
@@ -392,7 +391,7 @@ loadTestSuite pst wrangler = do
     descr = "test suite"
     summary xs = show (length xs) ++ " test cases"
 
-parseSemInput :: String -> Either ParseError SemInput
+parseSemInput :: Text -> Either ParseError SemInput
 parseSemInput =
     fmap smooth . runParser geniSemanticInput () "semantics"
   where
@@ -745,8 +744,8 @@ mkDefaultCustomSem pst selector = CustomSem
     { fromCustomSemInput = Right
     , customSelector     = \t l s -> selector t l (tweakSem s)
     , customRenderSem    = geniShowText
-    , customSemParser    = fromParsec . parseSemInput . T.unpack
-    , customSuiteParser  = \f -> fmap fromTestSuiteL . lParse f . T.unpack
+    , customSemParser    = fromParsec . parseSemInput
+    , customSuiteParser  = \f -> fmap fromTestSuiteL . lParse f
     }
   where
     tweakSem = stripMorphStuff . maybeRemoveConstraints

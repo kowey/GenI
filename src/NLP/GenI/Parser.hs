@@ -33,25 +33,22 @@ module NLP.GenI.Parser (
   --
   parseFromFile, -- UTF-8 version
   module Text.Parsec,
-  module Text.Parsec.String,
+  module Text.Parsec.Text,
 ) where
 
 
 import Control.Applicative ( (<*>), (<$>), (*>), (<*) )
 import Control.Monad (liftM, when)
+import Data.Functor.Identity ( Identity )
 import Data.Text ( Text )
 import Text.Parsec
-import Text.Parsec.String hiding ( parseFromFile ) -- TODO: replace with Text.Parsec.Text
-import Text.Parsec.Language (emptyDef)
-import Text.Parsec.Token (TokenParser,
-    LanguageDef,
-    commentLine, commentStart, commentEnd, opLetter,
-    reservedOpNames, reservedNames, identLetter, identStart, 
-    makeTokenParser)
+import Text.Parsec.Text
+import Text.Parsec.Token (makeTokenParser, GenLanguageDef(..))
 import qualified Data.Map  as Map
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 import qualified Data.Tree as T
-import qualified System.IO.UTF8 as UTF8
+import qualified Data.ByteString as B
 --import qualified Text.Parsec.Expr  as P
 import qualified Text.Parsec.Token as P
 
@@ -91,22 +88,27 @@ import Data.FullList ( FullList, Listable(..) )
 
 -- Lexer
 
-geniLanguageDef :: LanguageDef ()
-geniLanguageDef = emptyDef
-         { commentLine = "%"
-         , commentStart = "/*"
-         , commentEnd = "*/"
-         , opLetter = oneOf ""
-         , reservedOpNames = [""]
-         , reservedNames =
-             [ SEMANTICS , SENTENCE, OUTPUT, IDXCONSTRAINTS, TRACE
-             , ANCHOR , SUBST , FOOT , LEX , TYPE , ACONSTR
-             , INITIAL , AUXILIARY
-             , BEGIN , END ]
-         , identLetter = identStuff
-         , identStart  = identStuff
-         }
-  where identStuff = satisfy isGeniIdentLetter
+geniLanguageDef :: P.GenLanguageDef Text () Identity
+geniLanguageDef = LanguageDef
+    { commentLine  = "%"
+    , commentStart = "/*"
+    , commentEnd   = "*/"
+    , nestedComments = True
+    , opStart  = opLetter geniLanguageDef
+    , opLetter = oneOf ""
+    , reservedOpNames = []
+    , reservedNames =
+          [ SEMANTICS , SENTENCE, OUTPUT, IDXCONSTRAINTS, TRACE
+          , ANCHOR , SUBST , FOOT , LEX , TYPE , ACONSTR
+          , INITIAL , AUXILIARY
+          , BEGIN , END
+          ]
+    , identLetter = identStuff
+    , identStart  = identStuff
+    , caseSensitive  = True
+    }
+  where
+    identStuff = satisfy isGeniIdentLetter
 
 geniValue :: Parser GeniVal
 geniValue =   ((try $ anonymous) <?> "_ or ?_")
@@ -564,7 +566,7 @@ keywordSemantics = keyword SEMANTICS
 -- language def helpers
 -- ----------------------------------------------------------------------
 
-lexer :: TokenParser ()
+lexer :: P.GenTokenParser Text () Identity
 lexer  = makeTokenParser geniLanguageDef
 
 whiteSpace :: Parser ()
@@ -629,7 +631,7 @@ tillEof p = whiteSpace *> p <* eof
 
 -- stolen from Parsec and adapted to use UTF-8 input
 parseFromFile :: Parser a -> SourceName -> IO (Either ParseError a)
-parseFromFile p fname
-    = do{ input <- UTF8.readFile fname
-        ; return (parse p fname input)
-        }
+parseFromFile p fname = do
+    { input <- T.decodeUtf8 <$> B.readFile fname
+    ; return (parse p fname input)
+    }

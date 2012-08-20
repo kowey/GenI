@@ -6,10 +6,13 @@
 module NLP.GenI.Test.Parser where
 
 import Control.Monad ( liftM2 )
-
 import Control.Applicative ( (<$>) )
 import Data.FullList hiding ( (++) )
 import Data.List
+import Data.Text ( Text )
+import qualified Data.Text as T
+import qualified Data.Text.IO as T
+
 import Test.HUnit
 import Test.QuickCheck hiding (collect, Failure)
 import Test.Framework
@@ -90,55 +93,56 @@ tSuite = testGroup "test suites"
         (map tcName <$> testParse geniTestSuite commaSuite)
     ]
 
-sillySuite :: String
-sillySuite = unlines
+sillySuite :: Text
+sillySuite = T.unlines
     [ "v_runs"
     , "semantics: [ name(s1 a vincent) run(e a) ]"
     ]
 
-commaSuite :: String
-commaSuite = unlines
+commaSuite :: Text
+commaSuite = T.unlines
     [ "\"v,runs\""
     , "semantics: [ name(s1 a vincent) run(e a) ]"
     ]
 
 propParseableGeniVal g =
-  isRight (testParse geniValue (show (g :: GeniVal)))
+    isRight (testParse geniValue (geniShowText (g :: GeniVal)))
 
--- propRoundTripGeniVal :: GeniVal -> Property
+propRoundTripGeniVal :: GeniVal -> Bool
 propRoundTripGeniVal g =
- case testParse geniValue (show g) of
-   Left  e  -> False
-   Right g2 -> g2 == g
+   case testParse geniValue (geniShowText g) of
+       Left  e  -> False
+       Right g2 -> g2 == g
 
 propRoundTripFeats :: Flist GeniVal -> Bool
 propRoundTripFeats g =
- case testParse geniFeats (geniShow g) of
-   Left  e  -> False
-   Right g2 -> g2 == g
+   case testParse geniFeats (geniShowText g) of
+       Left  e  -> False
+       Right g2 -> g2 == g
 
 propRoundTripSem g =
  case testParse geniSemanticInput semStr of
    Left  e  -> False
    Right g2@(x,_,_) -> first3 (map anonhandle) g2 == (g, [], [])
  where
-   semStr = "semantics: " ++ geniShow g
+   semStr = geniKeyword "semantics" $ geniShowText g
 
 propRoundTripLexEntry x_ =
- whenFail (putStrLn $ "----\n" ++ s  ++ "\n---\n" ++ show p) $
- case p of
-   Left  e  -> False
-   Right x2 -> x2 == [x]
- where
-  x = nosempols $ sortEntry x_
-  s = geniShow [x]
-  p = map nosempols <$> testParse geniLexicon s
-  sortEntry l = l { iinterface = sortFlist (iinterface l)
-                  , ifilters   = sortFlist (ifilters l)
-                  , iequations = sortFlist (iequations l)
-                  , isemantics = sortSem (isemantics l)
-                  }
-  nosempols l = l { isempols = [] }
+    whenFail (T.putStrLn $ "----\n" <> s <> "\n---\n" <> T.pack (show p)) $
+    case p of
+        Left  e  -> False
+        Right x2 -> x2 == [x]
+  where
+    x = nosempols $ sortEntry x_
+    s = geniShowText [x]
+    p = map nosempols <$> testParse geniLexicon s
+    sortEntry l = l
+        { iinterface = sortFlist (iinterface l)
+        , ifilters   = sortFlist (ifilters l)
+        , iequations = sortFlist (iequations l)
+        , isemantics = sortSem (isemantics l)
+        }
+    nosempols l = l { isempols = [] }
 
 anonhandle lit@(Literal h p xs) =
      case singletonVal h of

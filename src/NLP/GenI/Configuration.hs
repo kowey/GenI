@@ -56,7 +56,6 @@ import System.Directory ( getAppUserDataDirectory, doesFileExist )
 import System.Environment ( getProgName )
 import System.FilePath
 import System.IO ( stderr )
-import Text.ParserCombinators.Parsec ( runParser, CharParser )
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.Map as Map
 import qualified Data.Text as T
@@ -71,7 +70,7 @@ import System.Log.Logger
 
 import NLP.GenI.Flag
 import NLP.GenI.General ( geniBug, fst3, snd3 )
-import NLP.GenI.Parser ( geniFeats, tillEof )
+import NLP.GenI.Parser ( geniFeats, tillEof, Parser, runParser )
 import NLP.GenI.Morphology.Types ( MorphRealiser )
 import NLP.GenI.Pretty
 import NLP.GenI.Polarity.Types ( readPolarityAttrs )
@@ -370,10 +369,10 @@ verboseOption = Option ['v'] ["verbose"] (noArg VerboseModeFlg)
 defaultPolarityAttrs :: String
 defaultPolarityAttrs = "cat"
 
-exampleRootFeat :: String
+exampleRootFeat :: Text
 exampleRootFeat = "[cat:s inv:- mode:ind|subj wh:-]"
 
-defaultRootFeat :: String
+defaultRootFeat :: Text
 defaultRootFeat = "[cat:_]"
 
 optionsForOptimisation :: [OptDescr Flag]
@@ -391,7 +390,7 @@ optionsForOptimisation =
 rootFeatureOption :: OptDescr Flag
 rootFeatureOption =
   Option ['r'] ["rootfeat"]
-         (reqArg RootFeatureFlg readRF "FEATURE")
+         (reqArg RootFeatureFlg (readRF . T.pack) "FEATURE")
          ("root features 'FEATURE' (eg. "
           ++ prettyStr exampleRF ++ ", default: "
           ++ prettyStr defaultRF ++ ")")
@@ -475,11 +474,11 @@ lookupOptimisation code =
   liftM fst3 $ find (\x -> snd3 x == code) optimisationCodes
 
 -- | TODO: This is a horrible and abusive use of 'error'
-parseFlagWithParsec :: String -> CharParser () b -> String -> b
+parseFlagWithParsec :: String -> Parser b -> Text -> b
 parseFlagWithParsec description p str =
- case runParser (tillEof p) () "" str of
- Left  err -> error $ "Couldn't parse " ++ description ++ " because " ++ show err
- Right res -> res
+    case runParser (tillEof p) () "" str of
+        Left  err -> error $ "Couldn't parse " ++ description ++ " because " ++ show err
+        Right res -> res
 
 -- --------------------------------------------------------------------
 -- Builders
