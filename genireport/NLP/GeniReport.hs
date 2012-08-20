@@ -39,9 +39,9 @@ import qualified Data.Text.Encoding as T
 import Data.List.Split
 import System.Console.CmdArgs
 import System.IO.Strict
+import Text.Blaze.Html.Renderer.Utf8 ( renderHtml )
 import Text.Blaze.Html5 hiding ( map )
 import Text.Blaze.Html5.Attributes
-import Text.Blaze.Renderer.Utf8 ( renderHtml )
 import Text.JSON hiding ( Result )
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
@@ -229,10 +229,10 @@ semInputToHtml (sem,icons,lcons) = do
         x
         H.span (toHtml ("]" :: Text))
 
-instance ToHtml (Literal GeniVal) where
-    toHtml (Literal h p l) = do
+instance ToMarkup (Literal GeniVal) where
+    toMarkup (Literal h p l) = do
         H.span (toHtml (geniShow h ++ ":")) ! mute
-        toHtml (geniShow p ++ "(" ++ unwords (map geniShow l) ++ ")")
+        toMarkup (geniShow p ++ "(" ++ unwords (map geniShow l) ++ ")")
       where
         mute        = class_ "mute"
 
