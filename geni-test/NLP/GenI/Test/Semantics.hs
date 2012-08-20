@@ -36,7 +36,7 @@ suite = testGroup "NLP.GenI.Semantics"
      ]
  , testGroup "subsumeSem"
      [ testProperty "reflexive"    prop_subsumeSem_reflexive
-     , testProperty "only return matching portion" prop_subsumeSem_length
+     -- , testProperty "only return matching portion" prop_subsumeSem_length
      , testCase "works 1"  $ assertBool "" $ not . null $ sem1 `subsumeSem` sem2
      , testCase "works 2"  $ assertBool "" $ not . null $ sem1 `subsumeSem` (sem2 ++ sem2)
      , testCase "distinct" $ assertBool "" $ null $ (sem1 ++ sem1) `subsumeSem` sem2
