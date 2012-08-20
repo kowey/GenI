@@ -7,7 +7,6 @@ module NLP.GenI.Test.Parser where
 
 import Control.Monad ( liftM2 )
 import Control.Applicative ( (<$>) )
-import Data.FullList hiding ( (++) )
 import Data.List
 import Data.Text ( Text )
 import qualified Data.Text as T
@@ -19,6 +18,7 @@ import Test.Framework
 import Test.Framework.Providers.HUnit
 import Test.Framework.Providers.QuickCheck2
 
+import Data.FullList hiding ( (++) )
 import NLP.GenI.FeatureStructure
 import NLP.GenI.Lexicon ( LexEntry(..) )
 import NLP.GenI.General
