@@ -447,7 +447,7 @@ configGui pstRef loadFn = do
     -- -----------------------------------------------------------------
     -- config GUI layout
     -- -----------------------------------------------------------------
-    let parseRF  = parseFlagWithParsec "root features" geniFeats
+    let parseRF  = parseFlagWithParsec "root features" geniFeats . T.pack
         -- TODO: this is horrible! parseFlagWithParsec should be replaced with
         -- something safer
         onLoad
@@ -504,7 +504,7 @@ doGenerate :: Textual tb => Window a -> ProgStateRef
                          -> tb -- ^ root feature
                          -> Bool -> Bool -> IO ()
 doGenerate f pstRef wrangler sembox detectPolsTxt rootFeatTxt useDebugger pauseOnLex = do
-    let parseRF  = parseFlagWithParsec "root features" geniFeats
+    let parseRF  = parseFlagWithParsec "root features" geniFeats . T.pack
     rootCatVal    <- get rootFeatTxt text
     detectPolsVal <- get detectPolsTxt text
     --
