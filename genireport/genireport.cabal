@@ -58,10 +58,10 @@ Executable genireport
   
   -- Packages needed in order to build this package.
   Build-depends:  base < 5
-               ,  blaze-html == 0.4.*
-               ,  bytestring == 0.9.*
+               ,  blaze-html == 0.5.*
+               ,  bytestring
                ,  cmdlib == 0.3.*
-               ,  filepath == 1.2.*
+               ,  filepath
                ,  directory
                ,  json
                ,  split  == 0.1.*
