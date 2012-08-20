@@ -145,7 +145,7 @@ instance GraphvizShowNode (Details (GNode GeniVal)) where
       where
         -- attributes
         filledParam         = Style [SItem Filled []]
-        fillcolorParam      = FillColor (X11Color LemonChiffon)
+        fillcolorParam      = FillColor [X11Color LemonChiffon]
         shapeRecordParam    = Shape Record
         shapePlaintextParam = Shape PlainText
         --
