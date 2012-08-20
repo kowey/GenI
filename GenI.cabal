@@ -67,7 +67,6 @@ Library
                , filepath    == 1.*
                , hslogger == 1.1.*
                , json >= 0.4.3 && < 0.6
-               , MaybeT == 0.1.*
                , mtl > 1.0 && < 2.1
                , old-locale
                , ordered == 0.1.*

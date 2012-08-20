@@ -22,7 +22,7 @@ where
 
 import Control.Applicative ( (<$>) )
 import Control.Arrow ((***))
-import Control.Monad.Maybe
+import Control.Monad.Trans.Maybe
 import Control.Monad.Writer
 import Data.Function ( on )
 import Data.List
