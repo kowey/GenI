@@ -18,6 +18,7 @@ JUNK($|/)
 ^geniwrapper/test-(c-mac|c-win|c2|hs-c)$
 ^doc/site$
 ^cabal-dev($|/)
+^.shelly($|/)
 ^sources.txt($|/)
 ^examples/xmg-example/compiled-grammar($|/)
 ^examples/xmg-example/grammar/macros.mac($|/)
