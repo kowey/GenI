@@ -22,6 +22,7 @@
 --   (de-facto) standard library if one should appear
 module NLP.GenI.Pretty where
 
+import qualified Data.Monoid
 import Data.Text ( Text )
 import qualified Data.Text as T
 
@@ -59,7 +60,7 @@ squares = between "[" "]"
 
 -- | Identical to 'T.append'
 (<>) :: Text -> Text -> Text
-t1 <> t2 = t1 `T.append` t2
+(<>) = (Data.Monoid.<>)
 
 -- | Separated by space unless one of them is empty (in which case just
 --   the non-empty one)
