@@ -19,6 +19,14 @@
 {-# LANGUAGE FlexibleInstances, TypeSynonymInstances, MultiParamTypeClasses #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE OverloadedStrings #-}
+
+-- | Feature structures in GenI can be seen as a simple mapping from
+--   attributes to values (no fancy recursion).
+--
+--   From an implementation standpoint, we do truck around lists of
+--   'AvPair' quite a bit which unfortunately means we don't
+--   guarantee things like uniqueness of attributes.  We may phase
+--   this out over time in favour of 'FeatStruct'
 module NLP.GenI.FeatureStructure where
 
 import Data.Binary
@@ -41,18 +49,28 @@ import Control.DeepSeq
 -- Core types
 -- ----------------------------------------------------------------------
 
+-- | A list of attribute-value pairs. It's not a great idea to represent
+--   feature structures with this because it allows for duplicates in the
+--   attributes. But maybe sometimes you really do mean a list.
 type Flist a  = [AvPair a]
+
+-- | An attribute-value pair, the typical use being
+--   @AvPair GeniVal@ or if you have something even simpler
+--   @AvPair Text@
 data AvPair a = AvPair { avAtt :: Text
                        , avVal :: a }
   deriving (Ord, Eq, Data, Typeable)
 
--- experimental, alternative representation of Flist
--- which guarantees uniqueness of keys
+-- | Experimental, alternative representation of Flist
+--   which guarantees uniqueness of keys
 type FeatStruct a = Map.Map Text a
 
+-- | A feature structure with no pairs
 emptyFeatStruct :: FeatStruct a
 emptyFeatStruct = Map.empty
 
+-- | Convert an 'Flist' to a proper 'FeatStruct'
+--   Unsafely assumes the keys are unique
 mkFeatStruct :: Flist GeniVal -> FeatStruct GeniVal 
 mkFeatStruct fs = Map.fromListWith oops . map fromPair $ fs
   where
@@ -61,6 +79,7 @@ mkFeatStruct fs = Map.fromListWith oops . map fromPair $ fs
      "I've allowed a feature structure with multiple versions of a key"
      ++ " to sneak through: " ++ prettyStr fs
 
+-- | Convert an 'FeatStruct' to a simpler to process 'Flist'
 fromFeatStruct :: FeatStruct a -> Flist a
 fromFeatStruct = sortFlist . map (uncurry AvPair) . Map.toList
 
@@ -143,6 +162,7 @@ unifyFeat f1 f2 =
 alignFeat :: Flist GeniVal -> Flist GeniVal -> [(Text,GeniVal,GeniVal)]
 alignFeat f1 f2 = alignFeatH f1 f2 []
 
+-- | Helper for 'alignFeat'; ignore
 alignFeatH :: Flist GeniVal -> Flist GeniVal -> [(Text,GeniVal,GeniVal)] -> [(Text,GeniVal,GeniVal)]
 alignFeatH [] [] acc = reverse acc
 alignFeatH [] (AvPair f v :x) acc = alignFeatH [] x ((f,mkGAnon,v) : acc)
@@ -157,9 +177,15 @@ alignFeatH fs1@(AvPair f1 v1:l1) fs2@(AvPair f2 v2:l2) acc =
 -- Fancy disjunction
 -- --------------------------------------------------------------------
 
+-- | Flatten a fancy disjunction attribute-value pair
+--
+--   See 'crushOne' for details
 crushAvPair :: AvPair [GeniVal] -> Maybe (AvPair GeniVal)
 crushAvPair (AvPair a v) = AvPair a `fmap` crushOne v
 
+-- | Flatten a fancy-disjunction feature structure
+--
+--   See 'crushOne' for details
 crushFlist :: Flist [GeniVal] -> Maybe (Flist GeniVal)
 crushFlist = mapM crushAvPair
 
