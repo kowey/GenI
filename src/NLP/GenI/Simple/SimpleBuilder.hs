@@ -397,11 +397,12 @@ trashIt :: SimpleItem -> SimpleState ()
 trashIt item = do
     disableGui <- gets (hasFlag DisableGuiFlg . genconfig)
     unless disableGui $ do
-    missing <- missingSem item
-    let reason = if null missing
-                    then "unknown reason!"
-                    else ts_semIncomplete missing
-    addToTrash item reason
+        { missing <- missingSem item
+        ; let reason = if null missing
+                          then "unknown reason!"
+                          else ts_semIncomplete missing
+        ; addToTrash item reason
+        }
 
 missingSem :: SimpleItem -> SimpleState Sem
 missingSem item = do
