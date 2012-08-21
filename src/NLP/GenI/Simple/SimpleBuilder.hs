@@ -391,8 +391,6 @@ generateStep_2p_adj =
      mapM_ simpleDispatch_2p_adjphase res
      when (adjdone given) $ trashIt given
 
--- Helpers for the generateSteps
-
 trashIt :: SimpleItem -> SimpleState ()
 trashIt item = do
     disableGui <- gets (hasFlag DisableGuiFlg . genconfig)
