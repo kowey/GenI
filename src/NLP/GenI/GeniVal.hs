@@ -23,7 +23,7 @@ module NLP.GenI.GeniVal
     GeniVal, gLabel, gConstraints
   , mkGConst, mkGConstNone, mkGVar, mkGVarNone, mkGAnon
     -- ** queries and manipulation
-  , isVar, isAnon, isConst, singletonVal
+  , isAnon, singletonVal
   , crushOne
     -- * Unification and subsumption
     --

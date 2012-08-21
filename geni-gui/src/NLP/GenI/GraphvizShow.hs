@@ -25,7 +25,7 @@ where
 import Control.Applicative ( (<$>) )
 import Data.FullList ( fromFL )
 import Data.List ( nub )
-import Data.Maybe(listToMaybe, maybeToList, mapMaybe)
+import Data.Maybe ( isJust, listToMaybe, maybeToList, mapMaybe )
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text as T
 
@@ -35,7 +35,7 @@ import Data.GraphViz.Attributes.Complete
 import NLP.GenI.FeatureStructure ( AvPair(..), Flist )
 import NLP.GenI.General ( clumpBy )
 import NLP.GenI.Pretty
-import NLP.GenI.GeniVal (GeniVal(..), isConst)
+import NLP.GenI.GeniVal (GeniVal(..))
 import NLP.GenI.Graphviz
     ( GraphvizShow(graphvizShowAsSubgraph, graphvizLabel, graphvizParams)
     , GraphvizShowNode(graphvizShowNode)
@@ -209,7 +209,9 @@ showGnStub gn =
               Just v  -> graphvizShow_ v
     getIdx f = case getGnVal f "idx" gn of
                    Nothing -> ""
-                   Just v  -> if isConst v then graphvizShow_ v else ""
+                   Just v  -> if isJust (gConstraints v)
+                                 then graphvizShow_ v
+                                 else ""
     idxT = getIdx gup
     idxB = getIdx gdown
     idx  = tackOn "." idxT idxB

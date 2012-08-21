@@ -438,8 +438,8 @@ setLemAnchors t =
     lemAnchor :: GNode GeniVal -> Maybe [Text]
     lemAnchor n =
         case [ v | AvPair a v <- gup n, a == _lemanchor ] of
-            [l] | isConst l -> fromFL <$> gConstraints l
-            _               -> Nothing
+            [l] -> fromFL <$> gConstraints l
+            _   -> Nothing
 
 -- | The name of the lemanchor attribute (by convention; see source)
 _lemanchor :: Text

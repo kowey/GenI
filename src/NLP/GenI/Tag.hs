@@ -57,9 +57,7 @@ import Text.JSON
 import NLP.GenI.FeatureStructure ( AvPair(..), Flist )
 import NLP.GenI.General (listRepNode, groupByFM, preTerminals, geniBug)
 import NLP.GenI.GeniShow
-import NLP.GenI.GeniVal ( GeniVal(..), DescendGeniVal(..), Collectable(..), Idable(..),
-                          isConst,
-                        )
+import NLP.GenI.GeniVal ( GeniVal(..), DescendGeniVal(..), Collectable(..), Idable(..), )
 import NLP.GenI.Polarity.Types ( PolarityKey(..), SemPols )
 import NLP.GenI.Pretty
 import NLP.GenI.Semantics ( Sem, Literal(..), emptyLiteral )
@@ -313,8 +311,7 @@ getLexeme node =
   where
     grab la = firstMaybe match guppy
       where
-        match (AvPair a v) | isConst v && a == la =
-             fromFL <$> gConstraints v
+        match (AvPair a v) | a == la = fromFL <$> gConstraints v
         match _ = Nothing
     guppy = gup node
 

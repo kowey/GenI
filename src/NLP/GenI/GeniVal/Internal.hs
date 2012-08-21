@@ -27,7 +27,7 @@ import Control.Arrow (first, second, (***))
 import Control.Monad (liftM, foldM)
 import Data.Binary
 import Data.List
-import Data.Maybe (fromMaybe, isNothing, isJust)
+import Data.Maybe (fromMaybe, isNothing)
 import Data.Generics (Data)
 import Data.Typeable (Typeable)
 import qualified Data.Map as Map
@@ -107,18 +107,12 @@ instance GeniShow GeniVal where
         showLabel l = '?' `T.cons` l
         showConstraints = T.intercalate "|" . map maybeQuoteText . fromFL -- FIXME push down
 
-isConst :: GeniVal -> Bool
-isConst = isNothing . gLabel
-
 -- | If @v@ has exactly one value/constraint, returns it
 singletonVal :: GeniVal -> Maybe Text
 singletonVal v =
  case fmap fromFL (gConstraints v) of
     Just [o] -> Just o
     _        -> Nothing
-
-isVar :: GeniVal -> Bool
-isVar = isJust . gConstraints
 
 -- | An anonymous 'GeniVal' (@_@ or @?_@) has no labels/constraints
 isAnon :: GeniVal -> Bool
