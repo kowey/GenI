@@ -20,6 +20,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+
+-- | We use a flat semantics in GenI (bag of literals).
 module NLP.GenI.Semantics where
 
 import Control.Arrow ( first, (***), (&&&) )
@@ -40,7 +42,7 @@ import NLP.GenI.General ( histogram )
 import NLP.GenI.GeniVal
 import NLP.GenI.Pretty
 
--- handle, predicate, parameters
+-- | A single semantic literal containing its handle, predicate, and arguments
 data Literal gv = Literal
     { lHandle    :: gv
     , lPredicate :: gv
@@ -54,15 +56,22 @@ instance Ord gv => Ord (Literal gv) where
       -- treat the handle as an argument
       tucked l = (lPredicate l, lHandle l : lArgs l)
 
+-- | A semantics is just a set of literals.
 type Sem = [Literal GeniVal]
+
+-- | A literal and any constraints associated with it (semantic input)
 type LitConstr = (Literal GeniVal, [Text])
 
 -- | Semantics, index constraints, literal constraints
+--
+--   The intention here is that for @(sem, icons, lcons)@
+--   @all (`elem` sem) lcons@
 type SemInput  = (Sem,Flist GeniVal,[LitConstr])
 
 instance Collectable a => Collectable (Literal a) where
   collect (Literal a b c) = collect a . collect b . collect c
 
+-- | An empty literal, not sure you should really be using this
 emptyLiteral :: Literal GeniVal
 emptyLiteral = Literal mkGAnon mkGAnon []
 
@@ -78,7 +87,7 @@ sortSem = sortBy compareOnLiteral
 compareOnLiteral :: Ord a => Literal a -> Literal a -> Ordering
 compareOnLiteral = compare
 
--- sort primarily putting the ones with the most constants first
+-- | Sort primarily putting the ones with the most constants first
 -- and secondarily by the number of instances a predicate occurs
 -- (if plain string; atomic disjunction/vars treated as infinite)
 sortByAmbiguity :: Sem -> Sem
@@ -186,6 +195,7 @@ subsumeSem x y | length x > length y = []
 subsumeSem x y =
   map (first sortSem) $ subsumeSemH x y
 
+-- | Helper for 'subsumeSem' traversal
 subsumeSemH :: Sem -> Sem -> [(Sem,Subst)]
 subsumeSemH [] [] = [ ([], Map.empty) ]
 subsumeSemH _ []  = error "subsumeSemH: got longer list in front"
@@ -198,7 +208,9 @@ subsumeSemH (x:xs) ys = nub $
         prepend = insert x2 *** appendSubst subst
     prepend `fmap` subsumeSemH next_xs next_ys
 
--- | @p1 `subsumeLiteral` p2@... FIXME
+-- | @p1 `subsumeLiteral` p2@ is the unification of @p1@ and @p2@ if
+--   both literals have the same arity, and the handles, predicates,
+--   and arguments in @p1@ all subsume their counterparts in @p2@
 subsumeLiteral :: Literal GeniVal -> Literal GeniVal -> Maybe (Literal GeniVal, Subst)
 subsumeLiteral (Literal h1 p1 la1) (Literal h2 p2 la2) =
   if length la1 == length la2
@@ -215,9 +227,9 @@ subsumeLiteral (Literal h1 p1 la1) (Literal h2 p2 la2) =
 -- Unification
 -- ----------------------------------------------------------------------
 
--- We return the list of minimal ways to unify two semantics.
--- By minimal, I mean that any literals that are not the product of a
--- succesful unification really do not unify with anything else.
+-- | Return the list of minimal ways to unify two semantics, ie.
+-- where any literals that are not the product of a succesful unification
+-- really do not unify with anything else.
 unifySem :: Sem -> Sem -> [(Sem,Subst)]
 unifySem xs ys =
  map (first sortSem) $
@@ -225,12 +237,12 @@ unifySem xs ys =
     then unifySemH xs ys
     else unifySemH ys xs
 
--- list monad for Prolog-style backtracking.
+-- | Helper traversal for 'unifySem'
 unifySemH :: Sem -> Sem -> [(Sem,Subst)]
 unifySemH [] [] = return ([], Map.empty)
 unifySemH [] xs = return (xs, Map.empty)
 unifySemH xs [] = error $ "unifySem: shorter list should always be in front: " ++ prettyStr xs
-unifySemH (x:xs) ys = nub $ do
+unifySemH (x:xs) ys = nub $ do -- list monad for Prolog-style backtracking.
  let attempts = zip ys $ map (unifyLiteral x) ys
  if all (isNothing . snd) attempts
     then first (x:) `fmap` unifySemH xs ys -- only include x unmolested if no unification succeeds
@@ -240,6 +252,8 @@ unifySemH (x:xs) ys = nub $ do
                 prepend = insert x2 *** appendSubst subst
             prepend `fmap` unifySemH next_xs next_ys
 
+-- | Two literals unify if they have the same arity, and their
+--   handles, predicates, and arguments also unify
 unifyLiteral :: Literal GeniVal -> Literal GeniVal -> Maybe (Literal GeniVal, Subst)
 unifyLiteral (Literal h1 p1 la1) (Literal h2 p2 la2) =
   if length la1 == length la2
