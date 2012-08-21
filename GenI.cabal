@@ -9,7 +9,7 @@ Description:    A natural language generator (specifically, an FB-LTAG surface r
 Homepage:       http://projects.haskell.org/GenI
 Maintainer:     geni-users@loria.fr
 Build-Type:     Simple
-Cabal-Version: >=1.8
+Cabal-Version: >=1.14
 data-files: AUTHORS, INSTALL, README, NEWS, GenI.cabal,
             examples/artificial/lexicon,
             examples/artificial/trees,
@@ -122,6 +122,7 @@ Library
   Other-Modules:
                 Paths_GenI
 
+  Default-language: Haskell2010
   Hs-Source-Dirs: src
   Ghc-options:    -Wall
   Ghc-prof-options: -auto-all
@@ -129,7 +130,7 @@ Library
 Executable     geni
  Main-Is:        geni.hs
  Hs-Source-Dirs: geni
-
+ Default-language: Haskell2010
  Ghc-options:    -Wall -rtsopts
  Ghc-prof-options: -auto-all
  Build-Depends: base >= 4 && < 5
@@ -148,6 +149,7 @@ Test-Suite geni-test
  Type:          exitcode-stdio-1.0
  Main-Is:       MainTest.hs
  Hs-Source-Dirs: geni-test
+ Default-language: Haskell2010
  Build-Depends:    GenI
                  , base >= 4 && < 5
                  , containers  >= 0.1
