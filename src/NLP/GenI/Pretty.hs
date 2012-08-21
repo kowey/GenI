@@ -49,12 +49,15 @@ instance Pretty Int where
 instance Pretty Integer where
    prettyStr a = show a
 
+-- | @between l r t == l <> t <> r@
 between :: Text -> Text -> Text -> Text
 between l r x = l `T.append` x `T.append` r
 
+-- | @parens t@ puts @t@ between parentheses (@()@)
 parens :: Text -> Text
 parens = between "(" ")"
 
+-- | @squares t@ puts @t@ between square brackets (@[]@)
 squares :: Text -> Text
 squares = between "[" "]"
 
