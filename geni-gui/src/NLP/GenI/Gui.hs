@@ -282,7 +282,8 @@ loadTestSuiteAndRefresh :: (Textual a, Selecting b, Selection b, Items b String)
               -> (a, b) -- ^ test suite text and case selector widgets
               -> IO ()
 loadTestSuiteAndRefresh f pstRef wrangler (suitePath,mcs) widgets = do
-    pst    <- readIORef pstRef
+    pst_    <- readIORef pstRef
+    let pst = pst_ { pa = setFlagP TestSuiteFlg suitePath (pa pst_) }
     msuite <- try (loadTestSuite pst wrangler)
     let mcase = getFlagP TestCaseFlg (pa pst)
     case msuite of
