@@ -48,6 +48,7 @@ Library
                , wxcore
                , text
                , graphviz >= 2999.12 && < 2999.14
+  Default-language: Haskell2010
 
 Executable     geni-gui
  Main-Is:        geni-gui.hs
@@ -58,3 +59,4 @@ Executable     geni-gui
  Build-Depends: base >= 4 && < 5
               , GenI
               , geni-gui
+ Default-language: Haskell2010
