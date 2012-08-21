@@ -36,7 +36,7 @@ module NLP.GenI.Morphology
 
 import Control.Concurrent (forkIO)
 import Control.Exception (catch, bracket, evaluate, IOException)
-import Data.Maybe (isNothing)
+import Data.Maybe (isNothing, fromMaybe)
 import Data.Text ( Text )
 import Data.Tree
 import Data.Typeable
@@ -132,11 +132,17 @@ attachMorphHelper mfs te =
           newa = anchor { gup = unf, gdown = newgdown }
       in te2 { ttree = setMorphAnchor newa tt2 }
 
+-- | @setMorphAnchor n t@ replaces the anchor node of a tree with @n@
+--
+--   We assume the tree has exactly one anchor node.  If it has none,
+--   this explodes; if it has more than one, they all get replaced.
 setMorphAnchor :: GNode GeniVal -> Tree (GNode GeniVal) -> Tree (GNode GeniVal)
 setMorphAnchor n t =
-  let filt (Node a _) = (gtype a == Lex && ganchor a)
-      fn (Node _ l)   = Node n l
-  in (head.fst) $ listRepNode fn filt [t]
+    fromMaybe (error oops) $ repNode fn filt t
+  where
+    filt (Node a _) = gtype a == Lex && ganchor a
+    fn (Node _ l)   = Node n l
+    oops = "NLP.GenI.Morphology.setMorphAnchor did not anticipate failure was possible"
 
 -- ----------------------------------------------------------------------
 -- Morphological realisation
