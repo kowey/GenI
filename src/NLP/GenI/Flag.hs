@@ -5,15 +5,22 @@
 --
 -- This module can be treated as public domain
 
-module NLP.GenI.Flag where
-
--- This module exists purely for the purpose of making it more convenient
--- to modify the flag set in GenI (by eliminating the need to explicitly
--- export the types for individual flags).  To add a flag:
+-- | Internal representation of GenI configuration options, typically
+--   passed in through the command line or via the GUI.
 --
---  1. add a type here
---  2. write the help text in NLP.GenI.Configuration
---  3. add the getopt stuff and find a section for the flag
+--   We don't yet use the record based approach, or something like
+--   cmdargs because our use case involves
+--
+--   * sharing lots of options between different programs
+--     (batch processing, gui, server)
+--
+--   * supporting library users who want to build GenI-like applications
+--     that share a good chunk of our flag set, and add configuration
+--     options of their own.
+--
+--   What we have is fairly clunky, but it seems to be quite
+--   flexible for that need.
+module NLP.GenI.Flag where
 
 import Data.List ( find )
 import qualified Data.Set as Set
@@ -31,17 +38,29 @@ import NLP.GenI.Polarity.Types
 -- to avoid an import cycle (sigh)
 -- ----------------------------------------------------------------------
 
-data Optimisation = PolOpts
-                  | AdjOpts
-                  | Polarised
-                  | NoConstraints
+-- | Requested optimisations
+--
+--   At the time of this writing (2012-08-21), this is fairly sparse as
+--   a lot of proposed optimisations have just been absorbed into GenI
+--   as mandatory things.
+data Optimisation = PolOpts       -- ^ all polarity-related   optimisations
+                  | AdjOpts       -- ^ all adjunction-related optimisations
+                  | Polarised     -- ^ polarity filtering
+                  | NoConstraints -- ^ ignore literal constraints (pessimisation?)
   deriving (Show,Eq,Typeable)
 
+-- | A test suite and any test cases within that we want to pick out
 type Instruction = (FilePath, Maybe [Text])
 
+-- | The tree assembly algorithm we want to use
 data BuilderType = SimpleBuilder | SimpleOnePhaseBuilder
      deriving (Eq, Typeable)
 
+-- | What kind of elementary trees we're getting.  The typical use case is
+--   to provide tree schemata with 'GeniHand' (which then get anchored into
+--   the lexicon to give us elmentary trees).  You can also have precompiled
+--   trees hardcoded into your GenI-like program, or read preanchored
+--   elementary trees from somewhere else.
 data GrammarType = GeniHand    -- ^ geni's text format
                  | PreCompiled -- ^ built into geni, no parsing needed
                  | PreAnchored -- ^ lexical selection already done
@@ -51,6 +70,7 @@ instance Show BuilderType where
   show SimpleBuilder         = "simple-2p"
   show SimpleOnePhaseBuilder = "simple-1p"
 
+-- |
 hasOpt :: Optimisation -> [Flag] -> Bool
 hasOpt o p = maybe False (elem o) $ getFlag OptimisationsFlg p
 
