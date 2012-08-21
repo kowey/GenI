@@ -19,6 +19,7 @@
 {-# LANGUAGE OverlappingInstances, FlexibleInstances, ViewPatterns #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE OverloadedStrings #-}
+-- | Gory details for 'NLP.GenI.GeniVal'
 module NLP.GenI.GeniVal.Internal where
 
 -- import Debug.Trace -- for test stuff
@@ -41,12 +42,22 @@ import NLP.GenI.General (buckets, geniBug, maybeQuoteText)
 import NLP.GenI.GeniShow
 import NLP.GenI.Pretty
 
--- | constant : no label, just constraints
---   variable : label, with or without constraints
---   anonymous : no label, no constraints
-data GeniVal = GeniVal { gLabel       :: Maybe Text
-                       , gConstraints :: Maybe (FullList Text)
-                       }
+-- | * constant : no label, just constraints
+--
+--   * variable : label, with or without constraints
+--
+--   * anonymous : no label, no constraints
+data GeniVal = GeniVal
+    { -- | Optional label (@?X@ would have @Just "X"@)
+      gLabel       :: Maybe Text
+    , -- | Optional values/constraints
+      --   Must have at least one if at all
+      --
+      --   Though it may seem a bit redudant, this is not quite the same
+      --   as having '[Text]' because @Nothing@ means no constraints;
+      --   whereas @Just []@ (impossible here) would mean bottom.
+      gConstraints :: Maybe (FullList Text)
+    }
   deriving (Eq,Ord, Data, Typeable)
 
 -- | 'mkGConst' @x :! []@ creates a single constant.  'mkGConst' @x :! xs@
@@ -58,15 +69,21 @@ mkGConst cs_ = GeniVal Nothing (Just cs)
  where
   cs = sortNub cs_
 
+-- | Create a singleton constant (no disjunction here)
 mkGConstNone :: Text -> GeniVal
 mkGConstNone x = mkGConst (x !: [])
 
-mkGVar :: Text -> Maybe (FullList Text) -> GeniVal
+-- | Create a variable
+mkGVar :: Text                  -- ^ label
+       -> Maybe (FullList Text) -- ^ constraints
+       -> GeniVal
 mkGVar x mxs  = GeniVal (Just x) (sortNub `fmap` mxs)
 
+-- | Create a variable with no constraints
 mkGVarNone :: Text -> GeniVal
 mkGVarNone x  = mkGVar x Nothing
 
+-- | Create an anonymous value
 mkGAnon :: GeniVal
 mkGAnon       = GeniVal Nothing Nothing
 
@@ -93,6 +110,7 @@ instance GeniShow GeniVal where
 isConst :: GeniVal -> Bool
 isConst = isNothing . gLabel
 
+-- | If @v@ has exactly one value/constraint, returns it
 singletonVal :: GeniVal -> Maybe Text
 singletonVal v =
  case fmap fromFL (gConstraints v) of
@@ -102,6 +120,7 @@ singletonVal v =
 isVar :: GeniVal -> Bool
 isVar = isJust . gConstraints
 
+-- | An anonymous 'GeniVal' (@_@ or @?_@) has no labels/constraints
 isAnon :: GeniVal -> Bool
 isAnon (GeniVal Nothing Nothing) = True
 isAnon _     = False
@@ -110,8 +129,11 @@ isAnon _     = False
 -- Helper types
 -- ----------------------------------------------------------------------
 
+-- | A variable substitution map.
+--   GenI unification works by rewriting variables
 type Subst = Map.Map Text GeniVal
 
+-- | For debugging
 prettySubst :: Subst -> Text
 prettySubst =
     T.unwords . map sho . Map.toList
@@ -135,6 +157,9 @@ unify = unifyHelper unifyOne
 allSubsume :: Monad m => [GeniVal] -> [GeniVal] -> m ([GeniVal], Subst)
 allSubsume = unifyHelper subsumeOne
 
+-- | @unifyHelper unf gs1 gs2@ zips two lists with some unification function.
+--
+--   It's meant to serve as a helper to 'unify' and 'allSubsume'
 unifyHelper :: Monad m
             => (GeniVal -> GeniVal -> UnificationResult)
             -> [GeniVal]
@@ -207,6 +232,16 @@ prependToSubst (v, gr) sm = Map.insert v gr sm
 -- TODO: would continuation passing style make this more efficient?
 -- ----------------------------------------------------------------------
 
+-- | Unification can either succeed for
+--
+--   * succeed for free (no substitutions),
+--
+--   * succeed with a one-way substitution,
+--
+--   * suceed with both variables needing substitution
+--     (constraint intersection),
+--
+--   * or fail
 data UnificationResult = SuccessSans GeniVal
                        | SuccessRep  Text GeniVal
                        | SuccessRep2 Text Text GeniVal
@@ -251,6 +286,11 @@ unifyOne g1 g2 =
         , prettyStr g2
         ]
 
+-- | @intersectConstraints (Just cs1) (Just cs2)@ returns the intersection of
+--   @cs1@ and @cs2@ if non-empty (or 'Nothing' if there's nothing in common)
+--
+--   If any of the arguments is unconstrained (@Nothing@), we simply return
+--   the other.
 intersectConstraints :: Eq a => Maybe (FullList a) -> Maybe (FullList a) -> Maybe (Maybe (FullList a))
 intersectConstraints Nothing cs = Just cs
 intersectConstraints cs Nothing = Just cs
@@ -277,10 +317,12 @@ subsumeOne g1@(GeniVal _ Nothing) g2 = unifyOne g1 g2
 -- Variable substitution
 -- ----------------------------------------------------------------------
 
+-- | Apply variable substitutions
 replace :: DescendGeniVal a => Subst -> a -> a
 replace m | Map.null m = id
 replace m = descendGeniVal (replaceMapG m)
 
+-- | Apply a single variable substitution
 replaceOne :: DescendGeniVal a => (Text, GeniVal) -> a -> a
 replaceOne = descendGeniVal . replaceOneG
 
@@ -291,10 +333,14 @@ replaceList = replace . foldl' update Map.empty
   where
    update m (s1,s2) = Map.insert s1 s2 $ Map.map (replaceOne (s1,s2)) m
 
+-- | Core implementation for 'replace'
+--   For use by the Uniplate-esq 'descendGeniVal'
 replaceMapG :: Subst -> GeniVal -> GeniVal
 replaceMapG m v@(GeniVal (Just v_) _) = Map.findWithDefault v v_ m
 replaceMapG _ v = v
 
+-- | Core implementation for 'replaceOne'
+--   For use by the Uniplate-esq 'descendGeniVal'
 replaceOneG :: (Text, GeniVal) -> GeniVal -> GeniVal
 replaceOneG (s1, s2) (GeniVal (Just v_) _) | v_ == s1 = s2
 replaceOneG _ v = v
@@ -303,6 +349,7 @@ replaceOneG _ v = v
 -- Variable collection and renaming
 -- ----------------------------------------------------------------------
 
+-- | A variable label and its constraints
 type CollectedVar = (Text, Maybe (FullList Text))
 
 -- | A 'Collectable' is something which can return its variables as a
@@ -319,6 +366,8 @@ type CollectedVar = (Text, Maybe (FullList Text))
 --   around for a good bit, until either some use for it creeps up, or I find
 --   a more general notion that I can transform this into.
 class Collectable a where
+  -- | @collect x m@ increments our count for any variables in @x@
+  --   (adds not-yet-seen variables as needed)
   collect :: a -> Map.Map CollectedVar Int -> Map.Map CollectedVar Int
 
 instance Collectable a => Collectable (Maybe a) where
@@ -392,6 +441,11 @@ finaliseVars suffix x = {-# SCC "finaliseVars" #-}
 -- Fancy disjunction
 -- ----------------------------------------------------------------------
 
+-- | Convert a fancy disjunction (allowing disjunction over variables) value
+--   into a plain old atomic disjunction. The idea is to support a limited
+--   notion of fancy disjunction by requiring that there be a single point
+--   where this disjunction can be converted into a plain old variable.
+--   Note that we currently convert these to constants only.
 crushOne :: [GeniVal] -> Maybe GeniVal
 crushOne []   = Nothing
 crushOne [gs] = Just gs
@@ -404,6 +458,7 @@ crushOne gs   =
   where
    gcs = map gConstraints gs
 
+-- | Convert a list of fancy disjunctions
 crushList :: [[GeniVal]] -> Maybe [GeniVal]
 crushList = mapM crushOne
 
