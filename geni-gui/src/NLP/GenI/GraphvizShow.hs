@@ -33,7 +33,6 @@ import Data.GraphViz
 import Data.GraphViz.Attributes.Complete
 
 import NLP.GenI.FeatureStructure ( AvPair(..), Flist )
-import NLP.GenI.General ( clumpBy )
 import NLP.GenI.Pretty
 import NLP.GenI.GeniVal (GeniVal(..))
 import NLP.GenI.Graphviz
