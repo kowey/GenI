@@ -781,7 +781,7 @@ messageGui :: Window a -> Text -> IO Layout
 messageGui f msg = do
     p <- panel f []
     -- sw <- scrolledWindow p [scrollRate := sz 10 10 ]
-    t  <- textCtrl p [ text := T.unpack msg, enabled := False ]
+    t  <- textCtrl p [ text := T.unpack msg ]
     return $ fill $ container p $ column 1 [ fill (widget t) ]
 
 gvCACHEDIR :: IO String
