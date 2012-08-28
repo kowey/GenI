@@ -40,6 +40,7 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as T
 
 import Graphics.UI.WX
+import Graphics.UI.WXCore ( textCtrlSetEditable )
 
 import NLP.GenI
 import NLP.GenI.Automaton (numStates, numTransitions)
@@ -782,6 +783,7 @@ messageGui f msg = do
     p <- panel f []
     -- sw <- scrolledWindow p [scrollRate := sz 10 10 ]
     t  <- textCtrl p [ text := T.unpack msg ]
+    textCtrlSetEditable t False
     return $ fill $ container p $ column 1 [ fill (widget t) ]
 
 gvCACHEDIR :: IO String
