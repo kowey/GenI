@@ -180,13 +180,13 @@ alignFeatH fs1@(AvPair f1 v1:l1) fs2@(AvPair f2 v2:l2) acc =
 -- | Flatten a fancy disjunction attribute-value pair
 --
 --   See 'crushOne' for details
-crushAvPair :: AvPair [GeniVal] -> Maybe (AvPair GeniVal)
+crushAvPair :: AvPair SchemaVal -> Maybe (AvPair GeniVal)
 crushAvPair (AvPair a v) = AvPair a `fmap` crushOne v
 
 -- | Flatten a fancy-disjunction feature structure
 --
 --   See 'crushOne' for details
-crushFlist :: Flist [GeniVal] -> Maybe (Flist GeniVal)
+crushFlist :: Flist SchemaVal -> Maybe (Flist GeniVal)
 crushFlist = mapM crushAvPair
 
 {-!

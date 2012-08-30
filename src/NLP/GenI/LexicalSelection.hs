@@ -44,7 +44,7 @@ import NLP.GenI.LexicalSelection.Types
 import NLP.GenI.Lexicon ( LexEntry(..), Lexicon, )
 import NLP.GenI.Semantics ( subsumeSem, unifySem, Sem, SemInput, LitConstr )
 import NLP.GenI.Tag ( TagElem(..), idname )
-import NLP.GenI.TreeSchema ( Ttree(..), SchemaTree, SchemaNode, Macros
+import NLP.GenI.TreeSchema ( Ttree(..), SchemaTree, Macros
                            , crushTreeGNode
                            , setAnchor, setLexeme, tree
                            , GNode(..), GType(..)
@@ -352,20 +352,21 @@ maybeEnrichBy t (eqLhs, eqVal) = do
 --   'SchemaTree' which allows non-atomic disjunctions of @GeniVal@
 --   which have to be flatten down to at most atomic disjunctions once
 --   lexical selection is complete.
-enrichFeat :: AvPair GeniVal -> Flist [GeniVal] -> Maybe (Flist [GeniVal], Subst)
+enrichFeat :: AvPair GeniVal -> Flist SchemaVal -> Maybe (Flist SchemaVal, Subst)
 enrichFeat (AvPair a v) fs =
-  case span (\x -> avAtt x < a) fs of
-    (before,here:after) | avMatch here ->
-      do let (AvPair _ fv) = here
-         (v2,sub) <- unify fv (replicate (length fv) v)
-         let av2 = AvPair a v2
-             fs2 = replace sub before ++ (av2 : replace sub after)
-         return (fs2, sub)
-    (before,after) ->
-      let av2 = AvPair a [v]
-          fs2 = before ++ (av2 : after) in  Just (fs2, Map.empty)
+    case span (\x -> avAtt x < a) fs of
+        (before,here:after) | avMatch here -> do
+            let (AvPair _ (SchemaVal fv)) = here
+            (v2,sub) <- unify fv (replicate (length fv) v)
+            let av2 = AvPair a (SchemaVal v2)
+                fs2 = replace sub before ++ (av2 : replace sub after)
+            return (fs2, sub)
+        (before,after) -> do
+            let av2 = AvPair a (SchemaVal [v])
+                fs2 = before ++ (av2 : after)
+            return (fs2, Map.empty)
   where
-   avMatch (AvPair fa _) = fa == a
+    avMatch (AvPair fa _) = fa == a
 
 -- | @missingCoanchors l t@ returns the list of coanchor node names from @l@
 --   that were not found in @t@
@@ -393,7 +394,7 @@ lexEquations =
 --
 --   It crashes if there is more than one such node, because this should
 --   have been caught earlier by GenI.
-seekCoanchor :: NodePathEqLhs -> SchemaTree -> Maybe SchemaNode
+seekCoanchor :: NodePathEqLhs -> SchemaTree -> Maybe (GNode SchemaVal)
 seekCoanchor eqLhs t =
    case filterTree (matchNodeName eqLhs) (tree t) of
         [a] -> Just a
@@ -407,13 +408,13 @@ seekCoanchor eqLhs t =
             ]
 
 -- | @matchNodeName lhs n@ is @True@ if the @lhs@ refers to the node @n@
-matchNodeName :: NodePathEqLhs -> SchemaNode -> Bool
+matchNodeName :: NodePathEqLhs -> GNode SchemaVal -> Bool
 matchNodeName (PeqFeat n _ _) = matchNodeNameHelper n
 matchNodeName (PeqLex n)      = matchNodeNameHelper n
 
 -- | @matchNodeNameHelper@ recognises “anchor“ by convention; otherwise,
 --   it does a name match
-matchNodeNameHelper :: Text -> SchemaNode -> Bool
+matchNodeNameHelper :: Text -> GNode SchemaVal -> Bool
 matchNodeNameHelper "anchor" = ganchor
 matchNodeNameHelper n        = (== n) . gnname
 

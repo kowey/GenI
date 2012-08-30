@@ -23,6 +23,7 @@
 module NLP.GenI.GeniVal.Internal where
 
 -- import Debug.Trace -- for test stuff
+import Control.Applicative ( (<$>) )
 import Control.Arrow (first, second, (***))
 import Control.Monad (liftM, foldM)
 import Data.Binary
@@ -435,15 +436,43 @@ finaliseVars suffix x = {-# SCC "finaliseVars" #-}
 -- Fancy disjunction
 -- ----------------------------------------------------------------------
 
+-- | A schema value is a disjunction of GenI values.  It allows us to express
+--   “fancy” disjunctions in tree schemata, ie. disjunctions over variables
+--   and not just atoms (@?X;?Y@).
+--
+--   The idea
+--
+--   Note that this is still not recursive; we don't have disjunction over
+--   schema values, nor can schema values refer to schema values.  It just
+--   allows us to express the idea that in tree schemata, you can have
+--   either variable @?X@ or @?Y@.
+--
+--   Our rule is that that when a tree schema is instantiated, any fancy
+--   disjunctions must reduce to a single value
+--
+--
+--   ; this sort of fanciness is currently prohibited in elementary trees, so
+--   our rule is that
+--
+--
+newtype SchemaVal = SchemaVal { fromSchemaVal :: [GeniVal] }
+  deriving (Eq, Ord)
+
+instance Collectable SchemaVal where
+    collect (SchemaVal xs) = collect xs
+
+instance DescendGeniVal SchemaVal where
+    descendGeniVal f (SchemaVal xs) = SchemaVal (descendGeniVal f xs)
+
 -- | Convert a fancy disjunction (allowing disjunction over variables) value
 --   into a plain old atomic disjunction. The idea is to support a limited
 --   notion of fancy disjunction by requiring that there be a single point
 --   where this disjunction can be converted into a plain old variable.
 --   Note that we currently convert these to constants only.
-crushOne :: [GeniVal] -> Maybe GeniVal
-crushOne []   = Nothing
-crushOne [gs] = Just gs
-crushOne gs   =
+crushOne :: SchemaVal -> Maybe GeniVal
+crushOne (SchemaVal [])   = Nothing
+crushOne (SchemaVal [gs]) = Just gs
+crushOne (SchemaVal gs)   =
   if any isNothing gcs
      then Nothing
      else case concat [ fromFL c | Just c <- gcs ] of
@@ -453,7 +482,7 @@ crushOne gs   =
    gcs = map gConstraints gs
 
 -- | Convert a list of fancy disjunctions
-crushList :: [[GeniVal]] -> Maybe [GeniVal]
+crushList :: [SchemaVal] -> Maybe [GeniVal]
 crushList = mapM crushOne
 
 -- ----------------------------------------------------------------------
@@ -472,6 +501,13 @@ instance (Functor f, DescendGeniVal a) => DescendGeniVal (f a) where
 instance NFData GeniVal where
   rnf (GeniVal x y) = rnf x `seq` rnf y
 
+instance NFData SchemaVal where
+    rnf (SchemaVal x) = rnf x
+
 instance Binary GeniVal where
   put (GeniVal a b) = put a >> put b
   get = get >>= \a -> get >>= \b -> return (GeniVal a b)
+
+instance Binary SchemaVal where
+    put (SchemaVal x) = put x
+    get = SchemaVal <$> get

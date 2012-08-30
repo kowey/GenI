@@ -55,7 +55,9 @@ import qualified Text.Parsec.Token as P
 import NLP.GenI.FeatureStructure ( Flist, AvPair(..), sortFlist )
 import NLP.GenI.General (isGeniIdentLetter)
 import NLP.GenI.GeniShow ( GeniShow(..), geniKeyword )
-import NLP.GenI.GeniVal ( GeniVal, mkGConst, mkGConstNone, mkGVar, mkGAnon, isAnon )
+import NLP.GenI.GeniVal
+    ( GeniVal, mkGConst, mkGConstNone, mkGVar, mkGAnon, isAnon
+    , SchemaVal(..) )
 import NLP.GenI.Lexicon ( fromLexSem, mkFullLexEntry, LexEntry(..) )
 import NLP.GenI.Pretty ( above )
 import NLP.GenI.Semantics ( Literal(..), Sem, sortSem, LitConstr, SemInput )
@@ -138,8 +140,8 @@ geniAtomicDisjunction = do
   where
     atom = looseFlexiIdentifier
 
-geniFancyDisjunction :: Parser [GeniVal]
-geniFancyDisjunction = geniValue `sepBy1` symbol ";"
+geniFancyDisjunction :: Parser SchemaVal
+geniFancyDisjunction = SchemaVal <$> geniValue `sepBy1` symbol ";"
 
 class GeniValLike v where
   geniValueLike :: Parser v
@@ -147,7 +149,7 @@ class GeniValLike v where
 instance GeniValLike GeniVal where
   geniValueLike = geniValue
 
-instance GeniValLike [GeniVal] where
+instance GeniValLike SchemaVal where
   geniValueLike = geniFancyDisjunction
 
 -- We make no attempt to check for / guarantee uniqueness here

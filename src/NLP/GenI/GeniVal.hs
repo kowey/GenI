@@ -24,7 +24,8 @@ module NLP.GenI.GeniVal
   , mkGConst, mkGConstNone, mkGVar, mkGVarNone, mkGAnon
     -- ** queries and manipulation
   , isAnon, singletonVal
-  , crushOne
+    -- ** fancy disjunction
+  , SchemaVal(..), crushOne
     -- * Unification and subsumption
     --
     -- ** Finalisation

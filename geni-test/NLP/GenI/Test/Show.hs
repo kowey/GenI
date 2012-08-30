@@ -29,9 +29,9 @@ instance Show LexEntry where
 deriving instance Show PathEqLhs
 deriving instance Show NodePathEqLhs
 deriving instance Show TopBottom
--- deriving instance Show (GNode [GeniVal])
-deriving instance Show (AvPair [GeniVal])
-deriving instance Show SchemaNode
+deriving instance Show (GNode SchemaVal)
+deriving instance Show (AvPair SchemaVal)
+deriving instance Show SchemaVal
 deriving instance Show SchemaTree
 
 deriving instance Show MorphOutput

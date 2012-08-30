@@ -24,7 +24,7 @@
 --   tree schemata.
 module NLP.GenI.TreeSchema (
    Macros,
-   SchemaTree, SchemaNode, Ttree(..), Ptype(..),
+   SchemaTree, Ttree(..), Ptype(..),
 
    -- Functions from Tree GNode
    root, rootUpd, foot, setLexeme, setAnchor, lexemeAttributes,
@@ -33,6 +33,9 @@ module NLP.GenI.TreeSchema (
    -- GNode
    GNode(..), gnnameIs, NodeName,
    GType(..), gCategory, showLexeme,
+
+   -- ** Fancy disjunction
+   SchemaVal,
    crushGNode,
  ) where
 
@@ -49,8 +52,9 @@ import Data.Typeable (Typeable)
 
 import NLP.GenI.General (filterTree, listRepNode, geniBug, quoteText)
 import NLP.GenI.GeniShow
-import NLP.GenI.GeniVal ( GeniVal(..), DescendGeniVal(..), Collectable(..),
-                        )
+import NLP.GenI.GeniVal
+    ( GeniVal(..), DescendGeniVal(..), Collectable(..), SchemaVal
+    )
 import NLP.GenI.FeatureStructure ( AvPair(..), Flist, crushFlist )
 import NLP.GenI.Pretty
 import NLP.GenI.Semantics ( Sem )
@@ -63,8 +67,7 @@ import NLP.GenI.Semantics ( Sem )
 -- `tree schema(ta)'.
 -- ----------------------------------------------------------------------
 
-type SchemaTree = Ttree SchemaNode
-type SchemaNode = GNode [GeniVal]
+type SchemaTree = Ttree (GNode SchemaVal)
 type Macros = [SchemaTree]
 
 data Ttree a = TT
@@ -245,7 +248,7 @@ instance Pretty (GNode GeniVal) where
                     Foot -> " *"
                     _    -> if gaconstr gn then " #"   else ""
 
-instance GeniShow (GNode GeniVal) where
+instance GeniShow gv => GeniShow (GNode gv) where
     geniShowText x =
         T.unwords . filter (not . T.null) $
             [ gnname x, gaconstrstr, gtypestr x, glexstr x, tbFeats x ]
@@ -278,15 +281,18 @@ showLexeme []   = ""
 showLexeme [l]  = l
 showLexeme xs   = T.intercalate "|" xs
 
+-- ---------------------------------------------------------------------
 -- Fancy disjunction
+-- ---------------------------------------------------------------------
 
-crushTreeGNode :: Tree (GNode [GeniVal]) -> Maybe (Tree (GNode GeniVal))
+
+crushTreeGNode :: Tree (GNode SchemaVal) -> Maybe (Tree (GNode GeniVal))
 crushTreeGNode (Node x xs) =
  do x2  <- crushGNode x
     xs2 <- mapM crushTreeGNode xs
     return $ Node x2 xs2
 
-crushGNode :: GNode [GeniVal] -> Maybe (GNode GeniVal)
+crushGNode :: GNode SchemaVal -> Maybe (GNode GeniVal)
 crushGNode gn =
   do gup2   <- crushFlist (gup gn)
      gdown2 <- crushFlist (gdown gn)
@@ -299,6 +305,9 @@ crushGNode gn =
                  , gaconstr = gaconstr gn
                  , gorigin = gorigin gn}
 
+-- ---------------------------------------------------------------------
+--
+-- ---------------------------------------------------------------------
 
 instance Binary Ptype where
   put Initial = putWord8 0

@@ -118,7 +118,7 @@ toSchemaTree st = TT { params  = params st
                      , tree    = fmap toSchemaNode (tree st)
                      }
 
-toSchemaNode :: GNode GeniVal -> GNode [GeniVal]
+toSchemaNode :: GNode GeniVal -> GNode SchemaVal
 toSchemaNode gn = GN { gup      = map promote (gup gn)
                      , gdown    = map promote (gdown gn)
                      , gnname   = gnname gn
@@ -129,4 +129,4 @@ toSchemaNode gn = GN { gup      = map promote (gup gn)
                      , gorigin  = gorigin gn
                      }
  where
-  promote (AvPair a v) = (AvPair a [v])
+  promote (AvPair a v) = AvPair a (SchemaVal [v])
