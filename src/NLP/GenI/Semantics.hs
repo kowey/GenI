@@ -103,13 +103,16 @@ compareOnLiteral = compare
 -- and secondarily by the number of instances a predicate occurs
 -- (if plain string; atomic disjunction/vars treated as infinite)
 sortByAmbiguity :: Sem -> Sem
-sortByAmbiguity sem = sortBy (flip compare `on` criteria) sem
- where
-   criteria  = (constants &&& ambiguity) -- this is reverse sorting
-                                         -- so high numbers come first
-   ambiguity l = fromMaybe 0 $ do -- Maybe
-                   p <- boringLiteral l
-                   negate <$> Map.lookup p (literalCount sem)
+sortByAmbiguity sem =
+    sortBy (flip compare `on` criteria) sem
+  where
+    criteria  = (constants &&& ambiguity) -- this is reverse sorting
+                                          -- so high numbers come first
+    ambiguity l = fromMaybe 0 $ do -- Maybe
+        p <- boringLiteral l
+        negate <$> Map.lookup p (literalCount sem)
+    literalCount = histogram . mapMaybe boringLiteral
+    boringLiteral = singletonVal . lPredicate
 
 -- | Anything that we would want to count the number constants in
 --   (as opposed to variables)
@@ -128,14 +131,6 @@ instance HasConstants a => HasConstants [a] where
 
 instance HasConstants (Literal GeniVal) where
   constants (Literal h p args) = constants (h:p:args)
-
-literalCount :: [Literal GeniVal] -> Map.Map Text Int
-literalCount = histogram . mapMaybe boringLiteral
-
-boringLiteral :: Literal GeniVal -> Maybe Text
-boringLiteral = singletonVal . lPredicate
-    -- predicate with a straightfoward constant value
-    -- exactly one constraint
 
 -- ----------------------------------------------------------------------
 -- Traversal
