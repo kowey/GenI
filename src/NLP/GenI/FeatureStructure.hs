@@ -121,10 +121,10 @@ instance Pretty (Flist GeniVal) where
 instance Pretty (AvPair GeniVal) where
     pretty = geniShowText
 
-instance GeniShow (Flist GeniVal) where
+instance GeniShow gv => GeniShow (Flist gv) where
     geniShowText = squares . T.unwords . map geniShowText
 
-instance GeniShow (AvPair GeniVal) where
+instance GeniShow gv => GeniShow (AvPair gv) where
     geniShowText (AvPair a v) = a `T.append` ":" `T.append` geniShowText v
 
 {-

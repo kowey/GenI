@@ -464,6 +464,9 @@ instance Collectable SchemaVal where
 instance DescendGeniVal SchemaVal where
     descendGeniVal f (SchemaVal xs) = SchemaVal (descendGeniVal f xs)
 
+instance GeniShow SchemaVal where
+    geniShowText (SchemaVal xs) = T.intercalate ";" (map geniShowText xs)
+
 -- | Convert a fancy disjunction (allowing disjunction over variables) value
 --   into a plain old atomic disjunction. The idea is to support a limited
 --   notion of fancy disjunction by requiring that there be a single point
