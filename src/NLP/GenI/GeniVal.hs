@@ -18,6 +18,7 @@
 
 {-# LANGUAGE OverlappingInstances, FlexibleInstances, TemplateHaskell #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+-- | GenI values (variables, constants)
 module NLP.GenI.GeniVal
   ( -- * GeniVal
     GeniVal, gLabel, gConstraints

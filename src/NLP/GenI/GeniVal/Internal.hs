@@ -227,20 +227,13 @@ prependToSubst (v, gr) sm = Map.insert v gr sm
 -- TODO: would continuation passing style make this more efficient?
 -- ----------------------------------------------------------------------
 
--- | Unification can either succeed for
---
---   * succeed for free (no substitutions),
---
---   * succeed with a one-way substitution,
---
---   * suceed with both variables needing substitution
---     (constraint intersection),
---
---   * or fail
-data UnificationResult = SuccessSans GeniVal
-                       | SuccessRep  Text GeniVal
-                       | SuccessRep2 Text Text GeniVal
-                       | Failure
+-- | Unification can either…
+data UnificationResult =
+      SuccessSans GeniVal      -- ^ succeed for free (no substitutions),
+    | SuccessRep  Text GeniVal -- ^ succeed with a one-way substitution,
+    | SuccessRep2 Text Text GeniVal -- ^ succeed w both vars needing substitution
+                                    --   (constraint intersection),
+    | Failure                       -- ^ or fail
 
 -- | See source code for details
 --
@@ -309,7 +302,7 @@ subsumeOne (GeniVal _ (Just _)) (GeniVal _ Nothing) = Failure
 subsumeOne g1@(GeniVal _ Nothing) g2 = unifyOne g1 g2
 
 -- ----------------------------------------------------------------------
--- Variable substitution
+-- * Variable substitution
 -- ----------------------------------------------------------------------
 
 -- | Apply variable substitutions
@@ -341,7 +334,7 @@ replaceOneG (s1, s2) (GeniVal (Just v_) _) | v_ == s1 = s2
 replaceOneG _ v = v
 
 -- ----------------------------------------------------------------------
--- Variable collection and renaming
+-- * Variable collection and renaming
 -- ----------------------------------------------------------------------
 
 -- | A variable label and its constraints
@@ -381,7 +374,7 @@ instance Collectable GeniVal where
 --   Note that the only use I have for this so far (20 dec 2005)
 --  is in alpha-conversion.
 class Idable a where
-  idOf :: a -> Integer
+  idOf :: a -> Integer -- ^ the unique id
 
 -- | Anonymise any variable that occurs only once in the object
 anonymiseSingletons :: (Collectable a, DescendGeniVal a) => a -> a
@@ -393,7 +386,7 @@ anonymiseSingletons x =
          . Map.fromListWith (+) . map (first fst) . Map.toList
          $ collect x Map.empty
 
--- 'finaliseVarsById' appends a unique suffix to all variables in
+-- | 'finaliseVarsById' appends a unique suffix to all variables in
 -- an object.  This avoids us having to alpha convert all the time
 -- and relies on the assumption finding that a unique suffix is
 -- possible.
@@ -433,29 +426,22 @@ finaliseVars suffix x = {-# SCC "finaliseVars" #-}
         : concatMap (maybe [] fromFL) xs ++ [suffix]
 
 -- ----------------------------------------------------------------------
--- Fancy disjunction
+-- * Fancy disjunction
 -- ----------------------------------------------------------------------
 
 -- | A schema value is a disjunction of GenI values.  It allows us to express
 --   “fancy” disjunctions in tree schemata, ie. disjunctions over variables
 --   and not just atoms (@?X;?Y@).
 --
---   The idea
+--   Our rule is that that when a tree schema is instantiated, any fancy
+--   disjunctions must be “crushed” into a single 'GeniVal' lest it be
+--   rejected (see 'crushOne')
 --
 --   Note that this is still not recursive; we don't have disjunction over
 --   schema values, nor can schema values refer to schema values.  It just
 --   allows us to express the idea that in tree schemata, you can have
 --   either variable @?X@ or @?Y@.
---
---   Our rule is that that when a tree schema is instantiated, any fancy
---   disjunctions must reduce to a single value
---
---
---   ; this sort of fanciness is currently prohibited in elementary trees, so
---   our rule is that
---
---
-newtype SchemaVal = SchemaVal { fromSchemaVal :: [GeniVal] }
+newtype SchemaVal = SchemaVal [GeniVal]
   deriving (Eq, Ord)
 
 instance Collectable SchemaVal where
@@ -489,10 +475,16 @@ crushList :: [SchemaVal] -> Maybe [GeniVal]
 crushList = mapM crushOne
 
 -- ----------------------------------------------------------------------
--- Genericity
+-- * Genericity
 -- ----------------------------------------------------------------------
 
+-- | A structure that can be traversed with a 'GeniVal'-replacing
+--   function (typical use case: substitution after unification)
+--
+--   Approach suggested by Neil Mitchell after I found that Uniplate
+--   seemed to hurt GenI performance a bit.
 class DescendGeniVal a where
+  -- | @descendGeniVal f x@ applies @f@ to all 'GeniVal' in @x@
   descendGeniVal :: (GeniVal -> GeniVal) -> a -> a
 
 instance DescendGeniVal GeniVal where
