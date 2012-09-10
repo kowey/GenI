@@ -63,8 +63,8 @@ data GeniReport = GeniReport
 geniReport :: String -> GeniReport
 geniReport p = modes
     [ GeniReport
-          { inputDir  = def &= argPos 0 &= typ "DIR" &= help "GenI batch directory"
-          , outputDir = def &= argPos 1 &= typ "DIR" &= help "Output directory"
+          { inputDir  = def &= argPos 0 &= typ "DIR"
+          , outputDir = def &= argPos 1 &= typ "DIR"
           }
     ] &= program p
       &= help (p ++ " " ++ showVersion version)
