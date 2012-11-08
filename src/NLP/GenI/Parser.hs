@@ -15,7 +15,8 @@
 -- along with this program; if not, write to the Free Software
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-{-# LANGUAGE CPP, FlexibleInstances #-}
+{-# LANGUAGE CPP               #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 module NLP.GenI.Parser (
@@ -37,36 +38,38 @@ module NLP.GenI.Parser (
 ) where
 
 
-import Control.Applicative ( (<*>), (<$>), (*>), (<*) )
-import Control.Monad (liftM, when)
-import Data.Functor.Identity ( Identity )
-import Data.Text ( Text )
-import Text.Parsec
-import Text.Parsec.Text
-import Text.Parsec.Token (makeTokenParser, GenLanguageDef(..))
-import qualified Data.Map  as Map
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
-import qualified Data.Tree as T
-import qualified Data.ByteString as B
---import qualified Text.Parsec.Expr  as P
-import qualified Text.Parsec.Token as P
-
-import NLP.GenI.FeatureStructure ( Flist, AvPair(..), sortFlist )
-import NLP.GenI.General (isGeniIdentLetter)
-import NLP.GenI.GeniShow ( GeniShow(..), geniKeyword )
-import NLP.GenI.GeniVal
-    ( GeniVal, mkGConst, mkGConstNone, mkGVar, mkGAnon, isAnon
-    , SchemaVal(..) )
-import NLP.GenI.Lexicon ( fromLexSem, mkFullLexEntry, LexEntry(..) )
-import NLP.GenI.Pretty ( above )
-import NLP.GenI.Semantics ( Literal(..), Sem, sortSem, LitConstr, SemInput )
-import NLP.GenI.Tag (TagElem(..), setTidnums)
-import NLP.GenI.TestSuite ( TestCase(..) )
-import NLP.GenI.TreeSchema (SchemaTree, Ttree(..), Ptype(..), GNode(..), GType(..) )
+import           Control.Applicative       ((*>), (<$>), (<*), (<*>))
+import           Control.Monad             (liftM, when)
+import qualified Data.ByteString           as B
+import           Data.Functor.Identity     (Identity)
+import qualified Data.Map                  as Map
+import           Data.Text                 (Text)
+import qualified Data.Text                 as T
+import qualified Data.Text.Encoding        as T
+import qualified Data.Tree                 as T
+import           Text.Parsec
+import           Text.Parsec.Text
+import           Text.Parsec.Token         (GenLanguageDef (..),
+                                            makeTokenParser)
+import qualified Text.Parsec.Token         as P
 
 -- import BoolExp
-import Data.FullList ( FullList, Listable(..) )
+import           Data.FullList             (FullList, Listable (..))
+import           NLP.GenI.FeatureStructure (AvPair (..), Flist, sortFlist)
+import           NLP.GenI.General          (isGeniIdentLetter)
+import           NLP.GenI.GeniShow         (GeniShow (..), geniKeyword)
+import           NLP.GenI.GeniVal          (GeniVal, SchemaVal (..), isAnon,
+                                            mkGAnon, mkGConst, mkGConstNone,
+                                            mkGVar)
+import           NLP.GenI.Lexicon          (LexEntry (..), fromLexSem,
+                                            mkFullLexEntry)
+import           NLP.GenI.Pretty           (above)
+import           NLP.GenI.Semantics        (LitConstr, Literal (..), Sem,
+                                            SemInput, sortSem)
+import           NLP.GenI.Tag              (TagElem (..), setTidnums)
+import           NLP.GenI.TestSuite        (TestCase (..))
+import           NLP.GenI.TreeSchema       (GNode (..), GType (..), Ptype (..),
+                                            SchemaTree, Ttree (..))
 
 
 -- General notes
