@@ -211,7 +211,7 @@ showGnStub gn =
     getIdx f = case getGnVal f "idx" gn of
                    Nothing -> ""
                    Just v  -> if isJust (gConstraints v)
-                                 then graphvizShowShort 5 v
+                                 then graphvizShowShort 8 v
                                  else ""
     idxT = getIdx gup
     idxB = getIdx gdown
