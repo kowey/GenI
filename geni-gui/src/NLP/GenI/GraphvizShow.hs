@@ -24,8 +24,10 @@ where
 
 import Control.Applicative ( (<$>) )
 import Data.FullList ( fromFL )
+import Data.Int ( Int64 )
 import Data.List ( nub )
 import Data.Maybe ( isJust, listToMaybe, maybeToList, mapMaybe )
+import Data.Monoid ( (<>) )
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text as T
 
@@ -33,7 +35,7 @@ import Data.GraphViz
 import Data.GraphViz.Attributes.Complete
 
 import NLP.GenI.FeatureStructure ( AvPair(..), Flist )
-import NLP.GenI.Pretty
+import NLP.GenI.Pretty hiding ( (<>) )
 import NLP.GenI.GeniVal (GeniVal(..))
 import NLP.GenI.Graphviz
     ( GraphvizShow(graphvizShowAsSubgraph, graphvizLabel, graphvizParams)
@@ -209,7 +211,7 @@ showGnStub gn =
     getIdx f = case getGnVal f "idx" gn of
                    Nothing -> ""
                    Just v  -> if isJust (gConstraints v)
-                                 then graphvizShow_ v
+                                 then graphvizShowShort 5 v
                                  else ""
     idxT = getIdx gup
     idxB = getIdx gdown
@@ -231,6 +233,13 @@ tackOn p x y = if TL.null y then x else TL.concat [ x, p, y ]
 
 graphvizShow_ :: GraphvizShowString a => a -> TL.Text
 graphvizShow_ = graphvizShow
+
+-- | If too wide, truncate and display ellipsis
+graphvizShowShort :: Int64 -> GraphvizShowString a => a -> TL.Text
+graphvizShowShort mx x =
+    if TL.length t > mx then TL.take mx t <> "…" else t
+  where
+    t = graphvizShow x
 
 -- ----------------------------------------------------------------------
 -- Derivation tree
