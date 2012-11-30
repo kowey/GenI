@@ -42,6 +42,7 @@ import NLP.GenI.General
 import NLP.GenI.GeniVal
 import NLP.GenI.LexicalSelection.Types
 import NLP.GenI.Lexicon ( LexEntry(..), Lexicon, )
+import NLP.GenI.Pretty ((<+>))
 import NLP.GenI.Semantics ( subsumeSem, unifySem, Sem, SemInput, LitConstr )
 import NLP.GenI.Tag ( TagElem(..), idname )
 import NLP.GenI.TreeSchema ( Ttree(..), SchemaTree, Macros
@@ -279,8 +280,8 @@ combineOne tsem lexRaw eRaw = -- Maybe monad
   unifyInterfaceUsing ifn (l,e) =
     -- trace ("unify interface" ++ wt) $
     case unifyFeat (ifn l) (pinterface e) of
-    Nothing             -> croak e "Interface unification error"
-    Just (int2, fsubst) -> return (replace fsubst l, e2)
+    Left err             -> croak e ("Interface unification error: " <> T.pack err)
+    Right (int2, fsubst) -> return (replace fsubst l, e2)
                            where e2 = (replace fsubst e) { pinterface = int2 }
   --
   enrichWithWarning (l,e) =
