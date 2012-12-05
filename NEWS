@@ -1,11 +1,19 @@
 GenI 0.24
 ----------------------
+Note that the changes between this release and 0.20 are considered to be under
+the BSD3 license.  GenI overall remains dual-licensed under the GPL and any
+commercial-use terms you may wish to negotiate with INRIA. Having secured the
+rights to use GenI 0.20, you may freely use GenI 0.24 in a similar fashion.
+
 CHANGES TO WATCH OUT FOR
 
 * Server/GUI changes: Semantic input must be full input.
   - Before: `foo(x) bar(y z)`
   - After:  `semantics:[foo(x) bar(y z)]`
-* API change: mandatory custom semantics argument
+* Customisable semantics : now you can accept any arbitrary
+  input for which you can define a mapping to a GenI-style semantics
+* API change: the custom semantics argument is mandatory
+* More extensive documentation
 
 GenI 0.22, 14 Apr 2012
 ----------------------
