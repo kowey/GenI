@@ -62,7 +62,7 @@ import Data.Binary (Binary, decodeFile)
 import Data.IORef (IORef, readIORef, modifyIORef)
 import Data.List
 import Data.Maybe (fromMaybe)
-import Data.Monoid ( mappend, mempty )
+import Data.Monoid ( (<>), mempty )
 import Data.Text ( Text )
 import Data.Typeable (Typeable)
 import System.CPUTime( getCPUTime )
@@ -110,7 +110,7 @@ import NLP.GenI.Parser (geniMacros, geniTagElems,
                     ParseError,
                     )
 import NLP.GenI.GeniShow
-import NLP.GenI.Pretty
+import NLP.GenI.Pretty hiding ( (<>) )
 import NLP.GenI.Semantics
 import NLP.GenI.Statistics
 import NLP.GenI.Tag ( TagElem, idname, tsemantics, setTidnums )
@@ -724,7 +724,7 @@ runLexSelection pstRef wrangler csem = do
                        [] -> []
                        xs -> [NoLexSelection xs]
     return $ selection { lsAnchored = candFinal
-                       , lsWarnings = mkGeniWarnings semWarnings `mappend` lsWarnings selection
+                       , lsWarnings = mkGeniWarnings semWarnings <> lsWarnings selection
                        }
   where
     indent  x = ' ' `T.cons` x
