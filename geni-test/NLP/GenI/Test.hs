@@ -19,6 +19,7 @@
 
 module NLP.GenI.Test where
 
+import Control.Applicative
 import Data.List ( isPrefixOf )
 import System.Environment ( getArgs )
 
@@ -39,6 +40,9 @@ runTests :: IO ()
 runTests = do
     args <- filter (not . (`isPrefixOf` "--unit-tests")) `fmap` getArgs
     funcSuite <- NLP.GenI.Regression.mkSuite
+    opts_ <- interpretArgsOrExit args
+    let opts = opts_
+            { ropt_test_options = setMaxTests 25 <$> ropt_test_options opts_ }
     flip defaultMainWithArgs args
         [ NLP.GenI.Test.GeniVal.suite
         , NLP.GenI.Test.Parser.suite
@@ -51,3 +55,9 @@ runTests = do
         , NLP.GenI.Test.Simple.SimpleBuilder.suite
         , funcSuite
         ]
+
+setMaxTests :: Int -> TestOptions -> TestOptions
+setMaxTests m opts =
+    case topt_maximum_generated_tests opts of
+        Nothing -> opts { topt_maximum_generated_tests = Just m }
+        Just _  -> opts
