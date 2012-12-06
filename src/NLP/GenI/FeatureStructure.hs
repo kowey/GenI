@@ -16,10 +16,12 @@
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE FlexibleInstances, TypeSynonymInstances, MultiParamTypeClasses #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE FlexibleContexts   #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE TypeSynonymInstances  #-}
 
 -- | Feature structures in GenI can be seen as a simple mapping from
 --   attributes to values (no fancy recursion).
@@ -30,21 +32,21 @@
 --   this out over time in favour of 'FeatStruct'
 module NLP.GenI.FeatureStructure where
 
-import Data.Binary
-import Data.Function (on)
-import Data.Generics (Data)
-import Data.List (sortBy)
-import qualified Data.Map as Map
-import Data.Typeable (Typeable)
-import Data.Text ( Text )
-import qualified Data.Text as T
+import           Control.DeepSeq
+import           Data.Binary
+import           Data.Function     (on)
+import           Data.Generics     (Data)
+import           Data.List         (sortBy)
+import qualified Data.Map          as Map
+import           Data.Text         (Text)
+import qualified Data.Text         as T
+import           Data.Typeable     (Typeable)
 
-import NLP.GenI.GeniShow
-import NLP.GenI.GeniVal
-import NLP.GenI.General ( geniBug )
-import NLP.GenI.Pretty
+import           NLP.GenI.General  (geniBug)
+import           NLP.GenI.GeniShow
+import           NLP.GenI.GeniVal
+import           NLP.GenI.Pretty
 
-import Control.DeepSeq
 
 -- ----------------------------------------------------------------------
 -- Core types
@@ -72,7 +74,7 @@ emptyFeatStruct = Map.empty
 
 -- | Convert an 'Flist' to a proper 'FeatStruct'
 --   Unsafely assumes the keys are unique
-mkFeatStruct :: Flist GeniVal -> FeatStruct GeniVal 
+mkFeatStruct :: Flist GeniVal -> FeatStruct GeniVal
 mkFeatStruct fs = Map.fromListWith oops . map fromPair $ fs
   where
    fromPair (AvPair a v) = (a,v)
@@ -208,7 +210,7 @@ instance (Binary a) => Binary (AvPair a) where
                x2 <- get
                return (AvPair x1 x2)
 
- 
+
 instance (NFData a) => NFData (AvPair a) where
         rnf (AvPair x1 x2) = rnf x1 `seq` rnf x2 `seq` ()
 -- GENERATED STOP
