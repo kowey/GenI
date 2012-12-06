@@ -35,31 +35,32 @@ module NLP.GenI.Morphology
  , inflectSentencesUsingCmd, sansMorph
  ) where
 
-import Control.Concurrent (forkIO)
-import Control.Exception (catch, bracket, evaluate, IOException)
-import Data.Maybe (isNothing, fromMaybe)
-import Data.Text ( Text )
-import Data.Tree
-import Data.Typeable
-import System.Exit
-import System.IO
-import System.Process
-import Prelude hiding (catch)
-import qualified Data.Map as Map
-import qualified Data.Text as T
+import           Control.Concurrent        (forkIO)
+import           Control.Exception         (IOException, bracket, catch,
+                                            evaluate)
+import qualified Data.Map                  as Map
+import           Data.Maybe                (fromMaybe, isNothing)
+import           Data.Text                 (Text)
+import qualified Data.Text                 as T
+import           Data.Tree
+import           Data.Typeable
+import           Prelude                   hiding (catch)
+import           System.Exit
+import           System.IO
+import           System.Process
 
-import System.Log.Logger
-import Text.JSON
-import Text.JSON.Pretty hiding ( (<>), (<+>) )
+import           System.Log.Logger
+import           Text.JSON
+import           Text.JSON.Pretty          hiding ((<+>), (<>))
 
-import NLP.GenI.FeatureStructure
-import NLP.GenI.GeniVal ( mkGAnon, GeniVal, replace )
-import NLP.GenI.General
-import NLP.GenI.Morphology.Types
-import NLP.GenI.Pretty
-import NLP.GenI.Semantics ( Literal(..), Sem )
-import NLP.GenI.Tag
-import NLP.GenI.TreeSchema ( GNode(..), GType(..) )
+import           NLP.GenI.FeatureStructure
+import           NLP.GenI.General
+import           NLP.GenI.GeniVal          (GeniVal, mkGAnon, replace)
+import           NLP.GenI.Morphology.Types
+import           NLP.GenI.Pretty
+import           NLP.GenI.Semantics        (Literal (..), Sem)
+import           NLP.GenI.Tag
+import           NLP.GenI.TreeSchema       (GNode (..), GType (..))
 
 -- ----------------------------------------------------------------------
 -- Morphological input
@@ -79,7 +80,7 @@ readMorph minfo lit =
 --   morphological literals -- it associates literals with morphological stuff;
 --   if it returns 'Nothing', then it is non-morphological
 stripMorphSem :: MorphInputFn -> Sem -> Sem
-stripMorphSem morphfn tsem = 
+stripMorphSem morphfn tsem =
   [ l | l <- tsem, (isNothing.morphfn) l ]
 
 -- | 'attachMorph' @morphfn sem cands@ does the bulk of the morphological
@@ -90,36 +91,36 @@ stripMorphSem morphfn tsem =
 --   literal if its semantics contains at least one literal whose first index
 --   is the same as the first index of the morphological literal.
 attachMorph :: MorphInputFn -> Sem -> [TagElem] -> [TagElem]
-attachMorph morphfn sem cands = 
+attachMorph morphfn sem cands =
   let -- relevance of a tree wrt to an index
       relTree i = not.null.relfilt.tsemantics
-        where relfilt = filter (relLit i)  
+        where relfilt = filter (relLit i)
       relLit i l = case lArgs l of
                      []    -> False
                      (x:_) -> x == i
       -- perform the attachment for a tree if it is relevant
       attachHelper :: GeniVal -> Flist GeniVal -> TagElem -> TagElem
-      attachHelper i mfs t = 
-        if relTree i t then attachMorphHelper mfs t else t 
+      attachHelper i mfs t =
+        if relTree i t then attachMorphHelper mfs t else t
       -- perform all attachments for a literal
       attach :: Literal GeniVal -> [TagElem] -> [TagElem]
-      attach l cs = 
-        case morphfn l of 
+      attach l cs =
+        case morphfn l of
           Nothing  -> cs
           Just mfs -> map (attachHelper i mfs) cs
         where i = case lArgs l of
                     []    -> mkGAnon
                     (x:_) -> x
-  in foldr attach cands sem 
+  in foldr attach cands sem
 
 -- | Actually unify the morphological features into the anchor node
 --
---   FIXME: we'll need to make sure this still works as promised 
+--   FIXME: we'll need to make sure this still works as promised
 --   when we implement co-anchors.
 attachMorphHelper :: Flist GeniVal -> TagElem -> TagElem
-attachMorphHelper mfs te = 
+attachMorphHelper mfs te =
   let -- unification with anchor
-      tt     = ttree te 
+      tt     = ttree te
       anchor = head $ filterTree fn tt
                where fn a = (ganchor a && gtype a == Lex)
   in case unifyFeat mfs (gup anchor) of
@@ -127,10 +128,10 @@ attachMorphHelper mfs te =
        "Morphological unification failure on" <+> idname te <> ":" <+> err
      Right (unf,subst) ->
       let -- perform replacements
-          te2 = replace subst te 
+          te2 = replace subst te
           tt2 = ttree te2
           -- replace the anchor with the unification results
-          newgdown = replace subst (gdown anchor) 
+          newgdown = replace subst (gdown anchor)
           newa = anchor { gup = unf, gdown = newgdown }
       in te2 { ttree = setMorphAnchor newa tt2 }
 
@@ -169,7 +170,7 @@ inflectSentencesUsingCmd morphcmd sentences =
  where
   hCloseSloppy h = hClose h `catch` \err -> let _ = err :: IOException in warningM logname (show err)
   doit = bracket
-   (do debugM logname $ "Starting morph generator: " ++ morphcmd 
+   (do debugM logname $ "Starting morph generator: " ++ morphcmd
        runInteractiveCommand morphcmd)
    (\(inh,outh,errh,_) -> do
       debugM logname $ "Closing output handles from morph generator"

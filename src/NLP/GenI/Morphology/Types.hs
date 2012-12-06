@@ -1,5 +1,5 @@
+{-# LANGUAGE DeriveDataTypeable        #-}
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE DeriveDataTypeable #-}
 -- GenI surface realiser
 -- Copyright (C) 2005 Carlos Areces and Eric Kow
 --
@@ -19,17 +19,17 @@
 
 module NLP.GenI.Morphology.Types where
 
-import Control.Applicative ((<$>),(<*>))
-import Control.DeepSeq
-import Data.Text ( Text )
-import qualified Data.Text as T
+import           Control.Applicative       ((<$>), (<*>))
+import           Control.DeepSeq
+import           Data.Text                 (Text)
+import qualified Data.Text                 as T
 
-import NLP.GenI.GeniVal ( GeniVal )
-import NLP.GenI.FeatureStructure ( Flist )
-import NLP.GenI.Parser ( geniFeats, Parser, runParser )
-import NLP.GenI.Pretty
-import NLP.GenI.Semantics
-import Text.JSON
+import           NLP.GenI.FeatureStructure (Flist)
+import           NLP.GenI.GeniVal          (GeniVal)
+import           NLP.GenI.Parser           (Parser, geniFeats, runParser)
+import           NLP.GenI.Pretty
+import           NLP.GenI.Semantics
+import           Text.JSON
 
 -- ----------------------------------------------------------------------
 -- morph input
@@ -96,11 +96,11 @@ deriving instance NFData LemmaPlus
 
 -- GENERATED START
 
- 
+
 instance NFData MorphOutput where
         rnf (MorphOutput x1 x2) = rnf x1 `seq` rnf x2 `seq` ()
 
- 
+
 instance NFData LemmaPlus where
         rnf (LemmaPlus x1 x2) = rnf x1 `seq` rnf x2 `seq` ()
 -- GENERATED STOP
