@@ -30,4 +30,4 @@ module NLP.GenI.Lexicon (
    PolValue, fromLexSem, fromLexLiteral,
 ) where
 
-import NLP.GenI.Lexicon.Internal
+import           NLP.GenI.Lexicon.Internal

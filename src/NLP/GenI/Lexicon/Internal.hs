@@ -15,30 +15,31 @@
 -- along with this program; if not, write to the Free Software
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
 -- | Internals of lexical entry manipulation
 module NLP.GenI.Lexicon.Internal where
 
 -- import Debug.Trace -- for test stuff
-import Data.Binary
-import Data.FullList
-import Data.Function
-import Data.List ( sortBy )
-import Data.Generics (Data)
-import Data.Text ( Text )
-import Data.Typeable (Typeable)
-import qualified Data.Text as T
+import           Data.Binary
+import           Data.FullList
+import           Data.Function
+import           Data.Generics             (Data)
+import           Data.List                 (sortBy)
+import           Data.Text                 (Text)
+import qualified Data.Text                 as T
+import           Data.Typeable             (Typeable)
 
-import NLP.GenI.FeatureStructure
-import NLP.GenI.GeniShow
-import NLP.GenI.GeniVal
-import NLP.GenI.Pretty
-import NLP.GenI.Semantics
-import NLP.GenI.Polarity.Types (SemPols)
+import           NLP.GenI.FeatureStructure
+import           NLP.GenI.GeniShow
+import           NLP.GenI.GeniVal
+import           NLP.GenI.Polarity.Types   (SemPols)
+import           NLP.GenI.Pretty
+import           NLP.GenI.Semantics
 
-import Control.DeepSeq
+import           Control.DeepSeq
 
 --instance Show (IO()) where
 --  show _ = ""
@@ -48,15 +49,15 @@ type Lexicon = [LexEntry]
 
 -- | Lexical entry
 data LexEntry = LexEntry
-    { iword       :: FullList Text -- ^ normally just a singleton,
+    { iword      :: FullList Text -- ^ normally just a singleton,
                                    --   useful for merging synonyms
-    , ifamname    :: Text          -- ^ tree family to anchor to
-    , iparams     :: [GeniVal]     -- ^ parameters (deprecrated; use the interface)
-    , iinterface  :: Flist GeniVal -- ^ features to unify with tree schema interface
-    , ifilters    :: Flist GeniVal -- ^ features to pick out family members we want
-    , iequations  :: Flist GeniVal -- ^ path equations
-    , isemantics  :: Sem           -- ^ lexical semantics
-    , isempols    :: [SemPols]     -- ^ polarities (must be same length as 'isemantics')
+    , ifamname   :: Text          -- ^ tree family to anchor to
+    , iparams    :: [GeniVal]     -- ^ parameters (deprecrated; use the interface)
+    , iinterface :: Flist GeniVal -- ^ features to unify with tree schema interface
+    , ifilters   :: Flist GeniVal -- ^ features to pick out family members we want
+    , iequations :: Flist GeniVal -- ^ path equations
+    , isemantics :: Sem           -- ^ lexical semantics
+    , isempols   :: [SemPols]     -- ^ polarities (must be same length as 'isemantics')
     }
   deriving (Eq, Data, Typeable)
 
@@ -156,7 +157,7 @@ instance GeniShow LexEntry where
         , geniKeyword "filters"   $ geniShowText (ifilters l)
         , geniKeyword "semantics" $ geniShowText (isemantics l)
         ]
-      where 
+      where
         paramT = parens . T.unwords . concat $
             [ map geniShowText (iparams l)
             , ["!"]
@@ -180,7 +181,7 @@ deriving instance NFData LexEntry
 
 -- GENERATED START
 
- 
+
 instance Binary LexEntry where
         put (LexEntry x1 x2 x3 x4 x5 x6 x7 x8)
           = do put x1
@@ -202,7 +203,7 @@ instance Binary LexEntry where
                x8 <- get
                return (LexEntry x1 x2 x3 x4 x5 x6 x7 x8)
 
- 
+
 instance NFData LexEntry where
         rnf (LexEntry x1 x2 x3 x4 x5 x6 x7 x8)
           = rnf x1 `seq`
