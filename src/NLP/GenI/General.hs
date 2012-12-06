@@ -21,8 +21,9 @@
 --   libraries, or the Haskell platform ones, or on hackage.
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE DeriveDataTypeable, TypeSynonymInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveDataTypeable   #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 module NLP.GenI.General (
         -- * IO
         ePutStr, ePutStrLn, eFlush,
@@ -64,24 +65,26 @@ module NLP.GenI.General (
         )
         where
 
-import Control.Arrow (first)
-import Control.Exception (IOException)
-import Control.Monad (liftM)
-import Data.Bits (shiftR, (.&.))
-import Data.Char (isAlphaNum, isDigit, isSpace, toUpper, toLower)
-import Data.Function ( on )
-import Data.List (foldl', intersect, inits, intersperse, groupBy, sortBy)
-import Data.Typeable ( typeOf, Typeable )
-import Data.Tree
-import System.IO (hPutStrLn, hPutStr, hFlush, stderr)
-import System.IO.Error (isUserError, ioeGetErrorString)
-import qualified Data.Map as Map
-import Prelude hiding ( catch )
-import Data.Text ( Text )
-import qualified Data.Text as T
+import           Control.Arrow      (first)
+import           Control.Exception  (IOException)
+import           Control.Monad      (liftM)
+import           Data.Binary
+import           Data.Bits          (shiftR, (.&.))
+import           Data.Char          (isAlphaNum, isDigit, isSpace, toLower,
+                                     toUpper)
+import           Data.Function      (on)
+import           Data.List          (foldl', groupBy, inits, intersect,
+                                     intersperse, sortBy)
+import qualified Data.Map           as Map
+import           Data.Text          (Text)
+import qualified Data.Text          as T
 import qualified Data.Text.Encoding as T
-import Data.Binary
-import Text.JSON
+import           Data.Tree
+import           Data.Typeable      (Typeable, typeOf)
+import           Prelude            hiding (catch)
+import           System.IO          (hFlush, hPutStr, hPutStrLn, stderr)
+import           System.IO.Error    (ioeGetErrorString, isUserError)
+import           Text.JSON
 
 -- ----------------------------------------------------------------------
 -- IO
@@ -109,7 +112,7 @@ isGeniIdentLetter :: Char -> Bool
 isGeniIdentLetter x = isAlphaNum x || x `elem` "_'+-."
 
 trim :: String -> String
-trim = reverse . (dropWhile isSpace) . reverse . (dropWhile isSpace) 
+trim = reverse . (dropWhile isSpace) . reverse . (dropWhile isSpace)
 
 -- | Drop all characters up to and including the one in question
 dropTillIncluding :: Char -> String -> String
@@ -244,7 +247,7 @@ isEmptyIntersect a b = null $ intersect a b
 --   items by some property they have in common. The difference is that the
 --   property is used as a key to a Map that you can lookup.
 groupByFM :: (Ord b) => (a -> b) -> [a] -> (Map.Map b [a])
-groupByFM fn list = 
+groupByFM fn list =
   let addfn  x acc key = insertToListMap key x acc
       helper acc x = addfn x acc (fn x)
   in foldl' helper Map.empty list
@@ -395,8 +398,8 @@ showInterval :: Interval -> String
 showInterval (x,y) =
  let sign i = if i > 0 then "+" else ""
      --
- in if (x==y) 
-    then (sign x) ++ (show x) 
+ in if (x==y)
+    then (sign x) ++ (show x)
     else show (x,y)
 
 -- ----------------------------------------------------------------------
