@@ -36,29 +36,32 @@ module NLP.GenI.Polarity(
                 )
 where
 
-import Data.Bits
-import qualified Data.Set as Set
-import qualified Data.Map as Map
-import Data.List
-import Data.Text (Text)
-import qualified Data.Text as T
+import           Data.Bits
+import           Data.List
+import qualified Data.Map                   as Map
+import qualified Data.Set                   as Set
+import           Data.Text                  (Text)
+import qualified Data.Text                  as T
 
-import Control.Error
+import           Control.Error
 
-import NLP.GenI.Automaton
-import NLP.GenI.FeatureStructure ( Flist, AvPair(..), FeatStruct, unifyFeat )
-import NLP.GenI.General
-    ( BitVector, isEmptyIntersect, thd3, Interval, ival, (!+!)
-    )
-import NLP.GenI.GeniVal ( GeniVal(gConstraints), mkGAnon, isAnon, replace )
-import NLP.GenI.Polarity.Internal
-import NLP.GenI.Polarity.Types
-import NLP.GenI.Pretty
-import NLP.GenI.Semantics ( Literal(..), SemInput, Sem, emptyLiteral
-                          , sortSem
-                          )
-import NLP.GenI.Tag ( TagElem(..), TagItem(..), setTidnums )
-import NLP.GenI.TreeSchema ( Ptype(Initial), GNode, root, gup, gdown, rootUpd)
+import           NLP.GenI.Automaton
+import           NLP.GenI.FeatureStructure  (AvPair (..), FeatStruct, Flist,
+                                             unifyFeat)
+import           NLP.GenI.General           (BitVector, Interval,
+                                             isEmptyIntersect, ival, thd3,
+                                             (!+!))
+import           NLP.GenI.GeniVal           (GeniVal (gConstraints), isAnon,
+                                             mkGAnon, replace)
+import           NLP.GenI.Polarity.Internal
+import           NLP.GenI.Polarity.Types
+import           NLP.GenI.Pretty
+import           NLP.GenI.Semantics         (Literal (..), Sem, SemInput,
+                                             emptyLiteral, sortSem)
+import           NLP.GenI.Tag               (TagElem (..), TagItem (..),
+                                             setTidnums)
+import           NLP.GenI.TreeSchema        (GNode, Ptype (Initial), gdown, gup,
+                                             root, rootUpd)
 
 -- ----------------------------------------------------------------------
 -- Interface
@@ -91,7 +94,7 @@ buildAutomaton polarityAttrs rootFeat extrapol (tsem,tres,_) candRaw =
                          r  = detect . tinterface $ t
       candRest  = map constrain candRaw
       inputRest = declareIdxConstraints tres
-      -- polarity detection 
+      -- polarity detection
       cand1   = map (detectPols polarityAttrs) candRest
       extras1 = Map.unionsWith (!+!) [ extrapol, inputRest, rcatPol ]
       ks1     = polarityKeys cand1 Map.empty
@@ -109,11 +112,11 @@ makePolAut candsRaw tsemRaw extraPol ks =
      (tsem, cands') = fixPronouns (tsemRaw,candsRaw)
      cands = setTidnums cands'
      -- sorted semantics (for more efficient construction)
-     sortedsem = sortSemByFreq tsem cands 
+     sortedsem = sortSemByFreq tsem cands
      -- the seed automaton
-     smap = buildColumns cands sortedsem 
+     smap = buildColumns cands sortedsem
      seed = buildSeedAut smap  sortedsem
-     -- building and remembering the automata 
+     -- building and remembering the automata
      build k xs = (k,aut,prune aut):xs
        where aut   = buildPolAut k initK (thd3 $ head xs)
              initK = Map.findWithDefault (ival 0) k extraPol
@@ -134,11 +137,11 @@ makePolAut candsRaw tsemRaw extraPol ks =
 buildColumns :: (TagItem t) => [t]
              -> Sem
              -> Map.Map (Literal GeniVal) [t]
-buildColumns cands [] = 
+buildColumns cands [] =
   Map.singleton emptyLiteral e
   where e = filter (null.tgSemantics) cands
 
-buildColumns cands (l:ls) = 
+buildColumns cands (l:ls) =
   let matchfn t = l `elem` tgSemantics t
       (match, cands2) = partition matchfn cands
       next = buildColumns cands2 ls
@@ -149,12 +152,12 @@ buildColumns cands (l:ls) =
 -- ----------------------------------------------------------------------
 
 buildSeedAut :: SemMap -> Sem -> PolAut
-buildSeedAut cands tsem = 
+buildSeedAut cands tsem =
   let start = polstart []
       hasZero (x,y) = x <= 0 && y >= 0
-      isFinal (PolSt c _ pols) = 
+      isFinal (PolSt c _ pols) =
         c == length tsem && all hasZero pols
-      initAut = NFA 
+      initAut = NFA
         { startSt = start
         , isFinalSt = Just isFinal
         , finalStList = []
@@ -163,10 +166,10 @@ buildSeedAut cands tsem =
   in nubAut $ buildSeedAut' cands tsem 1 initAut
 
 -- for each literal...
-buildSeedAut' :: SemMap -> Sem -> Int -> PolAut -> PolAut 
-buildSeedAut' _ [] _ aut = aut 
-buildSeedAut' cands (l:ls) i aut = 
-  let -- previously created candidates 
+buildSeedAut' :: SemMap -> Sem -> Int -> PolAut -> PolAut
+buildSeedAut' _ [] _ aut = aut
+buildSeedAut' cands (l:ls) i aut =
+  let -- previously created candidates
       prev   = head $ states aut
       -- candidates that match the target semantics
       tcands = Map.findWithDefault [] l cands
@@ -191,16 +194,16 @@ buildSeedAutHelper cs l i st (aut,prev) =
       -- do not overlap the extra baggage semantics
       tcand = [ Just t | t <- cs
               , isEmptyIntersect ex1 (tsemantics t) ]
-      -- add the transitions out of the current state 
+      -- add the transitions out of the current state
       addT tr (a,n) = (addTrans a st tr st2, st2:n)
-        where 
+        where
          st2 = PolSt i (delete l $ ex1 ++ ex2) []
-         ex2 = case tr of 
-               Nothing  -> [] 
+         ex2 = case tr of
+               Nothing  -> []
                Just tr_ -> tsemantics tr_
-  in if (l `elem` ex1) 
+  in if (l `elem` ex1)
      then addT Nothing (aut,prev)
-     else foldr addT   (aut,prev) tcand 
+     else foldr addT   (aut,prev) tcand
 
 -- ----------------------------------------------------------------------
 -- Construction
@@ -211,12 +214,12 @@ buildPolAut k initK skelAut =
   let concatPol p (PolSt pr b pol) = PolSt pr b (p:pol)
       newStart = concatPol initK $ startSt skelAut
       --
-      initAut  = skelAut 
+      initAut  = skelAut
         { startSt = newStart
         , states  = [[newStart]]
         , transitions = Map.empty }
-      -- cand' = observe "candidate map" cand 
-  in nubAut $ buildPolAut' k (transitions skelAut) initAut 
+      -- cand' = observe "candidate map" cand
+  in nubAut $ buildPolAut' k (transitions skelAut) initAut
 
 {-
 Our helper function looks at a single state in the skeleton automaton
@@ -227,14 +230,14 @@ which corresponds to a state in the old automaton.  This is because we
 are looking at a different polarity key, so that whereas two candidates
 automaton may transition to the same state in the old automaton, their
 polarity effects for the new key will make them diverge in the new
-automaton.  
+automaton.
 -}
 
 buildPolAut' :: PolarityKey -> PolTransFn -> PolAut -> PolAut
 -- for each literal... (this is implicit in the automaton state grouping)
-buildPolAut' fk skeleton aut = 
-  let -- previously created candidates 
-      prev = head $ states aut 
+buildPolAut' fk skeleton aut =
+  let -- previously created candidates
+      prev = head $ states aut
       -- create the next batch of states
       fn st ap            = buildPolAutHelper fk skeleton st ap
       (newAut,newStates)  = foldr fn (aut,Set.empty) prev
@@ -247,7 +250,7 @@ buildPolAut' fk skeleton aut =
 -- given a previously created state...
 buildPolAutHelper :: PolarityKey -> PolTransFn -> PolState -> (PolAut,Set.Set PolState) -> (PolAut,Set.Set PolState)
 buildPolAutHelper fk skeleton st (aut,prev) =
-  let -- reconstruct the skeleton state used to build st 
+  let -- reconstruct the skeleton state used to build st
       PolSt pr ex (po1:skelpo1) = st
       skelSt = PolSt pr ex skelpo1
       -- for each transition out of the current state
@@ -262,12 +265,12 @@ buildPolAutHelper fk skeleton st (aut,prev) =
       --
       newSt :: Maybe TagElem -> PolState -> PolState
       newSt t skel2 = PolSt pr2 ex2 (po2:skelPo2)
-        where 
-         PolSt pr2 ex2 skelPo2 = skel2 
+        where
+         PolSt pr2 ex2 skelPo2 = skel2
          po2 = po1 !+! Map.findWithDefault (ival 0) fk pol
-         pol = case t of Nothing -> Map.empty 
+         pol = case t of Nothing -> Map.empty
                          Just t2 -> tpolarities t2
-  in result 
+  in result
 
 -- ----------------------------------------------------------------------
 -- Pruning
@@ -285,27 +288,27 @@ work, it is essential that the final states are *not* included in the
 list of states to process.
 -}
 prune :: PolAut -> PolAut
-prune aut = 
+prune aut =
   let theStates   = states aut
       final       = finalSt aut
-      -- (remember that states is a list of lists) 
-      lastStates  = head theStates 
-      nextStates  = tail theStates 
+      -- (remember that states is a list of lists)
+      lastStates  = head theStates
+      nextStates  = tail theStates
       nonFinal    = (lastStates \\ final)
       -- the helper function will rebuild the state list
       firstAut    = aut { states = [] }
-      pruned      = prune' (nonFinal:nextStates) firstAut 
+      pruned      = prune' (nonFinal:nextStates) firstAut
       -- re-add the final state!
       statesPruned = states pruned
       headPruned   = head statesPruned
       tailPruned   = tail statesPruned
-  in if (null theStates) 
+  in if (null theStates)
      then aut
-     else pruned { states = (headPruned ++ final) : tailPruned } 
+     else pruned { states = (headPruned ++ final) : tailPruned }
 
 prune' :: [[PolState]] -> PolAut -> PolAut
 prune' [] oldAut = oldAut { states = reverse $ states oldAut }
-prune' (sts:next) oldAut = 
+prune' (sts:next) oldAut =
   let -- calculate the blacklist
       oldT  = transitions oldAut
       oldSt = states oldAut
@@ -323,49 +326,49 @@ prune' (sts:next) oldAut =
       newSts = sts \\ blacklist
       newAut = oldAut { transitions = newT,
                         states = newSts : oldSt }
-      {- 
+      {-
       -- debugging code
       debugstr  = "blacklist: [\n" ++ debugstr' ++ "]"
       debugstr' = concat $ intersperse "\n" $ map showSt blacklist
       showSt (PolSt pr ex po) = showPr pr ++ showEx ex ++ showPo po
-      showPr (_,pr,_) = pr ++ " " 
+      showPr (_,pr,_) = pr ++ " "
       showPo po = concat $ intersperse "," $ map show po
       showEx ex = if (null ex) then "" else (showSem ex)
       -}
       -- recursive step
   in if null blacklist
      then oldAut { states = (reverse oldSt) ++ (sts:next) }
-     else prune' next newAut 
+     else prune' next newAut
 
 -- ====================================================================
 -- Zero-literal semantics
 -- ====================================================================
 
-type PredLite = (String,[GeniVal]) -- handle is head of arg list 
+type PredLite = (String,[GeniVal]) -- handle is head of arg list
 type SemWeightMap = Map.Map PredLite SemPols
 
 -- | Returns a modified input semantics and lexical selection in which pronouns
 --   are properly accounted for.
 fixPronouns :: (Sem,[TagElem]) -> (Sem,[TagElem])
-fixPronouns (tsem,cands) = 
+fixPronouns (tsem,cands) =
   let -- part 1 (for each literal get smallest charge for each idx)
       getpols :: TagElem -> [ (PredLite,SemPols) ]
       getpols x = zip [ (prettyStr p, h:as) | Literal h p as <- tsemantics x ] (tsempols x)
       sempols :: [ (PredLite,SemPols) ]
       sempols = concatMap getpols cands
-      usagemap :: SemWeightMap 
+      usagemap :: SemWeightMap
       usagemap = Map.fromListWith (zipWith min) sempols
       -- part 2 (cancel sem polarities)
-      chargemap :: Map.Map GeniVal Int -- index to charge 
+      chargemap :: Map.Map GeniVal Int -- index to charge
       chargemap =  Map.fromListWith (+) $ concatMap clump $ Map.toList usagemap
         where clump ((_,is),ps) = zip is ps
       -- part 3 (adding extra semantics)
-      indices = concatMap fn (Map.toList chargemap) 
+      indices = concatMap fn (Map.toList chargemap)
         where fn (i,c) = replicate (negate c) i
-      -- the extra columns 
+      -- the extra columns
       extraSem = map indexLiteral indices
       tsem2    = sortSem (tsem ++ extraSem)
-      -- zero-literal semantic items to realise the extra columns 
+      -- zero-literal semantic items to realise the extra columns
       zlit = filter (null.tsemantics) cands
       cands2 = (cands \\ zlit) ++ concatMap fn indices
         where fn i = map (tweak i) zlit
@@ -398,12 +401,12 @@ isExtraCol _                = False
 
 -- | 'assignIndex' is a useful way to restrict the behaviour of
 -- null semantic items like pronouns using the information generated by
--- the index counting mechanism.  The problem with null semantic items 
+-- the index counting mechanism.  The problem with null semantic items
 -- is that their indices are not set, which means that they could
--- potentially combine with any other tree.  To make things more 
+-- potentially combine with any other tree.  To make things more
 -- efficient, we can set the index of these items and thus reduce the
--- number of spurious combinations.  
--- 
+-- number of spurious combinations.
+--
 -- Notes
 --
 -- * These combinations could produce false results if the
@@ -413,11 +416,11 @@ isExtraCol _                = False
 --   *her* book“.
 --
 -- * This function works by FS unification on the root node of the
---   tree with the *[idx:i]*.  If unification is not possible, 
+--   tree with the *[idx:i]*.  If unification is not possible,
 --   we simply return the tree as is.
 --
 -- * This function renames the tree by appending the index to its name
-assignIndex :: GeniVal -> TagElem -> TagElem 
+assignIndex :: GeniVal -> TagElem -> TagElem
 assignIndex i te =
   let idxfs = [ AvPair __idx__ i ]
       oldt  = ttree te
@@ -433,7 +436,7 @@ assignIndex i te =
 -- Further optimisations
 -- ====================================================================
 
--- Index constraints 
+-- Index constraints
 -- -----------------
 detectIdxConstraints :: Flist GeniVal -> Flist GeniVal -> PolMap
 detectIdxConstraints cs interface =
@@ -490,19 +493,19 @@ detectPols attrs t =
 --   return a list of trees such that each tree is annotated with the paths it
 --   belongs to.
 detectPolPaths :: [[TagElem]] -> [(TagElem,BitVector)]
-detectPolPaths paths = 
+detectPolPaths paths =
   let pathFM     = detectPolPaths' Map.empty 0 paths
       lookupTr k = Map.findWithDefault 0 k pathFM
   in map (\k -> (k, lookupTr k)) $ Map.keys pathFM
 
 type PolPathMap = Map.Map TagElem BitVector
-detectPolPaths' :: PolPathMap -> Int -> [[TagElem]] -> PolPathMap  
+detectPolPaths' :: PolPathMap -> Int -> [[TagElem]] -> PolPathMap
 
 detectPolPaths' accFM _ [] = accFM
-detectPolPaths' accFM counter (path:ps) = 
+detectPolPaths' accFM counter (path:ps) =
   let currentBits = shiftL 1 counter -- shift counter times the 1 bit
       fn f []     = f
-      fn f (t:ts) = fn (Map.insertWith (.|.) t currentBits f) ts 
+      fn f (t:ts) = fn (Map.insertWith (.|.) t currentBits f) ts
       newFM       = fn accFM path
   in detectPolPaths' newFM (counter+1) ps
 
@@ -513,9 +516,9 @@ prettyPolPaths paths =
   where
     pathlist = prettyPolPaths' paths 1
 
-prettyPolPaths' :: BitVector -> Int -> [Int] 
+prettyPolPaths' :: BitVector -> Int -> [Int]
 prettyPolPaths' 0 _ = []
-prettyPolPaths' bv counter = 
+prettyPolPaths' bv counter =
   if b then (counter:next) else next
   where b = testBit bv 0
         next = prettyPolPaths' (shiftR bv 1) (counter + 1)
@@ -524,20 +527,20 @@ prettyPolPaths' bv counter =
 -- ----------------
 
 sortSemByFreq :: Sem -> [TagElem] -> Sem
-sortSemByFreq tsem cands = 
-  let counts = map lenfn tsem 
-      lenfn l = length $ filter fn cands 
+sortSemByFreq tsem cands =
+  let counts = map lenfn tsem
+      lenfn l = length $ filter fn cands
                 where fn x = l `elem` (tsemantics x)
       -- note: we introduce an extra hack to push
       -- index-counted extra columns to the end; just for UI reasons
-      sortfn a b 
+      sortfn a b
         | isX a && isX b = compare (snd a) (snd b)
         | isX a          = GT
         | isX b          = LT
         | otherwise      = compare (snd a) (snd b)
-        where isX = isExtraCol.fst 
-      sorted = sortBy sortfn $ zip tsem counts 
-  in (fst.unzip) sorted 
+        where isX = isExtraCol.fst
+      sorted = sortBy sortfn $ zip tsem counts
+  in (fst.unzip) sorted
 
 -- ----------------------------------------------------------------------
 -- Types
@@ -546,7 +549,7 @@ sortSemByFreq tsem cands =
 -- Polarity NFA
 
 data PolState = PolSt Int [Literal GeniVal] [(Int,Int)]
-                -- ^ position in the input semantics, extra semantics, 
+                -- ^ position in the input semantics, extra semantics,
                 --   polarity interval
      deriving (Eq)
 type PolTrans = TagElem
@@ -558,7 +561,7 @@ instance Show PolState
 -- showPred pr ++ " " ++ showSem ex ++ show po
 
 instance Ord PolState where
-  compare (PolSt pr1 ex1 po1) (PolSt pr2 ex2 po2) = 
+  compare (PolSt pr1 ex1 po1) (PolSt pr2 ex2 po2) =
     let prC   = compare pr1 pr2
         expoC = compare (ex1,po1) (ex2,po2)
     in if (prC == EQ) then expoC else prC

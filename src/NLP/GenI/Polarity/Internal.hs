@@ -18,29 +18,28 @@
 {-# LANGUAGE OverloadedStrings #-}
 module NLP.GenI.Polarity.Internal where
 
-import Control.Applicative
-import Data.List
-import Data.Text (Text)
-import Data.Tree (flatten)
-import qualified Data.Map as Map
-import qualified Data.Set as Set
-import qualified Data.Text as T
+import           Control.Applicative
+import           Data.List
+import qualified Data.Map                  as Map
+import qualified Data.Set                  as Set
+import           Data.Text                 (Text)
+import qualified Data.Text                 as T
+import           Data.Tree                 (flatten)
 
-import Control.Error ( isRight )
+import           Control.Error             (isRight)
 
-import Data.FullList hiding ( (++) )
-import NLP.GenI.Automaton
-import NLP.GenI.FeatureStructure
-import NLP.GenI.General
-import NLP.GenI.GeniVal
-import NLP.GenI.Polarity.Types
-import NLP.GenI.Pretty
-import NLP.GenI.Semantics (Literal)
-import NLP.GenI.Tag ( TagElem(..), TagItem(..) )
-import NLP.GenI.TreeSchema
-    ( Ptype(Initial)
-    , GNode, root, gup, gdown, gtype, GType(Subs),
-    )
+import           Data.FullList             hiding ((++))
+import           NLP.GenI.Automaton
+import           NLP.GenI.FeatureStructure
+import           NLP.GenI.General
+import           NLP.GenI.GeniVal
+import           NLP.GenI.Polarity.Types
+import           NLP.GenI.Pretty
+import           NLP.GenI.Semantics        (Literal)
+import           NLP.GenI.Tag              (TagElem (..), TagItem (..))
+import           NLP.GenI.TreeSchema       (GNode, GType (Subs),
+                                            Ptype (Initial), gdown, gtype, gup,
+                                            root)
 
 data PolarityDetectionResult = PD_UserError String
                              | PD_Nothing
@@ -53,7 +52,7 @@ data PolarityDetectionResult = PD_UserError String
 
 -- | Given a description of what the root feature should unify with
 --   return a -1 polarity for all relevant polarity keys. This allows
---   us to compensate for the root node of any derived tree. 
+--   us to compensate for the root node of any derived tree.
 detectRootCompensation :: Set.Set PolarityAttr -> FeatStruct GeniVal -> PolMap
 detectRootCompensation polarityAttrs rootFeat =
   Map.fromListWith (!+!) . pdResults
@@ -156,7 +155,7 @@ convertUnconstrainedPolarities ks pmap =
 -- ----------------------------------------------------------------------
 
 -- duplicates are a matter of course
-addPols :: [(PolarityKey,Interval)] -> PolMap -> PolMap 
+addPols :: [(PolarityKey,Interval)] -> PolMap -> PolMap
 addPols pols m = foldr f m pols
  where
   f (p,c) = Map.insertWith (!+!) p c

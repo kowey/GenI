@@ -15,21 +15,21 @@
 -- along with this program; if not, write to the Free Software
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE TemplateHaskell    #-}
 
 module NLP.GenI.Polarity.Types where
 
-import qualified Data.Set as Set
-import Data.Generics ( Data )
-import Data.Typeable ( Typeable )
-import Data.Text ( Text )
-import qualified Data.Text as T
+import           Data.Generics   (Data)
+import qualified Data.Set        as Set
+import           Data.Text       (Text)
+import qualified Data.Text       as T
+import           Data.Typeable   (Typeable)
 
-import Control.DeepSeq
+import           Control.DeepSeq
 
-import NLP.GenI.Pretty
+import           NLP.GenI.Pretty
 
 data PolarityKey = PolarityKeyAv   Text Text
                  | PolarityKeyStr  Text
@@ -71,13 +71,13 @@ deriving instance NFData PolarityAttr
 !-}
 -- GENERATED START
 
- 
+
 instance NFData PolarityKey where
         rnf (PolarityKeyAv x1 x2) = rnf x1 `seq` rnf x2 `seq` ()
         rnf (PolarityKeyStr x1 )  = rnf x1 `seq` ()
         rnf (PolarityKeyVar x1 )  = rnf x1 `seq` ()
 
- 
+
 instance NFData PolarityAttr where
         rnf (SimplePolarityAttr x1) = rnf x1 `seq` ()
         rnf (RestrictedPolarityAttr x1 x2) = rnf x1 `seq` rnf x2 `seq` ()
