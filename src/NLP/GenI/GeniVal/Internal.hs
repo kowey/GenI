@@ -16,34 +16,35 @@
 -- along with this program; if not, write to the Free Software
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-{-# LANGUAGE OverlappingInstances, FlexibleInstances, ViewPatterns #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveDataTypeable   #-}
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE OverlappingInstances #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE ViewPatterns         #-}
 -- | Gory details for 'NLP.GenI.GeniVal'
 module NLP.GenI.GeniVal.Internal where
 
+import           Control.Applicative ((<$>))
+import           Control.Arrow       (first, second, (***))
+import           Control.DeepSeq
+import           Control.Monad.Error
+import           Data.Binary
+import           Data.Generics       (Data)
+import           Data.List
+import qualified Data.Map            as Map
+import           Data.Maybe          (fromMaybe, isNothing)
+import           Data.Text           (Text)
+import qualified Data.Text           as T
+import           Data.Typeable       (Typeable)
+
+import           Data.FullList       (FullList, Listable (..), fromFL, sortNub)
+import           NLP.GenI.ErrorIO    ()
+import           NLP.GenI.General    (buckets, geniBug, maybeQuoteText)
+import           NLP.GenI.GeniShow
+import           NLP.GenI.Pretty
+
 -- import Debug.Trace -- for test stuff
-import Control.Applicative ( (<$>) )
-import Control.Arrow (first, second, (***))
-import Control.Monad.Error
-import Data.Binary
-import Data.List
-import Data.Maybe (fromMaybe, isNothing)
-import Data.Generics (Data)
-import Data.Typeable (Typeable)
-import qualified Data.Map as Map
-
-import Data.Text ( Text )
-import qualified Data.Text as T
-
-import Control.DeepSeq
-
-import Data.FullList ( FullList, fromFL, Listable(..), sortNub )
-import NLP.GenI.ErrorIO ()
-import NLP.GenI.General (buckets, geniBug, maybeQuoteText)
-import NLP.GenI.GeniShow
-import NLP.GenI.Pretty
 
 -- | * constant : no label, just constraints
 --
