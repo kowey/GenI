@@ -16,8 +16,11 @@
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, LiberalTypeSynonyms, DeriveDataTypeable #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE LiberalTypeSynonyms   #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
 module NLP.GenI.Simple.SimpleBuilder (
    -- Types
    Agenda, AuxAgenda, Chart, SimpleStatus, SimpleState,
@@ -39,48 +42,53 @@ module NLP.GenI.Simple.SimpleBuilder (
    )
 where
 
-import Control.Arrow (first)
-import Control.Applicative ( (<$>) )
-import Control.Monad (when, unless, liftM2)
-import Control.Monad.State.Strict (get, put, modify, gets, runState, execStateT)
-import Data.Bits
-import Data.Generics ( Data )
-import Data.List (partition, foldl', sortBy, unfoldr )
-import Data.Ord (comparing)
-import Data.Text ( Text )
-import Data.Tree
-import Data.Typeable ( Typeable )
-import qualified Data.Map as Map
-import qualified Data.Text as T
+import           Control.Applicative        ((<$>))
+import           Control.Arrow              (first)
+import           Control.Monad              (liftM2, unless, when)
+import           Control.Monad.State.Strict (execStateT, get, gets, modify, put,
+                                             runState)
+import           Data.Bits
+import           Data.Generics              (Data)
+import           Data.List                  (foldl', partition, sortBy, unfoldr)
+import qualified Data.Map                   as Map
+import           Data.Ord                   (comparing)
+import           Data.Text                  (Text)
+import qualified Data.Text                  as T
+import           Data.Tree
+import           Data.Typeable              (Typeable)
 
-import Control.Error
+import           Control.Error
 
-import NLP.GenI.Automaton ( automatonPaths, NFA(..), addTrans )
-import NLP.GenI.Builder ( incrCounter, num_iterations, num_comparisons
-                        , chart_size, SemBitMap, defineSemanticBits, semToBitVector, bitVectorToSem
-                        , DispatchFilter, (>-->), condFilter, FilterStatus(Filtered, NotFiltered)
-                        , GenStatus(..),
-                        )
-import NLP.GenI.FeatureStructure ( unifyFeat, Flist )
-import NLP.GenI.Flag
-import NLP.GenI.General ( BitVector, mapMaybeM, mapTree', geniBug, preTerminals, repList )
-import NLP.GenI.GeniVal
-import NLP.GenI.Morphology.Types ( LemmaPlus(..) )
-import NLP.GenI.Pretty
-import NLP.GenI.Semantics ( sortSem, Sem )
-import NLP.GenI.Statistics (Statistics)
-import NLP.GenI.Tag
-    ( TagElem, TagSite(..), getLexeme, toTagSite
-    , tidnum, idname, ttree, ttype, tsemantics
-    , detectSites, TagDerivation, DerivationStep(..)
-    , plugTree, spliceTree
-    , ts_rootFeatureMismatch, ts_synIncomplete, ts_semIncomplete
-    , ts_tbUnificationFailure
-    )
-import NLP.GenI.TreeSchema
-    ( Ptype(Initial), GNode(..), NodeName, gnnameIs
-    , GType(Other), root, foot )
-import qualified NLP.GenI.Builder as B
+import           NLP.GenI.Automaton         (NFA (..), addTrans, automatonPaths)
+import           NLP.GenI.Builder           (DispatchFilter,
+                                             FilterStatus (Filtered, NotFiltered),
+                                             GenStatus (..), SemBitMap,
+                                             bitVectorToSem, chart_size,
+                                             condFilter, defineSemanticBits,
+                                             incrCounter, num_comparisons,
+                                             num_iterations, semToBitVector,
+                                             (>-->))
+import qualified NLP.GenI.Builder           as B
+import           NLP.GenI.FeatureStructure  (Flist, unifyFeat)
+import           NLP.GenI.Flag
+import           NLP.GenI.General           (BitVector, geniBug, mapMaybeM,
+                                             mapTree', preTerminals, repList)
+import           NLP.GenI.GeniVal
+import           NLP.GenI.Morphology.Types  (LemmaPlus (..))
+import           NLP.GenI.Pretty
+import           NLP.GenI.Semantics         (Sem, sortSem)
+import           NLP.GenI.Statistics        (Statistics)
+import           NLP.GenI.Tag               (DerivationStep (..), TagDerivation,
+                                             TagElem, TagSite (..), detectSites,
+                                             getLexeme, idname, plugTree,
+                                             spliceTree, tidnum, toTagSite,
+                                             ts_rootFeatureMismatch,
+                                             ts_semIncomplete, ts_synIncomplete,
+                                             ts_tbUnificationFailure,
+                                             tsemantics, ttree, ttype)
+import           NLP.GenI.TreeSchema        (GNode (..), GType (Other),
+                                             NodeName, Ptype (Initial), foot,
+                                             gnnameIs, root)
 
 -- --------------------------------------------------------------------
 -- The Builder interface
@@ -123,17 +131,17 @@ isAdjunctionPhase _ = False
 type SimpleState a = B.BuilderState SimpleStatus a
 
 data SimpleStatus = S
-  { theAgenda    :: Agenda
+  { theAgenda     :: Agenda
   , theHoldingPen :: AuxAgenda
-  , theChart     :: Chart
-  , theTrash   :: Trash
-  , theResults :: [SimpleItem]
-  , tsem       :: BitVector
-  , step       :: GenerationPhase
-  , gencounter :: Integer
-  , genconfig  :: [Flag]
+  , theChart      :: Chart
+  , theTrash      :: Trash
+  , theResults    :: [SimpleItem]
+  , tsem          :: BitVector
+  , step          :: GenerationPhase
+  , gencounter    :: Integer
+  , genconfig     :: [Flag]
   -- we keep a SemBitMap strictly to help display the semantics
-  , semBitMap  :: SemBitMap
+  , semBitMap     :: SemBitMap
   }
   -- deriving Show
 
@@ -182,25 +190,25 @@ addToResults te =
 -- ----------------------------------------------------------------------
 
 data SimpleItem = SimpleItem
- { siId        :: ChartId
+ { siId         :: ChartId
  --
  , siSubstnodes :: [NodeName]
  , siAdjnodes   :: [NodeName]
  --
- , siSemantics :: BitVector
- , siPolpaths  :: BitVector
+ , siSemantics  :: BitVector
+ , siPolpaths   :: BitVector
  -- for generation sans semantics
  -- , siAdjlist :: [(String,Integer)] -- (node name, auxiliary tree id)
- , siNodes   :: [GNode GeniVal]    -- ^ actually a set
- , siDerived :: Tree Text
- , siRoot_    :: NodeName
- , siFoot_    :: Maybe NodeName
+ , siNodes      :: [GNode GeniVal]    -- ^ actually a set
+ , siDerived    :: Tree Text
+ , siRoot_      :: NodeName
+ , siFoot_      :: Maybe NodeName
  --
- , siPendingTb :: [NodeName] -- only for one-phase
+ , siPendingTb  :: [NodeName] -- only for one-phase
  -- how was this item produced?
  , siDerivation :: TagDerivation
  -- for the debugger only
- , siGuiStuff :: SimpleGuiItem
+ , siGuiStuff   :: SimpleGuiItem
  } -- deriving (Show)
 
 
@@ -222,11 +230,11 @@ instance DescendGeniVal (Text, B.UninflectedDisjunction) where
 
 -- | Things whose only use is within the graphical debugger
 data SimpleGuiItem = SimpleGuiItem
- { siHighlight :: [Text] -- ^ nodes to highlight
+ { siHighlight  :: [Text] -- ^ nodes to highlight
  -- if there are things wrong with this item, what?
  , siDiagnostic :: [String]
- , siFullSem :: Sem
- , siIdname  :: Text
+ , siFullSem    :: Sem
+ , siIdname     :: Text
  } deriving (Data, Typeable)
 
 emptySimpleGuiItem :: SimpleGuiItem
@@ -457,7 +465,7 @@ finished twophase st
   | atMaxSteps   = B.Error $ "Max steps exceeded" <+> parens (pretty maxSteps)
   | otherwise    = B.Active
  where
-  reallyDone   = null (theAgenda st) && (not twophase || isAdjunctionPhase (step st)) 
+  reallyDone   = null (theAgenda st) && (not twophase || isAdjunctionPhase (step st))
   atMaxResults = maybeIf (<= fromIntegral (length (theResults st))) $ getFlag MaxResultsFlg (genconfig st)
   atMaxSteps   = maybeIf (<  gencounter st) mMaxSteps
   mMaxSteps    = getFlag MaxStepsFlg (genconfig st)
@@ -873,7 +881,7 @@ unpackResult :: SimpleItem -> [B.Output]
 unpackResult item =
   let look = lookupOrBug "unpackResult" item
       toUninflectedDisjunction (pt,t) =
-        --B.UninflectedDisjunction (getLexeme (look t)) (gup (look pt)) 
+        --B.UninflectedDisjunction (getLexeme (look t)) (gup (look pt))
         B.UninflectedDisjunction (getLexeme (look t))
                                  (gup . look $ if emptyFeatureStr (look t) then pt else t)
 
