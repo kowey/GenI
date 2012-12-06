@@ -19,9 +19,10 @@
 -- (TAG) elementary trees and some low-level operations.
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
 
 module NLP.GenI.Tag (
    -- Main Datatypes
@@ -41,28 +42,32 @@ module NLP.GenI.Tag (
    collect, detectSites,
 ) where
 
-import Control.Applicative ( (<$>), (<*>) )
-import qualified Data.Map as Map
-import Data.Maybe (fromMaybe, listToMaybe, mapMaybe, catMaybes)
-import Data.Tree
-import Data.Text ( Text )
-import qualified Data.Text as T
+import           Control.Applicative       ((<$>), (<*>))
+import qualified Data.Map                  as Map
+import           Data.Maybe                (catMaybes, fromMaybe, listToMaybe,
+                                            mapMaybe)
+import           Data.Text                 (Text)
+import qualified Data.Text                 as T
+import           Data.Tree
 
-import Control.DeepSeq
-import Data.Generics (Data)
-import Data.Typeable (Typeable)
-import Data.FullList hiding ( (++) )
-import Text.JSON
+import           Control.DeepSeq
+import           Data.FullList             hiding ((++))
+import           Data.Generics             (Data)
+import           Data.Typeable             (Typeable)
+import           Text.JSON
 
-import NLP.GenI.FeatureStructure ( AvPair(..), Flist )
-import NLP.GenI.General (listRepNode, groupByFM, preTerminals, geniBug)
-import NLP.GenI.GeniShow
-import NLP.GenI.GeniVal ( GeniVal(..), DescendGeniVal(..), Collectable(..), Idable(..), )
-import NLP.GenI.Polarity.Types ( PolarityKey(..), SemPols )
-import NLP.GenI.Pretty
-import NLP.GenI.Semantics ( Sem, Literal(..), emptyLiteral )
-import NLP.GenI.TreeSchema
-    ( Ptype(..), GNode(..), GType(..), NodeName, lexemeAttributes )
+import           NLP.GenI.FeatureStructure (AvPair (..), Flist)
+import           NLP.GenI.General          (geniBug, groupByFM, listRepNode,
+                                            preTerminals)
+import           NLP.GenI.GeniShow
+import           NLP.GenI.GeniVal          (Collectable (..),
+                                            DescendGeniVal (..), GeniVal (..),
+                                            Idable (..))
+import           NLP.GenI.Polarity.Types   (PolarityKey (..), SemPols)
+import           NLP.GenI.Pretty
+import           NLP.GenI.Semantics        (Literal (..), Sem, emptyLiteral)
+import           NLP.GenI.TreeSchema       (GNode (..), GType (..), NodeName,
+                                            Ptype (..), lexemeAttributes)
 
 -- ----------------------------------------------------------------------
 -- Tags
@@ -70,7 +75,7 @@ import NLP.GenI.TreeSchema
 
 -- | An anchored grammar.
 --   The grammar associates a set of semantic predicates to a list of trees each.
-type Tags = Map.Map String [TagElem]                            
+type Tags = Map.Map String [TagElem]
 
 -- | 'addTags' @tags key elem@ adds @elem@ to the the list of elements associated
 --   to the key
@@ -82,26 +87,26 @@ addToTags t k e = Map.insertWith (++) k [e] t
 -- ----------------------------------------------------------------------
 
 data TagSite = TagSite
-    { tsName :: Text
-    , tsUp   :: Flist GeniVal
-    , tsDown :: Flist GeniVal
+    { tsName   :: Text
+    , tsUp     :: Flist GeniVal
+    , tsDown   :: Flist GeniVal
     , tsOrigin :: Text
     }
   deriving (Eq, Ord, Data, Typeable)
 
 data TagElem = TE
-    { idname       :: Text
-    , ttreename    :: Text
-    , tidnum       :: Integer
-    , ttype        :: Ptype
-    , ttree        :: Tree (GNode GeniVal)
-    , tsemantics   :: Sem
+    { idname      :: Text
+    , ttreename   :: Text
+    , tidnum      :: Integer
+    , ttype       :: Ptype
+    , ttree       :: Tree (GNode GeniVal)
+    , tsemantics  :: Sem
      -- optimisation stuff
      -- (polarity key to charge interval)
-    , tpolarities  :: Map.Map PolarityKey (Int,Int)
-    , tinterface   :: Flist GeniVal  -- for idxconstraints (pol)
-    , ttrace       :: [Text]
-    , tsempols     :: [SemPols] -- ^ can be empty
+    , tpolarities :: Map.Map PolarityKey (Int,Int)
+    , tinterface  :: Flist GeniVal  -- for idxconstraints (pol)
+    , ttrace      :: [Text]
+    , tsempols    :: [SemPols] -- ^ can be empty
     }
   deriving (Eq, Data, Typeable)
 
@@ -170,12 +175,12 @@ instance JSON DerivationStep where
                              ]
 
 instance Ord TagElem where
-  compare t1 t2 = 
+  compare t1 t2 =
     case (ttype t1, ttype t2) of
-         (Initial, Initial)   -> compareId 
+         (Initial, Initial)   -> compareId
          (Initial, Auxiliar)  -> LT
          (Auxiliar, Initial)  -> GT
-         (Auxiliar, Auxiliar) -> compareId 
+         (Auxiliar, Auxiliar) -> compareId
     where compareId  = compare (tidnum t1) (tidnum t2)
 
 instance DescendGeniVal TagElem where
@@ -188,7 +193,7 @@ instance DescendGeniVal TagSite where
   descendGeniVal s (TagSite n fu fd o) = TagSite n (descendGeniVal s fu) (descendGeniVal s fd) o
 
 instance Collectable TagElem where
-  collect t = (collect $ tinterface t) . (collect $ ttree t) 
+  collect t = (collect $ tinterface t) . (collect $ ttree t)
             . (collect $ tsemantics t)
 
 instance Idable TagElem where
@@ -219,7 +224,7 @@ spliceTree :: NodeName      -- ^ foot node of the aux tree
            -> Tree NodeName -- ^ target tree
            -> Tree NodeName
 spliceTree f auxT n top =
-    plugTree middle n top 
+    plugTree middle n top
   where
     bottom = fromMaybe (geniBug oops) (findSubTree n top)
     middle = plugTree bottom f auxT
@@ -260,7 +265,7 @@ setOrigin te =
 -- ----------------------------------------------------------------------
 
 -- | 'TagItem' is a generalisation of 'TagElem'.
-class TagItem t where 
+class TagItem t where
     tgIdName    :: t -> Text
     tgIdNum     :: t -> Integer
     tgSemantics :: t -> Sem
@@ -278,7 +283,7 @@ instance TagItem TagElem where
 --   of GenI.  Note: trees with a null semantics are filed under an empty
 --   predicate, if any.
 mapBySem :: (TagItem t) => [t] -> Map.Map (Literal GeniVal) [t]
-mapBySem ts = 
+mapBySem ts =
   let gfn t = case tgSemantics t of
               []    -> emptyLiteral
               (x:_) -> x
@@ -347,7 +352,7 @@ instance Pretty [TagSite] where
 -- Diagnostic messages
 --
 -- Diagnostic messages let us know why a TAG tree is not returned as a result.
--- Whenever GenI decides to discard a tree, it sets the tdiagnostic field of 
+-- Whenever GenI decides to discard a tree, it sets the tdiagnostic field of
 -- the TagElem so that the person using a debugger can find out what went wrong.
 -- ----------------------------------------------------------------------
 
@@ -372,7 +377,7 @@ deriving instance NFData DerivationStep
 
 -- GENERATED START
 
- 
+
 instance NFData TagElem where
         rnf (TE x1 x2 x3 x4 x5 x6 x7 x8 x9 x10)
           = rnf x1 `seq`
@@ -383,7 +388,7 @@ instance NFData TagElem where
                       rnf x6 `seq`
                         rnf x7 `seq` rnf x8 `seq` rnf x9 `seq` rnf x10 `seq` ()
 
- 
+
 instance NFData DerivationStep where
         rnf (SubstitutionStep x1 x2 x3)
           = rnf x1 `seq` rnf x2 `seq` rnf x3 `seq` ()
