@@ -17,7 +17,8 @@
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE OverloadedStrings, ViewPatterns #-}
+{-# LANGUAGE OverloadedStrings         #-}
+{-# LANGUAGE ViewPatterns              #-}
 module NLP.GenI.Configuration
     ( Params(..)
     --
@@ -42,38 +43,40 @@ module NLP.GenI.Configuration
     )
 where
 
-import Control.Applicative ( (<$>), pure )
-import Control.Arrow ( first )
-import Control.Monad ( liftM )
-import Data.Char ( toLower, isSpace )
-import Data.List  ( find, intersperse, nubBy )
-import Data.Maybe ( fromMaybe, isNothing, fromJust )
-import Data.Maybe ( listToMaybe, mapMaybe )
-import Data.String ( IsString(..) )
-import Data.Text ( Text )
-import Data.Typeable ( Typeable )
-import System.Directory ( getAppUserDataDirectory, doesFileExist )
-import System.Environment ( getProgName )
-import System.FilePath
-import System.IO ( stderr )
-import qualified Data.ByteString.Char8 as BC
-import qualified Data.Map as Map
-import qualified Data.Text as T
-import qualified Data.Text.IO as T
+import           Control.Applicative       (pure, (<$>))
+import           Control.Arrow             (first)
+import           Control.Monad             (liftM)
+import qualified Data.ByteString.Char8     as BC
+import           Data.Char                 (isSpace, toLower)
+import           Data.List                 (find, intersperse, nubBy)
+import qualified Data.Map                  as Map
+import           Data.Maybe                (fromJust, fromMaybe, isNothing)
+import           Data.Maybe                (listToMaybe, mapMaybe)
+import           Data.String               (IsString (..))
+import           Data.Text                 (Text)
+import qualified Data.Text                 as T
+import qualified Data.Text.IO              as T
+import           Data.Typeable             (Typeable)
+import           System.Directory          (doesFileExist,
+                                            getAppUserDataDirectory)
+import           System.Environment        (getProgName)
+import           System.FilePath
+import           System.IO                 (stderr)
 
-import Data.Yaml.YamlLight
-import System.Console.GetOpt
-import System.Log.Formatter
-import System.Log.Handler ( LogHandler, setFormatter )
-import System.Log.Handler.Simple
-import System.Log.Logger
+import           Data.Yaml.YamlLight
+import           System.Console.GetOpt
+import           System.Log.Formatter
+import           System.Log.Handler        (LogHandler, setFormatter)
+import           System.Log.Handler.Simple
+import           System.Log.Logger
 
-import NLP.GenI.Flag
-import NLP.GenI.General ( geniBug, fst3, snd3 )
-import NLP.GenI.Parser ( geniFeats, tillEof, Parser, runParser )
-import NLP.GenI.Morphology.Types ( MorphRealiser )
-import NLP.GenI.Pretty
-import NLP.GenI.Polarity.Types ( readPolarityAttrs )
+import           NLP.GenI.Flag
+import           NLP.GenI.General          (fst3, geniBug, snd3)
+import           NLP.GenI.Morphology.Types (MorphRealiser)
+import           NLP.GenI.Parser           (Parser, geniFeats, runParser,
+                                            tillEof)
+import           NLP.GenI.Polarity.Types   (readPolarityAttrs)
+import           NLP.GenI.Pretty
 
 -- --------------------------------------------------------------------
 -- Params
@@ -83,11 +86,11 @@ import NLP.GenI.Polarity.Types ( readPolarityAttrs )
 --   files, etc.  This is the stuff that would normally be found in
 --   the configuration file.
 data Params = Params
-    { grammarType    :: GrammarType
-    , builderType    :: BuilderType
+    { grammarType :: GrammarType
+    , builderType :: BuilderType
     -- | Can still be overridden with a morph command mind you
-    , customMorph    :: Maybe MorphRealiser
-    , geniFlags      :: [Flag]
+    , customMorph :: Maybe MorphRealiser
+    , geniFlags   :: [Flag]
     }
 
 
@@ -623,7 +626,7 @@ readGlobalConfig = do
   geniCfgDir <- getAppUserDataDirectory "geni"
   let globalCfg = geniCfgDir </> "config.yaml"
   hasCfg <- doesFileExist globalCfg
-  if hasCfg then Just `fmap` parseYamlFile globalCfg 
+  if hasCfg then Just `fmap` parseYamlFile globalCfg
             else return Nothing
 
 data LoggerConfig = LoggerConfig { lcName      :: String
@@ -651,7 +654,7 @@ setLoggers :: YamlLight -> IO ()
 setLoggers y = do
     -- it seems we need to explicitly create the root logger
     -- we set this to the lowest priority because we want the user to
-    -- be able to set the priority on their loggers as low as they want 
+    -- be able to set the priority on their loggers as low as they want
     updateGlobalLogger "" $ setLevel DEBUG
                           . setHandlers noHandlers
     mapM_ setGeniHandler $ fromMaybe [globalDefault] (loggerConfig y)
@@ -697,7 +700,7 @@ loggerConfig yaml = lookupYL "logging" yaml
                   >>= mapM unMap
                   >>= mapM readOne
  where
-   readOne :: Map.Map YamlLight YamlLight -> Maybe LoggerConfig 
+   readOne :: Map.Map YamlLight YamlLight -> Maybe LoggerConfig
    readOne m = do
      let name = fromMaybe "NLP.GenI" (get Just "name" m)
      return $ updater "level"   m (\x l -> l { lcPriority = x })
