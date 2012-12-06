@@ -36,7 +36,7 @@ module NLP.GenI.GeniVal
     -- thing)
   , finaliseVars, finaliseVarsById, anonymiseSingletons
     -- ** Unification
-  , unify, UnificationResult(..), Subst, appendSubst
+  , MonadUnify, unify, UnificationResult(..), Subst, appendSubst
     -- ** subsumption
   , subsumeOne, allSubsume
 

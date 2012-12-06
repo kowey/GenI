@@ -20,12 +20,13 @@ module NLP.GenI.Polarity.Internal where
 
 import Control.Applicative
 import Data.List
-import Data.Maybe (isJust)
 import Data.Text (Text)
 import Data.Tree (flatten)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Text as T
+
+import Control.Error ( isRight )
 
 import Data.FullList hiding ( (++) )
 import NLP.GenI.Automaton
@@ -98,7 +99,7 @@ detectPolarity i (RestrictedPolarityAttr cat att) filterFl fl =
                   `T.append` cat
                   `T.append` " in:"
                   `T.append` pretty filterFl
-    Just v -> if isJust (unify [mkGConstNone cat] [v])
+    Just v -> if isRight (unify [mkGConstNone cat] [v])
               then detectPolarity i (SimplePolarityAttr att) emptyFeatStruct fl
               else PD_Nothing
 detectPolarity i (SimplePolarityAttr att) _ fl =

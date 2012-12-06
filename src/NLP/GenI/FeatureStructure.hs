@@ -18,6 +18,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE FlexibleInstances, TypeSynonymInstances, MultiParamTypeClasses #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE FlexibleContexts   #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | Feature structures in GenI can be seen as a simple mapping from
@@ -146,7 +147,8 @@ instance Show (AvPair GeniVal) where
 --
 --   The features are allowed to have different sets of attributes,
 --   beacuse we use 'alignFeat' to realign them.
-unifyFeat :: Monad m => Flist GeniVal -> Flist GeniVal -> m (Flist GeniVal, Subst)
+unifyFeat :: MonadUnify m
+          => Flist GeniVal -> Flist GeniVal -> m (Flist GeniVal, Subst)
 unifyFeat f1 f2 =
   {-# SCC "unification" #-}
   let (att, val1, val2) = unzip3 $ alignFeat f1 f2

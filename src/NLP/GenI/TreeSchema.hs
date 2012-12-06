@@ -230,6 +230,9 @@ instance (GeniShow a) => GeniShow (Ttree a) where
         showSem = geniKeyword "semantics" . geniShowText
         showTr  = geniKeyword "trace" . squares . T.unwords
 
+instance GeniShow a => GeniShow [Ttree a] where
+    geniShowText = T.intercalate "\n\n" . map geniShowText
+
 -- | The default show for GNode tries to be very compact; it only shows the value
 --   for cat attribute and any flags which are marked on that node.
 --

@@ -17,6 +17,7 @@
 
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE TypeSynonymInstances, MultiParamTypeClasses, FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
@@ -27,14 +28,16 @@ module NLP.GenI.Semantics where
 import Control.Arrow ( first, (***), (&&&) )
 import Control.Applicative ( (<$>) )
 import Control.DeepSeq
+import Control.Monad.Error
 import Data.Binary
 import Data.Function ( on )
 import Data.Data
 import Data.List ( nub, sortBy, delete, insert )
-import Data.Maybe ( isNothing, isJust, mapMaybe, fromMaybe )
 import qualified Data.Map as Map
 import Data.Text ( Text )
 import qualified Data.Text as T
+
+import Control.Error
 
 import NLP.GenI.FeatureStructure
 import NLP.GenI.GeniShow
@@ -218,7 +221,7 @@ subsumeSemH [] [] = [ ([], Map.empty) ]
 subsumeSemH _ []  = error "subsumeSemH: got longer list in front"
 subsumeSemH []     _  = [ ([], Map.empty) ]
 subsumeSemH (x:xs) ys = nub $
- do let attempts = zip ys $ map (subsumeLiteral x) ys
+ do let attempts = zip ys $ map (hush . subsumeLiteral x) ys
     (y, Just (x2, subst)) <- attempts
     let next_xs = replace subst xs
         next_ys = replace subst $ delete y ys
@@ -228,14 +231,18 @@ subsumeSemH (x:xs) ys = nub $
 -- | @p1 `subsumeLiteral` p2@ is the unification of @p1@ and @p2@ if
 --   both literals have the same arity, and the handles, predicates,
 --   and arguments in @p1@ all subsume their counterparts in @p2@
-subsumeLiteral :: Literal GeniVal -> Literal GeniVal -> Maybe (Literal GeniVal, Subst)
-subsumeLiteral (Literal h1 p1 la1) (Literal h2 p2 la2) =
+subsumeLiteral :: MonadUnify m
+               => Literal GeniVal
+               -> Literal GeniVal
+               -> m (Literal GeniVal, Subst)
+subsumeLiteral l1@(Literal h1 p1 la1) l2@(Literal h2 p2 la2) =
   if length la1 == length la2
   then do let hpla1 = h1:p1:la1
               hpla2 = h2:p2:la2
           (hpla, sub) <- hpla1 `allSubsume` hpla2
           return (toLiteral hpla, sub)
-  else Nothing
+  else throwError $ pretty l1 <+> "does not subsume" <+> pretty l2 <+>
+                    "because they don't have the same arity"
  where
   toLiteral (h:p:xs) = Literal h p xs
   toLiteral _ = error "subsumeLiteral.toLiteral"
@@ -260,7 +267,7 @@ unifySemH [] [] = return ([], Map.empty)
 unifySemH [] xs = return (xs, Map.empty)
 unifySemH xs [] = error $ "unifySem: shorter list should always be in front: " ++ prettyStr xs
 unifySemH (x:xs) ys = nub $ do -- list monad for Prolog-style backtracking.
- let attempts = zip ys $ map (unifyLiteral x) ys
+ let attempts = zip ys $ map (hush . unifyLiteral x) ys
  if all (isNothing . snd) attempts
     then first (x:) `fmap` unifySemH xs ys -- only include x unmolested if no unification succeeds
     else do (y, Just (x2, subst)) <- attempts
@@ -271,14 +278,17 @@ unifySemH (x:xs) ys = nub $ do -- list monad for Prolog-style backtracking.
 
 -- | Two literals unify if they have the same arity, and their
 --   handles, predicates, and arguments also unify
-unifyLiteral :: Literal GeniVal -> Literal GeniVal -> Maybe (Literal GeniVal, Subst)
-unifyLiteral (Literal h1 p1 la1) (Literal h2 p2 la2) =
+unifyLiteral :: MonadUnify m
+             => Literal GeniVal
+             -> Literal GeniVal -> m (Literal GeniVal, Subst)
+unifyLiteral l1@(Literal h1 p1 la1) l2@(Literal h2 p2 la2) =
   if length la1 == length la2
   then do let hpla1 = h1:p1:la1
               hpla2 = h2:p2:la2
           (hpla, sub) <- hpla1 `unify` hpla2
           return (toLiteral hpla, sub)
-  else Nothing
+  else throwError $ pretty l1 <+> "does not unify with" <+> pretty l2 <+>
+                    "because they don't have the same arity"
  where
   toLiteral (h:p:xs) = Literal h p xs
   toLiteral _ = error "unifyLiteral.toLiteral"

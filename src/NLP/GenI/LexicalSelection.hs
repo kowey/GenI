@@ -27,11 +27,11 @@ import Control.Monad.Writer
 import Data.Function ( on )
 import Data.List
 import qualified Data.Map as Map
-import Data.Maybe (catMaybes, fromMaybe, isJust, isNothing)
 import Data.Tree (Tree(Node))
 import qualified Data.Text as T
 import Data.Text ( Text )
 
+import Control.Error
 import Data.FullList hiding ( head, tail, (++) )
 import qualified Data.FullList as FL
 
@@ -260,9 +260,10 @@ combineOne tsem lexRaw eRaw = -- Maybe monad
                          xs -> return xs
     return $ concatMap (anonymiseSingletons . finaliseSemantics template) semUnifications
  where
+  croak :: SchemaTree -> Text -> LexCombine a
   croak t msg = do
       lexTell (SchemaError [pidname t] (StringError msg))
-      fail ""
+      mzero
   finaliseSemantics template (sem,sub) =
     do (sem2,sub2) <- sem `subsumeSem` replace sub tsem
        return $ replace sub2 $ template { tsemantics = sem2 }
@@ -273,14 +274,14 @@ combineOne tsem lexRaw eRaw = -- Maybe monad
    in if length lp /= length tp
       then croak t "Parameter length mismatch"
       else case unify lp tp of
-             Nothing -> croak t "Parameter unification error"
-             Just (ps2, subst) -> return (replace subst l, t2)
+             Left msg           -> croak t ("Parameter unification error: " <> msg)
+             Right (ps2, subst) -> return (replace subst l, t2)
                                   where t2 = (replace subst t) { params = ps2 }
   unifyInterfaceUsing ifn (l,e) =
     -- trace ("unify interface" ++ wt) $
     case unifyFeat (ifn l) (pinterface e) of
-    Nothing             -> croak e "Interface unification error"
-    Just (int2, fsubst) -> return (replace fsubst l, e2)
+    Left msg             -> croak e ("Interface unification error: " <> msg)
+    Right (int2, fsubst) -> return (replace fsubst l, e2)
                            where e2 = (replace fsubst e) { pinterface = int2 }
   --
   enrichWithWarning (l,e) =
@@ -304,7 +305,7 @@ enrich l t =
     foldM enrichBy t2 namedE
  where
   enrichInterface tx en =
-    case unifyFeat [en] (pinterface tx) of
+    case hush (unifyFeat [en] (pinterface tx)) of
       Nothing -> lexTell (ifaceEnrichErr en) >> fail ""
       Just (i2, isubs) -> return $ (replace isubs tx) { pinterface = i2 }
   ifaceEnrichErr (AvPair loc _) =
@@ -334,7 +335,7 @@ maybeEnrichBy t (eqLhs, eqVal) = do
       let (get, set) = case eqTop of
                          Top     -> (gup,   \n x -> n { gup = x })
                          Bottom  -> (gdown, \n x -> n { gdown = x})
-      (fs, sub) <- enrichFeat (AvPair eqAtt eqVal) (get node)
+      (fs, sub) <- hush $ enrichFeat (AvPair eqAtt eqVal) (get node)
       let t2 = fixNode (set node fs) (replace sub t)
       return (t2, sub)
     PeqLex _ -> do
@@ -352,7 +353,10 @@ maybeEnrichBy t (eqLhs, eqVal) = do
 --   'SchemaTree' which allows non-atomic disjunctions of @GeniVal@
 --   which have to be flatten down to at most atomic disjunctions once
 --   lexical selection is complete.
-enrichFeat :: AvPair GeniVal -> Flist SchemaVal -> Maybe (Flist SchemaVal, Subst)
+enrichFeat :: MonadUnify m
+           => AvPair GeniVal
+           -> Flist SchemaVal
+           -> m (Flist SchemaVal, Subst)
 enrichFeat (AvPair a v) fs =
     case span (\x -> avAtt x < a) fs of
         (before,here:after) | avMatch here -> do

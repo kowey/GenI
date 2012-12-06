@@ -7,6 +7,7 @@ import Control.Arrow ( first )
 import Data.Maybe ( isJust, maybeToList )
 import qualified Data.Map as Map
 
+import Control.Error
 import NLP.GenI.Semantics
 import NLP.GenI.GeniVal
 import NLP.GenI.Pretty
@@ -101,10 +102,10 @@ instance Subsumable GeniValLite where
               $ fromGeniValLite x `subsumeOne` fromGeniValLite y
 
 instance Subsumable (Literal GeniVal) where
-  subsume x y = maybeToList (x `subsumeLiteral` y)
+  subsume x y = maybeToList . hush $ x `subsumeLiteral` y
 
 instance Subsumable GTestLiteral where
-  subsume x y = map (first tp) . maybeToList
+  subsume x y = map (first tp) . maybeToList . hush
               $ fromGTestLiteral x `subsumeLiteral` fromGTestLiteral y
    where
     tp (Literal x y z) = GTestLiteral x y z
@@ -149,7 +150,7 @@ fromUnificationResult (SuccessRep v g) = [(g, Map.fromList [(v,g)])]
 fromUnificationResult (SuccessRep2 v1 v2 g) = [(g, Map.fromList [(v1,g),(v2,g)])]
 
 ttSubsumeLiteral :: Literal GeniVal -> Literal GeniVal -> Bool
-ttSubsumeLiteral x y = isJust (subsumeLiteral x y)
+ttSubsumeLiteral x y = isRight (subsumeLiteral x y)
 
 tt_literal_equiv :: Literal GeniVal -> Literal GeniVal -> Bool
 tt_literal_equiv (Literal h1 p1 as1) (Literal h2 p2 as2) =

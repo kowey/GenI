@@ -25,6 +25,7 @@ or on hackage.
 -}
 
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE OverloadedStrings  #-}
 module NLP.GenI.Morphology
  (
  module NLP.GenI.Morphology.Types
@@ -49,7 +50,7 @@ import qualified Data.Text as T
 
 import System.Log.Logger
 import Text.JSON
-import Text.JSON.Pretty
+import Text.JSON.Pretty hiding ( (<>), (<+>) )
 
 import NLP.GenI.FeatureStructure
 import NLP.GenI.GeniVal ( mkGAnon, GeniVal, replace )
@@ -122,8 +123,9 @@ attachMorphHelper mfs te =
       anchor = head $ filterTree fn tt
                where fn a = (ganchor a && gtype a == Lex)
   in case unifyFeat mfs (gup anchor) of
-     Nothing -> error ("Morphological unification failure on " ++ T.unpack (idname te))
-     Just (unf,subst) ->
+     Left err -> error . T.unpack $
+       "Morphological unification failure on" <+> idname te <> ":" <+> err
+     Right (unf,subst) ->
       let -- perform replacements
           te2 = replace subst te 
           tt2 = ttree te2

@@ -46,13 +46,14 @@ import Control.Monad.State.Strict (get, put, modify, gets, runState, execStateT)
 import Data.Bits
 import Data.Generics ( Data )
 import Data.List (partition, foldl', sortBy, unfoldr )
-import Data.Maybe (isJust, isNothing, mapMaybe, fromMaybe)
 import Data.Ord (comparing)
 import Data.Text ( Text )
 import Data.Tree
 import Data.Typeable ( Typeable )
 import qualified Data.Map as Map
 import qualified Data.Text as T
+
+import Control.Error
 
 import NLP.GenI.Automaton ( automatonPaths, NFA(..), addTrans )
 import NLP.GenI.Builder ( incrCounter, num_iterations, num_comparisons
@@ -63,7 +64,7 @@ import NLP.GenI.Builder ( incrCounter, num_iterations, num_comparisons
 import NLP.GenI.FeatureStructure ( unifyFeat, Flist )
 import NLP.GenI.Flag
 import NLP.GenI.General ( BitVector, mapMaybeM, mapTree', geniBug, preTerminals, repList )
-import NLP.GenI.GeniVal ( GeniVal, replace, DescendGeniVal(..), Subst, appendSubst )
+import NLP.GenI.GeniVal
 import NLP.GenI.Morphology.Types ( LemmaPlus(..) )
 import NLP.GenI.Pretty
 import NLP.GenI.Semantics ( sortSem, Sem )
@@ -165,12 +166,12 @@ addToChart te = do
   incrCounter chart_size 1
 
 addToTrash :: SimpleItem -> String -> SimpleState ()
-addToTrash te err = do
+addToTrash te msg = do
   disableGui <- gets (hasFlag DisableGuiFlg . genconfig)
   unless disableGui $
     modify $ \s -> s { theTrash = te2 : theTrash s }
   where
-    te2 = modifyGuiStuff (\g -> g { siDiagnostic = err : siDiagnostic g }) te
+    te2 = modifyGuiStuff (\g -> g { siDiagnostic = msg : siDiagnostic g }) te
 
 addToResults :: SimpleItem -> SimpleState ()
 addToResults te =
@@ -511,9 +512,9 @@ iapplySubst twophase item1 item2 | siInitial item1 && closed item1 = {-# SCC "ap
        do -- Maybe monad
           let (TagSite n  fu fd nOrigin) = toTagSite (lookupOrBug "iapplySubst" item2 shead)
               (TagSite rn ru rd rOrigin) = siRoot item1
-          (newU, subst1) <- unifyFeat ru fu
-          (newD, subst2) <- unifyFeat (replace subst1 rd)
-                                      (replace subst1 fd)
+          (newU, subst1) <- hush $ unifyFeat ru fu
+          (newD, subst2) <- hush $ unifyFeat (replace subst1 rd)
+                                             (replace subst1 fd)
           let subst = appendSubst subst1 subst2
               -- gui stuff
               newRoot g = g { gup = newU, gdown = newD, gtype = Other }
@@ -582,7 +583,7 @@ sansAdjunction2p item | closed item =
  (ahead : atail) -> do
   let (TagSite gn t b _) = toTagSite (lookupOrBug "sansAdjunction2p" item ahead)
   -- do top/bottom unification on the node
-  case unifyFeat t b of
+  case hush (unifyFeat t b) of
    Nothing ->
      do addToTrash (modifyGuiStuff (\g -> g { siHighlight = [gn] }) item)
                    ts_tbUnificationFailure
@@ -627,7 +628,7 @@ iapplyAdjNode twophase aItem pItem = {-# SCC "iapplyAdjNode" #-}
       finalRes1p = return $ replace subst12 rawCombined
       finalRes2p =
        do -- tb on the former foot
-          tbRes <- unifyFeat (tsUp anf) (tsDown anf)
+          tbRes <- hush $ unifyFeat (tsUp anf) (tsDown anf)
           let (anf_tb, subst3) = tbRes
               myRes = constrainAdj an_name anf_tb res'
           -- apply the substitutions
@@ -644,8 +645,8 @@ canAdjoin aItem pSite = do
   -- let's go!
   let r = siRoot aItem -- auxiliary tree, eh?
   f <- siFoot aItem -- should really be an error if fails
-  (anr_up',  subst1)  <- unifyFeat (tsUp r) (tsUp pSite)
-  (anf_down, subst2)  <- unifyFeat (replace subst1 $ tsDown f) (replace subst1 $ tsDown pSite)
+  (anr_up',  subst1)  <- hush $ unifyFeat (tsUp r) (tsUp pSite)
+  (anf_down, subst2)  <- hush $ unifyFeat (replace subst1 $ tsDown f) (replace subst1 $ tsDown pSite)
   let -- combined substitution list and success condition
       subst12 = appendSubst subst1 subst2
       anr = replace subst12 $ r { tsUp = anr_up' } --  resulting node based on the root node of the aux tree
@@ -665,7 +666,7 @@ detectNa rawAux i = helper (map look (siAdjnodes i)) Map.empty []
   helper []     s acc = Just $ replace s $ i { siAdjnodes = acc }
   helper (t:ts) s acc =
     let hasAdj = any isJust $ map (\a -> canAdjoin a t) compatAux
-    in case (snd `fmap` unifyFeat (tsUp t) (tsDown t)) of
+    in case snd <$> (hush $ unifyFeat (tsUp t) (tsDown t)) of
         Just s2 -> if hasAdj
                    then helper ts s (tsName t : acc)
                    else helper (replace s2 ts) (appendSubst s s2) acc
@@ -799,8 +800,8 @@ dpTreeLimit item =
 dpTbNaFailure :: SimpleDispatchFilter
 dpTbNaFailure item =
  case tbUnifyNaNodes (siNodes item) of
-   Nothing      -> dpToTrash ("top-bottom unification failure in NA nodes") item
-   Just (ns2,s) -> return . NotFiltered . replace s $ item { siNodes = ns2 }
+   Left msg      -> dpToTrash (T.unpack $ "top-bottom unification failure in NA nodes: " <> msg) item
+   Right (ns2,s) -> return . NotFiltered . replace s $ item { siNodes = ns2 }
 
 -- | This is only used for the one-phase algorithm
 dpTbFailure item =
@@ -813,7 +814,7 @@ dpRootFeatFailure item =
  do config <- gets genconfig
     let rootFeat = getListFlag RootFeatureFlg config
         (TagSite _ top _ _) = siRoot item
-    case unifyFeat rootFeat top of
+    case hush $ unifyFeat rootFeat top of
       Nothing ->
         dpToTrash (ts_rootFeatureMismatch rootFeat) item
       Just (_, s) ->
@@ -823,8 +824,9 @@ dpRootFeatFailure item =
 -- Top and bottom unification
 -- --------------------------------------------------------------------
 
-tbUnifyNaNodes :: [GNode GeniVal] -> Maybe ([GNode GeniVal], Subst)
-tbUnifyNaNodes [] = Just ([], Map.empty)
+tbUnifyNaNodes :: MonadUnify m
+               => [GNode GeniVal] -> m ([GNode GeniVal], Subst)
+tbUnifyNaNodes [] = return ([], Map.empty)
 tbUnifyNaNodes (n:ns) =
  if gaconstr n
     then do (ud, sub) <- unifyFeat (gup n) (gdown n)
@@ -848,7 +850,7 @@ tbUnifyNode (Right pending) rawSite =
   case replace pending rawSite of
   (TagSite name up down _) ->
     -- check top/bottom unification on this node
-    case unifyFeat up down of
+    case hush (unifyFeat up down) of
     -- stop all future iterations
     Nothing -> Left name
     -- apply any new substutions to the whole tree

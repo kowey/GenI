@@ -40,9 +40,10 @@ import Data.Bits
 import qualified Data.Set as Set
 import qualified Data.Map as Map
 import Data.List
-import Data.Maybe (isNothing, isJust)
 import Data.Text (Text)
 import qualified Data.Text as T
+
+import Control.Error
 
 import NLP.GenI.Automaton
 import NLP.GenI.FeatureStructure ( Flist, AvPair(..), FeatStruct, unifyFeat )
@@ -423,7 +424,7 @@ assignIndex i te =
       oldr  = root oldt
       tfup  = gup oldr
       --
-  in case unifyFeat tfup idxfs of
+  in case hush (unifyFeat tfup idxfs) of
      Nothing          -> te
      Just (gup2, sub) -> replace sub $ te { ttree = newt }
        where newt = rootUpd oldt $ oldr { gup = gup2 }

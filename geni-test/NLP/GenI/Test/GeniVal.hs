@@ -13,6 +13,8 @@ import Data.Maybe (isJust)
 import Data.Text ( Text )
 import qualified Data.Text as T
 import qualified Data.Map as Map
+
+import Control.Error
 import Test.HUnit
 -- import Test.SmallCheck
 -- import Test.SmallCheck.Series
@@ -78,8 +80,8 @@ prop_alphaconvert_subset gs_ =
 prop_unify_self :: [GeniVal] -> Bool
 prop_unify_self x_ =
    case unify x x of
-     Nothing  -> False
-     Just unf -> fst unf == x
+     Left _    -> False
+     Right unf -> fst unf == x
  where
    x = finaliseVars "" x_
 
@@ -88,8 +90,8 @@ prop_unify_self x_ =
 prop_unify_anon :: [GeniVal] -> Bool
 prop_unify_anon x =
   case unify x y of
-    Nothing  -> False
-    Just unf -> fst unf == x
+    Left _    -> False
+    Right unf -> fst unf == x
   where --
     y  = replicate (length x) mkGAnon
 
@@ -100,12 +102,12 @@ prop_unify_sym :: [GeniVal] -> [GeniVal] -> Bool
 prop_unify_sym x_ y_ = u1 == u2
  where
   (TestPair x y) = finaliseVars "" (TestPair x_ y_)
-  u1 = (unify x y) :: Maybe ([GeniVal],Subst)
-  u2 = unify y x
+  u1 = hush $ unify x y
+  u2 = hush $ unify y x
 
 -- | Unifying something with the empty list should always succeed
 prop_unify_empty :: [GeniVal] -> Bool
-prop_unify_empty x = isJust (unify x [])
+prop_unify_empty x = isRight (unify x [])
 
 t_subsumesOne :: Test.Framework.Test
 t_subsumesOne = testGroup "subsumeOne"
@@ -160,7 +162,7 @@ testBackPropagation =
   leftStrs = map (T.pack . show) [1..n]
   left  = map (flip mkGVar Nothing) leftStrs
   right = drop 1 left ++ [cx]
-  expected = Just (expectedResult, expectedSubst)
+  expected = Right (expectedResult, expectedSubst)
   expectedResult = replicate n cx
   expectedSubst  = Map.fromList $ zip leftStrs (repeat cx)
 

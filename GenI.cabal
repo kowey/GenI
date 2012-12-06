@@ -64,6 +64,7 @@ Library
                , containers >= 0.1
                , deepseq
                , directory   > 1
+               , errors
                , filepath    == 1.*
                , hslogger
                , json >= 0.4.3 && < 0.6
@@ -137,6 +138,7 @@ Executable     geni
               , GenI
               , containers  >= 0.1
               , directory   > 1
+              , errors
               , filepath    == 1.*
               , yaml-light  == 0.1.*
               , hslogger

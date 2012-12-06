@@ -18,6 +18,7 @@
 
 {-# LANGUAGE OverlappingInstances, FlexibleInstances, ViewPatterns #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 -- | Gory details for 'NLP.GenI.GeniVal'
 module NLP.GenI.GeniVal.Internal where
@@ -25,7 +26,7 @@ module NLP.GenI.GeniVal.Internal where
 -- import Debug.Trace -- for test stuff
 import Control.Applicative ( (<$>) )
 import Control.Arrow (first, second, (***))
-import Control.Monad (liftM, foldM)
+import Control.Monad.Error
 import Data.Binary
 import Data.List
 import Data.Maybe (fromMaybe, isNothing)
@@ -39,6 +40,7 @@ import qualified Data.Text as T
 import Control.DeepSeq
 
 import Data.FullList ( FullList, fromFL, Listable(..), sortNub )
+import NLP.GenI.ErrorIO ()
 import NLP.GenI.General (buckets, geniBug, maybeQuoteText)
 import NLP.GenI.GeniShow
 import NLP.GenI.Pretty
@@ -139,23 +141,27 @@ prettySubst =
 -- Unification and subsumption
 -- ----------------------------------------------------------------------
 
+class (MonadPlus m, MonadError Text m, Monad m, Functor m) => MonadUnify m where
+
+instance MonadUnify (Either Text) where
+
 -- | 'unify' performs unification on two lists of 'GeniVal'.  If
 --   unification succeeds, it returns @Just (r,s)@ where @r@ is
 --   the result of unification and \verb!s! is a list of substitutions that
 --   this unification results in.
-unify :: Monad m => [GeniVal] -> [GeniVal] -> m ([GeniVal], Subst)
+unify :: MonadUnify m => [GeniVal] -> [GeniVal] -> m ([GeniVal], Subst)
 unify = unifyHelper unifyOne
 
 -- | @l1 `allSubsume` l2@ returns the result of @l1 `unify` l2@ if
 --   doing a simultaneous traversal of both lists, each item in
 --   @l1@ subsumes the corresponding item in @l2@
-allSubsume :: Monad m => [GeniVal] -> [GeniVal] -> m ([GeniVal], Subst)
+allSubsume :: MonadUnify m => [GeniVal] -> [GeniVal] -> m ([GeniVal], Subst)
 allSubsume = unifyHelper subsumeOne
 
 -- | @unifyHelper unf gs1 gs2@ zips two lists with some unification function.
 --
 --   It's meant to serve as a helper to 'unify' and 'allSubsume'
-unifyHelper :: Monad m
+unifyHelper :: (MonadError Text m, Monad m)
             => (GeniVal -> GeniVal -> UnificationResult)
             -> [GeniVal]
             -> [GeniVal]
@@ -167,7 +173,7 @@ unifyHelper f ll1 ll2 = repropagate `liftM` helper ll1 ll2
   helper l1 [] = return (l1, Map.empty)
   helper (h1:t1) (h2:t2) =
     case f h1 h2 of
-    Failure -> fail . T.unpack . T.unwords $
+    Failure -> throwError . T.unwords $
                    [ "unification failure between"
                    , pretty h1, "and"
                    , pretty h2
