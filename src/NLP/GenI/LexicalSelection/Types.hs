@@ -19,15 +19,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 module NLP.GenI.LexicalSelection.Types where
 
-import Control.Monad.Writer
-import Data.List
-import Data.Poset
-import Data.Text ( Text )
-import qualified Data.Map as Map
-import qualified Data.Text as T
+import           Control.Monad.Writer
+import           Data.List
+import qualified Data.Map             as Map
+import           Data.Poset
+import           Data.Text            (Text)
+import qualified Data.Text            as T
 
-import NLP.GenI.GeniVal
-import NLP.GenI.Pretty
+import           NLP.GenI.GeniVal
+import           NLP.GenI.Pretty
 
 -- | Left hand side of a path equation
 data PathEqLhs = PeqInterface   Text

@@ -20,37 +20,37 @@
 module NLP.GenI.LexicalSelection
 where
 
-import Control.Applicative ( (<$>) )
-import Control.Arrow ((***))
-import Control.Monad.Trans.Maybe
-import Control.Monad.Writer
-import Data.Function ( on )
-import Data.List
-import qualified Data.Map as Map
-import Data.Tree (Tree(Node))
-import qualified Data.Text as T
-import Data.Text ( Text )
+import           Control.Applicative             ((<$>))
+import           Control.Arrow                   ((***))
+import           Control.Monad.Trans.Maybe
+import           Control.Monad.Writer
+import           Data.Function                   (on)
+import           Data.List
+import qualified Data.Map                        as Map
+import           Data.Text                       (Text)
+import qualified Data.Text                       as T
+import           Data.Tree                       (Tree (Node))
 
-import Control.Error
-import Data.FullList hiding ( head, tail, (++) )
-import qualified Data.FullList as FL
+import           Control.Error
+import           Data.FullList                   hiding (head, tail, (++))
+import qualified Data.FullList                   as FL
 
-import NLP.GenI.FeatureStructure (Flist, AvPair(..), unifyFeat)
-import NLP.GenI.General
-    ( filterTree, repAllNode, histogram, geniBug, repNodeByNode,
-    )
-import NLP.GenI.GeniVal
-import NLP.GenI.LexicalSelection.Types
-import NLP.GenI.Lexicon ( LexEntry(..), Lexicon, )
-import NLP.GenI.Semantics ( subsumeSem, unifySem, Sem, SemInput, LitConstr )
-import NLP.GenI.Tag ( TagElem(..), idname )
-import NLP.GenI.TreeSchema ( Ttree(..), SchemaTree, Macros
-                           , crushTreeGNode
-                           , setAnchor, setLexeme, tree
-                           , GNode(..), GType(..)
-                           )
-import NLP.GenI.TestSuite
-import NLP.GenI.Warning
+import           NLP.GenI.FeatureStructure       (AvPair (..), Flist, unifyFeat)
+import           NLP.GenI.General                (filterTree, geniBug,
+                                                  histogram, repAllNode,
+                                                  repNodeByNode)
+import           NLP.GenI.GeniVal
+import           NLP.GenI.LexicalSelection.Types
+import           NLP.GenI.Lexicon                (LexEntry (..), Lexicon)
+import           NLP.GenI.Semantics              (LitConstr, Sem, SemInput,
+                                                  subsumeSem, unifySem)
+import           NLP.GenI.Tag                    (TagElem (..), idname)
+import           NLP.GenI.TestSuite
+import           NLP.GenI.TreeSchema             (GNode (..), GType (..),
+                                                  Macros, SchemaTree,
+                                                  Ttree (..), crushTreeGNode,
+                                                  setAnchor, setLexeme, tree)
+import           NLP.GenI.Warning
 
 -- ----------------------------------------------------------------------
 -- * Lexical selection algorithms
@@ -154,7 +154,7 @@ chooseCandI tsem cand =
 --   atomic disjunction to merge all synonyms into a single lexical
 --   entry.  Two lexical entries are considered synonyms if their
 --   semantics match and they point to the same tree families.
--- 
+--
 --  FIXME: 2006-10-11 - note that this is no longer being used,
 --  because it breaks the case where two lexical entries differ
 --  only by their use of path equations.  Perhaps it's worthwhile
