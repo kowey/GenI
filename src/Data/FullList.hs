@@ -10,5 +10,5 @@ module Data.FullList
     Listable (..)
     ) where
 
-import Data.FullList.Internal
-import Prelude hiding ( head, tail, (++) )
+import           Data.FullList.Internal
+import           Prelude                hiding (head, tail, (++))

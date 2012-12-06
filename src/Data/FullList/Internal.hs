@@ -5,12 +5,12 @@
 
 module Data.FullList.Internal where
 
-import Data.Binary
-import Control.DeepSeq
-import Prelude hiding (head, tail, (++))
+import           Control.DeepSeq
+import           Data.Binary
+import           Data.Data
+import           Data.List       (nub, sort)
+import           Prelude         hiding (head, tail, (++))
 import qualified Prelude
-import Data.Data
-import Data.List ( sort, nub )
 
 newtype FullList a = FullList [a]  -- data constructor is not exported!
   deriving (Eq, Ord, Show, Data, Typeable)
