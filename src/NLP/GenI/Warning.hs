@@ -29,4 +29,4 @@ module NLP.GenI.Warning
     )
  where
 
-import NLP.GenI.Warning.Internal
+import           NLP.GenI.Warning.Internal

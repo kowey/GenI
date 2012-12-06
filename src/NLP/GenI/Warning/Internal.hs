@@ -18,24 +18,26 @@
 {-# LANGUAGE OverloadedStrings #-}
 module NLP.GenI.Warning.Internal where
 
-import Data.FullList ( FullList, fromFL )
-import Data.List
-import Data.Monoid ( Monoid, mconcat, mappend, mempty )
-import Data.Text ( Text )
-import qualified Data.Map as Map
-import qualified Data.Text as T
+import           Data.FullList                   (FullList, fromFL)
+import           Data.List
+import qualified Data.Map                        as Map
+import           Data.Monoid                     (Monoid, mappend, mconcat,
+                                                  mempty)
+import           Data.Text                       (Text)
+import qualified Data.Text                       as T
 
-import Data.Poset
+import           Data.Poset
 
-import NLP.GenI.General ( histogram )
-import NLP.GenI.GeniVal ( GeniVal )
-import NLP.GenI.LexicalSelection.Types ( LexCombineError, showLexCombineError )
-import NLP.GenI.Lexicon ( LexEntry(..) )
-import NLP.GenI.Pretty
-import NLP.GenI.Semantics ( Literal )
-import NLP.GenI.TreeSchema ( showLexeme )
+import           NLP.GenI.General                (histogram)
+import           NLP.GenI.GeniVal                (GeniVal)
+import           NLP.GenI.LexicalSelection.Types (LexCombineError,
+                                                  showLexCombineError)
+import           NLP.GenI.Lexicon                (LexEntry (..))
+import           NLP.GenI.Pretty
+import           NLP.GenI.Semantics              (Literal)
+import           NLP.GenI.TreeSchema             (showLexeme)
 
--- | This exists because we want the 'Monoid' instance, providing a 
+-- | This exists because we want the 'Monoid' instance, providing a
 --   GenI-specific notion of appending which merges instances of the
 --   same error
 newtype GeniWarnings = GeniWarnings { fromGeniWarnings :: [GeniWarning] }
