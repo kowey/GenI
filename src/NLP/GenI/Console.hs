@@ -103,13 +103,13 @@ withGeniTimeOut t job = do
 -- | Run GenI without reading any test suites, just grab semantics from stdin
 runStdinTestCase :: ProgStateRef -> CustomSem sem -> IO ()
 runStdinTestCase pstRef wrangler = do
-    config   <- pa <$> readIORef pstRef
-    mSemInput <- customSemParser wrangler <$> T.getContents
-    case mSemInput of
-      Left err ->
-           fail $ "I didn't understand the semantics you gave me: " ++ show err
-      Right semInput ->
-           runOnSemInput pstRef (runAsStandalone config) wrangler semInput >> return ()
+    config    <- pa <$> readIORef pstRef
+    cstr      <- T.getContents
+    case customSemParser wrangler cstr of
+        Left err ->
+            fail $ "I didn't understand the semantics you gave me: " ++ show err
+        Right semInput ->
+            runOnSemInput pstRef (runAsStandalone config) wrangler cstr semInput >> return ()
 
 -- | Run a test case with the specified name
 runSpecificTestCase :: ProgStateRef -> CustomSem sem -> Text -> IO ()
@@ -119,7 +119,7 @@ runSpecificTestCase pstRef wrangler cname = do
     fullsuite <- loadTestSuite pst wrangler
     case find (\x -> tcName x == cname) fullsuite  of
         Nothing -> fail ("No such test case: " ++ T.unpack cname)
-        Just s  -> runOnSemInput pstRef (runAsStandalone config) wrangler (tcSem s) >> return ()
+        Just s  -> runOnSemInput pstRef (runAsStandalone config) wrangler (tcSemString s) (tcSem s) >> return ()
 
 -- | Runs the tests specified in our instructions list.
 --   We assume that the grammar and lexicon are already
@@ -157,13 +157,13 @@ runInstructions pstRef wrangler =
           then    fail $ "Can't do batch processing. The test suite " ++ file ++ " has cases with no name."
           else do ePutStrLn "Batch processing mode"
                   mapM_ (runCase bsubdir) suite
-  runCase bdir (TestCase { tcName = n, tcSem = s }) =
+  runCase bdir (TestCase { tcName = n, tcSem = s, tcSemString = str }) =
    do config <- pa `fmap` readIORef pstRef
       let verbose = hasFlagP VerboseModeFlg config
           earlyDeath = hasFlagP EarlyDeathFlg config
       when verbose $
         ePutStrLn "======================================================"
-      gresults <- runOnSemInput pstRef (PartOfSuite n bdir) wrangler s
+      gresults <- runOnSemInput pstRef (PartOfSuite n bdir) wrangler str s
       let res = grResults gresults
           (goodres, badres) = partition isSuccess (grResults gresults)
       T.hPutStrLn stderr $
@@ -213,9 +213,10 @@ runAsStandalone config =
 runOnSemInput :: ProgStateRef
               -> RunAs
               -> CustomSem sem
+              -> Text
               -> sem
               -> IO GeniResults
-runOnSemInput pstRef args wrangler csem = do
+runOnSemInput pstRef args wrangler cstr csem = do
     pst <- readIORef pstRef
     case builderType (pa pst) of
              SimpleBuilder         -> helper pst simpleBuilder_2p
@@ -223,7 +224,7 @@ runOnSemInput pstRef args wrangler csem = do
   where
     helper pst builder = do
          res <- simplifyResults <$> (runErrorT $ runGeni pstRef wrangler builder csem)
-         writeResults pst args wrangler csem res
+         writeResults pst args wrangler cstr csem res
          return res
 
 -- | Not just the global warnings but the ones local to each response too
@@ -234,9 +235,10 @@ allWarnings res = concat $ grGlobalWarnings res
 writeResults :: ProgState
              -> RunAs
              -> CustomSem sem
+             -> Text -- ^ raw text representation
              -> sem
              -> GeniResults -> IO ()
-writeResults pst args wrangler csem gresults = do
+writeResults pst args wrangler cstr csem gresults = do
     -- create output directory as needed
     case args of
         PartOfSuite n f -> createDirectoryIfMissing True (f </> T.unpack n)
@@ -253,7 +255,8 @@ writeResults pst args wrangler csem gresults = do
        T.hPutStrLn stderr $ "Warnings:\n" <> formatWarnings warnings
        writeBatchFile "warnings" $ T.unlines warnings
     -- other outputs when run in batch mode
-    writeBatchFile "raw-semantics" $
+    writeBatchFile "raw-semantics" cstr
+    writeBatchFile "custom-semantics" $
          customRenderSem wrangler csem
     writeBatchFile "semantics"  $
          either ("ERROR:" <+>) geniShowText $
