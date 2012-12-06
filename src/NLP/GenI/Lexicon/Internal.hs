@@ -18,6 +18,7 @@
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE OverloadedStrings #-}
+-- | Internals of lexical entry manipulation
 module NLP.GenI.Lexicon.Internal where
 
 -- import Debug.Trace -- for test stuff
@@ -42,17 +43,21 @@ import Control.DeepSeq
 --instance Show (IO()) where
 --  show _ = ""
 
+-- | Collection of lexical entries
 type Lexicon = [LexEntry]
+
+-- | Lexical entry
 data LexEntry = LexEntry
-    { -- normally just a singleton, useful for merging synonyms
-      iword       :: FullList Text
-    , ifamname    :: Text
-    , iparams     :: [GeniVal]
-    , iinterface  :: Flist GeniVal
-    , ifilters    :: Flist GeniVal
-    , iequations  :: Flist GeniVal
-    , isemantics  :: Sem
-    , isempols    :: [SemPols] }
+    { iword       :: FullList Text -- ^ normally just a singleton,
+                                   --   useful for merging synonyms
+    , ifamname    :: Text          -- ^ tree family to anchor to
+    , iparams     :: [GeniVal]     -- ^ parameters (deprecrated; use the interface)
+    , iinterface  :: Flist GeniVal -- ^ features to unify with tree schema interface
+    , ifilters    :: Flist GeniVal -- ^ features to pick out family members we want
+    , iequations  :: Flist GeniVal -- ^ path equations
+    , isemantics  :: Sem           -- ^ lexical semantics
+    , isempols    :: [SemPols]     -- ^ polarities (must be same length as 'isemantics')
+    }
   deriving (Eq, Data, Typeable)
 
 -- | See also 'mkFullLexEntry'
@@ -119,6 +124,10 @@ instance Collectable LexEntry where
 --   on polarity filtering for more details
 type PolValue = (GeniVal, Int)
 
+-- | Separate an input lexical semantics into the actual semantics
+--   and the semantic polarity entries (which aren't used very much
+--   in practice, being a sort of experimental feature to solve an
+--   obscure-ish technical problem)
 fromLexSem :: [Literal PolValue] -> (Sem, [SemPols])
 fromLexSem = unzip . map fromLexLiteral
 

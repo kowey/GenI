@@ -15,6 +15,12 @@
 -- along with this program; if not, write to the Free Software
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+-- | Lexical entries
+--
+--   As a factorisation technique, LTAG grammars are commonly separated into
+--   tree schemata (see 'NLP.GenI.TreeSchema') and lexical entries.  The
+--   grammar is what you get by “anchoring” each lexical entry to the relevant
+--   tree schemata.
 module NLP.GenI.Lexicon (
    Lexicon,
    -- anything but the constructor
