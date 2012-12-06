@@ -19,55 +19,63 @@
 --   test suites.
 
 {-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE PatternGuards #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE PatternGuards      #-}
 module NLP.GenI.Console ( consoleGeni, loadNextSuite ) where
 
-import Control.Applicative ( pure, (<$>) )
-import Control.Monad
-import Control.Monad.Trans.Error
-import Data.IORef(readIORef, modifyIORef)
-import Data.List ( find, partition )
-import Data.Maybe ( fromMaybe, isJust )
-import Data.Text ( Text )
-import Data.Time ( getCurrentTime, formatTime )
-import Data.Typeable
-import System.Log.Logger
-import System.Locale ( defaultTimeLocale, iso8601DateFormat )
-import System.Directory( createDirectoryIfMissing, getTemporaryDirectory )
-import System.Exit ( exitWith, exitFailure, ExitCode(..) )
-import System.FilePath ( (</>), takeFileName )
-import System.IO ( stderr )
-import System.Timeout ( timeout )
-import qualified Data.ByteString as B
-import qualified Data.Text as T
-import qualified Data.Text.IO as T
-import qualified Data.Text.Encoding as T
+import           Control.Applicative           (pure, (<$>))
+import           Control.Monad
+import           Control.Monad.Trans.Error
+import qualified Data.ByteString               as B
+import           Data.IORef                    (modifyIORef, readIORef)
+import           Data.List                     (find, partition)
+import           Data.Maybe                    (fromMaybe, isJust)
+import           Data.Text                     (Text)
+import qualified Data.Text                     as T
+import qualified Data.Text.Encoding            as T
+import qualified Data.Text.IO                  as T
+import           Data.Time                     (formatTime, getCurrentTime)
+import           Data.Typeable
+import           System.Directory              (createDirectoryIfMissing,
+                                                getTemporaryDirectory)
+import           System.Exit                   (ExitCode (..), exitFailure,
+                                                exitWith)
+import           System.FilePath               (takeFileName, (</>))
+import           System.IO                     (stderr)
+import           System.Locale                 (defaultTimeLocale,
+                                                iso8601DateFormat)
+import           System.Log.Logger
+import           System.Timeout                (timeout)
 
 
-import NLP.GenI.General
-  ( ePutStr, ePutStrLn,
-  )
-import NLP.GenI
-import NLP.GenI.Configuration
-  ( Params
-  , BatchDirFlg(..), DumpDerivationFlg(..), EarlyDeathFlg(..)
-  , MetricsFlg(..), RankingConstraintsFlg(..)
-  , TestCaseFlg(..), TestSuiteFlg(..), TestInstructionsFlg(..)
-  , FromStdinFlg(..), OutputFileFlg(..), StatsFileFlg(..)
-  , TimeoutFlg(..),  VerboseModeFlg(..)
-  , hasFlagP, getListFlagP, getFlagP, setFlagP
-  , builderType , BuilderType(..)
-  )
-import NLP.GenI.General ( mkLogname )
-import NLP.GenI.GeniShow
-import NLP.GenI.LexicalSelection
-import NLP.GenI.Pretty
-import NLP.GenI.Simple.SimpleBuilder
-import NLP.GenI.TestSuite ( TestCase(..) )
+import           NLP.GenI
+import           NLP.GenI.Configuration        (BatchDirFlg (..),
+                                                BuilderType (..),
+                                                DumpDerivationFlg (..),
+                                                EarlyDeathFlg (..),
+                                                FromStdinFlg (..),
+                                                MetricsFlg (..),
+                                                OutputFileFlg (..), Params,
+                                                RankingConstraintsFlg (..),
+                                                StatsFileFlg (..),
+                                                TestCaseFlg (..),
+                                                TestInstructionsFlg (..),
+                                                TestSuiteFlg (..),
+                                                TimeoutFlg (..),
+                                                VerboseModeFlg (..),
+                                                builderType, getFlagP,
+                                                getListFlagP, hasFlagP,
+                                                setFlagP)
+import           NLP.GenI.General              (ePutStr, ePutStrLn)
+import           NLP.GenI.General              (mkLogname)
+import           NLP.GenI.GeniShow
+import           NLP.GenI.LexicalSelection
+import           NLP.GenI.Pretty
+import           NLP.GenI.Simple.SimpleBuilder
+import           NLP.GenI.TestSuite            (TestCase (..))
 
-import Text.JSON
-import Text.JSON.Pretty ( render, pp_value )
+import           Text.JSON
+import           Text.JSON.Pretty              (pp_value, render)
 
 consoleGeni :: ProgStateRef -> CustomSem sem -> IO()
 consoleGeni pstRef wrangler = do
