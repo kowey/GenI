@@ -11,3 +11,5 @@ tb-noadj-bad semantics:[tb-unification-noadj() thing-bad()]
 
 tb-unification-na-bad semantics:[tb-unification-na(bad)]
 tb-unification-anchor-bad semantics:[tb-unification-anchor(bad)]
+
+interface-unification semantics:[interface()]

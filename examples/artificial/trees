@@ -148,3 +148,5 @@ X anchor [cat:?X;?Y;?Z x:?X y:?Y z:?Z foo:?X/x|y|z;?Z;a]![]
 variablecat(?X ?Y ?Z) initial
 X anchor [cat:_ x:?X y:?Y z:?Z foo:?X/x|y|z;?Z;a]![]
 
+interface-unification(!x:x y:y) initial
+X anchor [cat:x]![]
