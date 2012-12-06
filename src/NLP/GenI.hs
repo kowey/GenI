@@ -15,10 +15,12 @@
 -- along with this program; if not, write to the Free Software
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-{-# LANGUAGE ScopedTypeVariables, ExistentialQuantification, TypeSynonymInstances #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveDataTypeable        #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FlexibleInstances         #-}
+{-# LANGUAGE OverloadedStrings         #-}
+{-# LANGUAGE ScopedTypeVariables       #-}
+{-# LANGUAGE TypeSynonymInstances      #-}
 
 -- | This is the interface between the front and backends of the generator. The GUI
 --   and the console interface both talk to this module, and in turn, this module
@@ -54,70 +56,67 @@ module NLP.GenI (
              )
 where
 
-import Control.Applicative ((<$>),(<*>))
-import Control.DeepSeq
-import Control.Exception
-import Control.Monad.Error
-import Data.Binary (Binary, decodeFile)
-import Data.IORef (IORef, readIORef, modifyIORef)
-import Data.List
-import Data.Maybe (fromMaybe)
-import Data.Monoid ( (<>), mempty )
-import Data.Text ( Text )
-import Data.Typeable (Typeable)
-import System.CPUTime( getCPUTime )
-import System.FilePath ( takeExtension )
-import System.IO ( stderr )
-import qualified Data.Map as Map
-import qualified Data.ByteString as BS
-import qualified Data.Text as T
-import qualified Data.Text.IO as T
-import qualified Data.Text.Encoding as T
+import           Control.Applicative       ((<$>), (<*>))
+import           Control.DeepSeq
+import           Control.Exception
+import           Control.Monad.Error
+import           Data.Binary               (Binary, decodeFile)
+import qualified Data.ByteString           as BS
+import           Data.IORef                (IORef, modifyIORef, readIORef)
+import           Data.List
+import qualified Data.Map                  as Map
+import           Data.Maybe                (fromMaybe)
+import           Data.Monoid               (mempty, (<>))
+import           Data.Text                 (Text)
+import qualified Data.Text                 as T
+import qualified Data.Text.Encoding        as T
+import qualified Data.Text.IO              as T
+import           Data.Typeable             (Typeable)
+import           System.CPUTime            (getCPUTime)
+import           System.FilePath           (takeExtension)
+import           System.IO                 (stderr)
 
-import Data.FullList ( fromFL )
-import Text.JSON
-import System.Log.Logger ( debugM )
+import           Data.FullList             (fromFL)
+import           System.Log.Logger         (debugM)
+import           Text.JSON
 
-import NLP.GenI.Configuration
-    ( Params, customMorph, geniFlags
-    , getFlagP, hasFlagP, hasOpt, Optimisation(NoConstraints)
-    , MacrosFlg(..), LexiconFlg(..), TestSuiteFlg(..)
-    , MorphInfoFlg(..), MorphCmdFlg(..)
-    , RankingConstraintsFlg(..)
-    , PartialFlg(..)
-    , FromStdinFlg(..), VerboseModeFlg(..)
-    , NoLoadTestSuiteFlg(..)
-    , RootFeatureFlg(..)
-    , TracesFlg(..)
-    , grammarType
-    , GrammarType(..)
-    )
-import NLP.GenI.ErrorIO
-import NLP.GenI.General
-    ( histogram, geniBug, snd3, first3, ePutStr, ePutStrLn, eFlush
-    , mkLogname
-    )
-import NLP.GenI.GeniVal
-import NLP.GenI.LexicalSelection ( CustomSem(..), LexicalSelector, LexicalSelection(..), defaultLexicalSelector )
-import NLP.GenI.Lexicon
-import NLP.GenI.Morphology
-import NLP.GenI.OptimalityTheory
-import NLP.GenI.Parser (geniMacros, geniTagElems,
-                    geniLexicon, geniTestSuite,
-                    geniTestSuiteString, geniSemanticInput,
-                    geniMorphInfo,
-                    runParser,
-                    ParseError,
-                    )
-import NLP.GenI.GeniShow
-import NLP.GenI.Pretty hiding ( (<>) )
-import NLP.GenI.Semantics
-import NLP.GenI.Statistics
-import NLP.GenI.Tag ( TagElem, idname, tsemantics, setTidnums )
-import NLP.GenI.TestSuite ( TestCase(..) )
-import NLP.GenI.TreeSchema
-import NLP.GenI.Warning
-import qualified NLP.GenI.Builder as B
+import qualified NLP.GenI.Builder          as B
+import           NLP.GenI.Configuration    (FromStdinFlg (..), GrammarType (..),
+                                            LexiconFlg (..), MacrosFlg (..),
+                                            MorphCmdFlg (..), MorphInfoFlg (..),
+                                            NoLoadTestSuiteFlg (..),
+                                            Optimisation (NoConstraints),
+                                            Params, PartialFlg (..),
+                                            RankingConstraintsFlg (..),
+                                            RootFeatureFlg (..),
+                                            TestSuiteFlg (..), TracesFlg (..),
+                                            VerboseModeFlg (..), customMorph,
+                                            geniFlags, getFlagP, grammarType,
+                                            hasFlagP, hasOpt)
+import           NLP.GenI.ErrorIO
+import           NLP.GenI.General          (eFlush, ePutStr, ePutStrLn, first3,
+                                            geniBug, histogram, mkLogname, snd3)
+import           NLP.GenI.GeniShow
+import           NLP.GenI.GeniVal
+import           NLP.GenI.LexicalSelection (CustomSem (..),
+                                            LexicalSelection (..),
+                                            LexicalSelector,
+                                            defaultLexicalSelector)
+import           NLP.GenI.Lexicon
+import           NLP.GenI.Morphology
+import           NLP.GenI.OptimalityTheory
+import           NLP.GenI.Parser           (ParseError, geniLexicon, geniMacros,
+                                            geniMorphInfo, geniSemanticInput,
+                                            geniTagElems, geniTestSuite,
+                                            geniTestSuiteString, runParser)
+import           NLP.GenI.Pretty           hiding ((<>))
+import           NLP.GenI.Semantics
+import           NLP.GenI.Statistics
+import           NLP.GenI.Tag              (TagElem, idname, setTidnums,
+                                            tsemantics)
+import           NLP.GenI.TestSuite        (TestCase (..))
+import           NLP.GenI.TreeSchema
+import           NLP.GenI.Warning
 
 -- -- DEBUG
 -- import Control.Monad.Writer
@@ -179,7 +178,7 @@ loadEverything pstRef wrangler =
          isNotPrecompiled = grammarType config /= PreCompiled
          useTestSuite =  isMissing FromStdinFlg
                       && isMissing NoLoadTestSuiteFlg
-     -- display 
+     -- display
      let errormsg =
            concat $ intersperse ", " [ msg | (con, msg) <- errorlst, con ]
          errorlst =
@@ -193,7 +192,7 @@ loadEverything pstRef wrangler =
                 "a test suite") ]
      unless (null errormsg) $ fail ("Please specify: " ++ errormsg)
      -- we only have to read in grammars from the simple format
-     case grammarType config of 
+     case grammarType config of
         PreAnchored -> return ()
         PreCompiled -> return ()
         _        -> loadGeniMacros pstRef >> return ()
@@ -476,7 +475,7 @@ data GeniError = GeniError [Text]
   deriving (Ord, Eq)
 
 data GeniSuccess = GeniSuccess
-    { grLemmaSentence :: LemmaPlusSentence -- ^ “original” uninflected result 
+    { grLemmaSentence :: LemmaPlusSentence -- ^ “original” uninflected result
     , grRealisations  :: [Text]            -- ^ results after morphology
     , grResultType    :: ResultType
     , grWarnings      :: [Text]            -- ^ warnings “local” to this particular
@@ -500,12 +499,12 @@ instance Pretty GeniError where
     pretty (GeniError xs) = T.intercalate "\n" $ map ("Error:" <+>) xs
 
 -- | Entry point! (the most useful function to know here)
--- 
+--
 --   * Initialises the realiser (lexical selection, among other things),
 --
 --   * Runs the builder (the surface realisation engine proper)
 --
---   * Unpacks the builder results 
+--   * Unpacks the builder results
 --
 --   * Finalises the results (morphological generation)
 --
@@ -599,7 +598,7 @@ initGeni pstRef wrangler csem = do
         (show . length $ lsAnchored selection) ++
         " anchored trees"
     semInput <- liftEither $ fromCustomSemInput wrangler csem
-    let initStuff = B.Input 
+    let initStuff = B.Input
           { B.inSemInput = semInput
           , B.inLex   = lsLexEntries selection
           , B.inCands = map (\c -> (c,-1)) (lsAnchored selection)
@@ -916,12 +915,12 @@ deriving instance NFData GeniLexSel
 
 -- GENERATED START
 
- 
+
 instance NFData GeniResult where
         rnf (GError x1) = rnf x1 `seq` ()
         rnf (GSuccess x1) = rnf x1 `seq` ()
 
- 
+
 instance NFData GeniSuccess where
         rnf (GeniSuccess x1 x2 x3 x4 x5 x6 x7 x8 x9)
           = rnf x1 `seq`
@@ -930,16 +929,16 @@ instance NFData GeniSuccess where
                   rnf x4 `seq`
                     rnf x5 `seq` rnf x6 `seq` rnf x7 `seq` rnf x8 `seq` rnf x9 `seq` ()
 
- 
+
 instance NFData GeniError where
         rnf (GeniError x1) = rnf x1 `seq` ()
 
- 
+
 instance NFData ResultType where
         rnf CompleteResult = ()
         rnf PartialResult = ()
 
- 
+
 instance NFData GeniLexSel where
         rnf (GeniLexSel x1 x2) = rnf x1 `seq` rnf x2 `seq` ()
 -- GENERATED STOP
