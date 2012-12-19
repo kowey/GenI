@@ -19,12 +19,12 @@
 module NLP.GenI.TestSuite
 where
 
-import Data.Text ( Text)
-import qualified Data.Text as T
+import           Data.Text         (Text)
+import qualified Data.Text         as T
 
-import NLP.GenI.General ( maybeQuoteText )
-import NLP.GenI.GeniShow
-import NLP.GenI.Pretty
+import           NLP.GenI.General  (maybeQuoteText)
+import           NLP.GenI.GeniShow
+import           NLP.GenI.Pretty
 
 data TestCase sem = TestCase
     { tcName      :: Text
