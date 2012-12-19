@@ -16,16 +16,17 @@
 --  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 -- This module provides specialised functions for visualising tree data.
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances, TypeSynonymInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 module NLP.GenI.GeniShow
 where
 
-import Data.Text ( Text )
-import Data.Tree
-import qualified Data.Text as T
-import NLP.GenI.Pretty
+import           Data.Text       (Text)
+import qualified Data.Text       as T
+import           Data.Tree
+import           NLP.GenI.Pretty
 
 -- | GenI format; should round-trip with 'NLP.GenI.Parser' by rights
 --
