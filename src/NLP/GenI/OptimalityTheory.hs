@@ -27,20 +27,21 @@ module NLP.GenI.OptimalityTheory
    )
  where
 
-import Control.Applicative ( (<$>), (<*>) )
-import Control.Arrow ( first )
-import Data.Function (on)
-import Data.Char ( isSpace )
-import Data.List (nub, partition, sort, sortBy, groupBy, (\\), unfoldr )
-import Data.Text ( Text )
-import qualified Data.Text as T
-import Text.JSON
+import           Control.Applicative ((<$>), (<*>))
+import           Control.Arrow       (first)
+import           Data.Char           (isSpace)
+import           Data.Function       (on)
+import           Data.List           (groupBy, nub, partition, sort, sortBy,
+                                      unfoldr, (\\))
+import           Data.Text           (Text)
+import qualified Data.Text           as T
+import           Text.JSON
 
-import NLP.GenI.Pretty
-import NLP.GenI.TreeSchema ( Macros, ptrace )
-import qualified NLP.GenI.Builder as B
+import qualified NLP.GenI.Builder    as B
+import           NLP.GenI.Pretty
+import           NLP.GenI.TreeSchema (Macros, ptrace)
 
-import Control.DeepSeq
+import           Control.DeepSeq
 
 data OtConstraint = PositiveC Text -- ^ the trace must appear
                   | NegativeC Text -- ^ the trace must NOT appear
@@ -303,7 +304,7 @@ wordWrap len =
   where
     f t = if T.null t then Nothing else Just (splitAtBefore len t)
 
-splitAtBefore :: Int -- ^ wrap after these many characters 
+splitAtBefore :: Int -- ^ wrap after these many characters
               -> Text
               -> (Text, Text)
 splitAtBefore len xs
@@ -327,15 +328,15 @@ deriving instance NFData OtConstraint
 
 -- GENERATED START
 
- 
+
 instance NFData OtViolation where
         rnf (OtViolation x1 x2) = rnf x1 `seq` rnf x2 `seq` ()
 
- 
+
 instance NFData RankedOtConstraint where
         rnf (RankedOtConstraint x1 x2) = rnf x1 `seq` rnf x2 `seq` ()
 
- 
+
 instance NFData OtConstraint where
         rnf (PositiveC x1) = rnf x1 `seq` ()
         rnf (NegativeC x1) = rnf x1 `seq` ()
