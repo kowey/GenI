@@ -4,9 +4,9 @@
 
 module NLP.GenI.ErrorIO where
 
-import Control.Monad.Trans.Error
-import Data.Text ( Text )
-import qualified Data.Text as T
+import           Control.Monad.Trans.Error
+import           Data.Text                 (Text)
+import qualified Data.Text                 as T
 
 type ErrorIO = ErrorT Text IO
 
