@@ -1,5 +1,5 @@
+{-# LANGUAGE DeriveDataTypeable        #-}
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE DeriveDataTypeable #-}
 -- GenI surface realiser
 -- Copyright (C) 2009 Eric Kow
 --
@@ -22,15 +22,15 @@
 --   flexible for that need.
 module NLP.GenI.Flag where
 
-import Data.List ( find )
-import qualified Data.Set as Set
-import Data.Maybe ( catMaybes, fromJust, fromMaybe )
-import Data.Text ( Text )
-import Data.Typeable
+import           Data.List                 (find)
+import           Data.Maybe                (catMaybes, fromJust, fromMaybe)
+import qualified Data.Set                  as Set
+import           Data.Text                 (Text)
+import           Data.Typeable
 
-import NLP.GenI.FeatureStructure ( Flist )
-import NLP.GenI.GeniVal ( GeniVal )
-import NLP.GenI.Polarity.Types
+import           NLP.GenI.FeatureStructure (Flist)
+import           NLP.GenI.GeniVal          (GeniVal)
+import           NLP.GenI.Polarity.Types
 
 -- ----------------------------------------------------------------------
 -- configuration stuff
