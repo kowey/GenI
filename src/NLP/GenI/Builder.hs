@@ -15,9 +15,9 @@
 -- along with this program; if not, write to the Free Software
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+{-# LANGUAGE DeriveDataTypeable    #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings     #-}
 
 {-|
 The heavy lifting of GenI, the whole chart/agenda mechanism, can be
@@ -43,41 +43,44 @@ module NLP.GenI.Builder (
 )
 where
 
-import Control.Monad.State.Strict
-import Data.Bits ( (.&.), (.|.), bit )
-import Data.List ( delete, sort, nub )
-import Data.Maybe ( mapMaybe, fromMaybe, maybeToList )
-import Data.Tree ( flatten )
-import Prelude hiding ( init )
-import Data.Text ( Text )
-import qualified Data.Map as Map
-import qualified Data.Text as T
+import           Control.Monad.State.Strict
+import           Data.Bits                  (bit, (.&.), (.|.))
+import           Data.List                  (delete, nub, sort)
+import qualified Data.Map                   as Map
+import           Data.Maybe                 (fromMaybe, mapMaybe, maybeToList)
+import           Data.Text                  (Text)
+import qualified Data.Text                  as T
+import           Data.Tree                  (flatten)
+import           Prelude                    hiding (init)
 
-import Control.DeepSeq
+import           Control.DeepSeq
 
-import Data.Generics ( Data )
-import Data.Typeable ( Typeable )
+import           Data.Generics              (Data)
+import           Data.Typeable              (Typeable)
 
-import NLP.GenI.Automaton (NFA, automatonPaths, automatonPathSets, numStates, numTransitions)
-import NLP.GenI.FeatureStructure ( Flist, sortFlist, mkFeatStruct )
-import NLP.GenI.Flag
-import NLP.GenI.General ( BitVector, snd3, thd3, geniBug )
-import NLP.GenI.GeniVal ( GeniVal, DescendGeniVal(..), Collectable(collect), finaliseVarsById )
-import NLP.GenI.Lexicon ( LexEntry )
-import NLP.GenI.Morphology.Types
-import NLP.GenI.Polarity  (PolResult(..), buildAutomaton, detectPolPaths)
-import NLP.GenI.Pretty
-import NLP.GenI.Semantics ( SemInput, Sem, Literal )
-import NLP.GenI.Statistics (Statistics, incrIntMetric,
-                   Metric(IntMetric), updateMetrics,
-                   queryMetrics, queryIntMetric,
-                   addMetric, emptyStats,
-                   )
-import NLP.GenI.Tag
-    ( TagElem(idname,tsemantics,ttree), setTidnums
-    , TagDerivation, dsChild, dsParent
-    )
-import NLP.GenI.TreeSchema ( GNode(..), GType(Subs, Foot) )
+import           NLP.GenI.Automaton         (NFA, automatonPathSets,
+                                             automatonPaths, numStates,
+                                             numTransitions)
+import           NLP.GenI.FeatureStructure  (Flist, mkFeatStruct, sortFlist)
+import           NLP.GenI.Flag
+import           NLP.GenI.General           (BitVector, geniBug, snd3, thd3)
+import           NLP.GenI.GeniVal           (Collectable (collect),
+                                             DescendGeniVal (..), GeniVal,
+                                             finaliseVarsById)
+import           NLP.GenI.Lexicon           (LexEntry)
+import           NLP.GenI.Morphology.Types
+import           NLP.GenI.Polarity          (PolResult (..), buildAutomaton,
+                                             detectPolPaths)
+import           NLP.GenI.Pretty
+import           NLP.GenI.Semantics         (Literal, Sem, SemInput)
+import           NLP.GenI.Statistics        (Metric (IntMetric), Statistics,
+                                             addMetric, emptyStats,
+                                             incrIntMetric, queryIntMetric,
+                                             queryMetrics, updateMetrics)
+import           NLP.GenI.Tag               (TagDerivation,
+                                             TagElem (idname, tsemantics, ttree),
+                                             dsChild, dsParent, setTidnums)
+import           NLP.GenI.TreeSchema        (GNode (..), GType (Subs, Foot))
 
 data GenStatus = Finished
                | Active
@@ -85,7 +88,7 @@ data GenStatus = Finished
 
 data Builder st it = Builder
   { init     :: Input -> [Flag] -> (st, Statistics)
-             -- ^ initialise the machine from the semantics and lexical selection 
+             -- ^ initialise the machine from the semantics and lexical selection
   , step     :: BuilderState st () -- ^ run a realisation step
   , stepAll  :: BuilderState st () -- ^ run all realisations steps until completion
   --
@@ -99,7 +102,7 @@ type Output = (Integer, LemmaPlusSentence, TagDerivation)
 -- | To simplify interaction with the backend, we provide a single data
 --   structure which represents all the inputs a backend could take.
 
-data Input = 
+data Input =
   Input { inSemInput :: SemInput
         , inLex      :: [LexEntry] -- ^ for the debugger
         , inCands    :: [(TagElem, BitVector)]   -- ^ tag tree
@@ -108,7 +111,7 @@ data Input =
 -- Uninflected words and sentences
 
 -- | A SentenceAut represents a set of sentences in the form of an automaton.
---   The labels of the automaton are the words of the sentence.  But note! 
+--   The labels of the automaton are the words of the sentence.  But note!
 --   “word“ in the sentence is in fact a tuple (lemma, inflectional feature
 --   structures).  Normally, the states are defined as integers, with the
 --   only requirement being that each one, naturally enough, is unique.
@@ -402,7 +405,7 @@ deriving instance NFData Input
 
 -- GENERATED START
 
- 
+
 instance NFData Input where
         rnf (Input x1 x2 x3) = rnf x1 `seq` rnf x2 `seq` rnf x3 `seq` ()
 
