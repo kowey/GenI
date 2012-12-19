@@ -551,7 +551,7 @@ resultsGui builderGui pstRef wrangler semInput = do
     -- realisations tab
     (results,_,summTab,resTab) <- BG.resultsPnl builderGui pstRef wrangler nb semInput
     -- ranking tab
-    mRankTab <- if null (ranking (pa pst))
+    mRankTab <- if null (ranking pst)
                    then return Nothing
                    else Just <$> messageGui nb (purty pst results)
     -- tabs
