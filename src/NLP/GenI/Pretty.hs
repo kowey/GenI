@@ -15,16 +15,17 @@
 -- along with this program; if not, write to the Free Software
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 -- | This is not a proper pretty printer. I aim is to replace this with a
 --   (de-facto) standard library if one should appear
 module NLP.GenI.Pretty where
 
 import qualified Data.Monoid
-import Data.Text ( Text )
-import qualified Data.Text as T
+import           Data.Text   (Text)
+import qualified Data.Text   as T
 
 -- | An alternative 'Show' instance (the idea being that we
 --   should reserve 'Show' for outputting actual Haskell)
