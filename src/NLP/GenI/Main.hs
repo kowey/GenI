@@ -18,23 +18,25 @@
 {-# LANGUAGE CPP #-}
 module NLP.GenI.Main where
 
-import Control.Applicative ((<$>))
-import Data.IORef(newIORef)
-import Data.Typeable( Typeable )
-import Data.Version ( showVersion )
-import System.Environment(getArgs, getProgName)
+import           Control.Applicative       ((<$>))
+import           Data.IORef                (newIORef)
+import           Data.Typeable             (Typeable)
+import           Data.Version              (showVersion)
+import           System.Environment        (getArgs, getProgName)
 
-import Paths_GenI ( version )
+import           Paths_GenI                (version)
 
-import NLP.GenI.Console(consoleGeni)
-import NLP.GenI.Configuration (treatArgs, optionsForStandardGenI, processInstructions,
-                               usage, optionsSections, Params,
-                               hasFlagP, setFlagP, DisableGuiFlg(..),
-                               HelpFlg(..), VersionFlg(..),
-                               readGlobalConfig, setLoggers
-                              )
-import NLP.GenI.LexicalSelection ( CustomSem(..) )
-import NLP.GenI ( ProgState(..), emptyProgState, defaultCustomSem )
+import           NLP.GenI                  (ProgState (..), defaultCustomSem,
+                                            emptyProgState)
+import           NLP.GenI.Configuration    (DisableGuiFlg (..), HelpFlg (..),
+                                            Params, VersionFlg (..), hasFlagP,
+                                            optionsForStandardGenI,
+                                            optionsSections,
+                                            processInstructions,
+                                            readGlobalConfig, setFlagP,
+                                            setLoggers, treatArgs, usage)
+import           NLP.GenI.Console          (consoleGeni)
+import           NLP.GenI.LexicalSelection (CustomSem (..))
 
 main :: IO ()
 main = do
