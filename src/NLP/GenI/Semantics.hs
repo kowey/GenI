@@ -15,35 +15,36 @@
 -- along with this program; if not, write to the Free Software
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE TypeSynonymInstances, MultiParamTypeClasses, FlexibleInstances #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE TypeSynonymInstances  #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- | We use a flat semantics in GenI (bag of literals).
 module NLP.GenI.Semantics where
 
-import Control.Arrow ( first, (***), (&&&) )
-import Control.Applicative ( (<$>) )
-import Control.DeepSeq
-import Control.Monad.Error
-import Data.Binary
-import Data.Function ( on )
-import Data.Data
-import Data.List ( nub, sortBy, delete, insert )
-import qualified Data.Map as Map
-import Data.Text ( Text )
-import qualified Data.Text as T
+import           Control.Applicative       ((<$>))
+import           Control.Arrow             (first, (&&&), (***))
+import           Control.DeepSeq
+import           Control.Monad.Error
+import           Data.Binary
+import           Data.Data
+import           Data.Function             (on)
+import           Data.List                 (delete, insert, nub, sortBy)
+import qualified Data.Map                  as Map
+import           Data.Text                 (Text)
+import qualified Data.Text                 as T
 
-import Control.Error
+import           Control.Error
 
-import NLP.GenI.FeatureStructure
-import NLP.GenI.GeniShow
-import NLP.GenI.General ( histogram )
-import NLP.GenI.GeniVal
-import NLP.GenI.Pretty
+import           NLP.GenI.FeatureStructure
+import           NLP.GenI.General          (histogram)
+import           NLP.GenI.GeniShow
+import           NLP.GenI.GeniVal
+import           NLP.GenI.Pretty
 
 -- | A single semantic literal containing its handle, predicate, and arguments
 --
@@ -298,17 +299,17 @@ unifyLiteral l1@(Literal h1 p1 la1) l2@(Literal h2 p2 la2) =
 -- ----------------------------------------------------------------------
 
 {-!
-deriving instance NFData Literal 
-deriving instance Binary Literal 
+deriving instance NFData Literal
+deriving instance Binary Literal
 !-}
 
 -- GENERATED START
 
- 
+
 instance NFData g => NFData (Literal g) where
         rnf (Literal x1 x2 x3) = rnf x1 `seq` rnf x2 `seq` rnf x3 `seq` ()
 
- 
+
 instance Binary g => Binary (Literal g) where
         put (Literal x1 x2 x3)
           = do put x1
