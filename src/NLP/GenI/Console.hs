@@ -269,9 +269,9 @@ writeResults pst args wrangler cstr csem gresults = do
     config      = pa pst
     dump        = hasFlagP DumpDerivationFlg config
     -- do we print ranking information and all that other jazz?
-    formatResponses = if hasFlagP RankingConstraintsFlg config
-                         then pure . prettyResult pst
-                         else grRealisations
+    formatResponses = if null (ranking pst)
+                         then grRealisations
+                         else pure . prettyResult pst
     formatWarnings = T.unlines . map (" - " <>)
     --
     writeBatchFile key = case args of

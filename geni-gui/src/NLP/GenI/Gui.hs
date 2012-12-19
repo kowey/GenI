@@ -551,9 +551,9 @@ resultsGui builderGui pstRef wrangler semInput = do
     -- realisations tab
     (results,_,summTab,resTab) <- BG.resultsPnl builderGui pstRef wrangler nb semInput
     -- ranking tab
-    mRankTab <- if hasFlagP RankingConstraintsFlg (pa pst)
-                   then Just <$> messageGui nb (purty pst results)
-                   else return Nothing
+    mRankTab <- if null (ranking pst)
+                   then return Nothing
+                   else <$> messageGui nb (purty pst results)
     -- tabs
     let myTabs = catMaybes
            [ Just (tab "summary"       summTab)
