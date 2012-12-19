@@ -42,20 +42,20 @@ module NLP.GenI.Automaton
     numStates, numTransitions )
 where
 
-import qualified Data.Map as Map
-import Data.Maybe (catMaybes)
+import qualified Data.Map         as Map
+import           Data.Maybe       (catMaybes)
 
-import NLP.GenI.General (combinations)
+import           NLP.GenI.General (combinations)
 
 
 -- | Note: you can define the final state either by setting 'isFinalSt'
 --   to @Just f@ where @f@ is some function or by putting them in
 --   'finalStList'
-data NFA st ab = NFA 
+data NFA st ab = NFA
   { startSt     :: st
   , isFinalSt   :: Maybe (st -> Bool) -- ^ 'finalSt' will use this if defined
   , finalStList :: [st]   -- ^ can be ignored if 'isFinalSt' is defined
-  -- 
+  --
   , transitions :: Map.Map st (Map.Map st [Maybe ab])
                 -- ^ there can be more than one transition between any two states
                 --   and a transition could be the empty symbol
@@ -74,7 +74,7 @@ finalSt aut =
 --   to via @a@.
 lookupTrans :: (Ord ab, Ord st) => NFA st ab -> st -> (Maybe ab) -> [st]
 lookupTrans aut st ab = Map.keys $ Map.filter (elem ab) subT
-  where subT = Map.findWithDefault Map.empty st (transitions aut) 
+  where subT = Map.findWithDefault Map.empty st (transitions aut)
 
 addTrans :: (Ord ab, Ord st) =>
             NFA st ab
@@ -82,10 +82,10 @@ addTrans :: (Ord ab, Ord st) =>
          -> Maybe ab  -- ^ transition
          -> st        -- ^ to state
          -> NFA st ab
-addTrans aut st1 ab st2 = 
+addTrans aut st1 ab st2 =
   aut { transitions = Map.insert st1 newSubT oldT }
   where oldT     = transitions aut
-        oldSubT  = Map.findWithDefault Map.empty st1 oldT 
+        oldSubT  = Map.findWithDefault Map.empty st1 oldT
         newSubT  = Map.insertWith (++) st2 [ab] oldSubT
 
 -- | Returns all possible paths through an automaton from the
