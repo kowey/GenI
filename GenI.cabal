@@ -10,7 +10,7 @@ Homepage:       http://projects.haskell.org/GenI
 Maintainer:     geni-users@loria.fr
 Build-Type:     Simple
 Cabal-Version: >=1.14
-data-files: AUTHORS, INSTALL, README, NEWS, GenI.cabal,
+data-files: AUTHORS, INSTALL, README.markdown, NEWS, GenI.cabal,
             examples/artificial/lexicon,
             examples/artificial/trees,
             examples/artificial/suite,
