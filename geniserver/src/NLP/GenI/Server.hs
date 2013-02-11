@@ -28,7 +28,6 @@ import Data.Int
 import Data.IORef
 import Data.Text ( Text )
 import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TL
 import qualified Data.ByteString.Lazy as B
@@ -88,7 +87,7 @@ ok Normal j = do
 
 err :: T.Text -> Snap ()
 err x = do
-     modifyResponse $ setResponseStatus 400 (T.encodeUtf8 x)
+     modifyResponse (setResponseCode 400)
      writeText x
      withResponse finishWith
 
