@@ -80,9 +80,10 @@ consoleGeni :: ProgStateRef -> CustomSem sem -> IO()
 consoleGeni pstRef wrangler = do
     config <- pa <$> readIORef pstRef
     loadEverything pstRef wrangler
-    let job | hasFlagP FromStdinFlg config           = runStdinTestCase pstRef wrangler
+    pst <- readIORef pstRef
+    let job | hasFlagP FromStdinFlg config           = runStdinTestCase pst wrangler
             | hasFlagP BatchDirFlg config            = runInstructions  pstRef wrangler -- even if there is a testcase
-            | Just tc <- getFlagP TestCaseFlg config = runSpecificTestCase pstRef wrangler tc
+            | Just tc <- getFlagP TestCaseFlg config = runSpecificTestCase pst wrangler tc
             | otherwise                              = runInstructions  pstRef wrangler
     case getFlagP TimeoutFlg config of
       Nothing -> job
@@ -100,25 +101,24 @@ withGeniTimeOut t job = do
           exitWith (ExitFailure 2)
 
 -- | Run GenI without reading any test suites, just grab semantics from stdin
-runStdinTestCase :: ProgStateRef -> CustomSem sem -> IO ()
-runStdinTestCase pstRef wrangler = do
-    config    <- pa <$> readIORef pstRef
+runStdinTestCase :: ProgState -> CustomSem sem -> IO ()
+runStdinTestCase pst wrangler = do
+    let config = pa pst
     cstr      <- T.getContents
     case customSemParser wrangler cstr of
         Left err ->
             fail $ "I didn't understand the semantics you gave me: " ++ show err
         Right semInput ->
-            runOnSemInput pstRef (runAsStandalone config) wrangler cstr semInput >> return ()
+            runOnSemInput pst (runAsStandalone config) wrangler cstr semInput >> return ()
 
 -- | Run a test case with the specified name
-runSpecificTestCase :: ProgStateRef -> CustomSem sem -> Text -> IO ()
-runSpecificTestCase pstRef wrangler cname = do
-    pst <- readIORef pstRef
+runSpecificTestCase :: ProgState -> CustomSem sem -> Text -> IO ()
+runSpecificTestCase pst wrangler cname = do
     let config = pa pst
     fullsuite <- loadTestSuite pst wrangler
     case find (\x -> tcName x == cname) fullsuite  of
         Nothing -> fail ("No such test case: " ++ T.unpack cname)
-        Just s  -> runOnSemInput pstRef (runAsStandalone config) wrangler (tcSemString s) (tcSem s) >> return ()
+        Just s  -> runOnSemInput pst (runAsStandalone config) wrangler (tcSemString s) (tcSem s) >> return ()
 
 -- | Runs the tests specified in our instructions list.
 --   We assume that the grammar and lexicon are already
@@ -162,7 +162,7 @@ runInstructions pstRef wrangler =
           earlyDeath = hasFlagP EarlyDeathFlg config
       when verbose $
         ePutStrLn "======================================================"
-      gresults <- runOnSemInput pstRef (PartOfSuite n bdir) wrangler str s
+      gresults <- runOnSemInput pst (PartOfSuite n bdir) wrangler str s
       let res = grResults gresults
           (goodres, badres) = partition isSuccess (grResults gresults)
       T.hPutStrLn stderr $
@@ -209,20 +209,19 @@ runAsStandalone config =
 -- | Runs a case in the test suite.  If the user does not specify any test
 --   cases, we run the first one.  If the user specifies a non-existing
 --   test case we raise an error.
-runOnSemInput :: ProgStateRef
+runOnSemInput :: ProgState
               -> RunAs
               -> CustomSem sem
               -> Text
               -> sem
               -> IO GeniResults
-runOnSemInput pstRef args wrangler cstr csem = do
-    pst <- readIORef pstRef
+runOnSemInput pst args wrangler cstr csem = do
     case builderType (pa pst) of
-             SimpleBuilder         -> helper pst simpleBuilder_2p
-             SimpleOnePhaseBuilder -> helper pst simpleBuilder_1p
+             SimpleBuilder         -> helper simpleBuilder_2p
+             SimpleOnePhaseBuilder -> helper simpleBuilder_1p
   where
-    helper pst builder = do
-         res <- simplifyResults <$> (runErrorT $ runGeni pstRef wrangler builder csem)
+    helper builder = do
+         res <- simplifyResults <$> (runErrorT $ runGeni pst wrangler builder csem)
          writeResults pst args wrangler cstr csem res
          return res
 

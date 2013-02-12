@@ -512,19 +512,18 @@ instance Pretty GeniError where
 --   is mostly useful for debugging via the graphical interface.
 --   Note that we assumes that you have already loaded in your grammar and
 --   parsed your input semantics.
-runGeni :: ProgStateRef
+runGeni :: ProgState
         -> CustomSem sem
         -> B.Builder st it
         -> sem
         -> ErrorIO (GeniResults,st)
-runGeni pstRef selector builder semInput = do
+runGeni pst selector builder semInput = do
     -- step 1: lexical selection
-    istuff <- initGeni pstRef selector semInput
+    istuff <- initGeni pst selector semInput
     -- steps 2 to 4
     liftIO $ runBuilder istuff
   where
     runBuilder (initStuff, initWarns) = do
-        pst <- readIORef pstRef
         let flags  = geniFlags (pa pst)
             run    = B.run builder
         --force evaluation before measuring start time to avoid including grammar/lexicon parsing.
@@ -533,7 +532,7 @@ runGeni pstRef selector builder semInput = do
         let (finalSt, stats) = run initStuff flags
         -- step 3: unpacking and
         -- step 4: post-processing
-        results <- extractResults pstRef builder finalSt
+        results <- extractResults pst builder finalSt
         --force evaluation before measuring end time to account for all the work that should be done.
         end <- rnf results `seq` getCPUTime
         let elapsedTime = picosToMillis $! end - start
@@ -564,9 +563,9 @@ simplifyResults (Right (r,_)) = r
 --   * Unpacks the builder results
 --
 --   * Finalises the results (morphological generation)
-extractResults :: ProgStateRef ->  B.Builder st it -> st -> IO [GeniResult]
-extractResults pstRef builder finalSt = do
-    config  <- pa <$> readIORef pstRef
+extractResults :: ProgState ->  B.Builder st it -> st -> IO [GeniResult]
+extractResults pst builder finalSt = do
+    let config = pa pst
     -- step 3: unpacking
     let uninflected = B.unpack builder finalSt
         (rawResults, resultTy) =
@@ -576,7 +575,7 @@ extractResults pstRef builder finalSt = do
         status = B.finished builder finalSt
     -- step 4: post-processing
     debugM logname $ "tree assembly status: " ++ prettyStr status
-    finaliseResults pstRef (resultTy, status, rawResults)
+    finaliseResults pst (resultTy, status, rawResults)
 
 -- --------------------------------------------------------------------
 -- Surface realisation - sub steps
@@ -586,13 +585,13 @@ extractResults pstRef builder finalSt = do
 --   any morpohological literals
 --
 --   See 'defaultCustomSem'
-initGeni :: ProgStateRef
+initGeni :: ProgState
          -> CustomSem sem
          -> sem
          -> ErrorIO (B.Input, GeniWarnings)
-initGeni pstRef wrangler csem = do
+initGeni pst wrangler csem = do
     -- lexical selection
-    selection <- runLexSelection pstRef wrangler csem
+    selection <- runLexSelection pst wrangler csem
     liftIO $ debugM logname $
         "lexical selection returned " ++
         (show . length $ lsAnchored selection) ++
@@ -604,14 +603,12 @@ initGeni pstRef wrangler csem = do
           , B.inCands = map (\c -> (c,-1)) (lsAnchored selection)
           }
     return (initStuff, lsWarnings selection)
-  where
 
 -- | 'finaliseResults' does any post-processing steps that we want to integrate
 --   into mainline GenI.  So far, this consists of morphological realisation and
 --   OT ranking
-finaliseResults :: ProgStateRef -> (ResultType, B.GenStatus, [B.Output]) -> IO [GeniResult]
-finaliseResults pstRef (ty, status, os) = do
-    pst <- readIORef pstRef
+finaliseResults :: ProgState -> (ResultType, B.GenStatus, [B.Output]) -> IO [GeniResult]
+finaliseResults pst (ty, status, os) = do
     debugM logname $ "finalising " ++ show (length sentences) ++ " results"
     -- morph TODO: make this a bit safer
     mss <- case getFlagP MorphCmdFlg (pa pst) of
@@ -697,12 +694,11 @@ readPidname n =
 --   through the universal 'finaliseLexSelection'.
 --
 --   Also hunts for some warning conditions
-runLexSelection :: ProgStateRef
+runLexSelection :: ProgState
                 -> CustomSem sem -- ^ handler for custom semantics
                 -> sem           -- ^ semantics
                 -> ErrorIO LexicalSelection
-runLexSelection pstRef wrangler csem = do
-    pst <- liftIO $ readIORef pstRef
+runLexSelection pst wrangler csem = do
     let config   = pa pst
         verbose  = hasFlagP VerboseModeFlg config
         selector = customSelector wrangler
@@ -732,7 +728,7 @@ runLexSelection pstRef wrangler csem = do
 --   (with optional "preanchored" mode)
 defaultCustomSem :: ProgState -> IO (CustomSem SemInput)
 defaultCustomSem pst = mkDefaultCustomSem pst <$>
-    case grammarType (pa pst) of
+    case grammarType pst of
         PreAnchored -> mkPreAnchoredLexicalSelector pst
         _           -> return defaultLexicalSelector
 

@@ -113,12 +113,12 @@ runOnSemInput pstRef wrangler semInput = do
     pst <- readIORef pstRef
     let config = pa pst
         go = case builderType config of
-               SimpleBuilder -> helper simpleBuilder_2p
-               SimpleOnePhaseBuilder -> helper simpleBuilder_1p
+               SimpleBuilder         -> helper pst simpleBuilder_2p
+               SimpleOnePhaseBuilder -> helper pst simpleBuilder_1p
     sort `fmap` go
   where
-    helper b = (grResults . simplifyResults) <$>
-        (runErrorT $ runGeni pstRef wrangler b semInput)
+    helper pst b = (grResults . simplifyResults) <$>
+        (runErrorT $ runGeni pst wrangler b semInput)
 
 successes :: [GeniResult] -> [GeniSuccess]
 successes xs = [ s | GSuccess s <- xs ]
