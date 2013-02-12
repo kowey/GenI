@@ -35,7 +35,7 @@ import qualified Data.GraphViz.Attributes.Complete as GV
 import Graphics.UI.WX
 
 import NLP.GenI
-    ( ProgStateRef, ProgState(pa), runGeni
+    ( ProgState(pa), runGeni
     , GeniResults(..) , GeniResult(..)
     , GeniSuccess(..), GeniError(..), isSuccess
     )
@@ -84,24 +84,24 @@ simpleGui twophase = BG.BuilderGui
     }
 
 resultsPnl :: Bool
-           -> ProgStateRef
+           -> ProgState
            -> CustomSem sem
            -> Window a
            -> sem
            -> IO ([GeniResult], Statistics, Layout, Layout)
-resultsPnl twophase pstRef wrangler f semInput = do
+resultsPnl twophase pst wrangler f semInput = do
     mresults <- runErrorT $
-        runGeni pstRef wrangler (simpleBuilder twophase) semInput
+        runGeni pst wrangler (simpleBuilder twophase) semInput
     case mresults of
         Left err  -> do
-            (resultsL, _, _) <- realisationsGui pstRef f []
+            (resultsL, _, _) <- realisationsGui pst f []
             summaryL         <- messageGui f err
             return ([], emptyStats, summaryL, resultsL)
         Right (gresults, finalSt) -> do
             let sentences = grResults    gresults
                 stats     = grStatistics gresults
-            (resultsL, _, _) <- realisationsGui pstRef f $ theResults finalSt
-            summaryL         <- summaryGui pstRef f sentences stats
+            (resultsL, _, _) <- realisationsGui pst f $ theResults finalSt
+            summaryL         <- summaryGui pst f sentences stats
             return (sentences, stats, summaryL, resultsL)
 
 -- --------------------------------------------------------------------
@@ -112,21 +112,21 @@ resultsPnl twophase pstRef wrangler f semInput = do
 
 -- | Browser for derived/derivation trees, except if there are no results, we show a
 --   message box
-realisationsGui :: ProgStateRef -> Window a -> [SimpleItem]
+realisationsGui :: ProgState -> Window a -> [SimpleItem]
                 -> GvIO () (GvItem Bool SimpleItem)
 realisationsGui _   f [] = do
     m <- messageGui f "No results found"
     g <- newGvRef () ""
     return (m, g, return ())
-realisationsGui pstRef f resultsRaw = do
-    config <- pa <$> readIORef pstRef
+realisationsGui pst f resultsRaw = do
     tagViewerGui config f tip "derived" itNlabl
   where
+    config = pa pst
     tip = "result"
     mkItNLabl x = GvItem (siToSentence x) False x
     itNlabl = map mkItNLabl resultsRaw
 
-summaryGui :: ProgStateRef
+summaryGui :: ProgState
            -> Window a
            -> [GeniResult]
            -> Statistics -> IO Layout
@@ -176,21 +176,20 @@ partitionGeniResult results = (map unSucc *** map unErr)
 -- --------------------------------------------------------------------
 
 simpleDebuggerTab :: Bool
-                  -> ProgStateRef
+                  -> ProgState
                   -> Window a
                   -> B.Input
                   -> String
                   -> ([GeniResult] -> Statistics -> IO ())
                   -> IO Layout
-simpleDebuggerTab twophase pstRef f input name job = do
-    config <- pa <$> readIORef pstRef
-    debuggerPanel (dbg config) pstRef f input
+simpleDebuggerTab twophase pst f input name job = do
+    debuggerPanel dbg pst f input
   where
-    dbg :: Params -> Debugger SimpleStatus Bool SimpleItem
-    dbg config = Debugger
+    dbg :: Debugger SimpleStatus Bool SimpleItem
+    dbg = Debugger
         { dBuilder    = simpleBuilder twophase
         , dToGv       = stToGraphviz
-        , dControlPnl = simpleItemBar config
+        , dControlPnl = simpleItemBar (pa pst)
         , dNext       = job
         , dCacheDir   = name
         }

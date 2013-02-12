@@ -21,7 +21,7 @@ module NLP.GenI.BuilderGui where
 import Graphics.UI.WX
 
 import qualified NLP.GenI.Builder as B
-import NLP.GenI (ProgStateRef, GeniResult)
+import NLP.GenI (ProgState, GeniResult)
 import NLP.GenI.LexicalSelection ( CustomSem )
 import NLP.GenI.Statistics (Statistics)
 
@@ -37,20 +37,20 @@ data BuilderGui = BuilderGui
       --   a panel showing detailed results (eg. with trees and what not)
       --   and one showing a summary of the results
       resultsPnl  :: forall a sem
-                   . ProgStateRef
+                   . ProgState
                   -> CustomSem sem
                   -> Window a -- parent
                   -> sem
                   -> IO ([GeniResult],Statistics,Layout,Layout)
     -- | Just a sentence summary tab (small part of the resultsPnl)
     , summaryPnl :: forall a
-                  . ProgStateRef
+                  . ProgState
                  -> Window a -- parent
                  -> [GeniResult]
                  -> Statistics
                  -> IO Layout
     , debuggerPnl :: forall a
-                   . ProgStateRef
+                   . ProgState
                   -> Window a -- parent
                   -> B.Input
                   -> String   -- name of the builder algorithm

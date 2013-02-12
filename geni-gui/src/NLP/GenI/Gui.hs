@@ -515,6 +515,7 @@ doGenerate f pstRef wrangler sembox detectPolsTxt rootFeatTxt useDebugger pauseO
                   . maybeSet RootFeatureFlg parseRF rootCatVal
                   . setFlagP DetectPolaritiesFlg (readPolarityAttrs detectPolsVal)
     modifyIORef pstRef (modifyParams setConfig)
+    --
     minput <- do
         set sembox [ text :~ trim ]
         loadEverything   pstRef wrangler
@@ -522,21 +523,22 @@ doGenerate f pstRef wrangler sembox detectPolsTxt rootFeatTxt useDebugger pauseO
     case minput of
       Left e -> errorDialog f "Please give me better input" (show e)
       Right semInput -> do
-          let doDebugger bg = debugGui   bg pstRef wrangler semInput pauseOnLex
-              doResults  bg = resultsGui bg pstRef wrangler semInput
+          pst <- readIORef pstRef
+          let doDebugger bg = debugGui   bg pst wrangler semInput pauseOnLex
+              doResults  bg = resultsGui bg pst wrangler semInput
           catch
               (withBuilderGui $ if useDebugger then doDebugger else doResults)
               (handler "Error during realisation" prettyException)
   where
     handler title fn err = errorDialog f title (fn err)
     withBuilderGui a = do
-      config <- pa <$> readIORef pstRef
-      case builderType config of
-        SimpleBuilder         -> a simpleGui2p
-        SimpleOnePhaseBuilder -> a simpleGui1p
+        pst <- readIORef pstRef
+        case builderType (pa pst) of
+            SimpleBuilder         -> a simpleGui2p
+            SimpleOnePhaseBuilder -> a simpleGui1p
 
-resultsGui :: BG.BuilderGui -> ProgStateRef -> CustomSem sem -> sem -> IO ()
-resultsGui builderGui pstRef wrangler semInput = do
+resultsGui :: BG.BuilderGui -> ProgState -> CustomSem sem -> sem -> IO ()
+resultsGui builderGui pst wrangler semInput = do
     -- results window
     f <- frame [ text := "Results"
                , fullRepaintOnResize := False
@@ -545,15 +547,14 @@ resultsGui builderGui pstRef wrangler semInput = do
                ]
     p    <- panel f []
     nb   <- notebook p []
-    pst  <- readIORef pstRef
     -- input tab
     inputTab <- inputInfoGui nb (geniFlags (pa pst)) wrangler semInput
     -- realisations tab
-    (results,_,summTab,resTab) <- BG.resultsPnl builderGui pstRef wrangler nb semInput
+    (results,_,summTab,resTab) <- BG.resultsPnl builderGui pst wrangler nb semInput
     -- ranking tab
-    mRankTab <- if null (ranking pst)
+    mRankTab <- if null (ranking (pa pst))
                    then return Nothing
-                   else Just <$> messageGui nb (purty pst results)
+                   else Just <$> messageGui nb (purty results)
     -- tabs
     let myTabs = catMaybes
            [ Just (tab "summary"       summTab)
@@ -567,7 +568,7 @@ resultsGui builderGui pstRef wrangler semInput = do
     repaint f
     return ()
   where
-    purty pst res = T.unlines $ map (prettyResult pst) [ x | GSuccess x <- res ]
+    purty res = T.unlines $ map (prettyResult pst) [ x | GSuccess x <- res ]
 
 
 -- --------------------------------------------------------------------
@@ -623,12 +624,9 @@ inputInfoGui f flags wrangler csem = messageGui f . T.unlines $
 
 -- | We provide here a universal debugging interface, which makes use of some
 --   parameterisable bits as defined in the BuilderGui module.
-debugGui :: BG.BuilderGui -> ProgStateRef -> CustomSem sem -> sem -> Bool -> IO ()
-debugGui builderGui pstRef wrangler semInput pauseOnLex = do
-    config <- pa <$> readIORef pstRef
-    let btype = show (builderType config)
-    --
-    f <- frame [ text := "GenI Debugger - " ++ btype ++ " edition"
+debugGui :: BG.BuilderGui -> ProgState -> CustomSem sem -> sem -> Bool -> IO ()
+debugGui builderGui pst wrangler semInput pauseOnLex = do
+    f <- frame [ text := "GenI Debugger - " ++ show btype ++ " edition"
                , fullRepaintOnResize := False
                , clientSize := sz 300 300
                ]
@@ -643,24 +641,26 @@ debugGui builderGui pstRef wrangler semInput pauseOnLex = do
            notebookSetSelection nb oldCount >> return ()
     --
     -- generation step 1
-    minit <- runErrorT $ initGeni pstRef wrangler semInput
+    minit <- runErrorT $ initGeni pst wrangler semInput
     case minit of
         Left err -> do
            msgPnl <- messageGui nb err
            addTabs [ tab "error" msgPnl ]
-        Right x  -> guiRest nb config addTabs x
+        Right x  -> guiRest nb addTabs x
   where
+    config = pa pst
+    btype  = builderType config
+    --
     myPolarityGui nb autstuff =
        fst3 <$> polarityGui nb (prIntermediate autstuff) (prFinal autstuff)
     noBv x = (x, -1) -- all true?
     --
-    guiRest nb config addTabs (initStuff, initWarns) = do
+    guiRest nb addTabs (initStuff, initWarns) = do
         let (cand,_)   = unzip $ B.inCands initStuff
             flags      = geniFlags config
-            btype      = builderType config
         -- continuation for tree assembly tab
         let step3 results stats = do
-                resPnl <- BG.summaryPnl builderGui pstRef nb results stats
+                resPnl <- BG.summaryPnl builderGui pst nb results stats
                 addTabs [tab "summary" resPnl]
         -- continuation for candidate selection tab
         let step2 newCands = do
@@ -672,7 +672,7 @@ debugGui builderGui pstRef wrangler semInput pauseOnLex = do
                              then Just <$> myPolarityGui nb autstuff
                              else return Nothing
                -- generation step 2.B (start the generator for each path)
-               debugPnl <- BG.debuggerPnl builderGui pstRef nb input2 (show btype) step3
+               debugPnl <- BG.debuggerPnl builderGui pst nb input2 (show btype) step3
                let mAutTab  = tab "automata" <$> mAutPnl
                    debugTab = tab "tree assembly" debugPnl
                addTabs $ catMaybes [ mAutTab, Just debugTab ]

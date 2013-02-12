@@ -382,12 +382,12 @@ data GraphvizShow (GvItem flg itm) => Debugger st flg itm = Debugger
 --   you might want to decorate the type with some other information
 debuggerPanel :: GraphvizShow (GvItem flg itm)
               => Debugger st flg itm
-              -> ProgStateRef
+              -> ProgState
               -> Window a -- ^ parent window
               -> B.Input
               -> IO Layout
-debuggerPanel (Debugger {..}) pstRef f input = do
-    config <- (setMetrics . pa) <$> readIORef pstRef
+debuggerPanel (Debugger {..}) pst f input = do
+    let config = setMetrics (pa pst)
     let (initS, initStats) = initBuilder input (geniFlags config)
     p <- panel f []
     -- ---------------------------------------------------------
@@ -470,7 +470,7 @@ debuggerPanel (Debugger {..}) pstRef f input = do
         done <- varGet d
         unless done $ do
             varSet d True
-            results <- extractResults pstRef dBuilder st
+            results <- extractResults pst dBuilder st
             dNext results stats
 
 -- --------------------------------------------------------------------
