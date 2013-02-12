@@ -102,12 +102,11 @@ showResults xs = T.unlines . concat $
 handleRequest :: ProgState -> CustomSem sem -> ServerInstruction -> IO (Either Text GeniResults)
 handleRequest pst wrangler instr = do
     conf   <- treatArgsWithParams optionsForRequest params (pa pst)
-    pstRef <- newIORef (pst { pa = conf })
     case customSemParser wrangler semStr of
         Left e         -> return (Left e)
         Right csem -> do
             -- do the realisation
-            let helper builder = simplifyResults <$> (runErrorT $ runGeni pstRef wrangler builder csem)
+            let helper builder = simplifyResults <$> (runErrorT $ runGeni pst wrangler builder csem)
             results <- case builderType conf of
                            SimpleBuilder         -> helper simpleBuilder_2p
                            SimpleOnePhaseBuilder -> helper simpleBuilder_1p
