@@ -820,69 +820,69 @@ instance JSON GeniResults where
         ]
 
 instance JSON GeniResult where
- readJSON j =
-    case readJSON j of
-      Ok s    -> Ok (GSuccess s)
-      Error _ -> GError `fmap` readJSON j
- showJSON (GSuccess x) = showJSON x
- showJSON (GError   x) = showJSON x
+    readJSON j =
+        case readJSON j of
+            Ok s    -> Ok (GSuccess s)
+            Error _ -> GError `fmap` readJSON j
+    showJSON (GSuccess x) = showJSON x
+    showJSON (GError   x) = showJSON x
 
 instance JSON GeniSuccess where
- readJSON j = do
-   jo <- fromJSObject `fmap` readJSON j
-   let field x = maybe (fail $ "Could not find: " ++ x) readJSON
-               $ lookup x jo
-   GeniSuccess <$> field "raw"
-               <*> field "realisations"
-               <*> field "result-type"
-               <*> field "warnings"
-               <*> field "derivation"
-               <*> field "chart-item"
-               <*> field "lexical-selection"
-               <*> field "ranking"
-               <*> field "violations"
- showJSON nr =
-     JSObject . toJSObject $ [ ("raw", showJSON $ grLemmaSentence nr)
-                             , ("realisations", showJSONs $ grRealisations nr)
-                             , ("derivation", showJSONs $ grDerivation nr)
-                             , ("lexical-selection", showJSONs $ grLexSelection nr)
-                             , ("ranking", showJSON $ grRanking nr)
-                             , ("violations", showJSONs $ grViolations nr)
-                             , ("result-type", showJSON $ grResultType nr)
-                             , ("chart-item", showJSON $ grOrigin nr)
-                             , ("warnings",   showJSONs $ grWarnings nr)
-                             ]
+    readJSON j = do
+        jo <- fromJSObject `fmap` readJSON j
+        let field x = maybe (fail $ "Could not find: " ++ x) readJSON
+                    $ lookup x jo
+        GeniSuccess <$> field "raw"
+                    <*> field "realisations"
+                    <*> field "result-type"
+                    <*> field "warnings"
+                    <*> field "derivation"
+                    <*> field "chart-item"
+                    <*> field "lexical-selection"
+                    <*> field "ranking"
+                    <*> field "violations"
+    showJSON nr = JSObject . toJSObject $
+        [ ("raw"              , showJSON  $ grLemmaSentence nr)
+        , ("realisations"     , showJSONs $ grRealisations nr)
+        , ("derivation"       , showJSONs $ grDerivation nr)
+        , ("lexical-selection", showJSONs $ grLexSelection nr)
+        , ("ranking"          , showJSON  $ grRanking nr)
+        , ("violations"       , showJSONs $ grViolations nr)
+        , ("result-type"      , showJSON  $ grResultType nr)
+        , ("chart-item"       , showJSON  $ grOrigin nr)
+        , ("warnings"         , showJSONs $ grWarnings nr)
+        ]
 
 instance JSON GeniError where
- readJSON j =
-    do jo <- fromJSObject `fmap` readJSON j
-       let field x = maybe (fail $ "Could not find: " ++ x) readJSON
-                   $ lookup x jo
-       GeniError  <$> field "errors"
- showJSON (GeniError xs) =
-     JSObject . toJSObject $ [ ("errors", showJSON xs) ]
+    readJSON j = do
+        jo <- fromJSObject <$> readJSON j
+        let field x = maybe (fail $ "Could not find: " ++ x) readJSON
+                    $ lookup x jo
+        GeniError  <$> field "errors"
+    showJSON (GeniError xs) =
+        JSObject . toJSObject $ [ ("errors", showJSON xs) ]
 
 instance JSON ResultType where
-  readJSON j =
-    do js <- fromJSString `fmap` readJSON j
-       case js of
-         "partial"   -> return PartialResult
-         "complete"  -> return CompleteResult
-         ty          -> fail $ "unknown result type: " ++ ty
-  showJSON CompleteResult = JSString $ toJSString "complete"
-  showJSON PartialResult  = JSString $ toJSString "partial"
+    readJSON j = do
+        js <- fromJSString `fmap` readJSON j
+        case js of
+            "partial"   -> return PartialResult
+            "complete"  -> return CompleteResult
+            ty          -> fail $ "unknown result type: " ++ ty
+    showJSON CompleteResult = JSString $ toJSString "complete"
+    showJSON PartialResult  = JSString $ toJSString "partial"
 
 instance JSON GeniLexSel where
- readJSON j =
-    do jo <- fromJSObject `fmap` readJSON j
-       let field x = maybe (fail $ "Could not find: " ++ x) readJSON
-                   $ lookup x jo
-       GeniLexSel <$> field "lex-item"
-                  <*> field "trace"
- showJSON x =
-     JSObject . toJSObject $ [ ("lex-item", showJSON  $ nlTree x)
-                             , ("trace",    showJSONs $ nlTrace x)
-                             ]
+    readJSON j = do
+        jo <- fromJSObject `fmap` readJSON j
+        let field x = maybe (fail $ "Could not find: " ++ x) readJSON
+                    $ lookup x jo
+        GeniLexSel <$> field "lex-item"
+                   <*> field "trace"
+    showJSON x = JSObject . toJSObject $
+        [ ("lex-item", showJSON  $ nlTree x)
+        , ("trace",    showJSONs $ nlTrace x)
+        ]
 
 -- Converts picoseconds to milliseconds.
 picosToMillis :: Integer -> Double
