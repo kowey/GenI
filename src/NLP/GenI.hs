@@ -156,55 +156,54 @@ emptyProgState args = ProgState
 --   for use by the graphical interface.  The master function also makes sure
 --   to complain intelligently if some of the required files are missing.
 loadEverything :: ProgStateRef -> CustomSem sem -> IO()
-loadEverything pstRef wrangler =
-  do pst <- readIORef pstRef
-     --
-     let config   = pa pst
-         isMissing f = not $ hasFlagP f config
-     -- grammar type
-         grammarType      = getGrammarType (geniFlags config)
-         isNotPreanchored = grammarType /= PreAnchored
-         isNotPrecompiled = grammarType /= PreCompiled
-         useTestSuite =  isMissing FromStdinFlg
-                      && isMissing NoLoadTestSuiteFlg
-     -- display
-     let errormsg =
-           concat $ intersperse ", " [ msg | (con, msg) <- errorlst, con ]
-         errorlst =
-              [ (isMissing RootFeatureFlg,
-                "a root feature [empty feature is fine if you are not using polarity filtering]")
-              , (isNotPrecompiled && isMissing MacrosFlg,
-                "a tree file")
-              , (isNotPreanchored && isMissing LexiconFlg,
-                "a lexicon file")
-              , (useTestSuite && isMissing TestSuiteFlg,
-                "a test suite") ]
-     unless (null errormsg) $ fail ("Please specify: " ++ errormsg)
-     -- we only have to read in grammars from the simple format
-     case grammarType of
-        PreAnchored -> return ()
-        PreCompiled -> return ()
-        _           -> loadGeniMacros pstRef >> return ()
-     -- we don't have to read in the lexicon if it's already pre-anchored
-     when isNotPreanchored $ loadLexicon pstRef >> return ()
-     -- in any case, we have to...
-     loadMorphInfo pstRef
-     when useTestSuite $ loadTestSuite pst wrangler >> return ()
-     -- the trace filter file
-     loadTraces pstRef
-     -- OT ranking
-     loadRanking pstRef
-
+loadEverything pstRef wrangler = do
+    pst <- readIORef pstRef
+    --
+    let config   = pa pst
+        isMissing f = not $ hasFlagP f config
+    -- grammar type
+        grammarType      = getGrammarType (geniFlags config)
+        isNotPreanchored = grammarType /= PreAnchored
+        isNotPrecompiled = grammarType /= PreCompiled
+        useTestSuite =  isMissing FromStdinFlg
+                     && isMissing NoLoadTestSuiteFlg
+    -- display
+    let errormsg =
+          concat $ intersperse ", " [ msg | (con, msg) <- errorlst, con ]
+        errorlst =
+             [ (isMissing RootFeatureFlg,
+               "a root feature [empty feature is fine if you are not using polarity filtering]")
+             , (isNotPrecompiled && isMissing MacrosFlg,
+               "a tree file")
+             , (isNotPreanchored && isMissing LexiconFlg,
+               "a lexicon file")
+             , (useTestSuite && isMissing TestSuiteFlg,
+               "a test suite") ]
+    unless (null errormsg) $ fail ("Please specify: " ++ errormsg)
+    -- we only have to read in grammars from the simple format
+    case grammarType of
+       PreAnchored -> return ()
+       PreCompiled -> return ()
+       _           -> loadGeniMacros pstRef >> return ()
+    -- we don't have to read in the lexicon if it's already pre-anchored
+    when isNotPreanchored $ loadLexicon pstRef >> return ()
+    -- in any case, we have to...
+    loadMorphInfo pstRef
+    when useTestSuite $ loadTestSuite pst wrangler >> return ()
+    -- the trace filter file
+    loadTraces pstRef
+    -- OT ranking
+    loadRanking pstRef
 
 -- | The file loading functions all work the same way: we load the file,
 --   and try to parse it.  If this doesn't work, we just fail in IO, and
 --   GenI dies.  If we succeed, we update the program state passed in as
 --   an IORef.
 class Loadable x where
-  lParse       :: FilePath -- ^ source (optional)
-               -> Text -> Either Text x
-  lSet         :: x -> ProgState -> ProgState
-  lSummarise   :: x -> String
+    lParse       :: FilePath -- ^ source (optional)
+                 -> Text -> Either Text x
+    lSet         :: x -> ProgState -> ProgState
+    lSummarise   :: x -> String
 
 -- | Note that here we assume the input consists of UTF-8 encoded file
 lParseFromFile :: Loadable x => FilePath -> IO (Either Text x)
@@ -249,23 +248,24 @@ loadFromString :: Loadable a => ProgStateRef
                -> Text   -- ^ string to load
                -> IO a
 loadFromString pstRef descr s =
-  throwOnParseError descr (lParse "" s) >>= lSetState pstRef
+    throwOnParseError descr (lParse "" s) >>= lSetState pstRef
 
 instance Loadable Lexicon where
-  lParse f = fmap toLexicon . fromParsec . runParser geniLexicon () f
-    where
-     fixEntry  = finaliseVars ""
-               . anonymiseSingletons  -- anonymise singletons for performance
-               . sorter
-     toLexicon = map fixEntry
-     sorter l  = l { isemantics = (sortByAmbiguity . isemantics) l }
-  lSet x p = p { le = x }
-  lSummarise x = show (length x) ++ " lemmas"
+    lParse f =
+        fmap toLexicon . fromParsec . runParser geniLexicon () f
+      where
+        fixEntry  = finaliseVars ""
+                  . anonymiseSingletons  -- anonymise singletons for performance
+                  . sorter
+        toLexicon = map fixEntry
+        sorter l  = l { isemantics = (sortByAmbiguity . isemantics) l }
+    lSet x p = p { le = x }
+    lSummarise x = show (length x) ++ " lemmas"
 
 instance Loadable Macros where
-  lParse f = fromParsec . runParser geniMacros () f
-  lSet x p = p { gr = x }
-  lSummarise x = show (length x) ++ " schemata"
+    lParse f = fromParsec . runParser geniMacros () f
+    lSet x p = p { gr = x }
+    lSummarise x = show (length x) ++ " schemata"
 
 loadLexicon :: ProgStateRef -> IO Lexicon
 loadLexicon = loadOrDie (L :: L Lexicon) LexiconFlg "lexicon"
@@ -303,11 +303,11 @@ loadOptional L flg descr pstRef = do
 newtype MorphFnL = MorphFnL MorphInputFn
 
 instance Loadable MorphFnL where
-  lParse f = fmap (MorphFnL . readMorph)
-           . fromParsec
-           . runParser geniMorphInfo () f
-  lSet (MorphFnL x) p = p { morphinf = x }
-  lSummarise _ = "morphinfo"
+    lParse f = fmap (MorphFnL . readMorph)
+             . fromParsec
+             . runParser geniMorphInfo () f
+    lSet (MorphFnL x) p = p { morphinf = x }
+    lSummarise _ = "morphinfo"
 
 newtype TracesL = TracesL [Text]
 
@@ -422,20 +422,20 @@ withLoadStatus :: Bool                 -- ^ verbose
                -> IO (Either Text a)
 withLoadStatus False f _ _         p = p f
 withLoadStatus True  f d summarise p = do
-     ePutStr $ unwords [ "Loading",  d, f ++ "... " ]
-     eFlush
-     mx <- p f
-     ePutStrLn $ either (const "ERROR") (\x -> summarise x ++ " loaded") mx
-     return mx
+    ePutStr $ unwords [ "Loading",  d, f ++ "... " ]
+    eFlush
+    mx <- p f
+    ePutStrLn $ either (const "ERROR") (\x -> summarise x ++ " loaded") mx
+    return mx
 
 parseFromFileMaybeBinary :: Binary a
                          => (FilePath -> IO (Either Text a))
                          -> FilePath
                          -> IO (Either Text a)
 parseFromFileMaybeBinary p f =
-     if takeExtension f == ".genib"
-        then Right <$> decodeFile f
-        else p f
+    if takeExtension f == ".genib"
+       then Right <$> decodeFile f
+       else p f
 
 -- --------------------------------------------------------------------
 -- Surface realisation - entry point
@@ -637,8 +637,8 @@ showRealisations :: [String] -> String
 showRealisations [] = "(none)"
 showRealisations xs = unlines . map sho . Map.toList . histogram $ xs
   where
-   sho (x,1) = x
-   sho (x,c) = x ++ " (" ++ show c ++ " instances)"
+    sho (x,1) = x
+    sho (x,c) = x ++ " (" ++ show c ++ " instances)"
 
 -- | No morphology! Pretend the lemma string is a sentence
 lemmaSentenceString :: GeniSuccess -> Text
@@ -647,7 +647,7 @@ lemmaSentenceString = T.unwords . map lpLemma . grLemmaSentence
 prettyResult :: ProgState -> GeniSuccess -> Text
 prettyResult pst nr =
     T.intercalate "\n" . map showOne . grRealisations $ nr
- where
+  where
     showOne str = pretty theRanking <> ". " <> str <> "\n" <> violations
     violations  = prettyViolations tracesFn verbose (grViolations nr)
     theRanking  = grRanking nr
@@ -661,11 +661,11 @@ prettyResult pst nr =
 --   details.
 getTraces :: ProgState -> Text -> [Text]
 getTraces pst tname =
-  filt $ concat [ ptrace t | t <- gr pst, pidname t == readPidname tname ]
+    filt $ concat [ ptrace t | t <- gr pst, pidname t == readPidname tname ]
   where
-   filt = case traces pst of
-          []    -> id
-          theTs -> filter (`elem` theTs)
+    filt = case traces pst of
+               []    -> id
+               theTs -> filter (`elem` theTs)
 
 -- | We assume the name was constructed by 'combineName'
 readPidname :: Text -> Text
@@ -744,7 +744,7 @@ mkDefaultCustomSem pst selector = CustomSem
 --   appear in any of the @ts@ trees
 missingLiterals :: [TagElem] -> [Literal GeniVal] -> [Literal GeniVal]
 missingLiterals cands tsem =
-   tsem \\ (nub $ concatMap tsemantics cands)
+    tsem \\ (nub $ concatMap tsemantics cands)
 
 -- | Post-processes lexical selection results to things which
 --   GenI considers universal. No matter what custom
@@ -759,11 +759,11 @@ finaliseLexSelection :: MorphInputFn -> SemInput -> [TagElem] -> [TagElem]
 finaliseLexSelection morph (tsem,_,_) =
     setTidnums . considerCoherency . considerMorph
   where
-   -- attach any morphological information to the candidates
-   considerMorph = attachMorph morph tsem
-   -- filter out candidates whose semantics has bonus stuff which does
-   -- not occur in the input semantics
-   considerCoherency = filter (all (`elem` tsem) . tsemantics)
+    -- attach any morphological information to the candidates
+    considerMorph = attachMorph morph tsem
+    -- filter out candidates whose semantics has bonus stuff which does
+    -- not occur in the input semantics
+    considerCoherency = filter (all (`elem` tsem) . tsemantics)
 
 -- --------------------------------------------------------------------
 -- Pre-selection and pre-anchoring
