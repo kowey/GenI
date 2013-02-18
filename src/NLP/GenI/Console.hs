@@ -36,35 +36,19 @@ import qualified Data.Text.Encoding            as T
 import qualified Data.Text.IO                  as T
 import           Data.Time                     (formatTime, getCurrentTime)
 import           Data.Typeable
-import           System.Directory              (createDirectoryIfMissing,
-                                                getTemporaryDirectory)
-import           System.Exit                   (ExitCode (..), exitFailure,
-                                                exitWith)
+import           System.Directory
+import           System.Exit
 import           System.FilePath               (takeFileName, (</>))
 import           System.IO                     (stderr)
-import           System.Locale                 (defaultTimeLocale,
-                                                iso8601DateFormat)
-import           System.Log.Logger
+import           System.Locale
 import           System.Timeout                (timeout)
 
+import           System.Log.Logger
+import           Text.JSON
+import           Text.JSON.Pretty              (pp_value, render)
 
 import           NLP.GenI
-import           NLP.GenI.Configuration        (BatchDirFlg (..),
-                                                BuilderType (..),
-                                                DumpDerivationFlg (..),
-                                                EarlyDeathFlg (..),
-                                                FromStdinFlg (..),
-                                                MetricsFlg (..),
-                                                OutputFileFlg (..), Params,
-                                                StatsFileFlg (..),
-                                                TestCaseFlg (..),
-                                                TestInstructionsFlg (..),
-                                                TestSuiteFlg (..),
-                                                TimeoutFlg (..),
-                                                VerboseModeFlg (..),
-                                                builderType, getFlagP,
-                                                getListFlagP, hasFlagP,
-                                                setFlagP)
+import           NLP.GenI.Configuration
 import           NLP.GenI.General              (ePutStr, ePutStrLn)
 import           NLP.GenI.General              (mkLogname)
 import           NLP.GenI.GeniShow
@@ -72,9 +56,6 @@ import           NLP.GenI.LexicalSelection
 import           NLP.GenI.Pretty
 import           NLP.GenI.Simple.SimpleBuilder
 import           NLP.GenI.TestSuite            (TestCase (..))
-
-import           Text.JSON
-import           Text.JSON.Pretty              (pp_value, render)
 
 consoleGeni :: ProgStateRef -> CustomSem sem -> IO()
 consoleGeni pstRef wrangler = do
@@ -156,8 +137,9 @@ runInstructions pstRef wrangler =
           then    fail $ "Can't do batch processing. The test suite " ++ file ++ " has cases with no name."
           else do ePutStrLn "Batch processing mode"
                   mapM_ (runCase bsubdir) suite
-  runCase bdir (TestCase { tcName = n, tcSem = s, tcSemString = str }) =
-   do config <- pa `fmap` readIORef pstRef
+  runCase bdir (TestCase { tcName = n, tcSem = s, tcSemString = str }) = do
+      pst <- readIORef pstRef
+      let config = pa pst
       let verbose = hasFlagP VerboseModeFlg config
           earlyDeath = hasFlagP EarlyDeathFlg config
       when verbose $
@@ -267,7 +249,7 @@ writeResults pst args wrangler cstr csem gresults = do
     config      = pa pst
     dump        = hasFlagP DumpDerivationFlg config
     -- do we print ranking information and all that other jazz?
-    formatResponses = if null (ranking pst)
+    formatResponses = if null (ranking (pa pst))
                          then grRealisations
                          else pure . prettyResult pst
     formatWarnings = T.unlines . map (" - " <>)

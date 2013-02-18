@@ -70,9 +70,9 @@ import           System.Log.Handler        (LogHandler, setFormatter)
 import           System.Log.Handler.Simple
 import           System.Log.Logger
 
+import           NLP.GenI.Control
 import           NLP.GenI.Flag
 import           NLP.GenI.General          (fst3, geniBug, snd3)
-import           NLP.GenI.Morphology.Types (MorphRealiser)
 import           NLP.GenI.Parser           (Parser, geniFeats, runParser,
                                             tillEof)
 import           NLP.GenI.Polarity.Types   (readPolarityAttrs)
@@ -82,35 +82,13 @@ import           NLP.GenI.Pretty
 -- Params
 -- --------------------------------------------------------------------
 
--- | Holds the specification for how Geni should be run, its input
---   files, etc.  This is the stuff that would normally be found in
---   the configuration file.
-data Params = Params
-    { grammarType :: GrammarType
-    , builderType :: BuilderType
-    -- | Can still be overridden with a morph command mind you
-    , customMorph :: Maybe MorphRealiser
-    , geniFlags   :: [Flag]
-    }
-
-
-{-
-instance Show Params where
-    show p = unlines
-        [ unwords [ "GenI config :", show (grammarType p), show (builderType p), morph ]
-        , unwords $ "GenI flags  :" : map show (geniFlags p)
-        ]
-      where
-        morph = "custom morph:" ++ show (isJust (customMorph p))
--}
-
 -- | The default parameters configuration
 emptyParams :: Params
 emptyParams = Params
     { builderType    = SimpleBuilder
-    , grammarType    = GeniHand
-    , customMorph    = Nothing
+    , morphFlags     = []
     , geniFlags      = emptyFlags
+    , ranking        = []
     }
 
 hasFlagP    :: (Typeable f, Typeable x) => (x -> f) -> Params -> Bool
@@ -248,7 +226,6 @@ defineParams flgs prms =
   $ prms
     { geniFlags     = flgs
     , builderType   = fromFlags builderType BuilderFlg flgs
-    , grammarType   = fromFlags grammarType GrammarTypeFlg flgs
     }
  where
   setDefault (Flag f v) p =

@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 {-# LANGUAGE DeriveDataTypeable        #-}
 {-# LANGUAGE ExistentialQuantification #-}
 -- GenI surface realiser
@@ -19,17 +21,12 @@
 
 module NLP.GenI.Morphology.Types where
 
-import           Control.Applicative       ((<$>), (<*>))
 import           Control.DeepSeq
 import           Data.Text                 (Text)
-import qualified Data.Text                 as T
 
 import           NLP.GenI.FeatureStructure (Flist)
 import           NLP.GenI.GeniVal          (GeniVal)
-import           NLP.GenI.Parser           (Parser, geniFeats, runParser)
-import           NLP.GenI.Pretty
 import           NLP.GenI.Semantics
-import           Text.JSON
 
 -- ----------------------------------------------------------------------
 -- morph input
@@ -48,18 +45,6 @@ data MorphOutput = MorphOutput { moWarnings     :: [Text]
                                }
   deriving (Ord, Eq)
 
-instance JSON MorphOutput where
- readJSON j =
-   case fromJSObject `fmap` readJSON j of
-     Error _ -> MorphOutput [] <$> readJSON j
-     Ok jo   -> do
-       let field x = maybe (fail $ "Could not find: " ++ x) readJSON
-                   $ lookup x jo
-           warnings = maybe (return []) readJSON (lookup "warnings" jo)
-       MorphOutput <$> warnings
-                   <*> field "realisations"
- showJSON _ = error "Don't know how to render MorphOutput"
-
 -- | A lemma plus its morphological features
 data LemmaPlus = LemmaPlus
     { lpLemma :: Text
@@ -69,25 +54,6 @@ data LemmaPlus = LemmaPlus
 
 -- | A sentence composed of 'LemmaPlus' instead of plain old words
 type LemmaPlusSentence = [LemmaPlus]
-
-instance JSON LemmaPlus where
- readJSON j =
-    do jo <- fromJSObject `fmap` readJSON j
-       let field x = maybe (fail $ "Could not find: " ++ x) readJSON
-                   $ lookup x jo
-           tfield = fmap T.pack . field
-       LemmaPlus <$> field "lemma"
-                 <*> (parsecToJSON "lemma-features" geniFeats =<< tfield "lemma-features")
- showJSON (LemmaPlus l fs) =
-     JSObject . toJSObject $ [ ("lemma", showJSON l)
-                             , ("lemma-features", showJSON $ prettyStr fs)
-                             ]
-
-parsecToJSON :: Monad m => String -> Parser b -> Text -> m b
-parsecToJSON description p str =
-    case runParser p () "" str of
-        Left  err -> fail $ "Couldn't parse " ++ description ++ " because " ++ show err
-        Right res -> return res
 
 {-!
 deriving instance NFData MorphOutput

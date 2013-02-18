@@ -24,6 +24,7 @@ specify on the command line.  Note that a simple and stupid
 or on hackage.
 -}
 
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE OverloadedStrings  #-}
 module NLP.GenI.Morphology
@@ -35,6 +36,7 @@ module NLP.GenI.Morphology
  , inflectSentencesUsingCmd, sansMorph
  ) where
 
+import           Control.Applicative
 import           Control.Concurrent        (forkIO)
 import           Control.Exception         (IOException, bracket, catch,
                                             evaluate)
@@ -51,12 +53,14 @@ import           System.Process
 
 import           System.Log.Logger
 import           Text.JSON
+import qualified Text.JSON                 as J
 import           Text.JSON.Pretty          hiding ((<+>), (<>))
 
 import           NLP.GenI.FeatureStructure
 import           NLP.GenI.General
 import           NLP.GenI.GeniVal          (GeniVal, mkGAnon, replace)
 import           NLP.GenI.Morphology.Types
+import           NLP.GenI.Parser
 import           NLP.GenI.Pretty
 import           NLP.GenI.Semantics        (Literal (..), Sem)
 import           NLP.GenI.Tag
@@ -214,6 +218,42 @@ inflectSentencesUsingCmd morphcmd sentences =
   fallback err = do
     errorM logname err
     return $ map (\x -> (x, sansMorph x)) sentences
+
+-- ---------------------------------------------------------------------
+-- parsers
+-- ---------------------------------------------------------------------
+
+instance JSON MorphOutput where
+    readJSON j =
+        case fromJSObject `fmap` readJSON j of
+            J.Error _ -> MorphOutput [] <$> readJSON j
+            J.Ok jo   -> do
+                let field x = maybe (fail $ "Could not find: " ++ x) readJSON
+                            $ lookup x jo
+                    warnings = maybe (return []) readJSON (lookup "warnings" jo)
+                MorphOutput <$> warnings
+                             <*> field "realisations"
+    showJSON _ = error "Don't know how to render MorphOutput"
+
+instance JSON LemmaPlus where
+    readJSON j = do
+        jo <- fromJSObject `fmap` readJSON j
+        let field x = maybe (fail $ "Could not find: " ++ x) readJSON
+                    $ lookup x jo
+            tfield = fmap T.pack . field
+        LemmaPlus <$> field "lemma"
+                  <*> (parsecToJSON "lemma-features" geniFeats =<<
+                       tfield "lemma-features")
+    showJSON (LemmaPlus l fs) = JSObject . toJSObject $
+         [ ("lemma"         , showJSON l)
+         , ("lemma-features", showJSON $ prettyStr fs)
+         ]
+
+parsecToJSON :: Monad m => String -> Parser b -> Text -> m b
+parsecToJSON description p str =
+    case runParser p () "" str of
+        Left  err -> fail $ "Couldn't parse " ++ description ++ " because " ++ show err
+        Right res -> return res
 
 -- ----------------------------------------------------------------------
 -- odds and ends

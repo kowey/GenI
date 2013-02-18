@@ -38,7 +38,7 @@ module NLP.GenI.Parser (
 ) where
 
 
-import           Control.Applicative       ((*>), (<$>), (<*), (<*>))
+import           Control.Applicative       ((*>), (<$>), (<*), (<*>), pure)
 import           Control.Monad             (liftM, when)
 import qualified Data.ByteString           as B
 import           Data.Functor.Identity     (Identity)
@@ -277,6 +277,7 @@ geniTestCase =
               <*> lookAhead geniSemanticInputString
               <*> geniSemanticInput
               <*> many geniSentence
+              <*> pure Nothing
 
 -- note that the keyword is NOT optional
 type TestCaseOutput = (Text, Map.Map (Text,Text) [Text])

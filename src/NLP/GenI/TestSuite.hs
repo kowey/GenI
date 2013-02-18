@@ -22,6 +22,7 @@ where
 import           Data.Text         (Text)
 import qualified Data.Text         as T
 
+import           NLP.GenI.Control
 import           NLP.GenI.General  (maybeQuoteText)
 import           NLP.GenI.GeniShow
 import           NLP.GenI.Pretty
@@ -31,6 +32,7 @@ data TestCase sem = TestCase
     , tcSemString :: Text -- ^ for gui
     , tcSem       :: sem
     , tcExpected  :: [Text] -- ^ expected results (for testing)
+    , tcParams    :: Maybe Params
     }
 
 instance GeniShow sem => GeniShow (TestCase sem) where

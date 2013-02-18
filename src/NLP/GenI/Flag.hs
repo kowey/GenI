@@ -66,9 +66,16 @@ data GrammarType = GeniHand    -- ^ geni's text format
                  | PreAnchored -- ^ lexical selection already done
      deriving (Show, Eq, Typeable)
 
+defaultGrammarType :: GrammarType
+defaultGrammarType = GeniHand
+
+getGrammarType :: [Flag] -> GrammarType
+getGrammarType = fromMaybe defaultGrammarType . getFlag GrammarTypeFlg
+
 instance Show BuilderType where
   show SimpleBuilder         = "simple-2p"
   show SimpleOnePhaseBuilder = "simple-1p"
+
 
 -- |
 hasOpt :: Optimisation -> [Flag] -> Bool

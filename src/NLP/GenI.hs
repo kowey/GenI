@@ -71,7 +71,6 @@ import           Data.Text                 (Text)
 import qualified Data.Text                 as T
 import qualified Data.Text.Encoding        as T
 import qualified Data.Text.IO              as T
-import           Data.Typeable             (Typeable)
 import           System.CPUTime            (getCPUTime)
 import           System.FilePath           (takeExtension)
 import           System.IO                 (stderr)
@@ -81,18 +80,7 @@ import           System.Log.Logger         (debugM)
 import           Text.JSON
 
 import qualified NLP.GenI.Builder          as B
-import           NLP.GenI.Configuration    (FromStdinFlg (..), GrammarType (..),
-                                            LexiconFlg (..), MacrosFlg (..),
-                                            MorphCmdFlg (..), MorphInfoFlg (..),
-                                            NoLoadTestSuiteFlg (..),
-                                            Optimisation (NoConstraints),
-                                            Params, PartialFlg (..),
-                                            RankingConstraintsFlg (..),
-                                            RootFeatureFlg (..),
-                                            TestSuiteFlg (..), TracesFlg (..),
-                                            VerboseModeFlg (..), customMorph,
-                                            geniFlags, getFlagP, grammarType,
-                                            hasFlagP, hasOpt)
+import           NLP.GenI.Configuration
 import           NLP.GenI.ErrorIO
 import           NLP.GenI.General          (eFlush, ePutStr, ePutStrLn, first3,
                                             geniBug, histogram, mkLogname, snd3)
@@ -141,8 +129,8 @@ data ProgState = ProgState
                                -- information from the semantics (you may
                                -- instead be looking for
                                -- 'NLP.GenI.Configuration.customMorph')
-    , ranking  :: OtRanking -- ^ OT constraints    (optional)
     , traces   :: [Text]    -- ^ simplified traces (optional)
+    , customMorph :: Maybe MorphRealiser
     }
 
 type ProgStateRef = IORef ProgState
@@ -154,8 +142,8 @@ emptyProgState args = ProgState
     , gr = []
     , le = []
     , morphinf = const Nothing
+    , customMorph = Nothing
     , traces = []
-    , ranking = []
     }
 
 -- --------------------------------------------------------------------
@@ -174,8 +162,9 @@ loadEverything pstRef wrangler =
      let config   = pa pst
          isMissing f = not $ hasFlagP f config
      -- grammar type
-         isNotPreanchored = grammarType config /= PreAnchored
-         isNotPrecompiled = grammarType config /= PreCompiled
+         grammarType      = getGrammarType (geniFlags config)
+         isNotPreanchored = grammarType /= PreAnchored
+         isNotPrecompiled = grammarType /= PreCompiled
          useTestSuite =  isMissing FromStdinFlg
                       && isMissing NoLoadTestSuiteFlg
      -- display
@@ -192,10 +181,10 @@ loadEverything pstRef wrangler =
                 "a test suite") ]
      unless (null errormsg) $ fail ("Please specify: " ++ errormsg)
      -- we only have to read in grammars from the simple format
-     case grammarType config of
+     case grammarType of
         PreAnchored -> return ()
         PreCompiled -> return ()
-        _        -> loadGeniMacros pstRef >> return ()
+        _           -> loadGeniMacros pstRef >> return ()
      -- we don't have to read in the lexicon if it's already pre-anchored
      when isNotPreanchored $ loadLexicon pstRef >> return ()
      -- in any case, we have to...
@@ -329,7 +318,7 @@ instance Loadable TracesL where
 
 instance Loadable OtRanking where
     lParse _ = resultToEither2 . decode . T.unpack
-    lSet r p = p { ranking = r }
+    lSet r p = p { pa = (pa p) { ranking = r } }
     lSummarise _ = "ranking"
 
 loadMorphInfo :: ProgStateRef -> IO ()
@@ -612,12 +601,12 @@ finaliseResults pst (ty, status, os) = do
     debugM logname $ "finalising " ++ show (length sentences) ++ " results"
     -- morph TODO: make this a bit safer
     mss <- case getFlagP MorphCmdFlg (pa pst) of
-             Nothing  -> let morph = fromMaybe (map sansMorph) (customMorph (pa pst))
+             Nothing  -> let morph = fromMaybe (map sansMorph) (customMorph pst)
                          in  return (morph sentences)
              Just cmd -> map snd `fmap` inflectSentencesUsingCmd cmd sentences
     -- OT ranking
-    let unranked = zipWith (sansRanking pst) os mss
-        rank = rankResults (getTraces pst) grDerivation (ranking pst)
+    let unranked = zipWith sansRanking os mss
+        rank = rankResults (getTraces pst) grDerivation (ranking (pa pst))
         successes = map addRanking (rank unranked)
         failures  = case status of
                       B.Error str -> [GeniError [str]]
@@ -626,7 +615,7 @@ finaliseResults pst (ty, status, os) = do
     return (map GError failures ++ map GSuccess successes)
  where
   sentences = map snd3 os
-  sansRanking pst (i,l,d) rs = GeniSuccess
+  sansRanking (i,l,d) rs = GeniSuccess
                { grLemmaSentence = l
                , grRealisations = moRealisations rs
                , grWarnings     = moWarnings rs
@@ -728,9 +717,11 @@ runLexSelection pst wrangler csem = do
 --   (with optional "preanchored" mode)
 defaultCustomSem :: ProgState -> IO (CustomSem SemInput)
 defaultCustomSem pst = mkDefaultCustomSem pst <$>
-    case grammarType pst of
+    case grammarType of
         PreAnchored -> mkPreAnchoredLexicalSelector pst
         _           -> return defaultLexicalSelector
+  where
+    grammarType = getGrammarType $ geniFlags . pa $ pst
 
 mkDefaultCustomSem :: ProgState
                     -> LexicalSelector SemInput

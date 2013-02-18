@@ -87,7 +87,9 @@ Library
                 BoolExp,
                 Data.FullList.Internal,
                 Data.FullList,
+                NLP.GenI.Configuration,
                 NLP.GenI.Console,
+                NLP.GenI.Control,
                 NLP.GenI.ErrorIO,
                 NLP.GenI.FeatureStructure,
                 NLP.GenI.Flag,
@@ -118,7 +120,6 @@ Library
                 NLP.GenI.Statistics,
                 NLP.GenI.Builder,
                 NLP.GenI.Simple.SimpleBuilder,
-                NLP.GenI.Configuration,
                 NLP.GenI
   Other-Modules:
                 Paths_GenI
