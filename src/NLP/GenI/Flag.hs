@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable        #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FlexibleInstances         #-}
 -- GenI surface realiser
 -- Copyright (C) 2009 Eric Kow
 --
@@ -96,6 +97,14 @@ setters for each flag, and that gets really boring after a while.
 data Flag = forall f x . (Eq f, Typeable f, Typeable x) =>
      Flag (x -> f) x deriving (Typeable)
 
+class HasFlags x where
+    flags   :: x -> [Flag]
+    onFlags :: ([Flag] -> [Flag]) -> x -> x
+
+instance HasFlags [Flag] where
+    flags     = id
+    onFlags f = f
+
 {-
 instance Show Flag where
  show (Flag f x) = "Flag " ++ show (f x)
@@ -110,39 +119,63 @@ instance Eq Flag where
 isFlag :: (Typeable f, Typeable x) => (x -> f) -> Flag -> Bool
 isFlag f1 (Flag f2 _) = typeOf f1 == typeOf f2
 
-hasFlag :: (Typeable f, Typeable x) => (x -> f) -> [Flag] -> Bool
-hasFlag = any . isFlag
+hasFlag :: (Typeable f, Typeable x, HasFlags flags) => (x -> f) -> flags -> Bool
+hasFlag f = any (isFlag f) . flags
 
-deleteFlag :: (Typeable f, Typeable x) => (x -> f) -> [Flag] -> [Flag]
-deleteFlag f = filter (not.(isFlag f))
+deleteFlag :: (Typeable f, Typeable x, HasFlags flags) => (x -> f) -> flags -> flags
+deleteFlag f fs =
+    onFlags (const good) fs
+  where
+    good     = filter innocent (flags fs)
+    innocent = not . isFlag f
 
 -- | This only has an effect if the flag is set
-modifyFlag :: (Eq f, Typeable f, Typeable x) => (x -> f) -> (x -> x) -> [Flag] -> [Flag]
+modifyFlag :: (Eq f, Typeable f, Typeable x, HasFlags flags)
+           => (x -> f) -- ^ flag constructor
+           -> (x -> x)
+           -> flags
+           -> flags
 modifyFlag f m fs =
-  case getFlag f fs of
-    Nothing -> fs
-    Just v  -> setFlag f (m v) fs
+    case getFlag f (flags fs) of
+        Nothing -> fs
+        Just v  -> onFlags (setFlag f (m v)) fs
 
-setFlag :: (Eq f, Typeable f, Typeable x) => (x -> f) -> x -> [Flag] -> [Flag]
-setFlag f v fs = (Flag f v) : tl where tl = deleteFlag f fs
+setFlag :: (Eq f, Typeable f, Typeable x, HasFlags flags)
+        => (x -> f)
+        -> x
+        -> flags
+        -> flags
+setFlag f v =
+    onFlags setf
+  where
+    setf fs = (Flag f v) : tl where tl = deleteFlag f fs
 
-getFlag :: (Typeable f, Typeable x)  => (x -> f) -> [Flag] -> Maybe x
-getFlag f fs = do (Flag _ v) <- find (isFlag f) fs ; cast v
+getFlag :: (Typeable f, Typeable x, HasFlags flags)
+        => (x -> f)
+        -> flags
+        -> Maybe x
+getFlag f fs = do (Flag _ v) <- find (isFlag f) (flags fs) ; cast v
 
-getAllFlags :: (Typeable f, Typeable x)  => (x -> f) -> [Flag] -> [x]
-getAllFlags f fs = catMaybes [ cast v | flg@(Flag _ v) <- fs, isFlag f flg ]
+getAllFlags :: (Typeable f, Typeable x, HasFlags flags)
+            => (x -> f) -> flags -> [x]
+getAllFlags f fs = catMaybes [ cast v | flg@(Flag _ v) <- flags fs, isFlag f flg ]
 
-getListFlag :: (Typeable f, Typeable x) => ([x] -> f) -> [Flag] -> [x]
-getListFlag f = fromMaybe [] . getFlag f
+getListFlag :: (Typeable f, Typeable x, HasFlags flags)
+            => ([x] -> f) -> flags -> [x]
+getListFlag f = fromMaybe [] . getFlag f . flags
 
 -- | @updateFlags new old@ takes the flags from @new@ plus any from @old@ that
 --   aren't mentioned in it
-updateFlags :: [Flag] -- ^ new
-            -> [Flag] -- ^ old
-            -> [Flag]
-updateFlags new old =
-    foldr update old new
+updateFlags :: (HasFlags flags)
+            => flags  -- ^ new
+            -> flags -- ^ old
+            -> flags
+updateFlags new_ old_ =
+    onFlags (const updated) old_
   where
+    updated = foldr update old new
+    old = flags old_
+    new = flags new_
     update (Flag f v) fs = setFlag f v fs
 
 -- ----------------------------------------------------------------------
