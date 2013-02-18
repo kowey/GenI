@@ -93,20 +93,20 @@ genSuite mkCase name xs = do
 
 goodSuiteCase :: TestMaker
 goodSuiteCase pstRef wrangler tc = testCase (T.unpack (tcName tc)) $ do
-  res <- runOnSemInput pstRef wrangler tc
-  let sentences = map lemmaSentenceString (successes res)
-      name = tcName tc
-      semStr = prettyStr . fst3 . tcSem $ tc
-      mainMsg  = "for " ++ semStr ++ ",  got no results"
-  assertBool "got result" (not (null sentences))
-  forM_ (tcExpected tc) $ \e ->
-      assertBool ("got result: " ++ T.unpack e) (e `elem` sentences)
+    res <- runOnSemInput pstRef wrangler tc
+    let sentences = map lemmaSentenceString (successes res)
+        name = tcName tc
+        semStr = prettyStr . fst3 . tcSem $ tc
+        mainMsg  = "for " ++ semStr ++ ",  got no results"
+    assertBool "got result" (not (null sentences))
+    forM_ (tcExpected tc) $ \e ->
+        assertBool ("got result: " ++ T.unpack e) (e `elem` sentences)
 
 badSuiteCase :: TestMaker
 badSuiteCase pstRef wrangler tc = testCase (T.unpack (tcName tc)) $ do
-  res <- runOnSemInput pstRef wrangler tc
-  let sentences = map lemmaSentenceString (successes res)
-  assertBool "no results" (null sentences)
+    res <- runOnSemInput pstRef wrangler tc
+    let sentences = map lemmaSentenceString (successes res)
+    assertBool "no results" (null sentences)
 
 runOnSemInput :: ProgStateRef -> CustomSem SemInput -> TestCase SemInput -> IO [GeniResult]
 runOnSemInput pstRef wrangler tc = do
