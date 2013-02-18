@@ -67,8 +67,8 @@ consoleGeni pstRef wrangler = do
             | Just tc <- getFlagP TestCaseFlg config = runSpecificTestCase pst wrangler tc
             | otherwise                              = runInstructions  pstRef wrangler
     case getFlagP TimeoutFlg config of
-      Nothing -> job
-      Just t  -> withGeniTimeOut t job
+        Nothing -> job
+        Just t  -> withGeniTimeOut t job
 
 withGeniTimeOut :: Int -- ^ seconds
                 -> IO ()
@@ -109,37 +109,39 @@ runSpecificTestCase pst wrangler cname = do
 --   If batch processing is enabled, save the results to the batch output
 --   directory with one subdirectory per suite and per case within that suite.
 runInstructions :: ProgStateRef -> CustomSem sem -> IO ()
-runInstructions pstRef wrangler =
-  do pst <- readIORef pstRef
-     let config = pa pst
-     batchDir <- case getFlagP BatchDirFlg config of
-                   Nothing  -> do
-                     t   <- getTemporaryDirectory
-                     utc <- fmtTime <$> getCurrentTime
-                     return (t </> "geni-" ++ utc)
-                   Just bdir -> return bdir
-     runBatch batchDir
-     unless (hasFlagP BatchDirFlg config) $ do
-       ePutStr $ unlines [ ""
-                         , "Results saved to directory " ++ batchDir
-                         , "To save results in a different directory, use the --batchdir flag"
-                         ]
+runInstructions pstRef wrangler = do
+    pst <- readIORef pstRef
+    let config = pa pst
+    batchDir <- case getFlagP BatchDirFlg config of
+        Nothing  -> do
+            t   <- getTemporaryDirectory
+            utc <- fmtTime <$> getCurrentTime
+            return (t </> "geni-" ++ utc)
+        Just bdir -> return bdir
+    runBatch batchDir
+    unless (hasFlagP BatchDirFlg config) $ ePutStr. unlines $
+        [ ""
+        , "Results saved to directory " ++ batchDir
+        , "To save results in a different directory, use the --batchdir flag"
+        ]
   where
-  fmtTime = formatTime defaultTimeLocale (iso8601DateFormat (Just "%H%M"))
-  runBatch bdir = do
-      config <- pa <$> readIORef pstRef
-      mapM_ (runSuite bdir) $
-          getListFlagP TestInstructionsFlg config
-  runSuite bdir next@(file, _) =
-    do suite  <- loadNextSuite pstRef wrangler next
-       -- we assume the that the suites have unique filenames
-       let bsubdir = bdir </> takeFileName file
-       createDirectoryIfMissing True bsubdir
-       if any (T.null . tcName) suite
-          then    fail $ "Can't do batch processing. The test suite " ++ file ++ " has cases with no name."
-          else do ePutStrLn "Batch processing mode"
-                  mapM_ (runCase bsubdir) suite
-  runCase bdir tc = do
+    fmtTime = formatTime defaultTimeLocale (iso8601DateFormat (Just "%H%M"))
+    runBatch bdir = do
+        config <- pa <$> readIORef pstRef
+        let instructions = getListFlagP TestInstructionsFlg config
+        mapM_ (runSuite bdir) instructions
+    runSuite bdir next@(file, _) = do
+        suite  <- loadNextSuite pstRef wrangler next
+        -- we assume the that the suites have unique filenames
+        let bsubdir = bdir </> takeFileName file
+        createDirectoryIfMissing True bsubdir
+        if any (T.null . tcName) suite
+            then fail $
+                "Can't do batch processing. The test suite " ++ file ++ " has cases with no name."
+            else do
+                ePutStrLn "Batch processing mode"
+                mapM_ (runCase bsubdir) suite
+    runCase bdir tc = do
         pst <- readIORef pstRef
         let config = pa pst
         let verbose    = hasFlagP VerboseModeFlg config
@@ -152,7 +154,7 @@ runInstructions pstRef wrangler =
         when (null res && earlyDeath) $ do
             T.hPutStrLn stderr $ "Exiting early because test case" <+> tcName tc <+> "failed."
             exitFailure
-  summary tc gresults =
+    summary tc gresults =
         " " <> tcName tc <+> "-" <+> pretty (length goodres) <+> "results" <+>
         (if null badres then "" else parens (pretty (length badres) <+> "failures"))
       where
@@ -214,8 +216,9 @@ runOnSemInput pst args wrangler tc = do
 
 -- | Not just the global warnings but the ones local to each response too
 allWarnings :: GeniResults -> [Text]
-allWarnings res = concat $ grGlobalWarnings res
-                         : [ grWarnings s | GSuccess s <- grResults res ]
+allWarnings res = concat
+    $ grGlobalWarnings res
+    : [ grWarnings s | GSuccess s <- grResults res ]
 
 writeResults :: ProgState
              -> RunAs
