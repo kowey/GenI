@@ -20,7 +20,7 @@
 {-# LANGUAGE OverloadedStrings         #-}
 {-# LANGUAGE ViewPatterns              #-}
 module NLP.GenI.Configuration
-    ( Params(..)
+    ( module NLP.GenI.Control, getBuilderType, getRanking
     --
     , mainBuilderTypes
     , getFlagP, getListFlagP, modifyFlagP, setFlagP, hasFlagP, deleteFlagP
@@ -45,7 +45,7 @@ where
 
 import           Control.Applicative       (pure, (<$>))
 import           Control.Arrow             (first)
-import           Control.Monad             (liftM)
+import           Control.Monad
 import qualified Data.ByteString.Char8     as BC
 import           Data.Char                 (isSpace, toLower)
 import           Data.List                 (find, intersperse, nubBy)
@@ -73,6 +73,7 @@ import           System.Log.Logger
 import           NLP.GenI.Control
 import           NLP.GenI.Flag
 import           NLP.GenI.General          (fst3, geniBug, snd3)
+import           NLP.GenI.OptimalityTheory
 import           NLP.GenI.Parser           (Parser, geniFeats, runParser,
                                             tillEof)
 import           NLP.GenI.Polarity.Types   (readPolarityAttrs)
@@ -85,11 +86,20 @@ import           NLP.GenI.Pretty
 -- | The default parameters configuration
 emptyParams :: Params
 emptyParams = Params
-    { builderType    = SimpleBuilder
-    , morphFlags     = []
+    { builderType    = Nothing
+    , morphFlags     = emptyFlags
     , geniFlags      = emptyFlags
-    , ranking        = []
+    , ranking        = Nothing
     }
+
+getBuilderType :: Params -> BuilderType
+getBuilderType = fromMaybe defaultBuilderType . builderType
+
+defaultBuilderType :: BuilderType
+defaultBuilderType = SimpleBuilder
+
+getRanking :: Params -> OtRanking
+getRanking = fromMaybe [] . ranking
 
 hasFlagP    :: (Typeable f, Typeable x) => (x -> f) -> Params -> Bool
 hasFlagP f      = hasFlag f . geniFlags
@@ -235,7 +245,7 @@ defineParams flgs prms =
     then setFlagP f (concat $ getAllFlags f flgs) p
     else p
   fromFlags default_ t fs =
-    fromMaybe (default_ prms) (getFlag t fs)
+    getFlag t fs `mplus` default_ prms
 
 -- --------------------------------------------------------------------
 -- Basic options

@@ -112,7 +112,7 @@ runOnSemInput :: ProgStateRef -> CustomSem SemInput -> TestCase SemInput -> IO [
 runOnSemInput pstRef wrangler tc = do
     pst <- readIORef pstRef
     let config = pa pst
-        go = case builderType config of
+        go = case getBuilderType config of
                SimpleBuilder         -> helper pst simpleBuilder_2p
                SimpleOnePhaseBuilder -> helper pst simpleBuilder_1p
     sort `fmap` go

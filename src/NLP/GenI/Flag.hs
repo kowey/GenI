@@ -135,6 +135,16 @@ getAllFlags f fs = catMaybes [ cast v | flg@(Flag _ v) <- fs, isFlag f flg ]
 getListFlag :: (Typeable f, Typeable x) => ([x] -> f) -> [Flag] -> [x]
 getListFlag f = fromMaybe [] . getFlag f
 
+-- | @updateFlags new old@ takes the flags from @new@ plus any from @old@ that
+--   aren't mentioned in it
+updateFlags :: [Flag] -- ^ new
+            -> [Flag] -- ^ old
+            -> [Flag]
+updateFlags new old =
+    foldr update old new
+  where
+    update (Flag f v) fs = setFlag f v fs
+
 -- ----------------------------------------------------------------------
 -- Below are just the individual flags, which unfortunately have to be
 -- defined as separate data types because of our fancy existential

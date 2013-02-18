@@ -29,7 +29,7 @@ import           Control.Monad.Trans.Error
 import qualified Data.ByteString               as B
 import           Data.IORef                    (modifyIORef, readIORef)
 import           Data.List                     (find, partition)
-import           Data.Maybe                    (fromMaybe, isJust)
+import           Data.Maybe
 import           Data.Text                     (Text)
 import qualified Data.Text                     as T
 import qualified Data.Text.Encoding            as T
@@ -203,7 +203,7 @@ runOnSemInput :: ProgState
               -> TestCase  sem
               -> IO GeniResults
 runOnSemInput pst args wrangler tc = do
-    case builderType (pa pst) of
+    case getBuilderType (pa pst) of
              SimpleBuilder         -> helper simpleBuilder_2p
              SimpleOnePhaseBuilder -> helper simpleBuilder_1p
   where
@@ -257,7 +257,7 @@ writeResults pst args wrangler cstr csem gresults = do
     config      = pa pst
     dump        = hasFlagP DumpDerivationFlg config
     -- do we print ranking information and all that other jazz?
-    formatResponses = if null (ranking (pa pst))
+    formatResponses = if isNothing (ranking (pa pst))
                          then grRealisations
                          else pure . prettyResult pst
     formatWarnings = T.unlines . map (" - " <>)

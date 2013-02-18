@@ -17,16 +17,29 @@
 
 module NLP.GenI.Control where
 
+import           Control.Monad
+
 import           NLP.GenI.Flag
 import           NLP.GenI.OptimalityTheory
 
 -- | Inputs that go around a single testcase/input
 data Params = Params
-    { builderType :: BuilderType
+    { builderType :: Maybe BuilderType
       -- | Custom morph realiser may define a custom set of flags
       --   that it accepts
     , morphFlags  :: [Flag]
     , geniFlags   :: [Flag]
-      -- | OT constraints    (optional)
-    , ranking     :: OtRanking
+      -- | OT constraints (optional)
+    , ranking     :: Maybe OtRanking
+    }
+
+
+updateParams :: Params -- ^ new
+             -> Params -- ^ old
+             -> Params
+updateParams new old = old
+    { builderType = builderType new
+    , morphFlags  = updateFlags (morphFlags new) (morphFlags old)
+    , geniFlags   = updateFlags (geniFlags  new) (geniFlags  old)
+    , ranking     = ranking new `mplus` ranking old
     }

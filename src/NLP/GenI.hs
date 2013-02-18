@@ -318,7 +318,7 @@ instance Loadable TracesL where
 
 instance Loadable OtRanking where
     lParse _ = resultToEither2 . decode . T.unpack
-    lSet r p = p { pa = (pa p) { ranking = r } }
+    lSet r p = p { pa = (pa p) { ranking = Just r } }
     lSummarise _ = "ranking"
 
 loadMorphInfo :: ProgStateRef -> IO ()
@@ -512,9 +512,12 @@ runGeni pst selector builder tc = do
     -- steps 2 to 4
     liftIO $ runBuilder istuff
   where
+    config = case tcParams tc of
+                 Nothing  -> pa pst
+                 Just new -> updateParams new (pa pst)
     semInput = tcSem tc
     runBuilder (initStuff, initWarns) = do
-        let flags  = geniFlags (pa pst)
+        let flags  = geniFlags config
             run    = B.run builder
         --force evaluation before measuring start time to avoid including grammar/lexicon parsing.
         start <- rnf initStuff `seq` getCPUTime
@@ -607,7 +610,7 @@ finaliseResults pst (ty, status, os) = do
              Just cmd -> map snd `fmap` inflectSentencesUsingCmd cmd sentences
     -- OT ranking
     let unranked = zipWith sansRanking os mss
-        rank = rankResults (getTraces pst) grDerivation (ranking (pa pst))
+        rank = rankResults (getTraces pst) grDerivation (getRanking (pa pst))
         successes = map addRanking (rank unranked)
         failures  = case status of
                       B.Error str -> [GeniError [str]]
