@@ -89,8 +89,8 @@ runStdinTestCase pst wrangler = do
     case customSemParser wrangler cstr of
         Left err ->
             fail $ "I didn't understand the semantics you gave me: " ++ show err
-        Right semInput ->
-            runOnSemInput pst (runAsStandalone config) wrangler cstr semInput >> return ()
+        Right tc ->
+            runOnSemInput pst (runAsStandalone config) wrangler tc >> return ()
 
 -- | Run a test case with the specified name
 runSpecificTestCase :: ProgState -> CustomSem sem -> Text -> IO ()
@@ -98,8 +98,10 @@ runSpecificTestCase pst wrangler cname = do
     let config = pa pst
     fullsuite <- loadTestSuite pst wrangler
     case find (\x -> tcName x == cname) fullsuite  of
-        Nothing -> fail ("No such test case: " ++ T.unpack cname)
-        Just s  -> runOnSemInput pst (runAsStandalone config) wrangler (tcSemString s) (tcSem s) >> return ()
+        Nothing ->
+            fail $ "No such test case: " ++ T.unpack cname
+        Just tc ->
+            runOnSemInput pst (runAsStandalone config) wrangler tc >> return ()
 
 -- | Runs the tests specified in our instructions list.
 --   We assume that the grammar and lexicon are already
@@ -137,22 +139,24 @@ runInstructions pstRef wrangler =
           then    fail $ "Can't do batch processing. The test suite " ++ file ++ " has cases with no name."
           else do ePutStrLn "Batch processing mode"
                   mapM_ (runCase bsubdir) suite
-  runCase bdir (TestCase { tcName = n, tcSem = s, tcSemString = str }) = do
-      pst <- readIORef pstRef
-      let config = pa pst
-      let verbose = hasFlagP VerboseModeFlg config
-          earlyDeath = hasFlagP EarlyDeathFlg config
-      when verbose $
-        ePutStrLn "======================================================"
-      gresults <- runOnSemInput pst (PartOfSuite n bdir) wrangler str s
-      let res = grResults gresults
-          (goodres, badres) = partition isSuccess (grResults gresults)
-      T.hPutStrLn stderr $
-          " " <> n <+> "-" <+> pretty (length goodres) <+> "results" <+>
-          (if null badres then "" else parens (pretty (length badres) <+> "failures"))
-      when (null res && earlyDeath) $ do
-          T.hPutStrLn stderr $ "Exiting early because test case" <+> n <+> "failed."
-          exitFailure
+  runCase bdir tc = do
+        pst <- readIORef pstRef
+        let config = pa pst
+        let verbose    = hasFlagP VerboseModeFlg config
+            earlyDeath = hasFlagP EarlyDeathFlg  config
+        when verbose $
+            ePutStrLn "======================================================"
+        gresults <- runOnSemInput pst (PartOfSuite (tcName tc) bdir) wrangler tc
+        let res = grResults gresults
+        T.hPutStrLn stderr $ summary tc gresults
+        when (null res && earlyDeath) $ do
+            T.hPutStrLn stderr $ "Exiting early because test case" <+> tcName tc <+> "failed."
+            exitFailure
+  summary tc gresults =
+        " " <> tcName tc <+> "-" <+> pretty (length goodres) <+> "results" <+>
+        (if null badres then "" else parens (pretty (length badres) <+> "failures"))
+      where
+        (goodres, badres) = partition isSuccess (grResults gresults)
 
 -- | Used in processing instructions files. Each instruction consists of a
 --   suite file and a list of test case names from that file
@@ -194,16 +198,17 @@ runAsStandalone config =
 runOnSemInput :: ProgState
               -> RunAs
               -> CustomSem sem
-              -> Text
-              -> sem
+              -> TestCase  sem
               -> IO GeniResults
-runOnSemInput pst args wrangler cstr csem = do
+runOnSemInput pst args wrangler tc = do
     case builderType (pa pst) of
              SimpleBuilder         -> helper simpleBuilder_2p
              SimpleOnePhaseBuilder -> helper simpleBuilder_1p
   where
+    csem = tcSem tc
+    cstr = tcSemString tc
     helper builder = do
-         res <- simplifyResults <$> (runErrorT $ runGeni pst wrangler builder csem)
+         res <- simplifyResults <$> (runErrorT $ runGeni pst wrangler builder tc)
          writeResults pst args wrangler cstr csem res
          return res
 

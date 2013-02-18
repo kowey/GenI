@@ -67,7 +67,7 @@ data CustomSem sem = CustomSem
       fromCustomSemInput :: sem  -> Either Text SemInput
       -- | Lexical selection function
     , customSelector     :: LexicalSelector sem
-    , customSemParser    :: Text -> Either Text sem
+    , customSemParser    :: Text -> Either Text (TestCase sem)
       -- | List of named inputs intended to act as a substitute for
       --   test suites
       --   ('FilePath' argument is for reporting error messages only)

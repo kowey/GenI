@@ -504,14 +504,15 @@ instance Pretty GeniError where
 runGeni :: ProgState
         -> CustomSem sem
         -> B.Builder st it
-        -> sem
+        -> TestCase sem
         -> ErrorIO (GeniResults,st)
-runGeni pst selector builder semInput = do
+runGeni pst selector builder tc = do
     -- step 1: lexical selection
     istuff <- initGeni pst selector semInput
     -- steps 2 to 4
     liftIO $ runBuilder istuff
   where
+    semInput = tcSem tc
     runBuilder (initStuff, initWarns) = do
         let flags  = geniFlags (pa pst)
             run    = B.run builder
@@ -730,10 +731,18 @@ mkDefaultCustomSem pst selector = CustomSem
     { fromCustomSemInput = Right
     , customSelector     = \t l s -> selector t l (tweakSem s)
     , customRenderSem    = geniShowText
-    , customSemParser    = fromParsec . parseSemInput
+    , customSemParser    = \t ->
+          trivialTestCase t <$> (fromParsec . parseSemInput) t
     , customSuiteParser  = \f -> fmap fromTestSuiteL . lParse f
     }
   where
+    trivialTestCase t s = TestCase
+        { tcName      = "(sem)"
+        , tcSemString = t
+        , tcSem       = s
+        , tcExpected  = []
+        , tcParams    = Nothing
+        }
     tweakSem = stripMorphStuff . maybeRemoveConstraints
     stripMorphStuff = first3 (stripMorphSem (morphinf pst))
     -- disable constraints if the NoConstraintsFlg pessimisation is active

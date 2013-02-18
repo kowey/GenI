@@ -93,7 +93,7 @@ genSuite mkCase name xs = do
 
 goodSuiteCase :: TestMaker
 goodSuiteCase pstRef wrangler tc = testCase (T.unpack (tcName tc)) $ do
-  res <- runOnSemInput pstRef wrangler (tcSem tc)
+  res <- runOnSemInput pstRef wrangler tc
   let sentences = map lemmaSentenceString (successes res)
       name = tcName tc
       semStr = prettyStr . fst3 . tcSem $ tc
@@ -104,12 +104,12 @@ goodSuiteCase pstRef wrangler tc = testCase (T.unpack (tcName tc)) $ do
 
 badSuiteCase :: TestMaker
 badSuiteCase pstRef wrangler tc = testCase (T.unpack (tcName tc)) $ do
-  res <- runOnSemInput pstRef wrangler (tcSem tc)
+  res <- runOnSemInput pstRef wrangler tc
   let sentences = map lemmaSentenceString (successes res)
   assertBool "no results" (null sentences)
 
-runOnSemInput :: ProgStateRef -> CustomSem SemInput -> SemInput -> IO [GeniResult]
-runOnSemInput pstRef wrangler semInput = do
+runOnSemInput :: ProgStateRef -> CustomSem SemInput -> TestCase SemInput -> IO [GeniResult]
+runOnSemInput pstRef wrangler tc = do
     pst <- readIORef pstRef
     let config = pa pst
         go = case builderType config of
@@ -118,7 +118,7 @@ runOnSemInput pstRef wrangler semInput = do
     sort `fmap` go
   where
     helper pst b = (grResults . simplifyResults) <$>
-        (runErrorT $ runGeni pst wrangler b semInput)
+        (runErrorT $ runGeni pst wrangler b tc)
 
 successes :: [GeniResult] -> [GeniSuccess]
 successes xs = [ s | GSuccess s <- xs ]
