@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Lexical filtering</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+    </head>
+    <body>
+        <h1>Lexical filtering</h1>
+        <div id="navigation">
+            <a href="../">home</a>
+            <a href="../about.html">about</a>
+            <a href="../manual">manual</a>
+        </div>
+
+        <p>Lexical filtering is a feature which allows the user to constrain the lexical selection to only those items that contain a certain property, for example, the realising an item as a cleft.</p>
+<p>The idea is that the user provides an input like <code>idxconstraints:[cleft:j]</code>, which means that the lexical selection must include exactly one tree with the property cleft:j in its interface. This mechanism works as pre-processing step after lexical selection and before polarity automaton construction, in conjuction with the ExtraPolarities mechanism. What we do is</p>
+<ol style="list-style-type: decimal">
+<li><p>Preprocess the lexically selected trees; any tree which has a a desired property (e.g. <code>cleft:j</code>) in its interface is assigned a positive polarity for that property (<code>+cleft:j</code>)</p></li>
+<li><p>Add all the index constraints as negative extra polarities (<code>-cleft:j</code>)</p></li>
+</ol>
+<p>Note: To use lexical filtering, <a href="polarity.html">polarity filtering</a> must be enabled.</p>
+    </body>
+</html>

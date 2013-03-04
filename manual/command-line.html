@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Command line arguments</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+    </head>
+    <body>
+        <h1>Command line arguments</h1>
+        <div id="navigation">
+            <a href="../">home</a>
+            <a href="../about.html">about</a>
+            <a href="../manual">manual</a>
+        </div>
+
+        <p>GenI can accepts a fairly large number of command line flags. Not all of them are documented here yet.</p>
+<p>For more information, type <code>geni -–help</code>.</p>
+<h2 id="options-by-theme">Options by theme</h2>
+<p>Note that you might see an option described in more than one place because it falls into multiple categories.</p>
+<h3 id="basic-options">Basic options</h3>
+<h3 id="input-files">Input files</h3>
+<p>See <a href="formats.html">formats</a> for details on how to write these files.</p>
+<dl>
+<dt>trees</dt>
+<dd><p>The <code>trees</code> switch is used to supply GenI with FB-LTAG tree schemata</p>
+<p><em>This used to be called “macros”, but I’m trying to deprecate this because “tree schemata” is more standard TAG terminology as far as I can tell. You’ll likely see “macros” everywhere.</em></p>
+</dd>
+<dt>lexicon</dt>
+<dd><p>The <code>lexicon</code> is used for lexical entries that point to the macros</p>
+</dd>
+<dt>suite</dt>
+<dd><p>The <code>suite</code> provides test cases on which to run GenI</p>
+</dd>
+<dt>ranking</dt>
+<dd><p>The <code>ranking</code> switch allows you to specify a file containing Optimality Theory style constraints which GenI will use to rank its output. See Chapter {cha:ranking} for more details on the format and use of this file.</p>
+</dd>
+</dl>
+<h3 id="output">Output</h3>
+<h3 id="user-interface">User interface</h3>
+<h3 id="optimisations">Optimisations</h3>
+<dl>
+<dt>opt</dt>
+<dd><p>The opt switch lets you specify a list of optimisations that GenI should use, for example, <code>--opt='pol S i'</code>. We associate each optimisation with a short code like ’i’ for “index accessibility filtering”. This code is what the user passes in, and is sometimes used by GenI to tell the user which optimisations it’s using. See {geni –help} for more detail on the codes.</p>
+<p>Optimisations can be accumulated. For example, if you say something like <code>--opt='foo bar' --opt='quux'</code> it is the same as saying <code>--opt='foo bar quux'</code>.</p>
+<p>Note that we also have two special thematic codes “pol” and “adj” which tell GenI that it should enable all the polarity-related, and all the adjunction-related optimisations respectively.</p>
+</dd>
+<dt>detect-pols</dt>
+<dd><p>This tells GenI how to detect polarities in your grammar. You pass this in in the form of a space-delimited string, where each word is either an attribute or a “restricted” attribute. In lieu of an explanation, here is an example: the string “cat idx V.tense D.c” tells GenI that we should detect polarities on the “cat” and “idx” attribute for all nodes and also on the “tense” attribute for all nodes with the category “V” and the “c” attribute for all nodes with the category “D”.</p>
+<p>If your grammar comes with its own hand-written polarities, you can suppress polarity detection altogether by supplying the empty string.</p>
+<p>Also, if you do not use this switch, the following defaults will be used:</p>
+</dd>
+<dt>rootfeat</dt>
+<dd><p>No results? Make sure your rootfeat are set correctly. GenI will reject all sentences whose root category does not unify with the rootfeat. A possible default root feature might be</p>
+<p>By the default the root feature allows pretty much any result through, but for best results, you should probably constrain it a little more. Note that an empty root feature is also legal, but would cause polarity filtering to filter the wrong things.</p>
+</dd>
+</dl>
+<h3 id="builders">Builders</h3>
+<dl>
+<dt>builder</dt>
+<dd>A builder is basically a surface realisation algorithm. has the infrastructure to support different realisation algorithms, but some broken ones have been removed.
+</dd>
+</dl>
+<h3 id="testing-and-profiling">Testing and profiling</h3>
+<h3 id="morphology">Morphology</h3>
+<p>GenI provides two options for morphology: either you use an external inflection program (morphcmd), or you pass in a morphological lexicon (morphlexicon) and in doing so, use GenI’s built in inflecter. The GenI internal morphology mechanism is a simple and stupid lookup-and- unify table, so you probably don’t want to use it if you have a huge lexicon.</p>
+<dl>
+<dt>morphcmd</dt>
+<dd><p>specifies the program used for morphology. Literate GenI has a chapter describing how that program must work. It will mostly likely be a script you wrote to wrap around some off-the-shelf software.</p>
+</dd>
+<dt>morphlexicon</dt>
+<dd><p>specifies a morphological lexicon for use by GenI’s internal morphological generator. Specifying this option will cause the morphcmd flag to be ignored.</p>
+</dd>
+<dt>morphinfo</dt>
+<dd><p>tells GenI which literals in the input semantics are to be used by the morphological preprocessor. The pre-processor strips these features from the input and fiddles with the elementary trees used by GenI so that the right features get attached to the leaf nodes. An example of a “morphological” literal is something like <code>past(p)</code>.</p>
+</dd>
+</dl>
+<h2 id="scripting-geni">Scripting GenI</h2>
+<dl>
+<dt>testcase</dt>
+<dd><ul>
+<li><p>CLI: Run only the specified test case from the suite and dump the results</p></li>
+<li><p>GUI: Focus on the specified test case</p></li>
+</ul>
+</dd>
+<dt>from-stdin</dt>
+<dd><p>Takes semantic input from stdin (no testsuite needed!)</p>
+</dd>
+<dt>instructions</dt>
+<dd><p>An instructions file can be used to run GenI on a list of test suites and cases.</p>
+<p>Any input that you give to GenI will be interpreted as a list of test suites (and test cases that you want to run). Each line has the format <code>path/to/test-suite case1 case2 .. caseN</code>. You can omit the test cases, which is interpreted as you wanting to run the entire test suite. Also, the <code>%</code> character and anything after is treated as a comment.</p>
+<p>Interaction with <code>--testsuite</code> and <code>--testcase</code> (batch mode and GUI):</p>
+<ul>
+<li><p>If only <code>--instructions</code> is set, we use that</p></li>
+<li><p>If only <code>--testsuite</code> is set, we pretend that an instructions file was supplied saying that we want to run the that suite (or a specific case if <code>--testcase</code> is given too)</p></li>
+<li><p>If both <code>--instructions</code> and <code>--testsuite</code>/ <code>--testcase</code> are set then the latter are used to select from within the instructions.</p></li>
+</ul>
+</dd>
+</dl>
+<h2 id="configuration-file">Configuration file</h2>
+    </body>
+</html>

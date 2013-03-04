@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Morphology</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+    </head>
+    <body>
+        <h1>Morphology</h1>
+        <div id="navigation">
+            <a href="../">home</a>
+            <a href="../about.html">about</a>
+            <a href="../manual">manual</a>
+        </div>
+
+        <p>There are two basic tasks: morphological input and output. GenI farms out morphology to whatever third party program you specify on the command line. Note that a simple and stupid “sillymorph” realiser is provided either in the GenI repository or on hackage.</p>
+<h2 id="morphological-input">Morphological input</h2>
+<p>Morphological input means attaching morphological features on trees. The user specifies morphological input through the input semantics. Our job is to identify morphological predicates like <code>plural(x)</code> and apply features like <code>[num:pl]</code> on the relevant trees.</p>
+<h2 id="morphological-realisation">Morphological realisation</h2>
+<p><strong>Morphological realisation</strong> refers to the actual process of converting lemmas and morphological information into inflected forms. We do this by calling some third party software specified by the user.</p>
+<p>The morphological software must accept a JSON list of <strong>lemma sentences</strong> where each lemma sentence is itself a list of objects containing a lemma and a feature structure.</p>
+<pre><code>[
+ [{&quot;lemma&quot;: &quot;le&quot;,       &quot;lemma-features&quot;: &quot;[num:sg gen:f]&quot;},
+  {&quot;lemma&quot;: &quot;fille&quot;,    &quot;lemma-features&quot;: &quot;[num:sg]&quot;},
+  {&quot;lemma&quot;: &quot;detester&quot;, &quot;lemma-features&quot;: &quot;[num:sg tense:past]&quot;},
+  {&quot;lemma&quot;: &quot;le&quot;,       &quot;lemma-features&quot;: &quot;[num:pl gen:m]&quot;},
+  {&quot;lemma&quot;: &quot;garcon&quot;,   &quot;lemma-features&quot;: &quot;[num:pl]&quot;}
+ ],
+
+ [{&quot;lemma&quot;: &quot;ce&quot;,       &quot;lemma-features&quot;: &quot;[]&quot;},
+  {&quot;lemma&quot;: &quot;etre&quot;,     &quot;lemma-features&quot;: &quot;[]&quot;},
+  {&quot;lemma&quot;: &quot;le&quot;,       &quot;lemma-features&quot;: &quot;[]&quot;},
+  {&quot;lemma&quot;: &quot;garcon&quot;,   &quot;lemma-features&quot;: &quot;[]&quot;},
+  {&quot;lemma&quot;: &quot;que&quot;,      &quot;lemma-features&quot;: &quot;[]&quot;},
+  {&quot;lemma&quot;: &quot;le&quot;,       &quot;lemma-features&quot;: &quot;[num:sg gen:f]&quot;},
+  {&quot;lemma&quot;: &quot;fille&quot;,    &quot;lemma-features&quot;: &quot;[num:sg]&quot;},
+  {&quot;lemma&quot;: &quot;detester&quot;, &quot;lemma-features&quot;: &quot;[num:sg tense:past]&quot;}
+ ]
+]</code></pre>
+<p>NB: I recommend using a JSON library instead of parsing and writing this by hand.</p>
+<p>The morphological realiser may return more than one output per sentence. Indeed, we expect for each sentence a JSON object containing a list of possible morphological realisations that sentence and any warnings that may have been encountered. The list of objects must have the same length as the input because each item is expected to correspond to a sentence from the input.</p>
+<p>Notice that the morphological generator can choose to delete spaces or do other orthographical tricks in between words:</p>
+<pre><code>[
+ {&quot;realisations&quot;: [&quot;la fille detestait les garcons&quot;]},
+
+ {&quot;warnings&quot;:[&quot;'garcon' not found in morph lexicon&quot;]
+ ,realisations&quot;:[ &quot;c'est le garcon que la fille detestait&quot;
+                , &quot;c'est les garcons que la fille detestait&quot;]}
+]</code></pre>
+<p>If your morphological software does not do this, you could wrap it with a simple script.</p>
+    </body>
+</html>

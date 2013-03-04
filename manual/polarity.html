@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Polarity filtering</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+    </head>
+    <body>
+        <h1>Polarity filtering</h1>
+        <div id="navigation">
+            <a href="../">home</a>
+            <a href="../about.html">about</a>
+            <a href="../manual">manual</a>
+        </div>
+
+        <blockquote>
+<p><strong>NOTE</strong> <em>This documentation has not yet been properly converted from its original LateX source, nor rewritten for use in the manual</em></p>
+</blockquote>
+<p>We introduce a notion of polarities as a means of pre-detecting incompatibilities between candidate trees for different propositions. This optimisation is inserted between <a href="lexical-selection.html">lexical selection</a> and <a href="tree-assembly.html">tree assembly</a>. The input to this optimisation is the <strong>target semantics</strong> and the corresponding <strong>candidate trees</strong>.</p>
+<p>This whole optimisation is based on adding polarities to the grammar. We have a set of strings which we call <strong>polarity keys</strong>, and some positive or negative integers which we call <strong>charges</strong>. Each tree in the grammar may assign a charge to some number of polarity keys. For example, here is a simple grammar that uses the polarity keys n and v.</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">tree</th>
+<th align="left">polarity effects</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">s(n<span class="math"> ↓ </span>, v<span class="math"> ↓ </span>, n<span class="math"> ↓ </span>)</td>
+<td align="left">-2n -v</td>
+</tr>
+<tr class="even">
+<td align="left">v(hates)</td>
+<td align="left">+v</td>
+</tr>
+<tr class="odd">
+<td align="left">n(mary)</td>
+<td align="left">+n</td>
+</tr>
+<tr class="even">
+<td align="left">n(john)</td>
+<td align="left">+n</td>
+</tr>
+</tbody>
+</table>
+<p>For now, these annotations are done by hand, and are based on syntactic criteria (substitution and root node categories) but one could envisage alternate criteria or an eventual means of automating the process.</p>
+<p>The basic idea is to use the polarity keys to determine which subsets of candidate trees are incompatible with each other and rule them out. We construct a finite state automaton which uses polarity keys to pre-calculate the compatibility of sets of trees. At the end of the optimisation, we are left with an automaton, each path of which is a potentially compatible set of trees. We then preform surface realisation seperately, treating each path as a set of candidate trees.</p>
+<p><em>Important note</em>: one thing that may be confusing in this chapter is that we refer to polarities (charges) as single integers, e.g, <span class="math"> − 2<em>n</em></span>. In reality, to account for weird stuff like atomic disjunction, we do not use simple integers, but polarities intervals, so more something like <span class="math">( − 2,  − 2)<em>n</em></span>! But for the most part, the intervals are zero length, and you can just think of <span class="math"> − 2<em>n</em></span> as shorthand for <span class="math">( − 2,  − 2)<em>n</em></span>.</p>
+<h2 id="building-a-polarity-automaton">Building a polarity automaton</h2>
+<p>The basic process for constructing a polarity automaton is as follows:</p>
+<ol style="list-style-type: decimal">
+<li><p>Build a seed automaton (section {sec:seed_automaton}).</p></li>
+<li><p>For each polarity key, elaborate the automaton with the polarity information for that key (section {sec:automaton_construction}) and minimise the automaton (section {sec:automaton_pruning}).</p></li>
+</ol>
+<p>The above process can be thought of as a more efficient way of constructing an automaton for each polarity key, minimising said automaton, and then taking their intersection. In any case, we return everything a tuple with (1) a list of the automota that were created (2) the final automaton (3) a possibly modified input semantics. The first item is only neccesary for debugging; only the last two are important.</p>
+<h2 id="polarity-automaton">Polarity automaton</h2>
+<p>We construct a finite state automaton for each polarity key that is in the set of trees. It helps to imagine a table where each column corresponds to a single proposition.</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left"><code>gift(g)</code></th>
+<th align="left"><code>cost(g,x)</code></th>
+<th align="left"><code>high(x)</code></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><em>the gift</em> +1np</td>
+<td align="left"><em>the cost of</em></td>
+<td align="left"><em>is high</em> -1np</td>
+</tr>
+<tr class="even">
+<td align="left"><em>the present</em> +1np</td>
+<td align="left"><em>costs</em> -1np</td>
+<td align="left"><em>a lot</em></td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"><em>much</em></td>
+</tr>
+</tbody>
+</table>
+<p>Each column (proposition) has a different number of cells which corresponds to the lexical ambiguity for that proposition, more concretely, the number of candidate trees for that proposition. The {polarity automaton} describes the different ways we can traverse the table from column to column, choosing a cell to pass through at each step and accumulating polarity along the way. Each state represents the polarity at a column and each transition represents the tree we chose to get there. All transitions from one columns <span class="math"><em>i</em></span> to the next <span class="math"><em>i</em> + 1</span> that lead to the same accumulated polarity lead to the same state.</p>
+<h3 id="columns">Columns</h3>
+<p>We build the columns for the polarity automaton as follows. Given a input semantics <code>sem</code> and a list of trees <code>cands</code>, we group the trees by the first literal of sem that is part of their tree semantics.</p>
+<p>Note: this is not the same function as Tags.mapBySem! The fact that we preserve the order of the input semantics is important for our handling of multi-literal semantics and for semantic frequency sorting.</p>
+<h3 id="initial-automaton">Initial Automaton</h3>
+<p>{sec:seed_automaton} We first construct a relatively trivial polarity automaton without any polarity effects. Each state except the start state corresponds to a literal in the target semantics, and the transitions to a state consist of the trees whose semantics is subsumed by that literal.</p>
+<h3 id="construction">Construction</h3>
+<p>{sec:automaton_construction} {sec:automaton_intersection} The goal is to construct a polarity automaton which accounts for a given polarity key <span class="math"><em>k</em></span>. The basic idea is that given literals <span class="math"><em>p</em><sub>1</sub>. . <em>p</em><sub><em>n</em></sub></span> in the target semantics, we create a start state, calculate the states/transitions to <span class="math"><em>p</em><sub>1</sub></span> and succesively calculate the states/transitions from proposition <span class="math"><em>p</em><sub><em>x</em></sub></span> to <span class="math"><em>p</em><sub><em>x</em> + 1</sub></span> for all <span class="math">1 &lt; <em>x</em> &lt; <em>n</em></span>.</p>
+<!-- _ -->
+<p>The ultimate goal is to construct an automaton that accounts for multiple polarity keys. The simplest approach would be to calculate a seperate automaton for each key, prune them all and then intersect the pruned automaton together, but we can do much better than that. Since the pruned automata are generally much smaller in size, we perform an iterative intersection by using a previously pruned automaton as the skeleton for the current automaton. This is why we don’t pass any literals or candidates to the construction step; it takes them directly from the previous automaton. See also section {sec:seed_automaton} for the seed automaton that you can use when there is no “previous automaton”.</p>
+<h3 id="pruning">Pruning</h3>
+<p>Any path through the automaton which does not lead to final polarity of zero sum can now be eliminated. We do this by stepping recursively backwards from the final states:</p>
+<h2 id="zero-literal-semantics">Zero-literal semantics</h2>
+<p>Lexical items with a <strong>null semantics</strong> typically correspond to functions words: complementisers “John likes <strong>to</strong> read.”, subcategorised prepositions “Mary accuses John <strong>of</strong> cheating.“</p>
+<p>Such items need not be lexical items at all. We can exploit TAG’s support for trees with multiple anchors, by treating them as co-anchors to some primary lexical item. The English infinitival <em>to</em>, for example, can appear in the tree <em>to take</em> as s(comp(to),v(take),np<span class="math"> ↓ </span>).</p>
+<p>On the other hand, pronouns have a {zero-literal} semantics, one which is not null, but which consists only of a variable index. For example, the pronoun <em>she</em> in ({ex:pronoun_pol_she}) has semantics {s} and in ({ex:pronoun_pol_control}), {he} has the semantics {j}.</p>
+<ol style="list-style-type: decimal">
+<li><p><code>joe(j) sue(s) book(b) lend(l j b s) boring(b)</code> <br /> Joe lends Sue a boring book.</p></li>
+<li><p><code>joe(j)        book(b) lend(l j b s) boring(b)</code> <br /> Joe lends her a boring book.</p></li>
+<li><code>joe(j), sue(s), leave(l,j), promise(p,j,s,l)</code> <br /></li>
+</ol>
+<ul>
+<li>Joe promises Sue to leave.</li>
+<li>Joe promises Sue that he would leave.</li>
+</ul>
+<p>In the figure below, we compare the construction of polarity automata for ({ex:pronoun_pol_sue}, left) and ({ex:pronoun_pol_she}, right). Building an automaton for ({ex:pronoun_pol_she}) fails because {sue} is not available to cancel the negative polarities for {lends}; instead, a pronoun must be used to take its place. The problem is that the selection of a lexical items is only triggered when the construction algorithm visits one of its semantic literals. Since pronoun semantics have zero literals, they are <em>never</em> selected. Making pronouns visible to the construction algorithm would require us to count the indices from the input semantics. Each index refers to an entity. This entity must be “consumed” by a syntactic functor (e.g. a verb) and “provided” by a syntactic argument (e.g. a noun).</p>
+<div class="figure">
+<img src="images/zeroaut-noun.png" />
+</div>
+<div class="figure">
+<img src="images/zeroaut-sans.png" alt="Difficulty with zero-literal semantics." /><p class="caption">Difficulty with zero-literal semantics.</p>
+</div>
+<p>We make this explicit by annotating the semantics of the lexical input (that is the set of lexical items selected on the basis of the input semantics) with a form of polarities. Roughly, nouns provide indices<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup> (<span class="math"> + </span>), modifiers leave them unaffected, and verbs consume them (<span class="math"> − </span>). Predicting pronouns is then a matter of counting the indices. If the positive and negative indices cancel each other out, no pronouns are required. If there are more negative indices than positive ones, then as many pronouns are required as there are negative excess indices. In the table below, we show how the example semantics above may be annotated and how many negative excess indices result:</p>
+<p>Counting surplus indices allows us to establish the number of pronouns used and thus gives us the information needed to build polarity automata. We implement this by introducing a virtual literal for negative excess index, and having that literal be realised by pronouns. Building the polarity automaton as normal yields lexical combinations with the required number of pronouns, as in figure {fig:polarity_automaton_zerolit}.</p>
+<div class="figure">
+<img src="images/zeroaut-pron.png" alt="Constructing a polarity automaton with zero-literal semantics" /><p class="caption">Constructing a polarity automaton with zero-literal semantics</p>
+</div>
+<p>{different_sem_annotations} The sitation is more complicated where the lexical input contains lexical items with different annotations for the same semantics. For instance, the control verb {promise} has two forms: one which solicits an infinitive as in {promise to leave}, and one which solicits a declarative clause as in {promise that he would leave}. This means two different counts of subject index {j} in ({ex:pronoun_pol_control}) : zero for the form that subcategorises for the infinitive, or one for the declarative. But to build a single automaton, these counts must be reconciled, i.e., how many virtual literals do we introduce for {j}, zero or one? The answer is to introduce enough virtual literals to satisfy the largest demand, and then use the multi-literal extension to support alternate forms with a smaller demand. To handle example ({ex:pronoun_pol_control}), we introduce one virtual literal for {j} so that the declarative form can be produced, and treat the soliciting {promise} as though its semantics includes that literal along with its regular semantics (figure {fig:polarity_automaton_zerolit_promise}). In other words, the infinitive-soliciting form is treated as if it already fulfils the role of a pronoun, and does not need one in its lexical combination.</p>
+<div class="figure">
+<img src="images/zeroaut-promise.png" alt="Constructing a polarity automaton with zero-literal semantics" /><p class="caption">Constructing a polarity automaton with zero-literal semantics</p>
+</div>
+<p>We insert pronouns into the input semantics using the following process:</p>
+<ol style="list-style-type: decimal">
+<li><p>For each literal in the input semantics, establish the smallest charge for each of its semantic indices.</p></li>
+<li><p>Cancel out the polarities for every index in the input semantics.</p></li>
+<li><p>Compensate for any uncancelled negative polarities by an adding an additional literal to the input semantics – a pronoun – for every negative charge.</p></li>
+<li><p>Finally, deal with the problem of lexical items who require fewer pronouns than predicted by inserting the excess pronouns in their extra literal semantics (see page {different_sem_annotations})</p></li>
+</ol>
+<h2 id="further-optimisations">Further optimisations</h2>
+<h3 id="automatic-detection">Automatic detection</h3>
+<p>Automatic detection is not an optimisation in itself, but a means to make grammar development with polarities more convenient.</p>
+<p>Our detection process looks for attributes which are defined on <em>all</em> subst and root nodes of the lexically selected items. Note that this should typically give you the <code>cat</code> and <code>idx</code> polarities. It is only used to give you hints about what features you may want to consider using in the graphical interface.</p>
+<h5 id="the-polarity-values">The polarity values</h5>
+<p>First the simplified explanation: we assign every tree with a <span class="math"> − 1</span> charge for every category for every substitution node it has. Additionally, we assign every initial tree with a <span class="math"> + 1</span> charge for the category of its root node. So for example, the tree s(n<span class="math"> ↓ </span>, cl<span class="math"> ↓ </span>, v(aime), n<span class="math"> ↓ </span>) should have the following polarities: s +1, cl -1, n -2. These charges are added to any that previously been defined in the grammar.</p>
+<p>Now what really happens: we treat automaton polarities as intervals, not as single integers! For the most part, nothing changes from the simplified explanation. Where we added a <span class="math"> − 1</span> charge before, we now add a <span class="math">( − 1,  − 1)</span> charge. Similarly, we where added a <span class="math"> + 1</span> charge, we now add <span class="math">(1, 1)</span>.</p>
+<p>So what’s the point of all this? It helps us deal with atomic disjunction. Suppose we encounter a substitution node whose category is either cl or n. What we do is add the polarities <span class="math"><em>c</em><em>l</em>( − 1, 0), <em>n</em>( − 1, 0)</span> which means that there are anywhere from -1 to 0 cl, and for n.</p>
+<h3 id="chart-sharing">Chart sharing</h3>
+<p>Chart sharing is based on the idea that instead of performing a seperate generation task for each automaton path, we should do single generation task, but annotate each tree with set of the automata paths it appears on. We then allow trees on the same paths to be compared only if they are on the same path</p>
+<h3 id="semantic-sorting">Semantic sorting</h3>
+<p>To minimise the number of states in the polarity automaton, we could also sort the literals in the target semantics by the number of corresponding lexically selected items. The idea is to delay branching as much as possible so as to mimimise the number of states in the automaton.</p>
+<p>Let’s take a hypothetical example with two semantic literals: bar (having two trees with polarties 0 and +1). foo (having one tree with polarity -1) and If we arbitrarily explored bar before foo (no semantic sorting), the resulting automaton could look like this:</p>
+<pre><code>     bar     foo
+(0)--+---(0)------(-1)
+     |               
+     +---(1)------(0)</code></pre>
+<p>With semantic sorting, we would explore foo before bar because foo has fewer items and is less likely to branch. The resulting automaton would have fewer states.</p>
+<pre><code>     foo      bar
+(0)-----(-1)--+---(-1)
+              |        
+              +---(0)</code></pre>
+<p>The hope is that this would make the polarity automata a bit faster to build, especially considering that we are working over multiple polarity keys.</p>
+<p>Note: we have to take care to count each literal for each lexical entry’s semantics or else the multi-literal semantic code will choke.</p>
+<h2 id="details">Details</h2>
+<p>We can define the polarity automaton as a NFA, or a five-tuple <span class="math">(<em>Q</em>, Σ , <em>δ</em>, <em>q</em><sub>0</sub>, <em>q</em><sub><em>n</em></sub>)</span> such that</p>
+<ol style="list-style-type: decimal">
+<li><p><span class="math"><em>Q</em></span> is a set of states, each state being a tuple <span class="math">(<em>i</em>, <em>e</em>, <em>p</em>)</span> where <span class="math"><em>i</em></span> is an integer (representing a single literal in the target semantics), <span class="math"><em>e</em></span> is a list of extra literals which are known by the state, and <span class="math"><em>p</em></span> is a polarity.</p></li>
+<li><p><span class="math">Σ </span> is the union of the sets of candidate trees for all propositions</p></li>
+<li><p><span class="math"><em>q</em><sub>0</sub></span> is the start state <span class="math">(0, [0, 0])</span> which does not correspond to any propositions and is used strictly as a starting point.</p></li>
+<li><p><span class="math"><em>q</em><sub><em>n</em></sub></span> is the final state <span class="math">(<em>n</em>, [<em>x</em>, <em>y</em>])</span> which corresponds to the last proposition, with polarity <span class="math"><em>x</em> ≤ 0 ≤ <em>y</em></span>.</p></li>
+<li><p><span class="math"><em>δ</em></span> is the transition function between states, which we define below.</p></li>
+</ol>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>except for predicative nouns, which like verbs, are semantic functors<a href="#fnref1">↩</a></p></li>
+</ol>
+</div>
+    </body>
+</html>

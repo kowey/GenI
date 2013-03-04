@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Paraphrase selection</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+    </head>
+    <body>
+        <h1>Paraphrase selection</h1>
+        <div id="navigation">
+            <a href="../">home</a>
+            <a href="../about.html">about</a>
+            <a href="../manual">manual</a>
+        </div>
+
+        <p>Paraphrase selection can largely be performed by constraining the lexical selection. We will extend the lexical selection process and the input semantics to express such constraints, but before going into the details, let us mock up a small usage scenario. Consider the input semantics below. We will imagine a hypothetical grammar which associates it with three paraphrases:</p>
+<blockquote>
+<p><code>l1:give(e,j,b,m), l2:john(j), l3:mary(m)}</code></p>
+</blockquote>
+<ul>
+<li><em>John gave the book to Mary.</em></li>
+<li><em>Mary was given the book by John.</em></li>
+<li><em>The book was given to Mary by John.</em></li>
+</ul>
+<p>To restrict the selection, we might specify that the literal {l1:give(e,j,b,m)} be realised by a verb in the passive voice. We rewrite the input semantics as follows with the expected effects:</p>
+<blockquote>
+<p><code>l1:give(e,j,b,m)[PassiveForm], l2:john(j), l3:mary(m)</code></p>
+</blockquote>
+<ul>
+<li><em><del>John gave the book to Mary.</del></em></li>
+<li><em>Mary was given the book by John.</em></li>
+<li><em>The book was given to Mary by John.</em></li>
+</ul>
+<p>Adding more properties to the input semantics simply narrows down the resulting output even more. We restrict the literal further still:</p>
+<blockquote>
+<p><code>l1:give(e,j,b,m)[PassiveForm, CanonicalToObject], l2:john(j), l3:mary(m)</code></p>
+</blockquote>
+<ul>
+<li><em><del>John gave the book to Mary.</del></em></li>
+<li><em><del>Mary was given the book by John.</del></em></li>
+<li><em>The book was given to Mary by John.</em></li>
+</ul>
+<p>These tokens with which we enrich the input semantics are called <strong>tree properties</strong></p>
+<p>We will now see exactly <a href="#enriched-stuff">how they are used</a> and and <a href="#tree-properties">where they come from</a> in practice</p>
+<h2 id="enriched-lexical-items-and-input-semantics">Enriched lexical items and input semantics</h2>
+<p><a name="enriched-stuff"></a></p>
+<p>The extensions require that we introduce enriched versions of the lexicon and the input semantics, both taking tree properties into account. The basic idea is that linguists use tree properties to describe lexical items and the surface realiser uses them to filter the lexical selection.</p>
+<ul>
+<li><p>A <strong>tree property</strong> is an identifier. Some examples of tree property are <code>PassiveForm</code> and <code>CanonicalToObject</code>.</p></li>
+<li><p>An <strong>enriched lexical item</strong> is a triple <span class="math">〈<em>T</em>, <em>S</em>, <em>L</em><em>T</em><em>P</em>〉</span>. <span class="math"><em>T</em></span> and <span class="math"><em>S</em></span> are the elementary tree and lexical semantics. <span class="math"><em>L</em><em>T</em><em>P</em></span> is a set of tree properties.</p></li>
+<li><p>An <strong>enriched input semantics</strong> is a set of enriched literals of the form <span class="math"><em>L</em>[<em>t</em><em>p</em><sub>1</sub>, …, <em>t</em><em>p</em><sub><em>n</em></sub>]</span>, <!-- _ --> where <span class="math"><em>L</em></span> is a saturated literal and <span class="math"><em>t</em><em>p</em><sub>1</sub>, …, <em>t</em><em>p</em><sub><em>n</em></sub></span> <!-- _ --> is a possibly empty set of tree properties. As a notational convenience, we omit the square brackets when the set of tree properties is empty.</p></li>
+<li><p>The <strong>plain input semantics</strong> is the result of stripping away all the tree properties from an enriched semantics. Given an enriched input semantics <span class="math"><em>E</em><em>S</em></span> we say that the plain input semantics is the set of literals of the form <span class="math"><em>L</em><sub><em>i</em></sub></span> where <span class="math"><em>L</em><sub><em>i</em></sub>[<em>t</em><em>p</em><sub>1</sub>, …, <em>t</em><em>p</em><sub><em>n</em></sub>] ∈ <em>E</em><em>S</em></span> <!-- _ --></p></li>
+</ul>
+<h2 id="enriched-lexical-selection">Enriched lexical selection</h2>
+<p><a name="enriched-stuff"></a></p>
+<p>Taking tree properties into account consists of filtering the lexical items so that only those with the desired tree properties are retained. Given an enriched semantics <span class="math"><em>E</em><em>S</em></span>, we instantiate the lexicon as usual (see <a href="lexical-selection.html">lexical selection</a> and return the set of enriched lexical items such that for each item <span class="math">〈<em>T</em>, <em>S</em>, <em>L</em><em>T</em><em>P</em>〉</span>:</p>
+<ul>
+<li><p>(as usual) its instantiated semantics <span class="math"><em>S</em></span> is non-empty and subsumes the plain input semantics;</p></li>
+<li><p>for every enriched literal <span class="math"><em>L</em>[<em>t</em><em>p</em><sub>1</sub>, …, <em>t</em><em>p</em><sub><em>n</em></sub>]</span> in the enriched <!-- _ --> input semantics <span class="math"><em>E</em><em>S</em></span>, if <span class="math"><em>L</em> ∈ <em>S</em></span> then <span class="math">〈<em>t</em><em>p</em><sub>1</sub>, …, <em>t</em><em>p</em><sub><em>n</em></sub>〉 ⊆ <em>L</em><em>T</em><em>P</em></span>. <!-- _ --></p></li>
+</ul>
+<h2 id="where-tree-properties-come-from">Where tree properties come from</h2>
+<p><a name="tree-properties"></a></p>
+<p>The tree selection mechanism requires that every lexical item in the grammar “possess”, i.e. be associated with, a set of tree properties. There are many ways of achieving this intermediate goal. One possible solution might be manual annotation, but this is neither desirable nor necessary. It is undesirable because realistic TAG grammars are large enough to make such a process error-prone and cumbersome. It is unnecessary in the case of grammars built from the XMG metagrammar compiler because the annotations are already encoded in another resource, the metagrammar from which it was compiled. See the XMG documentation for more details.</p>
+<h2 id="producing-at-most-one-output">Producing at most one output</h2>
+<p><a name="one-result"></a></p>
+<p>The more tree properties used to enrich the input semantics, the fewer lexical items are selected. Pushing this to its logical conclusion, one could conceivably add enough tree properties for each literal to be realised by at most one lexical item each.<sup><a href="#fn1" class="footnoteRef" id="fnref1">1</a></sup> For the most part having an ambiguity-free lexical selection is enough to guarantee that the surface realiser returns a single paraphrase, the exceptions being inputs where the lack of word order constraints (e.g., intersective modifiers) comes into play. The tree properties associated with each lexical item must <em>uniquely</em> identify that item. In other words, each enriched lexical item must be associated with a so-called tree identifier:</p>
+<blockquote>
+<p>In an FB-LTAG grammar, a <strong>tree identifier</strong> is a set of tree properties <span class="math"><em>I</em></span>. If in a set of lexical entries, there is only one enriched lexical item <span class="math">〈<em>T</em>, <em>S</em>, <em>L</em><em>T</em><em>P</em>〉</span> such that <span class="math"><em>L</em><em>T</em><em>P</em> ⊆ <em>I</em></span>, we say that the tree identifier is unique to the set.</p>
+</blockquote>
+<p>What is important here is not just the fact that tree identifiers are unique. After all, the elementary trees produced by XMG already have unique names like <code>Tn0Vn1-387</code> which would technically allow one to achieve the same result. But these do not have the same practical use as proper tree identifiers, the main reason being that they are completely arbitrary, and are not imbued with the same linguistic significance as tree properties. The reason linguistic significance matters is that it gets us closer to the objective of choosing <strong>contextually appropriate</strong> paraphrases. Basically, we need some means of representing linguistic alternatives and selecting from them. We believe that disjunctions in the metagrammar serves as a mechanism for representing the alternatives, and that tree properties provide the mechanism for selecting among them.</p>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>We say at most because of lexical items with a multi-literal semantics<a href="#fnref1">↩</a></p></li>
+</ol>
+</div>
+    </body>
+</html>

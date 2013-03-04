@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Configuration file</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+    </head>
+    <body>
+        <h1>Configuration file</h1>
+        <div id="navigation">
+            <a href="../">home</a>
+            <a href="../about.html">about</a>
+            <a href="../manual">manual</a>
+        </div>
+
+        <p>In addition to the command line arguments, GenI reads an optional configuration file.</p>
+<p>Right now, the configuration file is only used to control the GenI logger.</p>
+<h2 id="logger">Logger</h2>
+<p>The logger outputs detailed information about what the various components that make up GenI think that they’re doing at any particular time.</p>
+<p>At the time of this writing, the logger isn’t much used, but the morphology module is covered somewhat</p>
+<ul>
+<li><p>Loggers are organised in an tree hierarchy using dotted notation (so for example, the logger “NLP.GenI” is the parent of “NLP.GenI.Morphology”, which is the sister of “NLP.GenI.LexicalSelection”</p></li>
+<li><p>Loggers have priorities ranging from DEBUG to EMERGENCY. You can specify for each logger a cut-off priority. If I set the priority for logger “Foo” to WARNING, only logs from WARNING and up will be shown for loggers in the “Foo” hierarchy.</p></li>
+<li><p>Sub-loggers can only hide more information (by raising the priority). The baseline is the priority of its ancestors</p></li>
+<li><p>The root logger has a priority of DEBUG by default</p></li>
+<li><p>If you don’t specify any loggers, we give “NLP.GenI” a priority of INFO</p></li>
+<li>all fields optional</li>
+<li>name: module name (topmost is NLP.GenI)</li>
+<li>handler:</li>
+<li>file “FILENAME”</li>
+<li>stderr</li>
+<li>level: (see hslogger for levels)</li>
+<li><p>format: (see <a href="http://hackage.haskell.org/packages/archive/hslogger/latest/doc/html/System-Log-Formatter.html#t:LogFormatter">System.Log.Formatter</a> doc)</p></li>
+</ul>
+<h2 id="example">Example</h2>
+<ul>
+<li>Windows XP:</li>
+<li>Windows 7: C:.yaml</li>
+<li><p>Linux/MacOS X: $HOME/.geni/config.yaml</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">gging:</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">name : NLP.GenI</td>
+</tr>
+<tr class="even">
+<td align="left">handler : file C:/geni.log</td>
+</tr>
+</tbody>
+</table>
+<pre><code>name     : NLP.GenI.LexicalSelection
+handler  : stderr</code></pre>
+<p>- name : NLP.GenI.Morphology level : DEBUG</p></li>
+</ul>
+    </body>
+</html>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Semantics</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+    </head>
+    <body>
+        <h1>Semantics</h1>
+        <div id="navigation">
+            <a href="../">home</a>
+            <a href="../about.html">about</a>
+            <a href="../manual">manual</a>
+        </div>
+
+        <h2 id="overview">Overview</h2>
+<p>TODO: What is a semantics?</p>
+<h2 id="subsumption">Subsumption</h2>
+<p>We say that <span class="math"><em>L</em> ⊑ <em>I</em></span> (or <span class="math"><em>L</em></span> subsumes <span class="math"><em>I</em></span>; mnemonic: <span class="math"><em>L</em></span> for lemma, and <span class="math"><em>I</em></span> for input semantics as an example use) if for each literal <span class="math"><em>l</em> ∈ <em>L</em></span>, we can find a <em>distinct</em> literal <span class="math"><em>i</em> ∈ <em>I</em></span> such that <span class="math"><em>l</em> ⊑ <em>i</em></span> (no resuing literals in <span class="math"><em>I</em></span>).</p>
+<p>Notes about the subsumeSem function:</p>
+<ol style="list-style-type: decimal">
+<li><p>We return multiple results because it’s important to take into account the possibility that one semantics subsumes different subsets of an another semantics. For example: {name(?X,?Y)} subsumes two different parts of {love(j,m), name(j,john), name(m,mary)}</p></li>
+<li><p>You MUST propagate the substitutions throughout any objects that contain the semantics.</p></li>
+<li><p>We return the unified semantics and not just the substitutions so that we know to do with anonymous variables.</p></li>
+</ol>
+<p>As for literals <span class="math"><em>l</em></span> and <span class="math"><em>i</em></span>, <span class="math"><em>l</em> ⊑ <em>i</em></span> if</p>
+<ol style="list-style-type: decimal">
+<li><p>For the corresponding relations <span class="math"><em>l</em><em>r</em></span> and <span class="math"><em>i</em><em>r</em></span>, <span class="math"><em>l</em><em>r</em> ⊑ <em>i</em><em>r</em></span></p></li>
+<li><p><span class="math"><em>l</em></span> and <span class="math"><em>i</em></span> have the same arity</p></li>
+<li><p>All arguments <span class="math"><em>l</em><sub><em>n</em></sub> ⊑ <em>i</em><sub><em>n</em></sub></span></p></li>
+</ol>
+<!-- _ -->
+
+<h2 id="unification">Unification</h2>
+<p>We say that <span class="math"><em>X</em> ⊔ <em>Y</em></span> if… TODO</p>
+    </body>
+</html>

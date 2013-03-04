@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Formats</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+    </head>
+    <body>
+        <h1>Formats</h1>
+        <div id="navigation">
+            <a href="../">home</a>
+            <a href="../about.html">about</a>
+            <a href="../manual">manual</a>
+        </div>
+
+        <p>This chapter is a description of the file formats used by . We’ll be using EBNFs to describe the format below. Here are some rules and types of rules we leave out, and prefer to describe informally:</p>
+<pre><code>&lt;alpha-numeric&gt;
+&lt;string-literal&gt; (stuff between quotes)
+&lt;opt-whatever&gt; (systematically... &quot;&quot; | &lt;whatever&gt;)
+&lt;keyword-whatever&gt; (systematically.. &quot;whatever&quot; &quot;:&quot;)</code></pre>
+<h2 id="general-notes">General notes</h2>
+<h3 id="comments">Comments</h3>
+<p>Any format file can include comments. Comments start <code>%</code>. There is also the option of using <code>/* */</code> for embedded comments.</p>
+<h3 id="reserved-words">Reserved words</h3>
+<p>The following are reserved words. You should not use them as variable names. NB: the reserved words are indicated below between quotes; eg. “semantics”. You can ignore C pre-processor noise such as <code>#define SEMANTICS</code></p>
+<h3 id="lexer">Lexer</h3>
+<p>For reference, we include the Parsec LanguageDef that we use to implement the format.</p>
+<p><em>TODO: literate Haskell</em></p>
+<h2 id="the-basics">The basics</h2>
+<h3 id="variables-and-constants">Variables and constants</h3>
+<p>Below are some examples of variables and constants. Note that we support atomic disjunction of constants, as in <code>Foo|bar|baz</code> and of constraints to variable values, but not of variables themselves.</p>
+<blockquote>
+<table>
+<tbody>
+<tr class="odd">
+<td align="left">anonymous variable</td>
+<td align="left"><code>?_</code> or <code>_</code></td>
+</tr>
+<tr class="even">
+<td align="left">variables</td>
+<td align="left"><code>?X</code> or <code>?x</code></td>
+</tr>
+<tr class="odd">
+<td align="left">constrained variables</td>
+<td align="left"><code>?X/foo|bar</code> or <code>?x/foo|Bar</code></td>
+</tr>
+<tr class="even">
+<td align="left">constants</td>
+<td align="left"><code>Foo</code>, <code>foo</code>, <code>&quot;Joe \&quot;Wolfboy\&quot; Smith&quot;</code>, or <code>Foo|bar</code></td>
+</tr>
+</tbody>
+</table>
+<p>Here is an EBNF for GenI variables and constants</p>
+</blockquote>
+<pre><code>&lt;value&gt;         ::= &lt;variable&gt; | &lt;anonymous-variable&gt; | &lt;constant-disj&gt;
+&lt;variable&gt;      ::= &quot;?&quot; &lt;identifier&gt; &lt;opt-constraints&gt;
+&lt;constraints&gt;   ::= &quot;/&quot; &lt;constraints-disj&gt;
+&lt;anonymous&gt;     ::= &quot;?_&quot; | &quot;_&quot;
+&lt;constant-disj&gt; ::= &lt;constant&gt; (| &lt;constant&gt;)*
+&lt;constant&gt;      ::= &lt;identifier&gt; | &lt;string-literal&gt;
+&lt;identifier&gt;    ::= &lt;alphanumeric&gt; | &quot;+&quot; | &quot;-&quot; | &quot;_&quot;
+&lt;string-literal&gt;   ::= &lt;double-quote&gt; &lt;escaped-any-char&gt;* &lt;double-quote&gt;
+&lt;escaped-any-char&gt; ::= &quot;\\&quot; | &quot;\&quot; &lt;double-quote&gt; | &lt;char&gt;</code></pre>
+<h5 id="fancy-disjunctions">Fancy disjunctions</h5>
+<p>TODO: explain the difference between atomic disjunction and fancy disjunction. TODO: update EBNF to point to fancy disjunction</p>
+<h3 id="feature-structures">Feature structures</h3>
+<p>In addition to variables and constants, also makes heavy use of flat feature structures. They take the form <code>[foo:bar ping:?Pong]</code>, or more formally,</p>
+<pre><code>&lt;feature-structure&gt;      ::= &quot;[&quot; &lt;atttribute-value-pair&gt;* &quot;]&quot;
+&lt;attribute-value-pair&gt;   ::= &lt;identifier-or-reserved&gt; &quot;:&quot; &lt;value&gt;
+&lt;identifier-or-reserved&gt; ::= &lt;identifier&gt; | &lt;reserved&gt;</code></pre>
+<h3 id="semantics">Semantics</h3>
+<p><a name="semantics"></a></p>
+<p>A {semantics} is basically a set of literals. Semantics are used in to provide input (section {sec:geni-input-semantics}) and in the definition of lexical entries (section {sec:geni-lexicon}).</p>
+<p>Notice that this is a flat semantic representation! No literals within literals, please. A literal can take one of two forms:</p>
+<pre><code>  handle:predicate(arguments)
+         predicate(arguments)</code></pre>
+<p>The arguments are space-delimited. Not providing a handle is equivalent to providing an anonymous one.</p>
+<pre><code>&lt;semantics&gt;      ::= &lt;keyword-semantics&gt; &quot;[&quot; &lt;literal&gt;* &quot;]&quot;
+&lt;literal&gt;        ::= &lt;value&gt; : &lt;identifier&gt; &quot;(&quot; &lt;value&gt;* &quot;)&quot;
+                   |           &lt;identifier&gt; &quot;(&quot; &lt;value&gt;* &quot;)&quot;</code></pre>
+<h2 id="semantic-inputs-and-test-suites">Semantic inputs and test suites</h2>
+<h3 id="semantic-input">Semantic input</h3>
+<p>The semantic input can either be provided directly in the graphical interface or as part of a test suite.</p>
+<h5 id="core-format">Core format</h5>
+<p>The semantics is basically follows the format described <a href="#semantics">above</a>, but it can also be further constrained, see below.</p>
+<h5 id="local-literal-constraints">(Local) literal constraints</h5>
+<p>Each literal may be followed by a boolean expression in square brackets denoting constraints on the lexical selection for that literal, for example</p>
+<ul>
+<li><code>l0:chase(c d c) [ Passive | (Active &amp; (~ Ditransitive) ]</code></li>
+</ul>
+<p>{Boolean expression syntax not supported yet. Use space-delimited conjunctions for now}</p>
+<p>The syntax for expressions is defined in this EBNF:</p>
+<pre><code>&lt;boolexp&gt; ::= &lt;identifier&gt;
+            | &lt;boolexp&gt; &amp; &lt;boolexp&gt;
+            | &lt;boolexp&gt; | &lt;boolexp&gt;
+            | ~ &lt;boolexp&gt;
+            | ( &lt;boolexp&gt; )</code></pre>
+<p>See chapter {cha:paraphrase} for more details on how literal constraints are used.</p>
+<h5 id="global-index-constraints">(Global) index constraints</h5>
+<p>Index constraints can be specified using a syntax similar to that used by feature structures, without the requirement that attributes be unique. To give an example, the input below uses an index constraint to select between two paraphrases in a hypothetical grammar that allows either the sentences “the dog chases the cat” or “it is the cat which is chased by the dog”.</p>
+<pre><code>semantics:[l0:chase(c d c) l1:dog(d) l2:def(d) l3:cat(c) l4:def(c)]
+idxconstraints:[focus:d]</code></pre>
+<p>Use of index constraints requires polarity filtering. See section {sec:polarity:idxconstraints} on how they are applied.</p>
+<h3 id="test-suite">Test suite</h3>
+<p>GenI accepts an entire test suite of semantic inputs that you can choose from. The test suite entries can be named. In fact, it is probably a good idea to do so, because the names are often shorter than the expected output, and easier to read than the semantics. Note the expected output isn’t used by itself, but external tools that “test” .</p>
+<pre><code>&lt;test-suite&gt;       ::= &lt;test-suite-entry&gt;*
+&lt;test-suite-entry&gt; ::= &lt;opt-identifier&gt; &lt;semantics&gt; &lt;expected-output&gt;*
+&lt;expected-output&gt;  ::= &lt;opt-keyword-sentence&gt; &quot;[&quot; &lt;identifier&gt;* &quot;]&quot;</code></pre>
+<h2 id="lexicon">Lexicon</h2>
+<p>The lexicon associates semantic entries with lemmas and trees.</p>
+<h3 id="lexicon-examples">Lexicon examples</h3>
+<p>There are two ways to write the lexicon. We show the old (deprecated) way first because most of the examples are still written in this style.</p>
+<h5 id="example-1-deprecated">Example 1 (deprecated)</h5>
+<pre><code>le clitic (?I)
+semantics:[]
+
+le Det (?I)
+semantics:[def(?I)]
+
+livre nC (?I)
+semantics:[book(?I)]
+
+persuader vArity3 (?E ?X ?Y ?Z)
+semantics:[?E:convince(?X ?Y ?Z)]
+
+persuader v vArity3controlObj
+semantics:[?E:convince(?X ?Y ?Z)]</code></pre>
+<h5 id="example-2-preferred">Example 2 (preferred)</h5>
+<pre><code>detester n0Vn1
+equations:[theta1:agent theta2:patient arg1:?X arg2:?Y evt:?L]
+filters:[family:n0Vn1]
+semantics:[?E:hate(?L) ?E:agent(?L ?X) ?E:patient(?L ?Y)]</code></pre>
+<h3 id="notes-about-lexicons">Notes about lexicons</h3>
+<ul>
+<li><p>You can have arbitrary strings in your lexical entries if you surround them in quote marks</p>
+<pre><code>&quot;Joe \&quot;the Boxer\&quot; Stephens&quot; Pn(?X)
+semantics:[?E:name(_ ?X joe_stephens)]</code></pre></li>
+<li><p>The semantics associated with a lexical item may have more than one literal</p>
+<pre><code>cher adj (?E ?X ?Y)
+semantics:[?E:cost(?X ?Y) ?E:high(?Y)]</code></pre></li>
+<li><p>A lemma may have more than one distinct semantics</p>
+<pre><code>bank n (?X)
+semantics:[bank(?X)]
+
+bank v (?E ?X ?D)
+semantics:[?E:lean(?X,?D)]</code></pre></li>
+<li><p>A semantics may be realised by more than one lexical entry (e.g. synonynms)</p>
+<pre><code>livre nC (?I)
+semantics:[book(?I)]
+
+bouquin nC (?I)
+semantics:[book(?I)]</code></pre></li>
+</ul>
+<h3 id="lexicon-ebnf">Lexicon EBNF</h3>
+<pre><code>&lt;lexicon&gt;        ::= &lt;lexicon-entry&gt;*
+&lt;lexicon-entry&gt;  ::= &lt;lexicon-header&gt; &lt;opt-filters&gt; &lt;semantics&gt;
+&lt;lexicon-header&gt; ::= &lt;lemma&gt; &lt;family&gt; &lt;parameters&gt;
+                   | &lt;lemma&gt; &lt;family&gt; &lt;keyword-equations&gt; &lt;feature-structure&gt;
+&lt;parameters&gt;     ::= &quot;(&quot; &lt;value&gt;* &lt;opt-interface&gt; &quot;)&quot;
+&lt;interface&gt;      ::= &quot;!&quot; &lt;attribute-value-pairs&gt;*
+&lt;filters&gt;        ::= &lt;keyword-filter&gt; &lt;feature-structure&gt;</code></pre>
+<h2 id="tree-schemata">Tree schemata</h2>
+<p>The tree schemata file (for historical reasons, this is also called the macros file) contains a set of unlexicalised trees organised into families. Such “macros” consist of a</p>
+<ol style="list-style-type: decimal">
+<li><p>a family name and (optionally) a macro name</p></li>
+<li><p>a list of parameters</p></li>
+<li><p><code>initial</code> or <code>auxiliary</code></p></li>
+<li><p>a tree.</p></li>
+</ol>
+<h3 id="trees">Trees</h3>
+<p>{Trees} are recursively defined structure of form <code>node{tree*}</code> For example, in the table below, the structure on the left should produce the tree on the right:</p>
+<pre><code>n1{
+   n2
+   n3{
+      n4
+      n5
+     }
+   n6
+}</code></pre>
+<table>
+<tbody>
+<tr class="odd">
+<td align="left"></td>
+<td align="left"><img src="images/tree-format-example.png" alt="image" /></td>
+</tr>
+</tbody>
+</table>
+<h3 id="nodes">Nodes</h3>
+<p>{Nodes} consist of</p>
+<ol style="list-style-type: decimal">
+<li><p>a name</p></li>
+<li><p>a type (optional)</p></li>
+<li><p>either a lexeme, or top and bottom feature structures. Here are examples of the five possible kinds of nodes:</p></li>
+</ol>
+<p>Here are some examples of nodes</p>
+<pre><code> n1 [cat:n idx:?I]![cat:n idx:?I]            % basic
+ n3 type:subst [cat:n idx:?Y]![cat:n idx:?Y] % subst
+ n4 type:foot  [cat:n idx:?Y]![cat:n idx:?Y] % foot
+ n5 type:lex   &quot;de&quot;                        % coanchor
+ n2 anchor     [cat:n]![cat:n]             % anchor
+ n5 aconstr:noadj % node with a null-adjunction constraint (other than subst or foot)</code></pre>
+<h3 id="example">Example</h3>
+<pre><code>adj:post(?I)  auxiliary
+n0[cat:n idx:?I det:_]![cat:n idx:?I det:minus ]
+{
+  n1 type:foot [cat:n idx:?I det:minus]![cat:n idx:?I det:minus]
+  n2[cat:a]![]
+  {
+    n3 anchor
+  }
+}
+
+adj:pre(?I)  auxiliary
+n0[cat:n idx:?I det:_ qu:_]![cat:n idx:?I det:minus ]
+{
+  n1[cat:a]![]
+  {
+    n2 anchor
+  }
+  n3 type:foot [cat:n idx:?I det:minus]![cat:n idx:?I det:minus]
+}
+
+vArity2:n0vn1(?E ?X ?Y) initial
+n1[cat:p]![]
+{
+  n2 type:subst [cat:n idx:?X det:plus]![cat:n idx:?X]
+  n3[cat:v idx:?E]![]
+  {
+    n4 anchor
+  }
+  n5 type:subst [cat:n idx:?Y det:plus]![cat:n idx:?Y]
+}</code></pre>
+<h3 id="ebnf">EBNF</h3>
+<pre><code>&lt;macros&gt; ::= &lt;macro&gt;*
+&lt;macro&gt;  ::= &lt;family-name&gt; &lt;opt-macro-name&gt; &lt;parameters&gt; &lt;tree-type&gt; &lt;tree&gt;
+             &lt;opt-semantics&gt; &lt;opt-trace&gt;
+
+&lt;parameters&gt;     ::= &quot;(&quot; &lt;value&gt;* &lt;opt-interface&gt; &quot;)&quot;
+&lt;interface&gt;      ::= ! &lt;attribute-value-pair&gt;*
+&lt;macro-name&gt;     ::= &lt;identifier&gt;
+&lt;tree-type&gt;      ::= &quot;initial&quot; | &quot;auxiliary&quot;
+&lt;trace&gt;          ::= &lt;keyword-trace&gt; &quot;[&quot; &lt;identifier&gt;* &quot;]&quot;
+
+&lt;tree&gt;           ::= &lt;node&gt; | &lt;node&gt; &quot;{&quot; &lt;tree&gt;* &quot;}&quot;
+&lt;node&gt;           ::= &lt;node-name&gt; &lt;opt-node-type&gt; &lt;node-payload&gt;
+&lt;node-name&gt;      ::= &lt;identifier&gt;
+&lt;node-type&gt;      ::= &lt;keyword-type&gt; &lt;core-node-type&gt; | &quot;anchor&quot;
+&lt;core-node-type&gt; ::= &quot;foot&quot; | &quot;subst&quot; | &quot;lex&quot;
+&lt;node-payload&gt;   ::= &lt;string-literal&gt; | &lt;feature-structure&gt; &quot;!&quot; &lt;feature-structure&gt;</code></pre>
+<h2 id="morphology">Morphology</h2>
+<p>A morphinfo file associates predicates with morphological feature structures. Each morphological entry consists of a predicate followed by a feature structure. See <a href="morphology">morphology</a> for more details.</p>
+<p>(<strong>TODO</strong>: describe format)</p>
+    </body>
+</html>

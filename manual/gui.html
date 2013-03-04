@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Graphical User Interface</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+    </head>
+    <body>
+        <h1>Graphical User Interface</h1>
+        <div id="navigation">
+            <a href="../">home</a>
+            <a href="../about.html">about</a>
+            <a href="../manual">manual</a>
+        </div>
+
+        <h2 id="input-screen">Input screen</h2>
+<p>When you first start GenI, you will see the input screen. It allows you to type in an input semantics (or to modify the one that was automatically loaded up), select some optimisations and run the realiser. You can also opt to run the <a href="#debugger">debugger</a> instead of the realiser.</p>
+<div class="figure">
+<img src="images/GenI-main-screenshot.jpg" alt="Input screen" /><p class="caption">Input screen</p>
+</div>
+<h2 id="configuration">Configuration</h2>
+<p>The configuration GUI aims to a provide a graphical substitute for the command line switches. Note you cannot yet select optimisations and test cases from this window; use the main window instead. Note also that changes to GenI tend to start from the command line switches and only percolate to the GUI when time permits. For full control of GenI, see <code>geni --help</code>.</p>
+<blockquote>
+<div class="figure">
+<img src="images/GenI-config-basic.png" alt="Configuration" /><p class="caption">Configuration</p>
+</div>
+</blockquote>
+<h2 id="generation">Generation</h2>
+<p>When surface realisation is complete, we display a results window with various tabs for intermediary results in lexical selection, derived trees, derivation trees and generation statistics.</p>
+<blockquote>
+<div class="figure">
+<img src="images/GenI-results.png" alt="Results window" /><p class="caption">Results window</p>
+</div>
+</blockquote>
+<p>The results window (above) shows all of the sentences found. Each sentence is annotated with its chart item number. You can inspect the derived and derivation tree for that result by selecting the realisations tab.</p>
+<h2 id="debugging">Debugging</h2>
+<p>Instead of going directly to the results window, you could instead use the interactive debugger which GenI provides. The debugger shows a separate tab for each phase in surface realisation (lexical selection, filtering, building).</p>
+<blockquote>
+<div class="figure">
+<img src="images/debugger.png" alt="Debugging" /><p class="caption">Debugging</p>
+</div>
+</blockquote>
+<h3 id="stepping-through-the-debugger">Stepping through the debugger</h3>
+<p>The interactive debugger can have a diffrent GUI for each realisation algorithm. Here we will discuss the interface for the Simple 2-Phase algorithm which uses by default. The interfaces for other algorithms are likely to very similar.</p>
+<blockquote>
+<div class="figure">
+<img src="images/debugger-features.png" alt="Stepping through the debugger" /><p class="caption">Stepping through the debugger</p>
+</div>
+</blockquote>
+<p>The debugger allows you to step through chart generation. Using the ’Step by’ button, you can walk through an arbitrary number of steps, where each step consists in pulling one item of the agenda, combining it with the chart and putting some of the results back on to the agenda (or the trash, or results pile as the case may be). New chart items produced on each step typically have one of their nodes highlighted in red. This indicates that the node was the site of the most recent “event”. For example in the substitution phase, the red node indicates where the substitution operation was performed; whereas in the adjunction phase, it could either indicate where adjunction was performed or where a null-adjunction constraint was applied.</p>
+<p>If you select the “show features” checkbox, all nodes in the chart item will be expanded to reveal the underlying feature structures. The components of this expanded representation are segmented into the following boxes:</p>
+<blockquote>
+<div class="figure">
+<img src="images/debugger-features-focus.png" alt="Debugger features" /><p class="caption">Debugger features</p>
+</div>
+</blockquote>
+<ol style="list-style-type: decimal">
+<li><p>Summary: here, <code>n:j.m</code> indicates that the category is <code>n</code>, that the top <code>idx</code> feature is associated with <code>j</code> and the bottom one with <code>m</code>.</p></li>
+<li><p>Decorations: here, <span class="math"> ↓ </span> indicates that this is a TAG substitution node, following the usual conventions in the literature.</p></li>
+<li><p>The top feature structure</p></li>
+<li><p>The bottom feature structure</p></li>
+</ol>
+    </body>
+</html>

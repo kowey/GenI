@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Feature structures</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+    </head>
+    <body>
+        <h1>Feature structures</h1>
+        <div id="navigation">
+            <a href="../">home</a>
+            <a href="../about.html">about</a>
+            <a href="../manual">manual</a>
+        </div>
+
+        <p>A GenI feature structure is a mapping from attributes to values.</p>
+<p>Feature structures in GenI are flat, in other words not recursive; however, feature structures may appear as part of some larger structure (eg. a TAG tree, or a lexical entry). The scope of the unification variables is over the whole structure.</p>
+<h2 id="feature-structure-unification">Feature structure unification</h2>
+<p>Feature structure unification is a process which merges two feature structures. Any substitutions that result unification are percolated throughout the feature structure’s parent (eg. the elementary tree in which it appears).</p>
+<p>Unification fails if, at any point during the unification process, the two lists have different constant values for the same attribute. For example, unification fails on the following inputs because they have different values for the <em>number</em> attribute:</p>
+<pre><code>  [ cat:np number:3 ]
+⊔ [ cat:np number:2 ]</code></pre>
+<p>Note that the following input should also fail as a result on the coreference on <em>?X</em>.</p>
+<pre><code>  [ cat:np  one: 1   two:2  ]
+⊔ [ cat:np  one: ?X  two:?X ]</code></pre>
+<p>On the other hand, any other pair of feature lists should unify succesfully, even those that do not share the same attributes. Below are some examples of successful unifications:</p>
+<pre><code>  [ cat:np one: 1   two:2  ]
+⊔ [ cat:np one: ?X  two:?Y ]
+→ [ cat:np one: 1   two:2  ]
+
+
+  [ cat:np          number:3 ]
+⊔ [ cat:np case:nom          ]
+→ [ cat:np case:nom number:3 ]</code></pre>
+    </body>
+</html>

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Lexical selection</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+    </head>
+    <body>
+        <h1>Lexical selection</h1>
+        <div id="navigation">
+            <a href="../">home</a>
+            <a href="../about.html">about</a>
+            <a href="../manual">manual</a>
+        </div>
+
+        <h2 id="overview">Overview</h2>
+<p>Lexical selection combines the input semantics with the lexicon and the tree schema file. The input to lexical selection is (i) a flat input semantics and (ii) an <a href="fb-ltag.html">FB-LTAG</a> grammar. The output is a a set of elementary trees which can then passed on to the tree assembly phase.</p>
+<p>The lexical selection process can be described as</p>
+<ol style="list-style-type: decimal">
+<li><p>Select from the lexicon a set of lemmas from the lexicon whose semantics subsumes the input semantics. Instantiate their semantics by unifying it with the relevant subset of the input semantics. We can call the results of this process <em>instantiated lemmas</em></p></li>
+<li><p>Combine the lemmas with the tree families they ask for. Each tree family contains a set of tree schemata. <a href="#enrichment">Enrich</a> these tree schemata and unify the their semantics with the semantics of the instantiated lemmas. The result of this is a set of elementary trees</p></li>
+</ol>
+<p>Because the input semantics is saturated, the instantiated lexical item also has a saturated semantics.</p>
+<h2 id="enrichment">Enrichment</h2>
+<p><a name="enrichment"></a></p>
+<p>Enrichment is a process which adds features to either the interface, an explicitly named node or the co-anchor of a lexically selected tree. The enrichement information comes from the lexicon in the form of a path equations which specify</p>
+<ol style="list-style-type: decimal">
+<li><p>the location</p></li>
+<li><p>top, bottom, or lex</p></li>
+<li><p>the attribute (if top or bottom)</p></li>
+<li><p>what value to associate with it</p></li>
+</ol>
+<p>The conventions taken by GenI for path equations are:</p>
+<table>
+<col width="26%" />
+<col width="68%" />
+<thead>
+<tr class="header">
+<th align="left">equation</th>
+<th align="left">effect</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><code>interface.foo=bar</code></td>
+<td align="left"><code>foo=bar</code> is unified into the interface (not the tree)</td>
+</tr>
+<tr class="even">
+<td align="left"><code>anchor.bot.foo=bar</code></td>
+<td align="left"><code>foo=bar</code> is unified into the bottom feature of the node which is marked anchor.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>toto.top.foo=bar</code></td>
+<td align="left"><code>foo=bar</code> is unified into the top feature of node named “toto”</td>
+</tr>
+<tr class="even">
+<td align="left"><code>toto.lex=quux</code></td>
+<td align="left">the lexeme for the node named “toto” is set to “quux”</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>anchor.foo=bar</code></td>
+<td align="left">same as <code>anchor.bot.foo=bar</code></td>
+</tr>
+<tr class="even">
+<td align="left"><code>anc.whatever...</code></td>
+<td align="left">same as <code>anchor.whatever...</code></td>
+</tr>
+<tr class="odd">
+<td align="left"><code>top.foo=bar</code></td>
+<td align="left">same as <code>anchor.top.foo=bar</code></td>
+</tr>
+<tr class="even">
+<td align="left"><code>bot.foo=bar</code></td>
+<td align="left">same as <code>anchor.bot.foo=bar</code></td>
+</tr>
+<tr class="odd">
+<td align="left"><code>foo=bar</code></td>
+<td align="left">same as <code>anchor.bot.foo=bar</code></td>
+</tr>
+<tr class="even">
+<td align="left"><code>toto.foo=bar</code></td>
+<td align="left">same as <code>toto.top.foo=bar</code> (creates a warning)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="lemanchor-mechanism">Lemanchor mechanism</h2>
+<p>One problem in building reversible grammars is the treatment of co-anchors. In the French language, for example, we have some structures like <em>C’est Jean qui regarde Marie</em> (<em>It is John who looks at Mary</em>)</p>
+<p>One might be tempted to hard code the “ce” (“it”) and the “être” (is) into the tree for regarder (look at), something like</p>
+<pre><code>s(ce, être, n↓, qui, v(regarder), n↓)</code></pre>
+<p>Indeed, this would work just fine for generation, but not for parsing. When you parse, you would encounter inflected forms for these items for example <em>c’</em> for <em>ce</em> or <em>sont</em> or <em>est</em> for <em>être</em>. Hard-coding the <em>ce</em> into such trees would break parsing.</p>
+<p>To work around this, we propose a mechanism to have our co-anchors and parsing too. Co-anchors that are susceptible to morphological variation should be</p>
+<ul>
+<li><p>marked in a substitution site (this is to keep parsers happy)</p></li>
+<li><p>have a feature <code>top.lemanchor:foo</code> where foo is the coanchor you want</p></li>
+</ul>
+<p>GenI will convert these into non-substitution sites with a lexical item leaf node.</p>
+    </body>
+</html>
