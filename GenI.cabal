@@ -50,7 +50,7 @@ extra-source-files: geni-test/NLP/GenI/Test.hs
 
 source-repository head
   type:     darcs
-  location: http://code.haskell.org/GenI
+  location: http://hub.darcs.net/kowey/GenI
 
 Flag static
   Description: Build a static binary
