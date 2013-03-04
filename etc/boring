@@ -11,8 +11,7 @@ JUNK($|/)
 ^geniwrapper/MinimalGenI-OSX($|/)
 ^geni(-gui|convert|report|server|-test)/dist($|/)
 ^(sillymorph)/dist($|/)
-^doc/_site($|/)
-^doc/_cache($|/)
+^doc/(_site|_cache|dist)($|/)
 ^doc/.*\.(aux|dvi|eps|log|bbl|blg|pdf|toc)$
 ^STASH($|/)
 ^geniwrapper/test-(c-mac|c-win|c2|hs-c)$
