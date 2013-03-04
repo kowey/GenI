@@ -71,7 +71,7 @@ usualArgsBad p args =
   , "-s", p </> "suite-bad"
   ] ++ args
 
-noGui = setFlagP DisableGuiFlg () 
+noGui = setFlag DisableGuiFlg ()
 
 type TestMaker = ProgStateRef -> CustomSem SemInput -> TestCase SemInput -> Test.Framework.Test
 
@@ -85,7 +85,7 @@ genSuite mkCase name xs = do
     pstRef <- newIORef pst
     wrangler <- defaultCustomSem pst
     loadEverything pstRef wrangler
-    suite <- case getListFlagP TestInstructionsFlg confArgs of
+    suite <- case getListFlag TestInstructionsFlg confArgs of
                  []  -> error "NLP.GenI.Regression: not expecting empty instructions"
                  [x] -> loadNextSuite pstRef wrangler x
                  _   -> error "NLP.GenI.Regression: not expecting multiple instructions"

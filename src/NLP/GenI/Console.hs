@@ -62,11 +62,11 @@ consoleGeni pstRef wrangler = do
     config <- pa <$> readIORef pstRef
     loadEverything pstRef wrangler
     pst <- readIORef pstRef
-    let job | hasFlagP FromStdinFlg config           = runStdinTestCase pst wrangler
-            | hasFlagP BatchDirFlg config            = runInstructions  pstRef wrangler -- even if there is a testcase
-            | Just tc <- getFlagP TestCaseFlg config = runSpecificTestCase pst wrangler tc
-            | otherwise                              = runInstructions  pstRef wrangler
-    case getFlagP TimeoutFlg config of
+    let job | hasFlag FromStdinFlg config           = runStdinTestCase pst wrangler
+            | hasFlag BatchDirFlg config            = runInstructions  pstRef wrangler -- even if there is a testcase
+            | Just tc <- getFlag TestCaseFlg config = runSpecificTestCase pst wrangler tc
+            | otherwise                             = runInstructions  pstRef wrangler
+    case getFlag TimeoutFlg config of
         Nothing -> job
         Just t  -> withGeniTimeOut t job
 
@@ -111,15 +111,14 @@ runSpecificTestCase pst wrangler cname = do
 runInstructions :: ProgStateRef -> CustomSem sem -> IO ()
 runInstructions pstRef wrangler = do
     pst <- readIORef pstRef
-    let config = pa pst
-    batchDir <- case getFlagP BatchDirFlg config of
+    batchDir <- case getFlag BatchDirFlg pst of
         Nothing  -> do
             t   <- getTemporaryDirectory
             utc <- fmtTime <$> getCurrentTime
             return (t </> "geni-" ++ utc)
         Just bdir -> return bdir
     runBatch batchDir
-    unless (hasFlagP BatchDirFlg config) $ ePutStr. unlines $
+    unless (hasFlag BatchDirFlg pst) $ ePutStr. unlines $
         [ ""
         , "Results saved to directory " ++ batchDir
         , "To save results in a different directory, use the --batchdir flag"
@@ -127,8 +126,8 @@ runInstructions pstRef wrangler = do
   where
     fmtTime = formatTime defaultTimeLocale (iso8601DateFormat (Just "%H%M"))
     runBatch bdir = do
-        config <- pa <$> readIORef pstRef
-        let instructions = getListFlagP TestInstructionsFlg config
+        pst <- readIORef pstRef
+        let instructions = getListFlag TestInstructionsFlg pst
         mapM_ (runSuite bdir) instructions
     runSuite bdir next@(file, _) = do
         suite  <- loadNextSuite pstRef wrangler next
@@ -143,9 +142,8 @@ runInstructions pstRef wrangler = do
                 mapM_ (runCase bsubdir) suite
     runCase bdir tc = do
         pst <- readIORef pstRef
-        let config = pa pst
-        let verbose    = hasFlagP VerboseModeFlg config
-            earlyDeath = hasFlagP EarlyDeathFlg  config
+        let verbose    = hasFlag VerboseModeFlg pst
+            earlyDeath = hasFlag EarlyDeathFlg  pst
         when verbose $
             ePutStrLn "======================================================"
         gresults <- runOnSemInput pst (PartOfSuite (tcName tc) bdir) wrangler tc
@@ -174,10 +172,9 @@ loadNextSuite :: ProgStateRef
 loadNextSuite pstRef wrangler (file, mtcs) = do
     debugM logname $ "Loading next test suite: " ++ file
     debugM logname $ "Test case filter: " ++ maybe "none" (\xs -> show (length xs) ++ " items") mtcs
-    modifyIORef pstRef $ \p -> p { pa = setFlagP TestSuiteFlg file (pa p) } -- yucky statefulness! :-(
+    modifyIORef pstRef (setFlag TestSuiteFlg file) -- yucky statefulness! :-(
     pst <- readIORef pstRef
-    let config    = pa pst
-        mspecific = getFlagP TestCaseFlg config
+    let mspecific = getFlag TestCaseFlg pst
     debugM logname . T.unpack $ "Test case to pick out:" <+> fromMaybe "none"  mspecific
     fullsuite <- loadTestSuite pst wrangler
     return (filterSuite mtcs mspecific fullsuite)
@@ -191,8 +188,8 @@ data RunAs = Standalone  FilePath FilePath
 
 runAsStandalone :: Params -> RunAs
 runAsStandalone config =
-    Standalone (fromMaybe "" $ getFlagP OutputFileFlg config)
-               (fromMaybe "" $ getFlagP StatsFileFlg config)
+    Standalone (fromMaybe "" $ getFlag OutputFileFlg config)
+               (fromMaybe "" $ getFlag StatsFileFlg config)
 
 -- | Runs a case in the test suite.  If the user does not specify any test
 --   cases, we run the first one.  If the user specifies a non-existing
@@ -236,7 +233,7 @@ writeResults pst args wrangler cstr csem gresults = do
        then writeResponses $ ppJSON results
        else writeResponses $ T.unlines . concatMap (fromResult formatResponses) $ results
     -- print out statistical data (if available)
-    when (isJust $ getFlagP MetricsFlg config) $
+    when (isJust $ getFlag MetricsFlg pst) $
        writeStats (ppJSON stats)
     -- print any warnings we picked up along the way
     unless (null warnings) $ do
@@ -254,8 +251,7 @@ writeResults pst args wrangler cstr csem gresults = do
     results     = grResults    gresults
     warnings    = allWarnings  gresults
     stats       = grStatistics gresults
-    config      = pa pst
-    dump        = hasFlagP DumpDerivationFlg config
+    dump        = hasFlag DumpDerivationFlg pst
     -- do we print ranking information and all that other jazz?
     formatResponses = if isNothing (ranking (pa pst))
                          then grRealisations

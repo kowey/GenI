@@ -23,7 +23,6 @@ module NLP.GenI.Configuration
     ( module NLP.GenI.Control, getBuilderType, getRanking
     --
     , mainBuilderTypes
-    , getFlagP, getListFlagP, modifyFlagP, setFlagP, hasFlagP, deleteFlagP
     , emptyParams, defineParams
     , treatArgs, treatArgsWithParams, usage, basicSections, optionsSections
     , processInstructions
@@ -100,28 +99,6 @@ defaultBuilderType = SimpleBuilder
 
 getRanking :: Params -> OtRanking
 getRanking = fromMaybe [] . ranking
-
-hasFlagP    :: (Typeable f, Typeable x) => (x -> f) -> Params -> Bool
-hasFlagP f      = hasFlag f . geniFlags
-
-deleteFlagP :: (Typeable f, Typeable x) => (x -> f) -> Params -> Params
-deleteFlagP f p = p { geniFlags = deleteFlag f (geniFlags p) }
-
-modifyFlagP :: (Eq f, Typeable f, Typeable x)
-            => (x -> f) -> (x -> x) -> Params -> Params
-modifyFlagP f m p = p { geniFlags = modifyFlag f m (geniFlags p) }
-
-setFlagP    :: (Eq f, Typeable f, Typeable x)
-            => (x -> f) -> x -> Params -> Params
-setFlagP f v p  = p { geniFlags = setFlag f v (geniFlags p) }
-
-getFlagP    :: (Typeable f, Typeable x)
-            => (x -> f) -> Params -> Maybe x
-getFlagP f = getFlag f . geniFlags
-
-getListFlagP :: (Typeable f, Typeable x)
-             => ([x] -> f) -> Params -> [x]
-getListFlagP f = fromMaybe [] . getFlagP f
 
 emptyFlags :: [Flag]
 emptyFlags =
@@ -230,22 +207,22 @@ treatArgsWithParams options argv initParams =
 
 defineParams :: [Flag] -> Params -> Params
 defineParams flgs prms =
-  (\p -> foldr setDefault p $ geniFlags prms)
-  . (mergeFlagsP OptimisationsFlg)
-  . (mergeFlagsP MetricsFlg)
-  $ prms
-    { geniFlags     = flgs
-    , builderType   = fromFlags builderType BuilderFlg flgs
-    }
- where
-  setDefault (Flag f v) p =
-    if hasFlagP f p then p else setFlagP f v p
-  mergeFlagsP f p =
-    if hasFlagP f p
-    then setFlagP f (concat $ getAllFlags f flgs) p
-    else p
-  fromFlags default_ t fs =
-    getFlag t fs `mplus` default_ prms
+    (\p -> foldr setDefault p $ geniFlags prms)
+    . (mergeFlags OptimisationsFlg)
+    . (mergeFlags MetricsFlg)
+    $ prms
+        { geniFlags     = flgs
+        , builderType   = fromFlags builderType BuilderFlg flgs
+        }
+  where
+    setDefault (Flag f v) p =
+        if hasFlag f p then p else setFlag f v p
+    mergeFlags f p =
+        if hasFlag f p
+            then setFlag f (concat $ getAllFlags f flgs) p
+            else p
+    fromFlags default_ t fs =
+        getFlag t fs `mplus` default_ prms
 
 -- --------------------------------------------------------------------
 -- Basic options
@@ -575,25 +552,27 @@ morphInfoOption = Option [] ["morphinfo"] (reqArg MorphInfoFlg id "FILE")
 --     a subset from the instructions
 processInstructions :: Params -> IO Params
 processInstructions config = do
-    instructions <- case getFlagP InstructionsFileFlg config of
+    instructions <- case getFlag InstructionsFileFlg config of
                       Nothing -> return fakeInstructions
                       Just f  -> instructionsFile `fmap` T.readFile f
-    let updateInstructions = setFlagP TestInstructionsFlg instructions
+    let updateInstructions = setFlag TestInstructionsFlg instructions
         -- we have to set a test suite in case the user only supplies
         -- an instructions argument so that NLP.GenI.loadEverything
         -- knows that the user has given us a suite to load
         updateTestSuite p =
-          if hasFlagP TestSuiteFlg p then p
-             else case (fst `fmap` listToMaybe instructions) of
-                   Just s  -> setFlagP TestSuiteFlg s p
-                   Nothing -> p
+            if hasFlag TestSuiteFlg p
+                then p
+                else case listToMaybe instructions of
+                    Just (s,_) -> setFlag TestSuiteFlg s p
+                    Nothing    -> p
     return . updateTestSuite . updateInstructions $ config
   where
     fakeInstructions :: [Instruction]
     fakeInstructions =
-         let cases = singleton <$> getFlagP TestCaseFlg config
-             mkInstr xs = singleton (xs, cases)
-         in maybe [] mkInstr $ getFlagP TestSuiteFlg config
+        maybe [] mkInstr $ getFlag TestSuiteFlg config
+      where
+        cases      = singleton <$> getFlag TestCaseFlg config
+        mkInstr xs = singleton (xs, cases)
 
 instructionsFile :: Text -> [Instruction]
 instructionsFile =

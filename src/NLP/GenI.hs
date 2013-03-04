@@ -399,7 +399,7 @@ withFlag :: forall f a . (Eq f, Typeable f)
          -> (FilePath -> IO a) -- ^ job
          -> IO a
 withFlag flag pst z job =
-    maybe z job $ getFlagP flag (pa pst)
+    maybe z job $ getFlag flag (pa pst)
 
 withFlagOrIgnore :: forall f . (Eq f, Typeable f)
                  => (FilePath -> f) -- ^ flag
@@ -607,7 +607,7 @@ finaliseResults :: ProgState -> (ResultType, B.GenStatus, [B.Output]) -> IO [Gen
 finaliseResults pst (ty, status, os) = do
     debugM logname $ "finalising " ++ show (length sentences) ++ " results"
     -- morph TODO: make this a bit safer
-    mss <- case getFlagP MorphCmdFlg (pa pst) of
+    mss <- case getFlag MorphCmdFlg pst of
              Nothing  -> let morph = fromMaybe (map sansMorph) (customMorph pst)
                          in  return (morph sentences)
              Just cmd -> map snd `fmap` inflectSentencesUsingCmd cmd sentences
@@ -658,7 +658,7 @@ prettyResult pst nr =
     showOne str = pretty theRanking <> ". " <> str <> "\n" <> violations
     violations  = prettyViolations tracesFn verbose (grViolations nr)
     theRanking  = grRanking nr
-    verbose  = hasFlagP VerboseModeFlg (pa pst)
+    verbose  = hasFlag VerboseModeFlg pst
     tracesFn = getTraces pst
 
 -- | 'getTraces' is most likely useful for grammars produced by a
@@ -695,8 +695,7 @@ runLexSelection :: ProgState
                 -> sem           -- ^ semantics
                 -> ErrorIO LexicalSelection
 runLexSelection pst wrangler csem = do
-    let config   = pa pst
-        verbose  = hasFlagP VerboseModeFlg config
+    let verbose  = hasFlag VerboseModeFlg pst
         selector = customSelector wrangler
     -- perform lexical selection
     selection <- liftIO $ selector (gr pst) (le pst) csem
@@ -800,7 +799,7 @@ readPreAnchored pst = withFlagOrDie flg pst descr $ \f -> do
     let PreAnchoredL xs = x
     return xs
   where
-    v     = hasFlagP VerboseModeFlg (pa pst)
+    v     = hasFlag VerboseModeFlg pst
     flg   = MacrosFlg
     descr = "preanchored trees"
 
@@ -817,7 +816,7 @@ readFileUtf8 :: FilePath -> IO Text
 readFileUtf8 f = T.decodeUtf8 <$> BS.readFile f
 
 verbosity :: ProgStateRef -> IO Bool
-verbosity = fmap (hasFlagP VerboseModeFlg . pa)
+verbosity = fmap (hasFlag VerboseModeFlg)
           . readIORef
 
 instance JSON GeniResults where

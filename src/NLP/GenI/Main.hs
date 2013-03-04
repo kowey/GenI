@@ -28,12 +28,12 @@ import           Paths_GenI                (version)
 
 import           NLP.GenI                  (ProgState (..), defaultCustomSem,
                                             emptyProgState)
-import           NLP.GenI.Configuration    (DisableGuiFlg (..), HelpFlg (..),
-                                            Params, VersionFlg (..), hasFlagP,
+import           NLP.GenI.Flag
+import           NLP.GenI.Configuration    (Params,
                                             optionsForStandardGenI,
                                             optionsSections,
                                             processInstructions,
-                                            readGlobalConfig, setFlagP,
+                                            readGlobalConfig,
                                             setLoggers, treatArgs, usage)
 import           NLP.GenI.Console          (consoleGeni)
 import           NLP.GenI.LexicalSelection (CustomSem (..))
@@ -42,7 +42,7 @@ main :: IO ()
 main = do
     args  <- getArgs
     confArgs <- forceGuiFlag <$> (processInstructions =<< treatArgs optionsForStandardGenI args)
-    let pst = (emptyProgState confArgs)
+    let pst = emptyProgState confArgs
     wrangler <- defaultCustomSem pst
     mainWithState pst wrangler
 
@@ -51,7 +51,7 @@ mainWithState pst wrangler = do
     maybe (return ()) setLoggers =<< readGlobalConfig
     pname <- getProgName
     let has :: (Typeable f, Typeable x) => (x -> f) -> Bool
-        has = flip hasFlagP (pa pst)
+        has = flip hasFlag pst
     pstRef <- newIORef pst
     case () of
         _ | has HelpFlg               -> putStrLn (usage optionsSections pname)
@@ -59,4 +59,4 @@ mainWithState pst wrangler = do
           | otherwise                 -> consoleGeni pstRef wrangler
 
 forceGuiFlag :: Params -> Params
-forceGuiFlag = setFlagP DisableGuiFlg ()
+forceGuiFlag = setFlag DisableGuiFlg ()
