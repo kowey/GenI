@@ -47,7 +47,7 @@ import qualified NLP.GenI.Configuration as G
 
 initialise :: G.Params -> IO ProgState
 initialise confArgs = do
-    pstRef   <- newIORef (emptyProgState $ setFlagP FromStdinFlg () confArgs)
+    pstRef   <- newIORef (emptyProgState $ setFlag FromStdinFlg () confArgs)
     _   <- loadGeniMacros pstRef
     _   <- loadLexicon    pstRef
     readIORef pstRef
@@ -107,7 +107,7 @@ handleRequest pst wrangler instr = do
         Right csem -> do
             -- do the realisation
             let helper builder = simplifyResults <$> (runErrorT $ runGeni pst wrangler builder csem)
-            results <- case builderType conf of
+            results <- case getBuilderType conf of
                            SimpleBuilder         -> helper simpleBuilder_2p
                            SimpleOnePhaseBuilder -> helper simpleBuilder_1p
             return (Right results)

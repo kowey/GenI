@@ -37,7 +37,7 @@ main :: IO ()
 main = do
     pname    <- getProgName
     confArgs <- treatArgs serverOptions =<< getArgs
-    let has = flip hasFlagP confArgs
+    let has = flip hasFlag confArgs
     case () of
         _ | has HelpFlg -> putStrLn (usage serverOptionsSections pname)
           | otherwise   -> startServer confArgs
@@ -50,5 +50,5 @@ startServer confArgs = do
     httpServe (setPort port defaultConfig) $
         application reqMaxSz pst wrangler
   where
-    port     = fromMaybe defaultPort       (getFlagP PortFlg confArgs)
-    reqMaxSz = fromMaybe defaultReqMaxSize (getFlagP ReqMaxSizeFlg confArgs)
+    port     = fromMaybe defaultPort       (getFlag PortFlg confArgs)
+    reqMaxSz = fromMaybe defaultReqMaxSize (getFlag ReqMaxSizeFlg confArgs)
