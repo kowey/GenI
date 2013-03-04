@@ -1,28 +1,3 @@
-DOC_DIRS := doc
-
-# --------------------------------------------------------------------
-# genidoc options
-# --------------------------------------------------------------------
-
-# Add here any files that you want to compile.  For example:
-#   MAKE_DOCS=foo/bar.pdf foo/other.pdf baz/filename.pdf
-# If you are making slides instead of documents, you should
-# uncomment and modify the MAKE_SLIDES variable.
-MAKE_DOCS = doc/literateGenI.pdf
-
-# -- Latex or Pdflatex? (pdflatex by default) --
-# If you use latex instead of pdflatex, you should change the line
-# below as well as uncommenting DVIPDF
-LATEX=pdflatex
-# LATEX=latex
-
-# -- dvipdf --     (currently off because we use pdflatex)
-# If you use latex instead of pdflatex, you should uncomment
-# DVIPDF
-DVIPDF_CMD=dvips `basename $< .tex`.dvi -o `basename $< .tex`.ps;\
-	ps2pdf `basename $< .tex`.ps
-#DVIPDF=$(DVIPDF_CMD)
-
 # --------------------------------------------------------------------
 # source stuff
 # --------------------------------------------------------------------
@@ -35,8 +10,6 @@ SCRIPT_FILES = bin/tryXtimes\
 	       etc/perf-latest.sh\
 	       etc/perf-save.sh\
 
-DOC_DIR = doc
-
 # Phony targets do not keep track of file modification times
 .PHONY: docs doc maindoc html release\
 
@@ -44,7 +17,7 @@ DOC_DIR = doc
 # main targets
 # --------------------------------------------------------------------
 
-all: build doc
+all: build
 
 build: dist/build/geni/geni
 
@@ -52,16 +25,6 @@ dist/build/geni/geni: $(SOURCE_FILES)
 	cabal build
 
 doc:  init maindoc
-
-maindoc: $(SOURCE_FILES) $(MAKE_DOCS)
-
-docs: doc
-
-clean: tidy
-	rm -f $(foreach d, $(DOC_DIRS), $(d)/*.{ps,pdf})
-
-tidy:
-	rm -f $(foreach d, $(DOC_DIRS), $(d)/*.{dvi,aux,log,bbl,blg,out,toc})
 
 init: permissions
 
@@ -93,20 +56,8 @@ etc/SumHUnit : etc/SumHUnit.hs
 # documentation
 # --------------------------------------------------------------------
 
-.PHONY: depgraph
-
-DOC_SRC=$(SOURCE_FILES) doc/realisation.tex
-
-$(MAKE_DOCS): %.pdf: %.tex $(DOC_SRC) doc/images/genidep.pdf
-	cd $(<D) &&\
-	$(LATEX) $(<F) && bibtex $(<F:.tex=) &&\
-       	$(LATEX) $(<F) && $(LATEX) $(<F)\
-	$(DVIPDF)
-
-doc/images/genidep.pdf :
-	graphmod -i src src/MainGeni.lhs | tred | sed -e 's/style=filled/style=solid/' | dot -Tpdf > $@
-
 publish:
 	cabal haddock
-	scp $(MAKE_DOCS) kowey@code.haskell.org:/srv/projects/GenI
-	rsync -av dist/doc/html/GenI/ kowey@code.haskell.org:/srv/projects/GenI/api-doc
+	rsync -av dist/doc/html/GenI/ doc/_site/api-doc
+	cd doc; geni-doc build
+	@echo "REMEMBER TO DO: cd doc/_site; git push"
