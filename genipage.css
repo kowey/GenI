@@ -1,0 +1,30 @@
+body { 
+    background-color: gray; 
+    text-align: center;
+    font-family: sans-serif;
+    margin-top: 5em;
+    color: #fafafa;
+}
+
+#thanks {
+  text-align: right;
+  position: absolute;
+  width: 95%;
+  bottom: 100px;
+}
+
+a img {
+  border: 0;
+}
+
+a {
+  text-decoration: none;
+}
+
+a:link {
+  color: #fafafa;
+}
+
+a:visited {
+  color: #bbbbbb;
+}
