@@ -6,7 +6,7 @@
 JUNK($|/)
 ^geniwrapper/subject-verb-agreement($|/)
 ^install.sh$
-
+^doc/wiki$
 ### GenI stuff
 ^geniwrapper/MinimalGenI-OSX($|/)
 ^geni(-gui|convert|report|server|-test)/dist($|/)
