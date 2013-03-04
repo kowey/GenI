@@ -59,5 +59,5 @@ etc/SumHUnit : etc/SumHUnit.hs
 publish:
 	cabal haddock
 	rsync -av dist/doc/html/GenI/ doc/_site/api-doc
-	cd doc; geni-doc build
+	cd doc; ../cabal-dev/bin/geni-doc build
 	@echo "REMEMBER TO DO: cd doc/_site; git push"
