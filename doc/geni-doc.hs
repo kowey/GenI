@@ -37,6 +37,6 @@ main = hakyll $ do
 homepageRoute = customRoute (takeFileName . toFilePath)
 
 defaultPageCompiler =
-        pageCompiler
-            >>> applyTemplateCompiler "templates/default.html"
-            >>> relativizeUrlsCompiler
+        pandocCompiler
+            >>= loadAndApplyTemplate "templates/default.html" defaultContext
+            >>= relativizeUrls
