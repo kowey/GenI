@@ -278,8 +278,8 @@ siInitial =  isNothing . siFoot
 
 -- | Creates an initial SimpleStatus.
 initSimpleBuilder ::  Bool -> B.Input -> [Flag] -> (SimpleStatus, Statistics)
-initSimpleBuilder twophase input flags =
-  let disableGui = hasFlag DisableGuiFlg flags
+initSimpleBuilder twophase input flags_ =
+  let disableGui = hasFlag DisableGuiFlg flags_
       cands   = map (initSimpleItem disableGui bmap) $ B.inCands input
       (sem,_,_) = B.inSemInput input
       bmap    = defineSemanticBits sem
@@ -299,10 +299,10 @@ initSimpleBuilder twophase input flags =
                , tsem      = semToBitVector bmap sem
                , step     =  SubstitutionPhase
                , gencounter = 0
-               , genconfig  = flags }
+               , genconfig  = flags_ }
       --
-  in B.unlessEmptySem input flags $
-     runState (execStateT (mapM initialDp cands) initS) (B.initStats flags)
+  in B.unlessEmptySem input flags_ $
+     runState (execStateT (mapM initialDp cands) initS) (B.initStats flags_)
 
 
 initSimpleItem :: Bool -- ^ disable gui
