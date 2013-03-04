@@ -133,6 +133,12 @@ data ProgState = ProgState
     , customMorph :: Maybe MorphRealiser
     }
 
+-- | Note that this affects the geniFlags; we assume the morph flags
+--   are not our business
+instance HasFlags ProgState where
+    flags       = flags . pa
+    onFlags f p = p { pa = onFlags f (pa p) }
+
 type ProgStateRef = IORef ProgState
 
 -- | The program state when you start GenI for the very first time
@@ -159,10 +165,9 @@ loadEverything :: ProgStateRef -> CustomSem sem -> IO()
 loadEverything pstRef wrangler = do
     pst <- readIORef pstRef
     --
-    let config   = pa pst
-        isMissing f = not $ hasFlagP f config
+    let isMissing f = not $ hasFlag f pst
     -- grammar type
-        grammarType      = getGrammarType (geniFlags config)
+        grammarType      = getGrammarType (flags pst)
         isNotPreanchored = grammarType /= PreAnchored
         isNotPrecompiled = grammarType /= PreCompiled
         useTestSuite =  isMissing FromStdinFlg
@@ -373,7 +378,7 @@ loadTestSuite pst wrangler = do
          withLoadStatus v f descr summary pfile
          >>= throwOnParseError descr
   where
-    v       = hasFlagP VerboseModeFlg (pa pst)
+    v       = hasFlag VerboseModeFlg pst
     pfile f = customSuiteParser wrangler f <$> readFileUtf8 f
     flg   = TestSuiteFlg
     descr = "test suite"
@@ -512,17 +517,16 @@ runGeni pst selector builder tc = do
     -- steps 2 to 4
     liftIO $ runBuilder istuff
   where
-    config = case tcParams tc of
-                 Nothing  -> pa pst
-                 Just new -> updateParams new (pa pst)
+    iflags = flags $ case tcParams tc of
+        Nothing  -> pa pst
+        Just new -> updateParams new (pa pst)
     semInput = tcSem tc
     runBuilder (initStuff, initWarns) = do
-        let flags  = geniFlags config
-            run    = B.run builder
+        let run    = B.run builder
         --force evaluation before measuring start time to avoid including grammar/lexicon parsing.
         start <- rnf initStuff `seq` getCPUTime
         -- step 2: chart generation
-        let (finalSt, stats) = run initStuff flags
+        let (finalSt, stats) = run initStuff iflags
         -- step 3: unpacking and
         -- step 4: post-processing
         results <- extractResults pst builder finalSt
@@ -558,11 +562,10 @@ simplifyResults (Right (r,_)) = r
 --   * Finalises the results (morphological generation)
 extractResults :: ProgState ->  B.Builder st it -> st -> IO [GeniResult]
 extractResults pst builder finalSt = do
-    let config = pa pst
     -- step 3: unpacking
     let uninflected = B.unpack builder finalSt
         (rawResults, resultTy) =
-            if null uninflected && hasFlagP PartialFlg config
+            if null uninflected && hasFlag PartialFlg pst
                then (B.partial builder finalSt, PartialResult)
                else (uninflected              , CompleteResult)
         status = B.finished builder finalSt

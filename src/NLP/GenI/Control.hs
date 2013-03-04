@@ -34,6 +34,12 @@ data Params = Params
     }
 
 
+-- | Note that this affects the geniFlags; we assume the morph flags
+--   are not our business
+instance HasFlags Params where
+    flags       = geniFlags
+    onFlags f p = p { geniFlags = f (geniFlags p) }
+
 updateParams :: Params -- ^ new
              -> Params -- ^ old
              -> Params

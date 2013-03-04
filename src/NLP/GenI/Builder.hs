@@ -148,16 +148,16 @@ type BuilderState s a = StateT s (State Statistics) a
 -- have the same variables.
 
 preInit :: Input -> [Flag] -> (Input, PolResult)
-preInit input flags =
+preInit input flags_ =
  let (cand,_) = unzip $ inCands input
      seminput = inSemInput input
      --
      extraPol = Map.empty
      polsToDetect = fromMaybe (error "there should be a default for --detect-pols")
-                  $ getFlag DetectPolaritiesFlg flags
-     rootFeat = mkFeatStruct $ getListFlag RootFeatureFlg flags
+                  $ getFlag DetectPolaritiesFlg flags_
+     rootFeat = mkFeatStruct $ getListFlag RootFeatureFlg flags_
      -- do any optimisations
-     isPol = hasOpt Polarised flags
+     isPol = hasOpt Polarised flags_
      -- polarity optimisation (if enabled)
      autstuff = buildAutomaton polsToDetect rootFeat extraPol seminput cand
      autpaths = map concat . automatonPathSets . prFinal $ autstuff
@@ -353,13 +353,13 @@ queryCounter key s =
 -- Command line configuration
 
 initStats :: [Flag] -> Statistics
-initStats flags =
+initStats flags_ =
     execState (mapM_ addMetric metrics) emptyStats
   where
     mdefault ms = if "default" `elem` ms then defaultMetricNames else []
     identifyMs :: [String] -> [Metric]
     identifyMs ms = map namedMetric $ mdefault ms ++ delete "default" ms
-    metrics = identifyMs $ fromMaybe [] $ getFlag MetricsFlg flags
+    metrics = identifyMs $ fromMaybe [] $ getFlag MetricsFlg flags_
 
 namedMetric :: String -> Metric
 -- the default case is that it's an int metric
