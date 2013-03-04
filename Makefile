@@ -24,8 +24,6 @@ build: dist/build/geni/geni
 dist/build/geni/geni: $(SOURCE_FILES)
 	cabal build
 
-doc:  init maindoc
-
 init: permissions
 
 permissions: $(config_file)
@@ -56,7 +54,7 @@ etc/SumHUnit : etc/SumHUnit.hs
 # documentation
 # --------------------------------------------------------------------
 
-publish:
+doc:
 	cabal haddock
 	rsync -av dist/doc/html/GenI/ doc/_site/api-doc
 	cd doc; ../cabal-dev/bin/geni-doc build
