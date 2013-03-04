@@ -45,9 +45,8 @@ import Graphics.UI.WXCore ( textCtrlSetEditable )
 import NLP.GenI
 import NLP.GenI.Automaton (numStates, numTransitions)
 import NLP.GenI.Builder (queryCounter, num_iterations, chart_size, num_comparisons)
-import NLP.GenI.Configuration ( Params(..), MetricsFlg(..), setFlagP, getFlagP
-                              , hasOpt, Optimisation(..)
-                              , MacrosFlg(..), ViewCmdFlg(..) )
+import NLP.GenI.Configuration ( Params(..) )
+import NLP.GenI.Flag
 import NLP.GenI.General (dropTillIncluding, ePutStrLn)
 import NLP.GenI.Parser ( geniTagElems, parseFromFile )
 import NLP.GenI.GeniShow ( geniShowText )
@@ -318,8 +317,8 @@ viewTagWidgets p gvRef config = do
 
 runViewTag :: Params -> String -> IO ()
 runViewTag params drName =
-    maybeOrWarn warnTf (getFlagP MacrosFlg params)  $ \f ->
-    maybeOrWarn warnVc (getFlagP ViewCmdFlg params) $ \cmd ->
+    maybeOrWarn warnTf (getFlag MacrosFlg params)  $ \f ->
+    maybeOrWarn warnVc (getFlag ViewCmdFlg params) $ \cmd ->
        actuallyView f cmd
   where
     warnTf = "Warning: No tree schema file specified (runViewTag)"
@@ -387,8 +386,8 @@ debuggerPanel :: GraphvizShow (GvItem flg itm)
               -> B.Input
               -> IO Layout
 debuggerPanel (Debugger {..}) pst f input = do
-    let config = setMetrics (pa pst)
-    let (initS, initStats) = initBuilder input (geniFlags config)
+    let config = setMetrics pst
+    let (initS, initStats) = initBuilder input (flags config)
     p <- panel f []
     -- ---------------------------------------------------------
     -- item viewer: select and display an item
@@ -464,7 +463,7 @@ debuggerPanel (Debugger {..}) pst f input = do
     initBuilder = B.init  dBuilder
     nextStep    = B.step  dBuilder
     allSteps    = B.stepAll dBuilder
-    setMetrics  = setFlagP MetricsFlg B.defaultMetricNames
+    setMetrics  = setFlag MetricsFlg B.defaultMetricNames
     -- builder stateToGv itemBar f config_ input cachedir = do
     callNext d stats st = do
         done <- varGet d

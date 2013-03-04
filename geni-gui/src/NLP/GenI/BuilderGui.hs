@@ -24,6 +24,7 @@ import qualified NLP.GenI.Builder as B
 import NLP.GenI (ProgState, GeniResult)
 import NLP.GenI.LexicalSelection ( CustomSem )
 import NLP.GenI.Statistics (Statistics)
+import NLP.GenI.TestSuite
 
 -- | Once upon a time, GenI had two very different algorithms for tree assembly,
 --   a CKY/Early style one using packed trees; and the traditional “simple“
@@ -40,7 +41,7 @@ data BuilderGui = BuilderGui
                    . ProgState
                   -> CustomSem sem
                   -> Window a -- parent
-                  -> sem
+                  -> TestCase sem
                   -> IO ([GeniResult],Statistics,Layout,Layout)
     -- | Just a sentence summary tab (small part of the resultsPnl)
     , summaryPnl :: forall a

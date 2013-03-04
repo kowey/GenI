@@ -44,8 +44,7 @@ import NLP.GenI
     , loadEverything, loadTestSuite
     )
 import NLP.GenI.Configuration
-    ( Params(..), hasFlagP
-    , deleteFlagP, setFlagP, getFlagP, getListFlagP
+    ( Params(..), getBuilderType, getRanking
     , parseFlagWithParsec
     , mainBuilderTypes
     )
@@ -97,8 +96,7 @@ mainGui pstRef wrangler = do
     -- -----------------------------------------------------------------
     -- buttons
     -- -----------------------------------------------------------------
-    let config     = pa pst
-        hasSem     = hasFlagP TestSuiteFlg config
+    let hasSem     = hasFlag TestSuiteFlg pst
     -- Target Semantics
     testSuiteChoice <- choice f [ selection := 0, enabled := hasSem ]
     tsTextBox <- textCtrl f [ wrap := WrapWord
@@ -108,13 +106,13 @@ mainGui pstRef wrangler = do
     testCaseChoice <- choice f [ selection := 0
                                , enabled := hasSem ]
     -- Detect polarities and root feature
-    let initialDP = maybe "" showPolarityAttrs (getFlagP DetectPolaritiesFlg config)
-        initialRF = maybe "" prettyStr (getFlagP RootFeatureFlg config)
+    let initialDP = maybe "" showPolarityAttrs (getFlag DetectPolaritiesFlg pst)
+        initialRF = maybe "" prettyStr (getFlag RootFeatureFlg pst)
     detectPolsTxt <- entry f [ text := initialDP ]
     rootFeatTxt   <- entry f [ text := initialRF ]
     -- Box and Frame for files loaded
-    macrosFileLabel  <- staticText f [ text := getListFlagP MacrosFlg config  ]
-    lexiconFileLabel <- staticText f [ text := getListFlagP LexiconFlg config ]
+    macrosFileLabel  <- staticText f [ text := getListFlag MacrosFlg pst ]
+    lexiconFileLabel <- staticText f [ text := getListFlag LexiconFlg pst ]
     -- Generate and Debug
     let genfn = doGenerate f pstRef wrangler tsTextBox detectPolsTxt rootFeatTxt
     pauseOnLexChk <- checkBox f [ text := "Inspect lex", tooltip := "Affects debugger only"  ]
@@ -127,8 +125,8 @@ mainGui pstRef wrangler = do
     -- optimisations
     -- -----------------------------------------------------------------
     let setBuilder b = modifyIORef pstRef . modifyParams
-                     $ \p -> p { builderType = b }
-        initialSelection = case builderType config of
+                     $ \p -> p { builderType = Just b }
+        initialSelection = case getBuilderType (pa pst) of
                              SimpleBuilder         -> 0
                              SimpleOnePhaseBuilder -> 1
     algoChoiceBox <- radioBox f Vertical (map show mainBuilderTypes) []
@@ -196,12 +194,12 @@ data MainWidgets = MainWidgets
 
 mainOnLoad :: ProgStateRef -> CustomSem sem -> MainWidgets -> IO ()
 mainOnLoad pstRef wrangler (MainWidgets {..}) = do
-    cfg <- pa `fmap` readIORef pstRef -- we want the latest config!
+    pst <- readIORef pstRef -- we want the latest config!
     -- errHandler title err = errorDialog f title (show err)
-    set macrosFileLabel  [ text := getListFlagP MacrosFlg cfg ]
-    set lexiconFileLabel [ text := getListFlagP LexiconFlg cfg ]
+    set macrosFileLabel  [ text := getListFlag MacrosFlg  pst ]
+    set lexiconFileLabel [ text := getListFlag LexiconFlg pst ]
     -- read the test suite if there is one
-    case getListFlagP TestInstructionsFlg cfg of
+    case getListFlag TestInstructionsFlg pst of
       [] -> do
           set testSuiteChoice [ enabled := False, items := [] ]
           set testCaseChoice  [ enabled := False, items := [] ]
@@ -248,8 +246,8 @@ optBios = [ polarisedBio, semConstraintBio ]
 --   result, I hope, is intuitive for the user.
 optCheckBox :: Window a -> ProgStateRef -> OptBio -> IO (CheckBox ())
 optCheckBox f pstRef od = do
-    flags <- (geniFlags . pa) <$> readIORef pstRef
-    chk <- checkBox f [ checked := flippy (hasOpt o flags)
+    pst <- readIORef pstRef
+    chk <- checkBox f [ checked := flippy (hasOpt o (flags pst))
                       , text    := odShortTxt od
                       , tooltip := odToolTip od
                       ]
@@ -262,10 +260,10 @@ optCheckBox f pstRef od = do
                Pessi -> not
     onCheck chk = do
         isChecked <- get chk checked
-        config    <- pa <$> readIORef pstRef
+        pst       <- readIORef pstRef
         let modopt  = if flippy isChecked then (o:) else delete o
-            newopts = nub . modopt $ getListFlagP OptimisationsFlg config
-        modifyIORef pstRef . modifyParams $ setFlagP OptimisationsFlg newopts
+            newopts = nub . modopt $ getListFlag OptimisationsFlg pst
+        modifyIORef pstRef . modifyParams $ setFlag OptimisationsFlg newopts
 
 -- --------------------------------------------------------------------
 -- Loading files
@@ -283,9 +281,9 @@ loadTestSuiteAndRefresh :: (Textual a, Selecting b, Selection b, Items b String)
               -> IO ()
 loadTestSuiteAndRefresh f pstRef wrangler (suitePath,mcs) widgets = do
     pst_    <- readIORef pstRef
-    let pst = pst_ { pa = setFlagP TestSuiteFlg suitePath (pa pst_) }
+    let pst = setFlag TestSuiteFlg suitePath pst_
     msuite <- try (loadTestSuite pst wrangler)
-    let mcase = getFlagP TestCaseFlg (pa pst)
+    let mcase = getFlag TestCaseFlg pst
     case msuite of
         Left e  -> errorDialog f ("Error reading test suite " ++ suitePath) $ show (e :: SomeException)
         Right s -> onTestSuiteLoaded f wrangler s mcs mcase widgets
@@ -340,7 +338,6 @@ onTestSuiteLoaded f _ suite mcs mcase (tsBox, caseChoice) = do
 configGui ::  ProgStateRef -> IO () -> IO ()
 configGui pstRef loadFn = do
     pst <- readIORef pstRef
-    let config = pa pst
     --
     f  <- frame []
     p  <- panel f []
@@ -356,9 +353,9 @@ configGui pstRef loadFn = do
     -- -----------------------------------------------------------------
     pbas <- panel nb []
     -- files loaded (labels)
-    macrosFileLabel  <- staticText pbas [ text := getListFlagP MacrosFlg config  ]
-    lexiconFileLabel <- staticText pbas [ text := getListFlagP LexiconFlg config ]
-    tsFileLabel      <- staticText pbas [ text := getListFlagP TestSuiteFlg config ]
+    macrosFileLabel  <- staticText pbas [ text := getListFlag MacrosFlg    pst ]
+    lexiconFileLabel <- staticText pbas [ text := getListFlag LexiconFlg   pst ]
+    tsFileLabel      <- staticText pbas [ text := getListFlag TestSuiteFlg pst ]
     -- "Browse buttons"
     macrosBrowseBt  <- button pbas [ text := browseTxt ]
     lexiconBrowseBt <- button pbas [ text := browseTxt ]
@@ -366,10 +363,10 @@ configGui pstRef loadFn = do
     -- root feature
     detectPolsTxt <- entry pbas
         [ text := maybe "" showPolarityAttrs
-                      (getFlagP DetectPolaritiesFlg config)
+                      (getFlag DetectPolaritiesFlg pst)
         , size := longSize ]
     rootFeatTxt <- entry pbas
-        [ text := maybe "" prettyStr (getFlagP RootFeatureFlg config)
+        [ text := maybe "" prettyStr (getFlag RootFeatureFlg pst)
         , size := longSize ]
     let layFiles = [ row 1 [ label "trees:"
                            , fill $ widget macrosFileLabel
@@ -399,16 +396,16 @@ configGui pstRef loadFn = do
     -- XMG tools
     viewCmdTxt <- entry padv
         [ tooltip := "Command used for XMG tree viewing"
-        , text := getListFlagP ViewCmdFlg config ]
+        , text := getListFlag ViewCmdFlg pst ]
     let layXMG = fakeBoxed "XMG tools"
             [ row 3 [ label "XMG view command"
                     , marginRight $ hfill $ widget viewCmdTxt ] ]
     -- morphology
-    morphFileLabel    <- staticText padv [ text := getListFlagP MorphInfoFlg config ]
+    morphFileLabel    <- staticText padv [ text := getListFlag MorphInfoFlg pst ]
     morphFileBrowseBt <- button padv [ text := browseTxt ]
     morphCmdTxt    <- entry padv
        [ tooltip := "Commmand used for morphological generation"
-       , text    := getListFlagP MorphCmdFlg config ]
+       , text    := getListFlag MorphCmdFlg pst ]
     let layMorph = fakeBoxed "Morphology"
             [ row 3 [ label "morph info:"
                     , expand $ hfill $ widget morphFileLabel
@@ -465,14 +462,14 @@ configGui pstRef loadFn = do
               morphInfoVal <- get morphFileLabel text
               --
               let maybeSet fl fn x =
-                     if null x then deleteFlagP fl else setFlagP fl (fn x)
+                     if null x then deleteFlag fl else setFlag fl (fn x)
                   maybeSetStr fl = maybeSet fl id
               let setConfig = id
                     . maybeSetStr MacrosFlg    macrosVal
                     . maybeSetStr LexiconFlg   lexconVal
                     . maybeSetStr TestSuiteFlg tsVal
                     . maybeSetStr TestInstructionsFlg [(tsVal,Nothing)]
-                    . setFlagP DetectPolaritiesFlg (readPolarityAttrs detectPolsVal)
+                    . setFlag     DetectPolaritiesFlg (readPolarityAttrs detectPolsVal)
                     . maybeSet RootFeatureFlg parseRF rootCatVal
                     . maybeSetStr ViewCmdFlg   viewVal
                     . maybeSetStr MorphCmdFlg  morphCmdVal
@@ -510,10 +507,10 @@ doGenerate f pstRef wrangler sembox detectPolsTxt rootFeatTxt useDebugger pauseO
     detectPolsVal <- get detectPolsTxt text
     --
     let maybeSet fl fn x =
-           if null x then deleteFlagP fl else setFlagP fl (fn x)
+           if null x then deleteFlag fl else setFlag fl (fn x)
     let setConfig = id
                   . maybeSet RootFeatureFlg parseRF rootCatVal
-                  . setFlagP DetectPolaritiesFlg (readPolarityAttrs detectPolsVal)
+                  . setFlag  DetectPolaritiesFlg (readPolarityAttrs detectPolsVal)
     modifyIORef pstRef (modifyParams setConfig)
     --
     minput <- do
@@ -533,11 +530,11 @@ doGenerate f pstRef wrangler sembox detectPolsTxt rootFeatTxt useDebugger pauseO
     handler title fn err = errorDialog f title (fn err)
     withBuilderGui a = do
         pst <- readIORef pstRef
-        case builderType (pa pst) of
+        case getBuilderType (pa pst) of
             SimpleBuilder         -> a simpleGui2p
             SimpleOnePhaseBuilder -> a simpleGui1p
 
-resultsGui :: BG.BuilderGui -> ProgState -> CustomSem sem -> sem -> IO ()
+resultsGui :: BG.BuilderGui -> ProgState -> CustomSem sem -> TestCase sem -> IO ()
 resultsGui builderGui pst wrangler semInput = do
     -- results window
     f <- frame [ text := "Results"
@@ -552,7 +549,7 @@ resultsGui builderGui pst wrangler semInput = do
     -- realisations tab
     (results,_,summTab,resTab) <- BG.resultsPnl builderGui pst wrangler nb semInput
     -- ranking tab
-    mRankTab <- if null (ranking (pa pst))
+    mRankTab <- if null (getRanking (pa pst))
                    then return Nothing
                    else Just <$> messageGui nb (purty results)
     -- tabs
@@ -579,23 +576,23 @@ resultsGui builderGui pst wrangler semInput = do
 inputInfoGui :: Window a -- ^ parent window
              -> [Flag]
              -> CustomSem sem
-             -> sem
+             -> TestCase  sem
              -> IO Layout
-inputInfoGui f flags wrangler csem = messageGui f . T.unlines $
+inputInfoGui f flags_ wrangler tc = messageGui f . T.unlines $
     [ csemStr, "" ] ++ semBlock ++
     [ "Options"
     , "-------"
-    , "Root feature: " <> maybe "" pretty (getFlag RootFeatureFlg flags)
+    , "Root feature: " <> maybe "" pretty (getFlag RootFeatureFlg flags_)
     , ""
     , "Optimisations"
     , "-------------"
     ] ++ map optStatus optBios ++ polStuff
 
  where
-  csemStr = customRenderSem wrangler csem
+  csemStr = customRenderSem wrangler (tcSem tc)
   -- only show distinct a semantic block if we have a custom semantics
   -- otherwise, it's covered by the csemStr
-  semBlock = case fromCustomSemInput wrangler csem of
+  semBlock = case fromCustomSemInput wrangler (tcSem tc) of
                 Left err -> [ "SEMANTIC CONVERSION ERROR"
                             , "-------------------------"
                             , err
@@ -614,8 +611,8 @@ inputInfoGui f flags wrangler csem = messageGui f . T.unlines $
   enabld od = case odType od of
                 Opti  -> configged od
                 Pessi -> not (configged od)
-  configged od = hasOpt  (odOpt od) flags
-  dps = maybe "" showPolarityAttrs (getFlag DetectPolaritiesFlg flags)
+  configged od = hasOpt  (odOpt od) flags_
+  dps = maybe "" showPolarityAttrs (getFlag DetectPolaritiesFlg flags_)
   polStuff = if enabld polarisedBio
               then [ ""
                    , "Detect polarities: " <> T.pack dps
@@ -624,8 +621,8 @@ inputInfoGui f flags wrangler csem = messageGui f . T.unlines $
 
 -- | We provide here a universal debugging interface, which makes use of some
 --   parameterisable bits as defined in the BuilderGui module.
-debugGui :: BG.BuilderGui -> ProgState -> CustomSem sem -> sem -> Bool -> IO ()
-debugGui builderGui pst wrangler semInput pauseOnLex = do
+debugGui :: BG.BuilderGui -> ProgState -> CustomSem sem -> TestCase sem -> Bool -> IO ()
+debugGui builderGui pst wrangler tc pauseOnLex = do
     f <- frame [ text := "GenI Debugger - " ++ show btype ++ " edition"
                , fullRepaintOnResize := False
                , clientSize := sz 300 300
@@ -641,15 +638,14 @@ debugGui builderGui pst wrangler semInput pauseOnLex = do
            notebookSetSelection nb oldCount >> return ()
     --
     -- generation step 1
-    minit <- runErrorT $ initGeni pst wrangler semInput
+    minit <- runErrorT $ initGeni pst wrangler (tcSem tc)
     case minit of
         Left err -> do
            msgPnl <- messageGui nb err
            addTabs [ tab "error" msgPnl ]
         Right x  -> guiRest nb addTabs x
   where
-    config = pa pst
-    btype  = builderType config
+    btype  = getBuilderType (pa pst)
     --
     myPolarityGui nb autstuff =
        fst3 <$> polarityGui nb (prIntermediate autstuff) (prFinal autstuff)
@@ -657,7 +653,6 @@ debugGui builderGui pst wrangler semInput pauseOnLex = do
     --
     guiRest nb addTabs (initStuff, initWarns) = do
         let (cand,_)   = unzip $ B.inCands initStuff
-            flags      = geniFlags config
         -- continuation for tree assembly tab
         let step3 results stats = do
                 resPnl <- BG.summaryPnl builderGui pst nb results stats
@@ -666,9 +661,9 @@ debugGui builderGui pst wrangler semInput pauseOnLex = do
         let step2 newCands = do
                -- generation step 2.A (run polarity stuff)
                let newInitStuff = initStuff { B.inCands = map noBv newCands }
-                   (input2, autstuff) = B.preInit newInitStuff flags
+                   (input2, autstuff) = B.preInit newInitStuff (flags pst)
                -- automata tab
-               mAutPnl <- if hasOpt Polarised flags
+               mAutPnl <- if hasOpt Polarised (flags pst)
                              then Just <$> myPolarityGui nb autstuff
                              else return Nothing
                -- generation step 2.B (start the generator for each path)
@@ -677,9 +672,9 @@ debugGui builderGui pst wrangler semInput pauseOnLex = do
                    debugTab = tab "tree assembly" debugPnl
                addTabs $ catMaybes [ mAutTab, Just debugTab ]
         -- inputs tab
-        inpPnl <- inputInfoGui nb flags wrangler semInput
+        inpPnl <- inputInfoGui nb (flags pst) wrangler tc
         -- lexical selection tab
-        (canPnl,_,_) <- pauseOnLexGui config nb
+        (canPnl,_,_) <- pauseOnLexGui (pa pst) nb
                            (B.inLex initStuff) cand initWarns $
                            if pauseOnLex then Just step2 else Nothing
         -- basic tabs

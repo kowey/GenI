@@ -27,12 +27,11 @@ import Paths_geni_gui ( version )
 import NLP.GenI ( ProgState(..), emptyProgState, defaultCustomSem )
 import NLP.GenI.Configuration
     ( treatArgs, optionsForStandardGenI, processInstructions, usage
-    , optionsSections, hasFlagP
-    , BatchDirFlg(..), DumpDerivationFlg(..),  FromStdinFlg(..)
-    , HelpFlg(..), VersionFlg(..)
+    , optionsSections
     , readGlobalConfig, setLoggers
     )
 import NLP.GenI.Console(consoleGeni)
+import NLP.GenI.Flag
 import NLP.GenI.Gui(guiGeni)
 import NLP.GenI.LexicalSelection
 
@@ -51,7 +50,7 @@ mainWithState pst wrangler = do
     maybe (return ()) setLoggers =<< readGlobalConfig
     pstRef <- newIORef pst
     let has :: (Typeable f, Typeable x) => (x -> f) -> Bool
-        has = flip hasFlagP (pa pst)
+        has = flip hasFlag pst
         mustRunInConsole = has DumpDerivationFlg || has FromStdinFlg
                         || has BatchDirFlg
     case () of

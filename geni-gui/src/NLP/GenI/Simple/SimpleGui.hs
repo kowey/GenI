@@ -63,6 +63,7 @@ import NLP.GenI.Simple.SimpleBuilder
     , theResults, theAgenda, theHoldingPen, theChart, theTrash
     )
 import NLP.GenI.Statistics (Statistics, showFinalStats, emptyStats)
+import NLP.GenI.TestSuite
 import NLP.GenI.Tag (dsChild, TagItem(..))
 import NLP.GenI.TreeSchema ( GNode(..), GType(..) )
 import qualified NLP.GenI.Builder    as B
@@ -87,11 +88,11 @@ resultsPnl :: Bool
            -> ProgState
            -> CustomSem sem
            -> Window a
-           -> sem
+           -> TestCase sem
            -> IO ([GeniResult], Statistics, Layout, Layout)
-resultsPnl twophase pst wrangler f semInput = do
+resultsPnl twophase pst wrangler f tc = do
     mresults <- runErrorT $
-        runGeni pst wrangler (simpleBuilder twophase) semInput
+        runGeni pst wrangler (simpleBuilder twophase) tc
     case mresults of
         Left err  -> do
             (resultsL, _, _) <- realisationsGui pst f []
