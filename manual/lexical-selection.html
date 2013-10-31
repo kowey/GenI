@@ -25,7 +25,14 @@
 <p>Because the input semantics is saturated, the instantiated lexical item also has a saturated semantics.</p>
 <h2 id="enrichment">Enrichment</h2>
 <p><a name="enrichment"></a></p>
-<p>Enrichment is a process which adds features to either the interface, an explicitly named node or the co-anchor of a lexically selected tree. The enrichement information comes from the lexicon in the form of a path equations which specify</p>
+<p>Enrichment is a process which adds features to either the interface, an explicitly named node or the co-anchor of a lexically selected tree.</p>
+<p>There are three possible enrichment outcomes:</p>
+<ol style="list-style-type: decimal">
+<li>success : all nodes found; the tree is modified</li>
+<li>soft failure (enrichment on nodes only) : some nodes not found and ignored</li>
+<li>hard failure: unification failure</li>
+</ol>
+<p>The enrichement information comes from the lexicon in the form of a path equations which specify</p>
 <ol style="list-style-type: decimal">
 <li><p>the location</p></li>
 <li><p>top, bottom, or lex</p></li>
