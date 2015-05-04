@@ -64,7 +64,7 @@ Library
                , containers >= 0.1
                , deepseq
                , directory   > 1
-               , errors
+               , errors < 2.0
                , filepath    == 1.*
                , hslogger
                , json >= 0.4.3 && < 0.6
@@ -139,7 +139,7 @@ Executable     geni
               , GenI
               , containers  >= 0.1
               , directory   > 1
-              , errors
+              , errors < 2.0
               , filepath    == 1.*
               , yaml-light  == 0.1.*
               , hslogger
@@ -156,7 +156,7 @@ Test-Suite geni-test
  Build-Depends:    GenI
                  , base >= 4 && < 5
                  , containers  >= 0.1
-                 , errors
+                 , errors < 2.0
                  , filepath   == 1.*
                  , json
                  , mtl
